@@ -2,6 +2,8 @@ import { constants } from "node:fs";
 import { lstat, open, readdir } from "node:fs/promises";
 import { basename, extname, relative, resolve, sep } from "node:path";
 
+import { isTransientToolCachePath } from "@lervo/context";
+
 import { isIgnorableFilesystemMetadata } from "./filesystem-metadata.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { loadDocumentMoveLineages } from "./source-lineage.js";
@@ -166,7 +168,9 @@ export function repositoryPathCanRemainIncluded(
   path: string,
   policy: RepositoryKnowledgePolicy,
 ): boolean {
-  return !excluded(path, policy.exclude) && !secretCandidatePath(path);
+  return (
+    !excluded(path, policy.exclude) && !isTransientToolCachePath(path) && !secretCandidatePath(path)
+  );
 }
 
 export function repositorySourceClassificationForPath(path: string): "ordinary" | "sensitive" {
@@ -554,7 +558,7 @@ export async function scanRepositoryKnowledge(input: {
           `${path} escapes the repository root.`,
         );
       }
-      if (excluded(path, input.policy.exclude)) {
+      if (excluded(path, input.policy.exclude) || isTransientToolCachePath(path)) {
         if (entry.isFile() || entry.isSymbolicLink()) {
           sources.push({
             sourceId,

@@ -22,7 +22,7 @@ Every resulting turn retains speaker, addressee, thread or deliberation ID, role
 - Every eligible unaddressed human message has one deterministic owner in conversational deployments; semantic participation failure cannot silently discard it.
 - A deployment ignores messages containing Discord mentions it cannot map. It must not reclassify them as unaddressed or let an unrelated stable owner answer for the missing addressee.
 - Agent-authored discussion is read-only by default.
-- Unbound agent messages start at maximum automation depth. Exact reviewed peer agents may start at depth zero. Every agent-to-agent response uses reply correlation so separate integrations advance the same depth and stop at the configured maximum. This grants no effect authority.
+- Unbound and unaddressed agent messages start at maximum automation depth. An exact hired-agent author starts at depth zero only when it addresses another exact agent binding; mentioning a person does not start an automation chain. Every agent-to-agent response uses reply correlation so separate integrations advance the same depth and stop at the configured maximum. This grants no effect authority.
 - Agent-authored continuation and platform effects require a separate exact participant, role, tenant, and conversation opt-in, retaining existing signed command and allowlisted-effect boundaries.
 - Repository mutation, external effects, assignment changes, and approval resolution require existing authority paths.
 - Participation policies, maximum automation depth, response budgets, explicit deliberation termination, and self-message suppression must prevent agent reply loops.

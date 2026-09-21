@@ -7,7 +7,7 @@ import {
 import type { OutcomeSupervisionSnapshotV1 } from "@lervo/application-contract";
 import { canonicalJson } from "@lervo/event-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import { operatingContractHash } from "@lervo/work-controller";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import type { NodeSupervisionSession } from "./supervision-session.js";
@@ -100,7 +100,7 @@ export async function reconcileSupervisionCancellation(input: {
     },
     recordEvent: async (event) => {
       const current = await session.readRecoveryAuthority();
-      const workstream = await readCurrentWorkstreamState(storage.paths.repositoryRoot);
+      const workstream = await readBoundWorkstreamState(storage, binding.workstreamId);
       const agents = await listAgents(storage.paths.repositoryRoot);
       const assignments = await listAssignments(storage.paths.repositoryRoot);
       const expectedAssignments = source.allAssignments.map((item) =>

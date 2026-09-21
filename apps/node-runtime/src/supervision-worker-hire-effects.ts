@@ -2,7 +2,7 @@ import type { OperatingActionPlanV1 } from "@lervo/application-contract";
 import { listAgents, listAssignments, registerAgent } from "@lervo/agent-workforce";
 import { workforceProviderPolicyHash } from "@lervo/agent-organization";
 import { openProjectStorage } from "@lervo/project-storage";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import { resolveRoleContract } from "@lervo/roles";
 import { operatingContractHash, operatingDecisionId } from "@lervo/work-controller";
 import type { NodeSupervisionEffectSession } from "./supervision-runtime-ports.js";
@@ -108,7 +108,7 @@ export class SupervisionWorkerHireEffects {
           const created = agents.find((item) => item.agentId === event.payload.agentId);
           const fresh = await observeNodeSupervisionAuthority(storage, this.binding, this.now);
           const currentRole = await resolveRoleContract(this.root, basis.role.roleId);
-          const workstream = await readCurrentWorkstreamState(this.root);
+          const workstream = await readBoundWorkstreamState(storage, this.binding.workstreamId);
           const assignments = await listAssignments(this.root);
           if (
             created === undefined ||

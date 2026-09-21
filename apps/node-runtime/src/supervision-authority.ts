@@ -24,7 +24,8 @@ export class NodeSupervisionError extends Error {
       | "supervision_session_closed"
       | "supervision_readiness_changed"
       | "supervision_readiness_stale"
-      | "supervision_knowledge_snapshot_changed",
+      | "supervision_knowledge_snapshot_changed"
+      | "supervision_workstream_inactive",
   ) {
     super(`Node supervision failed: ${code}.`);
     this.name = "NodeSupervisionError";
@@ -147,6 +148,8 @@ export async function observeNodeSupervisionRecoveryAuthority(
     installation.mandate,
     "current",
     authorityHistory,
+    undefined,
+    binding.workstreamId,
   );
   const confirmed = await readInstalledNodeMandate(storage, binding, now);
   const observedAt = now();

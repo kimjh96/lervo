@@ -65,6 +65,7 @@ describe("runtime service definition renderer", () => {
     expect(content).toContain("ExecReload=/bin/kill -HUP $MAINPID");
     expect(content).toContain("KillSignal=SIGTERM");
     expect(content).toContain("Restart=on-failure");
+    expect(content).toContain('Environment="PATH=');
     expect(content).toContain('ExecStart="');
     await expect(
       renderRuntimeService([
@@ -103,6 +104,8 @@ describe("runtime service definition renderer", () => {
     expect(content).toContain("com.lervo.node.0123456789abcdef01234567");
     expect(content).toContain("runtime &amp; config.json");
     expect(content).toContain("<key>SuccessfulExit</key>");
+    expect(content).toContain("<key>EnvironmentVariables</key>");
+    expect(content).toContain("<key>PATH</key>");
     expect(content).not.toContain("{}");
   });
 

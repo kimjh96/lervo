@@ -417,11 +417,11 @@ var require_codegen = __commonJS({
         const rhs = this.rhs === void 0 ? "" : ` = ${this.rhs}`;
         return `${varKind} ${this.name}${rhs};` + _n;
       }
-      optimizeNames(names, constants23) {
+      optimizeNames(names, constants24) {
         if (!names[this.name.str])
           return;
         if (this.rhs)
-          this.rhs = optimizeExpr(this.rhs, names, constants23);
+          this.rhs = optimizeExpr(this.rhs, names, constants24);
         return this;
       }
       get names() {
@@ -438,10 +438,10 @@ var require_codegen = __commonJS({
       render({ _n }) {
         return `${this.lhs} = ${this.rhs};` + _n;
       }
-      optimizeNames(names, constants23) {
+      optimizeNames(names, constants24) {
         if (this.lhs instanceof code_1.Name && !names[this.lhs.str] && !this.sideEffects)
           return;
-        this.rhs = optimizeExpr(this.rhs, names, constants23);
+        this.rhs = optimizeExpr(this.rhs, names, constants24);
         return this;
       }
       get names() {
@@ -502,8 +502,8 @@ var require_codegen = __commonJS({
       optimizeNodes() {
         return `${this.code}` ? this : void 0;
       }
-      optimizeNames(names, constants23) {
-        this.code = optimizeExpr(this.code, names, constants23);
+      optimizeNames(names, constants24) {
+        this.code = optimizeExpr(this.code, names, constants24);
         return this;
       }
       get names() {
@@ -532,12 +532,12 @@ var require_codegen = __commonJS({
         }
         return nodes.length > 0 ? this : void 0;
       }
-      optimizeNames(names, constants23) {
+      optimizeNames(names, constants24) {
         const { nodes } = this;
         let i = nodes.length;
         while (i--) {
           const n = nodes[i];
-          if (n.optimizeNames(names, constants23))
+          if (n.optimizeNames(names, constants24))
             continue;
           subtractNames(names, n.names);
           nodes.splice(i, 1);
@@ -590,12 +590,12 @@ var require_codegen = __commonJS({
           return void 0;
         return this;
       }
-      optimizeNames(names, constants23) {
+      optimizeNames(names, constants24) {
         var _a;
-        this.else = (_a = this.else) === null || _a === void 0 ? void 0 : _a.optimizeNames(names, constants23);
-        if (!(super.optimizeNames(names, constants23) || this.else))
+        this.else = (_a = this.else) === null || _a === void 0 ? void 0 : _a.optimizeNames(names, constants24);
+        if (!(super.optimizeNames(names, constants24) || this.else))
           return;
-        this.condition = optimizeExpr(this.condition, names, constants23);
+        this.condition = optimizeExpr(this.condition, names, constants24);
         return this;
       }
       get names() {
@@ -618,10 +618,10 @@ var require_codegen = __commonJS({
       render(opts) {
         return `for(${this.iteration})` + super.render(opts);
       }
-      optimizeNames(names, constants23) {
-        if (!super.optimizeNames(names, constants23))
+      optimizeNames(names, constants24) {
+        if (!super.optimizeNames(names, constants24))
           return;
-        this.iteration = optimizeExpr(this.iteration, names, constants23);
+        this.iteration = optimizeExpr(this.iteration, names, constants24);
         return this;
       }
       get names() {
@@ -657,10 +657,10 @@ var require_codegen = __commonJS({
       render(opts) {
         return `for(${this.varKind} ${this.name} ${this.loop} ${this.iterable})` + super.render(opts);
       }
-      optimizeNames(names, constants23) {
-        if (!super.optimizeNames(names, constants23))
+      optimizeNames(names, constants24) {
+        if (!super.optimizeNames(names, constants24))
           return;
-        this.iterable = optimizeExpr(this.iterable, names, constants23);
+        this.iterable = optimizeExpr(this.iterable, names, constants24);
         return this;
       }
       get names() {
@@ -702,11 +702,11 @@ var require_codegen = __commonJS({
         (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNodes();
         return this;
       }
-      optimizeNames(names, constants23) {
+      optimizeNames(names, constants24) {
         var _a, _b;
-        super.optimizeNames(names, constants23);
-        (_a = this.catch) === null || _a === void 0 ? void 0 : _a.optimizeNames(names, constants23);
-        (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNames(names, constants23);
+        super.optimizeNames(names, constants24);
+        (_a = this.catch) === null || _a === void 0 ? void 0 : _a.optimizeNames(names, constants24);
+        (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNames(names, constants24);
         return this;
       }
       get names() {
@@ -1007,7 +1007,7 @@ var require_codegen = __commonJS({
     function addExprNames(names, from) {
       return from instanceof code_1._CodeOrName ? addNames(names, from.names) : names;
     }
-    function optimizeExpr(expr, names, constants23) {
+    function optimizeExpr(expr, names, constants24) {
       if (expr instanceof code_1.Name)
         return replaceName(expr);
       if (!canOptimize(expr))
@@ -1022,14 +1022,14 @@ var require_codegen = __commonJS({
         return items;
       }, []));
       function replaceName(n) {
-        const c = constants23[n.str];
+        const c = constants24[n.str];
         if (c === void 0 || names[n.str] !== 1)
           return n;
         delete names[n.str];
         return c;
       }
       function canOptimize(e) {
-        return e instanceof code_1._Code && e._items.some((c) => c instanceof code_1.Name && names[c.str] === 1 && constants23[c.str] !== void 0);
+        return e instanceof code_1._Code && e._items.some((c) => c instanceof code_1.Name && names[c.str] === 1 && constants24[c.str] !== void 0);
       }
     }
     function subtractNames(names, from) {
@@ -2991,7 +2991,7 @@ var require_compile = __commonJS({
       const schOrFunc = root2.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve68.call(this, root2, ref);
+      let _sch = resolve69.call(this, root2, ref);
       if (_sch === void 0) {
         const schema = (_a = root2.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3018,7 +3018,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve68(root2, ref) {
+    function resolve69(root2, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3649,7 +3649,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve68(baseURI, relativeURI, options) {
+    function resolve69(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const { parsed: baseParsed, malformedAuthorityOrPort: baseMalformed } = parseWithStatus(baseURI, schemelessOptions);
       const { parsed: relativeParsed, malformedAuthorityOrPort: relativeMalformed } = parseWithStatus(relativeURI, schemelessOptions);
@@ -3933,7 +3933,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve: resolve68,
+      resolve: resolve69,
       resolveComponent,
       equal,
       serialize,
@@ -4777,8 +4777,8 @@ var require_multipleOf = __commonJS({
         const { gen, data, schemaCode, it } = cxt;
         const prec = it.opts.multipleOfPrecision;
         const res = gen.let("res");
-        const invalid4 = prec ? (0, codegen_1._)`Math.abs(Math.round(${res}) - ${res}) > 1e-${prec}` : (0, codegen_1._)`${res} !== parseInt(${res})`;
-        cxt.fail$data((0, codegen_1._)`(${schemaCode} === 0 || (${res} = ${data}/${schemaCode}, ${invalid4}))`);
+        const invalid5 = prec ? (0, codegen_1._)`Math.abs(Math.round(${res}) - ${res}) > 1e-${prec}` : (0, codegen_1._)`${res} !== parseInt(${res})`;
+        cxt.fail$data((0, codegen_1._)`(${schemaCode} === 0 || (${res} = ${data}/${schemaCode}, ${invalid5}))`);
       }
     };
     exports.default = def;
@@ -17510,20 +17510,20 @@ var require_lib = __commonJS({
           consequent,
           failed
         } = this.tryParseConditionalConsequent();
-        let [valid, invalid4] = this.getArrowLikeExpressions(consequent);
-        if (failed || invalid4.length > 0) {
+        let [valid, invalid5] = this.getArrowLikeExpressions(consequent);
+        if (failed || invalid5.length > 0) {
           const noArrowAt = [...originalNoArrowAt];
-          if (invalid4.length > 0) {
+          if (invalid5.length > 0) {
             this.state = state2;
             this.state.noArrowAt = noArrowAt;
-            for (let i = 0; i < invalid4.length; i++) {
-              noArrowAt.push(invalid4[i].start);
+            for (let i = 0; i < invalid5.length; i++) {
+              noArrowAt.push(invalid5[i].start);
             }
             ({
               consequent,
               failed
             } = this.tryParseConditionalConsequent());
-            [valid, invalid4] = this.getArrowLikeExpressions(consequent);
+            [valid, invalid5] = this.getArrowLikeExpressions(consequent);
           }
           if (failed && valid.length > 1) {
             this.raise(FlowErrors.AmbiguousConditionalArrow, state2.startLoc);
@@ -20062,7 +20062,7 @@ var require_lib = __commonJS({
       const start = pos;
       const forbiddenSiblings = radix === 16 ? forbiddenNumericSeparatorSiblings.hex : forbiddenNumericSeparatorSiblings.decBinOct;
       const isAllowedSibling = radix === 16 ? isAllowedNumericSeparatorSibling.hex : radix === 10 ? isAllowedNumericSeparatorSibling.dec : radix === 8 ? isAllowedNumericSeparatorSibling.oct : isAllowedNumericSeparatorSibling.bin;
-      let invalid4 = false;
+      let invalid5 = false;
       let total = 0;
       for (let i = 0, e = len == null ? Infinity : len; i < e; ++i) {
         const code2 = input.charCodeAt(pos);
@@ -20105,7 +20105,7 @@ var require_lib = __commonJS({
             val = 0;
           } else if (forceLen) {
             val = 0;
-            invalid4 = true;
+            invalid5 = true;
           } else {
             break;
           }
@@ -20113,7 +20113,7 @@ var require_lib = __commonJS({
         ++pos;
         total = total * radix + val;
       }
-      if (pos === start || len != null && pos - start !== len || invalid4) {
+      if (pos === start || len != null && pos - start !== len || invalid5) {
         return {
           n: null,
           pos
@@ -29101,9 +29101,9 @@ var require_picocolors = __commonJS({
     var argv = p.argv || [];
     var env = p.env || {};
     var isColorSupported = !(!!env.NO_COLOR || argv.includes("--no-color")) && (!!env.FORCE_COLOR || argv.includes("--color") || p.platform === "win32" || (p.stdout || {}).isTTY && env.TERM !== "dumb" || !!env.CI);
-    var formatter = (open27, close, replace = open27) => (input) => {
-      let string4 = "" + input, index2 = string4.indexOf(close, open27.length);
-      return ~index2 ? open27 + replaceClose(string4, close, replace, index2) + close : open27 + string4 + close;
+    var formatter = (open28, close, replace = open28) => (input) => {
+      let string4 = "" + input, index2 = string4.indexOf(close, open28.length);
+      return ~index2 ? open28 + replaceClose(string4, close, replace, index2) + close : open28 + string4 + close;
     };
     var replaceClose = (string4, close, replace, index2) => {
       let result = "", cursor = 0;
@@ -32955,7 +32955,7 @@ var require_input = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/input.js"(exports, module) {
     "use strict";
     var { nanoid } = require_non_secure();
-    var { isAbsolute: isAbsolute6, resolve: resolve68 } = __require("path");
+    var { isAbsolute: isAbsolute6, resolve: resolve69 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { fileURLToPath: fileURLToPath2, pathToFileURL } = __require("url");
     var CssSyntaxError2 = require_css_syntax_error();
@@ -32963,7 +32963,7 @@ var require_input = __commonJS({
     var terminalHighlight = require_terminal_highlight();
     var lineToIndexCache = /* @__PURE__ */ Symbol("lineToIndexCache");
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(resolve68 && isAbsolute6);
+    var pathAvailable = Boolean(resolve69 && isAbsolute6);
     function getLineToIndex(input) {
       if (input[lineToIndexCache]) return input[lineToIndexCache];
       let lines = input.css.split("\n");
@@ -32997,7 +32997,7 @@ var require_input = __commonJS({
           if (!pathAvailable || /^\w+:\/\//.test(opts.from) || isAbsolute6(opts.from)) {
             this.file = opts.from;
           } else {
-            this.file = resolve68(opts.from);
+            this.file = resolve69(opts.from);
           }
         }
         if (pathAvailable && sourceMapAvailable) {
@@ -33118,7 +33118,7 @@ var require_input = __commonJS({
         if (/^\w+:\/\//.test(file)) {
           return file;
         }
-        return resolve68(this.map.consumer().sourceRoot || this.map.root || ".", file);
+        return resolve69(this.map.consumer().sourceRoot || this.map.root || ".", file);
       }
       origin(line, column, endLine, endColumn) {
         if (!this.map) return false;
@@ -33428,12 +33428,12 @@ var require_fromJSON = __commonJS({
 var require_map_generator = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/map-generator.js"(exports, module) {
     "use strict";
-    var { dirname: dirname17, relative: relative15, resolve: resolve68, sep: sep15 } = __require("path");
+    var { dirname: dirname17, relative: relative15, resolve: resolve69, sep: sep15 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { pathToFileURL } = __require("url");
     var Input2 = require_input();
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(dirname17 && resolve68 && relative15 && sep15);
+    var pathAvailable = Boolean(dirname17 && resolve69 && relative15 && sep15);
     var MapGenerator = class {
       constructor(stringify19, root2, opts, cssString) {
         this.stringify = stringify19;
@@ -33662,7 +33662,7 @@ var require_map_generator = __commonJS({
         if (cached) return cached;
         let from = this.opts.to ? dirname17(this.opts.to) : ".";
         if (typeof this.mapOpts.annotation === "string") {
-          from = dirname17(resolve68(from, this.mapOpts.annotation));
+          from = dirname17(resolve69(from, this.mapOpts.annotation));
         }
         let path = relative15(from, file);
         this.memoizedPaths.set(file, path);
@@ -33796,7 +33796,7 @@ var require_parser2 = __commonJS({
         let prev;
         let shift;
         let last = false;
-        let open27 = false;
+        let open28 = false;
         let params = [];
         let brackets = [];
         while (!this.tokenizer.endOfFile()) {
@@ -33816,7 +33816,7 @@ var require_parser2 = __commonJS({
               this.semicolon = true;
               break;
             } else if (type === "{") {
-              open27 = true;
+              open28 = true;
               break;
             } else if (type === "}") {
               if (params.length > 0) {
@@ -33858,7 +33858,7 @@ var require_parser2 = __commonJS({
           node2.raws.afterName = "";
           node2.params = "";
         }
-        if (open27) {
+        if (open28) {
           node2.nodes = [];
           this.current = node2;
         }
@@ -35208,12 +35208,12 @@ var require_postcss = __commonJS({
 
 // apps/cli/src/terminal-hook-bin.ts
 import { createHash as createHash24 } from "node:crypto";
-import { readFile as readFile23 } from "node:fs/promises";
-import { dirname as dirname16, resolve as resolve67 } from "node:path";
+import { readFile as readFile24 } from "node:fs/promises";
+import { dirname as dirname16, resolve as resolve68 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // apps/cli/src/terminal-command-runtime.ts
-import { resolve as resolve64 } from "node:path";
+import { resolve as resolve65 } from "node:path";
 import { parseArgs as parseArgs4 } from "node:util";
 
 // packages/diagnostics/dist/recovery-guidance-environment.js
@@ -37620,6 +37620,59 @@ var conversationContentReferenceSchema = {
   required: ["artifactId", "contentHash", "byteCount", "mediaType"],
   additionalProperties: false
 };
+var conversationCoordinationSchema = {
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        kind: { const: "discussion.assignment" },
+        discussionId: { type: "string", pattern: "^dsc_[A-Za-z0-9_-]{20}$" },
+        activeParticipantId: conversationParticipantIdSchema,
+        assignmentSequence: { type: "integer", enum: [1, 2] }
+      },
+      required: ["kind", "discussionId"],
+      additionalProperties: false
+    },
+    {
+      type: "object",
+      properties: {
+        kind: { const: "discussion.contribution" },
+        discussionId: { type: "string", pattern: "^dsc_[A-Za-z0-9_-]{20}$" }
+      },
+      required: ["kind", "discussionId"],
+      additionalProperties: false
+    },
+    {
+      type: "object",
+      properties: {
+        kind: { const: "discussion.decision" },
+        discussionId: { type: "string", pattern: "^dsc_[A-Za-z0-9_-]{20}$" }
+      },
+      required: ["kind", "discussionId"],
+      additionalProperties: false
+    },
+    {
+      type: "object",
+      properties: {
+        kind: { const: "task.assignment" },
+        taskId: { type: "string", pattern: "^tsk_[A-Za-z0-9_-]{20}$" },
+        coordinatorParticipantId: conversationParticipantIdSchema
+      },
+      required: ["kind", "taskId", "coordinatorParticipantId"],
+      additionalProperties: false
+    },
+    {
+      type: "object",
+      properties: {
+        kind: { const: "task.result" },
+        taskId: { type: "string", pattern: "^tsk_[A-Za-z0-9_-]{20}$" },
+        coordinatorParticipantId: conversationParticipantIdSchema
+      },
+      required: ["kind", "taskId", "coordinatorParticipantId"],
+      additionalProperties: false
+    }
+  ]
+};
 var conversationTargetSchema = {
   type: "object",
   properties: {
@@ -37699,6 +37752,7 @@ var conversationInboundEventSchema = {
       additionalProperties: false
     },
     content: conversationContentReferenceSchema,
+    coordination: conversationCoordinationSchema,
     mentions: {
       type: "object",
       properties: {
@@ -37731,6 +37785,10 @@ var conversationInboundEventSchema = {
         },
         { type: "null" }
       ]
+    },
+    audienceParticipation: {
+      type: "string",
+      enum: ["eligible", "observe_only"]
     },
     automationDepth: { type: "integer", minimum: 0, maximum: 8 },
     occurredAt: timestampSchema
@@ -38035,6 +38093,9 @@ var conversationOutboundMessageSchema = {
     schemaVersion: schemaVersionSchema,
     outboundId: conversationOutboundIdSchema,
     sourceEventId: conversationEventIdSchema,
+    replyToEventId: {
+      anyOf: [conversationEventIdSchema, { type: "null" }]
+    },
     policyId: conversationParticipationPolicyIdSchema,
     target: conversationTargetSchema,
     actor: {
@@ -38049,7 +38110,12 @@ var conversationOutboundMessageSchema = {
       additionalProperties: false
     },
     content: conversationContentReferenceSchema,
+    coordination: conversationCoordinationSchema,
     publicationPermit: writingPublicationPermitValueSchema,
+    audienceParticipation: {
+      type: "string",
+      enum: ["eligible", "observe_only"]
+    },
     deliveryRelation: { type: "string", enum: ["standalone", "reply"] },
     automationDepth: { type: "integer", minimum: 1, maximum: 8 },
     createdAt: timestampSchema
@@ -38106,6 +38172,7 @@ var conversationParticipationReasons = [
   "not_relevant",
   "relevance_unavailable",
   "signal_not_subscribed",
+  "publication_observation_only",
   "turn_not_owned",
   "cooldown",
   "rate_limited",
@@ -38235,6 +38302,18 @@ var conversationRepositoryWorkCompletedEventPayloadSchema = {
     providerSessionDigest: sha256Schema,
     requestedModel: { anyOf: [requestedModelSchema, { type: "null" }] },
     requestedReasoningEffort: { anyOf: [reasoningEffortSchema, { type: "null" }] },
+    executionProfile: {
+      anyOf: [{ type: "string", enum: ["routine", "reasoning", "review"] }, { type: "null" }]
+    },
+    allocationReason: {
+      type: "string",
+      enum: [
+        "session_continuity",
+        "bound_agent_provider",
+        "profile_preference",
+        "configured_default"
+      ]
+    },
     requestContentHash: sha256Schema,
     resultContentHash: sha256Schema,
     resultByteCount: { type: "integer", minimum: 1, maximum: 16777216 },
@@ -38564,6 +38643,142 @@ var deliberationArtifactSchema = {
   ]
 };
 
+// packages/schemas/dist/deliberation-policy.js
+var deliberationResponsibilities = [
+  "proposer",
+  "reviewer",
+  "verifier",
+  "decision_owner"
+];
+var providerSelectionSchema = {
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        mode: { const: "fixed" },
+        provider: providerSchema
+      },
+      required: ["mode", "provider"],
+      additionalProperties: false
+    },
+    {
+      type: "object",
+      properties: {
+        mode: { const: "allowlist" },
+        providers: {
+          type: "array",
+          items: providerSchema,
+          minItems: 1,
+          maxItems: 8,
+          uniqueItems: true
+        }
+      },
+      required: ["mode", "providers"],
+      additionalProperties: false
+    }
+  ]
+};
+var deliberationExecutionBudgetSchema = {
+  type: "object",
+  properties: {
+    maximumProviderCalls: { type: "integer", minimum: 1, maximum: 64 },
+    maximumObservedTokens: { type: "integer", minimum: 1, maximum: 1e7 },
+    maximumElapsedMs: { type: "integer", minimum: 1e3, maximum: 36e5 },
+    unobservedTokenDisposition: { const: "block" }
+  },
+  required: [
+    "maximumProviderCalls",
+    "maximumObservedTokens",
+    "maximumElapsedMs",
+    "unobservedTokenDisposition"
+  ],
+  additionalProperties: false
+};
+var deliberationPolicySchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/deliberation-policy.schema.json",
+  title: "Lervo provider-neutral deliberation policy",
+  type: "object",
+  properties: {
+    schemaVersion: schemaVersionSchema,
+    policyId: deliberationPolicyIdSchema,
+    projectId: projectIdSchema,
+    participants: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          roleId: roleIdSchema,
+          responsibilities: {
+            type: "array",
+            items: { type: "string", enum: deliberationResponsibilities },
+            minItems: 1,
+            uniqueItems: true
+          },
+          providerSelection: providerSelectionSchema
+        },
+        required: ["roleId", "responsibilities", "providerSelection"],
+        additionalProperties: false
+      },
+      minItems: 2,
+      maxItems: 16
+    },
+    decisionOwnerRoleId: roleIdSchema,
+    maxRounds: { type: "integer", minimum: 1, maximum: 20 },
+    executionBudget: deliberationExecutionBudgetSchema,
+    requiredVerificationSuiteIds: {
+      type: "array",
+      items: verificationSuiteIdSchema,
+      minItems: 1,
+      maxItems: 32,
+      uniqueItems: true
+    },
+    convergence: {
+      type: "object",
+      properties: {
+        requireIndependentReviewer: { const: true },
+        requireIndependentSessions: { const: true },
+        requireDecisionOwnerDecision: { const: true },
+        requirePassedVerifications: { const: true },
+        requireZeroUnresolvedBlockingObjections: { const: true },
+        unresolvedBlockingDisposition: { const: "no_consensus" }
+      },
+      required: [
+        "requireIndependentReviewer",
+        "requireIndependentSessions",
+        "requireDecisionOwnerDecision",
+        "requirePassedVerifications",
+        "requireZeroUnresolvedBlockingObjections",
+        "unresolvedBlockingDisposition"
+      ],
+      additionalProperties: false
+    },
+    publication: {
+      type: "object",
+      properties: {
+        surface: { type: "string", enum: writingSurfaces },
+        writingPolicyId: writingPolicyIdSchema,
+        writingPolicyHash: sha256Schema,
+        requiresWritingPermit: { const: true }
+      },
+      required: ["surface", "writingPolicyId", "writingPolicyHash", "requiresWritingPermit"],
+      additionalProperties: false
+    }
+  },
+  required: [
+    "schemaVersion",
+    "policyId",
+    "projectId",
+    "participants",
+    "decisionOwnerRoleId",
+    "maxRounds",
+    "requiredVerificationSuiteIds",
+    "convergence",
+    "publication"
+  ],
+  additionalProperties: false
+};
+
 // packages/schemas/dist/deliberation-event.js
 var deliberationStartedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -38580,7 +38795,8 @@ var deliberationStartedEventPayloadSchema = {
       maxItems: 16,
       uniqueItems: true
     },
-    maxRounds: { type: "integer", minimum: 1, maximum: 20 }
+    maxRounds: { type: "integer", minimum: 1, maximum: 20 },
+    policy: deliberationPolicySchema
   },
   required: ["deliberationId", "policyId", "policyHash", "participantRoleIds", "maxRounds"],
   additionalProperties: false
@@ -38595,9 +38811,16 @@ var deliberationArtifactRecordedEventPayloadSchema = {
     kind: { type: "string", enum: deliberationArtifactKinds },
     round: { type: "integer", minimum: 1, maximum: 20 },
     producerRoleId: roleIdSchema,
+    producerRoleName: {
+      type: "string",
+      minLength: 1,
+      maxLength: 160,
+      pattern: "^[^\\u0000-\\u001F\\u007F]+$"
+    },
     artifactId: artifactIdSchema,
     contentHash: sha256Schema,
-    writingPermitId: writingPublicationPermitIdSchema
+    writingPermitId: writingPublicationPermitIdSchema,
+    artifact: deliberationArtifactSchema
   },
   required: [
     "deliberationId",
@@ -38905,121 +39128,91 @@ var deliberationOutcomeSchema = {
   oneOf: [convergedOutcomeSchema, noConsensusOutcomeSchema, failedOutcomeSchema]
 };
 
-// packages/schemas/dist/deliberation-policy.js
-var deliberationResponsibilities = [
-  "proposer",
-  "reviewer",
-  "verifier",
-  "decision_owner"
-];
-var providerSelectionSchema = {
-  oneOf: [
-    {
-      type: "object",
-      properties: {
-        mode: { const: "fixed" },
-        provider: providerSchema
-      },
-      required: ["mode", "provider"],
-      additionalProperties: false
-    },
-    {
-      type: "object",
-      properties: {
-        mode: { const: "allowlist" },
-        providers: {
-          type: "array",
-          items: providerSchema,
-          minItems: 1,
-          maxItems: 8,
-          uniqueItems: true
-        }
-      },
-      required: ["mode", "providers"],
-      additionalProperties: false
-    }
+// packages/schemas/dist/deliberation-participant-assignment.js
+var nullableModelSchema = {
+  anyOf: [
+    { type: "string", minLength: 1, maxLength: 128, pattern: "^[^\\u0000\\r\\n]+$" },
+    { type: "null" }
   ]
 };
-var deliberationPolicySchema = {
+var deliberationParticipantAssignmentSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.lervo.dev/v0/deliberation-policy.schema.json",
-  title: "Lervo provider-neutral deliberation policy",
+  $id: "https://schemas.lervo.dev/v0/deliberation-participant-assignment.schema.json",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,
+    participationAssignmentId: {
+      type: "string",
+      pattern: "^dpa_[a-f0-9]{40}$"
+    },
+    deliberationId: deliberationIdSchema,
     policyId: deliberationPolicyIdSchema,
+    policyRoleId: roleIdSchema,
     projectId: projectIdSchema,
-    participants: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          roleId: roleIdSchema,
-          responsibilities: {
-            type: "array",
-            items: { type: "string", enum: deliberationResponsibilities },
-            minItems: 1,
-            uniqueItems: true
-          },
-          providerSelection: providerSelectionSchema
-        },
-        required: ["roleId", "responsibilities", "providerSelection"],
-        additionalProperties: false
-      },
-      minItems: 2,
-      maxItems: 16
+    conversationId: conversationIdSchema,
+    organizationId: {
+      type: "string",
+      pattern: "^org_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
     },
-    decisionOwnerRoleId: roleIdSchema,
-    maxRounds: { type: "integer", minimum: 1, maximum: 20 },
-    requiredVerificationSuiteIds: {
-      type: "array",
-      items: verificationSuiteIdSchema,
-      minItems: 1,
-      maxItems: 32,
-      uniqueItems: true
+    teamId: {
+      type: "string",
+      pattern: "^team_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
     },
-    convergence: {
-      type: "object",
-      properties: {
-        requireIndependentReviewer: { const: true },
-        requireIndependentSessions: { const: true },
-        requireDecisionOwnerDecision: { const: true },
-        requirePassedVerifications: { const: true },
-        requireZeroUnresolvedBlockingObjections: { const: true },
-        unresolvedBlockingDisposition: { const: "no_consensus" }
-      },
-      required: [
-        "requireIndependentReviewer",
-        "requireIndependentSessions",
-        "requireDecisionOwnerDecision",
-        "requirePassedVerifications",
-        "requireZeroUnresolvedBlockingObjections",
-        "unresolvedBlockingDisposition"
-      ],
-      additionalProperties: false
+    channelMembershipId: {
+      type: "string",
+      pattern: "^cmem_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
     },
-    publication: {
-      type: "object",
-      properties: {
-        surface: { type: "string", enum: writingSurfaces },
-        writingPolicyId: writingPolicyIdSchema,
-        writingPolicyHash: sha256Schema,
-        requiresWritingPermit: { const: true }
-      },
-      required: ["surface", "writingPolicyId", "writingPolicyHash", "requiresWritingPermit"],
-      additionalProperties: false
-    }
+    membershipId: {
+      type: "string",
+      pattern: "^amem_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+    },
+    deploymentId: {
+      type: "string",
+      pattern: "^adep_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+    },
+    agentId: workforceAgentIdSchema,
+    participantId: conversationParticipantIdSchema,
+    agentRoleId: roleIdSchema,
+    roleVersion: semverSchema,
+    roleContractHash: sha256Schema,
+    roleProfileHash: sha256Schema,
+    providerPolicyHash: sha256Schema,
+    provider: { type: "string", enum: ["codex", "claude"] },
+    model: nullableModelSchema,
+    reasoningEffort: {
+      anyOf: [
+        { type: "string", enum: ["low", "medium", "high", "xhigh", "max"] },
+        { type: "null" }
+      ]
+    },
+    executionRouteHash: sha256Schema,
+    acceptedAt: timestampSchema
   },
   required: [
     "schemaVersion",
+    "participationAssignmentId",
+    "deliberationId",
     "policyId",
+    "policyRoleId",
     "projectId",
-    "participants",
-    "decisionOwnerRoleId",
-    "maxRounds",
-    "requiredVerificationSuiteIds",
-    "convergence",
-    "publication"
+    "conversationId",
+    "organizationId",
+    "teamId",
+    "channelMembershipId",
+    "membershipId",
+    "deploymentId",
+    "agentId",
+    "participantId",
+    "agentRoleId",
+    "roleVersion",
+    "roleContractHash",
+    "roleProfileHash",
+    "providerPolicyHash",
+    "provider",
+    "model",
+    "reasoningEffort",
+    "executionRouteHash",
+    "acceptedAt"
   ],
   additionalProperties: false
 };
@@ -39034,6 +39227,7 @@ var deliberationWorkflowSourceSchema = {
     schemaVersion: schemaVersionSchema,
     policyId: deliberationPolicyIdSchema,
     maxRounds: { type: "integer", minimum: 1, maximum: 5 },
+    executionBudget: deliberationExecutionBudgetSchema,
     requiredVerificationSuiteIds: {
       type: "array",
       items: verificationSuiteIdSchema,
@@ -39050,6 +39244,15 @@ var deliberationWorkflowSourceSchema = {
         properties: {
           roleId: roleIdSchema,
           name: { type: "string", minLength: 1, maxLength: 100 },
+          localizedNames: {
+            type: "object",
+            properties: {
+              en: { type: "string", minLength: 1, maxLength: 100 },
+              ko: { type: "string", minLength: 1, maxLength: 100 }
+            },
+            minProperties: 1,
+            additionalProperties: false
+          },
           description: { type: "string", minLength: 1, maxLength: 1e3 },
           provider: providerSchema,
           responsibilities: {
@@ -43425,6 +43628,7 @@ var organizationDeliberationParticipantBoundEventPayloadSchema = {
   properties: {
     deliberationId: deliberationIdSchema,
     deliberationPolicyHash: sha256Schema,
+    policyId: deliberationPolicyIdSchema,
     organizationId: organizationIdSchema2,
     teamId: teamIdSchema,
     projectId: projectIdSchema,
@@ -43438,10 +43642,20 @@ var organizationDeliberationParticipantBoundEventPayloadSchema = {
     agentId: workforceAgentIdSchema,
     participantId: conversationParticipantIdSchema,
     roleId: roleIdSchema,
+    bindingVersion: { type: "integer", const: 2 },
+    participationAssignmentId: {
+      type: "string",
+      pattern: "^dpa_[a-f0-9]{40}$"
+    },
+    policyRoleId: roleIdSchema,
+    agentRoleId: roleIdSchema,
     roleVersion: semverSchema,
     roleContractHash: sha256Schema,
     roleProfileHash: sha256Schema,
     providerPolicyHash: sha256Schema,
+    executionRouteHash: sha256Schema,
+    executionProvider: { type: "string", enum: ["codex", "claude"] },
+    acceptedAt: timestampSchema,
     boundAt: timestampSchema
   },
   required: [
@@ -43462,6 +43676,24 @@ var organizationDeliberationParticipantBoundEventPayloadSchema = {
     "providerPolicyHash",
     "boundAt"
   ],
+  dependentRequired: {
+    bindingVersion: [
+      "participationAssignmentId",
+      "policyId",
+      "policyRoleId",
+      "agentRoleId",
+      "executionRouteHash",
+      "executionProvider",
+      "acceptedAt"
+    ],
+    participationAssignmentId: ["bindingVersion"],
+    policyId: ["bindingVersion"],
+    policyRoleId: ["bindingVersion"],
+    agentRoleId: ["bindingVersion"],
+    executionRouteHash: ["bindingVersion"],
+    executionProvider: ["bindingVersion"],
+    acceptedAt: ["bindingVersion"]
+  },
   additionalProperties: false
 };
 var organizationDeliberationParticipantReleasedEventPayloadSchema = {
@@ -44845,6 +45077,1005 @@ var managedContextReferencedEventPayloadSchema = {
   additionalProperties: false
 };
 
+// packages/schemas/dist/product-surface-common.js
+var productSurfaceCoordinateSchema = {
+  type: "string",
+  minLength: 1,
+  maxLength: 256,
+  pattern: "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$"
+};
+var productSurfaceReasonCodeSchema = {
+  type: "string",
+  pattern: "^[a-z][a-z0-9_]{0,63}$"
+};
+var productSurfacePrivacyClassSchema = {
+  type: "string",
+  enum: ["ordinary", "sensitive", "restricted"]
+};
+var productSurfaceProjectionStatusSchema = {
+  type: "string",
+  enum: ["complete", "partial", "unavailable", "invalid"]
+};
+var productSurfaceSectionStateSchema = {
+  type: "object",
+  properties: {
+    status: productSurfaceProjectionStatusSchema,
+    reasonCode: {
+      anyOf: [productSurfaceReasonCodeSchema, { type: "null" }]
+    },
+    sourceCoordinates: {
+      type: "array",
+      items: productSurfaceCoordinateSchema,
+      maxItems: 64,
+      uniqueItems: true
+    }
+  },
+  required: ["status", "reasonCode", "sourceCoordinates"],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "complete" },
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { enum: ["partial", "unavailable", "invalid"] },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/product-activity-page.js
+var productActivityActionClasses = [
+  "message",
+  "repository_read",
+  "repository_edit",
+  "command",
+  "verification",
+  "approval",
+  "handoff",
+  "delivery",
+  "failure",
+  "lifecycle"
+];
+var productActivityCursorSchema = {
+  type: "string",
+  pattern: "^pac_[a-f0-9]{24}$"
+};
+var activityItemSchema = {
+  type: "object",
+  properties: {
+    activityId: { type: "string", pattern: "^pact_[a-f0-9]{24}$" },
+    observedAt: timestampSchema,
+    actor: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: ["human", "agent", "system", "provider", "adapter"] },
+        coordinate: productSurfaceCoordinateSchema
+      },
+      required: ["kind", "coordinate"],
+      additionalProperties: false
+    },
+    actionClass: { type: "string", enum: productActivityActionClasses },
+    object: {
+      type: "object",
+      properties: {
+        kind: productSurfaceCoordinateSchema,
+        coordinate: productSurfaceCoordinateSchema
+      },
+      required: ["kind", "coordinate"],
+      additionalProperties: false
+    },
+    outcome: {
+      type: "string",
+      enum: ["started", "succeeded", "failed", "blocked", "cancelled", "unknown"]
+    },
+    salience: { type: "string", enum: ["low", "normal", "high", "critical"] },
+    privacyClass: productSurfacePrivacyClassSchema,
+    sourceCoordinates: {
+      type: "array",
+      items: productSurfaceCoordinateSchema,
+      minItems: 1,
+      maxItems: 32,
+      uniqueItems: true
+    },
+    projectionStatus: productSurfaceProjectionStatusSchema
+  },
+  required: [
+    "activityId",
+    "observedAt",
+    "actor",
+    "actionClass",
+    "object",
+    "outcome",
+    "salience",
+    "privacyClass",
+    "sourceCoordinates",
+    "projectionStatus"
+  ],
+  additionalProperties: false
+};
+var productActivityPageSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-activity-page.schema.json",
+  title: "Lervo product activity page",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.activity" },
+    sourceEventHeadHash: sha256Schema,
+    repositoryRevision: sha256Schema,
+    requestCursor: { anyOf: [productActivityCursorSchema, { type: "null" }] },
+    returnedCursor: productActivityCursorSchema,
+    nextCursor: { anyOf: [productActivityCursorSchema, { type: "null" }] },
+    limit: { type: "integer", minimum: 1, maximum: 100 },
+    status: { type: "string", enum: ["complete", "empty", "failed"] },
+    failureCode: {
+      anyOf: [
+        {
+          type: "string",
+          enum: [
+            "activity_evidence_invalid",
+            "activity_cursor_stale",
+            "activity_schema_unsupported"
+          ]
+        },
+        { type: "null" }
+      ]
+    },
+    items: { type: "array", items: activityItemSchema, maxItems: 100 }
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "sourceEventHeadHash",
+    "repositoryRevision",
+    "requestCursor",
+    "returnedCursor",
+    "nextCursor",
+    "limit",
+    "status",
+    "failureCode",
+    "items"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "complete" },
+        failureCode: { type: "null" },
+        items: { type: "array", items: activityItemSchema, minItems: 1, maxItems: 100 }
+      },
+      required: ["status", "failureCode", "items"]
+    },
+    {
+      properties: {
+        status: { const: "empty" },
+        failureCode: { type: "null" },
+        items: { type: "array", maxItems: 0 }
+      },
+      required: ["status", "failureCode", "items"]
+    },
+    {
+      properties: {
+        status: { const: "failed" },
+        failureCode: {
+          type: "string",
+          enum: [
+            "activity_evidence_invalid",
+            "activity_cursor_stale",
+            "activity_schema_unsupported"
+          ]
+        },
+        items: { type: "array", maxItems: 0 }
+      },
+      required: ["status", "failureCode", "items"]
+    }
+  ],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/product-activity-subscription.js
+var subscriptionIdSchema = {
+  type: "string",
+  pattern: "^pas_[a-f0-9]{24}$"
+};
+var productActivitySubscriptionRequestSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-activity-subscription-request.schema.json",
+  title: "Lervo product activity subscription request",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.activity_subscription_request" },
+    subscriptionId: subscriptionIdSchema,
+    originCoordinate: productSurfaceCoordinateSchema,
+    authorizationDigest: sha256Schema,
+    resumeCursor: { anyOf: [productActivityCursorSchema, { type: "null" }] },
+    maximumPageSize: { type: "integer", minimum: 1, maximum: 100 },
+    requestDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "subscriptionId",
+    "originCoordinate",
+    "authorizationDigest",
+    "resumeCursor",
+    "maximumPageSize",
+    "requestDigest"
+  ],
+  additionalProperties: false
+};
+var productActivitySubscriptionHintSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-activity-subscription-hint.schema.json",
+  title: "Lervo product activity subscription hint",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.activity_subscription_hint" },
+    subscriptionId: subscriptionIdSchema,
+    sequence: { type: "integer", minimum: 1 },
+    observedAt: timestampSchema,
+    previousCursor: { anyOf: [productActivityCursorSchema, { type: "null" }] },
+    currentCursor: { anyOf: [productActivityCursorSchema, { type: "null" }] },
+    sourceEventHeadHash: sha256Schema,
+    repositoryRevision: sha256Schema,
+    status: { type: "string", enum: ["changed", "heartbeat", "resync_required", "closed"] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    hintDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "subscriptionId",
+    "sequence",
+    "observedAt",
+    "previousCursor",
+    "currentCursor",
+    "sourceEventHeadHash",
+    "repositoryRevision",
+    "status",
+    "reasonCode",
+    "hintDigest"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "changed" },
+        currentCursor: productActivityCursorSchema,
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "currentCursor", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { const: "heartbeat" },
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { const: "resync_required" },
+        currentCursor: { type: "null" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "currentCursor", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { const: "closed" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/product-deliberation-view.js
+var nullableParticipantIdSchema = {
+  anyOf: [conversationParticipantIdSchema, { type: "null" }]
+};
+var nullableConversationEventIdSchema = {
+  anyOf: [conversationEventIdSchema, { type: "null" }]
+};
+var nullableConversationIdSchema = { anyOf: [conversationIdSchema, { type: "null" }] };
+var nullableSha256Schema = { anyOf: [sha256Schema, { type: "null" }] };
+var nullableAgentIdSchema2 = { anyOf: [workforceAgentIdSchema, { type: "null" }] };
+var nullableRoleVersionSchema = { anyOf: [semverSchema, { type: "null" }] };
+var participantBindingSchema = {
+  type: "object",
+  properties: {
+    roleId: roleIdSchema,
+    responsibility: { type: "string", enum: deliberationResponsibilities },
+    providerPolicyHash: sha256Schema,
+    disposition: { type: "string", enum: ["hired_agent", "policy_only"] },
+    participantId: nullableParticipantIdSchema,
+    agentId: nullableAgentIdSchema2,
+    roleVersion: nullableRoleVersionSchema
+  },
+  required: [
+    "roleId",
+    "responsibility",
+    "providerPolicyHash",
+    "disposition",
+    "participantId",
+    "agentId",
+    "roleVersion"
+  ],
+  oneOf: [
+    {
+      properties: {
+        disposition: { const: "hired_agent" },
+        participantId: conversationParticipantIdSchema,
+        agentId: workforceAgentIdSchema,
+        roleVersion: semverSchema
+      },
+      required: ["disposition", "participantId", "agentId", "roleVersion"]
+    },
+    {
+      properties: {
+        disposition: { const: "policy_only" },
+        participantId: { type: "null" },
+        agentId: { type: "null" },
+        roleVersion: { type: "null" }
+      },
+      required: ["disposition", "participantId", "agentId", "roleVersion"]
+    }
+  ],
+  additionalProperties: false
+};
+var artifactSummarySchema = {
+  type: "object",
+  properties: {
+    artifactId: deliberationArtifactIdSchema,
+    kind: { type: "string", enum: deliberationArtifactKinds },
+    round: { type: "integer", minimum: 1, maximum: 20 },
+    producerRoleId: roleIdSchema,
+    provider: providerSchema,
+    runId: runIdSchema,
+    sessionId: sessionIdSchema,
+    contentHash: sha256Schema,
+    previousArtifactIds: {
+      type: "array",
+      items: deliberationArtifactIdSchema,
+      maxItems: 100,
+      uniqueItems: true
+    },
+    writingPermitStatus: { type: "string", enum: ["valid", "missing", "invalid"] },
+    claimIds: {
+      type: "array",
+      items: deliberationClaimIdSchema,
+      maxItems: 100,
+      uniqueItems: true
+    },
+    objectionIds: {
+      type: "array",
+      items: deliberationObjectionIdSchema,
+      maxItems: 100,
+      uniqueItems: true
+    },
+    verificationIds: {
+      type: "array",
+      items: verificationIdSchema,
+      maxItems: 32,
+      uniqueItems: true
+    },
+    decisionCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] }
+  },
+  required: [
+    "artifactId",
+    "kind",
+    "round",
+    "producerRoleId",
+    "provider",
+    "runId",
+    "sessionId",
+    "contentHash",
+    "previousArtifactIds",
+    "writingPermitStatus",
+    "claimIds",
+    "objectionIds",
+    "verificationIds",
+    "decisionCoordinate"
+  ],
+  additionalProperties: false
+};
+var verificationEntrySchema = {
+  type: "object",
+  properties: {
+    verificationId: verificationIdSchema,
+    suiteId: verificationSuiteIdSchema,
+    artifactId: deliberationArtifactIdSchema,
+    status: { type: "string", enum: ["passed", "failed", "cancelled", "unavailable"] },
+    resultHash: { anyOf: [sha256Schema, { type: "null" }] }
+  },
+  required: ["verificationId", "suiteId", "artifactId", "status", "resultHash"],
+  additionalProperties: false
+};
+var unresolvedObjectionSchema = {
+  type: "object",
+  properties: {
+    objectionId: deliberationObjectionIdSchema,
+    artifactId: deliberationArtifactIdSchema,
+    blocking: { const: true },
+    status: { const: "open" }
+  },
+  required: ["objectionId", "artifactId", "blocking", "status"],
+  additionalProperties: false
+};
+var productDeliberationViewSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-deliberation-view.schema.json",
+  title: "Lervo product deliberation view",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.deliberation" },
+    deliberationId: deliberationIdSchema,
+    projectId: projectIdSchema,
+    policyId: deliberationPolicyIdSchema,
+    policyHash: sha256Schema,
+    sourceEventId: nullableConversationEventIdSchema,
+    conversationId: nullableConversationIdSchema,
+    threadId: { anyOf: [conversationThreadIdSchema, { type: "null" }] },
+    requesterParticipantId: nullableParticipantIdSchema,
+    originBindingDigest: nullableSha256Schema,
+    sourceEventHeadHash: sha256Schema,
+    repositoryRevision: sha256Schema,
+    status: {
+      type: "string",
+      enum: ["running", "unknown", "interrupted", "converged", "no_consensus", "failed"]
+    },
+    round: { type: "integer", minimum: 0, maximum: 20 },
+    maximumRounds: { type: "integer", minimum: 1, maximum: 20 },
+    nextAction: { type: "string", enum: ["wait", "resume", "none"] },
+    terminalReason: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    participants: {
+      type: "array",
+      items: participantBindingSchema,
+      minItems: 2,
+      maxItems: 16
+    },
+    artifacts: { type: "array", items: artifactSummarySchema, maxItems: 500 },
+    verifications: { type: "array", items: verificationEntrySchema, maxItems: 32 },
+    unresolvedObjections: {
+      type: "array",
+      items: unresolvedObjectionSchema,
+      maxItems: 100
+    },
+    resourceReportCoordinate: {
+      anyOf: [productSurfaceCoordinateSchema, { type: "null" }]
+    },
+    publicationCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    originDeliveryCoordinate: {
+      anyOf: [productSurfaceCoordinateSchema, { type: "null" }]
+    },
+    projectionStatus: productSurfaceProjectionStatusSchema,
+    projectionReasonCode: {
+      anyOf: [productSurfaceReasonCodeSchema, { type: "null" }]
+    },
+    projectionDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "deliberationId",
+    "projectId",
+    "policyId",
+    "policyHash",
+    "sourceEventId",
+    "conversationId",
+    "threadId",
+    "requesterParticipantId",
+    "originBindingDigest",
+    "sourceEventHeadHash",
+    "repositoryRevision",
+    "status",
+    "round",
+    "maximumRounds",
+    "nextAction",
+    "terminalReason",
+    "participants",
+    "artifacts",
+    "verifications",
+    "unresolvedObjections",
+    "resourceReportCoordinate",
+    "publicationCoordinate",
+    "originDeliveryCoordinate",
+    "projectionStatus",
+    "projectionReasonCode",
+    "projectionDigest"
+  ],
+  oneOf: [
+    {
+      properties: {
+        projectionStatus: { const: "complete" },
+        projectionReasonCode: { type: "null" }
+      },
+      required: ["projectionStatus", "projectionReasonCode"]
+    },
+    {
+      properties: {
+        projectionStatus: { enum: ["partial", "unavailable", "invalid"] },
+        projectionReasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["projectionStatus", "projectionReasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/product-steering-command.js
+var productSteeringActions = [
+  "amend",
+  "pause",
+  "resume",
+  "cancel",
+  "approve",
+  "retry",
+  "reassign",
+  "handoff"
+];
+var steeringCommandIdSchema = {
+  type: "string",
+  pattern: "^psc_[a-f0-9]{24}$"
+};
+var steeringTargetSchema = {
+  type: "object",
+  properties: {
+    ownerDomain: {
+      type: "string",
+      enum: ["objective", "assignment", "execution", "policy", "attempt", "source_lifecycle"]
+    },
+    domainCommandId: productSurfaceCoordinateSchema,
+    targetCoordinate: productSurfaceCoordinateSchema,
+    expectedTargetRevision: {
+      anyOf: [productSurfaceCoordinateSchema, { type: "null" }]
+    }
+  },
+  required: ["ownerDomain", "domainCommandId", "targetCoordinate", "expectedTargetRevision"],
+  additionalProperties: false
+};
+var productSteeringCommandSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-steering-command.schema.json",
+  title: "Lervo product surface steering command",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.steering_command" },
+    commandId: steeringCommandIdSchema,
+    action: { type: "string", enum: productSteeringActions },
+    target: steeringTargetSchema,
+    principalCoordinate: productSurfaceCoordinateSchema,
+    originBindingDigest: sha256Schema,
+    commandInputHash: sha256Schema,
+    idempotencyDigest: sha256Schema,
+    authority: {
+      type: "object",
+      properties: {
+        authorityCoordinate: productSurfaceCoordinateSchema,
+        planCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+        approvalCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+        leaseCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] }
+      },
+      required: ["authorityCoordinate", "planCoordinate", "approvalCoordinate", "leaseCoordinate"],
+      additionalProperties: false
+    },
+    requestedAt: timestampSchema,
+    commandDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "commandId",
+    "action",
+    "target",
+    "principalCoordinate",
+    "originBindingDigest",
+    "commandInputHash",
+    "idempotencyDigest",
+    "authority",
+    "requestedAt",
+    "commandDigest"
+  ],
+  allOf: [
+    {
+      if: { properties: { action: { const: "amend" } }, required: ["action"] },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { enum: ["objective", "assignment"] } },
+            required: ["ownerDomain"]
+          }
+        }
+      }
+    },
+    {
+      if: {
+        properties: { action: { enum: ["pause", "resume", "cancel"] } },
+        required: ["action"]
+      },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { const: "execution" } },
+            required: ["ownerDomain"]
+          }
+        }
+      }
+    },
+    {
+      if: { properties: { action: { const: "approve" } }, required: ["action"] },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { const: "policy" } },
+            required: ["ownerDomain"]
+          },
+          authority: {
+            type: "object",
+            properties: { approvalCoordinate: productSurfaceCoordinateSchema },
+            required: ["approvalCoordinate"]
+          }
+        }
+      }
+    },
+    {
+      if: { properties: { action: { const: "retry" } }, required: ["action"] },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { const: "attempt" } },
+            required: ["ownerDomain"]
+          }
+        }
+      }
+    },
+    {
+      if: { properties: { action: { const: "reassign" } }, required: ["action"] },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { const: "assignment" } },
+            required: ["ownerDomain"]
+          }
+        }
+      }
+    },
+    {
+      if: { properties: { action: { const: "handoff" } }, required: ["action"] },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { const: "source_lifecycle" } },
+            required: ["ownerDomain"]
+          },
+          authority: {
+            type: "object",
+            properties: { planCoordinate: productSurfaceCoordinateSchema },
+            required: ["planCoordinate"]
+          }
+        }
+      }
+    }
+  ],
+  additionalProperties: false
+};
+var productSteeringResultSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-steering-result.schema.json",
+  title: "Lervo product surface steering result",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.steering_result" },
+    commandId: steeringCommandIdSchema,
+    commandDigest: sha256Schema,
+    sourceEventHeadHash: sha256Schema,
+    repositoryRevision: sha256Schema,
+    status: {
+      type: "string",
+      enum: ["applied", "no_effect", "blocked", "rejected", "uncertain"]
+    },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    domainReceiptCoordinate: {
+      anyOf: [productSurfaceCoordinateSchema, { type: "null" }]
+    },
+    resultDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "commandId",
+    "commandDigest",
+    "sourceEventHeadHash",
+    "repositoryRevision",
+    "status",
+    "reasonCode",
+    "domainReceiptCoordinate",
+    "resultDigest"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "applied" },
+        reasonCode: { type: "null" },
+        domainReceiptCoordinate: productSurfaceCoordinateSchema
+      },
+      required: ["status", "reasonCode", "domainReceiptCoordinate"]
+    },
+    {
+      properties: {
+        status: { const: "no_effect" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { enum: ["blocked", "rejected", "uncertain"] },
+        reasonCode: productSurfaceReasonCodeSchema,
+        domainReceiptCoordinate: { type: "null" }
+      },
+      required: ["status", "reasonCode", "domainReceiptCoordinate"]
+    }
+  ],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/product-unified-search-result.js
+var productSearchCorpusClasses = [
+  "repository_knowledge",
+  "repository_code",
+  "conversation",
+  "artifact",
+  "canvas",
+  "deliberation",
+  "approval",
+  "verification",
+  "work_event"
+];
+var corpusClassSchema = { type: "string", enum: productSearchCorpusClasses };
+var searchHitSchema = {
+  type: "object",
+  properties: {
+    corpusClass: corpusClassSchema,
+    sourceCoordinate: productSurfaceCoordinateSchema,
+    sourceRevision: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    contentHash: { anyOf: [sha256Schema, { type: "null" }] },
+    privacyClass: productSurfacePrivacyClassSchema,
+    label: { type: "string", minLength: 1, maxLength: 200 },
+    rank: { type: "integer", minimum: 1, maximum: 100 },
+    adapterId: adapterIdSchema,
+    adapterBuildId: productSurfaceCoordinateSchema,
+    matchEvidenceKind: {
+      type: "string",
+      enum: ["exact", "lexical", "semantic", "relation", "metadata"]
+    }
+  },
+  required: [
+    "corpusClass",
+    "sourceCoordinate",
+    "sourceRevision",
+    "contentHash",
+    "privacyClass",
+    "label",
+    "rank",
+    "adapterId",
+    "adapterBuildId",
+    "matchEvidenceKind"
+  ],
+  anyOf: [
+    {
+      properties: { sourceRevision: productSurfaceCoordinateSchema },
+      required: ["sourceRevision"]
+    },
+    { properties: { contentHash: sha256Schema }, required: ["contentHash"] }
+  ],
+  additionalProperties: false
+};
+var searchGroupSchema = {
+  type: "object",
+  properties: {
+    corpusClass: corpusClassSchema,
+    ...productSurfaceSectionStateSchema.properties,
+    hits: { type: "array", items: searchHitSchema, maxItems: 100 }
+  },
+  required: ["corpusClass", ...productSurfaceSectionStateSchema.required, "hits"],
+  oneOf: productSurfaceSectionStateSchema.oneOf,
+  additionalProperties: false
+};
+var searchStageReceiptSchema = {
+  type: "object",
+  properties: {
+    stageId: productSurfaceCoordinateSchema,
+    required: { type: "boolean" },
+    status: { type: "string", enum: ["completed", "omitted", "failed"] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    adapterId: adapterIdSchema,
+    adapterBuildId: productSurfaceCoordinateSchema,
+    receiptHash: sha256Schema
+  },
+  required: [
+    "stageId",
+    "required",
+    "status",
+    "reasonCode",
+    "adapterId",
+    "adapterBuildId",
+    "receiptHash"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "completed" },
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "reasonCode"]
+    },
+    {
+      properties: {
+        required: { const: false },
+        status: { const: "omitted" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["required", "status", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { const: "failed" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+var productUnifiedSearchResultSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-unified-search-result.schema.json",
+  title: "Lervo product unified search result",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.search" },
+    queryDigest: sha256Schema,
+    authorizationDigest: sha256Schema,
+    requestedCorpusClasses: {
+      type: "array",
+      items: corpusClassSchema,
+      minItems: 1,
+      maxItems: productSearchCorpusClasses.length,
+      uniqueItems: true
+    },
+    limit: { type: "integer", minimum: 1, maximum: 100 },
+    repositoryRevision: sha256Schema,
+    searchPlan: {
+      type: "object",
+      properties: {
+        coordinate: productSurfaceCoordinateSchema,
+        contentHash: sha256Schema,
+        engineId: productSurfaceCoordinateSchema,
+        engineVersion: { type: "integer", minimum: 1 }
+      },
+      required: ["coordinate", "contentHash", "engineId", "engineVersion"],
+      additionalProperties: false
+    },
+    stageReceipts: {
+      type: "array",
+      items: searchStageReceiptSchema,
+      minItems: 1,
+      maxItems: 32
+    },
+    groups: {
+      type: "array",
+      items: searchGroupSchema,
+      maxItems: productSearchCorpusClasses.length
+    },
+    status: { type: "string", enum: ["complete", "partial", "empty", "failed"] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    resultDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "queryDigest",
+    "authorizationDigest",
+    "requestedCorpusClasses",
+    "limit",
+    "repositoryRevision",
+    "searchPlan",
+    "stageReceipts",
+    "groups",
+    "status",
+    "reasonCode",
+    "resultDigest"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { enum: ["complete", "empty"] },
+        reasonCode: { type: "null" },
+        stageReceipts: {
+          type: "array",
+          items: {
+            allOf: [
+              searchStageReceiptSchema,
+              {
+                type: "object",
+                properties: { status: { const: "completed" } },
+                required: ["status"]
+              }
+            ]
+          }
+        }
+      },
+      required: ["status", "reasonCode", "stageReceipts"]
+    },
+    {
+      properties: {
+        status: { const: "partial" },
+        reasonCode: productSurfaceReasonCodeSchema,
+        stageReceipts: {
+          type: "array",
+          items: {
+            allOf: [
+              searchStageReceiptSchema,
+              {
+                not: {
+                  type: "object",
+                  properties: { status: { const: "failed" } },
+                  required: ["status"]
+                }
+              }
+            ]
+          },
+          contains: {
+            type: "object",
+            properties: { required: { const: false }, status: { const: "omitted" } },
+            required: ["required", "status"]
+          },
+          minContains: 1
+        }
+      },
+      required: ["status", "reasonCode", "stageReceipts"]
+    },
+    {
+      properties: {
+        status: { const: "failed" },
+        reasonCode: productSurfaceReasonCodeSchema,
+        stageReceipts: {
+          type: "array",
+          items: searchStageReceiptSchema,
+          contains: {
+            type: "object",
+            properties: { required: { const: true }, status: { const: "failed" } },
+            required: ["required", "status"]
+          },
+          minContains: 1
+        }
+      },
+      required: ["status", "reasonCode", "stageReceipts"]
+    }
+  ],
+  additionalProperties: false
+};
+
 // packages/schemas/dist/project-identity-migration.js
 var projectIdentityMigratedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -45579,6 +46810,432 @@ var statePrunedEventPayloadSchema = {
   additionalProperties: false
 };
 
+// packages/schemas/dist/surface-observability-context-sections.js
+var sectionProperties = productSurfaceSectionStateSchema.properties;
+var sectionRequired = productSurfaceSectionStateSchema.required;
+var sectionAlternatives = productSurfaceSectionStateSchema.oneOf;
+var coverageRatioSchema = {
+  type: "object",
+  properties: {
+    numerator: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+    denominator: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+    value: { anyOf: [{ type: "number", minimum: 0, maximum: 1 }, { type: "null" }] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] }
+  },
+  required: ["numerator", "denominator", "value", "reasonCode"],
+  oneOf: [
+    {
+      properties: {
+        numerator: { type: "integer", minimum: 0 },
+        denominator: { type: "integer", minimum: 0 },
+        value: { type: "number", minimum: 0, maximum: 1 },
+        reasonCode: { type: "null" }
+      },
+      required: ["numerator", "denominator", "value", "reasonCode"]
+    },
+    {
+      properties: {
+        numerator: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+        denominator: { type: "null" },
+        value: { type: "null" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["numerator", "denominator", "value", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+var surfaceGroundingSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties,
+    reportCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    documentCounts: {
+      type: "object",
+      properties: {
+        recommended: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+        selected: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+        loaded: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+        injected: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+        referenced: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] }
+      },
+      required: ["recommended", "selected", "loaded", "injected", "referenced"],
+      additionalProperties: false
+    },
+    coverage: {
+      type: "object",
+      properties: {
+        delivery: coverageRatioSchema,
+        explicitReference: coverageRatioSchema,
+        relevance: coverageRatioSchema,
+        candidateSelection: coverageRatioSchema
+      },
+      required: ["delivery", "explicitReference", "relevance", "candidateSelection"],
+      additionalProperties: false
+    }
+  },
+  required: [...sectionRequired, "reportCoordinate", "documentCounts", "coverage"],
+  oneOf: sectionAlternatives,
+  additionalProperties: false
+};
+var searchEngineObservationSchema = {
+  type: "object",
+  properties: {
+    engineId: productSurfaceCoordinateSchema,
+    engineVersion: { type: "integer", minimum: 1 },
+    adapterId: adapterIdSchema,
+    adapterBuildId: productSurfaceCoordinateSchema,
+    qualificationOrTransitionCoordinate: productSurfaceCoordinateSchema,
+    sourceRevision: sha256Schema,
+    preparationState: { type: "string", enum: ["cold", "warm", "reused"] }
+  },
+  required: [
+    "engineId",
+    "engineVersion",
+    "adapterId",
+    "adapterBuildId",
+    "qualificationOrTransitionCoordinate",
+    "sourceRevision",
+    "preparationState"
+  ],
+  additionalProperties: false
+};
+var surfaceSearchSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties,
+    resultCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    engine: { anyOf: [searchEngineObservationSchema, { type: "null" }] },
+    queryDurationMs: { anyOf: [{ type: "number", minimum: 0 }, { type: "null" }] },
+    orderedHitCoordinates: {
+      type: "array",
+      items: productSurfaceCoordinateSchema,
+      maxItems: 100,
+      uniqueItems: true
+    }
+  },
+  required: [
+    ...sectionRequired,
+    "resultCoordinate",
+    "engine",
+    "queryDurationMs",
+    "orderedHitCoordinates"
+  ],
+  oneOf: sectionAlternatives,
+  additionalProperties: false
+};
+
+// packages/schemas/dist/surface-observability-execution-sections.js
+var sectionProperties2 = productSurfaceSectionStateSchema.properties;
+var sectionRequired2 = productSurfaceSectionStateSchema.required;
+var sectionAlternatives2 = productSurfaceSectionStateSchema.oneOf;
+var surfaceResourceScopeSchema = {
+  type: "string",
+  enum: [
+    "primary_provider",
+    "subagent_provider",
+    "query_projection",
+    "publication_evaluation",
+    "deliberation",
+    "improvement_evaluation"
+  ]
+};
+var resourceObservationSchema = {
+  type: "object",
+  properties: {
+    provider: { type: "string", minLength: 1, maxLength: 64 },
+    scope: surfaceResourceScopeSchema,
+    accountingMode: resourceAccountingModeSchema,
+    accountingDescriptorHash: sha256Schema,
+    status: { type: "string", enum: ["observed", "partial", "unavailable", "invalid"] },
+    usage: { anyOf: [resourceUsageSchema, { type: "null" }] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    sourceCoordinates: {
+      type: "array",
+      items: productSurfaceCoordinateSchema,
+      minItems: 1,
+      maxItems: 32,
+      uniqueItems: true
+    }
+  },
+  required: [
+    "provider",
+    "scope",
+    "accountingMode",
+    "accountingDescriptorHash",
+    "status",
+    "usage",
+    "reasonCode",
+    "sourceCoordinates"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "observed" },
+        usage: resourceUsageSchema,
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "usage", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { const: "partial" },
+        usage: resourceUsageSchema,
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "usage", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { enum: ["unavailable", "invalid"] },
+        usage: { type: "null" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "usage", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+var surfaceResourcesSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties2,
+    groups: { type: "array", items: resourceObservationSchema, maxItems: 256 }
+  },
+  required: [...sectionRequired2, "groups"],
+  oneOf: sectionAlternatives2,
+  additionalProperties: false
+};
+var surfaceStagesSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties2,
+    stageCatalogVersion: { anyOf: [{ type: "integer", minimum: 1 }, { type: "null" }] },
+    environmentProfileDigest: { anyOf: [sha256Schema, { type: "null" }] },
+    repositoryProfile: {
+      anyOf: [{ type: "string", enum: ["small", "medium", "large", "custom"] }, { type: "null" }]
+    },
+    observations: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          runCoordinate: productSurfaceCoordinateSchema,
+          occurrenceCount: { type: "integer", minimum: 1 },
+          observation: executionStageObservationSchema
+        },
+        required: ["runCoordinate", "occurrenceCount", "observation"],
+        additionalProperties: false
+      },
+      maxItems: 512
+    }
+  },
+  required: [
+    ...sectionRequired2,
+    "stageCatalogVersion",
+    "environmentProfileDigest",
+    "repositoryProfile",
+    "observations"
+  ],
+  oneOf: sectionAlternatives2,
+  additionalProperties: false
+};
+var cacheObservationSchema = {
+  type: "object",
+  properties: {
+    cacheKind: productSurfaceCoordinateSchema,
+    owner: productSurfaceCoordinateSchema,
+    unit: { type: "string", enum: ["tokens", "bytes", "entries", "documents", "calls"] },
+    status: { type: "string", enum: ["observed", "unavailable", "invalid"] },
+    observedValue: { anyOf: [{ type: "number", minimum: 0 }, { type: "null" }] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    sourceRevision: sha256Schema,
+    buildCoordinate: productSurfaceCoordinateSchema,
+    disposition: { type: "string", enum: ["cold", "warm", "not_applicable", "unknown"] }
+  },
+  required: [
+    "cacheKind",
+    "owner",
+    "unit",
+    "status",
+    "observedValue",
+    "reasonCode",
+    "sourceRevision",
+    "buildCoordinate",
+    "disposition"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "observed" },
+        observedValue: { type: "number", minimum: 0 },
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "observedValue", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { enum: ["unavailable", "invalid"] },
+        observedValue: { type: "null" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "observedValue", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+var surfaceCachesSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties2,
+    entries: { type: "array", items: cacheObservationSchema, maxItems: 256 }
+  },
+  required: [...sectionRequired2, "entries"],
+  oneOf: sectionAlternatives2,
+  additionalProperties: false
+};
+
+// packages/schemas/dist/surface-observability-outcome-sections.js
+var sectionProperties3 = productSurfaceSectionStateSchema.properties;
+var sectionRequired3 = productSurfaceSectionStateSchema.required;
+var sectionAlternatives3 = productSurfaceSectionStateSchema.oneOf;
+var surfaceResultSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties3,
+    terminalStatus: {
+      anyOf: [
+        { type: "string", enum: ["completed", "failed", "blocked", "cancelled", "unknown"] },
+        { type: "null" }
+      ]
+    },
+    verificationStatus: {
+      type: "string",
+      enum: ["passed", "failed", "not_run", "unavailable", "invalid"]
+    },
+    acceptanceStatus: {
+      type: "string",
+      enum: ["accepted", "rework", "pending", "unavailable", "invalid"]
+    },
+    artifactStatus: {
+      type: "string",
+      enum: ["available", "missing", "unavailable", "invalid"]
+    },
+    publicationStatus: {
+      type: "string",
+      enum: ["not_requested", "pending", "published", "blocked", "failed", "uncertain"]
+    },
+    deliveryStatus: {
+      type: "string",
+      enum: ["not_requested", "pending", "delivered", "failed", "uncertain"]
+    },
+    resultDigest: { anyOf: [sha256Schema, { type: "null" }] },
+    artifactCoordinates: {
+      type: "array",
+      items: productSurfaceCoordinateSchema,
+      maxItems: 100,
+      uniqueItems: true
+    },
+    verificationCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    acceptanceCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    publicationCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    deliveryCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] }
+  },
+  required: [
+    ...sectionRequired3,
+    "terminalStatus",
+    "verificationStatus",
+    "acceptanceStatus",
+    "artifactStatus",
+    "publicationStatus",
+    "deliveryStatus",
+    "resultDigest",
+    "artifactCoordinates",
+    "verificationCoordinate",
+    "acceptanceCoordinate",
+    "publicationCoordinate",
+    "deliveryCoordinate"
+  ],
+  oneOf: sectionAlternatives3,
+  additionalProperties: false
+};
+var surfaceCompletenessSchema = {
+  type: "object",
+  properties: {
+    requiredSections: {
+      type: "array",
+      items: {
+        type: "string",
+        enum: ["grounding", "search", "resources", "stages", "caches", "result"]
+      },
+      minItems: 1,
+      maxItems: 6,
+      uniqueItems: true
+    },
+    missingReasons: {
+      type: "array",
+      items: productSurfaceReasonCodeSchema,
+      maxItems: 32,
+      uniqueItems: true
+    }
+  },
+  required: ["requiredSections", "missingReasons"],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/surface-observability-report.js
+var surfaceObservabilityReportSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/surface-observability-report.schema.json",
+  title: "Lervo product surface observability report",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.observability" },
+    surface: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: ["discord", "first_party", "local_cli", "other"] },
+        adapterBuild: productSurfaceCoordinateSchema
+      },
+      required: ["kind", "adapterBuild"],
+      additionalProperties: false
+    },
+    sourceEventHeadHash: sha256Schema,
+    repositoryRevision: sha256Schema,
+    workCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    originCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    grounding: surfaceGroundingSectionSchema,
+    search: surfaceSearchSectionSchema,
+    resources: surfaceResourcesSectionSchema,
+    stages: surfaceStagesSectionSchema,
+    caches: surfaceCachesSectionSchema,
+    result: surfaceResultSectionSchema,
+    completeness: surfaceCompletenessSchema,
+    status: productSurfaceProjectionStatusSchema,
+    reportDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "surface",
+    "sourceEventHeadHash",
+    "repositoryRevision",
+    "workCoordinate",
+    "originCoordinate",
+    "grounding",
+    "search",
+    "resources",
+    "stages",
+    "caches",
+    "result",
+    "completeness",
+    "status",
+    "reportDigest"
+  ],
+  additionalProperties: false
+};
+
 // packages/schemas/dist/skill.js
 var providerCompatibilitySchema2 = {
   oneOf: [
@@ -46079,7 +47736,7 @@ var traceCapabilitiesReportSchema = {
 };
 
 // packages/schemas/dist/terminal-coverage-report.js
-var resourceObservationSchema = {
+var resourceObservationSchema2 = {
   type: "object",
   properties: {
     status: { type: "string", enum: ["partial", "unavailable"] },
@@ -46237,8 +47894,8 @@ var terminalTurnCoverageSchema = {
     resources: {
       type: "object",
       properties: {
-        wholeTask: resourceObservationSchema,
-        queryProjection: resourceObservationSchema
+        wholeTask: resourceObservationSchema2,
+        queryProjection: resourceObservationSchema2
       },
       required: ["wholeTask", "queryProjection"],
       additionalProperties: false
@@ -47773,10 +49430,19 @@ var validators = {
   conversationOutboundMessage: ajv.compile(conversationOutboundMessageSchema),
   conversationRepositoryWorkCompletedEventPayload: ajv.compile(conversationRepositoryWorkCompletedEventPayloadSchema),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
+  productActivityPage: ajv.compile(productActivityPageSchema),
+  productActivitySubscriptionRequest: ajv.compile(productActivitySubscriptionRequestSchema),
+  productActivitySubscriptionHint: ajv.compile(productActivitySubscriptionHintSchema),
+  productSteeringCommand: ajv.compile(productSteeringCommandSchema),
+  productSteeringResult: ajv.compile(productSteeringResultSchema),
+  productUnifiedSearchResult: ajv.compile(productUnifiedSearchResultSchema),
+  surfaceObservabilityReport: ajv.compile(surfaceObservabilityReportSchema),
+  productDeliberationView: ajv.compile(productDeliberationViewSchema),
   deliberationPolicy: ajv.getSchema(deliberationPolicySchema.$id),
   deliberationWorkflowSource: ajv.compile(deliberationWorkflowSourceSchema),
   deliberationArtifact: ajv.compile(deliberationArtifactSchema),
   deliberationOutcome: ajv.compile(deliberationOutcomeSchema),
+  deliberationParticipantAssignment: ajv.compile(deliberationParticipantAssignmentSchema),
   deliberationStartedEventPayload: ajv.compile(deliberationStartedEventPayloadSchema),
   deliberationArtifactRecordedEventPayload: ajv.compile(deliberationArtifactRecordedEventPayloadSchema),
   deliberationArtifactPublicationFailedEventPayload: ajv.compile(deliberationArtifactPublicationFailedEventPayloadSchema),
@@ -48293,6 +49959,8 @@ var eventPayloadAllowlists = {
     "providerSessionDigest",
     "requestedModel",
     "requestedReasoningEffort",
+    "executionProfile",
+    "allocationReason",
     "requestContentHash",
     "resultContentHash",
     "resultByteCount",
@@ -48691,7 +50359,8 @@ var eventPayloadAllowlists = {
     "policyId",
     "policyHash",
     "participantRoleIds",
-    "maxRounds"
+    "maxRounds",
+    "policy"
   ],
   "deliberation.artifact.recorded": [
     "deliberationId",
@@ -48699,9 +50368,11 @@ var eventPayloadAllowlists = {
     "kind",
     "round",
     "producerRoleId",
+    "producerRoleName",
     "artifactId",
     "contentHash",
-    "writingPermitId"
+    "writingPermitId",
+    "artifact"
   ],
   "deliberation.artifact.publication_failed": [
     "deliberationId",
@@ -48916,6 +50587,9 @@ var eventPayloadAllowlists = {
   "organization.deliberation.participant.bound": [
     "deliberationId",
     "deliberationPolicyHash",
+    "bindingVersion",
+    "participationAssignmentId",
+    "policyId",
     "organizationId",
     "teamId",
     "projectId",
@@ -48925,10 +50599,15 @@ var eventPayloadAllowlists = {
     "agentId",
     "participantId",
     "roleId",
+    "policyRoleId",
+    "agentRoleId",
     "roleVersion",
     "roleContractHash",
     "roleProfileHash",
     "providerPolicyHash",
+    "executionRouteHash",
+    "executionProvider",
+    "acceptedAt",
     "boundAt"
   ],
   "organization.deliberation.participant.released": [
@@ -49277,7 +50956,9 @@ var safeSensitiveCoordinatePaths = /* @__PURE__ */ new Set([
   "$.usage.cachedInputTokens",
   "$.usage.outputTokens",
   "$.usage.reasoningOutputTokens",
-  "$.usage.totalTokens"
+  "$.usage.totalTokens",
+  "$.policy.executionBudget.maximumObservedTokens",
+  "$.policy.executionBudget.unobservedTokenDisposition"
 ]);
 var RedactionError = class extends Error {
   code;
@@ -49446,7 +51127,10 @@ function conversationRepositoryWorkCoordinateMatches(payload) {
   return payload.changedPathCount === 0 ? payload.changedPaths.length === 0 && payload.repositoryRevisionBefore === payload.repositoryRevisionAfter : payload.repositoryRevisionBefore !== payload.repositoryRevisionAfter;
 }
 function deliberationArtifactCoordinateMatches(payload) {
-  return payload.artifactId === `art_${payload.contentHash.slice("sha256:".length)}`;
+  if (payload.artifactId !== `art_${payload.contentHash.slice("sha256:".length)}`)
+    return false;
+  const artifact2 = payload.artifact;
+  return artifact2 === void 0 || artifact2.deliberationId === payload.deliberationId && artifact2.deliberationArtifactId === payload.deliberationArtifactId && artifact2.kind === payload.kind && artifact2.round === payload.round && artifact2.producer.roleId === payload.producerRoleId && artifact2.content.artifactId === payload.artifactId && artifact2.content.contentHash === payload.contentHash && artifact2.writingPublicationPermit.permitId === payload.writingPermitId;
 }
 function agentContextPromotionCoordinateMatches(payload) {
   return payload.summaryArtifactId === `art_${payload.summaryContentHash.slice("sha256:".length)}` && (payload.source.kind !== "artifact" || payload.source.sourceId === `art_${payload.source.contentHash.slice("sha256:".length)}`);
@@ -49860,11 +51544,11 @@ function terminalStageCoverage(context, turn, events) {
   const observationId = string(object(context.payload).observationId);
   const byId = /* @__PURE__ */ new Map();
   const byHook = /* @__PURE__ */ new Map();
-  let invalid4 = false;
+  let invalid5 = false;
   let legacyHookCoordinateUnavailable = false;
   for (const event of events.filter((item) => item.type === "execution.stages.observed" && object(item.payload).terminalObservationId === observationId)) {
     if (!validateSchema("executionStagesObservedEventPayload", event.payload).valid) {
-      invalid4 = true;
+      invalid5 = true;
       continue;
     }
     const payload = object(event.payload);
@@ -49875,13 +51559,13 @@ function terminalStageCoverage(context, turn, events) {
     const hookEvent = payload.terminalHook;
     const stages = payload.stages;
     if (payload.executionMode !== "unmanaged_terminal" || event.runId !== context.runId || event.sessionId !== context.sessionId || !Array.isArray(stages)) {
-      invalid4 = true;
+      invalid5 = true;
       continue;
     }
     try {
       assertExecutionStageSet(stages);
     } catch {
-      invalid4 = true;
+      invalid5 = true;
       continue;
     }
     const observation = {
@@ -49894,12 +51578,12 @@ function terminalStageCoverage(context, turn, events) {
     const existing = byId.get(observation.observationSetId);
     if (existing !== void 0) {
       if (JSON.stringify(existing) !== JSON.stringify(observation))
-        invalid4 = true;
+        invalid5 = true;
       continue;
     }
     const hookObservationId = byHook.get(hookEvent);
     if (hookObservationId !== void 0 && hookObservationId !== observation.observationSetId) {
-      invalid4 = true;
+      invalid5 = true;
       continue;
     }
     byHook.set(hookEvent, observation.observationSetId);
@@ -49909,9 +51593,9 @@ function terminalStageCoverage(context, turn, events) {
   const missing = expectedHooks.filter((hook) => !byHook.has(hook));
   const observations = [...byId.values()].sort((left, right) => left.hookEvent.localeCompare(right.hookEvent));
   return {
-    completeness: invalid4 ? "invalid" : observations.length === 0 ? "unavailable" : missing.length > 0 ? "partial" : "complete",
+    completeness: invalid5 ? "invalid" : observations.length === 0 ? "unavailable" : missing.length > 0 ? "partial" : "complete",
     missingReasons: [
-      ...invalid4 ? ["stage_observation_invalid"] : [],
+      ...invalid5 ? ["stage_observation_invalid"] : [],
       ...legacyHookCoordinateUnavailable ? ["stage_hook_coordinate_unavailable"] : [],
       ...missing.length > 0 ? ["stage_observation_missing"] : []
     ],
@@ -52393,25 +54077,101 @@ var openProjectStorage = createProjectStorageOpener(defaultBackends);
 // packages/project-storage/dist/coordination-home.js
 import { execFile } from "node:child_process";
 import { createHash as createHash7, randomBytes } from "node:crypto";
-import { constants as constants3 } from "node:fs";
-import { chmod, lstat as lstat9, mkdir as mkdir5, open as open3, readFile as readFile3, readdir as readdir3, realpath, rename as rename2, rm as rm3 } from "node:fs/promises";
+import { constants as constants4 } from "node:fs";
+import { chmod, lstat as lstat10, mkdir as mkdir5, open as open4, readFile as readFile4, readdir as readdir3, realpath, rename as rename2, rm as rm4 } from "node:fs/promises";
 import { promisify } from "node:util";
-import { dirname as dirname3, resolve as resolve11 } from "node:path";
+import { dirname as dirname3, resolve as resolve12 } from "node:path";
+
+// packages/project-storage/dist/coordination-initialization-lock.js
+import { constants as constants3 } from "node:fs";
+import { lstat as lstat9, open as open3, readFile as readFile3, rm as rm3 } from "node:fs/promises";
+import { resolve as resolve11 } from "node:path";
+var INITIALIZATION_LOCK_BYTES = 1024;
+var STALE_INITIALIZATION_LOCK_AGE_MS = 5e3;
+function invalid2(message, cause) {
+  throw new ProjectStorageError("coordination_home_invalid", message, cause === void 0 ? void 0 : { cause });
+}
+function processIsAlive(processId) {
+  try {
+    process.kill(processId, 0);
+    return true;
+  } catch (error) {
+    return error.code === "EPERM";
+  }
+}
+async function staleInitializationLock(path, now) {
+  let info;
+  try {
+    info = await lstat9(path);
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return false;
+    throw error;
+  }
+  if (!info.isFile() || info.isSymbolicLink() || info.size > INITIALIZATION_LOCK_BYTES || process.platform !== "win32" && (info.mode & 63) !== 0) {
+    invalid2("The repository coordination initialization lock is unsafe.");
+  }
+  if (now.getTime() - info.mtimeMs < STALE_INITIALIZATION_LOCK_AGE_MS)
+    return false;
+  if (info.size < 1)
+    invalid2("The repository coordination initialization lock is invalid.");
+  let value;
+  try {
+    value = JSON.parse(await readFile3(path, "utf8"));
+  } catch (error) {
+    invalid2("The repository coordination initialization lock is unreadable.", error);
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length !== 3) {
+    invalid2("The repository coordination initialization lock is invalid.");
+  }
+  const lock = value;
+  const createdAt = Date.parse(lock.createdAt);
+  if (lock.schemaVersion !== 1 || !Number.isSafeInteger(lock.processId) || lock.processId < 1 || !Number.isFinite(createdAt)) {
+    invalid2("The repository coordination initialization lock is invalid.");
+  }
+  return now.getTime() - createdAt >= STALE_INITIALIZATION_LOCK_AGE_MS && !processIsAlive(lock.processId);
+}
+async function acquireInitializationLock(root2) {
+  const path = resolve11(root2, ".initializing.lock");
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    try {
+      const handle = await open3(path, constants3.O_WRONLY | constants3.O_CREAT | constants3.O_EXCL | (constants3.O_NOFOLLOW ?? 0), 384);
+      await handle.writeFile(`${JSON.stringify({ schemaVersion: 1, processId: process.pid, createdAt: (/* @__PURE__ */ new Date()).toISOString() })}
+`);
+      await handle.sync();
+      return async () => {
+        await handle.close();
+        await rm3(path, { force: true });
+      };
+    } catch (error) {
+      if (error.code !== "EEXIST")
+        throw error;
+      if (await staleInitializationLock(path, /* @__PURE__ */ new Date())) {
+        await rm3(path, { force: true });
+        continue;
+      }
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 10));
+    }
+  }
+  throw new ProjectStorageError("coordination_busy", "Repository coordination initialization did not become available.");
+}
+
+// packages/project-storage/dist/coordination-home.js
 var execute = promisify(execFile);
 var MARKER_BYTES = 16 * 1024;
 var REPOSITORY_INSTANCE_ID = /^rpi_[a-f0-9]{24}$/u;
-function invalid2(message, cause) {
+function invalid3(message, cause) {
   throw new ProjectStorageError("coordination_home_invalid", message, cause === void 0 ? void 0 : { cause });
 }
 async function inspectRealDirectory(path, label) {
   let info;
   try {
-    info = await lstat9(path);
+    info = await lstat10(path);
   } catch (error) {
-    invalid2(`${label} could not be inspected.`, error);
+    invalid3(`${label} could not be inspected.`, error);
   }
   if (!info.isDirectory() || info.isSymbolicLink())
-    invalid2(`${label} must be a real directory and cannot be a symbolic link.`);
+    invalid3(`${label} must be a real directory and cannot be a symbolic link.`);
 }
 async function ensurePrivateDirectory(path) {
   const parent = dirname3(path);
@@ -52440,13 +54200,13 @@ async function gitCoordinates(root2) {
     const { stdout } = await execute("git", arguments_, { encoding: "utf8", maxBuffer: 16384 });
     const values = stdout.trim().split(/\r?\n/u);
     if (values.length !== 2 || values.some((value) => value.trim().length === 0 || value.includes("\0")))
-      invalid2("Git returned an invalid repository coordinate.");
-    return { topLevel: resolve11(values[0].trim()), commonDirectory: resolve11(values[1].trim()) };
+      invalid3("Git returned an invalid repository coordinate.");
+    return { topLevel: resolve12(values[0].trim()), commonDirectory: resolve12(values[1].trim()) };
   } catch (error) {
     if (error instanceof ProjectStorageError)
       throw error;
     if (typeof error.stdout === "string" && error.stdout.trim().length > 0)
-      invalid2("Git returned incomplete repository coordinates.", error);
+      invalid3("Git returned incomplete repository coordinates.", error);
     return null;
   }
 }
@@ -52454,15 +54214,15 @@ async function coordinationRoot(repositoryRoot) {
   const coordinates = await gitCoordinates(repositoryRoot);
   if (coordinates === null)
     return {
-      root: resolve11(repositoryRoot, ".lervo/data/repository-coordination-v1"),
+      root: resolve12(repositoryRoot, ".lervo/data/repository-coordination-v1"),
       storageKind: "standalone_checkout"
     };
   const { topLevel, commonDirectory } = coordinates;
   if (await realpath(topLevel) !== await realpath(repositoryRoot))
-    invalid2("The project manifest root must equal the Git worktree root.");
+    invalid3("The project manifest root must equal the Git worktree root.");
   await inspectRealDirectory(commonDirectory, "Git common directory");
   return {
-    root: resolve11(commonDirectory, "lervo-coordination-v1"),
+    root: resolve12(commonDirectory, "lervo-coordination-v1"),
     storageKind: "git_common_directory"
   };
 }
@@ -52473,21 +54233,21 @@ function validMarker(value, projectId) {
   return marker.schemaVersion === 1 && marker.kind === "lervo_repository_coordination_home" && REPOSITORY_INSTANCE_ID.test(marker.repositoryInstanceId) && marker.projectId === projectId && ["git_common_directory", "standalone_checkout"].includes(marker.storageKind) && Number.isFinite(Date.parse(marker.createdAt));
 }
 async function readMarker(path, projectId) {
-  const info = await lstat9(path);
+  const info = await lstat10(path);
   if (!info.isFile() || info.isSymbolicLink() || info.size > MARKER_BYTES || process.platform !== "win32" && (info.mode & 63) !== 0)
-    invalid2("The repository coordination marker is unsafe.");
+    invalid3("The repository coordination marker is unsafe.");
   let value;
   try {
-    value = JSON.parse(await readFile3(path, "utf8"));
+    value = JSON.parse(await readFile4(path, "utf8"));
   } catch (error) {
-    invalid2("The repository coordination marker is unreadable.", error);
+    invalid3("The repository coordination marker is unreadable.", error);
   }
   if (!validMarker(value, projectId))
-    invalid2("The repository coordination marker is invalid.");
+    invalid3("The repository coordination marker is invalid.");
   return value;
 }
 async function markerFor(input) {
-  const path = resolve11(input.root, "repository.json");
+  const path = resolve12(input.root, "repository.json");
   const marker = {
     schemaVersion: 1,
     kind: "lervo_repository_coordination_home",
@@ -52497,7 +54257,7 @@ async function markerFor(input) {
     createdAt: input.now.toISOString()
   };
   try {
-    const handle = await open3(path, constants3.O_WRONLY | constants3.O_CREAT | constants3.O_EXCL | (constants3.O_NOFOLLOW ?? 0), 384);
+    const handle = await open4(path, constants4.O_WRONLY | constants4.O_CREAT | constants4.O_EXCL | (constants4.O_NOFOLLOW ?? 0), 384);
     try {
       await handle.writeFile(`${JSON.stringify(marker, null, 2)}
 `);
@@ -52512,31 +54272,11 @@ async function markerFor(input) {
     return readMarker(path, input.projectId);
   }
 }
-async function acquireInitializationLock(root2) {
-  const path = resolve11(root2, ".initializing.lock");
-  for (let attempt = 0; attempt < 200; attempt += 1) {
-    try {
-      const handle = await open3(path, constants3.O_WRONLY | constants3.O_CREAT | constants3.O_EXCL | (constants3.O_NOFOLLOW ?? 0), 384);
-      await handle.writeFile(`${JSON.stringify({ schemaVersion: 1, processId: process.pid, createdAt: (/* @__PURE__ */ new Date()).toISOString() })}
-`);
-      await handle.sync();
-      return async () => {
-        await handle.close();
-        await rm3(path, { force: true });
-      };
-    } catch (error) {
-      if (error.code !== "EEXIST")
-        throw error;
-      await new Promise((resolvePromise) => setTimeout(resolvePromise, 10));
-    }
-  }
-  throw new ProjectStorageError("coordination_busy", "Repository coordination initialization did not become available.");
-}
 async function hasEntries(path) {
   try {
-    const info = await lstat9(path);
+    const info = await lstat10(path);
     if (!info.isDirectory() || info.isSymbolicLink())
-      invalid2("Workforce state is unsafe.");
+      invalid3("Workforce state is unsafe.");
     return (await readdir3(path)).length > 0;
   } catch (error) {
     if (error.code === "ENOENT")
@@ -52552,11 +54292,11 @@ async function migrateWorkforce(source, target) {
   if (sourceHasEntries && targetHasEntries)
     throw new ProjectStorageError("coordination_migration_conflict", "Both checkout-local and repository-instance workforce authorities contain records.");
   if (!sourceHasEntries) {
-    await rm3(source, { recursive: true, force: true });
+    await rm4(source, { recursive: true, force: true });
     await ensurePrivateDirectory(target);
     return;
   }
-  await rm3(target, { recursive: true, force: true });
+  await rm4(target, { recursive: true, force: true });
   await rename2(source, target);
   if (process.platform !== "win32")
     await chmod(target, 448);
@@ -52568,7 +54308,7 @@ async function resolveRepositoryCoordinationHome(repositoryRoot, options = {}) {
   if (options.readOnly === true) {
     const home = await inspectRepositoryCoordinationHome(paths.repositoryRoot);
     if (home === null)
-      invalid2("Existing coordination directory could not be inspected.");
+      invalid3("Existing coordination directory could not be inspected.");
     return home;
   }
   if (coordinate.storageKind === "standalone_checkout")
@@ -52583,7 +54323,7 @@ async function resolveRepositoryCoordinationHome(repositoryRoot, options = {}) {
       now: options.now ?? /* @__PURE__ */ new Date()
     });
     if (marker.storageKind !== coordinate.storageKind)
-      invalid2("The repository coordination storage kind changed.");
+      invalid3("The repository coordination storage kind changed.");
     const home = coordinationHome(coordinate.root, marker);
     await migrateWorkforce(paths.workforce, home.workforce);
     await Promise.all([
@@ -52604,16 +54344,16 @@ async function inspectRepositoryCoordinationHome(repositoryRoot) {
   const manifest = await loadProjectManifest(paths.repositoryRoot);
   const coordinate = await coordinationRoot(paths.repositoryRoot);
   try {
-    await lstat9(coordinate.root);
+    await lstat10(coordinate.root);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
-    invalid2("Existing coordination directory could not be inspected.", error);
+    invalid3("Existing coordination directory could not be inspected.", error);
   }
   await inspectRealDirectory(coordinate.root, "Existing coordination directory");
-  const marker = await readMarker(resolve11(coordinate.root, "repository.json"), manifest.projectId);
+  const marker = await readMarker(resolve12(coordinate.root, "repository.json"), manifest.projectId);
   if (marker.storageKind !== coordinate.storageKind || await hasEntries(paths.workforce))
-    invalid2("Read-only coordination inspection requires the owner's completed storage migration.");
+    invalid3("Read-only coordination inspection requires the owner's completed storage migration.");
   const home = coordinationHome(coordinate.root, marker);
   for (const path of [
     home.workforce,
@@ -52633,13 +54373,13 @@ function coordinationHome(root2, marker) {
     repositoryInstanceId: marker.repositoryInstanceId,
     storageKind: marker.storageKind,
     root: root2,
-    workforce: resolve11(root2, "workforce"),
-    workspaces: resolve11(root2, "workspaces"),
-    integrations: resolve11(root2, "integrations"),
-    integrationAttempts: resolve11(root2, "integration-attempts"),
-    cleanupJournals: resolve11(root2, "cleanup-journals"),
-    events: resolve11(root2, "events"),
-    locks: resolve11(root2, "locks")
+    workforce: resolve12(root2, "workforce"),
+    workspaces: resolve12(root2, "workspaces"),
+    integrations: resolve12(root2, "integrations"),
+    integrationAttempts: resolve12(root2, "integration-attempts"),
+    cleanupJournals: resolve12(root2, "cleanup-journals"),
+    events: resolve12(root2, "events"),
+    locks: resolve12(root2, "locks")
   };
 }
 function repositoryCoordinateDigest(value) {
@@ -52648,9 +54388,9 @@ function repositoryCoordinateDigest(value) {
 
 // packages/project-storage/dist/coordination-records.js
 import { createHash as createHash8, randomUUID as randomUUID2 } from "node:crypto";
-import { constants as constants4 } from "node:fs";
-import { chmod as chmod2, lstat as lstat10, open as open4, readFile as readFile4, readdir as readdir4, rename as rename3, rm as rm4 } from "node:fs/promises";
-import { basename as basename2, dirname as dirname4, resolve as resolve12 } from "node:path";
+import { constants as constants5 } from "node:fs";
+import { chmod as chmod2, lstat as lstat11, open as open5, readFile as readFile5, readdir as readdir4, rename as rename3, rm as rm5 } from "node:fs/promises";
+import { basename as basename2, dirname as dirname4, resolve as resolve13 } from "node:path";
 var RECORD_ID = /^[a-z][a-z0-9]{1,7}_[A-Za-z0-9_-]{8,128}$/u;
 var HASH2 = /^sha256:[a-f0-9]{64}$/u;
 var MAXIMUM_RECORD_BYTES = 4 * 1024 * 1024;
@@ -52663,14 +54403,14 @@ function targetDirectory(home, collection) {
 function targetPath(home, collection, recordId) {
   if (!RECORD_ID.test(recordId))
     throw new ProjectStorageError("coordination_home_invalid", "The repository coordination record ID is invalid.");
-  return resolve12(targetDirectory(home, collection), `${recordId}.json`);
+  return resolve13(targetDirectory(home, collection), `${recordId}.json`);
 }
 async function readContent(path) {
   try {
-    const info = await lstat10(path);
+    const info = await lstat11(path);
     if (!info.isFile() || info.isSymbolicLink() || info.size > MAXIMUM_RECORD_BYTES || process.platform !== "win32" && (info.mode & 63) !== 0)
       throw new ProjectStorageError("coordination_home_invalid", "A repository coordination record is unsafe.");
-    return readFile4(path, "utf8");
+    return readFile5(path, "utf8");
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -52678,10 +54418,10 @@ async function readContent(path) {
   }
 }
 async function acquireLock(home, lockName) {
-  const path = resolve12(home.locks, `${lockName}.lock`);
+  const path = resolve13(home.locks, `${lockName}.lock`);
   let handle;
   try {
-    handle = await open4(path, constants4.O_WRONLY | constants4.O_CREAT | constants4.O_EXCL | (constants4.O_NOFOLLOW ?? 0), 384);
+    handle = await open5(path, constants5.O_WRONLY | constants5.O_CREAT | constants5.O_EXCL | (constants5.O_NOFOLLOW ?? 0), 384);
     await handle.writeFile(`${JSON.stringify({ schemaVersion: 1, processId: process.pid, createdAt: (/* @__PURE__ */ new Date()).toISOString() })}
 `);
     await handle.sync();
@@ -52692,12 +54432,12 @@ async function acquireLock(home, lockName) {
   }
   return async () => {
     await handle.close();
-    await rm4(path, { force: true });
+    await rm5(path, { force: true });
   };
 }
 async function atomicWrite(path, content3) {
-  const temporary = resolve12(dirname4(path), `.${basename2(path)}.${process.pid}.${randomUUID2()}.tmp`);
-  const handle = await open4(temporary, "wx", 384);
+  const temporary = resolve13(dirname4(path), `.${basename2(path)}.${process.pid}.${randomUUID2()}.tmp`);
+  const handle = await open5(temporary, "wx", 384);
   try {
     await handle.writeFile(content3);
     await handle.sync();
@@ -52771,7 +54511,7 @@ var RepositoryCoordinationRecords = class _RepositoryCoordinationRecords {
         await atomicWrite(eventPath, eventContent);
       } catch (error) {
         if (current === null)
-          await rm4(path, { force: true });
+          await rm5(path, { force: true });
         else
           await atomicWrite(path, current);
         throw error;
@@ -52792,7 +54532,7 @@ var RepositoryCoordinationRecords = class _RepositoryCoordinationRecords {
         return false;
       if (digest2(current) !== input.expectedContentHash)
         throw new ProjectStorageError("coordination_state_conflict", "The repository coordination record changed before removal.");
-      await rm4(path);
+      await rm5(path);
       return true;
     } finally {
       await release();
@@ -52827,13 +54567,13 @@ function stableId(prefix, value, length = 24) {
 }
 
 // packages/repository-knowledge/dist/compiler.js
-import { lstat as lstat17, readFile as readFile10 } from "node:fs/promises";
-import { basename as basename7, extname as extname3, relative as relative6, resolve as resolve25, sep as sep6 } from "node:path";
+import { lstat as lstat19, readFile as readFile11 } from "node:fs/promises";
+import { basename as basename7, extname as extname3, relative as relative7, resolve as resolve28, sep as sep7 } from "node:path";
 var import_yaml12 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/artifact-paths.js
-import { lstat as lstat11, readdir as readdir5 } from "node:fs/promises";
-import { basename as basename3, resolve as resolve13 } from "node:path";
+import { lstat as lstat12, readdir as readdir5 } from "node:fs/promises";
+import { basename as basename3, resolve as resolve14 } from "node:path";
 
 // packages/repository-knowledge/dist/filesystem-metadata.js
 function isIgnorableFilesystemMetadata(entry) {
@@ -52866,10 +54606,10 @@ function shardedKnowledgeArtifactPath(directory, id2, extension2) {
   return `${directory.replace(/\/$/u, "")}/${knowledgeArtifactShard(id2)}/${id2}.${extension2}`;
 }
 async function listKnowledgeArtifactPaths(input) {
-  const absolute = resolve13(input.root, input.directory);
+  const absolute = resolve14(input.root, input.directory);
   let entries;
   try {
-    const stats = await lstat11(absolute);
+    const stats = await lstat12(absolute);
     if (!stats.isDirectory() || stats.isSymbolicLink())
       throw new Error("unsafe artifact directory");
     entries = await readdir5(absolute, { withFileTypes: true });
@@ -52892,7 +54632,7 @@ async function listKnowledgeArtifactPaths(input) {
     if (!entry.isDirectory() || !SHARD.test(entry.name)) {
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A knowledge artifact registry contains an unsupported entry.");
     }
-    const children = await readdir5(resolve13(absolute, entry.name), { withFileTypes: true });
+    const children = await readdir5(resolve14(absolute, entry.name), { withFileTypes: true });
     for (const child of children.sort((left, right) => left.name.localeCompare(right.name))) {
       if (isIgnorableFilesystemMetadata(child))
         continue;
@@ -52913,12 +54653,12 @@ async function listKnowledgeArtifactPaths(input) {
 }
 
 // packages/repository-knowledge/dist/impact.js
-import { resolve as resolve15 } from "node:path";
+import { resolve as resolve16 } from "node:path";
 
 // packages/repository-knowledge/dist/store-reader.js
 var import_yaml4 = __toESM(require_dist(), 1);
-import { readFile as readFile5 } from "node:fs/promises";
-import { resolve as resolve14 } from "node:path";
+import { readFile as readFile6 } from "node:fs/promises";
+import { resolve as resolve15 } from "node:path";
 
 // packages/repository-knowledge/dist/structural-projection.js
 var structuralProjectionLayoutVersion = 2;
@@ -52942,7 +54682,7 @@ async function loadStoredConcepts(root2) {
   for (const file of files) {
     const name2 = file.split("/").at(-1);
     try {
-      const value = (0, import_yaml4.parse)(await readFile5(resolve14(root2, file), "utf8"));
+      const value = (0, import_yaml4.parse)(await readFile6(resolve15(root2, file), "utf8"));
       const directory = file.startsWith(`${structuralConceptDirectory}/`) ? structuralConceptDirectory : legacyStructuralConceptDirectory;
       if (value.schemaVersion !== 1 || typeof value.conceptId !== "string" || `${value.conceptId}.yaml` !== name2 || typeof value.title !== "string" || typeof value.path !== "string" || value.ownership !== "user" && value.ownership !== "lervo_generated" || value.publicationLanguage !== void 0 && value.publicationLanguage !== "en" || value.publicationStatus !== void 0 && !["draft", "stable", "deprecated"].includes(value.publicationStatus) || value.freshness !== void 0 && !["current", "stale", "unknown"].includes(value.freshness) || value.assurance !== void 0 && value.assurance !== "unreviewed" && value.assurance !== "human_reviewed" || !Array.isArray(value.sourceUnitVersionIds) || !value.sourceUnitVersionIds.every((item) => typeof item === "string") || (directory === structuralConceptDirectory || file.split("/").length > 4) && file !== shardedKnowledgeArtifactPath(directory, value.conceptId, "yaml"))
         throw new Error("The concept sidecar contract is invalid.");
@@ -52980,7 +54720,7 @@ async function loadStoredClaims(root2) {
   for (const file of files) {
     const name2 = file.split("/").at(-1);
     try {
-      const value = (0, import_yaml4.parse)(await readFile5(resolve14(root2, file), "utf8"));
+      const value = (0, import_yaml4.parse)(await readFile6(resolve15(root2, file), "utf8"));
       if (value.schemaVersion !== 1 || typeof value.claimId !== "string" || `${value.claimId}.yaml` !== name2 || typeof value.conceptId !== "string" || typeof value.statement !== "string" || typeof value.statementDigest !== "string" || sha2562(value.statement) !== value.statementDigest || !Array.isArray(value.evidenceUnitVersionIds) || value.evidenceUnitVersionIds.length < 1 || !value.evidenceUnitVersionIds.every((id2) => typeof id2 === "string") || value.assurance !== "human_reviewed" || value.evidenceUnitIds !== void 0 && (!Array.isArray(value.evidenceUnitIds) || value.evidenceUnitIds.length !== value.evidenceUnitVersionIds.length || !value.evidenceUnitIds.every((id2) => typeof id2 === "string")) || value.freshness !== "current" || typeof value.reviewId !== "string" || file.split("/").length > 4 && file !== shardedKnowledgeArtifactPath(".lervo/knowledge/claims", value.claimId, "yaml") || ids.has(value.claimId))
         throw new Error("The claim sidecar contract is invalid.");
       ids.add(value.claimId);
@@ -53007,7 +54747,7 @@ async function loadStoredRelations(root2) {
   for (const file of files) {
     const name2 = file.split("/").at(-1);
     try {
-      const value = (0, import_yaml4.parse)(await readFile5(resolve14(root2, file), "utf8"));
+      const value = (0, import_yaml4.parse)(await readFile6(resolve15(root2, file), "utf8"));
       if (value.schemaVersion !== 1 || typeof value.relationId !== "string" || `${value.relationId}.yaml` !== name2 || value.from?.kind !== "concept" || typeof value.from.id !== "string" || value.to?.kind !== "concept" || typeof value.to.id !== "string" || !["depends_on", "constrains", "related_to", "supersedes", "contradicts"].includes(value.type ?? "") || !Array.isArray(value.evidenceUnitVersionIds) || value.evidenceUnitVersionIds.length < 1 || !value.evidenceUnitVersionIds.every((id2) => typeof id2 === "string") || value.assurance !== "human_reviewed" || value.evidenceUnitIds !== void 0 && (!Array.isArray(value.evidenceUnitIds) || value.evidenceUnitIds.length !== value.evidenceUnitVersionIds.length || !value.evidenceUnitIds.every((id2) => typeof id2 === "string")) || value.freshness !== "current" || typeof value.reviewId !== "string" || file.split("/").length > 4 && file !== shardedKnowledgeArtifactPath(".lervo/knowledge/relations", value.relationId, "yaml") || ids.has(value.relationId))
         throw new Error("The relation sidecar contract is invalid.");
       ids.add(value.relationId);
@@ -53078,14 +54818,14 @@ function subjectForRelation(relation) {
   };
 }
 async function analyzeRepositoryKnowledgeImpact(input) {
-  const root2 = resolve15(input.repositoryRoot);
+  const root2 = resolve16(input.repositoryRoot);
   const [storedClaims, storedRelations] = await Promise.all([
     loadStoredClaims(root2),
     loadStoredRelations(root2)
   ]);
-  const invalid4 = [...storedClaims, ...storedRelations].find((item) => item.value === null);
-  if (invalid4 !== void 0) {
-    throw new RepositoryKnowledgeError("knowledge_impact_invalid", `Impact cannot be calculated for sidecar: ${invalid4.file}`);
+  const invalid5 = [...storedClaims, ...storedRelations].find((item) => item.value === null);
+  if (invalid5 !== void 0) {
+    throw new RepositoryKnowledgeError("knowledge_impact_invalid", `Impact cannot be calculated for sidecar: ${invalid5.file}`);
   }
   const subjects = [
     ...storedClaims.flatMap((item) => item.value === null ? [] : [subjectForClaim(item.value)]),
@@ -53143,8 +54883,993 @@ async function analyzeRepositoryKnowledgeImpact(input) {
 
 // packages/repository-knowledge/dist/policy.js
 var import_yaml5 = __toESM(require_dist(), 1);
-import { readFile as readFile6 } from "node:fs/promises";
-import { resolve as resolve16 } from "node:path";
+import { readFile as readFile7 } from "node:fs/promises";
+import { resolve as resolve19 } from "node:path";
+
+// packages/context/dist/filesystem.js
+import { constants as constants6 } from "node:fs";
+import { lstat as lstat13, open as open6, realpath as realpath2 } from "node:fs/promises";
+import { relative, resolve as resolve18, sep } from "node:path";
+
+// packages/context/dist/paths.js
+import { isAbsolute as isAbsolute2, posix as posix2, resolve as resolve17, win32 } from "node:path";
+
+// packages/context/dist/types.js
+var ContextPreparationError = class extends Error {
+  code;
+  constructor(code, message, options) {
+    super(message, options);
+    this.code = code;
+    this.name = "ContextPreparationError";
+  }
+};
+
+// packages/context/dist/paths.js
+function normalizeRepositoryPath(path) {
+  const normalizedSeparators = path.replaceAll("\\", "/");
+  if (normalizedSeparators.length === 0 || normalizedSeparators.includes("\0") || isAbsolute2(path) || win32.isAbsolute(path) || normalizedSeparators.split("/").some((segment) => segment === "..")) {
+    throw new ContextPreparationError("invalid_expected_path", `Only repository-relative paths are allowed: ${path}`);
+  }
+  const normalized2 = posix2.normalize(normalizedSeparators).replace(/^\.\//, "");
+  if (normalized2 === "." || normalized2.startsWith("../")) {
+    throw new ContextPreparationError("invalid_expected_path", `Only repository-relative paths are allowed: ${path}`);
+  }
+  return normalized2;
+}
+
+// packages/context/dist/filesystem.js
+function identity(stats) {
+  return {
+    dev: stats.dev,
+    ino: stats.ino,
+    size: stats.size,
+    mtimeNs: stats.mtimeNs,
+    ctimeNs: stats.ctimeNs
+  };
+}
+function sameIdentity(left, right) {
+  return left.dev === right.dev && left.ino === right.ino && left.size === right.size && left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs;
+}
+function sameRepositoryPathIdentity(pathIdentity, openedIdentity, platform = process.platform) {
+  const deviceMatches = pathIdentity.dev === openedIdentity.dev || platform === "win32" && pathIdentity.dev === 0n;
+  return deviceMatches && pathIdentity.ino === openedIdentity.ino && pathIdentity.size === openedIdentity.size && pathIdentity.mtimeNs === openedIdentity.mtimeNs && pathIdentity.ctimeNs === openedIdentity.ctimeNs;
+}
+async function canonicalRepositoryRoot(root2) {
+  const absoluteRoot = resolve18(root2);
+  let stats;
+  try {
+    stats = await lstat13(absoluteRoot);
+  } catch (error) {
+    throw new ContextPreparationError("unsafe_document_path", `The repository root cannot be inspected: ${absoluteRoot}`, { cause: error });
+  }
+  if (!stats.isDirectory() || stats.isSymbolicLink()) {
+    throw new ContextPreparationError("unsafe_document_path", `The repository root must be a real directory: ${absoluteRoot}`);
+  }
+  return realpath2(absoluteRoot);
+}
+async function inspectPath(root2, path) {
+  const canonicalRoot = await canonicalRepositoryRoot(root2);
+  const normalized2 = normalizeRepositoryPath(path);
+  const segments = normalized2.split("/");
+  let current = canonicalRoot;
+  for (const [index2, segment] of segments.entries()) {
+    current = resolve18(current, segment);
+    let stats;
+    try {
+      stats = await lstat13(current);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        return { absolutePath: current, kind: "missing" };
+      }
+      throw new ContextPreparationError("document_read_failed", `The document path cannot be inspected: ${normalized2}`, { cause: error });
+    }
+    if (stats.isSymbolicLink()) {
+      throw new ContextPreparationError("unsafe_document_path", `The document path cannot contain symbolic links: ${normalized2}`);
+    }
+    const final = index2 === segments.length - 1;
+    if (final ? !stats.isFile() : !stats.isDirectory()) {
+      throw new ContextPreparationError("unsafe_document_path", `The document path must contain only real files and directories: ${normalized2}`);
+    }
+  }
+  const pathFromRoot = relative(canonicalRoot, current);
+  if (pathFromRoot.startsWith(`..${sep}`) || pathFromRoot === "..") {
+    throw new ContextPreparationError("unsafe_document_path", `The document path points outside the repository: ${normalized2}`);
+  }
+  return { absolutePath: current, kind: "file" };
+}
+async function repositoryFileExists(root2, path) {
+  return (await inspectPath(root2, path)).kind === "file";
+}
+async function readRepositoryFile(root2, path, maximumBytes2 = Number.MAX_SAFE_INTEGER) {
+  if (!Number.isSafeInteger(maximumBytes2) || maximumBytes2 < 1) {
+    throw new ContextPreparationError("document_read_failed", "The document byte limit is invalid.");
+  }
+  const inspected = await inspectPath(root2, path);
+  const normalized2 = normalizeRepositoryPath(path);
+  if (inspected.kind === "missing") {
+    throw new ContextPreparationError("document_missing", `The selected document is missing: ${normalized2}`);
+  }
+  let handle;
+  try {
+    handle = await open6(inspected.absolutePath, constants6.O_RDONLY | (constants6.O_NOFOLLOW ?? 0));
+    const beforeStats = await handle.stat({ bigint: true });
+    if (!beforeStats.isFile() || beforeStats.size > BigInt(maximumBytes2)) {
+      throw new ContextPreparationError(beforeStats.isFile() ? "document_read_failed" : "unsafe_document_path", beforeStats.isFile() ? `The selected document exceeds the byte limit: ${normalized2}` : `The selected document must be a real file: ${normalized2}`);
+    }
+    const before = identity(beforeStats);
+    let bytes;
+    let boundedBytesRead;
+    if (maximumBytes2 === Number.MAX_SAFE_INTEGER) {
+      bytes = await handle.readFile();
+    } else {
+      const buffer = Buffer.alloc(Number(beforeStats.size) + 1);
+      const result = await handle.read(buffer, 0, buffer.length, 0);
+      boundedBytesRead = result.bytesRead;
+      bytes = buffer.subarray(0, result.bytesRead);
+    }
+    const after = identity(await handle.stat({ bigint: true }));
+    const pathStats = await lstat13(inspected.absolutePath, { bigint: true });
+    const resolvedPath = await realpath2(inspected.absolutePath);
+    if (!sameIdentity(before, after) || boundedBytesRead !== void 0 && boundedBytesRead !== Number(before.size) || after.size > BigInt(maximumBytes2) || pathStats.isSymbolicLink() || !sameRepositoryPathIdentity(identity(pathStats), after) || resolvedPath !== inspected.absolutePath) {
+      throw new ContextPreparationError("document_changed_during_read", `The document path or content changed while it was being read: ${normalized2}`);
+    }
+    return bytes;
+  } catch (error) {
+    if (error instanceof ContextPreparationError)
+      throw error;
+    throw new ContextPreparationError("document_read_failed", `The document cannot be read: ${normalized2}`, { cause: error });
+  } finally {
+    await handle?.close();
+  }
+}
+
+// packages/core/dist/writing-contract.js
+var defaultEnglishWritingContract = {
+  schemaVersion: 1,
+  writingPolicyId: "writing_en-human",
+  locale: "en",
+  surfaces: [
+    "readme",
+    "pull_request",
+    "issue",
+    "review_comment",
+    "status",
+    "chat",
+    "documentation"
+  ],
+  audience: "mixed",
+  informationOrder: {
+    lead: "purpose_or_conclusion",
+    then: ["reason", "change_or_result", "scope_and_impact", "next_action", "evidence"]
+  },
+  prose: {
+    register: "plain_spec",
+    completeSentences: true,
+    cohesiveParagraphs: true,
+    oneMainFactPerSentence: true,
+    avoidTranslationeseAndFragments: true
+  },
+  terminology: {
+    preserveMachineIdentifiers: true,
+    explainInternalTermsAtFirstUse: true,
+    preferConcreteVerbs: true,
+    forbiddenVagueTerms: ["quick win", "magic", "simply", "obviously"]
+  },
+  actions: {
+    abstractActors: "forbid",
+    stateObjectAndActionDirectly: true,
+    stateWhenNoActionIsNeeded: true
+  },
+  evidence: {
+    majorClaimsRequireEvidence: true,
+    distinguishRunFromNotRun: true,
+    keepRawLogsOutOfPrimaryProse: true
+  },
+  verification: {
+    deterministicChecks: [
+      "forbid_em_dash",
+      "forbid_abstract_action_subject",
+      "no_empty_sections",
+      "forbid_vague_terms"
+    ],
+    semanticChecks: [
+      {
+        checkId: "natural_en_prose",
+        requirement: "Write natural English prose in complete sentences, with each paragraph forming a coherent line of thought instead of a list of fragments.",
+        required: true
+      },
+      {
+        checkId: "plain_audience_language",
+        requirement: "Judge clarity for the supplied audience and prose register. A technical specification may use standard software terms, but it must explain repository-specific terms, uncommon abbreviations, and machine identifiers at first use or in a Terms section.",
+        required: true
+      },
+      {
+        checkId: "direct_result_and_action",
+        requirement: "State the result, impact, and next action concretely without assigning responsibility to an unspecified user, person, or owner.",
+        required: true
+      }
+    ],
+    semanticEvaluationMode: "separate_pass",
+    requiresPassedEvaluation: true,
+    failureDisposition: "block_publication"
+  }
+};
+var fixedEnglishStatusWritingContract = {
+  ...defaultEnglishWritingContract,
+  writingPolicyId: "writing_en-fixed-status",
+  surfaces: ["status", "chat"],
+  verification: {
+    ...defaultEnglishWritingContract.verification,
+    semanticChecks: [],
+    semanticEvaluationMode: "separate_pass"
+  }
+};
+var adaptiveConversationWritingContract = {
+  ...defaultEnglishWritingContract,
+  writingPolicyId: "writing_mul-conversation",
+  locale: "mul",
+  surfaces: ["chat"],
+  prose: {
+    ...defaultEnglishWritingContract.prose,
+    register: "polite"
+  },
+  verification: {
+    ...defaultEnglishWritingContract.verification,
+    semanticChecks: [
+      {
+        checkId: "natural_conversation_prose",
+        requirement: "Write natural, direct conversational prose in the selected response language, preserving machine identifiers and clearly separating observed facts from proposed actions.",
+        required: true
+      }
+    ]
+  }
+};
+var koreanConversationWritingContract = {
+  ...adaptiveConversationWritingContract,
+  writingPolicyId: "writing_ko-conversation",
+  locale: "ko",
+  verification: {
+    ...adaptiveConversationWritingContract.verification,
+    semanticChecks: [
+      {
+        checkId: "natural_ko_prose",
+        requirement: "\uB3C5\uC790\uC5D0\uAC8C \uC9C1\uC811 \uC124\uBA85\uD558\uB294 \uC790\uC5F0\uC2A4\uB7EC\uC6B4 \uD55C\uAD6D\uC5B4 \uC644\uC804\uBB38\uC7A5\uC73C\uB85C \uC791\uC131\uD558\uACE0, \uBB38\uB2E8\uB9C8\uB2E4 \uD558\uB098\uC758 \uC751\uC9D1\uB41C \uB17C\uC9C0\uB97C \uC720\uC9C0\uD55C\uB2E4.",
+        required: true
+      },
+      {
+        checkId: "plain_audience_language",
+        requirement: "\uD45C\uC900 \uC18C\uD504\uD2B8\uC6E8\uC5B4 \uC6A9\uC5B4\uB294 \uC0AC\uC6A9\uD560 \uC218 \uC788\uC9C0\uB9CC \uC800\uC7A5\uC18C \uC804\uC6A9 \uC6A9\uC5B4, \uC0DD\uC18C\uD55C \uC57D\uC5B4, \uAE30\uACC4 \uC2DD\uBCC4\uC790\uB294 \uCC98\uC74C \uB4F1\uC7A5\uD560 \uB54C \uB3C5\uC790\uAC00 \uC774\uD574\uD560 \uC218 \uC788\uAC8C \uC124\uBA85\uD55C\uB2E4.",
+        required: true
+      },
+      {
+        checkId: "direct_result_and_action",
+        requirement: "\uACB0\uACFC, \uC601\uD5A5, \uB2E4\uC74C \uD589\uB3D9\uC744 \uAD6C\uCCB4\uC801\uC73C\uB85C \uBC1D\uD788\uACE0 \uBD88\uD2B9\uC815 \uC0AC\uC6A9\uC790, \uB2F4\uB2F9\uC790, \uC0AC\uB78C \uB610\uB294 \uD300\uC5D0\uAC8C \uCC45\uC784\uC744 \uB118\uAE30\uC9C0 \uC54A\uB294\uB2E4.",
+        required: true
+      }
+    ]
+  }
+};
+var realtimeConversationWritingContract = {
+  ...adaptiveConversationWritingContract,
+  writingPolicyId: "writing_mul-realtime-conversation",
+  verification: {
+    ...adaptiveConversationWritingContract.verification,
+    semanticChecks: []
+  }
+};
+var fixedConversationStatusWritingContract = {
+  ...fixedEnglishStatusWritingContract,
+  writingPolicyId: "writing_mul-fixed-conversation-status",
+  locale: "mul",
+  surfaces: ["chat"]
+};
+
+// packages/context/dist/generated-source-exclusions.js
+var transientToolCacheDirectoryNames = Object.freeze([
+  ".cache",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".tox",
+  ".nox",
+  "__pycache__"
+]);
+var transientToolCacheNames = new Set(transientToolCacheDirectoryNames);
+function isTransientToolCachePath(path) {
+  return path.split("/").some((segment) => transientToolCacheNames.has(segment));
+}
+
+// packages/search/dist/integrity.js
+import { createHash as createHash10 } from "node:crypto";
+function sha2563(value) {
+  return `sha256:${createHash10("sha256").update(value).digest("hex")}`;
+}
+function contentId(prefix, value) {
+  return `${prefix}_${createHash10("sha256").update(canonicalJson(value)).digest("hex").slice(0, 24)}`;
+}
+function canonicalHash(value) {
+  return sha2563(canonicalJson(value));
+}
+
+// packages/search/dist/types.js
+var SEARCH_ENGINE = { id: "lexical", version: 1 };
+var SEARCH_MAX_RESULTS = 50;
+var searchSourceKinds = ["document", "skill", "verified_knowledge"];
+var SearchError = class extends Error {
+  code;
+  constructor(code, message, options) {
+    super(message, options);
+    this.code = code;
+    this.name = "SearchError";
+  }
+};
+
+// packages/search/dist/validation.js
+var SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/;
+var SOURCE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
+var CONTROL_PATTERN = /[\u0000-\u001f\u007f]/;
+function safeRepositoryPath2(path) {
+  return path.length > 0 && path.length <= 500 && !path.startsWith("/") && !/^[A-Za-z]:/.test(path) && !path.includes("\\") && !path.endsWith("/") && path.split("/").every((part) => part !== "" && part !== "." && part !== "..");
+}
+function assertSourceReference(source) {
+  if (!searchSourceKinds.includes(source.kind) || !SOURCE_ID_PATTERN.test(source.sourceId) || !SHA256_PATTERN.test(source.contentHash) || source.path !== void 0 && !safeRepositoryPath2(source.path)) {
+    throw new SearchError("corpus_invalid", "The search source coordinates are invalid.");
+  }
+}
+function assertText(value, maximum, code) {
+  if (typeof value !== "string" || value.length < 1 || value.length > maximum || CONTROL_PATTERN.test(value)) {
+    throw new SearchError(code, "The search string is outside the allowed bounds.");
+  }
+  return value;
+}
+
+// packages/search/dist/corpus.js
+var SEARCH_MAX_SOURCES = 4096;
+var SEARCH_MAX_SOURCE_CHARACTERS = 131072;
+var SEARCH_MAX_TOTAL_CHARACTERS = 16 * 1024 * 1024;
+function searchSourceKey(source) {
+  return `${source.kind.length}:${source.kind}${source.sourceId}`;
+}
+function compareText(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+function prepareSearchCorpus(inputs) {
+  if (!Array.isArray(inputs) || inputs.length > SEARCH_MAX_SOURCES) {
+    throw new SearchError("corpus_limit_exceeded", "The search source count exceeds the safe limit.");
+  }
+  const seen = /* @__PURE__ */ new Set();
+  let characters = 0;
+  const sources = inputs.map((input) => {
+    assertSourceReference(input);
+    if (typeof input.text !== "string" || input.text.length < 1 || input.text.length > SEARCH_MAX_SOURCE_CHARACTERS || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(input.text)) {
+      throw new SearchError("corpus_invalid", "The search source content contract is invalid.");
+    }
+    if (!Array.isArray(input.labels)) {
+      throw new SearchError("corpus_invalid", "The search source label contract is invalid.");
+    }
+    const labels = input.labels;
+    if (labels.length > 32 || labels.some((label) => {
+      if (typeof label !== "string")
+        return true;
+      try {
+        assertText(label, 200, "corpus_invalid");
+        return false;
+      } catch {
+        return true;
+      }
+    })) {
+      throw new SearchError("corpus_invalid", "The search source label contract is invalid.");
+    }
+    if (input.title !== void 0)
+      assertText(input.title, 500, "corpus_invalid");
+    const key2 = searchSourceKey(input);
+    if (seen.has(key2))
+      throw new SearchError("corpus_invalid", "Search source kind and ID coordinates are duplicated.");
+    seen.add(key2);
+    characters += input.text.length + (input.title?.length ?? 0) + labels.join("").length;
+    if (characters > SEARCH_MAX_TOTAL_CHARACTERS) {
+      throw new SearchError("corpus_limit_exceeded", "The total search corpus size exceeds the safe limit.");
+    }
+    return structuredClone(input);
+  }).sort((left, right) => compareText(searchSourceKey(left), searchSourceKey(right)));
+  const indexSources = sources.map((source) => ({
+    kind: source.kind,
+    sourceId: source.sourceId,
+    contentHash: source.contentHash,
+    ...source.path === void 0 ? {} : { path: source.path },
+    searchProjectionHash: canonicalHash({
+      title: source.title ?? null,
+      labels: [...source.labels].sort(),
+      text: source.text
+    })
+  }));
+  return { sources, indexSources, corpusDigest: canonicalHash(indexSources) };
+}
+
+// packages/search/dist/normalize.js
+var TERM_PATTERN = /[\p{L}\p{N}]+/gu;
+var MAX_QUERY_TERMS = 32;
+function normalizeSearchText(value) {
+  return value.normalize("NFKC").toLocaleLowerCase("und").replace(/\s+/gu, " ").trim();
+}
+function searchTerms(value, code) {
+  const maximum = code === "invalid_query" ? 500 : 131072;
+  const normalized2 = normalizeSearchText(assertText(value, maximum, code));
+  const terms2 = normalized2.match(TERM_PATTERN) ?? [];
+  if (terms2.length === 0 || code === "invalid_query" && terms2.length > MAX_QUERY_TERMS) {
+    throw new SearchError(code, "A query must contain between 1 and 32 letter-or-number terms.");
+  }
+  return terms2;
+}
+function identifySearchQuery(query) {
+  const terms2 = [...new Set(searchTerms(query, "invalid_query"))];
+  return {
+    queryDigest: sha2563(normalizeSearchText(query)),
+    queryCharacterCount: [...query].length,
+    queryTermCount: terms2.length
+  };
+}
+
+// packages/search/dist/evaluation-engine.js
+var SEARCH_ENGINE_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/;
+var SEARCH_INDEX_ID_PATTERN = /^sidx_[a-f0-9]{24}$/;
+var SEARCH_ADAPTER_BUILD_ID_PATTERN = /^sebuild_[a-f0-9]{24}$/;
+function assertSearchEngineIdentity(engine, errorCode = "invalid_evaluation_engine") {
+  if (typeof engine !== "object" || engine === null || !SEARCH_ENGINE_ID_PATTERN.test(engine.id) || engine.id.length > 64 || !Number.isSafeInteger(engine.version) || engine.version < 1 || engine.version > 1e6) {
+    throw new SearchError(errorCode, "The search evaluation engine coordinates are invalid.");
+  }
+}
+function sameSearchEngine(left, right) {
+  return left.id === right.id && left.version === right.version;
+}
+function assertSearchAdapterBuildId(adapterBuildId, errorCode = "invalid_evaluation_engine") {
+  if (!SEARCH_ADAPTER_BUILD_ID_PATTERN.test(adapterBuildId)) {
+    throw new SearchError(errorCode, "The search adapter build ID is invalid.");
+  }
+}
+
+// packages/search/dist/evaluation-engine-registry.js
+var SEARCH_CANDIDATE_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/;
+var SEARCH_MAX_CANDIDATE_ENGINES = 16;
+var SearchEvaluationEngineRegistry = class {
+  engines = /* @__PURE__ */ new Map();
+  registrations;
+  constructor(registrations) {
+    if (!Array.isArray(registrations) || registrations.length < 1 || registrations.length > SEARCH_MAX_CANDIDATE_ENGINES) {
+      throw new SearchError("invalid_evaluation_engine", "The number of candidate search engines to register is invalid.");
+    }
+    const coordinates = /* @__PURE__ */ new Set();
+    const adapterBuildIds = /* @__PURE__ */ new Set();
+    this.registrations = registrations.map(({ candidateId, engine }) => {
+      assertSearchEngineIdentity(engine.engine);
+      assertSearchAdapterBuildId(engine.adapterBuildId);
+      const coordinate = `${engine.engine.id}:${engine.engine.version}`;
+      if (!SEARCH_CANDIDATE_ID_PATTERN.test(candidateId) || candidateId.length > 64 || this.engines.has(candidateId) || coordinates.has(coordinate) || adapterBuildIds.has(engine.adapterBuildId) || sameSearchEngine(engine.engine, SEARCH_ENGINE)) {
+        throw new SearchError("invalid_evaluation_engine", "Candidate search ID or engine coordinates are duplicated or invalid.");
+      }
+      this.engines.set(candidateId, engine);
+      coordinates.add(coordinate);
+      adapterBuildIds.add(engine.adapterBuildId);
+      return { candidateId, engine: { ...engine.engine }, adapterBuildId: engine.adapterBuildId };
+    }).sort((left, right) => left.candidateId < right.candidateId ? -1 : left.candidateId > right.candidateId ? 1 : 0);
+  }
+  list() {
+    return structuredClone(this.registrations);
+  }
+  resolve(candidateId) {
+    const engine = this.engines.get(candidateId);
+    if (engine === void 0) {
+      throw new SearchError("evaluation_candidate_not_registered", "The candidate search engine is not registered.");
+    }
+    return engine;
+  }
+  resolveEngine(identity2) {
+    assertSearchEngineIdentity(identity2);
+    const registration = this.registrations.find((item) => sameSearchEngine(item.engine, identity2));
+    if (registration === void 0) {
+      throw new SearchError("evaluation_candidate_not_registered", "The candidate search engine is not registered.");
+    }
+    return {
+      candidateId: registration.candidateId,
+      engine: this.engines.get(registration.candidateId)
+    };
+  }
+};
+
+// packages/search/dist/evaluation-engine-contract.js
+var MATCHED_FIELDS = ["label", "path", "text", "title"];
+function hitKey(hit) {
+  return searchSourceKey(hit.source);
+}
+function assertSearchResponse(input) {
+  const { response, index: index2 } = input;
+  assertSearchEngineIdentity(index2.engine);
+  const queryIdentity = identifySearchQuery(input.query);
+  if (response.schemaVersion !== 1 || !sameSearchEngine(response.engine, index2.engine) || !SEARCH_INDEX_ID_PATTERN.test(index2.indexId) || response.indexId !== index2.indexId || response.queryDigest !== queryIdentity.queryDigest || response.queryCharacterCount !== queryIdentity.queryCharacterCount || response.queryTermCount !== queryIdentity.queryTermCount || response.requestedLimit !== input.limit || !Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > SEARCH_MAX_RESULTS || !Array.isArray(response.hits) || response.hits.length > input.limit) {
+    throw new SearchError("invalid_evaluation_engine", "The search evaluation response has invalid engine, index, query, or limit coordinates.");
+  }
+  for (const [indexPosition, hit] of response.hits.entries()) {
+    try {
+      assertSourceReference(hit.source);
+    } catch (error) {
+      throw new SearchError("invalid_evaluation_engine", "The search evaluation response source coordinates are invalid.", {
+        cause: error instanceof Error ? error : void 0
+      });
+    }
+    if (hit.rank !== indexPosition + 1 || !Number.isSafeInteger(hit.score) || hit.score < 1 || !Array.isArray(hit.matchedFields) || hit.matchedFields.length < 1 || hit.matchedFields.length > 4 || hit.matchedFields.some((field2) => !MATCHED_FIELDS.includes(field2)) || new Set(hit.matchedFields).size !== hit.matchedFields.length || hit.matchedFields.some((field2, fieldIndex) => fieldIndex > 0 && hit.matchedFields[fieldIndex - 1] >= field2)) {
+      throw new SearchError("invalid_evaluation_engine", "The search evaluation response hit contract is invalid.");
+    }
+  }
+  if (new Set(response.hits.map(hitKey)).size !== response.hits.length || response.hits.some((hit, indexPosition) => {
+    if (indexPosition === 0)
+      return false;
+    const previous2 = response.hits[indexPosition - 1];
+    return hit.score > previous2.score || hit.score === previous2.score && hitKey(hit) <= hitKey(previous2);
+  })) {
+    throw new SearchError("invalid_evaluation_engine", "Search evaluation response hits are duplicated or out of order.");
+  }
+  const resultCore = response.hits.map((hit) => ({
+    sourceKind: hit.source.kind,
+    sourceId: hit.source.sourceId,
+    contentHash: hit.source.contentHash,
+    rank: hit.rank,
+    score: hit.score
+  }));
+  if (canonicalHash(resultCore) !== response.resultSetHash) {
+    throw new SearchError("invalid_evaluation_engine", "The search evaluation response result-set hash does not match its hits.");
+  }
+}
+
+// packages/search/dist/performance-benchmark.js
+var SEARCH_PERFORMANCE_BENCHMARK_BUILD_ID = contentId("spbuild", {
+  schemaVersion: 1,
+  quality: "success-recall-reciprocal-rank-v1",
+  taskComparison: "coverage-and-ranking-v1",
+  latency: "alternating-pairs-monotonic-v1",
+  thresholds: "repository-observation-v1"
+});
+
+// packages/search/dist/query-projection.js
+var SEARCH_QUERY_PROJECTOR_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/;
+var SEARCH_QUERY_PROJECTOR_BUILD_ID_PATTERN = /^sqbuild_[a-f0-9]{24}$/;
+var SEARCH_QUERY_PROJECTION_RECEIPT_ID_PATTERN = /^sqproj_[a-f0-9]{24}$/;
+var SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES = 8;
+var SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS = 500;
+var SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_TERMS = 32;
+function assertProjector(projector) {
+  if (!SEARCH_QUERY_PROJECTOR_ID_PATTERN.test(projector.id) || projector.id.length > 64 || !Number.isSafeInteger(projector.version) || projector.version < 1 || projector.version > 1e6 || !SEARCH_QUERY_PROJECTOR_BUILD_ID_PATTERN.test(projector.buildId)) {
+    throw new SearchError("invalid_query_projection", "The search query projector coordinates are invalid.");
+  }
+}
+function assertLanguage(language) {
+  if (!/^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8}){0,3}$/.test(language)) {
+    throw new SearchError("invalid_query_projection", "The search query projection language is invalid.");
+  }
+}
+function assertProjectionLimits(limits) {
+  if (!Number.isSafeInteger(limits.maximumQueries) || limits.maximumQueries < 1 || limits.maximumQueries > SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES || !Number.isSafeInteger(limits.maximumQueryCharacters) || limits.maximumQueryCharacters < 1 || limits.maximumQueryCharacters > SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS) {
+    throw new SearchError("invalid_query_projection", "The search query projection limits are invalid.");
+  }
+}
+function assertQueries(queries, limits) {
+  if (queries.length > limits.maximumQueries || new Set(queries).size !== queries.length || queries.some((query) => query.trim() !== query || query.length === 0 || query.length > limits.maximumQueryCharacters || (normalizeSearchText(query).match(/[\p{L}\p{N}]+/gu) ?? []).length > SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_TERMS)) {
+    throw new SearchError("invalid_query_projection", "The projected search queries violate their bounds.");
+  }
+}
+function boundProjectedSearchQuery(value, maximumQueryCharacters = SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS) {
+  assertProjectionLimits({
+    maximumQueries: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES,
+    maximumQueryCharacters
+  });
+  const terms2 = normalizeSearchText(value).match(/[\p{L}\p{N}]+/gu) ?? [];
+  if (terms2.length === 0) {
+    throw new SearchError("invalid_query_projection", "A projected search query contains no searchable term.");
+  }
+  const selected = [];
+  for (const term of terms2.slice(0, SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_TERMS)) {
+    const candidate = [...selected, term].join(" ");
+    if (candidate.length <= maximumQueryCharacters) {
+      selected.push(term);
+      continue;
+    }
+    if (selected.length === 0) {
+      selected.push(term.slice(0, maximumQueryCharacters));
+    }
+    break;
+  }
+  return selected.join(" ");
+}
+function boundProjectedSearchQueries(values, limits = {
+  maximumQueries: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES,
+  maximumQueryCharacters: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS
+}) {
+  assertProjectionLimits(limits);
+  const bounded = values.slice(0, limits.maximumQueries).map((value) => boundProjectedSearchQuery(value, limits.maximumQueryCharacters));
+  return [...new Set(bounded)];
+}
+function projectionCore(input) {
+  return {
+    stageId: "query_projection",
+    projector: { ...input.projector },
+    requestDigest: input.requestDigest,
+    contextDigest: input.contextDigest,
+    projectorResultDigest: input.projectorResultDigest,
+    requestedLanguage: input.requestedLanguage,
+    limits: { ...input.limits },
+    projectedQueryCount: input.queries.length,
+    projectedQueryDigest: canonicalHash(input.queries),
+    durationMs: input.durationMs,
+    status: input.status,
+    ...input.usage === void 0 ? {} : { usage: { ...input.usage } },
+    privacy: {
+      requestText: "excluded",
+      contextText: "excluded",
+      projectedQueryText: "excluded"
+    }
+  };
+}
+function createSearchQueryProjection(input) {
+  const limits = input.limits ?? {
+    maximumQueries: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES,
+    maximumQueryCharacters: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS
+  };
+  assertProjector(input.projector);
+  assertLanguage(input.requestedLanguage);
+  assertProjectionLimits(limits);
+  assertQueries(input.queries, limits);
+  if (!SHA256_PATTERN.test(input.requestDigest) || !SHA256_PATTERN.test(input.contextDigest) || !SHA256_PATTERN.test(input.projectorResultDigest) || !Number.isSafeInteger(input.durationMs) || input.durationMs < 0 || input.durationMs > 6e5 || input.status === "completed" && input.queries.length === 0 || input.status !== "completed" && input.queries.length !== 0) {
+    throw new SearchError("invalid_query_projection", "The search query projection input is invalid.");
+  }
+  const queries = [...input.queries];
+  const core = projectionCore({ ...input, queries, limits });
+  const receipt = {
+    schemaVersion: 1,
+    receiptId: contentId("sqproj", core),
+    ...core
+  };
+  assertSearchQueryProjectionReceipt(receipt);
+  return { queries, receipt };
+}
+function assertSearchQueryProjectionReceipt(receipt) {
+  assertProjector(receipt.projector);
+  assertLanguage(receipt.requestedLanguage);
+  assertProjectionLimits(receipt.limits);
+  const usage = receipt.usage;
+  if (receipt.schemaVersion !== 1 || !SEARCH_QUERY_PROJECTION_RECEIPT_ID_PATTERN.test(receipt.receiptId) || receipt.stageId !== "query_projection" || !SHA256_PATTERN.test(receipt.requestDigest) || !SHA256_PATTERN.test(receipt.contextDigest) || !SHA256_PATTERN.test(receipt.projectorResultDigest) || !Number.isSafeInteger(receipt.projectedQueryCount) || receipt.projectedQueryCount < 0 || receipt.projectedQueryCount > receipt.limits.maximumQueries || !SHA256_PATTERN.test(receipt.projectedQueryDigest) || !Number.isSafeInteger(receipt.durationMs) || receipt.durationMs < 0 || receipt.durationMs > 6e5 || receipt.status === "completed" && receipt.projectedQueryCount === 0 || receipt.status !== "completed" && receipt.projectedQueryCount !== 0 || receipt.privacy.requestText !== "excluded" || receipt.privacy.contextText !== "excluded" || receipt.privacy.projectedQueryText !== "excluded" || usage !== void 0 && (!Number.isSafeInteger(usage.inputTokens) || usage.inputTokens < 0 || !Number.isSafeInteger(usage.cachedInputTokens) || usage.cachedInputTokens < 0 || usage.cachedInputTokens > usage.inputTokens || !Number.isSafeInteger(usage.outputTokens) || usage.outputTokens < 0 || !Number.isSafeInteger(usage.reasoningOutputTokens) || usage.reasoningOutputTokens < 0 || !Number.isSafeInteger(usage.totalTokens) || usage.totalTokens !== usage.inputTokens + usage.outputTokens || usage.contextWindow !== null && (!Number.isSafeInteger(usage.contextWindow) || usage.contextWindow < 1))) {
+    throw new SearchError("invalid_query_projection", "The search query projection receipt contract is invalid.");
+  }
+  const { schemaVersion: _schemaVersion, receiptId: _receiptId, ...core } = receipt;
+  if (contentId("sqproj", core) !== receipt.receiptId) {
+    throw new SearchError("invalid_query_projection", "The search query projection receipt ID does not match its content.");
+  }
+}
+function searchQueryProjectorBuildId(contract) {
+  if (contract.trim() !== contract || contract.length === 0 || contract.length > 1024) {
+    throw new SearchError("invalid_query_projection", "The search query projector build contract is invalid.");
+  }
+  return contentId("sqbuild", contract);
+}
+
+// packages/search/dist/rank-fusion.js
+var SEARCH_RRF_CONSTANT = 60;
+var SEARCH_RRF_SCALE = 1e6;
+function assertRankedInputs(rankedInputs, limit) {
+  if (rankedInputs.length < 1 || rankedInputs.length > 8 || !Number.isSafeInteger(limit) || limit < 1 || limit > 50) {
+    throw new SearchError("invalid_query_projection", "The rank-fusion bounds are invalid.");
+  }
+  for (const input of rankedInputs) {
+    if (input.length > 50 || new Set(input.map((item) => item.key)).size !== input.length) {
+      throw new SearchError("invalid_query_projection", "A rank-fusion input violates its bounds or contains duplicate coordinates.");
+    }
+    if (input.some((item) => !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,511}$/.test(item.key))) {
+      throw new SearchError("invalid_query_projection", "A rank-fusion coordinate is invalid.");
+    }
+  }
+}
+function reciprocalRankFusion(rankedInputs, limit) {
+  assertRankedInputs(rankedInputs, limit);
+  const accumulated = /* @__PURE__ */ new Map();
+  rankedInputs.forEach((input, inputIndex) => {
+    input.forEach((item, rankIndex) => {
+      const rank = rankIndex + 1;
+      const existing = accumulated.get(item.key);
+      const score = Math.floor(SEARCH_RRF_SCALE / (SEARCH_RRF_CONSTANT + rank));
+      if (existing === void 0) {
+        accumulated.set(item.key, {
+          value: item.value,
+          score,
+          bestRank: rank,
+          firstInput: inputIndex
+        });
+      } else {
+        existing.score += score;
+        existing.bestRank = Math.min(existing.bestRank, rank);
+        existing.firstInput = Math.min(existing.firstInput, inputIndex);
+      }
+    });
+  });
+  const ranked = [...accumulated.entries()].sort(([leftKey, left], [rightKey, right]) => right.score - left.score || left.bestRank - right.bestRank || left.firstInput - right.firstInput || leftKey.localeCompare(rightKey));
+  const selected = ranked.slice(0, limit);
+  return {
+    schemaVersion: 1,
+    algorithm: "reciprocal_rank_fusion",
+    algorithmVersion: 1,
+    rankConstant: SEARCH_RRF_CONSTANT,
+    inputCount: rankedInputs.length,
+    resultDigest: canonicalHash(selected.map(([key2, value]) => ({
+      key: key2,
+      score: value.score,
+      bestRank: value.bestRank,
+      firstInput: value.firstInput
+    }))),
+    values: selected.map(([, value]) => value.value)
+  };
+}
+function queryCoverageInterleave(rankedInputs, limit) {
+  assertRankedInputs(rankedInputs, limit);
+  const seen = /* @__PURE__ */ new Set();
+  const selected = [];
+  const maximumInputLength = Math.max(...rankedInputs.map((input) => input.length));
+  for (let rankIndex = 0; rankIndex < maximumInputLength && selected.length < limit; rankIndex += 1) {
+    for (const [inputIndex, input] of rankedInputs.entries()) {
+      const item = input[rankIndex];
+      if (item === void 0 || seen.has(item.key))
+        continue;
+      seen.add(item.key);
+      selected.push({ key: item.key, value: item.value, inputIndex, sourceRank: rankIndex + 1 });
+      if (selected.length >= limit)
+        break;
+    }
+  }
+  return {
+    schemaVersion: 1,
+    algorithm: "query_coverage_interleave",
+    algorithmVersion: 1,
+    inputCount: rankedInputs.length,
+    resultDigest: canonicalHash(selected.map((item, index2) => ({
+      key: item.key,
+      inputIndex: item.inputIndex,
+      sourceRank: item.sourceRank,
+      outputRank: index2 + 1
+    }))),
+    values: selected.map((item) => item.value)
+  };
+}
+
+// packages/search/dist/projected-search.js
+async function executeProjectedSearch(input) {
+  assertSearchQueryProjectionReceipt(input.projection.receipt);
+  if (input.projection.receipt.status !== "completed" || input.projection.queries.length !== input.projection.receipt.projectedQueryCount || canonicalHash(input.projection.queries) !== input.projection.receipt.projectedQueryDigest) {
+    throw new SearchError("invalid_query_projection", "The projected search execution input differs from its receipt.");
+  }
+  const perQueryLimit = input.perQueryLimit ?? SEARCH_MAX_RESULTS;
+  const finalLimit = input.finalLimit ?? 10;
+  if (!Number.isSafeInteger(perQueryLimit) || perQueryLimit < 1 || perQueryLimit > SEARCH_MAX_RESULTS || !Number.isSafeInteger(finalLimit) || finalLimit < 1 || finalLimit > SEARCH_MAX_RESULTS) {
+    throw new SearchError("invalid_query_projection", "The projected search execution limits are invalid.");
+  }
+  const responses = await Promise.all(input.projection.queries.map(async (query) => {
+    const response = await input.index.search(query, perQueryLimit);
+    assertSearchResponse({ response, index: input.index, query, limit: perQueryLimit });
+    return response;
+  }));
+  const sourceCoordinates = /* @__PURE__ */ new Map();
+  const accumulated = /* @__PURE__ */ new Map();
+  for (const response of responses) {
+    for (const hit of response.hits) {
+      const key2 = searchSourceKey(hit.source);
+      const coordinate = canonicalHash(hit.source);
+      const existingCoordinate = sourceCoordinates.get(key2);
+      if (existingCoordinate !== void 0 && existingCoordinate !== coordinate) {
+        throw new SearchError("invalid_query_projection", "A projected search source changed between retrieval stages.");
+      }
+      sourceCoordinates.set(key2, coordinate);
+      const accumulatedHit = accumulated.get(key2) ?? {
+        count: 0,
+        bestRank: Number.MAX_SAFE_INTEGER,
+        fusionScore: 0
+      };
+      accumulatedHit.count += 1;
+      accumulatedHit.bestRank = Math.min(accumulatedHit.bestRank, hit.rank);
+      accumulatedHit.fusionScore += Math.floor(1e6 / (60 + hit.rank));
+      accumulated.set(key2, accumulatedHit);
+    }
+  }
+  const rankedInputs = responses.map((response) => response.hits.map((hit) => ({ key: searchSourceKey(hit.source), value: hit.source })));
+  const fusionPolicy = input.fusionPolicy ?? "reciprocal_rank_fusion";
+  const fused = fusionPolicy === "query_coverage_interleave" ? queryCoverageInterleave(rankedInputs, finalLimit) : reciprocalRankFusion(rankedInputs, finalLimit);
+  const hits = fused.values.map((source, index2) => {
+    const score = accumulated.get(searchSourceKey(source));
+    return {
+      source: { ...source },
+      rank: index2 + 1,
+      fusionScore: score.fusionScore,
+      matchedQueryCount: score.count,
+      bestSourceRank: score.bestRank
+    };
+  });
+  return {
+    schemaVersion: 1,
+    projectionReceiptId: input.projection.receipt.receiptId,
+    engine: { ...input.index.engine },
+    indexId: input.index.indexId,
+    queryCount: input.projection.queries.length,
+    perQueryLimit,
+    finalLimit,
+    responseDigests: responses.map((response) => response.resultSetHash),
+    fusion: {
+      algorithm: fused.algorithm,
+      version: fused.algorithmVersion,
+      rankConstant: "rankConstant" in fused ? fused.rankConstant : null,
+      resultDigest: fused.resultDigest
+    },
+    hits,
+    resultSetHash: canonicalHash(hits.map((hit) => ({
+      source: hit.source,
+      rank: hit.rank,
+      fusionScore: hit.fusionScore,
+      matchedQueryCount: hit.matchedQueryCount,
+      bestSourceRank: hit.bestSourceRank
+    })))
+  };
+}
+
+// packages/search/dist/retrieval-plan-common.js
+var PLAN_ID_PATTERN = /^srplan_[a-f0-9]{24}$/;
+var REVIEW_ID_PATTERN = /^srprev_[a-f0-9]{24}$/;
+var POLICY_ID_PATTERN = /^srppol_[a-f0-9]{24}$/;
+var BUNDLE_ID_PATTERN = /^srpbundle_[a-f0-9]{24}$/;
+var ACTIVATION_ID_PATTERN = /^srpact_[a-f0-9]{24}$/;
+var POPULATION_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/;
+var ACTOR_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+function invalidRetrievalPlan(message) {
+  throw new SearchError("invalid_retrieval_plan", message);
+}
+function assertRetrievalPlanTimestamp(value) {
+  if (new Date(value).toISOString() !== value)
+    invalidRetrievalPlan("A retrieval-plan timestamp is invalid.");
+}
+function assertUniqueRetrievalPlanIds(values, pattern, label) {
+  if (values.length < 1 || values.length > 16 || new Set(values).size !== values.length || values.some((value) => !pattern.test(value))) {
+    invalidRetrievalPlan(`The retrieval-plan ${label} allowlist is invalid.`);
+  }
+}
+
+// packages/search/dist/retrieval-plan-definition.js
+function planCore(plan2) {
+  const { planId: _planId, ...core } = plan2;
+  return core;
+}
+function createSearchRetrievalPlan(input) {
+  const core = { schemaVersion: 1, ...structuredClone(input) };
+  const plan2 = { ...core, planId: contentId("srplan", core) };
+  assertSearchRetrievalPlan(plan2);
+  return plan2;
+}
+function assertSearchRetrievalPlan(plan2) {
+  if (plan2.schemaVersion !== 1 || !PLAN_ID_PATTERN.test(plan2.planId) || plan2.projection.required !== true || plan2.projection.populations.length < 2 || plan2.projection.populations.length > 8 || new Set(plan2.projection.populations.map((item) => item.populationId)).size !== plan2.projection.populations.length || plan2.projection.populations.some(({ populationId, projector }) => !POPULATION_ID_PATTERN.test(populationId) || !SEARCH_QUERY_PROJECTOR_ID_PATTERN.test(projector.id) || !Number.isSafeInteger(projector.version) || projector.version < 1 || !SEARCH_QUERY_PROJECTOR_BUILD_ID_PATTERN.test(projector.buildId)) || !Number.isSafeInteger(plan2.projection.maximumQueries) || plan2.projection.maximumQueries < 1 || plan2.projection.maximumQueries > 8 || !Number.isSafeInteger(plan2.projection.maximumQueryCharacters) || plan2.projection.maximumQueryCharacters < 1 || plan2.projection.maximumQueryCharacters > 500 || plan2.retrieval.stageId !== "primary_retrieval" || !POPULATION_ID_PATTERN.test(plan2.retrieval.candidateId) || !Number.isSafeInteger(plan2.retrieval.perQueryLimit) || plan2.retrieval.perQueryLimit < 1 || plan2.retrieval.perQueryLimit > 50 || !Number.isSafeInteger(plan2.finalLimit) || plan2.finalLimit < 1 || plan2.finalLimit > 50 || plan2.fusion.version !== 1 || !(/* @__PURE__ */ new Set(["query_coverage_interleave", "reciprocal_rank_fusion"])).has(plan2.fusion.algorithm) || plan2.failurePolicy !== "fail_closed" || Object.values(plan2.privacy).some((value) => value !== "excluded")) {
+    invalidRetrievalPlan("The retrieval-plan contract is invalid.");
+  }
+  assertSearchEngineIdentity(plan2.retrieval.engine, "invalid_retrieval_plan");
+  assertSearchAdapterBuildId(plan2.retrieval.adapterBuildId, "invalid_retrieval_plan");
+  if (contentId("srplan", planCore(plan2)) !== plan2.planId)
+    invalidRetrievalPlan("The retrieval-plan ID does not match its content.");
+}
+
+// packages/search/dist/product-default.js
+var QUALIFICATION_ID_PATTERN = /^spqual_[a-f0-9]{24}$/u;
+function assertProductDefaultSearchRetrievalPlan(value) {
+  assertSearchRetrievalPlan(value.plan);
+  const supersededPlanIds2 = value.supersededPlanIds ?? [];
+  if (!QUALIFICATION_ID_PATTERN.test(value.qualificationId) || supersededPlanIds2.length > 8 || new Set(supersededPlanIds2).size !== supersededPlanIds2.length || supersededPlanIds2.includes(value.plan.planId) || supersededPlanIds2.some((planId) => !/^srplan_[a-f0-9]{24}$/u.test(planId))) {
+    throw new TypeError("The product-default retrieval-plan qualification is invalid.");
+  }
+}
+
+// packages/search/dist/retrieval-plan-review.js
+function reviewCore(review) {
+  const { reviewId: _reviewId, ...core } = review;
+  return core;
+}
+function assertSearchRetrievalPlanReview(review) {
+  assertRetrievalPlanTimestamp(review.reviewedAt);
+  if (review.schemaVersion !== 1 || !REVIEW_ID_PATTERN.test(review.reviewId) || !PLAN_ID_PATTERN.test(review.planId) || !ACTOR_ID_PATTERN.test(review.reviewerId) || review.decision !== "activate" || !/^ksnap_[a-f0-9]{24}$/.test(review.corpus.sourceSnapshotId) || !SHA256_PATTERN.test(review.corpus.digest) || !Number.isSafeInteger(review.corpus.documentCount) || review.corpus.documentCount < 1 || !Number.isSafeInteger(review.corpus.byteCount) || review.corpus.byteCount < 1 || review.suite.suiteId.length < 1 || review.suite.suiteId.length > 128 || !SHA256_PATTERN.test(review.suite.bindingHash) || !Number.isSafeInteger(review.suite.cases) || review.suite.cases < 1 || !Number.isSafeInteger(review.suite.repetitions) || review.suite.repetitions < 1 || review.populations.length < 2 || review.populations.length > 8 || new Set(review.populations.map((item) => item.populationId)).size !== review.populations.length || review.populations.some((item) => !POPULATION_ID_PATTERN.test(item.populationId) || !/^[a-z][a-z0-9_]{7,127}$/.test(item.reportId) || !SHA256_PATTERN.test(item.reportHash) || !Number.isSafeInteger(item.totalObservations) || item.totalObservations < 1 || item.passedObservations !== item.totalObservations || item.usageComplete !== true || item.projectionFailures !== 0 || item.durationWithinLimit !== true) || review.engineEvidence.evidencePath.length < 1 || review.engineEvidence.evidencePath.startsWith("/") || review.engineEvidence.evidencePath.includes("..") || !SHA256_PATTERN.test(review.engineEvidence.evidenceHash) || review.engineEvidence.qualityGatePassed !== true || review.engineEvidence.efficiencyGatePassed !== true) {
+    invalidRetrievalPlan("The retrieval-plan review contract or its unchanged gates are invalid.");
+  }
+  if (contentId("srprev", reviewCore(review)) !== review.reviewId)
+    invalidRetrievalPlan("The retrieval-plan review ID does not match its content.");
+}
+function policyCore(policy) {
+  const { policyId: _policyId, ...core } = policy;
+  return core;
+}
+function assertSearchRetrievalPlanPolicy(policy) {
+  assertRetrievalPlanTimestamp(policy.createdAt);
+  assertUniqueRetrievalPlanIds(policy.allowedPlanIds, PLAN_ID_PATTERN, "plan");
+  assertUniqueRetrievalPlanIds(policy.reviewerIds, ACTOR_ID_PATTERN, "reviewer");
+  assertUniqueRetrievalPlanIds(policy.operatorIds, ACTOR_ID_PATTERN, "operator");
+  if (policy.schemaVersion !== 1 || !POLICY_ID_PATTERN.test(policy.policyId) || !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/.test(policy.projectId) || !ACTOR_ID_PATTERN.test(policy.authorId) || !policy.operatorIds.includes(policy.authorId) || !Number.isSafeInteger(policy.minimumPopulations) || policy.minimumPopulations < 2 || policy.minimumPopulations > 8 || policy.requirePerfectObservationPass !== true || policy.requireCompleteUsage !== true || policy.requireZeroProjectionFailures !== true || policy.requireDurationWithinLimit !== true) {
+    invalidRetrievalPlan("The retrieval-plan activation policy is invalid.");
+  }
+  if (contentId("srppol", policyCore(policy)) !== policy.policyId)
+    invalidRetrievalPlan("The retrieval-plan policy ID does not match its content.");
+}
+function bundleCore(bundle) {
+  const { bundleId: _bundleId, ...core } = bundle;
+  return core;
+}
+function assertSearchRetrievalPlanActivationBundle(bundle) {
+  assertSearchRetrievalPlan(bundle.plan);
+  assertSearchRetrievalPlanReview(bundle.review);
+  assertSearchRetrievalPlanPolicy(bundle.policy);
+  const populations = new Set(bundle.plan.projection.populations.map((item) => item.populationId));
+  if (bundle.schemaVersion !== 1 || !BUNDLE_ID_PATTERN.test(bundle.bundleId) || bundle.review.planId !== bundle.plan.planId || !bundle.policy.allowedPlanIds.includes(bundle.plan.planId) || !bundle.policy.reviewerIds.includes(bundle.review.reviewerId) || bundle.review.populations.length < bundle.policy.minimumPopulations || bundle.review.populations.some((item) => !populations.has(item.populationId))) {
+    invalidRetrievalPlan("The retrieval-plan activation bundle is not eligible.");
+  }
+  if (contentId("srpbundle", bundleCore(bundle)) !== bundle.bundleId)
+    invalidRetrievalPlan("The retrieval-plan activation bundle ID does not match its content.");
+}
+
+// packages/search/dist/retrieval-plan-activation.js
+function baselineSearchRetrievalPlanSelection() {
+  return { mode: "baseline", planId: null, reviewId: null, bundleId: null };
+}
+function activationCore(activation) {
+  const { activationId: _activationId, ...core } = activation;
+  return core;
+}
+function assertSearchRetrievalPlanActivation(activation, previous2) {
+  assertRetrievalPlanTimestamp(activation.decidedAt);
+  const selectionValid = (selection) => selection.mode === "baseline" ? selection.planId === null && selection.reviewId === null && selection.bundleId === null : PLAN_ID_PATTERN.test(selection.planId) && REVIEW_ID_PATTERN.test(selection.reviewId) && BUNDLE_ID_PATTERN.test(selection.bundleId);
+  if (activation.schemaVersion !== 1 || !ACTIVATION_ID_PATTERN.test(activation.activationId) || !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/.test(activation.projectId) || !Number.isSafeInteger(activation.sequence) || activation.sequence < 1 || activation.previousActivationId !== null && !ACTIVATION_ID_PATTERN.test(activation.previousActivationId) || !POLICY_ID_PATTERN.test(activation.policyId) || !ACTOR_ID_PATTERN.test(activation.operatorId) || !selectionValid(activation.selected) || !selectionValid(activation.rollbackTarget) || activation.action === "activate_plan" && activation.selected.mode !== "candidate" || activation.action === "rollback" && activation.selected.mode !== "baseline") {
+    invalidRetrievalPlan("The retrieval-plan activation contract is invalid.");
+  }
+  if (previous2 !== void 0 && (activation.sequence !== (previous2?.sequence ?? 0) + 1 || activation.previousActivationId !== (previous2?.activationId ?? null) || previous2 !== null && activation.projectId !== previous2.projectId)) {
+    invalidRetrievalPlan("The retrieval-plan activation chain is invalid.");
+  }
+  if (contentId("srpact", activationCore(activation)) !== activation.activationId)
+    invalidRetrievalPlan("The retrieval-plan activation ID does not match its content.");
+}
+
+// packages/context/dist/managed-linked-evidence-canary.js
+import { createHash as createHash11 } from "node:crypto";
+var managedLinkedEvidenceCanaryPolicy = {
+  id: "linked-evidence-managed-canary-v1",
+  version: 1,
+  enabledByDefault: false,
+  maximumDepth: 1,
+  maximumRecommendations: 3,
+  maximumCandidates: 8,
+  maximumProviderVisibleSourceBytes: 117813,
+  maximumSelectionCalls: 1,
+  selectionProtocolId: "linked-evidence-provider-shadow-relational-coverage-v17"
+};
+var managedLinkedEvidenceSelectionProtocol = [
+  "Select only evidence needed to perform or decide the current request.",
+  "Use only the supplied source bodies and return their exact evidence tokens.",
+  "First identify each request-scoped claim, authority boundary, prerequisite, and operational instruction.",
+  "For comparisons, reconciliation, merges, or conflicts, keep a direct source for every distinct side.",
+  "A later decision does not subsume the prerequisite, conflict boundary, or authority that makes it valid.",
+  "After coverage is complete, remove a source only when every required item remains directly supported.",
+  "Exclude adjacent, historical, downstream, or general background that supports no required current-phase item."
+].join("\n");
+var managedLinkedEvidenceSelectionProtocolDigest = `sha256:${createHash11("sha256").update(managedLinkedEvidenceSelectionProtocol).digest("hex")}`;
+var managedLinkedEvidenceDeterministicSelectionPolicy = {
+  kind: "deterministic_all_current_linked_candidates_v1",
+  policyId: "managed-linked-evidence-all-candidates-v1",
+  rule: "select_all_current_managed_linked_candidates_in_projection_order",
+  maximumCandidates: managedLinkedEvidenceCanaryPolicy.maximumCandidates,
+  digest: "sha256:8063ff4d0c1825b3abe35f81a53f245b988b8c6ea1e0cdacf2a690bbea76cb18"
+};
+var managedLinkedEvidenceDefaultPolicy = {
+  id: "managed-linked-evidence-default-v1",
+  version: 1,
+  enabledByDefault: true,
+  selectionRuleId: "managed_linked_evidence_default",
+  selectionPolicy: managedLinkedEvidenceDeterministicSelectionPolicy,
+  maximumCandidates: managedLinkedEvidenceCanaryPolicy.maximumCandidates,
+  maximumProviderVisibleSourceBytes: managedLinkedEvidenceCanaryPolicy.maximumProviderVisibleSourceBytes,
+  maximumSelectionCalls: 0
+};
 
 // packages/repository-knowledge/dist/publication-language.js
 var supportedRepositoryPublicationLanguages = ["en"];
@@ -53220,6 +55945,7 @@ var defaultRepositoryKnowledgePolicy = {
     "**/.venv/**",
     "venv/**",
     "**/venv/**",
+    ...transientToolCacheDirectoryNames.flatMap((name2) => [`${name2}/**`, `**/${name2}/**`]),
     "node_modules/**",
     "**/node_modules/**",
     "dist/**",
@@ -53250,7 +55976,7 @@ var defaultRepositoryKnowledgePolicy = {
   limits: {
     maxFiles: 2e4,
     maxFileBytes: 1048576,
-    maxTotalBytes: 33554432
+    maxTotalBytes: 67108864
   }
 };
 function isStringArray(value) {
@@ -53270,10 +55996,10 @@ function validateRepositoryKnowledgePolicy(value) {
   };
 }
 async function loadRepositoryKnowledgePolicy(root2) {
-  const path = resolve16(root2, ".lervo/knowledge/policy.yaml");
+  const path = resolve19(root2, ".lervo/knowledge/policy.yaml");
   let bytes;
   try {
-    bytes = await readFile6(path, "utf8");
+    bytes = await readFile7(path, "utf8");
   } catch {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", `${path} cannot be read. Run lervo init first.`);
   }
@@ -53287,15 +56013,15 @@ async function loadRepositoryKnowledgePolicy(root2) {
 }
 
 // packages/repository-knowledge/dist/scanner.js
-import { constants as constants7 } from "node:fs";
-import { lstat as lstat13, open as open7, readdir as readdir7 } from "node:fs/promises";
-import { basename as basename5, extname as extname2, relative as relative3, resolve as resolve20, sep as sep3 } from "node:path";
+import { constants as constants9 } from "node:fs";
+import { lstat as lstat15, open as open9, readdir as readdir7 } from "node:fs/promises";
+import { basename as basename5, extname as extname2, relative as relative4, resolve as resolve23, sep as sep4 } from "node:path";
 
 // packages/repository-knowledge/dist/source-lineage.js
 var import_yaml6 = __toESM(require_dist(), 1);
-import { constants as constants5 } from "node:fs";
-import { open as open5 } from "node:fs/promises";
-import { relative, resolve as resolve17, sep } from "node:path";
+import { constants as constants7 } from "node:fs";
+import { open as open7 } from "node:fs/promises";
+import { relative as relative2, resolve as resolve20, sep as sep2 } from "node:path";
 var LINEAGE_DIRECTORY = ".lervo/knowledge/source-lineage";
 var MAX_LINEAGES = 256;
 var MAX_LINEAGE_BYTES = 64 * 1024;
@@ -53304,9 +56030,9 @@ function normalizeKnowledgeDocumentPath(root2, value) {
   if (value.length === 0 || value.length > 500 || value.includes("\\") || value.includes("\0") || value.startsWith("/") || !/\.mdx?$/iu.test(value)) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A document structure target must be a repository-relative Markdown path.");
   }
-  const child = relative(root2, resolve17(root2, value));
-  const normalized2 = child.split(sep).join("/");
-  if (child === ".." || child.startsWith(`..${sep}`) || normalized2 !== value || normalized2.startsWith(".lervo/") || normalized2.startsWith(".git/")) {
+  const child = relative2(root2, resolve20(root2, value));
+  const normalized2 = child.split(sep2).join("/");
+  if (child === ".." || child.startsWith(`..${sep2}`) || normalized2 !== value || normalized2.startsWith(".lervo/") || normalized2.startsWith(".git/")) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The document structure target path is outside the allowed scope.");
   }
   return normalized2;
@@ -53338,7 +56064,7 @@ function createDocumentMoveLineage(input) {
 async function safeRead(path) {
   let handle;
   try {
-    handle = await open5(path, constants5.O_RDONLY | (constants5.O_NOFOLLOW ?? 0));
+    handle = await open7(path, constants7.O_RDONLY | (constants7.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     if (!before.isFile() || before.size > MAX_LINEAGE_BYTES)
       throw new Error("unsafe lineage");
@@ -53411,7 +56137,7 @@ function validLineage(value, name2, projectId, root2) {
   return kind === "document_move" ? validMoveLineage(value, name2, projectId, root2) : kind === "document_split" ? validSplitLineage(value, name2, projectId, root2) : kind === "document_merge" && validMergeLineage(value, name2, projectId, root2);
 }
 async function loadDocumentMoveLineages(input) {
-  const root2 = resolve17(input.repositoryRoot);
+  const root2 = resolve20(input.repositoryRoot);
   const files = await listKnowledgeArtifactPaths({
     root: root2,
     directory: LINEAGE_DIRECTORY,
@@ -53423,7 +56149,7 @@ async function loadDocumentMoveLineages(input) {
     const ids = /* @__PURE__ */ new Set();
     for (const file of files) {
       const name2 = file.split("/").at(-1);
-      const bytes = await safeRead(resolve17(root2, file));
+      const bytes = await safeRead(resolve20(root2, file));
       const value = (0, import_yaml6.parse)(bytes.toString("utf8"));
       if (!validLineage(value, name2, input.projectId, root2))
         throw new Error("invalid lineage");
@@ -55316,22 +58042,22 @@ function extractYamlKeySpans(source) {
 }
 
 // packages/repository-knowledge/dist/skill-contract-source-units.js
-import { dirname as dirname5, resolve as resolve19 } from "node:path";
+import { dirname as dirname5, resolve as resolve22 } from "node:path";
 
 // packages/skills/dist/package-reader.js
-import { constants as constants6 } from "node:fs";
-import { lstat as lstat12, open as open6, readdir as readdir6 } from "node:fs/promises";
-import { basename as basename4, relative as relative2, resolve as resolve18, sep as sep2 } from "node:path";
+import { constants as constants8 } from "node:fs";
+import { lstat as lstat14, open as open8, readdir as readdir6 } from "node:fs/promises";
+import { basename as basename4, relative as relative3, resolve as resolve21, sep as sep3 } from "node:path";
 
 // packages/skills/dist/content-hash.js
-import { createHash as createHash10 } from "node:crypto";
+import { createHash as createHash12 } from "node:crypto";
 var MAXIMUM_FILES = 256;
 var MAXIMUM_BYTES = 16 * 1024 * 1024;
 function hashSkillContentFiles(files) {
   if (files.length === 0 || files.length > MAXIMUM_FILES)
     throw new TypeError("A skill package must contain a bounded set of content files.");
   const paths = /* @__PURE__ */ new Set();
-  const hash2 = createHash10("sha256");
+  const hash2 = createHash12("sha256");
   let totalBytes = 0;
   for (const file of [...files].sort((left, right) => left.path === right.path ? 0 : left.path < right.path ? -1 : 1)) {
     if (file.path.length === 0 || file.path.startsWith("/") || file.path.includes("\\") || file.path.split("/").some((part) => part.length === 0 || part === "." || part === "..") || paths.has(file.path))
@@ -55387,33 +58113,33 @@ var MAX_PACKAGE_FILES = 256;
 var MAX_PACKAGE_BYTES = 16 * 1024 * 1024;
 var MAX_MANIFEST_BYTES = 1024 * 1024;
 function portablePath(value) {
-  return value.split(sep2).join("/");
+  return value.split(sep3).join("/");
 }
-function compareText(left, right) {
+function compareText3(left, right) {
   return left === right ? 0 : left < right ? -1 : 1;
 }
 function assertWithin(root2, path) {
-  const child = relative2(root2, path);
-  if (child === "" || child === ".." || child.startsWith(`..${sep2}`)) {
+  const child = relative3(root2, path);
+  if (child === "" || child === ".." || child.startsWith(`..${sep3}`)) {
     throw new SkillResolutionError("unsafe_skill_package", "The skill package path points outside the discovery root.");
   }
 }
 async function regularFile(path, maximumBytes2 = MAX_PACKAGE_BYTES) {
-  const beforePath = await lstat12(path);
+  const beforePath = await lstat14(path);
   if (!beforePath.isFile() || beforePath.isSymbolicLink() || beforePath.size > maximumBytes2) {
     throw new SkillResolutionError("unsafe_skill_package", "A skill package file must be a regular file within the size limit.");
   }
   let handle;
   try {
-    handle = await open6(path, constants6.O_RDONLY | constants6.O_NOFOLLOW);
+    handle = await open8(path, constants8.O_RDONLY | constants8.O_NOFOLLOW);
     const openedHandle = await handle.stat();
-    const afterOpenPath = await lstat12(path);
+    const afterOpenPath = await lstat14(path);
     if (!openedHandle.isFile() || openedHandle.size > maximumBytes2 || !afterOpenPath.isFile() || afterOpenPath.isSymbolicLink() || afterOpenPath.size > maximumBytes2 || !sameFileWithinStatSurface(beforePath, afterOpenPath) || !sameFileAcrossStatSurfaces(afterOpenPath, openedHandle)) {
       throw new SkillResolutionError("unsafe_skill_package", "The skill package file path changed before it was read.");
     }
     const bytes = await handle.readFile();
     const afterReadHandle = await handle.stat();
-    const afterReadPath = await lstat12(path);
+    const afterReadPath = await lstat14(path);
     if (!afterReadHandle.isFile() || afterReadHandle.size > maximumBytes2 || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > maximumBytes2 || !sameFileWithinStatSurface(openedHandle, afterReadHandle) || !sameFileWithinStatSurface(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces(afterReadPath, afterReadHandle)) {
       throw new SkillResolutionError("unsafe_skill_package", "The skill package file changed while it was being read.");
     }
@@ -55429,15 +58155,15 @@ async function regularFile(path, maximumBytes2 = MAX_PACKAGE_BYTES) {
 async function listContentFiles(root2, current = root2) {
   const entries = await readdir6(current, { withFileTypes: true });
   const files = [];
-  for (const entry of entries.sort((left, right) => compareText(left.name, right.name))) {
-    const path = resolve18(current, entry.name);
+  for (const entry of entries.sort((left, right) => compareText3(left.name, right.name))) {
+    const path = resolve21(current, entry.name);
     assertWithin(root2, path);
     if (entry.isSymbolicLink()) {
       throw new SkillResolutionError("unsafe_skill_package", "Symbolic links are not allowed inside a skill package.");
     }
     if (entry.isDirectory())
       files.push(...await listContentFiles(root2, path));
-    else if (entry.isFile() && ![MANIFEST_NAME, "lervo-capability.json"].includes(relative2(root2, path)))
+    else if (entry.isFile() && ![MANIFEST_NAME, "lervo-capability.json"].includes(relative3(root2, path)))
       files.push(path);
     else if (!entry.isFile()) {
       throw new SkillResolutionError("unsafe_skill_package", "A skill package may contain only regular files and directories.");
@@ -55450,7 +58176,7 @@ async function listContentFiles(root2, current = root2) {
 }
 async function hashSkillPackageProjection(directoryPath, overrides) {
   const files = await listContentFiles(directoryPath);
-  const projected = new Map(await Promise.all(files.map(async (path) => [portablePath(relative2(directoryPath, path)), await regularFile(path)])));
+  const projected = new Map(await Promise.all(files.map(async (path) => [portablePath(relative3(directoryPath, path)), await regularFile(path)])));
   for (const [path, bytes] of overrides) {
     if ([MANIFEST_NAME, "lervo-capability.json"].includes(path)) {
       throw new SkillResolutionError("unsafe_skill_package", "Skill package content projections cannot replace package manifests.");
@@ -55492,7 +58218,7 @@ async function extractSkillContractUnitDescriptors(input) {
       return fail6();
     const directory = dirname5(source.path);
     try {
-      const packageDirectory = resolve19(input.repositoryRoot, ...directory.split("/"));
+      const packageDirectory = resolve22(input.repositoryRoot, ...directory.split("/"));
       const firstHash = await hashSkillPackage(packageDirectory);
       const secondHash = await hashSkillPackage(packageDirectory);
       if (firstHash !== secondHash || firstHash !== manifest.contentHash)
@@ -56012,7 +58738,7 @@ function repositoryPathMatchesPatterns(path, patterns) {
   return excluded(path, patterns);
 }
 function repositoryPathCanRemainIncluded(path, policy) {
-  return !excluded(path, policy.exclude) && !secretCandidatePath(path);
+  return !excluded(path, policy.exclude) && !isTransientToolCachePath(path) && !secretCandidatePath(path);
 }
 function repositorySourceClassificationForPath(path) {
   if (decisionDocumentName.test(path))
@@ -56036,7 +58762,7 @@ function opaqueSkillResourceFields(path) {
 async function safeReadFile(path, expectedSize) {
   let handle;
   try {
-    handle = await open7(path, constants7.O_RDONLY | (constants7.O_NOFOLLOW ?? 0));
+    handle = await open9(path, constants9.O_RDONLY | (constants9.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     if (!before.isFile() || before.size !== expectedSize) {
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", `${path} changed during the scan.`);
@@ -56277,7 +59003,7 @@ function extractUnits(projectId, source, sourceUnitFailureMode = "fail") {
   ];
 }
 async function scanRepositoryKnowledge(input) {
-  const root2 = resolve20(input.repositoryRoot);
+  const root2 = resolve23(input.repositoryRoot);
   const sourceLineages = await loadDocumentMoveLineages({
     repositoryRoot: root2,
     projectId: input.projectId
@@ -56293,15 +59019,15 @@ async function scanRepositoryKnowledge(input) {
     for (const entry of entries) {
       if (isIgnorableFilesystemMetadata(entry))
         continue;
-      const absolute = resolve20(directory, entry.name);
-      const path = relative3(root2, absolute).split(sep3).join("/");
+      const absolute = resolve23(directory, entry.name);
+      const path = relative4(root2, absolute).split(sep4).join("/");
       const identityPath = sourceLineages.identityPathByCurrentPath.get(path);
       const identityFields = identityPath === void 0 ? {} : { identityPath };
       const sourceId2 = stableId("src", { projectId: input.projectId, path: identityPath ?? path });
       if (path.startsWith("../") || path === "..") {
         throw new RepositoryKnowledgeError("knowledge_source_unsafe", `${path} escapes the repository root.`);
       }
-      if (excluded(path, input.policy.exclude)) {
+      if (excluded(path, input.policy.exclude) || isTransientToolCachePath(path)) {
         if (entry.isFile() || entry.isSymbolicLink()) {
           sources.push({
             sourceId: sourceId2,
@@ -56343,7 +59069,7 @@ async function scanRepositoryKnowledge(input) {
       if (visitedFiles > input.policy.limits.maxFiles) {
         throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "The repository file count exceeds the policy limit.");
       }
-      const stats = await lstat13(absolute);
+      const stats = await lstat15(absolute);
       const id2 = sourceId2;
       if (input.generatedPaths?.has(path)) {
         continue;
@@ -56732,8 +59458,8 @@ function upsertRepositoryKnowledgeScanSource(input) {
 }
 
 // packages/repository-knowledge/dist/state-projections.js
-import { lstat as lstat14, readFile as readFile7 } from "node:fs/promises";
-import { resolve as resolve21 } from "node:path";
+import { lstat as lstat16, readFile as readFile8 } from "node:fs/promises";
+import { resolve as resolve24 } from "node:path";
 function compactJson(value) {
   return `${JSON.stringify(value)}
 `;
@@ -56770,11 +59496,11 @@ function currentKnowledgeProjectionOutputs(scan, impact) {
   });
 }
 async function deleteOperation(root2, path) {
-  const absolute = resolve21(root2, path);
-  const stats = await lstat14(absolute);
+  const absolute = resolve24(root2, path);
+  const stats = await lstat16(absolute);
   if (!stats.isFile() || stats.isSymbolicLink())
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", `Derived state is not a safe regular file: ${path}`);
-  const currentHash = sha2562(await readFile7(absolute));
+  const currentHash = sha2562(await readFile8(absolute));
   return {
     path,
     action: "delete",
@@ -56796,13 +59522,13 @@ async function legacyKnowledgeProjectionDeleteOperations(root2) {
 }
 
 // packages/repository-knowledge/dist/durable-apply.js
-import { chmod as chmod3, lstat as lstat15, mkdir as mkdir6, mkdtemp as mkdtemp2, open as open8, readFile as readFile8, readdir as readdir8, rename as rename4, rm as rm5, rmdir, unlink as unlink2 } from "node:fs/promises";
-import { dirname as dirname6, relative as relative5, resolve as resolve23, sep as sep5 } from "node:path";
+import { chmod as chmod3, lstat as lstat17, mkdir as mkdir6, mkdtemp as mkdtemp2, open as open10, readFile as readFile9, readdir as readdir8, rename as rename4, rm as rm6, rmdir, unlink as unlink2 } from "node:fs/promises";
+import { dirname as dirname6, relative as relative6, resolve as resolve26, sep as sep6 } from "node:path";
 
 // packages/documents/dist/hash.js
-import { createHash as createHash11 } from "node:crypto";
-function sha2563(bytes) {
-  return `sha256:${createHash11("sha256").update(bytes).digest("hex")}`;
+import { createHash as createHash13 } from "node:crypto";
+function sha2564(bytes) {
+  return `sha256:${createHash13("sha256").update(bytes).digest("hex")}`;
 }
 function canonicalValue(value) {
   if (Array.isArray(value))
@@ -59396,10 +62122,10 @@ function resolveAll(constructs2, events, context) {
   const called = [];
   let index2 = -1;
   while (++index2 < constructs2.length) {
-    const resolve68 = constructs2[index2].resolveAll;
-    if (resolve68 && !called.includes(resolve68)) {
-      events = resolve68(events, context);
-      called.push(resolve68);
+    const resolve69 = constructs2[index2].resolveAll;
+    if (resolve69 && !called.includes(resolve69)) {
+      events = resolve69(events, context);
+      called.push(resolve69);
     }
   }
   return events;
@@ -59413,7 +62139,7 @@ var attention = {
 };
 function resolveAllAttention(events, context) {
   let index2 = -1;
-  let open27;
+  let open28;
   let group;
   let text4;
   let openingSequence;
@@ -59423,16 +62149,16 @@ function resolveAllAttention(events, context) {
   let offset;
   while (++index2 < events.length) {
     if (events[index2][0] === "enter" && events[index2][1].type === "attentionSequence" && events[index2][1]._close) {
-      open27 = index2;
-      while (open27--) {
-        if (events[open27][0] === "exit" && events[open27][1].type === "attentionSequence" && events[open27][1]._open && // If the markers are the same:
-        context.sliceSerialize(events[open27][1]).charCodeAt(0) === context.sliceSerialize(events[index2][1]).charCodeAt(0)) {
-          if ((events[open27][1]._close || events[index2][1]._open) && (events[index2][1].end.offset - events[index2][1].start.offset) % 3 && !((events[open27][1].end.offset - events[open27][1].start.offset + events[index2][1].end.offset - events[index2][1].start.offset) % 3)) {
+      open28 = index2;
+      while (open28--) {
+        if (events[open28][0] === "exit" && events[open28][1].type === "attentionSequence" && events[open28][1]._open && // If the markers are the same:
+        context.sliceSerialize(events[open28][1]).charCodeAt(0) === context.sliceSerialize(events[index2][1]).charCodeAt(0)) {
+          if ((events[open28][1]._close || events[index2][1]._open) && (events[index2][1].end.offset - events[index2][1].start.offset) % 3 && !((events[open28][1].end.offset - events[open28][1].start.offset + events[index2][1].end.offset - events[index2][1].start.offset) % 3)) {
             continue;
           }
-          use = events[open27][1].end.offset - events[open27][1].start.offset > 1 && events[index2][1].end.offset - events[index2][1].start.offset > 1 ? 2 : 1;
+          use = events[open28][1].end.offset - events[open28][1].start.offset > 1 && events[index2][1].end.offset - events[index2][1].start.offset > 1 ? 2 : 1;
           const start = {
-            ...events[open27][1].end
+            ...events[open28][1].end
           };
           const end = {
             ...events[index2][1].start
@@ -59443,7 +62169,7 @@ function resolveAllAttention(events, context) {
             type: use > 1 ? "strongSequence" : "emphasisSequence",
             start,
             end: {
-              ...events[open27][1].end
+              ...events[open28][1].end
             }
           };
           closingSequence = {
@@ -59456,7 +62182,7 @@ function resolveAllAttention(events, context) {
           text4 = {
             type: use > 1 ? "strongText" : "emphasisText",
             start: {
-              ...events[open27][1].end
+              ...events[open28][1].end
             },
             end: {
               ...events[index2][1].start
@@ -59471,18 +62197,18 @@ function resolveAllAttention(events, context) {
               ...closingSequence.end
             }
           };
-          events[open27][1].end = {
+          events[open28][1].end = {
             ...openingSequence.start
           };
           events[index2][1].start = {
             ...closingSequence.end
           };
           nextEvents = [];
-          if (events[open27][1].end.offset - events[open27][1].start.offset) {
-            nextEvents = push(nextEvents, [["enter", events[open27][1], context], ["exit", events[open27][1], context]]);
+          if (events[open28][1].end.offset - events[open28][1].start.offset) {
+            nextEvents = push(nextEvents, [["enter", events[open28][1], context], ["exit", events[open28][1], context]]);
           }
           nextEvents = push(nextEvents, [["enter", group, context], ["enter", openingSequence, context], ["exit", openingSequence, context], ["enter", text4, context]]);
-          nextEvents = push(nextEvents, resolveAll(context.parser.constructs.insideSpan.null, events.slice(open27 + 1, index2), context));
+          nextEvents = push(nextEvents, resolveAll(context.parser.constructs.insideSpan.null, events.slice(open28 + 1, index2), context));
           nextEvents = push(nextEvents, [["exit", text4, context], ["enter", closingSequence, context], ["exit", closingSequence, context], ["exit", group, context]]);
           if (events[index2][1].end.offset - events[index2][1].start.offset) {
             offset = 2;
@@ -59490,8 +62216,8 @@ function resolveAllAttention(events, context) {
           } else {
             offset = 0;
           }
-          splice(events, open27 - 1, index2 - open27 + 3, nextEvents);
-          index2 = open27 + nextEvents.length - offset - 2;
+          splice(events, open28 - 1, index2 - open28 + 3, nextEvents);
+          index2 = open28 + nextEvents.length - offset - 2;
           break;
         }
       }
@@ -59523,10 +62249,10 @@ function tokenizeAttention(effects, ok) {
     }
     const token = effects.exit("attentionSequence");
     const after = classifyCharacter(code);
-    const open27 = !after || after === 2 && before || attentionMarkers2.includes(code);
+    const open28 = !after || after === 2 && before || attentionMarkers2.includes(code);
     const close = !before || before === 2 && after || attentionMarkers2.includes(previous2);
-    token._open = Boolean(marker === 42 ? open27 : open27 && (before || !close));
-    token._close = Boolean(marker === 42 ? close : close && (after || !open27));
+    token._open = Boolean(marker === 42 ? open28 : open28 && (before || !close));
+    token._close = Boolean(marker === 42 ? close : close && (after || !open28));
     return ok(code);
   }
 }
@@ -59550,9 +62276,9 @@ function tokenizeAutolink(effects, ok, nok) {
     effects.consume(code);
     effects.exit("autolinkMarker");
     effects.enter("autolinkProtocol");
-    return open27;
+    return open28;
   }
-  function open27(code) {
+  function open28(code) {
     if (asciiAlpha(code)) {
       effects.consume(code);
       return schemeOrEmailAtext;
@@ -59752,9 +62478,9 @@ function tokenizeCharacterReference(effects, ok, nok) {
     effects.enter("characterReferenceMarker");
     effects.consume(code);
     effects.exit("characterReferenceMarker");
-    return open27;
+    return open28;
   }
-  function open27(code) {
+  function open28(code) {
     if (code === 35) {
       effects.enter("characterReferenceMarkerNumeric");
       effects.consume(code);
@@ -61123,9 +63849,9 @@ function tokenizeHtmlFlow(effects, ok, nok) {
     effects.enter("htmlFlow");
     effects.enter("htmlFlowData");
     effects.consume(code);
-    return open27;
+    return open28;
   }
-  function open27(code) {
+  function open28(code) {
     if (code === 33) {
       effects.consume(code);
       return declarationOpen;
@@ -61473,9 +64199,9 @@ function tokenizeHtmlText(effects, ok, nok) {
     effects.enter("htmlText");
     effects.enter("htmlTextData");
     effects.consume(code);
-    return open27;
+    return open28;
   }
-  function open27(code) {
+  function open28(code) {
     if (code === 33) {
       effects.consume(code);
       return declarationOpen;
@@ -61801,12 +64527,12 @@ function resolveToLabelEnd(events, context) {
   let index2 = events.length;
   let offset = 0;
   let token;
-  let open27;
+  let open28;
   let close;
   let media;
   while (index2--) {
     token = events[index2][1];
-    if (open27) {
+    if (open28) {
       if (token.type === "link" || token.type === "labelLink" && token._inactive) {
         break;
       }
@@ -61815,7 +64541,7 @@ function resolveToLabelEnd(events, context) {
       }
     } else if (close) {
       if (events[index2][0] === "enter" && (token.type === "labelImage" || token.type === "labelLink") && !token._balanced) {
-        open27 = index2;
+        open28 = index2;
         if (token.type !== "labelLink") {
           offset = 2;
           break;
@@ -61826,9 +64552,9 @@ function resolveToLabelEnd(events, context) {
     }
   }
   const group = {
-    type: events[open27][1].type === "labelLink" ? "link" : "image",
+    type: events[open28][1].type === "labelLink" ? "link" : "image",
     start: {
-      ...events[open27][1].start
+      ...events[open28][1].start
     },
     end: {
       ...events[events.length - 1][1].end
@@ -61837,7 +64563,7 @@ function resolveToLabelEnd(events, context) {
   const label = {
     type: "label",
     start: {
-      ...events[open27][1].start
+      ...events[open28][1].start
     },
     end: {
       ...events[close][1].end
@@ -61846,20 +64572,20 @@ function resolveToLabelEnd(events, context) {
   const text4 = {
     type: "labelText",
     start: {
-      ...events[open27 + offset + 2][1].end
+      ...events[open28 + offset + 2][1].end
     },
     end: {
       ...events[close - 2][1].start
     }
   };
   media = [["enter", group, context], ["enter", label, context]];
-  media = push(media, events.slice(open27 + 1, open27 + offset + 3));
+  media = push(media, events.slice(open28 + 1, open28 + offset + 3));
   media = push(media, [["enter", text4, context]]);
-  media = push(media, resolveAll(context.parser.constructs.insideSpan.null, events.slice(open27 + offset + 4, close - 3), context));
+  media = push(media, resolveAll(context.parser.constructs.insideSpan.null, events.slice(open28 + offset + 4, close - 3), context));
   media = push(media, [["exit", text4, context], events[close - 2], events[close - 1], ["exit", label, context]]);
   media = push(media, events.slice(close + 1));
   media = push(media, [["exit", group, context]]);
-  splice(events, open27, events.length, media);
+  splice(events, open28, events.length, media);
   return events;
 }
 function tokenizeLabelEnd(effects, ok, nok) {
@@ -62004,9 +64730,9 @@ function tokenizeLabelStartImage(effects, ok, nok) {
     effects.enter("labelImageMarker");
     effects.consume(code);
     effects.exit("labelImageMarker");
-    return open27;
+    return open28;
   }
-  function open27(code) {
+  function open28(code) {
     if (code === 91) {
       effects.enter("labelMarker");
       effects.consume(code);
@@ -63310,8 +66036,8 @@ function compiler(options) {
     return length;
   }
   function opener(create, and) {
-    return open27;
-    function open27(token) {
+    return open28;
+    function open28(token) {
       enter.call(this, create(token), token);
       if (and) and.call(this, token);
     }
@@ -63343,18 +66069,18 @@ function compiler(options) {
   }
   function exit2(token, onExitError) {
     const node2 = this.stack.pop();
-    const open27 = this.tokenStack.pop();
-    if (!open27) {
+    const open28 = this.tokenStack.pop();
+    if (!open28) {
       throw new Error("Cannot close `" + token.type + "` (" + stringifyPosition({
         start: token.start,
         end: token.end
       }) + "): it\u2019s not open");
-    } else if (open27[0].type !== token.type) {
+    } else if (open28[0].type !== token.type) {
       if (onExitError) {
-        onExitError.call(this, token, open27[0]);
+        onExitError.call(this, token, open28[0]);
       } else {
-        const handler = open27[1] || defaultOnError;
-        handler.call(this, token, open27[0]);
+        const handler = open28[1] || defaultOnError;
+        handler.call(this, token, open28[0]);
       }
     }
     node2.position.end = point2(token.end);
@@ -63943,10 +66669,10 @@ function parseManagedMarkdownBlocks(bytes) {
   }
   const blocks = [];
   const completedIds = /* @__PURE__ */ new Set();
-  let open27;
+  let open28;
   for (const marker of markers) {
     if (marker.kind === "begin") {
-      if (open27 !== void 0) {
+      if (open28 !== void 0) {
         diagnostics.push({
           code: "nested_begin_marker",
           range: marker.byteRange,
@@ -63954,13 +66680,13 @@ function parseManagedMarkdownBlocks(bytes) {
         });
         continue;
       }
-      open27 = {
+      open28 = {
         marker,
         contentStart: marker.byteRange.end + marker.line.lineTerminatorBytes
       };
       continue;
     }
-    if (open27 === void 0) {
+    if (open28 === void 0) {
       diagnostics.push({
         code: "unexpected_end_marker",
         range: marker.byteRange,
@@ -63968,7 +66694,7 @@ function parseManagedMarkdownBlocks(bytes) {
       });
       continue;
     }
-    if (marker.blockId !== open27.marker.blockId) {
+    if (marker.blockId !== open28.marker.blockId) {
       diagnostics.push({
         code: "mismatched_end_marker",
         range: marker.byteRange,
@@ -63976,7 +66702,7 @@ function parseManagedMarkdownBlocks(bytes) {
       });
       continue;
     }
-    if (marker.family !== open27.marker.family) {
+    if (marker.family !== open28.marker.family) {
       diagnostics.push({
         code: "mixed_marker_family",
         range: marker.byteRange,
@@ -63987,11 +66713,11 @@ function parseManagedMarkdownBlocks(bytes) {
     const fullEnd = marker.byteRange.end + marker.line.lineTerminatorBytes;
     const block = {
       blockId: marker.blockId,
-      markerFamily: open27.marker.family,
-      startMarkerRange: open27.marker.byteRange,
-      contentRange: { start: open27.contentStart, end: contentEnd },
+      markerFamily: open28.marker.family,
+      startMarkerRange: open28.marker.byteRange,
+      contentRange: { start: open28.contentStart, end: contentEnd },
       endMarkerRange: marker.byteRange,
-      fullRange: { start: open27.marker.byteRange.start, end: fullEnd }
+      fullRange: { start: open28.marker.byteRange.start, end: fullEnd }
     };
     if (block.contentRange.end - block.contentRange.start > MAXIMUM_MANAGED_BLOCK_BYTES) {
       diagnostics.push({
@@ -64009,13 +66735,13 @@ function parseManagedMarkdownBlocks(bytes) {
     }
     completedIds.add(block.blockId);
     blocks.push(block);
-    open27 = void 0;
+    open28 = void 0;
   }
-  if (open27 !== void 0) {
+  if (open28 !== void 0) {
     diagnostics.push({
       code: "unclosed_begin_marker",
-      range: open27.marker.byteRange,
-      blockId: open27.marker.blockId
+      range: open28.marker.byteRange,
+      blockId: open28.marker.blockId
     });
   }
   if (new Set(blocks.map((block) => block.markerFamily)).size > 1) {
@@ -64035,7 +66761,7 @@ function parseManagedMarkdownBlocks(bytes) {
 }
 
 // packages/documents/dist/filesystem.js
-import { isAbsolute as isAbsolute2, posix as posix2, relative as relative4, resolve as resolve22, sep as sep4 } from "node:path";
+import { isAbsolute as isAbsolute3, posix as posix3, relative as relative5, resolve as resolve25, sep as sep5 } from "node:path";
 
 // packages/documents/dist/types.js
 var DocumentMigrationError = class extends Error {
@@ -64049,10 +66775,10 @@ var DocumentMigrationError = class extends Error {
 
 // packages/documents/dist/filesystem.js
 function normalizeScanPath(path) {
-  if (path.length === 0 || path.includes("\0") || path.includes("\\") || isAbsolute2(path) || /^[A-Za-z]:[\\/]/.test(path)) {
+  if (path.length === 0 || path.includes("\0") || path.includes("\\") || isAbsolute3(path) || /^[A-Za-z]:[\\/]/.test(path)) {
     throw new DocumentMigrationError("invalid_scan_request", "The scan path must be a normalized relative path within the repository.");
   }
-  const normalized2 = posix2.normalize(path);
+  const normalized2 = posix3.normalize(path);
   if (normalized2 === ".." || normalized2.startsWith("../") || normalized2 !== path) {
     throw new DocumentMigrationError("invalid_scan_request", "The scan path cannot escape the repository or use a non-normalized representation.");
   }
@@ -64069,12 +66795,12 @@ function managedBlockPatchCandidateBytes(candidate) {
 function calculateManagedBlockPatchCandidateId(candidate) {
   const value = candidate;
   const { candidateId: _candidateId, ...content3 } = value;
-  const digest8 = sha2563(canonicalJsonBytes(content3));
+  const digest8 = sha2564(canonicalJsonBytes(content3));
   return `mbpc_${digest8.slice("sha256:".length, "sha256:".length + 16)}`;
 }
 
 // packages/documents/dist/document-layout.js
-import { posix as posix3 } from "node:path";
+import { posix as posix4 } from "node:path";
 function documentPath(path) {
   return /\.mdx?$/iu.test(path);
 }
@@ -64089,7 +66815,7 @@ function counts(paths) {
   const direct = /* @__PURE__ */ new Map();
   const childDirectories = /* @__PURE__ */ new Map();
   for (const path of documents) {
-    const directory = posix3.dirname(path) === "." ? "." : posix3.dirname(path);
+    const directory = posix4.dirname(path) === "." ? "." : posix4.dirname(path);
     direct.set(directory, (direct.get(directory) ?? 0) + 1);
     const segments = directory === "." ? [] : directory.split("/");
     for (let index2 = 0; index2 < segments.length; index2 += 1) {
@@ -64117,7 +66843,7 @@ function operationsForDirectory(directory, operations) {
       ..."destinationPath" in operation ? [operation.destinationPath] : []
     ];
     return paths.some((path) => {
-      const parent = posix3.dirname(path) === "." ? "." : posix3.dirname(path);
+      const parent = posix4.dirname(path) === "." ? "." : posix4.dirname(path);
       return directory === "." || parent === directory || parent.startsWith(`${directory}/`);
     });
   }).map((operation) => operation.operationId).sort();
@@ -64131,7 +66857,7 @@ function roleBlockers(paths, roles) {
         code: "document_role_conflict",
         scope: role.scopePath,
         roleId: role.roleId,
-        candidatePathDigests: (candidates.length === 0 ? [role.path] : candidates).map((path) => sha2563(path)).sort()
+        candidatePathDigests: (candidates.length === 0 ? [role.path] : candidates).map((path) => sha2564(path)).sort()
       });
   }
   return blockers;
@@ -64194,10 +66920,10 @@ function evaluateDocumentLayout(input) {
   return {
     evaluatorVersion: 1,
     status: blockers.length === 0 ? "bounded" : "blocked",
-    snapshotHash: sha2563(canonicalJsonBytes(snapshot)),
-    policyHash: sha2563(canonicalJsonBytes(input.policy)),
-    roleRegistryHash: sha2563(canonicalJsonBytes(input.roles)),
-    operationSetHash: sha2563(canonicalJsonBytes(operations)),
+    snapshotHash: sha2564(canonicalJsonBytes(snapshot)),
+    policyHash: sha2564(canonicalJsonBytes(input.policy)),
+    roleRegistryHash: sha2564(canonicalJsonBytes(input.roles)),
+    operationSetHash: sha2564(canonicalJsonBytes(operations)),
     observed,
     projected,
     blockers
@@ -64213,11 +66939,11 @@ function createDocumentLayoutPermit(evaluation, now = /* @__PURE__ */ new Date()
     policyHash: evaluation.policyHash,
     roleRegistryHash: evaluation.roleRegistryHash,
     operationSetHash: evaluation.operationSetHash,
-    projectedCountsHash: sha2563(canonicalJsonBytes(evaluation.projected)),
+    projectedCountsHash: sha2564(canonicalJsonBytes(evaluation.projected)),
     issuedAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + lifetimeMilliseconds).toISOString()
   };
-  return { ...body, permitId: `dlp_${sha2563(canonicalJsonBytes(body)).slice(7, 31)}` };
+  return { ...body, permitId: `dlp_${sha2564(canonicalJsonBytes(body)).slice(7, 31)}` };
 }
 
 // packages/documents/dist/document-rewriters.js
@@ -64254,7 +66980,7 @@ function evaluateDocumentRewriters(input) {
       blockers.push({
         code: "document_rewriter_unmanaged",
         capability: rewriter.capability,
-        scopeDigest: sha2563(rewriter.scopePaths.join("\n")),
+        scopeDigest: sha2564(rewriter.scopePaths.join("\n")),
         observationSource: rewriter.rewriterId
       });
       continue;
@@ -64368,7 +67094,7 @@ function createManagedBlockPatchCandidate(input) {
   const sourceBytes = new Uint8Array(input.source.bytes);
   const replacementBytes = new Uint8Array(input.replacementBytes);
   validateReplacement(replacementBytes);
-  if (input.source.byteCount !== sourceBytes.byteLength || input.source.contentHash !== sha2563(sourceBytes)) {
+  if (input.source.byteCount !== sourceBytes.byteLength || input.source.contentHash !== sha2564(sourceBytes)) {
     throw new ManagedBlockPatchError("source_changed", "The managed block patch source differs from the byte count or hash bound to the request.");
   }
   const parsedSource = parseManagedMarkdownBlocks(sourceBytes);
@@ -64413,14 +67139,14 @@ function createManagedBlockPatchCandidate(input) {
       markerFamily: target.markerFamily,
       fullRange: target.fullRange,
       contentRange: target.contentRange,
-      contentHash: sha2563(existingContent)
+      contentHash: sha2564(existingContent)
     },
     replacement: {
-      contentHash: sha2563(replacementBytes),
+      contentHash: sha2564(replacementBytes),
       byteCount: replacementBytes.byteLength
     },
     output: {
-      contentHash: sha2563(outputBytes),
+      contentHash: sha2564(outputBytes),
       byteCount: outputBytes.byteLength,
       contentRange: outputTarget.contentRange
     },
@@ -64438,7 +67164,7 @@ function createManagedBlockPatchCandidate(input) {
     throw new ManagedBlockPatchError("candidate_contract_invalid", "The managed block patch candidate cannot be made schema-valid.");
   }
   const candidateBytes = managedBlockPatchCandidateBytes(candidate);
-  const contentHash2 = sha2563(candidateBytes);
+  const contentHash2 = sha2564(candidateBytes);
   const artifact2 = {
     schemaVersion: 1,
     artifactId: `art_${contentHash2.slice("sha256:".length, "sha256:".length + 16)}`,
@@ -64572,12 +67298,12 @@ async function authorizeCurrentRepositoryDocumentLayout(input) {
 var TRANSACTION_RELATIVE = ".lervo/state/knowledge/materialization-transaction";
 var JOURNAL_NAME = "journal.json";
 function transactionRoot(root2) {
-  return resolve23(root2, TRANSACTION_RELATIVE);
+  return resolve26(root2, TRANSACTION_RELATIVE);
 }
 function safeTarget(root2, path) {
-  const target = resolve23(root2, path);
-  const child = relative5(root2, target);
-  if (child === ".." || child.startsWith(`..${sep5}`))
+  const target = resolve26(root2, path);
+  const child = relative6(root2, target);
+  if (child === ".." || child.startsWith(`..${sep6}`))
     throw new RepositoryKnowledgeError("knowledge_recovery_invalid", "The knowledge transaction path escapes the repository.");
   return target;
 }
@@ -64591,13 +67317,13 @@ function validJournal(value) {
 async function readJournal(root2) {
   const transaction = transactionRoot(root2);
   try {
-    const stat = await lstat15(transaction);
+    const stat = await lstat17(transaction);
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw new Error("unsafe transaction");
     const names = await readdir8(transaction);
     if (!names.includes(JOURNAL_NAME))
       throw new Error("missing journal");
-    const bytes = await readFile8(resolve23(transaction, JOURNAL_NAME));
+    const bytes = await readFile9(resolve26(transaction, JOURNAL_NAME));
     if (bytes.byteLength > 4 * 1024 * 1024)
       throw new Error("large journal");
     const value = JSON.parse(bytes.toString("utf8"));
@@ -64619,9 +67345,9 @@ async function readJournal(root2) {
   }
 }
 async function assertNoKnowledgeMaterializationTransaction(input) {
-  const root2 = resolve23(input.repositoryRoot);
+  const root2 = resolve26(input.repositoryRoot);
   try {
-    const stat = await lstat15(transactionRoot(root2));
+    const stat = await lstat17(transactionRoot(root2));
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw new RepositoryKnowledgeError("knowledge_recovery_invalid", "The knowledge materialization transaction marker is unsafe.");
   } catch (error) {
@@ -64679,7 +67405,7 @@ function repositoryKnowledgePublicationSnapshotId(scan) {
 
 // packages/repository-knowledge/dist/document-layout.js
 var import_yaml11 = __toESM(require_dist(), 1);
-import { basename as basename6, posix as posix4 } from "node:path";
+import { basename as basename6, posix as posix5 } from "node:path";
 var CONVENTIONAL_ENTRYPOINTS = /* @__PURE__ */ new Set([
   "CONTRIBUTING.md",
   "SECURITY.md",
@@ -64711,7 +67437,7 @@ function containsTerm(value, term) {
   return normalizedTerm.length > 0 && normalizedValue.includes(` ${normalizedTerm} `);
 }
 function documentRoot(taxonomy) {
-  return posix4.dirname(taxonomy.decisionRoot);
+  return posix5.dirname(taxonomy.decisionRoot);
 }
 function preservedRolePath(path, taxonomy) {
   return taxonomy.documentPolicy.roles.some((role) => role.relocation === "preserve" && role.path === path);
@@ -64735,7 +67461,7 @@ function migrationCandidate(path, taxonomy) {
     return false;
   if (!path.includes("/") && (basename6(path) === "README.md" || CONVENTIONAL_ENTRYPOINTS.has(basename6(path))))
     return false;
-  if (basename6(path) === "README.md" && posix4.dirname(path) !== documentRoot(taxonomy))
+  if (basename6(path) === "README.md" && posix5.dirname(path) !== documentRoot(taxonomy))
     return false;
   if (CONVENTIONAL_ENTRYPOINTS.has(basename6(path)))
     return false;
@@ -64877,7 +67603,7 @@ function classifyRepositoryDocument(path, content3, taxonomy) {
   if (!migrationCandidate(path, taxonomy))
     return { kind: "not_migration_candidate" };
   const heading = /^#\s+(.+)$/mu.exec(content3)?.[1]?.trim() ?? "";
-  const classificationText = `${basename6(path, posix4.extname(path))} ${heading}`;
+  const classificationText = `${basename6(path, posix5.extname(path))} ${heading}`;
   const metadata = explicitRoute(content3);
   if (metadata.state === "invalid")
     return { kind: "blocked", blocker: { code: "invalid_document_metadata", path } };
@@ -64940,15 +67666,15 @@ function repositoryInstructionRouteBlock(_input) {
 }
 
 // packages/repository-knowledge/dist/incremental-reconciliation.js
-import { lstat as lstat16, readFile as readFile9 } from "node:fs/promises";
-import { resolve as resolve24 } from "node:path";
+import { lstat as lstat18, readFile as readFile10 } from "node:fs/promises";
+import { resolve as resolve27 } from "node:path";
 async function previousInventory(root2) {
-  const path = resolve24(root2, lervoRelativePaths.knowledgeInventory);
+  const path = resolve27(root2, lervoRelativePaths.knowledgeInventory);
   try {
-    const stats = await lstat16(path);
+    const stats = await lstat18(path);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 32 * 1024 * 1024)
       return null;
-    const value = JSON.parse(await readFile9(path, "utf8"));
+    const value = JSON.parse(await readFile10(path, "utf8"));
     if (typeof value.snapshotId !== "string" || !Array.isArray(value.sources) || !value.sources.every((source) => typeof source?.sourceId === "string" && typeof source.status === "string" && (source.contentHash == null || typeof source.contentHash === "string")))
       return null;
     return { snapshotId: value.snapshotId, sources: value.sources };
@@ -65033,9 +67759,9 @@ function profile(source) {
   return "explanation";
 }
 function markdownLink(indexPath, target) {
-  const from = resolve25("/repository", indexPath, "..");
-  const to = resolve25("/repository", target);
-  return relative6(from, to).split(sep6).join("/").split("/").map(encodeURIComponent).join("/");
+  const from = resolve28("/repository", indexPath, "..");
+  const to = resolve28("/repository", target);
+  return relative7(from, to).split(sep7).join("/").split("/").map(encodeURIComponent).join("/");
 }
 function groupKey(source) {
   if (source.agentArtifact?.role === "behavioral_instruction" || source.kind === "instruction")
@@ -65250,7 +67976,7 @@ async function previousGenerated(root2) {
     });
     for (const manifestPath2 of manifestFiles) {
       try {
-        const manifestBytes = await readFile10(resolve25(root2, manifestPath2));
+        const manifestBytes = await readFile11(resolve28(root2, manifestPath2));
         const value = JSON.parse(manifestBytes.toString("utf8"));
         if (value.schemaVersion !== 1 && value.schemaVersion !== 2 || typeof value.generationId !== "string" || typeof value.projectId !== "string" || typeof value.sourceSnapshotId !== "string" || !Array.isArray(value.outputs) || !value.outputs.every((output) => typeof output?.path === "string" && typeof output.contentHash === "string"))
           continue;
@@ -65313,10 +68039,10 @@ function canonicalGeneratedArtifactPath(path) {
   return path;
 }
 async function recordedGeneratedKnowledgePaths(repositoryRoot) {
-  return (await previousGenerated(resolve25(repositoryRoot))).paths;
+  return (await previousGenerated(resolve28(repositoryRoot))).paths;
 }
 async function matchesRecordedStructuralGeneration(repositoryRoot, path, contentHash2) {
-  const previous2 = await previousGenerated(resolve25(repositoryRoot));
+  const previous2 = await previousGenerated(resolve28(repositoryRoot));
   return previous2.structuralPaths.has(path) && previous2.hashes.get(path)?.has(contentHash2) === true;
 }
 function sourceFileUnit(scan, source) {
@@ -65528,13 +68254,13 @@ async function inspectOperation(input) {
     content: input.output.content,
     desiredHash: input.output.contentHash
   };
-  const absolute = resolve25(input.root, input.output.path);
-  const fromRoot = relative6(input.root, absolute);
-  if (fromRoot.startsWith(`..${sep6}`) || fromRoot === "..") {
+  const absolute = resolve28(input.root, input.output.path);
+  const fromRoot = relative7(input.root, absolute);
+  if (fromRoot.startsWith(`..${sep7}`) || fromRoot === "..") {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", `Output path escapes the repository: ${input.output.path}`);
   }
   try {
-    const stats = await lstat17(absolute);
+    const stats = await lstat19(absolute);
     if (!stats.isFile() || stats.isSymbolicLink()) {
       return {
         ...desired,
@@ -65543,7 +68269,7 @@ async function inspectOperation(input) {
         reason: "target_is_not_regular_file"
       };
     }
-    const current = await readFile10(absolute);
+    const current = await readFile11(absolute);
     const currentHash = sha2562(current);
     if (currentHash === input.output.contentHash) {
       return {
@@ -65585,16 +68311,16 @@ async function inspectOperation(input) {
   }
 }
 async function inspectDeleteOperation(input) {
-  const absolute = resolve25(input.root, input.path);
-  const fromRoot = relative6(input.root, absolute);
-  if (fromRoot.startsWith(`..${sep6}`) || fromRoot === "..") {
+  const absolute = resolve28(input.root, input.path);
+  const fromRoot = relative7(input.root, absolute);
+  if (fromRoot.startsWith(`..${sep7}`) || fromRoot === "..") {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", `Delete path escapes the repository: ${input.path}`);
   }
   try {
-    const stats = await lstat17(absolute);
+    const stats = await lstat19(absolute);
     if (!stats.isFile() || stats.isSymbolicLink())
       return null;
-    const currentHash = sha2562(await readFile10(absolute));
+    const currentHash = sha2562(await readFile11(absolute));
     if (input.previousHashes.get(input.path)?.has(currentHash) !== true)
       return null;
     return {
@@ -65613,7 +68339,7 @@ async function inspectDeleteOperation(input) {
   }
 }
 async function createKnowledgeMigrationPlan(input) {
-  const root2 = resolve25(input.repositoryRoot);
+  const root2 = resolve28(input.repositoryRoot);
   const { manifest, policy, scan, previous: previous2 } = await configuredRepositoryKnowledgeScan(root2, {
     ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
     ...input.preparedScan === void 0 ? {} : { preparedScan: input.preparedScan }
@@ -65723,7 +68449,7 @@ async function buildKnowledgeMigrationPlan(input) {
   };
 }
 async function createKnowledgeMigrationPlanForScan(input) {
-  const root2 = resolve25(input.repositoryRoot);
+  const root2 = resolve28(input.repositoryRoot);
   await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root2 });
   const [manifest, policy, previous2] = await Promise.all([
     loadProjectManifest(root2),
@@ -65745,7 +68471,7 @@ async function createKnowledgeMigrationPlanForScan(input) {
   });
 }
 async function configuredRepositoryKnowledgeScan(repositoryRoot, options = {}) {
-  const root2 = resolve25(repositoryRoot);
+  const root2 = resolve28(repositoryRoot);
   await assertNoKnowledgeMaterializationTransaction({
     repositoryRoot: root2,
     ...options.allowTransactionPlanId === void 0 ? {} : { allowedPlanId: options.allowTransactionPlanId }
@@ -65774,7 +68500,7 @@ async function scanConfiguredRepositoryKnowledge(repositoryRoot, options = {}) {
 var MAX_SHARD_BYTES = 256 * 1024;
 
 // packages/repository-knowledge/dist/canonicalization-candidate.js
-import { resolve as resolve28 } from "node:path";
+import { resolve as resolve31 } from "node:path";
 
 // packages/repository-knowledge/dist/canonicalization-responsibility.js
 function canonicalResponsibilityForPath(path) {
@@ -65815,13 +68541,13 @@ function recommendedCanonicalRoot(responsibility) {
 }
 
 // packages/repository-knowledge/dist/canonicalization-candidate-record.js
-import { lstat as lstat19, mkdir as mkdir7, readFile as readFile12, readdir as readdir10, rename as rename5, rm as rm6, writeFile } from "node:fs/promises";
-import { dirname as dirname7, resolve as resolve27 } from "node:path";
+import { lstat as lstat21, mkdir as mkdir7, readFile as readFile13, readdir as readdir10, rename as rename5, rm as rm7, writeFile } from "node:fs/promises";
+import { dirname as dirname7, resolve as resolve30 } from "node:path";
 
 // packages/roles/dist/integrity.js
-import { createHash as createHash12 } from "node:crypto";
+import { createHash as createHash14 } from "node:crypto";
 function roleSha256(value) {
-  return `sha256:${createHash12("sha256").update(value).digest("hex")}`;
+  return `sha256:${createHash14("sha256").update(value).digest("hex")}`;
 }
 function roleProfileHash(profile9) {
   return roleSha256(canonicalJson(profile9));
@@ -66436,8 +69162,8 @@ function listBuiltInRoleDefinitions() {
 }
 
 // packages/roles/dist/repository.js
-import { lstat as lstat18, readFile as readFile11, readdir as readdir9 } from "node:fs/promises";
-import { basename as basename8, resolve as resolve26 } from "node:path";
+import { lstat as lstat20, readFile as readFile12, readdir as readdir9 } from "node:fs/promises";
+import { basename as basename8, resolve as resolve29 } from "node:path";
 
 // packages/roles/dist/repository-role-composition.js
 function fail7(message) {
@@ -66713,10 +69439,10 @@ function customContract(source, bases, sourcePath) {
   return { ...material, sourcePath, contractHash: roleSha256(canonicalJson(material)) };
 }
 async function repositorySources(repositoryRoot) {
-  const directory = resolve26(repositoryRoot, ".lervo/roles");
+  const directory = resolve29(repositoryRoot, ".lervo/roles");
   let directoryInfo;
   try {
-    directoryInfo = await lstat18(directory);
+    directoryInfo = await lstat20(directory);
   } catch (error) {
     if (error.code === "ENOENT")
       return /* @__PURE__ */ new Map();
@@ -66732,13 +69458,13 @@ async function repositorySources(repositoryRoot) {
     const expectedRoleId = basename8(name2, ".json");
     if (!ROLE_ID.test(expectedRoleId))
       fail8("role_profile_invalid", `Repository role filename ${name2} is invalid.`);
-    const path = resolve26(directory, name2);
-    const info = await lstat18(path);
+    const path = resolve29(directory, name2);
+    const info = await lstat20(path);
     if (!info.isFile() || info.isSymbolicLink() || info.size > MAXIMUM_ROLE_BYTES)
       fail8("role_profile_invalid", `Repository role source ${name2} is unsafe.`);
     let parsed;
     try {
-      parsed = JSON.parse(await readFile11(path, "utf8"));
+      parsed = JSON.parse(await readFile12(path, "utf8"));
     } catch (error) {
       fail8("role_profile_invalid", `Repository role source ${name2} is not valid JSON.`, error);
     }
@@ -67199,7 +69925,7 @@ function canonicalizationCandidatePath(candidateId) {
   return `${ROOT}/${candidateId.slice("kcanon_".length, "kcanon_".length + 2)}/${candidateId}.json`;
 }
 async function boundedCandidatePaths(root2) {
-  const directory = resolve27(root2, ROOT);
+  const directory = resolve30(root2, ROOT);
   let shards;
   try {
     shards = await readdir10(directory, { withFileTypes: true });
@@ -67214,7 +69940,7 @@ async function boundedCandidatePaths(root2) {
       continue;
     if (!shard.isDirectory() || !/^[a-f0-9]{2}$/u.test(shard.name))
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization candidate registry contains an unsafe entry.");
-    const entries = await readdir10(resolve27(directory, shard.name), { withFileTypes: true });
+    const entries = await readdir10(resolve30(directory, shard.name), { withFileTypes: true });
     for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
       if (isIgnorableFilesystemMetadata(entry))
         continue;
@@ -67239,15 +69965,15 @@ function validateRecord(value) {
   return record3;
 }
 async function readCanonicalizationCandidate(root2, path) {
-  const bytes = await readFile12(resolve27(root2, path), "utf8");
+  const bytes = await readFile13(resolve30(root2, path), "utf8");
   const record3 = validateRecord(JSON.parse(bytes));
   let stale = false;
   for (const binding of record3.sourceBindings) {
     try {
-      const stats = await lstat19(resolve27(root2, binding.path));
+      const stats = await lstat21(resolve30(root2, binding.path));
       if (!stats.isFile() || stats.isSymbolicLink())
         throw new Error();
-      if (sha2562(await readFile12(resolve27(root2, binding.path))) !== binding.afterHash)
+      if (sha2562(await readFile13(resolve30(root2, binding.path))) !== binding.afterHash)
         stale = true;
     } catch {
       if (binding.afterHash !== null)
@@ -67261,14 +69987,14 @@ async function readCanonicalizationCandidate(root2, path) {
   };
 }
 async function listCanonicalizationCandidates(repositoryRoot) {
-  const root2 = resolve27(repositoryRoot);
+  const root2 = resolve30(repositoryRoot);
   return Promise.all((await boundedCandidatePaths(root2)).map((path) => readCanonicalizationCandidate(root2, path)));
 }
 async function writeCanonicalizationCandidateRecord(root2, record3) {
-  const path = resolve27(root2, canonicalizationCandidatePath(record3.candidateId));
+  const path = resolve30(root2, canonicalizationCandidatePath(record3.candidateId));
   await mkdir7(dirname7(path), { recursive: true });
   const temporary = `${path}.next`;
-  await rm6(temporary, { force: true });
+  await rm7(temporary, { force: true });
   await writeFile(temporary, `${canonicalJson3(record3)}
 `, { encoding: "utf8", flag: "wx" });
   await rename5(temporary, path);
@@ -67352,8 +70078,8 @@ async function assessCanonicalization(input) {
   if (existing === void 0 && candidates.filter((item) => item.observedState === "candidate" || item.observedState === "pending").length >= MAXIMUM_ACTIVE_CANDIDATES)
     throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `The canonicalization candidate registry has ${MAXIMUM_ACTIVE_CANDIDATES} active records.`);
   if (existing === void 0)
-    await writeCanonicalizationCandidateRecord(resolve28(input.repositoryRoot), record3);
-  const candidate = existing ?? await readCanonicalizationCandidate(resolve28(input.repositoryRoot), canonicalizationCandidatePath(candidateId));
+    await writeCanonicalizationCandidateRecord(resolve31(input.repositoryRoot), record3);
+  const candidate = existing ?? await readCanonicalizationCandidate(resolve31(input.repositoryRoot), canonicalizationCandidatePath(candidateId));
   return {
     schemaVersion: 1,
     status: record3.state === "pending" ? "pending" : "candidate",
@@ -67423,8 +70149,8 @@ var import_yaml17 = __toESM(require_dist(), 1);
 var import_yaml18 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/document-normalization.js
-import { lstat as lstat20, mkdir as mkdir8, open as open9, readFile as readFile13 } from "node:fs/promises";
-import { basename as basename9, dirname as dirname8, posix as posix5, resolve as resolve29 } from "node:path";
+import { lstat as lstat22, mkdir as mkdir8, open as open11, readFile as readFile14 } from "node:fs/promises";
+import { basename as basename9, dirname as dirname8, posix as posix6, resolve as resolve32 } from "node:path";
 var import_yaml19 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/document-normalization-cache.js
@@ -67509,17 +70235,17 @@ function eligibleDocuments(scan, publicationRoot, taxonomy, normalizationExclude
   }).sort((left, right) => left.source.path.localeCompare(right.source.path));
 }
 function safeRelativePath2(path) {
-  return path.length > 0 && path.length <= 1024 && posix5.normalize(path) === path && !path.startsWith("/") && !path.includes("../") && !path.includes("\\") && !path.includes("\0");
+  return path.length > 0 && path.length <= 1024 && posix6.normalize(path) === path && !path.startsWith("/") && !path.includes("../") && !path.includes("\\") && !path.includes("\0");
 }
 function userRegionHash(content3) {
   return sha2562(content3.replace(/<!-- lervo:begin\b[^>]*-->[\s\S]*?<!-- lervo:end\b[^>]*-->/gu, "<!-- lervo:managed-block -->"));
 }
 async function hashAt(path) {
   try {
-    const stat = await lstat20(path);
+    const stat = await lstat22(path);
     if (!stat.isFile() || stat.isSymbolicLink())
       return null;
-    return sha2562(await readFile13(path));
+    return sha2562(await readFile14(path));
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -67528,10 +70254,10 @@ async function hashAt(path) {
 }
 async function userRegionHashAt(path) {
   try {
-    const stat = await lstat20(path);
+    const stat = await lstat22(path);
     if (!stat.isFile() || stat.isSymbolicLink())
       return null;
-    return userRegionHash(await readFile13(path, "utf8"));
+    return userRegionHash(await readFile14(path, "utf8"));
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -67545,7 +70271,7 @@ function validDocumentNormalizationRecord(value, path, outputLanguage) {
   return !(![1, 2].includes(record3.schemaVersion ?? 0) || record3.schemaVersion === 2 && (record3.byteOwnership?.owner !== "reviewer" || record3.byteOwnership.rewritePolicy !== "reviewed_exact") || typeof record3.recordId !== "string" || !/^knormdoc_[a-f0-9]{24}$/u.test(record3.recordId) || path !== shardedKnowledgeArtifactPath(".lervo/knowledge/document-normalizations", record3.recordId, "yaml") || typeof record3.sourcePath !== "string" || !safeRelativePath2(record3.sourcePath) || record3.outputLanguage !== outputLanguage || record3.formatVersion !== "lervo.document.v1" || !Array.isArray(record3.outputs) || record3.outputs.length < 1 || record3.outputs.some((output) => output === null || typeof output !== "object" || typeof output.path !== "string" || !safeRelativePath2(output.path) || typeof output.contentHash !== "string" || !HASH6.test(output.contentHash) || output.userRegionHash !== void 0 && (typeof output.userRegionHash !== "string" || !HASH6.test(output.userRegionHash))) || !Array.isArray(record3.resourceBindings) || record3.resourceBindings.some((resource) => resource === null || typeof resource !== "object" || typeof resource.path !== "string" || !safeRelativePath2(resource.path) || typeof resource.contentHash !== "string" || !HASH6.test(resource.contentHash)));
 }
 async function inspectConfiguredDocumentNormalization(input) {
-  const root2 = resolve29(input.repositoryRoot);
+  const root2 = resolve32(input.repositoryRoot);
   const [{ policy, scan }, taxonomy] = await Promise.all([
     scanConfiguredRepositoryKnowledge(root2, {
       ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
@@ -67565,7 +70291,7 @@ async function inspectConfiguredDocumentNormalization(input) {
   for (const path of paths) {
     let record3 = null;
     try {
-      record3 = (0, import_yaml19.parse)(await readFile13(resolve29(root2, path), "utf8"));
+      record3 = (0, import_yaml19.parse)(await readFile14(resolve32(root2, path), "utf8"));
     } catch {
     }
     if (!validDocumentNormalizationRecord(record3, path, policy.publication.language)) {
@@ -67577,9 +70303,9 @@ async function inspectConfiguredDocumentNormalization(input) {
       });
       continue;
     }
-    const hashes = await Promise.all(record3.outputs.map((output) => hashAt(resolve29(root2, output.path))));
-    const userHashes = await Promise.all(record3.outputs.map((output) => output.userRegionHash === void 0 ? null : userRegionHashAt(resolve29(root2, output.path))));
-    const resources = await Promise.all(record3.resourceBindings.map((resource) => hashAt(resolve29(root2, resource.path))));
+    const hashes = await Promise.all(record3.outputs.map((output) => hashAt(resolve32(root2, output.path))));
+    const userHashes = await Promise.all(record3.outputs.map((output) => output.userRegionHash === void 0 ? null : userRegionHashAt(resolve32(root2, output.path))));
+    const resources = await Promise.all(record3.resourceBindings.map((resource) => hashAt(resolve32(root2, resource.path))));
     const status = hashes.every((hash2, index2) => hash2 === record3.outputs[index2].contentHash || record3.outputs[index2].userRegionHash !== void 0 && userHashes[index2] === record3.outputs[index2].userRegionHash) && resources.every((hash2, index2) => hash2 === record3.resourceBindings[index2].contentHash) ? "current" : "stale";
     if (status === "current")
       for (const output of record3.outputs)
@@ -67750,9 +70476,9 @@ function inspectGroupedDecisionPaths(paths, taxonomy) {
 }
 
 // packages/repository-knowledge/dist/document-rewriter-adapters.js
-import { resolve as resolve30 } from "node:path";
+import { resolve as resolve33 } from "node:path";
 async function inspectRepositoryDocumentRewriters(input) {
-  const root2 = resolve30(input.repositoryRoot);
+  const root2 = resolve33(input.repositoryRoot);
   const [taxonomy, lifecycle, registry2] = await Promise.all([
     loadDecisionTaxonomy(root2),
     inspectConfiguredDocumentNormalization({
@@ -67906,9 +70632,9 @@ function collectExecutionEventSources(input) {
 
 // packages/repository-knowledge/dist/instruction-bridge.js
 var import_yaml21 = __toESM(require_dist(), 1);
-import { constants as constants8 } from "node:fs";
-import { lstat as lstat21, open as open10 } from "node:fs/promises";
-import { resolve as resolve31 } from "node:path";
+import { constants as constants10 } from "node:fs";
+import { lstat as lstat23, open as open12 } from "node:fs/promises";
+import { resolve as resolve34 } from "node:path";
 
 // packages/repository-knowledge/dist/instruction-bridge-target.js
 var encoder = new TextEncoder();
@@ -68027,7 +70753,7 @@ async function safeOptionalFile(path, maximumBytes2) {
   let handle;
   try {
     try {
-      const stats = await lstat21(path);
+      const stats = await lstat23(path);
       if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes2)
         throw new Error("unsafe file");
     } catch (error) {
@@ -68035,7 +70761,7 @@ async function safeOptionalFile(path, maximumBytes2) {
         return null;
       throw error;
     }
-    handle = await open10(path, constants8.O_RDONLY | (constants8.O_NOFOLLOW ?? 0));
+    handle = await open12(path, constants10.O_RDONLY | (constants10.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     const bytes = await handle.readFile();
     const after = await handle.stat();
@@ -68054,7 +70780,7 @@ async function registryDigest(root2) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The instruction bridge cannot be changed because the knowledge concept registry is incomplete.");
   }
   const materials = await Promise.all(stored.map(async (item) => {
-    const bytes = await safeOptionalFile(resolve31(root2, item.file), 256 * 1024);
+    const bytes = await safeOptionalFile(resolve34(root2, item.file), 256 * 1024);
     if (bytes === null)
       throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "A knowledge concept sidecar is missing.");
     return { file: item.file, contentHash: sha2562(bytes) };
@@ -68063,7 +70789,7 @@ async function registryDigest(root2) {
   return { digest: sha2562(canonicalJson3(materials)), materials };
 }
 async function createKnowledgeInstructionBridgePlan(input) {
-  const root2 = resolve31(input.repositoryRoot);
+  const root2 = resolve34(input.repositoryRoot);
   const profile9 = instructionBridgeProfile(input.provider);
   const [{ policy, scan }, beforeRegistry] = await Promise.all([
     scanConfiguredRepositoryKnowledge(root2, {
@@ -68081,7 +70807,7 @@ async function createKnowledgeInstructionBridgePlan(input) {
       byteCount: scannedCanonical.byteCount
     };
   } else {
-    const generatedBytes = await safeOptionalFile(resolve31(root2, profile9.canonicalPath), policy.limits.maxFileBytes);
+    const generatedBytes = await safeOptionalFile(resolve34(root2, profile9.canonicalPath), policy.limits.maxFileBytes);
     const generatedHash = generatedBytes === null ? null : sha2562(generatedBytes);
     if (generatedBytes === null || generatedHash === null || !await matchesRecordedStructuralGeneration(root2, profile9.canonicalPath, generatedHash)) {
       throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "Canonical AGENTS.md must be either an included instruction source or an exact recorded Lervo generation.");
@@ -68097,7 +70823,7 @@ async function createKnowledgeInstructionBridgePlan(input) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The provider instruction target is not a safe included instruction.");
   }
   if (targetSource === void 0) {
-    const existing = await safeOptionalFile(resolve31(root2, profile9.targetPath), policy.limits.maxFileBytes);
+    const existing = await safeOptionalFile(resolve34(root2, profile9.targetPath), policy.limits.maxFileBytes);
     if (existing !== null)
       throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The provider instruction target does not match the scan.");
   }
@@ -68163,7 +70889,7 @@ async function createKnowledgeInstructionBridgePlan(input) {
       managedContentHash: target.managedContentHash
     }
   }, { lineWidth: 0, sortMapEntries: true });
-  const bridgeRecordBytes = await safeOptionalFile(resolve31(root2, bridgeRecordPath), 64 * 1024);
+  const bridgeRecordBytes = await safeOptionalFile(resolve34(root2, bridgeRecordPath), 64 * 1024);
   const bridgeRecordHash = sha2562(bridgeRecordContent);
   const bridgeRecordOperation = bridgeRecordBytes === null ? {
     path: bridgeRecordPath,
@@ -68293,8 +71019,8 @@ async function createKnowledgeInstructionBridgePlan(input) {
 }
 
 // packages/repository-knowledge/dist/instruction-bootstrap.js
-import { lstat as lstat22 } from "node:fs/promises";
-import { resolve as resolve32 } from "node:path";
+import { lstat as lstat24 } from "node:fs/promises";
+import { resolve as resolve35 } from "node:path";
 function includedSource(sources, path) {
   const source = sources.find((item) => item.path === path);
   if (source === void 0)
@@ -68309,7 +71035,7 @@ function hasProviderImportOrManagedBlock(content3) {
 }
 async function safeFilePresent(path) {
   try {
-    const stats = await lstat22(path);
+    const stats = await lstat24(path);
     if (!stats.isFile() || stats.isSymbolicLink()) {
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonical instruction bootstrap target is not a safe regular file.");
     }
@@ -68331,14 +71057,14 @@ function appendBlock(content3, block) {
   return `${content3}${separator}${block}`;
 }
 async function createKnowledgeInstructionBootstrapPlan(input) {
-  const root2 = resolve32(input.repositoryRoot);
+  const root2 = resolve35(input.repositoryRoot);
   const { policy, scan } = await scanConfiguredRepositoryKnowledge(root2, {
     ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
     ...input.preparedScan === void 0 ? {} : { preparedScan: input.preparedScan }
   });
   const agents = includedSource(scan.sources, "AGENTS.md");
   const claude = includedSource(scan.sources, "CLAUDE.md");
-  const agentsPresent = agents !== null || await safeFilePresent(resolve32(root2, "AGENTS.md"));
+  const agentsPresent = agents !== null || await safeFilePresent(resolve35(root2, "AGENTS.md"));
   const policyHash = sha2562(canonicalJson3(policy));
   const base = {
     schemaVersion: 1,
@@ -68439,14 +71165,14 @@ async function createKnowledgeInstructionBootstrapPlan(input) {
 }
 
 // packages/repository-knowledge/dist/lint-query.js
-import { lstat as lstat24, readFile as readFile15, readdir as readdir11 } from "node:fs/promises";
-import { relative as relative8, resolve as resolve34, sep as sep8 } from "node:path";
+import { lstat as lstat26, readFile as readFile16, readdir as readdir11 } from "node:fs/promises";
+import { relative as relative9, resolve as resolve37, sep as sep9 } from "node:path";
 var import_yaml22 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-publication-files.js
-import { constants as constants9 } from "node:fs";
-import { lstat as lstat23, open as open11, readFile as readFile14 } from "node:fs/promises";
-import { relative as relative7, resolve as resolve33, sep as sep7 } from "node:path";
+import { constants as constants11 } from "node:fs";
+import { lstat as lstat25, open as open13, readFile as readFile15 } from "node:fs/promises";
+import { relative as relative8, resolve as resolve36, sep as sep8 } from "node:path";
 async function generatedKnowledgePaths(root2) {
   const result = /* @__PURE__ */ new Set();
   const groups = [
@@ -68461,7 +71187,7 @@ async function generatedKnowledgePaths(root2) {
   for (const paths of groups) {
     for (const path of paths) {
       try {
-        const value = JSON.parse(await readFile14(resolve33(root2, path), "utf8"));
+        const value = JSON.parse(await readFile15(resolve36(root2, path), "utf8"));
         for (const output of value.outputs ?? [])
           if (typeof output.path === "string")
             result.add(output.path);
@@ -68472,9 +71198,9 @@ async function generatedKnowledgePaths(root2) {
   return result;
 }
 function safePublicationPath(root2, path) {
-  const target = resolve33(root2, path);
-  const fromRoot = relative7(root2, target);
-  return fromRoot === ".." || fromRoot.startsWith(`..${sep7}`) ? null : target;
+  const target = resolve36(root2, path);
+  const fromRoot = relative8(root2, target);
+  return fromRoot === ".." || fromRoot.startsWith(`..${sep8}`) ? null : target;
 }
 async function readSafePublication(root2, path, maximumBytes2) {
   const target = safePublicationPath(root2, path);
@@ -68482,19 +71208,19 @@ async function readSafePublication(root2, path, maximumBytes2) {
     return null;
   let current = root2;
   try {
-    const rootStats = await lstat23(root2);
+    const rootStats = await lstat25(root2);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
       return null;
-    const segments = relative7(root2, target).split(sep7);
+    const segments = relative8(root2, target).split(sep8);
     for (const [index2, segment] of segments.entries()) {
-      current = resolve33(current, segment);
-      const stats = await lstat23(current);
+      current = resolve36(current, segment);
+      const stats = await lstat25(current);
       if (stats.isSymbolicLink())
         return null;
       if (index2 === segments.length - 1 ? !stats.isFile() : !stats.isDirectory())
         return null;
     }
-    const handle = await open11(target, constants9.O_RDONLY | (constants9.O_NOFOLLOW ?? 0));
+    const handle = await open13(target, constants11.O_RDONLY | (constants11.O_NOFOLLOW ?? 0));
     try {
       const before = await handle.stat();
       if (!before.isFile() || before.size > maximumBytes2)
@@ -68529,7 +71255,7 @@ async function lintSemanticManifests(root2, issues) {
   for (const path of paths) {
     let outputs;
     try {
-      const value = JSON.parse(await readFile15(resolve34(root2, path), "utf8"));
+      const value = JSON.parse(await readFile16(resolve37(root2, path), "utf8"));
       if (value.kind !== "semantic" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
         throw new Error();
       outputs = value.outputs;
@@ -68547,8 +71273,8 @@ async function lintSemanticManifests(root2, issues) {
       try {
         if (target === null)
           throw new Error();
-        const stats = await lstat24(target);
-        if (!stats.isFile() || stats.isSymbolicLink() || sha2562(await readFile15(target)) !== output.contentHash)
+        const stats = await lstat26(target);
+        if (!stats.isFile() || stats.isSymbolicLink() || sha2562(await readFile16(target)) !== output.contentHash)
           throw new Error();
       } catch {
         issues.push({
@@ -68654,14 +71380,14 @@ async function lintRepositoryLayout(root2, issues) {
   const decisionPaths = [];
   for (const directory of [taxonomy.decisionRoot, ...taxonomy.legacyRoots]) {
     try {
-      const entries = await readdir11(resolve34(root2, directory), {
+      const entries = await readdir11(resolve37(root2, directory), {
         withFileTypes: true,
         recursive: true
       });
       for (const entry of entries) {
         if (!entry.isFile() || !/^\d{4}-.+\.md$/u.test(entry.name))
           continue;
-        decisionPaths.push(relative8(root2, resolve34(entry.parentPath, entry.name)).split(sep8).join("/"));
+        decisionPaths.push(relative9(root2, resolve37(entry.parentPath, entry.name)).split(sep9).join("/"));
       }
     } catch {
     }
@@ -68718,7 +71444,7 @@ async function lintRepositoryLayout(root2, issues) {
   }
 }
 async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
-  const root2 = resolve34(repositoryRoot);
+  const root2 = resolve37(repositoryRoot);
   await assertNoKnowledgeMaterializationTransaction({
     repositoryRoot: root2,
     ...options?.allowTransactionPlanId === void 0 ? {} : { allowedPlanId: options.allowTransactionPlanId }
@@ -68742,12 +71468,12 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
   let manifestFound = false;
   for (const path of [structuralManifestPath, legacyStructuralManifestPath]) {
     try {
-      const stats = await lstat24(resolve34(root2, path));
+      const stats = await lstat26(resolve37(root2, path));
       if (!stats.isFile() || stats.isSymbolicLink())
         throw new Error();
       manifestFound = true;
       try {
-        const value = JSON.parse(await readFile15(resolve34(root2, path), "utf8"));
+        const value = JSON.parse(await readFile16(resolve37(root2, path), "utf8"));
         if (typeof value.sourceSnapshotId !== "string" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
           throw new Error();
         manifests.push(value);
@@ -68835,8 +71561,8 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
         continue;
       }
       try {
-        const stats = await lstat24(target);
-        const bytes = await readFile15(target);
+        const stats = await lstat26(target);
+        const bytes = await readFile16(target);
         if (!stats.isFile() || stats.isSymbolicLink() || sha2562(bytes) !== output.contentHash)
           throw new Error();
         const publicationPrefix = `${policy.publicationRoot.replace(/\/$/u, "")}/`;
@@ -68910,7 +71636,7 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
       continue;
     }
     try {
-      const stats = await lstat24(publication);
+      const stats = await lstat26(publication);
       if (!stats.isFile() || stats.isSymbolicLink())
         throw new Error();
     } catch {
@@ -69008,7 +71734,7 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
 }
 
 // packages/repository-knowledge/dist/query.js
-import { resolve as resolve35 } from "node:path";
+import { resolve as resolve38 } from "node:path";
 
 // packages/repository-knowledge/dist/relation-query.js
 var KNOWLEDGE_RELATION_LIMITS = {
@@ -69018,7 +71744,7 @@ var KNOWLEDGE_RELATION_LIMITS = {
   maximumSelections: 2,
   hops: 1
 };
-function compareText3(left, right) {
+function compareText5(left, right) {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 function projectKnowledgeRelations(input) {
@@ -69040,7 +71766,7 @@ function projectKnowledgeRelations(input) {
     values.push(documentId);
     documentsByPath.set(document4.path, values);
   }
-  const incident = input.relations.filter((relation) => seeds.has(relation.from.id) || seeds.has(relation.to.id)).sort((left, right) => compareText3(left.relationId, right.relationId));
+  const incident = input.relations.filter((relation) => seeds.has(relation.from.id) || seeds.has(relation.to.id)).sort((left, right) => compareText5(left.relationId, right.relationId));
   const examined = incident.slice(0, KNOWLEDGE_RELATION_LIMITS.maximumExaminedRelations);
   const candidates = [];
   for (const relation of examined) {
@@ -69080,7 +71806,7 @@ function projectKnowledgeRelations(input) {
     });
   }
   const seenDocuments = /* @__PURE__ */ new Set();
-  const recommendations = candidates.sort((left, right) => left.seedRank - right.seedRank || compareText3(left.relationType, right.relationType) || compareText3(left.direction, right.direction) || compareText3(left.relationId, right.relationId) || compareText3(left.documentId, right.documentId)).filter((recommendation) => {
+  const recommendations = candidates.sort((left, right) => left.seedRank - right.seedRank || compareText5(left.relationType, right.relationType) || compareText5(left.direction, right.direction) || compareText5(left.relationId, right.relationId) || compareText5(left.documentId, right.documentId)).filter((recommendation) => {
     if (seenDocuments.has(recommendation.documentId))
       return false;
     seenDocuments.add(recommendation.documentId);
@@ -69121,7 +71847,7 @@ var RepositoryKnowledgeQueryIndex = class _RepositoryKnowledgeQueryIndex {
     this.data = data;
   }
   static async prepare(input) {
-    const root2 = resolve35(input.repositoryRoot);
+    const root2 = resolve38(input.repositoryRoot);
     await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root2 });
     const project2 = await loadProjectManifest(root2);
     const policy = await loadRepositoryKnowledgePolicy(root2);
@@ -69293,8 +72019,8 @@ async function queryRepositoryKnowledge(input) {
 }
 
 // packages/repository-knowledge/dist/projection-ignore.js
-import { lstat as lstat25, readFile as readFile16 } from "node:fs/promises";
-import { resolve as resolve36 } from "node:path";
+import { lstat as lstat27, readFile as readFile17 } from "node:fs/promises";
+import { resolve as resolve39 } from "node:path";
 var BEGIN = "# lervo:begin rebuildable-knowledge schema=1";
 var END = "# lervo:end rebuildable-knowledge";
 function normalizedRule(publicationRoot) {
@@ -69319,13 +72045,13 @@ ${END}
   return `${content3.slice(0, begin)}${block}${content3.slice(afterEnd).replace(/^\n/u, "")}`;
 }
 async function projectRebuildableKnowledgeIgnore(input) {
-  const path = resolve36(input.repositoryRoot, ".gitignore");
+  const path = resolve39(input.repositoryRoot, ".gitignore");
   let beforeContent = null;
   try {
-    const stats = await lstat25(path);
+    const stats = await lstat27(path);
     if (!stats.isFile() || stats.isSymbolicLink())
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", ".gitignore is not a safe regular file.");
-    beforeContent = await readFile16(path, "utf8");
+    beforeContent = await readFile17(path, "utf8");
   } catch (error) {
     if (error.code !== "ENOENT")
       throw error;
@@ -69345,9 +72071,9 @@ async function projectRebuildableKnowledgeIgnore(input) {
 var import_yaml23 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-layout-migration.js
-import { constants as constants10 } from "node:fs";
-import { lstat as lstat26, open as open12, readFile as readFile17 } from "node:fs/promises";
-import { basename as basename10, posix as posix6, resolve as resolve37 } from "node:path";
+import { constants as constants12 } from "node:fs";
+import { lstat as lstat28, open as open14, readFile as readFile18 } from "node:fs/promises";
+import { basename as basename10, posix as posix7, resolve as resolve40 } from "node:path";
 var import_yaml24 = __toESM(require_dist(), 1);
 var ECOSYSTEM_ROOT_ENTRYPOINTS = /* @__PURE__ */ new Set([
   "CONTRIBUTING.md",
@@ -69416,7 +72142,7 @@ function classifiedRootDestination(path, content3, taxonomy) {
 async function safeFile(path, maximumBytes2 = 256 * 1024) {
   let handle;
   try {
-    handle = await open12(path, constants10.O_RDONLY | (constants10.O_NOFOLLOW ?? 0));
+    handle = await open14(path, constants12.O_RDONLY | (constants12.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes2)
       throw new Error("unsafe registry item");
@@ -69500,7 +72226,7 @@ async function machineArtifactMoves(root2) {
       const name2 = fromPath.split("/").at(-1);
       const id2 = name2.slice(0, -(item.extension.length + 1));
       const toPath = shardedKnowledgeArtifactPath(item.directory, id2, item.extension);
-      const file = await safeFile(resolve37(root2, fromPath), item.maximumBytes);
+      const file = await safeFile(resolve40(root2, fromPath), item.maximumBytes);
       moves.push({ fromPath, toPath, ...file, registry: item.registry });
     }
   }
@@ -69515,7 +72241,7 @@ async function normalizationOwnershipUpgradeOperations(root2) {
     maximumFiles: 2e4
   });
   for (const path of paths) {
-    const source = await readFile17(resolve37(root2, path), "utf8");
+    const source = await readFile18(resolve40(root2, path), "utf8");
     const value = (0, import_yaml24.parse)(source);
     if (value.schemaVersion !== 1)
       continue;
@@ -69539,7 +72265,7 @@ async function normalizationOwnershipUpgradeOperations(root2) {
 }
 async function exists2(path) {
   try {
-    await lstat26(path);
+    await lstat28(path);
     return true;
   } catch (error) {
     if (error.code === "ENOENT")
@@ -69556,10 +72282,10 @@ function replaceAllLiteral(content3, from, to) {
 function rewriteReferences(sourcePath, content3, moves) {
   let output = content3;
   let count = 0;
-  const sourceDirectory = posix6.dirname(sourcePath);
+  const sourceDirectory = posix7.dirname(sourcePath);
   for (const move of moves) {
-    const fromRelative = posix6.relative(sourceDirectory, move.fromPath);
-    const toRelative = posix6.relative(sourceDirectory, move.toPath);
+    const fromRelative = posix7.relative(sourceDirectory, move.fromPath);
+    const toRelative = posix7.relative(sourceDirectory, move.toPath);
     const variants = [
       ...fromRelative.startsWith(".") ? [[fromRelative, toRelative]] : [
         [`./${fromRelative}`, `./${toRelative}`],
@@ -69584,8 +72310,8 @@ function rebaseMarkdownLinks(content3, fromPath, toPath) {
       const match = /^([^?#]*)([?#].*)?$/u.exec(node2.url);
       const relativeTarget = match?.[1] ?? "";
       if (relativeTarget.length > 0) {
-        const absoluteTarget = posix6.normalize(posix6.join(posix6.dirname(fromPath), relativeTarget));
-        let rebased = posix6.relative(posix6.dirname(toPath), absoluteTarget);
+        const absoluteTarget = posix7.normalize(posix7.join(posix7.dirname(fromPath), relativeTarget));
+        let rebased = posix7.relative(posix7.dirname(toPath), absoluteTarget);
         if (!rebased.startsWith("."))
           rebased = `./${rebased}`;
         rebased += match?.[2] ?? "";
@@ -69621,9 +72347,9 @@ function withoutContent(operation) {
   return operation.action === "move" ? operation : (({ content: _content, ...item }) => item)(operation);
 }
 async function createRepositoryLayoutMigrationPlan(input) {
-  const root2 = resolve37(input.repositoryRoot);
-  const taxonomyPath = resolve37(root2, ".lervo/knowledge/document-layout.yaml");
-  const taxonomySource = await readFile17(taxonomyPath, "utf8");
+  const root2 = resolve40(input.repositoryRoot);
+  const taxonomyPath = resolve40(root2, ".lervo/knowledge/document-layout.yaml");
+  const taxonomySource = await readFile18(taxonomyPath, "utf8");
   const [{ policy, scan }, storedConcepts, generatedPaths, taxonomy] = await Promise.all([
     scanConfiguredRepositoryKnowledge(root2, {
       ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
@@ -69761,7 +72487,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     if ((destinationCounts.get(item.toPath) ?? 0) > 1) {
       blockers.push({ code: "ambiguous_destination", pathDigest: sha2562(item.toPath) });
       blockedDestinations.add(item.toPath);
-    } else if (scan.sources.some((source) => source.path === item.toPath) || generatedPaths.has(item.toPath) || await exists2(resolve37(root2, item.toPath))) {
+    } else if (scan.sources.some((source) => source.path === item.toPath) || generatedPaths.has(item.toPath) || await exists2(resolve40(root2, item.toPath))) {
       blockers.push({ code: "destination_exists", pathDigest: sha2562(item.toPath) });
       blockedDestinations.add(item.toPath);
     } else if (!repositoryPathCanRemainIncluded(item.toPath, policy)) {
@@ -69848,7 +72574,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
   }
   const registryMaterials = await Promise.all(storedConcepts.map(async (item) => ({
     file: item.file,
-    contentHash: (await safeFile(resolve37(root2, item.file))).contentHash
+    contentHash: (await safeFile(resolve40(root2, item.file))).contentHash
   })));
   registryMaterials.sort((left, right) => left.file.localeCompare(right.file));
   const registryDigest2 = sha2562(canonicalJson3(registryMaterials));
@@ -70070,7 +72796,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     extension: "yaml",
     maximumFiles: 64
   });
-  if (canonicalInstructionChange !== void 0 && existingInstructionBridgeRecords.length > 0 && await exists2(resolve37(root2, "CLAUDE.md"))) {
+  if (canonicalInstructionChange !== void 0 && existingInstructionBridgeRecords.length > 0 && await exists2(resolve40(root2, "CLAUDE.md"))) {
     const bridge = await createKnowledgeInstructionBridgePlan({
       repositoryRoot: root2,
       provider: "claude",
@@ -70115,7 +72841,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
   const structuralPaths = new Set((structural?.operations ?? []).map((operation) => operation.path));
   const machineMoves = (await machineArtifactMoves(root2)).filter((move) => !structuralPaths.has(move.fromPath) && !structuralPaths.has(move.toPath));
   for (const move of machineMoves) {
-    if (await exists2(resolve37(root2, move.toPath)))
+    if (await exists2(resolve40(root2, move.toPath)))
       blockers.push({ code: "destination_exists", pathDigest: sha2562(move.toPath) });
   }
   const machineMoveOperations = machineMoves.map((move) => ({
@@ -70200,9 +72926,9 @@ async function createRepositoryLayoutMigrationPlan(input) {
 var import_yaml25 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/terminal-integration.js
-import { constants as constants11 } from "node:fs";
-import { lstat as lstat27, open as open13 } from "node:fs/promises";
-import { resolve as resolve38 } from "node:path";
+import { constants as constants13 } from "node:fs";
+import { lstat as lstat29, open as open15 } from "node:fs/promises";
+import { resolve as resolve41 } from "node:path";
 var MAXIMUM_CONFIG_BYTES = 256 * 1024;
 var MAXIMUM_RUNTIME_BYTES = 4 * 1024 * 1024;
 var FORMAT = { insertSpaces: true, tabSize: 2, eol: "\n", insertFinalNewline: true };
@@ -70236,7 +72962,7 @@ async function safeOptionalText(path, maximumBytes2 = MAXIMUM_CONFIG_BYTES) {
   let handle;
   try {
     try {
-      const stats = await lstat27(path);
+      const stats = await lstat29(path);
       if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes2)
         throw new Error("unsafe");
     } catch (error) {
@@ -70244,7 +72970,7 @@ async function safeOptionalText(path, maximumBytes2 = MAXIMUM_CONFIG_BYTES) {
         return null;
       throw error;
     }
-    handle = await open13(path, constants11.O_RDONLY | (constants11.O_NOFOLLOW ?? 0));
+    handle = await open15(path, constants13.O_RDONLY | (constants13.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     const bytes = await handle.readFile();
     const after = await handle.stat();
@@ -70417,11 +73143,11 @@ function validRuntimeContent(content3) {
   return bytes > 0 && bytes <= MAXIMUM_RUNTIME_BYTES && content3.startsWith("#!/usr/bin/env node\n");
 }
 async function inspectTerminalIntegration(repositoryRoot) {
-  const root2 = resolve38(repositoryRoot);
-  const existing = await Promise.all(PROVIDERS.map(async (provider) => [provider, await safeOptionalText(resolve38(root2, configurationPath(provider)))]));
+  const root2 = resolve41(repositoryRoot);
+  const existing = await Promise.all(PROVIDERS.map(async (provider) => [provider, await safeOptionalText(resolve41(root2, configurationPath(provider)))]));
   const blockers = [];
   try {
-    const config = await safeOptionalText(resolve38(root2, ".codex/config.toml"));
+    const config = await safeOptionalText(resolve41(root2, ".codex/config.toml"));
     if (config !== null && codexHooksDisabled(config.content))
       blockers.push({ provider: "codex", path: ".codex/config.toml", code: "hooks_disabled" });
   } catch (error) {
@@ -70437,8 +73163,8 @@ async function inspectTerminalIntegration(repositoryRoot) {
   let runtime;
   try {
     const [artifact2, manifestFile] = await Promise.all([
-      safeOptionalText(resolve38(root2, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
-      safeOptionalText(resolve38(root2, RUNTIME_MANIFEST_PATH))
+      safeOptionalText(resolve41(root2, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
+      safeOptionalText(resolve41(root2, RUNTIME_MANIFEST_PATH))
     ]);
     let valid = false;
     if (artifact2 !== null && manifestFile !== null && validRuntimeContent(artifact2.content)) {
@@ -70577,15 +73303,31 @@ async function collectVerificationResultSources(input) {
 }
 
 // packages/repository-knowledge/dist/workstream.js
-import { constants as constants12 } from "node:fs";
-import { lstat as lstat28, mkdir as mkdir9, open as open14, rename as rename6, rm as rm7 } from "node:fs/promises";
-import { basename as basename11, dirname as dirname9, posix as posix7, relative as relative9, resolve as resolve39, sep as sep9 } from "node:path";
+import { constants as constants14 } from "node:fs";
+import { lstat as lstat30, mkdir as mkdir9, open as open16, rename as rename6, rm as rm8 } from "node:fs/promises";
+import { basename as basename11, dirname as dirname9, posix as posix8, relative as relative10, resolve as resolve42, sep as sep10 } from "node:path";
+
+// packages/repository-knowledge/dist/workstream-snapshot.js
+function pendingCoordinatesValid(snapshot) {
+  const decisions = snapshot.pendingDecisions ?? [];
+  const approvals = snapshot.pendingApprovals ?? [];
+  if (new Set(decisions.map((item) => item.decisionId)).size !== decisions.length)
+    return false;
+  if (new Set(approvals.map((item) => item.approvalId)).size !== approvals.length)
+    return false;
+  return decisions.every((item) => {
+    const choiceIds = item.choices.map((choice) => choice.choiceId);
+    return new Set(choiceIds).size === choiceIds.length && (item.recommendedChoiceId === null || choiceIds.includes(item.recommendedChoiceId));
+  });
+}
+
+// packages/repository-knowledge/dist/workstream.js
 var CURRENT_WORKSTREAM_PATH = ".lervo/state/workstreams/current.json";
 var MAX_HANDOFF_BYTES = 128 * 1024;
 function insideRoot(root2, path) {
-  const target = resolve39(root2, path);
-  const child = relative9(root2, target);
-  if (child === ".." || child.startsWith(`..${sep9}`)) {
+  const target = resolve42(root2, path);
+  const child = relative10(root2, target);
+  if (child === ".." || child.startsWith(`..${sep10}`)) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream path escapes the repository.");
   }
   return target;
@@ -70594,7 +73336,7 @@ async function safeTextFile(root2, path, maximumBytes2) {
   const target = insideRoot(root2, path);
   let handle;
   try {
-    handle = await open14(target, constants12.O_RDONLY | (constants12.O_NOFOLLOW ?? 0));
+    handle = await open16(target, constants14.O_RDONLY | (constants14.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes2) {
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream source is not a bounded regular file.");
@@ -70622,7 +73364,7 @@ async function safeTextFile(root2, path, maximumBytes2) {
   }
 }
 async function readCurrentWorkstreamState(repositoryRoot) {
-  const source = await safeTextFile(resolve39(repositoryRoot), CURRENT_WORKSTREAM_PATH, 64 * 1024);
+  const source = await safeTextFile(resolve42(repositoryRoot), CURRENT_WORKSTREAM_PATH, 64 * 1024);
   if (source === null)
     return null;
   let value;
@@ -70641,7 +73383,7 @@ async function readCurrentWorkstreamState(repositoryRoot) {
   };
 }
 async function restoreCurrentWorkstreamState(input) {
-  const root2 = resolve39(input.repositoryRoot);
+  const root2 = resolve42(input.repositoryRoot);
   const content3 = Buffer.from(input.content).toString("utf8");
   if (input.content.byteLength > 64 * 1024 || sha2562(input.content) !== input.expectedHash) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact is invalid.");
@@ -70656,16 +73398,16 @@ async function restoreCurrentWorkstreamState(input) {
 ` !== content3 || !validateSchema("workstreamSnapshot", value).valid || !pendingCoordinatesValid(value)) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact does not satisfy the v1 contract.");
   }
-  const directory = resolve39(root2, dirname9(CURRENT_WORKSTREAM_PATH));
+  const directory = resolve42(root2, dirname9(CURRENT_WORKSTREAM_PATH));
   await mkdir9(directory, { recursive: true, mode: 448 });
-  const stats = await lstat28(directory);
+  const stats = await lstat30(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink()) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The workstream projection directory is unsafe.");
   }
-  const target = resolve39(root2, CURRENT_WORKSTREAM_PATH);
+  const target = resolve42(root2, CURRENT_WORKSTREAM_PATH);
   const temporary = `${target}.restore-${process.pid}`;
-  await rm7(temporary, { force: true });
-  const handle = await open14(temporary, constants12.O_WRONLY | constants12.O_CREAT | constants12.O_EXCL | (constants12.O_NOFOLLOW ?? 0), 384);
+  await rm8(temporary, { force: true });
+  const handle = await open16(temporary, constants14.O_WRONLY | constants14.O_CREAT | constants14.O_EXCL | (constants14.O_NOFOLLOW ?? 0), 384);
   try {
     await handle.writeFile(input.content);
     await handle.sync();
@@ -70702,18 +73444,6 @@ function formatWorkstreamContext(snapshot) {
   ];
   return lines.join("\n");
 }
-function pendingCoordinatesValid(snapshot) {
-  const decisions = snapshot.pendingDecisions ?? [];
-  const approvals = snapshot.pendingApprovals ?? [];
-  if (new Set(decisions.map((item) => item.decisionId)).size !== decisions.length)
-    return false;
-  if (new Set(approvals.map((item) => item.approvalId)).size !== approvals.length)
-    return false;
-  return decisions.every((item) => {
-    const choiceIds = item.choices.map((choice) => choice.choiceId);
-    return new Set(choiceIds).size === choiceIds.length && (item.recommendedChoiceId === null || choiceIds.includes(item.recommendedChoiceId));
-  });
-}
 
 // apps/cli/src/terminal-coverage-format.ts
 function formatTerminalCoverageReport(report) {
@@ -70746,7 +73476,7 @@ function formatTerminalCoverageReport(report) {
 }
 
 // apps/cli/src/terminal-budget-command.ts
-import { resolve as resolve41 } from "node:path";
+import { resolve as resolve44 } from "node:path";
 import { parseArgs } from "node:util";
 
 // apps/cli/src/terminal-budget-format.ts
@@ -70776,13 +73506,13 @@ function formatTerminalBudgetReport(report) {
 var terminalUsage = "  lervo terminal status [--root <path>] [--json]\n  lervo terminal coverage [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--json]\n  lervo terminal budget [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--minimum-samples <1-100>] [--max-query-tokens <tokens>] [--unobserved <block|escalate>] [--exhausted <block|escalate>] [--json]\n  lervo terminal declare --provider <codex|claude> --observation <observation-id> --stdin [--root <path>] [--json]\n  lervo terminal hook --provider <codex|claude> --contract <1|2>";
 
 // apps/cli/src/terminal-repository-root.ts
-import { lstat as lstat29 } from "node:fs/promises";
-import { dirname as dirname10, resolve as resolve40 } from "node:path";
+import { lstat as lstat31 } from "node:fs/promises";
+import { dirname as dirname10, resolve as resolve43 } from "node:path";
 async function resolveTerminalRepositoryRoot(start) {
-  let current = resolve40(start);
+  let current = resolve43(start);
   while (true) {
     try {
-      const manifest = await lstat29(resolve40(current, ".lervo/project.yaml"));
+      const manifest = await lstat31(resolve43(current, ".lervo/project.yaml"));
       if (manifest.isFile() && !manifest.isSymbolicLink()) return current;
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
@@ -70831,7 +73561,7 @@ async function runTerminalBudgetCommand(args, io) {
     const limit = boundedInteger(parsed.values.limit, 100, 100);
     const minimumSamples = boundedInteger(parsed.values["minimum-samples"], 30, 100);
     const maxQueryProjectionTokens = parsed.values["max-query-tokens"] === void 0 ? null : boundedInteger(parsed.values["max-query-tokens"], 1, Number.MAX_SAFE_INTEGER);
-    const root2 = await resolveTerminalRepositoryRoot(resolve41(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve44(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const coverage = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -70862,7 +73592,7 @@ ${terminalUsage}
 }
 
 // apps/cli/src/terminal-declaration-command.ts
-import { resolve as resolve56 } from "node:path";
+import { resolve as resolve59 } from "node:path";
 import { parseArgs as parseArgs2 } from "node:util";
 
 // packages/application-contract/dist/managed-execution-budget.js
@@ -70878,9 +73608,9 @@ var governedTokenMetrics = ["total_tokens", ...governedTokenDimensionMetrics];
 var operatingHashPattern = /^sha256:[a-f0-9]{64}$/u;
 
 // packages/work-controller/dist/hash.js
-import { createHash as createHash13 } from "node:crypto";
-function sha2564(value) {
-  return `sha256:${createHash13("sha256").update(value, "utf8").digest("hex")}`;
+import { createHash as createHash15 } from "node:crypto";
+function sha2565(value) {
+  return `sha256:${createHash15("sha256").update(value, "utf8").digest("hex")}`;
 }
 function stableJson(value) {
   if (Array.isArray(value))
@@ -70891,7 +73621,7 @@ function stableJson(value) {
   return JSON.stringify(value);
 }
 function digest3(value) {
-  return sha2564(stableJson(value));
+  return sha2565(stableJson(value));
 }
 
 // packages/work-controller/dist/operating-mandate-admission.js
@@ -70946,8 +73676,8 @@ var AgentWorkforceError = class extends Error {
 };
 
 // packages/agent-workforce/dist/workforce-state-validation.js
-import { createHash as createHash14 } from "node:crypto";
-import { posix as posix8 } from "node:path";
+import { createHash as createHash16 } from "node:crypto";
+import { posix as posix9 } from "node:path";
 
 // packages/agent-workforce/dist/agent-display-identity.js
 var AGENT_DISPLAY_NAMES = [
@@ -71039,7 +73769,7 @@ function fail11(code, message, cause) {
   throw new AgentWorkforceError(code, message, cause === void 0 ? void 0 : { cause });
 }
 function digest4(value) {
-  return `sha256:${createHash14("sha256").update(value).digest("hex")}`;
+  return `sha256:${createHash16("sha256").update(value).digest("hex")}`;
 }
 function stableJson2(value) {
   if (Array.isArray(value))
@@ -71055,7 +73785,7 @@ function boundedStrings3(value, maximum, pattern) {
   return Array.isArray(value) && value.length <= maximum && value.every((item) => typeof item === "string" && item.length > 0 && item.length <= 1024 && (pattern === void 0 || pattern.test(item))) && new Set(value).size === value.length;
 }
 function safePath3(value) {
-  return value === "*" || value.length <= 1024 && value.length > 0 && posix8.normalize(value) === value && !value.startsWith("/") && !value.includes("../") && !value.includes("\\") && !value.includes("\0");
+  return value === "*" || value.length <= 1024 && value.length > 0 && posix9.normalize(value) === value && !value.startsWith("/") && !value.includes("../") && !value.includes("\\") && !value.includes("\0");
 }
 function validAgent(agent, projectId) {
   if (agent === null || typeof agent !== "object" || Array.isArray(agent))
@@ -71087,21 +73817,21 @@ function validAssignment(value, projectId) {
 }
 
 // packages/agent-workforce/dist/workforce-state-io.js
-import { mkdir as mkdir10, lstat as lstat30, readFile as readFile18, open as open15, rm as rm8, chmod as chmod4, rename as rename7 } from "node:fs/promises";
-import { resolve as resolve42, dirname as dirname11, basename as basename12 } from "node:path";
+import { mkdir as mkdir10, lstat as lstat32, readFile as readFile19, open as open17, rm as rm9, chmod as chmod4, rename as rename7 } from "node:fs/promises";
+import { resolve as resolve45, dirname as dirname11, basename as basename12 } from "node:path";
 async function state(root2, options = {}) {
   const manifest = await loadProjectManifest(root2);
   const base = (await resolveRepositoryCoordinationHome(root2, options)).workforce;
   if (options.readOnly !== true)
-    await mkdir10(resolve42(base, "assignments"), { recursive: true, mode: 448 });
+    await mkdir10(resolve45(base, "assignments"), { recursive: true, mode: 448 });
   return { base, manifest };
 }
 async function readBounded(path) {
   try {
-    const info = await lstat30(path);
+    const info = await lstat32(path);
     if (!info.isFile() || info.isSymbolicLink() || info.size > MAXIMUM_STATE_BYTES || process.platform !== "win32" && (info.mode & 63) !== 0)
       fail11("workforce_state_invalid", "A workforce state file is unsafe.");
-    return readFile18(path, "utf8");
+    return readFile19(path, "utf8");
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -71112,15 +73842,15 @@ async function readBounded(path) {
 }
 
 // packages/agent-workforce/dist/assignment-state.js
-import { resolve as resolve43 } from "node:path";
+import { resolve as resolve46 } from "node:path";
 import { readdir as readdir12 } from "node:fs/promises";
 async function assignmentPath(root2, assignmentId) {
   if (!ASSIGNMENT_ID.test(assignmentId))
     fail11("assignment_invalid", "The assignment ID is invalid.");
   const current = await state(root2);
   return {
-    path: resolve43(current.base, "assignments", `${assignmentId}.json`),
-    lockPath: resolve43(current.base, "scheduler.lock"),
+    path: resolve46(current.base, "assignments", `${assignmentId}.json`),
+    lockPath: resolve46(current.base, "scheduler.lock"),
     projectId: current.manifest.projectId
   };
 }
@@ -71153,19 +73883,19 @@ async function readAssignment(root2, assignmentId) {
 }
 async function listAssignments(root2) {
   const current = await state(root2);
-  const names = (await readdir12(resolve43(current.base, "assignments"))).filter((name2) => /^asn_[a-f0-9]{24}\.json$/u.test(name2)).sort();
+  const names = (await readdir12(resolve46(current.base, "assignments"))).filter((name2) => /^asn_[a-f0-9]{24}\.json$/u.test(name2)).sort();
   if (names.length > workforceLimits.maximumAssignments)
     fail11("workforce_state_invalid", "The assignment limit was exceeded.");
   return Promise.all(names.map(async (name2) => (await readAssignmentAt(root2, name2.slice(0, -5), {
-    path: resolve43(current.base, "assignments", name2),
+    path: resolve46(current.base, "assignments", name2),
     projectId: current.manifest.projectId
   })).value));
 }
 
 // packages/capabilities/dist/package-reader.js
-import { createHash as createHash15 } from "node:crypto";
-import { lstat as lstat32, readdir as readdir13 } from "node:fs/promises";
-import { relative as relative11, resolve as resolve45, sep as sep11 } from "node:path";
+import { createHash as createHash17 } from "node:crypto";
+import { lstat as lstat34, readdir as readdir13 } from "node:fs/promises";
+import { relative as relative12, resolve as resolve48, sep as sep12 } from "node:path";
 
 // packages/capabilities/dist/types.js
 var CapabilityPackageError = class extends Error {
@@ -71179,7 +73909,7 @@ var CapabilityPackageError = class extends Error {
 
 // packages/capabilities/dist/activation.js
 import { isIP } from "node:net";
-import { relative as relative10, resolve as resolve44, sep as sep10 } from "node:path";
+import { relative as relative11, resolve as resolve47, sep as sep11 } from "node:path";
 function fail12(message, cause) {
   throw new CapabilityPackageError("capability_unsupported", message, cause === void 0 ? void 0 : { cause });
 }
@@ -71191,9 +73921,9 @@ function decodeJson(bytes, label) {
   }
 }
 function safePackagePath(root2, value) {
-  const path = resolve44(root2, value);
-  const child = relative10(root2, path);
-  if (child === "" || child === ".." || child.startsWith(`..${sep10}`)) {
+  const path = resolve47(root2, value);
+  const child = relative11(root2, path);
+  if (child === "" || child === ".." || child.startsWith(`..${sep11}`)) {
     fail12("A capability activation path escaped its immutable package root.");
   }
   return path;
@@ -71325,8 +74055,8 @@ function isPathInsideDirectory(directory, candidate, paths = nativePath) {
 }
 
 // packages/capabilities/dist/safe-file-reader.js
-import { constants as constants13 } from "node:fs";
-import { lstat as lstat31, open as open16 } from "node:fs/promises";
+import { constants as constants15 } from "node:fs";
+import { lstat as lstat33, open as open18 } from "node:fs/promises";
 function sameMetadata2(left, right) {
   return left.size === right.size && left.mtimeMs === right.mtimeMs;
 }
@@ -71343,19 +74073,19 @@ function boundedRegularFile(info, maximumBytes2) {
   return info.isFile() && !info.isSymbolicLink() && info.size <= maximumBytes2;
 }
 async function readBoundedRegularFile(path, maximumBytes2) {
-  const beforePath = await lstat31(path);
+  const beforePath = await lstat33(path);
   if (!boundedRegularFile(beforePath, maximumBytes2))
     fail13("Capability packages may contain only bounded regular files.");
   let handle;
   try {
-    handle = await open16(path, constants13.O_RDONLY | constants13.O_NOFOLLOW);
+    handle = await open18(path, constants15.O_RDONLY | constants15.O_NOFOLLOW);
     const openedHandle = await handle.stat();
-    const afterOpenPath = await lstat31(path);
+    const afterOpenPath = await lstat33(path);
     if (!boundedRegularFile(openedHandle, maximumBytes2) || !boundedRegularFile(afterOpenPath, maximumBytes2) || !sameFileWithinStatSurface2(beforePath, afterOpenPath) || !sameFileAcrossStatSurfaces2(afterOpenPath, openedHandle))
       fail13("A capability file changed before it was read.");
     const bytes = await handle.readFile();
     const afterReadHandle = await handle.stat();
-    const afterReadPath = await lstat31(path);
+    const afterReadPath = await lstat33(path);
     if (!boundedRegularFile(afterReadHandle, maximumBytes2) || !boundedRegularFile(afterReadPath, maximumBytes2) || !sameFileWithinStatSurface2(openedHandle, afterReadHandle) || !sameFileWithinStatSurface2(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces2(afterReadPath, afterReadHandle))
       fail13("A capability file changed while it was read.");
     return bytes;
@@ -71380,7 +74110,7 @@ function isSafeCapabilityContentPath(value) {
   return value.length > 0 && value.length <= 500 && !value.startsWith("/") && (nativePluginMetadata || !parts.some((part) => part === "" || part === ".." || part.startsWith("."))) && !DENIED_NAMES.test(value);
 }
 function portable(value) {
-  return value.split(sep11).join("/");
+  return value.split(sep12).join("/");
 }
 function compare(left, right) {
   return left === right ? 0 : left < right ? -1 : 1;
@@ -71396,7 +74126,7 @@ async function collect(root2, current = root2) {
   const entries = await readdir13(current, { withFileTypes: true });
   const files = [];
   for (const entry of entries.sort((a, b) => compare(a.name, b.name))) {
-    const path = resolve45(current, entry.name);
+    const path = resolve48(current, entry.name);
     within(root2, path);
     if (entry.isSymbolicLink())
       fail14("capability_unsafe_package", "Symbolic links are not allowed in a capability package.");
@@ -71412,7 +74142,7 @@ async function collect(root2, current = root2) {
   return files;
 }
 function hashCapabilityFiles(files) {
-  const hash2 = createHash15("sha256");
+  const hash2 = createHash17("sha256");
   let total = 0;
   for (const file of [...files].sort((a, b) => compare(a.path, b.path))) {
     if (file.path === CAPABILITY_MANIFEST || file.path === "lervo-skill.json")
@@ -71426,16 +74156,16 @@ function hashCapabilityFiles(files) {
   return `sha256:${hash2.digest("hex")}`;
 }
 async function readCapabilityPackage(directoryPath) {
-  const info = await lstat32(directoryPath);
+  const info = await lstat34(directoryPath);
   if (!info.isDirectory() || info.isSymbolicLink())
     fail14("capability_unsafe_package", "A capability package root must be a physical directory.");
   const paths = await collect(directoryPath);
-  const manifestPath2 = resolve45(directoryPath, CAPABILITY_MANIFEST);
+  const manifestPath2 = resolve48(directoryPath, CAPABILITY_MANIFEST);
   if (!paths.includes(manifestPath2))
     fail14("capability_invalid", `The package is missing ${CAPABILITY_MANIFEST}.`);
   const files = [];
   for (const path of paths) {
-    const relativePath = portable(relative11(directoryPath, path));
+    const relativePath = portable(relative12(directoryPath, path));
     if (relativePath !== CAPABILITY_MANIFEST && !isSafeCapabilityContentPath(relativePath))
       fail14("capability_unsafe_package", `Capability package file '${relativePath}' is not publishable or installable.`);
     files.push({
@@ -71486,9 +74216,9 @@ async function readCapabilityPackage(directoryPath) {
 }
 
 // packages/capabilities/dist/resolution.js
-import { lstat as lstat33, readdir as readdir14, writeFile as writeFile2, mkdir as mkdir11, rename as rename8, open as open17 } from "node:fs/promises";
+import { lstat as lstat35, readdir as readdir14, writeFile as writeFile2, mkdir as mkdir11, rename as rename8, open as open19 } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname as dirname12, resolve as resolve46 } from "node:path";
+import { dirname as dirname12, resolve as resolve49 } from "node:path";
 function compare2(left, right) {
   return left === right ? 0 : left < right ? -1 : 1;
 }
@@ -71535,12 +74265,12 @@ function fail15(code, message, cause) {
   throw new CapabilityPackageError(code, message, cause === void 0 ? void 0 : { cause });
 }
 function capabilityRoot(repositoryRoot, scope, userRoot) {
-  return scope === "project" ? resolve46(repositoryRoot, ".lervo/capabilities/packages") : resolve46(userRoot ?? process.env.LERVO_USER_CAPABILITY_ROOT ?? resolve46(homedir(), ".lervo/capabilities"), "packages");
+  return scope === "project" ? resolve49(repositoryRoot, ".lervo/capabilities/packages") : resolve49(userRoot ?? process.env.LERVO_USER_CAPABILITY_ROOT ?? resolve49(homedir(), ".lervo/capabilities"), "packages");
 }
 async function discoverCapabilityRoot(root2, sourceKind) {
   let entries;
   try {
-    const info = await lstat33(root2);
+    const info = await lstat35(root2);
     if (!info.isDirectory() || info.isSymbolicLink())
       fail15("capability_unsafe_package", "A capability root must be a physical directory.");
     entries = await readdir14(root2, { withFileTypes: true });
@@ -71553,7 +74283,7 @@ async function discoverCapabilityRoot(root2, sourceKind) {
   for (const entry of entries.sort((a, b) => compare2(a.name, b.name))) {
     if (!entry.isDirectory() || entry.isSymbolicLink())
       continue;
-    const verified = await readCapabilityPackage(resolve46(root2, entry.name));
+    const verified = await readCapabilityPackage(resolve49(root2, entry.name));
     if (entry.name !== key(verified.manifest.capabilityId, verified.manifest.version))
       fail15("capability_invalid", `Capability directory '${entry.name}' does not match its immutable coordinate.`);
     result.push({ ...verified, source: { kind: sourceKind, uri: `${sourceKind}:${entry.name}` } });
@@ -71648,10 +74378,10 @@ async function resolveCapabilities(input) {
 }
 
 // packages/agent-workforce/dist/agent-registry.js
-import { resolve as resolve47 } from "node:path";
+import { resolve as resolve50 } from "node:path";
 async function readAgentRegistryState(root2, options = {}) {
   const current = await state(root2, options);
-  const path = resolve47(current.base, "agents.json");
+  const path = resolve50(current.base, "agents.json");
   const source = await readBounded(path);
   const value = source === null ? { schemaVersion: 1, kind: "lervo_agent_registry", agents: [] } : JSON.parse(source);
   if (value.schemaVersion !== 1 || value.kind !== "lervo_agent_registry" || !Array.isArray(value.agents) || value.agents.length > workforceLimits.maximumAgents || !value.agents.every((agent) => validAgent(agent, current.manifest.projectId)))
@@ -71661,7 +74391,7 @@ async function readAgentRegistryState(root2, options = {}) {
     fail11("workforce_state_invalid", "The agent registry contains duplicate or missing parent identities.");
   return {
     path,
-    lockPath: resolve47(current.base, "agents.lock"),
+    lockPath: resolve50(current.base, "agents.lock"),
     source,
     value,
     projectId: current.manifest.projectId
@@ -71764,7 +74494,7 @@ async function assertAssignmentExecutionAuthority(input) {
 var DEFAULT_ROOT_AGENT_LIVENESS_STALE_AFTER_MS = 2 * 60 * 1e3;
 
 // packages/agent-workforce/dist/workspace-lifecycle.js
-import { isAbsolute as isAbsolute3 } from "node:path";
+import { isAbsolute as isAbsolute4 } from "node:path";
 var HASH11 = /^sha256:[a-f0-9]{64}$/u;
 var COMMIT = /^[a-f0-9]{40,64}$/u;
 var WORKSPACE_ID = /^wsp_[a-f0-9]{24}$/u;
@@ -71800,7 +74530,7 @@ function validSeal(value) {
   return value !== null && COMMIT.test(value.baseCommit) && COMMIT.test(value.headCommit) && COMMIT.test(value.treeHash) && HASH11.test(value.changedPathSetDigest) && Number.isSafeInteger(value.changedPathCount) && value.changedPathCount >= 0 && value.changedPaths.length === value.changedPathCount && value.changedPaths.length <= 1e4 && value.changedPaths.every((path) => SAFE_PATH.test(path)) && new Set(value.changedPaths).size === value.changedPaths.length && value.commitIds.length <= 1e4 && value.commitIds.every((commitId) => COMMIT.test(commitId)) && ARTIFACT_ID3.test(value.resultArtifactId) && HASH11.test(value.resultArtifactHash) && value.verificationResults.length <= 64 && value.verificationResults.every((result) => /^[a-z][a-z0-9._-]{1,99}$/u.test(result.suiteId) && HASH11.test(result.policyHash) && ARTIFACT_ID3.test(result.resultArtifactId) && HASH11.test(result.resultArtifactHash) && validTime2(result.completedAt) && result.passed) && !value.approvalPending && !value.recoveryPending && (value.sourceWorkstream === null || /^wks_[a-f0-9]{24}$/u.test(value.sourceWorkstream.workstreamId) && Number.isSafeInteger(value.sourceWorkstream.revision) && value.sourceWorkstream.revision >= 1 && HASH11.test(value.sourceWorkstream.snapshotHash)) && validTime2(value.sealedAt) && (value.noChange ? value.changedPathCount === 0 && value.commitIds.length === 0 && value.headCommit === value.baseCommit : value.changedPathCount > 0 && value.commitIds.length > 0);
 }
 function isAgentWorkspace(value) {
-  return value.schemaVersion === 1 && WORKSPACE_ID.test(value.workspaceId) && REPOSITORY_INSTANCE_ID2.test(value.repositoryInstanceId) && Number.isSafeInteger(value.generation) && value.generation >= 1 && Number.isSafeInteger(value.leaseGeneration) && value.leaseGeneration >= 1 && ["worker", "integrator"].includes(value.executionKind) && ["git", "orca"].includes(value.host.kind) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value.host.version) && (value.host.nativeInstanceDigest === null || HASH11.test(value.host.nativeInstanceDigest)) && COMMIT.test(value.baseCommit) && HASH11.test(value.integrationTargetDigest) && /^wpl_[a-f0-9]{24}$/u.test(value.creationPlanId) && HASH11.test(value.markerHash) && HASH11.test(value.pathDigest) && (value.ownerWorkspacePath === void 0 || value.ownerWorkspacePath.length <= 4096 && !value.ownerWorkspacePath.includes("\0") && isAbsolute3(value.ownerWorkspacePath)) && validSession(value.writerSession) && Object.hasOwn(transitions, value.state) && (value.sealedResult === null || validSeal(value.sealedResult)) && (value.integrationQueueEntryId === null || /^inq_[a-f0-9]{24}$/u.test(value.integrationQueueEntryId)) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime2(value.createdAt) && validTime2(value.updatedAt);
+  return value.schemaVersion === 1 && WORKSPACE_ID.test(value.workspaceId) && REPOSITORY_INSTANCE_ID2.test(value.repositoryInstanceId) && Number.isSafeInteger(value.generation) && value.generation >= 1 && Number.isSafeInteger(value.leaseGeneration) && value.leaseGeneration >= 1 && ["worker", "integrator"].includes(value.executionKind) && ["git", "orca"].includes(value.host.kind) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value.host.version) && (value.host.nativeInstanceDigest === null || HASH11.test(value.host.nativeInstanceDigest)) && COMMIT.test(value.baseCommit) && HASH11.test(value.integrationTargetDigest) && /^wpl_[a-f0-9]{24}$/u.test(value.creationPlanId) && HASH11.test(value.markerHash) && HASH11.test(value.pathDigest) && (value.ownerWorkspacePath === void 0 || value.ownerWorkspacePath.length <= 4096 && !value.ownerWorkspacePath.includes("\0") && isAbsolute4(value.ownerWorkspacePath)) && validSession(value.writerSession) && Object.hasOwn(transitions, value.state) && (value.sealedResult === null || validSeal(value.sealedResult)) && (value.integrationQueueEntryId === null || /^inq_[a-f0-9]{24}$/u.test(value.integrationQueueEntryId)) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime2(value.createdAt) && validTime2(value.updatedAt);
 }
 function requireEvidence(evidence, fields) {
   const missing = fields.filter((field2) => evidence[field2] !== true);
@@ -71911,12 +74641,12 @@ function stableJson3(value) {
 function isWorkspaceCheckpoint(value) {
   return value.schemaVersion === 1 && value.type === "agent.workspace.checkpointed" && EVENT_ID3.test(value.eventId) && /^wsp_[a-f0-9]{24}$/u.test(value.workspaceId) && Number.isSafeInteger(value.generation) && value.generation >= 1 && Number.isSafeInteger(value.workspaceRevision) && value.workspaceRevision >= 1 && /^asn_[a-f0-9]{24}$/u.test(value.assignmentId) && Number.isSafeInteger(value.assignmentRevision) && value.assignmentRevision >= 1 && Number.isSafeInteger(value.leaseGeneration) && value.leaseGeneration >= 1 && /^ses_[A-Za-z0-9_-]{8,128}$/u.test(value.writerSessionId) && /^[a-f0-9]{40,64}$/u.test(value.headCommit) && /^[a-f0-9]{40,64}$/u.test(value.treeHash) && /^sha256:[a-f0-9]{64}$/u.test(value.changedPathSetDigest) && Number.isSafeInteger(value.changedPathCount) && value.changedPathCount >= 0 && Number.isFinite(Date.parse(value.occurredAt));
 }
-function invalid3(message) {
+function invalid4(message) {
   throw new AgentWorkforceError("workspace_invalid", message);
 }
 function eventFor(input) {
   if (!EVENT_ID3.test(input.eventId))
-    invalid3("The workspace event ID is invalid.");
+    invalid4("The workspace event ID is invalid.");
   const type = input.next.state === "provisioning" ? "agent.workspace.provisioned" : input.next.state === "sealed" ? "agent.workspace.sealed" : input.next.state === "removed" ? "agent.workspace.removed" : "agent.workspace.state.changed";
   return {
     schemaVersion: 1,
@@ -71950,14 +74680,14 @@ async function readWorkspace(repositoryRoot, workspaceId) {
   if (record3 === null)
     return null;
   if (!isAgentWorkspace(record3.value) || record3.value.workspaceId !== workspaceId)
-    invalid3("The stored workspace record is invalid.");
+    invalid4("The stored workspace record is invalid.");
   return { workspace: structuredClone(record3.value), contentHash: record3.contentHash };
 }
 async function listWorkspaces(repositoryRoot) {
   const records = await RepositoryCoordinationRecords.open(repositoryRoot);
   const stored = await records.list("workspaces");
   if (stored.some((record3) => !isAgentWorkspace(record3.value)))
-    invalid3("A stored workspace record is invalid.");
+    invalid4("A stored workspace record is invalid.");
   return stored.map((record3) => structuredClone(record3.value)).sort((left, right) => left.workspaceId.localeCompare(right.workspaceId));
 }
 async function updateWorkspace(input) {
@@ -71984,7 +74714,7 @@ async function updateWorkspace(input) {
 }
 async function recordWorkspaceCheckpoint(input) {
   if (!isWorkspaceCheckpoint(input.checkpoint))
-    invalid3("The workspace checkpoint is invalid.");
+    invalid4("The workspace checkpoint is invalid.");
   const records = await RepositoryCoordinationRecords.open(input.repositoryRoot);
   const existing = await records.read("events", input.checkpoint.eventId);
   if (existing !== null) {
@@ -72015,15 +74745,15 @@ var WorkspaceHostError = class extends Error {
 var MAX_ADAPTER_TURN_RESULT_BYTES = 4 * 1024 * 1024;
 
 // packages/adapter-contract/dist/provider-process-environment.js
-import { dirname as dirname13, delimiter, resolve as resolve48 } from "node:path";
+import { dirname as dirname13, delimiter, resolve as resolve51 } from "node:path";
 function createProviderProcessEnvironment(environment = process.env, runtimeExecutable = process.execPath) {
   const result = Object.fromEntries(Object.entries(environment).filter((entry) => entry[1] !== void 0));
   const pathKeys = Object.keys(result).filter((key2) => key2.toLowerCase() === "path");
   const pathKey = pathKeys[0] ?? "PATH";
   for (const duplicate of pathKeys.slice(1))
     delete result[duplicate];
-  const runtimeDirectory = dirname13(resolve48(runtimeExecutable));
-  const existing = (result[pathKey] ?? "").split(delimiter).filter((entry) => entry.length > 0 && resolve48(entry) !== runtimeDirectory);
+  const runtimeDirectory = dirname13(resolve51(runtimeExecutable));
+  const existing = (result[pathKey] ?? "").split(delimiter).filter((entry) => entry.length > 0 && resolve51(entry) !== runtimeDirectory);
   result[pathKey] = [runtimeDirectory, ...existing].join(delimiter);
   return result;
 }
@@ -72031,950 +74761,8 @@ function createProviderProcessEnvironment(environment = process.env, runtimeExec
 // packages/adapter-contract/dist/runtime-inspection.js
 var MAX_VERSION_BYTES = 16 * 1024;
 
-// packages/context/dist/filesystem.js
-import { constants as constants14 } from "node:fs";
-import { lstat as lstat34, open as open18, realpath as realpath2 } from "node:fs/promises";
-import { relative as relative12, resolve as resolve50, sep as sep12 } from "node:path";
-
-// packages/context/dist/paths.js
-import { isAbsolute as isAbsolute4, posix as posix9, resolve as resolve49, win32 } from "node:path";
-
-// packages/context/dist/types.js
-var ContextPreparationError = class extends Error {
-  code;
-  constructor(code, message, options) {
-    super(message, options);
-    this.code = code;
-    this.name = "ContextPreparationError";
-  }
-};
-
-// packages/context/dist/paths.js
-function normalizeRepositoryPath(path) {
-  const normalizedSeparators = path.replaceAll("\\", "/");
-  if (normalizedSeparators.length === 0 || normalizedSeparators.includes("\0") || isAbsolute4(path) || win32.isAbsolute(path) || normalizedSeparators.split("/").some((segment) => segment === "..")) {
-    throw new ContextPreparationError("invalid_expected_path", `Only repository-relative paths are allowed: ${path}`);
-  }
-  const normalized2 = posix9.normalize(normalizedSeparators).replace(/^\.\//, "");
-  if (normalized2 === "." || normalized2.startsWith("../")) {
-    throw new ContextPreparationError("invalid_expected_path", `Only repository-relative paths are allowed: ${path}`);
-  }
-  return normalized2;
-}
-
-// packages/context/dist/filesystem.js
-function identity(stats) {
-  return {
-    dev: stats.dev,
-    ino: stats.ino,
-    size: stats.size,
-    mtimeNs: stats.mtimeNs,
-    ctimeNs: stats.ctimeNs
-  };
-}
-function sameIdentity(left, right) {
-  return left.dev === right.dev && left.ino === right.ino && left.size === right.size && left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs;
-}
-function sameRepositoryPathIdentity(pathIdentity, openedIdentity, platform = process.platform) {
-  const deviceMatches = pathIdentity.dev === openedIdentity.dev || platform === "win32" && pathIdentity.dev === 0n;
-  return deviceMatches && pathIdentity.ino === openedIdentity.ino && pathIdentity.size === openedIdentity.size && pathIdentity.mtimeNs === openedIdentity.mtimeNs && pathIdentity.ctimeNs === openedIdentity.ctimeNs;
-}
-async function canonicalRepositoryRoot2(root2) {
-  const absoluteRoot = resolve50(root2);
-  let stats;
-  try {
-    stats = await lstat34(absoluteRoot);
-  } catch (error) {
-    throw new ContextPreparationError("unsafe_document_path", `The repository root cannot be inspected: ${absoluteRoot}`, { cause: error });
-  }
-  if (!stats.isDirectory() || stats.isSymbolicLink()) {
-    throw new ContextPreparationError("unsafe_document_path", `The repository root must be a real directory: ${absoluteRoot}`);
-  }
-  return realpath2(absoluteRoot);
-}
-async function inspectPath(root2, path) {
-  const canonicalRoot = await canonicalRepositoryRoot2(root2);
-  const normalized2 = normalizeRepositoryPath(path);
-  const segments = normalized2.split("/");
-  let current = canonicalRoot;
-  for (const [index2, segment] of segments.entries()) {
-    current = resolve50(current, segment);
-    let stats;
-    try {
-      stats = await lstat34(current);
-    } catch (error) {
-      if (error.code === "ENOENT") {
-        return { absolutePath: current, kind: "missing" };
-      }
-      throw new ContextPreparationError("document_read_failed", `The document path cannot be inspected: ${normalized2}`, { cause: error });
-    }
-    if (stats.isSymbolicLink()) {
-      throw new ContextPreparationError("unsafe_document_path", `The document path cannot contain symbolic links: ${normalized2}`);
-    }
-    const final = index2 === segments.length - 1;
-    if (final ? !stats.isFile() : !stats.isDirectory()) {
-      throw new ContextPreparationError("unsafe_document_path", `The document path must contain only real files and directories: ${normalized2}`);
-    }
-  }
-  const pathFromRoot = relative12(canonicalRoot, current);
-  if (pathFromRoot.startsWith(`..${sep12}`) || pathFromRoot === "..") {
-    throw new ContextPreparationError("unsafe_document_path", `The document path points outside the repository: ${normalized2}`);
-  }
-  return { absolutePath: current, kind: "file" };
-}
-async function repositoryFileExists(root2, path) {
-  return (await inspectPath(root2, path)).kind === "file";
-}
-async function readRepositoryFile(root2, path, maximumBytes2 = Number.MAX_SAFE_INTEGER) {
-  if (!Number.isSafeInteger(maximumBytes2) || maximumBytes2 < 1) {
-    throw new ContextPreparationError("document_read_failed", "The document byte limit is invalid.");
-  }
-  const inspected = await inspectPath(root2, path);
-  const normalized2 = normalizeRepositoryPath(path);
-  if (inspected.kind === "missing") {
-    throw new ContextPreparationError("document_missing", `The selected document is missing: ${normalized2}`);
-  }
-  let handle;
-  try {
-    handle = await open18(inspected.absolutePath, constants14.O_RDONLY | (constants14.O_NOFOLLOW ?? 0));
-    const beforeStats = await handle.stat({ bigint: true });
-    if (!beforeStats.isFile() || beforeStats.size > BigInt(maximumBytes2)) {
-      throw new ContextPreparationError(beforeStats.isFile() ? "document_read_failed" : "unsafe_document_path", beforeStats.isFile() ? `The selected document exceeds the byte limit: ${normalized2}` : `The selected document must be a real file: ${normalized2}`);
-    }
-    const before = identity(beforeStats);
-    let bytes;
-    let boundedBytesRead;
-    if (maximumBytes2 === Number.MAX_SAFE_INTEGER) {
-      bytes = await handle.readFile();
-    } else {
-      const buffer = Buffer.alloc(Number(beforeStats.size) + 1);
-      const result = await handle.read(buffer, 0, buffer.length, 0);
-      boundedBytesRead = result.bytesRead;
-      bytes = buffer.subarray(0, result.bytesRead);
-    }
-    const after = identity(await handle.stat({ bigint: true }));
-    const pathStats = await lstat34(inspected.absolutePath, { bigint: true });
-    const resolvedPath = await realpath2(inspected.absolutePath);
-    if (!sameIdentity(before, after) || boundedBytesRead !== void 0 && boundedBytesRead !== Number(before.size) || after.size > BigInt(maximumBytes2) || pathStats.isSymbolicLink() || !sameRepositoryPathIdentity(identity(pathStats), after) || resolvedPath !== inspected.absolutePath) {
-      throw new ContextPreparationError("document_changed_during_read", `The document path or content changed while it was being read: ${normalized2}`);
-    }
-    return bytes;
-  } catch (error) {
-    if (error instanceof ContextPreparationError)
-      throw error;
-    throw new ContextPreparationError("document_read_failed", `The document cannot be read: ${normalized2}`, { cause: error });
-  } finally {
-    await handle?.close();
-  }
-}
-
-// packages/core/dist/writing-contract.js
-var defaultEnglishWritingContract = {
-  schemaVersion: 1,
-  writingPolicyId: "writing_en-human",
-  locale: "en",
-  surfaces: [
-    "readme",
-    "pull_request",
-    "issue",
-    "review_comment",
-    "status",
-    "chat",
-    "documentation"
-  ],
-  audience: "mixed",
-  informationOrder: {
-    lead: "purpose_or_conclusion",
-    then: ["reason", "change_or_result", "scope_and_impact", "next_action", "evidence"]
-  },
-  prose: {
-    register: "plain_spec",
-    completeSentences: true,
-    cohesiveParagraphs: true,
-    oneMainFactPerSentence: true,
-    avoidTranslationeseAndFragments: true
-  },
-  terminology: {
-    preserveMachineIdentifiers: true,
-    explainInternalTermsAtFirstUse: true,
-    preferConcreteVerbs: true,
-    forbiddenVagueTerms: ["quick win", "magic", "simply", "obviously"]
-  },
-  actions: {
-    abstractActors: "forbid",
-    stateObjectAndActionDirectly: true,
-    stateWhenNoActionIsNeeded: true
-  },
-  evidence: {
-    majorClaimsRequireEvidence: true,
-    distinguishRunFromNotRun: true,
-    keepRawLogsOutOfPrimaryProse: true
-  },
-  verification: {
-    deterministicChecks: [
-      "forbid_em_dash",
-      "forbid_abstract_action_subject",
-      "no_empty_sections",
-      "forbid_vague_terms"
-    ],
-    semanticChecks: [
-      {
-        checkId: "natural_en_prose",
-        requirement: "Write natural English prose in complete sentences, with each paragraph forming a coherent line of thought instead of a list of fragments.",
-        required: true
-      },
-      {
-        checkId: "plain_audience_language",
-        requirement: "Judge clarity for the supplied audience and prose register. A technical specification may use standard software terms, but it must explain repository-specific terms, uncommon abbreviations, and machine identifiers at first use or in a Terms section.",
-        required: true
-      },
-      {
-        checkId: "direct_result_and_action",
-        requirement: "State the result, impact, and next action concretely without assigning responsibility to an unspecified user, person, or owner.",
-        required: true
-      }
-    ],
-    semanticEvaluationMode: "separate_pass",
-    requiresPassedEvaluation: true,
-    failureDisposition: "block_publication"
-  }
-};
-var fixedEnglishStatusWritingContract = {
-  ...defaultEnglishWritingContract,
-  writingPolicyId: "writing_en-fixed-status",
-  surfaces: ["status", "chat"],
-  verification: {
-    ...defaultEnglishWritingContract.verification,
-    semanticChecks: [],
-    semanticEvaluationMode: "separate_pass"
-  }
-};
-var adaptiveConversationWritingContract = {
-  ...defaultEnglishWritingContract,
-  writingPolicyId: "writing_mul-conversation",
-  locale: "mul",
-  surfaces: ["chat"],
-  prose: {
-    ...defaultEnglishWritingContract.prose,
-    register: "polite"
-  },
-  verification: {
-    ...defaultEnglishWritingContract.verification,
-    semanticChecks: [
-      {
-        checkId: "natural_conversation_prose",
-        requirement: "Write natural, direct conversational prose in the selected response language, preserving machine identifiers and clearly separating observed facts from proposed actions.",
-        required: true
-      }
-    ]
-  }
-};
-var realtimeConversationWritingContract = {
-  ...adaptiveConversationWritingContract,
-  writingPolicyId: "writing_mul-realtime-conversation",
-  verification: {
-    ...adaptiveConversationWritingContract.verification,
-    semanticChecks: []
-  }
-};
-var fixedConversationStatusWritingContract = {
-  ...fixedEnglishStatusWritingContract,
-  writingPolicyId: "writing_mul-fixed-conversation-status",
-  locale: "mul",
-  surfaces: ["chat"]
-};
-
-// packages/search/dist/integrity.js
-import { createHash as createHash16 } from "node:crypto";
-function sha2565(value) {
-  return `sha256:${createHash16("sha256").update(value).digest("hex")}`;
-}
-function contentId(prefix, value) {
-  return `${prefix}_${createHash16("sha256").update(canonicalJson(value)).digest("hex").slice(0, 24)}`;
-}
-function canonicalHash(value) {
-  return sha2565(canonicalJson(value));
-}
-
-// packages/search/dist/types.js
-var SEARCH_ENGINE = { id: "lexical", version: 1 };
-var SEARCH_MAX_RESULTS = 50;
-var searchSourceKinds = ["document", "skill", "verified_knowledge"];
-var SearchError = class extends Error {
-  code;
-  constructor(code, message, options) {
-    super(message, options);
-    this.code = code;
-    this.name = "SearchError";
-  }
-};
-
-// packages/search/dist/validation.js
-var SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/;
-var SOURCE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
-var CONTROL_PATTERN = /[\u0000-\u001f\u007f]/;
-function safeRepositoryPath2(path) {
-  return path.length > 0 && path.length <= 500 && !path.startsWith("/") && !/^[A-Za-z]:/.test(path) && !path.includes("\\") && !path.endsWith("/") && path.split("/").every((part) => part !== "" && part !== "." && part !== "..");
-}
-function assertSourceReference(source) {
-  if (!searchSourceKinds.includes(source.kind) || !SOURCE_ID_PATTERN.test(source.sourceId) || !SHA256_PATTERN.test(source.contentHash) || source.path !== void 0 && !safeRepositoryPath2(source.path)) {
-    throw new SearchError("corpus_invalid", "The search source coordinates are invalid.");
-  }
-}
-function assertText(value, maximum, code) {
-  if (typeof value !== "string" || value.length < 1 || value.length > maximum || CONTROL_PATTERN.test(value)) {
-    throw new SearchError(code, "The search string is outside the allowed bounds.");
-  }
-  return value;
-}
-
-// packages/search/dist/corpus.js
-var SEARCH_MAX_SOURCES = 4096;
-var SEARCH_MAX_SOURCE_CHARACTERS = 131072;
-var SEARCH_MAX_TOTAL_CHARACTERS = 16 * 1024 * 1024;
-function searchSourceKey(source) {
-  return `${source.kind.length}:${source.kind}${source.sourceId}`;
-}
-function compareText4(left, right) {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
-function prepareSearchCorpus(inputs) {
-  if (!Array.isArray(inputs) || inputs.length > SEARCH_MAX_SOURCES) {
-    throw new SearchError("corpus_limit_exceeded", "The search source count exceeds the safe limit.");
-  }
-  const seen = /* @__PURE__ */ new Set();
-  let characters = 0;
-  const sources = inputs.map((input) => {
-    assertSourceReference(input);
-    if (typeof input.text !== "string" || input.text.length < 1 || input.text.length > SEARCH_MAX_SOURCE_CHARACTERS || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(input.text)) {
-      throw new SearchError("corpus_invalid", "The search source content contract is invalid.");
-    }
-    if (!Array.isArray(input.labels)) {
-      throw new SearchError("corpus_invalid", "The search source label contract is invalid.");
-    }
-    const labels = input.labels;
-    if (labels.length > 32 || labels.some((label) => {
-      if (typeof label !== "string")
-        return true;
-      try {
-        assertText(label, 200, "corpus_invalid");
-        return false;
-      } catch {
-        return true;
-      }
-    })) {
-      throw new SearchError("corpus_invalid", "The search source label contract is invalid.");
-    }
-    if (input.title !== void 0)
-      assertText(input.title, 500, "corpus_invalid");
-    const key2 = searchSourceKey(input);
-    if (seen.has(key2))
-      throw new SearchError("corpus_invalid", "Search source kind and ID coordinates are duplicated.");
-    seen.add(key2);
-    characters += input.text.length + (input.title?.length ?? 0) + labels.join("").length;
-    if (characters > SEARCH_MAX_TOTAL_CHARACTERS) {
-      throw new SearchError("corpus_limit_exceeded", "The total search corpus size exceeds the safe limit.");
-    }
-    return structuredClone(input);
-  }).sort((left, right) => compareText4(searchSourceKey(left), searchSourceKey(right)));
-  const indexSources = sources.map((source) => ({
-    kind: source.kind,
-    sourceId: source.sourceId,
-    contentHash: source.contentHash,
-    ...source.path === void 0 ? {} : { path: source.path },
-    searchProjectionHash: canonicalHash({
-      title: source.title ?? null,
-      labels: [...source.labels].sort(),
-      text: source.text
-    })
-  }));
-  return { sources, indexSources, corpusDigest: canonicalHash(indexSources) };
-}
-
-// packages/search/dist/normalize.js
-var TERM_PATTERN = /[\p{L}\p{N}]+/gu;
-var MAX_QUERY_TERMS = 32;
-function normalizeSearchText(value) {
-  return value.normalize("NFKC").toLocaleLowerCase("und").replace(/\s+/gu, " ").trim();
-}
-function searchTerms(value, code) {
-  const maximum = code === "invalid_query" ? 500 : 131072;
-  const normalized2 = normalizeSearchText(assertText(value, maximum, code));
-  const terms2 = normalized2.match(TERM_PATTERN) ?? [];
-  if (terms2.length === 0 || code === "invalid_query" && terms2.length > MAX_QUERY_TERMS) {
-    throw new SearchError(code, "A query must contain between 1 and 32 letter-or-number terms.");
-  }
-  return terms2;
-}
-function identifySearchQuery(query) {
-  const terms2 = [...new Set(searchTerms(query, "invalid_query"))];
-  return {
-    queryDigest: sha2565(normalizeSearchText(query)),
-    queryCharacterCount: [...query].length,
-    queryTermCount: terms2.length
-  };
-}
-
-// packages/search/dist/evaluation-engine.js
-var SEARCH_ENGINE_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/;
-var SEARCH_INDEX_ID_PATTERN = /^sidx_[a-f0-9]{24}$/;
-var SEARCH_ADAPTER_BUILD_ID_PATTERN = /^sebuild_[a-f0-9]{24}$/;
-function assertSearchEngineIdentity(engine, errorCode = "invalid_evaluation_engine") {
-  if (typeof engine !== "object" || engine === null || !SEARCH_ENGINE_ID_PATTERN.test(engine.id) || engine.id.length > 64 || !Number.isSafeInteger(engine.version) || engine.version < 1 || engine.version > 1e6) {
-    throw new SearchError(errorCode, "The search evaluation engine coordinates are invalid.");
-  }
-}
-function sameSearchEngine(left, right) {
-  return left.id === right.id && left.version === right.version;
-}
-function assertSearchAdapterBuildId(adapterBuildId, errorCode = "invalid_evaluation_engine") {
-  if (!SEARCH_ADAPTER_BUILD_ID_PATTERN.test(adapterBuildId)) {
-    throw new SearchError(errorCode, "The search adapter build ID is invalid.");
-  }
-}
-
-// packages/search/dist/evaluation-engine-registry.js
-var SEARCH_CANDIDATE_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/;
-var SEARCH_MAX_CANDIDATE_ENGINES = 16;
-var SearchEvaluationEngineRegistry = class {
-  engines = /* @__PURE__ */ new Map();
-  registrations;
-  constructor(registrations) {
-    if (!Array.isArray(registrations) || registrations.length < 1 || registrations.length > SEARCH_MAX_CANDIDATE_ENGINES) {
-      throw new SearchError("invalid_evaluation_engine", "The number of candidate search engines to register is invalid.");
-    }
-    const coordinates = /* @__PURE__ */ new Set();
-    const adapterBuildIds = /* @__PURE__ */ new Set();
-    this.registrations = registrations.map(({ candidateId, engine }) => {
-      assertSearchEngineIdentity(engine.engine);
-      assertSearchAdapterBuildId(engine.adapterBuildId);
-      const coordinate = `${engine.engine.id}:${engine.engine.version}`;
-      if (!SEARCH_CANDIDATE_ID_PATTERN.test(candidateId) || candidateId.length > 64 || this.engines.has(candidateId) || coordinates.has(coordinate) || adapterBuildIds.has(engine.adapterBuildId) || sameSearchEngine(engine.engine, SEARCH_ENGINE)) {
-        throw new SearchError("invalid_evaluation_engine", "Candidate search ID or engine coordinates are duplicated or invalid.");
-      }
-      this.engines.set(candidateId, engine);
-      coordinates.add(coordinate);
-      adapterBuildIds.add(engine.adapterBuildId);
-      return { candidateId, engine: { ...engine.engine }, adapterBuildId: engine.adapterBuildId };
-    }).sort((left, right) => left.candidateId < right.candidateId ? -1 : left.candidateId > right.candidateId ? 1 : 0);
-  }
-  list() {
-    return structuredClone(this.registrations);
-  }
-  resolve(candidateId) {
-    const engine = this.engines.get(candidateId);
-    if (engine === void 0) {
-      throw new SearchError("evaluation_candidate_not_registered", "The candidate search engine is not registered.");
-    }
-    return engine;
-  }
-  resolveEngine(identity2) {
-    assertSearchEngineIdentity(identity2);
-    const registration = this.registrations.find((item) => sameSearchEngine(item.engine, identity2));
-    if (registration === void 0) {
-      throw new SearchError("evaluation_candidate_not_registered", "The candidate search engine is not registered.");
-    }
-    return {
-      candidateId: registration.candidateId,
-      engine: this.engines.get(registration.candidateId)
-    };
-  }
-};
-
-// packages/search/dist/evaluation-engine-contract.js
-var MATCHED_FIELDS = ["label", "path", "text", "title"];
-function hitKey(hit) {
-  return searchSourceKey(hit.source);
-}
-function assertSearchResponse(input) {
-  const { response, index: index2 } = input;
-  assertSearchEngineIdentity(index2.engine);
-  const queryIdentity = identifySearchQuery(input.query);
-  if (response.schemaVersion !== 1 || !sameSearchEngine(response.engine, index2.engine) || !SEARCH_INDEX_ID_PATTERN.test(index2.indexId) || response.indexId !== index2.indexId || response.queryDigest !== queryIdentity.queryDigest || response.queryCharacterCount !== queryIdentity.queryCharacterCount || response.queryTermCount !== queryIdentity.queryTermCount || response.requestedLimit !== input.limit || !Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > SEARCH_MAX_RESULTS || !Array.isArray(response.hits) || response.hits.length > input.limit) {
-    throw new SearchError("invalid_evaluation_engine", "The search evaluation response has invalid engine, index, query, or limit coordinates.");
-  }
-  for (const [indexPosition, hit] of response.hits.entries()) {
-    try {
-      assertSourceReference(hit.source);
-    } catch (error) {
-      throw new SearchError("invalid_evaluation_engine", "The search evaluation response source coordinates are invalid.", {
-        cause: error instanceof Error ? error : void 0
-      });
-    }
-    if (hit.rank !== indexPosition + 1 || !Number.isSafeInteger(hit.score) || hit.score < 1 || !Array.isArray(hit.matchedFields) || hit.matchedFields.length < 1 || hit.matchedFields.length > 4 || hit.matchedFields.some((field2) => !MATCHED_FIELDS.includes(field2)) || new Set(hit.matchedFields).size !== hit.matchedFields.length || hit.matchedFields.some((field2, fieldIndex) => fieldIndex > 0 && hit.matchedFields[fieldIndex - 1] >= field2)) {
-      throw new SearchError("invalid_evaluation_engine", "The search evaluation response hit contract is invalid.");
-    }
-  }
-  if (new Set(response.hits.map(hitKey)).size !== response.hits.length || response.hits.some((hit, indexPosition) => {
-    if (indexPosition === 0)
-      return false;
-    const previous2 = response.hits[indexPosition - 1];
-    return hit.score > previous2.score || hit.score === previous2.score && hitKey(hit) <= hitKey(previous2);
-  })) {
-    throw new SearchError("invalid_evaluation_engine", "Search evaluation response hits are duplicated or out of order.");
-  }
-  const resultCore = response.hits.map((hit) => ({
-    sourceKind: hit.source.kind,
-    sourceId: hit.source.sourceId,
-    contentHash: hit.source.contentHash,
-    rank: hit.rank,
-    score: hit.score
-  }));
-  if (canonicalHash(resultCore) !== response.resultSetHash) {
-    throw new SearchError("invalid_evaluation_engine", "The search evaluation response result-set hash does not match its hits.");
-  }
-}
-
-// packages/search/dist/performance-benchmark.js
-var SEARCH_PERFORMANCE_BENCHMARK_BUILD_ID = contentId("spbuild", {
-  schemaVersion: 1,
-  quality: "success-recall-reciprocal-rank-v1",
-  taskComparison: "coverage-and-ranking-v1",
-  latency: "alternating-pairs-monotonic-v1",
-  thresholds: "repository-observation-v1"
-});
-
-// packages/search/dist/query-projection.js
-var SEARCH_QUERY_PROJECTOR_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/;
-var SEARCH_QUERY_PROJECTOR_BUILD_ID_PATTERN = /^sqbuild_[a-f0-9]{24}$/;
-var SEARCH_QUERY_PROJECTION_RECEIPT_ID_PATTERN = /^sqproj_[a-f0-9]{24}$/;
-var SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES = 8;
-var SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS = 500;
-var SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_TERMS = 32;
-function assertProjector(projector) {
-  if (!SEARCH_QUERY_PROJECTOR_ID_PATTERN.test(projector.id) || projector.id.length > 64 || !Number.isSafeInteger(projector.version) || projector.version < 1 || projector.version > 1e6 || !SEARCH_QUERY_PROJECTOR_BUILD_ID_PATTERN.test(projector.buildId)) {
-    throw new SearchError("invalid_query_projection", "The search query projector coordinates are invalid.");
-  }
-}
-function assertLanguage(language) {
-  if (!/^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8}){0,3}$/.test(language)) {
-    throw new SearchError("invalid_query_projection", "The search query projection language is invalid.");
-  }
-}
-function assertProjectionLimits(limits) {
-  if (!Number.isSafeInteger(limits.maximumQueries) || limits.maximumQueries < 1 || limits.maximumQueries > SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES || !Number.isSafeInteger(limits.maximumQueryCharacters) || limits.maximumQueryCharacters < 1 || limits.maximumQueryCharacters > SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS) {
-    throw new SearchError("invalid_query_projection", "The search query projection limits are invalid.");
-  }
-}
-function assertQueries(queries, limits) {
-  if (queries.length > limits.maximumQueries || new Set(queries).size !== queries.length || queries.some((query) => query.trim() !== query || query.length === 0 || query.length > limits.maximumQueryCharacters || (normalizeSearchText(query).match(/[\p{L}\p{N}]+/gu) ?? []).length > SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_TERMS)) {
-    throw new SearchError("invalid_query_projection", "The projected search queries violate their bounds.");
-  }
-}
-function boundProjectedSearchQuery(value, maximumQueryCharacters = SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS) {
-  assertProjectionLimits({
-    maximumQueries: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES,
-    maximumQueryCharacters
-  });
-  const terms2 = normalizeSearchText(value).match(/[\p{L}\p{N}]+/gu) ?? [];
-  if (terms2.length === 0) {
-    throw new SearchError("invalid_query_projection", "A projected search query contains no searchable term.");
-  }
-  const selected = [];
-  for (const term of terms2.slice(0, SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_TERMS)) {
-    const candidate = [...selected, term].join(" ");
-    if (candidate.length <= maximumQueryCharacters) {
-      selected.push(term);
-      continue;
-    }
-    if (selected.length === 0) {
-      selected.push(term.slice(0, maximumQueryCharacters));
-    }
-    break;
-  }
-  return selected.join(" ");
-}
-function boundProjectedSearchQueries(values, limits = {
-  maximumQueries: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES,
-  maximumQueryCharacters: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS
-}) {
-  assertProjectionLimits(limits);
-  const bounded = values.slice(0, limits.maximumQueries).map((value) => boundProjectedSearchQuery(value, limits.maximumQueryCharacters));
-  return [...new Set(bounded)];
-}
-function projectionCore(input) {
-  return {
-    stageId: "query_projection",
-    projector: { ...input.projector },
-    requestDigest: input.requestDigest,
-    contextDigest: input.contextDigest,
-    projectorResultDigest: input.projectorResultDigest,
-    requestedLanguage: input.requestedLanguage,
-    limits: { ...input.limits },
-    projectedQueryCount: input.queries.length,
-    projectedQueryDigest: canonicalHash(input.queries),
-    durationMs: input.durationMs,
-    status: input.status,
-    ...input.usage === void 0 ? {} : { usage: { ...input.usage } },
-    privacy: {
-      requestText: "excluded",
-      contextText: "excluded",
-      projectedQueryText: "excluded"
-    }
-  };
-}
-function createSearchQueryProjection(input) {
-  const limits = input.limits ?? {
-    maximumQueries: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES,
-    maximumQueryCharacters: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS
-  };
-  assertProjector(input.projector);
-  assertLanguage(input.requestedLanguage);
-  assertProjectionLimits(limits);
-  assertQueries(input.queries, limits);
-  if (!SHA256_PATTERN.test(input.requestDigest) || !SHA256_PATTERN.test(input.contextDigest) || !SHA256_PATTERN.test(input.projectorResultDigest) || !Number.isSafeInteger(input.durationMs) || input.durationMs < 0 || input.durationMs > 6e5 || input.status === "completed" && input.queries.length === 0 || input.status !== "completed" && input.queries.length !== 0) {
-    throw new SearchError("invalid_query_projection", "The search query projection input is invalid.");
-  }
-  const queries = [...input.queries];
-  const core = projectionCore({ ...input, queries, limits });
-  const receipt = {
-    schemaVersion: 1,
-    receiptId: contentId("sqproj", core),
-    ...core
-  };
-  assertSearchQueryProjectionReceipt(receipt);
-  return { queries, receipt };
-}
-function assertSearchQueryProjectionReceipt(receipt) {
-  assertProjector(receipt.projector);
-  assertLanguage(receipt.requestedLanguage);
-  assertProjectionLimits(receipt.limits);
-  const usage = receipt.usage;
-  if (receipt.schemaVersion !== 1 || !SEARCH_QUERY_PROJECTION_RECEIPT_ID_PATTERN.test(receipt.receiptId) || receipt.stageId !== "query_projection" || !SHA256_PATTERN.test(receipt.requestDigest) || !SHA256_PATTERN.test(receipt.contextDigest) || !SHA256_PATTERN.test(receipt.projectorResultDigest) || !Number.isSafeInteger(receipt.projectedQueryCount) || receipt.projectedQueryCount < 0 || receipt.projectedQueryCount > receipt.limits.maximumQueries || !SHA256_PATTERN.test(receipt.projectedQueryDigest) || !Number.isSafeInteger(receipt.durationMs) || receipt.durationMs < 0 || receipt.durationMs > 6e5 || receipt.status === "completed" && receipt.projectedQueryCount === 0 || receipt.status !== "completed" && receipt.projectedQueryCount !== 0 || receipt.privacy.requestText !== "excluded" || receipt.privacy.contextText !== "excluded" || receipt.privacy.projectedQueryText !== "excluded" || usage !== void 0 && (!Number.isSafeInteger(usage.inputTokens) || usage.inputTokens < 0 || !Number.isSafeInteger(usage.cachedInputTokens) || usage.cachedInputTokens < 0 || usage.cachedInputTokens > usage.inputTokens || !Number.isSafeInteger(usage.outputTokens) || usage.outputTokens < 0 || !Number.isSafeInteger(usage.reasoningOutputTokens) || usage.reasoningOutputTokens < 0 || !Number.isSafeInteger(usage.totalTokens) || usage.totalTokens !== usage.inputTokens + usage.outputTokens || usage.contextWindow !== null && (!Number.isSafeInteger(usage.contextWindow) || usage.contextWindow < 1))) {
-    throw new SearchError("invalid_query_projection", "The search query projection receipt contract is invalid.");
-  }
-  const { schemaVersion: _schemaVersion, receiptId: _receiptId, ...core } = receipt;
-  if (contentId("sqproj", core) !== receipt.receiptId) {
-    throw new SearchError("invalid_query_projection", "The search query projection receipt ID does not match its content.");
-  }
-}
-function searchQueryProjectorBuildId(contract) {
-  if (contract.trim() !== contract || contract.length === 0 || contract.length > 1024) {
-    throw new SearchError("invalid_query_projection", "The search query projector build contract is invalid.");
-  }
-  return contentId("sqbuild", contract);
-}
-
-// packages/search/dist/rank-fusion.js
-var SEARCH_RRF_CONSTANT = 60;
-var SEARCH_RRF_SCALE = 1e6;
-function assertRankedInputs(rankedInputs, limit) {
-  if (rankedInputs.length < 1 || rankedInputs.length > 8 || !Number.isSafeInteger(limit) || limit < 1 || limit > 50) {
-    throw new SearchError("invalid_query_projection", "The rank-fusion bounds are invalid.");
-  }
-  for (const input of rankedInputs) {
-    if (input.length > 50 || new Set(input.map((item) => item.key)).size !== input.length) {
-      throw new SearchError("invalid_query_projection", "A rank-fusion input violates its bounds or contains duplicate coordinates.");
-    }
-    if (input.some((item) => !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,511}$/.test(item.key))) {
-      throw new SearchError("invalid_query_projection", "A rank-fusion coordinate is invalid.");
-    }
-  }
-}
-function reciprocalRankFusion(rankedInputs, limit) {
-  assertRankedInputs(rankedInputs, limit);
-  const accumulated = /* @__PURE__ */ new Map();
-  rankedInputs.forEach((input, inputIndex) => {
-    input.forEach((item, rankIndex) => {
-      const rank = rankIndex + 1;
-      const existing = accumulated.get(item.key);
-      const score = Math.floor(SEARCH_RRF_SCALE / (SEARCH_RRF_CONSTANT + rank));
-      if (existing === void 0) {
-        accumulated.set(item.key, {
-          value: item.value,
-          score,
-          bestRank: rank,
-          firstInput: inputIndex
-        });
-      } else {
-        existing.score += score;
-        existing.bestRank = Math.min(existing.bestRank, rank);
-        existing.firstInput = Math.min(existing.firstInput, inputIndex);
-      }
-    });
-  });
-  const ranked = [...accumulated.entries()].sort(([leftKey, left], [rightKey, right]) => right.score - left.score || left.bestRank - right.bestRank || left.firstInput - right.firstInput || leftKey.localeCompare(rightKey));
-  const selected = ranked.slice(0, limit);
-  return {
-    schemaVersion: 1,
-    algorithm: "reciprocal_rank_fusion",
-    algorithmVersion: 1,
-    rankConstant: SEARCH_RRF_CONSTANT,
-    inputCount: rankedInputs.length,
-    resultDigest: canonicalHash(selected.map(([key2, value]) => ({
-      key: key2,
-      score: value.score,
-      bestRank: value.bestRank,
-      firstInput: value.firstInput
-    }))),
-    values: selected.map(([, value]) => value.value)
-  };
-}
-function queryCoverageInterleave(rankedInputs, limit) {
-  assertRankedInputs(rankedInputs, limit);
-  const seen = /* @__PURE__ */ new Set();
-  const selected = [];
-  const maximumInputLength = Math.max(...rankedInputs.map((input) => input.length));
-  for (let rankIndex = 0; rankIndex < maximumInputLength && selected.length < limit; rankIndex += 1) {
-    for (const [inputIndex, input] of rankedInputs.entries()) {
-      const item = input[rankIndex];
-      if (item === void 0 || seen.has(item.key))
-        continue;
-      seen.add(item.key);
-      selected.push({ key: item.key, value: item.value, inputIndex, sourceRank: rankIndex + 1 });
-      if (selected.length >= limit)
-        break;
-    }
-  }
-  return {
-    schemaVersion: 1,
-    algorithm: "query_coverage_interleave",
-    algorithmVersion: 1,
-    inputCount: rankedInputs.length,
-    resultDigest: canonicalHash(selected.map((item, index2) => ({
-      key: item.key,
-      inputIndex: item.inputIndex,
-      sourceRank: item.sourceRank,
-      outputRank: index2 + 1
-    }))),
-    values: selected.map((item) => item.value)
-  };
-}
-
-// packages/search/dist/projected-search.js
-async function executeProjectedSearch(input) {
-  assertSearchQueryProjectionReceipt(input.projection.receipt);
-  if (input.projection.receipt.status !== "completed" || input.projection.queries.length !== input.projection.receipt.projectedQueryCount || canonicalHash(input.projection.queries) !== input.projection.receipt.projectedQueryDigest) {
-    throw new SearchError("invalid_query_projection", "The projected search execution input differs from its receipt.");
-  }
-  const perQueryLimit = input.perQueryLimit ?? SEARCH_MAX_RESULTS;
-  const finalLimit = input.finalLimit ?? 10;
-  if (!Number.isSafeInteger(perQueryLimit) || perQueryLimit < 1 || perQueryLimit > SEARCH_MAX_RESULTS || !Number.isSafeInteger(finalLimit) || finalLimit < 1 || finalLimit > SEARCH_MAX_RESULTS) {
-    throw new SearchError("invalid_query_projection", "The projected search execution limits are invalid.");
-  }
-  const responses = await Promise.all(input.projection.queries.map(async (query) => {
-    const response = await input.index.search(query, perQueryLimit);
-    assertSearchResponse({ response, index: input.index, query, limit: perQueryLimit });
-    return response;
-  }));
-  const sourceCoordinates = /* @__PURE__ */ new Map();
-  const accumulated = /* @__PURE__ */ new Map();
-  for (const response of responses) {
-    for (const hit of response.hits) {
-      const key2 = searchSourceKey(hit.source);
-      const coordinate = canonicalHash(hit.source);
-      const existingCoordinate = sourceCoordinates.get(key2);
-      if (existingCoordinate !== void 0 && existingCoordinate !== coordinate) {
-        throw new SearchError("invalid_query_projection", "A projected search source changed between retrieval stages.");
-      }
-      sourceCoordinates.set(key2, coordinate);
-      const accumulatedHit = accumulated.get(key2) ?? {
-        count: 0,
-        bestRank: Number.MAX_SAFE_INTEGER,
-        fusionScore: 0
-      };
-      accumulatedHit.count += 1;
-      accumulatedHit.bestRank = Math.min(accumulatedHit.bestRank, hit.rank);
-      accumulatedHit.fusionScore += Math.floor(1e6 / (60 + hit.rank));
-      accumulated.set(key2, accumulatedHit);
-    }
-  }
-  const rankedInputs = responses.map((response) => response.hits.map((hit) => ({ key: searchSourceKey(hit.source), value: hit.source })));
-  const fusionPolicy = input.fusionPolicy ?? "reciprocal_rank_fusion";
-  const fused = fusionPolicy === "query_coverage_interleave" ? queryCoverageInterleave(rankedInputs, finalLimit) : reciprocalRankFusion(rankedInputs, finalLimit);
-  const hits = fused.values.map((source, index2) => {
-    const score = accumulated.get(searchSourceKey(source));
-    return {
-      source: { ...source },
-      rank: index2 + 1,
-      fusionScore: score.fusionScore,
-      matchedQueryCount: score.count,
-      bestSourceRank: score.bestRank
-    };
-  });
-  return {
-    schemaVersion: 1,
-    projectionReceiptId: input.projection.receipt.receiptId,
-    engine: { ...input.index.engine },
-    indexId: input.index.indexId,
-    queryCount: input.projection.queries.length,
-    perQueryLimit,
-    finalLimit,
-    responseDigests: responses.map((response) => response.resultSetHash),
-    fusion: {
-      algorithm: fused.algorithm,
-      version: fused.algorithmVersion,
-      rankConstant: "rankConstant" in fused ? fused.rankConstant : null,
-      resultDigest: fused.resultDigest
-    },
-    hits,
-    resultSetHash: canonicalHash(hits.map((hit) => ({
-      source: hit.source,
-      rank: hit.rank,
-      fusionScore: hit.fusionScore,
-      matchedQueryCount: hit.matchedQueryCount,
-      bestSourceRank: hit.bestSourceRank
-    })))
-  };
-}
-
-// packages/search/dist/retrieval-plan-common.js
-var PLAN_ID_PATTERN = /^srplan_[a-f0-9]{24}$/;
-var REVIEW_ID_PATTERN = /^srprev_[a-f0-9]{24}$/;
-var POLICY_ID_PATTERN = /^srppol_[a-f0-9]{24}$/;
-var BUNDLE_ID_PATTERN = /^srpbundle_[a-f0-9]{24}$/;
-var ACTIVATION_ID_PATTERN = /^srpact_[a-f0-9]{24}$/;
-var POPULATION_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/;
-var ACTOR_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
-function invalidRetrievalPlan(message) {
-  throw new SearchError("invalid_retrieval_plan", message);
-}
-function assertRetrievalPlanTimestamp(value) {
-  if (new Date(value).toISOString() !== value)
-    invalidRetrievalPlan("A retrieval-plan timestamp is invalid.");
-}
-function assertUniqueRetrievalPlanIds(values, pattern, label) {
-  if (values.length < 1 || values.length > 16 || new Set(values).size !== values.length || values.some((value) => !pattern.test(value))) {
-    invalidRetrievalPlan(`The retrieval-plan ${label} allowlist is invalid.`);
-  }
-}
-
-// packages/search/dist/retrieval-plan-definition.js
-function planCore(plan2) {
-  const { planId: _planId, ...core } = plan2;
-  return core;
-}
-function createSearchRetrievalPlan(input) {
-  const core = { schemaVersion: 1, ...structuredClone(input) };
-  const plan2 = { ...core, planId: contentId("srplan", core) };
-  assertSearchRetrievalPlan(plan2);
-  return plan2;
-}
-function assertSearchRetrievalPlan(plan2) {
-  if (plan2.schemaVersion !== 1 || !PLAN_ID_PATTERN.test(plan2.planId) || plan2.projection.required !== true || plan2.projection.populations.length < 2 || plan2.projection.populations.length > 8 || new Set(plan2.projection.populations.map((item) => item.populationId)).size !== plan2.projection.populations.length || plan2.projection.populations.some(({ populationId, projector }) => !POPULATION_ID_PATTERN.test(populationId) || !SEARCH_QUERY_PROJECTOR_ID_PATTERN.test(projector.id) || !Number.isSafeInteger(projector.version) || projector.version < 1 || !SEARCH_QUERY_PROJECTOR_BUILD_ID_PATTERN.test(projector.buildId)) || !Number.isSafeInteger(plan2.projection.maximumQueries) || plan2.projection.maximumQueries < 1 || plan2.projection.maximumQueries > 8 || !Number.isSafeInteger(plan2.projection.maximumQueryCharacters) || plan2.projection.maximumQueryCharacters < 1 || plan2.projection.maximumQueryCharacters > 500 || plan2.retrieval.stageId !== "primary_retrieval" || !POPULATION_ID_PATTERN.test(plan2.retrieval.candidateId) || !Number.isSafeInteger(plan2.retrieval.perQueryLimit) || plan2.retrieval.perQueryLimit < 1 || plan2.retrieval.perQueryLimit > 50 || !Number.isSafeInteger(plan2.finalLimit) || plan2.finalLimit < 1 || plan2.finalLimit > 50 || plan2.fusion.version !== 1 || !(/* @__PURE__ */ new Set(["query_coverage_interleave", "reciprocal_rank_fusion"])).has(plan2.fusion.algorithm) || plan2.failurePolicy !== "fail_closed" || Object.values(plan2.privacy).some((value) => value !== "excluded")) {
-    invalidRetrievalPlan("The retrieval-plan contract is invalid.");
-  }
-  assertSearchEngineIdentity(plan2.retrieval.engine, "invalid_retrieval_plan");
-  assertSearchAdapterBuildId(plan2.retrieval.adapterBuildId, "invalid_retrieval_plan");
-  if (contentId("srplan", planCore(plan2)) !== plan2.planId)
-    invalidRetrievalPlan("The retrieval-plan ID does not match its content.");
-}
-
-// packages/search/dist/product-default.js
-var QUALIFICATION_ID_PATTERN = /^spqual_[a-f0-9]{24}$/u;
-function assertProductDefaultSearchRetrievalPlan(value) {
-  assertSearchRetrievalPlan(value.plan);
-  const supersededPlanIds2 = value.supersededPlanIds ?? [];
-  if (!QUALIFICATION_ID_PATTERN.test(value.qualificationId) || supersededPlanIds2.length > 8 || new Set(supersededPlanIds2).size !== supersededPlanIds2.length || supersededPlanIds2.includes(value.plan.planId) || supersededPlanIds2.some((planId) => !/^srplan_[a-f0-9]{24}$/u.test(planId))) {
-    throw new TypeError("The product-default retrieval-plan qualification is invalid.");
-  }
-}
-
-// packages/search/dist/retrieval-plan-review.js
-function reviewCore(review) {
-  const { reviewId: _reviewId, ...core } = review;
-  return core;
-}
-function assertSearchRetrievalPlanReview(review) {
-  assertRetrievalPlanTimestamp(review.reviewedAt);
-  if (review.schemaVersion !== 1 || !REVIEW_ID_PATTERN.test(review.reviewId) || !PLAN_ID_PATTERN.test(review.planId) || !ACTOR_ID_PATTERN.test(review.reviewerId) || review.decision !== "activate" || !/^ksnap_[a-f0-9]{24}$/.test(review.corpus.sourceSnapshotId) || !SHA256_PATTERN.test(review.corpus.digest) || !Number.isSafeInteger(review.corpus.documentCount) || review.corpus.documentCount < 1 || !Number.isSafeInteger(review.corpus.byteCount) || review.corpus.byteCount < 1 || review.suite.suiteId.length < 1 || review.suite.suiteId.length > 128 || !SHA256_PATTERN.test(review.suite.bindingHash) || !Number.isSafeInteger(review.suite.cases) || review.suite.cases < 1 || !Number.isSafeInteger(review.suite.repetitions) || review.suite.repetitions < 1 || review.populations.length < 2 || review.populations.length > 8 || new Set(review.populations.map((item) => item.populationId)).size !== review.populations.length || review.populations.some((item) => !POPULATION_ID_PATTERN.test(item.populationId) || !/^[a-z][a-z0-9_]{7,127}$/.test(item.reportId) || !SHA256_PATTERN.test(item.reportHash) || !Number.isSafeInteger(item.totalObservations) || item.totalObservations < 1 || item.passedObservations !== item.totalObservations || item.usageComplete !== true || item.projectionFailures !== 0 || item.durationWithinLimit !== true) || review.engineEvidence.evidencePath.length < 1 || review.engineEvidence.evidencePath.startsWith("/") || review.engineEvidence.evidencePath.includes("..") || !SHA256_PATTERN.test(review.engineEvidence.evidenceHash) || review.engineEvidence.qualityGatePassed !== true || review.engineEvidence.efficiencyGatePassed !== true) {
-    invalidRetrievalPlan("The retrieval-plan review contract or its unchanged gates are invalid.");
-  }
-  if (contentId("srprev", reviewCore(review)) !== review.reviewId)
-    invalidRetrievalPlan("The retrieval-plan review ID does not match its content.");
-}
-function policyCore(policy) {
-  const { policyId: _policyId, ...core } = policy;
-  return core;
-}
-function assertSearchRetrievalPlanPolicy(policy) {
-  assertRetrievalPlanTimestamp(policy.createdAt);
-  assertUniqueRetrievalPlanIds(policy.allowedPlanIds, PLAN_ID_PATTERN, "plan");
-  assertUniqueRetrievalPlanIds(policy.reviewerIds, ACTOR_ID_PATTERN, "reviewer");
-  assertUniqueRetrievalPlanIds(policy.operatorIds, ACTOR_ID_PATTERN, "operator");
-  if (policy.schemaVersion !== 1 || !POLICY_ID_PATTERN.test(policy.policyId) || !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/.test(policy.projectId) || !ACTOR_ID_PATTERN.test(policy.authorId) || !policy.operatorIds.includes(policy.authorId) || !Number.isSafeInteger(policy.minimumPopulations) || policy.minimumPopulations < 2 || policy.minimumPopulations > 8 || policy.requirePerfectObservationPass !== true || policy.requireCompleteUsage !== true || policy.requireZeroProjectionFailures !== true || policy.requireDurationWithinLimit !== true) {
-    invalidRetrievalPlan("The retrieval-plan activation policy is invalid.");
-  }
-  if (contentId("srppol", policyCore(policy)) !== policy.policyId)
-    invalidRetrievalPlan("The retrieval-plan policy ID does not match its content.");
-}
-function bundleCore(bundle) {
-  const { bundleId: _bundleId, ...core } = bundle;
-  return core;
-}
-function assertSearchRetrievalPlanActivationBundle(bundle) {
-  assertSearchRetrievalPlan(bundle.plan);
-  assertSearchRetrievalPlanReview(bundle.review);
-  assertSearchRetrievalPlanPolicy(bundle.policy);
-  const populations = new Set(bundle.plan.projection.populations.map((item) => item.populationId));
-  if (bundle.schemaVersion !== 1 || !BUNDLE_ID_PATTERN.test(bundle.bundleId) || bundle.review.planId !== bundle.plan.planId || !bundle.policy.allowedPlanIds.includes(bundle.plan.planId) || !bundle.policy.reviewerIds.includes(bundle.review.reviewerId) || bundle.review.populations.length < bundle.policy.minimumPopulations || bundle.review.populations.some((item) => !populations.has(item.populationId))) {
-    invalidRetrievalPlan("The retrieval-plan activation bundle is not eligible.");
-  }
-  if (contentId("srpbundle", bundleCore(bundle)) !== bundle.bundleId)
-    invalidRetrievalPlan("The retrieval-plan activation bundle ID does not match its content.");
-}
-
-// packages/search/dist/retrieval-plan-activation.js
-function baselineSearchRetrievalPlanSelection() {
-  return { mode: "baseline", planId: null, reviewId: null, bundleId: null };
-}
-function activationCore(activation) {
-  const { activationId: _activationId, ...core } = activation;
-  return core;
-}
-function assertSearchRetrievalPlanActivation(activation, previous2) {
-  assertRetrievalPlanTimestamp(activation.decidedAt);
-  const selectionValid = (selection) => selection.mode === "baseline" ? selection.planId === null && selection.reviewId === null && selection.bundleId === null : PLAN_ID_PATTERN.test(selection.planId) && REVIEW_ID_PATTERN.test(selection.reviewId) && BUNDLE_ID_PATTERN.test(selection.bundleId);
-  if (activation.schemaVersion !== 1 || !ACTIVATION_ID_PATTERN.test(activation.activationId) || !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/.test(activation.projectId) || !Number.isSafeInteger(activation.sequence) || activation.sequence < 1 || activation.previousActivationId !== null && !ACTIVATION_ID_PATTERN.test(activation.previousActivationId) || !POLICY_ID_PATTERN.test(activation.policyId) || !ACTOR_ID_PATTERN.test(activation.operatorId) || !selectionValid(activation.selected) || !selectionValid(activation.rollbackTarget) || activation.action === "activate_plan" && activation.selected.mode !== "candidate" || activation.action === "rollback" && activation.selected.mode !== "baseline") {
-    invalidRetrievalPlan("The retrieval-plan activation contract is invalid.");
-  }
-  if (previous2 !== void 0 && (activation.sequence !== (previous2?.sequence ?? 0) + 1 || activation.previousActivationId !== (previous2?.activationId ?? null) || previous2 !== null && activation.projectId !== previous2.projectId)) {
-    invalidRetrievalPlan("The retrieval-plan activation chain is invalid.");
-  }
-  if (contentId("srpact", activationCore(activation)) !== activation.activationId)
-    invalidRetrievalPlan("The retrieval-plan activation ID does not match its content.");
-}
-
-// packages/context/dist/managed-linked-evidence-canary.js
-import { createHash as createHash17 } from "node:crypto";
-var managedLinkedEvidenceCanaryPolicy = {
-  id: "linked-evidence-managed-canary-v1",
-  version: 1,
-  enabledByDefault: false,
-  maximumDepth: 1,
-  maximumRecommendations: 3,
-  maximumCandidates: 8,
-  maximumProviderVisibleSourceBytes: 117813,
-  maximumSelectionCalls: 1,
-  selectionProtocolId: "linked-evidence-provider-shadow-relational-coverage-v17"
-};
-var managedLinkedEvidenceSelectionProtocol = [
-  "Select only evidence needed to perform or decide the current request.",
-  "Use only the supplied source bodies and return their exact evidence tokens.",
-  "First identify each request-scoped claim, authority boundary, prerequisite, and operational instruction.",
-  "For comparisons, reconciliation, merges, or conflicts, keep a direct source for every distinct side.",
-  "A later decision does not subsume the prerequisite, conflict boundary, or authority that makes it valid.",
-  "After coverage is complete, remove a source only when every required item remains directly supported.",
-  "Exclude adjacent, historical, downstream, or general background that supports no required current-phase item."
-].join("\n");
-var managedLinkedEvidenceSelectionProtocolDigest = `sha256:${createHash17("sha256").update(managedLinkedEvidenceSelectionProtocol).digest("hex")}`;
-var managedLinkedEvidenceDeterministicSelectionPolicy = {
-  kind: "deterministic_all_current_linked_candidates_v1",
-  policyId: "managed-linked-evidence-all-candidates-v1",
-  rule: "select_all_current_managed_linked_candidates_in_projection_order",
-  maximumCandidates: managedLinkedEvidenceCanaryPolicy.maximumCandidates,
-  digest: "sha256:8063ff4d0c1825b3abe35f81a53f245b988b8c6ea1e0cdacf2a690bbea76cb18"
-};
-var managedLinkedEvidenceDefaultPolicy = {
-  id: "managed-linked-evidence-default-v1",
-  version: 1,
-  enabledByDefault: true,
-  selectionRuleId: "managed_linked_evidence_default",
-  selectionPolicy: managedLinkedEvidenceDeterministicSelectionPolicy,
-  maximumCandidates: managedLinkedEvidenceCanaryPolicy.maximumCandidates,
-  maximumProviderVisibleSourceBytes: managedLinkedEvidenceCanaryPolicy.maximumProviderVisibleSourceBytes,
-  maximumSelectionCalls: 0
-};
+// packages/adapter-contract/dist/repository-work-deadline.js
+var MAXIMUM_TURN_DURATION_MS = 90 * 6e4;
 
 // packages/context-delivery/dist/delivery-policy.js
 var defaultInlineByteLimit = 64 * 1024;
@@ -72990,8 +74778,8 @@ var defaultManagedProviderRunDeadlines = {
 
 // packages/orchestrator/dist/repository-snapshot.js
 import { createHash as createHash18 } from "node:crypto";
-import { lstat as lstat35, readdir as readdir15, readlink } from "node:fs/promises";
-import { relative as relative13, resolve as resolve51, sep as sep13 } from "node:path";
+import { lstat as lstat36, readdir as readdir15, readlink } from "node:fs/promises";
+import { relative as relative13, resolve as resolve52, sep as sep13 } from "node:path";
 var defaultRepositorySnapshotPolicy = Object.freeze({
   excludedDirectoryNames: Object.freeze([
     ".git",
@@ -73002,7 +74790,10 @@ var defaultRepositorySnapshotPolicy = Object.freeze({
     ".cxx",
     ".vercel",
     ".cache",
+    ...transientToolCacheDirectoryNames.filter((name2) => name2 !== ".cache"),
+    ".venv",
     "node_modules",
+    "venv",
     "dist",
     "build",
     "build-device",
@@ -73064,12 +74855,12 @@ async function captureRepositorySnapshotWithCache(input) {
   const resolvedPolicy = resolveRepositorySnapshotPolicy(input.policy);
   const excludedDirectories = new Set(resolvedPolicy.excludedDirectoryNames);
   const excludedPaths = new Set(resolvedPolicy.excludedPaths);
-  const root2 = resolve51(input.repositoryRoot);
+  const root2 = resolve52(input.repositoryRoot);
   const cacheKey = snapshotCacheKey(root2, resolvedPolicy);
   const previousEntries = input.previous?.cacheKey === cacheKey ? input.previous.entries : /* @__PURE__ */ new Map();
   const nextEntries = /* @__PURE__ */ new Map();
   try {
-    const rootStats = await lstat35(root2);
+    const rootStats = await lstat36(root2);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
       throw new Error("unsafe root");
   } catch {
@@ -73087,7 +74878,7 @@ async function captureRepositorySnapshotWithCache(input) {
     }
     entries.sort((left, right) => left.name.localeCompare(right.name));
     for (const entry of entries) {
-      const absolutePath = resolve51(directory, entry.name);
+      const absolutePath = resolve52(directory, entry.name);
       const path = portablePath2(root2, absolutePath);
       if (excludedPaths.has(path))
         continue;
@@ -73102,7 +74893,7 @@ async function captureRepositorySnapshotWithCache(input) {
         throw new RepositorySnapshotError("The repository snapshot file-count limit was exceeded.");
       }
       if (entry.isSymbolicLink()) {
-        const before = await lstat35(absolutePath, { bigint: true });
+        const before = await lstat36(absolutePath, { bigint: true });
         const identity2 = entryIdentity(before);
         const cached = previousEntries.get(path);
         let hash2;
@@ -73110,7 +74901,7 @@ async function captureRepositorySnapshotWithCache(input) {
           hash2 = cached.hash;
         } else {
           const target = await readlink(absolutePath);
-          if (identity2 !== entryIdentity(await lstat35(absolutePath, { bigint: true }))) {
+          if (identity2 !== entryIdentity(await lstat36(absolutePath, { bigint: true }))) {
             throw new RepositorySnapshotError("Could not snapshot the repository file safely.");
           }
           hash2 = sha2566(`symlink\0${target}`);
@@ -73124,7 +74915,7 @@ async function captureRepositorySnapshotWithCache(input) {
         continue;
       }
       try {
-        const before = await lstat35(absolutePath, { bigint: true });
+        const before = await lstat36(absolutePath, { bigint: true });
         const identity2 = entryIdentity(before);
         const cached = previousEntries.get(path);
         let hash2;
@@ -73134,7 +74925,7 @@ async function captureRepositorySnapshotWithCache(input) {
           contentByteLength = cached.byteLength;
         } else {
           const bytes = await input.readFile(root2, path);
-          const after = await lstat35(absolutePath, { bigint: true });
+          const after = await lstat36(absolutePath, { bigint: true });
           if (identity2 !== entryIdentity(after)) {
             throw new Error("changed while reading");
           }
@@ -73175,7 +74966,7 @@ async function captureRepositorySnapshotWithCache(input) {
 // apps/cli/src/development-pattern-storage.ts
 import { randomUUID as randomUUID3 } from "node:crypto";
 import { mkdir as mkdir12, rename as rename9, writeFile as writeFile3 } from "node:fs/promises";
-import { resolve as resolve52 } from "node:path";
+import { resolve as resolve53 } from "node:path";
 function allPatternEvents(storage) {
   const events = [];
   const latest = storage.events.latest();
@@ -73256,8 +75047,8 @@ function projectPatterns(events) {
   );
 }
 async function writePatternProjection(repositoryRoot, patterns) {
-  const path = resolve52(repositoryRoot, ".lervo/state/knowledge/development-patterns/current.json");
-  await mkdir12(resolve52(path, ".."), { recursive: true });
+  const path = resolve53(repositoryRoot, ".lervo/state/knowledge/development-patterns/current.json");
+  await mkdir12(resolve53(path, ".."), { recursive: true });
   const temporary = `${path}.${process.pid}.tmp`;
   await writeFile3(
     temporary,
@@ -73441,10 +75232,10 @@ function terminalEventDraft(input) {
 }
 
 // apps/cli/src/terminal-knowledge-lifecycle-cache.ts
-import { constants as constants15 } from "node:fs";
+import { constants as constants16 } from "node:fs";
 import { randomUUID as randomUUID5 } from "node:crypto";
-import { lstat as lstat36, mkdir as mkdir13, open as open19, readFile as readFile19, rename as rename10, rm as rm9 } from "node:fs/promises";
-import { resolve as resolve53 } from "node:path";
+import { lstat as lstat37, mkdir as mkdir13, open as open20, readFile as readFile20, rename as rename10, rm as rm10 } from "node:fs/promises";
+import { resolve as resolve54 } from "node:path";
 
 // apps/cli/src/version-command.ts
 import { createRequire } from "node:module";
@@ -73521,10 +75312,10 @@ function validateCache(value) {
 }
 async function readTerminalKnowledgeLifecycleCache(input) {
   try {
-    const target = resolve53(input.root, CACHE_PATH);
-    const stats = await lstat36(target);
+    const target = resolve54(input.root, CACHE_PATH);
+    const stats = await lstat37(target);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_CACHE_BYTES) return null;
-    const cache = validateCache(JSON.parse(await readFile19(target, "utf8")));
+    const cache = validateCache(JSON.parse(await readFile20(target, "utf8")));
     if (cache === null) return null;
     const expected = await cacheCoordinates(input);
     if (expected === null) return null;
@@ -73543,9 +75334,9 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
   const coordinates = await cacheCoordinates(input);
   if (coordinates === null)
     throw new Error("The terminal knowledge lifecycle cache coordinates are unavailable.");
-  const directory = resolve53(input.root, ".lervo/state/terminal-integration");
+  const directory = resolve54(input.root, ".lervo/state/terminal-integration");
   await mkdir13(directory, { recursive: true, mode: 448 });
-  const directoryStats = await lstat36(directory);
+  const directoryStats = await lstat37(directory);
   if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink())
     throw new Error("Unsafe terminal knowledge lifecycle cache directory.");
   const cache = {
@@ -73557,22 +75348,22 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
 `;
   if (Buffer.byteLength(bytes) > MAXIMUM_CACHE_BYTES)
     throw new Error("The terminal knowledge lifecycle cache exceeds its storage limit.");
-  const temporary = resolve53(directory, `.knowledge-lifecycle-${randomUUID5()}.tmp`);
+  const temporary = resolve54(directory, `.knowledge-lifecycle-${randomUUID5()}.tmp`);
   let handle;
   try {
-    handle = await open19(
+    handle = await open20(
       temporary,
-      constants15.O_WRONLY | constants15.O_CREAT | constants15.O_EXCL | (constants15.O_NOFOLLOW ?? 0),
+      constants16.O_WRONLY | constants16.O_CREAT | constants16.O_EXCL | (constants16.O_NOFOLLOW ?? 0),
       384
     );
     await handle.writeFile(bytes);
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename10(temporary, resolve53(input.root, CACHE_PATH));
+    await rename10(temporary, resolve54(input.root, CACHE_PATH));
   } finally {
     await handle?.close();
-    await rm9(temporary, { force: true });
+    await rm10(temporary, { force: true });
   }
 }
 
@@ -73777,17 +75568,17 @@ async function inspectTerminalRepositoryKnowledgeLifecycle(input) {
 }
 
 // apps/cli/src/terminal-prepared-snapshot.ts
-import { constants as constants16 } from "node:fs";
+import { constants as constants17 } from "node:fs";
 import { randomUUID as randomUUID6 } from "node:crypto";
-import { lstat as lstat37, mkdir as mkdir14, open as open20, readFile as readFile20, readdir as readdir16, rename as rename11, rm as rm10 } from "node:fs/promises";
-import { resolve as resolve54 } from "node:path";
+import { lstat as lstat38, mkdir as mkdir14, open as open21, readFile as readFile21, readdir as readdir16, rename as rename11, rm as rm11 } from "node:fs/promises";
+import { resolve as resolve55 } from "node:path";
 var DIRECTORY = ".lervo/state/terminal-integration/prepared-snapshots";
 var MAXIMUM_SNAPSHOTS = 64;
 var MAXIMUM_BYTES2 = 8 * 1024 * 1024;
 function snapshotPath(root2, observationId) {
   if (!/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(observationId))
     throw new Error("The prepared snapshot observation ID is invalid.");
-  return resolve54(root2, DIRECTORY, `${observationId}.json`);
+  return resolve55(root2, DIRECTORY, `${observationId}.json`);
 }
 function validate(value) {
   const snapshot = value;
@@ -73798,21 +75589,21 @@ function validate(value) {
   return snapshot;
 }
 async function writePreparedRepositorySnapshot(root2, snapshot) {
-  const directory = resolve54(root2, DIRECTORY);
+  const directory = resolve55(root2, DIRECTORY);
   await mkdir14(directory, { recursive: true, mode: 448 });
-  const stats = await lstat37(directory);
+  const stats = await lstat38(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe prepared snapshot state directory.");
   const bytes = `${JSON.stringify(snapshot)}
 `;
   if (Buffer.byteLength(bytes) > MAXIMUM_BYTES2)
     throw new Error("The prepared repository snapshot exceeds its storage limit.");
-  const temporary = resolve54(directory, `.prepared-${randomUUID6()}.tmp`);
+  const temporary = resolve55(directory, `.prepared-${randomUUID6()}.tmp`);
   let handle;
   try {
-    handle = await open20(
+    handle = await open21(
       temporary,
-      constants16.O_WRONLY | constants16.O_CREAT | constants16.O_EXCL | (constants16.O_NOFOLLOW ?? 0),
+      constants17.O_WRONLY | constants17.O_CREAT | constants17.O_EXCL | (constants17.O_NOFOLLOW ?? 0),
       384
     );
     await handle.writeFile(bytes);
@@ -73822,14 +75613,14 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
     await rename11(temporary, snapshotPath(root2, snapshot.observationId));
   } finally {
     await handle?.close();
-    await rm10(temporary, { force: true });
+    await rm11(temporary, { force: true });
   }
   const entries = await Promise.all(
     (await readdir16(directory, { withFileTypes: true })).filter(
       (entry) => entry.isFile() && /^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}\.json$/u.test(entry.name)
     ).map(async (entry) => ({
       name: entry.name,
-      modifiedAt: (await lstat37(resolve54(directory, entry.name))).mtimeMs
+      modifiedAt: (await lstat38(resolve55(directory, entry.name))).mtimeMs
     }))
   );
   const currentName = `${snapshot.observationId}.json`;
@@ -73837,15 +75628,15 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
     (left, right) => Number(left.name === currentName) - Number(right.name === currentName) || left.modifiedAt - right.modifiedAt || left.name.localeCompare(right.name)
   );
   for (const entry of entries.slice(0, Math.max(0, entries.length - MAXIMUM_SNAPSHOTS)))
-    await rm10(resolve54(directory, entry.name), { force: true });
+    await rm11(resolve55(directory, entry.name), { force: true });
 }
 async function readPreparedRepositorySnapshot(root2, observationId) {
   try {
     const path = snapshotPath(root2, observationId);
-    const stats = await lstat37(path);
+    const stats = await lstat38(path);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_BYTES2)
       throw new Error("The prepared repository snapshot is unsafe.");
-    const snapshot = validate(JSON.parse(await readFile20(path, "utf8")));
+    const snapshot = validate(JSON.parse(await readFile21(path, "utf8")));
     if (snapshot.observationId !== observationId)
       throw new Error("The prepared repository snapshot coordinate does not match.");
     return snapshot;
@@ -74202,12 +75993,12 @@ async function recordObservedTerminalTurn(input) {
 
 // packages/verification/dist/suite-loader.js
 var import_yaml26 = __toESM(require_dist(), 1);
-import { lstat as lstat39, realpath as realpath3 } from "node:fs/promises";
-import { resolve as resolve55 } from "node:path";
+import { lstat as lstat40, realpath as realpath3 } from "node:fs/promises";
+import { resolve as resolve56 } from "node:path";
 
 // packages/verification/dist/suite-file-reader.js
-import { constants as constants17 } from "node:fs";
-import { lstat as lstat38, open as open21 } from "node:fs/promises";
+import { constants as constants18 } from "node:fs";
+import { lstat as lstat39, open as open22 } from "node:fs/promises";
 function boundedRegularFile2(observation, maximumBytes2) {
   return observation.isFile() && !observation.isSymbolicLink() && observation.size <= maximumBytes2;
 }
@@ -74222,20 +76013,20 @@ function sameAcrossStatSurfaces(pathObservation, handleObservation) {
 }
 async function readVerificationSuiteFile(path, maximumBytes2) {
   const limit = BigInt(maximumBytes2);
-  const beforePath = await lstat38(path, { bigint: true });
+  const beforePath = await lstat39(path, { bigint: true });
   if (!boundedRegularFile2(beforePath, limit)) {
     throw new VerificationError("verification_layout_invalid", "The verification suite file is not a safe regular file or exceeds the size limit.");
   }
-  const handle = await open21(path, constants17.O_RDONLY | (constants17.O_NOFOLLOW ?? 0));
+  const handle = await open22(path, constants18.O_RDONLY | (constants18.O_NOFOLLOW ?? 0));
   try {
     const openedHandle = await handle.stat({ bigint: true });
-    const afterOpenPath = await lstat38(path, { bigint: true });
+    const afterOpenPath = await lstat39(path, { bigint: true });
     if (!boundedRegularFile2(openedHandle, limit) || !boundedRegularFile2(afterOpenPath, limit) || !sameObservation(beforePath, afterOpenPath) || !sameAcrossStatSurfaces(afterOpenPath, openedHandle)) {
       throw new VerificationError("verification_layout_invalid", "The verification suite changed before it was read.");
     }
     const bytes = await handle.readFile();
     const afterReadHandle = await handle.stat({ bigint: true });
-    const afterReadPath = await lstat38(path, { bigint: true });
+    const afterReadPath = await lstat39(path, { bigint: true });
     if (!boundedRegularFile2(afterReadHandle, limit) || !boundedRegularFile2(afterReadPath, limit) || !sameObservation(openedHandle, afterReadHandle) || !sameObservation(afterOpenPath, afterReadPath) || !sameAcrossStatSurfaces(afterReadPath, afterReadHandle)) {
       throw new VerificationError("verification_layout_invalid", "The verification suite changed while it was being read.");
     }
@@ -74252,18 +76043,18 @@ async function loadVerificationSuite(repositoryRoot, suiteId) {
   if (!SUITE_ID.test(suiteId) || suiteId.length > 150) {
     throw new VerificationError("invalid_verification_suite", "The verification suite ID is invalid.");
   }
-  const root2 = resolve55(repositoryRoot);
-  const directory = resolve55(root2, ".lervo/verifications");
+  const root2 = resolve56(repositoryRoot);
+  const directory = resolve56(root2, ".lervo/verifications");
   try {
-    const stats = await lstat39(directory);
-    const expectedDirectory = resolve55(await realpath3(root2), ".lervo/verifications");
+    const stats = await lstat40(directory);
+    const expectedDirectory = resolve56(await realpath3(root2), ".lervo/verifications");
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath3(directory) !== expectedDirectory) {
       throw new Error("unsafe directory");
     }
   } catch (error) {
     throw new VerificationError("verification_layout_invalid", "The verification suite directory is not a safe real directory.", { cause: error });
   }
-  const path = resolve55(directory, `${suiteId}.yaml`);
+  const path = resolve56(directory, `${suiteId}.yaml`);
   try {
     const bytes = await readVerificationSuiteFile(path, MAXIMUM_SUITE_BYTES);
     let value;
@@ -74288,1327 +76079,6 @@ async function loadVerificationSuite(repositoryRoot, suiteId) {
   }
 }
 
-// apps/cli/src/knowledge-sources.ts
-async function collectLocalKnowledgeSources(repositoryRoot) {
-  const storage = await openProjectStorage(repositoryRoot);
-  try {
-    const verificationSources = await collectVerificationResultSources({
-      events: storage.events,
-      artifacts: storage.artifacts,
-      loadSuite: (suiteId) => loadVerificationSuite(repositoryRoot, suiteId)
-    });
-    return [
-      ...verificationSources,
-      ...collectExecutionEventSources({ events: storage.events })
-    ].sort((left, right) => left.path.localeCompare(right.path));
-  } finally {
-    await storage.close();
-  }
-}
-
-// apps/cli/src/terminal-declaration-command.ts
-function parseTurnDeclarationDraft(value) {
-  if (Buffer.byteLength(value) > 16 * 1024)
-    throw new Error("The terminal turn declaration exceeds 16 KiB.");
-  const parsed = JSON.parse(value);
-  const allowed = /* @__PURE__ */ new Set([
-    "taskMode",
-    "canonicalizationDisposition",
-    "canonicalizationOutcome",
-    "knowledgeDisposition",
-    "deliberationDisposition",
-    "deliberationId"
-  ]);
-  if (parsed === null || Array.isArray(parsed) || Object.keys(parsed).some((key2) => !allowed.has(key2)))
-    throw new Error("The terminal turn declaration contains unsupported fields.");
-  const taskModes = ["inquiry", "change", "review", "continuation", "approval_response"];
-  const canonicalization = [
-    "not_applicable_read_only",
-    "canonical_sources_current",
-    "canonical_sources_updated",
-    "pending_user_approval"
-  ];
-  const knowledge = [
-    "not_applicable_read_only",
-    "current",
-    "refreshed",
-    "pending_user_approval"
-  ];
-  const deliberation = ["not_requested", "completed", "no_consensus", "failed"];
-  if (!taskModes.includes(parsed.taskMode))
-    throw new Error("The terminal taskMode is invalid.");
-  if (!canonicalization.includes(
-    parsed.canonicalizationDisposition
-  ))
-    throw new Error("The canonicalizationDisposition is invalid.");
-  const canonicalizationOutcome = parsed.canonicalizationOutcome === null ? null : parseCanonicalizationOutcome(parsed.canonicalizationOutcome);
-  if (!knowledge.includes(parsed.knowledgeDisposition))
-    throw new Error("The knowledgeDisposition is invalid.");
-  if (!deliberation.includes(parsed.deliberationDisposition))
-    throw new Error("The deliberationDisposition is invalid.");
-  if (parsed.deliberationId !== null && (typeof parsed.deliberationId !== "string" || !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.deliberationId)))
-    throw new Error("The deliberationId is invalid.");
-  return {
-    ...parsed,
-    canonicalizationOutcome
-  };
-}
-async function runTerminalDeclareCommand(args, io) {
-  let storage;
-  try {
-    const parsed = parseArgs2({
-      args,
-      strict: true,
-      allowPositionals: false,
-      options: {
-        provider: { type: "string" },
-        observation: { type: "string" },
-        stdin: { type: "boolean" },
-        root: { type: "string" },
-        json: { type: "boolean" }
-      }
-    });
-    if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude")
-      throw new Error("--provider must be codex or claude.");
-    const provider = parsed.values.provider;
-    if (typeof parsed.values.observation !== "string" || !/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.values.observation))
-      throw new Error("--observation is invalid.");
-    if (!parsed.values.stdin || io.stdin === void 0)
-      throw new Error("The declaration must be supplied through --stdin.");
-    const draft = parseTurnDeclarationDraft(await io.stdin());
-    const root2 = await resolveTerminalRepositoryRoot(resolve56(io.cwd, parsed.values.root ?? "."));
-    storage = await openProjectStorage(root2);
-    const context = allTerminalEvents2(storage.events).filter(
-      (event) => event.type === "terminal.context.prepared" && event.actor.kind === "provider" && event.actor.provider === parsed.values.provider && event.payload.observationId === parsed.values.observation
-    ).at(-1);
-    if (context === void 0) throw new Error("No matching prepared terminal observation exists.");
-    const contextRevision = context.payload.repositoryRevision;
-    if (typeof contextRevision !== "string")
-      throw new Error("The prepared terminal observation has no repository revision.");
-    const repository = await captureRepositorySnapshot(root2);
-    const repositoryChanged = contextRevision !== repository.revision;
-    if (repositoryChanged && draft.taskMode === "inquiry")
-      throw new Error("An inquiry declaration cannot bind changed repository bytes.");
-    if (repositoryChanged && (draft.canonicalizationDisposition === "not_applicable_read_only" || draft.knowledgeDisposition === "not_applicable_read_only"))
-      throw new Error(
-        "A repository-changing turn requires canonicalization and knowledge dispositions."
-      );
-    if (!repositoryChanged && (draft.canonicalizationDisposition !== "not_applicable_read_only" || draft.knowledgeDisposition !== "not_applicable_read_only"))
-      throw new Error(
-        "An unchanged turn must use read-only canonicalization and knowledge dispositions."
-      );
-    if (repositoryChanged && draft.canonicalizationOutcome === null)
-      throw new Error("A repository-changing turn requires a canonicalizationOutcome.");
-    if (!repositoryChanged && draft.canonicalizationOutcome !== null)
-      throw new Error("An unchanged turn must use a null canonicalizationOutcome.");
-    const preparedSnapshot = await readPreparedRepositorySnapshot(root2, parsed.values.observation);
-    const supplementalSources = repositoryChanged ? await collectLocalKnowledgeSources(root2) : [];
-    let preparedPatternCandidate;
-    if (draft.canonicalizationOutcome?.kind === "portable_skill_candidate") {
-      const { scan } = await scanConfiguredRepositoryKnowledge(root2, { supplementalSources });
-      preparedPatternCandidate = createDevelopmentPatternCandidate({
-        proposal: draft.canonicalizationOutcome.proposal,
-        scan,
-        passedVerificationEvidence: passedWorkflowVerificationEvidence(storage)
-      });
-    }
-    const canonicalizationAssessment = repositoryChanged && preparedSnapshot !== null ? await assessCanonicalization({
-      repositoryRoot: root2,
-      beforeRevision: preparedSnapshot.revision,
-      afterRevision: repository.revision,
-      beforeFiles: preparedSnapshot.files,
-      afterFiles: repository.files,
-      disposition: draft.canonicalizationDisposition === "not_applicable_read_only" ? "canonical_sources_current" : draft.canonicalizationDisposition,
-      ...draft.canonicalizationOutcome === null ? {} : { outcome: draft.canonicalizationOutcome },
-      now: /* @__PURE__ */ new Date()
-    }) : null;
-    const knowledgeLifecycleIssues = repositoryChanged ? await inspectTerminalRepositoryKnowledgeLifecycle({
-      root: root2,
-      repositoryRevision: repository.revision,
-      supplementalSources
-    }) : [];
-    if (repositoryChanged && draft.knowledgeDisposition !== "pending_user_approval" && knowledgeLifecycleIssues.length > 0) {
-      throw new Error(
-        `The declared knowledge disposition is not supported by the current repository lifecycle: ${knowledgeLifecycleIssues.map((issue) => issue.code).join(", ")}.`
-      );
-    }
-    const occurredAt = (/* @__PURE__ */ new Date()).toISOString();
-    const { canonicalizationOutcome: _canonicalizationOutcome, ...eventDraft } = draft;
-    const payload = {
-      declarationId: newTerminalIdentifier("tdecl"),
-      contextEventId: context.eventId,
-      repositoryRevision: repository.revision,
-      ...eventDraft,
-      declaredAt: occurredAt
-    };
-    const validation = validateSchema("terminalTurnDeclaredEventPayload", payload);
-    if (!validation.valid)
-      throw new Error("The terminal turn declaration does not satisfy the bounded contract.");
-    if (!terminalDeliberationDeclarationMatches(storage.events, payload))
-      throw new Error(
-        "The declared deliberation result is not bound to a matching completed deliberation event."
-      );
-    const providerSessionDigest = context.payload.providerSessionDigest;
-    const providerTurnDigest = context.payload.providerTurnDigest;
-    if (typeof providerSessionDigest !== "string" || providerTurnDigest !== null && typeof providerTurnDigest !== "string")
-      throw new Error("The prepared provider coordinates are invalid.");
-    const terminalDraft = terminalEventDraft({
-      projectId: storage.manifest.projectId,
-      coordinates: {
-        runId: context.runId,
-        sessionId: context.sessionId,
-        providerSessionDigest,
-        providerTurnDigest
-      },
-      provider,
-      actorKind: "agent",
-      type: "terminal.turn.declared",
-      occurredAt,
-      payload
-    });
-    const preparedPatternObservation = preparedPatternCandidate === void 0 ? null : await prepareDevelopmentPatternObservation({
-      repositoryRoot: root2,
-      storage,
-      provider,
-      ...preparedPatternCandidate,
-      observedAt: occurredAt
-    });
-    const recorded = storage.events.transact((transaction) => {
-      const declaration = transaction.append(terminalDraft);
-      for (const draft2 of preparedPatternObservation?.eventDrafts ?? []) transaction.append(draft2);
-      return declaration;
-    });
-    const developmentPatternCandidate = preparedPatternObservation === null ? null : await projectDevelopmentPatternObservation({
-      repositoryRoot: root2,
-      storage,
-      patternId: preparedPatternObservation.patternId
-    });
-    io.stdout(
-      parsed.values.json ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, canonicalizationAssessment, developmentPatternCandidate, knowledgeLifecycleIssues, ...payload }, null, 2)}
-` : `Terminal turn disposition declared.
-observation: ${parsed.values.observation}
-repositoryRevision: ${repository.revision}
-canonicalization: ${canonicalizationAssessment?.status ?? "not_applicable"}
-${developmentPatternCandidate === null ? "" : `developmentPatternCandidate: ${developmentPatternCandidate.patternId}
-`}`
-    );
-    return 0;
-  } catch (error) {
-    io.stderr(`${error instanceof Error ? error.message : String(error)}
-${terminalUsage}
-`);
-    return 1;
-  } finally {
-    await storage?.close();
-  }
-}
-
-// apps/cli/src/terminal-hook-command.ts
-import { parseArgs as parseArgs3 } from "node:util";
-
-// apps/cli/src/terminal-activation-state.ts
-import { constants as constants18 } from "node:fs";
-import { randomUUID as randomUUID7 } from "node:crypto";
-import { lstat as lstat40, mkdir as mkdir15, open as open22, readFile as readFile21, rename as rename12, rm as rm11 } from "node:fs/promises";
-import { resolve as resolve57 } from "node:path";
-function activationPath(root2, provider, event) {
-  return resolve57(
-    root2,
-    ".lervo/state/terminal-integration",
-    `${provider}-${event === "UserPromptSubmit" ? "user-prompt-submit" : "stop"}.json`
-  );
-}
-async function writeTerminalActivationReceipt(root2, receipt) {
-  const directory = resolve57(root2, ".lervo/state/terminal-integration");
-  try {
-    await mkdir15(directory, { mode: 448 });
-  } catch (error) {
-    if (error.code !== "EEXIST") throw error;
-  }
-  const stats = await lstat40(directory);
-  if (!stats.isDirectory() || stats.isSymbolicLink())
-    throw new Error("Unsafe terminal activation state directory.");
-  const target = activationPath(root2, receipt.provider, receipt.hookEvent);
-  const temporary = resolve57(directory, `.activation-${randomUUID7()}.tmp`);
-  let handle;
-  try {
-    handle = await open22(
-      temporary,
-      constants18.O_WRONLY | constants18.O_CREAT | constants18.O_EXCL | (constants18.O_NOFOLLOW ?? 0),
-      384
-    );
-    await handle.writeFile(`${JSON.stringify(receipt)}
-`);
-    await handle.sync();
-    await handle.close();
-    handle = void 0;
-    await rename12(temporary, target);
-  } finally {
-    await handle?.close();
-    await rm11(temporary, { force: true });
-  }
-}
-async function readTerminalActivationReceipts(root2) {
-  const receipts = [];
-  for (const provider of ["codex", "claude"]) {
-    for (const event of ["UserPromptSubmit", "Stop"]) {
-      try {
-        const path = activationPath(root2, provider, event);
-        const stats = await lstat40(path);
-        if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
-        const value = JSON.parse(await readFile21(path, "utf8"));
-        if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v2" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string")
-          receipts.push(value);
-      } catch (error) {
-        if (error.code !== "ENOENT" && !(error instanceof SyntaxError))
-          throw error;
-      }
-    }
-  }
-  return receipts.sort(
-    (left, right) => left.provider.localeCompare(right.provider) || left.hookEvent.localeCompare(right.hookEvent)
-  );
-}
-async function inspectTerminalRuntimeActivation(root2, receipts) {
-  const storage = await openProjectStorage(root2);
-  try {
-    const observations = [];
-    for (const provider of ["codex", "claude"]) {
-      for (const hookEvent of ["UserPromptSubmit", "Stop"]) {
-        const receipt = receipts.find(
-          (item) => item.provider === provider && item.hookEvent === hookEvent
-        );
-        const event = receipt?.observationEventId === void 0 ? null : storage.events.get(receipt.observationEventId);
-        const expectedType = hookEvent === "UserPromptSubmit" ? "terminal.context.prepared" : "terminal.turn.observed";
-        const observed = receipt !== void 0 && event !== null && event.type === expectedType && event.actor.kind === "provider" && event.actor.provider === provider && event.occurredAt === receipt.occurredAt;
-        observations.push({
-          provider,
-          hookEvent,
-          status: observed ? "observed" : "not_observed",
-          occurredAt: observed ? receipt.occurredAt : null
-        });
-      }
-    }
-    const observedCount = observations.filter((item) => item.status === "observed").length;
-    return {
-      status: observedCount === observations.length ? "observed" : observedCount === 0 ? "not_observed" : "partial",
-      evidenceMeaning: "hook_endpoint_observed_not_provider_authorship",
-      observations
-    };
-  } finally {
-    await storage.close();
-  }
-}
-function terminalActivationReadiness(runtime) {
-  const missingProviders = ["codex", "claude"].filter(
-    (provider) => runtime.observations.some(
-      (item) => item.provider === provider && item.status === "not_observed"
-    )
-  );
-  const actions2 = missingProviders.map(
-    (provider) => provider === "codex" ? {
-      provider,
-      code: "codex_hook_review_or_activation_required",
-      instruction: "Open Codex in this repository, run /hooks, review and trust the Lervo UserPromptSubmit and Stop command hooks, then submit one prompt and complete one turn."
-    } : {
-      provider,
-      code: "claude_hook_activation_required",
-      instruction: "Open Claude Code in this repository, submit one prompt, and complete one turn so both installed Lervo hooks are observed."
-    }
-  );
-  return { status: actions2.length === 0 ? "ready" : "action_required", actions: actions2 };
-}
-
-// apps/cli/src/terminal-hook-input.ts
-function parseTerminalHookInput(value) {
-  if (Buffer.byteLength(value) > 256 * 1024)
-    throw new Error("Hook input exceeds the bounded input limit.");
-  const parsed = JSON.parse(value);
-  if (parsed?.hook_event_name !== "UserPromptSubmit" && parsed?.hook_event_name !== "Stop")
-    throw new Error("Unsupported provider hook event.");
-  if (typeof parsed.session_id !== "string" || parsed.session_id.trim() === "" || parsed.session_id.length > 512)
-    throw new Error("The provider session coordinate is missing or invalid.");
-  if (parsed.turn_id !== void 0 && (typeof parsed.turn_id !== "string" || parsed.turn_id.trim() === "" || parsed.turn_id.length > 512))
-    throw new Error("The provider turn coordinate is invalid.");
-  if (parsed.hook_event_name === "UserPromptSubmit" && (typeof parsed.prompt !== "string" || parsed.prompt.trim() === "" || parsed.prompt.length > 64 * 1024))
-    throw new Error("The prompt is missing or exceeds the bounded prompt limit.");
-  if (parsed.hook_event_name === "Stop" && parsed.stop_hook_active !== void 0 && typeof parsed.stop_hook_active !== "boolean")
-    throw new Error("The provider Stop continuation state is invalid.");
-  if (parsed.hook_event_name === "Stop" && parsed.last_assistant_message !== void 0 && parsed.last_assistant_message !== null && typeof parsed.last_assistant_message !== "string")
-    throw new Error("The provider completion message is invalid.");
-  return {
-    event: parsed.hook_event_name,
-    providerSessionId: parsed.session_id,
-    providerTurnId: typeof parsed.turn_id === "string" ? parsed.turn_id : null,
-    stopHookActive: parsed.stop_hook_active === true,
-    ...typeof parsed.prompt === "string" ? { prompt: parsed.prompt } : {},
-    ...parsed.last_assistant_message === null || typeof parsed.last_assistant_message === "string" ? { lastAssistantMessage: parsed.last_assistant_message } : {}
-  };
-}
-
-// apps/cli/src/terminal-lifecycle-inspection.ts
-import { lstat as lstat43 } from "node:fs/promises";
-import { resolve as resolve60 } from "node:path";
-
-// apps/cli/src/terminal-repository-replica-service-inspection.ts
-import { execFile as execFile3 } from "node:child_process";
-import { lstat as lstat41 } from "node:fs/promises";
-import { homedir as homedir2 } from "node:os";
-import { resolve as resolve58 } from "node:path";
-var serviceLabel = "dev.lervo.repository-replica";
-var maximumDefinitionBytes = 128 * 1024;
-function launchdServiceLoaded(uid) {
-  return new Promise((done) => {
-    execFile3(
-      "launchctl",
-      ["print", `gui/${uid}/${serviceLabel}`],
-      { encoding: "utf8", maxBuffer: 4096, timeout: 5e3 },
-      (error) => done(error === null)
-    );
-  });
-}
-async function inspectTerminalRepositoryReplicaService(input = {}) {
-  if ((input.platform ?? process.platform) !== "darwin") return [];
-  const definition2 = resolve58(
-    input.homeDirectory ?? homedir2(),
-    "Library",
-    "LaunchAgents",
-    `${serviceLabel}.plist`
-  );
-  let metadata;
-  try {
-    metadata = await lstat41(definition2);
-  } catch (error) {
-    if (error.code === "ENOENT") return [];
-    return [
-      {
-        code: "repository_replica_service_inspection_failed",
-        command: "inspect the installed repository replica service"
-      }
-    ];
-  }
-  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 1 || metadata.size > maximumDefinitionBytes || (metadata.mode & 63) !== 0) {
-    return [
-      {
-        code: "repository_replica_service_definition_unsafe",
-        command: "review the owner-only repository replica service definition"
-      }
-    ];
-  }
-  const uid = input.uid ?? process.getuid?.();
-  if (uid === void 0) {
-    return [
-      {
-        code: "repository_replica_service_inspection_failed",
-        command: "inspect the installed repository replica service"
-      }
-    ];
-  }
-  const loaded = await (input.serviceLoaded ?? launchdServiceLoaded)(uid);
-  return loaded ? [] : [
-    {
-      code: "repository_replica_service_inactive",
-      command: 'launchctl bootstrap gui/$(id -u) "$HOME/Library/LaunchAgents/dev.lervo.repository-replica.plist"'
-    }
-  ];
-}
-
-// apps/cli/src/terminal-workspace-attachment.ts
-import { randomBytes as randomBytes2 } from "node:crypto";
-
-// apps/cli/src/terminal-workspace-boundary.ts
-import { createHash as createHash20 } from "node:crypto";
-
-// packages/workspace-host-git/dist/evidence.js
-import { execFile as execFile4 } from "node:child_process";
-import { createHash as createHash19 } from "node:crypto";
-import { constants as constants19 } from "node:fs";
-import { lstat as lstat42, open as open23, readFile as readFile22, realpath as realpath4 } from "node:fs/promises";
-import { dirname as dirname14, isAbsolute as isAbsolute5, resolve as resolve59 } from "node:path";
-import { promisify as promisify3 } from "node:util";
-var execute2 = promisify3(execFile4);
-var COMMIT2 = /^[a-f0-9]{40,64}$/u;
-var HASH13 = /^sha256:[a-f0-9]{64}$/u;
-var MARKER_NAME = "lervo-workspace-owner.json";
-function fail17(code, message, cause) {
-  throw new WorkspaceHostError(code, message, cause === void 0 ? void 0 : { cause });
-}
-function stableJson4(value) {
-  if (Array.isArray(value))
-    return `[${value.map(stableJson4).join(",")}]`;
-  if (value !== null && typeof value === "object")
-    return `{${Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key2, item]) => `${JSON.stringify(key2)}:${stableJson4(item)}`).join(",")}}`;
-  return JSON.stringify(value);
-}
-function digest6(value) {
-  return `sha256:${createHash19("sha256").update(stableJson4(value)).digest("hex")}`;
-}
-async function git(root2, arguments_) {
-  try {
-    const { stdout } = await execute2("git", ["-C", root2, ...arguments_], {
-      encoding: "utf8",
-      maxBuffer: 2 * 1024 * 1024
-    });
-    return stdout.trim();
-  } catch (error) {
-    fail17("host_git_failed", "The Git workspace operation failed.", error);
-  }
-}
-async function gitSucceeds(root2, arguments_) {
-  try {
-    await execute2("git", ["-C", root2, ...arguments_], {
-      encoding: "utf8",
-      maxBuffer: 2 * 1024 * 1024
-    });
-    return true;
-  } catch (error) {
-    if (error.code === 1)
-      return false;
-    fail17("host_git_failed", "The Git workspace predicate failed.", error);
-  }
-}
-async function registeredWorktrees(repositoryRoot) {
-  const output = await git(repositoryRoot, ["worktree", "list", "--porcelain", "-z"]);
-  const records = /* @__PURE__ */ new Map();
-  let path = null;
-  for (const field2 of output.split("\0")) {
-    if (field2.startsWith("worktree "))
-      path = resolve59(field2.slice("worktree ".length));
-    else if (path !== null && field2.startsWith("HEAD ")) {
-      records.set(path, field2.slice("HEAD ".length));
-      path = null;
-    }
-  }
-  return records;
-}
-async function gitOperationInProgress(gitDirectory) {
-  for (const name2 of [
-    "MERGE_HEAD",
-    "CHERRY_PICK_HEAD",
-    "REVERT_HEAD",
-    "BISECT_LOG",
-    "rebase-merge",
-    "rebase-apply"
-  ]) {
-    try {
-      await lstat42(resolve59(gitDirectory, name2));
-      return true;
-    } catch (error) {
-      if (error.code !== "ENOENT")
-        return true;
-    }
-  }
-  return false;
-}
-var GitWorkspaceEvidence = class {
-  binding;
-  constructor(binding) {
-    this.binding = binding;
-  }
-  validMarker(marker) {
-    return marker.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker.workspaceId) && Number.isSafeInteger(marker.generation) && marker.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker.repositoryInstanceId) && marker.adapterKind === this.binding.kind && marker.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker.creationPlanId) && HASH13.test(marker.pathDigest);
-  }
-  validateRequest(repositoryRoot, workspacePath, marker, allowSamePath = false) {
-    if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve59(repositoryRoot) !== repositoryRoot || resolve59(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker))
-      fail17("host_coordinate_invalid", "The Git workspace coordinate is invalid.");
-  }
-  async markerMatches(gitDirectory, expected) {
-    try {
-      const path = resolve59(gitDirectory, MARKER_NAME);
-      const info = await lstat42(path);
-      if (!info.isFile() || info.isSymbolicLink() || info.size > 16384)
-        return false;
-      return stableJson4(JSON.parse(await readFile22(path, "utf8"))) === stableJson4(expected);
-    } catch {
-      return false;
-    }
-  }
-  async writeMarker(workspacePath, marker) {
-    if (!this.validMarker(marker))
-      fail17("host_coordinate_invalid", "The workspace ownership marker is invalid.");
-    const gitDirectory = await git(workspacePath, [
-      "rev-parse",
-      "--path-format=absolute",
-      "--git-dir"
-    ]);
-    const handle = await open23(resolve59(gitDirectory, MARKER_NAME), constants19.O_WRONLY | constants19.O_CREAT | constants19.O_EXCL | (constants19.O_NOFOLLOW ?? 0), 384);
-    try {
-      await handle.writeFile(`${JSON.stringify(marker, null, 2)}
-`);
-      await handle.sync();
-    } finally {
-      await handle.close();
-    }
-  }
-  async inspect(input) {
-    this.validateRequest(input.repositoryRoot, input.workspacePath, input.marker, true);
-    if (!COMMIT2.test(input.baseCommit))
-      fail17("host_coordinate_invalid", "The Git inspection base is invalid.");
-    const worktrees = await registeredWorktrees(input.repositoryRoot);
-    let registeredPath = input.workspacePath;
-    try {
-      registeredPath = await realpath4(input.workspacePath);
-    } catch (error) {
-      if (error.code !== "ENOENT")
-        throw error;
-    }
-    const registeredHead = worktrees.get(registeredPath);
-    if (registeredHead === void 0)
-      return {
-        status: "absent",
-        headCommit: null,
-        treeHash: null,
-        clean: null,
-        gitOperationInProgress: null,
-        changedPaths: null,
-        markerMatched: false,
-        processObservation: "unavailable",
-        nativeInstanceDigest: null
-      };
-    try {
-      const info = await lstat42(input.workspacePath);
-      if (!info.isDirectory() || info.isSymbolicLink())
-        return {
-          status: "recovery_required",
-          headCommit: registeredHead,
-          treeHash: null,
-          clean: null,
-          gitOperationInProgress: null,
-          changedPaths: null,
-          markerMatched: false,
-          processObservation: "unavailable",
-          nativeInstanceDigest: digest6({ path: input.workspacePath })
-        };
-    } catch {
-      return {
-        status: "recovery_required",
-        headCommit: registeredHead,
-        treeHash: null,
-        clean: null,
-        gitOperationInProgress: null,
-        changedPaths: null,
-        markerMatched: false,
-        processObservation: "unavailable",
-        nativeInstanceDigest: digest6({ path: input.workspacePath })
-      };
-    }
-    const coordinates = (await git(input.workspacePath, [
-      "rev-parse",
-      "--path-format=absolute",
-      "HEAD",
-      "HEAD^{tree}",
-      "--git-dir"
-    ])).split(/\r?\n/u);
-    const [headCommit, treeHash, gitDirectory] = coordinates;
-    if (coordinates.length !== 3 || !COMMIT2.test(headCommit) || !COMMIT2.test(treeHash) || !isAbsolute5(gitDirectory) || gitDirectory.includes("\0"))
-      fail17("host_coordinate_invalid", "The Git inspection coordinates are invalid.");
-    const [status, operation, matched] = await Promise.all([
-      git(input.workspacePath, ["status", "--porcelain=v2", "--untracked-files=normal"]),
-      gitOperationInProgress(gitDirectory),
-      this.markerMatches(gitDirectory, input.marker)
-    ]);
-    const [changed, untracked] = headCommit === input.baseCommit && status.length === 0 ? ["", ""] : await Promise.all([
-      git(input.workspacePath, ["diff", "--name-only", "-z", input.baseCommit]),
-      git(input.workspacePath, ["ls-files", "--others", "--exclude-standard", "-z"])
-    ]);
-    const changedPaths = [
-      ...new Set(`${changed}\0${untracked}`.split("\0").filter(Boolean))
-    ].sort();
-    return {
-      status: matched ? "present" : "recovery_required",
-      headCommit,
-      treeHash,
-      clean: status.length === 0,
-      gitOperationInProgress: operation,
-      changedPaths,
-      markerMatched: matched,
-      processObservation: "unavailable",
-      nativeInstanceDigest: digest6({ path: await realpath4(input.workspacePath) })
-    };
-  }
-  async inspectResult(input) {
-    const inspection = await this.inspect(input);
-    if (inspection.status !== "present" || inspection.headCommit === null)
-      return { ...inspection, baseCommitReachable: null, commitIds: null };
-    const baseCommitReachable = await gitSucceeds(input.workspacePath, [
-      "merge-base",
-      "--is-ancestor",
-      input.baseCommit,
-      inspection.headCommit
-    ]);
-    const commitIds = baseCommitReachable ? (await git(input.workspacePath, [
-      "rev-list",
-      "--reverse",
-      `${input.baseCommit}..${inspection.headCommit}`
-    ])).split("\n").filter(Boolean) : [];
-    return { ...inspection, baseCommitReachable, commitIds };
-  }
-  async inspectCleanup(request) {
-    if (!/^refs\/(?:heads|tags)\/[A-Za-z0-9._/-]{1,512}$/u.test(request.integrationTargetRef) || !COMMIT2.test(request.integratedHeadCommit))
-      fail17("host_coordinate_invalid", "The Git cleanup target coordinate is invalid.");
-    const inspection = await this.inspect(request);
-    if (inspection.status === "absent")
-      return {
-        ...inspection,
-        integrationTargetCommit: null,
-        headReachableFromTarget: null,
-        gitMetadataHash: null,
-        dependentReferenceCount: 0,
-        childWorkspaceCount: 0,
-        reviewLinkCount: 0
-      };
-    const targetCommit = await git(request.repositoryRoot, [
-      "show-ref",
-      "--verify",
-      "--hash",
-      request.integrationTargetRef
-    ]);
-    const worktrees = await registeredWorktrees(request.repositoryRoot);
-    return {
-      ...inspection,
-      integrationTargetCommit: targetCommit,
-      headReachableFromTarget: await gitSucceeds(request.repositoryRoot, [
-        "merge-base",
-        "--is-ancestor",
-        request.integratedHeadCommit,
-        targetCommit
-      ]),
-      gitMetadataHash: digest6({
-        registeredWorkspacePathDigest: digest6({ path: request.workspacePath }),
-        registeredHead: worktrees.get(request.workspacePath) ?? null,
-        targetCommit
-      }),
-      dependentReferenceCount: 0,
-      childWorkspaceCount: 0,
-      reviewLinkCount: 0
-    };
-  }
-  async provisionDetached(request, beforeMutation) {
-    this.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
-    if (!COMMIT2.test(request.baseCommit) || !/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey))
-      fail17("host_coordinate_invalid", "The Git provision binding is invalid.");
-    const existing = await this.inspect(request);
-    if (existing.status !== "absent") {
-      if (existing.markerMatched && existing.headCommit === request.baseCommit)
-        return existing;
-      fail17("host_effect_uncertain", "A different workspace occupies the provision coordinate.");
-    }
-    const parentInfo = await lstat42(dirname14(request.workspacePath));
-    if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink())
-      fail17("host_coordinate_invalid", "The workspace parent must be a real directory.");
-    await beforeMutation?.();
-    await git(request.repositoryRoot, [
-      "worktree",
-      "add",
-      "--detach",
-      request.workspacePath,
-      request.baseCommit
-    ]);
-    try {
-      await this.writeMarker(request.workspacePath, request.marker);
-    } catch (error) {
-      fail17("host_effect_uncertain", "The worktree exists without its ownership marker.", error);
-    }
-    return this.inspect(request);
-  }
-  async removeNonForce(request) {
-    this.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
-    if (!/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey))
-      fail17("host_coordinate_invalid", "The Git removal binding is invalid.");
-    const before = await this.inspect(request);
-    if (before.status === "absent")
-      return before;
-    if (!before.markerMatched)
-      fail17("host_marker_mismatch", "The workspace ownership marker changed.");
-    if (before.gitOperationInProgress)
-      fail17("host_operation_in_progress", "A Git operation is in progress.");
-    if (!before.clean)
-      fail17("host_not_clean", "The workspace contains tracked or untracked changes.");
-    await git(request.repositoryRoot, ["worktree", "remove", request.workspacePath]);
-    const after = await this.inspect(request);
-    if (after.status !== "absent")
-      fail17("host_effect_uncertain", "Git did not prove non-force worktree removal.");
-    return after;
-  }
-};
-
-// packages/workspace-host-git/dist/integration.js
-import { execFile as execFile6 } from "node:child_process";
-import { promisify as promisify5 } from "node:util";
-
-// packages/workspace-host-git/dist/target-ref.js
-import { execFile as execFile5 } from "node:child_process";
-import { promisify as promisify4 } from "node:util";
-var execute3 = promisify4(execFile5);
-
-// packages/workspace-host-git/dist/integration.js
-var execute4 = promisify5(execFile6);
-
-// packages/workspace-host-git/dist/index.js
-var VERSION4 = "1.0.0";
-var GitWorkspaceHostAdapter = class {
-  beforeProvision;
-  kind = "git";
-  version = VERSION4;
-  capabilities = {
-    provision: true,
-    inspect: true,
-    cleanupInspection: true,
-    nonForceRemoval: true,
-    processObservation: false
-  };
-  evidence = new GitWorkspaceEvidence({ kind: this.kind, version: this.version });
-  constructor(beforeProvision) {
-    this.beforeProvision = beforeProvision;
-  }
-  provision(request) {
-    return this.evidence.provisionDetached(request, this.beforeProvision);
-  }
-  inspect = this.evidence.inspect.bind(this.evidence);
-  inspectResult = this.evidence.inspectResult.bind(this.evidence);
-  inspectCleanup = this.evidence.inspectCleanup.bind(this.evidence);
-  remove(request) {
-    return this.evidence.removeNonForce(request);
-  }
-};
-
-// apps/cli/src/terminal-workspace-boundary.ts
-function stableJson5(value) {
-  if (Array.isArray(value)) return `[${value.map(stableJson5).join(",")}]`;
-  if (value !== null && typeof value === "object")
-    return `{${Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key2, item]) => `${JSON.stringify(key2)}:${stableJson5(item)}`).join(",")}}`;
-  return JSON.stringify(value);
-}
-function terminalWorkspaceDigest(value) {
-  return `sha256:${createHash20("sha256").update(stableJson5(value)).digest("hex")}`;
-}
-function terminalWriterSessionId(provider, providerSessionId) {
-  return `ses_terminal_${createHash20("sha256").update(`${provider}\0${providerSessionId}`).digest("hex").slice(0, 24)}`;
-}
-function terminalWorkspaceMarker(workspace) {
-  return {
-    schemaVersion: 1,
-    workspaceId: workspace.workspaceId,
-    generation: workspace.generation,
-    repositoryInstanceId: workspace.repositoryInstanceId,
-    adapterKind: workspace.host.kind,
-    adapterVersion: workspace.host.version,
-    creationPlanId: workspace.creationPlanId,
-    pathDigest: workspace.pathDigest
-  };
-}
-function terminalWorkspaceHost(workspace) {
-  if (workspace.host.kind !== "git")
-    throw new Error("The workspace host adapter is not available to direct terminal integration.");
-  const host = new GitWorkspaceHostAdapter();
-  if (host.version !== workspace.host.version)
-    throw new Error("The workspace host adapter version changed before terminal attachment.");
-  return host;
-}
-async function terminalWorkspaceAssignment(input) {
-  const assignment = (await listAssignments(input.root)).find(
-    (item) => item.assignmentId === input.workspace.assignmentId
-  );
-  if (assignment?.lease === null || assignment === void 0 || assignment.lease.generation !== input.workspace.leaseGeneration)
-    throw new Error("The workspace assignment lease is absent or belongs to another generation.");
-  await assertAssignmentExecutionAuthority({
-    repositoryRoot: input.root,
-    assignmentId: assignment.assignmentId,
-    agentId: input.workspace.agentId,
-    leaseId: assignment.lease.leaseId,
-    provider: input.provider,
-    expectedPaths: assignment.expectedPaths,
-    verificationSuiteIds: assignment.verificationSuiteIds,
-    now: input.now
-  });
-  return assignment;
-}
-
-// apps/cli/src/terminal-workspace-contract.ts
-var TerminalWorkspaceIsolationError = class extends Error {
-  constructor(code, message, options) {
-    super(message, options);
-    this.code = code;
-    this.name = "TerminalWorkspaceIsolationError";
-  }
-  code;
-};
-function terminalWorkspaceIsolationFailure(code, message, cause) {
-  throw new TerminalWorkspaceIsolationError(
-    code,
-    message,
-    cause === void 0 ? void 0 : { cause }
-  );
-}
-
-// apps/cli/src/terminal-workspace-attachment.ts
-async function attachTerminalWorkspace(input) {
-  const pathDigest = repositoryCoordinateDigest(input.root);
-  const matches = (await listWorkspaces(input.root)).filter(
-    (workspace2) => workspace2.pathDigest === pathDigest && workspace2.state !== "removed"
-  );
-  if (matches.length === 0) return null;
-  if (matches.length !== 1)
-    terminalWorkspaceIsolationFailure(
-      "shared_workspace_mutation",
-      "Multiple active workspace generations claim this checkout."
-    );
-  let workspace = matches[0];
-  const expectedMarker = terminalWorkspaceMarker(workspace);
-  if (terminalWorkspaceDigest(expectedMarker) !== workspace.markerHash)
-    terminalWorkspaceIsolationFailure(
-      "workspace_marker_mismatch",
-      "The workspace marker binding is invalid."
-    );
-  const now = input.now ?? /* @__PURE__ */ new Date();
-  try {
-    await terminalWorkspaceAssignment({
-      root: input.root,
-      workspace,
-      provider: input.provider,
-      now
-    });
-  } catch (error) {
-    terminalWorkspaceIsolationFailure(
-      "assignment_scope_changed",
-      "The workspace assignment lease is not current.",
-      error
-    );
-  }
-  let inspected;
-  try {
-    inspected = await terminalWorkspaceHost(workspace).inspect({
-      repositoryRoot: input.root,
-      workspacePath: input.root,
-      baseCommit: workspace.baseCommit,
-      marker: expectedMarker
-    });
-  } catch (error) {
-    terminalWorkspaceIsolationFailure(
-      "workspace_marker_mismatch",
-      "The workspace host inspection failed.",
-      error
-    );
-  }
-  if (inspected.status !== "present" || !inspected.markerMatched)
-    terminalWorkspaceIsolationFailure(
-      "workspace_marker_mismatch",
-      "The terminal checkout does not match its workspace marker."
-    );
-  const sessionId = terminalWriterSessionId(input.provider, input.providerSessionId);
-  let attachmentDisposition;
-  if (workspace.state === "ready" || workspace.state === "paused") {
-    const resumed = workspace.state === "paused";
-    const stored = await readWorkspace(input.root, workspace.workspaceId);
-    if (stored === null)
-      terminalWorkspaceIsolationFailure(
-        "workspace_marker_mismatch",
-        "The workspace record disappeared before activation."
-      );
-    workspace = (await updateWorkspace({
-      repositoryRoot: input.root,
-      workspaceId: workspace.workspaceId,
-      expectedContentHash: stored.contentHash,
-      eventId: `evt_${randomBytes2(12).toString("hex")}`,
-      expectedRevision: workspace.revision,
-      expectedGeneration: workspace.generation,
-      nextState: "active",
-      occurredAt: now.toISOString(),
-      writerSession: {
-        sessionId,
-        startedAt: now.toISOString(),
-        lastSeenAt: now.toISOString()
-      }
-    })).workspace;
-    attachmentDisposition = resumed ? "resumed" : "activated";
-  } else if (workspace.state !== "active" || workspace.writerSession?.sessionId !== sessionId) {
-    terminalWorkspaceIsolationFailure(
-      "writer_lease_lost",
-      "The workspace is not writable by this terminal session."
-    );
-  } else {
-    const stored = await readWorkspace(input.root, workspace.workspaceId);
-    if (stored === null)
-      terminalWorkspaceIsolationFailure(
-        "workspace_marker_mismatch",
-        "The workspace record disappeared before its writer heartbeat."
-      );
-    workspace = (await updateWorkspace({
-      repositoryRoot: input.root,
-      workspaceId: workspace.workspaceId,
-      expectedContentHash: stored.contentHash,
-      eventId: `evt_${randomBytes2(12).toString("hex")}`,
-      expectedRevision: workspace.revision,
-      expectedGeneration: workspace.generation,
-      nextState: "active",
-      occurredAt: now.toISOString(),
-      writerSession: {
-        ...workspace.writerSession,
-        lastSeenAt: now.toISOString()
-      },
-      reasonCode: "terminal_writer_observed"
-    })).workspace;
-    attachmentDisposition = "continued";
-  }
-  return {
-    executionKind: workspace.executionKind,
-    workspaceId: workspace.workspaceId,
-    workspaceGeneration: workspace.generation,
-    workspaceRevision: workspace.revision,
-    assignmentId: workspace.assignmentId,
-    leaseGeneration: workspace.leaseGeneration,
-    writerSessionId: sessionId,
-    attachmentDisposition
-  };
-}
-
-// apps/cli/src/terminal-workspace-checkpoint.ts
-import { createHash as createHash21, randomBytes as randomBytes3 } from "node:crypto";
-async function pauseTerminalWorkspace(input) {
-  const { workspace, binding } = input.inspection;
-  if (input.inspection.issues.length > 0 || workspace === null || workspace.state !== "active" || workspace.workspaceId !== input.checkpoint.workspaceId || workspace.revision !== input.checkpoint.workspaceRevision || workspace.writerSession?.sessionId !== binding.writerSessionId || input.checkpoint.writerSessionId !== binding.writerSessionId)
-    throw new Error("The terminal workspace cannot pause without its exact current checkpoint.");
-  const stored = await readWorkspace(input.root, workspace.workspaceId);
-  if (stored === null) throw new Error("The terminal workspace disappeared before pause.");
-  return (await updateWorkspace({
-    repositoryRoot: input.root,
-    workspaceId: workspace.workspaceId,
-    expectedContentHash: stored.contentHash,
-    eventId: `evt_${randomBytes3(12).toString("hex")}`,
-    expectedRevision: workspace.revision,
-    expectedGeneration: workspace.generation,
-    nextState: "paused",
-    occurredAt: input.occurredAt,
-    evidence: { writerFrozen: true },
-    writerSession: null,
-    reasonCode: "terminal_turn_checkpointed"
-  })).workspace;
-}
-async function checkpointTerminalWorkspace(input) {
-  const { workspace, host, assignmentRevision, changedPathSetDigest, changedPathCount } = input.inspection;
-  if (input.inspection.issues.length > 0 || workspace === null || host === null || host.headCommit === null || host.treeHash === null || host.changedPaths === null || assignmentRevision === null || changedPathSetDigest === null || changedPathCount === null)
-    throw new Error("The worker workspace is not eligible for a checkpoint.");
-  const eventId2 = `evt_${createHash21("sha256").update(`workspace-checkpoint\0${input.contextEventId}`).digest("hex").slice(0, 24)}`;
-  return recordWorkspaceCheckpoint({
-    repositoryRoot: input.root,
-    checkpoint: {
-      schemaVersion: 1,
-      type: "agent.workspace.checkpointed",
-      eventId: eventId2,
-      workspaceId: workspace.workspaceId,
-      generation: workspace.generation,
-      workspaceRevision: workspace.revision,
-      assignmentId: workspace.assignmentId,
-      assignmentRevision,
-      leaseGeneration: workspace.leaseGeneration,
-      writerSessionId: input.inspection.binding.writerSessionId,
-      headCommit: host.headCommit,
-      treeHash: host.treeHash,
-      changedPathSetDigest,
-      changedPathCount,
-      checkoutClean: host.clean === true,
-      occurredAt: input.occurredAt
-    }
-  });
-}
-
-// apps/cli/src/terminal-workspace-inspection.ts
-async function inspectTerminalWorkspace(input) {
-  const issues = [];
-  const stored = await readWorkspace(input.root, input.binding.workspaceId);
-  if (stored === null) {
-    issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
-    return {
-      issues,
-      binding: input.binding,
-      workspace: null,
-      assignmentRevision: null,
-      host: null,
-      changedPathSetDigest: null,
-      changedPathCount: null
-    };
-  }
-  const workspace = stored.workspace;
-  if (workspace.generation !== input.binding.workspaceGeneration || workspace.revision !== input.binding.workspaceRevision || workspace.assignmentId !== input.binding.assignmentId || workspace.leaseGeneration !== input.binding.leaseGeneration)
-    issues.push({ code: "workspace_revision_changed", command: "lervo workspace inspect --json" });
-  const sessionId = terminalWriterSessionId(input.provider, input.providerSessionId);
-  if (workspace.state !== "active" || workspace.writerSession?.sessionId !== input.binding.writerSessionId || sessionId !== input.binding.writerSessionId)
-    issues.push({ code: "writer_lease_lost", command: "lervo workspace inspect --json" });
-  let assignmentRevision = null;
-  let expectedPaths = [];
-  try {
-    const assignment = await terminalWorkspaceAssignment({
-      root: input.root,
-      workspace,
-      provider: input.provider,
-      now: input.now ?? /* @__PURE__ */ new Date()
-    });
-    assignmentRevision = assignment.revision;
-    expectedPaths = assignment.expectedPaths;
-  } catch {
-    issues.push({ code: "assignment_scope_changed", command: "lervo assignment list --json" });
-  }
-  let host = null;
-  let changedPathSetDigest = null;
-  let changedPathCount = null;
-  try {
-    const expectedMarker = terminalWorkspaceMarker(workspace);
-    if (terminalWorkspaceDigest(expectedMarker) !== workspace.markerHash)
-      throw new Error("Workspace marker hash mismatch.");
-    host = await terminalWorkspaceHost(workspace).inspect({
-      repositoryRoot: input.root,
-      workspacePath: input.root,
-      baseCommit: workspace.baseCommit,
-      marker: expectedMarker
-    });
-    if (host.status !== "present" || !host.markerMatched)
-      issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
-    if (host.gitOperationInProgress)
-      issues.push({
-        code: "shared_workspace_mutation",
-        command: "finish or abort the Git operation"
-      });
-    if (host.changedPaths === null) {
-      issues.push({ code: "shared_workspace_mutation", command: "lervo workspace inspect --json" });
-    } else {
-      const partition = partitionWorkspaceChanges({
-        expectedPaths,
-        changedPaths: host.changedPaths,
-        runtimeExcludedPaths: [".lervo/state", ".lervo/data"]
-      });
-      if (partition.outsideScope.length > 0)
-        issues.push({ code: "workspace_path_escape", command: "lervo workspace inspect --json" });
-      changedPathSetDigest = terminalWorkspaceDigest(partition.expected);
-      changedPathCount = partition.expected.length;
-    }
-  } catch {
-    issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
-  }
-  return {
-    issues,
-    binding: input.binding,
-    workspace,
-    assignmentRevision,
-    host,
-    changedPathSetDigest,
-    changedPathCount
-  };
-}
-
-// apps/cli/src/terminal-lifecycle-inspection.ts
-async function inspectTerminalLifecycle(root2, expected) {
-  const [supplementalSources, currentRepository] = await Promise.all([
-    collectLocalKnowledgeSources(root2),
-    captureRepositorySnapshot(root2)
-  ]);
-  const repositoryChange = {
-    beforeRevision: expected?.repositoryRevision ?? currentRepository.revision,
-    afterRevision: currentRepository.revision,
-    changed: expected !== void 0 && expected.repositoryRevision !== currentRepository.revision
-  };
-  const issues = [];
-  let repositoryKnowledgeInspectionRequired = expected === void 0;
-  let workspace = null;
-  if (expected?.workspaceBinding !== null && expected?.workspaceBinding !== void 0) {
-    workspace = await inspectTerminalWorkspace({
-      root: root2,
-      provider: expected.provider,
-      providerSessionId: expected.providerSessionId,
-      binding: expected.workspaceBinding
-    });
-    issues.push(...workspace.issues);
-    if (expected.workspaceBinding.executionKind === "worker") {
-      const activation2 = await readTerminalActivationReceipts(root2);
-      const runtimeActivation2 = await inspectTerminalRuntimeActivation(root2, activation2);
-      return {
-        schemaVersion: 1,
-        status: issues.length === 0 ? "current" : "action_required",
-        repositoryRoot: root2,
-        issues,
-        activation: activation2,
-        runtimeActivation: runtimeActivation2,
-        activationReadiness: terminalActivationReadiness(runtimeActivation2),
-        repositoryChange,
-        workspace
-      };
-    }
-  }
-  try {
-    const handoff = await lstat43(resolve60(root2, "HANDOFF.md"));
-    if (handoff.isFile() && !handoff.isSymbolicLink())
-      issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
-    else
-      issues.push({
-        code: "legacy_root_handoff_unsafe",
-        command: "review HANDOFF.md and run lervo migrate knowledge"
-      });
-  } catch (error) {
-    if (error.code !== "ENOENT") throw error;
-  }
-  issues.push(...await inspectTerminalRepositoryReplicaService());
-  const workstreamStorage = await openProjectStorage(root2);
-  try {
-    const current = await verifiedCurrentWorkstream(workstreamStorage);
-    const checkpointRequired = expected === void 0 || repositoryChange.changed;
-    if (checkpointRequired && current === null) {
-      issues.push({ code: "workstream_missing", command: "lervo workstream start --stdin" });
-    } else if (checkpointRequired && expected !== void 0 && current !== null) {
-      if (expected.workstreamId !== null && current.workstreamId !== expected.workstreamId) {
-        issues.push({
-          code: "workstream_identity_changed",
-          command: "lervo workstream current --json"
-        });
-      } else if (expected.revision !== null && current.revision <= expected.revision) {
-        issues.push({
-          code: "workstream_checkpoint_required",
-          command: "lervo workstream update --stdin"
-        });
-      }
-    }
-    if (expected !== void 0 && repositoryChange.changed) {
-      const declaration = latestTerminalTurnDeclaration(
-        workstreamStorage.events,
-        expected.contextEventId,
-        expected.provider
-      );
-      if (declaration === null) {
-        issues.push({
-          code: "turn_declaration_missing",
-          command: `lervo terminal declare --provider ${expected.provider} --observation ${expected.observationId} --stdin`
-        });
-      } else {
-        const declarationRevisionCurrent = declaration.payload.repositoryRevision === currentRepository.revision;
-        if (!declarationRevisionCurrent) {
-          issues.push({
-            code: "turn_declaration_stale",
-            command: `lervo terminal declare --provider ${expected.provider} --observation ${expected.observationId} --stdin`
-          });
-        }
-        if (declaration.payload.canonicalizationDisposition === "not_applicable_read_only") {
-          issues.push({
-            code: "canonicalization_disposition_invalid",
-            command: "review canonical repository sources and redeclare the turn"
-          });
-        }
-        if (declaration.payload.knowledgeDisposition === "not_applicable_read_only") {
-          issues.push({
-            code: "knowledge_disposition_invalid",
-            command: "run lervo migrate knowledge and redeclare the turn"
-          });
-        }
-        if (declaration.payload.canonicalizationDisposition === "pending_user_approval" || declaration.payload.knowledgeDisposition === "pending_user_approval") {
-          issues.push({
-            code: "turn_approval_pending",
-            command: "obtain the required user decision before applying or completing the repository change"
-          });
-        }
-        const deliberationCurrent = terminalDeliberationDeclarationMatches(
-          workstreamStorage.events,
-          declaration.payload
-        );
-        if (!deliberationCurrent) {
-          issues.push({
-            code: "deliberation_declaration_invalid",
-            command: "complete or accurately redeclare the requested deliberation lifecycle"
-          });
-        }
-        repositoryKnowledgeInspectionRequired = declarationRevisionCurrent && declaration.payload.knowledgeDisposition !== "not_applicable_read_only" && declaration.payload.knowledgeDisposition !== "pending_user_approval" && deliberationCurrent;
-      }
-    }
-  } catch {
-    issues.push({ code: "workstream_state_invalid", command: "lervo workstream current --json" });
-  } finally {
-    await workstreamStorage.close();
-  }
-  const terminal = await inspectTerminalIntegration(root2);
-  if (terminal.status !== "current")
-    issues.push({
-      code: terminal.status === "blocked" ? "terminal_integration_blocked" : "terminal_integration_stale",
-      command: "lervo migrate knowledge"
-    });
-  if ((expected === void 0 || issues.length === 0) && repositoryKnowledgeInspectionRequired) {
-    issues.push(
-      ...await inspectTerminalRepositoryKnowledgeLifecycle({
-        root: root2,
-        repositoryRevision: currentRepository.revision,
-        supplementalSources
-      })
-    );
-  }
-  const activation = await readTerminalActivationReceipts(root2);
-  const runtimeActivation = await inspectTerminalRuntimeActivation(root2, activation);
-  return {
-    schemaVersion: 1,
-    status: issues.length === 0 ? "current" : "action_required",
-    repositoryRoot: root2,
-    issues,
-    activation,
-    runtimeActivation,
-    activationReadiness: terminalActivationReadiness(runtimeActivation),
-    repositoryChange,
-    workspace
-  };
-}
-
-// apps/cli/src/terminal-context-assembly.ts
-function assembleTerminalHookContext(input) {
-  const context = [
-    input.preamble,
-    ...input.workstreamContext === null ? [] : [input.workstreamContext],
-    input.documentSections.length === 0 ? input.fallback : input.documentSections.join("\n\n")
-  ].join("\n\n");
-  if (Buffer.byteLength(context) > input.maximumBytes) {
-    throw new Error("Prepared provider context exceeds the bounded output limit.");
-  }
-  return context;
-}
-
-// apps/cli/src/terminal-context-loading.ts
-import { constants as constants20 } from "node:fs";
-import { open as open24 } from "node:fs/promises";
-import { relative as relative14, resolve as resolve61, sep as sep14 } from "node:path";
-var TRUNCATION_NOTICE = "\n[Lervo content truncated]";
-function truncateUtf8(value, maximumBytes2) {
-  if (maximumBytes2 <= 0) return "";
-  if (Buffer.byteLength(value) <= maximumBytes2) return value;
-  let bytes = 0;
-  let end = 0;
-  for (const character of value) {
-    const characterBytes = Buffer.byteLength(character);
-    if (bytes + characterBytes > maximumBytes2) break;
-    bytes += characterBytes;
-    end += character.length;
-  }
-  return value.slice(0, end);
-}
-async function loadSelectedTerminalDocument(input) {
-  const target = resolve61(input.repositoryRoot, input.hit.path);
-  const child = relative14(input.repositoryRoot, target);
-  if (child === ".." || child.startsWith(`..${sep14}`) || input.maximumBytes <= 0) return null;
-  let handle;
-  try {
-    handle = await open24(target, constants20.O_RDONLY | (constants20.O_NOFOLLOW ?? 0));
-    const before = await handle.stat();
-    if (!before.isFile() || before.isSymbolicLink() || before.size > 131072) return null;
-    const bytes = await handle.readFile();
-    const after = await handle.stat();
-    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size || sha2562(bytes) !== input.hit.contentHash)
-      return null;
-    const content3 = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    if (Buffer.byteLength(content3) <= input.maximumBytes) return { content: content3, scope: "full" };
-    const noticeBytes = Buffer.byteLength(TRUNCATION_NOTICE);
-    if (input.maximumBytes <= noticeBytes) return null;
-    return {
-      content: `${truncateUtf8(content3, input.maximumBytes - noticeBytes)}${TRUNCATION_NOTICE}`,
-      scope: "prefix"
-    };
-  } catch {
-    return null;
-  } finally {
-    await handle?.close();
-  }
-}
-
 // packages/search-local/dist/types.js
 var SearchLocalError = class extends Error {
   code;
@@ -75624,9 +76094,9 @@ var MAX_DOCUMENT_BYTES = 128 * 1024;
 var MAX_TOTAL_BYTES2 = 16 * 1024 * 1024;
 
 // packages/search-local/dist/observation-files.js
-import { constants as constants21 } from "node:fs";
-import { link as link2, lstat as lstat44, mkdir as mkdir16, open as open25, readdir as readdir17, realpath as realpath5, unlink as unlink3 } from "node:fs/promises";
-import { dirname as dirname15, resolve as resolve62 } from "node:path";
+import { constants as constants19 } from "node:fs";
+import { link as link2, lstat as lstat41, mkdir as mkdir15, open as open23, readdir as readdir17, realpath as realpath4, unlink as unlink3 } from "node:fs/promises";
+import { dirname as dirname14, resolve as resolve57 } from "node:path";
 
 // packages/search-local/dist/stable-file-observation.js
 function sameMetadata4(left, right) {
@@ -75648,15 +76118,15 @@ function compareText6(left, right) {
 async function safeDirectory(path, create) {
   try {
     if (create)
-      await mkdir16(path, { mode: 448 });
+      await mkdir15(path, { mode: 448 });
   } catch (error) {
     if (error.code !== "EEXIST") {
       throw new SearchLocalError(create ? "observation_write_failed" : "observation_read_failed", "Could not prepare the search observation directory.", { cause: error instanceof Error ? error : void 0 });
     }
   }
   try {
-    const stats = await lstat44(path);
-    if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath5(path) !== path) {
+    const stats = await lstat41(path);
+    if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath4(path) !== path) {
       throw new SearchLocalError("observation_invalid", "The search observation path must be a real directory.");
     }
   } catch (error) {
@@ -75669,7 +76139,7 @@ async function safeDirectory(path, create) {
 }
 async function observationPaths(repositoryRoot) {
   try {
-    const canonicalRoot = await realpath5(repositoryRoot);
+    const canonicalRoot = await realpath4(repositoryRoot);
     const paths = resolveProjectPaths(canonicalRoot);
     return { state: paths.state, root: paths.searchObservations };
   } catch (error) {
@@ -75681,7 +76151,7 @@ async function observationPaths(repositoryRoot) {
 async function existingObservationSubdirectory(repositoryRoot, name2) {
   const paths = await observationPaths(repositoryRoot);
   try {
-    await lstat44(paths.state);
+    await lstat41(paths.state);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -75689,7 +76159,7 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
   }
   await safeDirectory(paths.state, false);
   try {
-    await lstat44(paths.root);
+    await lstat41(paths.root);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -75698,9 +76168,9 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
     });
   }
   await safeDirectory(paths.root, false);
-  const directory = resolve62(paths.root, name2);
+  const directory = resolve57(paths.root, name2);
   try {
-    await lstat44(directory);
+    await lstat41(directory);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -75714,20 +76184,20 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
 async function readObservation(path) {
   let handle;
   try {
-    const beforePath = await lstat44(path, { bigint: true });
+    const beforePath = await lstat41(path, { bigint: true });
     if (!beforePath.isFile() || beforePath.isSymbolicLink() || beforePath.size > BigInt(MAX_FILE_BYTES)) {
       throw new SearchLocalError("observation_invalid", "The search observation source file is unsafe.");
     }
-    handle = await open25(path, constants21.O_RDONLY | (constants21.O_NOFOLLOW ?? 0));
+    handle = await open23(path, constants19.O_RDONLY | (constants19.O_NOFOLLOW ?? 0));
     const openedHandle = await handle.stat({ bigint: true });
-    const afterOpenPath = await lstat44(path, { bigint: true });
+    const afterOpenPath = await lstat41(path, { bigint: true });
     if (!openedHandle.isFile() || openedHandle.size > BigInt(MAX_FILE_BYTES) || !afterOpenPath.isFile() || afterOpenPath.isSymbolicLink() || afterOpenPath.size > BigInt(MAX_FILE_BYTES) || !sameFileWithinStatSurface3(beforePath, afterOpenPath) || !sameFileAcrossStatSurfaces3(afterOpenPath, openedHandle)) {
       throw new SearchLocalError("observation_invalid", "The search observation source path changed before it was read.");
     }
     const buffer = Buffer.alloc(Number(openedHandle.size) + 1);
     const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
     const afterReadHandle = await handle.stat({ bigint: true });
-    const afterReadPath = await lstat44(path, { bigint: true });
+    const afterReadPath = await lstat41(path, { bigint: true });
     if (bytesRead !== Number(openedHandle.size) || !afterReadHandle.isFile() || afterReadHandle.size > BigInt(MAX_FILE_BYTES) || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > BigInt(MAX_FILE_BYTES) || !sameFileWithinStatSurface3(openedHandle, afterReadHandle) || !sameFileWithinStatSurface3(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces3(afterReadPath, afterReadHandle)) {
       throw new SearchLocalError("observation_invalid", "The search observation source changed while it was being read.");
     }
@@ -75759,7 +76229,7 @@ async function listObservations(input) {
     if (!entry.isFile() || entry.isSymbolicLink() || !input.pattern.test(entry.name)) {
       throw new SearchLocalError("observation_invalid", "The search observation directory contains an entry outside the contract.");
     }
-    const value = await readObservation(resolve62(input.path, entry.name));
+    const value = await readObservation(resolve57(input.path, entry.name));
     input.assertValue(value);
     const expectedFileName = input.expectedFileName?.(value);
     if (expectedFileName !== void 0 && expectedFileName !== entry.name) {
@@ -75779,36 +76249,36 @@ var import_yaml28 = __toESM(require_dist(), 1);
 var MAX_CASE_BYTES = 64 * 1024;
 
 // packages/search-local/dist/policy-file-store.js
-import { constants as constants22 } from "node:fs";
-import { link as link3, lstat as lstat45, mkdir as mkdir17, open as open26, readdir as readdir18, realpath as realpath6, unlink as unlink4 } from "node:fs/promises";
-import { resolve as resolve63 } from "node:path";
+import { constants as constants20 } from "node:fs";
+import { link as link3, lstat as lstat42, mkdir as mkdir16, open as open24, readdir as readdir18, realpath as realpath5, unlink as unlink4 } from "node:fs/promises";
+import { resolve as resolve58 } from "node:path";
 var import_yaml29 = __toESM(require_dist(), 1);
 var MAX_POLICY_BYTES = 64 * 1024;
 async function policyDirectory(repositoryRoot, contract, create) {
   try {
-    const root2 = await realpath6(repositoryRoot);
+    const root2 = await realpath5(repositoryRoot);
     const paths = resolveProjectPaths(root2);
-    const lervo = await lstat45(paths.lervoRoot);
-    if (!lervo.isDirectory() || lervo.isSymbolicLink() || await realpath6(paths.lervoRoot) !== paths.lervoRoot) {
+    const lervo = await lstat42(paths.lervoRoot);
+    if (!lervo.isDirectory() || lervo.isSymbolicLink() || await realpath5(paths.lervoRoot) !== paths.lervoRoot) {
       throw new Error("unsafe lervo root");
     }
     const directory = contract.directory(paths);
     if (create)
-      await mkdir17(directory, { mode: 448 }).catch((error) => {
+      await mkdir16(directory, { mode: 448 }).catch((error) => {
         if (error.code !== "EEXIST")
           throw error;
       });
     else {
       try {
-        await lstat45(directory);
+        await lstat42(directory);
       } catch (error) {
         if (error.code === "ENOENT")
           return null;
         throw error;
       }
     }
-    const stats = await lstat45(directory);
-    if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath6(directory) !== directory) {
+    const stats = await lstat42(directory);
+    if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath5(directory) !== directory) {
       throw new Error("unsafe policy directory");
     }
     return directory;
@@ -75821,19 +76291,19 @@ async function policyDirectory(repositoryRoot, contract, create) {
 async function readPolicy(path, contract) {
   let handle;
   try {
-    const beforePath = await lstat45(path, { bigint: true });
+    const beforePath = await lstat42(path, { bigint: true });
     if (!beforePath.isFile() || beforePath.isSymbolicLink() || beforePath.size > BigInt(MAX_POLICY_BYTES)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} is not a safe regular file.`);
     }
-    handle = await open26(path, constants22.O_RDONLY | (constants22.O_NOFOLLOW ?? 0));
+    handle = await open24(path, constants20.O_RDONLY | (constants20.O_NOFOLLOW ?? 0));
     const openedHandle = await handle.stat({ bigint: true });
-    const afterOpenPath = await lstat45(path, { bigint: true });
+    const afterOpenPath = await lstat42(path, { bigint: true });
     if (!openedHandle.isFile() || openedHandle.size > BigInt(MAX_POLICY_BYTES) || !afterOpenPath.isFile() || afterOpenPath.isSymbolicLink() || afterOpenPath.size > BigInt(MAX_POLICY_BYTES) || !sameFileWithinStatSurface3(beforePath, afterOpenPath) || !sameFileAcrossStatSurfaces3(afterOpenPath, openedHandle)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} changed before it was read.`);
     }
     const bytes = await handle.readFile();
     const afterReadHandle = await handle.stat({ bigint: true });
-    const afterReadPath = await lstat45(path, { bigint: true });
+    const afterReadPath = await lstat42(path, { bigint: true });
     if (!afterReadHandle.isFile() || afterReadHandle.size > BigInt(MAX_POLICY_BYTES) || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > BigInt(MAX_POLICY_BYTES) || !sameFileWithinStatSurface3(openedHandle, afterReadHandle) || !sameFileWithinStatSurface3(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces3(afterReadPath, afterReadHandle)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} changed while it was being read.`);
     }
@@ -75868,7 +76338,7 @@ async function loadLocalPolicyFiles(input) {
     if (!entry.isFile() || entry.isSymbolicLink() || match === null || !input.contract.idPattern.test(match[1])) {
       throw new SearchLocalError(input.contract.errors.invalid, `The ${input.contract.label} directory contains an entry outside the contract.`);
     }
-    const value = await readPolicy(resolve63(directory, entry.name), input.contract);
+    const value = await readPolicy(resolve58(directory, entry.name), input.contract);
     if (input.contract.id(value) !== match[1]) {
       throw new SearchLocalError(input.contract.errors.invalid, `The ${input.contract.label} ID does not match the filename.`);
     }
@@ -75941,9 +76411,9 @@ async function loadSearchRetrievalPlanActivationBundle(repositoryRoot, bundleId)
 }
 
 // packages/search-local/dist/operational-retrieval-plan.js
-import { createHash as createHash22 } from "node:crypto";
+import { createHash as createHash19 } from "node:crypto";
 function hash(bytes) {
-  return `sha256:${createHash22("sha256").update(bytes).digest("hex")}`;
+  return `sha256:${createHash19("sha256").update(bytes).digest("hex")}`;
 }
 function productDefaultSelection(productDefault) {
   assertProductDefaultSearchRetrievalPlan(productDefault);
@@ -76037,46 +76507,6 @@ async function resolveOperationalSearchRetrievalPlan(input) {
     plan: bundle?.plan ?? null,
     corpusBinding: bundle === null ? null : "reviewed",
     productQualificationId: null
-  };
-}
-
-// apps/cli/src/repository-search-corpus.ts
-import { createHash as createHash23 } from "node:crypto";
-function sourceId(path) {
-  return `doc_${createHash23("sha256").update(path).digest("hex").slice(0, 24)}`;
-}
-function createRepositoryKnowledgeSearchCorpus(scan) {
-  const byPath = /* @__PURE__ */ new Map();
-  for (const source of scan.sources) {
-    if (source.status !== "included" || !source.path.endsWith(".md") || typeof source.content !== "string" || typeof source.contentHash !== "string") {
-      continue;
-    }
-    const existing = byPath.get(source.path);
-    if (existing !== void 0) {
-      if (existing.contentHash !== source.contentHash || existing.text !== source.content) {
-        throw new TypeError(`Corpus path has conflicting current bytes: ${source.path}`);
-      }
-      continue;
-    }
-    const heading = /^#{1,6}\s+(.+)$/mu.exec(source.content)?.[1]?.trim();
-    byPath.set(source.path, {
-      kind: "document",
-      sourceId: sourceId(source.path),
-      path: source.path,
-      contentHash: source.contentHash,
-      ...heading === void 0 ? {} : { title: heading },
-      labels: source.path.split("/"),
-      text: source.content
-    });
-  }
-  const sources = [...byPath.values()].sort((left, right) => left.path.localeCompare(right.path));
-  return {
-    sources,
-    digest: canonicalHash(
-      sources.map((source) => ({ path: source.path, contentHash: source.contentHash }))
-    ),
-    documentCount: sources.length,
-    byteCount: sources.reduce((sum, source) => sum + Buffer.byteLength(source.text), 0)
   };
 }
 
@@ -76627,6 +77057,1367 @@ var productDefaultSearchRetrievalPlan = {
   supersededPlanIds: [...supersededPlanIds]
 };
 
+// apps/cli/src/knowledge-sources.ts
+async function collectLocalKnowledgeSources2(repositoryRoot) {
+  const storage = await openProjectStorage(repositoryRoot);
+  try {
+    const verificationSources = await collectVerificationResultSources({
+      events: storage.events,
+      artifacts: storage.artifacts,
+      loadSuite: (suiteId) => loadVerificationSuite(repositoryRoot, suiteId)
+    });
+    return [
+      ...verificationSources,
+      ...collectExecutionEventSources({ events: storage.events })
+    ].sort((left, right) => left.path.localeCompare(right.path));
+  } finally {
+    await storage.close();
+  }
+}
+
+// apps/cli/src/terminal-declaration-command.ts
+function parseTurnDeclarationDraft(value) {
+  if (Buffer.byteLength(value) > 16 * 1024)
+    throw new Error("The terminal turn declaration exceeds 16 KiB.");
+  const parsed = JSON.parse(value);
+  const allowed = /* @__PURE__ */ new Set([
+    "taskMode",
+    "canonicalizationDisposition",
+    "canonicalizationOutcome",
+    "knowledgeDisposition",
+    "deliberationDisposition",
+    "deliberationId"
+  ]);
+  if (parsed === null || Array.isArray(parsed) || Object.keys(parsed).some((key2) => !allowed.has(key2)))
+    throw new Error("The terminal turn declaration contains unsupported fields.");
+  const taskModes = ["inquiry", "change", "review", "continuation", "approval_response"];
+  const canonicalization = [
+    "not_applicable_read_only",
+    "canonical_sources_current",
+    "canonical_sources_updated",
+    "pending_user_approval"
+  ];
+  const knowledge = [
+    "not_applicable_read_only",
+    "current",
+    "refreshed",
+    "pending_user_approval"
+  ];
+  const deliberation = ["not_requested", "completed", "no_consensus", "failed"];
+  if (!taskModes.includes(parsed.taskMode))
+    throw new Error("The terminal taskMode is invalid.");
+  if (!canonicalization.includes(
+    parsed.canonicalizationDisposition
+  ))
+    throw new Error("The canonicalizationDisposition is invalid.");
+  const canonicalizationOutcome = parsed.canonicalizationOutcome === null ? null : parseCanonicalizationOutcome(parsed.canonicalizationOutcome);
+  if (!knowledge.includes(parsed.knowledgeDisposition))
+    throw new Error("The knowledgeDisposition is invalid.");
+  if (!deliberation.includes(parsed.deliberationDisposition))
+    throw new Error("The deliberationDisposition is invalid.");
+  if (parsed.deliberationId !== null && (typeof parsed.deliberationId !== "string" || !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.deliberationId)))
+    throw new Error("The deliberationId is invalid.");
+  return {
+    ...parsed,
+    canonicalizationOutcome
+  };
+}
+async function runTerminalDeclareCommand(args, io) {
+  let storage;
+  try {
+    const parsed = parseArgs2({
+      args,
+      strict: true,
+      allowPositionals: false,
+      options: {
+        provider: { type: "string" },
+        observation: { type: "string" },
+        stdin: { type: "boolean" },
+        root: { type: "string" },
+        json: { type: "boolean" }
+      }
+    });
+    if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude")
+      throw new Error("--provider must be codex or claude.");
+    const provider = parsed.values.provider;
+    if (typeof parsed.values.observation !== "string" || !/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.values.observation))
+      throw new Error("--observation is invalid.");
+    if (!parsed.values.stdin || io.stdin === void 0)
+      throw new Error("The declaration must be supplied through --stdin.");
+    const draft = parseTurnDeclarationDraft(await io.stdin());
+    const root2 = await resolveTerminalRepositoryRoot(resolve59(io.cwd, parsed.values.root ?? "."));
+    storage = await openProjectStorage(root2);
+    const context = allTerminalEvents2(storage.events).filter(
+      (event) => event.type === "terminal.context.prepared" && event.actor.kind === "provider" && event.actor.provider === parsed.values.provider && event.payload.observationId === parsed.values.observation
+    ).at(-1);
+    if (context === void 0) throw new Error("No matching prepared terminal observation exists.");
+    const contextRevision = context.payload.repositoryRevision;
+    if (typeof contextRevision !== "string")
+      throw new Error("The prepared terminal observation has no repository revision.");
+    const repository = await captureRepositorySnapshot(root2);
+    const repositoryChanged = contextRevision !== repository.revision;
+    if (repositoryChanged && draft.taskMode === "inquiry")
+      throw new Error("An inquiry declaration cannot bind changed repository bytes.");
+    if (repositoryChanged && (draft.canonicalizationDisposition === "not_applicable_read_only" || draft.knowledgeDisposition === "not_applicable_read_only"))
+      throw new Error(
+        "A repository-changing turn requires canonicalization and knowledge dispositions."
+      );
+    if (!repositoryChanged && (draft.canonicalizationDisposition !== "not_applicable_read_only" || draft.knowledgeDisposition !== "not_applicable_read_only"))
+      throw new Error(
+        "An unchanged turn must use read-only canonicalization and knowledge dispositions."
+      );
+    if (repositoryChanged && draft.canonicalizationOutcome === null)
+      throw new Error("A repository-changing turn requires a canonicalizationOutcome.");
+    if (!repositoryChanged && draft.canonicalizationOutcome !== null)
+      throw new Error("An unchanged turn must use a null canonicalizationOutcome.");
+    const preparedSnapshot = await readPreparedRepositorySnapshot(root2, parsed.values.observation);
+    const supplementalSources = repositoryChanged ? await collectLocalKnowledgeSources2(root2) : [];
+    let preparedPatternCandidate;
+    if (draft.canonicalizationOutcome?.kind === "portable_skill_candidate") {
+      const { scan } = await scanConfiguredRepositoryKnowledge(root2, { supplementalSources });
+      preparedPatternCandidate = createDevelopmentPatternCandidate({
+        proposal: draft.canonicalizationOutcome.proposal,
+        scan,
+        passedVerificationEvidence: passedWorkflowVerificationEvidence(storage)
+      });
+    }
+    const canonicalizationAssessment = repositoryChanged && preparedSnapshot !== null ? await assessCanonicalization({
+      repositoryRoot: root2,
+      beforeRevision: preparedSnapshot.revision,
+      afterRevision: repository.revision,
+      beforeFiles: preparedSnapshot.files,
+      afterFiles: repository.files,
+      disposition: draft.canonicalizationDisposition === "not_applicable_read_only" ? "canonical_sources_current" : draft.canonicalizationDisposition,
+      ...draft.canonicalizationOutcome === null ? {} : { outcome: draft.canonicalizationOutcome },
+      now: /* @__PURE__ */ new Date()
+    }) : null;
+    const knowledgeLifecycleIssues = repositoryChanged ? await inspectTerminalRepositoryKnowledgeLifecycle({
+      root: root2,
+      repositoryRevision: repository.revision,
+      supplementalSources
+    }) : [];
+    if (repositoryChanged && draft.knowledgeDisposition !== "pending_user_approval" && knowledgeLifecycleIssues.length > 0) {
+      throw new Error(
+        `The declared knowledge disposition is not supported by the current repository lifecycle: ${knowledgeLifecycleIssues.map((issue) => issue.code).join(", ")}.`
+      );
+    }
+    const occurredAt = (/* @__PURE__ */ new Date()).toISOString();
+    const { canonicalizationOutcome: _canonicalizationOutcome, ...eventDraft } = draft;
+    const payload = {
+      declarationId: newTerminalIdentifier("tdecl"),
+      contextEventId: context.eventId,
+      repositoryRevision: repository.revision,
+      ...eventDraft,
+      declaredAt: occurredAt
+    };
+    const validation = validateSchema("terminalTurnDeclaredEventPayload", payload);
+    if (!validation.valid)
+      throw new Error("The terminal turn declaration does not satisfy the bounded contract.");
+    if (!terminalDeliberationDeclarationMatches(storage.events, payload))
+      throw new Error(
+        "The declared deliberation result is not bound to a matching completed deliberation event."
+      );
+    const providerSessionDigest = context.payload.providerSessionDigest;
+    const providerTurnDigest = context.payload.providerTurnDigest;
+    if (typeof providerSessionDigest !== "string" || providerTurnDigest !== null && typeof providerTurnDigest !== "string")
+      throw new Error("The prepared provider coordinates are invalid.");
+    const terminalDraft = terminalEventDraft({
+      projectId: storage.manifest.projectId,
+      coordinates: {
+        runId: context.runId,
+        sessionId: context.sessionId,
+        providerSessionDigest,
+        providerTurnDigest
+      },
+      provider,
+      actorKind: "agent",
+      type: "terminal.turn.declared",
+      occurredAt,
+      payload
+    });
+    const preparedPatternObservation = preparedPatternCandidate === void 0 ? null : await prepareDevelopmentPatternObservation({
+      repositoryRoot: root2,
+      storage,
+      provider,
+      ...preparedPatternCandidate,
+      observedAt: occurredAt
+    });
+    const recorded = storage.events.transact((transaction) => {
+      const declaration = transaction.append(terminalDraft);
+      for (const draft2 of preparedPatternObservation?.eventDrafts ?? []) transaction.append(draft2);
+      return declaration;
+    });
+    const developmentPatternCandidate = preparedPatternObservation === null ? null : await projectDevelopmentPatternObservation({
+      repositoryRoot: root2,
+      storage,
+      patternId: preparedPatternObservation.patternId
+    });
+    io.stdout(
+      parsed.values.json ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, canonicalizationAssessment, developmentPatternCandidate, knowledgeLifecycleIssues, ...payload }, null, 2)}
+` : `Terminal turn disposition declared.
+observation: ${parsed.values.observation}
+repositoryRevision: ${repository.revision}
+canonicalization: ${canonicalizationAssessment?.status ?? "not_applicable"}
+${developmentPatternCandidate === null ? "" : `developmentPatternCandidate: ${developmentPatternCandidate.patternId}
+`}`
+    );
+    return 0;
+  } catch (error) {
+    io.stderr(`${error instanceof Error ? error.message : String(error)}
+${terminalUsage}
+`);
+    return 1;
+  } finally {
+    await storage?.close();
+  }
+}
+
+// apps/cli/src/terminal-hook-command.ts
+import { parseArgs as parseArgs3 } from "node:util";
+
+// apps/cli/src/terminal-activation-state.ts
+import { constants as constants21 } from "node:fs";
+import { randomUUID as randomUUID7 } from "node:crypto";
+import { lstat as lstat43, mkdir as mkdir17, open as open25, readFile as readFile22, rename as rename12, rm as rm12 } from "node:fs/promises";
+import { resolve as resolve60 } from "node:path";
+function activationPath(root2, provider, event) {
+  return resolve60(
+    root2,
+    ".lervo/state/terminal-integration",
+    `${provider}-${event === "UserPromptSubmit" ? "user-prompt-submit" : "stop"}.json`
+  );
+}
+async function writeTerminalActivationReceipt(root2, receipt) {
+  const directory = resolve60(root2, ".lervo/state/terminal-integration");
+  try {
+    await mkdir17(directory, { mode: 448 });
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+  }
+  const stats = await lstat43(directory);
+  if (!stats.isDirectory() || stats.isSymbolicLink())
+    throw new Error("Unsafe terminal activation state directory.");
+  const target = activationPath(root2, receipt.provider, receipt.hookEvent);
+  const temporary = resolve60(directory, `.activation-${randomUUID7()}.tmp`);
+  let handle;
+  try {
+    handle = await open25(
+      temporary,
+      constants21.O_WRONLY | constants21.O_CREAT | constants21.O_EXCL | (constants21.O_NOFOLLOW ?? 0),
+      384
+    );
+    await handle.writeFile(`${JSON.stringify(receipt)}
+`);
+    await handle.sync();
+    await handle.close();
+    handle = void 0;
+    await rename12(temporary, target);
+  } finally {
+    await handle?.close();
+    await rm12(temporary, { force: true });
+  }
+}
+async function readTerminalActivationReceipts(root2) {
+  const receipts = [];
+  for (const provider of ["codex", "claude"]) {
+    for (const event of ["UserPromptSubmit", "Stop"]) {
+      try {
+        const path = activationPath(root2, provider, event);
+        const stats = await lstat43(path);
+        if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
+        const value = JSON.parse(await readFile22(path, "utf8"));
+        if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v2" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string")
+          receipts.push(value);
+      } catch (error) {
+        if (error.code !== "ENOENT" && !(error instanceof SyntaxError))
+          throw error;
+      }
+    }
+  }
+  return receipts.sort(
+    (left, right) => left.provider.localeCompare(right.provider) || left.hookEvent.localeCompare(right.hookEvent)
+  );
+}
+async function inspectTerminalRuntimeActivation(root2, receipts) {
+  const storage = await openProjectStorage(root2);
+  try {
+    const observations = [];
+    for (const provider of ["codex", "claude"]) {
+      for (const hookEvent of ["UserPromptSubmit", "Stop"]) {
+        const receipt = receipts.find(
+          (item) => item.provider === provider && item.hookEvent === hookEvent
+        );
+        const event = receipt?.observationEventId === void 0 ? null : storage.events.get(receipt.observationEventId);
+        const expectedType = hookEvent === "UserPromptSubmit" ? "terminal.context.prepared" : "terminal.turn.observed";
+        const observed = receipt !== void 0 && event !== null && event.type === expectedType && event.actor.kind === "provider" && event.actor.provider === provider && event.occurredAt === receipt.occurredAt;
+        observations.push({
+          provider,
+          hookEvent,
+          status: observed ? "observed" : "not_observed",
+          occurredAt: observed ? receipt.occurredAt : null
+        });
+      }
+    }
+    const observedCount = observations.filter((item) => item.status === "observed").length;
+    return {
+      status: observedCount === observations.length ? "observed" : observedCount === 0 ? "not_observed" : "partial",
+      evidenceMeaning: "hook_endpoint_observed_not_provider_authorship",
+      observations
+    };
+  } finally {
+    await storage.close();
+  }
+}
+function terminalActivationReadiness(runtime) {
+  const missingProviders = ["codex", "claude"].filter(
+    (provider) => runtime.observations.some(
+      (item) => item.provider === provider && item.status === "not_observed"
+    )
+  );
+  const actions2 = missingProviders.map(
+    (provider) => provider === "codex" ? {
+      provider,
+      code: "codex_hook_review_or_activation_required",
+      instruction: "Open Codex in this repository, run /hooks, review and trust the Lervo UserPromptSubmit and Stop command hooks, then submit one prompt and complete one turn."
+    } : {
+      provider,
+      code: "claude_hook_activation_required",
+      instruction: "Open Claude Code in this repository, submit one prompt, and complete one turn so both installed Lervo hooks are observed."
+    }
+  );
+  return { status: actions2.length === 0 ? "ready" : "action_required", actions: actions2 };
+}
+
+// apps/cli/src/terminal-hook-input.ts
+function parseTerminalHookInput(value) {
+  if (Buffer.byteLength(value) > 256 * 1024)
+    throw new Error("Hook input exceeds the bounded input limit.");
+  const parsed = JSON.parse(value);
+  if (parsed?.hook_event_name !== "UserPromptSubmit" && parsed?.hook_event_name !== "Stop")
+    throw new Error("Unsupported provider hook event.");
+  if (typeof parsed.session_id !== "string" || parsed.session_id.trim() === "" || parsed.session_id.length > 512)
+    throw new Error("The provider session coordinate is missing or invalid.");
+  if (parsed.turn_id !== void 0 && (typeof parsed.turn_id !== "string" || parsed.turn_id.trim() === "" || parsed.turn_id.length > 512))
+    throw new Error("The provider turn coordinate is invalid.");
+  if (parsed.hook_event_name === "UserPromptSubmit" && (typeof parsed.prompt !== "string" || parsed.prompt.trim() === "" || parsed.prompt.length > 64 * 1024))
+    throw new Error("The prompt is missing or exceeds the bounded prompt limit.");
+  if (parsed.hook_event_name === "Stop" && parsed.stop_hook_active !== void 0 && typeof parsed.stop_hook_active !== "boolean")
+    throw new Error("The provider Stop continuation state is invalid.");
+  if (parsed.hook_event_name === "Stop" && parsed.last_assistant_message !== void 0 && parsed.last_assistant_message !== null && typeof parsed.last_assistant_message !== "string")
+    throw new Error("The provider completion message is invalid.");
+  return {
+    event: parsed.hook_event_name,
+    providerSessionId: parsed.session_id,
+    providerTurnId: typeof parsed.turn_id === "string" ? parsed.turn_id : null,
+    stopHookActive: parsed.stop_hook_active === true,
+    ...typeof parsed.prompt === "string" ? { prompt: parsed.prompt } : {},
+    ...parsed.last_assistant_message === null || typeof parsed.last_assistant_message === "string" ? { lastAssistantMessage: parsed.last_assistant_message } : {}
+  };
+}
+
+// apps/cli/src/terminal-lifecycle-inspection.ts
+import { lstat as lstat46 } from "node:fs/promises";
+import { resolve as resolve63 } from "node:path";
+
+// apps/cli/src/terminal-repository-replica-service-inspection.ts
+import { execFile as execFile3 } from "node:child_process";
+import { lstat as lstat44 } from "node:fs/promises";
+import { homedir as homedir2 } from "node:os";
+import { resolve as resolve61 } from "node:path";
+var serviceLabel = "dev.lervo.repository-replica";
+var maximumDefinitionBytes = 128 * 1024;
+function launchdServiceLoaded(uid) {
+  return new Promise((done) => {
+    execFile3(
+      "launchctl",
+      ["print", `gui/${uid}/${serviceLabel}`],
+      { encoding: "utf8", maxBuffer: 4096, timeout: 5e3 },
+      (error) => done(error === null)
+    );
+  });
+}
+async function inspectTerminalRepositoryReplicaService(input = {}) {
+  if ((input.platform ?? process.platform) !== "darwin") return [];
+  const definition2 = resolve61(
+    input.homeDirectory ?? homedir2(),
+    "Library",
+    "LaunchAgents",
+    `${serviceLabel}.plist`
+  );
+  let metadata;
+  try {
+    metadata = await lstat44(definition2);
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    return [
+      {
+        code: "repository_replica_service_inspection_failed",
+        command: "inspect the installed repository replica service"
+      }
+    ];
+  }
+  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 1 || metadata.size > maximumDefinitionBytes || (metadata.mode & 63) !== 0) {
+    return [
+      {
+        code: "repository_replica_service_definition_unsafe",
+        command: "review the owner-only repository replica service definition"
+      }
+    ];
+  }
+  const uid = input.uid ?? process.getuid?.();
+  if (uid === void 0) {
+    return [
+      {
+        code: "repository_replica_service_inspection_failed",
+        command: "inspect the installed repository replica service"
+      }
+    ];
+  }
+  const loaded = await (input.serviceLoaded ?? launchdServiceLoaded)(uid);
+  return loaded ? [] : [
+    {
+      code: "repository_replica_service_inactive",
+      command: 'launchctl bootstrap gui/$(id -u) "$HOME/Library/LaunchAgents/dev.lervo.repository-replica.plist"'
+    }
+  ];
+}
+
+// apps/cli/src/terminal-workspace-attachment.ts
+import { randomBytes as randomBytes2 } from "node:crypto";
+
+// apps/cli/src/terminal-workspace-boundary.ts
+import { createHash as createHash21 } from "node:crypto";
+
+// packages/workspace-host-git/dist/evidence.js
+import { execFile as execFile4 } from "node:child_process";
+import { createHash as createHash20 } from "node:crypto";
+import { constants as constants22 } from "node:fs";
+import { lstat as lstat45, open as open26, readFile as readFile23, realpath as realpath6 } from "node:fs/promises";
+import { dirname as dirname15, isAbsolute as isAbsolute5, resolve as resolve62 } from "node:path";
+import { promisify as promisify3 } from "node:util";
+var execute2 = promisify3(execFile4);
+var COMMIT2 = /^[a-f0-9]{40,64}$/u;
+var HASH13 = /^sha256:[a-f0-9]{64}$/u;
+var MARKER_NAME = "lervo-workspace-owner.json";
+function fail17(code, message, cause) {
+  throw new WorkspaceHostError(code, message, cause === void 0 ? void 0 : { cause });
+}
+function stableJson4(value) {
+  if (Array.isArray(value))
+    return `[${value.map(stableJson4).join(",")}]`;
+  if (value !== null && typeof value === "object")
+    return `{${Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key2, item]) => `${JSON.stringify(key2)}:${stableJson4(item)}`).join(",")}}`;
+  return JSON.stringify(value);
+}
+function digest6(value) {
+  return `sha256:${createHash20("sha256").update(stableJson4(value)).digest("hex")}`;
+}
+async function git(root2, arguments_) {
+  try {
+    const { stdout } = await execute2("git", ["-C", root2, ...arguments_], {
+      encoding: "utf8",
+      maxBuffer: 2 * 1024 * 1024
+    });
+    return stdout.trim();
+  } catch (error) {
+    fail17("host_git_failed", "The Git workspace operation failed.", error);
+  }
+}
+async function gitSucceeds(root2, arguments_) {
+  try {
+    await execute2("git", ["-C", root2, ...arguments_], {
+      encoding: "utf8",
+      maxBuffer: 2 * 1024 * 1024
+    });
+    return true;
+  } catch (error) {
+    if (error.code === 1)
+      return false;
+    fail17("host_git_failed", "The Git workspace predicate failed.", error);
+  }
+}
+async function registeredWorktrees(repositoryRoot) {
+  const output = await git(repositoryRoot, ["worktree", "list", "--porcelain", "-z"]);
+  const records = /* @__PURE__ */ new Map();
+  let path = null;
+  for (const field2 of output.split("\0")) {
+    if (field2.startsWith("worktree "))
+      path = resolve62(field2.slice("worktree ".length));
+    else if (path !== null && field2.startsWith("HEAD ")) {
+      records.set(path, field2.slice("HEAD ".length));
+      path = null;
+    }
+  }
+  return records;
+}
+async function gitOperationInProgress(gitDirectory) {
+  for (const name2 of [
+    "MERGE_HEAD",
+    "CHERRY_PICK_HEAD",
+    "REVERT_HEAD",
+    "BISECT_LOG",
+    "rebase-merge",
+    "rebase-apply"
+  ]) {
+    try {
+      await lstat45(resolve62(gitDirectory, name2));
+      return true;
+    } catch (error) {
+      if (error.code !== "ENOENT")
+        return true;
+    }
+  }
+  return false;
+}
+var GitWorkspaceEvidence = class {
+  binding;
+  constructor(binding) {
+    this.binding = binding;
+  }
+  validMarker(marker) {
+    return marker.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker.workspaceId) && Number.isSafeInteger(marker.generation) && marker.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker.repositoryInstanceId) && marker.adapterKind === this.binding.kind && marker.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker.creationPlanId) && HASH13.test(marker.pathDigest);
+  }
+  validateRequest(repositoryRoot, workspacePath, marker, allowSamePath = false) {
+    if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve62(repositoryRoot) !== repositoryRoot || resolve62(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker))
+      fail17("host_coordinate_invalid", "The Git workspace coordinate is invalid.");
+  }
+  async markerMatches(gitDirectory, expected) {
+    try {
+      const path = resolve62(gitDirectory, MARKER_NAME);
+      const info = await lstat45(path);
+      if (!info.isFile() || info.isSymbolicLink() || info.size > 16384)
+        return false;
+      return stableJson4(JSON.parse(await readFile23(path, "utf8"))) === stableJson4(expected);
+    } catch {
+      return false;
+    }
+  }
+  async writeMarker(workspacePath, marker) {
+    if (!this.validMarker(marker))
+      fail17("host_coordinate_invalid", "The workspace ownership marker is invalid.");
+    const gitDirectory = await git(workspacePath, [
+      "rev-parse",
+      "--path-format=absolute",
+      "--git-dir"
+    ]);
+    const handle = await open26(resolve62(gitDirectory, MARKER_NAME), constants22.O_WRONLY | constants22.O_CREAT | constants22.O_EXCL | (constants22.O_NOFOLLOW ?? 0), 384);
+    try {
+      await handle.writeFile(`${JSON.stringify(marker, null, 2)}
+`);
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+  }
+  async inspect(input) {
+    this.validateRequest(input.repositoryRoot, input.workspacePath, input.marker, true);
+    if (!COMMIT2.test(input.baseCommit))
+      fail17("host_coordinate_invalid", "The Git inspection base is invalid.");
+    const worktrees = await registeredWorktrees(input.repositoryRoot);
+    let registeredPath = input.workspacePath;
+    try {
+      registeredPath = await realpath6(input.workspacePath);
+    } catch (error) {
+      if (error.code !== "ENOENT")
+        throw error;
+    }
+    const registeredHead = worktrees.get(registeredPath);
+    if (registeredHead === void 0)
+      return {
+        status: "absent",
+        headCommit: null,
+        treeHash: null,
+        clean: null,
+        gitOperationInProgress: null,
+        changedPaths: null,
+        markerMatched: false,
+        processObservation: "unavailable",
+        nativeInstanceDigest: null
+      };
+    try {
+      const info = await lstat45(input.workspacePath);
+      if (!info.isDirectory() || info.isSymbolicLink())
+        return {
+          status: "recovery_required",
+          headCommit: registeredHead,
+          treeHash: null,
+          clean: null,
+          gitOperationInProgress: null,
+          changedPaths: null,
+          markerMatched: false,
+          processObservation: "unavailable",
+          nativeInstanceDigest: digest6({ path: input.workspacePath })
+        };
+    } catch {
+      return {
+        status: "recovery_required",
+        headCommit: registeredHead,
+        treeHash: null,
+        clean: null,
+        gitOperationInProgress: null,
+        changedPaths: null,
+        markerMatched: false,
+        processObservation: "unavailable",
+        nativeInstanceDigest: digest6({ path: input.workspacePath })
+      };
+    }
+    const coordinates = (await git(input.workspacePath, [
+      "rev-parse",
+      "--path-format=absolute",
+      "HEAD",
+      "HEAD^{tree}",
+      "--git-dir"
+    ])).split(/\r?\n/u);
+    const [headCommit, treeHash, gitDirectory] = coordinates;
+    if (coordinates.length !== 3 || !COMMIT2.test(headCommit) || !COMMIT2.test(treeHash) || !isAbsolute5(gitDirectory) || gitDirectory.includes("\0"))
+      fail17("host_coordinate_invalid", "The Git inspection coordinates are invalid.");
+    const [status, operation, matched] = await Promise.all([
+      git(input.workspacePath, ["status", "--porcelain=v2", "--untracked-files=normal"]),
+      gitOperationInProgress(gitDirectory),
+      this.markerMatches(gitDirectory, input.marker)
+    ]);
+    const [changed, untracked] = headCommit === input.baseCommit && status.length === 0 ? ["", ""] : await Promise.all([
+      git(input.workspacePath, ["diff", "--name-only", "-z", input.baseCommit]),
+      git(input.workspacePath, ["ls-files", "--others", "--exclude-standard", "-z"])
+    ]);
+    const changedPaths = [
+      ...new Set(`${changed}\0${untracked}`.split("\0").filter(Boolean))
+    ].sort();
+    return {
+      status: matched ? "present" : "recovery_required",
+      headCommit,
+      treeHash,
+      clean: status.length === 0,
+      gitOperationInProgress: operation,
+      changedPaths,
+      markerMatched: matched,
+      processObservation: "unavailable",
+      nativeInstanceDigest: digest6({ path: await realpath6(input.workspacePath) })
+    };
+  }
+  async inspectResult(input) {
+    const inspection = await this.inspect(input);
+    if (inspection.status !== "present" || inspection.headCommit === null)
+      return { ...inspection, baseCommitReachable: null, commitIds: null };
+    const baseCommitReachable = await gitSucceeds(input.workspacePath, [
+      "merge-base",
+      "--is-ancestor",
+      input.baseCommit,
+      inspection.headCommit
+    ]);
+    const commitIds = baseCommitReachable ? (await git(input.workspacePath, [
+      "rev-list",
+      "--reverse",
+      `${input.baseCommit}..${inspection.headCommit}`
+    ])).split("\n").filter(Boolean) : [];
+    return { ...inspection, baseCommitReachable, commitIds };
+  }
+  async inspectCleanup(request) {
+    if (!/^refs\/(?:heads|tags)\/[A-Za-z0-9._/-]{1,512}$/u.test(request.integrationTargetRef) || !COMMIT2.test(request.integratedHeadCommit))
+      fail17("host_coordinate_invalid", "The Git cleanup target coordinate is invalid.");
+    const inspection = await this.inspect(request);
+    if (inspection.status === "absent")
+      return {
+        ...inspection,
+        integrationTargetCommit: null,
+        headReachableFromTarget: null,
+        gitMetadataHash: null,
+        dependentReferenceCount: 0,
+        childWorkspaceCount: 0,
+        reviewLinkCount: 0
+      };
+    const targetCommit = await git(request.repositoryRoot, [
+      "show-ref",
+      "--verify",
+      "--hash",
+      request.integrationTargetRef
+    ]);
+    const worktrees = await registeredWorktrees(request.repositoryRoot);
+    return {
+      ...inspection,
+      integrationTargetCommit: targetCommit,
+      headReachableFromTarget: await gitSucceeds(request.repositoryRoot, [
+        "merge-base",
+        "--is-ancestor",
+        request.integratedHeadCommit,
+        targetCommit
+      ]),
+      gitMetadataHash: digest6({
+        registeredWorkspacePathDigest: digest6({ path: request.workspacePath }),
+        registeredHead: worktrees.get(request.workspacePath) ?? null,
+        targetCommit
+      }),
+      dependentReferenceCount: 0,
+      childWorkspaceCount: 0,
+      reviewLinkCount: 0
+    };
+  }
+  async provisionDetached(request, beforeMutation) {
+    this.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
+    if (!COMMIT2.test(request.baseCommit) || !/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey))
+      fail17("host_coordinate_invalid", "The Git provision binding is invalid.");
+    const existing = await this.inspect(request);
+    if (existing.status !== "absent") {
+      if (existing.markerMatched && existing.headCommit === request.baseCommit)
+        return existing;
+      fail17("host_effect_uncertain", "A different workspace occupies the provision coordinate.");
+    }
+    const parentInfo = await lstat45(dirname15(request.workspacePath));
+    if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink())
+      fail17("host_coordinate_invalid", "The workspace parent must be a real directory.");
+    await beforeMutation?.();
+    await git(request.repositoryRoot, [
+      "worktree",
+      "add",
+      "--detach",
+      request.workspacePath,
+      request.baseCommit
+    ]);
+    try {
+      await this.writeMarker(request.workspacePath, request.marker);
+    } catch (error) {
+      fail17("host_effect_uncertain", "The worktree exists without its ownership marker.", error);
+    }
+    return this.inspect(request);
+  }
+  async removeNonForce(request) {
+    this.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
+    if (!/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey))
+      fail17("host_coordinate_invalid", "The Git removal binding is invalid.");
+    const before = await this.inspect(request);
+    if (before.status === "absent")
+      return before;
+    if (!before.markerMatched)
+      fail17("host_marker_mismatch", "The workspace ownership marker changed.");
+    if (before.gitOperationInProgress)
+      fail17("host_operation_in_progress", "A Git operation is in progress.");
+    if (!before.clean)
+      fail17("host_not_clean", "The workspace contains tracked or untracked changes.");
+    await git(request.repositoryRoot, ["worktree", "remove", request.workspacePath]);
+    const after = await this.inspect(request);
+    if (after.status !== "absent")
+      fail17("host_effect_uncertain", "Git did not prove non-force worktree removal.");
+    return after;
+  }
+};
+
+// packages/workspace-host-git/dist/integration.js
+import { execFile as execFile6 } from "node:child_process";
+import { promisify as promisify5 } from "node:util";
+
+// packages/workspace-host-git/dist/target-ref.js
+import { execFile as execFile5 } from "node:child_process";
+import { promisify as promisify4 } from "node:util";
+var execute3 = promisify4(execFile5);
+
+// packages/workspace-host-git/dist/integration.js
+var execute4 = promisify5(execFile6);
+
+// packages/workspace-host-git/dist/index.js
+var VERSION4 = "1.0.0";
+var GitWorkspaceHostAdapter = class {
+  beforeProvision;
+  kind = "git";
+  version = VERSION4;
+  capabilities = {
+    provision: true,
+    inspect: true,
+    cleanupInspection: true,
+    nonForceRemoval: true,
+    processObservation: false
+  };
+  evidence = new GitWorkspaceEvidence({ kind: this.kind, version: this.version });
+  constructor(beforeProvision) {
+    this.beforeProvision = beforeProvision;
+  }
+  provision(request) {
+    return this.evidence.provisionDetached(request, this.beforeProvision);
+  }
+  inspect = this.evidence.inspect.bind(this.evidence);
+  inspectResult = this.evidence.inspectResult.bind(this.evidence);
+  inspectCleanup = this.evidence.inspectCleanup.bind(this.evidence);
+  remove(request) {
+    return this.evidence.removeNonForce(request);
+  }
+};
+
+// apps/cli/src/terminal-workspace-boundary.ts
+function stableJson5(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson5).join(",")}]`;
+  if (value !== null && typeof value === "object")
+    return `{${Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key2, item]) => `${JSON.stringify(key2)}:${stableJson5(item)}`).join(",")}}`;
+  return JSON.stringify(value);
+}
+function terminalWorkspaceDigest(value) {
+  return `sha256:${createHash21("sha256").update(stableJson5(value)).digest("hex")}`;
+}
+function terminalWriterSessionId(provider, providerSessionId) {
+  return `ses_terminal_${createHash21("sha256").update(`${provider}\0${providerSessionId}`).digest("hex").slice(0, 24)}`;
+}
+function terminalWorkspaceMarker(workspace) {
+  return {
+    schemaVersion: 1,
+    workspaceId: workspace.workspaceId,
+    generation: workspace.generation,
+    repositoryInstanceId: workspace.repositoryInstanceId,
+    adapterKind: workspace.host.kind,
+    adapterVersion: workspace.host.version,
+    creationPlanId: workspace.creationPlanId,
+    pathDigest: workspace.pathDigest
+  };
+}
+function terminalWorkspaceHost(workspace) {
+  if (workspace.host.kind !== "git")
+    throw new Error("The workspace host adapter is not available to direct terminal integration.");
+  const host = new GitWorkspaceHostAdapter();
+  if (host.version !== workspace.host.version)
+    throw new Error("The workspace host adapter version changed before terminal attachment.");
+  return host;
+}
+async function terminalWorkspaceAssignment(input) {
+  const assignment = (await listAssignments(input.root)).find(
+    (item) => item.assignmentId === input.workspace.assignmentId
+  );
+  if (assignment?.lease === null || assignment === void 0 || assignment.lease.generation !== input.workspace.leaseGeneration)
+    throw new Error("The workspace assignment lease is absent or belongs to another generation.");
+  await assertAssignmentExecutionAuthority({
+    repositoryRoot: input.root,
+    assignmentId: assignment.assignmentId,
+    agentId: input.workspace.agentId,
+    leaseId: assignment.lease.leaseId,
+    provider: input.provider,
+    expectedPaths: assignment.expectedPaths,
+    verificationSuiteIds: assignment.verificationSuiteIds,
+    now: input.now
+  });
+  return assignment;
+}
+
+// apps/cli/src/terminal-workspace-contract.ts
+var TerminalWorkspaceIsolationError = class extends Error {
+  constructor(code, message, options) {
+    super(message, options);
+    this.code = code;
+    this.name = "TerminalWorkspaceIsolationError";
+  }
+  code;
+};
+function terminalWorkspaceIsolationFailure(code, message, cause) {
+  throw new TerminalWorkspaceIsolationError(
+    code,
+    message,
+    cause === void 0 ? void 0 : { cause }
+  );
+}
+
+// apps/cli/src/terminal-workspace-attachment.ts
+async function attachTerminalWorkspace(input) {
+  const pathDigest = repositoryCoordinateDigest(input.root);
+  const matches = (await listWorkspaces(input.root)).filter(
+    (workspace2) => workspace2.pathDigest === pathDigest && workspace2.state !== "removed"
+  );
+  if (matches.length === 0) return null;
+  if (matches.length !== 1)
+    terminalWorkspaceIsolationFailure(
+      "shared_workspace_mutation",
+      "Multiple active workspace generations claim this checkout."
+    );
+  let workspace = matches[0];
+  const expectedMarker = terminalWorkspaceMarker(workspace);
+  if (terminalWorkspaceDigest(expectedMarker) !== workspace.markerHash)
+    terminalWorkspaceIsolationFailure(
+      "workspace_marker_mismatch",
+      "The workspace marker binding is invalid."
+    );
+  const now = input.now ?? /* @__PURE__ */ new Date();
+  try {
+    await terminalWorkspaceAssignment({
+      root: input.root,
+      workspace,
+      provider: input.provider,
+      now
+    });
+  } catch (error) {
+    terminalWorkspaceIsolationFailure(
+      "assignment_scope_changed",
+      "The workspace assignment lease is not current.",
+      error
+    );
+  }
+  let inspected;
+  try {
+    inspected = await terminalWorkspaceHost(workspace).inspect({
+      repositoryRoot: input.root,
+      workspacePath: input.root,
+      baseCommit: workspace.baseCommit,
+      marker: expectedMarker
+    });
+  } catch (error) {
+    terminalWorkspaceIsolationFailure(
+      "workspace_marker_mismatch",
+      "The workspace host inspection failed.",
+      error
+    );
+  }
+  if (inspected.status !== "present" || !inspected.markerMatched)
+    terminalWorkspaceIsolationFailure(
+      "workspace_marker_mismatch",
+      "The terminal checkout does not match its workspace marker."
+    );
+  const sessionId = terminalWriterSessionId(input.provider, input.providerSessionId);
+  let attachmentDisposition;
+  if (workspace.state === "ready" || workspace.state === "paused") {
+    const resumed = workspace.state === "paused";
+    const stored = await readWorkspace(input.root, workspace.workspaceId);
+    if (stored === null)
+      terminalWorkspaceIsolationFailure(
+        "workspace_marker_mismatch",
+        "The workspace record disappeared before activation."
+      );
+    workspace = (await updateWorkspace({
+      repositoryRoot: input.root,
+      workspaceId: workspace.workspaceId,
+      expectedContentHash: stored.contentHash,
+      eventId: `evt_${randomBytes2(12).toString("hex")}`,
+      expectedRevision: workspace.revision,
+      expectedGeneration: workspace.generation,
+      nextState: "active",
+      occurredAt: now.toISOString(),
+      writerSession: {
+        sessionId,
+        startedAt: now.toISOString(),
+        lastSeenAt: now.toISOString()
+      }
+    })).workspace;
+    attachmentDisposition = resumed ? "resumed" : "activated";
+  } else if (workspace.state !== "active" || workspace.writerSession?.sessionId !== sessionId) {
+    terminalWorkspaceIsolationFailure(
+      "writer_lease_lost",
+      "The workspace is not writable by this terminal session."
+    );
+  } else {
+    const stored = await readWorkspace(input.root, workspace.workspaceId);
+    if (stored === null)
+      terminalWorkspaceIsolationFailure(
+        "workspace_marker_mismatch",
+        "The workspace record disappeared before its writer heartbeat."
+      );
+    workspace = (await updateWorkspace({
+      repositoryRoot: input.root,
+      workspaceId: workspace.workspaceId,
+      expectedContentHash: stored.contentHash,
+      eventId: `evt_${randomBytes2(12).toString("hex")}`,
+      expectedRevision: workspace.revision,
+      expectedGeneration: workspace.generation,
+      nextState: "active",
+      occurredAt: now.toISOString(),
+      writerSession: {
+        ...workspace.writerSession,
+        lastSeenAt: now.toISOString()
+      },
+      reasonCode: "terminal_writer_observed"
+    })).workspace;
+    attachmentDisposition = "continued";
+  }
+  return {
+    executionKind: workspace.executionKind,
+    workspaceId: workspace.workspaceId,
+    workspaceGeneration: workspace.generation,
+    workspaceRevision: workspace.revision,
+    assignmentId: workspace.assignmentId,
+    leaseGeneration: workspace.leaseGeneration,
+    writerSessionId: sessionId,
+    attachmentDisposition
+  };
+}
+
+// apps/cli/src/terminal-workspace-checkpoint.ts
+import { createHash as createHash22, randomBytes as randomBytes3 } from "node:crypto";
+async function pauseTerminalWorkspace(input) {
+  const { workspace, binding } = input.inspection;
+  if (input.inspection.issues.length > 0 || workspace === null || workspace.state !== "active" || workspace.workspaceId !== input.checkpoint.workspaceId || workspace.revision !== input.checkpoint.workspaceRevision || workspace.writerSession?.sessionId !== binding.writerSessionId || input.checkpoint.writerSessionId !== binding.writerSessionId)
+    throw new Error("The terminal workspace cannot pause without its exact current checkpoint.");
+  const stored = await readWorkspace(input.root, workspace.workspaceId);
+  if (stored === null) throw new Error("The terminal workspace disappeared before pause.");
+  return (await updateWorkspace({
+    repositoryRoot: input.root,
+    workspaceId: workspace.workspaceId,
+    expectedContentHash: stored.contentHash,
+    eventId: `evt_${randomBytes3(12).toString("hex")}`,
+    expectedRevision: workspace.revision,
+    expectedGeneration: workspace.generation,
+    nextState: "paused",
+    occurredAt: input.occurredAt,
+    evidence: { writerFrozen: true },
+    writerSession: null,
+    reasonCode: "terminal_turn_checkpointed"
+  })).workspace;
+}
+async function checkpointTerminalWorkspace(input) {
+  const { workspace, host, assignmentRevision, changedPathSetDigest, changedPathCount } = input.inspection;
+  if (input.inspection.issues.length > 0 || workspace === null || host === null || host.headCommit === null || host.treeHash === null || host.changedPaths === null || assignmentRevision === null || changedPathSetDigest === null || changedPathCount === null)
+    throw new Error("The worker workspace is not eligible for a checkpoint.");
+  const eventId2 = `evt_${createHash22("sha256").update(`workspace-checkpoint\0${input.contextEventId}`).digest("hex").slice(0, 24)}`;
+  return recordWorkspaceCheckpoint({
+    repositoryRoot: input.root,
+    checkpoint: {
+      schemaVersion: 1,
+      type: "agent.workspace.checkpointed",
+      eventId: eventId2,
+      workspaceId: workspace.workspaceId,
+      generation: workspace.generation,
+      workspaceRevision: workspace.revision,
+      assignmentId: workspace.assignmentId,
+      assignmentRevision,
+      leaseGeneration: workspace.leaseGeneration,
+      writerSessionId: input.inspection.binding.writerSessionId,
+      headCommit: host.headCommit,
+      treeHash: host.treeHash,
+      changedPathSetDigest,
+      changedPathCount,
+      checkoutClean: host.clean === true,
+      occurredAt: input.occurredAt
+    }
+  });
+}
+
+// apps/cli/src/terminal-workspace-inspection.ts
+async function inspectTerminalWorkspace(input) {
+  const issues = [];
+  const stored = await readWorkspace(input.root, input.binding.workspaceId);
+  if (stored === null) {
+    issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
+    return {
+      issues,
+      binding: input.binding,
+      workspace: null,
+      assignmentRevision: null,
+      host: null,
+      changedPathSetDigest: null,
+      changedPathCount: null
+    };
+  }
+  const workspace = stored.workspace;
+  if (workspace.generation !== input.binding.workspaceGeneration || workspace.revision !== input.binding.workspaceRevision || workspace.assignmentId !== input.binding.assignmentId || workspace.leaseGeneration !== input.binding.leaseGeneration)
+    issues.push({ code: "workspace_revision_changed", command: "lervo workspace inspect --json" });
+  const sessionId = terminalWriterSessionId(input.provider, input.providerSessionId);
+  if (workspace.state !== "active" || workspace.writerSession?.sessionId !== input.binding.writerSessionId || sessionId !== input.binding.writerSessionId)
+    issues.push({ code: "writer_lease_lost", command: "lervo workspace inspect --json" });
+  let assignmentRevision = null;
+  let expectedPaths = [];
+  try {
+    const assignment = await terminalWorkspaceAssignment({
+      root: input.root,
+      workspace,
+      provider: input.provider,
+      now: input.now ?? /* @__PURE__ */ new Date()
+    });
+    assignmentRevision = assignment.revision;
+    expectedPaths = assignment.expectedPaths;
+  } catch {
+    issues.push({ code: "assignment_scope_changed", command: "lervo assignment list --json" });
+  }
+  let host = null;
+  let changedPathSetDigest = null;
+  let changedPathCount = null;
+  try {
+    const expectedMarker = terminalWorkspaceMarker(workspace);
+    if (terminalWorkspaceDigest(expectedMarker) !== workspace.markerHash)
+      throw new Error("Workspace marker hash mismatch.");
+    host = await terminalWorkspaceHost(workspace).inspect({
+      repositoryRoot: input.root,
+      workspacePath: input.root,
+      baseCommit: workspace.baseCommit,
+      marker: expectedMarker
+    });
+    if (host.status !== "present" || !host.markerMatched)
+      issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
+    if (host.gitOperationInProgress)
+      issues.push({
+        code: "shared_workspace_mutation",
+        command: "finish or abort the Git operation"
+      });
+    if (host.changedPaths === null) {
+      issues.push({ code: "shared_workspace_mutation", command: "lervo workspace inspect --json" });
+    } else {
+      const partition = partitionWorkspaceChanges({
+        expectedPaths,
+        changedPaths: host.changedPaths,
+        runtimeExcludedPaths: [".lervo/state", ".lervo/data"]
+      });
+      if (partition.outsideScope.length > 0)
+        issues.push({ code: "workspace_path_escape", command: "lervo workspace inspect --json" });
+      changedPathSetDigest = terminalWorkspaceDigest(partition.expected);
+      changedPathCount = partition.expected.length;
+    }
+  } catch {
+    issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
+  }
+  return {
+    issues,
+    binding: input.binding,
+    workspace,
+    assignmentRevision,
+    host,
+    changedPathSetDigest,
+    changedPathCount
+  };
+}
+
+// apps/cli/src/terminal-lifecycle-inspection.ts
+async function inspectTerminalLifecycle(root2, expected) {
+  const [supplementalSources, currentRepository] = await Promise.all([
+    collectLocalKnowledgeSources2(root2),
+    captureRepositorySnapshot(root2)
+  ]);
+  const repositoryChange = {
+    beforeRevision: expected?.repositoryRevision ?? currentRepository.revision,
+    afterRevision: currentRepository.revision,
+    changed: expected !== void 0 && expected.repositoryRevision !== currentRepository.revision
+  };
+  const issues = [];
+  let repositoryKnowledgeInspectionRequired = expected === void 0;
+  let workspace = null;
+  if (expected?.workspaceBinding !== null && expected?.workspaceBinding !== void 0) {
+    workspace = await inspectTerminalWorkspace({
+      root: root2,
+      provider: expected.provider,
+      providerSessionId: expected.providerSessionId,
+      binding: expected.workspaceBinding
+    });
+    issues.push(...workspace.issues);
+    if (expected.workspaceBinding.executionKind === "worker") {
+      const activation2 = await readTerminalActivationReceipts(root2);
+      const runtimeActivation2 = await inspectTerminalRuntimeActivation(root2, activation2);
+      return {
+        schemaVersion: 1,
+        status: issues.length === 0 ? "current" : "action_required",
+        repositoryRoot: root2,
+        issues,
+        activation: activation2,
+        runtimeActivation: runtimeActivation2,
+        activationReadiness: terminalActivationReadiness(runtimeActivation2),
+        repositoryChange,
+        workspace
+      };
+    }
+  }
+  try {
+    const handoff = await lstat46(resolve63(root2, "HANDOFF.md"));
+    if (handoff.isFile() && !handoff.isSymbolicLink())
+      issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
+    else
+      issues.push({
+        code: "legacy_root_handoff_unsafe",
+        command: "review HANDOFF.md and run lervo migrate knowledge"
+      });
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  issues.push(...await inspectTerminalRepositoryReplicaService());
+  const workstreamStorage = await openProjectStorage(root2);
+  try {
+    const current = await verifiedCurrentWorkstream(workstreamStorage);
+    const checkpointRequired = expected === void 0 || repositoryChange.changed;
+    if (checkpointRequired && current === null) {
+      issues.push({ code: "workstream_missing", command: "lervo workstream start --stdin" });
+    } else if (checkpointRequired && expected !== void 0 && current !== null) {
+      if (expected.workstreamId !== null && current.workstreamId !== expected.workstreamId) {
+        issues.push({
+          code: "workstream_identity_changed",
+          command: "lervo workstream current --json"
+        });
+      } else if (expected.revision !== null && current.revision <= expected.revision) {
+        issues.push({
+          code: "workstream_checkpoint_required",
+          command: "lervo workstream update --stdin"
+        });
+      }
+    }
+    if (expected !== void 0 && repositoryChange.changed) {
+      const declaration = latestTerminalTurnDeclaration(
+        workstreamStorage.events,
+        expected.contextEventId,
+        expected.provider
+      );
+      if (declaration === null) {
+        issues.push({
+          code: "turn_declaration_missing",
+          command: `lervo terminal declare --provider ${expected.provider} --observation ${expected.observationId} --stdin`
+        });
+      } else {
+        const declarationRevisionCurrent = declaration.payload.repositoryRevision === currentRepository.revision;
+        if (!declarationRevisionCurrent) {
+          issues.push({
+            code: "turn_declaration_stale",
+            command: `lervo terminal declare --provider ${expected.provider} --observation ${expected.observationId} --stdin`
+          });
+        }
+        if (declaration.payload.canonicalizationDisposition === "not_applicable_read_only") {
+          issues.push({
+            code: "canonicalization_disposition_invalid",
+            command: "review canonical repository sources and redeclare the turn"
+          });
+        }
+        if (declaration.payload.knowledgeDisposition === "not_applicable_read_only") {
+          issues.push({
+            code: "knowledge_disposition_invalid",
+            command: "run lervo migrate knowledge and redeclare the turn"
+          });
+        }
+        if (declaration.payload.canonicalizationDisposition === "pending_user_approval" || declaration.payload.knowledgeDisposition === "pending_user_approval") {
+          issues.push({
+            code: "turn_approval_pending",
+            command: "obtain the required user decision before applying or completing the repository change"
+          });
+        }
+        const deliberationCurrent = terminalDeliberationDeclarationMatches(
+          workstreamStorage.events,
+          declaration.payload
+        );
+        if (!deliberationCurrent) {
+          issues.push({
+            code: "deliberation_declaration_invalid",
+            command: "complete or accurately redeclare the requested deliberation lifecycle"
+          });
+        }
+        repositoryKnowledgeInspectionRequired = declarationRevisionCurrent && declaration.payload.knowledgeDisposition !== "not_applicable_read_only" && declaration.payload.knowledgeDisposition !== "pending_user_approval" && deliberationCurrent;
+      }
+    }
+  } catch {
+    issues.push({ code: "workstream_state_invalid", command: "lervo workstream current --json" });
+  } finally {
+    await workstreamStorage.close();
+  }
+  const terminal = await inspectTerminalIntegration(root2);
+  if (terminal.status !== "current")
+    issues.push({
+      code: terminal.status === "blocked" ? "terminal_integration_blocked" : "terminal_integration_stale",
+      command: "lervo migrate knowledge"
+    });
+  if ((expected === void 0 || issues.length === 0) && repositoryKnowledgeInspectionRequired) {
+    issues.push(
+      ...await inspectTerminalRepositoryKnowledgeLifecycle({
+        root: root2,
+        repositoryRevision: currentRepository.revision,
+        supplementalSources
+      })
+    );
+  }
+  const activation = await readTerminalActivationReceipts(root2);
+  const runtimeActivation = await inspectTerminalRuntimeActivation(root2, activation);
+  return {
+    schemaVersion: 1,
+    status: issues.length === 0 ? "current" : "action_required",
+    repositoryRoot: root2,
+    issues,
+    activation,
+    runtimeActivation,
+    activationReadiness: terminalActivationReadiness(runtimeActivation),
+    repositoryChange,
+    workspace
+  };
+}
+
+// apps/cli/src/terminal-context-assembly.ts
+function assembleTerminalHookContext(input) {
+  const context = [
+    input.preamble,
+    ...input.workstreamContext === null ? [] : [input.workstreamContext],
+    input.documentSections.length === 0 ? input.fallback : input.documentSections.join("\n\n")
+  ].join("\n\n");
+  if (Buffer.byteLength(context) > input.maximumBytes) {
+    throw new Error("Prepared provider context exceeds the bounded output limit.");
+  }
+  return context;
+}
+
+// apps/cli/src/terminal-context-loading.ts
+import { constants as constants23 } from "node:fs";
+import { open as open27 } from "node:fs/promises";
+import { relative as relative14, resolve as resolve64, sep as sep14 } from "node:path";
+var TRUNCATION_NOTICE = "\n[Lervo content truncated]";
+function truncateUtf8(value, maximumBytes2) {
+  if (maximumBytes2 <= 0) return "";
+  if (Buffer.byteLength(value) <= maximumBytes2) return value;
+  let bytes = 0;
+  let end = 0;
+  for (const character of value) {
+    const characterBytes = Buffer.byteLength(character);
+    if (bytes + characterBytes > maximumBytes2) break;
+    bytes += characterBytes;
+    end += character.length;
+  }
+  return value.slice(0, end);
+}
+async function loadSelectedTerminalDocument(input) {
+  const target = resolve64(input.repositoryRoot, input.hit.path);
+  const child = relative14(input.repositoryRoot, target);
+  if (child === ".." || child.startsWith(`..${sep14}`) || input.maximumBytes <= 0) return null;
+  let handle;
+  try {
+    handle = await open27(target, constants23.O_RDONLY | (constants23.O_NOFOLLOW ?? 0));
+    const before = await handle.stat();
+    if (!before.isFile() || before.isSymbolicLink() || before.size > 131072) return null;
+    const bytes = await handle.readFile();
+    const after = await handle.stat();
+    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size || sha2562(bytes) !== input.hit.contentHash)
+      return null;
+    const content3 = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    if (Buffer.byteLength(content3) <= input.maximumBytes) return { content: content3, scope: "full" };
+    const noticeBytes = Buffer.byteLength(TRUNCATION_NOTICE);
+    if (input.maximumBytes <= noticeBytes) return null;
+    return {
+      content: `${truncateUtf8(content3, input.maximumBytes - noticeBytes)}${TRUNCATION_NOTICE}`,
+      scope: "prefix"
+    };
+  } catch {
+    return null;
+  } finally {
+    await handle?.close();
+  }
+}
+
+// apps/cli/src/repository-search-corpus.ts
+import { createHash as createHash23 } from "node:crypto";
+function sourceId(path) {
+  return `doc_${createHash23("sha256").update(path).digest("hex").slice(0, 24)}`;
+}
+function createRepositoryKnowledgeSearchCorpus(scan) {
+  const byPath = /* @__PURE__ */ new Map();
+  for (const source of scan.sources) {
+    if (source.status !== "included" || !source.path.endsWith(".md") || typeof source.content !== "string" || typeof source.contentHash !== "string") {
+      continue;
+    }
+    const existing = byPath.get(source.path);
+    if (existing !== void 0) {
+      if (existing.contentHash !== source.contentHash || existing.text !== source.content) {
+        throw new TypeError(`Corpus path has conflicting current bytes: ${source.path}`);
+      }
+      continue;
+    }
+    const heading = /^#{1,6}\s+(.+)$/mu.exec(source.content)?.[1]?.trim();
+    byPath.set(source.path, {
+      kind: "document",
+      sourceId: sourceId(source.path),
+      path: source.path,
+      contentHash: source.contentHash,
+      ...heading === void 0 ? {} : { title: heading },
+      labels: source.path.split("/"),
+      text: source.content
+    });
+  }
+  const sources = [...byPath.values()].sort((left, right) => left.path.localeCompare(right.path));
+  return {
+    sources,
+    digest: canonicalHash(
+      sources.map((source) => ({ path: source.path, contentHash: source.contentHash }))
+    ),
+    documentCount: sources.length,
+    byteCount: sources.reduce((sum, source) => sum + Buffer.byteLength(source.text), 0)
+  };
+}
+
 // apps/cli/src/terminal-context-selection.ts
 async function selectOperationalPlanCandidates(input) {
   const defaultPopulation = productDefaultSearchRetrievalPlan.plan.projection.populations.find(
@@ -76999,7 +78790,7 @@ async function prepareTerminalPromptInputs(input) {
   return coordinateTerminalPromptPreparation({
     requestDigest,
     prepareCorpus: () => input.timing.measure("corpus_preparation", async () => {
-      const supplementalSources = await collectLocalKnowledgeSources(input.root);
+      const supplementalSources = await collectLocalKnowledgeSources2(input.root);
       const [preparedKnowledge, canonicalization] = await Promise.all([
         scanConfiguredRepositoryKnowledge(input.root, { supplementalSources }),
         listCanonicalizationCandidates(input.root).then(
@@ -77555,7 +79346,7 @@ async function runCoverage(args, io) {
     const limit = parsed.values.limit === void 0 ? 20 : Number(parsed.values.limit);
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
       throw new Error("--limit must be an integer between 1 and 100.");
-    const root2 = await resolveTerminalRepositoryRoot(resolve64(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve65(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const report = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -77600,7 +79391,7 @@ ${terminalUsage}
       return 1;
     }
     try {
-      const root2 = await resolveTerminalRepositoryRoot(resolve64(io.cwd, parsed.values.root ?? "."));
+      const root2 = await resolveTerminalRepositoryRoot(resolve65(io.cwd, parsed.values.root ?? "."));
       const result = await inspectTerminalLifecycle(root2);
       io.stdout(
         parsed.values.json ? `${JSON.stringify(result, null, 2)}
@@ -77634,9 +79425,9 @@ ${terminalUsage}
 
 // packages/repository-knowledge-compiler/dist/process-compiler.js
 import { spawn } from "node:child_process";
-import { mkdtemp as mkdtemp3, rm as rm12, writeFile as writeFile4 } from "node:fs/promises";
+import { mkdtemp as mkdtemp3, rm as rm13, writeFile as writeFile4 } from "node:fs/promises";
 import { tmpdir as tmpdir2 } from "node:os";
-import { resolve as resolve65 } from "node:path";
+import { resolve as resolve66 } from "node:path";
 var MAX_OUTPUT_BYTES2 = 4 * 1024 * 1024;
 var DEFAULT_TIMEOUT_MS = 18e4;
 var NORMALIZATION_PROFILE = [
@@ -78079,23 +79870,23 @@ async function createNoCapabilityProviderJsonRunner(options) {
   if (options.systemPrompt !== void 0 && (options.systemPrompt.trim() !== options.systemPrompt || options.systemPrompt.length === 0 || options.systemPrompt.length > 8192)) {
     throw compileFailure("The provider JSON runner system prompt is invalid.");
   }
-  const probeDirectory = await mkdtemp3(resolve65(tmpdir2(), "lervo-provider-json-probe-"));
+  const probeDirectory = await mkdtemp3(resolve66(tmpdir2(), "lervo-provider-json-probe-"));
   try {
     await compilerVersion({ executable, cwd: probeDirectory, timeoutMs });
     if (options.provider === "codex") {
       await assertCodexHasNoModelTools({ executable, cwd: probeDirectory, timeoutMs });
     }
   } finally {
-    await rm12(probeDirectory, { recursive: true, force: true });
+    await rm13(probeDirectory, { recursive: true, force: true });
   }
   const resolveObserved = async (input, signal) => {
-    const directory = await mkdtemp3(resolve65(tmpdir2(), `lervo-${options.provider}-json-`));
+    const directory = await mkdtemp3(resolve66(tmpdir2(), `lervo-${options.provider}-json-`));
     try {
       const prompt = canonicalJson3(input);
       const responseContractSchema = providerResponseContractSchema(input);
       const responseSchema = options.provider === "codex" ? providerNativeResponseSchema(responseContractSchema) : responseContractSchema;
       const responseSchemaJson = canonicalJson3(responseSchema);
-      const codexResponseSchemaPath = resolve65(directory, "response-schema.json");
+      const codexResponseSchemaPath = resolve66(directory, "response-schema.json");
       if (options.provider === "codex") {
         await writeFile4(codexResponseSchemaPath, `${responseSchemaJson}
 `, {
@@ -78169,7 +79960,7 @@ async function createNoCapabilityProviderJsonRunner(options) {
         usage: options.provider === "claude" ? claudeJsonUsage(result.stdout) : codexJsonUsage(result.stdout)
       };
     } finally {
-      await rm12(directory, { recursive: true, force: true });
+      await rm13(directory, { recursive: true, force: true });
     }
   };
   return {
@@ -78180,9 +79971,9 @@ async function createNoCapabilityProviderJsonRunner(options) {
 }
 
 // apps/cli/src/provider-query-runner-codex.ts
-import { mkdtemp as mkdtemp4, rm as rm13 } from "node:fs/promises";
+import { mkdtemp as mkdtemp4, rm as rm14 } from "node:fs/promises";
 import { tmpdir as tmpdir3 } from "node:os";
-import { resolve as resolve66 } from "node:path";
+import { resolve as resolve67 } from "node:path";
 
 // packages/adapter-codex/dist/app-server-client.js
 import { spawn as spawn2 } from "node:child_process";
@@ -78229,11 +80020,11 @@ var AsyncQueue = class {
   wait(signal) {
     if (signal.aborted || this.ended || this.values.length > 0)
       return Promise.resolve();
-    return new Promise((resolve68) => {
+    return new Promise((resolve69) => {
       const finish = () => {
         this.waiters.delete(finish);
         signal.removeEventListener("abort", finish);
-        resolve68();
+        resolve69();
       };
       this.waiters.add(finish);
       signal.addEventListener("abort", finish, { once: true });
@@ -78385,13 +80176,13 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     if (this.exited)
       return;
     this.process.kill("SIGTERM");
-    const exited = new Promise((resolve68) => this.process.once("exit", () => resolve68()));
+    const exited = new Promise((resolve69) => this.process.once("exit", () => resolve69()));
     let timer;
     try {
       await Promise.race([
         exited,
-        new Promise((resolve68) => {
-          timer = setTimeout(resolve68, 1e3);
+        new Promise((resolve69) => {
+          timer = setTimeout(resolve69, 1e3);
         })
       ]);
     } finally {
@@ -78407,12 +80198,12 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     }
     const id2 = this.nextRequestId;
     this.nextRequestId += 1;
-    return new Promise((resolve68, reject) => {
+    return new Promise((resolve69, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id2);
         reject(new CodexAdapterError("provider_protocol_failed", "The Codex app-server response timed out."));
       }, this.requestTimeoutMs);
-      this.pending.set(id2, { resolve: resolve68, reject, timer });
+      this.pending.set(id2, { resolve: resolve69, reject, timer });
       this.write({ method, id: id2, params });
     });
   }
@@ -78493,13 +80284,13 @@ var MAXIMUM_RESPONSE_BYTES = 1024 * 1024;
 // packages/adapter-codex/dist/repository-work.js
 import { execFile as execFile7, spawn as spawn3 } from "node:child_process";
 import { promisify as promisify6 } from "node:util";
-var MAXIMUM_OUTPUT_BYTES = 16 * 1024 * 1024;
+var MAXIMUM_OUTPUT_BYTES = 64 * 1024 * 1024;
 var executeFile2 = promisify6(execFile7);
 
 // apps/cli/src/provider-query-runner-codex.ts
 var defaultDependencies = {
-  createDirectory: () => mkdtemp4(resolve66(tmpdir3(), "lervo-codex-query-runner-")),
-  removeDirectory: (path) => rm13(path, { recursive: true, force: true }),
+  createDirectory: () => mkdtemp4(resolve67(tmpdir3(), "lervo-codex-query-runner-")),
+  removeDirectory: (path) => rm14(path, { recursive: true, force: true }),
   assertNoModelTools: assertCodexHasNoModelTools,
   connect: (input) => CodexStdioAppServerClient.connect(input)
 };
@@ -78928,9 +80719,9 @@ async function verifiedRuntime() {
   try {
     const runtimePath = fileURLToPath(import.meta.url);
     const manifest = JSON.parse(
-      await readFile23(resolve67(dirname16(runtimePath), "runtime-v2.json"), "utf8")
+      await readFile24(resolve68(dirname16(runtimePath), "runtime-v2.json"), "utf8")
     );
-    const content3 = await readFile23(runtimePath);
+    const content3 = await readFile24(runtimePath);
     return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash24("sha256").update(content3).digest("hex")}`;
   } catch {
     return false;

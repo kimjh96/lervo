@@ -6,7 +6,7 @@ Plans bind state, expected paths, before and desired hashes, and verification. A
 
 Every managed-write provider turn receives the exact repository-relative target path and an instruction to change only that path, in both single-file and multi-file schedules. Write authorization and byte verification remain authoritative.
 
-Snapshots cover repository-authored source and tracked generated files. They exclude runtime data and state, dependencies, and conventional generated build or cache directories. User content changes only through explicit content-bound operations. Managed blocks preserve outside bytes. Generated files may change or be deleted only when recorded generation proves current-hash ownership.
+Snapshots cover repository-authored source and tracked generated files. They exclude runtime data and state, dependencies, and conventional generated build or cache directories, including Python `.venv` and `venv` dependency environments at any depth. Excluded environments do not consume the snapshot file-count or byte budget; the limit still applies to included repository files. User content changes only through explicit content-bound operations. Managed blocks preserve outside bytes. Generated files may change or be deleted only when recorded generation proves current-hash ownership.
 
 Repository assignments bind role, dependency, acceptance, verification, approval, workstream, and path coordinates. Short atomic leases serialize overlapping scopes; disjoint root agents and subagents share one lease and handoff contract. Managed execution revalidates lease, provider, role, path, and suite authority before provider creation. Generation-bound expiry permits recovery but never proves former external work stopped.
 

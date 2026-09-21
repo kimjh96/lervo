@@ -3,9 +3,11 @@ import {
   createConversationParticipationPolicy,
   hashConversationSourceEventKey,
 } from "@lervo/conversation-contract";
+import type { ConversationInboundEvent } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import { createDiscordConversationTurnOwnership } from "../src/discord-conversation-turn-ownership.js";
+import { discordUnaddressedPriorityKey } from "../src/discord-conversation-priorities.js";
 
 const peer = {
   participantKeys: ["bot:999999999999999992", "user:999999999999999992"],
@@ -19,6 +21,16 @@ const peer = {
   },
   tenantKeys: ["123456789012345678"],
   conversationIds: ["cnv_operator01"],
+};
+
+const secondPeer = {
+  ...peer,
+  participantKeys: ["bot:999999999999999993", "user:999999999999999993"],
+  participantId: "ptc_thirdagent01",
+  agentBinding: {
+    ...peer.agentBinding,
+    agentId: `agt_${"e".repeat(24)}`,
+  },
 };
 
 function event(
@@ -47,6 +59,25 @@ function event(
     signalCode: null,
     automationDepth: 0,
     occurredAt,
+  });
+}
+
+function agentEvent(input: {
+  participantIds?: string[];
+  coordination?: ConversationInboundEvent["coordination"];
+}) {
+  const source = event("itg_discord01", input.participantIds ?? []);
+  const { schemaVersion: _schemaVersion, eventId: _eventId, ...content } = source;
+  return createConversationInboundEvent({
+    ...content,
+    actor: {
+      kind: "agent",
+      participantId: peer.participantId,
+      roleId: peer.roleId,
+      agentBinding: peer.agentBinding,
+    },
+    ...(input.coordination === undefined ? {} : { coordination: input.coordination }),
+    automationDepth: 1,
   });
 }
 
@@ -126,6 +157,22 @@ describe("Discord multi-agent turn ownership", () => {
     expect(second.owns({ event: peerAddressed, policy: policy("researcher") })).toBe(true);
   });
 
+  it("lets no local bot answer when the exact mentioned participant is not routable", () => {
+    const ownership = createDiscordConversationTurnOwnership({
+      participantId: "ptc_lervoagent01",
+      roleId: "product-owner",
+      conversationIds: ["cnv_operator01"],
+      peers: [peer],
+    });
+
+    expect(
+      ownership.owns({
+        event: event("itg_discord01", ["ptc_unroutable01"]),
+        policy: policy("product-owner"),
+      }),
+    ).toBe(false);
+  });
+
   it("keeps the explicitly addressed agent as owner for subsequent unaddressed human turns", () => {
     const first = createDiscordConversationTurnOwnership({
       participantId: "ptc_lervoagent01",
@@ -165,12 +212,17 @@ describe("Discord multi-agent turn ownership", () => {
     expect(second.owns({ event: peerFollowUp, policy: policy("researcher") })).toBe(true);
   });
 
-  it("uses the CEO as the stable unaddressed general-channel owner", () => {
+  it("uses the configured priority rather than a role-name special case", () => {
+    const priorities = new Map([
+      [discordUnaddressedPriorityKey("ptc_lervoagent01", "cnv_operator01"), 0],
+      [discordUnaddressedPriorityKey(peer.participantId, "cnv_operator01"), 100],
+    ]);
     const po = createDiscordConversationTurnOwnership({
       participantId: "ptc_lervoagent01",
       roleId: "product-owner",
       conversationIds: ["cnv_operator01"],
       peers: [{ ...peer, roleId: "ceo" }],
+      unaddressedPriorities: priorities,
     });
     const ceo = createDiscordConversationTurnOwnership({
       participantId: peer.participantId,
@@ -183,32 +235,160 @@ describe("Discord multi-agent turn ownership", () => {
           roleId: "product-owner",
         },
       ],
+      unaddressedPriorities: priorities,
     });
     expect(po.owns({ event: event("itg_discord01"), policy: policy("product-owner") })).toBe(false);
     expect(ceo.owns({ event: event("itg_discord02"), policy: policy("ceo") })).toBe(true);
   });
 
-  it("selects one non-source owner for an unaddressed agent contribution", () => {
+  it("rejects an unaddressed agent turn before relevance or provider execution", () => {
+    const ownership = createDiscordConversationTurnOwnership({
+      participantId: "ptc_lervoagent01",
+      roleId: "product-owner",
+      conversationIds: ["cnv_operator01"],
+      peers: [peer, secondPeer],
+    });
+
+    expect(ownership.owns({ event: agentEvent({}), policy: policy("product-owner") })).toBe(false);
+  });
+
+  it("accepts one exact agent address and rejects ambiguous uncoordinated fan-out", () => {
+    const ownership = createDiscordConversationTurnOwnership({
+      participantId: "ptc_lervoagent01",
+      roleId: "product-owner",
+      conversationIds: ["cnv_operator01"],
+      peers: [peer, secondPeer],
+    });
+    const current = "ptc_lervoagent01";
+
+    expect(
+      ownership.owns({
+        event: agentEvent({ participantIds: [current] }),
+        policy: policy("product-owner"),
+      }),
+    ).toBe(true);
+    expect(
+      ownership.owns({
+        event: agentEvent({ participantIds: [current, secondPeer.participantId] }),
+        policy: policy("product-owner"),
+      }),
+    ).toBe(false);
+  });
+
+  it("serializes an authenticated discussion assignment to its first exact target", () => {
     const ownership = createDiscordConversationTurnOwnership({
       participantId: "ptc_lervoagent01",
       roleId: "product-owner",
       conversationIds: ["cnv_operator01"],
       peers: [peer],
     });
-    const source = event("itg_discord01");
-    const { schemaVersion: _schemaVersion, eventId: _eventId, ...content } = source;
-    const report = createConversationInboundEvent({
-      ...content,
-      actor: {
-        kind: "agent",
-        participantId: peer.participantId,
-        roleId: peer.roleId,
-        agentBinding: peer.agentBinding,
+
+    expect(
+      ownership.owns({
+        event: agentEvent({
+          participantIds: ["ptc_lervoagent01", "ptc_thirdagent01"],
+          coordination: {
+            kind: "discussion.assignment",
+            discussionId: "dsc_abcdefghijklmnopqrst",
+            activeParticipantId: "ptc_lervoagent01",
+          },
+        }),
+        policy: policy("product-owner"),
+      }),
+    ).toBe(true);
+    expect(
+      ownership.owns({
+        event: agentEvent({
+          participantIds: ["ptc_thirdagent01", "ptc_lervoagent01"],
+          coordination: {
+            kind: "discussion.assignment",
+            discussionId: "dsc_abcdefghijklmnopqrst",
+            activeParticipantId: "ptc_thirdagent01",
+          },
+        }),
+        policy: policy("product-owner"),
+      }),
+    ).toBe(false);
+  });
+
+  it("routes a discussion contribution to the durable coordinator instead of its reply mention", () => {
+    const contribution = agentEvent({
+      participantIds: ["ptc_lervoagent01"],
+      coordination: {
+        kind: "discussion.contribution",
+        discussionId: "dsc_abcdefghijklmnopqrst",
       },
-      automationDepth: 1,
+    });
+    const coordinator = createDiscordConversationTurnOwnership({
+      participantId: "ptc_coordinator01",
+      roleId: "ceo",
+      conversationIds: ["cnv_operator01"],
+      peers: [peer],
+      discussion: { ownsCoordinationTurn: () => true },
+    });
+    const mentionedNonCoordinator = createDiscordConversationTurnOwnership({
+      participantId: "ptc_lervoagent01",
+      roleId: "product-owner",
+      conversationIds: ["cnv_operator01"],
+      peers: [peer],
+      discussion: { ownsCoordinationTurn: () => false },
     });
 
-    expect(ownership.owns({ event: report, policy: policy("product-owner") })).toBe(true);
+    expect(coordinator.owns({ event: contribution, policy: policy("ceo") })).toBe(true);
+    expect(
+      mentionedNonCoordinator.owns({
+        event: contribution,
+        policy: policy("product-owner"),
+      }),
+    ).toBe(false);
+  });
+
+  it("routes a delegated-task result only to its authenticated coordinator", () => {
+    const result = agentEvent({
+      participantIds: ["ptc_lervoagent01", "ptc_thirdagent01"],
+      coordination: {
+        kind: "task.result",
+        taskId: `tsk_${"t".repeat(20)}`,
+        coordinatorParticipantId: "ptc_lervoagent01",
+      },
+    });
+    const coordinator = createDiscordConversationTurnOwnership({
+      participantId: "ptc_lervoagent01",
+      roleId: "product-owner",
+      conversationIds: ["cnv_operator01"],
+      peers: [peer, secondPeer],
+      discussion: { ownsCoordinationTurn: () => null },
+    });
+    const other = createDiscordConversationTurnOwnership({
+      participantId: secondPeer.participantId,
+      roleId: secondPeer.roleId,
+      conversationIds: ["cnv_operator01"],
+      peers: [peer, { ...secondPeer, participantId: "ptc_lervoagent01" }],
+    });
+
+    expect(coordinator.owns({ event: result, policy: policy("product-owner") })).toBe(true);
+    expect(other.owns({ event: result, policy: policy(secondPeer.roleId) })).toBe(false);
+  });
+
+  it("routes an authenticated delegated-task assignment through ordinary exact ownership", () => {
+    const current = "ptc_lervoagent01";
+    const assignment = agentEvent({
+      participantIds: [current],
+      coordination: {
+        kind: "task.assignment",
+        taskId: `tsk_${"a".repeat(20)}`,
+        coordinatorParticipantId: peer.participantId,
+      },
+    });
+    const ownership = createDiscordConversationTurnOwnership({
+      participantId: current,
+      roleId: "product-owner",
+      conversationIds: ["cnv_operator01"],
+      peers: [peer],
+      discussion: { ownsCoordinationTurn: () => null },
+    });
+
+    expect(ownership.owns({ event: assignment, policy: policy("product-owner") })).toBe(true);
   });
 
   it("releases a captured conversation after the addressed exchange goes idle", () => {

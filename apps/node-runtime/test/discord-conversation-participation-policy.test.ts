@@ -97,4 +97,21 @@ describe("Discord conversation participation policy", () => {
       maxAutomationDepth: 3,
     });
   });
+
+  it("admits addressed agent turns whenever the deployment has peer agents", () => {
+    const configured = config(true);
+    configured.policy = { respondTo: ["human"] };
+    expect(
+      createDiscordConversationParticipationPolicy({
+        config: configured,
+        projectId: "prj_project01",
+        projectCreatedAt: "2026-09-09T00:00:00.000Z",
+        agentParticipation: participation,
+        hasPeerAgents: true,
+      }),
+    ).toMatchObject({
+      respondTo: ["agent", "human", "system"],
+      signalCodes: ["discussion.deadline"],
+    });
+  });
 });

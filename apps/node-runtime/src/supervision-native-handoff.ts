@@ -4,7 +4,7 @@ import type {
   ScopedWorkHandoffRequestV1,
 } from "@lervo/application-contract";
 import { canonicalJson } from "@lervo/event-contract";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import {
   assertScopedHandoffRequest,
   assertScopedHandoffAcceptance,
@@ -18,7 +18,7 @@ export async function nativeScopedHandoff(
   details: Record<string, unknown>,
   rationaleArtifactHash: string,
 ) {
-  const current = await readCurrentWorkstreamState(input.storage.paths.repositoryRoot);
+  const current = await readBoundWorkstreamState(input.storage, input.base.workstreamId);
   if (
     current === null ||
     operatingContractHash(current.snapshot) !== operatingContractHash(input.facts.workstream)

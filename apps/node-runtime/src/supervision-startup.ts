@@ -2,7 +2,7 @@ import type { ConversationAdapter } from "@lervo/conversation-contract";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import {
   supervisionAttentionReasonCodes,
-  supervisionCycleFailureCode,
+  supervisionCycleHealth,
   supervisionCycleFailureLine,
 } from "./supervision-attention-health.js";
 import type { NodeRuntimeComponentHealth } from "./health-contract.js";
@@ -149,16 +149,13 @@ export async function openNodeSupervisionService(input: {
   const start = (target: typeof runtime) =>
     target.start({
       onFailure: (error) => {
-        log(supervisionCycleFailureLine(error));
+        const health = supervisionCycleHealth(error);
+        if (health.status !== "dormant") log(supervisionCycleFailureLine(error));
         // A settled goal whose successor another process started fails the old owner's cycle.
         void followLineage().catch((followError: unknown) => {
           log(supervisionCycleFailureLine(followError));
         });
-        void observe({
-          status: "unavailable",
-          failureCode: "supervision_cycle_failed",
-          reasonCodes: [supervisionCycleFailureCode(error)],
-        });
+        void observe(health);
       },
       onCycle: async (cycle) => {
         const reasonCodes = attention;

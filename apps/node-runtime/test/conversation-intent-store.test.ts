@@ -74,6 +74,22 @@ describe("conversation intent resolution evidence", () => {
         },
         resultDigest: `sha256:${"1".repeat(64)}`,
       },
+      {
+        eventId: "cve_runtimeopen0001",
+        effect: {
+          kind: "requested_runtime_open" as const,
+          specification: "development-server",
+        },
+        resultDigest: `sha256:${"3".repeat(64)}`,
+      },
+      {
+        eventId: "cve_runtimeclose001",
+        effect: {
+          kind: "requested_runtime_close" as const,
+          specification: "development-server",
+        },
+        resultDigest: `sha256:${"4".repeat(64)}`,
+      },
     ];
     for (const specificationEffect of specificationEffects) {
       const specificationEvent = {

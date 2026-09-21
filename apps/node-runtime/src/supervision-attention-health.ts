@@ -1,6 +1,8 @@
 import type { OutcomeSupervisionReportV1 } from "@lervo/application-contract";
 
 import { boundedHealthReasonCodes } from "./health-contract.js";
+import type { NodeRuntimeComponentHealth } from "./health-contract.js";
+import { NodeSupervisionError } from "./supervision-authority.js";
 
 /**
  * Health reason codes for one recorded owner attention. A goal that completed without a
@@ -31,6 +33,18 @@ export function supervisionCycleFailureCode(error: unknown): string {
     .replace(/([a-z0-9])([A-Z])/gu, "$1_$2")
     .toLowerCase();
   return derived.length > 0 && CODE_PATTERN.test(derived) ? derived : "cycle_error_unclassified";
+}
+
+/** A different current workstream parks this owner without making the Node unavailable. */
+export function supervisionCycleHealth(error: unknown): NodeRuntimeComponentHealth {
+  const code = supervisionCycleFailureCode(error);
+  return error instanceof NodeSupervisionError && error.code === "supervision_workstream_inactive"
+    ? { status: "dormant", reasonCode: "workstream_inactive" }
+    : {
+        status: "unavailable",
+        failureCode: "supervision_cycle_failed",
+        reasonCodes: [code],
+      };
 }
 
 /** Journal line for a failed cycle: bounded code, error name, and the message's first 200 characters. */

@@ -6,9 +6,10 @@ import {
   repositoryFileExists,
 } from "@lervo/context";
 import { loadDocumentRegistry } from "@lervo/project";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
+import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { prepareManagedSearchContext, productDefaultSearchEngine } from "@lervo/repository-context";
 import { operatingContractHash } from "@lervo/work-controller";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 
 /** Loads exact planning sources; provider injection and use require later execution evidence. */
 export async function loadSupervisionPlanningContext(input: {
@@ -20,8 +21,21 @@ export async function loadSupervisionPlanningContext(input: {
   purpose: string;
   expectedPaths: string[];
   now(): string;
+  storage?: ProjectStorage;
 }) {
-  const workstream = await readCurrentWorkstreamState(input.repositoryRoot);
+  const storage = input.storage ?? (await openProjectStorage(input.repositoryRoot));
+  try {
+    return await loadContext(storage, input);
+  } finally {
+    if (input.storage === undefined) await storage.close();
+  }
+}
+
+async function loadContext(
+  storage: ProjectStorage,
+  input: Parameters<typeof loadSupervisionPlanningContext>[0],
+) {
+  const workstream = await readBoundWorkstreamState(storage, input.workstreamId);
   if (
     workstream === null ||
     workstream.snapshot.workstreamId !== input.workstreamId ||
@@ -87,7 +101,8 @@ export async function loadSupervisionPlanningContext(input: {
     });
   }
   if (
-    (await readCurrentWorkstreamState(input.repositoryRoot))?.contentHash !== workstream.contentHash
+    (await readBoundWorkstreamState(storage, input.workstreamId))?.contentHash !==
+    workstream.contentHash
   )
     throw new Error("The workstream changed while loading planning context.");
   const elapsed = Date.parse(input.now()) - Date.parse(observedAt);

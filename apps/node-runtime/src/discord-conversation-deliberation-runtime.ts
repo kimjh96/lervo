@@ -25,6 +25,7 @@ import type { NodeDiscordConversationConfig } from "./config-types.js";
 import { ConversationDeliberationActionResponder } from "./conversation-deliberation-action-responder.js";
 import { runConversationDeliberationCycle } from "./conversation-deliberation-cycle.js";
 import type { DiscordPlatformActionResponder } from "./discord-conversation-mode.js";
+import type { ConversationDeliberationParticipantAssignmentPort } from "./conversation-deliberation-participant-router.js";
 
 export class DiscordConversationDeliberationRuntime {
   readonly responder: ConversationResponder;
@@ -44,6 +45,7 @@ export class DiscordConversationDeliberationRuntime {
     providerModels: Partial<Record<"codex" | "claude", string>> | undefined,
     providerReasoningEfforts:
       Partial<Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">> | undefined,
+    participantAssignments: ConversationDeliberationParticipantAssignmentPort | undefined,
     artifactStore: ArtifactStore,
     private readonly artifactSource: ConversationDeliberationArtifactSource | null,
     private readonly onFailure: (error: unknown) => void,
@@ -57,6 +59,7 @@ export class DiscordConversationDeliberationRuntime {
       ...(config.processTimeoutMs === undefined
         ? {}
         : { processTimeoutMs: config.processTimeoutMs }),
+      ...(participantAssignments === undefined ? {} : { participantAssignments }),
     });
     this.applicationOptions = {
       bindings: config.principals.map((principal) => ({
@@ -78,6 +81,10 @@ export class DiscordConversationDeliberationRuntime {
             policyId: config.defaultPolicyId,
             artifactStore,
             deliberations: () => this.deliberations,
+            preflight: ({ policyId, projectId, conversationId }) =>
+              participantAssignments?.preflight({ policyId, projectId, conversationId }) ?? {
+                participantIds: [],
+              },
           });
     this.naturalLanguageEffect = action?.surfaceEffect ?? null;
     this.actionResponder =
@@ -126,6 +133,7 @@ export class DiscordConversationDeliberationRuntime {
     providerReasoningEfforts?: Partial<
       Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">
     >;
+    participantAssignments?: ConversationDeliberationParticipantAssignmentPort;
     dataDirectory: string;
     artifactStore: ArtifactStore;
     repositoryArtifactStore: ArtifactStore;
@@ -152,6 +160,9 @@ export class DiscordConversationDeliberationRuntime {
                 integrationId: input.integrationId,
               },
             ),
+            ...(input.participantAssignments === undefined
+              ? {}
+              : { participantPublisher: input.participantAssignments }),
           });
     await artifactSource?.initialize();
     return new DiscordConversationDeliberationRuntime(
@@ -162,6 +173,7 @@ export class DiscordConversationDeliberationRuntime {
       input.providerExecutables,
       input.providerModels,
       input.providerReasoningEfforts,
+      input.participantAssignments,
       input.artifactStore,
       artifactSource,
       input.onFailure,

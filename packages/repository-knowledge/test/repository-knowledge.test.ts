@@ -40,6 +40,7 @@ import { extractJavaScriptSymbolSpans } from "../src/javascript-source-units.js"
 import { extractJsonKeySpans } from "../src/json-source-units.js";
 import { extractYamlKeySpans } from "../src/yaml-source-units.js";
 import { defaultRepositoryKnowledgePolicy } from "../src/policy.js";
+import { repositoryPathCanRemainIncluded } from "../src/scanner.js";
 
 const executeFile = promisify(execFile);
 
@@ -60,6 +61,38 @@ afterEach(async () => {
 });
 
 describe("repository knowledge migration", () => {
+  it("ignores generated tool caches even with an older policy that omits them", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "services/worker/.mypy_cache/3.12"), { recursive: true });
+    await mkdir(resolve(root, ".mypy_cache/3.12"), { recursive: true });
+    await mkdir(resolve(root, "services/worker/__pycache__"), { recursive: true });
+    await writeFile(resolve(root, "services/worker/main.py"), "print('source')\n");
+    await writeFile(resolve(root, "services/worker/.mypy_cache/3.12/cache.json"), "x".repeat(200));
+    await writeFile(resolve(root, ".mypy_cache/3.12/cache.json"), "x".repeat(200));
+    await writeFile(resolve(root, "services/worker/__pycache__/main.pyc"), "x".repeat(200));
+
+    const oldPolicy = {
+      ...defaultRepositoryKnowledgePolicy,
+      exclude: [],
+      limits: { maxFiles: 2, maxFileBytes: 1_024, maxTotalBytes: 100 },
+    };
+    const scan = await scanRepositoryKnowledge({
+      repositoryRoot: root,
+      projectId: "prj_cachefixture",
+      policy: oldPolicy,
+      observeRevision: async () => ({ status: "unavailable", reason: "git_head_unavailable" }),
+    });
+
+    expect(
+      scan.sources.filter((source) => source.status === "included").map((source) => source.path),
+    ).toEqual(["services/worker/main.py"]);
+    expect(repositoryPathCanRemainIncluded("services/worker/main.py", oldPolicy)).toBe(true);
+    expect(
+      repositoryPathCanRemainIncluded("services/worker/.mypy_cache/data.json", oldPolicy),
+    ).toBe(false);
+    expect(repositoryPathCanRemainIncluded(".mypy_cache/data.json", oldPolicy)).toBe(false);
+  });
+
   it("reuses only a prepared scan with matching project and policy coordinates", async () => {
     const root = await repository();
     await writeFile(resolve(root, "README.md"), "# Prepared scan\n");

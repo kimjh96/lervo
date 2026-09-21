@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cdb9678a8d32b3730970512a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Preserve typed publication diagnostics and bound uncertain delivery with verified Discord reconciliation."

@@ -23,6 +23,33 @@ function uniqueTextList(value: unknown, label: string, pattern: RegExp): string[
   return [...value] as string[];
 }
 
+function conversationPriorities(
+  value: unknown,
+  label: string,
+  conversationIds: readonly string[],
+): Record<string, number> | undefined {
+  if (value === undefined) return undefined;
+  const source = configRecord(value, label);
+  if (
+    Object.keys(source).length < 1 ||
+    Object.keys(source).length > 64 ||
+    Object.entries(source).some(
+      ([conversationId, priority]) =>
+        !conversationIds.includes(conversationId) ||
+        !Number.isSafeInteger(priority) ||
+        Number(priority) < 0 ||
+        Number(priority) > 100,
+    )
+  ) {
+    throw new NodeRuntimeError("invalid_config", `${label} is invalid.`);
+  }
+  return Object.fromEntries(
+    Object.entries(source)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([conversationId, priority]) => [conversationId, Number(priority)]),
+  );
+}
+
 export function parseDiscordPeerAgents(
   value: unknown,
   scope: {
@@ -47,6 +74,9 @@ export function parseDiscordPeerAgents(
         "participantKeys",
         "participantId",
         "roleId",
+        "displayName",
+        "unaddressedPriority",
+        "unaddressedPriorities",
         "agentBinding",
         "tenantKeys",
         "conversationIds",
@@ -60,6 +90,11 @@ export function parseDiscordPeerAgents(
     );
     const participantId = configText(source.participantId, `${label}.participantId`);
     const roleId = configText(source.roleId, `${label}.roleId`);
+    const displayName =
+      source.displayName === undefined
+        ? undefined
+        : configText(source.displayName, `${label}.displayName`);
+    const unaddressedPriority = source.unaddressedPriority;
     const agent = configRecord(source.agentBinding, `${label}.agentBinding`);
     exactConfigKeys(
       agent,
@@ -85,9 +120,22 @@ export function parseDiscordPeerAgents(
       `${label}.conversationIds`,
       /^cnv_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u,
     );
+    const unaddressedPriorities = conversationPriorities(
+      source.unaddressedPriorities,
+      `${label}.unaddressedPriorities`,
+      conversationIds,
+    );
     if (
       !PARTICIPANT_ID.test(participantId) ||
       !IDENTIFIER.test(roleId) ||
+      (displayName !== undefined &&
+        (displayName.length > 80 ||
+          displayName.trim() !== displayName ||
+          /[\u0000-\u001f\u007f@]/u.test(displayName))) ||
+      (unaddressedPriority !== undefined &&
+        (!Number.isSafeInteger(unaddressedPriority) ||
+          Number(unaddressedPriority) < 0 ||
+          Number(unaddressedPriority) > 100)) ||
       !AGENT_ID.test(agentBinding.agentId) ||
       !ROLE_VERSION.test(agentBinding.roleVersion) ||
       !HASH.test(agentBinding.roleContractHash) ||
@@ -118,6 +166,11 @@ export function parseDiscordPeerAgents(
       participantKeys,
       participantId,
       roleId,
+      ...(displayName === undefined ? {} : { displayName }),
+      ...(unaddressedPriority === undefined
+        ? {}
+        : { unaddressedPriority: Number(unaddressedPriority) }),
+      ...(unaddressedPriorities === undefined ? {} : { unaddressedPriorities }),
       agentBinding,
       tenantKeys,
       conversationIds,

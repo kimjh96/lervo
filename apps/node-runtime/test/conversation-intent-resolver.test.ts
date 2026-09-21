@@ -6,7 +6,11 @@ const turn = {
   message: "이어서 완주해 주세요.",
   actorKind: "human" as const,
   mentioned: false,
-  respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
+  respondingAgent: {
+    participantId: "ptc_lervoagent",
+    agentId: `agt_${"a".repeat(24)}`,
+    roleId: "developer",
+  },
   priorTurns: [
     {
       role: "assistant" as const,
@@ -148,7 +152,7 @@ describe("conversation intent provider contract", () => {
             kind: "workforce_task_delegate",
             nickname: null,
             name: null,
-            specification: JSON.stringify({ roleId: "researcher", task }),
+            specification: JSON.stringify({ participantId: "ptc_peer_researcher0001", task }),
           },
           executionProfile: null,
         };
@@ -163,10 +167,12 @@ describe("conversation intent provider contract", () => {
     ).resolves.toMatchObject({
       effect: {
         kind: "workforce_task_delegate",
-        specification: JSON.stringify({ roleId: "researcher", task }),
+        specification: JSON.stringify({ participantId: "ptc_peer_researcher0001", task }),
       },
     });
-    expect(JSON.stringify(request)).toContain("a compact JSON object with exactly roleId and task");
+    expect(JSON.stringify(request)).toContain(
+      "a compact JSON object with exactly participantId and task",
+    );
   });
 
   it("routes an explicit natural-language debate through the governed deliberation effect", async () => {

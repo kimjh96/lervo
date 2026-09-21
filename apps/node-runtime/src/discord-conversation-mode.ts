@@ -20,6 +20,20 @@ import type {
 } from "./conversation-intent-resolver.js";
 import type { ConversationHistoryPort } from "./conversation-history.js";
 import type { ConversationIntentResolutionStore } from "./conversation-intent-store.js";
+import type {
+  ConversationDiscussionDirective,
+  ConversationDiscussionRuntime,
+} from "./conversation-discussion-runtime.js";
+import { respondToConversationDiscussion } from "./conversation-discussion-response.js";
+import {
+  admittedConversationMode,
+  type AuthorizedAgentEffectRequester,
+  isConversationEffectRequesterAuthorized,
+} from "./discord-conversation-effect-authorization.js";
+import {
+  effectForManagedConversationResolution,
+  withoutLeadingBotMention,
+} from "./discord-conversation-mode-selection.js";
 
 export type DiscordConversationMode =
   "read_only" | "work" | "goal" | "continuation" | "platform_action" | "clarify" | "control";
@@ -29,6 +43,7 @@ type NonPlatformEffect =
 
 export interface DiscordPlatformActionResponder {
   readonly availableEffects: readonly ConversationRequestedEffect["kind"][];
+  readonly managedResultEffects?: readonly ConversationRequestedEffect["kind"][];
   respond(
     input: Omit<Parameters<ConversationResponder["respond"]>[0], "context"> & {
       context?: { priorTurns: ReadonlyArray<ConversationContextTurn> };
@@ -36,25 +51,6 @@ export interface DiscordPlatformActionResponder {
     effect: Exclude<ConversationRequestedEffect, NonPlatformEffect>,
     authorization: { effectRequesterAuthorized: boolean },
   ): ReturnType<ConversationResponder["respond"]>;
-}
-
-function withoutLeadingBotMention(message: string, applicationId: string): string {
-  return message
-    .trimStart()
-    .replace(new RegExp(`^<@!?${applicationId}>\\s*`, "u"), "")
-    .trimStart();
-}
-
-function modeFor(resolution: ConversationIntentResolution): DiscordConversationMode {
-  return resolution.intent === "continue_work" && resolution.confidence !== "low"
-    ? resolution.effect.kind === "repository_work"
-      ? "work"
-      : resolution.effect.kind === "supervision_goal_request"
-        ? "goal"
-        : "platform_action"
-    : resolution.intent === "clarify" || resolution.confidence === "low"
-      ? "clarify"
-      : "read_only";
 }
 
 export class NaturalLanguageDiscordConversationResponder
@@ -69,16 +65,16 @@ export class NaturalLanguageDiscordConversationResponder
       replyCandidate: ConversationReplyCandidate | null;
     }>
   >();
+  private readonly discussionDirectives = new Map<
+    string,
+    Promise<ConversationDiscussionDirective>
+  >();
 
   constructor(
     private readonly options: {
       applicationId: string;
-      respondingAgent: { agentId: string | null; roleId: string };
-      authorizedAgentEffectRequesters?: readonly {
-        participantId: string;
-        roleId: string;
-        conversationId: string;
-      }[];
+      respondingAgent: { participantId: string; agentId: string | null; roleId: string };
+      authorizedAgentEffectRequesters?: readonly AuthorizedAgentEffectRequester[];
       repositoryRoot: string;
       artifactStore: ArtifactStore;
       history: ConversationHistoryPort;
@@ -94,6 +90,7 @@ export class NaturalLanguageDiscordConversationResponder
       goal?: ConversationResponder;
       platformAction: DiscordPlatformActionResponder;
       explicitControl?: ConversationResponder;
+      discussion?: ConversationDiscussionRuntime;
     },
   ) {}
 
@@ -101,37 +98,36 @@ export class NaturalLanguageDiscordConversationResponder
     event: ConversationInboundEvent,
     resolution: ConversationIntentResolution,
   ): DiscordConversationMode {
-    const mode = modeFor(resolution);
-    if (mode === "goal" && this.options.goal === undefined) return "clarify";
-    if (
-      !["work", "continuation", "platform_action"].includes(mode) ||
-      event.actor.kind === "human"
-    ) {
-      return mode;
-    }
-    const admitted = this.options.authorizedAgentEffectRequesters?.some(
-      (requester) =>
-        requester.participantId === event.actor.participantId &&
-        requester.roleId === event.actor.roleId &&
-        requester.conversationId === event.target.conversationId,
-    );
-    return admitted === true ? mode : "clarify";
-  }
-
-  private effectRequesterAuthorized(event: ConversationInboundEvent): boolean {
-    return (
-      event.actor.kind === "human" ||
-      this.options.authorizedAgentEffectRequesters?.some(
-        (requester) =>
-          requester.participantId === event.actor.participantId &&
-          requester.roleId === event.actor.roleId &&
-          requester.conversationId === event.target.conversationId,
-      ) === true
-    );
+    return admittedConversationMode({
+      event,
+      resolution,
+      ...(this.options.authorizedAgentEffectRequesters === undefined
+        ? {}
+        : { requesters: this.options.authorizedAgentEffectRequesters }),
+      goalAvailable: this.options.goal !== undefined,
+    });
   }
 
   async mode(event: ConversationInboundEvent): Promise<DiscordConversationMode> {
     return (await this.resolution(event)).mode;
+  }
+
+  async usesFixedDiscussionPublicationContract(event: ConversationInboundEvent): Promise<boolean> {
+    const directive = await this.discussionDirective(event);
+    return directive.kind === "next_assignment" || directive.kind === "failure";
+  }
+
+  async usesManagedActionResultPublicationContract(
+    event: ConversationInboundEvent,
+  ): Promise<boolean> {
+    const resolved = await this.resolution(event);
+    return (
+      resolved.mode === "platform_action" &&
+      (this.options.platformAction.managedResultEffects?.includes(
+        resolved.resolution.effect.kind,
+      ) ??
+        false)
+    );
   }
 
   private resolution(event: ConversationInboundEvent) {
@@ -151,6 +147,51 @@ export class NaturalLanguageDiscordConversationResponder
     priorTurns: Awaited<ReturnType<ConversationHistoryPort["recent"]>>;
     replyCandidate: ConversationReplyCandidate | null;
   }> {
+    const discussion = await this.discussionDirective(event);
+    if (discussion.kind !== "none") {
+      const resolution: ConversationIntentResolution = {
+        intent: "answer",
+        confidence: "high",
+        participation: "relevant",
+        effect: { kind: "none" },
+        executionProfile: null,
+        provider: { providerId: "lervo_discussion", model: null, adapterVersion: "1" },
+        resultDigest: event.content.contentHash,
+      };
+      await this.options.resolutionStore.record({
+        event,
+        resolution,
+        resolvedAt: new Date().toISOString(),
+      });
+      return {
+        mode: "read_only",
+        resolution,
+        priorTurns: discussion.kind === "decision" ? discussion.priorTurns : [],
+        replyCandidate: null,
+      };
+    }
+    if (event.coordination?.kind.startsWith("discussion.") === true) {
+      const resolution: ConversationIntentResolution = {
+        intent: "answer",
+        confidence: "high",
+        participation: "not_relevant",
+        effect: { kind: "none" },
+        executionProfile: null,
+        provider: { providerId: "lervo_discussion", model: null, adapterVersion: "1" },
+        resultDigest: event.content.contentHash,
+      };
+      await this.options.resolutionStore.record({
+        event,
+        resolution,
+        resolvedAt: new Date().toISOString(),
+      });
+      return {
+        mode: "read_only",
+        resolution,
+        priorTurns: [],
+        replyCandidate: null,
+      };
+    }
     if (event.kind === "goal.requested") {
       const resolution: ConversationIntentResolution = {
         intent: "continue_work",
@@ -197,34 +238,19 @@ export class NaturalLanguageDiscordConversationResponder
       }
     }
     const priorTurns = await this.options.history.recent(event);
+    const respondingAgentMentioned =
+      event.mentions.participantIds.includes(this.options.respondingAgent.participantId) ||
+      event.mentions.roleIds.includes(this.options.respondingAgent.roleId);
     if (this.options.managedTurnResolver !== undefined) {
       const managed = await this.options.managedTurnResolver.resolve({
         event,
         policy: this.options.participationPolicy,
         respondingAgent: this.options.respondingAgent,
-        mentioned: event.mentions.participantIds.length > 0 || event.mentions.roleIds.length > 0,
+        mentioned: respondingAgentMentioned,
         surfaceEffects: this.options.surfaceEffects ?? [],
         context: { priorTurns },
       });
-      const effect: ConversationRequestedEffect =
-        managed.effect.kind === "discord_current_member_nickname_set"
-          ? {
-              kind: "discord_current_member_nickname_set",
-              nickname: managed.effect.argument!,
-            }
-          : managed.effect.kind === "discord_guild_text_channel_create" ||
-              managed.effect.kind === "discord_public_thread_create"
-            ? { kind: managed.effect.kind, name: managed.effect.argument! }
-            : managed.effect.kind === "workforce_agent_hire"
-              ? { kind: managed.effect.kind, specification: managed.effect.argument! }
-              : managed.effect.kind === "workforce_task_delegate" ||
-                  managed.effect.kind === "deliberation_start"
-                ? { kind: managed.effect.kind, specification: managed.effect.argument! }
-                : managed.effect.kind === "repository_work"
-                  ? { kind: "repository_work" }
-                  : managed.effect.kind === "supervision_goal_request"
-                    ? { kind: "supervision_goal_request" }
-                    : { kind: "none" };
+      const effect = effectForManagedConversationResolution(managed.effect);
       const resolution: ConversationIntentResolution = {
         intent: managed.intent,
         confidence: managed.confidence,
@@ -266,7 +292,7 @@ export class NaturalLanguageDiscordConversationResponder
     const resolution = await this.options.intentResolver.resolve({
       message,
       actorKind: event.actor.kind,
-      mentioned: event.mentions.participantIds.length > 0 || event.mentions.roleIds.length > 0,
+      mentioned: respondingAgentMentioned,
       respondingAgent: this.options.respondingAgent,
       priorTurns,
       currentWorkstream:
@@ -291,16 +317,34 @@ export class NaturalLanguageDiscordConversationResponder
 
   async respond(input: Parameters<ConversationResponder["respond"]>[0]) {
     const resolution = await this.resolution(input.event);
+    const discussion = await this.discussionDirective(input.event);
     const request = {
       ...input,
       context: {
         priorTurns: resolution.priorTurns,
-        ...(resolution.resolution.executionProfile === null ||
-        resolution.resolution.executionProfile === undefined
+        ...((discussion.kind === "assignment" || discussion.kind === "decision"
+          ? discussion.executionProfile
+          : resolution.resolution.executionProfile) === null ||
+        (discussion.kind === "assignment" || discussion.kind === "decision"
+          ? discussion.executionProfile
+          : resolution.resolution.executionProfile) === undefined
           ? {}
-          : { executionProfile: resolution.resolution.executionProfile }),
+          : {
+              executionProfile:
+                discussion.kind === "assignment" || discussion.kind === "decision"
+                  ? discussion.executionProfile
+                  : resolution.resolution.executionProfile!,
+            }),
       },
     };
+    const discussionCandidate = await respondToConversationDiscussion({
+      directive: discussion,
+      request,
+      readOnly: this.options.readOnly,
+      discussion: this.options.discussion,
+      artifactStore: this.options.artifactStore,
+    });
+    if (discussionCandidate !== null) return discussionCandidate;
     if (resolution.mode === "control") return this.options.explicitControl!.respond(request);
     if (
       resolution.mode === "platform_action" &&
@@ -311,7 +355,15 @@ export class NaturalLanguageDiscordConversationResponder
       return this.options.platformAction.respond(
         request,
         resolution.resolution.effect as Exclude<ConversationRequestedEffect, NonPlatformEffect>,
-        { effectRequesterAuthorized: this.effectRequesterAuthorized(input.event) },
+        {
+          effectRequesterAuthorized: isConversationEffectRequesterAuthorized({
+            event: input.event,
+            effectKind: resolution.resolution.effect.kind,
+            ...(this.options.authorizedAgentEffectRequesters === undefined
+              ? {}
+              : { requesters: this.options.authorizedAgentEffectRequesters }),
+          }),
+        },
       );
     }
     if (["read_only", "clarify"].includes(resolution.mode) && resolution.replyCandidate !== null) {
@@ -328,5 +380,18 @@ export class NaturalLanguageDiscordConversationResponder
 
   async evaluate(input: Parameters<ConversationRelevanceEvaluator["evaluate"]>[0]) {
     return (await this.resolution(input.event)).resolution.participation;
+  }
+
+  private discussionDirective(event: ConversationInboundEvent) {
+    const existing = this.discussionDirectives.get(event.eventId);
+    if (existing !== undefined) return existing;
+    const directive =
+      this.options.discussion?.directive(event) ??
+      Promise.resolve({ kind: "none" } as const satisfies ConversationDiscussionDirective);
+    if (this.discussionDirectives.size >= 1_024) {
+      this.discussionDirectives.delete(this.discussionDirectives.keys().next().value!);
+    }
+    this.discussionDirectives.set(event.eventId, directive);
+    return directive;
   }
 }

@@ -10,6 +10,7 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 import { describe, expect, it, vi } from "vitest";
 
 import { DiscordConversationDeliberationRuntime } from "../src/discord-conversation-deliberation-runtime.js";
+import type { ConversationDeliberationParticipantAssignmentPort } from "../src/conversation-deliberation-participant-router.js";
 
 function artifacts(): ArtifactStore {
   const values = new Map<string, Uint8Array>();
@@ -31,6 +32,17 @@ function artifacts(): ArtifactStore {
     },
     get: async (uri) => values.get(uri)!,
     has: async (uri) => values.has(uri),
+  };
+}
+
+function participantAssignments(
+  participantIds: string[],
+): ConversationDeliberationParticipantAssignmentPort {
+  return {
+    preflight: () => ({ participantIds }),
+    assign: () => [],
+    attach: () => () => undefined,
+    publish: async () => undefined,
   };
 }
 
@@ -56,6 +68,7 @@ describe("Discord conversation deliberation runtime", () => {
       dataDirectory: process.cwd(),
       artifactStore,
       repositoryArtifactStore: artifactStore,
+      participantAssignments: participantAssignments(["ptc_reviewer01", "ptc_reviewer02"]),
       onFailure: vi.fn(),
     });
     const deliberations: ConversationDeliberationPort = {
@@ -139,6 +152,74 @@ describe("Discord conversation deliberation runtime", () => {
     expect(content).not.toContain("Wait for");
     expect(response.deliveryRelation).toBe("reply");
     expect(response.audienceParticipation).toBe("observe_only");
+    await runtime.stop();
+  });
+
+  it("does not spend a provider call when fewer than two real participants are verified", async () => {
+    const artifactStore = artifacts();
+    const start = vi.fn<ConversationDeliberationPort["start"]>();
+    const runtime = await DiscordConversationDeliberationRuntime.open({
+      config: {
+        cliExecutable: process.execPath,
+        workerId: "test-worker",
+        defaultPolicyId: "deliberation_architecture-review",
+        principals: [],
+      },
+      integrationId: "itg_discord01",
+      projectId: "prj_control01",
+      repositoryRoot: process.cwd(),
+      dataDirectory: process.cwd(),
+      artifactStore,
+      repositoryArtifactStore: artifactStore,
+      participantAssignments: participantAssignments(["ptc_reviewer01"]),
+      onFailure: vi.fn(),
+    });
+    runtime.attach(
+      {
+        deliberations: { start, resume: vi.fn(), inspect: vi.fn() },
+        runDeliberationWorkerCycle: async () => ({ status: "idle" as const }),
+        runDeliberationResumeWorkerCycle: async () => ({ status: "idle" as const }),
+      } as unknown as ConversationApplication,
+      1_000,
+    );
+    const source = await artifactStore.put("이 주제를 여러 에이전트가 토론해줘.");
+    const event = createConversationInboundEvent({
+      sourceEventKeyHash: hashConversationSourceEventKey("insufficient-participants"),
+      target: {
+        integrationId: "itg_discord01",
+        projectId: "prj_control01",
+        conversationId: "cnv_operator01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_operator01", roleId: null },
+      mentions: { participantIds: [], roleIds: [] },
+      content: {
+        artifactId: "art_insufficient01",
+        contentHash: source.contentHash,
+        byteCount: source.byteCount,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      replyToEventId: null,
+      signalCode: null,
+      automationDepth: 0,
+      occurredAt: "2026-09-18T00:00:00.000Z",
+    });
+
+    const response = await runtime.actionResponder.respond(
+      { event } as never,
+      { kind: "deliberation_start", specification: "실제 에이전트만 참여한다." },
+      { effectRequesterAuthorized: true },
+    );
+
+    expect(start).not.toHaveBeenCalled();
+    const content = new TextDecoder().decode(
+      await artifactStore.get(
+        `lervo-cas://sha256/${response.content.contentHash.slice("sha256:".length)}`,
+      ),
+    );
+    expect(content).toContain("실제 에이전트가 2명 이상 확인되지 않아");
+    expect(content).toContain("공급자 호출이나 부분 토론은 실행되지 않았습니다");
     await runtime.stop();
   });
 });

@@ -1,6 +1,7 @@
 import {
   DiscordConversationAdapter,
   DiscordRestConversationAddress,
+  DiscordRestManagedBotRoles,
   DiscordRestDelivery,
   DiscordRestWebhookDelivery,
   DiscordRestTyping,
@@ -127,6 +128,17 @@ function discordIntegration(
           ? {}
           : { maxResponseBytes: deployment.maxResponseBytes }),
       });
+      const managedBotRoles = new DiscordRestManagedBotRoles({
+        botToken: deployment.botToken,
+        allowedGuildIds: deployment.allowedGuildIds,
+        ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
+        ...(deployment.requestTimeoutMs === undefined
+          ? {}
+          : { requestTimeoutMs: deployment.requestTimeoutMs }),
+        ...(deployment.maxResponseBytes === undefined
+          ? {}
+          : { maxResponseBytes: deployment.maxResponseBytes }),
+      });
       return new DiscordConversationAdapter({
         integrationId: deployment.integrationId,
         applicationId: deployment.applicationId,
@@ -137,6 +149,7 @@ function discordIntegration(
         artifactStore: context.artifactStore,
         delivery,
         conversationAddress,
+        managedBotRoles,
         deliveryIdentity:
           deployment.delivery?.kind === "webhook"
             ? `webhooks:${deployment.delivery.webhooks

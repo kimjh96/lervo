@@ -256,4 +256,29 @@ describe("conversation contract", () => {
     expect(roleOwners.ownerParticipantIds).toContain("ptc_agent001");
     expect(roleOwners.ownerParticipantIds).toHaveLength(2);
   });
+
+  it("does not reinterpret an unavailable explicit address as an unaddressed turn", () => {
+    const candidates = [{ participantId: "ptc_agent001", roleId: "developer" }];
+    const source = event();
+    const { schemaVersion: _schemaVersion, eventId: _eventId, ...content } = source;
+    const participantMention = createConversationInboundEvent({
+      ...content,
+      mentions: { roleIds: [], participantIds: ["ptc_agent999"] },
+    });
+    const roleMention = createConversationInboundEvent({
+      ...content,
+      mentions: { roleIds: ["researcher"], participantIds: [] },
+    });
+
+    expect(resolveConversationTurnOwnership({ event: participantMention, candidates })).toEqual({
+      basis: "participant_mentions",
+      candidateParticipantIds: ["ptc_agent001"],
+      ownerParticipantIds: [],
+    });
+    expect(resolveConversationTurnOwnership({ event: roleMention, candidates })).toEqual({
+      basis: "role_mentions",
+      candidateParticipantIds: ["ptc_agent001"],
+      ownerParticipantIds: [],
+    });
+  });
 });

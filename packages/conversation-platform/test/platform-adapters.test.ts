@@ -504,6 +504,68 @@ describe("authenticated platform conversation adapters", () => {
     ]);
   });
 
+  it("routes a managed bot role mention to its exact bot and ignores an unresolved role", async () => {
+    const identity = identityPort();
+    const managedBotRoles = {
+      resolve: vi.fn(async ({ roleIds }: { roleIds: readonly string[] }) =>
+        roleIds[0] === "723456789012345678"
+          ? [{ roleId: roleIds[0]!, botId: "823456789012345678" }]
+          : [],
+      ),
+    };
+    const adapter = new DiscordConversationAdapter({
+      integrationId: "itg_discord01",
+      applicationId: "999999999999999999",
+      allowedGuildIds: ["123456789012345678"],
+      allowDirectMessages: false,
+      gatewayAuthentication: { verifyDispatch: async () => ({ authenticated: true }) },
+      identity: identity.port,
+      artifactStore: await artifacts(),
+      delivery: {
+        send: async () => ({ messageId: "923456789012345678", deliveredAt: now.toISOString() }),
+      },
+      managedBotRoles,
+    });
+    const message = (id: string, roleId: string) =>
+      Buffer.from(
+        JSON.stringify({
+          id,
+          channel_id: "223456789012345678",
+          guild_id: "123456789012345678",
+          author: { id: "523456789012345678", bot: false },
+          content: `<@&${roleId}> inspect`,
+          mentions: [],
+          mention_roles: [roleId],
+          timestamp: now.toISOString(),
+        }),
+      );
+    await expect(
+      adapter.receiveHistoryMessage(
+        {
+          messageId: "323456789012345678",
+          body: message("323456789012345678", "723456789012345678"),
+        },
+        "123456789012345678",
+      ),
+    ).resolves.toMatchObject({
+      status: "accepted",
+      event: { mentions: { participantIds: ["ptc_lervo_agent"] } },
+    });
+    expect(identity.inbound).toHaveBeenCalledWith(
+      expect.objectContaining({ mentionedParticipantKeys: ["bot:823456789012345678"] }),
+    );
+    await expect(
+      adapter.receiveHistoryMessage(
+        {
+          messageId: "323456789012345679",
+          body: message("323456789012345679", "723456789012345679"),
+        },
+        "123456789012345678",
+      ),
+    ).resolves.toMatchObject({ status: "ignored", reason: "addressed_to_unmapped_participant" });
+    expect(identity.inbound).toHaveBeenCalledOnce();
+  });
+
   it("projects oversized observation-only contributions within Discord's message limit", async () => {
     const artifactStore = await artifacts();
     const identity = identityPort();

@@ -19,8 +19,9 @@ export interface ConversationRepositoryWorkRoute {
   allocationReason: ConversationRepositoryWorkAllocationReason;
 }
 
-/** Selects quality before cost while retaining an already-open provider session. */
+/** Selects the requested work profile while replaying each event on its original provider. */
 export function selectConversationRepositoryWorkRoute(input: {
+  replayProvider?: RepositoryWorkProvider | null;
   sessionProvider: RepositoryWorkProvider | null;
   boundProvider: RepositoryWorkProvider | "any" | null;
   defaultProvider: RepositoryWorkProvider;
@@ -35,13 +36,15 @@ export function selectConversationRepositoryWorkRoute(input: {
   const profilePolicy =
     input.executionProfile === null ? undefined : input.executionProfiles?.[input.executionProfile];
   const [provider, allocationReason] =
-    input.sessionProvider !== null
-      ? [input.sessionProvider, "session_continuity" as const]
+    input.replayProvider !== null && input.replayProvider !== undefined
+      ? [input.replayProvider, "session_continuity" as const]
       : input.boundProvider !== null && input.boundProvider !== "any"
         ? [input.boundProvider, "bound_agent_provider" as const]
         : profilePolicy !== undefined
           ? [profilePolicy.preferredProvider, "profile_preference" as const]
-          : [input.defaultProvider, "configured_default" as const];
+          : input.sessionProvider !== null
+            ? [input.sessionProvider, "session_continuity" as const]
+            : [input.defaultProvider, "configured_default" as const];
   const route = profilePolicy?.providers[provider];
   if (profilePolicy !== undefined && route === undefined) {
     throw new Error(

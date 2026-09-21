@@ -64,6 +64,8 @@ ADR-0405 replaces the one-mandate-per-goal transition with a reviewed standing g
 
 The installed standing lineage started its first successor goal from a local request without an operator step. That goal exposed a stalled rework claim. ADR-0406 introduced claim supersession, a thirty-second admission margin, and a ten-minute completion floor; the corrected bundle's first cycle reconciled the claim in production.
 
+A separately current workstream previously made the pinned standing owner log `cycle_error_unclassified` every five seconds. The source now types that state as `supervision_workstream_inactive`; the installed service treats it as dormant pending lineage evidence, retains event-driven wakeup, and limits fallback checks to once per minute without reporting false unavailable health.
+
 Remaining follow-ups are bounded assignment failure for a successor responsibility whose window elapsed before its claim, and Discord `/goal` proof of consecutive successor goals. The latter needs the operator's Discord session.
 
 ## Unqueued publication recovery

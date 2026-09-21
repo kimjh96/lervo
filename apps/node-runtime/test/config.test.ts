@@ -317,6 +317,49 @@ describe("Node runtime configuration", () => {
     expect(
       parseNodeRuntimeConfig(workforceHiring, root).discordConversation?.administration,
     ).toEqual({ allowedActions: ["workforce.agent.hire"] });
+    const requestedRuntime = structuredClone(configured);
+    const requestedRuntimeConversation = requestedRuntime.discordConversation as Record<
+      string,
+      unknown
+    >;
+    requestedRuntimeConversation.administration = {
+      allowedActions: ["requested_runtime.manage"],
+    };
+    requestedRuntimeConversation.requestedRuntimes = [
+      {
+        runtimeId: "preview",
+        displayName: "Development server",
+        executable: "/usr/bin/node",
+        arguments: ["server.js", "--port", "4317"],
+        workingDirectory: "app",
+        healthUrl: "http://127.0.0.1:4317/",
+        maximumLifetimeMs: 3_600_000,
+      },
+    ];
+    expect(parseNodeRuntimeConfig(requestedRuntime, root).discordConversation).toMatchObject({
+      requestedRuntimes: [
+        {
+          runtimeId: "preview",
+          displayName: "Development server",
+          executable: "/usr/bin/node",
+          arguments: ["server.js", "--port", "4317"],
+          workingDirectory: `${root}/app`,
+          healthUrl: "http://127.0.0.1:4317/",
+          maximumLifetimeMs: 3_600_000,
+          startupTimeoutMs: 30_000,
+          stopTimeoutMs: 5_000,
+        },
+      ],
+    });
+    const unapprovedRequestedRuntime = structuredClone(requestedRuntime);
+    (
+      unapprovedRequestedRuntime.discordConversation as {
+        administration: { allowedActions: string[] };
+      }
+    ).administration.allowedActions = ["current_member.nickname.set"];
+    expect(() => parseNodeRuntimeConfig(unapprovedRequestedRuntime, root)).toThrow(
+      "require the requested_runtime.manage action",
+    );
     const unboundWorkforceHiring = structuredClone(workforceHiring);
     (unboundWorkforceHiring.discordConversation as Record<string, unknown>).organization =
       undefined;
@@ -589,7 +632,11 @@ describe("Node runtime configuration", () => {
           preferredProvider: "claude",
           providers: {
             codex: { model: "gpt-6-astra", reasoningEffort: "high" },
-            claude: { model: "claude-opus-4-6", reasoningEffort: "high" },
+            claude: {
+              model: "claude-opus-4-6",
+              reasoningEffort: "high",
+              timeoutMs: 180_000,
+            },
           },
         },
       },
@@ -606,11 +653,25 @@ describe("Node runtime configuration", () => {
           executionProfiles: {
             routine: { preferredProvider: "claude" },
             reasoning: { preferredProvider: "codex" },
-            review: { preferredProvider: "claude" },
+            review: {
+              preferredProvider: "claude",
+              providers: { claude: { timeoutMs: 180_000 } },
+            },
           },
         },
       },
     });
+    const unboundedReview = structuredClone(hosted);
+    const unboundedReviewProfiles = (
+      (unboundedReview.remoteCommands as Record<string, unknown>).providerHost as Record<
+        string,
+        unknown
+      >
+    ).executionProfiles as Record<string, { providers: { claude: Record<string, unknown> } }>;
+    unboundedReviewProfiles.review!.providers.claude.timeoutMs = 300_001;
+    expect(() => parseNodeRuntimeConfig(unboundedReview, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
     const downgradedReasoning = structuredClone(hosted);
     (
       (downgradedReasoning.remoteCommands as Record<string, unknown>).providerHost as Record<

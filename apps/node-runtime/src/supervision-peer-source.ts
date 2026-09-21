@@ -5,7 +5,6 @@ import {
   resolveRepositoryCoordinationHome,
   type ProjectStorage,
 } from "@lervo/project-storage";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
 import type { WorkHandoffPartyV1 } from "@lervo/application-contract";
 import { operatingContractHash } from "@lervo/work-controller";
 import {
@@ -14,6 +13,7 @@ import {
   type NodeSupervisionBinding,
 } from "./supervision-authority.js";
 import { SupervisionAuthorityHistory } from "./supervision-authority-history.js";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 
 /** A host-installed observation route. It grants no source or recipient execution authority. */
 export interface NodeSupervisionPeerConfiguration {
@@ -92,7 +92,7 @@ export class SupervisionPeerSource {
       this.now,
       this.history,
     );
-    const workstream = await readCurrentWorkstreamState(configuration.repositoryRoot);
+    const workstream = await readBoundWorkstreamState(storage, configuration.binding.workstreamId);
     const agents = await listAgents(configuration.repositoryRoot, { readOnly: true });
     const owner = agents.find((agent) => agent.agentId === configuration.binding.ownerAgentId);
     const age = Date.parse(this.now()) - Date.parse(startedAt);

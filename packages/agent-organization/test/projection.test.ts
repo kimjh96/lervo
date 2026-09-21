@@ -103,6 +103,33 @@ const deliberation = event(5, "organization.deliberation.participant.bound", {
   boundAt: "2026-09-08T00:04:00.000Z",
 });
 
+const namedDeliberation = event(5, "organization.deliberation.participant.bound", {
+  deliberationId: "dlb_organization02",
+  deliberationPolicyHash: hash("8"),
+  bindingVersion: 2,
+  participationAssignmentId: `dpa_${"a".repeat(40)}`,
+  policyId: "deliberation_architecture-review",
+  organizationId,
+  teamId,
+  projectId,
+  channelMembershipId,
+  membershipId,
+  deploymentId,
+  agentId,
+  participantId,
+  roleId: "architecture-proposer",
+  policyRoleId: "architecture-proposer",
+  agentRoleId: role.roleId,
+  roleVersion: role.roleVersion,
+  roleContractHash: role.roleContractHash,
+  roleProfileHash: role.roleProfileHash,
+  providerPolicyHash: role.providerPolicyHash,
+  executionRouteHash: hash("9"),
+  executionProvider: "codex",
+  acceptedAt: "2026-09-08T00:04:00.000Z",
+  boundAt: "2026-09-08T00:04:00.000Z",
+});
+
 describe("agent organization projection", () => {
   it("accepts only the exact active runtime identity and channel set", () => {
     const projection = projectAgentOrganization({
@@ -215,6 +242,38 @@ describe("agent organization projection", () => {
         outcomeStatus: "converged",
       }),
     ]);
+  });
+
+  it("keeps a policy seat distinct from the durable hired-agent role", () => {
+    const projection = projectAgentOrganization({
+      projectId,
+      events: [team, membership, deployment, channel, namedDeliberation],
+    });
+
+    expect(projection.deliberationParticipants).toEqual([
+      expect.objectContaining({
+        bindingVersion: 2,
+        policyRoleId: "architecture-proposer",
+        agentRoleId: "developer",
+        agentId,
+        participantId,
+      }),
+    ]);
+    expect(() =>
+      projectAgentOrganization({
+        projectId,
+        events: [
+          team,
+          membership,
+          deployment,
+          channel,
+          event(5, "organization.deliberation.participant.bound", {
+            ...(namedDeliberation.payload as Record<string, unknown>),
+            agentRoleId: "product-owner",
+          }),
+        ],
+      }),
+    ).toThrowError("does not preserve the membership role");
   });
 
   it("reclassifies a team through explicit ordered history without changing its identity", () => {

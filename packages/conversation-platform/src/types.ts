@@ -17,6 +17,8 @@ export interface PlatformInboundIdentityRequest {
   replyToMessageKey: string | null;
   participantKey: string;
   mentionedParticipantKeys: readonly string[];
+  /** Ordered external aliases for the one active target of a coordinated turn. */
+  primaryMentionedParticipantKeys?: readonly string[];
   actorKindHint: "human" | "agent" | "system";
 }
 
@@ -26,6 +28,8 @@ export interface PlatformInboundIdentity {
   threadId: string | null;
   actor: ConversationInboundEvent["actor"];
   mentions: ConversationInboundEvent["mentions"];
+  /** Normalized active target, when the adapter supplied an ordered target alias. */
+  primaryMentionedParticipantId?: string | null;
   replyToEventId: string | null;
   automationDepth: number;
 }

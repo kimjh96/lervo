@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
-import { rm } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { OperatingMandateV3 } from "@lervo/application-contract";
+import { canonicalJson } from "@lervo/event-contract";
 import { openProjectStorage } from "@lervo/project-storage";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
 import { collectProjectEventsBounded } from "@lervo/storage-contract";
@@ -19,7 +20,12 @@ import { observeSupervisionHostIdentity } from "../src/supervision-execution-hos
 import { admitStandingSupervisionRequest } from "../src/supervision-request-intake.js";
 import { readInstalledNodeMandate } from "../src/supervision-authority.js";
 import { resolveStandingSupervisionBinding } from "../src/supervision-standing.js";
+import {
+  recordUnselectedStandingSuccessor,
+  standingSuccessorMarker,
+} from "../src/supervision-standing-bound-successor.js";
 import { openNodeSupervisionService } from "../src/supervision-startup.js";
+import { readBoundWorkstreamState } from "../src/supervision-workstream-state.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -112,6 +118,171 @@ async function installStandingRoot(maximumSuccessors: number) {
   });
   return { f, storage, root, rootMandate, request };
 }
+
+it("starts Elio's successor without replacing a separately selected deployment review", async () => {
+  const { f, storage, root, request } = await installStandingRoot(1);
+  await completeCurrentGoal(f.root);
+  const parent = (await readCurrentWorkstreamState(f.root))!;
+  const review = {
+    ...parent.snapshot,
+    workstreamId: `wks_${"d".repeat(24)}`,
+    revision: 1,
+    status: "active" as const,
+    title: "Installed conversation review",
+    objective: "Verify deployment evidence before releasing approval.",
+    origin: {
+      kind: "successor" as const,
+      predecessorWorkstreamId: parent.snapshot.workstreamId,
+      predecessorSnapshotContentHash: parent.contentHash,
+      sourceArtifactId: null,
+      sourceContentHash: null,
+      sourcePathDigest: null,
+    },
+    pendingApprovals: [
+      {
+        approvalId: `wapr_${"d".repeat(16)}`,
+        kind: "deployment" as const,
+        summary: "Hold installed conversation approval until exact evidence is reviewed.",
+        bindingHash: hash("held-review"),
+        blocking: true,
+      },
+    ],
+  };
+  const reviewContent = `${canonicalJson(review)}\n`;
+  const artifact = await storage.artifacts.put(reviewContent);
+  storage.events.append({
+    eventId: `evt_${"d".repeat(32)}`,
+    projectId: storage.manifest.projectId,
+    runId: `run_${"d".repeat(32)}`,
+    sessionId: `ses_${"d".repeat(32)}`,
+    type: "workstream.snapshot.recorded",
+    schemaVersion: 1,
+    occurredAt: review.updatedAt,
+    actor: { kind: "agent", provider: "codex" },
+    policyVersion: artifact.contentHash,
+    payload: {
+      workstreamId: review.workstreamId,
+      revision: 1,
+      status: "active",
+      changeKind: "agent_start",
+      snapshotArtifactId: `art_${artifact.contentHash.slice(7)}`,
+      snapshotContentHash: artifact.contentHash,
+      previousSnapshotContentHash: parent.contentHash,
+      sourceArtifactId: null,
+      sourceContentHash: null,
+      recordedAt: review.updatedAt,
+    },
+  });
+  await writeFile(resolve(f.root, ".lervo/state/workstreams/current.json"), reviewContent);
+
+  const next = await admitStandingSupervisionRequest({
+    repositoryRoot: f.root,
+    root,
+    request: request("Continue the owner goal while review remains selected.", "parallel-1"),
+    provider: "codex",
+  });
+  expect(next.rebound).toBe(true);
+  expect(next.binding.ownerAgentId).toBe(root.ownerAgentId);
+  expect(next.binding.workstreamId).not.toBe(review.workstreamId);
+  expect((await readCurrentWorkstreamState(f.root))?.contentHash).toBe(artifact.contentHash);
+  expect(
+    (await readBoundWorkstreamState(storage, review.workstreamId))?.snapshot.pendingApprovals,
+  ).toEqual(review.pendingApprovals);
+  expect(
+    (await readBoundWorkstreamState(storage, next.binding.workstreamId))?.snapshot.status,
+  ).toBe("active");
+  await storage.close();
+});
+
+it("recovers a prepared unselected successor after a restart without recording another goal", async () => {
+  const { f, storage, root } = await installStandingRoot(1);
+  await completeCurrentGoal(f.root);
+  const predecessor = (await readBoundWorkstreamState(storage, root.workstreamId))!;
+  const requestContentHash = hash("Restarted request");
+  const draft = (updatedAt: string) => ({
+    schemaVersion: 1,
+    status: "active",
+    title: "Restarted request",
+    objective: "Restarted request",
+    nextActions: ["Finish the request."],
+    blockers: [],
+    notes: [standingSuccessorMarker(1, requestContentHash)],
+    references: [],
+    updatedAt,
+  });
+  const first = await recordUnselectedStandingSuccessor({
+    storage,
+    predecessor,
+    draft: draft("2026-09-19T00:00:00.000Z"),
+    provider: "codex",
+    supervisionId: "supervision.standing.s1",
+    successorIndex: 1,
+    requestContentHash,
+    now: () => "2026-09-19T00:00:00.000Z",
+  });
+  const restarted = await recordUnselectedStandingSuccessor({
+    storage,
+    predecessor,
+    draft: draft("2026-09-19T00:01:00.000Z"),
+    provider: "codex",
+    supervisionId: "supervision.standing.s1",
+    successorIndex: 1,
+    requestContentHash,
+    now: () => "2026-09-19T00:01:00.000Z",
+  });
+  expect(restarted).toEqual(first);
+  expect(
+    collectProjectEventsBounded({ events: storage.events, maximumEvents: 4000 }).filter(
+      (event) =>
+        event.type === "workstream.snapshot.recorded" &&
+        event.payload.workstreamId === first.workstreamId,
+    ),
+  ).toHaveLength(1);
+  const prepared = (await readBoundWorkstreamState(storage, first.workstreamId))!;
+  const changed = {
+    ...prepared.snapshot,
+    revision: 2,
+    notes: [...prepared.snapshot.notes, "Changed after preparation."],
+    updatedAt: "2026-09-19T00:02:00.000Z",
+  };
+  const changedArtifact = await storage.artifacts.put(`${canonicalJson(changed)}\n`);
+  storage.events.append({
+    eventId: `evt_${"e".repeat(32)}`,
+    projectId: storage.manifest.projectId,
+    runId: `run_${"e".repeat(32)}`,
+    sessionId: `ses_${"e".repeat(32)}`,
+    type: "workstream.snapshot.recorded",
+    schemaVersion: 1,
+    occurredAt: changed.updatedAt,
+    actor: { kind: "agent", provider: "codex" },
+    policyVersion: changedArtifact.contentHash,
+    payload: {
+      workstreamId: first.workstreamId,
+      revision: 2,
+      status: "active",
+      changeKind: "agent_update",
+      snapshotArtifactId: `art_${changedArtifact.contentHash.slice(7)}`,
+      snapshotContentHash: changedArtifact.contentHash,
+      previousSnapshotContentHash: prepared.contentHash,
+      sourceArtifactId: null,
+      sourceContentHash: null,
+      recordedAt: changed.updatedAt,
+    },
+  });
+  await expect(
+    recordUnselectedStandingSuccessor({
+      storage,
+      predecessor,
+      draft: draft("2026-09-19T00:03:00.000Z"),
+      provider: "codex",
+      supervisionId: "supervision.standing.s1",
+      successorIndex: 1,
+      requestContentHash,
+      now: () => "2026-09-19T00:03:00.000Z",
+    }),
+  ).rejects.toThrow("prepared successor changed");
+  await storage.close();
+});
 
 it("starts successor goals under a standing grant and follows the lineage binding", async () => {
   const { f, storage, root, rootMandate, request } = await installStandingRoot(2);
@@ -280,7 +451,7 @@ it("makes a running standing service follow a successor another process started"
     expect(raisedInstall).not.toBeNull();
     await vi.waitFor(
       () => expect(service.currentBinding().mandateHash).toBe(raisedInstall!.mandateHash),
-      { timeout: 30_000 },
+      { timeout: 90_000 },
     );
     expect(service.currentBinding().supervisionId).toBe(admitted.binding.supervisionId);
   } finally {

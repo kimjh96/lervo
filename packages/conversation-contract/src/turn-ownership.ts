@@ -74,7 +74,7 @@ export function resolveConversationTurnOwnership(input: {
   const participantOwners = candidates.filter((candidate) =>
     participantMentions.has(candidate.participantId),
   );
-  if (participantOwners.length > 0) {
+  if (participantMentions.size > 0) {
     return {
       basis: "participant_mentions",
       candidateParticipantIds: candidates.map((candidate) => candidate.participantId),
@@ -93,7 +93,7 @@ export function resolveConversationTurnOwnership(input: {
     })
     .filter((participantId, index, values) => values.indexOf(participantId) === index)
     .sort();
-  if (roleOwners.length > 0) {
+  if (mentionedRoles.size > 0) {
     return {
       basis: "role_mentions",
       candidateParticipantIds: candidates.map((candidate) => candidate.participantId),

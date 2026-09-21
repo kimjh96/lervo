@@ -5,7 +5,11 @@ import type {
   DocumentRuleMap,
 } from "@lervo/context";
 import type { ResolvedWritingPolicy } from "@lervo/context-delivery";
-import type { ConversationReplyCandidate, ConversationResponder } from "@lervo/interaction";
+import type {
+  ConversationCompletedEffectResult,
+  ConversationReplyCandidate,
+  ConversationResponder,
+} from "@lervo/interaction";
 import type {
   ManagedPrepareContextInput,
   ManagedProviderRunDeadlines,
@@ -27,6 +31,7 @@ import type { WritingArtifactCoordinate, WritingSemanticEvaluator } from "@lervo
 
 export interface ManagedConversationResponsePlan {
   adapter: ProviderAdapter;
+  deadlines?: Partial<ManagedProviderRunDeadlines>;
   executionIdentity: {
     agentId: string | null;
     provider: string;
@@ -68,6 +73,8 @@ export interface ManagedConversationResponseRequest {
   decision: ConversationParticipationDecision;
   context?: {
     priorTurns: ReadonlyArray<ConversationContextTurn>;
+    executionProfile?: "routine" | "reasoning" | "review";
+    completedEffect?: ConversationCompletedEffectResult;
   };
 }
 
@@ -75,13 +82,17 @@ export interface ManagedConversationSurfaceEffect {
   effectId: string;
   description: string;
   argumentDescription: string | null;
+  argumentChoices?: ReadonlyArray<{
+    value: string;
+    label: string;
+  }>;
   maximumArgumentCharacters?: number;
 }
 
 export interface ManagedConversationTurnRequest {
   event: ConversationInboundEvent;
   policy: ConversationParticipationPolicy;
-  respondingAgent: { agentId: string | null; roleId: string };
+  respondingAgent: { participantId: string; agentId: string | null; roleId: string };
   mentioned: boolean;
   surfaceEffects: readonly ManagedConversationSurfaceEffect[];
   context?: { priorTurns: ReadonlyArray<ConversationContextTurn> };

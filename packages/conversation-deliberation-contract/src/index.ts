@@ -8,6 +8,8 @@ export interface ConversationDeliberationSummary {
   status: ConversationDeliberationStatus;
   artifactCount: number;
   nextAction: "wait" | "resume" | "none";
+  /** Canonical terminal failure code when the source can prove one; absent for legacy records. */
+  failureReasonCode?: string | null;
 }
 
 export type ConversationDeliberationJobState = "queued" | "leased" | "settled" | "uncertain";

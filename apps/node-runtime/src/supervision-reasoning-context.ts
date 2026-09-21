@@ -251,6 +251,7 @@ export async function createOwnerReasoningContext(input: {
   if (input.report.nextAction === null)
     throw new Error("An idle owner requires no reasoning call.");
   const planning = await loadSupervisionPlanningContext({
+    storage: input.storage,
     repositoryRoot: input.storage.paths.repositoryRoot,
     projectId: input.storage.manifest.projectId,
     workstreamId: input.binding.workstreamId,

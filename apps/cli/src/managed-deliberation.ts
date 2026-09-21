@@ -13,10 +13,12 @@ import { loadDocumentRegistry } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
 import type {
+  DeliberationParticipantAssignment,
   DeliberationOutcome,
   DeliberationResponsibility,
   WritingContract,
 } from "@lervo/schemas";
+import { validateSchema } from "@lervo/schemas";
 
 import { completeApprovedDeliberation } from "./deliberation-convergence.js";
 import {
@@ -25,6 +27,11 @@ import {
 } from "./deliberation-checkpoint.js";
 import { createFailedOutcome } from "./deliberation-contract.js";
 import { executeDeliberationRounds } from "./deliberation-rounds.js";
+import {
+  applyBoundDeliberationParticipantRoles,
+  bindAssignedDeliberationParticipants,
+  releaseAssignedDeliberationParticipants,
+} from "./deliberation-participant-binding.js";
 import { loadDeliberationWorkflowSource } from "./deliberation-policy-loader.js";
 import { acquireDeliberationLease, releaseDeliberationLease } from "./deliberation-lease.js";
 import { resumeManagedDeliberationWithStorage } from "./managed-deliberation-resume.js";
@@ -58,6 +65,7 @@ interface ManagedDeliberationRequestBase {
     Record<RunProvider, "low" | "medium" | "high" | "xhigh" | "max">
   >;
   executionMaximumElapsedMs?: number;
+  participantAssignments?: readonly DeliberationParticipantAssignment[];
 }
 
 export interface InlineManagedDeliberationRequest extends ManagedDeliberationRequestBase {
@@ -83,6 +91,7 @@ export interface ResumeManagedDeliberationRequest {
     Record<RunProvider, "low" | "medium" | "high" | "xhigh" | "max">
   >;
   executionMaximumElapsedMs?: number;
+  participantAssignments?: readonly DeliberationParticipantAssignment[];
   topic?: never;
   policyId?: never;
   proposerProvider?: never;
@@ -180,6 +189,21 @@ function assertRequest(request: ManagedDeliberationRequest): void {
   const providerExecutables = request.providerExecutables ?? {};
   const providerModels = request.providerModels ?? {};
   const providerReasoningEfforts = request.providerReasoningEfforts ?? {};
+  if (
+    request.participantAssignments !== undefined &&
+    (request.participantAssignments.length < 1 ||
+      request.participantAssignments.length > 32 ||
+      request.participantAssignments.some(
+        (item) => !validateSchema("deliberationParticipantAssignment", item).valid,
+      ) ||
+      new Set(request.participantAssignments.map((item) => item.policyRoleId)).size !==
+        request.participantAssignments.length)
+  ) {
+    throw new ManagedDeliberationError(
+      "deliberation_request_invalid",
+      "Managed deliberation participant assignments are invalid or duplicated.",
+    );
+  }
   if (
     request.executionMaximumElapsedMs !== undefined &&
     (!Number.isSafeInteger(request.executionMaximumElapsedMs) ||
@@ -381,9 +405,18 @@ async function executeWithStorage(
     dependencies.writingContract,
     request.responseLanguage,
   );
-  const plan = await resolveExecutionPlan(request, storage, writingContract);
+  let plan = await resolveExecutionPlan(request, storage, writingContract);
   const deliberationId = assignedDeliberationId ?? dependencies.createId("dlb");
   const policy = plan.policy;
+  const participantExecutions = await bindAssignedDeliberationParticipants({
+    storage,
+    deliberationId,
+    plan,
+    ...(request.participantAssignments === undefined
+      ? {}
+      : { assignments: request.participantAssignments }),
+  });
+  plan = applyBoundDeliberationParticipantRoles(plan, participantExecutions);
   const recipientRoleIds = plan.participants.map((participant) => participant.role.roleId);
   const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
   const workspace = await DeliberationWorkspace.create({
@@ -409,7 +442,7 @@ async function executeWithStorage(
     artifactStore: storage.artifacts,
     participantNames: plan.participants.map((participant) => ({
       roleId: participant.role.roleId,
-      name: participant.role.name,
+      name: participantExecutions.get(participant.role.roleId)?.role.name ?? participant.role.name,
     })),
     now: dependencies.now,
     createEventId: () => dependencies.createId("evt"),
@@ -447,6 +480,7 @@ async function executeWithStorage(
       request.providerModels,
       request.providerReasoningEfforts,
       { providerCalls: 0, observedTokens: 0, startedAt: executionStartedAt },
+      participantExecutions,
     );
     const rounds = await executeDeliberationRounds({
       request,
@@ -463,6 +497,11 @@ async function executeWithStorage(
       },
     });
     if (rounds.status === "no_consensus") {
+      releaseAssignedDeliberationParticipants({
+        storage,
+        outcome: rounds.result.outcome,
+        releasedAt: dependencies.now().toISOString(),
+      });
       completed = true;
       return rounds.result;
     }
@@ -510,6 +549,11 @@ async function executeWithStorage(
       currentClaim: rounds.currentClaim,
       now: dependencies.now,
     });
+    releaseAssignedDeliberationParticipants({
+      storage,
+      outcome: result.outcome,
+      releasedAt: dependencies.now().toISOString(),
+    });
     completed = true;
     await releaseDeliberationLease({
       stateRoot: storage.paths.state,
@@ -521,16 +565,20 @@ async function executeWithStorage(
   } catch (error) {
     if (!completed && !(error instanceof DeliberationProcessInterruptedError)) {
       try {
-        runtime.complete(
-          createFailedOutcome({
-            deliberationId,
-            policy,
-            history: runtime.history(),
-            completedAt: dependencies.now().toISOString(),
-            unresolvedBlockingObjectionIds: openBlockingObjections,
-            code: errorCode(error),
-          }),
-        );
+        const failedOutcome = createFailedOutcome({
+          deliberationId,
+          policy,
+          history: runtime.history(),
+          completedAt: dependencies.now().toISOString(),
+          unresolvedBlockingObjectionIds: openBlockingObjections,
+          code: errorCode(error),
+        });
+        runtime.complete(failedOutcome);
+        releaseAssignedDeliberationParticipants({
+          storage,
+          outcome: failedOutcome,
+          releasedAt: dependencies.now().toISOString(),
+        });
       } catch {
         // Preserve the original failure instead of presenting incomplete history as completed.
       }

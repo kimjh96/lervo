@@ -28,8 +28,27 @@ export interface CodexEventNormalizerOptions {
   observedModel?: () => string | null;
 }
 
+function isCapacityFailure(value: unknown): boolean {
+  const error = asRecord(value);
+  const nested = asRecord(error?.error);
+  const data = asRecord(error?.data);
+  return [error, nested, data].some((record) => {
+    const nativeInfo = record?.codexErrorInfo ?? record?.codex_error_info;
+    const structuredInfo = asRecord(nativeInfo);
+    const connectionFailure = asRecord(structuredInfo?.HttpConnectionFailed);
+    return (
+      [record?.code, nativeInfo].some(
+        (code) => code === "server_overloaded" || code === "server_is_overloaded",
+      ) ||
+      structuredInfo?.httpStatusCode === 503 ||
+      connectionFailure?.httpStatusCode === 503
+    );
+  });
+}
+
 export class CodexEventNormalizer {
   private seenStarted = false;
+  private capacityFailureObserved = false;
 
   constructor(private readonly options: CodexEventNormalizerOptions) {}
 
@@ -58,6 +77,7 @@ export class CodexEventNormalizer {
       );
     }
     if (method === "turn/started") {
+      this.capacityFailureObserved = false;
       const turn = asRecord(params.turn);
       const providerTurnId = text(turn?.id);
       return providerTurnId === undefined
@@ -82,6 +102,7 @@ export class CodexEventNormalizer {
           );
     }
     if (method === "error") {
+      this.capacityFailureObserved ||= isCapacityFailure(params.error);
       return this.event(
         "provider.error",
         {
@@ -118,11 +139,17 @@ export class CodexEventNormalizer {
       // availability result, not a rejected request. The code stays provider-neutral so the
       // run coordinator reads a contract code rather than a Codex-specific one.
       const modelObserved = this.options.observedModel?.() ?? null;
+      const capacityFailure = isCapacityFailure(turn.error) || this.capacityFailureObserved;
+      this.capacityFailureObserved = false;
       return this.event(
         "provider.turn.failed",
         {
           providerTurnId,
-          failureCode: modelObserved === null ? "provider_model_unavailable" : "codex_turn_failed",
+          failureCode: capacityFailure
+            ? "provider_capacity_unavailable"
+            : modelObserved === null
+              ? "provider_model_unavailable"
+              : "codex_turn_failed",
           diagnosticDigest: digest(turn.error),
         },
         eventTime(message, params, this.options.now),
@@ -131,6 +158,7 @@ export class CodexEventNormalizer {
     if (turn?.status !== "completed" && turn?.status !== "interrupted") {
       return this.providerError("invalid_provider_turn", turn, message, params);
     }
+    this.capacityFailureObserved = false;
     return this.event(
       "provider.turn.completed",
       {

@@ -1,5 +1,6 @@
 import { DiscordRestAdministration } from "@lervo/adapter-discord";
 import type { ManagedConversationSurfaceEffect } from "@lervo/conversation-responder";
+import type { ConversationResponder } from "@lervo/interaction";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import type { ConversationInboundEvent } from "@lervo/schemas";
@@ -18,6 +19,32 @@ import type { SQLiteConversationRepositoryWorkStore } from "./conversation-repos
 import { RepositoryDiscordAgentOrganizationDeployment } from "./discord-agent-organization-deployment.js";
 import { DiscordHiredAgentDeployment } from "./discord-hired-agent-deployment.js";
 import { discordWorkforceExecution } from "./discord-workforce-execution.js";
+import type { ConversationPeerTurnDispatcher } from "./conversation-peer-turn-router.js";
+import {
+  ConversationRequestedRuntimeManager,
+  type ConversationRequestedRuntimeProcessPort,
+} from "./conversation-requested-runtime.js";
+import { ConversationRequestedRuntimeResponder } from "./conversation-requested-runtime-responder.js";
+import { NodeConversationRequestedRuntimeProcess } from "./node-requested-runtime-process.js";
+
+export function discordDelegationSurfaceEffect(
+  peers: readonly DiscordPeerAgentBinding[],
+): ManagedConversationSurfaceEffect {
+  return {
+    effectId: "workforce_task_delegate",
+    description:
+      "Ask exactly one routable peer to perform a bounded subtask from that agent's own durable role, context, and session. Choose this when the peer's responsibility or knowledge makes delegation useful; the coordinator remains responsible for the person's complete outcome.",
+    argumentDescription:
+      "Compact JSON with exactly participantId and task. participantId must exactly equal one argumentChoices value. Task is the natural bounded subtask for that peer, not a synthetic persona or a copy of unrelated coordinator work.",
+    argumentChoices: peers
+      .map((peer) => ({
+        value: peer.participantId,
+        label: `${peer.displayName ?? peer.roleId} (${peer.roleId})`,
+      }))
+      .sort((left, right) => left.value.localeCompare(right.value)),
+    maximumArgumentCharacters: 1_024,
+  };
+}
 
 export function createDiscordConversationEffects(input: {
   config: NodeDiscordConversationConfig;
@@ -30,20 +57,22 @@ export function createDiscordConversationEffects(input: {
   runtimeConfigPath?: string;
   onDeploymentPrepared?(sourceEventId: string): void;
   delegation?: {
-    projectId: string;
     parentParticipantId: string;
     parentAgentBinding?: ConversationInboundEvent["actor"]["agentBinding"];
     peers: readonly DiscordPeerAgentBinding[];
-    dispatch(event: ConversationInboundEvent): Promise<void>;
+    dispatcher: ConversationPeerTurnDispatcher;
   };
   deliberation?: {
     effect: ManagedConversationSurfaceEffect;
     responder: DiscordPlatformActionResponder;
   };
   fetch?: typeof globalThis.fetch;
+  requestedRuntimeProcesses?: ConversationRequestedRuntimeProcessPort;
+  resultResponder: ConversationResponder;
 }): {
   surfaceEffects: ManagedConversationSurfaceEffect[];
   platformAction: DiscordPlatformActionResponder;
+  close(): Promise<void>;
 } {
   const allowedActions = input.config.administration?.allowedActions ?? [];
   const surfaceEffects: ManagedConversationSurfaceEffect[] = [
@@ -83,7 +112,7 @@ export function createDiscordConversationEffects(input: {
           {
             effectId: "workforce_agent_hire",
             description:
-              "Hire one child agent in this product owner's repository with inherited capability limits.",
+              "Hire one child agent in this authorized parent's repository scope with inherited capability limits.",
             argumentDescription:
               "Compact JSON with exactly name, roleId, and provider (codex, claude, or any).",
             maximumArgumentCharacters: 512,
@@ -92,17 +121,34 @@ export function createDiscordConversationEffects(input: {
       : []),
     ...(input.delegation === undefined
       ? []
-      : [
-          {
-            effectId: "workforce_task_delegate",
-            description:
-              "Hand one bounded task to an agent already hired into this conversation so that agent answers and performs it from its own context, instead of doing the work yourself. Prefer this whenever a hired agent owns the subject.",
-            argumentDescription:
-              "Compact JSON with exactly roleId and task, where task states the bounded request in the conversation language.",
-            maximumArgumentCharacters: 1_024,
-          },
-        ]),
+      : [discordDelegationSurfaceEffect(input.delegation.peers)]),
     ...(input.deliberation === undefined ? [] : [input.deliberation.effect]),
+    ...(allowedActions.includes("requested_runtime.manage")
+      ? [
+          {
+            effectId: "requested_runtime_open",
+            description:
+              "Start one configured on-demand runtime for the current request. It remains owned by this Node only until explicit close, maximum lifetime, or Node shutdown; it is never enabled at boot or unconditionally restarted.",
+            argumentDescription: "The exact configured runtimeId.",
+            argumentChoices: input.config.requestedRuntimes!.map((target) => ({
+              value: target.runtimeId,
+              label: target.displayName,
+            })),
+            maximumArgumentCharacters: 64,
+          },
+          {
+            effectId: "requested_runtime_close",
+            description:
+              "Stop one configured on-demand runtime that was opened for a request on this Node.",
+            argumentDescription: "The exact configured runtimeId.",
+            argumentChoices: input.config.requestedRuntimes!.map((target) => ({
+              value: target.runtimeId,
+              label: target.displayName,
+            })),
+            maximumArgumentCharacters: 64,
+          },
+        ]
+      : []),
   ];
   const administration = new DiscordRestAdministration({
     applicationId: input.config.applicationId,
@@ -133,7 +179,9 @@ export function createDiscordConversationEffects(input: {
     ? new ConversationWorkforceActionResponder({
         artifactStore: input.artifactStore,
         parentAgentId: input.parentAgentId!,
-        parentRoleId: input.parentRoleId,
+        ...(input.delegation === undefined
+          ? {}
+          : { existingConversationAgents: input.delegation.peers }),
         hiring: new RepositoryConversationWorkforceHiring(input.repositoryRoot),
         ...(discordWorkforceExecution(input.config, input.runtimeConfigPath) !==
         "separate_deployment"
@@ -174,10 +222,19 @@ export function createDiscordConversationEffects(input: {
       ? undefined
       : new ConversationTaskDelegateResponder({
           artifactStore: input.artifactStore,
-          integrationId: input.config.integrationId,
           parentRoleId: input.parentRoleId,
           ...input.delegation,
         });
+  const requestedRuntimeManager = allowedActions.includes("requested_runtime.manage")
+    ? new ConversationRequestedRuntimeManager(
+        input.config.requestedRuntimes!,
+        input.requestedRuntimeProcesses ?? new NodeConversationRequestedRuntimeProcess(input.fetch),
+      )
+    : undefined;
+  const requestedRuntime =
+    requestedRuntimeManager === undefined
+      ? undefined
+      : new ConversationRequestedRuntimeResponder(requestedRuntimeManager, input.resultResponder);
   return {
     surfaceEffects,
     platformAction: new ConversationPlatformActionRouter(
@@ -185,6 +242,8 @@ export function createDiscordConversationEffects(input: {
       workforce,
       delegate,
       input.deliberation?.responder,
+      requestedRuntime,
     ),
+    close: () => requestedRuntimeManager?.closeAll() ?? Promise.resolve(),
   };
 }

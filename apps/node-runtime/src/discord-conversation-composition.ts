@@ -8,6 +8,7 @@ import { AuthenticatedRemoteCommandHttpSubmission } from "@lervo/remote-command"
 import { AuthenticatedHubHttpTransport } from "@lervo/sync";
 
 import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
+import type { ConversationRequestedEffect } from "./conversation-intent-resolver.js";
 import { discordSpeakerParticipantKeys } from "./discord-conversation-speaker.js";
 
 interface DiscordCompositionOptions {
@@ -21,17 +22,90 @@ export type DiscordPeerAgentBinding = NonNullable<
   NodeDiscordConversationConfig["peerAgents"]
 >[number] & { agentBinding: ConversationAgentBinding; displayName?: string };
 
-export function createAuthorizedAgentEffectRequesters(config: NodeDiscordConversationConfig) {
-  return config.participants.flatMap((participant) =>
-    participant.mayRequestEffects === true && participant.roleId !== null
-      ? config.conversations
-          .filter((conversation) => conversation.tenantKey === participant.tenantKey)
-          .map((conversation) => ({
-            participantId: participant.participantId,
-            roleId: participant.roleId!,
-            conversationId: conversation.conversationId,
-          }))
-      : [],
+export function effectiveDiscordPeerAgents(
+  configured: readonly DiscordPeerAgentBinding[],
+  current: readonly DiscordPeerAgentBinding[],
+): DiscordPeerAgentBinding[] {
+  const currentIds = new Set(current.map((peer) => peer.participantId));
+  return [...current, ...configured.filter((peer) => !currentIds.has(peer.participantId))];
+}
+
+export interface AuthorizedAgentEffectRequester {
+  participantId: string;
+  roleId: string;
+  conversationId: string;
+  effectKinds: readonly ConversationRequestedEffect["kind"][];
+}
+
+const manuallyAuthorizedEffects: readonly ConversationRequestedEffect["kind"][] = [
+  "repository_work",
+  "supervision_goal_request",
+  "discord_current_member_nickname_set",
+  "discord_guild_text_channel_create",
+  "discord_public_thread_create",
+  "workforce_agent_hire",
+  "workforce_task_delegate",
+  "deliberation_start",
+  "requested_runtime_open",
+  "requested_runtime_close",
+];
+
+export function createAuthorizedAgentEffectRequesters(
+  config: NodeDiscordConversationConfig,
+  routablePeers: readonly DiscordPeerAgentBinding[] = [],
+): AuthorizedAgentEffectRequester[] {
+  const authorizations = new Map<string, AuthorizedAgentEffectRequester>();
+  const add = (
+    participantId: string,
+    roleId: string,
+    conversationId: string,
+    effects: readonly ConversationRequestedEffect["kind"][],
+  ) => {
+    const key = `${participantId}\0${roleId}\0${conversationId}`;
+    const current = authorizations.get(key);
+    authorizations.set(key, {
+      participantId,
+      roleId,
+      conversationId,
+      effectKinds: [...new Set([...(current?.effectKinds ?? []), ...effects])].sort(),
+    });
+  };
+  for (const participant of config.participants) {
+    if (participant.mayRequestEffects !== true || participant.roleId === null) continue;
+    for (const conversation of config.conversations) {
+      if (conversation.tenantKey !== participant.tenantKey) continue;
+      add(
+        participant.participantId,
+        participant.roleId,
+        conversation.conversationId,
+        manuallyAuthorizedEffects,
+      );
+    }
+  }
+  for (const peer of routablePeers) {
+    for (const conversationId of peer.conversationIds) {
+      add(
+        peer.participantId,
+        peer.roleId,
+        conversationId,
+        config.policy?.acceptsPeerWork === true
+          ? [
+              "repository_work",
+              "workforce_task_delegate",
+              "deliberation_start",
+              ...(config.administration?.allowedActions.includes("requested_runtime.manage") ===
+              true
+                ? (["requested_runtime_open", "requested_runtime_close"] as const)
+                : []),
+            ]
+          : ["workforce_task_delegate"],
+      );
+    }
+  }
+  return [...authorizations.values()].sort((left, right) =>
+    `${left.conversationId}\0${left.participantId}`.localeCompare(
+      `${right.conversationId}\0${right.participantId}`,
+    ),
   );
 }
 
@@ -96,7 +170,7 @@ export function createDiscordPlatformBindings(input: {
   peerAgents?: DiscordPeerAgentBinding[];
 }) {
   const { config } = input;
-  const peerAgents = [...(config.peerAgents ?? []), ...(input.peerAgents ?? [])];
+  const peerAgents = effectiveDiscordPeerAgents(config.peerAgents ?? [], input.peerAgents ?? []);
   const tenantKeys = [...new Set(config.conversations.map((binding) => binding.tenantKey))];
   const manualParticipantKeys = new Set(
     config.participants.map(

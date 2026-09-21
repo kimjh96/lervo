@@ -1,0 +1,24 @@
+# ADR-0424: Bound uncertain conversation delivery and require verified reconciliation
+
+- Status: accepted
+- Decision date: 2026-09-19
+
+## Context
+
+An Elio outbound created on 2026-09-10 remained `pending` after more than 143,000 delivery attempts. Its Discord message had actually been posted once, but the platform replay record remained `sending`. Later runtime serialization produced a different request hash for the same immutable outbound, so replay correctly refused to send it again while the interaction outbox retried every five seconds. The generic `adapter_delivery_failed` row could not distinguish this state from a transient pre-send error. An already posted message must not be resent or silently claimed as undelivered.
+
+## Decision
+
+The platform replay request hash remains immutable. A changed hash cannot be treated as a compatible send request merely because the outbound ID matches. The interaction delivery worker gets three attempts by default, configurable only within one through ten. An invalid delivery receipt immediately requires attention. Exhausted adapter failures move the leased outbox to `attention_required` instead of scheduling another retry. Failed delivery and callback exceptions no longer get collapsed into the same catch: the adapter result is checked first, the verified receipt is persisted second, and post-delivery callbacks run only after acknowledgement.
+
+`attention_required` is a durable outbox state, not a delivery receipt. It requires the immutable outbound and source IDs, integration and role, positive attempt count, bounded `last_failure_code`, and failure time. It has no lease, receipt, or delivered time and is excluded from automatic claims and wakeups across restart. The row contains only content references and bounded codes, not provider text, credentials, or raw message content. `adapter_delivery_failed` means the adapter did not produce an acknowledged result; it does not prove that the platform did not post the message. `invalid_delivery_receipt` means the adapter returned a result that failed the common receipt contract. Neither code authorizes automatic resend after the bound.
+
+For Discord, an operator or agent may use the read-only inspection and explicit `--apply` reconciliation command only with one observed message ID. It verifies the installed speaker principal, exact channel or thread, reply relation where Discord supports it, byte count, SHA-256 content hash, and delivery time against the immutable outbound. It rechecks the stored attempt, failure, replay hash, and content hash before applying. The platform replay transitions from `sending` or `unknown` to `delivered` only with that externally verified message; the message correlation is then recorded, followed by a compare-and-set outbox receipt. The steps are idempotent so an interruption can be resumed. A rejected replay, mismatched identity or content, or changed store state remains unresolved; no new Discord send is attempted. A bot-native reply is verified against its source message; webhook delivery is not falsely described as a native reply.
+
+The bot REST adapter also checks the message object returned by Discord's create-message call before completing its replay: the channel, content, and requested native reply target must match, and a returned nonce must match when present. [Discord's create-message contract](https://docs.discord.com/developers/resources/message#create-message) permits `enforce_nonce` to return an earlier message rather than create a new one when the same author recently used that nonce. A mismatched returned message is therefore uncertain delivery, not an acknowledgement; it cannot become a conversation outbox receipt. This guard is independent of assignment-stage nonce separation and protects against other accidental nonce reuse without publishing another message.
+
+The version-2 interaction SQLite migration preserves existing inbox, decision, outbox, attempts, receipts, and content references while adding the new state and protected transitions. `attention_required` may become `delivered` only through exact receipt reconciliation; it cannot return to `pending` or `leased`. No new global event is added. The outbox and platform replay remain canonical evidence, and read-only projections must not infer publication without a receipt.
+
+## Consequences
+
+An uncertain or permanently invalid send stops consuming unbounded retries without pretending the human saw a response. The installed conversation approval still requires the separate human-authored, two-direction normal, redelivery, failure, retry, and restart evidence matrix. A successful reconciliation proves the identified message exists and matches the outbox; it does not by itself prove the entire multi-agent approval matrix or absence of every possible duplicate outside the observed Discord window.

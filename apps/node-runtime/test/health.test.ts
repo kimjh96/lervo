@@ -215,3 +215,36 @@ it("keeps installed supervision readiness distinct from transport health", async
   await publisher.observeSupervision({ status: "ready" });
   expect(readNodeRuntimeHealthSnapshot(await snapshot(publisher.path)).status).toBe("ready");
 });
+
+it("reports an unrelated current workstream as dormant without hiding supervision failure", async () => {
+  const publisher = createNodeRuntimeHealthPublisher(
+    await stateDirectory(),
+    false,
+    false,
+    undefined,
+    false,
+    true,
+  );
+  await publisher.initialize();
+  await publisher.observeSync(idleSync);
+  await publisher.observeWorkstreamReplication(absentWorkstream);
+  expect((await snapshot(publisher.path)).status).toBe("starting");
+
+  await publisher.observeSupervision({ status: "dormant", reasonCode: "workstream_inactive" });
+  expect(readNodeRuntimeHealthSnapshot(await snapshot(publisher.path))).toMatchObject({
+    status: "ready",
+    supervision: { status: "dormant", reasonCode: "workstream_inactive" },
+  });
+  const dormant = await snapshot(publisher.path);
+  expect(() =>
+    readNodeRuntimeHealthSnapshot({
+      ...dormant,
+      supervision: { status: "dormant", reasonCode: "unknown" },
+    }),
+  ).toThrow();
+  await publisher.observeSupervision({
+    status: "unavailable",
+    failureCode: "supervision_cycle_failed",
+  });
+  expect((await snapshot(publisher.path)).status).toBe("degraded");
+});

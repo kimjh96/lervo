@@ -8,12 +8,14 @@ type ActionEffect = Exclude<
 
 export class ConversationPlatformActionRouter implements DiscordPlatformActionResponder {
   readonly availableEffects: ConversationRequestedEffect["kind"][];
+  readonly managedResultEffects: ConversationRequestedEffect["kind"][];
 
   constructor(
     private readonly discord: DiscordPlatformActionResponder,
     private readonly workforce?: DiscordPlatformActionResponder,
     private readonly delegate?: DiscordPlatformActionResponder,
     private readonly deliberation?: DiscordPlatformActionResponder,
+    private readonly requestedRuntime?: DiscordPlatformActionResponder,
   ) {
     this.availableEffects = [
       ...new Set([
@@ -21,6 +23,16 @@ export class ConversationPlatformActionRouter implements DiscordPlatformActionRe
         ...(workforce?.availableEffects ?? []),
         ...(delegate?.availableEffects ?? []),
         ...(deliberation?.availableEffects ?? []),
+        ...(requestedRuntime?.availableEffects ?? []),
+      ]),
+    ];
+    this.managedResultEffects = [
+      ...new Set([
+        ...(discord.managedResultEffects ?? []),
+        ...(workforce?.managedResultEffects ?? []),
+        ...(delegate?.managedResultEffects ?? []),
+        ...(deliberation?.managedResultEffects ?? []),
+        ...(requestedRuntime?.managedResultEffects ?? []),
       ]),
     ];
   }
@@ -36,7 +48,9 @@ export class ConversationPlatformActionRouter implements DiscordPlatformActionRe
         ? this.requireDelegate().respond(input, effect, authorization)
         : effect.kind === "deliberation_start"
           ? this.requireDeliberation().respond(input, effect, authorization)
-          : this.discord.respond(input, effect, authorization);
+          : ["requested_runtime_open", "requested_runtime_close"].includes(effect.kind)
+            ? this.requireRequestedRuntime().respond(input, effect, authorization)
+            : this.discord.respond(input, effect, authorization);
   }
 
   private requireWorkforce(): DiscordPlatformActionResponder {
@@ -58,5 +72,12 @@ export class ConversationPlatformActionRouter implements DiscordPlatformActionRe
       throw new Error("The conversation deliberation action is not configured.");
     }
     return this.deliberation;
+  }
+
+  private requireRequestedRuntime(): DiscordPlatformActionResponder {
+    if (this.requestedRuntime === undefined) {
+      throw new Error("The requested runtime action is not configured.");
+    }
+    return this.requestedRuntime;
   }
 }

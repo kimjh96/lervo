@@ -20,7 +20,7 @@ Preflight performs no network or repository work.
 
 On hosts with Lervo repository tools, `node:distribution:install` can verify `--expected-sha256` and install into a new target. Prepare owner-only configuration separately, then explicitly activate the Node with the service renderer and manager.
 
-For standalone `dist/bin.js`, pass its path as `--executable` and a verified Node.js binary as `--node-executable`. Activation must not rely on ambient `PATH` or a separate launcher.
+For standalone `dist/bin.js`, pass its path as `--executable` and a verified Node.js binary as `--node-executable`. Activation must not rely on ambient `PATH` or a separate launcher. The rendered definition places the bound Node and runtime directories before standard system directories in its private `PATH`, so configured JavaScript provider entrypoints remain executable without inheriting an interactive shell.
 
 After preflight, render and explicitly install the existing per-repository Node service. It starts `lervo-node --config`, keeps Discord and synchronization in one process lifecycle, restarts only on failure, and writes no credentials into the service definition:
 
@@ -36,4 +36,4 @@ Use `--manager systemd` on Linux.
 
 ## Readiness
 
-Check service-manager stability and the owner-only health snapshot separately. Discord readiness appears as `conversation.status: ready` only after Gateway READY or RESUMED authentication.
+Check service-manager stability and the owner-only health snapshot separately. Discord readiness appears as `conversation.status: ready` after Gateway READY or RESUMED authentication. Startup history reconciliation runs as application work after that authenticated observation; a bounded history or platform failure is reported as `dispatch_failed` and must not be relabeled as a Gateway protocol failure or force a reconnect loop. Live authenticated dispatch remains available, and a later genuine reconnect retries reconciliation.

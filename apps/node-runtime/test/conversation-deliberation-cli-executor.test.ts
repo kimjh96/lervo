@@ -162,6 +162,120 @@ process.stdin.on("end", () => process.stdout.write(JSON.stringify({schemaVersion
     expect(run.mock.calls[0]![0].args.join(" ")).not.toContain("private design");
   });
 
+  it("passes exact accepted participant assignments on both start and resume", async () => {
+    const run = vi.fn<ConversationDeliberationCliProcess["run"]>(async (request) => ({
+      exitCode: 0,
+      stdout: JSON.stringify({
+        schemaVersion: 1,
+        deliberationId: request.args[request.args.indexOf("--deliberation-id") + 1],
+        status: "converged",
+        artifactCount: 1,
+      }),
+      stderr: "",
+    }));
+    const assign = vi.fn(
+      (input: {
+        deliberationId: string;
+        policyId: string | null;
+        projectId: string;
+        conversationId: string | null;
+        acceptedAt: string;
+      }) => [
+        {
+          schemaVersion: 1 as const,
+          participationAssignmentId: `dpa_${"1".repeat(40)}`,
+          deliberationId: input.deliberationId,
+          policyId: "deliberation_product-review",
+          policyRoleId: "product-owner",
+          projectId: input.projectId,
+          conversationId: input.conversationId ?? "cnv_control01",
+          organizationId: "org_lervoowner01",
+          teamId: "team_project001",
+          channelMembershipId: "cmem_lervoagent01",
+          membershipId: "amem_lervoagent01",
+          deploymentId: "adep_lervoagent01",
+          agentId: `agt_${"2".repeat(24)}`,
+          participantId: "ptc_lervoagent01",
+          agentRoleId: "product-owner",
+          roleVersion: "1.0.0",
+          roleContractHash: `sha256:${"3".repeat(64)}`,
+          roleProfileHash: `sha256:${"4".repeat(64)}`,
+          providerPolicyHash: `sha256:${"5".repeat(64)}`,
+          provider: "codex" as const,
+          model: "gpt-6-astra",
+          reasoningEffort: "high" as const,
+          executionRouteHash: `sha256:${"6".repeat(64)}`,
+          acceptedAt: input.acceptedAt,
+        },
+      ],
+    );
+    const ports = createConversationDeliberationCliExecutionPorts({
+      executable: "/opt/lervo/bin/lervo",
+      repositoryRoot: "/srv/project",
+      process: { run },
+      participantAssignments: {
+        preflight: () => ({ participantIds: ["ptc_lervoagent01"] }),
+        assign,
+        attach: () => () => undefined,
+        publish: async () => undefined,
+      },
+    });
+    const shared = {
+      projectId: "prj_control01",
+      sourceEventId: `cve_${"a".repeat(64)}`,
+      deliberationId: "dlb_queue0001",
+      requestHash: `sha256:${"b".repeat(64)}`,
+      principalHash: `sha256:${"c".repeat(64)}`,
+      requestedAt: "2026-09-09T00:00:00.000Z",
+      state: "leased" as const,
+      attemptCount: 1,
+      leaseExpiresAt: "2026-09-09T00:05:00.000Z",
+      summary: null,
+      failureCode: null,
+      reconciliation: null,
+    };
+    await ports.start.execute({
+      ...shared,
+      operation: "start",
+      origin: {
+        conversationId: "cnv_control01",
+        threadId: null,
+        requesterParticipantId: "ptc_control01",
+        originBindingDigest: `sha256:${"d".repeat(64)}`,
+      },
+      policyId: "deliberation_product-review",
+      topic: "Review the participant route.",
+    });
+    await ports.resume.execute({ ...shared, operation: "resume" });
+
+    expect(assign).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        deliberationId: "dlb_queue0001",
+        policyId: "deliberation_product-review",
+        projectId: "prj_control01",
+        conversationId: "cnv_control01",
+      }),
+    );
+    expect(assign).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        deliberationId: "dlb_queue0001",
+        policyId: null,
+        projectId: "prj_control01",
+        conversationId: null,
+      }),
+    );
+    const startPayload = JSON.parse(run.mock.calls[0]![0].stdin) as Record<string, unknown>;
+    const resumePayload = JSON.parse(run.mock.calls[1]![0].stdin) as Record<string, unknown>;
+    expect(startPayload.participantAssignments).toEqual(
+      expect.arrayContaining([expect.objectContaining({ participantId: "ptc_lervoagent01" })]),
+    );
+    expect(resumePayload.participantAssignments).toEqual(
+      expect.arrayContaining([expect.objectContaining({ participantId: "ptc_lervoagent01" })]),
+    );
+  });
+
   it("rejects mismatched or non-terminal subprocess evidence", async () => {
     const ports = createConversationDeliberationCliExecutionPorts({
       executable: "/opt/lervo/bin/lervo",

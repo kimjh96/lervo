@@ -23,6 +23,7 @@ import {
   type ManagedDeliberationBudgetUsage,
 } from "./managed-deliberation-budget.js";
 import { createManagedDeliberationAdapter } from "./managed-deliberation-adapter.js";
+import type { BoundDeliberationParticipantExecution } from "./deliberation-participant-binding.js";
 
 export { parseSemanticEvaluation } from "./semantic-evaluation-response.js";
 
@@ -133,6 +134,10 @@ export class ManagedDeliberationRunner {
       Record<RunProvider, "low" | "medium" | "high" | "xhigh" | "max">
     > = {},
     initialBudgetUsage?: ManagedDeliberationBudgetUsage,
+    private readonly participantExecutions: ReadonlyMap<
+      string,
+      BoundDeliberationParticipantExecution
+    > = new Map(),
   ) {
     this.captureSnapshot = (
       this.dependencies.createSnapshotCapture ?? createCachedRepositorySnapshotCapture
@@ -161,7 +166,6 @@ export class ManagedDeliberationRunner {
     structuredOutputSchema?: Record<string, unknown>;
   }): Promise<ManagedDeliberationRunResult> {
     const activeRunDeadlineMs = this.budget.admit(this.finalizationReserveMs);
-    const role = evidenceBoundRole(input.role, input.workRelationship !== "publication_evaluation");
     const repositoryRoot = this.storage.paths.repositoryRoot;
     const verification =
       input.verificationSuiteId === undefined
@@ -174,17 +178,30 @@ export class ManagedDeliberationRunner {
           });
     const runId = this.dependencies.createId("run");
     const sessionId = this.dependencies.createId("ses");
+    const participantExecution = this.participantExecutions.get(input.role.roleId);
+    const role = evidenceBoundRole(input.role, input.workRelationship !== "publication_evaluation");
+    if (participantExecution !== undefined && participantExecution.provider !== input.provider) {
+      throw new ManagedProviderRunError(
+        "contract_validation_failed",
+        "The accepted participant execution provider differs from the policy-selected provider.",
+      );
+    }
     const adapter = this.dependencies.createAdapter({
       provider: input.provider,
       ...(this.providerExecutables[input.provider] === undefined
         ? {}
         : { executable: this.providerExecutables[input.provider] }),
-      ...(this.providerModels[input.provider] === undefined
+      ...((participantExecution?.model ?? this.providerModels[input.provider]) === undefined
         ? {}
-        : { model: this.providerModels[input.provider] }),
-      ...(this.providerReasoningEfforts[input.provider] === undefined
+        : { model: participantExecution?.model ?? this.providerModels[input.provider] }),
+      ...((participantExecution?.reasoningEffort ??
+        this.providerReasoningEfforts[input.provider]) === undefined
         ? {}
-        : { reasoningEffort: this.providerReasoningEfforts[input.provider] }),
+        : {
+            reasoningEffort:
+              participantExecution?.reasoningEffort ??
+              this.providerReasoningEfforts[input.provider],
+          }),
       repositoryRoot,
       resolveArtifact: (uri) => this.storage.artifacts.get(uri),
       ...(input.structuredOutputSchema === undefined
@@ -258,6 +275,9 @@ export class ManagedDeliberationRunner {
                 ...(input.workAttemptOrdinal === undefined
                   ? {}
                   : { attemptOrdinal: input.workAttemptOrdinal }),
+                ...(participantExecution === undefined
+                  ? {}
+                  : { agentId: participantExecution.agentId }),
               },
             }),
         ...(verification === undefined ? {} : { verificationSuites: verification.suites }),

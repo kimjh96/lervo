@@ -57,11 +57,12 @@ export interface ExternalAgentDeployment extends OrganizationExternalAgentDeploy
   retirementReasonCode: string | null;
 }
 
-export interface DeliberationParticipantBinding extends OrganizationDeliberationParticipantBoundEventPayload {
-  releasedAt: string | null;
-  outcomeId: string | null;
-  outcomeStatus: "converged" | "no_consensus" | "failed" | "cancelled" | null;
-}
+export type DeliberationParticipantBinding =
+  OrganizationDeliberationParticipantBoundEventPayload & {
+    releasedAt: string | null;
+    outcomeId: string | null;
+    outcomeStatus: "converged" | "no_consensus" | "failed" | "cancelled" | null;
+  };
 
 export interface AgentOrganizationProjection {
   schemaVersion: 1;

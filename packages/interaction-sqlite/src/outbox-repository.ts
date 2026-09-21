@@ -11,8 +11,9 @@ import {
   validateSchema,
 } from "@lervo/schemas";
 
-import { decision, inbound, integer, outbound, text } from "./codec.js";
+import { decision, inbound, outbound, text } from "./codec.js";
 import { InteractionSQLiteError } from "./errors.js";
+import { auditConversationOutbox } from "./outbox-audit.js";
 
 function milliseconds(value: string, label: string): number {
   const result = Date.parse(value);
@@ -176,12 +177,6 @@ export class ConversationOutboxSQLiteRepository {
     leaseId: string;
     receipt: ConversationDeliveryReceipt;
   }): void {
-    if (!validateSchema("conversationDeliveryReceipt", input.receipt).valid) {
-      throw new InteractionSQLiteError(
-        "integrity_failed",
-        "The conversation delivery receipt is invalid.",
-      );
-    }
     const row = this.database
       .prepare("SELECT * FROM conversation_outbox WHERE outbound_id = ?")
       .get(input.outboundId);
@@ -191,26 +186,7 @@ export class ConversationOutboxSQLiteRepository {
         "The conversation outbox acknowledgement lease differs.",
       );
     }
-    const eventRow = this.database
-      .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
-      .get(text(row, "source_event_id"), text(row, "role_id"));
-    if (eventRow === undefined) {
-      throw new InteractionSQLiteError(
-        "integrity_failed",
-        "The conversation outbox inbox source is missing.",
-      );
-    }
-    const message = outbound(row, inbound(eventRow));
-    const deliveredAtMs = milliseconds(input.receipt.deliveredAt, "Conversation delivery");
-    if (
-      input.receipt.outboundId !== message.outboundId ||
-      input.receipt.integrationId !== message.target.integrationId ||
-      deliveredAtMs < Date.parse(message.createdAt)
-    )
-      throw new InteractionSQLiteError(
-        "integrity_failed",
-        "The conversation receipt coordinates or time differ.",
-      );
+    const deliveredAtMs = this.validatedReceiptTime(row, input.receipt);
     const result = this.database
       .prepare(
         `
@@ -227,6 +203,85 @@ export class ConversationOutboxSQLiteRepository {
         "Could not store the conversation delivery receipt.",
       );
     }
+  }
+
+  acknowledgeReconciled(input: {
+    outboundId: string;
+    expectedAttemptCount: number;
+    expectedFailureCode: string;
+    receipt: ConversationDeliveryReceipt;
+  }): void {
+    failureCode(input.expectedFailureCode);
+    if (!Number.isSafeInteger(input.expectedAttemptCount) || input.expectedAttemptCount < 1) {
+      throw new InteractionSQLiteError("integrity_failed", "The outbox attempt is invalid.");
+    }
+    const row = this.database
+      .prepare("SELECT * FROM conversation_outbox WHERE outbound_id = ?")
+      .get(input.outboundId);
+    if (row === undefined) {
+      throw new InteractionSQLiteError("lease_mismatch", "The reconciled outbox is missing.");
+    }
+    const deliveredAtMs = this.validatedReceiptTime(row, input.receipt);
+    const receiptJson = canonicalJson(input.receipt);
+    if (row.status === "delivered" && row.receipt_json === receiptJson) return;
+    if (
+      row.status !== "attention_required" ||
+      row.attempt_count !== input.expectedAttemptCount ||
+      row.last_failure_code !== input.expectedFailureCode
+    ) {
+      throw new InteractionSQLiteError("lease_mismatch", "The reconciled outbox changed.");
+    }
+    const result = this.database
+      .prepare(
+        `UPDATE conversation_outbox SET status = 'delivered',
+          receipt_json = ?, delivered_at_ms = ?
+        WHERE outbound_id = ? AND status = 'attention_required'
+          AND attempt_count = ? AND last_failure_code = ?`,
+      )
+      .run(
+        receiptJson,
+        deliveredAtMs,
+        input.outboundId,
+        input.expectedAttemptCount,
+        input.expectedFailureCode,
+      );
+    if (result.changes !== 1) {
+      throw new InteractionSQLiteError("lease_mismatch", "The reconciled outbox changed.");
+    }
+  }
+
+  private validatedReceiptTime(
+    row: Record<string, unknown>,
+    receipt: ConversationDeliveryReceipt,
+  ): number {
+    if (!validateSchema("conversationDeliveryReceipt", receipt).valid) {
+      throw new InteractionSQLiteError(
+        "integrity_failed",
+        "The conversation delivery receipt is invalid.",
+      );
+    }
+    const eventRow = this.database
+      .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
+      .get(text(row, "source_event_id"), text(row, "role_id"));
+    if (eventRow === undefined) {
+      throw new InteractionSQLiteError(
+        "integrity_failed",
+        "The conversation outbox inbox source is missing.",
+      );
+    }
+    const message = outbound(row, inbound(eventRow));
+    const deliveredAtMs = milliseconds(receipt.deliveredAt, "Conversation delivery");
+    if (
+      receipt.outboundId !== message.outboundId ||
+      receipt.integrationId !== message.target.integrationId ||
+      deliveredAtMs < Date.parse(message.createdAt)
+    ) {
+      throw new InteractionSQLiteError(
+        "integrity_failed",
+        "The conversation receipt coordinates or time differ.",
+      );
+    }
+    return deliveredAtMs;
   }
 
   reschedule(input: {
@@ -263,62 +318,31 @@ export class ConversationOutboxSQLiteRepository {
     }
   }
 
-  auditAll(): void {
-    const rows = this.database
-      .prepare("SELECT * FROM conversation_outbox ORDER BY outbound_id")
-      .all();
-    for (const row of rows) {
-      const eventRow = this.database
-        .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
-        .get(text(row, "source_event_id"), text(row, "role_id"));
-      if (eventRow === undefined) {
-        throw new InteractionSQLiteError(
-          "integrity_failed",
-          "The conversation outbox inbox source is missing.",
-        );
-      }
-      const message = outbound(row, inbound(eventRow));
-      const decisionRow = this.database
-        .prepare(
-          "SELECT * FROM conversation_participation_decisions WHERE event_id = ? AND role_id = ?",
-        )
-        .get(text(row, "source_event_id"), text(row, "role_id"));
-      if (
-        eventRow.status !== "completed" ||
-        decisionRow === undefined ||
-        decision(decisionRow, inbound(eventRow)).action !== "respond"
-      ) {
-        throw new InteractionSQLiteError(
-          "integrity_failed",
-          "The conversation outbox has no completed decision.",
-        );
-      }
-      if (row.status === "delivered") {
-        let receipt;
-        try {
-          receipt = JSON.parse(String(row.receipt_json)) as ConversationDeliveryReceipt;
-        } catch (error) {
-          throw new InteractionSQLiteError(
-            "integrity_failed",
-            "The delivery receipt JSON is invalid.",
-            {
-              cause: error,
-            },
-          );
-        }
-        if (
-          !validateSchema("conversationDeliveryReceipt", receipt).valid ||
-          receipt.outboundId !== message.outboundId ||
-          receipt.integrationId !== message.target.integrationId ||
-          Date.parse(receipt.deliveredAt) !== integer(row, "delivered_at_ms") ||
-          Date.parse(receipt.deliveredAt) < Date.parse(message.createdAt)
-        ) {
-          throw new InteractionSQLiteError(
-            "integrity_failed",
-            "The delivery receipt source relation differs.",
-          );
-        }
-      }
+  markAttentionRequired(input: {
+    outboundId: string;
+    leaseId: string;
+    failedAt: string;
+    failureCode: string;
+  }): void {
+    const failedAtMs = milliseconds(input.failedAt, "Conversation delivery failure");
+    failureCode(input.failureCode);
+    const result = this.database
+      .prepare(
+        `UPDATE conversation_outbox SET status = 'attention_required',
+          lease_id = NULL, lease_owner = NULL, lease_expires_at_ms = NULL,
+          last_failure_code = ?, last_failed_at_ms = ?
+        WHERE outbound_id = ? AND lease_id = ? AND status = 'leased'`,
+      )
+      .run(input.failureCode, failedAtMs, input.outboundId, input.leaseId);
+    if (result.changes !== 1) {
+      throw new InteractionSQLiteError(
+        "lease_mismatch",
+        "The conversation outbox attention lease differs.",
+      );
     }
+  }
+
+  auditAll(): void {
+    auditConversationOutbox(this.database);
   }
 }

@@ -219,7 +219,7 @@ describe("ConversationRepositoryWorkResponder", () => {
           }),
           executionProfile: null,
           allocationReason:
-            scenario === "legacy_delegate" ? "session_continuity" : "configured_default",
+            scenario === "legacy_delegate" ? "bound_agent_provider" : "configured_default",
         }),
       );
       expect(first.content.contentHash).toBe(second.content.contentHash);

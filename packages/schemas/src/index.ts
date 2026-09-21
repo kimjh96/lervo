@@ -19,6 +19,7 @@ export * from "./conversation-repository-work-event.js";
 export * from "./deliberation-artifact.js";
 export * from "./deliberation-event.js";
 export * from "./deliberation-outcome.js";
+export * from "./deliberation-participant-assignment.js";
 export * from "./deliberation-policy.js";
 export * from "./deliberation-workflow.js";
 export * from "./development-pattern-event.js";

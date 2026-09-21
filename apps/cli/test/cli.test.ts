@@ -1956,6 +1956,7 @@ describe("lervo deliberate CLI", () => {
       deliberationId: "dlb_queue0001",
       status: "converged",
       artifactCount: 4,
+      failureReasonCode: null,
     });
   });
 

@@ -76,3 +76,4 @@ export * from "./types.js";
 export * from "./user-patch.js";
 export * from "./verification-source.js";
 export * from "./workstream.js";
+export { createWorkstreamSuccessorSnapshot } from "./workstream-snapshot.js";

@@ -216,6 +216,9 @@ export class ConversationInteractionRuntime {
       ...(this.deployment.retryDelayMs === undefined
         ? {}
         : { retryDelayMs: this.deployment.retryDelayMs }),
+      ...(this.deployment.maximumDeliveryAttempts === undefined
+        ? {}
+        : { maximumDeliveryAttempts: this.deployment.maximumDeliveryAttempts }),
       ...(this.deployment.deliveryLimit === undefined
         ? {}
         : { limit: this.deployment.deliveryLimit }),

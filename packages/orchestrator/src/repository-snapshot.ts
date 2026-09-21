@@ -3,7 +3,7 @@ import type { BigIntStats } from "node:fs";
 import { lstat, readdir, readlink } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
-import { readRepositoryFile } from "@lervo/context";
+import { readRepositoryFile, transientToolCacheDirectoryNames } from "@lervo/context";
 import type { ManagedFileChangeEvidence } from "./types.js";
 
 export interface RepositorySnapshot {
@@ -35,7 +35,10 @@ export const defaultRepositorySnapshotPolicy: RepositorySnapshotPolicy = Object.
     ".cxx",
     ".vercel",
     ".cache",
+    ...transientToolCacheDirectoryNames.filter((name) => name !== ".cache"),
+    ".venv",
     "node_modules",
+    "venv",
     "dist",
     "build",
     "build-device",

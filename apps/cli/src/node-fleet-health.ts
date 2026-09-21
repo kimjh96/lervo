@@ -51,12 +51,16 @@ async function readReportedHealth(path: string): Promise<NodeRuntimeHealthSnapsh
   }
 }
 
-function componentStatus(value: { status: string; failureCode?: string } | undefined): string {
+function componentStatus(
+  value: { status: string; failureCode?: string; reasonCode?: string } | undefined,
+): string {
   return value === undefined
     ? "unavailable"
     : value.status === "unavailable"
       ? `unavailable:${value.failureCode ?? "unknown"}`
-      : value.status;
+      : value.status === "dormant"
+        ? `dormant:${value.reasonCode ?? "unknown"}`
+        : value.status;
 }
 
 export async function inspectNodeFleetStatus(input: {
@@ -113,6 +117,18 @@ export async function inspectNodeFleetStatus(input: {
           workstreamReplication: componentStatus(health?.workstreamReplication),
           workspaceCoordination: componentStatus(health?.workspaceCoordination),
           remoteControl: componentStatus(health?.remoteControl),
+          conversation:
+            health === null
+              ? "unavailable"
+              : health.conversation === undefined
+                ? "disabled"
+                : componentStatus(health.conversation),
+          supervision:
+            health === null
+              ? "unavailable"
+              : health.supervision === undefined
+                ? "disabled"
+                : componentStatus(health.supervision),
           updatedAt: health?.updatedAt ?? null,
         },
         recoveryAction: ready

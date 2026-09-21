@@ -1,6 +1,5 @@
-import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { relative, resolve, sep } from "node:path";
+import { randomUUID } from "node:crypto";
+import { resolve } from "node:path";
 
 import {
   adaptiveConversationWritingContract,
@@ -21,12 +20,6 @@ import {
   resolveProjectPaths,
 } from "@lervo/project";
 import { createLocalProviderWritingEvaluator } from "@lervo/provider-writing-evaluator";
-import {
-  type DocumentRegistry,
-  type RoleProfile,
-  type WritingContract,
-  validateSchema,
-} from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import {
   createCachedRepositorySnapshotCapture,
@@ -35,12 +28,20 @@ import {
 import { RevisionedRepositoryKnowledgeQuery } from "@lervo/repository-context";
 
 import { AgentContextMaterializer } from "./agent-context-materialization.js";
-import type { NodeDiscordConversationConfig } from "./config-types.js";
+import type {
+  NodeDiscordConversationConfig,
+  NodeRepositoryWorkExecutionProfile,
+  NodeRepositoryWorkExecutionProfilePolicy,
+} from "./config-types.js";
 import { prepareConversationRepositoryContext } from "./conversation-repository-context.js";
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 import { SQLiteConversationResponseArtifactStore } from "./conversation-response-artifact-store.js";
-
-const WRITING_DOCUMENT_ID = "doc_node_conversation_writing_policy";
+import {
+  conversationPolicyDigest,
+  conversationWritingDocumentId,
+  createConversationReadOnlyRole,
+  provisionConversationWritingPolicy,
+} from "./conversation-read-policy.js";
 
 export interface ManagedConversationRepositoryResources {
   captureSnapshot: CaptureRepositorySnapshot;
@@ -54,106 +55,8 @@ export function createManagedConversationRepositoryResources(): ManagedConversat
   };
 }
 
-function digest(value: string): string {
-  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
-}
-
 function id(prefix: string): string {
   return `${prefix}_${randomUUID().replaceAll("-", "")}`;
-}
-
-function readOnlyRole(roleId: string, writingContract: WritingContract): RoleProfile {
-  const role: RoleProfile = {
-    schemaVersion: 1,
-    roleId,
-    name: "Conversation reader",
-    description: "Answers repository questions without changing files or external state.",
-    requestTypes: ["conversation.response"],
-    requiredInputs: [],
-    contextPolicy: {
-      requiredDocumentRuleIds: ["repository.instructions", "writing.policy"],
-      minimumAssurance: "E3",
-      referencesRequired: true,
-    },
-    capabilities: {
-      "filesystem.read": "allow",
-      "filesystem.write": "deny",
-      "shell.execute": "deny",
-      "network.access": "deny",
-      "external.message": "deny",
-      "computer.use": "deny",
-      deploy: "deny",
-      "data.mutate": "deny",
-    },
-    defaultSkills: [],
-    outputContract: {
-      artifactKind: "conversation_reply",
-      schemaRef: "lervo-schema://outputs/conversation-reply/v1",
-      pathTemplate: ".lervo/generated/conversation/{runId}.md",
-      citationsRequired: true,
-      presentation: {
-        audience: "human",
-        locale: "en",
-        writingPolicyId: writingContract.writingPolicyId,
-      },
-    },
-    verification: { suiteIds: ["conversation.reply"], failureDisposition: "fail_run" },
-    handoff: { allowedRoleIds: [], evidenceLinksRequired: true, sharedContextRequired: true },
-  };
-  if (!validateSchema("role", role).valid) {
-    throw new Error("The managed Discord read-only role is invalid.");
-  }
-  return role;
-}
-
-async function provisionWritingPolicy(input: {
-  repositoryRoot: string;
-  dataDirectory: string;
-  registry: DocumentRegistry;
-  verifiedAt: string;
-  writingContract: WritingContract;
-}): Promise<{ registry: DocumentRegistry; path: string; contentHash: string }> {
-  const content = `${JSON.stringify(input.writingContract, null, 2)}\n`;
-  const contentHash = digest(content);
-  const absolutePath = resolve(
-    input.dataDirectory,
-    `managed-read-${input.writingContract.writingPolicyId}.json`,
-  );
-  const path = relative(input.repositoryRoot, absolutePath).split(sep).join("/");
-  if (path.startsWith("../") || path === "..") {
-    throw new Error("The Discord conversation data directory is outside the repository.");
-  }
-  await mkdir(input.dataDirectory, { recursive: true, mode: 0o700 });
-  try {
-    await writeFile(absolutePath, content, { encoding: "utf8", flag: "wx", mode: 0o600 });
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-    if ((await readFile(absolutePath, "utf8")) !== content) {
-      throw new Error(
-        "The managed Discord conversation writing policy differs from runtime code.",
-        {
-          cause: error,
-        },
-      );
-    }
-  }
-  const registry = structuredClone(input.registry);
-  registry.documents[WRITING_DOCUMENT_ID] = {
-    path,
-    kind: "generated",
-    responsibleParty: { kind: "lervo", id: "lervo-node-runtime" },
-    connectedPaths: ["AGENTS.md"],
-    verifiedRevision: contentHash,
-    verifiedAt: input.verifiedAt,
-    reviewIntervalDays: 30,
-    ownership: {
-      mode: "lervo_generated",
-      userContentAllowed: false,
-      manifestPath: path,
-      inputs: [{ sourceId: `lervo:${input.writingContract.writingPolicyId}`, contentHash }],
-    },
-  };
-  return { registry, path, contentHash };
 }
 
 export async function openManagedConversationReadResponder(input: {
@@ -169,6 +72,10 @@ export async function openManagedConversationReadResponder(input: {
   artifactStore: ArtifactStore;
   surfaceEffects: readonly ManagedConversationSurfaceEffect[];
   providerExecutables?: Partial<Record<"codex" | "claude", string>>;
+  providerExecutionProfiles?: Record<
+    NodeRepositoryWorkExecutionProfile,
+    NodeRepositoryWorkExecutionProfilePolicy
+  >;
   repositoryResources?: ManagedConversationRepositoryResources | undefined;
 }): Promise<{
   responder: ConversationResponder;
@@ -192,14 +99,17 @@ export async function openManagedConversationReadResponder(input: {
       input.config.routing.evaluation === undefined
         ? realtimeConversationWritingContract
         : adaptiveConversationWritingContract;
-    const provisioned = await provisionWritingPolicy({
+    const provisioned = await provisionConversationWritingPolicy({
       repositoryRoot: input.repositoryRoot,
       dataDirectory: input.dataDirectory,
       registry: await loadDocumentRegistry(input.repositoryRoot),
       verifiedAt: input.projectCreatedAt,
       writingContract,
     });
-    const baseRole = readOnlyRole(input.config.routing.readOnlyRoleId, writingContract);
+    const baseRole = createConversationReadOnlyRole(
+      input.config.routing.readOnlyRoleId,
+      writingContract,
+    );
     const repositoryResources =
       input.repositoryResources ?? createManagedConversationRepositoryResources();
     const { captureSnapshot, knowledgeQuery } = repositoryResources;
@@ -215,34 +125,48 @@ export async function openManagedConversationReadResponder(input: {
       events,
       artifacts: projectArtifacts,
     });
+    const responseRoute = (executionProfile?: NodeRepositoryWorkExecutionProfile) => {
+      const profile =
+        executionProfile === undefined
+          ? undefined
+          : input.providerExecutionProfiles?.[executionProfile];
+      const provider = profile?.preferredProvider ?? input.config.routing.response.provider;
+      const route = profile?.providers[provider];
+      return {
+        provider,
+        model: route?.model ?? input.config.routing.response.model,
+        reasoningEffort: route?.reasoningEffort ?? input.config.routing.response.reasoningEffort,
+        timeoutMs: route?.timeoutMs ?? input.config.routing.response.timeoutMs ?? 60_000,
+      };
+    };
     const createAdapter = (adapterInput: {
       repositoryRoot: string;
       resolveArtifact: (uri: string) => Promise<Uint8Array>;
       structuredOutputSchema?: Record<string, unknown>;
-    }) =>
-      createNodeProviderAdapter({
-        provider: input.config.routing.response.provider,
+      executionProfile?: NodeRepositoryWorkExecutionProfile;
+    }) => {
+      const route = responseRoute(adapterInput.executionProfile);
+      return createNodeProviderAdapter({
+        provider: route.provider,
         repositoryRoot: adapterInput.repositoryRoot,
         resolveArtifact: adapterInput.resolveArtifact,
-        ...(input.providerExecutables?.[input.config.routing.response.provider] === undefined
+        ...(input.providerExecutables?.[route.provider] === undefined
           ? {}
-          : { executable: input.providerExecutables[input.config.routing.response.provider] }),
-        ...(input.config.routing.response.model === undefined
-          ? {}
-          : { model: input.config.routing.response.model }),
-        ...(input.config.routing.response.reasoningEffort === undefined
-          ? {}
-          : { reasoningEffort: input.config.routing.response.reasoningEffort }),
-        requestTimeoutMs: input.config.routing.response.timeoutMs ?? 60_000,
+          : { executable: input.providerExecutables[route.provider] }),
+        ...(route.model === undefined ? {} : { model: route.model }),
+        ...(route.reasoningEffort === undefined ? {} : { reasoningEffort: route.reasoningEffort }),
+        requestTimeoutMs: route.timeoutMs,
         ...(adapterInput.structuredOutputSchema === undefined
           ? {}
           : { structuredOutputSchema: adapterInput.structuredOutputSchema }),
       });
-    const policyVersion = digest(
+    };
+    const policyVersion = conversationPolicyDigest(
       JSON.stringify({
         role: baseRole,
         writingPolicy: writingContract,
         responseProvider: input.config.routing.response,
+        responseExecutionProfiles: input.providerExecutionProfiles ?? null,
         surfaceEffects: input.surfaceEffects,
         conversationTurnContract: 3,
         agentContextContract: 2,
@@ -271,7 +195,15 @@ export async function openManagedConversationReadResponder(input: {
             now: () => new Date(),
           });
     const resolvePlan = async (
-      request: { event: Parameters<typeof prepareConversationRepositoryContext>[0]["event"] },
+      request: {
+        event: Parameters<typeof prepareConversationRepositoryContext>[0]["event"];
+        context?: {
+          priorTurns: ReadonlyArray<
+            import("@lervo/conversation-responder").ConversationContextTurn
+          >;
+          executionProfile?: NodeRepositoryWorkExecutionProfile;
+        };
+      },
       structuredOutputSchema?: Record<string, unknown>,
     ) => {
       const runId = id("run");
@@ -305,17 +237,21 @@ export async function openManagedConversationReadResponder(input: {
           left.path.localeCompare(right.path),
         );
       }
+      const executionProfile = request.context?.executionProfile;
+      const route = responseRoute(executionProfile);
       return {
         adapter: createAdapter({
           repositoryRoot: input.repositoryRoot,
           resolveArtifact: (uri) => input.artifactStore.get(uri),
           ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
+          ...(executionProfile === undefined ? {} : { executionProfile }),
         }),
         executionIdentity: {
           agentId: input.agentId,
-          provider: input.config.routing.response.provider,
-          requestedModel: input.config.routing.response.model ?? null,
+          provider: route.provider,
+          requestedModel: route.model ?? null,
         },
+        deadlines: { providerTurnMs: route.timeoutMs },
         participationRoleId: input.participationRoleId,
         maximumResponseCharacters: 2_000,
         runId,
@@ -324,7 +260,7 @@ export async function openManagedConversationReadResponder(input: {
         role: repositoryContext.role,
         registry: provisioned.registry,
         documentRules: {
-          "writing.policy": [WRITING_DOCUMENT_ID],
+          "writing.policy": [conversationWritingDocumentId],
           ...repositoryContext.documentRules,
         },
         additionalCandidates: repositoryContext.additionalCandidates,
@@ -334,7 +270,7 @@ export async function openManagedConversationReadResponder(input: {
         handoffs: [],
         writingPolicy: {
           writingPolicyId: writingContract.writingPolicyId,
-          documentId: WRITING_DOCUMENT_ID,
+          documentId: conversationWritingDocumentId,
           contentHash: provisioned.contentHash,
         },
         writingContract,

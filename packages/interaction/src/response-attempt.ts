@@ -24,6 +24,30 @@ const defaultResponseFailure: ConversationResponseFailure = {
   retryable: true,
 };
 
+const publicationFailureCodes = new Set<ConversationResponseFailure["failureCode"]>([
+  "response_writing_blocked",
+  "response_evaluation_unavailable",
+  "response_storage_unavailable",
+  "response_contract_invalid",
+]);
+
+function publicationFailure(
+  classifier: ConversationResponseFailureClassifier | undefined,
+  error: unknown,
+): ConversationResponseFailure {
+  const fallback: ConversationResponseFailure = {
+    failureCode: "publication_verification_failed",
+    retryable: true,
+  };
+  if (classifier === undefined) return fallback;
+  try {
+    const classified = classifier.classify(error);
+    return publicationFailureCodes.has(classified.failureCode) ? classified : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export interface ConversationTerminalFailureState {
   failureCode: ConversationResponseFailure["failureCode"];
   attemptCount: number;
@@ -50,6 +74,21 @@ function later(value: string, delayMs: number): string {
   return new Date(Date.parse(value) + delayMs).toISOString();
 }
 
+function retryDelay(input: {
+  eventId: string;
+  attemptCount: number;
+  configuredDelayMs: number;
+  failureCode: ConversationResponseFailure["failureCode"];
+}): number {
+  if (input.failureCode !== "response_provider_capacity") return input.configuredDelayMs;
+  const jitterMs =
+    [...input.eventId].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 3_000;
+  return Math.max(
+    input.configuredDelayMs,
+    Math.min(120_000, 15_000 * 2 ** Math.min(input.attemptCount - 1, 3)) + jitterMs,
+  );
+}
+
 async function reschedule(input: {
   store: ConversationInteractionStore;
   event: ConversationInboundEvent;
@@ -57,9 +96,18 @@ async function reschedule(input: {
   leaseId: string;
   claimedAt: string;
   retryDelayMs: number;
+  attemptCount: number;
   failureCode: ConversationResponseFailure["failureCode"];
 }): Promise<Extract<HandleConversationEventResult, { status: "retry_scheduled" }>> {
-  const nextAttemptAt = later(input.claimedAt, input.retryDelayMs);
+  const nextAttemptAt = later(
+    input.claimedAt,
+    retryDelay({
+      eventId: input.event.eventId,
+      attemptCount: input.attemptCount,
+      configuredDelayMs: input.retryDelayMs,
+      failureCode: input.failureCode,
+    }),
+  );
   await input.store.rescheduleInbound({
     eventId: input.event.eventId,
     policyId: input.policy.policyId,
@@ -80,12 +128,22 @@ function outbound(input: {
   candidate: Awaited<ReturnType<ConversationResponder["respond"]>>;
   clock: () => Date;
 }): ConversationOutboundMessage {
+  const coordination =
+    input.candidate.coordination ??
+    (input.event.coordination?.kind === "task.assignment"
+      ? {
+          kind: "task.result" as const,
+          taskId: input.event.coordination.taskId,
+          coordinatorParticipantId: input.event.coordination.coordinatorParticipantId,
+        }
+      : undefined);
   return createConversationOutboundMessage({
     event: input.event,
     policy: input.policy,
     participantId: input.agentParticipantId,
     ...(input.agentBinding === undefined ? {} : { agentBinding: input.agentBinding }),
     content: input.candidate.content,
+    ...(coordination === undefined ? {} : { coordination }),
     ...(input.candidate.audienceParticipation === undefined
       ? {}
       : { audienceParticipation: input.candidate.audienceParticipation }),
@@ -177,6 +235,7 @@ export async function runConversationResponseAttempt(input: {
         return reschedule({
           ...input,
           leaseId: input.claim.leaseId,
+          attemptCount: input.claim.attemptCount,
           failureCode: failure.failureCode,
         });
       }
@@ -187,6 +246,7 @@ export async function runConversationResponseAttempt(input: {
         return reschedule({
           ...input,
           leaseId: input.claim.leaseId,
+          attemptCount: input.claim.attemptCount,
           failureCode: failure.failureCode,
         });
       }
@@ -204,15 +264,16 @@ export async function runConversationResponseAttempt(input: {
         policy: input.policy,
       });
       return { status: "completed", outbound: outbound({ ...input, candidate }) };
-    } catch {
+    } catch (error) {
+      const failure = publicationFailure(input.responseFailureClassifier, error);
       if (
-        input.claim.attemptCount >= input.maximumResponseAttempts &&
+        (!failure.retryable || input.claim.attemptCount >= input.maximumResponseAttempts) &&
         input.terminalFailureResponder !== undefined &&
         input.terminalFailurePublicationVerifier !== undefined
       ) {
         return terminal({
           ...input,
-          failureCode: "publication_verification_failed",
+          failureCode: failure.failureCode,
           terminalFailureResponder: input.terminalFailureResponder,
           terminalFailurePublicationVerifier: input.terminalFailurePublicationVerifier,
         });
@@ -220,7 +281,8 @@ export async function runConversationResponseAttempt(input: {
       return reschedule({
         ...input,
         leaseId: input.claim.leaseId,
-        failureCode: "publication_verification_failed",
+        attemptCount: input.claim.attemptCount,
+        failureCode: failure.failureCode,
       });
     }
   } finally {

@@ -17,6 +17,9 @@ import type { NodeDiscordConversationOpenPorts, NodeRuntimeOpenPorts } from "./o
 import { createManagedConversationRepositoryResources } from "./conversation-read-responder.js";
 import { createCoResidentDiscordPeerAgents } from "./discord-conversation-co-resident-peers.js";
 import { SQLiteConversationTurnFocusStore } from "./conversation-turn-focus-store.js";
+import { CoResidentConversationPeerTurnRouter } from "./conversation-peer-turn-router.js";
+import { CoResidentConversationDeliberationParticipants } from "./conversation-deliberation-participant-router.js";
+import { resolveDiscordUnaddressedPriorities } from "./discord-conversation-priorities.js";
 
 function boundedErrorCoordinates(error: unknown): string {
   const coordinates: Array<{ name: string; code: string | null }> = [];
@@ -112,6 +115,16 @@ export async function openDeploymentConversation(input: {
   const turnFocusStore = await SQLiteConversationTurnFocusStore.open(
     resolve(input.dataDirectory, "conversation", "turn-focus.sqlite"),
   );
+  const peerTurnRouter = new CoResidentConversationPeerTurnRouter();
+  const deliberationParticipants = new CoResidentConversationDeliberationParticipants({
+    events: input.repositoryEvents,
+  });
+  for (const [index, config] of configs.entries()) {
+    if (config.deliberationParticipation !== undefined) {
+      deliberationParticipants.register({ config, participation: participations[index]! });
+    }
+  }
+  const unaddressedPriorities = resolveDiscordUnaddressedPriorities(configs);
   const ready = new Set<string>();
   let readyPublished = false;
   let failureObserved = false;
@@ -157,6 +170,9 @@ export async function openDeploymentConversation(input: {
           ...(providerExecutionProfiles === undefined ? {} : { providerExecutionProfiles }),
           agentParticipation: participations[index]!,
           peerAgents,
+          peerTurnRouter,
+          deliberationParticipants,
+          unaddressedPriorities,
           turnFocusStore,
           ...integrationPorts,
           onReady: async () => {

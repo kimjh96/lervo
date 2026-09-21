@@ -6,6 +6,10 @@ import {
 import { openProjectStorage } from "@lervo/project-storage";
 import { loadVerificationSuite } from "@lervo/verification";
 
+import { selectRecentExecutionSources } from "./recent-execution-sources.js";
+
+export const LOCAL_KNOWLEDGE_EXECUTION_EVENT_LIMIT = 4_096;
+
 export async function collectLocalKnowledgeSources(
   repositoryRoot: string,
 ): Promise<RepositorySupplementalSource[]> {
@@ -18,7 +22,10 @@ export async function collectLocalKnowledgeSources(
     });
     return [
       ...verificationSources,
-      ...collectExecutionEventSources({ events: storage.events }),
+      ...selectRecentExecutionSources(
+        collectExecutionEventSources({ events: storage.events }),
+        LOCAL_KNOWLEDGE_EXECUTION_EVENT_LIMIT,
+      ),
     ].sort((left, right) => left.path.localeCompare(right.path));
   } finally {
     await storage.close();

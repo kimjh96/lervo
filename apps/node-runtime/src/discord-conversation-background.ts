@@ -7,6 +7,8 @@ import {
   reportConversationInteractionRetryFailure,
 } from "./conversation-interaction-retry-loop.js";
 import { startDiscordConversationRepositorySignals } from "./discord-conversation-repository-signals.js";
+import { ConversationDiscussionDeadlineLoop } from "./conversation-discussion-deadline-loop.js";
+import type { ConversationDiscussionRuntime } from "./conversation-discussion-runtime.js";
 
 /** Owns activation and failed-start cleanup for conversation background work. */
 export function startDiscordConversationBackground(input: {
@@ -14,6 +16,7 @@ export function startDiscordConversationBackground(input: {
   application: ConversationApplication;
   artifacts: ArtifactStore;
   deliberation: DiscordConversationDeliberationRuntime | null;
+  discussion: ConversationDiscussionRuntime;
   fail(code: string): void;
 }) {
   const { options, application } = input;
@@ -36,6 +39,18 @@ export function startDiscordConversationBackground(input: {
   });
   try {
     interactionRetryLoop.start();
+    const discussionDeadlineLoop = new ConversationDiscussionDeadlineLoop({
+      integrationId: config.integrationId,
+      application,
+      discussion: input.discussion,
+      onFailure: (error) =>
+        options.onError?.(
+          error instanceof Error
+            ? error
+            : new Error("The discussion deadline cycle failed.", { cause: error }),
+        ),
+    });
+    discussionDeadlineLoop.start();
     input.deliberation?.attach(application, config.deliberation!.pollIntervalMs ?? 2_000);
     const repositorySignalLoop =
       options.repositoryEvents === undefined
@@ -49,7 +64,7 @@ export function startDiscordConversationBackground(input: {
             application,
             onFailure: () => input.fail("repository_signal_failed"),
           });
-    return { interactionRetryLoop, repositorySignalLoop };
+    return { interactionRetryLoop, repositorySignalLoop, discussionDeadlineLoop };
   } catch (error) {
     void interactionRetryLoop.stop();
     throw error;

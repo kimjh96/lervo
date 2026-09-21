@@ -151,6 +151,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         : null;
     const workerId = delegate?.agentId ?? this.options.parentAgentId;
     const route = selectConversationRepositoryWorkRoute({
+      replayProvider: this.options.store.providerForEvent(input.event.eventId),
       sessionProvider: this.options.store.sessionProvider(
         input.event.target.conversationId,
         input.event.target.threadId,

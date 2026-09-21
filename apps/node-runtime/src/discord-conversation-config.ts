@@ -15,10 +15,12 @@ import {
 import { NodeRuntimeError } from "./errors.js";
 import { parseDiscordAgentOrganization } from "./discord-agent-organization-config.js";
 import { parseDiscordConversationDeliberation } from "./discord-conversation-deliberation-config.js";
+import { parseDiscordDeliberationParticipation } from "./discord-deliberation-participation-config.js";
 import { parseDiscordConversationSpeaker } from "./discord-conversation-speaker-config.js";
 import { discordSpeakerParticipantKeys } from "./discord-conversation-speaker.js";
 import { parseDiscordPeerAgents } from "./discord-peer-agents-config.js";
 import { parseDiscordRepositorySignals } from "./discord-repository-signals-config.js";
+import { parseDiscordRequestedRuntimes } from "./discord-requested-runtimes-config.js";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 const INTEGRATION_ID = /^itg_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
@@ -74,6 +76,8 @@ export function parseDiscordConversationConfig(
       "policy",
       "repositorySignals",
       "deliberation",
+      "deliberationParticipation",
+      "requestedRuntimes",
     ],
     "discordConversation",
   );
@@ -152,15 +156,16 @@ export function parseDiscordConversationConfig(
       : (boundedUniqueText(
           administration.allowedActions,
           "discordConversation.administration.allowedActions",
-          /^(?:current_member\.nickname\.set|guild_text_channel\.create|public_thread\.create|incoming_webhook\.create|workforce\.agent\.hire)$/u,
+          /^(?:current_member\.nickname\.set|guild_text_channel\.create|public_thread\.create|incoming_webhook\.create|workforce\.agent\.hire|requested_runtime\.manage)$/u,
           1,
-          5,
+          6,
         ) as Array<
           | "current_member.nickname.set"
           | "guild_text_channel.create"
           | "public_thread.create"
           | "incoming_webhook.create"
           | "workforce.agent.hire"
+          | "requested_runtime.manage"
         >);
   const webhookCredentialDirectory =
     administration?.webhookCredentialDirectory === undefined
@@ -181,6 +186,11 @@ export function parseDiscordConversationConfig(
       "Discord webhook creation requires an owner-only credential directory.",
     );
   }
+  const requestedRuntimes = parseDiscordRequestedRuntimes(
+    source.requestedRuntimes,
+    baseDirectory,
+    allowedActions?.includes("requested_runtime.manage") === true,
+  );
   if (
     allowedActions?.includes("workforce.agent.hire") === true &&
     (agentId === undefined || source.organization === undefined)
@@ -195,6 +205,17 @@ export function parseDiscordConversationConfig(
     command: source.command,
     policy: source.policy,
   });
+  if (
+    Object.keys(behavior.policy?.unaddressedPriorities ?? {}).some(
+      (conversationId) =>
+        !conversations.some((conversation) => conversation.conversationId === conversationId),
+    )
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Discord conversation priority overrides must name configured conversations.",
+    );
+  }
   const repositorySignals = parseDiscordRepositorySignals(
     source.repositorySignals,
     conversations.map((item) => item.conversationId),
@@ -204,6 +225,29 @@ export function parseDiscordConversationConfig(
     baseDirectory,
     participants.filter((item) => item.actorKind === "human").map((item) => item.participantId),
   );
+  const deliberationParticipation = parseDiscordDeliberationParticipation(
+    source.deliberationParticipation,
+  );
+  if (
+    deliberationParticipation !== undefined &&
+    (agentId === undefined || organization === undefined)
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Deliberation participation requires an exact hired-agent organization binding.",
+    );
+  }
+  if (
+    deliberationParticipation !== undefined &&
+    (behavior.policy?.mode !== "proactive" ||
+      !behavior.policy.respondTo?.includes("system") ||
+      !behavior.policy.signalCodes?.includes("deliberation.artifact.recorded"))
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Deliberation participation requires the exact proactive artifact signal subscription.",
+    );
+  }
   if (
     deliberation !== undefined &&
     ((deliberation.notificationConversationIds?.some(
@@ -325,6 +369,8 @@ export function parseDiscordConversationConfig(
     ...behavior,
     ...(repositorySignals === undefined ? {} : { repositorySignals }),
     ...(deliberation === undefined ? {} : { deliberation }),
+    ...(deliberationParticipation === undefined ? {} : { deliberationParticipation }),
+    ...(requestedRuntimes === undefined ? {} : { requestedRuntimes }),
     ...(gateway === undefined
       ? {}
       : {

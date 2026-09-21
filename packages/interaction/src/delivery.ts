@@ -25,6 +25,7 @@ export async function runConversationDeliveryCycle(input: {
   clock?: () => Date;
   leaseDurationMs?: number;
   retryDelayMs?: number;
+  maximumDeliveryAttempts?: number;
   limit?: number;
   onDelivered?(input: {
     outbound: import("@lervo/schemas").ConversationOutboundMessage;
@@ -34,6 +35,7 @@ export async function runConversationDeliveryCycle(input: {
   assertConversationAdapterDescriptor(input.adapter.descriptor);
   const leaseDurationMs = input.leaseDurationMs ?? 30_000;
   const retryDelayMs = input.retryDelayMs ?? 5_000;
+  const maximumDeliveryAttempts = input.maximumDeliveryAttempts ?? 3;
   const limit = input.limit ?? 8;
   if (
     !input.adapter.descriptor.capabilities.includes("messages.send") ||
@@ -44,6 +46,9 @@ export async function runConversationDeliveryCycle(input: {
     !Number.isSafeInteger(retryDelayMs) ||
     retryDelayMs < 1_000 ||
     retryDelayMs > 3_600_000 ||
+    !Number.isSafeInteger(maximumDeliveryAttempts) ||
+    maximumDeliveryAttempts < 1 ||
+    maximumDeliveryAttempts > 10 ||
     !Number.isSafeInteger(limit) ||
     limit < 1 ||
     limit > 16
@@ -74,10 +79,16 @@ export async function runConversationDeliveryCycle(input: {
   }
   let deliveredCount = 0;
   let retryScheduledCount = 0;
+  let attentionRequiredCount = 0;
   for (const lease of leases) {
     let failureCode: "adapter_delivery_failed" | "invalid_delivery_receipt" | null = null;
+    let receipt: import("@lervo/schemas").ConversationDeliveryReceipt | null = null;
     try {
-      const receipt = await input.adapter.deliver(lease.outbound);
+      receipt = await input.adapter.deliver(lease.outbound);
+    } catch {
+      failureCode = "adapter_delivery_failed";
+    }
+    if (receipt !== null) {
       try {
         assertConversationDeliveryReceipt({
           receipt,
@@ -87,32 +98,44 @@ export async function runConversationDeliveryCycle(input: {
       } catch {
         failureCode = "invalid_delivery_receipt";
       }
-      if (failureCode === null) {
-        await input.store.acknowledgeOutbound({
-          outboundId: lease.outbound.outboundId,
-          leaseId: lease.leaseId,
-          receipt,
-        });
-        deliveredCount += 1;
-        await input.onDelivered?.({ outbound: lease.outbound, receipt });
-        continue;
-      }
-    } catch {
-      failureCode = "adapter_delivery_failed";
+    }
+    if (failureCode === null && receipt !== null) {
+      await input.store.acknowledgeOutbound({
+        outboundId: lease.outbound.outboundId,
+        leaseId: lease.leaseId,
+        receipt,
+      });
+      deliveredCount += 1;
+      await input.onDelivered?.({ outbound: lease.outbound, receipt });
+      continue;
     }
     const failedAt = now(clock);
-    await input.store.rescheduleOutbound({
-      outboundId: lease.outbound.outboundId,
-      leaseId: lease.leaseId,
-      failedAt,
-      availableAt: new Date(Date.parse(failedAt) + retryDelayMs).toISOString(),
-      failureCode: failureCode!,
-    });
-    retryScheduledCount += 1;
+    if (
+      failureCode === "invalid_delivery_receipt" ||
+      lease.attemptCount >= maximumDeliveryAttempts
+    ) {
+      await input.store.markOutboundAttentionRequired({
+        outboundId: lease.outbound.outboundId,
+        leaseId: lease.leaseId,
+        failedAt,
+        failureCode: failureCode ?? "adapter_delivery_failed",
+      });
+      attentionRequiredCount += 1;
+    } else {
+      await input.store.rescheduleOutbound({
+        outboundId: lease.outbound.outboundId,
+        leaseId: lease.leaseId,
+        failedAt,
+        availableAt: new Date(Date.parse(failedAt) + retryDelayMs).toISOString(),
+        failureCode: failureCode ?? "adapter_delivery_failed",
+      });
+      retryScheduledCount += 1;
+    }
   }
   return {
     status: leases.length === 0 ? "idle" : "processed",
     deliveredCount,
     retryScheduledCount,
+    attentionRequiredCount,
   };
 }

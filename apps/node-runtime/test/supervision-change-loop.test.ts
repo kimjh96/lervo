@@ -85,4 +85,32 @@ describe("supervision event and deadline scheduling", () => {
     expect(cycle).toHaveBeenCalledTimes(3);
     await loop.stop();
   });
+
+  it("backs off an inactive standing workstream while retaining event wakeup", async () => {
+    vi.useFakeTimers();
+    let notify = () => {};
+    const cycle = vi
+      .fn()
+      .mockRejectedValueOnce(
+        Object.assign(new Error("inactive"), { code: "supervision_workstream_inactive" }),
+      )
+      .mockResolvedValue({ disposition: "idle", report: report(null) });
+    const loop = createSupervisionChangeLoop({
+      runCycle: cycle,
+      subscribe: (callback) => {
+        notify = callback;
+        return () => {};
+      },
+      nextAuthorityCheckAt: () => null,
+      onFailure: vi.fn(),
+    });
+    loop.start();
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(59_999);
+    expect(cycle).toHaveBeenCalledOnce();
+    notify();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(cycle).toHaveBeenCalledTimes(2);
+    await loop.stop();
+  });
 });

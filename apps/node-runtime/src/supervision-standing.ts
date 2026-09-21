@@ -23,6 +23,11 @@ import {
 import { observeMandateInstallationSource } from "./supervision-authority-source.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { SupervisionRequestRefusedError } from "./supervision-request-refusal.js";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
+import {
+  recordUnselectedStandingSuccessor,
+  standingSuccessorMarker,
+} from "./supervision-standing-bound-successor.js";
 
 export interface StandingSupervisionResolution {
   /** The binding the runtime must use now: the latest successor, or the root itself. */
@@ -160,10 +165,9 @@ export async function startStandingSuccessor(input: {
   now: () => string;
 }): Promise<NodeSupervisionBinding> {
   const { storage, current } = input;
-  const state = await readCurrentWorkstreamState(input.repositoryRoot);
+  const state = await readBoundWorkstreamState(storage, current.binding.workstreamId);
   if (
     state === null ||
-    state.snapshot.workstreamId !== current.binding.workstreamId ||
     !["completed", "cancelled"].includes(state.snapshot.status) ||
     state.snapshot.blockers.length !== 0 ||
     (state.snapshot.pendingDecisions?.length ?? 0) !== 0 ||
@@ -180,126 +184,149 @@ export async function startStandingSuccessor(input: {
       "The standing lineage has no remaining successor authority.",
     );
   const successorIndex = current.index + 1;
-  const draft = {
-    schemaVersion: 1,
-    status: "active",
-    title: successorTitle(input.request.request),
-    objective: input.request.request.slice(0, 4000),
-    nextActions: ["Answer the bound request with an independently accepted, verified result."],
-    blockers: [],
-    notes: [
-      `Successor goal ${successorIndex} of the standing lineage, started by the installed owner for request ${input.request.contentHash}.`,
-    ],
-    references: [],
-    updatedAt: input.now(),
-  };
-  const plan = await createWorkstreamStartPlan({
-    repositoryRoot: input.repositoryRoot,
-    projectId: storage.manifest.projectId,
-    draft,
+  const supervisionId = successorId(current.binding.supervisionId, successorIndex);
+  const leases = await openRepositorySupervisionLeases(input.repositoryRoot);
+  const lease = leases.acquire({
+    supervisionId,
+    ownerAgentId: parent.ownerAgentId,
+    nowMs: Date.parse(input.now()),
+    durationMs: 300_000,
   });
-  if (plan.status !== "ready" || plan.snapshot === null)
-    throw new Error(
-      `The successor goal could not be planned: ${plan.blockers.map((item) => item.code).join(", ")}.`,
-    );
-  const identity = randomUUID().replaceAll("-", "");
-  let startEvent: { eventId: string; eventHash: string } | null = null;
-  const receipt = await applyWorkstreamStartPlan({
-    plan,
-    now: new Date(input.now()),
-    actor: "agent",
-    recordApplied: async (applied, snapshotContent) => {
-      const artifact = await storage.artifacts.put(snapshotContent);
-      if (artifact.contentHash !== applied.snapshotContentHash)
-        throw new Error("The successor goal snapshot differs from its start binding.");
-      const appended = storage.events.append({
-        eventId: `evt_${identity}`,
-        projectId: applied.projectId,
-        runId: `run_${identity}`,
-        sessionId: `ses_${identity}`,
-        type: "workstream.snapshot.recorded",
-        occurredAt: applied.appliedAt,
-        actor: { kind: "agent", provider: input.provider },
-        schemaVersion: 1,
-        policyVersion: applied.snapshotContentHash,
-        payload: {
-          workstreamId: applied.workstreamId,
-          revision: applied.revision,
-          status: applied.status,
-          changeKind: applied.operation,
-          snapshotArtifactId: `art_${applied.snapshotContentHash.slice("sha256:".length)}`,
-          snapshotContentHash: applied.snapshotContentHash,
-          previousSnapshotContentHash: applied.previousSnapshotContentHash,
-          sourceArtifactId: null,
-          sourceContentHash: null,
-          recordedAt: applied.appliedAt,
+  if (lease === null) {
+    leases.close();
+    throw new Error("The successor supervision owner fence is held.");
+  }
+  try {
+    const draft = {
+      schemaVersion: 1,
+      status: "active",
+      title: successorTitle(input.request.request),
+      objective: input.request.request.slice(0, 4000),
+      nextActions: ["Answer the bound request with an independently accepted, verified result."],
+      blockers: [],
+      notes: [standingSuccessorMarker(successorIndex, input.request.contentHash)],
+      references: [],
+      updatedAt: input.now(),
+    };
+    const identity = randomUUID().replaceAll("-", "");
+    let startEvent: { eventId: string; eventHash: string } | null = null;
+    const selected = await readCurrentWorkstreamState(input.repositoryRoot);
+    let receipt: { workstreamId: string };
+    if (selected?.snapshot.workstreamId === current.binding.workstreamId) {
+      const plan = await createWorkstreamStartPlan({
+        repositoryRoot: input.repositoryRoot,
+        projectId: storage.manifest.projectId,
+        draft,
+      });
+      if (plan.status !== "ready" || plan.snapshot === null)
+        throw new Error(
+          `The successor goal could not be planned: ${plan.blockers.map((item) => item.code).join(", ")}.`,
+        );
+      receipt = await applyWorkstreamStartPlan({
+        plan,
+        now: new Date(input.now()),
+        actor: "agent",
+        recordApplied: async (applied, snapshotContent) => {
+          const artifact = await storage.artifacts.put(snapshotContent);
+          if (artifact.contentHash !== applied.snapshotContentHash)
+            throw new Error("The successor goal snapshot differs from its start binding.");
+          const appended = storage.events.append({
+            eventId: `evt_${identity}`,
+            projectId: applied.projectId,
+            runId: `run_${identity}`,
+            sessionId: `ses_${identity}`,
+            type: "workstream.snapshot.recorded",
+            occurredAt: applied.appliedAt,
+            actor: { kind: "agent", provider: input.provider },
+            schemaVersion: 1,
+            policyVersion: applied.snapshotContentHash,
+            payload: {
+              workstreamId: applied.workstreamId,
+              revision: applied.revision,
+              status: applied.status,
+              changeKind: applied.operation,
+              snapshotArtifactId: `art_${applied.snapshotContentHash.slice("sha256:".length)}`,
+              snapshotContentHash: applied.snapshotContentHash,
+              previousSnapshotContentHash: applied.previousSnapshotContentHash,
+              sourceArtifactId: null,
+              sourceContentHash: null,
+              recordedAt: applied.appliedAt,
+            },
+          });
+          startEvent = { eventId: appended.event.eventId, eventHash: appended.event.eventHash };
         },
       });
-      startEvent = { eventId: appended.event.eventId, eventHash: appended.event.eventHash };
-    },
-  });
-  if (startEvent === null) throw new Error("The successor goal start was not recorded.");
-  const anchor: { eventId: string; eventHash: string } = startEvent;
-  const mandate = deriveSuccessorMandate(parent, {
-    successorIndex,
-    workScope: {
-      workstreamId: receipt.workstreamId,
-      snapshotEventId: anchor.eventId,
-      snapshotEventHash: anchor.eventHash,
-    },
-    issuedAt: input.now(),
-  });
-  const supervisionId = successorId(current.binding.supervisionId, successorIndex);
-  const observeSource = () =>
-    observeMandateInstallationSource(input.repositoryRoot, storage, mandate, "active");
-  const source = await observeSource();
-  const installationPlan = planMandateInstallation({
-    supervisionId,
-    mandate,
-    source,
-    previous: null,
-    reviewerId: mandate.appointingAuthorityId,
-    now: input.now(),
-    derivation: {
-      schemaVersion: 1,
-      parentInstallationEventId: current.installation.eventId,
-      parentMandateHash: current.installation.mandateHash,
-      successorIndex,
-    },
-  });
-  const binding: NodeSupervisionBinding = {
-    supervisionId,
-    workstreamId: receipt.workstreamId,
-    ownerAgentId: mandate.ownerAgentId,
-    mandateHash: installationPlan.mandateHash,
-  };
-  const leases = await openRepositorySupervisionLeases(input.repositoryRoot);
-  try {
-    const lease = leases.acquire({
-      supervisionId,
-      ownerAgentId: mandate.ownerAgentId,
-      nowMs: Date.parse(input.now()),
-      durationMs: 300_000,
-    });
-    if (lease === null) throw new Error("The successor supervision owner fence is held.");
-    try {
-      const revalidate = async () => {
-        const fresh = await observeSource();
-        if (operatingContractHash(fresh) !== operatingContractHash(source))
-          throw new Error("The successor goal source changed before its mandate was installed.");
-      };
-      await new SupervisionMandateJournal(
-        storage.events,
-        storage.artifacts,
-        supervisionJournalCoordinates(storage, binding, source.workstreamRevision),
-        input.now,
-        { store: leases, lease },
-      ).install(installationPlan, installationPlan.approvalHash, revalidate);
-    } finally {
-      leases.release(lease);
+    } else {
+      const created = await recordUnselectedStandingSuccessor({
+        storage,
+        predecessor: state,
+        draft,
+        provider: input.provider,
+        supervisionId,
+        successorIndex,
+        requestContentHash: input.request.contentHash,
+        now: input.now,
+      });
+      startEvent = created.startEvent;
+      receipt = { workstreamId: created.workstreamId };
     }
+    if (startEvent === null) throw new Error("The successor goal start was not recorded.");
+    const anchor: { eventId: string; eventHash: string } = startEvent;
+    const mandate = deriveSuccessorMandate(parent, {
+      successorIndex,
+      workScope: {
+        workstreamId: receipt.workstreamId,
+        snapshotEventId: anchor.eventId,
+        snapshotEventHash: anchor.eventHash,
+      },
+      issuedAt: input.now(),
+    });
+    const observeSource = () =>
+      observeMandateInstallationSource(
+        input.repositoryRoot,
+        storage,
+        mandate,
+        "active",
+        undefined,
+        undefined,
+        receipt.workstreamId,
+      );
+    const source = await observeSource();
+    const installationPlan = planMandateInstallation({
+      supervisionId,
+      mandate,
+      source,
+      previous: null,
+      reviewerId: mandate.appointingAuthorityId,
+      now: input.now(),
+      derivation: {
+        schemaVersion: 1,
+        parentInstallationEventId: current.installation.eventId,
+        parentMandateHash: current.installation.mandateHash,
+        successorIndex,
+      },
+    });
+    const binding: NodeSupervisionBinding = {
+      supervisionId,
+      workstreamId: receipt.workstreamId,
+      ownerAgentId: mandate.ownerAgentId,
+      mandateHash: installationPlan.mandateHash,
+    };
+    const revalidate = async () => {
+      const fresh = await observeSource();
+      if (operatingContractHash(fresh) !== operatingContractHash(source))
+        throw new Error("The successor goal source changed before its mandate was installed.");
+    };
+    await new SupervisionMandateJournal(
+      storage.events,
+      storage.artifacts,
+      supervisionJournalCoordinates(storage, binding, source.workstreamRevision),
+      input.now,
+      { store: leases, lease },
+    ).install(installationPlan, installationPlan.approvalHash, revalidate);
+    return binding;
   } finally {
+    leases.release(lease);
     leases.close();
   }
-  return binding;
 }

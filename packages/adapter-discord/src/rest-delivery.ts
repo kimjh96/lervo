@@ -70,7 +70,11 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
       );
     }
     const targetChannelId = input.threadId ?? input.channelId;
-    const nonce = createDiscordMessageNonce(input.outboundId, input.audienceParticipation);
+    const nonce = createDiscordMessageNonce(
+      input.outboundId,
+      input.audienceParticipation,
+      input.coordination,
+    );
     const body = {
       content: input.content,
       nonce,
@@ -127,7 +131,11 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
         if (
           typeof response.id !== "string" ||
           !/^[0-9]{1,32}$/.test(response.id) ||
-          response.channel_id !== targetChannelId
+          response.channel_id !== targetChannelId ||
+          response.content !== input.content ||
+          (response.nonce !== undefined && response.nonce !== nonce) ||
+          (input.replyToMessageId !== null &&
+            object(response.message_reference).message_id !== input.replyToMessageId)
         ) {
           throw new Error("Discord delivery response mismatch");
         }

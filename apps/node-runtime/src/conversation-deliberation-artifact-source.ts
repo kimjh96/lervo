@@ -1,11 +1,8 @@
 import { createHash } from "node:crypto";
 
-import {
-  createConversationInboundEvent,
-  hashConversationSourceEventKey,
-} from "@lervo/conversation-contract";
 import type { ConversationApplication } from "@lervo/conversation-app";
 import { readDeliberationArtifactEvents } from "@lervo/product-surface-projection";
+import { projectAgentOrganizationFromEventSource } from "@lervo/agent-organization";
 import type { DeliberationArtifact, EventEnvelope } from "@lervo/schemas";
 import { validateSchema } from "@lervo/schemas";
 import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
@@ -42,6 +39,18 @@ export class ConversationDeliberationArtifactSource {
         read(): Promise<number | null>;
         write(afterSeq: number, at: string): Promise<void>;
       };
+      participantPublisher?: {
+        publish(input: {
+          participantId: string;
+          projectId: string;
+          conversationId: string;
+          threadId: string | null;
+          replyToEventId: string;
+          artifactEventId: string;
+          content: string;
+          occurredAt: string;
+        }): Promise<void>;
+      };
       now?(): Date;
     },
   ) {}
@@ -72,21 +81,24 @@ export class ConversationDeliberationArtifactSource {
     await this.initialize();
     const events = this.options.events.list({ afterSeq: this.afterSeq!, limit: 100 });
     let publicationCount = 0;
+    let localPublicationCount = 0;
     for (const event of events) {
       if (event.type === "deliberation.artifact.recorded") {
-        publicationCount += await this.publish(event);
+        const publication = await this.publish(event);
+        if (publication !== "none") publicationCount += 1;
+        if (publication === "local") localPublicationCount += 1;
       }
       this.afterSeq = event.seq;
       await this.persist(event.seq);
     }
     this.more = events.length === 100;
-    if (publicationCount > 0) {
+    if (localPublicationCount > 0) {
       await this.application!.runDeliveryCycle!(this.options.integrationId);
     }
     return { eventCount: events.length, publicationCount };
   }
 
-  private async publish(event: EventEnvelope): Promise<0 | 1> {
+  private async publish(event: EventEnvelope): Promise<"none" | "local" | "routed"> {
     if (
       this.application === null ||
       this.application.handleInboundEvent === null ||
@@ -113,63 +125,40 @@ export class ConversationDeliberationArtifactSource {
       projectId: this.options.projectId,
       deliberationId: artifact.deliberationId,
     });
-    if (origin === null) return 0;
+    if (origin === null) return "none";
 
-    const roleName =
-      typeof event.payload.producerRoleName === "string"
-        ? event.payload.producerRoleName
-        : artifact.producer.roleId;
-    const contribution = `**${roleName}**\n\n${await verifiedArtifactContent(
-      this.options.repositoryArtifacts,
-      artifact,
-    )}`;
-    const content = await this.options.conversationArtifacts.put(contribution);
-    const inbound = createConversationInboundEvent({
-      sourceEventKeyHash: hashConversationSourceEventKey(
-        JSON.stringify([
-          "deliberation-artifact",
-          1,
-          event.eventId,
-          origin.conversationId,
-          origin.threadId,
-          origin.sourceEventId,
-        ]),
-      ),
-      target: {
-        integrationId: this.options.integrationId,
-        projectId: this.options.projectId,
-        conversationId: origin.conversationId,
-        threadId: origin.threadId,
-      },
-      kind: "signal.raised",
-      actor: {
-        kind: "system",
-        participantId: "ptc_lervo_system",
-        roleId: null,
-        agentBinding: null,
-      },
-      content: {
-        artifactId: `art_${content.contentHash.slice("sha256:".length, 60)}`,
-        contentHash: content.contentHash,
-        byteCount: content.byteCount,
-        mediaType: "text/plain; charset=utf-8",
-      },
-      mentions: { roleIds: [], participantIds: [] },
+    const organization = projectAgentOrganizationFromEventSource({
+      projectId: this.options.projectId,
+      events: this.options.events,
+    });
+    const participantBindings = organization.deliberationParticipants.filter(
+      (binding) =>
+        binding.deliberationId === artifact.deliberationId &&
+        binding.policyRoleId === artifact.producer.roleId &&
+        binding.bindingVersion === 2,
+    );
+    if (participantBindings.length > 1) {
+      throw new Error("The deliberation artifact has multiple named participant bindings.");
+    }
+    const participant = participantBindings[0];
+    if (participant === undefined) {
+      // Policy-only seats are internal review coverage, not synthetic conversation speakers.
+      return "none";
+    }
+    if (this.options.participantPublisher === undefined) {
+      throw new Error("The named deliberation participant publication route is unavailable.");
+    }
+    await this.options.participantPublisher.publish({
+      participantId: participant.participantId,
+      projectId: this.options.projectId,
+      conversationId: origin.conversationId,
+      threadId: origin.threadId,
       replyToEventId: origin.sourceEventId,
-      signalCode: "deliberation.artifact.recorded",
-      automationDepth: 0,
+      artifactEventId: event.eventId,
+      content: await verifiedArtifactContent(this.options.repositoryArtifacts, artifact),
       occurredAt: event.occurredAt,
     });
-    const results = await this.application.handleInboundEvent(inbound);
-    const responding = results.filter(
-      (result) => "outbound" in result.result && result.result.outbound !== null,
-    );
-    if (responding.length !== 1) {
-      throw new Error(
-        "Exactly one conversation policy must create the deliberation artifact outbound.",
-      );
-    }
-    return 1;
+    return "routed";
   }
 
   private persist(afterSeq: number): Promise<void> {

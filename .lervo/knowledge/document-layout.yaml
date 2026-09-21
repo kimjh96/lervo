@@ -140,6 +140,13 @@ routes:
     minimumTitleTermMatches: 1
     titleTerms:
       - deliberation
+  - id: coordination.conversations.delivery
+    path: coordination/conversations/delivery
+    priority: 85
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - delivery
+      - reconciliation
   - id: coordination.conversations.agent-organization
     path: coordination/conversations/agent-organization
     priority: 84
@@ -255,6 +262,22 @@ routes:
       - improvement effect
       - improvement observation
       - repeated verification failures
+  - id: execution.orchestration.governed-work.resource-accounting
+    path: execution/orchestration/governed-work/resource-accounting
+    priority: 59
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - supervision budget
+      - model migration
+      - resource accounting
+  - id: execution.orchestration.governed-work.workstream-concurrency
+    path: execution/orchestration/governed-work/workstream-concurrency
+    priority: 59
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - parallel bound workstreams
+      - workstream concurrency
+      - bound workstreams
   - id: execution.orchestration.governed-work
     path: execution/orchestration/governed-work
     priority: 58

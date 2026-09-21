@@ -136,6 +136,8 @@ describe("credential-backed platform delivery", () => {
         JSON.stringify({
           id: "423456789012345678",
           channel_id: "333456789012345678",
+          content: "Do not mention <@123> directly.",
+          message_reference: { message_id: "323456789012345678" },
         }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
@@ -165,6 +167,103 @@ describe("credential-backed platform delivery", () => {
     });
     await delivery.send(input);
     expect(request).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { content: "Earlier assignment", replyId: "323456789012345678" },
+    { content: "New assignment", replyId: "323456789012345677" },
+  ])("does not acknowledge a nonce-reused Discord message ($content, $replyId)", async (old) => {
+    const replay = new MemoryReplay();
+    const request = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: "423456789012345678",
+            channel_id: "333456789012345678",
+            content: old.content,
+            message_reference: { message_id: old.replyId },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    );
+    const delivery = new DiscordRestDelivery({
+      integrationId: "itg_discord01",
+      botToken: "d".repeat(40),
+      replay,
+      fetch: request as typeof fetch,
+      now: () => new Date(at),
+    });
+    const input = {
+      outboundId,
+      guildId: "123456789012345678",
+      channelId: "223456789012345678",
+      threadId: "333456789012345678",
+      replyToMessageId: "323456789012345678",
+      content: "New assignment",
+      automationDepth: 1,
+      audienceParticipation: "eligible" as const,
+      allowedMentions: "none" as const,
+      enforceIdempotency: true as const,
+    };
+    await expect(delivery.send(input)).rejects.toMatchObject({ code: "platform_delivery_failed" });
+    await expect(delivery.send(input)).rejects.toMatchObject({ code: "platform_delivery_failed" });
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("rejects Discord's earlier reply when two assignments share a discussion nonce", async () => {
+    const replay = new MemoryReplay();
+    const nonces: string[] = [];
+    const request = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { nonce: string };
+      nonces.push(body.nonce);
+      return new Response(
+        JSON.stringify({
+          id: "423456789012345678",
+          channel_id: "333456789012345678",
+          content: "First assignment",
+          message_reference: { message_id: "323456789012345677" },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    const delivery = new DiscordRestDelivery({
+      integrationId: "itg_discord01",
+      botToken: "d".repeat(40),
+      replay,
+      fetch: request as typeof fetch,
+      now: () => new Date(at),
+    });
+    const common = {
+      guildId: "123456789012345678",
+      channelId: "223456789012345678",
+      threadId: "333456789012345678",
+      automationDepth: 1,
+      audienceParticipation: "eligible" as const,
+      allowedMentions: "none" as const,
+      enforceIdempotency: true as const,
+      coordination: {
+        kind: "discussion.assignment" as const,
+        discussionId: `dsc_${"b".repeat(20)}`,
+      },
+    };
+    await expect(
+      delivery.send({
+        ...common,
+        outboundId: `cvo_${"b".repeat(64)}`,
+        replyToMessageId: "323456789012345677",
+        content: "First assignment",
+      }),
+    ).resolves.toMatchObject({ messageId: "423456789012345678" });
+    await expect(
+      delivery.send({
+        ...common,
+        outboundId: `cvo_${"c".repeat(64)}`,
+        replyToMessageId: "323456789012345678",
+        content: "Second assignment",
+      }),
+    ).rejects.toMatchObject({ code: "platform_delivery_failed" });
+    expect(nonces).toEqual([`lv1a_${"b".repeat(20)}`, `lv1a_${"b".repeat(20)}`]);
+    expect(request).toHaveBeenCalledTimes(2);
   });
 
   it("sends as a named Discord webhook identity without exposing its credential", async () => {

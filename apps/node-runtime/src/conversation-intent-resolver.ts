@@ -14,7 +14,9 @@ export type ConversationRequestedEffect =
   | { kind: "discord_public_thread_create"; name: string }
   | { kind: "workforce_agent_hire"; specification: string }
   | { kind: "workforce_task_delegate"; specification: string }
-  | { kind: "deliberation_start"; specification: string };
+  | { kind: "deliberation_start"; specification: string }
+  | { kind: "requested_runtime_open"; specification: string }
+  | { kind: "requested_runtime_close"; specification: string };
 
 const conversationRequestedEffectKinds = Object.keys({
   none: true,
@@ -26,6 +28,8 @@ const conversationRequestedEffectKinds = Object.keys({
   workforce_agent_hire: true,
   workforce_task_delegate: true,
   deliberation_start: true,
+  requested_runtime_open: true,
+  requested_runtime_close: true,
 } satisfies Record<
   ConversationRequestedEffect["kind"],
   true
@@ -56,12 +60,81 @@ export interface ConversationIntentResolution {
   resultDigest: string;
 }
 
+/** Canonical validator for normalized effects stored and routed by the conversation runtime. */
+export function isConversationRequestedEffect(
+  value: unknown,
+): value is ConversationRequestedEffect {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const effect = value as Record<string, unknown>;
+  switch (effect.kind) {
+    case "none":
+    case "repository_work":
+    case "supervision_goal_request":
+      return Object.keys(effect).length === 1;
+    case "discord_current_member_nickname_set":
+      return (
+        Object.keys(effect).length === 2 &&
+        typeof effect.nickname === "string" &&
+        [...effect.nickname].length >= 1 &&
+        [...effect.nickname].length <= 32 &&
+        !effect.nickname.includes("\0")
+      );
+    case "discord_guild_text_channel_create":
+      return (
+        Object.keys(effect).length === 2 &&
+        typeof effect.name === "string" &&
+        /^[a-z0-9][a-z0-9_-]{0,99}$/u.test(effect.name)
+      );
+    case "discord_public_thread_create":
+      return (
+        Object.keys(effect).length === 2 &&
+        typeof effect.name === "string" &&
+        [...effect.name].length >= 1 &&
+        [...effect.name].length <= 100 &&
+        !effect.name.includes("\0")
+      );
+    case "workforce_agent_hire":
+      return (
+        Object.keys(effect).length === 2 &&
+        typeof effect.specification === "string" &&
+        [...effect.specification].length >= 1 &&
+        [...effect.specification].length <= 512 &&
+        !effect.specification.includes("\0")
+      );
+    case "workforce_task_delegate":
+      return (
+        Object.keys(effect).length === 2 &&
+        typeof effect.specification === "string" &&
+        [...effect.specification].length >= 1 &&
+        [...effect.specification].length <= 1_024 &&
+        !effect.specification.includes("\0")
+      );
+    case "deliberation_start":
+      return (
+        Object.keys(effect).length === 2 &&
+        typeof effect.specification === "string" &&
+        [...effect.specification].length >= 1 &&
+        [...effect.specification].length <= 4_096 &&
+        !effect.specification.includes("\0")
+      );
+    case "requested_runtime_open":
+    case "requested_runtime_close":
+      return (
+        Object.keys(effect).length === 2 &&
+        typeof effect.specification === "string" &&
+        /^[a-z][a-z0-9_-]{0,63}$/u.test(effect.specification)
+      );
+    default:
+      return false;
+  }
+}
+
 export interface ConversationIntentResolver {
   resolve(input: {
     message: string;
     actorKind: "human" | "agent" | "system";
     mentioned: boolean;
-    respondingAgent: { agentId: string | null; roleId: string };
+    respondingAgent: { participantId: string; agentId: string | null; roleId: string };
     priorTurns: ConversationContextTurn[];
     currentWorkstream: { title: string; objective: string; status: string } | null;
     availableEffects: readonly ConversationRequestedEffect["kind"][];
@@ -113,11 +186,12 @@ const instruction = [
   "Set effect.kind to discord_current_member_nickname_set only when the user asks this Discord agent to change its own nickname in the current server. Resolve the intended nickname from the current message or priorTurns and place it in effect.nickname.",
   "Set effect.kind to discord_guild_text_channel_create only when the user asks this agent to create a text channel in the current server. Put the requested lowercase Discord channel name in effect.name.",
   "Set effect.kind to discord_public_thread_create only when the user asks this agent to create a public thread under the current Discord channel. Put the requested thread name in effect.name.",
-  "Set effect.kind to workforce_agent_hire only when this product owner should hire a repository child agent. Put a compact JSON object with exactly name, roleId, and provider in effect.specification. Use an explicit human-style name, an installed repository role, and provider codex, claude, or any.",
-  "Set effect.kind to workforce_task_delegate only when the user asks this owner to assign a bounded task to an active hired agent. Put a compact JSON object with exactly roleId and task in effect.specification. Select a suitable participating hired-agent role from bounded context; task contains the complete bounded request in the conversation language.",
+  "Set effect.kind to workforce_agent_hire only when this explicitly authorized agent should hire a repository child agent. Put a compact JSON object with exactly name, roleId, and provider in effect.specification. Use an explicit human-style name, an installed repository role, and provider codex, claude, or any.",
+  "Set effect.kind to workforce_task_delegate when one active peer's durable role, context, or knowledge makes a bounded subtask the best next action, whether the requester named that peer or this agent selected the peer as part of owning the outcome. Put a compact JSON object with exactly participantId and task in effect.specification. Select participantId only from the routable peer catalog in the deployed effect. Write the natural bounded subtask in the conversation language without assigning a synthetic persona. The coordinating agent remains responsible for the requester's complete outcome. Clarify instead of inventing or guessing an identity.",
   "Set effect.kind to deliberation_start only when it is available and the human explicitly asks the installed participants to deliberate, debate, or independently challenge a topic. Put only the complete topic in effect.specification; the deployment supplies the governed policy.",
-  "Use clarify instead of inventing a requested Discord nickname or channel/thread name, or selecting an unavailable external action. A product owner may choose a suitable child-agent name, role, and provider when hiring is the requested or clearly necessary next action.",
-  "For answer and clarify, set effect.kind to none. Set effect.nickname only for discord_current_member_nickname_set, effect.name only for a channel or thread creation effect, and effect.specification only for workforce_agent_hire, workforce_task_delegate, or deliberation_start; otherwise set all three to null.",
+  "Set effect.kind to requested_runtime_open or requested_runtime_close only when that exact effect is available and the requester asks to make one configured on-demand runtime available or stop it. Put the exact configured runtimeId in effect.specification. These are request-scoped lifecycles, never permission to enable boot startup or unconditional restart.",
+  "Use clarify instead of inventing a requested Discord nickname or channel/thread name, choosing among multiple peers with the same role, or selecting an unavailable external action. An explicitly authorized hiring agent may choose a suitable child-agent name, role, and provider when hiring is the requested or clearly necessary next action.",
+  "For answer and clarify, set effect.kind to none. Set effect.nickname only for discord_current_member_nickname_set, effect.name only for a channel or thread creation effect, and effect.specification only for workforce_agent_hire, workforce_task_delegate, deliberation_start, requested_runtime_open, or requested_runtime_close; otherwise set all three to null.",
   "A short instruction to proceed may select continue_work only when currentWorkstream or priorTurns gives it one unambiguous target.",
   "Use clarify when the requested effect or target is ambiguous, conflicting, or lacks enough conversational context.",
   "A Discord mention is an optional attention signal. Its presence or absence never determines intent.",
@@ -201,7 +275,15 @@ function parseResolution(
         [...specification].length < 1 ||
         [...specification].length > 4_096 ||
         specification.includes("\0"))) ||
-    (!["workforce_agent_hire", "workforce_task_delegate", "deliberation_start"].includes(kind) &&
+    (["requested_runtime_open", "requested_runtime_close"].includes(kind) &&
+      (typeof specification !== "string" || !/^[a-z][a-z0-9_-]{0,63}$/u.test(specification))) ||
+    (![
+      "workforce_agent_hire",
+      "workforce_task_delegate",
+      "deliberation_start",
+      "requested_runtime_open",
+      "requested_runtime_close",
+    ].includes(kind) &&
       specification !== null) ||
     (kind === "repository_work" &&
       !["routine", "reasoning", "review"].includes(executionProfile as string)) ||
@@ -221,7 +303,9 @@ function parseResolution(
           ? { kind, name: name as string }
           : kind === "workforce_agent_hire" ||
               kind === "workforce_task_delegate" ||
-              kind === "deliberation_start"
+              kind === "deliberation_start" ||
+              kind === "requested_runtime_open" ||
+              kind === "requested_runtime_close"
             ? { kind, specification: specification as string }
             : { kind },
   };

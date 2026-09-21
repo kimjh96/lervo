@@ -31,6 +31,7 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
   context_preparation_failed: 50,
   provider_stream_failed: 40,
   provider_turn_failed: 40,
+  provider_capacity_unavailable: 40,
   provider_model_unavailable: 40,
   provider_tool_limit_exceeded: 45,
   provider_command_limit_exceeded: 45,
@@ -40,8 +41,11 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
 };
 
 function retryable(code: ManagedProviderRunFailureCode): boolean {
-  // A provider that never named a model reported capacity, not a rejected request.
-  return code === "artifact_storage_failed" || code === "provider_model_unavailable";
+  return (
+    code === "artifact_storage_failed" ||
+    code === "provider_capacity_unavailable" ||
+    code === "provider_model_unavailable"
+  );
 }
 
 function failureCodeForPhase(phase: ManagedProviderRunPhase): ManagedProviderRunFailureCode {

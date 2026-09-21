@@ -2,6 +2,7 @@ export * from "./agent-context-event-validation.js";
 export * from "./agent-context-projection.js";
 export * from "./agent-context-review.js";
 export * from "./agent-context-types.js";
+export * from "./deliberation-participation.js";
 export * from "./event-validation.js";
 export * from "./event-source.js";
 export * from "./projection.js";

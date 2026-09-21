@@ -4,11 +4,15 @@ import type {
 } from "@lervo/interaction";
 
 const terminalContractFailures = new Set([
+  "artifact_contract_invalid",
   "control_access_denied",
   "control_command_invalid",
+  "evaluation_contract_invalid",
   "invalid_response_request",
+  "invalid_writing_request",
   "managed_run_invalid",
   "message_artifact_invalid",
+  "publication_permit_invalid",
   "remote_continuation_denied",
 ]);
 
@@ -65,8 +69,17 @@ export class NodeConversationResponseFailureClassifier implements ConversationRe
         retryable: code === "repository_snapshot_failed",
       };
     }
+    if (code === "provider_capacity_unavailable") {
+      return { failureCode: "response_provider_capacity", retryable: true };
+    }
     if (code !== null && providerFailures.has(code)) {
-      return { failureCode: "response_provider_unavailable", retryable: false };
+      return {
+        failureCode: "response_provider_unavailable",
+        // Conversation provider turns are read-only and publish only after a verified result, so
+        // startup and terminal turn failures can be retried within the response-attempt budget.
+        // Protocol and stream failures stay terminal because their state is ambiguous.
+        retryable: code === "provider_start_failed" || code === "provider_turn_failed",
+      };
     }
     if (code !== null && storageFailures.has(code)) {
       return {

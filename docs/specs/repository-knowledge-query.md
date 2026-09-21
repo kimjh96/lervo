@@ -19,6 +19,8 @@ Impact compares stored and current versions, marking subjects `current`, `stale`
 
 The compatibility exact-term floor uses no language-specific keyword, alias, synonym, or stop-word mapping. Product composition supplies the qualified Lexical v2 implementation through a provider-neutral prepare-once/query-many ranker port. An explicit repository engine selection remains authoritative for secondary knowledge ranking within a managed search turn. Long-running hosts may reuse a prepared index only while the exact repository source revision is unchanged. Indexes are rebuildable projections, not canonical records.
 
+Interactive repository-context preparation, CLI knowledge query, and product search admit the newest 4,096 privacy-valid execution events plus the independently bounded verification corpus. They validate the complete event chain before projecting that window. Older events remain canonical in the event store and available to full lifecycle compilation; they do not make an interactive query exceed the repository file-count budget merely because execution history grew.
+
 Ranked results expose the applied `{ id, version }` engine and `adapterBuildId`. This metadata contains no query text, source bytes, credential, provider identity, or personal data. Missing metadata means a compatibility caller omitted the ranker. Invalid, duplicate, unknown, non-positive, or unsafe-score results fail closed. A fuzzy engine hit may have no legacy literal `matchedTerms`; that list reports literal overlap only and does not prove why the engine ranked a result.
 
 Query results are `recommended`; ranking and cache evidence do not prove selection, loading, injection, reference, or use.

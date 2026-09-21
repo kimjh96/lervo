@@ -54,6 +54,42 @@ Every installed journey records:
 
 Human-visible messages exclude internal coordinates unless diagnostics are explicitly requested.
 
+## Publication verification failures
+
+The response attempt stores only an existing bounded failure code, not rejected prose, artifact content, provider output, or native error text. A typed writing gate failure records `response_writing_blocked`; evaluator unavailability records `response_evaluation_unavailable`; verified artifact storage failure records `response_storage_unavailable`; and deterministic artifact, evaluation, permit, or writing-contract mismatch records `response_contract_invalid`. Unknown verifier errors remain `publication_verification_failed` rather than being guessed into a more specific cause. The installed private log may record only bounded error name and code coordinates. A nonretryable contract mismatch uses the existing verified terminal-failure reply immediately when available; retryable failures keep the configured attempt bound. Historical generic failure rows cannot be retroactively diagnosed from that code alone and do not satisfy an installed success claim.
+
+## Delivery uncertainty and reconciliation
+
+The interaction outbox never retries indefinitely. It uses a bounded delivery-attempt count and stores `attention_required` when an invalid receipt or exhausted adapter failure prevents a verified acknowledgement. The state carries only immutable outbound coordinates, the attempt count, bounded failure code and time, and no delivery receipt; it is not a success claim. A Discord operator recovery must observe the existing message under the configured bot or webhook principal, channel, exact content hash and byte count, delivery time, and supported native reply relation before recording the replay, correlation, and outbox receipt. It must not send another message. [ADR-0424](../../../decisions/coordination/conversations/delivery/0424-bound-delivery-uncertainty-and-reconciliation.md) defines the state, privacy, migration, and failure meanings. The held two-direction installed approval remains independent of one recovered delivery.
+
+Before a bot REST response becomes a delivery receipt, the returned message must match the requested channel, exact content, and native reply target; any returned nonce must match when present. A successful HTTP status or repeated Discord nonce alone does not prove publication of this outbound. A mismatched response remains uncertain and must not be acknowledged or silently resent. Installed acceptance checks both correct bot replies and a controlled same-nonce earlier-message response.
+
+## Natural requested-runtime control
+
+An ordinary message such as a request to open or close a development server may select a
+repository-configured runtime from the current conversation, durable agent identity, and bounded
+prior turns. The user does not need to know a runtime ID, effect name, command, working directory,
+or process manager.
+
+Execution remains configuration-bound and allowlisted. A provider may select only an advertised
+action and configured target; it cannot invent an executable, arguments, environment, restart
+policy, or readiness rule. The runtime manager starts the target only after an authorized request,
+observes its configured readiness contract, applies its maximum lifetime, and never converts that
+request into boot enablement or unconditional restart. The child receives the Node service
+environment with the configured executable directory prepended to `PATH`, so nested lifecycle
+commands resolve consistently without depending on an interactive shell.
+
+After the action completes or fails, the effect adapter returns only bounded observed facts such as
+started and ready, already running, stopped, already stopped, startup exit, startup timeout, or an
+unclassified start or stop failure. It must not expose thrown provider text, filesystem paths, or
+credentials. The same durable agent that owns the conversation then writes the human-facing reply
+in the message language and its established voice. Fixed application-specific public response
+templates and generic response-contract failure text do not satisfy this contract.
+
+Publication verifies that reply with the same adaptive conversation-writing contract used for an
+ordinary agent response. Tests must cover successful and failed effects, privacy-bounded failure
+projection, no automatic startup, target isolation, and the installed open/readiness/close journey.
+
 Measures include completion, human interventions, redundant hires, duplicate effects, recovery time, end-to-end and stage latency, provider calls, observed token dimensions, separately typed cache observations, search recall and unnecessary context, result-delivery success, and restart behavior. Unobserved cost remains unavailable. Improvement claims require a reviewed equivalent baseline.
 
 ## Platform limits

@@ -1,51 +1,24 @@
-import { resolve } from "node:path";
-
 import { openConversationApplication } from "@lervo/conversation-app";
-import { FileSystemCas } from "@lervo/cas";
-import { ConversationRemoteContinuationResponder } from "@lervo/conversation-control";
 import {
-  FixedConversationTerminalFailureResponder,
-  VerifiedConversationPublication,
-} from "@lervo/conversation-responder";
-import { fixedConversationStatusWritingContract } from "@lervo/core";
-import type { ConversationResponder } from "@lervo/interaction";
-
-import { createProviderConversationIntentResolver } from "./conversation-intent-resolver.js";
-import { conversationPublicationWritingContract } from "./conversation-publication-writing-contract.js";
-import { SQLiteConversationHistory } from "./conversation-history.js";
-import { SQLiteConversationIntentResolutionStore } from "./conversation-intent-store.js";
-import {
-  createAuthorizedAgentEffectRequesters,
-  createDiscordHubContinuation,
   createDiscordPlatformBindings,
+  effectiveDiscordPeerAgents,
   type DiscordPeerAgentBinding,
 } from "./discord-conversation-composition.js";
 import { ConversationResultRuntime } from "./conversation-result-runtime.js";
-import { SQLiteConversationResultStore } from "./conversation-result-store.js";
-import { openManagedConversationReadResponder } from "./conversation-read-responder.js";
-import { NaturalLanguageDiscordConversationResponder } from "./discord-conversation-mode.js";
 import { resolveDiscordAgentParticipation } from "./discord-agent-participation.js";
 import type { ConversationInteractionRetryLoop } from "./conversation-interaction-retry-loop.js";
-import { NodeConversationResponseFailureClassifier } from "./conversation-response-failure-policy.js";
-import { createDiscordConversationEffects } from "./discord-conversation-effects.js";
-import { createDiscordConversationTurnOwnership } from "./discord-conversation-turn-ownership.js";
-import { createDiscordConversationParticipationPolicy } from "./discord-conversation-participation-policy.js";
 import { ConversationRepositorySignalLoop } from "./conversation-repository-signal-loop.js";
-import {
-  ConversationDeliberationSignalResponder,
-  isDeliberationPublicationSignal,
-} from "./conversation-deliberation-signal-responder.js";
-import { DiscordConversationDeliberationRuntime } from "./discord-conversation-deliberation-runtime.js";
 import { startDiscordConversationBackground } from "./discord-conversation-background.js";
 import { createDiscordConversationResultRuntime } from "./discord-conversation-result-composition.js";
-import { createDiscordConversationContinuation } from "./discord-conversation-continuation.js";
-import { openDiscordConversationWork, supervisionGoalEffect } from "./discord-conversation-work.js";
+import { openDiscordConversationResponseComposition } from "./discord-conversation-response-composition.js";
 import { loadDiscordConversationDeliveryCredentials } from "./discord-conversation-webhook-delivery.js";
 import { discordSpeakerParticipantKeys } from "./discord-conversation-speaker.js";
 import type {
   NodeDiscordConversationRuntime,
   NodeDiscordConversationRuntimeOptions,
 } from "./discord-conversation-runtime-types.js";
+import { registerConversationPeerTurnEndpoint } from "./conversation-peer-turn-router.js";
+import type { ConversationDiscussionDeadlineLoop } from "./conversation-discussion-deadline-loop.js";
 
 export * from "./discord-conversation-runtime-types.js";
 
@@ -53,12 +26,10 @@ export async function openNodeDiscordConversationRuntime(
   options: NodeDiscordConversationRuntimeOptions,
 ): Promise<NodeDiscordConversationRuntime> {
   const config = options.config;
-  const reconfigurationEvents = new Set<string>();
-  const peerAgents: DiscordPeerAgentBinding[] = [
-    ...(config.peerAgents ?? []),
-    ...(options.peerAgents ?? []),
-  ];
-  const authorizedAgentEffectRequesters = createAuthorizedAgentEffectRequesters(config);
+  const peerAgents: DiscordPeerAgentBinding[] = effectiveDiscordPeerAgents(
+    config.peerAgents ?? [],
+    options.peerAgents ?? [],
+  );
   const agentParticipation =
     options.agentParticipation ??
     (await resolveDiscordAgentParticipation({
@@ -89,225 +60,20 @@ export async function openNodeDiscordConversationRuntime(
     ...(agentParticipation.agentBinding === undefined
       ? {}
       : { agentBinding: agentParticipation.agentBinding }),
-    ...(options.peerAgents === undefined ? {} : { peerAgents: options.peerAgents }),
+    peerAgents,
   });
-  const turnOwnershipEvaluator = createDiscordConversationTurnOwnership({
-    participantId: config.agentParticipantId,
-    roleId: agentParticipation.roleId,
-    conversationIds: config.conversations.map((binding) => binding.conversationId),
-    peers: peerAgents,
-    ...(options.turnFocusStore === undefined ? {} : { focusStore: options.turnFocusStore }),
-  });
-  const policy = createDiscordConversationParticipationPolicy({
-    config,
-    projectId: options.project.projectId,
-    projectCreatedAt: options.project.createdAt,
-    agentParticipation,
-  });
-  const artifacts = await FileSystemCas.open(resolve(options.dataDirectory, "artifacts"));
-  const { repositoryWork, workResponder, goalResponder, goalStore } = openDiscordConversationWork({
+  const response = await openDiscordConversationResponseComposition({
     options,
-    artifacts,
+    botToken: token,
     participation: agentParticipation,
-    policyId: policy.policyId,
-    authorizedEffectRequesters: authorizedAgentEffectRequesters,
+    peerAgents,
   });
-  const resultStore = await SQLiteConversationResultStore.open(
-    resolve(options.dataDirectory, "execution-results.sqlite"),
-  );
-  const upstreamContinuation = options.continuation ?? createDiscordHubContinuation(options);
   let resultRuntime: ConversationResultRuntime | null = null;
-  let readRuntime: Awaited<ReturnType<typeof openManagedConversationReadResponder>> | null = null;
-  let intentStore: SQLiteConversationIntentResolutionStore | null = null;
   let interactionRetryLoop: ConversationInteractionRetryLoop | null = null;
   let repositorySignalLoop: ConversationRepositorySignalLoop | null = null;
-  // Effects are composed before the application opens, yet a delegated turn must re-enter through
-  // that same application, so the dispatcher reads this handle at call time rather than at wiring.
-  let inboundApplication: Awaited<ReturnType<typeof openConversationApplication>> | null = null;
-  const deliberationRuntime =
-    config.deliberation === undefined
-      ? null
-      : await DiscordConversationDeliberationRuntime.open({
-          config: config.deliberation,
-          ...(options.providerExecutables === undefined
-            ? {}
-            : { providerExecutables: options.providerExecutables }),
-          ...(options.providerModels === undefined
-            ? {}
-            : { providerModels: options.providerModels }),
-          ...(options.providerReasoningEfforts === undefined
-            ? {}
-            : { providerReasoningEfforts: options.providerReasoningEfforts }),
-          integrationId: config.integrationId,
-          projectId: options.project.projectId,
-          repositoryRoot: options.repositoryRoot,
-          dataDirectory: options.dataDirectory,
-          artifactStore: artifacts,
-          repositoryArtifactStore: options.repositoryArtifactStore ?? artifacts,
-          ...(options.repositoryEvents === undefined
-            ? {}
-            : { repositoryEvents: options.repositoryEvents }),
-          onFailure: (error) =>
-            options.onError?.(
-              error instanceof Error
-                ? error
-                : new Error("The deliberation background cycle failed.", { cause: error }),
-            ),
-        });
-  const continuation = createDiscordConversationContinuation({
-    config,
-    policy,
-    resultStore,
-    upstream: upstreamContinuation,
-  });
-  const continuationResponder = new ConversationRemoteContinuationResponder({
-    artifactStore: artifacts,
-    continuation,
-    writingContract: fixedConversationStatusWritingContract,
-  });
-  let modeResponder: NaturalLanguageDiscordConversationResponder | null = null;
-  let responder: ConversationResponder = continuationResponder;
-  if (config.routing !== undefined) {
-    const { surfaceEffects: platformEffects, platformAction } = createDiscordConversationEffects({
-      config,
-      botToken: token,
-      artifactStore: artifacts,
-      repositoryRoot: options.repositoryRoot,
-      parentAgentId: agentParticipation.agentId,
-      parentRoleId: agentParticipation.roleId,
-      ...(repositoryWork === null ? {} : { repositoryWorkStore: repositoryWork.store }),
-      ...(options.runtimeConfigPath === undefined
-        ? {}
-        : { runtimeConfigPath: options.runtimeConfigPath }),
-      onDeploymentPrepared: (sourceEventId) => reconfigurationEvents.add(sourceEventId),
-      ...(peerAgents.length === 0
-        ? {}
-        : {
-            delegation: {
-              projectId: options.project.projectId,
-              parentParticipantId: config.agentParticipantId,
-              ...(agentParticipation.agentBinding === undefined
-                ? {}
-                : { parentAgentBinding: agentParticipation.agentBinding }),
-              peers: peerAgents,
-              dispatch: async (event) => {
-                if (inboundApplication?.handleInboundEvent == null) {
-                  throw new Error("The conversation delegation dispatcher is unavailable.");
-                }
-                await inboundApplication.handleInboundEvent(event);
-                await inboundApplication.runDeliveryCycle?.(config.integrationId);
-              },
-            },
-          }),
-      ...(deliberationRuntime === null || deliberationRuntime.naturalLanguageEffect === null
-        ? {}
-        : {
-            deliberation: {
-              effect: deliberationRuntime.naturalLanguageEffect,
-              responder: deliberationRuntime.actionResponder,
-            },
-          }),
-      ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
-    });
-    const surfaceEffects =
-      goalResponder === null ? platformEffects : [...platformEffects, supervisionGoalEffect];
-    const readOnly =
-      options.readOnlyResponder ??
-      (readRuntime = await openManagedConversationReadResponder({
-        config: { ...config, routing: config.routing },
-        projectId: options.project.projectId,
-        projectCreatedAt: options.project.createdAt,
-        agentId: agentParticipation.agentId,
-        participationRoleId: agentParticipation.roleId,
-        repositoryRoot: options.repositoryRoot,
-        dataDirectory: options.dataDirectory,
-        artifactStore: artifacts,
-        surfaceEffects,
-        repositoryResources: options.managedRepositoryResources,
-        ...(options.providerExecutables === undefined
-          ? {}
-          : { providerExecutables: options.providerExecutables }),
-      })).responder;
-    const intentResolver =
-      options.intentResolver ??
-      (readRuntime === null && config.routing.intent !== undefined
-        ? await createProviderConversationIntentResolver({
-            provider: config.routing.intent.provider,
-            ...(options.providerExecutables?.[config.routing.intent.provider] === undefined
-              ? {}
-              : { executable: options.providerExecutables[config.routing.intent.provider] }),
-            ...(config.routing.intent.model === undefined
-              ? {}
-              : { model: config.routing.intent.model }),
-            ...(config.routing.intent.timeoutMs === undefined
-              ? {}
-              : { timeoutMs: config.routing.intent.timeoutMs }),
-          })
-        : undefined);
-    if (readRuntime === null && intentResolver === undefined) {
-      throw new Error(
-        "A custom read-only responder requires either a custom intent resolver or legacy routing.intent configuration.",
-      );
-    }
-    intentStore = await SQLiteConversationIntentResolutionStore.open(
-      resolve(options.dataDirectory, "intent-resolutions.sqlite"),
-    );
-    modeResponder = new NaturalLanguageDiscordConversationResponder({
-      applicationId: config.applicationId,
-      respondingAgent: {
-        agentId: agentParticipation.agentId,
-        roleId: agentParticipation.roleId,
-      },
-      authorizedAgentEffectRequesters,
-      repositoryRoot: options.repositoryRoot,
-      artifactStore: artifacts,
-      history: new SQLiteConversationHistory(
-        resolve(options.dataDirectory, "interactions.sqlite"),
-        artifacts,
-      ),
-      resolutionStore: intentStore,
-      ...(intentResolver === undefined ? {} : { intentResolver }),
-      ...(readRuntime === null || options.intentResolver !== undefined
-        ? {}
-        : { managedTurnResolver: readRuntime.turnResolver }),
-      surfaceEffects,
-      availableEffects: [
-        ...platformAction.availableEffects,
-        ...(goalResponder === null ? [] : (["supervision_goal_request"] as const)),
-      ],
-      participationPolicy: policy,
-      readOnly,
-      continuation: continuationResponder,
-      work: workResponder!,
-      ...(goalResponder === null ? {} : { goal: goalResponder }),
-      platformAction,
-      ...(deliberationRuntime === null ? {} : { explicitControl: deliberationRuntime.responder }),
-    });
-    responder = modeResponder;
-  }
-  if (deliberationRuntime !== null) {
-    responder = new ConversationDeliberationSignalResponder({
-      artifactStore: artifacts,
-      delegate: responder,
-    });
-  }
-  const publicationVerifier = new VerifiedConversationPublication({
-    artifactStore: artifacts,
-    resolveWritingContract: async ({ event }) => {
-      if (isDeliberationPublicationSignal(event)) return fixedConversationStatusWritingContract;
-      return conversationPublicationWritingContract({
-        mode: modeResponder === null ? null : await modeResponder.mode(event),
-        independentReadEvaluation: config.routing?.evaluation !== undefined,
-      });
-    },
-  });
-  const terminalFailureResponder = new FixedConversationTerminalFailureResponder({
-    artifactStore: artifacts,
-  });
-  const terminalFailurePublicationVerifier = new VerifiedConversationPublication({
-    artifactStore: artifacts,
-    resolveWritingContract: () => fixedConversationStatusWritingContract,
-  });
+  let discussionDeadlineLoop: ConversationDiscussionDeadlineLoop | null = null;
+  let unregisterPeerTurnEndpoint: (() => void) | null = null;
+  let unregisterDeliberationParticipant: (() => void) | null = null;
   let application: Awaited<ReturnType<typeof openConversationApplication>> | undefined;
   try {
     application = await openConversationApplication({
@@ -369,37 +135,62 @@ export async function openNodeDiscordConversationRuntime(
       interactions: {
         bindings: [
           {
-            policy,
+            policy: response.policy,
             agentParticipantId: config.agentParticipantId,
             ...(agentParticipation.agentBinding === undefined
               ? {}
               : { agentBinding: agentParticipation.agentBinding }),
-            responder,
-            publicationVerifier,
-            responseFailureClassifier: new NodeConversationResponseFailureClassifier(
-              options.onError,
-            ),
-            terminalFailureResponder,
-            terminalFailurePublicationVerifier,
-            ...(modeResponder === null ? {} : { relevanceEvaluator: modeResponder }),
-            turnOwnershipEvaluator,
+            responder: response.responder,
+            publicationVerifier: response.publicationVerifier,
+            responseFailureClassifier: response.responseFailureClassifier,
+            terminalFailureResponder: response.terminalFailureResponder,
+            terminalFailurePublicationVerifier: response.terminalFailurePublicationVerifier,
+            ...(response.relevanceEvaluator === null
+              ? {}
+              : { relevanceEvaluator: response.relevanceEvaluator }),
+            turnOwnershipEvaluator: response.turnOwnershipEvaluator,
           },
         ],
         workerId: config.workerId,
         leaseDurationMs: 300_000,
         maximumResponseAttempts: config.policy?.maxResponseAttempts ?? 3,
         onDelivered: ({ outbound }) => {
-          if (!reconfigurationEvents.delete(outbound.sourceEventId)) return;
+          if (!response.reconfigurationEvents.delete(outbound.sourceEventId)) return;
           fail("conversation_reconfiguration_requested");
         },
       },
-      ...(deliberationRuntime === null
+      ...(response.deliberationRuntime === null
         ? {}
-        : { deliberations: deliberationRuntime.applicationOptions }),
+        : { deliberations: response.deliberationRuntime.applicationOptions }),
       ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     });
     const openedApplication = application;
-    inboundApplication = openedApplication;
+    unregisterPeerTurnEndpoint =
+      options.peerTurnRouter === undefined
+        ? null
+        : registerConversationPeerTurnEndpoint({
+            router: options.peerTurnRouter,
+            integrationId: config.integrationId,
+            projectId: options.project.projectId,
+            participantId: config.agentParticipantId,
+            conversationIds: config.conversations.map((binding) => binding.conversationId),
+            acceptedPeers: peerAgents,
+            artifacts: response.artifacts,
+            handle: (event) => openedApplication.handleInboundEvent!(event),
+            deliver: async () => {
+              await openedApplication.runDeliveryCycle?.(config.integrationId);
+            },
+          });
+    unregisterDeliberationParticipant =
+      config.deliberationParticipation === undefined ||
+      options.deliberationParticipants === undefined
+        ? null
+        : options.deliberationParticipants.attach({
+            participantId: config.agentParticipantId,
+            artifacts: response.artifacts,
+            handle: (event) => openedApplication.handleInboundEvent!(event),
+            deliver: (integrationId) => openedApplication.runDeliveryCycle!(integrationId),
+          });
     const adapter = openedApplication.discordAdapters.get(config.integrationId);
     if (adapter === undefined) throw new Error("The Discord result adapter is unavailable.");
     resultRuntime = createDiscordConversationResultRuntime({
@@ -409,22 +200,24 @@ export async function openNodeDiscordConversationRuntime(
       ...(options.providerExecutables === undefined
         ? {}
         : { providerExecutables: options.providerExecutables }),
-      store: resultStore,
-      artifacts,
+      store: response.resultStore,
+      artifacts: response.artifacts,
       adapter,
     });
-    ({ interactionRetryLoop, repositorySignalLoop } = startDiscordConversationBackground({
-      options,
-      application: openedApplication,
-      artifacts,
-      deliberation: deliberationRuntime,
-      fail,
-    }));
+    ({ interactionRetryLoop, repositorySignalLoop, discussionDeadlineLoop } =
+      startDiscordConversationBackground({
+        options,
+        application: openedApplication,
+        artifacts: response.artifacts,
+        deliberation: response.deliberationRuntime,
+        discussion: response.discussionRuntime,
+        fail,
+      }));
     return {
       failed: failure,
       resultAdapter: (integrationId) => (integrationId === config.integrationId ? adapter : null),
       resultArtifacts: (integrationId) =>
-        integrationId === config.integrationId ? artifacts : null,
+        integrationId === config.integrationId ? response.artifacts : null,
       resultReplay: (integrationId, outboundId) =>
         integrationId === config.integrationId
           ? openedApplication.inspectDeliveryReplay({
@@ -439,33 +232,34 @@ export async function openNodeDiscordConversationRuntime(
       },
       stopIngress: () => {
         void interactionRetryLoop!.stop();
+        void discussionDeadlineLoop?.stop();
         void repositorySignalLoop?.stop();
-        void deliberationRuntime?.stop();
+        void response.deliberationRuntime?.stop();
         openedApplication.stopIngress();
       },
       close: async () => {
+        unregisterPeerTurnEndpoint?.();
+        unregisterDeliberationParticipant?.();
         await interactionRetryLoop!.stop();
+        await discussionDeadlineLoop?.stop();
         await repositorySignalLoop?.stop();
-        await deliberationRuntime?.stop();
+        await response.deliberationRuntime?.stop();
         openedApplication.close();
         resultRuntime!.close();
-        readRuntime?.close();
-        repositoryWork?.responder.close();
-        goalStore?.close();
-        intentStore?.close();
+        await response.close();
       },
     };
   } catch (error) {
+    unregisterPeerTurnEndpoint?.();
+    unregisterDeliberationParticipant?.();
     await interactionRetryLoop?.stop();
+    await discussionDeadlineLoop?.stop();
     await repositorySignalLoop?.stop();
-    await deliberationRuntime?.stop();
+    await response.deliberationRuntime?.stop();
     application?.close();
     resultRuntime?.close();
-    readRuntime?.close();
-    repositoryWork?.responder.close();
-    goalStore?.close();
-    intentStore?.close();
-    if (resultRuntime === null) resultStore.close();
+    await response.close();
+    if (resultRuntime === null) response.resultStore.close();
     throw error;
   }
 }

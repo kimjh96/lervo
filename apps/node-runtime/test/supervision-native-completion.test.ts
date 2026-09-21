@@ -2,6 +2,8 @@ import type {
   OperatingActionPlanV1,
   SupervisedResultDeliveryV2,
 } from "@lervo/application-contract";
+import { createHash } from "node:crypto";
+import { canonicalJson } from "@lervo/event-contract";
 import type { ConversationReplyCandidate } from "@lervo/interaction";
 import { assertNativePublicationJudgement } from "../src/supervision-publication-judgement.js";
 import { readSupervisionJsonArtifact } from "../src/supervision-artifact-json.js";
@@ -32,6 +34,7 @@ import { readSupervisedReviewFeedback } from "../src/supervision-review-observat
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
 
 const roots: string[] = [];
+const hash = (value: string) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
 afterEach(async () => {
   vi.restoreAllMocks();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
@@ -47,6 +50,7 @@ it.each([
   "rework",
   "rework_receipt_failure",
   "publication_retry",
+  "parallel_review",
 ])(
   "completes native supervised work with exact semantic evidence (%s)",
   async (scenario) => {
@@ -221,6 +225,7 @@ it.each([
     let runtime = await openRuntime();
     try {
       const cycles = [];
+      let selectedReviewHash: string | null = null;
       for (let i = 0; i < (writingRework ? 14 : completedRework ? 16 : 7); i++) {
         if (i === 2 && scenario === "failed_writing") {
           expect((await runtime.runCycle()).disposition).toBe("effect_confirmed");
@@ -294,6 +299,63 @@ it.each([
         expect(cycle.disposition, JSON.stringify({ cycles, attention: f.attention })).toBe(
           "effect_confirmed",
         );
+        if (scenario === "parallel_review" && selectedReviewHash === null) {
+          const accepted = storage.events
+            .list({ limit: 1000 })
+            .some(
+              (event) =>
+                event.type === "work.supervision.review.recorded" &&
+                event.payload.verdict === "accepted",
+            );
+          if (accepted) {
+            const owner = (await readCurrentWorkstreamState(f.root))!;
+            const id = hash(`review:${f.root}`).slice(7, 31);
+            const eventIdentity = hash(`review-event:${f.root}`).slice(7, 39);
+            const review = {
+              ...owner.snapshot,
+              workstreamId: `wks_${id}`,
+              revision: 1,
+              title: "Independent deployment review",
+              objective: "Keep the installed routing approval held while the owner completes.",
+              pendingApprovals: [
+                {
+                  approvalId: `wapr_${id.slice(0, 16)}`,
+                  kind: "deployment" as const,
+                  summary: "Held until installed routing evidence is accepted.",
+                  bindingHash: hash("deployment-review"),
+                  blocking: true,
+                },
+              ],
+            };
+            const content = `${canonicalJson(review)}\n`;
+            const artifact = await storage.artifacts.put(content);
+            storage.events.append({
+              eventId: `evt_${eventIdentity}`,
+              projectId: storage.manifest.projectId,
+              runId: `run_${eventIdentity}`,
+              sessionId: `ses_${eventIdentity}`,
+              type: "workstream.snapshot.recorded",
+              schemaVersion: 1,
+              occurredAt: review.updatedAt,
+              actor: { kind: "agent", provider: "codex" },
+              policyVersion: artifact.contentHash,
+              payload: {
+                workstreamId: review.workstreamId,
+                revision: 1,
+                status: "active",
+                changeKind: "agent_start",
+                snapshotArtifactId: `art_${artifact.contentHash.slice(7)}`,
+                snapshotContentHash: artifact.contentHash,
+                previousSnapshotContentHash: null,
+                sourceArtifactId: null,
+                sourceContentHash: null,
+                recordedAt: review.updatedAt,
+              },
+            });
+            await writeFile(resolve(f.root, ".lervo/state/workstreams/current.json"), content);
+            selectedReviewHash = artifact.contentHash;
+          }
+        }
         if (i === 1 || i === 3 || (rework && i === 6)) {
           await runtime.close();
           runtime = await openRuntime();
@@ -353,7 +415,10 @@ it.each([
             .map((event) => event.payload.status),
         ).toEqual(["failed", "delivered"]);
       }
-      expect((await readCurrentWorkstreamState(f.root))?.snapshot.status).toBe("completed");
+      if (scenario === "parallel_review") {
+        expect(selectedReviewHash).not.toBeNull();
+        expect((await readCurrentWorkstreamState(f.root))?.contentHash).toBe(selectedReviewHash);
+      } else expect((await readCurrentWorkstreamState(f.root))?.snapshot.status).toBe("completed");
       if (scenario !== "publication_retry") {
         const calls = await readFile(log, "utf8");
         for (let i = 0; i < 2; i++) expect((await runtime.runCycle()).disposition).toBe("idle");

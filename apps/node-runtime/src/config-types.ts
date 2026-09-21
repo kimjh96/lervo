@@ -1,10 +1,12 @@
 import type { NodeSupervisionStartupConfiguration } from "./supervision-startup-config.js";
+import type { ConversationRequestedRuntimeTarget } from "./conversation-requested-runtime.js";
 
 export type NodeRepositoryWorkExecutionProfile = "routine" | "reasoning" | "review";
 export type NodeRepositoryWorkReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
 export interface NodeRepositoryWorkExecutionRoute {
   model?: string;
   reasoningEffort: NodeRepositoryWorkReasoningEffort;
+  timeoutMs?: number;
 }
 export interface NodeRepositoryWorkExecutionProfilePolicy {
   preferredProvider: "codex" | "claude";
@@ -123,6 +125,9 @@ export interface NodeDiscordConversationConfig {
     participantKeys: string[];
     participantId: string;
     roleId: string;
+    displayName?: string;
+    unaddressedPriority?: number;
+    unaddressedPriorities?: Record<string, number>;
     agentBinding: {
       agentId: string;
       roleVersion: string;
@@ -139,9 +144,11 @@ export interface NodeDiscordConversationConfig {
       | "public_thread.create"
       | "incoming_webhook.create"
       | "workforce.agent.hire"
+      | "requested_runtime.manage"
     >;
     webhookCredentialDirectory?: string;
   };
+  requestedRuntimes?: ConversationRequestedRuntimeTarget[];
   routing?: {
     readOnlyRoleId: string;
     workTimeoutMs?: number;
@@ -195,6 +202,10 @@ export interface NodeDiscordConversationConfig {
     maxResponsesPerHour?: number;
     maxAutomationDepth?: number;
     maxResponseAttempts?: number;
+    unaddressedPriority?: number;
+    unaddressedPriorities?: Record<string, number>;
+    acceptsSupervisionGoals?: boolean;
+    acceptsPeerWork?: boolean;
   };
   repositorySignals?: {
     pollIntervalMs?: number;
@@ -219,5 +230,14 @@ export interface NodeDiscordConversationConfig {
     processTimeoutMs?: number;
     notificationConversationIds?: string[];
     maximumReconciliationAttempts?: number;
+  };
+  deliberationParticipation?: {
+    routes: Array<{
+      policyId: string;
+      policyRoleId: string;
+      provider?: "codex" | "claude";
+      model?: string;
+      reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
+    }>;
   };
 }

@@ -10,8 +10,13 @@ import type { DiscordConversationMode } from "./discord-conversation-mode.js";
 export function conversationPublicationWritingContract(input: {
   mode: DiscordConversationMode | null;
   independentReadEvaluation: boolean;
+  managedPlatformActionResult?: boolean;
 }): WritingContract {
-  if (input.mode === "read_only" || input.mode === "clarify") {
+  if (
+    input.mode === "read_only" ||
+    input.mode === "clarify" ||
+    (input.mode === "platform_action" && input.managedPlatformActionResult === true)
+  ) {
     return input.independentReadEvaluation
       ? adaptiveConversationWritingContract
       : realtimeConversationWritingContract;

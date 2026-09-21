@@ -6,7 +6,11 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { NativeChatConversationAdapter } from "@lervo/adapter-native-chat";
-import { createConversationParticipationPolicy } from "@lervo/conversation-contract";
+import {
+  createConversationInboundEvent,
+  createConversationParticipationPolicy,
+  hashConversationSourceEventKey,
+} from "@lervo/conversation-contract";
 import { handleConversationEvent, runConversationDeliveryCycle } from "@lervo/interaction";
 import type { WritingPublicationPermit } from "@lervo/schemas";
 import { calculateWritingPublicationPermitId } from "@lervo/writing-contract";
@@ -110,6 +114,75 @@ function participationPolicy(
 }
 
 describe("durable native chat interaction", () => {
+  it("marks a delegated-task response as a result for the original coordinator", async () => {
+    const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
+    const coordinatorParticipantId = "ptc_coordinator01";
+    const event = createConversationInboundEvent({
+      sourceEventKeyHash: hashConversationSourceEventKey("delegated-task-assignment"),
+      target: {
+        integrationId: "itg_native001",
+        projectId: "prj_project01",
+        conversationId: "cnv_general01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "agent", participantId: coordinatorParticipantId, roleId: "ceo" },
+      content: {
+        artifactId: "art_taskmessage01",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        byteCount: 10,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      coordination: {
+        kind: "task.assignment",
+        taskId: `tsk_${"q".repeat(20)}`,
+        coordinatorParticipantId,
+      },
+      mentions: { roleIds: [], participantIds: ["ptc_agent001"] },
+      replyToEventId: null,
+      signalCode: null,
+      automationDepth: 1,
+      occurredAt: "2026-08-20T00:00:01.000Z",
+    });
+    const policy = createConversationParticipationPolicy({
+      projectId: "prj_project01",
+      roleId: "product-owner",
+      conversationIds: ["cnv_general01"],
+      mode: "relevant",
+      respondTo: ["agent"],
+      signalCodes: [],
+      cooldownSeconds: 0,
+      maxResponsesPerHour: 5,
+      maxAutomationDepth: 8,
+      createdAt: "2026-08-20T00:00:00.000Z",
+    });
+
+    await expect(
+      handleConversationEvent({
+        event,
+        policy,
+        workerId: "interaction-worker",
+        agentParticipantId: "ptc_agent001",
+        store,
+        responder: { respond: async () => responseCandidate() },
+        publicationVerifier: { verify: async () => undefined },
+        relevanceEvaluator: { evaluate: async () => "relevant" },
+        turnOwnershipEvaluator: { owns: () => true },
+        clock: () => new Date("2026-08-20T00:00:02.000Z"),
+      }),
+    ).resolves.toMatchObject({
+      status: "completed",
+      outbound: {
+        coordination: {
+          kind: "task.result",
+          taskId: `tsk_${"q".repeat(20)}`,
+          coordinatorParticipantId,
+        },
+      },
+    });
+    await store.close();
+  });
+
   it("preserves host-native observation-only publication lineage", () => {
     const adapter = new NativeChatConversationAdapter({
       integrationId: "itg_native001",
@@ -304,6 +377,7 @@ describe("durable native chat interaction", () => {
       status: "processed",
       deliveredCount: 0,
       retryScheduledCount: 1,
+      attentionRequiredCount: 0,
     });
     await expect(
       runConversationDeliveryCycle({
@@ -321,6 +395,7 @@ describe("durable native chat interaction", () => {
       status: "processed",
       deliveredCount: 1,
       retryScheduledCount: 0,
+      attentionRequiredCount: 0,
     });
     expect(sent).toHaveBeenCalledTimes(2);
     expect(reopened.auditIntegrity()).toMatchObject({ outboxCount: 1 });
@@ -752,5 +827,135 @@ describe("durable native chat interaction", () => {
       }),
     ).resolves.toMatchObject({ status: "claimed", attemptCount: 2 });
     await store.close();
+  });
+
+  it("stops an undeliverable outbound after a bounded attempt count without claiming delivery", async () => {
+    const path = await databasePath();
+    const send = vi.fn(async () => {
+      throw new Error("unavailable transport details must not enter the outbox");
+    });
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "native-instance",
+      delivery: { send },
+    });
+    const event = adapter.normalizeInbound({
+      sourceEventKey: "bounded-outbound-failure",
+      target: {
+        projectId: "prj_project01",
+        conversationId: "cnv_general01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+      content: {
+        artifactId: "art_request01",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        byteCount: 10,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      occurredAt: "2026-08-20T00:00:00.000Z",
+    });
+    const store = await SQLiteConversationInteractionStore.open({ path });
+    await handleConversationEvent({
+      event,
+      policy: participationPolicy(),
+      workerId: "response-worker",
+      agentParticipantId: "ptc_agent001",
+      store,
+      responder: { respond: async () => responseCandidate() },
+      publicationVerifier: { verify: async () => undefined },
+      relevanceEvaluator: { evaluate: async () => "relevant" },
+      clock: () => new Date("2026-08-20T00:00:02.000Z"),
+    });
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      await expect(
+        runConversationDeliveryCycle({
+          adapter,
+          store,
+          workerId: "delivery-worker",
+          retryDelayMs: 1_000,
+          clock: () => new Date(`2026-08-20T00:00:0${attempt + 2}.000Z`),
+        }),
+      ).resolves.toMatchObject({
+        deliveredCount: 0,
+        retryScheduledCount: attempt < 3 ? 1 : 0,
+        attentionRequiredCount: attempt === 3 ? 1 : 0,
+      });
+    }
+    expect(store.auditIntegrity()).toMatchObject({ inboxCount: 1, outboxCount: 1 });
+    await store.close();
+
+    const reopened = await SQLiteConversationInteractionStore.open({ path });
+    await expect(
+      runConversationDeliveryCycle({
+        adapter,
+        store: reopened,
+        workerId: "delivery-after-restart",
+        clock: () => new Date("2026-08-20T00:00:20.000Z"),
+      }),
+    ).resolves.toMatchObject({ status: "idle", attentionRequiredCount: 0 });
+    await reopened.close();
+    expect(send).toHaveBeenCalledTimes(3);
+
+    const database = new DatabaseSync(path, { readOnly: true });
+    const attention = database
+      .prepare(
+        "SELECT outbound_id, status, attempt_count, last_failure_code, lease_id, receipt_json FROM conversation_outbox",
+      )
+      .get();
+    expect(attention).toMatchObject({
+      status: "attention_required",
+      attempt_count: 3,
+      last_failure_code: "adapter_delivery_failed",
+      lease_id: null,
+      receipt_json: null,
+    });
+    expect(database.prepare("PRAGMA user_version").get()).toEqual({ user_version: 2 });
+    database.close();
+
+    const receipt = {
+      schemaVersion: 1 as const,
+      outboundId: attention!.outbound_id as string,
+      integrationId: "itg_native001",
+      deliveryKeyHash: `sha256:${"b".repeat(64)}`,
+      deliveredAt: "2026-08-20T00:00:06.000Z",
+    };
+    const recovery = await SQLiteConversationInteractionStore.open({ path });
+    await expect(
+      recovery.acknowledgeReconciledOutbound({
+        outboundId: receipt.outboundId,
+        expectedAttemptCount: 3,
+        expectedFailureCode: "wrong_failure",
+        receipt,
+      }),
+    ).rejects.toMatchObject({ code: "lease_mismatch" });
+    await recovery.acknowledgeReconciledOutbound({
+      outboundId: receipt.outboundId,
+      expectedAttemptCount: 3,
+      expectedFailureCode: "adapter_delivery_failed",
+      receipt,
+    });
+    await recovery.acknowledgeReconciledOutbound({
+      outboundId: receipt.outboundId,
+      expectedAttemptCount: 3,
+      expectedFailureCode: "adapter_delivery_failed",
+      receipt,
+    });
+    expect(recovery.auditIntegrity()).toMatchObject({ outboxCount: 1 });
+    await recovery.close();
+
+    const legacyMetadata = new DatabaseSync(path);
+    legacyMetadata.exec("UPDATE interaction_meta SET value = '1'; PRAGMA user_version = 1;");
+    legacyMetadata.close();
+    const migrated = await SQLiteConversationInteractionStore.open({ path });
+    expect(migrated.auditIntegrity()).toMatchObject({ outboxCount: 1 });
+    await migrated.close();
+    const migratedDatabase = new DatabaseSync(path, { readOnly: true });
+    expect(migratedDatabase.prepare("PRAGMA user_version").get()).toEqual({ user_version: 2 });
+    expect(migratedDatabase.prepare("SELECT status FROM conversation_outbox").get()).toEqual({
+      status: "delivered",
+    });
+    migratedDatabase.close();
   });
 });

@@ -38,7 +38,9 @@ export class ManagedConversationArtifactRunner {
       events: this.options.events,
       artifactStore: this.options.artifactStore,
       captureSnapshot: this.captureSnapshot,
-      ...(this.options.deadlines === undefined ? {} : { deadlines: this.options.deadlines }),
+      ...(input.plan.deadlines === undefined && this.options.deadlines === undefined
+        ? {}
+        : { deadlines: input.plan.deadlines ?? this.options.deadlines }),
       ...(this.options.now === undefined ? {} : { now: this.options.now }),
       ...(this.options.createEventId === undefined
         ? {}

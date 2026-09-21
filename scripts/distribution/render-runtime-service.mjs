@@ -1,6 +1,6 @@
 import { constants } from "node:fs";
 import { access, chmod, lstat, open } from "node:fs/promises";
-import { isAbsolute, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 
 function fail(message) {
   throw new Error(message);
@@ -126,20 +126,36 @@ function xml(value) {
     .replaceAll("'", "&apos;");
 }
 
+function runtimePath(input) {
+  return [
+    dirname(input.nodeExecutable ?? input.executable),
+    dirname(input.executable),
+    "/usr/local/sbin",
+    "/usr/local/bin",
+    "/usr/sbin",
+    "/usr/bin",
+    "/sbin",
+    "/bin",
+  ]
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .join(":");
+}
+
 function systemd(input) {
   const title = input.runtime === "hub" ? "Lervo Hub" : `Lervo Node ${input.instance}`;
   const command = [input.nodeExecutable, input.executable]
     .filter((value) => value !== null)
     .map(systemdEscape)
     .join(" ");
-  return `[Unit]\nDescription=${title}\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=${command} --config ${systemdEscape(input.config)}\nExecReload=/bin/kill -HUP $MAINPID\nKillSignal=SIGTERM\nRestart=on-failure\nRestartSec=5s\nTimeoutStopSec=120s\nUMask=0077\nNoNewPrivileges=true\n\n[Install]\nWantedBy=default.target\n`;
+  return `[Unit]\nDescription=${title}\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nEnvironment=${systemdEscape(`PATH=${runtimePath(input)}`)}\nExecStart=${command} --config ${systemdEscape(input.config)}\nExecReload=/bin/kill -HUP $MAINPID\nKillSignal=SIGTERM\nRestart=on-failure\nRestartSec=5s\nTimeoutStopSec=120s\nUMask=0077\nNoNewPrivileges=true\n\n[Install]\nWantedBy=default.target\n`;
 }
 
 function launchd(input) {
   const label = runtimeServiceIdentity(input).label;
+  const path = xml(runtimePath(input));
   const nodeArgument =
     input.nodeExecutable === null ? "" : `    <string>${xml(input.nodeExecutable)}</string>\n`;
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>Label</key>\n  <string>${label}</string>\n  <key>ProgramArguments</key>\n  <array>\n${nodeArgument}    <string>${xml(input.executable)}</string>\n    <string>--config</string>\n    <string>${xml(input.config)}</string>\n  </array>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <dict>\n    <key>SuccessfulExit</key>\n    <false/>\n  </dict>\n  <key>ProcessType</key>\n  <string>Background</string>\n  <key>ThrottleInterval</key>\n  <integer>5</integer>\n  <key>Umask</key>\n  <integer>63</integer>\n</dict>\n</plist>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>Label</key>\n  <string>${label}</string>\n  <key>ProgramArguments</key>\n  <array>\n${nodeArgument}    <string>${xml(input.executable)}</string>\n    <string>--config</string>\n    <string>${xml(input.config)}</string>\n  </array>\n  <key>EnvironmentVariables</key>\n  <dict>\n    <key>PATH</key>\n    <string>${path}</string>\n  </dict>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <dict>\n    <key>SuccessfulExit</key>\n    <false/>\n  </dict>\n  <key>ProcessType</key>\n  <string>Background</string>\n  <key>ThrottleInterval</key>\n  <integer>5</integer>\n  <key>Umask</key>\n  <integer>63</integer>\n</dict>\n</plist>\n`;
 }
 
 export async function createRuntimeServiceDefinition(input) {

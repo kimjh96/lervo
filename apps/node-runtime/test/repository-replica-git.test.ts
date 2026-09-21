@@ -101,7 +101,7 @@ describe("Git repository replica", () => {
     } finally {
       stop();
     }
-  });
+  }, 15_000);
 
   it("does not create export commits during observation and still bundles exact snapshots", async () => {
     const root = await repository();

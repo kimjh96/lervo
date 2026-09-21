@@ -12,6 +12,7 @@ import {
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { normalizationRecordRetirementOperations } from "./document-normalization-record-retirement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
+import { pendingCoordinatesValid, snapshotFromStartDraft } from "./workstream-snapshot.js";
 import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
 import {
   RepositoryKnowledgeError,
@@ -656,77 +657,6 @@ export function formatWorkstreamContext(snapshot: WorkstreamSnapshot): string {
     "Before completing a repository-changing direct provider terminal turn, use `lervo workstream current --json` and the reviewed `lervo workstream update` plan/apply flow to record the next bounded revision. Replace stale facts instead of accumulating prose; do not ask the user to run this bookkeeping command.",
   ];
   return lines.join("\n");
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function pendingCoordinatesValid(snapshot: WorkstreamSnapshot): boolean {
-  const decisions = snapshot.pendingDecisions ?? [];
-  const approvals = snapshot.pendingApprovals ?? [];
-  if (new Set(decisions.map((item) => item.decisionId)).size !== decisions.length) return false;
-  if (new Set(approvals.map((item) => item.approvalId)).size !== approvals.length) return false;
-  return decisions.every((item) => {
-    const choiceIds = item.choices.map((choice) => choice.choiceId);
-    return (
-      new Set(choiceIds).size === choiceIds.length &&
-      (item.recommendedChoiceId === null || choiceIds.includes(item.recommendedChoiceId))
-    );
-  });
-}
-
-function snapshotFromStartDraft(
-  projectId: string,
-  value: unknown,
-  predecessor: { workstreamId: string; contentHash: string } | null,
-): WorkstreamSnapshot | null {
-  if (!isRecord(value)) return null;
-  const allowed = new Set([
-    "schemaVersion",
-    "status",
-    "title",
-    "objective",
-    "nextActions",
-    "blockers",
-    "notes",
-    "references",
-    "pendingDecisions",
-    "pendingApprovals",
-    "updatedAt",
-  ]);
-  if (Object.keys(value).some((key) => !allowed.has(key))) return null;
-  const normalizedDraft = {
-    ...value,
-    pendingDecisions: value.pendingDecisions ?? [],
-    pendingApprovals: value.pendingApprovals ?? [],
-  };
-  const snapshot = {
-    ...normalizedDraft,
-    workstreamId: stableId(
-      "wks",
-      predecessor === null
-        ? { projectId, draft: normalizedDraft }
-        : { projectId, draft: normalizedDraft, predecessor },
-    ),
-    revision: 1,
-    origin: {
-      kind: predecessor === null ? ("created" as const) : ("successor" as const),
-      sourceArtifactId: null,
-      sourceContentHash: null,
-      sourcePathDigest: null,
-      ...(predecessor === null
-        ? {}
-        : {
-            predecessorWorkstreamId: predecessor.workstreamId,
-            predecessorSnapshotContentHash: predecessor.contentHash,
-          }),
-    },
-  };
-  return validateSchema("workstreamSnapshot", snapshot).valid &&
-    pendingCoordinatesValid(snapshot as WorkstreamSnapshot)
-    ? (snapshot as WorkstreamSnapshot)
-    : null;
 }
 
 export async function createWorkstreamStartPlan(input: {

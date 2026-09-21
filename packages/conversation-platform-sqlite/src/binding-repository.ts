@@ -297,6 +297,19 @@ export class ConversationPlatformBindingRepository {
     const mentions = input.mentionedParticipantKeys
       .map((key) => this.optionalActor(input.platform, input.integrationId, input.tenantKey, key))
       .filter((value): value is ActorRow => value !== null);
+    const primaryMentionedParticipantIds = [
+      ...new Set(
+        (input.primaryMentionedParticipantKeys ?? [])
+          .map((key) =>
+            this.optionalActor(input.platform, input.integrationId, input.tenantKey, key),
+          )
+          .filter((value): value is ActorRow => value !== null)
+          .map((value) => value.participant_id),
+      ),
+    ];
+    if (primaryMentionedParticipantIds.length > 1) {
+      throw this.conflict("primary mentioned participant");
+    }
     const source = this.correlation(input, input.sourceMessageKey);
     const reply =
       input.replyToMessageKey === null ? null : this.correlation(input, input.replyToMessageKey);
@@ -325,6 +338,7 @@ export class ConversationPlatformBindingRepository {
         ].sort(),
         participantIds: [...new Set(mentions.map((value) => value.participant_id))].sort(),
       },
+      primaryMentionedParticipantId: primaryMentionedParticipantIds[0] ?? null,
       replyToEventId: reply?.reply_event_id ?? null,
       automationDepth:
         source?.automation_depth ??
@@ -332,9 +346,14 @@ export class ConversationPlatformBindingRepository {
           ? 0
           : reply !== null
             ? Math.min(reply.automation_depth + 1, 8)
-            : this.activeAutomationChainStarters.has(this.participantKey(input))
+            : actor.agent_id !== null &&
+                mentions.some(
+                  (mentioned) => mentioned.actor_kind === "agent" && mentioned.agent_id !== null,
+                )
               ? 0
-              : 8),
+              : this.activeAutomationChainStarters.has(this.participantKey(input))
+                ? 0
+                : 8),
     };
   }
 

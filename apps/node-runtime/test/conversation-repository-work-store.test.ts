@@ -180,6 +180,92 @@ describe("SQLiteConversationRepositoryWorkStore", () => {
     store.close();
   });
 
+  it("keeps independent provider sessions for one agent and preserves replay routing", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-work-provider-sessions-"));
+    roots.push(root);
+    const store = SQLiteConversationRepositoryWorkStore.open(resolve(root, "work.sqlite"));
+    const base = {
+      conversationId: "cnv_example",
+      threadId: null,
+      workerId: "agt_111111111111111111111111",
+      requestContentHash: `sha256:${"1".repeat(64)}`,
+      startedAt: "2026-09-10T00:00:00.000Z",
+    };
+    const codex = { ...base, eventId: "evt_codex", provider: "codex" as const };
+    const claude = {
+      ...base,
+      eventId: "evt_claude",
+      provider: "claude" as const,
+      requestContentHash: `sha256:${"2".repeat(64)}`,
+    };
+    try {
+      expect(store.begin(codex).providerSessionId).toBeNull();
+      store.complete({
+        ...codex,
+        providerSessionId: "codex-session",
+        result: { contentHash: `sha256:${"3".repeat(64)}`, byteCount: 10 },
+        completedAt: "2026-09-10T00:01:00.000Z",
+      });
+      expect(store.begin(claude).providerSessionId).toBeNull();
+      store.complete({
+        ...claude,
+        providerSessionId: "claude-session",
+        result: { contentHash: `sha256:${"4".repeat(64)}`, byteCount: 10 },
+        completedAt: "2026-09-10T00:02:00.000Z",
+      });
+      expect(store.sessionProvider(base.conversationId, null, base.workerId)).toBe("claude");
+      expect(store.providerForEvent(codex.eventId)).toBe("codex");
+      expect(store.providerForEvent(claude.eventId)).toBe("claude");
+      expect(
+        store.begin({
+          ...codex,
+          eventId: "evt_codex_next",
+          requestContentHash: `sha256:${"5".repeat(64)}`,
+        }).providerSessionId,
+      ).toBe("codex-session");
+    } finally {
+      store.close();
+    }
+  });
+
+  it("migrates a legacy single-provider session without losing its opaque ID", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-work-provider-migration-"));
+    roots.push(root);
+    const path = resolve(root, "work.sqlite");
+    const legacy = new DatabaseSync(path);
+    legacy.exec(`
+      CREATE TABLE conversation_repository_work_sessions (
+        conversation_id TEXT NOT NULL,
+        thread_id TEXT NOT NULL,
+        worker_id TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        provider_session_id TEXT NOT NULL,
+        updated_at_ms INTEGER NOT NULL,
+        PRIMARY KEY (conversation_id, thread_id, worker_id)
+      ) STRICT;
+      INSERT INTO conversation_repository_work_sessions VALUES
+        ('cnv_example', '', 'agt_111111111111111111111111', 'codex', 'legacy-session', 1);
+    `);
+    legacy.close();
+
+    const store = SQLiteConversationRepositoryWorkStore.open(path);
+    try {
+      expect(
+        store.begin({
+          eventId: "evt_after_migration",
+          conversationId: "cnv_example",
+          threadId: null,
+          workerId: "agt_111111111111111111111111",
+          provider: "codex",
+          requestContentHash: `sha256:${"1".repeat(64)}`,
+          startedAt: "2026-09-10T00:00:00.000Z",
+        }).providerSessionId,
+      ).toBe("legacy-session");
+    } finally {
+      store.close();
+    }
+  });
+
   it("adds bounded failure telemetry to an existing work database", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-work-store-migration-"));
     roots.push(root);

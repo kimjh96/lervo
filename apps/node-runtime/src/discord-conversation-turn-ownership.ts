@@ -1,10 +1,9 @@
-import {
-  resolveConversationTurnOwnership,
-  type ConversationTurnCandidate,
-} from "@lervo/conversation-contract";
+import { resolveConversationTurnOwnership } from "@lervo/conversation-contract";
 import type { ConversationTurnOwnershipEvaluator } from "@lervo/interaction";
 
 import type { DiscordPeerAgentBinding } from "./discord-conversation-composition.js";
+import type { ConversationDiscussionRuntime } from "./conversation-discussion-runtime.js";
+import { discordUnaddressedPriorityKey } from "./discord-conversation-priorities.js";
 import type {
   ConversationTurnFocus,
   ConversationTurnFocusStore,
@@ -74,26 +73,42 @@ export function createDiscordConversationTurnOwnership(input: {
   roleId: string;
   conversationIds: readonly string[];
   peers: readonly DiscordPeerAgentBinding[];
+  unaddressedPriorities?: ReadonlyMap<string, number>;
   focusStore?: ConversationTurnFocusStore;
+  discussion?: Pick<ConversationDiscussionRuntime, "ownsCoordinationTurn">;
 }): ConversationTurnOwnershipEvaluator {
   const stickyOwnerIdleMs = 30 * 60_000;
   const focusStore = input.focusStore ?? new MemoryConversationTurnFocusStore();
-  const current: ConversationTurnCandidate = {
-    participantId: input.participantId,
-    roleId: input.roleId,
-    unaddressedPriority: input.roleId === "ceo" ? 100 : 0,
-  };
   return {
     owns({ event }) {
+      const discussionOwnership = input.discussion?.ownsCoordinationTurn(event) ?? null;
+      if (discussionOwnership !== null) return discussionOwnership;
       const candidates = [
-        ...(input.conversationIds.includes(event.target.conversationId) ? [current] : []),
+        ...(input.conversationIds.includes(event.target.conversationId)
+          ? [
+              {
+                participantId: input.participantId,
+                roleId: input.roleId,
+                unaddressedPriority:
+                  input.unaddressedPriorities?.get(
+                    discordUnaddressedPriorityKey(input.participantId, event.target.conversationId),
+                  ) ?? 0,
+              },
+            ]
+          : []),
         ...input.peers.flatMap((peer) =>
           peer.conversationIds.includes(event.target.conversationId)
             ? [
                 {
                   participantId: peer.participantId,
                   roleId: peer.roleId,
-                  unaddressedPriority: peer.roleId === "ceo" ? 100 : 0,
+                  unaddressedPriority:
+                    input.unaddressedPriorities?.get(
+                      discordUnaddressedPriorityKey(
+                        peer.participantId,
+                        event.target.conversationId,
+                      ),
+                    ) ?? 0,
                 },
               ]
             : [],
@@ -102,6 +117,22 @@ export function createDiscordConversationTurnOwnership(input: {
       const explicitlyAddressed =
         event.mentions.participantIds.length > 0 || event.mentions.roleIds.length > 0;
       const resolved = resolveConversationTurnOwnership({ event, candidates });
+      const ownerParticipantIds =
+        event.actor.kind === "agent" && event.coordination?.kind === "task.result"
+          ? event.mentions.participantIds.includes(event.coordination.coordinatorParticipantId)
+            ? [event.coordination.coordinatorParticipantId]
+            : []
+          : event.actor.kind === "agent" && event.coordination?.kind === "discussion.assignment"
+            ? event.coordination.activeParticipantId !== undefined &&
+              event.mentions.participantIds.includes(event.coordination.activeParticipantId)
+              ? [event.coordination.activeParticipantId]
+              : []
+            : resolved.ownerParticipantIds;
+      const agentAddressIsUnambiguous =
+        event.actor.kind !== "agent" ||
+        event.coordination !== undefined ||
+        (resolved.basis !== "unaddressed" && ownerParticipantIds.length === 1);
+      if (!agentAddressIsUnambiguous) return false;
       const atMs = Date.parse(event.occurredAt);
       const scope = {
         projectId: event.target.projectId,
@@ -142,9 +173,9 @@ export function createDiscordConversationTurnOwnership(input: {
           lastSourceEventKeyHash: event.sourceEventKeyHash,
         });
       }
-      return (
-        sticky === undefined ? resolved.ownerParticipantIds : [sticky.participantId]
-      ).includes(input.participantId);
+      return (sticky === undefined ? ownerParticipantIds : [sticky.participantId]).includes(
+        input.participantId,
+      );
     },
   };
 }

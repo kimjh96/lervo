@@ -20,7 +20,6 @@ import type { OwnerControlReadinessV1 } from "@lervo/application-contract";
 import { readSupervisionOwnerControl } from "./supervision-owner-control.js";
 import { readCanonicalOwnerReasoning } from "./supervision-reasoning-source.js";
 import { observeResultDelivery } from "./supervision-result-delivery-observation.js";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
 import {
   operatingContractHash,
   operatingDecisionId,
@@ -29,11 +28,13 @@ import {
   projectWorkGraphV2,
 } from "@lervo/work-controller";
 import { SupervisionAuthorityHistory } from "./supervision-authority-history.js";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import {
   supervisionJournalCoordinates,
   observeNodeSupervisionAuthority,
   observeNodeSupervisionRecoveryAuthority,
   type NodeSupervisionBinding,
+  NodeSupervisionError,
 } from "./supervision-authority.js";
 
 /** Reads canonical task and run sources; no inferred start, acceptance, usage, or remote convergence. */
@@ -61,10 +62,13 @@ export class SupervisionTaskSource {
   async read(excludeDecisionId?: string) {
     if (excludeDecisionId !== undefined && !/^osd_[a-f0-9]{24}$/u.test(excludeDecisionId))
       throw new Error("The admission decision identity is invalid.");
-    const workstream = await readCurrentWorkstreamState(this.storage.paths.repositoryRoot);
-    if (workstream === null || workstream.snapshot.workstreamId !== this.binding.workstreamId)
-      throw new Error("The supervision task workstream changed.");
     const events = await this.history.read();
+    const workstream = await readBoundWorkstreamState(
+      this.storage,
+      this.binding.workstreamId,
+      events,
+    );
+    if (workstream === null) throw new NodeSupervisionError("supervision_workstream_inactive");
     const sourceEvent = events.findLast(
       (event) =>
         event.type === "workstream.snapshot.recorded" &&
@@ -138,8 +142,13 @@ export class SupervisionTaskSource {
         ].includes(event.type),
     );
     if (
-      (await readCurrentWorkstreamState(this.storage.paths.repositoryRoot))?.contentHash !==
-        workstream.contentHash ||
+      (
+        await readBoundWorkstreamState(
+          this.storage,
+          this.binding.workstreamId,
+          await this.history.read(),
+        )
+      )?.contentHash !== workstream.contentHash ||
       operatingContractHash(await listAssignments(this.storage.paths.repositoryRoot)) !==
         operatingContractHash(allAssignments) ||
       operatingContractHash(await listAgents(this.storage.paths.repositoryRoot)) !==

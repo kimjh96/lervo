@@ -104,6 +104,7 @@ export interface ConversationInteractionDeployment {
   leaseDurationMs?: number;
   retryDelayMs?: number;
   maximumResponseAttempts?: number;
+  maximumDeliveryAttempts?: number;
   deliveryLimit?: number;
   maxRecords?: number;
   now?: () => Date;

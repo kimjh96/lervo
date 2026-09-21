@@ -13,6 +13,7 @@ it("sleeps when idle, wakes for changes and deadlines, and disposes subscription
     runCycle: cycle,
     onFailure: vi.fn(),
     intervalMs: 2_000,
+    continueOnFailure: true,
     subscribe: (callback) => {
       notify = callback;
       return stop;
@@ -66,6 +67,34 @@ it("coalesces hints during work without overlapping execution or losing the next
   expect(cycle).toHaveBeenCalledTimes(1);
   finish();
   await vi.advanceTimersByTimeAsync(0);
+  expect(cycle).toHaveBeenCalledTimes(2);
+  await loop.stop();
+});
+
+it("uses a bounded classified failure retry without blocking an earlier change hint", async () => {
+  vi.useFakeTimers();
+  let notify = () => {};
+  const cycle = vi
+    .fn()
+    .mockRejectedValueOnce(Object.assign(new Error("inactive"), { code: "inactive" }))
+    .mockResolvedValue(undefined);
+  const loop = new ConversationChangeLoop({
+    runCycle: cycle,
+    onFailure: vi.fn(),
+    intervalMs: 2_000,
+    failureRetryMs: (error) => ((error as { code?: unknown }).code === "inactive" ? 60_000 : 2_000),
+    continueOnFailure: true,
+    subscribe: (callback) => {
+      notify = callback;
+      return () => {};
+    },
+  });
+  loop.start();
+  await vi.advanceTimersByTimeAsync(0);
+  await vi.advanceTimersByTimeAsync(59_999);
+  expect(cycle).toHaveBeenCalledOnce();
+  notify();
+  await vi.advanceTimersByTimeAsync(1);
   expect(cycle).toHaveBeenCalledTimes(2);
   await loop.stop();
 });

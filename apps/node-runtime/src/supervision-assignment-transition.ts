@@ -7,7 +7,7 @@ import {
   type WorkforceEventRecorder,
 } from "@lervo/agent-workforce";
 import type { ProjectStorage } from "@lervo/project-storage";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import { managedExecutionIdentity, operatingContractHash } from "@lervo/work-controller";
 import {
   observeNodeSupervisionAuthority,
@@ -52,7 +52,7 @@ export async function commitSupervisedAssignmentTransition(input: {
     const fresh = await observeNodeSupervisionAuthority(storage, binding, input.now);
     const current = await listAssignments(root);
     const agents = await listAgents(root);
-    const workstream = await readCurrentWorkstreamState(root);
+    const workstream = await readBoundWorkstreamState(storage, binding.workstreamId);
     const workspaces = (await listWorkspaces(root)).filter(
       (item) => item.assignmentId === expected.assignmentId,
     );

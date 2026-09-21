@@ -473,6 +473,81 @@ describe("SQLite conversation platform state", () => {
     });
   });
 
+  it("starts a bounded chain for an exact addressed hired agent without broad starter authority", async () => {
+    const path = await databasePath();
+    const base = options(path);
+    const store = await SQLiteConversationPlatformStore.open({
+      ...base,
+      participants: [
+        ...base.participants,
+        {
+          platform: "slack" as const,
+          integrationId,
+          tenantKey: "T123",
+          participantKey: "bot:C123",
+          actor: {
+            kind: "agent" as const,
+            participantId: "ptc_platform03",
+            roleId: "researcher",
+            agentBinding: {
+              agentId: `agt_${"d".repeat(24)}`,
+              roleVersion: "1.0.0",
+              roleContractHash: `sha256:${"e".repeat(64)}`,
+              roleProfileHash: `sha256:${"f".repeat(64)}`,
+            },
+          },
+        },
+      ],
+    });
+    await expect(
+      store.mapInbound({
+        platform: "slack",
+        integrationId,
+        tenantKey: "T123",
+        conversationKey: "C123",
+        threadKey: null,
+        sourceMessageKey: "addressed-agent-message-1",
+        replyToMessageKey: null,
+        participantKey: "bot:B123",
+        mentionedParticipantKeys: ["bot:C123"],
+        primaryMentionedParticipantKeys: ["user:C123", "bot:C123"],
+        actorKindHint: "agent",
+      }),
+    ).resolves.toMatchObject({
+      automationDepth: 0,
+      primaryMentionedParticipantId: "ptc_platform03",
+    });
+    await expect(
+      store.mapInbound({
+        platform: "slack",
+        integrationId,
+        tenantKey: "T123",
+        conversationKey: "C123",
+        threadKey: null,
+        sourceMessageKey: "human-addressed-agent-message-1",
+        replyToMessageKey: null,
+        participantKey: "bot:B123",
+        mentionedParticipantKeys: ["user:U123"],
+        actorKindHint: "agent",
+      }),
+    ).resolves.toMatchObject({ automationDepth: 8 });
+    await expect(
+      store.mapInbound({
+        platform: "slack",
+        integrationId,
+        tenantKey: "T123",
+        conversationKey: "C123",
+        threadKey: null,
+        sourceMessageKey: "unaddressed-agent-message-1",
+        replyToMessageKey: null,
+        participantKey: "bot:B123",
+        mentionedParticipantKeys: [],
+        actorKindHint: "agent",
+      }),
+    ).resolves.toMatchObject({ automationDepth: 8 });
+    store.close();
+  });
+
   it("continues an authenticated agent reply from the correlated automation depth", async () => {
     const path = await databasePath();
     const store = await SQLiteConversationPlatformStore.open(options(path));
@@ -524,6 +599,34 @@ describe("SQLite conversation platform state", () => {
         attemptedAt: "2026-08-20T00:00:01.000Z",
       }),
     ).resolves.toEqual({ status: "unknown" });
+    const externallyVerified = {
+      platform: "slack",
+      integrationId,
+      outboundId,
+      requestHash,
+      externalMessageKey: "1710000005.000100",
+      deliveredAt: "2026-08-20T00:00:01.500Z",
+    };
+    await store.reconcileDelivered(externallyVerified);
+    await store.reconcileDelivered(externallyVerified);
+    await expect(
+      store.reconcileDelivered({
+        ...externallyVerified,
+        externalMessageKey: "1710000006.000100",
+      }),
+    ).rejects.toMatchObject({ code: "conflicting_binding" });
+    await expect(
+      store.begin({
+        platform: "slack",
+        integrationId,
+        outboundId,
+        requestHash,
+        attemptedAt: "2026-08-20T00:00:01.600Z",
+      }),
+    ).resolves.toMatchObject({
+      status: "delivered",
+      externalMessageKey: externallyVerified.externalMessageKey,
+    });
 
     const deliveredOutbound = `cvo_${"e".repeat(64)}`;
     await store.begin({

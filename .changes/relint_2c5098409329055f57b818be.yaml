@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_2c5098409329055f57b818be"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Enable exact bound-workstream supervision while preserving selected review and agent identity."

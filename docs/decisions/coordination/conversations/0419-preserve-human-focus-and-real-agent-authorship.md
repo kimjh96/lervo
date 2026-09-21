@@ -36,13 +36,15 @@ An accepted hire or delegation publishes one origin-bound acknowledgement before
 
 The coordinator remains the human's interlocutor unless the human explicitly addresses or replies to the assignee. A result may be authored by the assignee's real external identity without changing that rule. Reconfiguration persists and reloads `humanFocus` before accepting new ingress.
 
+Delegation carries a natural bounded subtask, not a host-authored persona. The receiving agent keeps its durable identity, role, accumulated context, and own action authority. The coordinator may choose delegation without requiring the human to name a worker, but remains responsible for unassigned work and for reconciling the result. A transport template must not tell the receiver that it is a generic “responsible delegated agent” or instruct it to replace the coordinator.
+
 ### Use existing application bots as identity authority
 
 An external speaker is real only when one reviewed deployment binds the platform principal to the durable participant and hired-agent coordinates and that deployment owns delivery. A display label, policy role, provider session, or copied application name is not a speaker identity.
 
 When an application bot is already bound for an agent in the conversation, Lervo must reuse that binding. It must not create a same-named webhook, same-named hired agent, or shadow deployment as a routing repair. Webhooks remain valid only for an explicitly requested new speaker that has no installed application identity and whose owner authorizes that provisioning path.
 
-Formal-deliberation policy seats remain stakeholder roles unless canonical organization evidence explicitly binds them. A role label may be published as a role label. It must not be replaced with an existing agent's name merely because the agent is present, has a compatible provider, or has a similarly named job. Actual named-agent deliberation requires that agent's runtime to accept the bounded participation assignment, execute the turn under its durable identity, and publish through its existing deployment. Until a distributed participation protocol provides those three proofs, formal artifacts remain honestly policy-labeled. Ordinary multi-agent discussion among installed bots uses the existing peer-agent conversation path instead.
+Formal-deliberation policy seats remain internal coverage responsibilities unless canonical organization evidence explicitly binds them to a real participant. An unbound seat may produce canonical review evidence, but it is not a conversation speaker and its artifact is not projected as if the coordinator had another personality. It must not be replaced with an existing agent's name merely because the agent is present, has a compatible provider, or has a similarly named job. Actual named-agent deliberation requires that agent's runtime to accept the bounded participation assignment, execute with the agent's verified durable role profile and context policy, and publish through its existing deployment. Ordinary multi-agent discussion among installed bots uses the peer-agent conversation path; the distributed formal protocol is governed by [ADR-0421](agent-organization/0421-separate-real-agent-discussion-from-policy-coverage.md).
 
 ### Route execution by work class and preserve evidence
 
@@ -71,15 +73,17 @@ Installed acceptance uses the existing application bots and proves all of the fo
 5. Routine, reasoning, and review fixtures select the expected execution profile and record actual provider, model, effort, session, and exact usage evidence.
 6. Provider output containing an exact managed reference and `<!-- -->` or `<!--  -->` publishes clean prose with no marker residue.
 7. A changed native work turn publishes success only after the configured host gates pass and never exposes an in-process replica-finalization caveat.
-8. Formal-deliberation policy roles remain role-labeled unless an actual agent runtime accepted, executed, and delivered that participant turn through its existing deployment.
+8. Formal-deliberation policy coverage with no actual participant remains internal. Every visible participant turn was accepted, executed with the durable agent role profile, and delivered through that agent's existing deployment.
+9. A delegated task contains only the coordinator's natural bounded subtask, with no synthetic persona or original-request/summary boilerplate; the coordinator retains and completes the full human outcome.
+10. Opening a configured requested runtime survives the provider turn but creates no boot-enabled service or restart loop; explicit close, maximum lifetime, and Node shutdown each stop it, and an unexpected exit remains stopped until another admitted request.
 
 Synthetic Gateway events and provider fixtures cover deterministic negative and restart cases. Final installed acceptance requires a new human-authored Discord turn because replaying or fabricating the user's message would invalidate target and delivery evidence.
 
 ## Consequences
 
-Conversation remains natural while routing is deterministic. Hiring and work distribution no longer redefine who the user is talking to. Existing application bots remain the identity source of truth. Formal decision roles cannot masquerade as deployed agents, and token distribution becomes an observable execution policy rather than a prose promise.
+Conversation remains natural while routing is deterministic. Hiring and work distribution no longer redefine who the user is talking to. Existing application bots remain the identity source of truth. Formal coverage cannot masquerade as a deployed agent, and token distribution becomes an observable execution policy rather than a prose promise.
 
-The existing peer-agent path can support real named-agent discussion now. A later distributed deliberation-participation protocol is required before the formal workflow can claim that cross-node application bots themselves produced its stakeholder turns.
+The peer-agent path supports real named-agent discussion across reviewed Node bindings. [ADR-0420](agent-organization/0420-bound-agent-conversation-and-deliberation-routes.md) adds explicit named participation for repository-local, co-resident formal seats; cross-repository formal execution remains a separate authenticated protocol.
 
 ## References
 

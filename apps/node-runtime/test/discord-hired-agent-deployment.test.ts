@@ -216,5 +216,47 @@ describe("DiscordHiredAgentDeployment", () => {
         agent: { ...agent(), displayName: "Sora", status: "retired", revision: 3 },
       }),
     ).resolves.toEqual({ configurationChanged: false, webhookId: null });
+
+    const appTokenFile = resolve(root, "navi-discord.token");
+    await writeFile(appTokenFile, "navi-application-token\n", { mode: 0o600 });
+    const parent = retiredConfig.discordConversations![0]!;
+    await writeFile(
+      fixture.configPath,
+      `${JSON.stringify(
+        {
+          ...retiredConfig,
+          discordConversations: [
+            parent,
+            {
+              ...parent,
+              integrationId: "itg_discord_navi01",
+              applicationId: "999999999999999998",
+              botTokenFile: appTokenFile,
+              workerId: "discord-navi",
+              agentParticipantId: "ptc_agent_0123456789abcdef01234567",
+              agentId: agent().agentId,
+              speaker: { kind: "bot" },
+              administration: undefined,
+              command: {
+                ...parent.command,
+                roleId: agent().roleId,
+                agentId: agent().agentId,
+              },
+            },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+      { mode: 0o600 },
+    );
+    await expect(
+      deployment.prepare({ agent: agent(), conversationId: "cnv_project001" }),
+    ).resolves.toEqual({
+      participantId: "ptc_agent_0123456789abcdef01234567",
+      webhookId: null,
+      configurationChanged: false,
+    });
+    expect(createIncomingWebhook).toHaveBeenCalledTimes(1);
   });
 });

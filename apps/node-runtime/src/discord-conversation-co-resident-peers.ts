@@ -59,6 +59,23 @@ export function createCoResidentDiscordPeerAgents(input: {
       return true;
     });
     if (tenantKeys.length === 0) return [];
+    const conversationIds = peer.conversations.flatMap((peerBinding) =>
+      conversation.conversations.some(
+        (binding) =>
+          binding.tenantKey === peerBinding.tenantKey &&
+          tenantKeys.includes(binding.tenantKey) &&
+          binding.conversationKey === peerBinding.conversationKey &&
+          binding.conversationId === peerBinding.conversationId,
+      )
+        ? [peerBinding.conversationId]
+        : [],
+    );
+    const unaddressedPriorities = Object.fromEntries(
+      conversationIds.flatMap((conversationId) => {
+        const priority = peer.policy?.unaddressedPriorities?.[conversationId];
+        return priority === undefined ? [] : [[conversationId, priority]];
+      }),
+    );
     const configured = conversation.peerAgents?.find(
       (candidate) => candidate.participantId === peer.agentParticipantId,
     );
@@ -66,6 +83,13 @@ export function createCoResidentDiscordPeerAgents(input: {
       if (
         configured.roleId !== participation.roleId ||
         configured.agentBinding.agentId !== participation.agentBinding.agentId ||
+        (configured.displayName !== undefined &&
+          configured.displayName !== participation.displayName) ||
+        (configured.unaddressedPriority !== undefined &&
+          configured.unaddressedPriority !== (peer.policy?.unaddressedPriority ?? 0)) ||
+        Object.entries(configured.unaddressedPriorities ?? {}).some(
+          ([conversationId, priority]) => unaddressedPriorities[conversationId] !== priority,
+        ) ||
         participantKeys.some((key) => !configured.participantKeys.includes(key)) ||
         tenantKeys.some((tenantKey) => !configured.tenantKeys.includes(tenantKey))
       ) {
@@ -74,27 +98,21 @@ export function createCoResidentDiscordPeerAgents(input: {
           "A configured and co-resident Discord peer-agent binding differs.",
         );
       }
-      return [];
+      // The hired agent's current role revision is authoritative for a co-resident runtime.
+      // A configured remote-peer snapshot may predate a reviewed role migration.
+      return [{ ...configured, agentBinding: participation.agentBinding }];
     }
     return [
       {
         ...(participation.displayName === null ? {} : { displayName: participation.displayName }),
+        unaddressedPriority: peer.policy?.unaddressedPriority ?? 0,
+        ...(Object.keys(unaddressedPriorities).length === 0 ? {} : { unaddressedPriorities }),
         participantKeys,
         participantId: peer.agentParticipantId,
         roleId: participation.roleId,
         agentBinding: participation.agentBinding,
         tenantKeys,
-        conversationIds: peer.conversations.flatMap((peerBinding) =>
-          conversation.conversations.some(
-            (binding) =>
-              binding.tenantKey === peerBinding.tenantKey &&
-              tenantKeys.includes(binding.tenantKey) &&
-              binding.conversationKey === peerBinding.conversationKey &&
-              binding.conversationId === peerBinding.conversationId,
-          )
-            ? [peerBinding.conversationId]
-            : [],
-        ),
+        conversationIds,
       },
     ];
   });

@@ -14,6 +14,12 @@ describe("managed provider retry classification", () => {
     ).toMatchObject({ retryable: true });
     expect(
       classifyRunFailure(
+        new ManagedProviderRunError("provider_capacity_unavailable", "Capacity is exhausted."),
+        "provider_turn",
+      ),
+    ).toMatchObject({ retryable: true });
+    expect(
+      classifyRunFailure(
         new ManagedProviderRunError("provider_turn_failed", "The provider turn failed."),
         "provider_turn",
       ),

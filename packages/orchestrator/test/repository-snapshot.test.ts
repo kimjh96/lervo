@@ -20,6 +20,24 @@ afterEach(async () => {
 });
 
 describe("repository snapshot", () => {
+  it("excludes generated Python tool caches without hiding adjacent source", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-snapshot-python-cache-"));
+    roots.push(root);
+    await mkdir(resolve(root, "services/worker/.mypy_cache"), { recursive: true });
+    await mkdir(resolve(root, "services/worker/.pytest_cache"), { recursive: true });
+    await mkdir(resolve(root, "services/worker/__pycache__"), { recursive: true });
+    await writeFile(resolve(root, "services/worker/main.py"), "print('source')\n");
+    for (const name of [".mypy_cache", ".pytest_cache", "__pycache__"]) {
+      await writeFile(resolve(root, `services/worker/${name}/cache.json`), "x".repeat(100));
+    }
+
+    const snapshot = await captureRepositorySnapshot(root, {
+      ...defaultRepositorySnapshotPolicy,
+      maxBytes: 50,
+    });
+    expect(Object.keys(snapshot.files)).toEqual(["services/worker/main.py"]);
+  });
+
   it("detects content, creation and symlink changes while excluding runtime state", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-snapshot-"));
     roots.push(root);
@@ -164,6 +182,8 @@ describe("repository snapshot", () => {
       ".cxx",
       ".vercel",
       ".cache",
+      ".venv",
+      "venv",
       "Pods",
       "vendor",
     ]) {
@@ -178,6 +198,21 @@ describe("repository snapshot", () => {
 
     expect(Object.keys(snapshot.files)).toEqual(["generated/output.ts", "source.ts"]);
     expect(defaultRepositorySnapshotPolicy.maxBytes).toBe(1024 * 1024 * 1024);
+  });
+
+  it("does not count nested Python virtual environments against the snapshot byte limit", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-snapshot-venv-"));
+    roots.push(root);
+    await mkdir(resolve(root, "services/worker/.venv/lib"), { recursive: true });
+    await writeFile(resolve(root, "services/worker/.venv/lib/dependency.bin"), "x".repeat(128));
+    await writeFile(resolve(root, "services/worker/source.py"), "source\n");
+
+    const snapshot = await captureRepositorySnapshot(root, {
+      ...defaultRepositorySnapshotPolicy,
+      maxBytes: 16,
+    });
+
+    expect(Object.keys(snapshot.files)).toEqual(["services/worker/source.py"]);
   });
 
   it("fails safely when repository limits or exclusions are invalid", async () => {

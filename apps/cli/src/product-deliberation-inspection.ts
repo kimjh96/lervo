@@ -178,7 +178,11 @@ function participantBindings(input: {
         "A deliberation participant binding names a role outside the policy.",
       );
     }
-    const provider = workforceProviderForPolicyHash(binding.providerPolicyHash);
+    const provider =
+      binding.bindingVersion === 2 &&
+      (binding.executionProvider === "codex" || binding.executionProvider === "claude")
+        ? binding.executionProvider
+        : workforceProviderForPolicyHash(binding.providerPolicyHash);
     if (provider === null) {
       throw new ProductDeliberationSourceError(
         "deliberation_source_invalid",

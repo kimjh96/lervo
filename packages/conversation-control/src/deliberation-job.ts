@@ -36,7 +36,11 @@ export function assertConversationDeliberationSummary(
     summary.artifactCount < 0 ||
     summary.artifactCount > 10_000 ||
     action === undefined ||
-    summary.nextAction !== action
+    summary.nextAction !== action ||
+    (summary.failureReasonCode !== undefined &&
+      summary.failureReasonCode !== null &&
+      !/^[a-z][a-z0-9_]{0,63}$/u.test(summary.failureReasonCode)) ||
+    (summary.status !== "failed" && summary.failureReasonCode != null)
   ) {
     throw new ConversationControlError(
       "deliberation_source_failed",

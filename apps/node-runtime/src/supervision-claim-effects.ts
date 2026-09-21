@@ -1,7 +1,7 @@
 import type { OperatingActionPlanV1 } from "@lervo/application-contract";
 import { listAgents, listAssignments, listWorkspaces } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import { operatingContractHash, operatingDecisionId } from "@lervo/work-controller";
 import {
   readInstalledNodeMandate,
@@ -95,7 +95,8 @@ export class SupervisionClaimEffects {
           ) !== operatingContractHash(transition) ||
           operatingContractHash(await listAgents(this.root)) !==
             operatingContractHash(source.agents) ||
-          (await readCurrentWorkstreamState(this.root))?.contentHash !== source.workstreamHash ||
+          (await readBoundWorkstreamState(storage, this.binding.workstreamId))?.contentHash !==
+            source.workstreamHash ||
           storage.events.latest()?.eventHash !== head
         )
           throw new Error("The canonical claim sources changed at the assignment transition.");

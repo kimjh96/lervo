@@ -1,4 +1,5 @@
 import { beginConversationRepositoryWork } from "./conversation-repository-work-admission.js";
+import { migrateConversationRepositoryWorkSessions } from "./conversation-repository-work-session-migration.js";
 import { DatabaseSync } from "node:sqlite";
 
 import type { RepositoryWorkProvider } from "@lervo/adapter-contract";
@@ -33,7 +34,7 @@ export class SQLiteConversationRepositoryWorkStore {
         provider TEXT NOT NULL,
         provider_session_id TEXT NOT NULL,
         updated_at_ms INTEGER NOT NULL,
-        PRIMARY KEY (conversation_id, thread_id, worker_id)
+        PRIMARY KEY (conversation_id, thread_id, worker_id, provider)
       ) STRICT;
       CREATE TABLE IF NOT EXISTS conversation_repository_work_turns (
         event_id TEXT PRIMARY KEY,
@@ -62,6 +63,7 @@ export class SQLiteConversationRepositoryWorkStore {
         PRIMARY KEY (conversation_id, thread_id)
       ) STRICT;
     `);
+    migrateConversationRepositoryWorkSessions(database);
     const turnColumns = database
       .prepare("PRAGMA table_info(conversation_repository_work_turns)")
       .all() as { name: string }[];
@@ -97,8 +99,7 @@ export class SQLiteConversationRepositoryWorkStore {
           `INSERT INTO conversation_repository_work_sessions
             (conversation_id, thread_id, worker_id, provider, provider_session_id, updated_at_ms)
            VALUES (?, ?, ?, ?, ?, ?)
-           ON CONFLICT(conversation_id, thread_id, worker_id) DO UPDATE SET
-             provider = excluded.provider,
+           ON CONFLICT(conversation_id, thread_id, worker_id, provider) DO UPDATE SET
              provider_session_id = excluded.provider_session_id,
              updated_at_ms = excluded.updated_at_ms`,
         )
@@ -245,10 +246,18 @@ export class SQLiteConversationRepositoryWorkStore {
     const row = this.database
       .prepare(
         `SELECT provider FROM conversation_repository_work_sessions
-         WHERE conversation_id = ? AND thread_id = ? AND worker_id = ?`,
+         WHERE conversation_id = ? AND thread_id = ? AND worker_id = ?
+         ORDER BY updated_at_ms DESC LIMIT 1`,
       )
       .get(conversationId, threadId ?? "", workerId) as
       { provider: RepositoryWorkProvider } | undefined;
+    return row?.provider ?? null;
+  }
+
+  providerForEvent(eventId: string): RepositoryWorkProvider | null {
+    const row = this.database
+      .prepare("SELECT provider FROM conversation_repository_work_turns WHERE event_id = ?")
+      .get(eventId) as { provider: RepositoryWorkProvider } | undefined;
     return row?.provider ?? null;
   }
 

@@ -77,7 +77,6 @@ describe("conversation workforce action responder", () => {
       const responder = new ConversationWorkforceActionResponder({
         artifactStore,
         parentAgentId: "agt_abcdef0123456789abcdef01",
-        parentRoleId: "product-owner",
         hiring,
         ...(separateDeployment ? { deployment } : {}),
         onConversationDelegateHired,
@@ -134,7 +133,7 @@ describe("conversation workforce action responder", () => {
     const responder = new ConversationWorkforceActionResponder({
       artifactStore,
       parentAgentId: "agt_abcdef0123456789abcdef01",
-      parentRoleId: "product-owner",
+      existingConversationAgents: [{ participantId: "ptc_soraagent01", displayName: "Sora" }],
       hiring,
     });
     const request = { event: { target: { conversationId: "cnv_test0001" } } } as never;
@@ -149,6 +148,17 @@ describe("conversation workforce action responder", () => {
         { effectRequesterAuthorized: false },
       ),
     ).rejects.toThrow("not authorized");
+    expect(hiring.hire).not.toHaveBeenCalled();
+    await expect(
+      responder.respond(
+        request,
+        {
+          kind: "workforce_agent_hire",
+          specification: '{"name":"sora","provider":"any","roleId":"developer"}',
+        },
+        { effectRequesterAuthorized: true },
+      ),
+    ).rejects.toThrow("already routed as ptc_soraagent01");
     expect(hiring.hire).not.toHaveBeenCalled();
     await removeTemporaryRoots();
   });

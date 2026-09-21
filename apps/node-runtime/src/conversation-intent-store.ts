@@ -4,7 +4,10 @@ import { DatabaseSync } from "node:sqlite";
 
 import type { ConversationInboundEvent } from "@lervo/schemas";
 
-import type { ConversationIntentResolution } from "./conversation-intent-resolver.js";
+import {
+  isConversationRequestedEffect,
+  type ConversationIntentResolution,
+} from "./conversation-intent-resolver.js";
 
 const MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 
@@ -28,69 +31,6 @@ function validCurrentProvider(
         typeof provider.modelUnavailableReason === "string" &&
         /^[a-z][a-z0-9_]{0,63}$/u.test(provider.modelUnavailableReason)
       : provider.answerModelEvidence !== "unavailable" && provider.modelUnavailableReason === null)
-  );
-}
-
-function validEffect(value: unknown): value is ConversationIntentResolution["effect"] {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const effect = value as Record<string, unknown>;
-  if (
-    effect.kind === "none" ||
-    effect.kind === "repository_work" ||
-    effect.kind === "supervision_goal_request"
-  ) {
-    return Object.keys(effect).length === 1;
-  }
-  if (effect.kind === "discord_current_member_nickname_set") {
-    return (
-      Object.keys(effect).length === 2 &&
-      typeof effect.nickname === "string" &&
-      [...effect.nickname].length >= 1 &&
-      [...effect.nickname].length <= 32 &&
-      !effect.nickname.includes("\0")
-    );
-  }
-  if (effect.kind === "discord_guild_text_channel_create") {
-    return (
-      Object.keys(effect).length === 2 &&
-      typeof effect.name === "string" &&
-      /^[a-z0-9][a-z0-9_-]{0,99}$/u.test(effect.name)
-    );
-  }
-  if (effect.kind === "workforce_agent_hire") {
-    return (
-      Object.keys(effect).length === 2 &&
-      typeof effect.specification === "string" &&
-      [...effect.specification].length >= 1 &&
-      [...effect.specification].length <= 512 &&
-      !effect.specification.includes("\0")
-    );
-  }
-  if (effect.kind === "workforce_task_delegate") {
-    return (
-      Object.keys(effect).length === 2 &&
-      typeof effect.specification === "string" &&
-      [...effect.specification].length >= 1 &&
-      [...effect.specification].length <= 1_024 &&
-      !effect.specification.includes("\0")
-    );
-  }
-  if (effect.kind === "deliberation_start") {
-    return (
-      Object.keys(effect).length === 2 &&
-      typeof effect.specification === "string" &&
-      [...effect.specification].length >= 1 &&
-      [...effect.specification].length <= 4_096 &&
-      !effect.specification.includes("\0")
-    );
-  }
-  return (
-    effect.kind === "discord_public_thread_create" &&
-    Object.keys(effect).length === 2 &&
-    typeof effect.name === "string" &&
-    [...effect.name].length >= 1 &&
-    [...effect.name].length <= 100 &&
-    !effect.name.includes("\0")
   );
 }
 
@@ -214,7 +154,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
         !MODEL_PATTERN.test(input.resolution.provider.model)) ||
       (input.resolution.provider.adapterVersion === "4" &&
         !validCurrentProvider(input.resolution.provider)) ||
-      !validEffect(input.resolution.effect) ||
+      !isConversationRequestedEffect(input.resolution.effect) ||
       !["routine", "reasoning", "review", null].includes(executionProfile) ||
       (input.resolution.executionProfile !== undefined &&
         (input.resolution.effect.kind === "repository_work") !== (executionProfile !== null)) ||
@@ -309,7 +249,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       ![null, "routine", "reasoning", "review"].includes(
         current.execution_profile as string | null,
       ) ||
-      !validEffect(effect) ||
+      !isConversationRequestedEffect(effect) ||
       typeof current.result_digest !== "string" ||
       !/^sha256:[a-f0-9]{64}$/u.test(current.result_digest) ||
       typeof current.resolved_at !== "string" ||

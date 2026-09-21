@@ -35,6 +35,7 @@ export function createConversationOutboundMessage(input: {
   participantId: string;
   agentBinding?: ConversationOutboundMessage["actor"]["agentBinding"];
   content: ConversationOutboundMessage["content"];
+  coordination?: ConversationOutboundMessage["coordination"];
   publicationPermit: ConversationOutboundMessage["publicationPermit"];
   audienceParticipation?: "eligible" | "observe_only";
   deliveryRelation?: "standalone" | "reply";
@@ -56,6 +57,7 @@ export function createConversationOutboundMessage(input: {
       ...(input.agentBinding === undefined ? {} : { agentBinding: clone(input.agentBinding) }),
     },
     content: clone(input.content),
+    ...(input.coordination === undefined ? {} : { coordination: clone(input.coordination) }),
     publicationPermit: clone(input.publicationPermit),
     ...(input.audienceParticipation === undefined
       ? {}

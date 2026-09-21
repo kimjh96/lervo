@@ -56,6 +56,7 @@ import {
   deliberationStartedEventPayloadSchema,
 } from "./deliberation-event.js";
 import { deliberationOutcomeSchema } from "./deliberation-outcome.js";
+import { deliberationParticipantAssignmentSchema } from "./deliberation-participant-assignment.js";
 import { deliberationPolicySchema } from "./deliberation-policy.js";
 import { deliberationWorkflowSourceSchema } from "./deliberation-workflow.js";
 import {
@@ -363,6 +364,7 @@ const validators = {
   deliberationWorkflowSource: ajv.compile(deliberationWorkflowSourceSchema),
   deliberationArtifact: ajv.compile(deliberationArtifactSchema),
   deliberationOutcome: ajv.compile(deliberationOutcomeSchema),
+  deliberationParticipantAssignment: ajv.compile(deliberationParticipantAssignmentSchema),
   deliberationStartedEventPayload: ajv.compile(deliberationStartedEventPayloadSchema),
   deliberationArtifactRecordedEventPayload: ajv.compile(
     deliberationArtifactRecordedEventPayloadSchema,

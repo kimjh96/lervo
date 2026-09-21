@@ -53,6 +53,7 @@ describe("natural-language Discord conversation mode", () => {
         "repository_work" as const,
         "discord_current_member_nickname_set" as const,
       ],
+      managedResultEffects: ["discord_current_member_nickname_set" as const],
       respond: vi.fn(async () => candidate("Display name changed.")),
     };
     const stored = new Map<string, Uint8Array>();
@@ -106,7 +107,11 @@ describe("natural-language Discord conversation mode", () => {
     };
     const responder = new NaturalLanguageDiscordConversationResponder({
       applicationId,
-      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
+      respondingAgent: {
+        participantId: "ptc_lervoagent",
+        agentId: `agt_${"a".repeat(24)}`,
+        roleId: "developer",
+      },
       repositoryRoot: process.cwd(),
       artifactStore,
       history: {
@@ -197,7 +202,16 @@ describe("natural-language Discord conversation mode", () => {
     expect(resolveIntent.mock.calls[1]![0].priorTurns).toHaveLength(2);
     expect(continuation.respond.mock.calls[0]![0].context?.priorTurns).toHaveLength(2);
 
+    intent = "answer";
+    effect = { kind: "none" };
+    message = "Tarin, what is happening?";
+    const addressedToAnotherAgent = await input("cevt_test_other_agent_mention");
+    addressedToAnotherAgent.event.mentions.participantIds.push("ptc_tarinagent");
+    await responder.respond(addressedToAnotherAgent);
+    expect(resolveIntent.mock.calls[2]![0]).toMatchObject({ mentioned: false });
+
     effect = { kind: "supervision_goal_request" };
+    intent = "continue_work";
     message = "Own this multi-stage release goal through verification and deployment.";
     const supervised = await input("cevt_test0009");
     await responder.respond(supervised);
@@ -213,10 +227,25 @@ describe("natural-language Discord conversation mode", () => {
       { kind: "discord_current_member_nickname_set", nickname: "Lervo" },
       { effectRequesterAuthorized: true },
     );
+    await expect(responder.usesManagedActionResultPublicationContract(third.event)).resolves.toBe(
+      true,
+    );
+
+    const unacceptedDiscussion = await input("cevt_test_discussion_invalid");
+    unacceptedDiscussion.event.coordination = {
+      kind: "discussion.contribution",
+      discussionId: "dsc_unknown",
+    };
+    await expect(responder.evaluate(unacceptedDiscussion)).resolves.toBe("not_relevant");
+    expect(resolveIntent).toHaveBeenCalledTimes(5);
 
     const restarted = new NaturalLanguageDiscordConversationResponder({
       applicationId,
-      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
+      respondingAgent: {
+        participantId: "ptc_lervoagent",
+        agentId: `agt_${"a".repeat(24)}`,
+        roleId: "developer",
+      },
       repositoryRoot: process.cwd(),
       artifactStore,
       history: { recent: async () => [] },
@@ -231,8 +260,8 @@ describe("natural-language Discord conversation mode", () => {
       },
     });
     await restarted.respond(first);
-    expect(resolveIntent).toHaveBeenCalledTimes(4);
-    expect(readOnly.respond).toHaveBeenCalledTimes(2);
+    expect(resolveIntent).toHaveBeenCalledTimes(5);
+    expect(readOnly.respond).toHaveBeenCalledTimes(3);
 
     const managedReply = await candidate("One managed turn resolved and answered this message.");
     const managedResolve = vi.fn(async () => ({
@@ -255,7 +284,11 @@ describe("natural-language Discord conversation mode", () => {
     }));
     const managedMode = new NaturalLanguageDiscordConversationResponder({
       applicationId,
-      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
+      respondingAgent: {
+        participantId: "ptc_lervoagent",
+        agentId: `agt_${"a".repeat(24)}`,
+        roleId: "developer",
+      },
       repositoryRoot: process.cwd(),
       artifactStore,
       history: { recent: async () => [] },
@@ -306,7 +339,11 @@ describe("natural-language Discord conversation mode", () => {
     };
     const restrictedAgentMode = new NaturalLanguageDiscordConversationResponder({
       applicationId,
-      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
+      respondingAgent: {
+        participantId: "ptc_lervoagent",
+        agentId: `agt_${"a".repeat(24)}`,
+        roleId: "developer",
+      },
       repositoryRoot: process.cwd(),
       artifactStore,
       history: { recent: async () => [] },
@@ -322,12 +359,17 @@ describe("natural-language Discord conversation mode", () => {
 
     const authorizedAgentMode = new NaturalLanguageDiscordConversationResponder({
       applicationId,
-      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
+      respondingAgent: {
+        participantId: "ptc_lervoagent",
+        agentId: `agt_${"a".repeat(24)}`,
+        roleId: "developer",
+      },
       authorizedAgentEffectRequesters: [
         {
           participantId: "ptc_ceoagent01",
           roleId: "ceo",
           conversationId: "cnv_test0001",
+          effectKinds: ["repository_work"],
         },
       ],
       repositoryRoot: process.cwd(),
@@ -360,12 +402,17 @@ describe("natural-language Discord conversation mode", () => {
     };
     const authorizedThreadMode = new NaturalLanguageDiscordConversationResponder({
       applicationId,
-      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
+      respondingAgent: {
+        participantId: "ptc_lervoagent",
+        agentId: `agt_${"a".repeat(24)}`,
+        roleId: "developer",
+      },
       authorizedAgentEffectRequesters: [
         {
           participantId: "ptc_ceoagent01",
           roleId: "ceo",
           conversationId: "cnv_test0001",
+          effectKinds: ["discord_public_thread_create"],
         },
       ],
       repositoryRoot: process.cwd(),
@@ -405,7 +452,11 @@ describe("natural-language Discord conversation mode", () => {
     };
     const naturalDelegation = new NaturalLanguageDiscordConversationResponder({
       applicationId,
-      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "product-owner" },
+      respondingAgent: {
+        participantId: "ptc_lervoagent",
+        agentId: `agt_${"a".repeat(24)}`,
+        roleId: "product-owner",
+      },
       repositoryRoot: process.cwd(),
       artifactStore,
       history: { recent: async () => [] },
@@ -416,7 +467,7 @@ describe("natural-language Discord conversation mode", () => {
           effect: {
             kind: "workforce_task_delegate",
             argument: JSON.stringify({
-              roleId: "researcher",
+              participantId: "ptc_peer_researcher0001",
               task: "Review the conversation routing evidence.",
             }),
           },
@@ -427,7 +478,7 @@ describe("natural-language Discord conversation mode", () => {
         {
           effectId: "workforce_task_delegate",
           description: "Delegate a task to a hired agent.",
-          argumentDescription: "JSON containing roleId and task.",
+          argumentDescription: "JSON containing participantId and task.",
           maximumArgumentCharacters: 1_024,
         },
       ],
@@ -443,7 +494,7 @@ describe("natural-language Discord conversation mode", () => {
       {
         kind: "workforce_task_delegate",
         specification: JSON.stringify({
-          roleId: "researcher",
+          participantId: "ptc_peer_researcher0001",
           task: "Review the conversation routing evidence.",
         }),
       },
@@ -456,7 +507,11 @@ describe("natural-language Discord conversation mode", () => {
     };
     const naturalDeliberation = new NaturalLanguageDiscordConversationResponder({
       applicationId,
-      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "product-owner" },
+      respondingAgent: {
+        participantId: "ptc_lervoagent",
+        agentId: `agt_${"a".repeat(24)}`,
+        roleId: "product-owner",
+      },
       repositoryRoot: process.cwd(),
       artifactStore,
       history: { recent: async () => [] },

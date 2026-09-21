@@ -58,7 +58,10 @@ Replace every identifier and path with reviewed deployment coordinates. Store th
         "deliberation.completed",
         "deliberation.attention"
       ],
-      "maxResponseAttempts": 3
+      "maxResponseAttempts": 3,
+      "unaddressedPriority": 20,
+      "acceptsSupervisionGoals": false,
+      "acceptsPeerWork": true
     },
     "repositorySignals": {
       "pollIntervalMs": 2000,

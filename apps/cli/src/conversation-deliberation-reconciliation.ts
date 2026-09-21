@@ -55,6 +55,7 @@ export function interpretManagedDeliberationInspection(input: {
         status: report.completionStatus,
         artifactCount: report.artifactCount,
         nextAction: "none",
+        failureReasonCode: report.completionStatus === "failed" ? report.terminalReasonCode : null,
       },
     };
   }

@@ -130,6 +130,44 @@ export class ConversationPlatformReplayRepository {
     }
   }
 
+  reconcileDelivered(input: CompleteInput): void {
+    this.validateCoordinate(input);
+    assertExternal(input.externalMessageKey, "external message key");
+    assertTimestamp(input.deliveredAt, "deliveredAt");
+    try {
+      const result = this.database
+        .prepare(
+          `UPDATE delivery_replay SET status = 'delivered',
+            external_message_key = ?, delivered_at = ?
+          WHERE platform = ? AND integration_id = ? AND outbound_id = ? AND request_hash = ?
+            AND status IN ('sending', 'unknown')`,
+        )
+        .run(
+          input.externalMessageKey,
+          input.deliveredAt,
+          input.platform,
+          input.integrationId,
+          input.outboundId,
+          input.requestHash,
+        );
+      if (result.changes === 1) return;
+      const current = this.find(input);
+      if (
+        current?.status === "delivered" &&
+        current.request_hash === input.requestHash &&
+        current.external_message_key === input.externalMessageKey &&
+        current.delivered_at === input.deliveredAt
+      )
+        return;
+      throw new ConversationPlatformSQLiteError(
+        "conflicting_binding",
+        "The reconciled delivery differs from the existing replay record.",
+      );
+    } catch (error) {
+      throw this.wrap(error);
+    }
+  }
+
   markUnknown(input: UnknownInput): void {
     this.validateCoordinate(input);
     try {

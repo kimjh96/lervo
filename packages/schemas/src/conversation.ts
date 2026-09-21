@@ -3,6 +3,7 @@ import type { FromSchema } from "json-schema-to-ts";
 import {
   artifactIdSchema,
   conversationIdSchema,
+  conversationParticipantIdSchema,
   conversationThreadIdSchema,
   integrationIdSchema,
   projectIdSchema,
@@ -40,6 +41,60 @@ export const conversationContentReferenceSchema = {
   },
   required: ["artifactId", "contentHash", "byteCount", "mediaType"],
   additionalProperties: false,
+} as const;
+
+export const conversationCoordinationSchema = {
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        kind: { const: "discussion.assignment" },
+        discussionId: { type: "string", pattern: "^dsc_[A-Za-z0-9_-]{20}$" },
+        activeParticipantId: conversationParticipantIdSchema,
+        assignmentSequence: { type: "integer", enum: [1, 2] },
+      },
+      required: ["kind", "discussionId"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        kind: { const: "discussion.contribution" },
+        discussionId: { type: "string", pattern: "^dsc_[A-Za-z0-9_-]{20}$" },
+      },
+      required: ["kind", "discussionId"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        kind: { const: "discussion.decision" },
+        discussionId: { type: "string", pattern: "^dsc_[A-Za-z0-9_-]{20}$" },
+      },
+      required: ["kind", "discussionId"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        kind: { const: "task.assignment" },
+        taskId: { type: "string", pattern: "^tsk_[A-Za-z0-9_-]{20}$" },
+        coordinatorParticipantId: conversationParticipantIdSchema,
+      },
+      required: ["kind", "taskId", "coordinatorParticipantId"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        kind: { const: "task.result" },
+        taskId: { type: "string", pattern: "^tsk_[A-Za-z0-9_-]{20}$" },
+        coordinatorParticipantId: conversationParticipantIdSchema,
+      },
+      required: ["kind", "taskId", "coordinatorParticipantId"],
+      additionalProperties: false,
+    },
+  ],
 } as const;
 
 export const conversationTargetSchema = {
@@ -100,6 +155,7 @@ export const conversationAdapterDescriptorSchema = {
 } as const;
 
 export type ConversationContentReference = FromSchema<typeof conversationContentReferenceSchema>;
+export type ConversationCoordination = FromSchema<typeof conversationCoordinationSchema>;
 export type ConversationAgentBinding = FromSchema<typeof conversationAgentBindingSchema>;
 export type ConversationTarget = FromSchema<typeof conversationTargetSchema>;
 export type ConversationAdapterCapability = (typeof conversationAdapterCapabilities)[number];

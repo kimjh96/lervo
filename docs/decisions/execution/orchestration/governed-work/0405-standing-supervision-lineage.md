@@ -24,6 +24,10 @@ Node configuration selects a standing lineage with `outcomeSupervision.standing`
 
 A later reviewed version of a successor's own mandate is an ordinary succession, not a second derivation. Operators can therefore revise a running goal's mandate, such as widening its attempt ceiling, without breaking the lineage.
 
+If another authority makes a workstream outside the reviewed standing lineage current, the pinned owner becomes dormant rather than reporting a failed supervision cycle every polling interval. It checks for a valid successor on repository change and at a bounded one-minute fallback, and resumes only after the reviewed lineage exists. Other cycle errors remain unavailable health with their exact failure code.
+
+The 2026-09-19 health amendment reports this settled dormancy as `supervision: { status: "dormant", reasonCode: "workstream_inactive" }`, distinct from startup `pending`. The Node may be operationally ready while this component is dormant; neither status grants authority to work on the unrelated current workstream or proves that the pinned owner is executing. Fleet status must expose the component instead of hiding it behind aggregate readiness.
+
 Standing intake binds under that goal. When the goal is settled (`completed` or `cancelled` with no blockers, pending decisions, or approvals) and the grant has a remaining successor, the same intake starts the next goal in order:
 
 1. Create a successor workstream whose objective is the bound request, recorded as `workstream.snapshot.recorded` with the agent actor and provider.

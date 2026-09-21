@@ -17,6 +17,7 @@ import { dirname, resolve } from "node:path";
 
 import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
 
+import { acquireInitializationLock } from "./coordination-initialization-lock.js";
 import { ProjectStorageError, type RepositoryCoordinationHome } from "./types.js";
 
 const execute = promisify(execFile);
@@ -176,34 +177,6 @@ async function markerFor(input: {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
     return readMarker(path, input.projectId);
   }
-}
-
-async function acquireInitializationLock(root: string): Promise<() => Promise<void>> {
-  const path = resolve(root, ".initializing.lock");
-  for (let attempt = 0; attempt < 200; attempt += 1) {
-    try {
-      const handle = await open(
-        path,
-        constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0),
-        0o600,
-      );
-      await handle.writeFile(
-        `${JSON.stringify({ schemaVersion: 1, processId: process.pid, createdAt: new Date().toISOString() })}\n`,
-      );
-      await handle.sync();
-      return async () => {
-        await handle.close();
-        await rm(path, { force: true });
-      };
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-      await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 10));
-    }
-  }
-  throw new ProjectStorageError(
-    "coordination_busy",
-    "Repository coordination initialization did not become available.",
-  );
 }
 
 async function hasEntries(path: string): Promise<boolean> {

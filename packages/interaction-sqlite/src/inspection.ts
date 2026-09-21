@@ -10,7 +10,7 @@ import { interactionSQLiteSchemaVersion } from "./database.js";
 import { InteractionSQLiteError } from "./errors.js";
 
 export interface ConversationOutboundDeliveryRecord {
-  status: "pending" | "leased" | "delivered";
+  status: "pending" | "leased" | "delivered" | "attention_required";
   outbound: ConversationOutboundMessage;
   receipt: ConversationDeliveryReceipt | null;
 }
@@ -141,7 +141,7 @@ export async function inspectConversationOutboundDeliveries(input: {
           );
         }
         const status = text(row, "status") as ConversationOutboundDeliveryRecord["status"];
-        if (!new Set(["pending", "leased", "delivered"]).has(status)) {
+        if (!new Set(["pending", "leased", "delivered", "attention_required"]).has(status)) {
           throw new InteractionSQLiteError(
             "integrity_failed",
             "The inspected conversation outbound status is invalid.",

@@ -1,6 +1,6 @@
 # ADR-0389: Single managed conversation turn with repository retrieval
 
-- Status: accepted
+- Status: accepted (amended 2026-09-18)
 - Decision date: 2026-09-09
 
 ## Context
@@ -24,7 +24,7 @@ Discord is the first conversation surface, not the application boundary. Future 
 
 The same immutable result drives participation, effect routing, and reply publication. Informational turns have no separate classifier. Repository changes still enter the signed Hub continuation and configured command provider; Discord actions enter the allowlisted Discord administration adapter. The managed turn grants neither authority.
 
-Surface adapters declare effect IDs and bounded argument descriptions. Core knows no Discord route, application ID, guild ID, channel ID, or REST operation. Node maps the current nickname effect to Discord. Future surfaces can declare effects and reuse the service unchanged.
+Surface adapters declare effect IDs and bounded argument descriptions. Effects that select from a bounded runtime population declare exact machine values and human-facing labels in a separate argument-choice catalog rather than expanding prose descriptions with topology-sized data. The managed contract accepts at most 64 unique bounded choices and includes them in the request digest and provider instructions; the executing adapter still validates the selected value against current authority. Core knows no Discord route, application ID, guild ID, channel ID, or REST operation. Node maps the current nickname effect to Discord. Future surfaces can declare effects and reuse the service unchanged.
 
 `routing.response` selects the combined turn's provider, model, reasoning effort, and timeout. `routing.intent` remains accepted only for backward-compatible custom responder composition; the installed managed path neither invokes it nor attributes turns to it. The default 60-second provider-turn deadline fails closed into the bounded conversation retry and terminal-failure path.
 
@@ -45,6 +45,8 @@ Before opening conversation ingress, Node prepares one query-neutral repository-
 The projection is keyed by the exact managed repository snapshot revision and replaced when that revision changes. A prepared knowledge `sourceSnapshotId` identifies the bounded observation that created it; it does not imply inclusion of later supplemental events. Supplemental event additions do not mutate canonical sources or sidecars. A canonical source, claim, concept, or relation change invalidates the repository revision. Selected publication bytes are reread and content-hash checked immediately before context use. Memory growth is bounded to one current and one in-flight revision.
 
 Managed conversation snapshots walk the complete policy-included tree before and after every provider turn. A conversation-lifetime capture may reuse a regular-file or symlink hash only while path kind, device, inode, size, modification time, and change time all remain exact. Any metadata change forces a safe reread; additions and deletions remain visible. The post-run snapshot contributes to `repository_snapshot`, not `provider_stop`, separating stage evidence for enforcement and adapter shutdown.
+
+The common snapshot policy excludes generated dependency environments such as Python `.venv` and `venv` directories, wherever they occur in the repository. A dependency installation must not consume the one-gigabyte source snapshot budget or prevent an otherwise valid read-only conversation turn. Repository-authored files outside those conventional generated directories remain subject to the existing byte and entry limits.
 
 A repository snapshot failure before provider start is safe for the interaction lifecycle to retry within its existing bounded response-attempt limit. This covers a transient race with replica application or another repository writer without replaying provider work. The retry performs a fresh exact snapshot; it does not reuse partial bytes or weaken fail-closed comparison. Exhaustion still publishes the bounded context-unavailable result. Knowledge preparation, context injection, and post-start provider failures remain terminal under their existing classifications.
 

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "modelReplacements": {
+    "gpt-6-astra": "gpt-5.6-sol"
+  },
+  "executionProfiles": {
+    "routine": {
+      "preferredProvider": "claude",
+      "providers": {
+        "codex": { "model": "gpt-5.6-sol", "reasoningEffort": "medium" },
+        "claude": { "model": "claude-opus-5", "reasoningEffort": "medium" }
+      }
+    },
+    "reasoning": {
+      "preferredProvider": "codex",
+      "providers": {
+        "codex": { "model": "gpt-5.6-sol", "reasoningEffort": "high" },
+        "claude": { "model": "claude-opus-5", "reasoningEffort": "high" }
+      }
+    },
+    "review": {
+      "preferredProvider": "claude",
+      "providers": {
+        "codex": { "model": "gpt-5.6-sol", "reasoningEffort": "high" },
+        "claude": { "model": "claude-opus-5", "reasoningEffort": "high" }
+      }
+    }
+  }
+}

@@ -104,7 +104,7 @@ export async function observeSupervisionTaskResources(input: {
     groups[0]!.source === "provider_reported" &&
     groups[0]!.runCount === accountedRunIds.length;
   const descriptors = new Map<string, ResourceAccountingDescriptor>();
-  if (allStartedObserved && groups.length === 2)
+  if (allStartedObserved && groups.length >= 2)
     for (const group of groups)
       descriptors.set(
         group.accountingDescriptorHash,
@@ -114,7 +114,7 @@ export async function observeSupervisionTaskResources(input: {
         )) as ResourceAccountingDescriptor,
       );
   const comparableTotal =
-    allStartedObserved && groups.length === 2
+    allStartedObserved && groups.length >= 2
       ? comparableSupervisionResourceTotal({
           runIds: accountedRunIds,
           groups,

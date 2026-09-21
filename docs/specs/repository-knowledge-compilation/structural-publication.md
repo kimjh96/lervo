@@ -2,7 +2,7 @@
 
 ## Sources
 
-The scanner walks repository files except explicit VCS, dependency, generated, state, secret, size, and count exclusions. It excludes Python `.venv` and `venv` directories at every depth, like `node_modules`. Scans and internal knowledge registries ignore Finder `.DS_Store` files and regular AppleDouble `._*` sidecars as transport metadata. Directories or symbolic links with those names remain subject to normal fail-closed safety checks.
+The scanner walks repository files except VCS, dependency, generated, state, secret, size, and count exclusions. It excludes Python `.venv` and `venv` directories at every depth, like `node_modules`. Generated tool-cache directories (`.cache`, `.mypy_cache`, `.pytest_cache`, `.ruff_cache`, `.tox`, `.nox`, and `__pycache__`) are excluded at every depth even when an older tracked policy omits them; these rebuildable bytes are never canonical source or managed change evidence. The default policy also records these patterns for new repositories. Scans and internal knowledge registries ignore Finder `.DS_Store` files and regular AppleDouble `._*` sidecars as transport metadata. Directories or symbolic links with those names remain subject to normal fail-closed safety checks.
 
 It classifies documentation, instructions, code, configuration, schemas, tests, automation, skills, workflows, agents, policies, hooks, client and tool configuration, revision identity, verified artifacts, allowlisted events, sensitive logs and traces, and unsupported binaries.
 

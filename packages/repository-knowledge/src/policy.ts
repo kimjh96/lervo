@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { parse, stringify } from "yaml";
+import { transientToolCacheDirectoryNames } from "@lervo/context";
 
 import type { RepositoryKnowledgePolicy } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
@@ -25,6 +26,7 @@ export const defaultRepositoryKnowledgePolicy: RepositoryKnowledgePolicy = {
     "**/.venv/**",
     "venv/**",
     "**/venv/**",
+    ...transientToolCacheDirectoryNames.flatMap((name) => [`${name}/**`, `**/${name}/**`]),
     "node_modules/**",
     "**/node_modules/**",
     "dist/**",

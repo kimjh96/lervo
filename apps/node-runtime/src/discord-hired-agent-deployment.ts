@@ -1,155 +1,27 @@
 import { randomUUID } from "node:crypto";
-import { chmod, lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { chmod, lstat, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 import type { DiscordAdministrationPort } from "@lervo/adapter-discord";
 import type { WorkforceAgent } from "@lervo/agent-workforce";
 
-import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
+import type { NodeRuntimeConfig } from "./config-types.js";
 import { parseNodeRuntimeConfig } from "./config.js";
 import type { DiscordAgentOrganizationDeploymentPort } from "./discord-agent-organization-deployment.js";
-
-interface PreparedWebhook {
-  schemaVersion: 1;
-  agentId: string;
-  conversationId: string;
-  guildId: string;
-  channelId: string;
-  webhookId: string;
-  tokenFile: string;
-  displayName?: string;
-}
+import {
+  createHiredAgentConversationDeployment,
+  ensureDiscordOwnerDirectory,
+  hiredAgentOwnerPath,
+  hiredAgentParticipantId,
+  readPreparedDiscordWebhook,
+  writePreparedDiscordWebhook,
+} from "./discord-hired-agent-configuration.js";
 
 export interface ConversationWorkforceDeploymentPort {
   prepare(input: {
     agent: WorkforceAgent;
     conversationId: string;
-  }): Promise<{ participantId: string; webhookId: string; configurationChanged: boolean }>;
-}
-
-function childParticipantId(agentId: string): string {
-  return `ptc_agent_${agentId.slice("agt_".length)}`;
-}
-
-function childIntegrationId(agentId: string): string {
-  return `itg_discord_${agentId.slice("agt_".length)}`;
-}
-
-function ownerPath(directory: string, agentId: string, suffix: string): string {
-  return resolve(directory, `${agentId}.${suffix}`);
-}
-
-async function ensureOwnerDirectory(path: string): Promise<void> {
-  await mkdir(path, { recursive: true, mode: 0o700 });
-  const metadata = await lstat(path);
-  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
-    throw new Error("The Discord webhook credential location is not a physical directory.");
-  }
-  await chmod(path, 0o700);
-}
-
-async function readPreparedWebhook(path: string): Promise<PreparedWebhook | null> {
-  try {
-    const metadata = await lstat(path);
-    if (!metadata.isFile() || metadata.isSymbolicLink()) {
-      throw new Error("The prepared Discord webhook record is not a physical file.");
-    }
-    const value = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
-    if (
-      value.schemaVersion !== 1 ||
-      typeof value.agentId !== "string" ||
-      typeof value.conversationId !== "string" ||
-      typeof value.guildId !== "string" ||
-      typeof value.channelId !== "string" ||
-      typeof value.webhookId !== "string" ||
-      typeof value.tokenFile !== "string" ||
-      (value.displayName !== undefined && typeof value.displayName !== "string")
-    ) {
-      throw new Error("The prepared Discord webhook record is invalid.");
-    }
-    return value as unknown as PreparedWebhook;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
-  }
-}
-
-async function writePreparedWebhook(path: string, value: PreparedWebhook): Promise<void> {
-  const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
-  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, {
-    encoding: "utf8",
-    flag: "wx",
-    mode: 0o600,
-  });
-  await rename(temporary, path);
-  await chmod(path, 0o600);
-}
-
-function childDeployment(input: {
-  parent: NodeDiscordConversationConfig;
-  agent: WorkforceAgent;
-  conversationId: string;
-  webhook: PreparedWebhook;
-}): NodeDiscordConversationConfig {
-  const conversation = input.parent.conversations.find(
-    (candidate) => candidate.conversationId === input.conversationId,
-  );
-  if (conversation === undefined) {
-    throw new Error("The hired agent conversation is outside the parent deployment.");
-  }
-  const provider =
-    input.agent.provider === "any"
-      ? (input.parent.routing?.response.provider ?? input.parent.command.provider)
-      : input.agent.provider;
-  return {
-    integrationId: childIntegrationId(input.agent.agentId),
-    applicationId: input.parent.applicationId,
-    botTokenFile: input.parent.botTokenFile,
-    intents: input.parent.intents,
-    allowedGuildIds: [conversation.tenantKey],
-    allowDirectMessages: false,
-    workerId: `discord-${input.agent.agentId.slice("agt_".length)}`,
-    agentParticipantId: childParticipantId(input.agent.agentId),
-    agentId: input.agent.agentId,
-    speaker: {
-      kind: "webhook",
-      webhooks: [
-        {
-          channelId: conversation.conversationKey,
-          webhookId: input.webhook.webhookId,
-          tokenFile: input.webhook.tokenFile,
-        },
-      ],
-    },
-    ...(input.parent.organization === undefined ? {} : { organization: input.parent.organization }),
-    conversations: [conversation],
-    participants: input.parent.participants.filter(
-      (participant) => participant.actorKind === "human",
-    ),
-    ...(input.parent.routing === undefined
-      ? {}
-      : {
-          routing: {
-            ...input.parent.routing,
-            response: { ...input.parent.routing.response, provider },
-          },
-        }),
-    command: {
-      ...input.parent.command,
-      roleId: input.agent.roleId,
-      provider,
-      assignmentId: null,
-      agentId: input.agent.agentId,
-    },
-    ...(input.parent.gateway === undefined ? {} : { gateway: input.parent.gateway }),
-    ...(input.parent.http === undefined ? {} : { http: input.parent.http }),
-    policy: {
-      ...input.parent.policy,
-      respondTo: ["human", "agent", "system"],
-      unaddressedHumanMessages: "evaluate",
-      mode: "relevant",
-    },
-  };
+  }): Promise<{ participantId: string; webhookId: string | null; configurationChanged: boolean }>;
 }
 
 export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploymentPort {
@@ -206,7 +78,9 @@ export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploym
       const recorded =
         directory === undefined
           ? null
-          : await readPreparedWebhook(ownerPath(directory, input.agent.agentId, "deployment.json"));
+          : await readPreparedDiscordWebhook(
+              hiredAgentOwnerPath(directory, input.agent.agentId, "deployment.json"),
+            );
       if (recorded !== null) {
         if (this.options.administration.deleteIncomingWebhook === undefined) {
           throw new Error("Automatic hired-agent Discord retirement is not configured.");
@@ -220,15 +94,19 @@ export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploym
       await this.options.organization?.deactivate?.({ agent: input.agent });
       if (directory !== undefined) {
         await Promise.all([
-          rm(ownerPath(directory, input.agent.agentId, "token"), { force: true }),
-          rm(ownerPath(directory, input.agent.agentId, "deployment.json"), { force: true }),
-          rm(ownerPath(directory, input.agent.agentId, "pending.json"), { force: true }),
+          rm(hiredAgentOwnerPath(directory, input.agent.agentId, "token"), { force: true }),
+          rm(hiredAgentOwnerPath(directory, input.agent.agentId, "deployment.json"), {
+            force: true,
+          }),
+          rm(hiredAgentOwnerPath(directory, input.agent.agentId, "pending.json"), {
+            force: true,
+          }),
         ]);
       }
       return { configurationChanged: false, webhookId: recorded?.webhookId ?? null };
     }
     if (existing.integrationId === this.options.parentIntegrationId) {
-      throw new Error("The product-owner Discord deployment cannot retire itself.");
+      throw new Error("The parent Discord deployment cannot retire itself.");
     }
     if (existing.speaker?.kind !== "webhook" || existing.speaker.webhooks.length !== 1) {
       throw new Error("The hired-agent Discord deployment is not a managed webhook speaker.");
@@ -268,8 +146,10 @@ export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploym
     const directory = dirname(webhook.tokenFile);
     await Promise.all([
       rm(webhook.tokenFile, { force: true }),
-      rm(ownerPath(directory, input.agent.agentId, "deployment.json"), { force: true }),
-      rm(ownerPath(directory, input.agent.agentId, "pending.json"), { force: true }),
+      rm(hiredAgentOwnerPath(directory, input.agent.agentId, "deployment.json"), {
+        force: true,
+      }),
+      rm(hiredAgentOwnerPath(directory, input.agent.agentId, "pending.json"), { force: true }),
     ]);
     return { configurationChanged: true, webhookId: webhook.webhookId };
   }
@@ -277,7 +157,7 @@ export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploym
   private async prepareExclusive(input: {
     agent: WorkforceAgent;
     conversationId: string;
-  }): Promise<{ participantId: string; webhookId: string; configurationChanged: boolean }> {
+  }): Promise<{ participantId: string; webhookId: string | null; configurationChanged: boolean }> {
     const configMetadata = await lstat(this.options.configPath);
     if (!configMetadata.isFile() || configMetadata.isSymbolicLink()) {
       throw new Error("The Node runtime configuration is not a physical file.");
@@ -306,11 +186,28 @@ export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploym
       throw new Error("The hired agent requires an allowlisted guild conversation.");
     }
     const directory = parent.administration.webhookCredentialDirectory;
-    await ensureOwnerDirectory(directory);
-    const recordPath = ownerPath(directory, input.agent.agentId, "deployment.json");
-    const tokenFile = ownerPath(directory, input.agent.agentId, "token");
-    const pendingPath = ownerPath(directory, input.agent.agentId, "pending.json");
+    await ensureDiscordOwnerDirectory(directory);
+    const recordPath = hiredAgentOwnerPath(directory, input.agent.agentId, "deployment.json");
+    const tokenFile = hiredAgentOwnerPath(directory, input.agent.agentId, "token");
+    const pendingPath = hiredAgentOwnerPath(directory, input.agent.agentId, "pending.json");
     const existing = deployments.find((candidate) => candidate.agentId === input.agent.agentId);
+    if (existing !== undefined && existing.speaker?.kind !== "webhook") {
+      if (
+        !existing.conversations.some(
+          (candidate) => candidate.conversationId === input.conversationId,
+        )
+      ) {
+        throw new Error(
+          "The existing hired-agent Discord application is outside the requested conversation.",
+        );
+      }
+      await this.options.organization?.bind({ config: existing, agent: input.agent });
+      return {
+        participantId: existing.agentParticipantId,
+        webhookId: null,
+        configurationChanged: false,
+      };
+    }
     if (existing?.speaker?.kind === "webhook") {
       const configuredWebhook = existing.speaker.webhooks.find(
         (candidate) => candidate.channelId === conversation.conversationKey,
@@ -320,7 +217,7 @@ export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploym
           "The existing hired-agent Discord deployment differs from its owner record.",
         );
       }
-      let recorded = await readPreparedWebhook(recordPath);
+      let recorded = await readPreparedDiscordWebhook(recordPath);
       if (
         recorded !== null &&
         (recorded.agentId !== input.agent.agentId ||
@@ -349,7 +246,7 @@ export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploym
           tokenFile,
           displayName: input.agent.displayName,
         };
-        await writePreparedWebhook(recordPath, recorded);
+        await writePreparedDiscordWebhook(recordPath, recorded);
       }
       await this.options.organization?.bind({ config: existing, agent: input.agent });
       return {
@@ -358,7 +255,7 @@ export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploym
         configurationChanged: false,
       };
     }
-    let webhook = await readPreparedWebhook(recordPath);
+    let webhook = await readPreparedDiscordWebhook(recordPath);
     if (webhook === null) {
       try {
         await writeFile(
@@ -395,7 +292,7 @@ export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploym
         tokenFile,
         displayName: input.agent.displayName,
       };
-      await writePreparedWebhook(recordPath, webhook);
+      await writePreparedDiscordWebhook(recordPath, webhook);
     }
     if (
       webhook.agentId !== input.agent.agentId ||
@@ -410,7 +307,7 @@ export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploym
       ...config,
       discordConversations: [
         ...deployments,
-        childDeployment({
+        createHiredAgentConversationDeployment({
           parent,
           agent: input.agent,
           conversationId: input.conversationId,
@@ -432,7 +329,7 @@ export class DiscordHiredAgentDeployment implements ConversationWorkforceDeploym
     await chmod(this.options.configPath, configMetadata.mode & 0o777);
     await rm(pendingPath, { force: true });
     return {
-      participantId: childParticipantId(input.agent.agentId),
+      participantId: hiredAgentParticipantId(input.agent.agentId),
       webhookId: webhook.webhookId,
       configurationChanged: true,
     };

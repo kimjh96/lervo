@@ -8,7 +8,7 @@ import {
   LEXICAL_V2_SEARCH_ENGINE,
 } from "@lervo/search-adapter-lexical-v2";
 
-import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
+import { collectInteractiveLocalKnowledgeSources } from "./knowledge-sources.js";
 
 export interface ProductSearchInspectionInput {
   repositoryRoot: string;
@@ -33,7 +33,7 @@ interface ProductSearchInspectionDependencies {
 const defaultDependencies: ProductSearchInspectionDependencies = {
   captureSnapshot: captureRepositorySnapshot,
   async queryKnowledge(input) {
-    const supplementalSources = await collectLocalKnowledgeSources(input.repositoryRoot);
+    const supplementalSources = await collectInteractiveLocalKnowledgeSources(input.repositoryRoot);
     return queryRepositoryKnowledge({
       ...input,
       supplementalSources,

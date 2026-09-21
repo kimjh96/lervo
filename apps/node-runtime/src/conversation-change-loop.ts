@@ -13,6 +13,7 @@ export interface ConversationChangeLoopOptions {
   onFailure(error: unknown): void;
   intervalMs: number;
   continueOnFailure?: boolean;
+  failureRetryMs?(error: unknown): number;
   schedule?: ConversationChangeSchedule;
   subscribe?(notify: () => void): () => void;
   nextWakeupAt?(): number | null;
@@ -77,7 +78,13 @@ export class ConversationChangeLoop {
       const operation = this.run();
       this.inFlight = operation;
       const finish = () => {
-        if (this.inFlight === operation) this.inFlight = null;
+        if (this.inFlight !== operation) return;
+        this.inFlight = null;
+        if (!this.stopped && this.pending) {
+          this.pending = false;
+          this.cancel();
+          this.schedule(0);
+        }
       };
       void operation.then(finish, finish);
     });
@@ -85,10 +92,12 @@ export class ConversationChangeLoop {
 
   private async run(): Promise<void> {
     let failed = false;
+    let failure: unknown;
     try {
       await this.options.runCycle();
     } catch (error) {
       failed = true;
+      failure = error;
       if (!this.options.continueOnFailure) {
         this.stopped = true;
         this.unsubscribe?.();
@@ -97,11 +106,18 @@ export class ConversationChangeLoop {
       this.options.onFailure(error);
     }
     if (this.stopped) return;
-    if (this.pending && !failed) {
+    if (this.pending) {
+      this.pending = false;
       this.schedule(0);
       return;
     }
-    let delay = this.options.intervalMs;
+    let delay =
+      failed && this.options.failureRetryMs !== undefined
+        ? this.options.failureRetryMs(failure)
+        : this.options.intervalMs;
+    if (!Number.isSafeInteger(delay) || delay < 100 || delay > 300_000) {
+      delay = this.options.intervalMs;
+    }
     if (this.unsubscribe !== undefined && !failed) {
       try {
         const deadline = this.options.nextWakeupAt?.() ?? null;

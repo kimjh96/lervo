@@ -134,7 +134,7 @@ describe("co-resident Discord peer agents", () => {
     ]);
   });
 
-  it("does not let an automatically discovered peer reset an automation chain", () => {
+  it("does not let every automatic peer start an unaddressed automation chain", () => {
     const first = deployment({
       applicationId: "999999999999999991",
       participantId: "ptc_firstagent01",
@@ -221,7 +221,7 @@ describe("co-resident Discord peer agents", () => {
     ).toThrow(expect.objectContaining({ code: "invalid_config" }));
   });
 
-  it("does not duplicate an exact configured peer that is also co-resident", () => {
+  it("refreshes one configured co-resident peer from the current hired role binding", () => {
     const secondAgentId = `agt_${"2".repeat(24)}`;
     const first = deployment({
       applicationId: "999999999999999991",
@@ -243,25 +243,47 @@ describe("co-resident Discord peer agents", () => {
       participantId: "ptc_secondagent1",
       agentId: secondAgentId,
     });
-    expect(
-      createCoResidentDiscordPeerAgents({
-        configs: [first, second],
-        participations: [
-          {
-            agentId: first.agentId!,
-            displayName: "First",
-            roleId: "product-owner",
-            agentBinding: binding(first.agentId!),
-          },
-          {
-            agentId: second.agentId!,
-            displayName: "Second",
-            roleId: "ceo",
-            agentBinding: binding(second.agentId!),
-          },
-        ],
-        currentIndex: 0,
+    const currentBinding = {
+      ...binding(secondAgentId),
+      roleContractHash: `sha256:${"c".repeat(64)}`,
+      roleProfileHash: `sha256:${"d".repeat(64)}`,
+    };
+    const refreshed = createCoResidentDiscordPeerAgents({
+      configs: [first, second],
+      participations: [
+        {
+          agentId: first.agentId!,
+          displayName: "First",
+          roleId: "product-owner",
+          agentBinding: binding(first.agentId!),
+        },
+        {
+          agentId: second.agentId!,
+          displayName: "Second",
+          roleId: "ceo",
+          agentBinding: currentBinding,
+        },
+      ],
+      currentIndex: 0,
+    });
+    expect(refreshed).toEqual([
+      expect.objectContaining({
+        participantId: second.agentParticipantId,
+        agentBinding: currentBinding,
       }),
-    ).toEqual([]);
+    ]);
+    const platform = createDiscordPlatformBindings({
+      config: first,
+      projectId: "prj_12345678",
+      agentRoleId: "product-owner",
+      peerAgents: refreshed,
+    });
+    expect(
+      platform.participants.filter(
+        (participant) => participant.participantKey === `bot:${second.applicationId}`,
+      ),
+    ).toEqual([
+      expect.objectContaining({ actor: expect.objectContaining({ agentBinding: currentBinding }) }),
+    ]);
   });
 });

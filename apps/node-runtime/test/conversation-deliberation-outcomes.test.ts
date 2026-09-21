@@ -138,6 +138,9 @@ function terminalNotification(
       status,
       artifactCount: status === "converged" ? 4 : 3,
       nextAction: "none",
+      ...(status === "failed"
+        ? { failureReasonCode: "deliberation_budget_exhausted" }
+        : { failureReasonCode: null }),
     },
     occurredAt: "2026-09-09T00:00:00.000Z",
     state: "leased",
@@ -218,6 +221,27 @@ describe("conversation deliberation outcome coordinator", () => {
     expect(content).toContain("검토한 제품 경계를 채택합니다");
     expect(content).not.toContain("independent review");
     expect(events[0]!.replyToEventId).toBe(origin.sourceEventId);
+  });
+
+  it("explains a proved terminal failure instead of emitting a generic safety message", async () => {
+    const koreanOrigin = { ...origin, responseLanguage: "ko" as const };
+    const { application, artifactStore, coordinator, events } = fixture({
+      origin: koreanOrigin,
+      notification: terminalNotification("failed"),
+    });
+
+    await coordinator.observe(application, {
+      status: "settled",
+      deliberationId: "dlb_queue0001",
+      summary: terminalNotification("failed").summary,
+    });
+
+    const content = new TextDecoder().decode(
+      await artifactStore.get(`lervo-cas://sha256/${events[0]!.content.contentHash.slice(7)}`),
+    );
+    expect(content).toContain("실행 예산");
+    expect(content).toContain("자동 재시도하지 않습니다");
+    expect(content).not.toContain("안전하게 완료하지 못했습니다");
   });
 
   it("uses configured conversation fan-out only for a legacy job without an origin", async () => {

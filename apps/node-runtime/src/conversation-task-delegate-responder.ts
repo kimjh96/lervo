@@ -1,8 +1,4 @@
 import {
-  createConversationInboundEvent,
-  hashConversationSourceEventKey,
-} from "@lervo/conversation-contract";
-import {
   createVerifiedConversationControlReply,
   readConversationControlMessage,
 } from "@lervo/conversation-control";
@@ -12,16 +8,18 @@ import type { ConversationInboundEvent } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import type { ConversationRequestedEffect } from "./conversation-intent-resolver.js";
+import type { ConversationPeerTurnDispatcher } from "./conversation-peer-turn-router.js";
 import type { DiscordPeerAgentBinding } from "./discord-conversation-composition.js";
 import type { DiscordPlatformActionResponder } from "./discord-conversation-mode.js";
+import { delegatedTaskContent, delegatedTaskId } from "./conversation-delegated-task.js";
 
 type NonPlatformEffect =
   { kind: "none" } | { kind: "repository_work" } | { kind: "supervision_goal_request" };
 
-/** The reviewed automation chain bound a delegated turn must stay inside. */
-const maximumAutomationDepth = 8;
+type DelegationTarget =
+  { kind: "participant"; participantId: string } | { kind: "legacy_role"; roleId: string };
 
-function delegation(value: string): { roleId: string; task: string } {
+function delegation(value: string): { target: DelegationTarget; task: string } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(value);
@@ -31,17 +29,36 @@ function delegation(value: string): { roleId: string; task: string } {
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error("The delegation specification must be an object.");
   }
-  const { roleId, task, ...rest } = parsed as Record<string, unknown>;
+  const { participantId, roleId, task, ...rest } = parsed as Record<string, unknown>;
+  const participantSelected = typeof participantId === "string" && participantId.trim().length > 0;
+  const roleSelected = typeof roleId === "string" && roleId.trim().length > 0;
   if (
     Object.keys(rest).length !== 0 ||
-    typeof roleId !== "string" ||
     typeof task !== "string" ||
-    roleId.trim().length === 0 ||
-    task.trim().length === 0
+    task.trim().length === 0 ||
+    participantSelected === roleSelected ||
+    (participantId !== undefined && !participantSelected) ||
+    (roleId !== undefined && !roleSelected)
   ) {
-    throw new Error("The delegation specification requires exactly roleId and task.");
+    throw new Error(
+      "The delegation specification requires task and exactly one target: participantId or legacy roleId.",
+    );
   }
-  return { roleId: roleId.trim(), task: task.trim() };
+  return {
+    target: participantSelected
+      ? { kind: "participant", participantId: participantId.trim() }
+      : { kind: "legacy_role", roleId: (roleId as string).trim() },
+    task: task.trim(),
+  };
+}
+
+function remoteAddress(peer: DiscordPeerAgentBinding): string {
+  const applicationId = peer.participantKeys
+    .map((key) => /^bot:(\d{1,32})$/u.exec(key)?.[1])
+    .find((value) => value !== undefined);
+  if (applicationId !== undefined) return `<@${applicationId}>`;
+  if (peer.displayName !== undefined) return `@${peer.displayName}`;
+  throw new Error("The remote peer has no exact Discord address.");
 }
 
 /**
@@ -56,13 +73,11 @@ export class ConversationTaskDelegateResponder implements DiscordPlatformActionR
   constructor(
     private readonly options: {
       artifactStore: ArtifactStore;
-      integrationId: string;
-      projectId: string;
       parentParticipantId: string;
       parentRoleId: string;
       parentAgentBinding?: ConversationInboundEvent["actor"]["agentBinding"];
       peers: readonly DiscordPeerAgentBinding[];
-      dispatch(event: ConversationInboundEvent): Promise<void>;
+      dispatcher: ConversationPeerTurnDispatcher;
       now?: () => Date;
     },
   ) {}
@@ -75,61 +90,74 @@ export class ConversationTaskDelegateResponder implements DiscordPlatformActionR
     if (!authorization.effectRequesterAuthorized || effect.kind !== "workforce_task_delegate") {
       throw new Error("The conversation delegation action is not authorized.");
     }
-    const { roleId, task } = delegation(effect.specification);
-    const target = this.options.peers.find(
+    const { target: requestedTarget, task } = delegation(effect.specification);
+    const candidates = this.options.peers.filter(
       (peer) =>
-        peer.roleId === roleId && peer.conversationIds.includes(input.event.target.conversationId),
+        peer.conversationIds.includes(input.event.target.conversationId) &&
+        (requestedTarget.kind === "participant"
+          ? peer.participantId === requestedTarget.participantId
+          : peer.roleId === requestedTarget.roleId),
     );
-    if (target === undefined) {
-      throw new Error("No hired agent with that role participates in this conversation.");
+    if (candidates.length === 0) {
+      throw new Error(
+        "No hired agent matching that exact target participates in this conversation.",
+      );
     }
-    const artifact = await this.options.artifactStore.put(task);
-    await this.options.dispatch(
-      createConversationInboundEvent({
-        sourceEventKeyHash: hashConversationSourceEventKey(
-          `delegate:${input.event.eventId}:${target.participantId}`,
-        ),
-        target: {
-          integrationId: this.options.integrationId,
-          projectId: this.options.projectId,
-          conversationId: input.event.target.conversationId,
-          threadId: input.event.target.threadId,
-        },
-        kind: "message.created",
-        actor: {
-          kind: "agent",
-          participantId: this.options.parentParticipantId,
-          roleId: this.options.parentRoleId,
-          agentBinding: this.options.parentAgentBinding ?? null,
-        },
-        content: {
-          artifactId: `art_${artifact.contentHash.slice("sha256:".length, 60)}`,
-          contentHash: artifact.contentHash,
-          byteCount: artifact.byteCount,
-          mediaType: "text/plain; charset=utf-8",
-        },
-        // Addressing the hired agent by participant is what makes the ownership ladder select it,
-        // so the delegated turn is owned and answered by that agent rather than this one.
-        mentions: { roleIds: [], participantIds: [target.participantId] },
-        replyToEventId: null,
-        signalCode: null,
-        automationDepth: Math.min(input.event.automationDepth + 1, maximumAutomationDepth),
-        occurredAt: (this.options.now ?? (() => new Date()))().toISOString(),
-      }),
-    );
+    if (candidates.length > 1) {
+      throw new Error(
+        "The legacy role selector matches more than one hired agent; use an exact participantId.",
+      );
+    }
+    if (this.options.parentAgentBinding === undefined || this.options.parentAgentBinding === null) {
+      throw new Error("The delegating conversation speaker has no durable hired-agent binding.");
+    }
+    const target = candidates[0]!;
     const message = await readConversationControlMessage({
       artifactStore: this.options.artifactStore,
       event: input.event,
     });
-    const name = target.displayName ?? roleId;
-    const content = /\p{Script=Hangul}/u.test(message)
-      ? `${name}에게 이 작업을 넘겼습니다. 해당 에이전트가 자신의 맥락과 세션에서 이어서 응답하고 수행합니다.`
-      : `I handed this task to ${name}. That agent answers and works from its own context and session.`;
-    return createVerifiedConversationControlReply({
+    const delegatedTask = delegatedTaskContent(task);
+    const taskId = delegatedTaskId({
+      sourceEventId: input.event.eventId,
+      sourceParticipantId: this.options.parentParticipantId,
+      targetParticipantId: target.participantId,
+    });
+    const dispatch = await this.options.dispatcher.dispatch({
+      taskId,
+      sourceEvent: input.event,
+      sourceActor: {
+        kind: "agent",
+        participantId: this.options.parentParticipantId,
+        roleId: this.options.parentRoleId,
+        agentBinding: this.options.parentAgentBinding,
+      },
+      targetParticipantId: target.participantId,
+      task: delegatedTask,
+      requestedAt: (this.options.now ?? (() => new Date()))().toISOString(),
+    });
+    const name = target.displayName ?? target.roleId;
+    const content =
+      dispatch === "accepted"
+        ? /\p{Script=Hangul}/u.test(message)
+          ? `${name}에게 이 작업을 넘겼습니다. 해당 에이전트가 자신의 맥락과 세션에서 이어서 응답하고 수행합니다.`
+          : `I handed this task to ${name}. That agent answers and works from its own context and session.`
+        : `${remoteAddress(target)} ${delegatedTask}`;
+    const reply = await createVerifiedConversationControlReply({
       artifactStore: this.options.artifactStore,
       writingContract: fixedConversationStatusWritingContract,
       content,
       ...(this.options.now === undefined ? {} : { now: this.options.now }),
     });
+    return dispatch === "accepted"
+      ? reply
+      : {
+          ...reply,
+          coordination: {
+            kind: "task.assignment" as const,
+            taskId,
+            coordinatorParticipantId: this.options.parentParticipantId,
+          },
+          audienceParticipation: "eligible" as const,
+        };
   }
 }

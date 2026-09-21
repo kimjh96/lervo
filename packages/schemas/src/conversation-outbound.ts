@@ -13,6 +13,7 @@ import {
 } from "./common.js";
 import {
   conversationAgentBindingSchema,
+  conversationCoordinationSchema,
   conversationContentReferenceSchema,
   conversationTargetSchema,
 } from "./conversation.js";
@@ -44,6 +45,7 @@ export const conversationOutboundMessageSchema = {
       additionalProperties: false,
     },
     content: conversationContentReferenceSchema,
+    coordination: conversationCoordinationSchema,
     publicationPermit: writingPublicationPermitValueSchema,
     audienceParticipation: {
       type: "string",

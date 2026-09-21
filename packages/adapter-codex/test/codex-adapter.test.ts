@@ -996,5 +996,100 @@ describe("Codex managed adapter", () => {
       type: "provider.turn.failed",
       payload: { failureCode: "codex_turn_failed" },
     });
+    const overloaded = normalizerFor("gpt-5.6-terra");
+    overloaded.normalize({
+      method: "turn/started",
+      params: { threadId: session.providerSessionId, turn: { id: "codex-turn-10" } },
+    });
+    overloaded.normalize({
+      method: "error",
+      params: {
+        threadId: session.providerSessionId,
+        error: { codexErrorInfo: "server_overloaded", message: "private provider detail" },
+      },
+    });
+    expect(
+      overloaded.normalize({
+        method: "turn/completed",
+        params: {
+          threadId: session.providerSessionId,
+          turn: { id: "codex-turn-10", status: "failed", error: { message: "private" } },
+        },
+      }),
+    ).toMatchObject({
+      type: "provider.turn.failed",
+      payload: { failureCode: "provider_capacity_unavailable" },
+    });
+    for (const codexErrorInfo of [
+      { type: "HttpConnectionFailed", httpStatusCode: 503 },
+      { HttpConnectionFailed: { httpStatusCode: 503 } },
+    ]) {
+      expect(
+        normalizerFor("gpt-5.6-terra").normalize({
+          method: "turn/completed",
+          params: {
+            threadId: session.providerSessionId,
+            turn: { id: "codex-turn-11", status: "failed", error: { codexErrorInfo } },
+          },
+        }),
+      ).toMatchObject({
+        type: "provider.turn.failed",
+        payload: { failureCode: "provider_capacity_unavailable" },
+      });
+    }
+    const structuredNotification = normalizerFor("gpt-5.6-terra");
+    structuredNotification.normalize({
+      method: "turn/started",
+      params: { threadId: session.providerSessionId, turn: { id: "codex-turn-13" } },
+    });
+    structuredNotification.normalize({
+      method: "error",
+      params: {
+        threadId: session.providerSessionId,
+        error: { codexErrorInfo: { type: "HttpConnectionFailed", httpStatusCode: 503 } },
+      },
+    });
+    expect(
+      structuredNotification.normalize({
+        method: "turn/completed",
+        params: {
+          threadId: session.providerSessionId,
+          turn: { id: "codex-turn-13", status: "failed", error: { message: "private" } },
+        },
+      }),
+    ).toMatchObject({
+      payload: { failureCode: "provider_capacity_unavailable" },
+    });
+    structuredNotification.normalize({
+      method: "turn/started",
+      params: { threadId: session.providerSessionId, turn: { id: "codex-turn-14" } },
+    });
+    expect(
+      structuredNotification.normalize({
+        method: "turn/completed",
+        params: {
+          threadId: session.providerSessionId,
+          turn: { id: "codex-turn-14", status: "failed", error: { message: "private" } },
+        },
+      }),
+    ).toMatchObject({
+      payload: { failureCode: "codex_turn_failed" },
+    });
+    expect(
+      normalizerFor("gpt-5.6-terra").normalize({
+        method: "turn/completed",
+        params: {
+          threadId: session.providerSessionId,
+          turn: {
+            id: "codex-turn-12",
+            status: "failed",
+            error: { codexErrorInfo: { type: "HttpConnectionFailed", httpStatusCode: 429 } },
+          },
+        },
+      }),
+    ).toMatchObject({
+      type: "provider.turn.failed",
+      payload: { failureCode: "codex_turn_failed" },
+    });
   });
 });

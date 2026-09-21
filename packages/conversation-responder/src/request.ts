@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import type { ConversationCompletedEffectResult } from "@lervo/interaction";
 import { validateSchema } from "@lervo/schemas";
 
 import {
@@ -8,6 +9,18 @@ import {
   type ManagedConversationResponseRequest,
   type ManagedConversationResponderOptions,
 } from "./types.js";
+
+function validCompletedEffect(value: ConversationCompletedEffectResult | undefined): boolean {
+  if (value === undefined) return true;
+  return (
+    /^[a-z][a-z0-9_.-]{0,95}$/u.test(value.effectId) &&
+    /^[a-z][a-z0-9_]{0,63}$/u.test(value.resultCode) &&
+    value.targetLabel.trim().length > 0 &&
+    [...value.targetLabel].length <= 256 &&
+    value.facts.length <= 8 &&
+    value.facts.every((fact) => fact.trim().length > 0 && [...fact].length <= 512)
+  );
+}
 
 export function validateConversationResponseRequest(
   options: ManagedConversationResponderOptions,
@@ -19,7 +32,8 @@ export function validateConversationResponseRequest(
     input.event.eventId !== input.decision.eventId ||
     input.decision.projectId !== options.projectId ||
     input.policy.policyId !== input.decision.policyId ||
-    input.policy.roleId !== input.decision.roleId
+    input.policy.roleId !== input.decision.roleId ||
+    !validCompletedEffect(input.context?.completedEffect)
   ) {
     throw new ManagedConversationResponseError(
       "invalid_response_request",
@@ -49,6 +63,10 @@ export function validateConversationResponsePlan(
       (!Number.isSafeInteger(plan.maximumResponseCharacters) ||
         plan.maximumResponseCharacters < 1 ||
         plan.maximumResponseCharacters > 65_536)) ||
+    (plan.deadlines?.providerTurnMs !== undefined &&
+      (!Number.isSafeInteger(plan.deadlines.providerTurnMs) ||
+        plan.deadlines.providerTurnMs < 1 ||
+        plan.deadlines.providerTurnMs > 10 * 60_000)) ||
     (plan.executionIdentity.agentId !== null &&
       !/^agt_[a-f0-9]{24}$/u.test(plan.executionIdentity.agentId)) ||
     !/^[a-z][a-z0-9_-]{0,63}$/u.test(plan.executionIdentity.provider) ||
@@ -87,6 +105,7 @@ export function conversationResponseRequestDigest(input: {
     maximumResponseCharacters: input.plan.maximumResponseCharacters ?? 65_536,
     messageHash: input.request.event.content.contentHash,
     priorTurns: input.request.context?.priorTurns ?? [],
+    completedEffect: input.request.context?.completedEffect ?? null,
   });
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
@@ -98,6 +117,27 @@ export function conversationResponseInstructions(
   executionRoleId = input.policy.roleId,
   maximumResponseCharacters = 65_536,
 ): string {
+  const governedDiscussionRequirements =
+    input.event.coordination?.kind === "discussion.assignment"
+      ? [
+          "This is a governed discussion assignment. Produce this durable agent's independent, role- and context-grounded judgment only. An empty priorTurns list is intentional isolation, not a failure, and this participant must not claim to perform the coordinator's final synthesis.",
+          "Treat injected repository and workstream status as historical context unless the current assignment supplies direct fresh observation. It may inform analysis, but do not assert that an old failure, blocker, deployment state, or verification result is still current without evidence from this turn.",
+        ]
+      : input.event.coordination?.kind === "discussion.contribution"
+        ? [
+            "This is a governed discussion synthesis. priorTurns contains the verified topic followed by earlier accepted contributions; message is the current accepted contribution. Compare all of them and produce one final decision.",
+            "Attribute every contribution to its exact verified speaker. messageSpeaker identifies the current contribution and each prior turn carries its own speaker; never merge two participant or agent identities even when they share a role.",
+            "Use discussion topic, accepted contributions, and the current message as the authority for this discussion's progress and completion state. Injected repository or workstream context may inform substance, but must not be presented as current discussion or deployment status unless an accepted contribution supplies direct evidence for that claim.",
+          ]
+        : [];
+  const completedEffectRequirements =
+    input.context?.completedEffect === undefined
+      ? []
+      : [
+          "completedEffect is a trusted observation from an authorized action that already ran for this message. Respond from that result; do not propose running the action again or describe it as merely planned.",
+          "Explain the result naturally in the message language and in the durable agent's own voice. Do not expose effect IDs, result codes, routing, or internal execution contracts unless the person explicitly asks for diagnostics.",
+          "Use only completedEffect facts for claims about the action result. Keep the response proportional to the request and do not add generic operational caveats that the result does not require.",
+        ];
   return JSON.stringify({
     task: "conversation_response",
     participationRoleId: input.policy.roleId,
@@ -112,9 +152,13 @@ export function conversationResponseInstructions(
       "Do not claim to have seen documents that were neither loaded nor injected.",
       "When asked about identity, distinguish the durable agent from the turn provider. executionIdentity.requestedModel is configuration only; never present it as the provider-observed answer model.",
       "Write only the response body; do not send directly to an external platform.",
+      ...governedDiscussionRequirements,
+      ...completedEffectRequirements,
       `Keep the response at or below ${maximumResponseCharacters} Unicode characters.`,
     ],
+    messageSpeaker: input.event.actor,
     priorTurns: input.context?.priorTurns ?? [],
+    completedEffect: input.context?.completedEffect ?? null,
     message,
   });
 }

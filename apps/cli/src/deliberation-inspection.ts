@@ -18,6 +18,7 @@ export interface DeliberationInspectionReport {
   sourceStatus: "consistent" | "incomplete" | "inconsistent";
   phase: "rounds" | "running_after_approval" | "interrupted_after_approval" | "completed";
   completionStatus: "converged" | "no_consensus" | "failed" | null;
+  terminalReasonCode: string | null;
   /** Published deliberation artifacts. Retained as the v1 compatibility field. */
   artifactCount: number;
   publishedArtifactCount: number;
@@ -153,6 +154,12 @@ export async function inspectManagedDeliberation(input: {
     terminal?.type === "deliberation.completed" && validTerminalStatus
       ? (terminalStatus as "converged" | "no_consensus" | "failed")
       : null;
+  const terminalReasonCode =
+    completionStatus === "failed" &&
+    typeof terminal?.payload.failureCode === "string" &&
+    /^[a-z][a-z0-9_]{0,63}$/u.test(terminal.payload.failureCode)
+      ? terminal.payload.failureCode
+      : null;
   const lastRound = artifacts.reduce<number | null>((maximum, event) => {
     const round = event.type === "deliberation.artifact.recorded" ? event.payload.round : null;
     return typeof round === "number" ? Math.max(maximum ?? 0, round) : maximum;
@@ -171,6 +178,7 @@ export async function inspectManagedDeliberation(input: {
         : "consistent",
     phase,
     completionStatus,
+    terminalReasonCode,
     artifactCount: artifacts.length,
     publishedArtifactCount: artifacts.length,
     quarantinedArtifactCount,
@@ -213,6 +221,9 @@ export function formatDeliberationInspection(report: DeliberationInspectionRepor
   const lines = [
     `Deliberation inspection: ${report.deliberationId}`,
     `Status: ${phase}`,
+    ...(report.terminalReasonCode === null
+      ? []
+      : [`Terminal reason: ${report.terminalReasonCode}`]),
     `Published artifacts: ${report.publishedArtifactCount}${report.lastRound === null ? "" : ` · last round ${report.lastRound}`}`,
     `Quarantined/recoverable artifacts: ${report.quarantinedArtifactCount}`,
     `Source check: ${report.sourceStatus === "consistent" ? "consistent" : report.sourceStatus === "incomplete" ? "completion needs confirmation" : "inconsistent"}`,

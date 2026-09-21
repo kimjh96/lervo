@@ -33,6 +33,7 @@ function sameRole(
     agentDisplayNameSource?: string;
     displayNameRevision?: number;
     roleId: string;
+    agentRoleId?: string;
     roleVersion: string;
     roleContractHash: string;
     roleProfileHash: string;
@@ -46,7 +47,7 @@ function sameRole(
       (left.agentDisplayName === right.agentDisplayName &&
         left.agentDisplayNameSource === right.agentDisplayNameSource &&
         left.displayNameRevision === right.displayNameRevision)) &&
-    left.roleId === right.roleId &&
+    (left.agentRoleId ?? left.roleId) === right.roleId &&
     left.roleVersion === right.roleVersion &&
     left.roleContractHash === right.roleContractHash &&
     left.roleProfileHash === right.roleProfileHash &&
@@ -288,6 +289,15 @@ export function projectAgentOrganization(input: {
         const membership = activeMembership(projection, payload.membershipId, payload.agentId);
         if (!sameRole(payload, membership)) {
           conflict("The deliberation participant does not preserve the membership role.");
+        }
+        if (
+          payload.bindingVersion === 2 &&
+          (payload.roleId !== payload.policyRoleId ||
+            payload.acceptedAt !== payload.boundAt ||
+            typeof payload.participationAssignmentId !== "string" ||
+            payload.participationAssignmentId.length === 0)
+        ) {
+          conflict("The accepted deliberation assignment coordinates are inconsistent.");
         }
         if (payload.deploymentId !== null) {
           const deployment = projection.deployments.find(

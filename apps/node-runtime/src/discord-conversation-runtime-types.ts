@@ -20,6 +20,9 @@ import type {
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import type { NodeSupervisionStartupConfiguration } from "./supervision-startup-config.js";
 import type { ConversationTurnFocusStore } from "./conversation-turn-focus-store.js";
+import type { CoResidentConversationPeerTurnRouter } from "./conversation-peer-turn-router.js";
+import type { ConversationDeliberationParticipantAssignmentPort } from "./conversation-deliberation-participant-router.js";
+import type { ConversationRequestedRuntimeProcessPort } from "./conversation-requested-runtime.js";
 
 export interface NodeDiscordConversationRuntime {
   readonly failed: Promise<void>;
@@ -70,11 +73,15 @@ export interface NodeDiscordConversationRuntimeOptions {
   managedRepositoryResources?: ManagedConversationRepositoryResources;
   agentParticipation?: DiscordAgentParticipation;
   peerAgents?: DiscordPeerAgentBinding[];
+  peerTurnRouter?: CoResidentConversationPeerTurnRouter;
+  deliberationParticipants?: ConversationDeliberationParticipantAssignmentPort;
+  unaddressedPriorities?: ReadonlyMap<string, number>;
   turnFocusStore?: ConversationTurnFocusStore;
   gatewayTransport?: DiscordGatewayTransport;
   repositoryArtifactStore?: ArtifactStore;
   repositoryEvents?: Pick<EventStore, "latest" | "list"> & { readonly path?: string };
   fetch?: typeof globalThis.fetch;
+  requestedRuntimeProcesses?: ConversationRequestedRuntimeProcessPort;
   onError?(error: Error): void;
   onReady(): void | Promise<void>;
   onFailure(code: string): void | Promise<void>;

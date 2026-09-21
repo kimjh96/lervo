@@ -33,6 +33,11 @@ import type {
 } from "./managed-deliberation.js";
 import { ManagedDeliberationRunner } from "./managed-deliberation-runner.js";
 import { prepareManagedDeliberationEvidence } from "./managed-deliberation-evidence.js";
+import {
+  applyBoundDeliberationParticipantRoles,
+  bindAssignedDeliberationParticipants,
+  releaseAssignedDeliberationParticipants,
+} from "./deliberation-participant-binding.js";
 
 function failureCode(error: unknown): string {
   const value = (error as { code?: unknown } | null)?.code;
@@ -117,11 +122,20 @@ export async function resumeManagedDeliberationWithStorage(
       const writingContract =
         dependencies.writingContract ??
         writingContractForLanguage(knowledgePolicy.publication.language);
-      const plan = await restorePlan(originalRequest, storage, writingContract);
+      let plan = await restorePlan(originalRequest, storage, writingContract);
       const policy = plan.policy;
       if (deliberationPolicyHash(policy) !== checkpoint.policyHash) {
         throw new Error("The policy changed after the deliberation resume checkpoint.");
       }
+      const participantExecutions = await bindAssignedDeliberationParticipants({
+        storage,
+        deliberationId: checkpoint.deliberationId,
+        plan,
+        ...(request.participantAssignments === undefined
+          ? {}
+          : { assignments: request.participantAssignments }),
+      });
+      plan = applyBoundDeliberationParticipantRoles(plan, participantExecutions);
       const checkpointHandoffIds = new Set(
         checkpoint.runtime.handoffs.map((item) => item.handoffId),
       );
@@ -224,6 +238,7 @@ export async function resumeManagedDeliberationWithStorage(
         request.providerModels,
         request.providerReasoningEfforts,
         checkpoint.budgetUsage,
+        participantExecutions,
       );
       const latestClaimArtifact = await restoreTurnResult({
         snapshot: checkpoint.runtime,
@@ -261,7 +276,7 @@ export async function resumeManagedDeliberationWithStorage(
           "The deliberation resume checkpoint does not reference every approval for the latest claim.",
         );
       try {
-        return await completeApprovedDeliberation({
+        const result = await completeApprovedDeliberation({
           request: originalRequest,
           plan,
           deliberationId: checkpoint.deliberationId,
@@ -277,18 +292,28 @@ export async function resumeManagedDeliberationWithStorage(
           currentClaim: checkpoint.currentClaim,
           now: dependencies.now,
         });
+        releaseAssignedDeliberationParticipants({
+          storage,
+          outcome: result.outcome,
+          releasedAt: dependencies.now().toISOString(),
+        });
+        return result;
       } catch (error) {
         try {
-          runtime.complete(
-            createFailedOutcome({
-              deliberationId: checkpoint.deliberationId,
-              policy,
-              history: runtime.history(),
-              completedAt: dependencies.now().toISOString(),
-              unresolvedBlockingObjectionIds: [],
-              code: failureCode(error),
-            }),
-          );
+          const failedOutcome = createFailedOutcome({
+            deliberationId: checkpoint.deliberationId,
+            policy,
+            history: runtime.history(),
+            completedAt: dependencies.now().toISOString(),
+            unresolvedBlockingObjectionIds: [],
+            code: failureCode(error),
+          });
+          runtime.complete(failedOutcome);
+          releaseAssignedDeliberationParticipants({
+            storage,
+            outcome: failedOutcome,
+            releasedAt: dependencies.now().toISOString(),
+          });
         } catch {
           // Preserve the original failure instead of presenting incomplete history as completed.
         }

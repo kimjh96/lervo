@@ -1,14 +1,16 @@
 import { execFile, spawn } from "node:child_process";
 import { delimiter, dirname, resolve } from "node:path";
+import { StringDecoder } from "node:string_decoder";
 import { promisify } from "node:util";
 
 import {
   RepositoryWorkExecutionError,
+  RepositoryWorkProgressDeadline,
   type RepositoryWorkTurnExecutor,
   type RepositoryWorkTurnRequest,
 } from "@lervo/adapter-contract";
 
-const MAXIMUM_OUTPUT_BYTES = 16 * 1024 * 1024;
+const MAXIMUM_OUTPUT_BYTES = 64 * 1024 * 1024;
 const executeFile = promisify(execFile);
 
 interface CodexJsonEvent {
@@ -112,29 +114,57 @@ function runCodexProcess(input: {
     let settled = false;
     let timedOut = false;
     let forcedTermination: ReturnType<typeof setTimeout> | undefined;
+    const progressDecoder = new StringDecoder("utf8");
+    let pendingProgressLine = "";
     const finish = (operation: () => void) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timer);
+      deadline.close();
       if (forcedTermination !== undefined) clearTimeout(forcedTermination);
       input.signal?.removeEventListener("abort", abort);
       operation();
     };
     const abort = () => child.kill("SIGTERM");
-    const timer = setTimeout(() => {
+    const deadline = new RepositoryWorkProgressDeadline(input.timeoutMs, () => {
       timedOut = true;
       child.kill("SIGTERM");
       forcedTermination = setTimeout(() => child.kill("SIGKILL"), 5_000);
       forcedTermination.unref?.();
-    }, input.timeoutMs);
-    timer.unref?.();
+    });
     input.signal?.addEventListener("abort", abort, { once: true });
+    if (input.signal?.aborted) abort();
+    const observeProgress = (chunk: Buffer) => {
+      pendingProgressLine += progressDecoder.write(chunk);
+      let newline = pendingProgressLine.indexOf("\n");
+      while (newline >= 0) {
+        const line = pendingProgressLine.slice(0, newline);
+        pendingProgressLine = pendingProgressLine.slice(newline + 1);
+        try {
+          const event = JSON.parse(line) as CodexJsonEvent;
+          if (
+            event.type === "thread.started" ||
+            event.type === "turn.started" ||
+            event.type === "item.started" ||
+            event.type === "item.completed" ||
+            event.type === "turn.completed"
+          ) {
+            deadline.observeProgress();
+          }
+        } catch {
+          // The final protocol parser owns malformed-output failures.
+        }
+        newline = pendingProgressLine.indexOf("\n");
+      }
+    };
     const collect = (target: Buffer[] | null, chunk: Buffer) => {
       bytes += chunk.byteLength;
       if (bytes > MAXIMUM_OUTPUT_BYTES) child.kill("SIGTERM");
       else target?.push(chunk);
     };
-    child.stdout.on("data", (chunk: Buffer) => collect(stdout, chunk));
+    child.stdout.on("data", (chunk: Buffer) => {
+      collect(stdout, chunk);
+      if (bytes <= MAXIMUM_OUTPUT_BYTES) observeProgress(chunk);
+    });
     child.stderr.on("data", (chunk: Buffer) => collect(null, chunk));
     child.once("error", (error) =>
       finish(() =>

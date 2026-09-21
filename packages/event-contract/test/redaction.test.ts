@@ -93,6 +93,39 @@ describe("event payload privacy boundary", () => {
     );
   });
 
+  it("keeps the reviewed policy-seat and durable-agent deliberation binding coordinates", () => {
+    const payload = {
+      deliberationId: "dlb_participant01",
+      deliberationPolicyHash: `sha256:${"1".repeat(64)}`,
+      bindingVersion: 2,
+      participationAssignmentId: `dpa_${"2".repeat(40)}`,
+      policyId: "deliberation_architecture-review",
+      organizationId: "org_lervo0001",
+      teamId: "team_lervo0001",
+      projectId: "prj_organization01",
+      channelMembershipId: "cmem_lervoagent01",
+      membershipId: "amem_lervoagent01",
+      deploymentId: "adep_lervoagent01",
+      agentId: `agt_${"3".repeat(24)}`,
+      participantId: "ptc_lervoagent01",
+      roleId: "architecture_proposer",
+      policyRoleId: "architecture_proposer",
+      agentRoleId: "product-owner",
+      roleVersion: "1.0.0",
+      roleContractHash: `sha256:${"4".repeat(64)}`,
+      roleProfileHash: `sha256:${"5".repeat(64)}`,
+      providerPolicyHash: `sha256:${"6".repeat(64)}`,
+      executionRouteHash: `sha256:${"7".repeat(64)}`,
+      executionProvider: "codex",
+      acceptedAt: "2026-09-18T00:00:00.000Z",
+      boundAt: "2026-09-18T00:00:00.000Z",
+    } as const;
+
+    expect(
+      sanitizeEventPayload("organization.deliberation.participant.bound", payload).payload,
+    ).toEqual(payload);
+  });
+
   it("keeps reviewed agent-context coordinates and rejects mismatched CAS identities", () => {
     const payload = {
       contextEntryId: `actx_${"a".repeat(24)}`,

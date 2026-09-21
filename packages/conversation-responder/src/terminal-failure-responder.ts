@@ -21,6 +21,7 @@ export class FixedConversationTerminalFailureResponder implements ConversationTe
     const reason = {
       response_context_unavailable: "저장소 맥락을 읽는 중 문제가 생겼습니다.",
       response_provider_unavailable: "응답 모델 연결을 완료하지 못했습니다.",
+      response_provider_capacity: "응답 모델이 일시적으로 혼잡해 응답을 완료하지 못했습니다.",
       response_storage_unavailable: "응답 증거를 안전하게 저장하지 못했습니다.",
       response_writing_blocked: "응답 문안이 게시 기준을 통과하지 못했습니다.",
       response_evaluation_unavailable: "응답 문안을 검토하지 못했습니다.",

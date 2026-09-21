@@ -64,7 +64,7 @@ describe("deliberation workflow source", () => {
 
     expect(source.requiredVerificationSuiteIds).toEqual(["repository.default.v4"]);
     expect(source.executionBudget).toEqual({
-      maximumProviderCalls: 24,
+      maximumProviderCalls: 32,
       maximumObservedTokens: 500_000,
       maximumElapsedMs: 1_800_000,
       unobservedTokenDisposition: "block",

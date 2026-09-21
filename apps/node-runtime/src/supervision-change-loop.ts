@@ -13,6 +13,10 @@ export function createSupervisionChangeLoop(input: {
   return new ConversationChangeLoop({
     intervalMs: 5_000,
     continueOnFailure: true,
+    failureRetryMs: (error) =>
+      (error as { code?: unknown } | null)?.code === "supervision_workstream_inactive"
+        ? 60_000
+        : 5_000,
     subscribe: input.subscribe,
     onFailure: input.onFailure,
     runCycle: async () => {

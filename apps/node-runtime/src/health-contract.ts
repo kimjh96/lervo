@@ -7,6 +7,7 @@ import { NodeRuntimeError } from "./errors.js";
 
 export type NodeRuntimeComponentHealth =
   | { status: "pending" | "ready" | "disabled" }
+  | { status: "dormant"; reasonCode: "workstream_inactive" }
   | { status: "unavailable"; failureCode: string; reasonCodes?: string[] };
 
 /** Bounded identifier codes only; never prose, paths, or provider output. */
@@ -42,12 +43,29 @@ export interface NodeRuntimeHealthSnapshot {
 
 function componentHealth(value: unknown): value is NodeRuntimeComponentHealth {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
-  const component = value as { status?: unknown; failureCode?: unknown; reasonCodes?: unknown };
+  const component = value as {
+    status?: unknown;
+    reasonCode?: unknown;
+    failureCode?: unknown;
+    reasonCodes?: unknown;
+  };
   if (["pending", "ready", "disabled"].includes(component.status as string)) {
-    return component.failureCode === undefined && component.reasonCodes === undefined;
+    return (
+      component.reasonCode === undefined &&
+      component.failureCode === undefined &&
+      component.reasonCodes === undefined
+    );
+  }
+  if (component.status === "dormant") {
+    return (
+      component.reasonCode === "workstream_inactive" &&
+      component.failureCode === undefined &&
+      component.reasonCodes === undefined
+    );
   }
   return (
     component.status === "unavailable" &&
+    component.reasonCode === undefined &&
     typeof component.failureCode === "string" &&
     component.failureCode.length > 0 &&
     component.failureCode.length <= 128 &&

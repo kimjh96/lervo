@@ -35,6 +35,32 @@ function nullableIdentifier(value: unknown, label: string, pattern: RegExp): str
   return result;
 }
 
+function conversationPriorities(value: unknown): Record<string, number> | undefined {
+  if (value === undefined) return undefined;
+  const source = configRecord(value, "discordConversation.policy.unaddressedPriorities");
+  if (
+    Object.keys(source).length < 1 ||
+    Object.keys(source).length > 64 ||
+    Object.entries(source).some(
+      ([conversationId, priority]) =>
+        !/^cnv_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(conversationId) ||
+        !Number.isSafeInteger(priority) ||
+        Number(priority) < 0 ||
+        Number(priority) > 100,
+    )
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "discordConversation.policy.unaddressedPriorities is invalid.",
+    );
+  }
+  return Object.fromEntries(
+    Object.entries(source)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([conversationId, priority]) => [conversationId, Number(priority)]),
+  );
+}
+
 export function parseDiscordConversationBehavior(input: {
   routing: unknown;
   command: unknown;
@@ -188,6 +214,10 @@ export function parseDiscordConversationBehavior(input: {
         "maxResponsesPerHour",
         "maxAutomationDepth",
         "maxResponseAttempts",
+        "unaddressedPriority",
+        "unaddressedPriorities",
+        "acceptsSupervisionGoals",
+        "acceptsPeerWork",
       ],
       "discordConversation.policy",
     );
@@ -249,6 +279,22 @@ export function parseDiscordConversationBehavior(input: {
   const maxResponsesPerHour = optionalPolicy("maxResponsesPerHour", 1, 60);
   const maxAutomationDepth = optionalPolicy("maxAutomationDepth", 0, 32);
   const maxResponseAttempts = optionalPolicy("maxResponseAttempts", 1, 10);
+  const unaddressedPriority = optionalPolicy("unaddressedPriority", 0, 100);
+  const unaddressedPriorities = conversationPriorities(policy?.unaddressedPriorities);
+  const acceptsSupervisionGoals = policy?.acceptsSupervisionGoals;
+  if (acceptsSupervisionGoals !== undefined && typeof acceptsSupervisionGoals !== "boolean") {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "discordConversation.policy.acceptsSupervisionGoals is invalid.",
+    );
+  }
+  const acceptsPeerWork = policy?.acceptsPeerWork;
+  if (acceptsPeerWork !== undefined && typeof acceptsPeerWork !== "boolean") {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "discordConversation.policy.acceptsPeerWork is invalid.",
+    );
+  }
   return {
     ...(routing === undefined
       ? {}
@@ -326,6 +372,10 @@ export function parseDiscordConversationBehavior(input: {
             ...(maxResponsesPerHour === undefined ? {} : { maxResponsesPerHour }),
             ...(maxAutomationDepth === undefined ? {} : { maxAutomationDepth }),
             ...(maxResponseAttempts === undefined ? {} : { maxResponseAttempts }),
+            ...(unaddressedPriority === undefined ? {} : { unaddressedPriority }),
+            ...(unaddressedPriorities === undefined ? {} : { unaddressedPriorities }),
+            ...(acceptsSupervisionGoals === undefined ? {} : { acceptsSupervisionGoals }),
+            ...(acceptsPeerWork === undefined ? {} : { acceptsPeerWork }),
           },
         }),
   };

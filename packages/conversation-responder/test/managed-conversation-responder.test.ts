@@ -519,6 +519,7 @@ describe("managed conversation responder", () => {
       event,
       policy: policies.reviewer,
       respondingAgent: {
+        participantId: "ptc_lervoagent",
         agentId: "agt_111111111111111111111111",
         roleId: "reviewer",
       },
@@ -556,6 +557,7 @@ describe("managed conversation responder", () => {
 
     const tampered = structuredClone(reviewer);
     tampered.publicationEvidence.evaluationArtifact.contentHash = `sha256:${"f".repeat(64)}`;
+    const publicationErrors: unknown[] = [];
     const interactionStore = await SQLiteConversationInteractionStore.open({
       path: resolve(root, ".lervo/state/interaction.sqlite"),
     });
@@ -568,6 +570,37 @@ describe("managed conversation responder", () => {
         store: interactionStore,
         responder: { respond: async () => tampered },
         publicationVerifier: verifier,
+        responseFailureClassifier: {
+          classify: (error) => {
+            publicationErrors.push(error);
+            return { failureCode: "response_contract_invalid", retryable: false };
+          },
+        },
+        terminalFailureResponder: { respond: async () => reviewer },
+        terminalFailurePublicationVerifier: verifier,
+        relevanceEvaluator: { evaluate: async () => "relevant" },
+        clock: () => new Date("2026-08-20T02:00:00Z"),
+      }),
+    ).resolves.toMatchObject({
+      status: "failed_terminal",
+      failureCode: "response_contract_invalid",
+      attemptCount: 1,
+    });
+    expect(publicationErrors).toHaveLength(1);
+    expect(interactionStore.auditIntegrity()).toMatchObject({ outboxCount: 1 });
+    await interactionStore.close();
+    const unclassifiedStore = await SQLiteConversationInteractionStore.open({
+      path: resolve(root, ".lervo/state/interaction-unclassified.sqlite"),
+    });
+    await expect(
+      handleConversationEvent({
+        event,
+        policy: policies.reviewer,
+        workerId: "conversation-publication-worker",
+        agentParticipantId: "ptc_agent001",
+        store: unclassifiedStore,
+        responder: { respond: async () => tampered },
+        publicationVerifier: verifier,
         relevanceEvaluator: { evaluate: async () => "relevant" },
         clock: () => new Date("2026-08-20T02:00:00Z"),
       }),
@@ -575,8 +608,7 @@ describe("managed conversation responder", () => {
       status: "retry_scheduled",
       failureCode: "publication_verification_failed",
     });
-    expect(interactionStore.auditIntegrity()).toMatchObject({ outboxCount: 0 });
-    await interactionStore.close();
+    await unclassifiedStore.close();
 
     const runEvents = events.list();
     expect(runEvents.filter((item) => item.type === "run.completed")).toHaveLength(3);

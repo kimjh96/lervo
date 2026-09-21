@@ -89,6 +89,54 @@ describe("Discord conversation deployments configuration", () => {
     ]);
   });
 
+  it("accepts named deliberation seats only with an exact publication subscription", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, 30_007);
+    const base = deployment({
+      suffix: "01",
+      applicationId: "999999999999999991",
+      agentId: `agt_${"a".repeat(24)}`,
+      participantId: "ptc_lervoagent01",
+      provider: "codex",
+    });
+    const configured = {
+      ...base,
+      organization: { organizationId: "org_lervoowner01", teamId: "team_project001" },
+      policy: {
+        mode: "proactive" as const,
+        respondTo: ["human", "agent", "system"] as const,
+        signalCodes: ["deliberation.artifact.recorded"],
+      },
+      deliberationParticipation: {
+        routes: [
+          {
+            policyId: "deliberation_architecture-review",
+            policyRoleId: "product-owner",
+            provider: "codex" as const,
+            model: "gpt-6-astra",
+            reasoningEffort: "high" as const,
+          },
+        ],
+      },
+    };
+    expect(
+      parseNodeRuntimeConfig({ ...fixture.value, discordConversation: configured }, root)
+        .discordConversation?.deliberationParticipation,
+    ).toEqual(configured.deliberationParticipation);
+    expect(() =>
+      parseNodeRuntimeConfig(
+        {
+          ...fixture.value,
+          discordConversation: {
+            ...configured,
+            policy: { ...configured.policy, signalCodes: ["repository.changed"] },
+          },
+        },
+        root,
+      ),
+    ).toThrowError("exact proactive artifact signal subscription");
+  });
+
   it("fails closed on ambiguous or conflicting multi-bot identity", async () => {
     const root = await temporaryRoot();
     const fixture = await nodeRuntimeFixture(root, 30_002);
@@ -287,6 +335,9 @@ describe("Discord conversation deployments configuration", () => {
       participantKeys: ["webhook:899999999999999992"],
       participantId: "ptc_lervoagent02",
       roleId: "developer",
+      displayName: "Ruen",
+      unaddressedPriority: 40,
+      unaddressedPriorities: { cnv_operator01: 5 },
       agentBinding: {
         agentId: `agt_${"b".repeat(24)}`,
         roleVersion: "1.0.0",
@@ -297,11 +348,26 @@ describe("Discord conversation deployments configuration", () => {
       conversationIds: ["cnv_operator01"],
     };
     const parsed = parseNodeRuntimeConfig(
-      { ...fixture.value, discordConversation: { ...config, peerAgents: [peerAgent] } },
+      {
+        ...fixture.value,
+        discordConversation: {
+          ...config,
+          policy: {
+            ...config.policy,
+            unaddressedPriority: 40,
+            unaddressedPriorities: { cnv_operator01: 20 },
+          },
+          peerAgents: [peerAgent],
+        },
+      },
       root,
     ).discordConversation!;
 
     expect(parsed.peerAgents).toEqual([peerAgent]);
+    expect(parsed.policy).toMatchObject({
+      unaddressedPriority: 40,
+      unaddressedPriorities: { cnv_operator01: 20 },
+    });
     expect(
       createDiscordPlatformBindings({
         config: parsed,
@@ -465,7 +531,7 @@ describe("Discord conversation deployments configuration", () => {
     );
   });
 
-  it("does not turn co-resident CEO status into repository effect authority", async () => {
+  it("grants peer repository work only through an explicit target-side opt-in", async () => {
     const root = await temporaryRoot();
     const fixture = await nodeRuntimeFixture(root, 30_006);
     const config = deployment({
@@ -493,10 +559,26 @@ describe("Discord conversation deployments configuration", () => {
       root,
     ).discordConversation!;
 
-    expect(createAuthorizedAgentEffectRequesters(parsed)).not.toContainEqual({
+    const authorizations = createAuthorizedAgentEffectRequesters(parsed, [peer]);
+    expect(authorizations).toContainEqual({
       participantId: peer.participantId,
       roleId: peer.roleId,
       conversationId: "cnv_operator01",
+      effectKinds: ["workforce_task_delegate"],
+    });
+    expect(
+      authorizations.some((authorization) => authorization.effectKinds.includes("repository_work")),
+    ).toBe(false);
+    expect(
+      createAuthorizedAgentEffectRequesters(
+        { ...parsed, policy: { ...parsed.policy, acceptsPeerWork: true } },
+        [peer],
+      ),
+    ).toContainEqual({
+      participantId: peer.participantId,
+      roleId: peer.roleId,
+      conversationId: "cnv_operator01",
+      effectKinds: ["deliberation_start", "repository_work", "workforce_task_delegate"],
     });
   });
 

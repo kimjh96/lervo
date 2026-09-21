@@ -10,6 +10,7 @@ import {
 } from "./common.js";
 import {
   conversationAgentBindingSchema,
+  conversationCoordinationSchema,
   conversationContentReferenceSchema,
   conversationTargetSchema,
 } from "./conversation.js";
@@ -37,6 +38,7 @@ export const conversationInboundEventSchema = {
       additionalProperties: false,
     },
     content: conversationContentReferenceSchema,
+    coordination: conversationCoordinationSchema,
     mentions: {
       type: "object",
       properties: {

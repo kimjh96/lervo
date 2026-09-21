@@ -2,8 +2,15 @@ import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { defaultEnglishWritingContract, koreanConversationWritingContract } from "@lervo/core";
+import {
+  deliberationExecutionRouteHash,
+  deliberationParticipationAssignmentId,
+  organizationIdentityHash,
+  workforceProviderPolicyHash,
+} from "@lervo/agent-organization";
 import { createCachedRepositorySnapshotCapture } from "@lervo/orchestrator";
 import { openProjectStorage } from "@lervo/project-storage";
+import { resolveRoleContract, roleProfileHash } from "@lervo/roles";
 import type { AdapterNormalizedEvent, AdapterSession, AdapterStartRequest } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -17,6 +24,11 @@ import { inspectManagedDeliberation } from "../src/deliberation-inspection.js";
 import { parseSemanticEvaluation } from "../src/managed-deliberation-runner.js";
 import type { RunProvider } from "../src/managed-run.js";
 import { prepareRunVerification } from "../src/run-verification.js";
+import {
+  appendOrganizationEvent,
+  organizationPolicyHash,
+} from "../src/agent-organization-event-mutation.js";
+import { createInlineDeliberationExecutionPlan } from "../src/deliberation-roles.js";
 import {
   cleanupManagedDeliberationFixtures,
   clock,
@@ -197,6 +209,7 @@ describe("managed CLI deliberation convergence", () => {
       deliberationId: "dlb_queue0001",
       status: "failed",
       artifactCount: 0,
+      failureReasonCode: "deliberation_evidence_unavailable",
     });
     expect(providerCalls).toBe(0);
   });
@@ -475,6 +488,225 @@ describe("managed CLI deliberation convergence", () => {
       resolve(root, ".lervo/state/deliberations", deliberationRoots[0]!),
     );
     expect(entries.filter((entry) => entry.startsWith("artifact-"))).toHaveLength(4);
+  });
+
+  it("uses an accepted agent model route only for its policy seat and records its identity", async () => {
+    const root = await repository();
+    const setup = await openProjectStorage(root);
+    const plan = createInlineDeliberationExecutionPlan({
+      projectId: setup.manifest.projectId,
+      proposerProvider: "codex",
+      reviewerProvider: "claude",
+      verificationSuiteIds: ["project.default"],
+      writingContract: defaultEnglishWritingContract,
+    });
+    const common = {
+      organizationId: "org_lervoowner01",
+      teamId: "team_project001",
+      projectId: setup.manifest.projectId,
+    } as const;
+    const agentId = `agt_${"a".repeat(24)}`;
+    const participantId = "ptc_ruen_agent01";
+    const membershipId = "amem_ruen_agent01";
+    const deploymentId = "adep_ruen_agent01";
+    const channelMembershipId = "cmem_ruen_agent01";
+    const providerPolicyHash = workforceProviderPolicyHash("codex");
+    const roleContract = await resolveRoleContract(root, "developer");
+    const role = {
+      roleId: roleContract.roleId,
+      roleVersion: roleContract.version,
+      roleContractHash: roleContract.contractHash,
+      roleProfileHash: roleProfileHash(roleContract.definition.profile),
+      providerPolicyHash,
+    };
+    appendOrganizationEvent(setup, "organization.team.bound", {
+      ...common,
+      repositoryIdentityHash: `sha256:${"3".repeat(64)}`,
+      organizationPolicyHash,
+      teamPolicyHash: organizationIdentityHash(common),
+      teamKind: "project",
+      boundAt: "2026-09-18T00:00:00.000Z",
+    });
+    appendOrganizationEvent(setup, "organization.agent.membership.changed", {
+      ...common,
+      membershipId,
+      agentId,
+      ...role,
+      previousStatus: null,
+      status: "active",
+      revision: 1,
+      changedAt: "2026-09-18T00:00:01.000Z",
+    });
+    appendOrganizationEvent(setup, "organization.external_agent.deployment.bound", {
+      ...common,
+      deploymentId,
+      membershipId,
+      agentId,
+      participantId,
+      ...role,
+      platform: "discord",
+      integrationId: "itg_ruenagent01",
+      externalPrincipalHash: `sha256:${"4".repeat(64)}`,
+      deploymentConfigHash: `sha256:${"5".repeat(64)}`,
+      boundAt: "2026-09-18T00:00:02.000Z",
+    });
+    appendOrganizationEvent(setup, "organization.channel.membership.changed", {
+      ...common,
+      channelMembershipId,
+      deploymentId,
+      membershipId,
+      agentId,
+      participantId,
+      platform: "discord",
+      integrationId: "itg_ruenagent01",
+      tenantKeyHash: `sha256:${"6".repeat(64)}`,
+      conversationKeyHash: `sha256:${"7".repeat(64)}`,
+      conversationId: "cnv_cli_deliberation",
+      previousStatus: null,
+      status: "active",
+      revision: 1,
+      changedAt: "2026-09-18T00:00:03.000Z",
+    });
+    await setup.close();
+    const deliberationId = "dlb_named_agent01";
+    const executionRouteHash = deliberationExecutionRouteHash({
+      participantId,
+      integrationId: "itg_ruenagent01",
+      provider: "codex",
+      model: "gpt-6-astra",
+      reasoningEffort: "high",
+    });
+    const assignment = {
+      schemaVersion: 1 as const,
+      ...common,
+      participationAssignmentId: deliberationParticipationAssignmentId({
+        deliberationId,
+        policyId: plan.policy.policyId,
+        policyRoleId: plan.proposer.role.roleId,
+        agentId,
+        executionRouteHash,
+      }),
+      deliberationId,
+      policyId: plan.policy.policyId,
+      policyRoleId: plan.proposer.role.roleId,
+      projectId: common.projectId,
+      conversationId: "cnv_cli_deliberation",
+      channelMembershipId,
+      membershipId,
+      deploymentId,
+      agentId,
+      participantId,
+      agentRoleId: role.roleId,
+      roleVersion: role.roleVersion,
+      roleContractHash: role.roleContractHash,
+      roleProfileHash: role.roleProfileHash,
+      providerPolicyHash,
+      provider: "codex" as const,
+      model: "gpt-6-astra",
+      reasoningEffort: "high" as const,
+      executionRouteHash,
+      acceptedAt: "2026-09-18T00:00:04.000Z",
+    };
+    const pass = semanticPass();
+    const queues: Record<RunProvider, string[]> = {
+      codex: [
+        "Use the accepted participant route only for the proposer policy seat.",
+        pass,
+        pass,
+        "The accepted route remains isolated to its policy seat and is recorded by agent identity.",
+      ],
+      claude: [
+        pass,
+        "Verdict: approved\n\nThe route is explicit and the agent identity is independently recorded.",
+        "Repository verification passed for the reviewed route boundary.",
+        pass,
+      ],
+    };
+    const nextId = sequence();
+    const adapterSettings: Array<{
+      provider: RunProvider;
+      model?: string;
+      reasoningEffort?: string;
+    }> = [];
+    const executor = createAssignedManagedDeliberationExecutor({
+      openStorage: openProjectStorage,
+      createId: nextId,
+      now: clock(),
+      prepareEvidence: async ({ topic }) => fixtureDeliberationEvidence(topic),
+      runner: {
+        createAdapter: ({ provider, model, reasoningEffort }) => {
+          adapterSettings.push({
+            provider,
+            ...(model === undefined ? {} : { model }),
+            ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+          });
+          const content = queues[provider].shift();
+          if (content === undefined) throw new Error(`${provider} fixture response is missing.`);
+          return new FixtureDeliberationAdapter(
+            provider,
+            `provider-session-${nextId("session")}`,
+            content,
+            nextId("ctx"),
+          );
+        },
+        createId: nextId,
+        now: clock(),
+        prepareVerification: prepareRunVerification,
+      },
+    });
+    await expect(
+      executor({
+        deliberationId,
+        expectedProjectId: common.projectId,
+        request: {
+          repositoryRoot: root,
+          proposerProvider: "codex",
+          reviewerProvider: "claude",
+          verificationSuiteIds: ["project.default"],
+          topic: "Review an explicit named-agent execution route.",
+          providerModels: { codex: "gpt-general", claude: "claude-general" },
+          providerReasoningEfforts: { codex: "medium", claude: "medium" },
+          participantAssignments: [assignment],
+        },
+      }),
+    ).resolves.toMatchObject({ status: "converged" });
+
+    const codexSettings = adapterSettings.filter((item) => item.provider === "codex");
+    expect(codexSettings[0]).toEqual({
+      provider: "codex",
+      model: "gpt-6-astra",
+      reasoningEffort: "high",
+    });
+    expect(
+      codexSettings.filter(
+        (item) => item.model === "gpt-6-astra" && item.reasoningEffort === "high",
+      ),
+    ).toHaveLength(2);
+    expect(
+      codexSettings
+        .filter((item) => item.model !== "gpt-6-astra")
+        .every((item) => item.model === "gpt-general" && item.reasoningEffort === "medium"),
+    ).toBe(true);
+    const inspected = await openProjectStorage(root);
+    const events = inspected.events.list({ limit: 1_000 });
+    expect(
+      events.filter(
+        (event) => event.type === "work.causality.recorded" && event.payload.agentId === agentId,
+      ),
+    ).toHaveLength(2);
+    expect(
+      events.find((event) => event.type === "organization.deliberation.participant.bound")?.payload,
+    ).toMatchObject({
+      roleId: plan.proposer.role.roleId,
+      policyRoleId: plan.proposer.role.roleId,
+      agentRoleId: "developer",
+      executionProvider: "codex",
+    });
+    expect(
+      events.find((event) => event.type === "organization.deliberation.participant.released")
+        ?.payload,
+    ).toMatchObject({ agentId, status: "converged" });
+    await inspected.close();
   });
 
   it("retries only a failed semantic evaluator child run after provider startup failure", async () => {

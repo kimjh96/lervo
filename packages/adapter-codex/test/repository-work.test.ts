@@ -53,6 +53,23 @@ setInterval(()=>{},1000);
   return path;
 }
 
+async function progressingExecutable(): Promise<string> {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-codex-progress-"));
+  roots.push(root);
+  const path = resolve(root, "fake-codex-progress.mjs");
+  await writeFile(
+    path,
+    `#!/usr/bin/env node
+process.stdout.write(JSON.stringify({type:"thread.started",thread_id:"11111111-1111-4111-8111-111111111111"})+"\\n");
+const progress = setInterval(() => process.stdout.write(JSON.stringify({type:"item.completed",item:{type:"command_execution"}})+"\\n"), 100);
+setTimeout(() => { clearInterval(progress); process.stdout.write(JSON.stringify({type:"item.completed",item:{type:"agent_message",text:"finished"}})+"\\n"); }, 1_800);
+`,
+    { mode: 0o700 },
+  );
+  await chmod(path, 0o700);
+  return path;
+}
+
 describe("CodexRepositoryWorkTurnExecutor", () => {
   it("starts and resumes a native repository work session", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-codex-root-"));
@@ -103,5 +120,20 @@ describe("CodexRepositoryWorkTurnExecutor", () => {
         timeoutMs: 20,
       }),
     ).rejects.toMatchObject({ code: "provider_turn_timeout" });
+  });
+
+  it("allows an actively progressing turn to finish after its inactivity window", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-codex-progress-root-"));
+    roots.push(root);
+    await execute("git", ["init", "-b", "main"], { cwd: root });
+    const executor = new CodexRepositoryWorkTurnExecutor(await progressingExecutable());
+    await expect(
+      executor.execute({
+        repositoryRoot: root,
+        instructions: "work",
+        providerSessionId: null,
+        timeoutMs: 1_000,
+      }),
+    ).resolves.toMatchObject({ response: "finished" });
   });
 });

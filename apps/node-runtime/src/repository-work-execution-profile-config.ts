@@ -2,7 +2,12 @@ import type {
   NodeRepositoryWorkExecutionProfile,
   NodeRepositoryWorkExecutionProfilePolicy,
 } from "./config-types.js";
-import { configRecord, configText, exactConfigKeys } from "./config-values.js";
+import {
+  configRecord,
+  configText,
+  exactConfigKeys,
+  optionalConfigInteger,
+} from "./config-values.js";
 import { NodeRuntimeError } from "./errors.js";
 
 const MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
@@ -45,10 +50,11 @@ export function providerExecutionProfiles(
     for (const provider of routeProviders as Array<"codex" | "claude">) {
       const routeLabel = `${label}.providers.${provider}`;
       const route = configRecord(routes[provider], routeLabel);
-      exactConfigKeys(route, ["model", "reasoningEffort"], routeLabel);
+      exactConfigKeys(route, ["model", "reasoningEffort", "timeoutMs"], routeLabel);
       const reasoningEffort = configText(route.reasoningEffort, `${routeLabel}.reasoningEffort`);
       const model =
         route.model === undefined ? undefined : configText(route.model, `${routeLabel}.model`);
+      const timeoutMs = optionalConfigInteger(route, "timeoutMs", 10, 300_000, routeLabel);
       if (
         !REASONING_EFFORTS.includes(reasoningEffort as (typeof REASONING_EFFORTS)[number]) ||
         (model !== undefined && !MODEL_PATTERN.test(model)) ||
@@ -63,6 +69,7 @@ export function providerExecutionProfiles(
       parsedRoutes[provider] = {
         ...(model === undefined ? {} : { model }),
         reasoningEffort: reasoningEffort as (typeof REASONING_EFFORTS)[number],
+        ...(timeoutMs === undefined ? {} : { timeoutMs }),
       };
     }
     result[profileId] = {

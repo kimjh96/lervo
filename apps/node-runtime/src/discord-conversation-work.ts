@@ -85,7 +85,7 @@ export function openDiscordConversationWork(input: {
   const mayRetainPendingGoal =
     options.outcomeSupervision === undefined &&
     participation.agentId !== null &&
-    ["product-owner", "ceo"].includes(participation.roleId);
+    config.policy?.acceptsSupervisionGoals === true;
   const goalStore = mayRetainPendingGoal
     ? SQLiteConversationGoalIntakeStore.open(
         resolve(options.dataDirectory, "pending-supervision-goals.sqlite"),

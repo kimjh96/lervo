@@ -1,7 +1,7 @@
 import type { AutomaticTopologyEffectV1, OperatingActionPlanV1 } from "@lervo/application-contract";
 import { listAgents, listAssignments } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import { operatingContractHash, operatingDecisionId } from "@lervo/work-controller";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import { observeNodeSupervisionAuthority } from "./supervision-authority.js";
@@ -108,7 +108,8 @@ export class SupervisionTopologyEffects {
             operatingContractHash(predecessor) !== operatingContractHash(basis.assignments) ||
             operatingContractHash(await listAgents(this.root)) !==
               operatingContractHash(source.agents) ||
-            (await readCurrentWorkstreamState(this.root))?.contentHash !== source.workstreamHash ||
+            (await readBoundWorkstreamState(storage, this.binding.workstreamId))?.contentHash !==
+              source.workstreamHash ||
             storage.events.latest()?.eventHash !== head
           )
             throw new Error("Canonical topology sources changed at materialization.");

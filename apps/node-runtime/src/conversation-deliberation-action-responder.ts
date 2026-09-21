@@ -26,6 +26,9 @@ export class ConversationDeliberationActionResponder implements DiscordPlatformA
       policyId: string;
       artifactStore: ArtifactStore;
       deliberations(): ConversationDeliberationPort | null;
+      preflight(input: { policyId: string; projectId: string; conversationId: string }): {
+        participantIds: string[];
+      };
       now?: () => Date;
     },
   ) {}
@@ -46,6 +49,25 @@ export class ConversationDeliberationActionResponder implements DiscordPlatformA
       event: input.event,
     });
     const responseLanguage = /\p{Script=Hangul}/u.test(request) ? ("ko" as const) : ("en" as const);
+    const participantPlan = this.options.preflight({
+      policyId: this.options.policyId,
+      projectId: input.event.target.projectId,
+      conversationId: input.event.target.conversationId,
+    });
+    if (participantPlan.participantIds.length < 2) {
+      const content =
+        responseLanguage === "ko"
+          ? `서로 독립된 실제 에이전트가 2명 이상 확인되지 않아 다중 에이전트 토론을 시작하지 않았습니다. 확인된 참여자는 ${participantPlan.participantIds.length}명이며, 공급자 호출이나 부분 토론은 실행되지 않았습니다.`
+          : `I did not start a multi-agent discussion because fewer than two independent real agents were verified. ${participantPlan.participantIds.length} participant(s) were verified; no provider call or partial discussion ran.`;
+      const reply = await createVerifiedConversationControlReply({
+        artifactStore: this.options.artifactStore,
+        writingContract: fixedConversationStatusWritingContract,
+        content,
+        ...(this.options.now === undefined ? {} : { now: this.options.now }),
+      });
+      reply.deliveryRelation = "reply";
+      return reply;
+    }
     const priorHumanContext = (input.context?.priorTurns ?? [])
       .filter((turn) => turn.speaker.kind === "human")
       .slice(-4)

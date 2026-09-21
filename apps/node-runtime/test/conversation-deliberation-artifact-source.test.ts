@@ -119,7 +119,7 @@ function repositoryEvent(seq: number, value?: DeliberationArtifact): EventEnvelo
 }
 
 describe("conversation deliberation artifact source", () => {
-  it("publishes each new writing-gated artifact into its exact origin thread once", async () => {
+  it("keeps policy-only artifacts internal instead of inventing a conversation speaker", async () => {
     const root = await temporaryRoot();
     const artifacts = await FileSystemCas.open(resolve(root, "artifacts"));
     const repositoryArtifacts = await FileSystemCas.open(resolve(root, "repository-artifacts"));
@@ -172,7 +172,7 @@ describe("conversation deliberation artifact source", () => {
     await source.initialize();
     source.attach(application);
     events.push(repositoryEvent(2, artifact()));
-    await expect(source.runCycle()).resolves.toEqual({ eventCount: 1, publicationCount: 1 });
+    await expect(source.runCycle()).resolves.toEqual({ eventCount: 1, publicationCount: 0 });
     await expect(source.runCycle()).resolves.toEqual({ eventCount: 0, publicationCount: 0 });
 
     const restarted = createSource();
@@ -185,28 +185,186 @@ describe("conversation deliberation artifact source", () => {
         integrationId: "itg_discord01",
       }).read(),
     ).rejects.toThrow(/cursor is invalid/);
-    expect(inbound).toHaveLength(1);
-    expect(inbound[0]).toMatchObject({
-      kind: "signal.raised",
-      signalCode: "deliberation.artifact.recorded",
-      target: {
-        integrationId: "itg_discord01",
-        projectId,
-        conversationId: "cnv_discord_origin01",
-        threadId: "thd_discord_origin01",
+    expect(inbound).toHaveLength(0);
+    expect(runDeliveryCycle).not.toHaveBeenCalled();
+  });
+
+  it("routes a bound policy seat through the actual participant runtime without coordinator delivery", async () => {
+    const root = await temporaryRoot();
+    const artifacts = await FileSystemCas.open(resolve(root, "artifacts"));
+    const repositoryArtifacts = await FileSystemCas.open(resolve(root, "repository-artifacts"));
+    await repositoryArtifacts.put(artifactBody);
+    const organizationId = "org_lervoowner01";
+    const teamId = "team_project001";
+    const agentId = `agt_${"a".repeat(24)}`;
+    const participantId = "ptc_ruen_agent01";
+    const membershipId = "amem_ruen_agent01";
+    const deploymentId = "adep_ruen_agent01";
+    const channelMembershipId = "cmem_ruen_agent01";
+    const organizationEvents = [
+      {
+        type: "organization.team.bound",
+        payload: {
+          organizationId,
+          teamId,
+          projectId,
+          repositoryIdentityHash: digest("1"),
+          organizationPolicyHash: digest("2"),
+          teamPolicyHash: digest("3"),
+          teamKind: "project",
+          boundAt: "2026-09-17T00:00:00.000Z",
+        },
       },
-      replyToEventId: `cve_${"a".repeat(64)}`,
-      mentions: { roleIds: [], participantIds: [] },
+      {
+        type: "organization.agent.membership.changed",
+        payload: {
+          membershipId,
+          organizationId,
+          teamId,
+          projectId,
+          agentId,
+          roleId: "product-owner",
+          roleVersion: "1.0.0",
+          roleContractHash: digest("4"),
+          roleProfileHash: digest("5"),
+          providerPolicyHash: digest("6"),
+          previousStatus: null,
+          status: "active",
+          revision: 1,
+          changedAt: "2026-09-17T00:00:01.000Z",
+        },
+      },
+      {
+        type: "organization.external_agent.deployment.bound",
+        payload: {
+          deploymentId,
+          organizationId,
+          teamId,
+          projectId,
+          membershipId,
+          agentId,
+          participantId,
+          roleId: "product-owner",
+          roleVersion: "1.0.0",
+          roleContractHash: digest("4"),
+          roleProfileHash: digest("5"),
+          providerPolicyHash: digest("6"),
+          platform: "discord",
+          integrationId: "itg_ruenagent01",
+          externalPrincipalHash: digest("7"),
+          deploymentConfigHash: digest("8"),
+          boundAt: "2026-09-17T00:00:02.000Z",
+        },
+      },
+      {
+        type: "organization.channel.membership.changed",
+        payload: {
+          channelMembershipId,
+          deploymentId,
+          organizationId,
+          teamId,
+          projectId,
+          membershipId,
+          agentId,
+          participantId,
+          platform: "discord",
+          integrationId: "itg_ruenagent01",
+          tenantKeyHash: digest("9"),
+          conversationKeyHash: digest("a"),
+          conversationId: "cnv_discord_origin01",
+          previousStatus: null,
+          status: "active",
+          revision: 1,
+          changedAt: "2026-09-17T00:00:03.000Z",
+        },
+      },
+      {
+        type: "organization.deliberation.participant.bound",
+        payload: {
+          deliberationId,
+          deliberationPolicyHash: digest("b"),
+          bindingVersion: 2,
+          participationAssignmentId: `dpa_${"c".repeat(40)}`,
+          policyId: "deliberation_discord-artifact",
+          organizationId,
+          teamId,
+          projectId,
+          channelMembershipId,
+          membershipId,
+          deploymentId,
+          agentId,
+          participantId,
+          roleId: "architect",
+          policyRoleId: "architect",
+          agentRoleId: "product-owner",
+          roleVersion: "1.0.0",
+          roleContractHash: digest("4"),
+          roleProfileHash: digest("5"),
+          providerPolicyHash: digest("6"),
+          executionRouteHash: digest("d"),
+          executionProvider: "codex",
+          acceptedAt: "2026-09-17T00:00:04.000Z",
+          boundAt: "2026-09-17T00:00:04.000Z",
+        },
+      },
+    ].map(
+      (value, index) =>
+        ({
+          projectId,
+          seq: index + 1,
+          type: value.type,
+          payload: value.payload,
+        }) as unknown as EventEnvelope,
+    );
+    const events = [...organizationEvents];
+    const participantPublisher = { publish: vi.fn(async () => undefined) };
+    const runDeliveryCycle = vi.fn(async () => ({ status: "idle" as const }));
+    const handleInboundEvent = vi.fn(async () => []);
+    const application = {
+      inspectDeliberationOrigin: vi.fn(async () => ({
+        sourceEventId: `cve_${"e".repeat(64)}`,
+        conversationId: "cnv_discord_origin01",
+        threadId: null,
+        requesterParticipantId: "ptc_discord_requester01",
+        originBindingDigest: digest("f"),
+        responseLanguage: "ko",
+      })),
+      handleInboundEvent,
+      runDeliveryCycle,
+    } as unknown as ConversationApplication;
+    const source = new ConversationDeliberationArtifactSource({
+      projectId,
+      integrationId: "itg_coordinator01",
+      events: {
+        latest: () => events.at(-1) ?? null,
+        list: ({ afterSeq = 0, limit = 100 } = {}) =>
+          events.filter((event) => event.seq > afterSeq).slice(0, limit),
+      },
+      repositoryArtifacts,
+      conversationArtifacts: artifacts,
+      cursor: new FileConversationEventCursor(resolve(root, "routed-cursor.json"), {
+        cursorKind: "deliberation.artifact",
+        projectId,
+        integrationId: "itg_coordinator01",
+      }),
+      participantPublisher,
     });
-    const body = Buffer.from(
-      await artifacts.get(
-        `lervo-cas://sha256/${inbound[0]!.content.contentHash.slice("sha256:".length)}`,
-      ),
-    ).toString("utf8");
-    expect(body).toBe(`**System architect**\n\n${artifactBody}`);
-    expect(body).not.toContain("토론 1회차");
-    expect(body).not.toContain("주장: 2개");
-    expect(body).not.toContain(artifact().content.contentHash);
-    expect(runDeliveryCycle).toHaveBeenCalledOnce();
+    await source.initialize();
+    source.attach(application);
+    events.push({ ...repositoryEvent(events.length + 1, artifact()), seq: events.length + 1 });
+
+    await expect(source.runCycle()).resolves.toEqual({ eventCount: 1, publicationCount: 1 });
+    expect(participantPublisher.publish).toHaveBeenCalledWith({
+      participantId,
+      projectId,
+      conversationId: "cnv_discord_origin01",
+      threadId: null,
+      replyToEventId: `cve_${"e".repeat(64)}`,
+      artifactEventId: "evt_discord_artifact01",
+      content: artifactBody,
+      occurredAt: artifact().createdAt,
+    });
+    expect(handleInboundEvent).not.toHaveBeenCalled();
+    expect(runDeliveryCycle).not.toHaveBeenCalled();
   });
 });

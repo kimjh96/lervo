@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_41fbaf7f0e75b58ca599186f"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Clarify dormant outcome supervision readiness in Node and fleet status."

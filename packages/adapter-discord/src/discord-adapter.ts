@@ -22,6 +22,8 @@ import type {
   DiscordIngressResult,
 } from "./types.js";
 import type { DiscordGoalInteraction } from "./goal-interaction.js";
+import { mapDiscordInboundCoordination } from "./inbound-coordination.js";
+import { resolveManagedBotRoleAddresses } from "./managed-role-address.js";
 import { deliverDiscordConversationMessage } from "./delivery.js";
 import {
   parseDiscordGatewayPayload,
@@ -175,8 +177,11 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         guildId: input.command.guildId,
         participantKey: `user:${input.command.userId}`,
         mentionedParticipantKeys: [`bot:${this.options.applicationId}`],
+        mentionedRoleIds: [],
+        coordinationTargetParticipantKeys: [],
         actorKindHint: "human",
         audienceParticipation: "eligible",
+        coordination: null,
         replyToMessageId: null,
         content: input.command.request,
         occurredAt: input.occurredAt,
@@ -253,6 +258,16 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
     if (address === null) {
       return { status: "ignored", reason: "outside_conversation_scope", checkpoint: null };
     }
+    const managedBotAddresses = await resolveManagedBotRoleAddresses({
+      guildId: parsed.guildId,
+      roleIds: parsed.mentionedRoleIds,
+      ...(this.options.managedBotRoles === undefined
+        ? {}
+        : { resolver: this.options.managedBotRoles }),
+    });
+    if (managedBotAddresses === null) {
+      return { status: "ignored", reason: "addressed_to_unmapped_participant", checkpoint };
+    }
     const normalizedContent = parsed.content
       .normalize("NFKC")
       .trimStart()
@@ -266,6 +281,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       )?.[1];
     const mentionedParticipantKeys = [
       ...parsed.mentionedParticipantKeys,
+      ...managedBotAddresses,
       ...(textualParticipantKey === undefined ? [] : [textualParticipantKey]),
     ].filter((value, index, values) => values.indexOf(value) === index);
     let identity;
@@ -280,6 +296,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         replyToMessageKey: parsed.replyToMessageId,
         participantKey: parsed.participantKey,
         mentionedParticipantKeys,
+        primaryMentionedParticipantKeys: parsed.coordinationTargetParticipantKeys,
         actorKindHint: parsed.actorKindHint,
       });
     } catch (error) {
@@ -294,6 +311,14 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       identity.mentions.participantIds.length === 0 &&
       identity.mentions.roleIds.length === 0
     ) {
+      return { status: "ignored", reason: "addressed_to_unmapped_participant", checkpoint };
+    }
+    const coordination = mapDiscordInboundCoordination({
+      coordination: parsed.coordination,
+      actorParticipantId: identity.actor.participantId,
+      primaryMentionedParticipantId: identity.primaryMentionedParticipantId ?? null,
+    });
+    if (coordination.status === "unmapped") {
       return { status: "ignored", reason: "addressed_to_unmapped_participant", checkpoint };
     }
     const content = await storeConversationText({
@@ -313,6 +338,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       kind,
       actor: identity.actor,
       content,
+      ...(coordination.status === "mapped" ? { coordination: coordination.coordination } : {}),
       mentions: identity.mentions,
       replyToEventId: identity.replyToEventId,
       signalCode: null,

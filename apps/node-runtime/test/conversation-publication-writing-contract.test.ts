@@ -43,4 +43,21 @@ describe("conversation publication writing contract", () => {
       ).toBe(fixedConversationStatusWritingContract);
     },
   );
+
+  it("uses the managed conversation contract for a naturally composed action result", () => {
+    expect(
+      conversationPublicationWritingContract({
+        mode: "platform_action",
+        independentReadEvaluation: false,
+        managedPlatformActionResult: true,
+      }),
+    ).toEqual(realtimeConversationWritingContract);
+    expect(
+      conversationPublicationWritingContract({
+        mode: "platform_action",
+        independentReadEvaluation: true,
+        managedPlatformActionResult: true,
+      }),
+    ).toEqual(adaptiveConversationWritingContract);
+  });
 });

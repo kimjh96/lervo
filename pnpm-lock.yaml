@@ -1686,6 +1686,9 @@ importers:
       '@babel/parser':
         specifier: 7.29.8
         version: 7.29.8
+      '@lervo/context':
+        specifier: workspace:*
+        version: link:../context
       '@lervo/documents':
         specifier: workspace:*
         version: link:../documents

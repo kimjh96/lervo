@@ -22,7 +22,7 @@ export class WorkstreamRevisionReader {
   private cursor: EventEnvelope | null = null;
   private recorded = new Map<string, Recorded>();
   private validated = new Map<string, LocalWorkstreamRevision>();
-  private latest: Recorded | undefined;
+  private latestByWorkstream = new Map<string, Recorded>();
   private auditedAt: number | null = null;
   private cachedBytes = 0;
   private chain: { head: string; revisions: LocalWorkstreamRevision[] } | null = null;
@@ -43,7 +43,7 @@ export class WorkstreamRevisionReader {
     this.cursor = null;
     this.recorded.clear();
     this.validated.clear();
-    this.latest = undefined;
+    this.latestByWorkstream.clear();
     this.auditedAt = null;
     this.cachedBytes = 0;
     this.chain = null;
@@ -93,15 +93,15 @@ export class WorkstreamRevisionReader {
     const current = await readCurrentWorkstreamState(this.repositoryRoot);
     this.readNewEvents();
     if (current === null) {
-      if (this.latest !== undefined)
+      if (this.latestByWorkstream.size > 0)
         throw new Error("The recorded current workstream projection is missing.");
       this.auditedAt ??= at;
       return [];
     }
+    const selected = this.latestByWorkstream.get(current.snapshot.workstreamId);
     if (
-      this.latest?.snapshotContentHash !== current.contentHash ||
-      this.latest.workstreamId !== current.snapshot.workstreamId ||
-      this.latest.revision !== current.snapshot.revision
+      selected?.snapshotContentHash !== current.contentHash ||
+      selected.revision !== current.snapshot.revision
     )
       throw new Error("The current workstream differs from its latest event.");
 
@@ -169,7 +169,15 @@ export class WorkstreamRevisionReader {
             throw new Error("A local workstream hash has conflicting event bindings.");
           }
           this.recorded.set(payload.snapshotContentHash, payload);
-          this.latest = payload;
+          const previousHead = this.latestByWorkstream.get(payload.workstreamId);
+          if (
+            previousHead !== undefined &&
+            (payload.revision < previousHead.revision ||
+              (payload.revision === previousHead.revision &&
+                payload.snapshotContentHash !== previousHead.snapshotContentHash))
+          )
+            throw new Error("A workstream has a forked or regressing local revision.");
+          this.latestByWorkstream.set(payload.workstreamId, payload);
         }
         this.cursor = event;
       }

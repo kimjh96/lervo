@@ -1,3 +1,5 @@
+import { lstat } from "node:fs/promises";
+import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import type {
@@ -72,6 +74,32 @@ export class SQLiteConversationPlatformStore
     }
   }
 
+  static async openForDeliveryReconciliation(
+    path: string,
+  ): Promise<SQLiteConversationPlatformStore> {
+    const absolute = resolve(path);
+    const stats = await lstat(absolute);
+    if (!stats.isFile() || stats.isSymbolicLink()) {
+      throw new ConversationPlatformSQLiteError(
+        "integrity_failed",
+        "Delivery reconciliation requires an existing real platform store.",
+      );
+    }
+    const database = new DatabaseSync(absolute, {
+      enableForeignKeyConstraints: true,
+      allowExtension: false,
+    });
+    try {
+      configureConversationPlatformDatabase(database);
+      migrateConversationPlatformDatabase(database);
+      assertConversationPlatformDatabaseIntegrity(database);
+      return new SQLiteConversationPlatformStore(absolute, database);
+    } catch (error) {
+      database.close();
+      throw error;
+    }
+  }
+
   async mapInbound(input: PlatformInboundIdentityRequest) {
     this.assertOpen();
     return this.bindings.mapInbound(input);
@@ -119,6 +147,13 @@ export class SQLiteConversationPlatformStore
   async complete(input: Parameters<ConversationPlatformDeliveryReplayPort["complete"]>[0]) {
     this.assertOpen();
     this.replay.complete(input);
+  }
+
+  async reconcileDelivered(
+    input: Parameters<ConversationPlatformDeliveryReplayPort["complete"]>[0],
+  ) {
+    this.assertOpen();
+    this.replay.reconcileDelivered(input);
   }
 
   async markUnknown(input: Parameters<ConversationPlatformDeliveryReplayPort["markUnknown"]>[0]) {

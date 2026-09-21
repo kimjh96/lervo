@@ -141,6 +141,56 @@ describe("incremental workstream verification", () => {
     await expect(forged.reader.readRevisionChain()).rejects.toThrow("ancestry is invalid");
   });
 
+  it("keeps the selected review chain valid when another bound goal records an event", async () => {
+    const f = await fixture();
+    await f.append({ completed: true });
+    await f.append({ nextGoal: true });
+    const selected = JSON.parse(await readFile(f.projection, "utf8")) as WorkstreamSnapshot;
+    const selectedContentHash = (await f.artifacts.put(`${canonicalJson(selected)}\n`)).contentHash;
+    const bound = {
+      ...selected,
+      workstreamId: `wks_${"c".repeat(24)}`,
+      title: "Parallel supervised goal",
+      origin: {
+        kind: "successor" as const,
+        sourceArtifactId: null,
+        sourceContentHash: null,
+        sourcePathDigest: null,
+        predecessorWorkstreamId: selected.workstreamId,
+        predecessorSnapshotContentHash: selectedContentHash,
+      },
+    };
+    const artifact = await f.artifacts.put(`${canonicalJson(bound)}\n`);
+    f.events.append({
+      eventId: `evt_${"c".repeat(32)}`,
+      projectId: nodeRuntimeProjectId,
+      runId: `run_${"c".repeat(32)}`,
+      sessionId: `ses_${"c".repeat(32)}`,
+      type: "workstream.snapshot.recorded",
+      occurredAt: bound.updatedAt,
+      actor: { kind: "agent", provider: "codex" },
+      schemaVersion: 1,
+      policyVersion: artifact.contentHash,
+      payload: {
+        workstreamId: bound.workstreamId,
+        revision: 1,
+        status: bound.status,
+        changeKind: "agent_start",
+        snapshotArtifactId: `art_${artifact.contentHash.slice(7)}`,
+        snapshotContentHash: artifact.contentHash,
+        previousSnapshotContentHash: selectedContentHash,
+        sourceArtifactId: null,
+        sourceContentHash: null,
+        recordedAt: bound.updatedAt,
+      },
+    });
+    expect((await f.reader.readRevisionChain()).map((item) => item.snapshot.workstreamId)).toEqual([
+      "wks_1234567890abcdef12345678",
+      selected.workstreamId,
+    ]);
+    expect(JSON.parse(await readFile(f.projection, "utf8"))).toEqual(selected);
+  });
+
   it("reads each new artifact once, skips unchanged ancestry, and rebuilds after restart", async () => {
     const f = await fixture();
     for (let i = 0; i < 12; i += 1) await f.append();

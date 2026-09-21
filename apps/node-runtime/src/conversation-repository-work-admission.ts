@@ -77,14 +77,11 @@ export function beginConversationRepositoryWork(
     }
     const session = database
       .prepare(
-        `SELECT provider, provider_session_id FROM conversation_repository_work_sessions
-         WHERE conversation_id = ? AND thread_id = ? AND worker_id = ?`,
+        `SELECT provider_session_id FROM conversation_repository_work_sessions
+         WHERE conversation_id = ? AND thread_id = ? AND worker_id = ? AND provider = ?`,
       )
-      .get(input.conversationId, threadId, input.workerId) as
-      { provider: RepositoryWorkProvider; provider_session_id: string } | undefined;
-    if (session !== undefined && session.provider !== input.provider) {
-      throw new Error("The conversation work provider differs from its durable session.");
-    }
+      .get(input.conversationId, threadId, input.workerId, input.provider) as
+      { provider_session_id: string } | undefined;
     const startedAtMs = Date.parse(input.startedAt);
     if (!Number.isFinite(startedAtMs))
       throw new Error("The conversation work start time is invalid.");

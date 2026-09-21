@@ -225,7 +225,7 @@ export class AuthenticatedDiscordGatewayDriver
       this.sessionId = ready.sessionId;
       this.resumeUrl = resumeUrl;
       this.identified = true;
-      await this.options.onReady?.();
+      await this.observeReady();
       return;
     }
     if (payload.t === "RESUMED") {
@@ -236,7 +236,7 @@ export class AuthenticatedDiscordGatewayDriver
         );
       }
       this.identified = true;
-      await this.options.onReady?.();
+      await this.observeReady();
       return;
     }
     if (!this.identified) return;
@@ -250,6 +250,14 @@ export class AuthenticatedDiscordGatewayDriver
       body: Buffer.from(JSON.stringify(payload)),
     };
     this.applicationDispatches.schedule(payload.t, dispatch);
+  }
+
+  private async observeReady(): Promise<void> {
+    try {
+      await this.options.onReady?.();
+    } catch (error) {
+      this.report("dispatch_failed", "Discord Gateway READY application handling failed.", error);
+    }
   }
 
   private hello(value: unknown): void {

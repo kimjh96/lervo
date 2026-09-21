@@ -25,6 +25,29 @@ type ClaimedNotification = NonNullable<
   Awaited<ReturnType<ConversationApplication["claimDeliberationNotification"]>>
 >;
 
+function failedDeliberationMessage(
+  code: string | null | undefined,
+  responseLanguage: "en" | "ko",
+): string {
+  const ko: Record<string, string> = {
+    deliberation_budget_exhausted:
+      "완료와 검증에 필요한 실행 예산을 확보하지 못해 검토를 중단했습니다. 부분 결과는 채택하지 않았으며, 같은 구성으로 자동 재시도하지 않습니다.",
+    deliberation_participant_binding_invalid:
+      "검토에 참여할 실제 에이전트의 바인딩을 끝까지 확인하지 못해 중단했습니다. 정책 역할을 다른 에이전트가 대신 연기하지 않았고 부분 결과도 채택하지 않았습니다.",
+  };
+  const en: Record<string, string> = {
+    deliberation_budget_exhausted:
+      "The review stopped because it could not preserve enough execution budget for completion and verification. No partial result was adopted, and the same configuration will not be retried automatically.",
+    deliberation_participant_binding_invalid:
+      "The review stopped because the actual agent binding could not be verified through completion. No other agent impersonated the policy role, and no partial result was adopted.",
+  };
+  const message = (responseLanguage === "ko" ? ko : en)[code ?? ""];
+  if (message !== undefined) return message;
+  return responseLanguage === "ko"
+    ? `검토를 완료하지 못했습니다${code == null ? "" : ` (${code})`}. 부분 결과는 채택하지 않았고 같은 실행을 자동 반복하지 않습니다.`
+    : `The review did not complete${code == null ? "" : ` (${code})`}. No partial result was adopted, and the same execution will not be repeated automatically.`;
+}
+
 export class ConversationDeliberationOutcomeCoordinator {
   private readonly pending = new Map<string, PendingReconciliation>();
   private readonly exhausted = new Set<string>();
@@ -113,9 +136,7 @@ export class ConversationDeliberationOutcomeCoordinator {
         : "The review paused at a safe checkpoint. It can continue without repeating completed work.";
     }
     if (status === "failed") {
-      return responseLanguage === "ko"
-        ? "검토를 안전하게 완료하지 못했습니다. 부분 결과는 최종 결정으로 채택하지 않았습니다."
-        : "The review could not complete safely. No partial result was accepted as a decision.";
+      return failedDeliberationMessage(summary.failureReasonCode, responseLanguage);
     }
     const result = await this.options.resultSource.read({
       projectId: this.options.projectId,

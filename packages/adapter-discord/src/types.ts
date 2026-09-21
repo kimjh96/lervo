@@ -5,6 +5,7 @@ import type {
   ConversationInboundEvent,
   ConversationOutboundMessage,
 } from "@lervo/schemas";
+import type { ConversationCoordination } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import type { DiscordGoalInteraction } from "./goal-interaction.js";
 
@@ -56,6 +57,7 @@ export interface DiscordDeliveryRequest {
   content: string;
   automationDepth: number;
   audienceParticipation: "eligible" | "observe_only";
+  coordination?: ConversationCoordination;
   allowedMentions: "none";
   enforceIdempotency: true;
 }
@@ -66,6 +68,14 @@ export interface DiscordConversationAddressPort {
     guildId: string | null;
     channelId: string;
   }): Promise<{ conversationKey: string; threadKey: string | null } | null>;
+}
+
+export interface DiscordManagedBotRolePort {
+  /** Resolve only Discord-managed bot roles, verified against the authenticated guild. */
+  resolve(input: {
+    guildId: string;
+    roleIds: readonly string[];
+  }): Promise<readonly { roleId: string; botId: string }[]>;
 }
 
 export interface DiscordDeliveryResult {
@@ -166,6 +176,7 @@ export interface DiscordConversationAdapterOptions {
   artifactStore: ArtifactStore;
   delivery: DiscordDeliveryPort;
   conversationAddress?: DiscordConversationAddressPort;
+  managedBotRoles?: DiscordManagedBotRolePort;
   deliveryIdentity?: string;
   ignoredParticipantKeys?: readonly string[];
   textualParticipantAliases?: readonly {

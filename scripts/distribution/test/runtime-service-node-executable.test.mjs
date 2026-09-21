@@ -1,6 +1,6 @@
 import { chmod, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -44,9 +44,11 @@ describe("runtime service Node executable composition", () => {
       "--output",
       output,
     ]);
-    expect(await readFile(output, "utf8")).toContain(
+    const content = await readFile(output, "utf8");
+    expect(content).toContain(
       `ExecStart="${value.nodeExecutable}" "${value.executable}" --config "${value.config}"`,
     );
+    expect(content).toContain(`Environment="PATH=${dirname(value.nodeExecutable)}:`);
   });
 
   it("retains the exact launchd Node instance label while prepending Node.js", async () => {
@@ -69,9 +71,11 @@ describe("runtime service Node executable composition", () => {
       "--output",
       output,
     ]);
-    expect(await readFile(output, "utf8")).toContain(
+    const content = await readFile(output, "utf8");
+    expect(content).toContain(
       `  <key>Label</key>\n  <string>com.lervo.node.0123456789abcdef01234567</string>\n  <key>ProgramArguments</key>\n  <array>\n    <string>${value.nodeExecutable}</string>\n    <string>${value.executable}</string>`,
     );
+    expect(content).toContain(`<key>PATH</key>\n    <string>${dirname(value.nodeExecutable)}:`);
   });
 
   it("rejects duplicate Node executable arguments before creating a service definition", async () => {

@@ -50,7 +50,7 @@ export async function reconcileDiscordWorkforce(input: {
   ) {
     throw new NodeRuntimeError(
       "invalid_config",
-      "Discord workforce reconciliation requires an installed product-owner deployment.",
+      "Discord workforce reconciliation requires an installed hiring deployment.",
     );
   }
   if (!parent.conversations.some((item) => item.conversationId === input.conversationId)) {
@@ -61,10 +61,10 @@ export async function reconcileDiscordWorkforce(input: {
   }
   const agents = await listAgents(input.repositoryRoot);
   const parentAgent = agents.find((agent) => agent.agentId === parent.agentId);
-  if (parentAgent?.status !== "active" || parentAgent.roleId !== "product-owner") {
+  if (parentAgent?.status !== "active") {
     throw new NodeRuntimeError(
       "invalid_config",
-      "Discord workforce reconciliation requires the active product-owner agent.",
+      "Discord workforce reconciliation requires the active parent agent.",
     );
   }
   const children = directActiveChildren(agents, parent.agentId);

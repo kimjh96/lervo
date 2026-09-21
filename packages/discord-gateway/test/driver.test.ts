@@ -264,6 +264,37 @@ describe("authenticated Discord Gateway driver", () => {
     expect(setup.dispatches).toHaveLength(1);
   });
 
+  it("keeps the authenticated session when READY application work fails", async () => {
+    const onError = vi.fn();
+    const cause = new Error("history reconciliation unavailable");
+    const setup = fixture(async () => Promise.reject(cause), onError);
+    setup.driver.start();
+    const connection = setup.transport.connections[0]!;
+
+    emit(connection.observer, { op: 10, d: { heartbeat_interval: 45_000 } });
+    emit(connection.observer, {
+      op: 0,
+      s: 1,
+      t: "READY",
+      d: { session_id: "gateway-session", resume_gateway_url: "wss://gateway.discord.gg" },
+    });
+    await settled();
+    emit(connection.observer, {
+      op: 0,
+      s: 2,
+      t: "MESSAGE_CREATE",
+      d: { id: "message-after-ready-failure" },
+    });
+    await settled();
+
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "dispatch_failed", cause }),
+    );
+    expect(connection.close).not.toHaveBeenCalled();
+    expect(setup.transport.connections).toHaveLength(1);
+    expect(setup.dispatches).toHaveLength(1);
+  });
+
   it("reconnects and resumes after a missed heartbeat acknowledgement", async () => {
     const setup = fixture();
     setup.driver.start();

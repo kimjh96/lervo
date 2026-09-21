@@ -6,7 +6,9 @@ import {
 import { parseDiscordGoalInteraction, type DiscordGoalInteraction } from "./goal-interaction.js";
 import {
   readDiscordAudienceParticipation,
+  readDiscordMessageCoordination,
   type DiscordAudienceParticipation,
+  type DiscordMessageCoordination,
 } from "./message-nonce.js";
 
 export interface ParsedDiscordMessage {
@@ -16,8 +18,11 @@ export interface ParsedDiscordMessage {
   guildId: string | null;
   participantKey: string;
   mentionedParticipantKeys: string[];
+  mentionedRoleIds: string[];
+  coordinationTargetParticipantKeys: string[];
   actorKindHint: "human" | "agent";
   audienceParticipation: DiscordAudienceParticipation;
+  coordination: DiscordMessageCoordination | null;
   replyToMessageId: string | null;
   content: string;
   occurredAt: string;
@@ -103,15 +108,35 @@ export function parseDiscordMessagePayload(value: unknown): ParsedDiscordMessage
   const bot = author.bot === true;
   const webhookId = optionalSnowflake(message.webhook_id, "Discord webhook ID");
   const mentionValues = Array.isArray(message.mentions) ? message.mentions : [];
+  const roleValues = Array.isArray(message.mention_roles) ? message.mention_roles : [];
   const content = messageContent(message.content);
-  // allowed_mentions can suppress metadata without removing the sender's explicit address.
-  const leadingAddress = /^\s*<@!?(\d{1,32})>(?=\s|$)/u.exec(content)?.[1];
+  const leadingRole = /^\s*<@&(\d{1,32})>(?=\s|$)/u.exec(content)?.[1];
+  const coordination = readDiscordMessageCoordination({
+    nonce: message.nonce,
+    agentAuthored: bot && webhookId === null,
+  });
+  // allowed_mentions can suppress metadata without removing an authenticated coordination address.
+  const markedAddresses =
+    coordination?.kind === "discussion.assignment"
+      ? [...content.matchAll(/(?:^|\s)<@!?(\d{1,32})>(?=\s|$)/gu)].map((match) => match[1]!)
+      : [...content.matchAll(/^\s*<@!?(\d{1,32})>(?=\s|$)/gu)].map((match) => match[1]!);
   const reference =
     message.message_reference === undefined || message.message_reference === null
       ? null
       : objectValue(message.message_reference);
   const referencedAgent =
-    bot || webhookId !== null ? null : agentParticipantKey(message.referenced_message);
+    bot && coordination?.kind !== "discussion.contribution" && coordination?.kind !== "task.result"
+      ? null
+      : webhookId !== null
+        ? null
+        : agentParticipantKey(message.referenced_message);
+  const coordinationTargetParticipantKeys =
+    (coordination?.kind === "discussion.assignment" || coordination?.kind === "task.assignment") &&
+    markedAddresses[0] !== undefined
+      ? [`user:${markedAddresses[0]}`, `bot:${markedAddresses[0]}`]
+      : coordination?.kind === "task.result" && referencedAgent !== null
+        ? [referencedAgent]
+        : [];
   return {
     kind: "message",
     messageId: snowflake(message.id, "Discord message ID"),
@@ -125,14 +150,19 @@ export function parseDiscordMessagePayload(value: unknown): ParsedDiscordMessage
       ...mentionValues.map(
         (item) => `user:${snowflake(objectValue(item).id, "Discord mentioned user ID")}`,
       ),
-      ...(leadingAddress === undefined ? [] : [`user:${leadingAddress}`]),
+      ...markedAddresses.flatMap((address) => [`user:${address}`, `bot:${address}`]),
       ...(referencedAgent === null ? [] : [referencedAgent]),
     ].filter((value, index, values) => values.indexOf(value) === index),
+    mentionedRoleIds: [...roleValues, ...(leadingRole === undefined ? [] : [leadingRole])]
+      .map((value) => snowflake(value, "Discord mentioned role ID"))
+      .filter((value, index, values) => values.indexOf(value) === index),
+    coordinationTargetParticipantKeys,
     actorKindHint: bot || webhookId !== null ? "agent" : "human",
     audienceParticipation: readDiscordAudienceParticipation({
       nonce: message.nonce,
       agentAuthored: bot && webhookId === null,
     }),
+    coordination,
     replyToMessageId:
       reference === null
         ? null

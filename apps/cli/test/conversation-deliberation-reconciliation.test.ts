@@ -18,6 +18,7 @@ function report(
     sourceStatus: "consistent",
     phase: "completed",
     completionStatus: "converged",
+    terminalReasonCode: null,
     artifactCount: 5,
     publishedArtifactCount: 5,
     quarantinedArtifactCount: 0,

@@ -18,9 +18,9 @@
     },
     {
       "path": "apps/cli/src/managed-deliberation.ts",
-      "contentHash": "sha256:5ff2b46ae827bdf166a5d57c28510e3b439decd3b37883bda7d903678286d937",
+      "contentHash": "sha256:a67e48218380e87fcea3891da3c6bcb2079558b8664b7934d17235143e2c81f7",
       "responsibility": "Managed deliberation execution orchestration",
-      "rationale": "All functions validate or execute one managed deliberation lifecycle and share the same provider plan, writing contract, checkpoint, and interruption semantics. Topic evidence retrieval, provider-run execution, budget accounting, resume, round progression, and publication are isolated in dedicated modules; this module only orders those boundaries and records the terminal lifecycle.",
+      "rationale": "All functions validate or execute one managed deliberation lifecycle and share the same provider plan, writing contract, checkpoint, and interruption semantics. Participant route validation, verified role composition, and organization-event mutation are isolated in the deliberation participant binding module; this module only orders binding, round execution, terminal release, and the existing lifecycle boundaries.",
       "disposition": "cohesive"
     },
     {
@@ -56,20 +56,6 @@
       "contentHash": "sha256:4d471e20b5ce112014c376aa6a93a45456e9fc2976672cc1de8254f8a65c9ad5",
       "responsibility": "Hub runtime deployment composition",
       "rationale": "TLS material loading, dependency and server composition, reload, resource lifecycle orchestration, and health wiring are phases of one Hub deployment boundary; HTTP connection-drain mechanics and domain policy remain in linked modules.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "apps/node-runtime/src/discord-conversation-runtime.ts",
-      "contentHash": "sha256:c3fdc430ca020e2310d056334459cc05b276961a512048e88a3b9a03ce264793",
-      "responsibility": "One Discord conversation runtime composition and lifecycle",
-      "rationale": "The entrypoint wires one configured Discord identity and its conversation, publication, result, and background ports. Delivery policy, publication-contract selection, deliberation event projection, storage mechanics, native transport, semantic selection, pending-goal retention, request binding, and supervision decisions live in linked modules; result and replay accessors plus the deferred application handle are composition hand-offs whose behavior remains in dedicated modules.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "apps/node-runtime/src/discord-hired-agent-deployment.ts",
-      "contentHash": "sha256:f15563c4e6a8f3cfdc7ba7355ff35fc2e16a6dd6de1e6e0ae92f214de24a9a01",
-      "responsibility": "Discord hired-agent webhook deployment lifecycle",
-      "rationale": "Webhook preparation, display-name synchronization, retirement, owner-credential recovery, and atomic runtime configuration replacement are phases of one hired-agent Discord deployment lifecycle; organization events, REST transport, and workforce policy remain in linked modules.",
       "disposition": "cohesive"
     },
     {
@@ -109,9 +95,9 @@
     },
     {
       "path": "packages/conversation-platform-sqlite/src/binding-repository.ts",
-      "contentHash": "sha256:8b4466914c3de542061642c837ab5dd9126bb66b5ebfcf38357dd9a2db202f62",
+      "contentHash": "sha256:ef7383fc7a8fda697a78075660d603c1d3f54169449015dc5daf644f940b8ecc",
       "responsibility": "Conversation-platform binding persistence",
-      "rationale": "The repository class owns one SQLite persistence boundary for platform bindings, including validation, reads, writes, and transaction-safe state changes.",
+      "rationale": "The repository class owns one SQLite persistence boundary for platform bindings, including validation, reads, writes, and transaction-safe state changes. Inbound depth and the optional ordered active-target projection use only identities resolved at that same mapping boundary; participation, discussion scheduling, and turn ownership policy remain outside the adapter.",
       "disposition": "cohesive"
     },
     {
@@ -123,9 +109,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:333f89106a6fc54da554f50ebe8b5c304dace961b3e18027031ba63b7b7b885c",
+      "contentHash": "sha256:e834012bc1af9cfc1d24e469f934412c46fe017ded013b6dc8f7e164250fb148",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns one event payload privacy boundary with a declarative allowlist catalog and exact coordinate validation. Deliberation events permit the validated provider-neutral policy, bounded role presentation name, and numeric execution-budget token coordinates; topics, prompts, filesystem roots, credentials, reasoning, provider output, and native platform identifiers remain excluded.",
+      "rationale": "The module owns one event payload privacy boundary with a declarative allowlist catalog and exact coordinate validation. Named deliberation binding fields are bounded organization, policy-seat, agent-role, route-hash, provider, and timestamp evidence; prompts, credentials, model output, reasoning, and raw Discord identifiers remain excluded.",
       "disposition": "cohesive"
     },
     {
@@ -151,7 +137,7 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:949e62a68f021667a70c2a31ea58b6ea4049e58dd3034c38d9236de1a636033a",
+      "contentHash": "sha256:cac27f2425441ef4abbb5c31a68d952c604c04520b704a79a7951c0bde2d11bb",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "The coordinator owns one provider-neutral run lifecycle and failure ledger. Role input binding, provider-interaction limits, snapshots, result collection, and verification remain delegated to dedicated modules and ports; the coordinator only orders them and records their evidence. No research, filesystem source policy, checker process, or provider-specific behavior is introduced here.",
       "disposition": "cohesive"
@@ -263,9 +249,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:0f672d65ed361d1cf811b88bab0d61827ae97388c889fdcb18343fe8ea4649ae",
+      "contentHash": "sha256:0b61a318d87f1041ade5f7c5dd39432338eedc73a27d7868aca97cb9b2a8f7cf",
       "responsibility": "Bounded repository knowledge scanner",
-      "rationale": "Classification, safe reads, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate.",
+      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate. The shared cache-name decision remains outside this filesystem scanner; no independent transport or provider concern was added.",
       "disposition": "cohesive"
     },
     {
@@ -305,9 +291,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/workstream.ts",
-      "contentHash": "sha256:05fcb9e9eb1a4e78e5bd397243f3397cbd07b371a312ff852a443004294bd401",
+      "contentHash": "sha256:77037209b48407ea774ab1011dbbf0c3974b80ce42483ea3cb2d4db67556e072",
       "responsibility": "Revisioned workstream snapshot lifecycle",
-      "rationale": "Current state, continuation import, initial and successor start (after a settled completed or cancelled predecessor), update, and replicated import all preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, and durable apply protocol.",
+      "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, and durable apply protocol. Pure snapshot construction and pending-coordinate validation now live in workstream-snapshot.ts, so this module retains durable lifecycle orchestration rather than growing another policy concern.",
       "disposition": "cohesive"
     },
     {
@@ -325,6 +311,13 @@
       "disposition": "cohesive"
     },
     {
+      "path": "packages/schemas/src/organization-agent-event.ts",
+      "contentHash": "sha256:dfc543514932b6c06a2560f4a4daed14cbc9da6e0d2226f385b3e98406486b7b",
+      "responsibility": "Declarative organization agent event schemas",
+      "rationale": "The module contains only bounded JSON Schema declarations and inferred payload types for one organization-agent event catalog. Version-two deliberation participation fields extend the existing bound event additively; projection, privacy redaction, persistence, and execution remain in separate modules.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/schemas/src/terminal-observation-event.ts",
       "contentHash": "sha256:ebbffbb6be465b464e95dbb908e52e0f9a890541410556e21b1e86dd3875493e",
       "responsibility": "Declarative terminal observation event schemas",
@@ -333,7 +326,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:fa92438f61571cdc51a90887c0431951a680bd12ff9c21aa54e8c6f2fbb75f94",
+      "contentHash": "sha256:c9a00b11c6a83d79a5e084e4c49d64cd4c3daee238e8c631d307694a27a52f03",
       "responsibility": "Repository schema validator registry",
       "rationale": "This module registers compiled validators for the schema catalog. Product-surface projections, steering, and subscription hints add only linked declarative validators; schema definitions, domain decisions, configuration handling, and persistence remain in their owning modules. No runtime workflow policy is added.",
       "disposition": "cohesive"

@@ -54,7 +54,11 @@ describe("managed conversation turn output contract", () => {
           actor: { kind: "human" },
         },
         mentioned: false,
-        respondingAgent: { agentId: null, roleId: "developer" },
+        respondingAgent: {
+          participantId: "ptc_lervoagent",
+          agentId: null,
+          roleId: "developer",
+        },
         policy: { roleId: "developer" },
         surfaceEffects: [],
       } as never,
@@ -67,6 +71,9 @@ describe("managed conversation turn output contract", () => {
 
     expect(instructions).toContain(
       "Use continue_work for live inspection or verification as well as repository, deployment, or surface mutations",
+    );
+    expect(instructions).toContain(
+      "never answer that live work cannot be performed because this turn cannot write",
     );
     expect(instructions).toContain("Read-only native work may complete with zero changed paths.");
   });
@@ -98,7 +105,11 @@ describe("managed conversation turn output contract", () => {
       request: {
         event: { actor: { kind: "human" } },
         mentioned: false,
-        respondingAgent: { agentId: null, roleId: "product-owner" },
+        respondingAgent: {
+          participantId: "ptc_lervoagent",
+          agentId: null,
+          roleId: "product-owner",
+        },
         policy: { roleId: "product-owner" },
         surfaceEffects: [effect],
       } as never,
@@ -106,6 +117,137 @@ describe("managed conversation turn output contract", () => {
       plan: { role: { roleId: "product-owner" }, executionIdentity: {} } as never,
     });
     expect(instructions).toContain("durable multi-step outcome");
+  });
+
+  it("gives a matching governed discussion action precedence over repository work", () => {
+    const instructions = managedConversationTurnInstructions({
+      request: {
+        event: { actor: { kind: "human" } },
+        mentioned: false,
+        respondingAgent: {
+          participantId: "ptc_lervoagent",
+          agentId: null,
+          roleId: "product-owner",
+        },
+        policy: { roleId: "product-owner" },
+        surfaceEffects: [
+          {
+            effectId: "deliberation_start",
+            description: "Convene independently bound agents and synthesize one decision.",
+            argumentDescription: "The complete topic.",
+          },
+        ],
+      } as never,
+      message:
+        "Ask two installed agents to review the deployment independently and converge on one decision.",
+      plan: { role: { roleId: "product-owner" }, executionIdentity: {} } as never,
+    });
+
+    expect(instructions).toContain(
+      "do not replace that action with repository_work merely because its topic concerns a repository, deployment, verification, or another external system",
+    );
+    expect(instructions).toContain(
+      "Starting that governed discussion is the requested surface action, not repository_work",
+    );
+  });
+
+  it("requires a coordinator to advance an incomplete delegated result", () => {
+    const instructions = managedConversationTurnInstructions({
+      request: {
+        event: {
+          actor: { kind: "agent" },
+          coordination: {
+            kind: "task.result",
+            taskId: `tsk_${"q".repeat(20)}`,
+            coordinatorParticipantId: "ptc_lervoagent",
+          },
+        },
+        mentioned: true,
+        respondingAgent: {
+          participantId: "ptc_lervoagent",
+          agentId: null,
+          roleId: "ceo",
+        },
+        policy: { roleId: "ceo" },
+        surfaceEffects: [],
+      } as never,
+      message: "The status is known, but the requested fix has not been applied.",
+      plan: { role: { roleId: "ceo" }, executionIdentity: {} } as never,
+    });
+
+    expect(instructions).toContain("do not stop at repeating the status report");
+    expect(instructions).toContain("complete original human outcome in priorTurns");
+  });
+
+  it("normalizes a redundant acknowledgement around an authority-checked surface action", () => {
+    expect(
+      parseManagedConversationTurn(
+        {
+          schemaVersion: 3,
+          intent: "answer",
+          confidence: "high",
+          participation: "relevant",
+          effect: { kind: "deliberation_start", argument: "Compare two independent reviews." },
+          executionProfile: null,
+          deliveryRelation: "reply",
+          reply: "I will start the discussion.",
+        },
+        [
+          {
+            effectId: "deliberation_start",
+            description: "Convene independently bound agents and synthesize one decision.",
+            argumentDescription: "The complete topic.",
+          },
+        ],
+        2_000,
+      ),
+    ).toMatchObject({
+      intent: "continue_work",
+      effect: { kind: "deliberation_start", argument: "Compare two independent reviews." },
+      executionProfile: null,
+      deliveryRelation: "standalone",
+      reply: null,
+    });
+  });
+
+  it("keeps a maximum-size effect choice catalog separate from its bounded description", () => {
+    const argumentChoices = Array.from({ length: 64 }, (_, index) => ({
+      value: `ptc_agent_${String(index).padStart(2, "0")}`,
+      label: `Named agent ${index} (product-owner)`,
+    }));
+    const effect = {
+      effectId: "workforce_task_delegate",
+      description: "Delegate one bounded task to an exact routable peer.",
+      argumentDescription:
+        "Compact JSON with participantId equal to one argumentChoices value and a bounded task.",
+      argumentChoices,
+      maximumArgumentCharacters: 1_024,
+    };
+
+    expect(() => managedConversationTurnOutputSchema([effect])).not.toThrow();
+    const instructions = JSON.parse(
+      managedConversationTurnInstructions({
+        request: {
+          event: { actor: { kind: "human" } },
+          mentioned: false,
+          respondingAgent: {
+            participantId: "ptc_lervoagent",
+            agentId: null,
+            roleId: "product-owner",
+          },
+          policy: { roleId: "product-owner" },
+          surfaceEffects: [effect],
+        } as never,
+        message: "Delegate this to named agent 63.",
+        plan: { role: { roleId: "product-owner" }, executionIdentity: {} } as never,
+      }),
+    ) as {
+      instruction: string[];
+      surfaceEffects: Array<{ argumentChoices: typeof argumentChoices }>;
+    };
+    expect(instructions.surfaceEffects[0]?.argumentChoices).toEqual(argumentChoices);
+    expect(instructions.instruction.join(" ")).toContain("durable role, context");
+    expect(instructions.instruction.join(" ")).toContain("do not assign a synthetic");
   });
 });
 

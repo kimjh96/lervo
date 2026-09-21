@@ -2,7 +2,7 @@ schemaVersion: 1
 policyId: deliberation_architecture-review
 maxRounds: 2
 executionBudget:
-  maximumProviderCalls: 24
+  maximumProviderCalls: 32
   maximumObservedTokens: 500000
   maximumElapsedMs: 1800000
   unobservedTokenDisposition: block

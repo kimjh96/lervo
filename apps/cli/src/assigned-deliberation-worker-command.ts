@@ -3,6 +3,7 @@ import { parseArgs } from "node:util";
 
 import { inspectManagedDeliberation } from "./deliberation-inspection.js";
 import type { RunProvider } from "./managed-run.js";
+import { validateSchema, type DeliberationParticipantAssignment } from "@lervo/schemas";
 import type { CliIo, CliServices } from "./types.js";
 
 function errorCode(error: unknown): string {
@@ -57,6 +58,7 @@ export async function runAssignedDeliberationWorkerCommand(
       responseLanguage?: unknown;
       executionMaximumElapsedMs?: unknown;
       origin?: unknown;
+      participantAssignments?: unknown;
     };
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
     recoveryCoordinates = { repositoryRoot, deliberationId, expectedProjectId };
@@ -107,8 +109,26 @@ export async function runAssignedDeliberationWorkerCommand(
         (origin.threadId === null || typeof origin.threadId === "string") &&
         typeof origin.requesterParticipantId === "string" &&
         typeof origin.originBindingDigest === "string");
+    const participantAssignments = Array.isArray(payload.participantAssignments)
+      ? payload.participantAssignments
+      : [];
+    const participantAssignmentsAreValid =
+      (payload.participantAssignments === undefined ||
+        Array.isArray(payload.participantAssignments)) &&
+      participantAssignments.length <= 32 &&
+      participantAssignments.every(
+        (assignment) =>
+          validateSchema("deliberationParticipantAssignment", assignment).valid &&
+          (assignment as DeliberationParticipantAssignment).deliberationId === deliberationId &&
+          (assignment as DeliberationParticipantAssignment).projectId === expectedProjectId,
+      ) &&
+      new Set(
+        participantAssignments.map(
+          (assignment) => (assignment as DeliberationParticipantAssignment).policyRoleId,
+        ),
+      ).size === participantAssignments.length;
     const request =
-      payload.operation === "resume" && executionDeadlineIsValid
+      payload.operation === "resume" && executionDeadlineIsValid && participantAssignmentsAreValid
         ? ({
             repositoryRoot,
             resumeDeliberationId: deliberationId,
@@ -120,12 +140,26 @@ export async function runAssignedDeliberationWorkerCommand(
             ...(Object.keys(providerReasoningEfforts).length === 0
               ? {}
               : { providerReasoningEfforts }),
+            ...(participantAssignments.length === 0
+              ? {}
+              : {
+                  participantAssignments:
+                    participantAssignments as DeliberationParticipantAssignment[],
+                }),
           } as const)
         : payload.operation === "start" &&
             typeof payload.policyId === "string" &&
             typeof payload.topic === "string" &&
             executionDeadlineIsValid &&
             originIsValid &&
+            participantAssignmentsAreValid &&
+            participantAssignments.every(
+              (assignment) =>
+                (assignment as DeliberationParticipantAssignment).policyId === payload.policyId &&
+                (origin === undefined ||
+                  (assignment as DeliberationParticipantAssignment).conversationId ===
+                    origin.conversationId),
+            ) &&
             (payload.responseLanguage === undefined ||
               ["en", "ko"].includes(String(payload.responseLanguage)))
           ? ({
@@ -145,6 +179,12 @@ export async function runAssignedDeliberationWorkerCommand(
               ...(Object.keys(providerReasoningEfforts).length === 0
                 ? {}
                 : { providerReasoningEfforts }),
+              ...(participantAssignments.length === 0
+                ? {}
+                : {
+                    participantAssignments:
+                      participantAssignments as DeliberationParticipantAssignment[],
+                  }),
             } as const)
           : null;
     if (request === null) throw new Error("Assigned deliberation payload is invalid.");
@@ -170,6 +210,7 @@ export async function runAssignedDeliberationWorkerCommand(
         deliberationId: outcome.deliberationId,
         status: outcome.status,
         artifactCount: outcome.artifactCount,
+        failureReasonCode: null,
       })}\n`,
     );
     return outcome.status === "converged" ? 0 : 2;
@@ -194,6 +235,7 @@ export async function runAssignedDeliberationWorkerCommand(
               deliberationId: recoveryCoordinates.deliberationId,
               status: "failed",
               artifactCount: report.artifactCount,
+              failureReasonCode: report.terminalReasonCode ?? errorCode(error),
             })}\n`,
           );
           io.stderr(

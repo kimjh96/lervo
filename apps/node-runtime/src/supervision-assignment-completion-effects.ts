@@ -6,7 +6,7 @@ import {
   reconcileSettledAssignmentCompletion,
 } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import {
   managedExecutionIdentity,
   operatingContractHash,
@@ -159,7 +159,7 @@ export class SupervisionAssignmentCompletionEffects {
           const others = (items: typeof assignments) =>
             items.filter((item) => item.assignmentId !== basis.assignment.assignmentId);
           const agents = await listAgents(this.root);
-          const workstream = await readCurrentWorkstreamState(this.root);
+          const workstream = await readBoundWorkstreamState(storage, this.binding.workstreamId);
           session.commit(() => {
             if (
               fresh.source.sourceRevisionDigest !== authority.source.sourceRevisionDigest ||

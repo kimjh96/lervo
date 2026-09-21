@@ -26,7 +26,7 @@ import type {
 } from "@lervo/application-contract";
 import { canonicalJson } from "@lervo/event-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import {
   automaticTopologyEffectFields,
   operatingContractHash,
@@ -154,7 +154,7 @@ export async function materializeNativeOwnerProposal(
     )
       throw new Error("The owner cannot complete a goal with unaccepted or unbound work.");
     const result = await storage.artifacts.put(details.result);
-    const current = await readCurrentWorkstreamState(storage.paths.repositoryRoot);
+    const current = await readBoundWorkstreamState(storage, base.workstreamId);
     if (
       current === null ||
       operatingContractHash(current.snapshot) !== operatingContractHash(facts.workstream)

@@ -54,7 +54,7 @@ describe("conversation repository work routing", () => {
     ).toMatchObject({ provider: "codex", model: "gpt-deep", reasoningEffort: "high" });
   });
 
-  it("keeps session identity while applying the matching quality route", () => {
+  it("selects the quality profile across provider sessions", () => {
     expect(
       selectConversationRepositoryWorkRoute({
         sessionProvider: "claude",
@@ -64,12 +64,34 @@ describe("conversation repository work routing", () => {
         executionProfiles,
       }),
     ).toEqual({
-      provider: "claude",
-      model: "claude-deep",
+      provider: "codex",
+      model: "gpt-deep",
       reasoningEffort: "high",
       executionProfile: "reasoning",
-      allocationReason: "session_continuity",
+      allocationReason: "profile_preference",
     });
+    expect(
+      selectConversationRepositoryWorkRoute({
+        sessionProvider: "codex",
+        boundProvider: "any",
+        defaultProvider: "codex",
+        executionProfile: "review",
+        executionProfiles,
+      }),
+    ).toMatchObject({ provider: "claude", model: "claude-review" });
+  });
+
+  it("retains the exact provider of a replayed event", () => {
+    expect(
+      selectConversationRepositoryWorkRoute({
+        replayProvider: "codex",
+        sessionProvider: "claude",
+        boundProvider: "any",
+        defaultProvider: "codex",
+        executionProfile: "review",
+        executionProfiles,
+      }),
+    ).toMatchObject({ provider: "codex", allocationReason: "session_continuity" });
   });
 
   it("fails closed instead of silently lowering a bound agent's profile", () => {

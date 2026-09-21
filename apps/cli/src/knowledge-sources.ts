@@ -4,7 +4,10 @@ import {
   type RepositorySupplementalSource,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
+import { collectLocalKnowledgeSources as collectBoundedLocalKnowledgeSources } from "@lervo/repository-context";
 import { loadVerificationSuite } from "@lervo/verification";
+
+export const collectInteractiveLocalKnowledgeSources = collectBoundedLocalKnowledgeSources;
 
 export async function collectLocalKnowledgeSources(
   repositoryRoot: string,

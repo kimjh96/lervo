@@ -10,6 +10,7 @@ import type {
   ConversationDeliberationSummary,
   ConversationDeliberationReconciliationSourcePort,
 } from "@lervo/conversation-control";
+import type { ConversationDeliberationParticipantAssignmentPort } from "./conversation-deliberation-participant-router.js";
 
 interface CliProcessRequest {
   executable: string;
@@ -106,6 +107,7 @@ function parseSummary(
     deliberationId?: unknown;
     status?: unknown;
     artifactCount?: unknown;
+    failureReasonCode?: unknown;
   };
   if (
     summary.schemaVersion !== 1 ||
@@ -113,7 +115,11 @@ function parseSummary(
     !["converged", "no_consensus", "failed"].includes(String(summary.status)) ||
     !Number.isSafeInteger(summary.artifactCount) ||
     Number(summary.artifactCount) < 0 ||
-    Number(summary.artifactCount) > 10_000
+    Number(summary.artifactCount) > 10_000 ||
+    (summary.failureReasonCode !== undefined &&
+      summary.failureReasonCode !== null &&
+      (typeof summary.failureReasonCode !== "string" ||
+        !/^[a-z][a-z0-9_]{0,63}$/u.test(summary.failureReasonCode)))
   ) {
     throw new Error("The assigned deliberation process returned invalid evidence.");
   }
@@ -122,6 +128,9 @@ function parseSummary(
     status: summary.status as "converged" | "no_consensus" | "failed",
     artifactCount: summary.artifactCount as number,
     nextAction: "none",
+    ...(summary.failureReasonCode === undefined
+      ? {}
+      : { failureReasonCode: summary.failureReasonCode as string | null }),
   };
 }
 
@@ -136,12 +145,21 @@ function execute(
     >;
     processTimeoutMs?: number;
     process?: ConversationDeliberationCliProcess;
+    participantAssignments?: ConversationDeliberationParticipantAssignmentPort;
   },
   job: Readonly<ConversationDeliberationJob | ConversationDeliberationResumeJob>,
 ): Promise<ConversationDeliberationSummary> {
   const operation = job.operation;
   const processTimeoutMs = options.processTimeoutMs ?? 3_600_000;
   const executionMaximumElapsedMs = conversationDeliberationManagedElapsedMs(processTimeoutMs);
+  const acceptedAt = new Date().toISOString();
+  const participantAssignments = options.participantAssignments?.assign({
+    deliberationId: job.deliberationId,
+    policyId: operation === "start" ? job.policyId : null,
+    projectId: job.projectId,
+    conversationId: operation === "start" ? (job.origin?.conversationId ?? null) : null,
+    acceptedAt,
+  });
   const stdin =
     operation === "start"
       ? JSON.stringify({
@@ -153,8 +171,13 @@ function execute(
             : { origin: { sourceEventId: job.sourceEventId, ...job.origin } }),
           responseLanguage: /\p{Script=Hangul}/u.test(job.topic) ? "ko" : "en",
           executionMaximumElapsedMs,
+          ...(participantAssignments === undefined ? {} : { participantAssignments }),
         })
-      : JSON.stringify({ operation, executionMaximumElapsedMs });
+      : JSON.stringify({
+          operation,
+          executionMaximumElapsedMs,
+          ...(participantAssignments === undefined ? {} : { participantAssignments }),
+        });
   return (options.process ?? systemConversationDeliberationCliProcess)
     .run({
       executable: options.executable,
@@ -276,6 +299,7 @@ export function createConversationDeliberationCliExecutionPorts(options: {
   >;
   processTimeoutMs?: number;
   process?: ConversationDeliberationCliProcess;
+  participantAssignments?: ConversationDeliberationParticipantAssignmentPort;
 }): {
   start: ConversationDeliberationExecutionPort;
   resume: ConversationDeliberationResumeExecutionPort;

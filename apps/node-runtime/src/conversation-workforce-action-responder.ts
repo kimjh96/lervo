@@ -127,7 +127,10 @@ export class ConversationWorkforceActionResponder implements DiscordPlatformActi
     private readonly options: {
       artifactStore: ArtifactStore;
       parentAgentId: string;
-      parentRoleId: string;
+      existingConversationAgents?: readonly {
+        participantId: string;
+        displayName?: string;
+      }[];
       hiring: ConversationWorkforceHiringPort;
       deployment?: ConversationWorkforceDeploymentPort;
       onConversationDelegateHired?(input: {
@@ -139,11 +142,7 @@ export class ConversationWorkforceActionResponder implements DiscordPlatformActi
       onDeploymentPrepared?(sourceEventId: string): void;
       now?: () => Date;
     },
-  ) {
-    if (options.parentRoleId !== "product-owner") {
-      throw new Error("Conversation workforce hiring requires the product-owner role.");
-    }
-  }
+  ) {}
 
   async respond(
     input: Parameters<ConversationResponder["respond"]>[0],
@@ -153,11 +152,18 @@ export class ConversationWorkforceActionResponder implements DiscordPlatformActi
     if (!authorization.effectRequesterAuthorized || effect.kind !== "workforce_agent_hire") {
       throw new Error("The conversation workforce hiring action is not authorized.");
     }
-    const message = await readConversationControlMessage({
-      artifactStore: this.options.artifactStore,
-      event: input.event,
-    });
     const specification = parseSpecification(effect.specification);
+    const duplicate = this.options.existingConversationAgents?.find(
+      (candidate) =>
+        candidate.displayName !== undefined &&
+        candidate.displayName.normalize("NFKC").toLocaleLowerCase("en-US") ===
+          specification.name.normalize("NFKC").toLocaleLowerCase("en-US"),
+    );
+    if (duplicate !== undefined) {
+      throw new Error(
+        `A conversation agent named ${specification.name} is already routed as ${duplicate.participantId}; delegate to that exact participant instead of creating another Discord speaker.`,
+      );
+    }
     const agent = await this.options.hiring.hire({
       ...specification,
       parentAgentId: this.options.parentAgentId,
@@ -177,6 +183,10 @@ export class ConversationWorkforceActionResponder implements DiscordPlatformActi
     if (deployment?.configurationChanged === true) {
       this.options.onDeploymentPrepared?.(input.event.eventId);
     }
+    const message = await readConversationControlMessage({
+      artifactStore: this.options.artifactStore,
+      event: input.event,
+    });
     const korean = /\p{Script=Hangul}/u.test(message);
     const content = korean
       ? deployment === undefined

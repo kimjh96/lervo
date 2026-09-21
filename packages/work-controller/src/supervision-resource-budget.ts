@@ -5,7 +5,7 @@ import {
 } from "@lervo/execution-contract";
 import type { EventEnvelope, ResourceAccountingDescriptor } from "@lervo/schemas";
 
-/** Resolve only a default-model descriptor against exact final provider model evidence. */
+/** Derive one supervision total from exact same-counter groups without changing their reports. */
 export function comparableSupervisionResourceTotal(input: {
   runIds: readonly string[];
   groups: readonly ResourceGroupObservationV1[];
@@ -13,11 +13,12 @@ export function comparableSupervisionResourceTotal(input: {
   descriptors: ReadonlyMap<string, ResourceAccountingDescriptor>;
 }): number | null {
   const first = input.groups[0];
-  if (first === undefined || input.groups.length !== 2) return null;
+  if (first === undefined || input.groups.length < 2) return null;
   const runs = new Set(input.runIds);
   if (runs.size === 0 || runs.size !== input.runIds.length) return null;
   const covered = new Set<string>();
   const effectiveDescriptors = new Set<string>();
+  const counterSemanticsDescriptors = new Set<string>();
   const requestedModels = new Set<string | null>();
   let total = 0;
   for (const group of input.groups) {
@@ -42,6 +43,9 @@ export function comparableSupervisionResourceTotal(input: {
     )
       return null;
     requestedModels.add(descriptor.requestedModel);
+    counterSemanticsDescriptors.add(
+      resourceAccountingDescriptorHash({ ...descriptor, requestedModel: null }),
+    );
     const observations = input.events.filter(
       (event) =>
         runs.has(event.runId) &&
@@ -84,11 +88,15 @@ export function comparableSupervisionResourceTotal(input: {
     if (observedTotal !== group.totalTokens) return null;
     total += observedTotal;
   }
-  return covered.size === runs.size &&
-    effectiveDescriptors.size === 1 &&
+  if (covered.size !== runs.size || !Number.isSafeInteger(total)) return null;
+  const defaultAndExplicitSameModel =
+    input.groups.length === 2 &&
     requestedModels.size === 2 &&
     requestedModels.has(null) &&
-    Number.isSafeInteger(total)
-    ? total
-    : null;
+    effectiveDescriptors.size === 1;
+  const explicitModelMigration =
+    !requestedModels.has(null) &&
+    requestedModels.size === input.groups.length &&
+    counterSemanticsDescriptors.size === 1;
+  return defaultAndExplicitSameModel || explicitModelMigration ? total : null;
 }

@@ -106,6 +106,13 @@ export interface ConversationInteractionStore {
     availableAt: string;
     failureCode: string;
   }): Promise<void>;
+
+  markOutboundAttentionRequired(input: {
+    outboundId: string;
+    leaseId: string;
+    failedAt: string;
+    failureCode: string;
+  }): Promise<void>;
 }
 
 export interface ConversationRelevanceEvaluator {
@@ -124,6 +131,7 @@ export interface ConversationTurnOwnershipEvaluator {
 
 export interface ConversationReplyCandidate {
   content: ConversationContentReference;
+  coordination?: ConversationOutboundMessage["coordination"];
   deliveryRelation?: "standalone" | "reply";
   audienceParticipation?: "eligible" | "observe_only";
   publicationPermit: WritingPublicationPermit;
@@ -134,6 +142,13 @@ export interface ConversationReplyCandidate {
   };
 }
 
+export interface ConversationCompletedEffectResult {
+  effectId: string;
+  resultCode: string;
+  targetLabel: string;
+  facts: readonly string[];
+}
+
 export interface ConversationResponder {
   respond(input: {
     event: ConversationInboundEvent;
@@ -142,6 +157,7 @@ export interface ConversationResponder {
     context?: {
       priorTurns: ReadonlyArray<{ role: "user" | "assistant"; text: string }>;
       executionProfile?: "routine" | "reasoning" | "review";
+      completedEffect?: ConversationCompletedEffectResult;
     };
   }): Promise<ConversationReplyCandidate>;
 }
@@ -150,6 +166,7 @@ export type ConversationResponseFailureCode =
   | "response_generation_failed"
   | "response_context_unavailable"
   | "response_provider_unavailable"
+  | "response_provider_capacity"
   | "response_storage_unavailable"
   | "response_writing_blocked"
   | "response_evaluation_unavailable"
@@ -212,6 +229,7 @@ export interface ConversationDeliveryCycleResult {
   status: "idle" | "processed";
   deliveredCount: number;
   retryScheduledCount: number;
+  attentionRequiredCount: number;
 }
 
 export type { ConversationAdapter };

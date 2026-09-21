@@ -53,6 +53,7 @@ function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapsh
       snapshot.conversation.status === "disabled") &&
     (snapshot.supervision === undefined ||
       snapshot.supervision.status === "ready" ||
+      snapshot.supervision.status === "dormant" ||
       snapshot.supervision.status === "disabled")
   ) {
     return "ready";

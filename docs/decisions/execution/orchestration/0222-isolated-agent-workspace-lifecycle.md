@@ -27,6 +27,13 @@ Per-checkout `.lervo/data/workforce` cannot coordinate sibling worktrees. For ea
 
 Existing single-checkout workforce state is imported only by an exact, conflict-detecting transaction. Two non-empty authorities, an unsafe common directory, symbolic links, unknown ownership, or mismatched repository identity fail closed. Per-worktree execution artifacts may remain under that checkout's `.lervo/data`; anything needed after removal must be copied to the coordination home or content-addressed storage before sealing.
 
+Coordination-home initialization uses an owner-only process lock. A lock may be
+recovered only after a bounded expiry and positive confirmation that its recorded
+owner process no longer exists. A live owner, a recent lock, an unsafe filesystem
+object, or malformed lock content remains blocking and fails closed; a process
+crash therefore cannot disable repository coordination permanently without
+weakening concurrent-owner protection.
+
 This boundary coordinates one repository instance, not separate clones. Cross-clone coordination requires explicitly enabled Hub policy.
 
 ### Workspace lifecycle

@@ -4,9 +4,9 @@ import type { ResourceAccountingDescriptor } from "@lervo/schemas";
 import { comparableSupervisionResourceTotal, projectWorkstreamResources } from "../src/index.js";
 import { causalityPayload, event, workstreamId } from "./fixtures.js";
 
-function fixture() {
+function fixture(requestedModels: readonly (string | null)[] = [null, "fixture"]) {
   const descriptors = new Map<string, ResourceAccountingDescriptor>();
-  const events = [null, "fixture"].flatMap((requestedModel, index) => {
+  const events = requestedModels.flatMap((requestedModel, index) => {
     const descriptor: ResourceAccountingDescriptor = {
       schemaVersion: 2,
       kind: "resource_accounting_descriptor",
@@ -49,8 +49,8 @@ function fixture() {
           modelIdentity: {
             provider: "codex",
             requestedModel,
-            answerModel: "fixture",
-            observedModelIds: ["fixture"],
+            answerModel: requestedModel ?? "fixture",
+            observedModelIds: [requestedModel ?? "fixture"],
             answerModelEvidence: "thread_start",
             unavailableReason: null,
           },
@@ -77,6 +77,24 @@ describe("supervision default-model accounting proof", () => {
     expect(input.groups).toHaveLength(2);
     expect(comparableSupervisionResourceTotal(input)).toBe(28);
     expect(JSON.stringify(input)).toBe(before);
+  });
+
+  it("charges exact reported tokens across an explicit model migration", () => {
+    const input = fixture(["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra"]);
+    const before = JSON.stringify(input);
+    expect(input.groups).toHaveLength(3);
+    expect(comparableSupervisionResourceTotal(input)).toBe(42);
+    expect(JSON.stringify(input)).toBe(before);
+  });
+
+  it("rejects migration when an actual model differs from its explicit request", () => {
+    const input = fixture(["gpt-6-astra", "gpt-5.6-sol"]);
+    input.events[2]!.payload.modelIdentity = {
+      ...(input.events[2]!.payload.modelIdentity as object),
+      answerModel: "gpt-5.6-sol",
+      observedModelIds: ["gpt-5.6-sol"],
+    };
+    expect(comparableSupervisionResourceTotal(input)).toBeNull();
   });
 
   it.each(["provider", "scope", "accountingMode", "completeness", "runCount", "totalTokens"])(

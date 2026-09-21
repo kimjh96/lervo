@@ -1,0 +1,87 @@
+import { canonicalJson } from "@lervo/event-contract";
+import type { ProjectStorage } from "@lervo/project-storage";
+import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
+import { validateSchema, type EventEnvelope, type WorkstreamSnapshot } from "@lervo/schemas";
+import { collectProjectEventsBounded } from "@lervo/storage-contract";
+
+import { readSupervisionTextArtifact } from "./supervision-artifact-json.js";
+
+export interface BoundWorkstreamState {
+  snapshot: WorkstreamSnapshot;
+  content: string;
+  contentHash: string;
+  sourceEventId: string;
+  sourceEventHash: string;
+}
+
+/** Selects one canonical goal by reviewed binding, never by the human-facing current pointer. */
+export async function readBoundWorkstreamState(
+  storage: ProjectStorage,
+  workstreamId: string,
+  verifiedEvents?: readonly EventEnvelope[],
+): Promise<BoundWorkstreamState | null> {
+  if (!/^wks_[a-f0-9]{24}$/u.test(workstreamId))
+    throw new Error("The bound workstream identity is invalid.");
+  if (verifiedEvents === undefined && !storage.events.verifyIntegrity().valid)
+    throw new Error("The bound workstream event history is invalid.");
+  const events =
+    verifiedEvents ??
+    collectProjectEventsBounded({ events: storage.events, maximumEvents: 100_000 });
+  const snapshots = events.filter(
+    (event) =>
+      event.type === "workstream.snapshot.recorded" &&
+      event.projectId === storage.manifest.projectId &&
+      event.payload.workstreamId === workstreamId,
+  );
+  if (snapshots.length === 0) return null;
+  let previousHash: string | null = null;
+  let previousRevision = 0;
+  let firstPredecessorHash: unknown = null;
+  for (const event of snapshots) {
+    const revision = event.payload.revision;
+    const hash = event.payload.snapshotContentHash;
+    if (previousRevision === 0) firstPredecessorHash = event.payload.previousSnapshotContentHash;
+    if (
+      revision !== previousRevision + 1 ||
+      typeof hash !== "string" ||
+      !/^sha256:[a-f0-9]{64}$/u.test(hash) ||
+      (previousRevision > 0 && event.payload.previousSnapshotContentHash !== previousHash) ||
+      event.payload.snapshotArtifactId !== `art_${hash.slice(7)}`
+    )
+      throw new Error("The bound workstream snapshot history is forked or incomplete.");
+    previousRevision = revision;
+    previousHash = hash;
+  }
+  const latest = snapshots.at(-1)!;
+  const contentHash = String(latest.payload.snapshotContentHash);
+  const content = await readSupervisionTextArtifact(storage.artifacts, contentHash);
+  if (Buffer.byteLength(content) > 64 * 1024)
+    throw new Error("The bound workstream snapshot exceeds its byte bound.");
+  let value: unknown;
+  try {
+    value = JSON.parse(content);
+  } catch {
+    throw new Error("The bound workstream snapshot is not valid JSON.");
+  }
+  if (!validateSchema("workstreamSnapshot", value).valid || `${canonicalJson(value)}\n` !== content)
+    throw new Error("The bound workstream snapshot is not canonical.");
+  const snapshot = value as WorkstreamSnapshot;
+  if (
+    snapshot.workstreamId !== workstreamId ||
+    snapshot.revision !== latest.payload.revision ||
+    snapshot.status !== latest.payload.status ||
+    firstPredecessorHash !==
+      (snapshot.origin.kind === "successor" ? snapshot.origin.predecessorSnapshotContentHash : null)
+  )
+    throw new Error("The bound workstream snapshot differs from its event.");
+  const selected = await readCurrentWorkstreamState(storage.paths.repositoryRoot);
+  if (selected?.snapshot.workstreamId === workstreamId && selected.contentHash !== contentHash)
+    throw new Error("The selected workstream projection differs from canonical history.");
+  return {
+    snapshot,
+    content,
+    contentHash,
+    sourceEventId: latest.eventId,
+    sourceEventHash: latest.eventHash,
+  };
+}

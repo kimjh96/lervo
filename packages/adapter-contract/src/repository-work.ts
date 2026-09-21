@@ -9,6 +9,7 @@ export interface RepositoryWorkTurnRequest {
   model?: string;
   reasoningEffort?: RepositoryWorkReasoningEffort;
   externalEffectsAuthorized?: boolean;
+  /** Maximum time without a provider-native progress event; an absolute turn bound also applies. */
   timeoutMs: number;
   signal?: AbortSignal;
 }

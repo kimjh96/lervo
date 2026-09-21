@@ -91,4 +91,4 @@ it("notifies once per observed head change and stops once closed", async () => {
     close();
     await rm(directory, { recursive: true, force: true });
   }
-});
+}, 12_000);

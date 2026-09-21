@@ -76,6 +76,8 @@ export interface NodeFleetStatusReport {
       workstreamReplication: string;
       workspaceCoordination: string;
       remoteControl: string;
+      conversation: string;
+      supervision: string;
       updatedAt: string | null;
     };
     recoveryAction: "none" | "reapply_exact_plan" | "inspect_runtime_failure" | "wait_for_runtime";

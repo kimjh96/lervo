@@ -56,8 +56,8 @@ export class ConversationDiscordGatewayRuntime {
         botToken: deployment.botToken,
         onDispatch: (dispatch) => onDispatch(deployment.integrationId, dispatch),
         onReady: async () => {
-          await onReady(deployment.integrationId);
           await gatewayOptions.onReady?.();
+          await onReady(deployment.integrationId);
         },
       });
       histories.set(

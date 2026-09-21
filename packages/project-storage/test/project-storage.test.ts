@@ -7,6 +7,7 @@ import {
   rename,
   rm,
   symlink,
+  utimes,
   writeFile,
 } from "node:fs/promises";
 import { execFile } from "node:child_process";
@@ -226,6 +227,40 @@ describe("project storage bootstrap", () => {
     expect(second.root).toBe(first.root);
     expect(second.workforce).toBe(first.workforce);
     expect(await resolveRepositoryCoordinationHome(sibling, { readOnly: true })).toEqual(second);
+  });
+
+  it("recovers an expired initialization lock whose owner process has exited", async () => {
+    const root = await initializedRepository();
+    const home = await resolveRepositoryCoordinationHome(root);
+    const lock = resolve(home.root, ".initializing.lock");
+    await writeFile(
+      lock,
+      `${JSON.stringify({
+        schemaVersion: 1,
+        processId: 2_147_483_647,
+        createdAt: "2000-01-01T00:00:00.000Z",
+      })}\n`,
+      { mode: 0o600 },
+    );
+    await utimes(lock, new Date("2000-01-01T00:00:00.000Z"), new Date("2000-01-01T00:00:00.000Z"));
+
+    await expect(resolveRepositoryCoordinationHome(root)).resolves.toMatchObject({
+      root: home.root,
+      repositoryInstanceId: home.repositoryInstanceId,
+    });
+    await expect(lstat(lock)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("fails closed for an invalid initialization lock", async () => {
+    const root = await initializedRepository();
+    const home = await resolveRepositoryCoordinationHome(root);
+    const lock = resolve(home.root, ".initializing.lock");
+    await writeFile(lock, "not-json\n", { mode: 0o600 });
+    await utimes(lock, new Date("2000-01-01T00:00:00.000Z"), new Date("2000-01-01T00:00:00.000Z"));
+
+    await expect(resolveRepositoryCoordinationHome(root)).rejects.toMatchObject({
+      code: "coordination_home_invalid",
+    });
   });
 
   it("rejects a manifest nested below the observed Git root", async () => {

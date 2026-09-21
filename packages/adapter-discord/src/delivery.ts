@@ -81,6 +81,9 @@ export async function deliverDiscordConversationMessage(input: {
       content,
       automationDepth: input.message.automationDepth,
       audienceParticipation: input.message.audienceParticipation ?? "eligible",
+      ...(input.message.coordination === undefined
+        ? {}
+        : { coordination: input.message.coordination }),
       allowedMentions: "none",
       enforceIdempotency: true,
     });

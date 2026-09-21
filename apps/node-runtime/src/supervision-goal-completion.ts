@@ -19,6 +19,7 @@ import {
   inspectGoalCompletion,
 } from "./supervision-goal-completion-receipt.js";
 import { readSupervisionOwnerControl } from "./supervision-owner-control.js";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 
 /** Applies only the reviewed completion through the durable workstream transaction. */
 export async function recordCanonicalGoalCompletion(input: {
@@ -58,9 +59,56 @@ export async function recordCanonicalGoalCompletion(input: {
     artifacts: storage.artifacts,
     plan,
   });
-  const original = await readCurrentWorkstreamState(storage.paths.repositoryRoot);
+  const original = await readBoundWorkstreamState(storage, binding.workstreamId);
   if (original?.contentHash !== effect.workstreamSnapshotHash)
     throw new Error("The goal completion predecessor changed.");
+  const selected = await readCurrentWorkstreamState(storage.paths.repositoryRoot);
+  if (selected?.snapshot.workstreamId !== binding.workstreamId) {
+    const fresh = await observeMandateInstallationSource(
+      storage.paths.repositoryRoot,
+      storage,
+      authority.installation.mandate,
+      "current",
+      undefined,
+      undefined,
+      binding.workstreamId,
+    );
+    const mandate = await session.readMandate();
+    const assignments = await listAssignments(storage.paths.repositoryRoot);
+    const agents = await listAgents(storage.paths.repositoryRoot);
+    const artifact = await storage.artifacts.put(expected.snapshotContent);
+    const predecessor = await readBoundWorkstreamState(storage, binding.workstreamId);
+    session.commit(() => {
+      if (
+        predecessor?.contentHash !== original.contentHash ||
+        fresh.sourceRevisionDigest !== input.authorityDigest ||
+        mandate.revoked ||
+        mandate.latestEventId !== authority.installation.latestEventId ||
+        Date.parse(now()) >=
+          Math.min(Date.parse(plan.deadline), Date.parse(mandate.mandate.expiresAt)) ||
+        operatingContractHash(agents) !== operatingContractHash(source.agents) ||
+        operatingContractHash(
+          assignments.filter((item) => item.workstreamId === plan.workstreamId),
+        ) !== operatingContractHash(source.workstreamAssignments) ||
+        storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash ||
+        artifact.contentHash !== expected.snapshotHash
+      )
+        throw new Error("The bound goal completion authority changed at commit.");
+      storage.events.append({
+        eventId: expected.eventId,
+        projectId: plan.projectId,
+        runId: expected.runId,
+        sessionId: expected.decision.sessionId,
+        type: "workstream.snapshot.recorded",
+        schemaVersion: 3,
+        occurredAt: effect.completedAt,
+        actor: { kind: "system" },
+        policyVersion: plan.mandateHash,
+        payload: expected.payload,
+      });
+    });
+    return { eventIds: [expected.eventId] };
+  }
   const update = await createWorkstreamUpdatePlan({
     repositoryRoot: storage.paths.repositoryRoot,
     projectId: plan.projectId,

@@ -15,6 +15,7 @@ import { collectProjectEventsBounded } from "@lervo/storage-contract";
 import { observeOperatingWorkScope, operatingContractHash } from "@lervo/work-controller";
 import type { SupervisionAuthorityHistory } from "./supervision-authority-history.js";
 import { observeMandateExecutionAuthority } from "./supervision-execution-host.js";
+import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 
 /** Validates local history and the reviewed execution side without claiming remote convergence. */
 export async function observeMandateInstallationSource(
@@ -27,6 +28,7 @@ export async function observeMandateInstallationSource(
     original: NonNullable<Awaited<ReturnType<typeof readCurrentWorkstreamState>>>;
     desiredSnapshotHash: string;
   },
+  boundWorkstreamId?: string,
 ): Promise<MandateInstallationSource> {
   const manifest = await loadProjectManifest(root);
   const writer = await inspectEventWriterCoordinate(root);
@@ -43,7 +45,14 @@ export async function observeMandateInstallationSource(
     throw new Error("Mandate installation requires reviewed event writer version 3 activation.");
   if (authorityHistory === undefined && !storage.events.verifyIntegrity().valid)
     throw new Error("The mandate authority event history is invalid.");
-  const installedWorkstream = await readCurrentWorkstreamState(root);
+  const history =
+    authorityHistory === undefined
+      ? collectProjectEventsBounded({ events: storage.events, maximumEvents: 100_000 })
+      : await authorityHistory.read();
+  const installedWorkstream =
+    boundWorkstreamId === undefined
+      ? await readCurrentWorkstreamState(root)
+      : await readBoundWorkstreamState(storage, boundWorkstreamId, history);
   if (
     pendingCompletion !== undefined &&
     (installedWorkstream?.contentHash !== pendingCompletion.desiredSnapshotHash ||
@@ -61,10 +70,6 @@ export async function observeMandateInstallationSource(
     (workstreamState === "active" && workstream.snapshot.status !== "active")
   )
     throw new Error("Mandate installation requires an active canonical workstream.");
-  const history =
-    authorityHistory === undefined
-      ? collectProjectEventsBounded({ events: storage.events, maximumEvents: 100_000 })
-      : await authorityHistory.read();
   assertCanonicalSupervisionIdentity({
     events: history,
     projectId: storage.manifest.projectId,
