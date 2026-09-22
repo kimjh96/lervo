@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cb8c782043e3e70446ae4668"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Prevent product-owner services from replaying supervised work during installation or restart."
