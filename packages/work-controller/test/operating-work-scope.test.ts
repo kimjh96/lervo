@@ -38,6 +38,11 @@ function fixture() {
 }
 
 describe("reviewed operating work scope", () => {
+  it("accepts an explicitly reviewed repository-wide path root", () => {
+    const f = fixture();
+    expect(() => assertOperatingMandate({ ...f.mandate, pathRoots: ["*"] })).not.toThrow();
+  });
+
   it("preserves the exact failed predecessor and observes only newly created work", () => {
     const f = fixture();
     const current = assignment("b", { createdAt: "2026-09-01T00:00:11.000Z" });

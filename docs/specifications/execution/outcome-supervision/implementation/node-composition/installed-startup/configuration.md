@@ -15,3 +15,9 @@ Trusted readiness configuration supplies:
 Managed execution selects absolute Node and CLI bundle paths. Owner reasoning selects Codex or Claude, an optional model and a positive bounded token reservation.
 
 Secrets are excluded; stored credentials remain behind the existing owner-only login boundary. Unknown fields, invalid coordinates, missing required provider material or absent workspace configuration reject startup.
+
+Every configured Discord deployment is resolved against the current durable workforce during
+preflight and live composition. A deployed `product-owner` requires exactly one matching
+`outcomeSupervision` owner and `acceptsSupervisionGoals: true`; a Node cannot downgrade that role
+to chat-only behavior by omitting authority or changing the intake flag. A Node without a deployed
+product owner may omit supervision. This validation never installs a mandate.

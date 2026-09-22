@@ -11,7 +11,10 @@ import {
 } from "./supervision-dispatch-readiness.js";
 import { NativeSupervisionOwner } from "./supervision-native-owner.js";
 import { openProjectStorage } from "@lervo/project-storage";
-import type { OperatingActionPlanV1 } from "@lervo/application-contract";
+import type {
+  OperatingActionPlanV1,
+  SupervisionResourceBudgetV1,
+} from "@lervo/application-contract";
 import { SupervisionResultDelivery } from "./supervision-result-delivery.js";
 import { snapshotRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
 import { OutcomeSupervisionRuntime, type OutcomeSupervisionPorts } from "@lervo/orchestrator";
@@ -25,6 +28,7 @@ import { NodeSupervisionStore, type NodeSupervisionSession } from "./supervision
 import { createSupervisionChangeLoop } from "./supervision-change-loop.js";
 import { prepareNodeSupervisionEffect } from "./supervision-execution-preflight.js";
 import { supersedeNodeSupervisionEffect } from "./supervision-supersession-routing.js";
+import { observeSupervisionResourceBudget } from "./supervision-resource-budget.js";
 
 import type {
   NodeSupervisionEffectSession,
@@ -94,6 +98,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
   }
   let current: NodeSupervisionSession | null = null;
   let mandateExpiresAt: number | null = null;
+  let latestResourceBudget: SupervisionResourceBudgetV1 | null = null;
   let sourceBinding: { authorityDigest: string; taskDigest: string; combined: string } | null =
     null;
   const session = () => {
@@ -121,7 +126,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
       plan.sourceRevisionDigest !== sourceBinding.combined
     )
       throw new NodeSupervisionError("supervision_authority_changed");
-    return {
+    const resolved = {
       ...observation,
       sourceRevisionDigest: sourceBinding.combined,
       installedMandateHash: authority.installation.mandateHash,
@@ -131,6 +136,12 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
       ancestryValid: observation.ancestryValid,
       historyValid: observation.historyValid,
     };
+    latestResourceBudget = observeSupervisionResourceBudget({
+      mandate: authority.installation.mandate,
+      plan,
+      admission: resolved,
+    });
+    return resolved;
   };
   const readOwnerControlReadiness: NonNullable<
     OutcomeSupervisionPorts["readOwnerControlReadiness"]
@@ -199,6 +210,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     },
     readSnapshot: async (id) => {
       knowledgeSnapshots.clear();
+      latestResourceBudget = null;
       const pending = await session().findPendingPlan();
       const snapshot =
         "readSnapshot" in ports
@@ -279,6 +291,17 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     recordEffect: async (receipt) => session().recordEffect(receipt),
     recordReadinessFailure: async (receipt, failure) => {
       await session().recordReadinessFailure(receipt, failure);
+    },
+    recordAttention: (report, reasonCodes) => {
+      const resourceBudget =
+        reasonCodes.includes("aggregate_budget_exceeded") && latestResourceBudget !== null
+          ? latestResourceBudget
+          : undefined;
+      return ports.recordAttention(
+        report,
+        reasonCodes,
+        resourceBudget === undefined ? undefined : { resourceBudget },
+      );
     },
     execute: async (plan) => {
       const { owner, review, authorityDigest } = await prepareNodeSupervisionEffect({

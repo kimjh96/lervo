@@ -1,14 +1,19 @@
 # Readiness and failure meaning
 
-The optional `supervision` component in the owner-only Node health snapshot uses `pending`, `ready`, `dormant`, `disabled`, and `unavailable`. A configured service starts pending. Observed cycles report service readiness under these rules:
+The optional `supervision` component in the owner-only Node health snapshot uses `pending`, `ready`, `dormant`, `attention`, `disabled`, and `unavailable`. A configured service starts pending. Observed cycles report service readiness under these rules:
 
 - Blocked or uncertain cycles report `supervision_attention_required` with the cycle's bounded attention `reasonCodes`: at most 16 identifier codes, such as `readiness_tools_failed` or `responsibility_lease_unresolved`.
 - Cycle exceptions report `supervision_cycle_failed` with one bounded `reasonCodes` entry derived from the error's code or class name. For each failed cycle, the service writes one error-stream line naming that code, the error class, and the first 200 characters of its message.
 - Only `supervision_workstream_inactive` reports `dormant` with required `reasonCode: workstream_inactive`. It means no exact canonical workstream is available for the reviewed binding; another workstream being selected in `current.json` is not sufficient cause once [bound-workstream supervision](../../../../../../decisions/execution/orchestration/governed-work/workstream-concurrency/0423-parallel-bound-workstreams.md) is installed. The owner does no supervised work while dormant. It is not a failed cycle and emits no failure log. A later eligible lineage binding returns the component to pending and a successful cycle returns it to ready. Other authority, source, or execution errors remain unavailable.
+- A V3 goal whose next exact token reservation no longer fits reports `attention` with required
+  `reasonCode: goal_budget_insufficient` and exact `resourceBudget` counters. It starts no new
+  supervised effect, but conversation, synchronization, remote control, and the Node process remain
+  operationally ready. Legacy workstream-wide mandates remain unavailable on the old
+  `aggregate_budget_exceeded` reason rather than being mislabeled as goal-scoped.
 - A completed goal whose next action is publication but which has no publication origin reports `local_result_canonical` instead of `owner_plan_unavailable`. Every locally bound goal has no publication origin; its accepted result stays canonical in the repository, and nothing is missing.
 - An effect that failed after invocation reports `effect_outcome_uncertain` plus the adapter's bounded failure code, if present. The managed worker boundary distinguishes `managed_output_bound_exceeded`, `managed_revalidation_failed`, `managed_deadline_elapsed`, `managed_cancelled`, `managed_stdin_failed`, `managed_launch_failed`, `managed_process_failed`, `managed_dispatch_evidence_missing`, and `managed_outcome_unreconciled`. None includes child output.
 
-These observations describe runtime operation, not accepted task completion or delivered user results. Aggregate health remains starting while supervision is pending and degraded when it is unavailable. A dormant supervisor does not hold the otherwise operational Node in starting: aggregate health can be ready, but the explicit supervision component remains dormant and must never be presented as an active supervised goal. Fleet status exposes both conversation and supervision components so the aggregate cannot conceal that distinction.
+These observations describe runtime operation, not accepted task completion or delivered user results. Aggregate health remains starting while supervision is pending and degraded when it is unavailable. A dormant or goal-budget-attention supervisor does not hold the otherwise operational Node in starting: aggregate health can be ready, but the explicit supervision component remains visible and must never be presented as an active supervised goal. Fleet status exposes both conversation and supervision components so the aggregate cannot conceal that distinction.
 
 An idle or busy cycle without a fresh report preserves the preceding health observation. It cannot clear an unavailable state merely because no owner observation ran.
 

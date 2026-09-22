@@ -63,7 +63,9 @@ export interface OperatingMandateV3 extends Omit<OperatingMandateV2, "schemaVers
    * Reviewed standing grant: the owner may install up to this many derived successor mandates,
    * one per successor goal, each identical in bounds and scoped to that goal's start snapshot.
    */
-  successorAuthority?: { schemaVersion: 1; maximumSuccessors: number };
+  successorAuthority?:
+    | { schemaVersion: 1; maximumSuccessors: number }
+    | { schemaVersion: 2; maximumSuccessors: number; maximumAggregateTokens: number };
 }
 
 export type OperatingMandate = OperatingMandateV1 | OperatingMandateV2 | OperatingMandateV3;
@@ -117,6 +119,17 @@ export interface OperatingAdmissionSnapshotV1 {
   /** Adapter-derived scope and cost of the exact effect payload, never copied from model declarations. */
   effectAdmissionHash: string;
   effectMappings: { actionKind: OperatingActionKind; contract: string }[];
+}
+
+/** Bounded resource state for one exact admission attempt; never a billing or provider quota. */
+export interface SupervisionResourceBudgetV1 {
+  schemaVersion: 1;
+  scope: "goal" | "workstream";
+  limitTokens: number;
+  observedTokens: number;
+  reservedTokens: number;
+  requestedTokens: number;
+  remainingTokens: number;
 }
 
 export interface OperatingPolicyReviewV1 {

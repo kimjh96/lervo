@@ -9,11 +9,11 @@
 
 ## Decision
 
-Operating mandate version 3 gains optional reviewed `successorAuthority` with `maximumSuccessors` between 1 and 1024. A mandate carrying it is a standing grant: the installed owner may derive one mandate per successor goal without a new review.
+Operating mandate version 3 gains optional reviewed `successorAuthority` with `maximumSuccessors` between 1 and 1024. A mandate carrying it is a standing grant: the installed owner may derive one mandate per successor goal without a new review. The compatible version-2 successor authority additionally pins `maximumAggregateTokens` for each derived goal, independently of a larger ceiling reviewed for the current goal.
 
 A derived mandate is fully determined by its parent and the successor goal's start snapshot:
 
-- Preserve the parent's owner, appointing authority, execution host, bounds, ceilings, expiry, and revocation prefix.
+- Preserve the parent's owner, appointing authority, execution host, bounds, expiry, and revocation prefix. Version 1 preserves the current aggregate ceiling; version 2 applies its separately reviewed successor aggregate ceiling.
 - Use mandate ID `<parent>.s<n>` and revocation coordinate `<parent>.s<n>`, version 1.
 - Use the successor goal's workstream as the exact work scope, with no exclusions.
 - Decrement `maximumSuccessors` until the grant is exhausted.
@@ -38,7 +38,7 @@ The service rebinds to the new goal without restarting. A running service also f
 
 ## Consequences
 
-One human review authorizes a bounded number of consecutive goals under unchanged ceilings, allowing the installed product owner to answer `/goal` continuously until the grant or expiry runs out. Each goal remains a distinct workstream with its own mandate, installation review, and evidence. Revoking the root or any intermediate mandate stops further derivation from it. Widening ceilings, changing the host, or extending expiry still requires a separately reviewed installation.
+One human review authorizes a bounded number of consecutive goals under unchanged reviewed successor ceilings, allowing the installed product owner to answer `/goal` continuously until the grant or expiry runs out. Each goal remains a distinct workstream with its own mandate, installation review, and evidence. Revoking the root or any intermediate mandate stops further derivation from it. Widening ceilings, changing the host, or extending expiry still requires a separately reviewed installation. A reviewed renewal can increase the current goal's aggregate ceiling while retaining a smaller fixed ceiling for all later goals; automatic succession cannot copy that exceptional increase when version-2 successor authority is present.
 
 ## Verification
 

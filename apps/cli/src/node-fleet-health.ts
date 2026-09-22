@@ -60,7 +60,9 @@ function componentStatus(
       ? `unavailable:${value.failureCode ?? "unknown"}`
       : value.status === "dormant"
         ? `dormant:${value.reasonCode ?? "unknown"}`
-        : value.status;
+        : value.status === "attention"
+          ? `attention:${value.reasonCode ?? "unknown"}`
+          : value.status;
 }
 
 export async function inspectNodeFleetStatus(input: {

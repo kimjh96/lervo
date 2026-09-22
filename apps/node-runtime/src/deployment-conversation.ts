@@ -20,6 +20,7 @@ import { SQLiteConversationTurnFocusStore } from "./conversation-turn-focus-stor
 import { CoResidentConversationPeerTurnRouter } from "./conversation-peer-turn-router.js";
 import { CoResidentConversationDeliberationParticipants } from "./conversation-deliberation-participant-router.js";
 import { resolveDiscordUnaddressedPriorities } from "./discord-conversation-priorities.js";
+import { assertProductOwnerSupervisionPolicy } from "./product-owner-supervision-policy.js";
 
 function boundedErrorCoordinates(error: unknown): string {
   const coordinates: Array<{ name: string; code: string | null }> = [];
@@ -107,6 +108,11 @@ export async function openDeploymentConversation(input: {
       resolveDiscordAgentParticipation({ repositoryRoot: input.repositoryRoot, config }),
     ),
   );
+  assertProductOwnerSupervisionPolicy({
+    config: input.config,
+    deployments: configs,
+    participations,
+  });
   const providerExecutables = input.config.remoteCommands?.providerHost?.executables;
   const providerModels = input.config.remoteCommands?.providerHost?.models;
   const providerReasoningEfforts = input.config.remoteCommands?.providerHost?.reasoningEfforts;

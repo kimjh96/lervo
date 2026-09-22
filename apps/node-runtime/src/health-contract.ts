@@ -2,12 +2,18 @@ import { createHash } from "node:crypto";
 
 import { canonicalJson, readEventReaderCapabilities } from "@lervo/event-contract";
 import type { EventReaderCapabilities } from "@lervo/schemas";
+import type { SupervisionResourceBudgetV1 } from "@lervo/application-contract";
 
 import { NodeRuntimeError } from "./errors.js";
 
 export type NodeRuntimeComponentHealth =
   | { status: "pending" | "ready" | "disabled" }
   | { status: "dormant"; reasonCode: "workstream_inactive" }
+  | {
+      status: "attention";
+      reasonCode: "goal_budget_insufficient";
+      resourceBudget: SupervisionResourceBudgetV1 & { scope: "goal" };
+    }
   | { status: "unavailable"; failureCode: string; reasonCodes?: string[] };
 
 /** Bounded identifier codes only; never prose, paths, or provider output. */
@@ -48,24 +54,48 @@ function componentHealth(value: unknown): value is NodeRuntimeComponentHealth {
     reasonCode?: unknown;
     failureCode?: unknown;
     reasonCodes?: unknown;
+    resourceBudget?: unknown;
   };
   if (["pending", "ready", "disabled"].includes(component.status as string)) {
     return (
       component.reasonCode === undefined &&
       component.failureCode === undefined &&
-      component.reasonCodes === undefined
+      component.reasonCodes === undefined &&
+      component.resourceBudget === undefined
     );
   }
   if (component.status === "dormant") {
     return (
       component.reasonCode === "workstream_inactive" &&
       component.failureCode === undefined &&
-      component.reasonCodes === undefined
+      component.reasonCodes === undefined &&
+      component.resourceBudget === undefined
+    );
+  }
+  if (component.status === "attention") {
+    const budget = component.resourceBudget as Partial<SupervisionResourceBudgetV1> | undefined;
+    return (
+      component.reasonCode === "goal_budget_insufficient" &&
+      component.failureCode === undefined &&
+      component.reasonCodes === undefined &&
+      budget !== undefined &&
+      budget.schemaVersion === 1 &&
+      budget.scope === "goal" &&
+      [
+        budget.limitTokens,
+        budget.observedTokens,
+        budget.reservedTokens,
+        budget.requestedTokens,
+        budget.remainingTokens,
+      ].every((item) => Number.isSafeInteger(item) && item! >= 0) &&
+      budget.remainingTokens ===
+        Math.max(0, budget.limitTokens! - budget.observedTokens! - budget.reservedTokens!)
     );
   }
   return (
     component.status === "unavailable" &&
     component.reasonCode === undefined &&
+    component.resourceBudget === undefined &&
     typeof component.failureCode === "string" &&
     component.failureCode.length > 0 &&
     component.failureCode.length <= 128 &&

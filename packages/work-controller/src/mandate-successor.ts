@@ -33,8 +33,8 @@ export type SuccessorWorkScope = Pick<
 >;
 
 /**
- * Builds the successor mandate the reviewed standing grant allows: identical bounds and
- * authority, one lineage index later, scoped to the successor goal's start snapshot.
+ * Builds the successor mandate the reviewed standing grant allows: identical authority and
+ * reviewed successor bounds, one lineage index later, scoped to the successor goal's start snapshot.
  */
 export function deriveSuccessorMandate(
   parent: OperatingMandate,
@@ -52,12 +52,17 @@ export function deriveSuccessorMandate(
   )
     throw new Error("The successor mandate is issued outside its parent's validity.");
   const remaining = parent.successorAuthority.maximumSuccessors - 1;
+  const successorMaximumAggregateTokens =
+    parent.successorAuthority.schemaVersion === 2
+      ? parent.successorAuthority.maximumAggregateTokens
+      : parent.maximumAggregateTokens;
   const { successorAuthority: _parentAuthority, ...base } = parent;
   const mandate: OperatingMandateV3 = {
     ...structuredClone(base),
     mandateId: successorId(parent.mandateId, input.successorIndex),
     version: 1,
     issuedAt: input.issuedAt,
+    maximumAggregateTokens: successorMaximumAggregateTokens,
     revocationCoordinate: successorId(parent.revocationCoordinate, input.successorIndex),
     workScope: {
       schemaVersion: 1,
@@ -66,9 +71,17 @@ export function deriveSuccessorMandate(
       snapshotEventHash: input.workScope.snapshotEventHash,
       excludedAssignments: [],
     },
-    ...(remaining >= 1
-      ? { successorAuthority: { schemaVersion: 1, maximumSuccessors: remaining } }
-      : {}),
+    ...(remaining < 1
+      ? {}
+      : parent.successorAuthority.schemaVersion === 1
+        ? { successorAuthority: { schemaVersion: 1 as const, maximumSuccessors: remaining } }
+        : {
+            successorAuthority: {
+              schemaVersion: 2 as const,
+              maximumSuccessors: remaining,
+              maximumAggregateTokens: successorMaximumAggregateTokens,
+            },
+          }),
   };
   assertOperatingMandate(mandate);
   return mandate;

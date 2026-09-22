@@ -1,4 +1,5 @@
 import type { OutcomeSupervisionReportV1 } from "@lervo/application-contract";
+import type { SupervisionResourceBudgetV1 } from "@lervo/application-contract";
 
 import { boundedHealthReasonCodes } from "./health-contract.js";
 import type { NodeRuntimeComponentHealth } from "./health-contract.js";
@@ -19,6 +20,25 @@ export function supervisionAttentionReasonCodes(
       ? "local_result_canonical"
       : code,
   );
+}
+
+/** A goal-scoped budget stop needs user attention but does not make the Node service unavailable. */
+export function supervisionAttentionHealth(input: {
+  reasonCodes: string[] | null;
+  resourceBudget?: SupervisionResourceBudgetV1 | undefined;
+}): NodeRuntimeComponentHealth {
+  return input.reasonCodes?.includes("aggregate_budget_exceeded") === true &&
+    input.resourceBudget?.scope === "goal"
+    ? {
+        status: "attention",
+        reasonCode: "goal_budget_insufficient",
+        resourceBudget: { ...input.resourceBudget, scope: "goal" },
+      }
+    : {
+        status: "unavailable",
+        failureCode: "supervision_attention_required",
+        ...(input.reasonCodes === null ? {} : { reasonCodes: [...input.reasonCodes] }),
+      };
 }
 
 const CODE_PATTERN = /^[a-z][a-z0-9_]{0,63}$/u;

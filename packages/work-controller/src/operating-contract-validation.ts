@@ -41,6 +41,7 @@ function strings(
 }
 
 export function operatingPath(value: string): boolean {
+  if (value === "*") return true;
   return (
     value.length > 0 &&
     value.length <= 1024 &&
@@ -122,9 +123,21 @@ export function assertOperatingMandate(value: OperatingMandate): void {
         new Set(value.workScope.excludedAssignments.map((item) => item.assignmentId)).size !==
           value.workScope.excludedAssignments.length ||
         (value.successorAuthority !== undefined &&
-          (!object(value.successorAuthority, ["schemaVersion", "maximumSuccessors"]) ||
-            value.successorAuthority.schemaVersion !== 1 ||
-            !operatingInteger(value.successorAuthority.maximumSuccessors, 1, 1024))))) ||
+          (value.successorAuthority.schemaVersion === 1
+            ? !object(value.successorAuthority, ["schemaVersion", "maximumSuccessors"]) ||
+              !operatingInteger(value.successorAuthority.maximumSuccessors, 1, 1024)
+            : value.successorAuthority.schemaVersion === 2
+              ? !object(value.successorAuthority, [
+                  "schemaVersion",
+                  "maximumSuccessors",
+                  "maximumAggregateTokens",
+                ]) ||
+                !operatingInteger(value.successorAuthority.maximumSuccessors, 1, 1024) ||
+                !operatingInteger(
+                  value.successorAuthority.maximumAggregateTokens,
+                  value.maximumAttemptTokens,
+                )
+              : true)))) ||
     !ID.test(value.mandateId) ||
     !operatingInteger(value.version, 1) ||
     !ID.test(value.appointingAuthorityId) ||

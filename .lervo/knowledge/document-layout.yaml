@@ -270,6 +270,14 @@ routes:
       - supervision budget
       - model migration
       - resource accounting
+  - id: execution.orchestration.governed-work.node-composition
+    path: execution/orchestration/governed-work/node-composition
+    priority: 59
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - deployed product owners
+      - node composition
+      - supervision deployment
   - id: execution.orchestration.governed-work.workstream-concurrency
     path: execution/orchestration/governed-work/workstream-concurrency
     priority: 59

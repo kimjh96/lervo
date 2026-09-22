@@ -1,6 +1,7 @@
 import type { ConversationAdapter } from "@lervo/conversation-contract";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import {
+  supervisionAttentionHealth,
   supervisionAttentionReasonCodes,
   supervisionCycleHealth,
   supervisionCycleFailureLine,
@@ -69,12 +70,10 @@ export async function openNodeSupervisionService(input: {
       fail();
     });
   /** Codes from the latest attention in the current cycle; the cycle observation carries them. */
-  let attention: string[] | null = null;
-  const attentionHealth = (reasonCodes: string[] | null): NodeRuntimeComponentHealth => ({
-    status: "unavailable",
-    failureCode: "supervision_attention_required",
-    ...(reasonCodes === null ? {} : { reasonCodes: [...reasonCodes] }),
-  });
+  let attention: {
+    reasonCodes: string[];
+    resourceBudget?: Parameters<typeof supervisionAttentionHealth>[0]["resourceBudget"];
+  } | null = null;
   const now = input.now ?? (() => new Date().toISOString());
   const log = input.log ?? ((line: string) => process.stderr.write(`${line}\n`));
   const openRuntime = (binding: NodeSupervisionBinding) =>
@@ -100,9 +99,14 @@ export async function openNodeSupervisionService(input: {
           }),
       ports: {
         now,
-        recordAttention: async (report, reasonCodes) => {
-          attention = supervisionAttentionReasonCodes(report, reasonCodes);
-          await observe(attentionHealth(attention));
+        recordAttention: async (report, reasonCodes, details) => {
+          attention = {
+            reasonCodes: supervisionAttentionReasonCodes(report, reasonCodes),
+            ...(details?.resourceBudget === undefined
+              ? {}
+              : { resourceBudget: structuredClone(details.resourceBudget) }),
+          };
+          await observe(supervisionAttentionHealth(attention));
         },
       },
     });
@@ -158,7 +162,7 @@ export async function openNodeSupervisionService(input: {
         void observe(health);
       },
       onCycle: async (cycle) => {
-        const reasonCodes = attention;
+        const attentionObservation = attention;
         attention = null;
         await followLineage().catch((error: unknown) => {
           log(supervisionCycleFailureLine(error));
@@ -166,7 +170,7 @@ export async function openNodeSupervisionService(input: {
         if (cycle.report === null) return;
         await observe(
           cycle.disposition === "blocked" || cycle.disposition === "uncertain"
-            ? attentionHealth(reasonCodes)
+            ? supervisionAttentionHealth(attentionObservation ?? { reasonCodes: null })
             : { status: "ready" },
         );
       },

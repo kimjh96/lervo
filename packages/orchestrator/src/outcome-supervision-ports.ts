@@ -5,6 +5,7 @@ import type {
   OperatingPolicyReviewV1,
   OutcomeSupervisionReportV1,
   OutcomeSupervisionSnapshotV1,
+  SupervisionResourceBudgetV1,
   WorkerReadinessObservationV1,
   WorkResponsibilityV1,
   SupervisionDecisionReceipt,
@@ -84,5 +85,9 @@ export interface OutcomeSupervisionPorts {
     receipt: SupervisionDecisionReceipt,
     failure: SupervisionReadinessFailure,
   ): Promise<void>;
-  recordAttention(report: OutcomeSupervisionReportV1, reasonCodes: string[]): Promise<void>;
+  recordAttention(
+    report: OutcomeSupervisionReportV1,
+    reasonCodes: string[],
+    details?: { resourceBudget?: SupervisionResourceBudgetV1 },
+  ): Promise<void>;
 }

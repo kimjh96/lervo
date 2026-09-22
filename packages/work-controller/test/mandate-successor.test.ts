@@ -119,6 +119,29 @@ describe("standing successor mandates", () => {
     ).toThrow(/outside its parent/u);
   });
 
+  it("uses an independently reviewed per-goal ceiling after a larger running-goal renewal", () => {
+    const parent: OperatingMandateV3 = {
+      ...root(3),
+      maximumAggregateTokens: 4_000_000,
+      successorAuthority: {
+        schemaVersion: 2,
+        maximumSuccessors: 3,
+        maximumAggregateTokens: 2_000_000,
+      },
+    };
+    const child = deriveSuccessorMandate(parent, {
+      successorIndex: 1,
+      workScope: scope("2"),
+      issuedAt: "2026-09-16T00:00:00.000Z",
+    });
+    expect(child.maximumAggregateTokens).toBe(2_000_000);
+    expect(child.successorAuthority).toEqual({
+      schemaVersion: 2,
+      maximumSuccessors: 2,
+      maximumAggregateTokens: 2_000_000,
+    });
+  });
+
   it("binds a derived plan to its parent installation and rejects widened bounds", () => {
     const parent = root();
     const child = deriveSuccessorMandate(parent, {

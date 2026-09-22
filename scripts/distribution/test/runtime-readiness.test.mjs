@@ -79,6 +79,19 @@ describe("runtime readiness preflight", () => {
     for (const supervision of [
       { status: "ready" },
       { status: "dormant", reasonCode: "workstream_inactive" },
+      {
+        status: "attention",
+        reasonCode: "goal_budget_insufficient",
+        resourceBudget: {
+          schemaVersion: 1,
+          scope: "goal",
+          limitTokens: 1_000,
+          observedTokens: 800,
+          reservedTokens: 100,
+          requestedTokens: 200,
+          remainingTokens: 100,
+        },
+      },
     ]) {
       const path = await ownerSnapshot(currentNodeSnapshot({ supervision }));
       assert.deepEqual(

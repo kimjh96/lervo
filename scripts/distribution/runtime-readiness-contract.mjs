@@ -43,6 +43,33 @@ function supervisionComponent(value) {
   if (value.status === "dormant") {
     return value.reasonCode === "workstream_inactive" && exactKeys(value, ["reasonCode", "status"]);
   }
+  if (value.status === "attention") {
+    const budget = value.resourceBudget;
+    return (
+      value.reasonCode === "goal_budget_insufficient" &&
+      exactKeys(value, ["reasonCode", "resourceBudget", "status"]) &&
+      exactKeys(budget, [
+        "limitTokens",
+        "observedTokens",
+        "remainingTokens",
+        "requestedTokens",
+        "reservedTokens",
+        "schemaVersion",
+        "scope",
+      ]) &&
+      budget.schemaVersion === 1 &&
+      budget.scope === "goal" &&
+      [
+        budget.limitTokens,
+        budget.observedTokens,
+        budget.remainingTokens,
+        budget.requestedTokens,
+        budget.reservedTokens,
+      ].every((item) => Number.isSafeInteger(item) && item >= 0) &&
+      budget.remainingTokens ===
+        Math.max(0, budget.limitTokens - budget.observedTokens - budget.reservedTokens)
+    );
+  }
   return (
     value.status === "unavailable" &&
     typeof value.failureCode === "string" &&
@@ -116,7 +143,7 @@ function readyComponentsAgree(value, current) {
       componentReady(value.workspaceCoordination) &&
       (value.conversation === undefined || componentReady(value.conversation)) &&
       (value.supervision === undefined ||
-        ["ready", "disabled", "dormant"].includes(value.supervision.status)))
+        ["ready", "disabled", "dormant", "attention"].includes(value.supervision.status)))
   );
 }
 

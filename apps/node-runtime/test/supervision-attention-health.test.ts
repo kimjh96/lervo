@@ -1,10 +1,43 @@
 import { expect, it } from "vitest";
 
 import {
+  supervisionAttentionHealth,
   supervisionAttentionReasonCodes,
   supervisionCycleHealth,
 } from "../src/supervision-attention-health.js";
 import { NodeSupervisionError } from "../src/supervision-authority.js";
+
+it("reports a goal budget stop as bounded attention without degrading the Node", () => {
+  const resourceBudget = {
+    schemaVersion: 1 as const,
+    scope: "goal" as const,
+    limitTokens: 1_000,
+    observedTokens: 850,
+    reservedTokens: 50,
+    requestedTokens: 200,
+    remainingTokens: 100,
+  };
+  expect(
+    supervisionAttentionHealth({
+      reasonCodes: ["aggregate_budget_exceeded"],
+      resourceBudget,
+    }),
+  ).toEqual({
+    status: "attention",
+    reasonCode: "goal_budget_insufficient",
+    resourceBudget,
+  });
+  expect(
+    supervisionAttentionHealth({
+      reasonCodes: ["aggregate_budget_exceeded"],
+      resourceBudget: { ...resourceBudget, scope: "workstream" },
+    }),
+  ).toEqual({
+    status: "unavailable",
+    failureCode: "supervision_attention_required",
+    reasonCodes: ["aggregate_budget_exceeded"],
+  });
+});
 
 it("reports a completed goal with nothing to publish as a canonical local result", () => {
   expect(

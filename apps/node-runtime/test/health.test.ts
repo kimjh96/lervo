@@ -248,3 +248,45 @@ it("reports an unrelated current workstream as dormant without hiding supervisio
   });
   expect((await snapshot(publisher.path)).status).toBe("degraded");
 });
+
+it("keeps a goal budget attention state operational and validates its exact counters", async () => {
+  const publisher = createNodeRuntimeHealthPublisher(
+    await stateDirectory(),
+    false,
+    false,
+    undefined,
+    false,
+    true,
+  );
+  await publisher.initialize();
+  await publisher.observeSync(idleSync);
+  await publisher.observeWorkstreamReplication(absentWorkstream);
+  const attention = {
+    status: "attention" as const,
+    reasonCode: "goal_budget_insufficient" as const,
+    resourceBudget: {
+      schemaVersion: 1 as const,
+      scope: "goal" as const,
+      limitTokens: 2_000_000,
+      observedTokens: 1_925_000,
+      reservedTokens: 25_000,
+      requestedTokens: 100_000,
+      remainingTokens: 50_000,
+    },
+  };
+  await publisher.observeSupervision(attention);
+  expect(readNodeRuntimeHealthSnapshot(await snapshot(publisher.path))).toMatchObject({
+    status: "ready",
+    supervision: attention,
+  });
+  const invalid = await snapshot(publisher.path);
+  expect(() =>
+    readNodeRuntimeHealthSnapshot({
+      ...invalid,
+      supervision: {
+        ...attention,
+        resourceBudget: { ...attention.resourceBudget, remainingTokens: 50_001 },
+      },
+    }),
+  ).toThrow();
+});
