@@ -22,7 +22,7 @@ A derived mandate cannot widen, extend, or outlive its parent or re-anchor an ex
 
 Node configuration selects a standing lineage with `outcomeSupervision.standing` instead of `binding`. At startup, the runtime walks successor installations to resolve the lineage. Each successor's creating installation must carry a derivation naming an installation of the preceding lineage supervision under the same owner. The runtime then opens that successor's latest installed mandate.
 
-A later reviewed version of a successor's own mandate is an ordinary succession, not a second derivation. Operators can therefore revise a running goal's mandate, such as widening its attempt ceiling, without breaking the lineage.
+A later reviewed version of a successor's own mandate is an ordinary succession, not a second derivation. Operators can therefore revise a running goal's mandate, such as widening its attempt ceiling, without breaking the lineage. That revision is planned and revalidated against the mandate's exact V3 work-scope workstream even when a different repository workstream is current. Current-workstream projection changes neither invalidate the pinned anchor nor redirect the authority.
 
 If another authority makes a workstream outside the reviewed standing lineage current, the pinned owner becomes dormant rather than reporting a failed supervision cycle every polling interval. It checks for a valid successor on repository change and at a bounded one-minute fallback, and resumes only after the reviewed lineage exists. Other cycle errors remain unavailable health with their exact failure code.
 

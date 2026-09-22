@@ -16,6 +16,36 @@ import { runCli } from "../src/main.js";
 export const hash = (letter = "a") => `sha256:${letter.repeat(64)}`;
 export const supervisionId = "supervision.project";
 
+export async function startWorkstream(root: string, title = "Mandate installation") {
+  const output: string[] = [];
+  const errors: string[] = [];
+  const draft = JSON.stringify({
+    schemaVersion: 1,
+    status: "active",
+    title,
+    objective: "Install exact reviewed local operating authority.",
+    nextActions: ["Review the mandate."],
+    blockers: [],
+    notes: [],
+    references: [],
+    updatedAt: new Date().toISOString(),
+  });
+  const io = {
+    cwd: root,
+    stdout: (text: string) => output.push(text),
+    stderr: (text: string) => errors.push(text),
+    stdin: async () => draft,
+  };
+  if ((await runCli(["workstream", "start", "--stdin", "--json"], io)) !== 0)
+    throw new Error(errors.join("") || output.join(""));
+  const start = JSON.parse(output.join(""));
+  if (
+    (await runCli(["workstream", "start", "--stdin", "--apply", start.planId, "--json"], io)) !== 0
+  )
+    throw new Error(errors.join(""));
+  return start.workstreamId as string;
+}
+
 export async function installationFixture(
   roots: string[],
   prepareRoot?: (root: string) => Promise<void>,
@@ -49,32 +79,7 @@ export async function installationFixture(
     approval: activation.planId,
     currentEvidence: evidence,
   });
-  const output: string[] = [];
-  const errors: string[] = [];
-  const draft = JSON.stringify({
-    schemaVersion: 1,
-    status: "active",
-    title: "Mandate installation",
-    objective: "Install exact reviewed local operating authority.",
-    nextActions: ["Review the mandate."],
-    blockers: [],
-    notes: [],
-    references: [],
-    updatedAt: new Date().toISOString(),
-  });
-  const io = {
-    cwd: root,
-    stdout: (text: string) => output.push(text),
-    stderr: (text: string) => errors.push(text),
-    stdin: async () => draft,
-  };
-  if ((await runCli(["workstream", "start", "--stdin", "--json"], io)) !== 0)
-    throw new Error(errors.join(""));
-  const start = JSON.parse(output.join(""));
-  if (
-    (await runCli(["workstream", "start", "--stdin", "--apply", start.planId, "--json"], io)) !== 0
-  )
-    throw new Error(errors.join(""));
+  await startWorkstream(root);
   const owner = await registerAgent({
     repositoryRoot: root,
     roleId,

@@ -43,6 +43,22 @@ function journal(
   );
 }
 
+function observeReviewedMandateSource(
+  root: string,
+  storage: ProjectStorage,
+  mandate: OperatingMandate,
+) {
+  return observeMandateInstallationSource(
+    root,
+    storage,
+    mandate,
+    "active",
+    undefined,
+    undefined,
+    mandate.schemaVersion === 3 ? mandate.workScope.workstreamId : undefined,
+  );
+}
+
 export async function selectRepositoryMandateWorkScope(input: {
   root: string;
   workstreamId?: string;
@@ -84,7 +100,7 @@ export async function createRepositoryMandatePlan(input: {
   assertOperatingMandate(input.mandate);
   const storage = await openProjectStorage(input.root);
   try {
-    const source = await observeMandateInstallationSource(input.root, storage, input.mandate);
+    const source = await observeReviewedMandateSource(input.root, storage, input.mandate);
     const previous = await journal(
       storage,
       input.supervisionId,
@@ -129,7 +145,7 @@ export async function installRepositoryMandate(input: {
       try {
         const revalidate = async () => {
           const startedAt = Date.now();
-          const source = await observeMandateInstallationSource(input.root, storage, plan.mandate);
+          const source = await observeReviewedMandateSource(input.root, storage, plan.mandate);
           if (
             operatingContractHash(source) !== operatingContractHash(plan.source) ||
             Date.now() - startedAt > 5000
