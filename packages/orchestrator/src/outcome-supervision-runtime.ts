@@ -57,6 +57,21 @@ export class OutcomeSupervisionRuntime {
         throw new Error("The supervision owner binding changed.");
       const now = this.ports.now();
       const previous = this.cursors.get(supervisionId);
+      const pending = await this.ports.findPendingPlan(supervisionId);
+      if (
+        previous === undefined &&
+        this.ports.deferInitialActionUntilChange === true &&
+        pending === null &&
+        snapshot.evidenceStatus === "valid" &&
+        snapshot.authorityStatus === "active" &&
+        snapshot.workstreamStatus === "active"
+      ) {
+        this.cursors.set(supervisionId, {
+          digest: snapshot.sourceRevisionDigest,
+          nextCheckAt: null,
+        });
+        return { disposition: "idle" as const, report: null };
+      }
       if (
         snapshot.evidenceStatus === "valid" &&
         snapshot.authorityStatus === "active" &&
@@ -68,7 +83,6 @@ export class OutcomeSupervisionRuntime {
       const mandate = await this.ports.readMandate(snapshot.mandateHash);
       if (operatingContractHash(mandate) !== snapshot.mandateHash)
         throw new Error("The supervision mandate artifact is corrupt.");
-      const pending = await this.ports.findPendingPlan(supervisionId);
       const replaySnapshot = pending === null ? snapshot : { ...snapshot, pendingDecision: false };
       const report = projectOutcomeSupervision({
         snapshot:

@@ -43,6 +43,8 @@ export class SupervisionPreflightError extends Error {
 
 export interface OutcomeSupervisionPorts {
   now(): string;
+  /** A live host restart may observe old bound work without treating startup as a new trigger. */
+  deferInitialActionUntilChange?: boolean;
   /** Cross-process, fenced lease; expiration alone must not permit a second effect. */
   withOwnerLease<T>(supervisionId: string, operation: () => Promise<T>): Promise<T | null>;
   readSnapshot(supervisionId: string): Promise<OutcomeSupervisionSnapshotV1>;

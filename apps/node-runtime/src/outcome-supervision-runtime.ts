@@ -29,6 +29,7 @@ import { createSupervisionChangeLoop } from "./supervision-change-loop.js";
 import { prepareNodeSupervisionEffect } from "./supervision-execution-preflight.js";
 import { supersedeNodeSupervisionEffect } from "./supervision-supersession-routing.js";
 import { observeSupervisionResourceBudget } from "./supervision-resource-budget.js";
+import { findBoundSupervisionRequestEvent } from "./supervision-request-presence.js";
 
 import type {
   NodeSupervisionEffectSession,
@@ -190,6 +191,9 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
   };
   const runtime = new OutcomeSupervisionRuntime({
     ...ports,
+    ...(input.deferInitialActionUntilChange === undefined
+      ? {}
+      : { deferInitialActionUntilChange: input.deferInitialActionUntilChange }),
     propose: (report) =>
       "propose" in ports ? ports.propose(report) : nativeOwner!.propose(report),
     withOwnerLease: async (id, operation) => {
@@ -211,6 +215,15 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     readSnapshot: async (id) => {
       knowledgeSnapshots.clear();
       latestResourceBudget = null;
+      if (
+        input.requireBoundRequest === true &&
+        findBoundSupervisionRequestEvent({
+          events: peerStorage.events,
+          projectId: peerStorage.manifest.projectId,
+          binding,
+        }) === null
+      )
+        throw new NodeSupervisionError("supervision_workstream_inactive");
       const pending = await session().findPendingPlan();
       const snapshot =
         "readSnapshot" in ports

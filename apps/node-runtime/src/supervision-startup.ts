@@ -19,6 +19,7 @@ import {
   parseSupervisionStartupConfiguration,
   type NodeSupervisionStartupConfiguration,
 } from "./supervision-startup-config.js";
+import { findBoundSupervisionRequestEvent } from "./supervision-request-presence.js";
 
 export interface NodeSupervisionService {
   readonly failed: Promise<void>;
@@ -76,10 +77,12 @@ export async function openNodeSupervisionService(input: {
   } | null = null;
   const now = input.now ?? (() => new Date().toISOString());
   const log = input.log ?? ((line: string) => process.stderr.write(`${line}\n`));
-  const openRuntime = (binding: NodeSupervisionBinding) =>
+  const openRuntime = (binding: NodeSupervisionBinding, deferInitialActionUntilChange: boolean) =>
     openNodeOutcomeSupervisionRuntime({
       repositoryRoot: input.repositoryRoot,
       binding,
+      requireBoundRequest: true,
+      deferInitialActionUntilChange,
       runtimeReadiness: config.runtimeReadiness,
       ownerReasoning: config.ownerReasoning,
       managedExecution: config.managedExecution,
@@ -120,7 +123,19 @@ export async function openNodeSupervisionService(input: {
     }
   };
   let binding = await resolveBinding();
-  let runtime = await openRuntime(binding);
+  const storage = await openProjectStorage(input.repositoryRoot);
+  let requestAlreadyBound: boolean;
+  try {
+    requestAlreadyBound =
+      findBoundSupervisionRequestEvent({
+        events: storage.events,
+        projectId: storage.manifest.projectId,
+        binding,
+      }) !== null;
+  } finally {
+    await storage.close();
+  }
+  let runtime = await openRuntime(binding, requestAlreadyBound);
   let started = false;
   let switching: Promise<void> = Promise.resolve();
   /** The successor identifier one step past the binding the runtime currently follows. */
@@ -167,7 +182,10 @@ export async function openNodeSupervisionService(input: {
         await followLineage().catch((error: unknown) => {
           log(supervisionCycleFailureLine(error));
         });
-        if (cycle.report === null) return;
+        if (cycle.report === null) {
+          if (cycle.disposition === "idle") await observe({ status: "ready" });
+          return;
+        }
         await observe(
           cycle.disposition === "blocked" || cycle.disposition === "uncertain"
             ? supervisionAttentionHealth(attentionObservation ?? { reasonCodes: null })
@@ -184,7 +202,7 @@ export async function openNodeSupervisionService(input: {
         return;
       await runtime.close();
       binding = structuredClone(next);
-      runtime = await openRuntime(binding);
+      runtime = await openRuntime(binding, false);
       void observe({ status: "pending" });
       if (started) start(runtime);
     });

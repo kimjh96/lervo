@@ -59,6 +59,13 @@
       "disposition": "cohesive"
     },
     {
+      "path": "apps/node-runtime/src/outcome-supervision-runtime.ts",
+      "contentHash": "sha256:158db512e31efc4e49333c51309476ba92ff9f65bc2dc1df42a0717298d1b727",
+      "responsibility": "Node outcome-supervision port composition",
+      "rationale": "The module composes one provider-neutral supervision runtime from storage, admission, reasoning, execution, and evidence ports. Request-origin evaluation, resource policy, provider effects, supersession, leases, and snapshot projection remain in dedicated modules; this boundary only wires their ordered lifecycle and cleanup.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/adapter-claude/src/claude-adapter.ts",
       "contentHash": "sha256:3f69d13667490abfa5e71bc81cd6fb94d3c2177dd6335661647cbeeb2a310c39",
       "responsibility": "Claude managed-provider adapter",

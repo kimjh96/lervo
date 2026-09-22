@@ -37,6 +37,13 @@ create workstreams, approve mandates, copy authority between repositories, or re
 requests. Fleet rollout must install each repository's exact V3 standing mandate before enabling
 the product-owner deployment.
 
+Starting or upgrading that deployment is not itself an owner instruction. Without an exact bound
+request the supervisor is dormant. If an older request is already bound at process start, the first
+cycle establishes its source cursor without proposing or executing an effect; unresolved recorded
+decisions still reconcile first. A new request bound after startup or a later canonical source
+change is the required wakeup. This keeps authority installation, budget-policy revision, and
+human intent as separate transitions.
+
 ## Consequences and verification
 
 The role and deployment can no longer drift into a chat-only product owner. Credential preflight

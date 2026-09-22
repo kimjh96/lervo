@@ -1,5 +1,5 @@
 import type { OutcomeSupervisionSnapshotV1 } from "@lervo/application-contract";
-import { operatingContractHash } from "@lervo/work-controller";
+import { operatingContractHash, operatingEffectAdmissionHash } from "@lervo/work-controller";
 import { describe, expect, it, vi } from "vitest";
 import type {
   OutcomeSupervisionPorts,
@@ -113,6 +113,37 @@ function fixture() {
 }
 
 describe("serialized causal owner decisions", () => {
+  it("observes pre-existing bound work at startup without treating it as a fresh trigger", async () => {
+    const f = fixture();
+    f.propose.mockImplementation(async () => ({
+      ...plan(),
+      sourceRevisionDigest: f.state.sourceRevisionDigest,
+    }));
+    f.ports.readAdmission = async (action) => ({
+      ...snapshot(),
+      sourceRevisionDigest: action.sourceRevisionDigest,
+      effectAdmissionHash: operatingEffectAdmissionHash(action),
+    });
+    f.ports.readWorkerReadiness = async () => ({
+      responsibility: responsibility(),
+      observation: { ...readiness(), sourceRevisionDigest: f.state.sourceRevisionDigest },
+      requiredChecks: ["write_scope"],
+    });
+    const runtime = new OutcomeSupervisionRuntime({
+      ...f.ports,
+      deferInitialActionUntilChange: true,
+    });
+
+    expect((await runtime.runCycle(f.state.supervisionId)).disposition).toBe("idle");
+    expect(f.propose).not.toHaveBeenCalled();
+    expect(f.execute).not.toHaveBeenCalled();
+
+    f.state.sourceRevisionDigest = hash("f");
+    expect((await runtime.runCycle(f.state.supervisionId)).disposition).toBe("effect_confirmed");
+    expect(f.propose).toHaveBeenCalledOnce();
+    expect(f.execute).toHaveBeenCalledOnce();
+  });
+
   it("requires independent non-start evidence before retrying a failed preflight", async () => {
     const f = fixture();
     f.execute.mockRejectedValueOnce(new SupervisionPreflightError());

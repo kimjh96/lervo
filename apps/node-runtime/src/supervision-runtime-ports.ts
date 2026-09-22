@@ -92,4 +92,8 @@ export interface NodeOutcomeSupervisionRuntimeInput {
   resultDelivery?: NodeSupervisionResultDeliveryConfiguration;
   ownerReasoning?: NodeOwnerReasoningConfiguration;
   handoffPeers?: NodeSupervisionPeerConfiguration[];
+  /** Installed conversation owners remain dormant until one exact request origin is bound. */
+  requireBoundRequest?: boolean;
+  /** Existing bound work at process start is observed but not treated as a fresh trigger. */
+  deferInitialActionUntilChange?: boolean;
 }

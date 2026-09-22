@@ -93,7 +93,7 @@ it("snapshots exact startup authority and rejects unknown fields or mismatched t
     }),
   ).rejects.toThrow(/binding_invalid/iu);
 });
-it("starts and closes the local service without a Hub and observes unavailable work without launching a provider", async () => {
+it("keeps an installed owner dormant without a bound request and launches no provider", async () => {
   const { f, configuration } = await fixture();
   const health: NodeRuntimeComponentHealth[] = [];
   const service = await openNodeSupervisionService({
@@ -110,14 +110,8 @@ it("starts and closes the local service without a Hub and observes unavailable w
   } finally {
     await service.close();
   }
-  const unavailable = health.filter((observation) => observation.status === "unavailable");
-  expect(unavailable.length).toBeGreaterThan(0);
-  for (const observation of unavailable) {
-    expect(observation).toMatchObject({ failureCode: "supervision_attention_required" });
-    expect(observation.reasonCodes).toBeDefined();
-    expect(observation.reasonCodes!.length).toBeGreaterThan(0);
-    for (const code of observation.reasonCodes!) expect(code).toMatch(/^[a-z][a-z0-9_]{0,63}$/u);
-  }
+  expect(health).toContainEqual({ status: "dormant", reasonCode: "workstream_inactive" });
+  expect(health.some((observation) => observation.status === "unavailable")).toBe(false);
   const storage = await openProjectStorage(f.root);
   try {
     const source = await new SupervisionTaskSource(storage, f.binding, f.ports.now).read();
