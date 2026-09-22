@@ -39,6 +39,7 @@ import { DiscordConversationDeliberationRuntime } from "./discord-conversation-d
 import { createDiscordConversationContinuation } from "./discord-conversation-continuation.js";
 import { openDiscordConversationWork, supervisionGoalEffect } from "./discord-conversation-work.js";
 import type { NodeDiscordConversationRuntimeOptions } from "./discord-conversation-runtime-types.js";
+import { reconcileInterruptedConversationRepositoryWork } from "./conversation-repository-work-recovery.js";
 
 export async function openDiscordConversationResponseComposition(input: {
   options: NodeDiscordConversationRuntimeOptions;
@@ -145,6 +146,12 @@ export async function openDiscordConversationResponseComposition(input: {
       ),
     ),
   });
+  if (repositoryWork !== null) {
+    await reconcileInterruptedConversationRepositoryWork({
+      repositoryRoot: options.repositoryRoot,
+      store: repositoryWork.store,
+    });
+  }
   const resultStore = await SQLiteConversationResultStore.open(
     resolve(options.dataDirectory, "execution-results.sqlite"),
   );

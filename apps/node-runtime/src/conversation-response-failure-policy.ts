@@ -77,7 +77,9 @@ export class NodeConversationResponseFailureClassifier implements ConversationRe
     }
     if (
       code === "repository_work_checkpoint_missing" ||
-      code === "repository_work_knowledge_incomplete"
+      code === "repository_work_knowledge_incomplete" ||
+      code === "repository_work_in_progress" ||
+      code === "repository_work_recovery_invalid"
     ) {
       return { failureCode: "response_effect_unconfirmed", retryable: false };
     }

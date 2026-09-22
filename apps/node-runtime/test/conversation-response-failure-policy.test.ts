@@ -19,6 +19,8 @@ describe("Node conversation response failure policy", () => {
     ["supervision_admission_unconfirmed", "response_effect_unconfirmed", true],
     ["repository_work_checkpoint_missing", "response_effect_unconfirmed", false],
     ["repository_work_knowledge_incomplete", "response_effect_unconfirmed", false],
+    ["repository_work_in_progress", "response_effect_unconfirmed", false],
+    ["repository_work_recovery_invalid", "response_effect_unconfirmed", false],
     ["provider_protocol_failed", "response_provider_unavailable", false],
     ["artifact_storage_failed", "response_storage_unavailable", true],
     ["artifact_contract_invalid", "response_contract_invalid", false],

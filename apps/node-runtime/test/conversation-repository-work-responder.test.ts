@@ -26,6 +26,7 @@ describe("ConversationRepositoryWorkResponder", () => {
     "changed",
     "read_only",
     "running",
+    "recovered",
     "configured_owner",
     "legacy_delegate",
     "historical_delegate",
@@ -79,6 +80,7 @@ describe("ConversationRepositoryWorkResponder", () => {
         };
       });
       const verifyCompletion = vi.fn(async () => undefined);
+      const recoveredResult = await artifacts.put("중단 전에 완료된 검증 결과입니다.");
       let store = SQLiteConversationRepositoryWorkStore.open(resolve(root, "work.sqlite"));
       if (scenario === "configured_owner" || scenario === "legacy_delegate") {
         const delegate = {
@@ -141,10 +143,21 @@ describe("ConversationRepositoryWorkResponder", () => {
             workstreamRevision: null,
             knowledgeCurrent: true,
           }),
+          recover: async () =>
+            scenario === "recovered"
+              ? {
+                  completedAt: "2026-09-10T00:01:00.000Z",
+                  result: recoveredResult,
+                }
+              : null,
           verify: verifyCompletion,
         },
       });
-      if (scenario === "running" || scenario === "historical_delegate") {
+      if (
+        scenario === "running" ||
+        scenario === "recovered" ||
+        scenario === "historical_delegate"
+      ) {
         store.begin({
           eventId: event.eventId,
           conversationId: event.target.conversationId,
@@ -164,13 +177,35 @@ describe("ConversationRepositoryWorkResponder", () => {
             expect(verifyCompletion).not.toHaveBeenCalled();
             return;
           }
+          if (scenario === "running") {
+            await expect(responder.respond({ event } as never)).rejects.toMatchObject({
+              code: "repository_work_in_progress",
+            });
+            expect(executeTurn).not.toHaveBeenCalled();
+            expect(verifyCompletion).not.toHaveBeenCalled();
+            return;
+          }
           const reply = await responder.respond({ event } as never);
           expect(executeTurn).not.toHaveBeenCalled();
           expect(verifyCompletion).not.toHaveBeenCalled();
           const content = await artifacts.get(
             `lervo-cas://sha256/${reply.content.contentHash.slice(7)}`,
           );
-          expect(new TextDecoder().decode(content)).toContain("중복 실행을 차단했습니다");
+          expect(new TextDecoder().decode(content)).toBe("중단 전에 완료된 검증 결과입니다.");
+          expect(
+            store.begin({
+              eventId: event.eventId,
+              conversationId: event.target.conversationId,
+              threadId: event.target.threadId,
+              workerId: "agt_111111111111111111111111",
+              provider: "codex",
+              requestContentHash: source.contentHash,
+              startedAt: new Date().toISOString(),
+            }).completed,
+          ).toEqual({
+            contentHash: recoveredResult.contentHash,
+            byteCount: recoveredResult.byteCount,
+          });
         } finally {
           responder.close();
         }

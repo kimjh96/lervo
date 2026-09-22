@@ -1,8 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { RepositoryWorkProvider } from "@lervo/adapter-contract";
 
-const SEMANTIC_DUPLICATE_WINDOW_MS = 5 * 60 * 1_000;
-
 interface WorkTurnRow {
   conversation_id: string;
   thread_id: string;
@@ -30,7 +28,7 @@ export function beginConversationRepositoryWork(
 ): {
   providerSessionId: string | null;
   completed: { contentHash: string; byteCount: number } | null;
-  duplicate: "in_progress" | "completed" | null;
+  duplicate: "in_progress" | null;
 } {
   database.exec("BEGIN IMMEDIATE");
   try {
@@ -85,56 +83,6 @@ export function beginConversationRepositoryWork(
     const startedAtMs = Date.parse(input.startedAt);
     if (!Number.isFinite(startedAtMs))
       throw new Error("The conversation work start time is invalid.");
-    const duplicate = database
-      .prepare(
-        `SELECT status, provider_session_id, result_content_hash, result_byte_count
-           FROM conversation_repository_work_turns
-           WHERE event_id != ? AND conversation_id = ? AND thread_id = ? AND worker_id = ?
-             AND provider = ? AND request_content_hash = ?
-             AND (status = 'running' OR COALESCE(completed_at_ms, started_at_ms) >= ?)
-           ORDER BY CASE status WHEN 'running' THEN 0 ELSE 1 END,
-             COALESCE(completed_at_ms, started_at_ms) DESC
-           LIMIT 1`,
-      )
-      .get(
-        input.eventId,
-        input.conversationId,
-        threadId,
-        input.workerId,
-        input.provider,
-        input.requestContentHash,
-        startedAtMs - SEMANTIC_DUPLICATE_WINDOW_MS,
-      ) as
-      | {
-          status: "running" | "completed" | "failed";
-          provider_session_id: string | null;
-          result_content_hash: string | null;
-          result_byte_count: number | null;
-        }
-      | undefined;
-    if (duplicate?.status === "running") {
-      database.exec("COMMIT");
-      return {
-        providerSessionId: duplicate.provider_session_id,
-        completed: null,
-        duplicate: "in_progress",
-      };
-    }
-    if (
-      duplicate?.status === "completed" &&
-      duplicate.result_content_hash !== null &&
-      duplicate.result_byte_count !== null
-    ) {
-      database.exec("COMMIT");
-      return {
-        providerSessionId: duplicate.provider_session_id,
-        completed: {
-          contentHash: duplicate.result_content_hash,
-          byteCount: duplicate.result_byte_count,
-        },
-        duplicate: "completed",
-      };
-    }
     database
       .prepare(
         `INSERT INTO conversation_repository_work_turns

@@ -12,6 +12,16 @@ export interface ConversationRepositoryWorkResultReference {
   byteCount: number;
 }
 
+export interface InterruptedConversationRepositoryWorkTurn {
+  eventId: string;
+  conversationId: string;
+  threadId: string | null;
+  workerId: string;
+  provider: RepositoryWorkProvider;
+  providerSessionId: string | null;
+  requestContentHash: string;
+}
+
 export interface ConversationRepositoryWorkDelegate {
   agentId: string;
   displayName: string;
@@ -75,6 +85,76 @@ export class SQLiteConversationRepositoryWorkStore {
 
   begin(input: Parameters<typeof beginConversationRepositoryWork>[1]) {
     return beginConversationRepositoryWork(this.database, input);
+  }
+
+  interruptedTurns(): InterruptedConversationRepositoryWorkTurn[] {
+    return (
+      this.database
+        .prepare(
+          `SELECT event_id, conversation_id, thread_id, worker_id, provider,
+                  provider_session_id, request_content_hash
+           FROM conversation_repository_work_turns
+           WHERE status = 'running'
+           ORDER BY started_at_ms ASC LIMIT ?`,
+        )
+        .all(MAXIMUM_TURNS) as Array<{
+        event_id: string;
+        conversation_id: string;
+        thread_id: string;
+        worker_id: string;
+        provider: RepositoryWorkProvider;
+        provider_session_id: string | null;
+        request_content_hash: string;
+      }>
+    ).map((row) => ({
+      eventId: row.event_id,
+      conversationId: row.conversation_id,
+      threadId: row.thread_id === "" ? null : row.thread_id,
+      workerId: row.worker_id,
+      provider: row.provider,
+      providerSessionId: row.provider_session_id,
+      requestContentHash: row.request_content_hash,
+    }));
+  }
+
+  reconcileCompletion(input: {
+    eventId: string;
+    conversationId: string;
+    threadId: string | null;
+    workerId: string;
+    provider: RepositoryWorkProvider;
+    providerSessionId: string | null;
+    requestContentHash: string;
+    result: ConversationRepositoryWorkResultReference;
+    completedAt: string;
+  }): void {
+    const completedAtMs = Date.parse(input.completedAt);
+    if (!Number.isFinite(completedAtMs)) {
+      throw new Error("The recovered conversation work completion time is invalid.");
+    }
+    const changed = this.database
+      .prepare(
+        `UPDATE conversation_repository_work_turns SET
+           status = 'completed', failure_code = NULL, provider_session_id = ?,
+           result_content_hash = ?, result_byte_count = ?, completed_at_ms = ?
+         WHERE event_id = ? AND conversation_id = ? AND thread_id = ? AND worker_id = ?
+           AND provider = ? AND request_content_hash = ? AND status = 'running'`,
+      )
+      .run(
+        input.providerSessionId,
+        input.result.contentHash,
+        input.result.byteCount,
+        completedAtMs,
+        input.eventId,
+        input.conversationId,
+        input.threadId ?? "",
+        input.workerId,
+        input.provider,
+        input.requestContentHash,
+      );
+    if (changed.changes !== 1) {
+      throw new Error("The interrupted conversation work turn could not be reconciled.");
+    }
   }
 
   complete(input: {

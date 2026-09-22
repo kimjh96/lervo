@@ -1,6 +1,6 @@
 # ADR-0395: Resumable native repository work turns
 
-- Status: accepted (amended 2026-09-16)
+- Status: accepted (amended 2026-09-23)
 - Decision date: 2026-09-10
 
 ## Context
@@ -56,9 +56,11 @@ The Node stores a bounded projection per integration:
 
 SQLite stores no request text, provider output, source body, credential, command transcript, or diff. CAS stores the bounded final Discord result.
 
-Completed source events deduplicate without rerunning provider tools. Separate events with the exact same request-content hash, conversation, thread, worker, and provider coalesce while the first runs and reuse its result for five minutes after completion. Duplicates receive an explicit in-progress or already-completed response and never start another provider process. Different requests remain separate events, execute in arrival order through the interaction worker, and are not silently merged.
+Completed source events deduplicate by exact source-event identity without rerunning provider tools. Separately authored events remain distinct even when their text and content hash match. Exact completed replay republishes stored provider output; exact running replay is held for reconciliation without fixed duplicate prose.
 
-Source-event identity validation, running or completed replay inspection, session lookup, duplicate lookup, and turn admission share one immediate SQLite transaction. Replaying the same running source event retains one attempt across database handles and reopening without refreshing its start time. Elapsed time does not prove interrupted work is safe to repeat. Duplicate responses report the admission record without promising that an unobserved process remains active or will deliver a result. Identity or content conflicts roll back admission. This adds no table, persisted field, or event and preserves conversation-scoped result privacy.
+Source-event identity validation, running or completed replay inspection, session lookup, and turn admission share one immediate SQLite transaction. Replaying the same running source event retains one attempt across database handles and reopening without refreshing its start time. Elapsed time does not prove interrupted work is safe to repeat. Identity or content conflicts roll back admission. This adds no table, persisted field, or event and preserves conversation-scoped result privacy.
+
+Canonical completion precedes the local turn projection. Restart recovery follows [the exact reconciliation contract](../../../specifications/coordination/native-repository-work-recovery.md); it neither replays provider work nor publishes at startup.
 
 Later events in the same worker scope resume the exact provider session across process invocations and Node restarts. Legacy hiring without a separately deployable speaker activates the child as conversation worker, giving its next task an independent session rather than the parent's. When hiring prepares a distinct child deployment, the parent retains its configured worker identity. Existing delegate rows cannot override that identity, provider, session, or result scope. The child receives work through its own deployment. [Native admission](../../../specifications/coordination/native-repository-work-admission.md) defines configuration-derived selection and the historical replay boundary.
 
@@ -69,7 +71,7 @@ Each integration retains at most 4,096 completed or failed turn rows and 1,024 s
 The Node snapshots Git HEAD and dirty-path content digests before and after every provider turn. Responses report only paths proven changed by that comparison and explicitly identify zero observed changes. Provider prose remains provider output, not independently verified managed evidence.
 
 - `running` means the native provider process may be active.
-- `completed` requires a final provider result, durable CAS result, session and turn updates, and canonical completion event. Zero-change work records equal revisions. Changed bytes require checkpoint, knowledge, and configured replica guarantees. New events optionally record bounded `checkpointDisposition`; historical events remain compatible.
+- `completed` requires a final provider result, durable CAS result, and canonical completion event. The local session and turn projection normally commits immediately afterward; a restart may reconstruct only the exact matching completed projection from that canonical evidence. Zero-change work records equal revisions. Changed bytes require checkpoint, knowledge, and configured replica guarantees. New events optionally record bounded `checkpointDisposition`; historical events remain compatible.
 - `failed` means no successful result was accepted. Repository bytes or external state may still require inspection because a provider process can fail after an effect. Startup or retry never converts a failed or interrupted native effect into managed success.
 
 Provider, deadline, observation, and storage failures retain bounded codes without native prose. A deadline is always `provider_turn_timeout`; intermediate output is not a result. Work may have effects before failure, so uncertainty is inspected rather than replayed. An unresolved post-effect gate is nonretryable `response_effect_unconfirmed`. Shutdown aborts the process; typing spans the owned lifecycle.
@@ -93,6 +95,7 @@ Native sessions provide a functional replacement path without replacing managed-
 ## References
 
 - [Native repository work admission](../../../specifications/coordination/native-repository-work-admission.md)
+- [Native repository work recovery](../../../specifications/coordination/native-repository-work-recovery.md)
 - [Node-hosted Discord conversation service](0382-node-hosted-discord-conversation-service.md)
 - [Durable conversation execution result return](0383-durable-conversation-execution-result-return.md)
 - [Deterministic multi-agent turn ownership](0391-deterministic-multi-agent-turn-ownership.md)

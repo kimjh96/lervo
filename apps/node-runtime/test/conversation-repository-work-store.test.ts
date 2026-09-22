@@ -137,7 +137,7 @@ describe("SQLiteConversationRepositoryWorkStore", () => {
     store.close();
   });
 
-  it("coalesces separate events carrying the same active or recently completed request", async () => {
+  it("treats separately authored events with the same text as distinct work", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-work-store-duplicate-"));
     roots.push(root);
     const store = SQLiteConversationRepositoryWorkStore.open(resolve(root, "work.sqlite"));
@@ -154,7 +154,7 @@ describe("SQLiteConversationRepositoryWorkStore", () => {
     expect(store.begin({ ...turn, eventId: "evt_222222222222222222222222" })).toEqual({
       providerSessionId: null,
       completed: null,
-      duplicate: "in_progress",
+      duplicate: null,
     });
     store.complete({
       eventId: turn.eventId,
@@ -174,9 +174,49 @@ describe("SQLiteConversationRepositoryWorkStore", () => {
       }),
     ).toEqual({
       providerSessionId: "11111111-1111-4111-8111-111111111111",
-      completed: { contentHash: `sha256:${"2".repeat(64)}`, byteCount: 12 },
-      duplicate: "completed",
+      completed: null,
+      duplicate: null,
     });
+    store.close();
+  });
+
+  it("reconciles a canonical completion left behind by an interrupted local commit", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-work-store-recovery-"));
+    roots.push(root);
+    const store = SQLiteConversationRepositoryWorkStore.open(resolve(root, "work.sqlite"));
+    const turn = {
+      eventId: "evt_111111111111111111111111",
+      conversationId: "cnv_example",
+      threadId: null,
+      workerId: "agt_111111111111111111111111",
+      provider: "codex" as const,
+      requestContentHash: `sha256:${"1".repeat(64)}`,
+      startedAt: "2026-09-10T00:00:00.000Z",
+    };
+    store.begin(turn);
+    expect(store.interruptedTurns()).toEqual([
+      {
+        eventId: turn.eventId,
+        conversationId: turn.conversationId,
+        threadId: null,
+        workerId: turn.workerId,
+        provider: turn.provider,
+        providerSessionId: null,
+        requestContentHash: turn.requestContentHash,
+      },
+    ]);
+    store.reconcileCompletion({
+      ...turn,
+      providerSessionId: null,
+      result: { contentHash: `sha256:${"2".repeat(64)}`, byteCount: 12 },
+      completedAt: "2026-09-10T00:01:00.000Z",
+    });
+    expect(store.begin(turn)).toEqual({
+      providerSessionId: null,
+      completed: { contentHash: `sha256:${"2".repeat(64)}`, byteCount: 12 },
+      duplicate: null,
+    });
+    expect(store.interruptedTurns()).toEqual([]);
     store.close();
   });
 

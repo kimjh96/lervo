@@ -131,6 +131,26 @@ snapshots, every repository retained the same event count, event head hash, Git 
 status hash. This proves no r52 startup replay; it does not fabricate the still-required fresh
 human-authored Lervo and Shiflo response acceptance turns.
 
+The first later human-authored Vero continuation exposed a crash-consistency gap at that exact r52
+activation boundary. AXLI accepted Discord message `1551985802483994696` as source event
+`cve_03b2a6de676fe2c6beba036a9a3866fef13ffc0cddbcf93510ed5b6346ab2b38`; its native repository
+turn completed, recorded passed verification, advanced AXLI's workstream to revision 558, and
+committed canonical `conversation.repository_work.completed` sequence 17082. The service stopped
+before its local `repository-work.sqlite` projection committed. After restart, the still-running
+projection could not discover that late canonical event through the old bounded global-event page,
+so the interaction exhausted two attempts and delivered a generic terminal-generation failure even
+though the work had succeeded. The same inspection found a separate five-minute content-hash
+heuristic that incorrectly coalesced independently authored repeated phrases and returned fixed
+application prose.
+
+The correction removes cross-event text/hash coalescing, keeps exact source-event replay idempotent,
+and resolves canonical completion by its deterministic run coordinate. Startup repairs only local
+running projections with one exact matching source event, worker, provider, request hash, and passed
+verification; it neither reruns provider work nor publishes an old message. Exact-event re-entry can
+reuse the stored provider-authored result. Missing or conflicting canonical evidence fails closed as
+an unconfirmed effect rather than a generic generation failure. The historical Vero request is not
+replayed as a fresh human turn.
+
 The delivery outbox now has a bounded `attention_required` state and a Discord-only externally verified reconciliation path under [ADR-0424](../../../../../decisions/coordination/conversations/delivery/0424-bound-delivery-uncertainty-and-reconciliation.md). An uncertain or failed send is not silently counted as published. The operational approval also requires no unresolved attention state for the exact acceptance requests; a recovered historical message is supporting incident evidence, not a substitute for the two-direction matrix.
 
 Each agent needing native Discord member presence, its own typing indicator, or native mentionability requires a separate installed bot application. Exact Lervo `@DisplayName` addressing remains available to webhook identities.

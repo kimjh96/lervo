@@ -118,8 +118,9 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
   }
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
+    const coordinate = sha256(input.sourceConversationEventId).slice("sha256:".length, 31);
     const alreadyRecorded = storage.events
-      .list()
+      .list({ runId: `run_conversation_${coordinate}`, limit: 1_000 })
       .find(
         (event) =>
           event.type === "conversation.repository_work.completed" &&
@@ -131,7 +132,6 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
       summary: input.result.summary,
       changedPaths,
     });
-    const coordinate = sha256(input.sourceConversationEventId).slice("sha256:".length, 31);
     const payload = {
       sourceConversationEventId: input.sourceConversationEventId,
       workerAgentId: input.workerAgentId,

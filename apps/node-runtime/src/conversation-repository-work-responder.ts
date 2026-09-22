@@ -23,6 +23,7 @@ import {
   verifyConversationRepositoryWorkCompletion,
 } from "./conversation-repository-work-completion.js";
 import { reconcileConversationRepositoryWorkCheckpoint } from "./conversation-repository-work-checkpoint.js";
+import { recoverConversationRepositoryWorkCompletion } from "./conversation-repository-work-recovery.js";
 
 const MAXIMUM_FINALIZATION_RESERVE_MS = 5 * 60_000;
 const MINIMUM_FINALIZATION_RESERVE_MS = 2_000;
@@ -37,7 +38,10 @@ function finalizationStartsAt(timeoutMs: number, now = Date.now()): string {
 
 class ConversationRepositoryWorkStageError extends Error {
   constructor(
-    readonly code: "repository_observation_failed" | "repository_result_storage_failed",
+    readonly code:
+      | "repository_observation_failed"
+      | "repository_result_storage_failed"
+      | "repository_work_in_progress",
     message: string,
     options?: ErrorOptions,
   ) {
@@ -111,6 +115,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       completionLifecycle?: {
         capture: typeof captureConversationRepositoryWorkCompletionBaseline;
         reconcile?: typeof reconcileConversationRepositoryWorkCheckpoint;
+        recover?: typeof recoverConversationRepositoryWorkCompletion;
         verify: typeof verifyConversationRepositoryWorkCompletion;
       };
       authorizedEffectRequesters?: readonly {
@@ -175,7 +180,13 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
     if (executor === undefined) {
       throw new Error(`The ${provider} repository work executor is not configured.`);
     }
-    const turn = this.options.store.begin({
+    const completionLifecycle = this.options.completionLifecycle ?? {
+      capture: captureConversationRepositoryWorkCompletionBaseline,
+      reconcile: reconcileConversationRepositoryWorkCheckpoint,
+      recover: recoverConversationRepositoryWorkCompletion,
+      verify: verifyConversationRepositoryWorkCompletion,
+    };
+    let turn = this.options.store.begin({
       eventId: input.event.eventId,
       conversationId: input.event.target.conversationId,
       threadId: input.event.target.threadId,
@@ -185,23 +196,40 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       startedAt,
     });
     if (turn.duplicate === "in_progress") {
-      return createVerifiedConversationControlReply({
-        artifactStore: this.options.artifactStore,
-        writingContract: realtimeConversationWritingContract,
-        content: "동일한 요청이 이미 접수되어 중복 실행을 차단했습니다.",
+      const recovered = await (
+        completionLifecycle.recover ?? recoverConversationRepositoryWorkCompletion
+      )({
+        repositoryRoot: this.options.repositoryRoot,
+        sourceConversationEventId: input.event.eventId,
+        workerAgentId: workerId,
+        provider,
+        requestContentHash: input.event.content.contentHash,
       });
+      if (recovered === null) {
+        throw new ConversationRepositoryWorkStageError(
+          "repository_work_in_progress",
+          "The exact conversation work turn is still in progress.",
+        );
+      }
+      this.options.store.reconcileCompletion({
+        eventId: input.event.eventId,
+        conversationId: input.event.target.conversationId,
+        threadId: input.event.target.threadId,
+        workerId,
+        provider,
+        providerSessionId: turn.providerSessionId,
+        requestContentHash: input.event.content.contentHash,
+        result: recovered.result,
+        completedAt: recovered.completedAt,
+      });
+      turn = { ...turn, completed: recovered.result, duplicate: null };
     }
     if (turn.completed !== null) {
       const content = await readStoredResult(this.options.artifactStore, turn.completed);
       return createVerifiedConversationControlReply({
         artifactStore: this.options.artifactStore,
         writingContract: realtimeConversationWritingContract,
-        content:
-          turn.duplicate === "completed"
-            ? fitDiscord(
-                `동일한 요청은 최근에 이미 완료되어 다시 실행하지 않았습니다.\n\n${content}`,
-              )
-            : content,
+        content,
       });
     }
     try {
@@ -213,11 +241,6 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           pollIntervalMs: this.options.repositoryReplica.pollIntervalMs,
         });
       }
-      const completionLifecycle = this.options.completionLifecycle ?? {
-        capture: captureConversationRepositoryWorkCompletionBaseline,
-        reconcile: reconcileConversationRepositoryWorkCheckpoint,
-        verify: verifyConversationRepositoryWorkCompletion,
-      };
       const before = await observe(this.options.repositoryRoot);
       const completionBaseline = await completionLifecycle.capture(this.options.repositoryRoot);
       const externalEffectsAuthorized = this.externalEffectsAuthorized(input.event);
