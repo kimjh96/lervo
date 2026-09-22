@@ -8,7 +8,8 @@ starts with an older origin already bound, its first observation records only a 
 does not reinterpret startup, a mandate revision, or removal of a cumulative budget block as a
 fresh instruction. An unresolved recorded decision is still reconciled before this deferral. A
 later canonical source change wakes the ordinary owner loop, while a newly bound request after
-process start runs without an extra synthetic trigger.
+process start runs without an extra synthetic trigger. The origin check precedes the owner lease,
+peer refresh, pending result delivery, recovery, reasoning, and effect preparation.
 
 - [Binding, evidence and refusal contract](request-intake/binding.md)
 - [Discord routing, provenance and authority-bound exposure](request-intake/discord.md)

@@ -29,7 +29,7 @@ import { createSupervisionChangeLoop } from "./supervision-change-loop.js";
 import { prepareNodeSupervisionEffect } from "./supervision-execution-preflight.js";
 import { supersedeNodeSupervisionEffect } from "./supervision-supersession-routing.js";
 import { observeSupervisionResourceBudget } from "./supervision-resource-budget.js";
-import { findBoundSupervisionRequestEvent } from "./supervision-request-presence.js";
+import { assertBoundSupervisionRequest } from "./supervision-request-presence.js";
 
 import type {
   NodeSupervisionEffectSession,
@@ -102,6 +102,14 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
   let latestResourceBudget: SupervisionResourceBudgetV1 | null = null;
   let sourceBinding: { authorityDigest: string; taskDigest: string; combined: string } | null =
     null;
+  const assertRequestBound = () => {
+    if (input.requireBoundRequest !== true) return;
+    assertBoundSupervisionRequest({
+      events: peerStorage.events,
+      projectId: peerStorage.manifest.projectId,
+      binding,
+    });
+  };
   const session = () => {
     if (current === null) throw new NodeSupervisionError("supervision_session_closed");
     return current;
@@ -199,6 +207,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     withOwnerLease: async (id, operation) => {
       if (id !== binding.supervisionId)
         throw new NodeSupervisionError("supervision_binding_invalid");
+      assertRequestBound();
       return store.withOwner(async (owner) => {
         current = owner;
         sourceBinding = null;
@@ -215,15 +224,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     readSnapshot: async (id) => {
       knowledgeSnapshots.clear();
       latestResourceBudget = null;
-      if (
-        input.requireBoundRequest === true &&
-        findBoundSupervisionRequestEvent({
-          events: peerStorage.events,
-          projectId: peerStorage.manifest.projectId,
-          binding,
-        }) === null
-      )
-        throw new NodeSupervisionError("supervision_workstream_inactive");
+      assertRequestBound();
       const pending = await session().findPendingPlan();
       const snapshot =
         "readSnapshot" in ports

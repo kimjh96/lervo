@@ -42,7 +42,8 @@ request the supervisor is dormant. If an older request is already bound at proce
 cycle establishes its source cursor without proposing or executing an effect; unresolved recorded
 decisions still reconcile first. A new request bound after startup or a later canonical source
 change is the required wakeup. This keeps authority installation, budget-policy revision, and
-human intent as separate transitions.
+human intent as separate transitions. Request presence is checked before lease-side peer refresh,
+pending result delivery, recovery, reasoning, or effect preparation.
 
 ## Consequences and verification
 

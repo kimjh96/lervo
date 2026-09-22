@@ -1,6 +1,6 @@
 import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
-import type { NodeSupervisionBinding } from "./supervision-authority.js";
+import { NodeSupervisionError, type NodeSupervisionBinding } from "./supervision-authority.js";
 
 const maximumEvents = 100_000;
 
@@ -36,4 +36,14 @@ export function findBoundSupervisionRequestEvent(input: {
     if (page.length < 1_000) break;
   }
   return match;
+}
+
+/** Rejects work before any lease-side recovery, synchronization, reasoning, or effect can run. */
+export function assertBoundSupervisionRequest(input: {
+  events: Pick<EventStore, "list">;
+  projectId: string;
+  binding: NodeSupervisionBinding;
+}): void {
+  if (findBoundSupervisionRequestEvent(input) === null)
+    throw new NodeSupervisionError("supervision_workstream_inactive");
 }

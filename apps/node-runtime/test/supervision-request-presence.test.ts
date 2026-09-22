@@ -1,6 +1,9 @@
 import type { EventEnvelope } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
-import { findBoundSupervisionRequestEvent } from "../src/supervision-request-presence.js";
+import {
+  assertBoundSupervisionRequest,
+  findBoundSupervisionRequestEvent,
+} from "../src/supervision-request-presence.js";
 
 const binding = {
   supervisionId: "supervision.project",
@@ -65,5 +68,15 @@ describe("bound supervision request presence", () => {
         binding,
       }),
     ).toThrow(/conflicting request origins/iu);
+  });
+
+  it("rejects an absent origin with the dormant health failure code", () => {
+    expect(() =>
+      assertBoundSupervisionRequest({
+        events: source([]),
+        projectId: `prj_${"f".repeat(16)}`,
+        binding,
+      }),
+    ).toThrow(expect.objectContaining({ code: "supervision_workstream_inactive" }));
   });
 });
