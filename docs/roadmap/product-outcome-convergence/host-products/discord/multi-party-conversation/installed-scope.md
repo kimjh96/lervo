@@ -151,6 +151,18 @@ reuse the stored provider-authored result. Missing or conflicting canonical evid
 an unconfirmed effect rather than a generic generation failure. The historical Vero request is not
 replayed as a fresh human turn.
 
+Commit `abee07c21ed5` supplies that correction in Linux Node distribution
+`sha256:b744d9eae758508c8f28a42be57ebba159aeb21bcbaa6d3f0431d72ddff4c743`
+(`runtime-b744d9ea-r53`). The archive passed construction, embedded smoke verification, and all seven
+installed configuration preflights. AXLI was activated first. Its interrupted Vero row changed from
+`running` to `completed` with the existing canonical result hash
+`sha256:0932e65f7385e435d6bb37122b030ddee1906931a4859524741fe5d828239e5f`; the exact source retained
+one historical delivered outbox row, proving startup created no replay publication. The other six
+services were then upgraded sequentially. Three consecutive fleet observations found all seven
+services and all runtime components ready, their health PIDs equal to systemd main PIDs, and zero
+restarts. Two Shiflo Gateway connection failures occurred during initial reconnect and did not recur
+after readiness. Exact r52 service definitions remain owner-only rollback inputs.
+
 The delivery outbox now has a bounded `attention_required` state and a Discord-only externally verified reconciliation path under [ADR-0424](../../../../../decisions/coordination/conversations/delivery/0424-bound-delivery-uncertainty-and-reconciliation.md). An uncertain or failed send is not silently counted as published. The operational approval also requires no unresolved attention state for the exact acceptance requests; a recovered historical message is supporting incident evidence, not a substitute for the two-direction matrix.
 
 Each agent needing native Discord member presence, its own typing indicator, or native mentionability requires a separate installed bot application. Exact Lervo `@DisplayName` addressing remains available to webhook identities.
