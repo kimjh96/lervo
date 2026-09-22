@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_09004786d96dc36d8e69d0f5"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Treat repository-root workforce scopes consistently in worker admission, execution authority, and overlapping lease checks."

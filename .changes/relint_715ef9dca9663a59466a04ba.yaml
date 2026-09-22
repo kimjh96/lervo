@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_715ef9dca9663a59466a04ba"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Bind Node dispatch readiness to verified task sources and recheck required capabilities, evidence freshness, and authority immediately before execution."

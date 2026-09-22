@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_786e44f5fa006785724b0070"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Observe native Codex and Claude stored-login status through explicit profiles before Node supervision execution, discarding account data and preserving independent service and tool authorization."

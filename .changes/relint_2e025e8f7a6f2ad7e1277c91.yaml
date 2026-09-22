@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2e025e8f7a6f2ad7e1277c91"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Accept a settled cancelled predecessor when validating and replicating successor workstreams, matching the recorded continuation contract."

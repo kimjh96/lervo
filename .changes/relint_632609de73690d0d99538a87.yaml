@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_632609de73690d0d99538a87"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep Discord intake live for empty-content messages and let reviewed manual chain starters override automatic co-resident peer bindings."

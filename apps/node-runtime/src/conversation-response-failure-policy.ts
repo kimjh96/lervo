@@ -72,6 +72,15 @@ export class NodeConversationResponseFailureClassifier implements ConversationRe
     if (code === "provider_capacity_unavailable") {
       return { failureCode: "response_provider_capacity", retryable: true };
     }
+    if (code === "supervision_admission_unconfirmed") {
+      return { failureCode: "response_effect_unconfirmed", retryable: true };
+    }
+    if (
+      code === "repository_work_checkpoint_missing" ||
+      code === "repository_work_knowledge_incomplete"
+    ) {
+      return { failureCode: "response_effect_unconfirmed", retryable: false };
+    }
     if (code !== null && providerFailures.has(code)) {
       return {
         failureCode: "response_provider_unavailable",

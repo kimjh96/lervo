@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_74e2e25b7f62a9640e2b2860"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Bind managed deliberation to exact topic evidence, prevent provider exploration, reserve finalization time, and settle recorded failures without uncertain replay."

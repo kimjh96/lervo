@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c246c4eb4bf11cde9845240c"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reduce idle Node CPU usage with incremental workstream verification and authenticated change notifications while preserving bounded integrity audits and recovery."

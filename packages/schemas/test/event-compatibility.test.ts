@@ -120,6 +120,7 @@ describe("reader-first event envelope compatibility", () => {
       workstreamRevision: 7,
       workstreamSnapshotHash: hash,
       knowledgeDisposition: "current",
+      checkpointDisposition: "host_checkpoint",
       replicaDisposition: "current",
       verificationStatus: "passed",
       completedAt: "2026-09-10T00:00:00.000Z",
@@ -132,6 +133,7 @@ describe("reader-first event envelope compatibility", () => {
     delete legacyPayload.requestedReasoningEffort;
     delete legacyPayload.executionProfile;
     delete legacyPayload.allocationReason;
+    delete legacyPayload.checkpointDisposition;
     expect(
       validateSchema("conversationRepositoryWorkCompletedEventPayload", legacyPayload).valid,
     ).toBe(true);

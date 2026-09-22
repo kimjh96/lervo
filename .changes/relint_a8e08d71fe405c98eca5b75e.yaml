@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a8e08d71fe405c98eca5b75e"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Allow supervision review to resume when complete provider evidence proves default and explicit model accounting equivalent, while preserving original usage groups and budget limits."

@@ -25,6 +25,8 @@ This change alone creates no workstream, mandate, assignment, provider run, or p
 
 The single managed turn also writes a brief request-grounded acknowledgment for `supervision_goal_request`. It states the outcome or priority understood without claiming admission, execution, completion, or verification. The action path releases that already reviewed acknowledgment only after a new binding succeeds. Duplicate and refused outcomes instead publish their deterministic verified state. A natural-language binding without its managed acknowledgment fails closed rather than substituting a generic success promise. Historical `goal.requested` events retain a bounded compatibility response.
 
+Exact-source request binding and standing-successor preparation are idempotent. An unclassified admission error therefore enters the bounded conversation retry path as `response_effect_unconfirmed`; retry reuses the same managed-turn artifact and source identity, follows any already installed successor, and never creates another provider turn. A typed refusal still proves that no request binding was written. Exhaustion publishes the unconfirmed-effect status and tells the requester not to repeat the request before inspection.
+
 ## Consequences
 
 Discord and future first-party conversation surfaces can share a semantic intake port without reserving platform command names. Immediate work remains fast and session-scoped; durable goals remain owner-governed. Removing command registration eliminates the cross-application collision that ADR-0409 could only mitigate through manual announcement configuration.

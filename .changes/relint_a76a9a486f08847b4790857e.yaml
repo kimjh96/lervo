@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a76a9a486f08847b4790857e"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep natural Discord deliberations in the source language, reply to the originating message, retain human design context, and target writing repairs to failed checks."

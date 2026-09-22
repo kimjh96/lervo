@@ -62,6 +62,10 @@ export const conversationRepositoryWorkCompletedEventPayloadSchema = {
     workstreamRevision: { type: "integer", minimum: 1 },
     workstreamSnapshotHash: sha256Schema,
     knowledgeDisposition: { type: "string", enum: ["current", "baseline_valid"] },
+    checkpointDisposition: {
+      type: "string",
+      enum: ["not_needed", "provider_checkpoint", "host_checkpoint", "not_observed"],
+    },
     replicaDisposition: { type: "string", enum: ["current", "not_configured"] },
     verificationStatus: { type: "string", const: "passed" },
     completedAt: timestampSchema,

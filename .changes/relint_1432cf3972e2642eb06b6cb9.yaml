@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1432cf3972e2642eb06b6cb9"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Retire inactive Discord workforce webhooks and runtime deployments during reconciliation."

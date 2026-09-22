@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a27adb1cb31683e1aa92c413"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Read canonical Node service definitions that explicitly bind the Node executable before the runtime entry point."

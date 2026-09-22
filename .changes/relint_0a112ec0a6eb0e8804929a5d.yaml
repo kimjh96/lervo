@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0a112ec0a6eb0e8804929a5d"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add reviewed event writer version 3 activation and local operating mandate installation, inspection, and revocation."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_34163280b49d4e26fbcb8ab4"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add autonomous agent delegation and request-scoped conversation runtimes without boot enablement or automatic restart."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c9fe8126107d3288d675f66d"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add deterministic privacy-bounded activity projection from canonical Lervo events."

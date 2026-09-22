@@ -21,6 +21,11 @@ describe("conversation repository work writing", () => {
     expect(instructions).not.toContain(
       "checkpoint, valid current-scope knowledge, required verification, and replica parity",
     );
+    expect(instructions).toContain("provider-native tools, plugins, and connectors as turn-local");
+    expect(instructions).toContain(
+      "both legacy discordConversation and plural discordConversations",
+    );
+    expect(instructions).toContain("attention_required proves missing verified receipt");
   });
 
   it("keeps the bounded result free of a fixed telemetry appendix", () => {

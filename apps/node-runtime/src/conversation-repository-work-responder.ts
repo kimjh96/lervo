@@ -22,6 +22,7 @@ import {
   captureConversationRepositoryWorkCompletionBaseline,
   verifyConversationRepositoryWorkCompletion,
 } from "./conversation-repository-work-completion.js";
+import { reconcileConversationRepositoryWorkCheckpoint } from "./conversation-repository-work-checkpoint.js";
 
 const MAXIMUM_FINALIZATION_RESERVE_MS = 5 * 60_000;
 const MINIMUM_FINALIZATION_RESERVE_MS = 2_000;
@@ -109,6 +110,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       };
       completionLifecycle?: {
         capture: typeof captureConversationRepositoryWorkCompletionBaseline;
+        reconcile?: typeof reconcileConversationRepositoryWorkCheckpoint;
         verify: typeof verifyConversationRepositoryWorkCompletion;
       };
       authorizedEffectRequesters?: readonly {
@@ -213,6 +215,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       }
       const completionLifecycle = this.options.completionLifecycle ?? {
         capture: captureConversationRepositoryWorkCompletionBaseline,
+        reconcile: reconcileConversationRepositoryWorkCheckpoint,
         verify: verifyConversationRepositoryWorkCompletion,
       };
       const before = await observe(this.options.repositoryRoot);
@@ -278,6 +281,14 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           after,
         });
       }
+      const checkpointDisposition =
+        (await completionLifecycle.reconcile?.({
+          repositoryRoot: this.options.repositoryRoot,
+          provider,
+          baseline: completionBaseline,
+          repositoryChange,
+          completedAt: result.completedAt,
+        })) ?? "not_observed";
       await completionLifecycle.verify({
         repositoryRoot: this.options.repositoryRoot,
         provider,
@@ -294,6 +305,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         result: { contentHash: stored.contentHash, byteCount: stored.byteCount, summary: content },
         completedAt: result.completedAt,
         replicaConfigured: this.options.repositoryReplica !== undefined,
+        checkpointDisposition,
       });
       this.options.store.complete({
         eventId: input.event.eventId,

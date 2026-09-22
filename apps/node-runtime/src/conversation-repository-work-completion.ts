@@ -82,6 +82,7 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
   result: { contentHash: string; byteCount: number; summary: string };
   completedAt: string;
   replicaConfigured: boolean;
+  checkpointDisposition: "not_needed" | "provider_checkpoint" | "host_checkpoint" | "not_observed";
 }): Promise<void> {
   const changedPaths = input.repositoryChange.changedPaths;
   const current = await readCurrentWorkstreamState(input.repositoryRoot);
@@ -150,6 +151,7 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
       workstreamRevision: current.snapshot.revision,
       workstreamSnapshotHash: current.contentHash,
       knowledgeDisposition,
+      checkpointDisposition: input.checkpointDisposition,
       replicaDisposition: input.replicaConfigured ? "current" : "not_configured",
       verificationStatus: "passed",
       completedAt: input.completedAt,

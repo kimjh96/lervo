@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3ccdb890245ecc2cea27edb3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Publish verified deliberation contributions as natural Discord dialogue and prevent repair drafts from delegating review conclusions to other roles."

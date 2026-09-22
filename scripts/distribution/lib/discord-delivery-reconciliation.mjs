@@ -102,6 +102,16 @@ function speakerFor(deployment, conversationKey) {
   throw new Error("The installed speaker is not bound to the outbound conversation.");
 }
 
+export function configuredDiscordDeployment(config, integrationId) {
+  if (config.discordConversation !== undefined && config.discordConversations !== undefined) {
+    throw new Error("Use either discordConversation or discordConversations, not both.");
+  }
+  const deployments =
+    config.discordConversations ??
+    (config.discordConversation === undefined ? [] : [config.discordConversation]);
+  return deployments.find((item) => item.integrationId === integrationId);
+}
+
 export async function reconcileDiscordDelivery({
   configPath,
   integrationId,
@@ -111,9 +121,7 @@ export async function reconcileDiscordDelivery({
   fetchMessage = globalThis.fetch,
 }) {
   const config = JSON.parse(await readFile(configPath, "utf8"));
-  const deployment = config.discordConversations?.find(
-    (item) => item.integrationId === integrationId,
-  );
+  const deployment = configuredDiscordDeployment(config, integrationId);
   if (deployment === undefined || !/^[0-9]{1,32}$/.test(messageId)) {
     throw new Error("The Discord delivery target is not configured.");
   }

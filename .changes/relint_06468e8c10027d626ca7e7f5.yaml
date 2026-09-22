@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_06468e8c10027d626ca7e7f5"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Separate ordinary conversation checks from independent completed-result review."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_cf9e30ca190b4ce346ded2ad"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add exact bound-agent conversation and deliberation routes with deterministic ownership and model allocation."

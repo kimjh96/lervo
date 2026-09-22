@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f66bd783f11f9533ec3e3ee4"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Restore safe supervised replay, retry admission, and scoped knowledge readiness."

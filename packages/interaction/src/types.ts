@@ -164,6 +164,7 @@ export interface ConversationResponder {
 
 export type ConversationResponseFailureCode =
   | "response_generation_failed"
+  | "response_effect_unconfirmed"
   | "response_context_unavailable"
   | "response_provider_unavailable"
   | "response_provider_capacity"

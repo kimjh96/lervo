@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3e1793417e8fa4ccc600afc7"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Preserve managed-work resource, cached-input, and stage evidence in product observability."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6097a6bbd80a376b9663a8fa"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Prevent repository replica outages from hung transports and unloaded coordinators."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_dadde5ef06f1c640c12dccee"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Bind repository research inputs to exact artifact checks and independent role evaluation; add scoped owner handoff admission, read-only peer observations, and bounded attention for unresolved worker effects."

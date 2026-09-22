@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8dbf1ca4e33d130f236218e8"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add governed per-agent memory, owner-proxy capabilities, natural goal and deliberation routing, lexical-v2 knowledge retrieval, and change-driven runtime recovery."

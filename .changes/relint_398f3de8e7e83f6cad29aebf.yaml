@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_398f3de8e7e83f6cad29aebf"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Correct provider version probes for minimal Node service environments."

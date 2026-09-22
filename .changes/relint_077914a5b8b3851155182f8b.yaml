@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_077914a5b8b3851155182f8b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reuse the verified event reader while checking retained workspaces for owner reasoning admission."

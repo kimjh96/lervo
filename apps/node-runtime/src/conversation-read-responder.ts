@@ -168,7 +168,7 @@ export async function openManagedConversationReadResponder(input: {
         responseProvider: input.config.routing.response,
         responseExecutionProfiles: input.providerExecutionProfiles ?? null,
         surfaceEffects: input.surfaceEffects,
-        conversationTurnContract: 3,
+        conversationTurnContract: 4,
         agentContextContract: 2,
       }),
     );

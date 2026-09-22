@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8c877f3d13e61814b0ee449c"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Run resumable native Codex and Claude repository work from Discord with durable per-agent sessions, duplicate coalescing, and Git-backed completion bookkeeping."

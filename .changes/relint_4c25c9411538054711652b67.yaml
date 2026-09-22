@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4c25c9411538054711652b67"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add bounded operating mandate review, exact worker readiness, and provider-neutral outcome supervision composition."

@@ -95,6 +95,28 @@ export interface ManagedConversationTurnRequest {
   respondingAgent: { participantId: string; agentId: string | null; roleId: string };
   mentioned: boolean;
   surfaceEffects: readonly ManagedConversationSurfaceEffect[];
+  repositoryWorkRouting?: {
+    configuredDefault: {
+      provider: "codex" | "claude";
+      requestedModel: string | null;
+      requestedReasoningEffort: "low" | "medium" | "high" | "xhigh" | "max" | null;
+    };
+    executionProfiles: Record<
+      "routine" | "reasoning" | "review",
+      {
+        preferredProvider: "codex" | "claude";
+        providers: Partial<
+          Record<
+            "codex" | "claude",
+            {
+              requestedModel: string | null;
+              requestedReasoningEffort: "low" | "medium" | "high" | "xhigh" | "max";
+            }
+          >
+        >;
+      }
+    > | null;
+  };
   context?: { priorTurns: ReadonlyArray<ConversationContextTurn> };
 }
 

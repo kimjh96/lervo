@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2500c8f4aebbea4de4679188"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reject provider-call budgets that cannot complete their configured deliberation and align the installed architecture review with bounded publication and process time."

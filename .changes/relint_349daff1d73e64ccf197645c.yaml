@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_349daff1d73e64ccf197645c"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Validate deliberation participant bindings against workforce provider policy evidence."

@@ -5,6 +5,7 @@ import { ConversationRemoteContinuationResponder } from "@lervo/conversation-con
 import {
   FixedConversationTerminalFailureResponder,
   VerifiedConversationPublication,
+  type ManagedConversationTurnRequest,
 } from "@lervo/conversation-responder";
 import { fixedConversationStatusWritingContract } from "@lervo/core";
 import type { ConversationResponder } from "@lervo/interaction";
@@ -47,6 +48,35 @@ export async function openDiscordConversationResponseComposition(input: {
 }) {
   const { options, participation, peerAgents } = input;
   const config = options.config;
+  const repositoryWorkRouting = {
+    configuredDefault: {
+      provider: config.command.provider,
+      requestedModel: options.providerModels?.[config.command.provider] ?? null,
+      requestedReasoningEffort: options.providerReasoningEfforts?.[config.command.provider] ?? null,
+    },
+    executionProfiles:
+      options.providerExecutionProfiles === undefined
+        ? null
+        : (Object.fromEntries(
+            Object.entries(options.providerExecutionProfiles).map(([profile, policy]) => [
+              profile,
+              {
+                preferredProvider: policy.preferredProvider,
+                providers: Object.fromEntries(
+                  Object.entries(policy.providers).map(([provider, route]) => [
+                    provider,
+                    {
+                      requestedModel: route.model ?? null,
+                      requestedReasoningEffort: route.reasoningEffort,
+                    },
+                  ]),
+                ),
+              },
+            ]),
+          ) as NonNullable<
+            ManagedConversationTurnRequest["repositoryWorkRouting"]
+          >["executionProfiles"]),
+  } satisfies NonNullable<ManagedConversationTurnRequest["repositoryWorkRouting"]>;
   const reconfigurationEvents = new Set<string>();
   const authorizedAgentEffectRequesters = createAuthorizedAgentEffectRequesters(config, peerAgents);
   const policy = createDiscordConversationParticipationPolicy({
@@ -268,7 +298,12 @@ export async function openDiscordConversationResponseComposition(input: {
       ...(intentResolver === undefined ? {} : { intentResolver }),
       ...(readRuntime === null || options.intentResolver !== undefined
         ? {}
-        : { managedTurnResolver: readRuntime.turnResolver }),
+        : {
+            managedTurnResolver: {
+              resolve: (request: ManagedConversationTurnRequest) =>
+                readRuntime!.turnResolver.resolve({ ...request, repositoryWorkRouting }),
+            },
+          }),
       surfaceEffects,
       availableEffects: [
         ...platformAction.availableEffects,

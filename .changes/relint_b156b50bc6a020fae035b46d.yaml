@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b156b50bc6a020fae035b46d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reuse verified readers throughout workspace preparation, dispatch planning, receipt recovery and worker admission."

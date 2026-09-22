@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ae06eded4ce4f252512d9b65"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Preserve assignment recovery lineage and lease generations; reopen rejected work under owner fencing and dispatch separately admitted successor attempts with retry causality in isolated workspace generations."

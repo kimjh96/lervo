@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6f060c9d96a28660d9fa267b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Recover a fenced managed invocation with only its exact retained reservation before any requested run, preserving usage and rejecting partial lifecycle evidence."

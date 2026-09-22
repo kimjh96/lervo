@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d7048e1a07e6197a89a9e43b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Require current repository knowledge and document normalization before Node supervision execution without treating repository currency as delivered task context."

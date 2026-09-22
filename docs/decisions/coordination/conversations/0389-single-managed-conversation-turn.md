@@ -28,6 +28,8 @@ Surface adapters declare effect IDs and bounded argument descriptions. Effects t
 
 `routing.response` selects the combined turn's provider, model, reasoning effort, and timeout. `routing.intent` remains accepted only for backward-compatible custom responder composition; the installed managed path neither invokes it nor attributes turns to it. The default 60-second provider-turn deadline fails closed into the bounded conversation retry and terminal-failure path.
 
+The turn request separately carries the configured repository-work default and semantic execution-profile routes. When asked which model will perform future work, the responder uses those routes rather than its own `routing.response` execution identity, names the relevant task profile or conditional allocation, and treats requested model names as configuration rather than provider-observed identity. Session continuity and an explicitly bound agent may still precede profile preference.
+
 ### Shared repository retrieval
 
 `@lervo/repository-context` owns managed repository-context preparation previously held by the CLI. CLI execution and conversation turns share implementations for:
@@ -59,6 +61,8 @@ For human-authored turns selected for response by participation, activity starts
 The same idempotent activity lease passes to response generation and scheduled retry. It stops on completion, terminal failure, abort, or the safety timeout. Agent-authored turns do not make every peer bot display speculative typing before relevance is known.
 
 The provider's structured envelope is internal. Only its verified reply field enters the existing chat writing contract and publication permit. Internal run, queue, revision, workstream, and artifact coordinates stay out of ordinary prose unless the user explicitly requests diagnostics.
+
+Injected documents, workstream notes, and prior turns remain evidence with their own observation times, not automatic proof of current external state. The managed instructions prohibit deriving one common cause from generic historical failure codes, equating `attention_required` with definite platform absence, or substituting request/start time for completion/failure/publication time. Native repository-work instructions likewise treat provider tool and connector availability as turn-local: tool visibility does not prove account authorization, and one provider's missing tool does not prove global uninstallation.
 
 ## Evidence and privacy
 

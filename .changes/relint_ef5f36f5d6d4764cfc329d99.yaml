@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ef5f36f5d6d4764cfc329d99"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Preserve explicit Discord addressees when notification suppression omits native mention metadata."

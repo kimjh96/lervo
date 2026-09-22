@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d61e602a98330df6f3935891"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Prepare exact supervised Git workspaces before native worker dispatch with authority revalidation and canonical preparation receipts."

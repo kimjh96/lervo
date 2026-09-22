@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3d283560feef6a598e3c45e0"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Require canonical managed worker termination before confirming supervised dispatch."

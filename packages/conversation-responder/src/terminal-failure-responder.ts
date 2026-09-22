@@ -19,6 +19,8 @@ export class FixedConversationTerminalFailureResponder implements ConversationTe
     input: Parameters<ConversationTerminalFailureResponder["respond"]>[0],
   ): Promise<ConversationReplyCandidate> {
     const reason = {
+      response_effect_unconfirmed:
+        "요청한 작업의 실행 여부와 최종 상태를 안전하게 확인하지 못했습니다. 중복 실행을 피하기 위해 같은 요청을 다시 보내지 말고 현재 상태를 먼저 확인해 주세요.",
       response_context_unavailable: "저장소 맥락을 읽는 중 문제가 생겼습니다.",
       response_provider_unavailable: "응답 모델 연결을 완료하지 못했습니다.",
       response_provider_capacity: "응답 모델이 일시적으로 혼잡해 응답을 완료하지 못했습니다.",

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8c8c186f2d9b84a8c25638db"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Prevent a running native conversation request from starting a second provider attempt when its source event is replayed."

@@ -24,6 +24,15 @@ type DiscordSupervisionIntakeOutcome =
   | { status: "duplicate" }
   | { status: "refused"; code: NonNullable<ReturnType<typeof supervisionRequestRefusalCode>> };
 
+class SupervisionAdmissionUnconfirmedError extends Error {
+  readonly code = "supervision_admission_unconfirmed";
+
+  constructor(cause: unknown) {
+    super("The supervision request admission outcome could not be confirmed.", { cause });
+    this.name = "SupervisionAdmissionUnconfirmedError";
+  }
+}
+
 const REFUSAL_MESSAGES: Partial<
   Record<NonNullable<ReturnType<typeof supervisionRequestRefusalCode>>, string>
 > = {
@@ -144,7 +153,7 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
       outcome = { status: admission.duplicate ? "duplicate" : "bound" };
     } catch (error) {
       const code = supervisionRequestRefusalCode(error);
-      if (code === null) throw error;
+      if (code === null) throw new SupervisionAdmissionUnconfirmedError(error);
       outcome = { status: "refused", code };
     }
     if (outcome.status === "bound" && admittedReplyCandidate !== null) {

@@ -126,6 +126,73 @@ describe("managed conversation turn output contract", () => {
     expect(instructions).toContain("Do not claim that admission succeeded");
   });
 
+  it("grounds planned work models in repository-work routing instead of the conversation model", () => {
+    const instructions = JSON.parse(
+      managedConversationTurnInstructions({
+        request: {
+          event: { actor: { kind: "human" } },
+          mentioned: false,
+          respondingAgent: {
+            participantId: "ptc_lervoagent",
+            agentId: null,
+            roleId: "product-owner",
+          },
+          policy: { roleId: "product-owner" },
+          surfaceEffects: [],
+          repositoryWorkRouting: {
+            configuredDefault: {
+              provider: "claude",
+              requestedModel: "claude-default",
+              requestedReasoningEffort: "medium",
+            },
+            executionProfiles: {
+              routine: {
+                preferredProvider: "claude",
+                providers: {
+                  claude: {
+                    requestedModel: "claude-routine",
+                    requestedReasoningEffort: "medium",
+                  },
+                },
+              },
+              reasoning: {
+                preferredProvider: "codex",
+                providers: {
+                  codex: {
+                    requestedModel: "gpt-6-astra",
+                    requestedReasoningEffort: "high",
+                  },
+                },
+              },
+              review: {
+                preferredProvider: "claude",
+                providers: {
+                  claude: {
+                    requestedModel: "claude-opus-5",
+                    requestedReasoningEffort: "high",
+                  },
+                },
+              },
+            },
+          },
+        } as never,
+        message: "Which model will do the analysis work?",
+        plan: {
+          role: { roleId: "product-owner" },
+          executionIdentity: { provider: "codex", requestedModel: "gpt-5.6-terra" },
+        } as never,
+      }),
+    ) as { instruction: string[]; repositoryWorkRouting: unknown };
+
+    expect(JSON.stringify(instructions.repositoryWorkRouting)).toContain("gpt-6-astra");
+    expect(instructions.instruction.join(" ")).toContain(
+      "use repositoryWorkRouting rather than executionIdentity",
+    );
+    expect(instructions.instruction.join(" ")).toContain(
+      "Do not combine generic historical failure codes into one cause",
+    );
+  });
+
   it("rejects a supervision goal without a request-grounded acknowledgment", () => {
     expect(() =>
       parseManagedConversationTurn(

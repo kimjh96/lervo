@@ -218,6 +218,7 @@ describe("ConversationRepositoryWorkResponder", () => {
               : expect.not.arrayContaining(["README.md"]),
           }),
           executionProfile: null,
+          checkpointDisposition: "not_observed",
           allocationReason:
             scenario === "legacy_delegate" ? "bound_agent_provider" : "configured_default",
         }),

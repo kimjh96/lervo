@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5cb7081ac0dbe4caf7f1054e"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep Discord deliberation artifacts live, preserve recovery obligations, localize participant labels, and prevent automatic peer reply loops."

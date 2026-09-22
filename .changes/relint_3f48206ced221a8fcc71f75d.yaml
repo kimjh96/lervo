@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3f48206ced221a8fcc71f75d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep shared repository knowledge indexes stable when hosts have different local execution histories or Git revision availability."

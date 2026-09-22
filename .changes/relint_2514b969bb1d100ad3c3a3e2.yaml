@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2514b969bb1d100ad3c3a3e2"
-"package": "@lervo/cli"
-"impact": "major"
-"summary": "Require provider-observed model identity in managed execution and conversation evidence."

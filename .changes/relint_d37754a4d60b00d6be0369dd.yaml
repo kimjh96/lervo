@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d37754a4d60b00d6be0369dd"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add native Discord /goal command for installed supervised owner intake."

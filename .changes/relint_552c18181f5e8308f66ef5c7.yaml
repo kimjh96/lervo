@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_552c18181f5e8308f66ef5c7"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Allow explicitly bound coordinating agents to start bounded Discord automation chains."

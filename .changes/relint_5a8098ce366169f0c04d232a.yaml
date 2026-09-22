@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5a8098ce366169f0c04d232a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Retain verified unstarted Git workspaces while renewing expired responsibility leases; dispatch only from the successor lease workspace."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b52fa0b86b3f718121a024f6"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Retry a managed provider turn that failed without the provider ever naming a model instead of ending the assignment."

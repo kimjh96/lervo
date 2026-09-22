@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1b838043be240d5fe531ac3d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Separate bounded repository knowledge inspection from fresh worker permissions and lease checks so large repositories can dispatch verified work."

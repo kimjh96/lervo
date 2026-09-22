@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_394172aeb9e2ce8d13681727"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep native repository-work completion coordinates consistent when ignored generated files change."

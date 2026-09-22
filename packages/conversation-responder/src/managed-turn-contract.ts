@@ -207,7 +207,7 @@ export function managedConversationTurnRequestDigest(input: {
 }): string {
   return managedTurnDigest(
     JSON.stringify({
-      contract: "lervo.managed-conversation-turn.v2",
+      contract: "lervo.managed-conversation-turn.v3",
       eventId: input.request.event.eventId,
       policyId: input.request.policy.policyId,
       policyVersion: input.policyVersion,
@@ -217,6 +217,7 @@ export function managedConversationTurnRequestDigest(input: {
       respondingAgent: input.request.respondingAgent,
       priorTurns: input.request.context?.priorTurns ?? [],
       surfaceEffects: input.request.surfaceEffects,
+      repositoryWorkRouting: input.request.repositoryWorkRouting ?? null,
       roleId: input.plan.role.roleId,
       executionIdentity: input.plan.executionIdentity,
       maximumResponseCharacters: input.plan.maximumResponseCharacters ?? 2_000,
@@ -260,6 +261,8 @@ export function managedConversationTurnInstructions(input: {
       "For continue_work, reply must be null because the execution path publishes progress and a verified result separately, except for the bounded supervision_goal_request acknowledgment described above.",
       "If participation is not_relevant, use effect none and reply null.",
       "When asked about identity, distinguish durable agent and role from the turn provider. executionIdentity.requestedModel is configuration only; never present it as the provider-observed answer model.",
+      "When asked which model will perform repository work, use repositoryWorkRouting rather than executionIdentity. State the task profile and its configured requested route, or explain that the exact route depends on classification and session or bound-agent precedence. A requested route is not proof of the provider-observed model.",
+      "Treat injected documents, workstream notes, and prior turns as historical unless their evidence explicitly establishes current state. Do not combine generic historical failure codes into one cause, infer that attention_required means a platform message was absent, or substitute request/start timestamps for a later failure/completion timestamp.",
       "Return only the schema-valid object.",
     ],
     participationRoleId: input.request.policy.roleId,
@@ -268,6 +271,7 @@ export function managedConversationTurnInstructions(input: {
     actorKind: input.request.event.actor.kind,
     mentioned: input.request.mentioned,
     surfaceEffects: input.request.surfaceEffects,
+    repositoryWorkRouting: input.request.repositoryWorkRouting ?? null,
     priorTurns: input.request.context?.priorTurns ?? [],
     untrustedMessage: input.message,
   });

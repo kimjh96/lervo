@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3a1d9f04deb84ef8b0c46cba"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Complete verified worker results under current owner authority after the original execution lease expires, without replaying completed work."

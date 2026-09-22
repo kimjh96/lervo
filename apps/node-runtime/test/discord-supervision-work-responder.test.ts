@@ -148,8 +148,11 @@ it("answers a refused binding with its bounded reason", async () => {
   );
 });
 
-it("rethrows when intake fails for an unclassified reason", async () => {
+it("marks an unclassified intake failure as an idempotently retryable uncertain admission", async () => {
   const f = await fixture({ kind: "human", participantId: "ptc_human0001", roleId: null });
   f.admitRequest.mockRejectedValueOnce(new Error("sqlite closed"));
-  await expect(f.responder.respond({ event: f.event } as never)).rejects.toThrow("sqlite closed");
+  await expect(f.responder.respond({ event: f.event } as never)).rejects.toMatchObject({
+    name: "SupervisionAdmissionUnconfirmedError",
+    code: "supervision_admission_unconfirmed",
+  });
 });

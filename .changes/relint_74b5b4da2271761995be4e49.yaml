@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_74b5b4da2271761995be4e49"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Recover abandoned supervision ownership after process termination while preserving unresolved work and fencing previous owners."

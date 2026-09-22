@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_48369cfa8524b649c684b814"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Bound retained workspace proof reads to four concurrent observations while preserving complete checks, failure settlement and authority windows."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7b95d8043c43a659f461f4ca"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Read Git checkout coordinates once and derive empty changes from a clean checkout at the exact base, retaining full changed-path inspection for dirty or advanced workspaces."

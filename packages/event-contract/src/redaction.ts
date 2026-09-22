@@ -52,6 +52,7 @@ export const eventPayloadAllowlists = {
     "workstreamRevision",
     "workstreamSnapshotHash",
     "knowledgeDisposition",
+    "checkpointDisposition",
     "replicaDisposition",
     "verificationStatus",
     "completedAt",

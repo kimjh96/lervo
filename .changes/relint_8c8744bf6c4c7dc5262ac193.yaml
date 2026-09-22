@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8c8744bf6c4c7dc5262ac193"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Synchronize exact uncommitted repository state across local and Discord Nodes, enforce native work completion, and route exact webhook-agent display-name addresses."
