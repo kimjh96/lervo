@@ -54,6 +54,14 @@ Every installed journey records:
 
 Human-visible messages exclude internal coordinates unless diagnostics are explicitly requested.
 
+## Installed readiness
+
+The installed-runtime preflight accepts an optional supervision health component only when it is
+`ready`, explicitly `disabled`, or dormant with the exact `workstream_inactive` reason. A bounded
+`unavailable` supervision component makes the aggregate not ready and preserves its fixed failure
+and reason codes for operator diagnosis. This keeps the preflight aligned with the node health
+contract without treating active supervision failure as a healthy installation.
+
 ## Publication verification failures
 
 The response attempt stores only an existing bounded failure code, not rejected prose, artifact content, provider output, or native error text. A typed writing gate failure records `response_writing_blocked`; evaluator unavailability records `response_evaluation_unavailable`; verified artifact storage failure records `response_storage_unavailable`; deterministic artifact, evaluation, permit, or writing-contract mismatch records `response_contract_invalid`; and an unresolved post-effect or supervision-admission state records `response_effect_unconfirmed`. The last code never authorizes repository-work replay; only exact-source idempotent supervision admission may use the existing bounded retry path. Its terminal status tells the requester not to repeat the effect before inspection. Unknown verifier errors remain `publication_verification_failed` rather than being guessed into a more specific cause. The installed private log may record only bounded error name and code coordinates. A nonretryable contract mismatch uses the existing verified terminal-failure reply immediately when available; retryable failures keep the configured attempt bound. Historical generic failure rows cannot be retroactively diagnosed from that code alone and do not satisfy an installed success claim.
