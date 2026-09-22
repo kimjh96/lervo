@@ -88,6 +88,49 @@ Linux Node distribution `sha256:7c621b65b29e6dd6096bd8bbfc5d8a13cc9ab5b9a21f4164
 
 That rollout also found the Hub still running the 2026-09-19 r25 artifact while the Nodes emitted a later valid schema-v2 event type. Arca's 93-event contiguous outbox began at sequence 5392 with `conversation.repository_work.completed`; the old Hub rejected even that single event with HTTP 400, while registration, authenticated reads, identity, TLS, and the advertised `[1,2,3]` reader envelope remained valid. The Node consequently retried the batch as the overly broad `hub_unavailable` failure. Matching Hub distribution `sha256:f486acc4ffc7257a9af92def51ea41a4f355b61e30ac15583caf3a871364e9c6` (`runtime-f486acc4-r47`) was installed transactionally with the exact r25 service definition retained for rollback. Three consecutive observations found the Hub active on r47 with zero restarts; Arca then acknowledged all 93 events without rewriting them, its outbox reached zero unacknowledged rows, and sync plus workstream replication returned to ready. This establishes the installed compatibility repair but does not replace a fresh human-authored Lervo or Shiflo response observation.
 
+On 2026-09-23, the product-owner fleet was converged on one supervision contract. Commits
+`f402544d4c77`, `bcc3e92b67`, and `c7d836f701` require the exact installed owner for goal intake,
+replace cumulative lifetime ceilings for V3 standing owners with per-attempt admission, and validate
+successor mandate revisions against their bound workstream. Reviewed V3 mandates are installed for
+all seven product owners. Lervo's active successor mandate hash is
+`sha256:98765b5733255b9acf7ffed38277c5164aea63412a802e79f7b27b7df4f9b51e`;
+Plen, Shiflo, Flemo, Arca-next, AXLI, and Digimon use respective mandate hashes
+`sha256:489b75ea1b88f6370814bf426645f868256a5183873b73ff8701124d229e88ce`,
+`sha256:b9675ad3bf27269c554f75350c131877add0b26538675b88fd6612e40601c036`,
+`sha256:73063d4efa35494c298aa99cb1ea1aec2b3156703f5a38a8aef4110126cef006`,
+`sha256:398c2cd356cac691d5e32ffb7a7f118f4a80af9db45abee5f0af655fa0a09465`,
+`sha256:72d51c6755d66a6f9781530c90af03e090371f33e7374d6b1329a1fd48318e84`,
+and `sha256:8ecaf404b98697c723df4af46815bbf99c738b5d9379d2c2c6ae5d1a105757ac`.
+Every owner deployment now advertises goal acceptance only for its own exact installed authority.
+
+The first activation exposed that authority installation and service restart were still interpreted
+as work triggers. Before the fleet was stopped, AXLI reconciled and claimed old work and Digimon
+created and claimed an assignment from pre-existing state. Those canonical events remain retained;
+they were not deleted or presented as human requests. Commits `0ccce869e45c` and `a1e20c34befa`
+separate installation from instruction: no supervised lease, peer refresh, pending result delivery,
+recovery, reasoning, or effect can begin without an exact `work.supervision.bound` origin. A process
+starting with a pre-existing origin records only its current source cursor unless an already recorded
+effect needs safe reconciliation. A later canonical source change or a request bound after startup is
+the only ordinary wakeup. The second activation also exposed Arca's old
+`supervision.discord.arca.standing` configuration typo and that pending result recovery preceded the
+snapshot-level gate; the final configuration uses `supervision.discord.arca-next.standing`, and the
+gate now precedes the owner lease itself.
+
+Final Linux Node distribution
+`sha256:6c89d41983f0e9abc72175eec328c9737d66efb61444fb8dd568ad68feeed177`
+(`runtime-6c89d419-r52`) passed archive construction, archive verification, smoke installation, and all
+seven configuration preflights. The unchanged managed CLI bundle remains
+`e8a41886a3b722df27ee6d17dd907d307053511956332e701bdd3791979ec968`.
+Exact r51 configurations and service definitions remain owner-only rollback inputs. Three consecutive
+fleet observations found every r52 service `active/running`, its health PID equal to the systemd main
+PID, zero restarts, and conversation, synchronization, workstream replication, and remote control
+ready. Lervo and AXLI report supervision ready for their pre-existing exact bound goals without a
+startup effect. Shiflo, Plen, Flemo, Arca-next, and Digimon report
+`dormant:workstream_inactive` because no exact request is bound. Across two later complete fleet
+snapshots, every repository retained the same event count, event head hash, Git HEAD, and working-tree
+status hash. This proves no r52 startup replay; it does not fabricate the still-required fresh
+human-authored Lervo and Shiflo response acceptance turns.
+
 The delivery outbox now has a bounded `attention_required` state and a Discord-only externally verified reconciliation path under [ADR-0424](../../../../../decisions/coordination/conversations/delivery/0424-bound-delivery-uncertainty-and-reconciliation.md). An uncertain or failed send is not silently counted as published. The operational approval also requires no unresolved attention state for the exact acceptance requests; a recovered historical message is supporting incident evidence, not a substitute for the two-direction matrix.
 
 Each agent needing native Discord member presence, its own typing indicator, or native mentionability requires a separate installed bot application. Exact Lervo `@DisplayName` addressing remains available to webhook identities.
