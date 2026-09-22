@@ -13,7 +13,7 @@ const baseKeys = [
   "updatedAt",
 ];
 const currentRequiredKeys = ["workstreamReplication", "workspaceCoordination"];
-const currentOptionalKeys = ["conversation", "eventReader", "eventReaderIdentity"];
+const currentOptionalKeys = ["conversation", "eventReader", "eventReaderIdentity", "supervision"];
 
 function exactKeys(value, expected) {
   return (
@@ -34,6 +34,31 @@ function component(value) {
     typeof value.failureCode === "string" &&
     FAILURE_CODE_PATTERN.test(value.failureCode) &&
     exactKeys(value, ["failureCode", "status"])
+  );
+}
+
+function supervisionComponent(value) {
+  if (component(value)) return true;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  if (value.status === "dormant") {
+    return value.reasonCode === "workstream_inactive" && exactKeys(value, ["reasonCode", "status"]);
+  }
+  return (
+    value.status === "unavailable" &&
+    typeof value.failureCode === "string" &&
+    FAILURE_CODE_PATTERN.test(value.failureCode) &&
+    (value.reasonCodes === undefined ||
+      (Array.isArray(value.reasonCodes) &&
+        value.reasonCodes.length <= 16 &&
+        value.reasonCodes.every(
+          (code) => typeof code === "string" && FAILURE_CODE_PATTERN.test(code),
+        ))) &&
+    exactKeys(
+      value,
+      value.reasonCodes === undefined
+        ? ["failureCode", "status"]
+        : ["failureCode", "reasonCodes", "status"],
+    )
   );
 }
 
@@ -89,7 +114,9 @@ function readyComponentsAgree(value, current) {
     !current ||
     (value.workstreamReplication.status === "ready" &&
       componentReady(value.workspaceCoordination) &&
-      (value.conversation === undefined || componentReady(value.conversation)))
+      (value.conversation === undefined || componentReady(value.conversation)) &&
+      (value.supervision === undefined ||
+        ["ready", "disabled", "dormant"].includes(value.supervision.status)))
   );
 }
 
@@ -111,6 +138,7 @@ export function validNodeRuntimeHealthSnapshot(value) {
       (component(value.workstreamReplication) &&
         component(value.workspaceCoordination) &&
         (value.conversation === undefined || component(value.conversation)) &&
+        (value.supervision === undefined || supervisionComponent(value.supervision)) &&
         (value.eventReader === undefined || eventReader(value.eventReader)) &&
         (value.eventReaderIdentity === undefined ||
           eventReaderIdentity(value.eventReaderIdentity)))) &&

@@ -76,13 +76,18 @@ describe("runtime readiness preflight", () => {
   });
 
   it("accepts the current additive Node snapshot contract", async () => {
-    const path = await ownerSnapshot(currentNodeSnapshot());
-    assert.deepEqual(
-      await checkRuntimeReadiness(["--runtime", "node", "--snapshot", path], {
-        processProbe: () => undefined,
-      }),
-      { runtime: "node", status: "ready" },
-    );
+    for (const supervision of [
+      { status: "ready" },
+      { status: "dormant", reasonCode: "workstream_inactive" },
+    ]) {
+      const path = await ownerSnapshot(currentNodeSnapshot({ supervision }));
+      assert.deepEqual(
+        await checkRuntimeReadiness(["--runtime", "node", "--snapshot", path], {
+          processProbe: () => undefined,
+        }),
+        { runtime: "node", status: "ready" },
+      );
+    }
   });
 
   it("rejects partial, unknown, and internally inconsistent current snapshots", async () => {
@@ -90,6 +95,14 @@ describe("runtime readiness preflight", () => {
       nodeSnapshot({ workstreamReplication: { status: "ready" } }),
       currentNodeSnapshot({ unexpected: true }),
       currentNodeSnapshot({ sync: { status: "unavailable", failureCode: "hub_unavailable" } }),
+      currentNodeSnapshot({ supervision: { status: "dormant", reasonCode: "wrong_reason" } }),
+      currentNodeSnapshot({
+        supervision: {
+          status: "unavailable",
+          failureCode: "supervision_attention_required",
+          reasonCodes: ["not bounded"],
+        },
+      }),
       currentNodeSnapshot({
         eventReader: {
           schemaVersion: 1,

@@ -15,6 +15,8 @@ Liveness proves only that the listener responds and does not read the store. Rea
 
 Node atomically writes owner-only `.lervo/state/node-runtime-health.json`. It contains schema, status, PID, start and update times, the additive event-reader capability report, and component state. The capability report neither affects readiness nor authorizes event writing. Older v1 snapshots without it remain readable.
 
+The distribution preflight accepts the optional supervision projection emitted by the Node, including bounded unavailable reason codes and the exact dormant `workstream_inactive` state. Ready aggregate health may include ready, disabled, or dormant supervision; unavailable supervision remains degraded. Unknown fields, reasons, or component states fail closed.
+
 Overall status is `starting`, `ready`, `degraded`, or `stopping`. Required components move from `pending` to `ready` or bounded `unavailable`; disabled optional components are acceptable. Overall readiness requires every required component to be ready or disabled.
 
 Failure to publish initially or after a cycle is a runtime failure. Shutdown makes a best-effort publication of `stopping` before normal store closure.
