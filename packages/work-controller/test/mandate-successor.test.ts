@@ -123,6 +123,7 @@ describe("standing successor mandates", () => {
     const parent: OperatingMandateV3 = {
       ...root(3),
       maximumAggregateTokens: 4_000_000,
+      aggregateTokenPolicy: { schemaVersion: 1, mode: "per_attempt_only" },
       successorAuthority: {
         schemaVersion: 2,
         maximumSuccessors: 3,
@@ -135,6 +136,7 @@ describe("standing successor mandates", () => {
       issuedAt: "2026-09-16T00:00:00.000Z",
     });
     expect(child.maximumAggregateTokens).toBe(2_000_000);
+    expect(child.aggregateTokenPolicy).toEqual({ schemaVersion: 1, mode: "per_attempt_only" });
     expect(child.successorAuthority).toEqual({
       schemaVersion: 2,
       maximumSuccessors: 2,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertOperatingMandate,
   operatingContractHash,
+  operatingEffectAdmissionHash,
   reviewOperatingAction,
 } from "../src/index.js";
 import { hash, mandate, plan, snapshot } from "./operating-supervision.fixture.js";
@@ -74,6 +75,43 @@ describe("exact operating mandate admission", () => {
         "capability_ceiling_exceeded",
       ]),
     );
+  });
+  it("admits repository-wide paths without cumulative usage under reviewed per-attempt policy", () => {
+    const bounded = mandate();
+    const current = {
+      ...bounded,
+      schemaVersion: 3 as const,
+      pathRoots: ["*"],
+      executionAuthority: {
+        schemaVersion: 1 as const,
+        mode: "designated_host" as const,
+        hostIdentityHash: hash("e"),
+      },
+      workScope: {
+        schemaVersion: 1 as const,
+        workstreamId: plan().workstreamId,
+        snapshotEventId: `evt_${"a".repeat(32)}`,
+        snapshotEventHash: hash("d"),
+        excludedAssignments: [],
+      },
+      aggregateTokenPolicy: { schemaVersion: 1 as const, mode: "per_attempt_only" as const },
+    };
+    const action = {
+      ...plan(),
+      mandateHash: operatingContractHash(current),
+      expectedPaths: ["src/new-file.ts"],
+    };
+    const observation = {
+      ...snapshot(),
+      installedMandateHash: operatingContractHash(current),
+      effectAdmissionHash: operatingEffectAdmissionHash(action),
+      observedAggregateTokens: null,
+      reservedAggregateTokens: null,
+      resourceAdmission: "unobserved" as const,
+    };
+    expect(
+      reviewOperatingAction({ mandate: current, plan: action, snapshot: observation }),
+    ).toMatchObject({ disposition: "admitted", reasonCodes: [] });
   });
   it("blocks expired authority and responsibility edits under live leases", () => {
     const action = {

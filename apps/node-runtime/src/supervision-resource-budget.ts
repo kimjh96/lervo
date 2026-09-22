@@ -14,6 +14,11 @@ export function observeSupervisionResourceBudget(input: {
     "observedAggregateTokens" | "reservedAggregateTokens"
   >;
 }): SupervisionResourceBudgetV1 | null {
+  if (
+    input.mandate.schemaVersion === 3 &&
+    input.mandate.aggregateTokenPolicy?.mode === "per_attempt_only"
+  )
+    return null;
   const observedTokens = input.admission.observedAggregateTokens;
   const reservedTokens = input.admission.reservedAggregateTokens;
   if (observedTokens === null || reservedTokens === null) return null;

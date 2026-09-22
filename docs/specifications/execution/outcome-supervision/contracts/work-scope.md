@@ -30,6 +30,13 @@ the Node process nor resets itself. A reviewed mandate revision may add capacity
 all prior usage and reservations remain charged. A settled goal may instead advance through its
 reviewed standing successor authority, whose distinct scope begins a new envelope.
 
+A long-lived repository owner may instead carry reviewed `aggregateTokenPolicy.mode:
+per_attempt_only`. Cumulative history and missing historical usage do not block admission in that
+mode. Attempt tokens, retry count, concurrency, worker and assignment capacity, deadline, expiry,
+provider, role, capability, and path limits continue to apply independently. The legacy numeric
+aggregate field remains serialized for compatibility but has no admission meaning under this
+explicit version-3 policy. Derived successors inherit the same policy.
+
 Task observation retains the complete assignment set alongside the scoped task set. Before commit, source digests, topology checks, assignment transitions, and goal completion revalidate preserved predecessors. Goal completion applies to the current bounded workstream objective and requires independent acceptance of every current task. Publishing the accepted result requires separate authority.
 
 A successor mandate cannot change or remove an installed scope, even after revocation. A workstream-wide predecessor must be revoked before adopting version 3. A new scope requires a separate reviewed installation. The autonomous owner cannot reset its own budget by proposing a later anchor.

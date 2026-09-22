@@ -90,6 +90,9 @@ export function assertOperatingMandate(value: OperatingMandate): void {
       "revocationCoordinate",
       ...([2, 3].includes(value?.schemaVersion) ? ["executionAuthority"] : []),
       ...(value?.schemaVersion === 3 ? ["workScope"] : []),
+      ...(value?.schemaVersion === 3 && Object.hasOwn(value, "aggregateTokenPolicy")
+        ? ["aggregateTokenPolicy"]
+        : []),
       ...(value?.schemaVersion === 3 && Object.hasOwn(value, "successorAuthority")
         ? ["successorAuthority"]
         : []),
@@ -122,6 +125,10 @@ export function assertOperatingMandate(value: OperatingMandate): void {
         ) ||
         new Set(value.workScope.excludedAssignments.map((item) => item.assignmentId)).size !==
           value.workScope.excludedAssignments.length ||
+        (value.aggregateTokenPolicy !== undefined &&
+          (!object(value.aggregateTokenPolicy, ["schemaVersion", "mode"]) ||
+            value.aggregateTokenPolicy.schemaVersion !== 1 ||
+            value.aggregateTokenPolicy.mode !== "per_attempt_only")) ||
         (value.successorAuthority !== undefined &&
           (value.successorAuthority.schemaVersion === 1
             ? !object(value.successorAuthority, ["schemaVersion", "maximumSuccessors"]) ||

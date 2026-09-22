@@ -13,6 +13,7 @@ import {
   operatingInteger,
   operatingTime,
 } from "./operating-contract-validation.js";
+import { repositoryPathWithinScope } from "./repository-path-scope.js";
 
 export function operatingContractHash(value: unknown): string {
   return digest(value);
@@ -134,7 +135,7 @@ export function reviewOperatingAction(input: {
   );
   block(
     plan.expectedPaths.some(
-      (path) => !mandate.pathRoots.some((root) => path === root || path.startsWith(`${root}/`)),
+      (path) => !mandate.pathRoots.some((root) => repositoryPathWithinScope(path, root)),
     ),
     "path_scope_exceeded",
   );
@@ -152,11 +153,18 @@ export function reviewOperatingAction(input: {
   block(snapshot.assignmentCount + plan.addedAssignments > 256, "assignment_capacity_exceeded");
   block(plan.attemptNumber > mandate.maximumAttemptsPerAssignment, "retry_limit_exceeded");
   block(plan.reservedTokens > mandate.maximumAttemptTokens, "attempt_budget_exceeded");
+  const aggregateBounded =
+    mandate.schemaVersion !== 3 || mandate.aggregateTokenPolicy?.mode !== "per_attempt_only";
   block(
-    snapshot.observedAggregateTokens === null || snapshot.reservedAggregateTokens === null,
+    aggregateBounded &&
+      (snapshot.observedAggregateTokens === null || snapshot.reservedAggregateTokens === null),
     "usage_unobserved",
   );
-  if (snapshot.observedAggregateTokens !== null && snapshot.reservedAggregateTokens !== null) {
+  if (
+    aggregateBounded &&
+    snapshot.observedAggregateTokens !== null &&
+    snapshot.reservedAggregateTokens !== null
+  ) {
     block(
       plan.reservedTokens >
         mandate.maximumAggregateTokens -
@@ -165,7 +173,10 @@ export function reviewOperatingAction(input: {
       "aggregate_budget_exceeded",
     );
   }
-  block(snapshot.resourceAdmission !== "within", `resource_${snapshot.resourceAdmission}`);
+  block(
+    aggregateBounded && snapshot.resourceAdmission !== "within",
+    `resource_${snapshot.resourceAdmission}`,
+  );
   block(
     plan.actionKind === "revise_responsibility" && snapshot.liveResponsibilityLease,
     "responsibility_lease_unresolved",

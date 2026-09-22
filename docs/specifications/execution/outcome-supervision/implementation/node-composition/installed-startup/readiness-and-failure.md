@@ -10,6 +10,10 @@ The optional `supervision` component in the owner-only Node health snapshot uses
   supervised effect, but conversation, synchronization, remote control, and the Node process remain
   operationally ready. Legacy workstream-wide mandates remain unavailable on the old
   `aggregate_budget_exceeded` reason rather than being mislabeled as goal-scoped.
+- A V3 mandate with reviewed `aggregateTokenPolicy.mode: per_attempt_only` never reports a
+  cumulative budget state. Historical aggregate usage is not an admission boundary; the exact
+  attempt, retry, concurrency, capacity, deadline, expiry, provider, role, capability, and path
+  checks remain mandatory.
 - A completed goal whose next action is publication but which has no publication origin reports `local_result_canonical` instead of `owner_plan_unavailable`. Every locally bound goal has no publication origin; its accepted result stays canonical in the repository, and nothing is missing.
 - An effect that failed after invocation reports `effect_outcome_uncertain` plus the adapter's bounded failure code, if present. The managed worker boundary distinguishes `managed_output_bound_exceeded`, `managed_revalidation_failed`, `managed_deadline_elapsed`, `managed_cancelled`, `managed_stdin_failed`, `managed_launch_failed`, `managed_process_failed`, `managed_dispatch_evidence_missing`, and `managed_outcome_unreconciled`. None includes child output.
 

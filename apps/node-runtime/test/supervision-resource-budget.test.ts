@@ -51,4 +51,17 @@ describe("supervision resource budget projection", () => {
       }),
     ).toBeNull();
   });
+
+  it("does not project a cumulative budget for per-attempt-only authority", () => {
+    expect(
+      observeSupervisionResourceBudget({
+        mandate: {
+          ...mandate,
+          aggregateTokenPolicy: { schemaVersion: 1, mode: "per_attempt_only" },
+        } as OperatingMandate,
+        plan,
+        admission: { observedAggregateTokens: 900, reservedAggregateTokens: 50 },
+      }),
+    ).toBeNull();
+  });
 });

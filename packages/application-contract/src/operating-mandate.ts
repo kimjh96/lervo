@@ -59,6 +59,8 @@ export interface OperatingMandateV3 extends Omit<OperatingMandateV2, "schemaVers
     snapshotEventHash: string;
     excludedAssignments: { assignmentId: string; contentHash: string }[];
   };
+  /** Long-lived owners may rely on attempt, retry, concurrency, and deadline circuit breakers. */
+  aggregateTokenPolicy?: { schemaVersion: 1; mode: "per_attempt_only" };
   /**
    * Reviewed standing grant: the owner may install up to this many derived successor mandates,
    * one per successor goal, each identical in bounds and scoped to that goal's start snapshot.
