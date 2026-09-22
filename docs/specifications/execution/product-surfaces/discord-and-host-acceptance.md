@@ -43,6 +43,11 @@ The positive journey permits no repeated human dispatch, routine failure inspect
 
 Discord need not imitate a future UI pixel for pixel. It must expose the same material state, action, failure, and result meaning in usable native form.
 
+Normal conversation effects publish only managed, context-grounded prose in the message language
+and durable agent voice. Application-authored complete-sentence templates do not represent a
+successful, duplicate, refused, or unavailable action result. A fixed public sentence is reserved
+for the separately verified terminal fallback when the managed writer itself is unavailable.
+
 ## Acceptance evidence
 
 Every installed journey records:

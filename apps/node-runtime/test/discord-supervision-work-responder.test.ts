@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -9,10 +8,7 @@ import {
 } from "@lervo/conversation-contract";
 import { afterEach, expect, it, vi } from "vitest";
 
-import {
-  DiscordSupervisionWorkResponder,
-  discordSupervisionIntakeStatusMessage,
-} from "../src/discord-supervision-work-responder.js";
+import { DiscordSupervisionWorkResponder } from "../src/discord-supervision-work-responder.js";
 import { SupervisionRequestRefusedError } from "../src/supervision-request-refusal.js";
 import type { NodeSupervisionStartupConfiguration } from "../src/supervision-startup-config.js";
 import type { admitSupervisionRequest } from "../src/supervision-request-intake.js";
@@ -65,10 +61,15 @@ async function fixture(actor: {
     eventId: `evt_${"e".repeat(32)}`,
     duplicate: false,
   }));
+  const managedReply = { content: { contentHash: `sha256:${"3".repeat(64)}` } } as never;
+  const resultResponder = {
+    respond: vi.fn(async () => managedReply),
+  };
   const responder = new DiscordSupervisionWorkResponder({
     repositoryRoot: root,
     projectId: event.target.projectId,
     artifactStore: artifacts,
+    resultResponder,
     configuration,
     policyId: `cpp_${"f".repeat(64)}`,
     speaker: { participantId: "ptc_supervisionowner", roleId: "developer" },
@@ -81,7 +82,7 @@ async function fixture(actor: {
     ],
     admitRequest,
   });
-  return { event, responder, admitRequest };
+  return { event, responder, admitRequest, managedReply, resultResponder };
 }
 
 it("preserves the authenticated requester and exact reply origin at shared intake", async () => {
@@ -139,12 +140,34 @@ it("answers a refused binding with its bounded reason", async () => {
     ),
   );
   const reply = await f.responder.respond({ event: f.event } as never);
-  const expected = discordSupervisionIntakeStatusMessage({
-    status: "refused",
-    code: "origin_conflict",
-  });
-  expect(reply.content.contentHash).toBe(
-    `sha256:${createHash("sha256").update(expected, "utf8").digest("hex")}`,
+  expect(reply).toBe(f.managedReply);
+  expect(f.resultResponder.respond).toHaveBeenCalledWith(
+    expect.objectContaining({
+      context: expect.objectContaining({
+        completedEffect: {
+          effectId: "supervision_goal_request",
+          resultCode: "origin_conflict",
+          targetLabel: "the requested durable goal",
+          facts: [
+            "The current supervised workstream is already bound to a different source request.",
+            "This request was not bound and no work started from it.",
+          ],
+        },
+      }),
+    }),
+  );
+});
+
+it("writes duplicate intake state through the managed conversation responder", async () => {
+  const f = await fixture({ kind: "human", participantId: "ptc_human0001", roleId: null });
+  f.admitRequest.mockResolvedValueOnce({ eventId: `evt_${"e".repeat(32)}`, duplicate: true });
+  await expect(f.responder.respond({ event: f.event } as never)).resolves.toBe(f.managedReply);
+  expect(f.resultResponder.respond).toHaveBeenCalledWith(
+    expect.objectContaining({
+      context: expect.objectContaining({
+        completedEffect: expect.objectContaining({ resultCode: "already_bound" }),
+      }),
+    }),
   );
 });
 

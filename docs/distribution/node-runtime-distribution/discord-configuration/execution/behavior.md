@@ -17,12 +17,12 @@
 - Each selected provider and configured model is retained at its own execution boundary. A hired bot's managed turn binds its agent ID through root work causality, preserving attribution of execution and resource evidence across provider changes.
 - Discord starts one best-effort typing indicator after participation selects a response and before managed response work, retaining it across a scheduled response retry. Dedicated natural-language human turns skip semantic participation evaluation. Observed, throttled, and non-owner turns never flash speculative activity. Indicator failure does not block the answer.
 - Natural-language routing defaults to at most 60 responses per agent per hour; standalone non-routing deployments default to 8. Explicit policy can lower either limit.
-- `policy.unaddressedPriority` selects the shared-channel default without role-name checks. `policy.acceptsSupervisionGoals` explicitly enables durable `/goal` intake for that deployment. `policy.acceptsPeerWork` lets an exactly bound peer request repository work only through an addressed, bounded agent turn; it does not authorize unknown or unaddressed agent messages. A role named `CEO` or `product-owner` grants none of these behaviors by itself.
+- `policy.unaddressedPriority` selects the shared-channel default without role-name checks. `policy.acceptsSupervisionGoals` exposes natural-language durable goal intake only when the deployment's `agentId` exactly matches the installed `outcomeSupervision` owner; configuration preflight rejects a missing or mismatched binding. `policy.acceptsPeerWork` lets an exactly bound peer request repository work only through an addressed, bounded agent turn; it does not authorize unknown or unaddressed agent messages. A role named `CEO` or `product-owner` grants none of these behaviors by itself.
 - Bounded recent turns from this bot deployment feed its responder with exact speaker participant, agent, and role coordinates, preserving agent-specific continuity without provider-native session memory.
 - Gateway heartbeat and resume handling remain independent of provider work.
 
 ## Failure handling
 
 - Persisted response failures retain a provider-neutral code and retry only through `maxResponseAttempts`.
-- Exhaustion queues one fixed verified explanation instead of leaving the message silent.
+- Exhaustion queues one fixed verified terminal fallback because the managed writer is unavailable; normal action and supervision outcomes always use the managed conversation writer.
 - An unsafe retry-store failure marks conversation health unavailable as `interaction_retry_failed`.

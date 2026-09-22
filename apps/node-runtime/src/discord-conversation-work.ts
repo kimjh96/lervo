@@ -1,11 +1,7 @@
-import { resolve } from "node:path";
-
 import type { ConversationResponder } from "@lervo/interaction";
 import type { ManagedConversationSurfaceEffect } from "@lervo/conversation-responder";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
-import { SQLiteConversationGoalIntakeStore } from "./conversation-goal-intake-store.js";
-import { ConversationPendingGoalResponder } from "./conversation-pending-goal-responder.js";
 import { openDiscordConversationRepositoryWork } from "./discord-conversation-repository-work.js";
 import { DiscordSupervisionWorkResponder } from "./discord-supervision-work-responder.js";
 import type { DiscordAgentParticipation } from "./discord-agent-participation.js";
@@ -24,6 +20,7 @@ export function openDiscordConversationWork(input: {
   artifacts: ArtifactStore;
   participation: DiscordAgentParticipation;
   policyId: string;
+  resultResponder: ConversationResponder;
   authorizedEffectRequesters: readonly {
     participantId: string;
     roleId: string;
@@ -33,7 +30,7 @@ export function openDiscordConversationWork(input: {
   const { options, participation, artifacts } = input;
   const config = options.config;
   if (config.routing === undefined)
-    return { repositoryWork: null, workResponder: null, goalResponder: null, goalStore: null };
+    return { repositoryWork: null, workResponder: null, goalResponder: null };
   const repositoryWork = openDiscordConversationRepositoryWork({
     config: { ...config, routing: config.routing },
     repositoryRoot: options.repositoryRoot,
@@ -69,6 +66,7 @@ export function openDiscordConversationWork(input: {
           artifactStore: artifacts,
           configuration: options.outcomeSupervision,
           policyId: input.policyId,
+          resultResponder: input.resultResponder,
           speaker: {
             participantId: config.agentParticipantId,
             roleId: participation.roleId,
@@ -82,30 +80,10 @@ export function openDiscordConversationWork(input: {
             : { onRebound: (binding) => options.supervisionControl!.onRebound(binding) }),
         })
       : null;
-  const mayRetainPendingGoal =
-    options.outcomeSupervision === undefined &&
-    participation.agentId !== null &&
-    config.policy?.acceptsSupervisionGoals === true;
-  const goalStore = mayRetainPendingGoal
-    ? SQLiteConversationGoalIntakeStore.open(
-        resolve(options.dataDirectory, "pending-supervision-goals.sqlite"),
-      )
-    : null;
-  const pendingGoal =
-    goalStore === null
-      ? null
-      : new ConversationPendingGoalResponder({
-          projectId: options.project.projectId,
-          ownerAgentId: participation.agentId!,
-          artifactStore: artifacts,
-          store: goalStore,
-          authorizedEffectRequesters: input.authorizedEffectRequesters,
-        });
   const workResponder: ConversationResponder = repositoryWork.responder;
   return {
     repositoryWork,
     workResponder,
-    goalResponder: supervision ?? pendingGoal,
-    goalStore,
+    goalResponder: supervision,
   };
 }

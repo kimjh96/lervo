@@ -87,6 +87,7 @@ export async function openDiscordConversationResponseComposition(input: {
     hasPeerAgents: peerAgents.length > 0,
   });
   const artifacts = await FileSystemCas.open(resolve(options.dataDirectory, "artifacts"));
+  const effectResultResponder = new ConversationEffectResultResponderBinding();
   const discussionRuntime = await ConversationDiscussionRuntime.open({
     path: resolve(options.dataDirectory, "conversation-discussions.sqlite"),
     integrationId: config.integrationId,
@@ -132,11 +133,12 @@ export async function openDiscordConversationResponseComposition(input: {
     artifactStore: artifacts,
     discussion: discussionRuntime,
   });
-  const { repositoryWork, workResponder, goalResponder, goalStore } = openDiscordConversationWork({
+  const { repositoryWork, workResponder, goalResponder } = openDiscordConversationWork({
     options,
     artifacts,
     participation,
     policyId: policy.policyId,
+    resultResponder: effectResultResponder,
     authorizedEffectRequesters: authorizedAgentEffectRequesters.filter((requester) =>
       requester.effectKinds.some((kind) =>
         ["repository_work", "supervision_goal_request"].includes(kind),
@@ -196,7 +198,6 @@ export async function openDiscordConversationResponseComposition(input: {
   let responder: ConversationResponder = continuationResponder;
   let closeRequestedRuntimes = (): Promise<void> => Promise.resolve();
   if (config.routing !== undefined) {
-    const effectResultResponder = new ConversationEffectResultResponderBinding();
     const effects = createDiscordConversationEffects({
       config,
       botToken: input.botToken,
@@ -367,7 +368,6 @@ export async function openDiscordConversationResponseComposition(input: {
       await closeRequestedRuntimes();
       readRuntime?.close();
       repositoryWork?.responder.close();
-      goalStore?.close();
       intentStore?.close();
       discussionRuntime.close();
     },

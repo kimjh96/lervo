@@ -1,8 +1,4 @@
-import {
-  readConversationControlMessage,
-  createVerifiedConversationControlReply,
-} from "@lervo/conversation-control";
-import { realtimeConversationWritingContract } from "@lervo/core";
+import { readConversationControlMessage } from "@lervo/conversation-control";
 import type { ConversationReplyCandidate, ConversationResponder } from "@lervo/interaction";
 import type { ConversationAgentBinding } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
@@ -33,27 +29,63 @@ class SupervisionAdmissionUnconfirmedError extends Error {
   }
 }
 
-const REFUSAL_MESSAGES: Partial<
-  Record<NonNullable<ReturnType<typeof supervisionRequestRefusalCode>>, string>
-> = {
-  origin_conflict:
-    "현재 목표에는 이미 다른 요청이 연결되어 있어 이 요청을 연결하지 않았습니다. 새 요청은 별도 목표로 접수해야 합니다.",
-  workstream_inactive: "연결할 활성 목표가 없어 요청을 연결하지 않았습니다.",
-  owner_busy:
-    "담당자가 작업 중이어서 제한 시간 안에 요청을 연결하지 못했습니다. 요청은 기록되지 않았으니 잠시 후 다시 시도해 주세요.",
-};
-
-export function discordSupervisionIntakeStatusMessage(
+export function discordSupervisionIntakeEffectResult(
   outcome: Exclude<DiscordSupervisionIntakeOutcome, { status: "bound" }>,
-): string {
+): {
+  effectId: string;
+  resultCode: string;
+  targetLabel: string;
+  facts: string[];
+} {
   switch (outcome.status) {
     case "duplicate":
-      return "동일한 요청은 이미 담당자의 작업 목표에 연결되어 있습니다.";
-    case "refused":
-      return (
-        REFUSAL_MESSAGES[outcome.code] ??
-        `요청을 현재 목표에 연결하지 않았습니다. 사유 코드는 ${outcome.code}입니다.`
-      );
+      return {
+        effectId: "supervision_goal_request",
+        resultCode: "already_bound",
+        targetLabel: "the requested durable goal",
+        facts: [
+          "The exact request was already bound to the supervised workstream.",
+          "No duplicate binding or work execution was created.",
+        ],
+      };
+    case "refused": {
+      const facts: Record<typeof outcome.code, string[]> = {
+        request_invalid: [
+          "The request did not satisfy the supervised intake contract.",
+          "It was not bound and no work started from it.",
+        ],
+        identity_conflict: [
+          "The request identity conflicts with existing supervised intake evidence.",
+          "It was not bound and no work started from it.",
+        ],
+        origin_conflict: [
+          "The current supervised workstream is already bound to a different source request.",
+          "This request was not bound and no work started from it.",
+        ],
+        workstream_inactive: [
+          "There is no active supervised workstream that can accept this request.",
+          "This request was not bound and no work started from it.",
+        ],
+        owner_busy: [
+          "The supervision owner did not become available before the bounded admission deadline.",
+          "This request was not recorded and no work started from it.",
+        ],
+        authority_changed: [
+          "The installed supervision authority changed while this request was being admitted.",
+          "It was not bound and no work started from it.",
+        ],
+        evidence_changed: [
+          "The supervised intake evidence changed while this request was being admitted.",
+          "It was not bound and no work started from it.",
+        ],
+      };
+      return {
+        effectId: "supervision_goal_request",
+        resultCode: outcome.code,
+        targetLabel: "the requested durable goal",
+        facts: facts[outcome.code],
+      };
+    }
   }
 }
 
@@ -64,6 +96,7 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
       repositoryRoot: string;
       projectId: string;
       artifactStore: ArtifactStore;
+      resultResponder: ConversationResponder;
       configuration: NodeSupervisionStartupConfiguration;
       policyId: string;
       speaker: { participantId: string; roleId: string; agentBinding?: ConversationAgentBinding };
@@ -162,13 +195,23 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
     if (outcome.status === "bound" && event.kind !== "goal.requested") {
       throw new Error("A natural-language supervision admission requires its managed reply.");
     }
-    return createVerifiedConversationControlReply({
-      artifactStore: this.options.artifactStore,
-      writingContract: realtimeConversationWritingContract,
-      content:
-        outcome.status === "bound"
-          ? "기존 목표 요청을 현재 작업 목표에 연결했습니다."
-          : discordSupervisionIntakeStatusMessage(outcome),
+    return this.options.resultResponder.respond({
+      ...input,
+      context: {
+        priorTurns: input.context?.priorTurns ?? [],
+        completedEffect:
+          outcome.status === "bound"
+            ? {
+                effectId: "supervision_goal_request",
+                resultCode: "bound",
+                targetLabel: "the requested durable goal",
+                facts: [
+                  "The request was newly bound to the current supervised workstream.",
+                  "The binding is ready for supervised execution.",
+                ],
+              }
+            : discordSupervisionIntakeEffectResult(outcome),
+      },
     });
   }
 }

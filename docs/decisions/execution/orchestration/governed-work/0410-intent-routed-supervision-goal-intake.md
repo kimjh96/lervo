@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-16
+- Revised: 2026-09-22 to require an exact installed owner binding and managed outcome prose
 
 ## Context
 
@@ -17,9 +18,16 @@ The immutable conversation intent record stores the selected effect in its exist
 
 The Node no longer registers or handles the guild `/goal` command. Startup configuration removes `outcomeSupervision.goalCommand`. Existing `goal.requested` records remain readable for historical provenance and restart compatibility, but new intake requires no command-kind bypass. Operators remove commands left registered by older deployments during upgrade.
 
-When a registered product owner or CEO lacks an installed supervision binding, the same effect records an immutable owner-only `conversation_goal_intake` row with status `pending_authority`. The row binds event, project, intended owner agent, content hash, source-event-key hash, conversation/thread, requester kind/participant/role, and creation time. Raw text remains in the existing CAS and interaction record. Exact replay is idempotent; conflicting replay or capacity beyond 1,024 rows fails closed. No row is automatically updated or deleted.
+Current runtimes expose this effect only when the deployment's durable agent is the exact installed
+supervision owner. Older authority-free `conversation_goal_intake` rows remain inert historical
+evidence and are never promoted or replayed automatically.
 
-The response states that the request was retained and no work started. Receipt does not fabricate a workstream or mandate. Later authority installation and automatic promotion of a pending receipt are separate transitions; they must not reinterpret its text or silently execute it.
+`policy.acceptsSupervisionGoals: true` is invalid unless the same Node configuration contains an
+`outcomeSupervision` binding whose `ownerAgentId` exactly equals that deployment's durable
+`agentId`. Configuration parsing rejects missing or mismatched authority. The authority-free
+pending-goal responder and store are absent from active composition. Normal duplicate, refusal,
+and historical-command outcomes pass bounded result codes and observed facts to the managed
+conversation writer instead of publishing application-authored complete-sentence templates.
 
 This change alone creates no workstream, mandate, assignment, provider run, or publication. For an installed owner, a successful response proves only the existing `work.supervision.bound` admission. Typed refusals write no binding event. An unclassified storage or authority failure remains uncertain and surfaces through the normal conversation failure contract.
 
@@ -31,7 +39,12 @@ Exact-source request binding and standing-successor preparation are idempotent. 
 
 Discord and future first-party conversation surfaces can share a semantic intake port without reserving platform command names. Immediate work remains fast and session-scoped; durable goals remain owner-governed. Removing command registration eliminates the cross-application collision that ADR-0409 could only mitigate through manual announcement configuration.
 
-Authority-free retention makes requests durable and inspectable but cannot execute them. A reviewed authority transition must bind or supersede a receipt before work starts. Conversation participation does not silently create execution authority.
+Conversation participation does not silently create execution authority. A deployment without a
+matching installed owner omits the supervision effect, so the managed resolver can choose bounded
+repository work or clarification without claiming that it stored an executable goal.
+
+Historical pending rows remain immutable local evidence. The runtime neither deletes, promotes,
+nor replays them, and installing authority remains a separate reviewed transition.
 
 ## References
 

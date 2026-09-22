@@ -114,7 +114,21 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
     deployments: source.discordConversations,
     baseDirectory,
   });
+  const outcomeSupervision =
+    source.outcomeSupervision === undefined
+      ? undefined
+      : parseSupervisionStartupConfiguration(source.outcomeSupervision);
   for (const discordConversation of configuredDiscordConversations(discordDeployments)) {
+    if (
+      discordConversation.policy?.acceptsSupervisionGoals === true &&
+      (outcomeSupervision === undefined ||
+        discordConversation.agentId !== outcomeSupervision.binding.ownerAgentId)
+    ) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "Discord supervision goal intake requires a matching installed supervision owner binding.",
+      );
+    }
     if (discordConversation.routing === undefined) continue;
     const hosted = remoteCommands?.providerHost;
     const conversationProviders = [
@@ -211,9 +225,7 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
   }
   return {
     schemaVersion: 1,
-    ...(source.outcomeSupervision === undefined
-      ? {}
-      : { outcomeSupervision: parseSupervisionStartupConfiguration(source.outcomeSupervision) }),
+    ...(outcomeSupervision === undefined ? {} : { outcomeSupervision }),
     repositoryRoot: resolve(baseDirectory, configText(source.repositoryRoot, "repositoryRoot")),
     hub: {
       baseUrl: httpsUrl(hub.baseUrl),

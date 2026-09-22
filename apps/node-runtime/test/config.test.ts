@@ -291,6 +291,49 @@ describe("Node runtime configuration", () => {
         command: { assignmentId: null, agentId: null },
       },
     });
+    const goalEnabled = structuredClone(configured);
+    const supervisionOwnerAgentId = `agt_${"1".repeat(24)}`;
+    const goalConversation = goalEnabled.discordConversation as Record<string, unknown> & {
+      policy: Record<string, unknown>;
+    };
+    goalConversation.agentId = supervisionOwnerAgentId;
+    goalConversation.policy.acceptsSupervisionGoals = true;
+    expect(() => parseNodeRuntimeConfig(goalEnabled, root)).toThrow(
+      "requires a matching installed supervision owner binding",
+    );
+    goalEnabled.outcomeSupervision = {
+      binding: {
+        supervisionId: "supervision.discord.fixture",
+        workstreamId: `wks_${"2".repeat(24)}`,
+        ownerAgentId: supervisionOwnerAgentId,
+        mandateHash: `sha256:${"3".repeat(64)}`,
+      },
+      runtimeReadiness: {
+        providerExecutables: { codex: process.execPath },
+        providerLoginContexts: {
+          codex: { homeDirectory: root, configurationDirectory: root },
+        },
+        verificationTools: {},
+        workerWorkspace: {
+          parentDirectory: `${root}/workers`,
+          baseCommit: "4".repeat(40),
+          integrationTargetDigest: `sha256:${"5".repeat(64)}`,
+        },
+      },
+      ownerReasoning: { provider: "codex", reservedTokens: 100 },
+      managedExecution: { nodeExecutable: process.execPath, cliBundle: `${root}/cli.js` },
+    };
+    expect(parseNodeRuntimeConfig(goalEnabled, root).outcomeSupervision?.binding).toMatchObject({
+      ownerAgentId: supervisionOwnerAgentId,
+    });
+    (
+      goalEnabled.outcomeSupervision as {
+        binding: { ownerAgentId: string };
+      }
+    ).binding.ownerAgentId = `agt_${"6".repeat(24)}`;
+    expect(() => parseNodeRuntimeConfig(goalEnabled, root)).toThrow(
+      "requires a matching installed supervision owner binding",
+    );
     const managedTurnOnly = structuredClone(configured);
     delete (managedTurnOnly.discordConversation as { routing: { intent?: unknown } }).routing
       .intent;
