@@ -49,6 +49,11 @@ export function operatingEffectAdmissionHash(plan: OperatingActionPlanV1): strin
   });
 }
 
+/** Cumulative usage is an admission boundary only when the reviewed mandate says so. */
+export function operatingAggregateBudgetRequired(mandate: OperatingMandate): boolean {
+  return mandate.schemaVersion !== 3 || mandate.aggregateTokenPolicy?.mode !== "per_attempt_only";
+}
+
 export function reviewOperatingAction(input: {
   mandate: OperatingMandate;
   plan: OperatingActionPlanV1;
@@ -153,8 +158,7 @@ export function reviewOperatingAction(input: {
   block(snapshot.assignmentCount + plan.addedAssignments > 256, "assignment_capacity_exceeded");
   block(plan.attemptNumber > mandate.maximumAttemptsPerAssignment, "retry_limit_exceeded");
   block(plan.reservedTokens > mandate.maximumAttemptTokens, "attempt_budget_exceeded");
-  const aggregateBounded =
-    mandate.schemaVersion !== 3 || mandate.aggregateTokenPolicy?.mode !== "per_attempt_only";
+  const aggregateBounded = operatingAggregateBudgetRequired(mandate);
   block(
     aggregateBounded &&
       (snapshot.observedAggregateTokens === null || snapshot.reservedAggregateTokens === null),

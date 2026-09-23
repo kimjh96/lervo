@@ -52,6 +52,7 @@ it("keeps a real offline role's required source policy unobserved despite filesy
     responsibility: f.task,
     workstreamRevision: f.observation.workstreamRevision,
     admission: await f.ports.readAdmission(plan),
+    aggregateBudgetRequired: true,
     configuration: f.runtimeReadiness,
     now: f.ports.now,
   });
@@ -101,6 +102,7 @@ it("maps an authorized shell duty to exact CLI and executable evidence without i
     responsibility: f.task,
     workstreamRevision: f.observation.workstreamRevision,
     admission: await f.ports.readAdmission(plan),
+    aggregateBudgetRequired: true,
     configuration: f.runtimeReadiness,
     now: f.ports.now,
   };
@@ -126,6 +128,50 @@ it("maps an authorized shell duty to exact CLI and executable evidence without i
   expect(withoutTools.observation.checks.find((check) => check.kind === "cli")).toMatchObject({
     status: "unobserved",
     evidenceHash: null,
+  });
+});
+
+it("does not promote missing cumulative usage into a per-attempt-only budget failure", async () => {
+  const f = await dispatchFixture(roots);
+  const plan = {
+    ...(await f.ports.propose(
+      projectOutcomeSupervision({
+        snapshot: f.observation,
+        now: f.ports.now(),
+        maximumRecoveryDecisions: 1,
+      }),
+    ))!,
+    effectContract: "work.managed_execution.v1",
+  };
+  const input = {
+    repositoryRoot: f.root,
+    plan,
+    responsibility: f.task,
+    workstreamRevision: f.observation.workstreamRevision,
+    admission: {
+      ...(await f.ports.readAdmission(plan)),
+      resourceAdmission: "unobserved" as const,
+      observedAggregateTokens: null,
+      reservedAggregateTokens: null,
+    },
+    configuration: f.runtimeReadiness,
+    now: f.ports.now,
+  };
+  const bounded = await prepareCanonicalSupervisionReadiness({
+    ...input,
+    aggregateBudgetRequired: true,
+  });
+  const perAttempt = await prepareCanonicalSupervisionReadiness({
+    ...input,
+    aggregateBudgetRequired: false,
+  });
+  expect(bounded.observation.checks.find((check) => check.kind === "budget")).toMatchObject({
+    status: "unobserved",
+    evidenceHash: null,
+  });
+  expect(perAttempt.observation.checks.find((check) => check.kind === "budget")).toMatchObject({
+    status: "passed",
+    evidenceHash: expect.stringMatching(/^sha256:/u),
   });
 });
 

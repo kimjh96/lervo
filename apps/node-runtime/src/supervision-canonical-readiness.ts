@@ -22,6 +22,7 @@ export async function prepareCanonicalSupervisionReadiness(input: {
   responsibility: WorkResponsibilityV1;
   workstreamRevision: number;
   admission: OperatingAdmissionSnapshotV1;
+  aggregateBudgetRequired: boolean;
   configuration: NodeRuntimeReadinessConfiguration | undefined;
   now(): string;
   workspaceEvidenceStorage?: ProjectStorage;
@@ -95,7 +96,11 @@ export async function prepareCanonicalSupervisionReadiness(input: {
     write_scope: permissionHash,
     knowledge: operatingContractHash({ contextHash: context.contextHash, writing, research }),
     verification: permissionHash,
-    budget: operatingContractHash(admission),
+    budget: operatingContractHash({
+      admission,
+      aggregateBudgetRequired: input.aggregateBudgetRequired,
+      mandateHash: plan.mandateHash,
+    }),
     workspace: workspace.evidenceHash,
     ancestry: workforce.ancestryHash,
     lease: workforce.leaseHash,
@@ -122,7 +127,9 @@ export async function prepareCanonicalSupervisionReadiness(input: {
         )
           return { kind, status: "not_required" as const, evidenceHash: null };
         if (
-          (kind === "budget" && admission.resourceAdmission !== "within") ||
+          (kind === "budget" &&
+            input.aggregateBudgetRequired &&
+            admission.resourceAdmission !== "within") ||
           (kind === "knowledge" && !contextRulesMapped) ||
           (kind === "cli" && (!shellAuthorized || configuration === undefined)) ||
           (["provider", "tools", "verification"].includes(kind) && configuration === undefined) ||

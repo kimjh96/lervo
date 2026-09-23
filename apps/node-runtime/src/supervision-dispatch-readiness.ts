@@ -9,6 +9,7 @@ import { observeSupervisionRuntimeReadiness } from "./supervision-runtime-readin
 import { observeSupervisionRepositoryReadiness } from "./supervision-repository-readiness.js";
 import { bindNodeSupervisionReadiness } from "./supervision-readiness.js";
 import { NodeSupervisionError } from "./supervision-authority.js";
+import { operatingAggregateBudgetRequired, operatingContractHash } from "@lervo/work-controller";
 import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
 import type { NodeSupervisionSession } from "./supervision-session.js";
 import type {
@@ -60,29 +61,40 @@ async function readDispatchObservations<Admission>(
   try {
     const supplied =
       "readWorkerReadiness" in input.ports ? await input.ports.readWorkerReadiness(plan) : null;
-    const knowledge = await inspectSupervisionKnowledgeReadiness({
-      repositoryRoot: input.repositoryRoot,
-      projectId: plan.projectId,
-      requiredPaths: plan.expectedPaths,
-      now: input.ports.now,
-    });
+    const [knowledge, installation] = await Promise.all([
+      inspectSupervisionKnowledgeReadiness({
+        repositoryRoot: input.repositoryRoot,
+        projectId: plan.projectId,
+        requiredPaths: plan.expectedPaths,
+        now: input.ports.now,
+      }),
+      supplied === null ? input.session.readMandate() : Promise.resolve(null),
+    ]);
     if (
       input.expectedKnowledgeSnapshotId !== undefined &&
       knowledge.sourceSnapshotId !== input.expectedKnowledgeSnapshotId
     )
       throw new NodeSupervisionError("supervision_knowledge_snapshot_changed");
-    const taskReadiness =
-      supplied !== null
-        ? supplied
-        : await prepareCanonicalSupervisionReadiness({
-            repositoryRoot: input.repositoryRoot,
-            plan,
-            ...(await input.session.readTaskResponsibility(plan)),
-            admission: await input.session.readTaskAdmission(plan),
-            configuration,
-            now: input.ports.now,
-            workspaceEvidenceStorage,
-          });
+    if (
+      installation !== null &&
+      (installation.mandateHash !== plan.mandateHash ||
+        operatingContractHash(installation.mandate) !== plan.mandateHash)
+    )
+      throw new NodeSupervisionError("supervision_binding_invalid");
+    let taskReadiness = supplied;
+    if (taskReadiness === null) {
+      if (installation === null) throw new NodeSupervisionError("supervision_binding_invalid");
+      taskReadiness = await prepareCanonicalSupervisionReadiness({
+        repositoryRoot: input.repositoryRoot,
+        plan,
+        ...(await input.session.readTaskResponsibility(plan)),
+        admission: await input.session.readTaskAdmission(plan),
+        aggregateBudgetRequired: operatingAggregateBudgetRequired(installation.mandate),
+        configuration,
+        now: input.ports.now,
+        workspaceEvidenceStorage,
+      });
+    }
     const readiness = bindNodeSupervisionReadiness({
       plan,
       readiness: taskReadiness,

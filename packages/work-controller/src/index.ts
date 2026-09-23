@@ -37,6 +37,7 @@ export {
   operatingContractHash,
   operatingDecisionId,
   operatingEffectAdmissionHash,
+  operatingAggregateBudgetRequired,
   reviewOperatingAction,
 } from "./operating-mandate-admission.js";
 export {

@@ -2,7 +2,10 @@ import { rm } from "node:fs/promises";
 import { afterEach, expect, it } from "vitest";
 import { operatingContractHash, projectOutcomeSupervision } from "@lervo/work-controller";
 import { NodeSupervisionStore } from "../src/supervision-store.js";
-import { readNodeDispatchPreflight } from "../src/supervision-dispatch-readiness.js";
+import {
+  readNodeDispatchPreflight,
+  readNodeDispatchReadiness,
+} from "../src/supervision-dispatch-readiness.js";
 import { inspectSupervisionKnowledgeReadiness } from "../src/supervision-knowledge-readiness.js";
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
 
@@ -95,3 +98,45 @@ it.each(["success", "admission_failure", "probe_failure"])(
   },
   15000,
 );
+
+it("rejects a changed installed mandate before deriving canonical budget readiness", async () => {
+  const f = await dispatchFixture(roots);
+  const plan = {
+    ...(await f.ports.propose(
+      projectOutcomeSupervision({
+        snapshot: f.observation,
+        now: f.ports.now(),
+        maximumRecoveryDecisions: 1,
+      }),
+    ))!,
+    effectContract: "work.managed_execution.v1",
+  };
+  const { readWorkerReadiness: _readWorkerReadiness, ...canonicalPorts } = f.ports;
+  const store = await NodeSupervisionStore.open({
+    repositoryRoot: f.root,
+    binding: f.binding,
+    now: f.ports.now,
+  });
+  try {
+    await store.withOwner(async (session) => {
+      await expect(
+        readNodeDispatchReadiness({
+          repositoryRoot: f.root,
+          plan,
+          session: {
+            ...session,
+            readMandate: async () => ({
+              ...(await session.readMandate()),
+              mandateHash: operatingContractHash("changed installed mandate"),
+            }),
+          },
+          ports: canonicalPorts,
+          configuration: f.runtimeReadiness,
+          sourceBinding: null,
+        }),
+      ).rejects.toMatchObject({ code: "supervision_binding_invalid" });
+    });
+  } finally {
+    await store.close();
+  }
+});

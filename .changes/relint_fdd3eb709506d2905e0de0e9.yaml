@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fdd3eb709506d2905e0de0e9"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Align supervised worker budget readiness with the reviewed per-attempt mandate policy."

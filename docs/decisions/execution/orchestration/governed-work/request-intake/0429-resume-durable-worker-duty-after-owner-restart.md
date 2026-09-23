@@ -5,7 +5,7 @@
 
 ## Context
 
-An installed owner with an older bound request deliberately defers its first post-start action until a new canonical source change. This prevents installation or restart from being interpreted as a fresh human request. On Kael, however, the previous process had already claimed a worker lease and confirmed workspace preparation. Restarting after a runtime correction found no unresolved decision, recorded the old source cursor, and never reached the worker's next dispatch or expired-lease recovery. The service looked ready while the durable assignment remained unfinished.
+An installed owner with an older bound request deliberately defers its first post-start action until a new canonical source change. This prevents installation or restart from being interpreted as a fresh human request. On Kael, however, the previous process had already claimed a worker lease and confirmed workspace preparation. Restarting after a runtime correction found no unresolved decision and recorded the old source cursor. The owner resumed after the lease expired and changed the canonical source, but the startup deferral unnecessarily delayed the next decision while the durable assignment remained unfinished. Process health alone did not expose that delay.
 
 ## Decision
 

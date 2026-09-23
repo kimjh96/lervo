@@ -40,6 +40,8 @@ On every execution preflight, Node independently:
 
 The application supplies a matching task view and authentication, tool-permission, policy, budget, and process evidence. Repository probes cannot turn missing application evidence into a pass. Responsibility installation remains open. The effect adapter rechecks exact admission at its own commit boundary.
 
+Canonical worker budget readiness follows the exact installed mandate rather than an unconditional cumulative-usage rule. For a V3 mandate with reviewed `aggregateTokenPolicy.mode: per_attempt_only`, missing historical aggregate usage does not make the budget check unobserved; the readiness evidence binds the mandate hash and policy mode. For cumulative mandates, resource admission must still be `within`. The independent policy review continues to enforce the per-attempt token ceiling, retry count, and all other mandate limits before any effect. A changed or mismatched installed mandate fails the binding instead of silently changing readiness policy.
+
 ## Permission-failure evidence and recovery
 
 See [permission-failure evidence and recovery](readiness/permission-failures.md) for executable permission denials, failure recording, and resuming the original decision.
