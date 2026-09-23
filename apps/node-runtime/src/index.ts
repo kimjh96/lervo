@@ -30,6 +30,7 @@ export * from "./workstream-replication.js";
 export { observeMandateInstallationSource } from "./supervision-authority-source.js";
 export { NodeSupervisionError, type NodeSupervisionBinding } from "./supervision-authority.js";
 export { NodeSupervisionStore, type NodeSupervisionSession } from "./supervision-store.js";
+export { resolveStandingSupervisionBinding } from "./supervision-standing.js";
 export {
   openNodeOutcomeSupervisionRuntime,
   type NodeOutcomeSupervisionPorts,

@@ -398,9 +398,9 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     },
     close: async () => {
       closed = true;
+      await loop?.stop();
       managed?.stop();
       reasoning?.stop();
-      await loop?.stop();
       await store.close();
       await peers.close();
       await peerStorage.close();

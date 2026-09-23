@@ -1,9 +1,11 @@
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { changeAgentStatus } from "@lervo/agent-workforce";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
+import { SupervisionOwnerReasoningEffects } from "../src/supervision-reasoning-effects.js";
 import { NodeSupervisionStore, type NodeSupervisionSession } from "../src/supervision-store.js";
+import { dispatchFixture } from "./supervision-dispatch.fixture.js";
 import { supervisionFixture } from "./supervision.fixture.js";
 
 const roots: string[] = [];
@@ -12,6 +14,45 @@ afterEach(async () => {
 });
 
 describe("Node supervision repository composition", () => {
+  it("lets an active supervised cycle settle before stopping its provider adapter", async () => {
+    const f = await dispatchFixture(roots);
+    let enter!: () => void;
+    let release!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      enter = resolve;
+    });
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    f.ports.propose = async () => {
+      enter();
+      await held;
+      return null;
+    };
+    const stop = vi.spyOn(SupervisionOwnerReasoningEffects.prototype, "stop");
+    const runtime = await openNodeOutcomeSupervisionRuntime({
+      repositoryRoot: f.root,
+      binding: f.binding,
+      ports: f.ports,
+      ownerReasoning: { provider: "codex", reservedTokens: 100 },
+      runtimeReadiness: f.runtimeReadiness,
+    });
+    try {
+      runtime.start({ onFailure: () => undefined });
+      await entered;
+      const closing = runtime.close();
+      await Promise.resolve();
+      expect(stop).not.toHaveBeenCalled();
+      release();
+      await closing;
+      expect(stop).toHaveBeenCalledOnce();
+    } finally {
+      release();
+      await runtime.close();
+      stop.mockRestore();
+    }
+  });
+
   it("rechecks owner authority after task admission work immediately before an effect", async () => {
     const f = await supervisionFixture(roots);
     const readAdmission = f.ports.readAdmission;

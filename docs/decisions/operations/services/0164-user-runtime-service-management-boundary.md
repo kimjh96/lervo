@@ -5,6 +5,7 @@
 - Provider child environment amendment: 2026-09-09
 - Requested runtime amendment: 2026-09-19
 - Graceful-stop command amendment: 2026-09-24
+- Supervised-upgrade owner-fence amendment: 2026-09-24
 
 ## Context
 
@@ -63,6 +64,8 @@ A transactional upgrade binds both exact predecessor and replacement definitions
 
 The manager command deadline for a stop, bootout, or stop-bearing disable exceeds the canonical systemd `TimeoutStopSec=120s` by a bounded margin. A command-level stop failure is not itself proof that the service stayed active: upgrade reobserves stable inactivity before changing definition bytes. If stop did complete, it continues the exact predecessor-bound transaction; if inactivity cannot be proved, it does not publish the replacement. A previously operational service must not be left down solely because a manager command timed out while a normal graceful shutdown continued.
 
+For a Node with configured outcome supervision, upgrade and rollback acquire the same repository-local, cross-process supervision owner lease used by a cycle before any service-manager stop. Standing supervision first resolves the verified latest successor binding, then locks both its current ID and the next possible successor ID, and rechecks the lineage under those locks. This prevents a root-ID-only guard from missing the actual running successor or a concurrent successor installation. A busy lease yields `service_upgrade_supervision_busy` and leaves the installed service untouched; malformed or unreadable owner-only configuration or lease state yields `service_upgrade_fence_invalid`. The leases remain held through replacement activation or restoration and are released afterward, so a new supervised cycle cannot race the stop. The manager reads only required repository and owner coordinates from the configured file and emits neither credentials nor paths. Hub operations and Nodes without outcome supervision retain the prior path. Normal Node shutdown first stops scheduling supervision cycles and waits for an in-flight cycle before signalling its adapters to stop. This protects supervised effects, not independently managed conversation turns; a broader all-work drain remains a separate acceptance boundary.
+
 ### Failures, privacy, and evidence
 
 Fixed failures distinguish argument, authority, manager, source, CAS, conflict, and unknown external apply or removal errors. A missing, non-executable, or symlinked Node executable fails before any service-manager call.
@@ -72,5 +75,6 @@ Output excludes manager streams, commands, definitions, secrets, paths, and caus
 ## Consequences
 
 Fixtures cover user-only install, status, idempotency, removal, active and inactive transactional upgrades, rollback, transient activation compensation, transient launchd removal, missing `--write`, conflicting or symlinked sources, launchd compensation, unavailable managers, renderer safety, and signal, restart, and umask contracts.
+The owner-fence fixtures additionally prove busy-cycle refusal before manager commands, cross-connection lock exclusion, exact binding selection, release after a failed replacement, and supervisor close ordering. Installed proof still requires a busy live-cycle upgrade attempt followed by a clean idle upgrade.
 
 A WSL2 user Hub and Mac Node were upgraded through explicit remove and install operations and separately passed service-stability and runtime-readiness checks. Manager state still does not establish runtime readiness.

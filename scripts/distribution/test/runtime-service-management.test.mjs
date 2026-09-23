@@ -55,6 +55,53 @@ async function fixture(manager, runtime = "hub") {
   return { root, executable, config, definition, writeArgs };
 }
 
+it("does not stop an active supervised Node when its owner lease is busy", async () => {
+  const value = await fixture("systemd", "node");
+  await writeFile(
+    value.config,
+    JSON.stringify({
+      repositoryRoot: "repository",
+      outcomeSupervision: {
+        standing: {
+          supervisionId: "supervision.test",
+          ownerAgentId: `agt_${"a".repeat(24)}`,
+          workstreamId: `wks_${"b".repeat(24)}`,
+          mandateHash: `sha256:${"c".repeat(64)}`,
+        },
+      },
+    }),
+  );
+  const commands = [];
+  await expect(
+    manageRuntimeService(
+      [
+        ...value.writeArgs("upgrade").filter((item) => item !== "--write"),
+        "--previous-definition",
+        value.definition,
+        "--write",
+      ],
+      {
+        platform: "linux",
+        homeDirectory: value.root,
+        runCommand: async (...args) => {
+          commands.push(args);
+          return { exitCode: 0 };
+        },
+        openSupervisionLeases: async () => ({
+          acquire: () => null,
+          close: () => undefined,
+        }),
+        resolveStandingSupervision: async (_root, binding) => ({
+          binding: { ...binding, supervisionId: "supervision.test.s1" },
+          index: 1,
+          nextSupervisionId: "supervision.test.s2",
+        }),
+      },
+    ),
+  ).rejects.toMatchObject({ code: "service_upgrade_supervision_busy" });
+  expect(commands).toEqual([]);
+});
+
 function systemdManager() {
   const calls = [];
   const enabled = new Set();

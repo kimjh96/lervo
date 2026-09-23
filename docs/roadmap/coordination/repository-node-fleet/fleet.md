@@ -6,7 +6,7 @@
 2. Maintain a local fleet registry binding project ID, repository identity hash, repository root, node ID, destination ID, runtime version, service identity, and health path without bearer-token bytes.
 3. Have onboarding plan and reconcile Hub registration, scoped credentials, a repository Node instance, native service activation, and three-observation readiness. Only credential issuance, external registration, or other authority boundaries may require approval.
 4. Reconcile moves through manifest identity and an explicitly verified new physical root; folder names never define identity.
-5. Upgrade runtime payloads and service definitions transactionally. Preserve the last working version until replacement reaches readiness; recover crash loops without weakening validation.
+5. Upgrade runtime payloads and service definitions transactionally. Preserve the last working version until replacement reaches readiness; recover crash loops without weakening validation. A supervised Node upgrade must hold its owner fence before stopping a live service and refuse a busy cycle without interruption; separately prove an all-work drain for independent conversation turns.
 6. Repair Shiflo's `startup_failed` and `local_batch_invalid` without discarding, rewriting, or pretending to synchronize local event history.
 7. Independently register and activate a second acceptance repository; prove both services remain active and synchronize concurrently on the same Mac.
 8. Report event sync, workstream replication, and remote control separately per repository. Aggregate status must name the affected project and recovery action.
@@ -38,6 +38,7 @@ Completed under [ADR-0202](../../../decisions/operations/services/0202-repositor
 - Device restart, Lervo upgrade, or checkout relocation preserves or safely reconciles repository identity and restores replication automatically.
 - A malformed local batch, registration mismatch, unavailable Hub, or divergent head is visible and bounded. Local state is retained; synchronization success is never falsely claimed.
 - Installed-runtime evidence records exact versions, observations, Hub coordinates, and replication results without secrets.
+- A busy supervised cycle refuses upgrade before any service-manager stop, then an idle upgrade preserves and releases the owner fence; independently managed conversation turns retain a separate drain acceptance gate.
 
 ## Acceptance evidence
 

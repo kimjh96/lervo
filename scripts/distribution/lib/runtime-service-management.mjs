@@ -8,6 +8,10 @@ import {
   runtimeServiceIdentity,
   runtimeServiceStopTimeoutMs,
 } from "../render-runtime-service.mjs";
+import {
+  NodeSupervisionUpgradeFenceError,
+  withNodeSupervisionUpgradeFence,
+} from "./node-supervision-upgrade-fence.mjs";
 
 const MAXIMUM_DEFINITION_BYTES = 131_072;
 const SERVICE_STABILITY_OBSERVATIONS = 3;
@@ -650,10 +654,25 @@ export async function manageRuntimeService(args, options = {}) {
   const previous = ["upgrade", "rollback"].includes(input.action)
     ? await regularFile(input.previousDefinition, { required: true, ownerOnly: true })
     : null;
-  if (input.action === "upgrade") return upgrade(input, expected, previous, context);
-  if (input.action === "rollback") {
-    const restored = await upgrade(input, previous, expected, context);
-    return { ...restored, change: "rolled_back" };
+  if (["upgrade", "rollback"].includes(input.action)) {
+    try {
+      return await withNodeSupervisionUpgradeFence(
+        {
+          ...input,
+          openLeases: options.openSupervisionLeases,
+          resolveStanding: options.resolveStandingSupervision,
+        },
+        async () => {
+          if (input.action === "upgrade") return upgrade(input, expected, previous, context);
+          const restored = await upgrade(input, previous, expected, context);
+          return { ...restored, change: "rolled_back" };
+        },
+      );
+    } catch (error) {
+      if (error instanceof NodeSupervisionUpgradeFenceError)
+        throw new RuntimeServiceManagementError(error.code, error.message, { cause: error });
+      throw error;
+    }
   }
   return input.action === "install"
     ? install(input, expected, context)
