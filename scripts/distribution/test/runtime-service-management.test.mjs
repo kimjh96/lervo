@@ -102,6 +102,67 @@ it("does not stop an active supervised Node when its owner lease is busy", async
   expect(commands).toEqual([]);
 });
 
+it.each(["systemd", "launchd"])(
+  "refuses a Node %s upgrade whose replacement config differs from the running definition",
+  async (manager) => {
+    const previous = await fixture(manager, "node");
+    const replacementConfig = resolve(previous.root, "replacement.json");
+    const replacementDefinition = resolve(
+      previous.root,
+      manager === "systemd" ? "replacement.service" : "replacement.plist",
+    );
+    await writeFile(replacementConfig, "{}", { mode: 0o600 });
+    await renderRuntimeService([
+      "--manager",
+      manager,
+      "--runtime",
+      "node",
+      "--instance",
+      nodeInstance,
+      "--executable",
+      previous.executable,
+      "--config",
+      replacementConfig,
+      "--output",
+      replacementDefinition,
+    ]);
+    const commands = [];
+    await expect(
+      manageRuntimeService(
+        [
+          "--action",
+          "upgrade",
+          "--manager",
+          manager,
+          "--runtime",
+          "node",
+          "--instance",
+          nodeInstance,
+          "--definition",
+          replacementDefinition,
+          "--previous-definition",
+          previous.definition,
+          "--executable",
+          previous.executable,
+          "--config",
+          replacementConfig,
+          "--write",
+        ],
+        {
+          platform: manager === "systemd" ? "linux" : "darwin",
+          uid: 501,
+          homeDirectory: previous.root,
+          runCommand: async (...args) => {
+            commands.push(args);
+            return { exitCode: 0 };
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ code: "service_upgrade_fence_invalid" });
+    expect(commands).toEqual([]);
+  },
+);
+
 function systemdManager() {
   const calls = [];
   const enabled = new Set();

@@ -12,6 +12,7 @@ import {
   NodeSupervisionUpgradeFenceError,
   withNodeSupervisionUpgradeFence,
 } from "./node-supervision-upgrade-fence.mjs";
+import { nodeUpgradePredecessorConfig } from "./node-upgrade-predecessor-config.mjs";
 
 const MAXIMUM_DEFINITION_BYTES = 131_072;
 const SERVICE_STABILITY_OBSERVATIONS = 3;
@@ -655,6 +656,15 @@ export async function manageRuntimeService(args, options = {}) {
     ? await regularFile(input.previousDefinition, { required: true, ownerOnly: true })
     : null;
   if (["upgrade", "rollback"].includes(input.action)) {
+    if (
+      input.runtime === "node" &&
+      input.action === "upgrade" &&
+      nodeUpgradePredecessorConfig(input.manager, previous) !== input.config
+    )
+      fail(
+        "service_upgrade_fence_invalid",
+        "A Node upgrade must retain the running service's exact configuration path.",
+      );
     try {
       return await withNodeSupervisionUpgradeFence(
         {

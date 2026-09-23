@@ -368,7 +368,7 @@
     },
     {
       "path": "scripts/distribution/lib/runtime-service-management.mjs",
-      "contentHash": "sha256:e44b379a706384f190492b310090f3c22b123940f6f6d3bce6a1e06a4b8b125e",
+      "contentHash": "sha256:d9e67c9608a2e548a98ee704a4c1daee81ddeba98ec144ed78f1ac14900e379e",
       "responsibility": "Runtime service lifecycle manager",
       "rationale": "Parsing, definition validation, status stabilization, install, compensate, remove, activate, and upgrade operate on one service transaction boundary; status presentation and process exit behavior are isolated in the command adapter.",
       "disposition": "cohesive"
