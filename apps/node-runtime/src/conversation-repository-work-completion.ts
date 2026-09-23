@@ -9,6 +9,7 @@ import { assertManagedRepositoryKnowledgeCurrent } from "@lervo/managed-provider
 import { openProjectStorage } from "@lervo/project-storage";
 import { lintRepositoryKnowledge } from "@lervo/repository-knowledge";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
+import { MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS } from "@lervo/schemas";
 
 import {
   createVerifiedConversationWorkMemoryDraft,
@@ -25,7 +26,10 @@ export interface ConversationRepositoryWorkCompletionBaseline {
 
 export class ConversationRepositoryWorkCompletionError extends Error {
   constructor(
-    readonly code: "repository_work_checkpoint_missing" | "repository_work_knowledge_incomplete",
+    readonly code:
+      | "repository_work_checkpoint_missing"
+      | "repository_work_knowledge_incomplete"
+      | "repository_changed_path_limit_exceeded",
     message: string,
     options?: ErrorOptions,
   ) {
@@ -85,6 +89,12 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
   checkpointDisposition: "not_needed" | "provider_checkpoint" | "host_checkpoint" | "not_observed";
 }): Promise<void> {
   const changedPaths = input.repositoryChange.changedPaths;
+  if (changedPaths.length > MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS) {
+    throw new ConversationRepositoryWorkCompletionError(
+      "repository_changed_path_limit_exceeded",
+      "Repository work changed more paths than one exact completion event can attest.",
+    );
+  }
   const current = await readCurrentWorkstreamState(input.repositoryRoot);
   if (
     current === null ||
@@ -145,7 +155,7 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
       resultByteCount: input.result.byteCount,
       repositoryRevisionBefore: input.repositoryChange.repositoryRevisionBefore,
       repositoryRevisionAfter: input.repositoryChange.repositoryRevisionAfter,
-      changedPaths: [...changedPaths].sort().slice(0, 64),
+      changedPaths: [...changedPaths].sort(),
       changedPathCount: changedPaths.length,
       workstreamId: current.snapshot.workstreamId,
       workstreamRevision: current.snapshot.revision,

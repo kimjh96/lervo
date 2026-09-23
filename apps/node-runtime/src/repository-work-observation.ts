@@ -5,8 +5,19 @@ import { lstat, readlink } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
+import { MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS } from "@lervo/schemas";
+
 const execute = promisify(execFile);
 const MAXIMUM_CHANGED_PATHS = 1_024;
+
+export class RepositoryWorkObservationLimitError extends Error {
+  readonly code = "repository_changed_path_limit_exceeded";
+
+  constructor(message: string) {
+    super(message);
+    this.name = "RepositoryWorkObservationLimitError";
+  }
+}
 
 export interface RepositoryWorkObservation {
   head: string;
@@ -44,7 +55,13 @@ function statusPaths(output: string): string[] {
       }
     }
   }
-  return [...new Set(paths)].sort().slice(0, MAXIMUM_CHANGED_PATHS);
+  const uniquePaths = [...new Set(paths)].sort();
+  if (uniquePaths.length > MAXIMUM_CHANGED_PATHS) {
+    throw new RepositoryWorkObservationLimitError(
+      `The Git observation exceeds ${MAXIMUM_CHANGED_PATHS} changed paths.`,
+    );
+  }
+  return uniquePaths;
 }
 
 async function pathDigest(repositoryRoot: string, path: string): Promise<string> {
@@ -103,10 +120,20 @@ export async function compareRepositoryWork(input: {
     for (const path of committed.split("\0")) if (path.length > 0) candidates.add(path);
   }
   const changed: string[] = [];
-  for (const path of [...candidates].sort().slice(0, MAXIMUM_CHANGED_PATHS)) {
+  if (candidates.size > MAXIMUM_CHANGED_PATHS) {
+    throw new RepositoryWorkObservationLimitError(
+      `The repository comparison exceeds ${MAXIMUM_CHANGED_PATHS} candidate paths.`,
+    );
+  }
+  for (const path of [...candidates].sort()) {
     const before = input.before.paths.get(path) ?? `head:${input.before.head}`;
     const after = input.after.paths.get(path) ?? `head:${input.after.head}`;
     if (before !== after) changed.push(path);
+  }
+  if (changed.length > MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS) {
+    throw new RepositoryWorkObservationLimitError(
+      `The conversation completion exceeds ${MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS} changed paths.`,
+    );
   }
   return {
     repositoryRevisionBefore: input.before.revision,

@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   compareRepositoryWork,
   observeRepositoryWork,
+  RepositoryWorkObservationLimitError,
 } from "../src/repository-work-observation.js";
 
 const execute = promisify(execFile);
@@ -57,5 +58,48 @@ describe("repository work observation", () => {
     expect(changed.repositoryRevisionBefore).toBe(before.revision);
     expect(changed.repositoryRevisionAfter).not.toBe(before.revision);
     expect(changed.changedPaths).toEqual(["README.md"]);
+  });
+
+  it("rejects a changed-path set that cannot fit the canonical completion event", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-repository-work-bound-"));
+    roots.push(root);
+    await execute("git", ["init", "-b", "main"], { cwd: root });
+    await execute("git", ["config", "user.email", "lervo-test@example.invalid"], { cwd: root });
+    await execute("git", ["config", "user.name", "Lervo Test"], { cwd: root });
+    await writeFile(resolve(root, "README.md"), "before\n");
+    await execute("git", ["add", "README.md"], { cwd: root });
+    await execute("git", ["commit", "-m", "fixture"], { cwd: root });
+
+    const before = await observeRepositoryWork(root);
+    for (let index = 0; index < 65; index += 1) {
+      await writeFile(resolve(root, `change-${index}.txt`), `${index}\n`);
+    }
+    const after = await observeRepositoryWork(root);
+
+    await expect(
+      compareRepositoryWork({ repositoryRoot: root, before, after }),
+    ).rejects.toMatchObject({
+      name: RepositoryWorkObservationLimitError.name,
+      code: "repository_changed_path_limit_exceeded",
+    });
+  });
+
+  it("rejects a Git observation that exceeds its inventory bound", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-repository-observation-bound-"));
+    roots.push(root);
+    await execute("git", ["init", "-b", "main"], { cwd: root });
+    await execute("git", ["config", "user.email", "lervo-test@example.invalid"], { cwd: root });
+    await execute("git", ["config", "user.name", "Lervo Test"], { cwd: root });
+    await writeFile(resolve(root, "README.md"), "before\n");
+    await execute("git", ["add", "README.md"], { cwd: root });
+    await execute("git", ["commit", "-m", "fixture"], { cwd: root });
+
+    for (let index = 0; index < 1_025; index += 1) {
+      await writeFile(resolve(root, `change-${index}.txt`), `${index}\n`);
+    }
+
+    await expect(observeRepositoryWork(root)).rejects.toMatchObject({
+      code: "repository_changed_path_limit_exceeded",
+    });
   });
 });

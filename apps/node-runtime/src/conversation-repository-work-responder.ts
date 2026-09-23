@@ -16,7 +16,11 @@ import type {
   NodeRepositoryWorkExecutionProfile,
   NodeRepositoryWorkExecutionProfilePolicy,
 } from "./config-types.js";
-import { compareRepositoryWork, observeRepositoryWork } from "./repository-work-observation.js";
+import {
+  compareRepositoryWork,
+  observeRepositoryWork,
+  RepositoryWorkObservationLimitError,
+} from "./repository-work-observation.js";
 import { awaitRepositoryReplicaReadiness } from "./repository-replica-readiness.js";
 import {
   captureConversationRepositoryWorkCompletionBaseline,
@@ -64,6 +68,7 @@ async function observe(repositoryRoot: string) {
   try {
     return await observeRepositoryWork(repositoryRoot);
   } catch (error) {
+    if (error instanceof RepositoryWorkObservationLimitError) throw error;
     throw new ConversationRepositoryWorkStageError(
       "repository_observation_failed",
       "The repository work state could not be observed.",

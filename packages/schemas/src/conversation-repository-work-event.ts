@@ -19,6 +19,8 @@ const reasoningEffortSchema = {
   enum: ["low", "medium", "high", "xhigh", "max"],
 } as const;
 
+export const MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS = 64;
+
 export const conversationRepositoryWorkCompletedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://schemas.lervo.dev/v0/conversation-repository-work-completed-event-payload.schema.json",
@@ -48,7 +50,7 @@ export const conversationRepositoryWorkCompletedEventPayloadSchema = {
     repositoryRevisionAfter: sha256Schema,
     changedPaths: {
       type: "array",
-      maxItems: 64,
+      maxItems: MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS,
       uniqueItems: true,
       items: {
         type: "string",
