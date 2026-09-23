@@ -21,6 +21,8 @@ The held deployment approval remains on the review workstream. It can be removed
 
 ## Failure, privacy, and compatibility
 
+Repository-scoped Hub replication transfers an exact head, not every intervening revision. The bound reader accepts a sparse `hub_replication_import` only after verifying its content-addressed snapshot and event coordinates; subsequent local revisions must be contiguous from that checkpoint. This does not claim the missing intermediate snapshots were transferred. Any other gap remains an incomplete-history failure.
+
 No new event type is required. The existing snapshot event must contain the exact workstream ID, revision, status, content hash, predecessor hash, and recorded time; its artifact contains bounded workstream prose under the existing project data policy. A missing, corrupt, forked, stale, or wrong-project snapshot fails closed with a bounded source error and no effect. The legacy selected projection is accepted only when its hash matches canonical history. Existing single-workstream repositories continue through the selected path until their bound-state projection is available. No credentials, message bodies, provider output, or Discord tokens enter a workstream event.
 
 ## Acceptance

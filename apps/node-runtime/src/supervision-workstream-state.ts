@@ -37,18 +37,52 @@ export async function readBoundWorkstreamState(
   let previousHash: string | null = null;
   let previousRevision = 0;
   let firstPredecessorHash: unknown = null;
+  let firstRevision = 0;
   for (const event of snapshots) {
-    const revision = event.payload.revision;
+    const revision =
+      typeof event.payload.revision === "number" ? event.payload.revision : Number.NaN;
     const hash = event.payload.snapshotContentHash;
-    if (previousRevision === 0) firstPredecessorHash = event.payload.previousSnapshotContentHash;
+    if (previousRevision === 0) {
+      firstRevision = revision;
+      firstPredecessorHash = event.payload.previousSnapshotContentHash;
+    }
+    const importedGap =
+      revision > previousRevision + 1 &&
+      event.payload.changeKind === "hub_replication_import" &&
+      typeof event.payload.previousSnapshotContentHash === "string" &&
+      /^sha256:[a-f0-9]{64}$/u.test(event.payload.previousSnapshotContentHash);
     if (
-      revision !== previousRevision + 1 ||
+      !Number.isSafeInteger(revision) ||
+      (revision !== previousRevision + 1 && !importedGap) ||
       typeof hash !== "string" ||
       !/^sha256:[a-f0-9]{64}$/u.test(hash) ||
-      (previousRevision > 0 && event.payload.previousSnapshotContentHash !== previousHash) ||
+      (previousRevision > 0 &&
+        !importedGap &&
+        event.payload.previousSnapshotContentHash !== previousHash) ||
       event.payload.snapshotArtifactId !== `art_${hash.slice(7)}`
     )
       throw new Error("The bound workstream snapshot history is forked or incomplete.");
+    // Hub replication transfers an exact head, not every intervening revision. Verify the
+    // imported checkpoint itself before allowing later local revisions to extend it.
+    if (importedGap) {
+      const imported = await readSupervisionTextArtifact(storage.artifacts, hash);
+      if (Buffer.byteLength(imported) > 64 * 1024)
+        throw new Error("The imported workstream snapshot exceeds its byte bound.");
+      let value: unknown;
+      try {
+        value = JSON.parse(imported);
+      } catch {
+        throw new Error("The imported workstream snapshot is not valid JSON.");
+      }
+      if (
+        !validateSchema("workstreamSnapshot", value).valid ||
+        `${canonicalJson(value)}\n` !== imported ||
+        (value as WorkstreamSnapshot).workstreamId !== workstreamId ||
+        (value as WorkstreamSnapshot).revision !== revision ||
+        (value as WorkstreamSnapshot).status !== event.payload.status
+      )
+        throw new Error("The imported workstream snapshot differs from its event.");
+    }
     previousRevision = revision;
     previousHash = hash;
   }
@@ -70,8 +104,11 @@ export async function readBoundWorkstreamState(
     snapshot.workstreamId !== workstreamId ||
     snapshot.revision !== latest.payload.revision ||
     snapshot.status !== latest.payload.status ||
-    firstPredecessorHash !==
-      (snapshot.origin.kind === "successor" ? snapshot.origin.predecessorSnapshotContentHash : null)
+    (firstRevision === 1 &&
+      firstPredecessorHash !==
+        (snapshot.origin.kind === "successor"
+          ? snapshot.origin.predecessorSnapshotContentHash
+          : null))
   )
     throw new Error("The bound workstream snapshot differs from its event.");
   const selected = await readCurrentWorkstreamState(storage.paths.repositoryRoot);
