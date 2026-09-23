@@ -1,5 +1,4 @@
 import { execFile } from "node:child_process";
-import { createHash } from "node:crypto";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -162,20 +161,12 @@ async function fixture() {
     assignmentLeaseId: leased.lease!.leaseId,
     provider: "codex" as const,
     verificationSuiteIds: ["knowledge.lifecycle"],
-    contextDocuments: [
-      {
-        path: "AGENTS.md",
-        role: "instruction" as const,
-        content: instruction,
-        contentHash: `sha256:${createHash("sha256").update(instruction).digest("hex")}`,
-      },
-    ],
   };
   return { root, events, claimed, input };
 }
 
 function runner(effect?: () => Promise<void>) {
-  const resolveObserved = vi.fn(async () => {
+  const resolveObserved = vi.fn(async (_request: unknown) => {
     await effect?.();
     return {
       value: {
@@ -217,18 +208,23 @@ describe("leased conversation knowledge review agent", () => {
       review: { decision: { classification: "canonical_change_candidate" } },
     });
     expect(provider.resolveObserved).toHaveBeenCalledOnce();
+    expect(provider.resolveObserved.mock.calls[0]?.[0]).toMatchObject({
+      untrustedSourceData: {
+        context: [{ path: "AGENTS.md", role: "instruction", content: instruction }],
+      },
+    });
     f.events.close();
   });
 
-  it("does not invoke a provider when canonical instruction bytes changed", async () => {
+  it("does not invoke a provider when required canonical instructions are unavailable", async () => {
     const f = await fixture();
-    await writeFile(resolve(f.root, "AGENTS.md"), "# Different instructions\n");
+    await rm(resolve(f.root, "AGENTS.md"));
     const provider = runner();
     expect(
       await runLeasedConversationKnowledgeReview({ ...f.input, openRunner: provider.openRunner }),
     ).toMatchObject({
       status: "needs_review",
-      reasonCode: "review_context_stale",
+      reasonCode: "review_context_unavailable",
     });
     expect(provider.openRunner).not.toHaveBeenCalled();
     f.events.close();

@@ -1,11 +1,10 @@
 import { createHash } from "node:crypto";
-import { lstat, readFile, realpath } from "node:fs/promises";
-import { resolve, sep } from "node:path";
 
 import {
   assertReadOnlyKnowledgeReviewAuthority,
   type WorkforceAssignmentKnowledgeJobProvenance,
 } from "@lervo/agent-workforce";
+import { readRepositoryFile } from "@lervo/context";
 import type { OutboxDelivery, OutboxStore, ArtifactStore } from "@lervo/storage-contract";
 
 import {
@@ -14,14 +13,18 @@ import {
   type LeasedConversationKnowledgeJob,
 } from "./conversation-knowledge-lease.js";
 import {
+  ConversationKnowledgeReviewContextError,
+  loadConversationKnowledgeReviewContext,
+} from "./conversation-knowledge-review-context.js";
+import {
   captureLeasedConversationKnowledgeReviewSource,
   type LeasedConversationKnowledgeReviewSource,
 } from "./conversation-knowledge-review-source.js";
 import {
   runConversationKnowledgeSemanticReview,
   type SemanticReviewCandidate,
-  type SemanticReviewContextDocument,
 } from "./conversation-knowledge-semantic-review.js";
+import type { SemanticReviewContextDocument } from "./conversation-knowledge-semantic-review.js";
 import {
   inspectRepositoryWorkSourceCurrency,
   type RepositoryWorkSourceCurrency,
@@ -39,23 +42,15 @@ export type LeasedKnowledgeSemanticReviewResult =
             { status: "stale" | "needs_review" }
           >["reasonCode"]
         | Exclude<RepositoryWorkSourceCurrency, { status: "ready_for_review" }>["reasonCode"]
-        | "review_context_stale";
+        | ConversationKnowledgeReviewContextError["code"];
     };
 
 async function contextIsCurrent(
   repositoryRoot: string,
   documents: SemanticReviewContextDocument[],
 ): Promise<boolean> {
-  const root = await realpath(repositoryRoot);
   for (const document of documents) {
-    const path = resolve(root, document.path);
-    if (
-      !path.startsWith(`${root}${sep}`) ||
-      (await realpath(path)) !== path ||
-      !(await lstat(path)).isFile()
-    )
-      return false;
-    const content = await readFile(path);
+    const content = await readRepositoryFile(repositoryRoot, document.path, 128 * 1024);
     if (`sha256:${createHash("sha256").update(content).digest("hex")}` !== document.contentHash)
       return false;
   }
@@ -103,7 +98,6 @@ export async function runLeasedConversationKnowledgeReview(input: {
   assignmentLeaseId: string;
   provider: "codex" | "claude";
   verificationSuiteIds: string[];
-  contextDocuments: SemanticReviewContextDocument[];
   maximumBytes?: number;
   model?: string;
   executable?: string;
@@ -144,9 +138,24 @@ export async function runLeasedConversationKnowledgeReview(input: {
     manifest: source.manifest,
   });
   if (firstCurrency.status !== "ready_for_review") return { ...firstCurrency, job: source.job };
+  let contextDocuments: SemanticReviewContextDocument[];
+  try {
+    contextDocuments = await loadConversationKnowledgeReviewContext({
+      repositoryRoot: input.repositoryRoot,
+      sourcePaths,
+    });
+  } catch (error) {
+    if (!(error instanceof ConversationKnowledgeReviewContextError)) throw error;
+    return {
+      status: "needs_review",
+      job: source.job,
+      changedPathCount: sourcePaths.length,
+      reasonCode: error.code,
+    };
+  }
   let contextCurrent: boolean;
   try {
-    contextCurrent = await contextIsCurrent(input.repositoryRoot, input.contextDocuments);
+    contextCurrent = await contextIsCurrent(input.repositoryRoot, contextDocuments);
   } catch {
     contextCurrent = false;
   }
@@ -157,6 +166,13 @@ export async function runLeasedConversationKnowledgeReview(input: {
       changedPathCount: sourcePaths.length,
       reasonCode: "review_context_stale",
     };
+  const jobBeforeProvider = await revalidateAuthority();
+  const currencyBeforeProvider = await inspectRepositoryWorkSourceCurrency({
+    repositoryRoot: input.repositoryRoot,
+    manifest: source.manifest,
+  });
+  if (currencyBeforeProvider.status !== "ready_for_review")
+    return { ...currencyBeforeProvider, job: jobBeforeProvider };
 
   let review: SemanticReviewCandidate | undefined;
   let failure: unknown;
@@ -164,7 +180,7 @@ export async function runLeasedConversationKnowledgeReview(input: {
     review = await runConversationKnowledgeSemanticReview({
       provider: input.provider,
       snapshot: source.snapshot,
-      contextDocuments: input.contextDocuments,
+      contextDocuments,
       ...(input.model === undefined ? {} : { model: input.model }),
       ...(input.executable === undefined ? {} : { executable: input.executable }),
       ...(input.timeoutMs === undefined ? {} : { timeoutMs: input.timeoutMs }),
@@ -181,7 +197,7 @@ export async function runLeasedConversationKnowledgeReview(input: {
   });
   if (currency.status !== "ready_for_review") return { ...currency, job };
   try {
-    contextCurrent = await contextIsCurrent(input.repositoryRoot, input.contextDocuments);
+    contextCurrent = await contextIsCurrent(input.repositoryRoot, contextDocuments);
   } catch {
     contextCurrent = false;
   }
