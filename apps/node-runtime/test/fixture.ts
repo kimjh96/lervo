@@ -69,7 +69,7 @@ function eventDraft(): EventDraft {
 export async function nodeRuntimeFixture(
   root: string,
   hubPort: number,
-  options: { hubSyncEnabled?: boolean } = {},
+  options: { hubSyncEnabled?: boolean; eventSchemaVersion?: 2 | 3 } = {},
 ): Promise<{
   configPath: string;
   databasePath: string;
@@ -101,7 +101,7 @@ export async function nodeRuntimeFixture(
   const capabilities = {
     schemaVersion: 1 as const,
     capability: "event_reader" as const,
-    readableEventSchemaVersions: [1, 2],
+    readableEventSchemaVersions: options.eventSchemaVersion === 3 ? [1, 2, 3] : [1, 2],
   };
   const evidence: EventWriterActivationEvidence = {
     schemaVersion: 2,
@@ -141,15 +141,16 @@ export async function nodeRuntimeFixture(
     resolve(data, "event-contract.json"),
     `${JSON.stringify(
       {
-        schemaVersion: 1,
+        schemaVersion: options.eventSchemaVersion === 3 ? 2 : 1,
         projectId: nodeRuntimeProjectId,
-        selectedEventSchemaVersion: 2,
+        selectedEventSchemaVersion: options.eventSchemaVersion ?? 2,
         activationEvidence: {
           activationId: createEventWriterActivationId({
             projectId: nodeRuntimeProjectId,
             observedAt,
             configurationHash,
             readers: evidence.readers,
+            ...(options.eventSchemaVersion === 3 ? { targetEventSchemaVersion: 3 } : {}),
           }),
           observedAt,
           configurationHash,

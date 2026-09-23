@@ -166,6 +166,21 @@ describe("reader-first event envelope compatibility", () => {
       }).valid,
     ).toBe(false);
     expect(
+      validateSchema("conversationRepositoryWorkCompletedEventPayload", {
+        ...payload,
+        knowledgeDisposition: "not_applicable",
+        repositoryRevisionAfter: payload.repositoryRevisionBefore,
+        changedPaths: [],
+        changedPathCount: 0,
+      }).valid,
+    ).toBe(true);
+    expect(
+      validateSchema("conversationRepositoryWorkCompletedEventPayload", {
+        ...payload,
+        knowledgeDisposition: "not_applicable",
+      }).valid,
+    ).toBe(false);
+    expect(
       validateSchema(
         "event",
         envelope({

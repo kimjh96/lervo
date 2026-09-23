@@ -65,7 +65,7 @@ export const conversationRepositoryWorkCompletedEventPayloadSchema = {
     workstreamSnapshotHash: sha256Schema,
     knowledgeDisposition: {
       type: "string",
-      enum: ["current", "baseline_valid", "pending_background"],
+      enum: ["current", "baseline_valid", "pending_background", "not_applicable"],
     },
     sourceManifestContentHash: sha256Schema,
     sourceManifestByteCount: { type: "integer", minimum: 1, maximum: 1_048_576 },
@@ -108,6 +108,24 @@ export const conversationRepositoryWorkCompletedEventPayloadSchema = {
           changedPathCount: { type: "integer", minimum: 1 },
           sourceManifestContentHash: sha256Schema,
           sourceManifestByteCount: { type: "integer", minimum: 1, maximum: 1_048_576 },
+        },
+      },
+    },
+    {
+      if: {
+        properties: { knowledgeDisposition: { const: "not_applicable" } },
+        required: ["knowledgeDisposition"],
+      },
+      then: {
+        properties: {
+          changedPathCount: { type: "integer", const: 0 },
+          changedPaths: { type: "array", maxItems: 0 },
+        },
+        not: {
+          anyOf: [
+            { required: ["sourceManifestContentHash"] },
+            { required: ["sourceManifestByteCount"] },
+          ],
         },
       },
     },

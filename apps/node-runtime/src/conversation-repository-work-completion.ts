@@ -1,22 +1,24 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 
 import type {
   RepositoryWorkProvider,
   RepositoryWorkReasoningEffort,
 } from "@lervo/adapter-contract";
-import type { EventDraftV2 } from "@lervo/event-contract";
+import type { EventDraft } from "@lervo/event-contract";
 import { assertManagedRepositoryKnowledgeCurrent } from "@lervo/managed-provider-host";
 import { openProjectStorage } from "@lervo/project-storage";
-import { lintRepositoryKnowledge } from "@lervo/repository-knowledge";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
 import { MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS } from "@lervo/schemas";
+import { collectRunEventsBounded } from "@lervo/storage-contract";
 
 import {
   createVerifiedConversationWorkMemoryDraft,
   prepareConversationWorkMemory,
 } from "./conversation-agent-memory.js";
-import { resolveConversationRepositoryWorkKnowledgeDisposition } from "./conversation-repository-work-knowledge.js";
+import { prepareConversationRepositoryWorkKnowledgeEvidence } from "./conversation-repository-work-knowledge-evidence.js";
 import type { RepositoryWorkChange } from "./repository-work-observation.js";
+import type { PreparedRepositoryWorkSourceManifest } from "./repository-work-source-manifest.js";
 
 export interface ConversationRepositoryWorkCompletionBaseline {
   workstreamId: string | null;
@@ -52,6 +54,18 @@ export async function captureConversationRepositoryWorkCompletionBaseline(
   };
 }
 
+/** Captures only the live-turn checkpoint coordinate; knowledge is owned by the background lane. */
+export async function captureConversationRepositoryWorkPendingBaseline(
+  repositoryRoot: string,
+): Promise<ConversationRepositoryWorkCompletionBaseline> {
+  const current = await readCurrentWorkstreamState(repositoryRoot);
+  return {
+    workstreamId: current?.snapshot.workstreamId ?? null,
+    workstreamRevision: current?.snapshot.revision ?? null,
+    knowledgeCurrent: false,
+  };
+}
+
 async function managedKnowledgeIsCurrent(repositoryRoot: string): Promise<boolean> {
   try {
     await assertManagedRepositoryKnowledgeCurrent(repositoryRoot);
@@ -67,6 +81,9 @@ function sha256(value: string): string {
 
 const CONVERSATION_REPOSITORY_WORK_POLICY_VERSION = sha256(
   "lervo.conversation.repository-work-completion.v1",
+);
+const CONVERSATION_REPOSITORY_WORK_ASYNC_POLICY_VERSION = sha256(
+  "lervo.conversation.repository-work-completion.v2",
 );
 
 export async function verifyConversationRepositoryWorkCompletion(input: {
@@ -87,6 +104,8 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
   completedAt: string;
   replicaConfigured: boolean;
   checkpointDisposition: "not_needed" | "provider_checkpoint" | "host_checkpoint" | "not_observed";
+  knowledgeMode?: "synchronous" | "pending_background";
+  sourceManifest?: PreparedRepositoryWorkSourceManifest;
 }): Promise<void> {
   const changedPaths = input.repositoryChange.changedPaths;
   if (changedPaths.length > MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS) {
@@ -111,32 +130,43 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
         : "Repository work completed without an exact current workstream.",
     );
   }
-  let knowledgeDisposition: "current" | "baseline_valid";
-  try {
-    knowledgeDisposition = await resolveConversationRepositoryWorkKnowledgeDisposition({
-      changedPathCount: changedPaths.length,
-      baselineKnowledgeCurrent: input.baseline.knowledgeCurrent,
-      assertCurrent: () => assertManagedRepositoryKnowledgeCurrent(input.repositoryRoot),
-      lintIsValid: async () => (await lintRepositoryKnowledge(input.repositoryRoot)).valid,
-    });
-  } catch (error) {
-    throw new ConversationRepositoryWorkCompletionError(
-      "repository_work_knowledge_incomplete",
-      "Repository work left knowledge migration, normalization, or lint incomplete.",
-      { cause: error },
-    );
-  }
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
-    const coordinate = sha256(input.sourceConversationEventId).slice("sha256:".length, 31);
-    const alreadyRecorded = storage.events
-      .list({ runId: `run_conversation_${coordinate}`, limit: 1_000 })
-      .find(
-        (event) =>
-          event.type === "conversation.repository_work.completed" &&
-          event.payload.sourceConversationEventId === input.sourceConversationEventId &&
-          event.payload.repositoryRevisionAfter === input.repositoryChange.repositoryRevisionAfter,
+    let knowledgeEvidence;
+    try {
+      knowledgeEvidence = await prepareConversationRepositoryWorkKnowledgeEvidence({
+        repositoryRoot: input.repositoryRoot,
+        artifacts: storage.artifacts,
+        baselineKnowledgeCurrent: input.baseline.knowledgeCurrent,
+        repositoryChange: input.repositoryChange,
+        mode: input.knowledgeMode ?? "synchronous",
+        ...(input.sourceManifest === undefined ? {} : { sourceManifest: input.sourceManifest }),
+      });
+    } catch (error) {
+      throw new ConversationRepositoryWorkCompletionError(
+        "repository_work_knowledge_incomplete",
+        "Repository-work knowledge evidence could not be established.",
+        { cause: error },
       );
+    }
+    const { disposition: knowledgeDisposition, sourceManifestArtifact } = knowledgeEvidence;
+    const coordinate = sha256(input.sourceConversationEventId).slice("sha256:".length, 31);
+    const recordedCompletions = collectRunEventsBounded({
+      events: storage.events,
+      runId: `run_conversation_${coordinate}`,
+      maximumEvents: 1_000,
+    }).filter(
+      (event) =>
+        event.type === "conversation.repository_work.completed" &&
+        event.payload.sourceConversationEventId === input.sourceConversationEventId,
+    );
+    if (recordedCompletions.length > 1) {
+      throw new ConversationRepositoryWorkCompletionError(
+        "repository_work_knowledge_incomplete",
+        "The conversation turn has conflicting canonical repository-work completions.",
+      );
+    }
+    const alreadyRecorded = recordedCompletions[0];
     const preparedMemory = await prepareConversationWorkMemory({
       artifacts: storage.artifacts,
       summary: input.result.summary,
@@ -161,24 +191,44 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
       workstreamRevision: current.snapshot.revision,
       workstreamSnapshotHash: current.contentHash,
       knowledgeDisposition,
+      ...(sourceManifestArtifact === null
+        ? {}
+        : {
+            sourceManifestContentHash: sourceManifestArtifact.contentHash,
+            sourceManifestByteCount: sourceManifestArtifact.byteCount,
+          }),
       checkpointDisposition: input.checkpointDisposition,
       replicaDisposition: input.replicaConfigured ? "current" : "not_configured",
       verificationStatus: "passed",
       completedAt: input.completedAt,
     } as const;
-    const draft: EventDraftV2 = {
-      eventId: `evt_${randomUUID().replaceAll("-", "")}`,
+    const draft: EventDraft = {
+      eventId: `evt_${sha256(`lervo.conversation.repository-work-completed.v1\0${input.sourceConversationEventId}`).slice(7, 39)}`,
       projectId: storage.manifest.projectId,
       runId: `run_conversation_${coordinate}`,
       sessionId: `ses_conversation_${coordinate}`,
       type: "conversation.repository_work.completed",
       occurredAt: input.completedAt,
       actor: { kind: "agent", provider: input.provider },
-      schemaVersion: 2,
-      policyVersion: CONVERSATION_REPOSITORY_WORK_POLICY_VERSION,
+      schemaVersion: input.knowledgeMode === "pending_background" ? 3 : 2,
+      policyVersion:
+        input.knowledgeMode === "pending_background"
+          ? CONVERSATION_REPOSITORY_WORK_ASYNC_POLICY_VERSION
+          : CONVERSATION_REPOSITORY_WORK_POLICY_VERSION,
       payload,
     };
     if (alreadyRecorded !== undefined) {
+      if (
+        alreadyRecorded.schemaVersion !== draft.schemaVersion ||
+        alreadyRecorded.actor.kind !== "agent" ||
+        alreadyRecorded.actor.provider !== input.provider ||
+        !isDeepStrictEqual(alreadyRecorded.payload, payload)
+      ) {
+        throw new ConversationRepositoryWorkCompletionError(
+          "repository_work_knowledge_incomplete",
+          "The existing canonical completion differs from this repository work result.",
+        );
+      }
       storage.events.append(
         createVerifiedConversationWorkMemoryDraft({
           projectId: storage.manifest.projectId,

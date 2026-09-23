@@ -28,6 +28,8 @@ import {
 } from "./conversation-repository-work-completion.js";
 import { reconcileConversationRepositoryWorkCheckpoint } from "./conversation-repository-work-checkpoint.js";
 import { recoverConversationRepositoryWorkCompletion } from "./conversation-repository-work-recovery.js";
+import { prepareRepositoryWorkSourceManifest } from "./repository-work-source-manifest.js";
+import { captureConversationRepositoryWorkPendingBaseline } from "./conversation-repository-work-completion.js";
 
 const MAXIMUM_FINALIZATION_RESERVE_MS = 5 * 60_000;
 const MINIMUM_FINALIZATION_RESERVE_MS = 2_000;
@@ -123,6 +125,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         recover?: typeof recoverConversationRepositoryWorkCompletion;
         verify: typeof verifyConversationRepositoryWorkCompletion;
       };
+      knowledgeMode?: "synchronous" | "pending_background";
       authorizedEffectRequesters?: readonly {
         participantId: string;
         roleId: string;
@@ -186,7 +189,10 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       throw new Error(`The ${provider} repository work executor is not configured.`);
     }
     const completionLifecycle = this.options.completionLifecycle ?? {
-      capture: captureConversationRepositoryWorkCompletionBaseline,
+      capture:
+        this.options.knowledgeMode === "pending_background"
+          ? captureConversationRepositoryWorkPendingBaseline
+          : captureConversationRepositoryWorkCompletionBaseline,
       reconcile: reconcileConversationRepositoryWorkCheckpoint,
       recover: recoverConversationRepositoryWorkCompletion,
       verify: verifyConversationRepositoryWorkCompletion,
@@ -317,6 +323,11 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           repositoryChange,
           completedAt: result.completedAt,
         })) ?? "not_observed";
+      const sourceManifest =
+        this.options.knowledgeMode === "pending_background" &&
+        repositoryChange.changedPaths.length > 0
+          ? prepareRepositoryWorkSourceManifest({ before, after, change: repositoryChange })
+          : undefined;
       await completionLifecycle.verify({
         repositoryRoot: this.options.repositoryRoot,
         provider,
@@ -334,6 +345,10 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         completedAt: result.completedAt,
         replicaConfigured: this.options.repositoryReplica !== undefined,
         checkpointDisposition,
+        ...(this.options.knowledgeMode === undefined
+          ? {}
+          : { knowledgeMode: this.options.knowledgeMode }),
+        ...(sourceManifest === undefined ? {} : { sourceManifest }),
       });
       this.options.store.complete({
         eventId: input.event.eventId,

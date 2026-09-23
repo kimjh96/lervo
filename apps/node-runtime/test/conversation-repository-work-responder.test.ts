@@ -24,6 +24,7 @@ afterEach(async () => {
 describe("ConversationRepositoryWorkResponder", () => {
   it.each([
     "changed",
+    "changed_async",
     "read_only",
     "running",
     "recovered",
@@ -33,7 +34,7 @@ describe("ConversationRepositoryWorkResponder", () => {
   ])(
     "keeps contextual results and independent evidence without replaying work (%s)",
     async (scenario) => {
-      const changed = scenario === "changed";
+      const changed = scenario === "changed" || scenario === "changed_async";
       const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-work-"));
       roots.push(root);
       await execute("git", ["init", "-b", "main"], { cwd: root });
@@ -136,6 +137,7 @@ describe("ConversationRepositoryWorkResponder", () => {
           },
         ],
         defaultProvider: "codex",
+        ...(scenario === "changed_async" ? { knowledgeMode: "pending_background" as const } : {}),
         timeoutMs: 5_000,
         completionLifecycle: {
           capture: async () => ({
@@ -258,6 +260,19 @@ describe("ConversationRepositoryWorkResponder", () => {
             scenario === "legacy_delegate" ? "bound_agent_provider" : "configured_default",
         }),
       );
+      if (scenario === "changed_async") {
+        expect(verifyCompletion).toHaveBeenCalledWith(
+          expect.objectContaining({
+            knowledgeMode: "pending_background",
+            sourceManifest: expect.objectContaining({
+              manifest: expect.objectContaining({
+                paths: expect.arrayContaining([expect.objectContaining({ path: "README.md" })]),
+              }),
+              contentHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+            }),
+          }),
+        );
+      }
       expect(first.content.contentHash).toBe(second.content.contentHash);
       const result = await artifacts.get(
         `lervo-cas://sha256/${first.content.contentHash.slice("sha256:".length)}`,

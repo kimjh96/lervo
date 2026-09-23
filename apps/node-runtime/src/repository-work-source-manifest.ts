@@ -21,6 +21,12 @@ export interface RepositoryWorkSourceManifest {
   paths: Array<{ path: string; before: SourceCoordinate; after: SourceCoordinate }>;
 }
 
+export interface PreparedRepositoryWorkSourceManifest {
+  manifest: RepositoryWorkSourceManifest;
+  content: Uint8Array;
+  contentHash: string;
+}
+
 export class RepositoryWorkSourceManifestError extends Error {
   readonly code = "repository_source_manifest_invalid";
 
@@ -53,7 +59,7 @@ export function prepareRepositoryWorkSourceManifest(input: {
   before: RepositoryWorkObservation;
   after: RepositoryWorkObservation;
   change: RepositoryWorkChange;
-}): { manifest: RepositoryWorkSourceManifest; content: Uint8Array; contentHash: string } {
+}): PreparedRepositoryWorkSourceManifest {
   if (
     input.change.repositoryRevisionBefore !== input.before.revision ||
     input.change.repositoryRevisionAfter !== input.after.revision ||
@@ -91,4 +97,30 @@ export function prepareRepositoryWorkSourceManifest(input: {
     content,
     contentHash: `sha256:${createHash("sha256").update(content).digest("hex")}`,
   };
+}
+
+/** Rechecks the source evidence immediately before its completion event is committed. */
+export function assertPreparedRepositoryWorkSourceManifest(input: {
+  prepared: PreparedRepositoryWorkSourceManifest;
+  change: RepositoryWorkChange;
+}): void {
+  const { prepared, change } = input;
+  const content = Buffer.from(JSON.stringify(prepared.manifest), "utf8");
+  const contentHash = `sha256:${createHash("sha256").update(content).digest("hex")}`;
+  if (
+    prepared.manifest.schemaVersion !== 1 ||
+    prepared.manifest.repositoryRevisionBefore !== change.repositoryRevisionBefore ||
+    prepared.manifest.repositoryRevisionAfter !== change.repositoryRevisionAfter ||
+    prepared.manifest.paths.length !== change.changedPaths.length ||
+    prepared.manifest.paths.some(
+      (item, index) => item.path !== change.changedPaths.toSorted()[index],
+    ) ||
+    content.byteLength > MAXIMUM_SOURCE_MANIFEST_BYTES ||
+    !content.equals(Buffer.from(prepared.content)) ||
+    prepared.contentHash !== contentHash
+  ) {
+    throw new RepositoryWorkSourceManifestError(
+      "The prepared source manifest differs from the exact repository completion.",
+    );
+  }
 }
