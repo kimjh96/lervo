@@ -1,12 +1,10 @@
 import { createHash } from "node:crypto";
 
-import {
-  assertReadOnlyKnowledgeReviewAuthority,
-  type WorkforceAssignmentKnowledgeJobProvenance,
-} from "@lervo/agent-workforce";
+import { assertReadOnlyKnowledgeReviewAuthority } from "@lervo/agent-workforce";
 import { readRepositoryFile } from "@lervo/context";
 import type { OutboxDelivery, OutboxStore, ArtifactStore } from "@lervo/storage-contract";
 
+import { conversationKnowledgeAssignmentProvenance } from "./conversation-knowledge-assignment-provenance.js";
 import {
   ConversationKnowledgeLeaseError,
   readLeasedConversationKnowledgeJob,
@@ -57,34 +55,6 @@ async function contextIsCurrent(
   return true;
 }
 
-function knowledgeJobProvenance(input: {
-  job: LeasedConversationKnowledgeJob;
-  agentId: string;
-}): WorkforceAssignmentKnowledgeJobProvenance {
-  const { completion, jobId } = input.job;
-  const sourceConversationEventId = completion.payload.sourceConversationEventId;
-  const sourceManifestHash = completion.payload.sourceManifestContentHash;
-  if (
-    completion.schemaVersion !== 3 ||
-    completion.payload.knowledgeDisposition !== "pending_background" ||
-    typeof sourceConversationEventId !== "string" ||
-    typeof sourceManifestHash !== "string"
-  )
-    throw new ConversationKnowledgeLeaseError(
-      "knowledge_job_completion_invalid",
-      "The review source does not match a source-bound completion.",
-    );
-  return {
-    contractVersion: 1,
-    jobId,
-    completionEventId: completion.eventId,
-    completionEventHash: completion.eventHash,
-    sourceConversationEventId,
-    sourceManifestHash,
-    agentId: input.agentId,
-  };
-}
-
 /** No provider sees source bytes until both the exact outbox lease and read-only agent lease pass. */
 export async function runLeasedConversationKnowledgeReview(input: {
   events: Pick<OutboxStore, "get" | "getOutbox">;
@@ -108,7 +78,10 @@ export async function runLeasedConversationKnowledgeReview(input: {
   const source = await captureLeasedConversationKnowledgeReviewSource(input);
   if (source.status !== "ready_for_review") return source;
   const sourcePaths = source.snapshot.paths.map((item) => item.path);
-  const provenance = knowledgeJobProvenance({ job: source.job, agentId: input.agentId });
+  const provenance = conversationKnowledgeAssignmentProvenance({
+    job: source.job,
+    agentId: input.agentId,
+  });
   const revalidateAuthority = async () => {
     const job = readLeasedConversationKnowledgeJob({ ...input, now: input.now() });
     if (

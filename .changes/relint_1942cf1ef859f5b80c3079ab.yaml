@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1942cf1ef859f5b80c3079ab"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add an exact-lease background knowledge failure outcome with restart-safe retry exhaustion."
