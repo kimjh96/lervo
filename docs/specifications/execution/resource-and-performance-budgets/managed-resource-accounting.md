@@ -6,6 +6,8 @@ The execution contract derives resource scope from causal relationships. Each pr
 
 Every `adapter.started` run in the governed causal tree must have one final provider-reported resource observation. A missing observation makes an otherwise matching provider-and-scope group `partial` with `resource_observation_missing`. If no group exists, admission finds no exact observation and fails closed as `resource_unobservable`.
 
+A `provider_start_failed` run may have an unavailable provider-report receipt without `adapter.started`. The projector accepts that historical shape only when the receipt has null usage, `resource_observation_missing`, matching actor and model provider, no process or stop observation, and one later nonretryable start-failure terminal. It remains `unavailable`, never zero or observed usage. A receipt claiming observed usage, another provider, another failure, or an unterminated start remains invalid. Supervision separately retains the exact reservation unless stronger pre-turn proof settles it.
+
 ## Token limits
 
 Total-token limits bind provider, scope, descriptor hash, and observed total. CLI input is `<provider>:<scope>:<descriptor-hash>:<tokens>`. The previous unscoped form remains readable but matches only when exactly one provider-and-descriptor group exists. Multiple matching scopes are ambiguous and must never be selected, summed, or treated as zero.

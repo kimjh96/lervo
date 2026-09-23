@@ -8,7 +8,6 @@ import {
   managedExecutionIdentity,
   operatingContractHash,
   operatingDecisionId,
-  projectWorkstreamResources,
 } from "@lervo/work-controller";
 import {
   observeNodeSupervisionAuthority,
@@ -16,6 +15,7 @@ import {
 } from "./supervision-authority.js";
 import { SupervisionAuthorityHistory } from "./supervision-authority-history.js";
 import { SupervisionTaskSource } from "./supervision-task-source.js";
+import { readInterruptedOwnerResourceSource } from "./supervision-interrupted-owner-resources.js";
 import { readCanonicalOwnerReasoning } from "./supervision-reasoning-source.js";
 import { inspectOwnerReasoning } from "./supervision-reasoning-receipt.js";
 import { runManagedOwnerReasoning } from "./supervision-reasoning-run.js";
@@ -253,10 +253,11 @@ export class SupervisionOwnerReasoningEffects {
             plan,
             now: this.now,
           });
-          const resources = projectWorkstreamResources({
+          const { workstreamResources: resources } = await readInterruptedOwnerResourceSource({
+            storage,
             events: current.events.filter((event) => event.runId !== identity.runId),
             workstreamId: plan.workstreamId,
-            scopeAnchor: current.scopeAnchor,
+            ...(current.scopeAnchor === undefined ? {} : { scopeAnchor: current.scopeAnchor }),
           });
           if (
             operatingContractHash(resources) !== operatingContractHash(source.workstreamResources)

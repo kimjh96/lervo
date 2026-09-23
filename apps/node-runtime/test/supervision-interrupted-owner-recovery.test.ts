@@ -17,6 +17,7 @@ import {
 import {
   managedExecutionIdentity,
   operatingContractHash,
+  projectWorkstreamResources,
   supervisedOwnerReasoningFields,
 } from "@lervo/work-controller";
 
@@ -26,6 +27,7 @@ import { inspectOwnerReasoning } from "../src/supervision-reasoning-receipt.js";
 import { createOwnerReasoningContext } from "../src/supervision-reasoning-context.js";
 import { SupervisionOwnerReasoningEffects } from "../src/supervision-reasoning-effects.js";
 import { reconcileInterruptedOwnerReasoning } from "../src/supervision-interrupted-owner-recovery.js";
+import { readInterruptedOwnerResourceSource } from "../src/supervision-interrupted-owner-resources.js";
 import { readProvenInterruptedOwnerReasoning } from "../src/supervision-interrupted-owner-source.js";
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
 import { observeSupervisionTaskResources } from "../src/supervision-task-resources.js";
@@ -302,6 +304,23 @@ it("reconciles one terminal owner interruption and keeps its full unknown-spend 
     const source = await sourceReader.read();
     expect(source.reconciledRunIds).toEqual([identity.runId]);
     expect(source.workstreamResources.groups).toEqual([]);
+    expect(
+      projectWorkstreamResources({
+        events: source.events,
+        workstreamId: action.workstreamId,
+        ...(source.scopeAnchor === undefined ? {} : { scopeAnchor: source.scopeAnchor }),
+      }),
+    ).not.toEqual(source.workstreamResources);
+    expect(
+      (
+        await readInterruptedOwnerResourceSource({
+          storage,
+          events: source.events.filter((event) => event.runId !== "run_future_owner_attempt"),
+          workstreamId: action.workstreamId,
+          ...(source.scopeAnchor === undefined ? {} : { scopeAnchor: source.scopeAnchor }),
+        })
+      ).workstreamResources,
+    ).toEqual(source.workstreamResources);
     expect(
       await observeSupervisionTaskResources({
         source,

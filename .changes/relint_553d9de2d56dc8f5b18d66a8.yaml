@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_553d9de2d56dc8f5b18d66a8"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Preserve unavailable pre-start usage and revalidate owner budgets against reconciled sources."

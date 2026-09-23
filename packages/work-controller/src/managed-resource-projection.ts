@@ -30,6 +30,20 @@ export function projectManagedResourceGroups(input: {
     ]),
   );
   const runProviders = new Map<string, string | undefined>();
+  const failedStarts = new Map<string, EventEnvelope | null>();
+  const observedProcesses = new Set<string>();
+  const stoppedAdapters = new Set<string>();
+  for (const event of input.events) {
+    if (event.type === "provider.process.observed") observedProcesses.add(event.runId);
+    if (event.type === "adapter.stopped") stoppedAdapters.add(event.runId);
+    if (
+      event.type === "run.failed" &&
+      event.actor.kind === "system" &&
+      event.payload.failureCode === "provider_start_failed" &&
+      event.payload.retryable === false
+    )
+      failedStarts.set(event.runId, failedStarts.has(event.runId) ? null : event);
+  }
   for (const event of input.events.filter(
     (candidate) => candidate.type === "adapter.started" && workRunIds.has(candidate.runId),
   )) {
@@ -47,12 +61,26 @@ export function projectManagedResourceGroups(input: {
         throw new TypeError("A governed work resource observation is invalid.");
       }
       const provider = event.actor.provider ?? "lervo";
+      const failedStart = failedStarts.get(event.runId);
+      // A terminal pre-start failure can report unavailable usage without an adapter-start receipt.
+      const unavailableBeforeStart =
+        !runProviders.has(event.runId) &&
+        !observedProcesses.has(event.runId) &&
+        !stoppedAdapters.has(event.runId) &&
+        failedStart !== null &&
+        failedStart !== undefined &&
+        failedStart.seq > event.seq &&
+        payload.status === "unavailable" &&
+        payload.usage === null &&
+        payload.reasonCode === "resource_observation_missing" &&
+        payload.modelIdentity?.provider === provider;
       if (payload.workId !== workByRun.get(event.runId)) {
         throw new TypeError("A governed resource observation differs from its causal work tree.");
       }
       if (
         payload.source === "provider_reported" &&
-        (provider === "lervo" || runProviders.get(event.runId) !== provider)
+        (provider === "lervo" ||
+          (runProviders.get(event.runId) !== provider && !unavailableBeforeStart))
       ) {
         throw new TypeError("A provider resource observation differs from its run provider.");
       }

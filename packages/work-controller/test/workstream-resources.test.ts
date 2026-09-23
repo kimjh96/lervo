@@ -75,4 +75,56 @@ describe("workstream resource scope", () => {
       groups: [],
     });
   });
+
+  it("retains an unavailable pre-start receipt without inventing provider use or a token count", () => {
+    const ownerRunId = "run_222222222222222222222222";
+    const owner = { ...causalityPayload({ assignmentId: "unused" }), assignmentId: null };
+    const unavailable = event(
+      2,
+      "resource.usage.recorded",
+      ownerRunId,
+      {
+        workId: owner.workId,
+        resourceObservationId: "ruo_222222222222222222222222",
+        sourceCoordinateDigest: `sha256:${"b".repeat(64)}`,
+        scope: "primary_provider",
+        source: "provider_reported",
+        accountingMode: "turn_cumulative",
+        accountingDescriptorHash: `sha256:${"a".repeat(64)}`,
+        modelIdentity: {
+          provider: "codex",
+          requestedModel: null,
+          answerModel: null,
+          observedModelIds: [],
+          answerModelEvidence: "unavailable",
+          unavailableReason: "provider_model_unavailable",
+        },
+        status: "unavailable",
+        usage: null,
+        reasonCode: "resource_observation_missing",
+      },
+      "codex",
+    );
+    const failed = event(3, "run.failed", ownerRunId, {
+      failureCode: "provider_start_failed",
+      retryable: false,
+    });
+    const events = [event(1, "work.causality.recorded", ownerRunId, owner), unavailable, failed];
+    expect(projectWorkstreamResources({ events, workstreamId }).groups).toMatchObject([
+      { provider: "codex", completeness: "unavailable", totalTokens: null, runCount: 1 },
+    ]);
+    expect(() => projectWorkstreamResources({ events: events.slice(0, 2), workstreamId })).toThrow(
+      "differs from its run provider",
+    );
+    expect(() =>
+      projectWorkstreamResources({
+        events: [
+          events[0]!,
+          unavailable,
+          { ...failed, payload: { ...failed.payload, failureCode: "provider_turn_failed" } },
+        ],
+        workstreamId,
+      }),
+    ).toThrow("differs from its run provider");
+  });
 });
