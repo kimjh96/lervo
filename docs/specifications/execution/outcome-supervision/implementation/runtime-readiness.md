@@ -13,6 +13,8 @@ Hosts must use the same configured runtimes for effects and revalidate permissio
 
 Configuration permits at most 32 suites and eight distinct tool identities. IDs contain at most 128 ASCII identifier characters. Executable paths must be absolute, contain no NUL, and be at most 4096 characters. Conflicting paths for one tool ID are rejected before storage opens. An explicit empty suite mapping describes an in-process suite but proves no verification result. Shell execution also requires at least one mapped executable and positive application CLI evidence.
 
+For a native managed-worker duty requiring `shell.execute`, canonical readiness now checks the exact installed role contract for an explicit `allow` and binds that observation to the responsibility, ancestry and trusted host configuration as positive CLI input. The executable phase then checks at least one reviewed tool mapped to the pinned verification suites. A missing role grant, host configuration, suite mapping, executable, or unsupported capability yields `unobserved` (or the existing observed permission-denial failure), not a thrown cycle error or an inferred CLI pass. The managed worker still rechecks its exact assignment, lease, workspace and provider invocation at commit; a version probe does not prove that a shell command actually ran.
+
 ## Runtime observations
 
 Each execution preflight observes the selected provider through its adapter and each distinct mapped tool through shared executable inspection. Provider-specific runtime selection stays in provider adapters. Probes use:

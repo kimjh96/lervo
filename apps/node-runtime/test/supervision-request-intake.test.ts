@@ -5,8 +5,12 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, expect, it } from "vitest";
 import {
   createConversationInboundEvent,
+  createConversationParticipationDecision,
+  createConversationParticipationPolicy,
   hashConversationSourceEventKey,
 } from "@lervo/conversation-contract";
+import { FileSystemCas } from "@lervo/cas";
+import { SQLiteConversationInteractionStore } from "@lervo/interaction-sqlite";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
   createRepositoryMandatePlan,
@@ -19,6 +23,7 @@ import { readBoundSupervisionRequest } from "../src/supervision-bound-request.js
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
 import { supervisionFixture } from "./supervision.fixture.js";
 import { canonicalOwnerReasoningFacts } from "../src/supervision-reasoning-context.js";
+import { SQLiteConversationHistory } from "../src/conversation-history.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -284,6 +289,151 @@ it("retains the exact Discord result origin within the same canonical request co
   } finally {
     await storage.close();
   }
+});
+
+it("binds prior conversation evidence with a Discord goal and verifies it after reopening", async () => {
+  const f = await supervisionFixture(roots, undefined, "developer", ["allocate_existing"]);
+  const target = {
+    integrationId: "itg_supervisionctx1",
+    projectId: f.owner.projectId,
+    conversationId: "cnv_supervisionctx1",
+    threadId: null,
+  };
+  const directory = resolve(f.root, ".lervo", "data", "conversation", target.integrationId);
+  await mkdir(directory, { recursive: true });
+  const artifacts = await FileSystemCas.open(resolve(directory, "artifacts"));
+  const policy = createConversationParticipationPolicy({
+    projectId: target.projectId,
+    roleId: f.owner.roleId,
+    conversationIds: [target.conversationId],
+    mode: "relevant",
+    respondTo: ["human"],
+    signalCodes: [],
+    cooldownSeconds: 0,
+    maxResponsesPerHour: 20,
+    maxAutomationDepth: 2,
+    createdAt: "2026-09-14T00:00:00.000Z",
+  });
+  const priorText = "The fourth task is to repair backup capacity without deleting state.";
+  const requestText = "Do those four tasks through deployment.";
+  const priorContent = await artifacts.put(priorText);
+  const requestContent = await artifacts.put(requestText);
+  const makeEvent = (
+    text: string,
+    content: typeof priorContent,
+    kind: "message.created" | "goal.requested",
+    occurredAt: string,
+  ) =>
+    createConversationInboundEvent({
+      kind,
+      actor: { kind: "human", participantId: "ptc_requester01", roleId: null },
+      target,
+      content: {
+        artifactId: `art_${content.contentHash.slice(7)}`,
+        contentHash: content.contentHash,
+        byteCount: content.byteCount,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      sourceEventKeyHash: hashConversationSourceEventKey(text),
+      occurredAt,
+      replyToEventId: null,
+      signalCode: null,
+      mentions:
+        kind === "goal.requested"
+          ? { participantIds: ["ptc_supervisionowner"], roleIds: [f.owner.roleId] }
+          : { participantIds: [], roleIds: [] },
+      automationDepth: 0,
+    });
+  const prior = makeEvent(priorText, priorContent, "message.created", "2026-09-14T00:00:01.000Z");
+  const ingress = makeEvent(
+    requestText,
+    requestContent,
+    "goal.requested",
+    "2026-09-14T00:00:03.000Z",
+  );
+  const path = resolve(directory, "interactions.sqlite");
+  const interactions = await SQLiteConversationInteractionStore.open({ path });
+  try {
+    const claim = await interactions.claimInbound({
+      event: prior,
+      policy,
+      workerId: "context-fixture",
+      claimedAt: "2026-09-14T00:00:01.000Z",
+      leaseDurationMs: 60_000,
+    });
+    if (claim.status !== "claimed") throw new Error("Prior context fixture was not claimed.");
+    await interactions.completeInbound({
+      eventId: prior.eventId,
+      policyId: policy.policyId,
+      roleId: policy.roleId,
+      leaseId: claim.leaseId,
+      decision: createConversationParticipationDecision({
+        event: prior,
+        policy,
+        action: "observe",
+        reason: "turn_not_owned",
+        relevance: "not_checked",
+        decidedAt: "2026-09-14T00:00:02.000Z",
+      }),
+      outbound: null,
+    });
+    const ingressClaim = await interactions.claimInbound({
+      event: ingress,
+      policy,
+      workerId: "context-fixture",
+      claimedAt: "2026-09-14T00:00:03.000Z",
+      leaseDurationMs: 60_000,
+    });
+    if (ingressClaim.status !== "claimed") throw new Error("Goal fixture was not claimed.");
+  } finally {
+    await interactions.close();
+  }
+  const context = await new SQLiteConversationHistory(path, artifacts).recentEvidence(ingress);
+  expect(context.map((turn) => turn.text)).toEqual([priorText]);
+  const origin = {
+    sourceEventId: ingress.eventId,
+    policyId: policy.policyId,
+    target,
+    actor: {
+      kind: "agent" as const,
+      participantId: "ptc_supervisionowner",
+      roleId: f.owner.roleId,
+    },
+  };
+  const request = {
+    source: "discord" as const,
+    sourceId: ingress.eventId,
+    requesterId: "ptc_requester01:human",
+    request: requestText,
+    contentHash: requestContent.contentHash,
+    origin,
+    conversationContext: context,
+  };
+  const admission = await admitSupervisionRequest({
+    repositoryRoot: f.root,
+    binding: f.binding,
+    request,
+  });
+  const storage = await openProjectStorage(f.root);
+  try {
+    const source = await new SupervisionTaskSource(storage, f.binding, f.ports.now).read();
+    expect(
+      (await readBoundSupervisionRequest(storage, source, f.binding))?.conversationContext,
+    ).toEqual(context);
+    const facts = (await canonicalOwnerReasoningFacts(storage, f.binding, source, f.ports.now))
+      .facts;
+    expect(facts.requesterProvenance?.status).toBe("verified");
+    expect(facts.boundRequest?.conversationContext?.[0]?.text).toBe(priorText);
+  } finally {
+    await storage.close();
+  }
+  await expect(
+    admitSupervisionRequest({
+      repositoryRoot: f.root,
+      binding: f.binding,
+      request: { ...request, conversationContext: [] },
+    }),
+  ).resolves.toEqual({ eventId: admission.eventId, duplicate: true });
 });
 
 it("retains the original request through approved mandate successors", async () => {

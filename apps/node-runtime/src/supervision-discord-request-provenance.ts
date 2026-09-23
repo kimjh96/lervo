@@ -2,12 +2,14 @@ import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { FileSystemCas } from "@lervo/cas";
 import { assertConversationInboundEvent } from "@lervo/conversation-contract";
 import { canonicalJson } from "@lervo/event-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { ConversationInboundEvent } from "@lervo/schemas";
 
 import type { BoundSupervisionRequest } from "./supervision-bound-request.js";
+import { SQLiteConversationHistory } from "./conversation-history.js";
 
 export interface VerifiedDiscordGoalRequester {
   status: "verified";
@@ -131,6 +133,15 @@ export async function readDiscordGoalRequesterProvenance(
     if (!intentMetadata.isFile() || intentMetadata.isSymbolicLink())
       throw new Error("The Discord goal intent store is unsafe.");
     if (!hasNaturalGoalIntent(intentPath, event)) return null;
+  }
+  if (request.conversationContext !== null && request.conversationContext.length > 0) {
+    const artifactStore = await FileSystemCas.openReadOnly(
+      resolve(storage.paths.data, "conversation", origin.target.integrationId, "artifacts"),
+    );
+    await new SQLiteConversationHistory(path, artifactStore).verifyEvidence(
+      event,
+      request.conversationContext,
+    );
   }
   return {
     status: "verified",

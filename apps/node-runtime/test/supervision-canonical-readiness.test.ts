@@ -4,6 +4,7 @@ import { afterEach, expect, it } from "vitest";
 import { projectOutcomeSupervision } from "@lervo/work-controller";
 import { loadSupervisionPlanningContext } from "../src/supervision-planning-context.js";
 import { prepareCanonicalSupervisionReadiness } from "../src/supervision-canonical-readiness.js";
+import { observeSupervisionRuntimeReadiness } from "../src/supervision-runtime-readiness.js";
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
 
 const roots: string[] = [];
@@ -61,6 +62,71 @@ it("keeps a real offline role's required source policy unobserved despite filesy
       status: "unobserved",
       evidenceHash: null,
     });
+});
+
+it("maps an authorized shell duty to exact CLI and executable evidence without inferring it from the role alone", async () => {
+  const f = await dispatchFixture(roots, true, undefined, "developer", undefined, {
+    suite: {
+      schemaVersion: 1,
+      suiteId: "role.development.artifact",
+      stopOnFailure: true,
+      commands: [
+        {
+          commandId: "fixture-check",
+          executable: "node",
+          arguments: ["--version"],
+          cwd: ".",
+          timeoutMs: 1000,
+          maxOutputBytes: 1024,
+          environmentVariableNames: [],
+        },
+      ],
+    },
+    requiredCapabilities: ["filesystem.read", "shell.execute"],
+    taskPurpose: "Compare immutable history using a bounded read-only command.",
+  });
+  const plan = {
+    ...(await f.ports.propose(
+      projectOutcomeSupervision({
+        snapshot: f.observation,
+        now: f.ports.now(),
+        maximumRecoveryDecisions: 1,
+      }),
+    ))!,
+    effectContract: "work.managed_execution.v1",
+  };
+  const input = {
+    repositoryRoot: f.root,
+    plan,
+    responsibility: f.task,
+    workstreamRevision: f.observation.workstreamRevision,
+    admission: await f.ports.readAdmission(plan),
+    configuration: f.runtimeReadiness,
+    now: f.ports.now,
+  };
+  const canonical = await prepareCanonicalSupervisionReadiness(input);
+  expect(canonical.observation.checks.find((check) => check.kind === "cli")).toMatchObject({
+    status: "passed",
+  });
+  const observed = await observeSupervisionRuntimeReadiness({
+    plan,
+    readiness: canonical,
+    configuration: f.runtimeReadiness,
+    now: f.ports.now,
+  });
+  expect(observed.observation.checks.find((check) => check.kind === "cli")).toMatchObject({
+    status: "passed",
+  });
+  const withoutTools = await observeSupervisionRuntimeReadiness({
+    plan,
+    readiness: canonical,
+    configuration: { ...f.runtimeReadiness, verificationTools: {} },
+    now: f.ports.now,
+  });
+  expect(withoutTools.observation.checks.find((check) => check.kind === "cli")).toMatchObject({
+    status: "unobserved",
+    evidenceHash: null,
+  });
 });
 
 it.each([false, true])(

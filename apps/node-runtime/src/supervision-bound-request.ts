@@ -7,6 +7,8 @@ import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import { hasInstalledMandateLineage } from "./supervision-mandate-lineage.js";
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
+import type { ConversationHistoryEvidenceTurn } from "./conversation-history.js";
+import { validSupervisionConversationContext } from "./supervision-conversation-context.js";
 
 type Source = Awaited<ReturnType<SupervisionTaskSource["read"]>>;
 
@@ -21,6 +23,7 @@ export interface BoundSupervisionRequest {
     ConversationOutboundMessage,
     "sourceEventId" | "policyId" | "target" | "actor"
   > | null;
+  conversationContext: ConversationHistoryEvidenceTurn[] | null;
 }
 
 /** Resolves the single exact goal origin; a second origin requires a new reviewed goal. */
@@ -57,8 +60,10 @@ export async function readBoundSupervisionRequest(
   const request = artifact as Record<string, unknown>;
   if (
     Object.keys(request).sort().join(",") !==
-      "contentHash,kind,origin,request,requesterDigest,schemaVersion,source,sourceDigest" ||
-    request.schemaVersion !== 1 ||
+      (request.schemaVersion === 2
+        ? "contentHash,conversationContext,kind,origin,request,requesterDigest,schemaVersion,source,sourceDigest"
+        : "contentHash,kind,origin,request,requesterDigest,schemaVersion,source,sourceDigest") ||
+    ![1, 2].includes(Number(request.schemaVersion)) ||
     request.kind !== "work.supervision.request" ||
     !["local", "discord"].includes(String(request.source)) ||
     typeof request.request !== "string" ||
@@ -67,6 +72,9 @@ export async function readBoundSupervisionRequest(
     typeof request.contentHash !== "string" ||
     !/^sha256:[a-f0-9]{64}$/u.test(request.contentHash) ||
     digest(request.request) !== request.contentHash ||
+    (request.schemaVersion === 2 &&
+      (request.source !== "discord" ||
+        !validSupervisionConversationContext(request.conversationContext))) ||
     (request.source === "local"
       ? request.origin !== null
       : !validateSchema("conversationOutboundOrigin", request.origin).valid) ||
@@ -118,5 +126,9 @@ export async function readBoundSupervisionRequest(
     request: request.request,
     contentHash: request.contentHash,
     origin: request.origin as BoundSupervisionRequest["origin"],
+    conversationContext:
+      request.schemaVersion === 2
+        ? (request.conversationContext as ConversationHistoryEvidenceTurn[])
+        : null,
   };
 }

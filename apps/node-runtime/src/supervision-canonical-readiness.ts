@@ -27,15 +27,13 @@ export async function prepareCanonicalSupervisionReadiness(input: {
   workspaceEvidenceStorage?: ProjectStorage;
 }): Promise<Awaited<ReturnType<OutcomeSupervisionPorts["readWorkerReadiness"]>>> {
   const { plan, responsibility: task, admission, configuration } = input;
-  if (
-    !["work.managed_execution.v1", "work.managed_execution.v2"].includes(plan.effectContract) ||
-    task.requiredCapabilities.some(
-      (capability) => !["filesystem.read", "filesystem.write"].includes(capability),
-    )
-  )
+  if (!["work.managed_execution.v1", "work.managed_execution.v2"].includes(plan.effectContract))
     throw new Error(
       "The canonical managed readiness has no reviewed tool mapping for this effect.",
     );
+  const unmappedCapability = task.requiredCapabilities.some(
+    (capability) => !["filesystem.read", "filesystem.write", "shell.execute"].includes(capability),
+  );
   const context = await loadSupervisionPlanningContext({
     repositoryRoot: input.repositoryRoot,
     projectId: plan.projectId,
@@ -50,6 +48,8 @@ export async function prepareCanonicalSupervisionReadiness(input: {
   const role = await resolveRoleContract(input.repositoryRoot, task.roleId);
   if (role.contractHash !== task.roleContractHash)
     throw new Error("The canonical readiness role changed.");
+  const shellRequired = task.requiredCapabilities.includes("shell.execute");
+  const shellAuthorized = role.definition.profile.capabilities["shell.execute"] === "allow";
   const sourcePolicyRequired =
     role.definition.profile.contextPolicy.requiredDocumentRuleIds.includes(
       "research.source-policy",
@@ -86,6 +86,11 @@ export async function prepareCanonicalSupervisionReadiness(input: {
   const evidence = {
     provider: permissionHash,
     tools: permissionHash,
+    cli: operatingContractHash({
+      permissionHash,
+      roleContractHash: role.contractHash,
+      shellAuthorized,
+    }),
     read_scope: permissionHash,
     write_scope: permissionHash,
     knowledge: operatingContractHash({ contextHash: context.contextHash, writing, research }),
@@ -111,15 +116,17 @@ export async function prepareCanonicalSupervisionReadiness(input: {
       checks: workerReadinessKinds.map((kind) => {
         if (kind === "source_policy" && research !== null) return research;
         if (
-          kind === "cli" ||
           kind === "source_policy" ||
+          (kind === "cli" && !shellRequired) ||
           (kind === "write_scope" && !task.requiredCapabilities.includes("filesystem.write"))
         )
           return { kind, status: "not_required" as const, evidenceHash: null };
         if (
           (kind === "budget" && admission.resourceAdmission !== "within") ||
           (kind === "knowledge" && !contextRulesMapped) ||
-          (["provider", "tools", "verification"].includes(kind) && configuration === undefined)
+          (kind === "cli" && (!shellAuthorized || configuration === undefined)) ||
+          (["provider", "tools", "verification"].includes(kind) && configuration === undefined) ||
+          (kind === "tools" && unmappedCapability)
         )
           return { kind, status: "unobserved" as const, evidenceHash: null };
         return { kind, status: "passed" as const, evidenceHash: evidence[kind] };

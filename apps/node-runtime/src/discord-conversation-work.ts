@@ -6,6 +6,7 @@ import { openDiscordConversationRepositoryWork } from "./discord-conversation-re
 import { DiscordSupervisionWorkResponder } from "./discord-supervision-work-responder.js";
 import type { DiscordAgentParticipation } from "./discord-agent-participation.js";
 import type { NodeDiscordConversationRuntimeOptions } from "./discord-conversation-runtime-types.js";
+import type { ConversationHistoryEvidencePort } from "./conversation-history.js";
 
 export const supervisionGoalEffect: ManagedConversationSurfaceEffect = {
   effectId: "supervision_goal_request",
@@ -18,6 +19,7 @@ export const supervisionGoalEffect: ManagedConversationSurfaceEffect = {
 export function openDiscordConversationWork(input: {
   options: NodeDiscordConversationRuntimeOptions;
   artifacts: ArtifactStore;
+  history: ConversationHistoryEvidencePort;
   participation: DiscordAgentParticipation;
   policyId: string;
   resultResponder: ConversationResponder;
@@ -64,6 +66,7 @@ export function openDiscordConversationWork(input: {
           repositoryRoot: options.repositoryRoot,
           projectId: options.project.projectId,
           artifactStore: artifacts,
+          history: input.history,
           configuration: options.outcomeSupervision,
           policyId: input.policyId,
           resultResponder: input.resultResponder,

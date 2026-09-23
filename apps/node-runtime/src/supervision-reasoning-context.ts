@@ -12,6 +12,10 @@ import { resolveRoleContract } from "@lervo/roles";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { OutcomeSupervisionReportV1 } from "@lervo/application-contract";
 import { operatingContractHash } from "@lervo/work-controller";
+import {
+  assertOwnerProposalFeedback,
+  type OwnerProposalFeedback,
+} from "./supervision-reasoning-feedback.js";
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
 import { readInstalledNodeMandate, type NodeSupervisionBinding } from "./supervision-authority.js";
 import { observeSupervisionTasks } from "./supervision-task-observation.js";
@@ -101,6 +105,10 @@ export async function canonicalOwnerReasoningFacts(
   const policy = await loadRepositoryKnowledgePolicy(storage.paths.repositoryRoot);
   const boundRequest = await readBoundSupervisionRequest(storage, source, binding);
   const requesterProvenance = await readDiscordGoalRequesterProvenance(storage, boundRequest);
+  const verifiedBoundRequest =
+    boundRequest?.source === "discord" && requesterProvenance === null
+      ? { ...boundRequest, conversationContext: null }
+      : boundRequest;
   const unstartedWorkspaces = [];
   for (const workspace of await listWorkspaces(storage.paths.repositoryRoot)) {
     const assignment = source.assignments.find(
@@ -158,7 +166,7 @@ export async function canonicalOwnerReasoningFacts(
     writingContract: writingContractForLanguage(policy.publication.language),
     resultWritingContract,
     acceptedGoal: await readAcceptedSupervisionGoal(storage, source),
-    boundRequest,
+    boundRequest: verifiedBoundRequest,
     requesterProvenance,
     mandate,
     workstream: source.workstream,
@@ -225,13 +233,14 @@ export async function canonicalOwnerReasoningFacts(
 }
 
 export interface OwnerReasoningContext {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   kind: "work.owner_reasoning.context";
   basisHash: string;
   facts: Awaited<ReturnType<typeof canonicalOwnerReasoningFacts>>["facts"];
   trigger: { reasonCode: string; nextAction: string; assignmentIds: string[] };
   planning: Awaited<ReturnType<typeof loadSupervisionPlanningContext>>;
   results: { contentHash: string; text: string }[];
+  proposalFeedback?: OwnerProposalFeedback;
 }
 
 export async function createOwnerReasoningContext(input: {
@@ -240,6 +249,7 @@ export async function createOwnerReasoningContext(input: {
   source: Source;
   report: OutcomeSupervisionReportV1;
   expectedPaths: string[];
+  proposalFeedback?: OwnerReasoningContext["proposalFeedback"];
   now(): string;
 }) {
   const { facts, basisHash } = await canonicalOwnerReasoningFacts(
@@ -272,7 +282,7 @@ export async function createOwnerReasoningContext(input: {
     })),
   );
   const context: OwnerReasoningContext = {
-    schemaVersion: 1,
+    schemaVersion: input.proposalFeedback === undefined ? 1 : 2,
     kind: "work.owner_reasoning.context",
     basisHash,
     facts,
@@ -283,6 +293,7 @@ export async function createOwnerReasoningContext(input: {
     },
     planning,
     results,
+    ...(input.proposalFeedback === undefined ? {} : { proposalFeedback: input.proposalFeedback }),
   };
   const content = canonicalJson(context);
   if (Buffer.byteLength(content) > 256 * 1024)
@@ -307,8 +318,10 @@ export async function assertOwnerReasoningContext(input: {
     input.now,
   );
   if (
-    Object.keys(context).length !== 7 ||
-    context.schemaVersion !== 1 ||
+    Object.keys(context).length !== (context.schemaVersion === 2 ? 8 : 7) ||
+    ![1, 2].includes(context.schemaVersion) ||
+    (context.schemaVersion === 1 && context.proposalFeedback !== undefined) ||
+    (context.schemaVersion === 2 && context.proposalFeedback === undefined) ||
     context.kind !== "work.owner_reasoning.context" ||
     context.basisHash !== input.basisHash ||
     current.basisHash !== input.basisHash ||
@@ -321,6 +334,14 @@ export async function assertOwnerReasoningContext(input: {
     context.results.length > 32
   )
     throw new Error("The owner reasoning context differs from canonical task facts.");
+  if (context.proposalFeedback !== undefined)
+    assertOwnerProposalFeedback({
+      feedback: context.proposalFeedback,
+      events: input.source.events,
+      projectId: input.storage.manifest.projectId,
+      supervisionId: input.binding.supervisionId,
+      workstreamId: input.binding.workstreamId,
+    });
   for (const source of context.planning.sources) {
     if (
       typeof source.text !== "string" ||

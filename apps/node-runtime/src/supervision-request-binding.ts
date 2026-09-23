@@ -14,6 +14,8 @@ import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { readBoundSupervisionRequest } from "./supervision-bound-request.js";
 import { SupervisionRequestRefusedError } from "./supervision-request-refusal.js";
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
+import type { ConversationHistoryEvidenceTurn } from "./conversation-history.js";
+import { validSupervisionConversationContext } from "./supervision-conversation-context.js";
 
 export interface SupervisionRequestInput {
   source: "local" | "discord";
@@ -22,6 +24,7 @@ export interface SupervisionRequestInput {
   request: string;
   contentHash: string;
   origin?: Pick<ConversationOutboundMessage, "sourceEventId" | "policyId" | "target" | "actor">;
+  conversationContext?: readonly ConversationHistoryEvidenceTurn[];
 }
 
 function digest(value: string): string {
@@ -49,6 +52,9 @@ export async function bindSupervisionRequest(input: {
     !/^sha256:[a-f0-9]{64}$/u.test(request.contentHash) ||
     digest(request.request) !== request.contentHash ||
     (request.source === "local") !== (request.origin === undefined) ||
+    (request.source === "local" && request.conversationContext !== undefined) ||
+    (request.conversationContext !== undefined &&
+      !validSupervisionConversationContext(request.conversationContext)) ||
     (request.origin !== undefined &&
       (!validateSchema("conversationOutboundOrigin", request.origin).valid ||
         request.origin.sourceEventId !== request.sourceId ||
@@ -61,7 +67,7 @@ export async function bindSupervisionRequest(input: {
   const sourceDigest = digest(`${request.source}\0${request.sourceId}`);
   const requesterDigest = digest(request.requesterId);
   const requestArtifact = {
-    schemaVersion: 1,
+    schemaVersion: request.conversationContext === undefined ? 1 : 2,
     kind: "work.supervision.request",
     source: request.source,
     sourceDigest,
@@ -69,7 +75,23 @@ export async function bindSupervisionRequest(input: {
     contentHash: request.contentHash,
     request: request.request,
     origin: request.origin ?? null,
+    ...(request.conversationContext === undefined
+      ? {}
+      : { conversationContext: request.conversationContext }),
   } as const;
+  const sameRequestIdentity = (prior: unknown) => {
+    if (typeof prior !== "object" || prior === null || Array.isArray(prior)) return false;
+    const record = prior as Record<string, unknown>;
+    return (
+      record.kind === "work.supervision.request" &&
+      record.source === requestArtifact.source &&
+      record.sourceDigest === requestArtifact.sourceDigest &&
+      record.requesterDigest === requestArtifact.requesterDigest &&
+      record.contentHash === requestArtifact.contentHash &&
+      record.request === requestArtifact.request &&
+      operatingContractHash(record.origin) === operatingContractHash(requestArtifact.origin)
+    );
+  };
   const identity = operatingContractHash({ binding, sourceDigest });
   const runId = `run_${operatingContractHash({ supervisionId: binding.supervisionId }).slice(7, 39)}`;
   const eventId = `evt_${operatingContractHash({ runId, type: "work.supervision.bound", identity }).slice(7, 39)}`;
@@ -88,7 +110,7 @@ export async function bindSupervisionRequest(input: {
       existing.payload.mandateHash !== binding.mandateHash ||
       typeof prior !== "object" ||
       prior === null ||
-      operatingContractHash(prior) !== operatingContractHash(requestArtifact)
+      !sameRequestIdentity(prior)
     )
       throw new SupervisionRequestRefusedError(
         "identity_conflict",
@@ -117,7 +139,7 @@ export async function bindSupervisionRequest(input: {
           .requestArtifactHash,
       ),
     );
-    if (bound !== null && operatingContractHash(prior) === operatingContractHash(requestArtifact))
+    if (bound !== null && sameRequestIdentity(prior))
       return { eventId: bound.eventId, duplicate: true };
     throw new SupervisionRequestRefusedError(
       "origin_conflict",

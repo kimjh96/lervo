@@ -28,6 +28,9 @@ import {
 } from "./supervision-reasoning-context.js";
 import { readReusableOwnerDecision } from "./supervision-reasoning-history.js";
 import { materializeNativeOwnerProposal } from "./supervision-native-plans.js";
+import { invalidNativeOwnerProposal } from "./supervision-native-attention.js";
+import { InvalidNativeOwnerProposalError } from "./supervision-native-task.js";
+import type { OwnerProposalFeedback } from "./supervision-reasoning-feedback.js";
 import type { NodeOwnerReasoningConfiguration } from "./supervision-reasoning-effects.js";
 import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
@@ -155,29 +158,63 @@ export class NativeSupervisionOwner {
         report,
         now: this.now,
       });
-      if (previous.decision !== null)
-        return await materializeNativeOwnerProposal({
-          storage,
-          facts,
-          decision: previous.decision,
-          base,
-          reasoningPlanHash: previous.reasoningPlanHash!,
-          resultArtifactHash: previous.resultArtifactHash!,
-          readiness: this.readiness,
-          ...(publicationOrigin === undefined ? {} : { publicationOrigin }),
-          now: this.now,
-        });
+      let proposalFeedback: OwnerProposalFeedback | undefined;
+      if (previous.decision !== null) {
+        try {
+          return await materializeNativeOwnerProposal({
+            storage,
+            facts,
+            decision: previous.decision,
+            base,
+            reasoningPlanHash: previous.reasoningPlanHash!,
+            resultArtifactHash: previous.resultArtifactHash!,
+            readiness: this.readiness,
+            ...(publicationOrigin === undefined ? {} : { publicationOrigin }),
+            now: this.now,
+          });
+        } catch (error) {
+          if (!(error instanceof InvalidNativeOwnerProposalError)) throw error;
+          proposalFeedback = {
+            reasonCode: error.reasonCode,
+            reasoningPlanHash: previous.reasoningPlanHash!,
+            resultArtifactHash: previous.resultArtifactHash!,
+          };
+        }
+      }
+      if (previous.reason === "invalid_reasoning_result")
+        proposalFeedback = {
+          reasonCode: "invalid_reasoning_result",
+          reasoningPlanHash: previous.reasoningPlanHash,
+          resultArtifactHash: previous.resultArtifactHash,
+        };
       if (
         previous.reason === "reasoning_effect_unresolved" ||
         previous.history.length >= Math.min(3, facts.mandate.maximumAttemptsPerAssignment)
-      )
+      ) {
+        if (proposalFeedback !== undefined) {
+          const invalid = await invalidNativeOwnerProposal({
+            artifacts: storage.artifacts,
+            base,
+            ...(previous.decision === null ? {} : { decision: previous.decision }),
+            reasoningPlanHash: proposalFeedback.reasoningPlanHash,
+            resultArtifactHash: proposalFeedback.resultArtifactHash,
+          });
+          await storage.artifacts.put(canonicalJson(invalid.effect));
+          return {
+            ...base,
+            ...invalid.fields,
+            rationaleArtifactHash: invalid.rationaleArtifactHash,
+          };
+        }
         return null;
+      }
       const context = await createOwnerReasoningContext({
         storage,
         binding: this.binding,
         source,
         report,
         expectedPaths: [...facts.mandate.pathRoots],
+        ...(proposalFeedback === undefined ? {} : { proposalFeedback }),
         now: this.now,
       });
       const effect: SupervisedOwnerReasoningV1 = {

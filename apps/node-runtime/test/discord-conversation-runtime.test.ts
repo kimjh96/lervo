@@ -341,7 +341,9 @@ process.stdin.on("end", () => process.stdout.write(JSON.stringify({schemaVersion
     expect(typingDelivery).toHaveBeenCalledTimes(4);
     expect(intentResolver).toHaveBeenCalledTimes(3);
     expect(intentResolver.mock.calls[0]![0]).toMatchObject({ mentioned: false, priorTurns: [] });
-    expect(intentResolver.mock.calls[1]![0].priorTurns).toHaveLength(2);
+    // The prior human message keeps its platform chronology despite late processing;
+    // the reply delivered after the second event's timestamp was not visible to its author.
+    expect(intentResolver.mock.calls[1]![0].priorTurns).toHaveLength(1);
     expect(intentResolver.mock.calls[2]![0]).toMatchObject({
       mentioned: false,
       availableEffects: expect.arrayContaining(["discord_current_member_nickname_set"]),

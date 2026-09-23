@@ -8,9 +8,15 @@ Before appending `work.supervision.bound`, the writer checks the current mandate
 
 The request artifact stores bounded text, source kind, source and requester digests, content hash and, for Discord, an exact result origin. Both writer and reader verify the text digest; the reader also verifies the Discord source digest against the bound source event.
 
+New Discord bindings use version-two request artifacts. They additionally snapshot at most twelve prior conversation turns from the exact target and thread: the last eight eligible turns plus up to four earlier human anchors. An inbound turn must be completed by intake and have an earlier platform event time; an outbound reply must have been delivered before the new ingress time. Each source record and CAS excerpt has an exact hash. Owner reasoning verifies those source rows and bytes on every read; text and participant identity remain private in local CAS, never in the binding event. Legacy version-one artifacts remain readable without invented history. Local stdin bindings remain version one.
+
+The version-two artifact requires `conversationContext`. Each turn requires `role`, bounded `text`, `speaker` (`kind`, `participantId`, nullable `agentId` and `roleId`), and `source` (`kind`, `id`, `roleId`, `recordHash`, `contentHash`, `observedAtMs`). `source.kind` is `inbound` for user turns and `outbound` for assistant turns. Malformed or over-bound context is `request_invalid` before binding. A missing or conflicting persisted source fails owner reasoning closed without an effect or publication; it is not silently converted to an empty history or repaired from later conversation state.
+
 The acceptance artifact pins the workstream objective, snapshot and assignment IDs at admission. The reader reconstructs assignments from creation events before the binding sequence, independent of wall-clock timestamp ties. Both artifacts use local CAS.
 
 An exact replay of the same source and content returns the existing event. A changed source or second origin for that goal fails closed. A failed or unobserved commit does not authorize replaying a provider effect.
+
+Replay compares the authenticated request and origin, not a newly computed conversation window. The first successful binding's context snapshot is immutable, so a delayed retry cannot change earlier meaning or introduce later turns.
 
 ## Refusals and uncertainty
 

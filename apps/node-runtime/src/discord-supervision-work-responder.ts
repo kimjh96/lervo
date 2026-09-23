@@ -11,6 +11,7 @@ import {
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import { supervisionRequestRefusalCode } from "./supervision-request-refusal.js";
 import type { NodeSupervisionStartupConfiguration } from "./supervision-startup-config.js";
+import type { ConversationHistoryEvidencePort } from "./conversation-history.js";
 
 /** One idle owner cycle can hold the fence for about a minute; two cycles bound the Discord wait. */
 const DISCORD_ADMISSION_DEADLINE_MS = 120_000;
@@ -96,6 +97,7 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
       repositoryRoot: string;
       projectId: string;
       artifactStore: ArtifactStore;
+      history: ConversationHistoryEvidencePort;
       resultResponder: ConversationResponder;
       configuration: NodeSupervisionStartupConfiguration;
       policyId: string;
@@ -159,6 +161,7 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
       request,
       contentHash: event.content.contentHash,
       origin,
+      conversationContext: await this.options.history.recentEvidence(event),
     };
     const admissionDeadlineMs = this.options.admissionDeadlineMs ?? DISCORD_ADMISSION_DEADLINE_MS;
     try {

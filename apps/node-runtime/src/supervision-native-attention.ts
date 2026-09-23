@@ -31,14 +31,14 @@ export function nativeOwnerAttention(
 export async function invalidNativeOwnerProposal(input: {
   artifacts: ArtifactStore;
   base: OperatingActionPlanV1;
-  decision: OwnerReasoningDecisionV1;
+  decision?: OwnerReasoningDecisionV1;
   reasoningPlanHash: string;
   resultArtifactHash: string;
 }) {
   const rationaleArtifactHash = (
     await input.artifacts.put(
       canonicalJson(
-        `The ${input.decision.operation} proposal has invalid detail fields. Inspect reasoning plan ${input.reasoningPlanHash} and exact result ${input.resultArtifactHash} before revising its bounded effect.`,
+        `The ${input.decision?.operation ?? "owner reasoning"} proposal is invalid. Inspect reasoning plan ${input.reasoningPlanHash} and exact result ${input.resultArtifactHash} before revising its bounded effect.`,
       ),
     )
   ).contentHash;

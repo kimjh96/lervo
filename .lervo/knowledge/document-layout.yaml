@@ -286,6 +286,14 @@ routes:
       - parallel bound workstreams
       - workstream concurrency
       - bound workstreams
+  - id: execution.orchestration.governed-work.request-intake
+    path: execution/orchestration/governed-work/request-intake
+    priority: 59
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - conversation evidence
+      - supervision request
+      - request intake
   - id: execution.orchestration.governed-work
     path: execution/orchestration/governed-work
     priority: 58

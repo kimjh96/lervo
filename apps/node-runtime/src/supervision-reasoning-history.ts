@@ -117,17 +117,28 @@ export async function readReusableOwnerDecision(input: {
       (event) => event.runId === identity.runId && event.type === "run.completed",
     );
     if (terminal === undefined) continue;
-    const decision = parseOwnerReasoningDecision(
-      await readSupervisionTextArtifact(
-        input.storage.artifacts,
-        String(terminal.payload.resultDigest),
-      ),
+    const resultArtifactHash = String(terminal.payload.resultDigest);
+    const resultText = await readSupervisionTextArtifact(
+      input.storage.artifacts,
+      resultArtifactHash,
     );
+    let decision;
+    try {
+      decision = parseOwnerReasoningDecision(resultText);
+    } catch {
+      return {
+        history,
+        decision: null,
+        reasoningPlanHash: operatingContractHash(entry.plan),
+        resultArtifactHash,
+        reason: "invalid_reasoning_result" as const,
+      };
+    }
     return {
       history,
       decision,
       reasoningPlanHash: operatingContractHash(entry.plan),
-      resultArtifactHash: String(terminal.payload.resultDigest),
+      resultArtifactHash,
       reason: "available" as const,
     };
   }

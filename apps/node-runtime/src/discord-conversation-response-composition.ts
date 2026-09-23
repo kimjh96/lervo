@@ -88,6 +88,10 @@ export async function openDiscordConversationResponseComposition(input: {
     hasPeerAgents: peerAgents.length > 0,
   });
   const artifacts = await FileSystemCas.open(resolve(options.dataDirectory, "artifacts"));
+  const history = new SQLiteConversationHistory(
+    resolve(options.dataDirectory, "interactions.sqlite"),
+    artifacts,
+  );
   const effectResultResponder = new ConversationEffectResultResponderBinding();
   const discussionRuntime = await ConversationDiscussionRuntime.open({
     path: resolve(options.dataDirectory, "conversation-discussions.sqlite"),
@@ -137,6 +141,7 @@ export async function openDiscordConversationResponseComposition(input: {
   const { repositoryWork, workResponder, goalResponder } = openDiscordConversationWork({
     options,
     artifacts,
+    history,
     participation,
     policyId: policy.policyId,
     resultResponder: effectResultResponder,
@@ -299,10 +304,7 @@ export async function openDiscordConversationResponseComposition(input: {
       authorizedAgentEffectRequesters,
       repositoryRoot: options.repositoryRoot,
       artifactStore: artifacts,
-      history: new SQLiteConversationHistory(
-        resolve(options.dataDirectory, "interactions.sqlite"),
-        artifacts,
-      ),
+      history,
       resolutionStore: intentStore,
       ...(intentResolver === undefined ? {} : { intentResolver }),
       ...(readRuntime === null || options.intentResolver !== undefined

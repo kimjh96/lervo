@@ -69,6 +69,7 @@ async function fixture(actor: {
     repositoryRoot: root,
     projectId: event.target.projectId,
     artifactStore: artifacts,
+    history: { recentEvidence: async () => [] },
     resultResponder,
     configuration,
     policyId: `cpp_${"f".repeat(64)}`,

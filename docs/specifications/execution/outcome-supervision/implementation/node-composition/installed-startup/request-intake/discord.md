@@ -18,7 +18,9 @@ The result origin's `actor` is the outbound product-owner speaker, not the incom
 
 For ordinary `message.created` intake, reasoning also reads the immutable intent row and requires the same message hash, `continue_work`, `relevant`, medium or high confidence, and the exact no-argument `supervision_goal_request` effect. The inbound actor must be human; its content, target, policy, integration and conversation must match the stored result origin. A mention is not required. Historical `goal.requested` provenance retains its original owner-mention checks.
 
-A missing inbox or natural-intent row supplies no human proof. A conflicting or invalid row fails closed. This supplies a bounded reasoning fact, not a new event or request-artifact field.
+A missing inbox or natural-intent row supplies no human proof. A conflicting or invalid row fails closed. Requester provenance supplies a bounded reasoning fact, not a new event field.
+
+For new bindings, the request artifact also carries a private, source-bound prior-turn snapshot. Completed inbound turns with earlier platform timestamps and replies delivered before the request can enter it. Owner reasoning rechecks their immutable interaction rows and conversation CAS bytes. A previously delivered assistant answer can resolve “that” or a numbered reference, but it does not grant fresh authority or prove a proposed effect happened. Legacy bindings without this snapshot are not retroactively filled from today's conversation state.
 
 ## Results and failures
 

@@ -31,6 +31,7 @@ export {
   assertOperatingMandate,
   assertOperatingActionPlan,
   assertWorkResponsibility,
+  operatingPath,
 } from "./operating-contract-validation.js";
 export {
   operatingContractHash,
