@@ -1,0 +1,48 @@
+# ADR-0427: Decouple conversation work from agent-owned knowledge convergence
+
+Status: accepted
+Decision date: 2026-09-23
+
+## Context
+
+Native conversation repository work currently checks global managed-knowledge currency before provider execution and again before publishing its result. The post-turn check permits `baseline_valid` when unrelated debt predates the turn. Consequently a slow or stale global projection delays a live conversation, while `baseline_valid` can remain indefinitely without an owner or a due reconciliation. A one-time operator refresh does not satisfy autonomous canonicalization and knowledge maintenance.
+
+The provider result, repository checkpoint, canonical-source assessment, structural projection, and visible reply are different outcomes. Treating their checks as one synchronous completion gate delays replies and hides old knowledge debt. Removing the gate without a durable owner would make that debt less visible, not solve it.
+
+## Decision
+
+### Separate truthful outcomes
+
+The live turn retains admission, repository observation, result CAS, exact workstream checkpoint, configured replica readiness, and one canonical repository-work completion before publication. It does not run global knowledge assertion, migration, normalization, or refresh before starting a provider or publishing its verified work result. Its completion records knowledge as `pending_background`, not `current` or `baseline_valid`. The visible result must not claim knowledge convergence while that state is pending. An unchanged repository turn may finish without a new source-bound knowledge job, but pre-existing debt remains in the separately owned baseline queue.
+
+The completion event and a local knowledge-job outbox entry commit in one event-store transaction. If that transaction fails, native work remains effect-uncertain and no success reply is published. Exact source-event identity and result hash deduplicate replay; a replay never reexecutes provider work or creates a second job. The local event chain is canonical and requires no Hub. Outbox and search projections are rebuildable from canonical events.
+
+### Source-bound agent work
+
+A job binds the completion event, source conversation event, durable agent, provider-neutral role and assignment, before/after repository revisions, exact changed-path hash manifest, workstream snapshot, and result digest. The manifest is bounded, local, and content-addressed; it contains no request text, provider output, source bytes, or credentials. A path count beyond its bound is a typed failure, never a silently truncated success. A preexisting `baseline_valid` completion becomes an explicit migration debt item without rewriting its historical event or inventing an original path manifest.
+
+The background owner claims one leased job, reads applicable canonical instructions, and reviews the exact source change through a separate agent assignment in an isolated workspace. It classifies whether a durable fact or behavioral obligation needs a canonical target; an implementation-only outcome requires a source-bound rationale. Canonicalization uses the existing typed responsibility and candidate lifecycle. An agent may write an authorized canonical source through the ordinary scoped repository-change and integration contract. A conflict with user-owned content becomes an exact review candidate; the worker never silently overwrites it. A projection refresh alone never closes an unreviewed canonicalization obligation.
+
+Before integration, the owner rechecks source hashes, assignment lease, canonical target ownership, and current target revision. Stale evidence reopens or supersedes the item with an explicit state; it cannot be marked current by repetition or provider agreement. After reviewed source integration, migration, refresh, and lint establish the knowledge result. The live conversation does not wait for this sequence. A separate status or follow-up message may report completion only after that message has its own delivery receipt.
+
+### Recovery, capacity, and failure meaning
+
+The worker leases and retries transient failures with bounded backoff and an attempt ceiling. Restart reclaims an expired lease and resumes from the last canonical outcome; it inspects uncertain repository effects before any retry. Exact completed jobs are idempotent. A permanent authority conflict, stale source, source limit, or exhausted attempt enters visible `attention_required` with an owner and reason, not a perpetual pending state. Queue admission has an explicit capacity bound and fails closed before claiming successful repository-work completion when the bound cannot be reserved. Acknowledged queue entries are purged under bounded retention after their canonical outcome remains inspectable.
+
+The new outcome event is `conversation.repository_knowledge.resolved`. Its required fields are completion event ID/hash, source event ID, job ID, agent ID, source-manifest hash or legacy-unavailable marker, terminal state (`current`, `pending_review`, `stale`, or `attention_required`), attempt count, bounded failure code or null, knowledge snapshot hash when current, and occurred-at time. It contains no message body, provider output, source bytes, local absolute path, credential, or raw failure text. `current` means both source-bound canonicalization and knowledge lifecycle passed for the bound source; `pending_review` is not success; `stale` requires fresh source evidence; `attention_required` names a bounded nonretryable or exhausted failure. A retry/lease is operational state, not a claim that knowledge is current.
+
+The old `current` and `baseline_valid` values retain their historical meaning for readers. New writers use `pending_background`; migration opens explicit debt for old `baseline_valid` events and never retroactively upgrades them. Readers reject unknown writer versions until compatible. `verificationStatus: passed` on a repository-work completion proves the native work/result/checkpoint/replica boundary only; it does not prove background knowledge completion.
+
+## Consequences and acceptance
+
+This changes the synchronous guarantee recorded in ADR-0395 and the installed Discord scope; those documents must identify the new boundary when the writer activates. The async worker must not share a writable checkout or provider session with a live conversation turn. Its CPU/provider concurrency and queue depth are bounded independently of live ingress.
+
+Acceptance requires a real installed conversation journey and common provider-adapter contract tests. Prove that a changed-source turn publishes promptly while knowledge is pending; the worker subsequently writes or reviews the right canonical target, refreshes and lints, and records one current outcome. Prove no lost job between completion and enqueue, restart/idempotency, retry exhaustion, stale source, user-owned conflict, legacy `baseline_valid` migration, path/privacy bounds, queue backpressure, no-Hub operation, and measured live-path latency with the worker busy. A healthy Node, a queued event, or a one-time manual refresh proves none of these alone.
+
+## References
+
+- [ADR-0303](0303-branch-safe-knowledge-reconciliation-and-canonicalization.md)
+- [ADR-0395](../../../coordination/conversations/0395-resumable-native-repository-work-turns.md)
+- [Agent workspaces](../../../../specifications/execution/agent-workspaces.md)
+- [Canonicalization assessment](../../../../specs/repository-knowledge-lifecycle-convergence/canonicalization-assessment.md)
+- [Async knowledge roadmap](../../../../roadmap/knowledge/asynchronous-conversation-lifecycle.md)

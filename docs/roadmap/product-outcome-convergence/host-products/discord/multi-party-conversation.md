@@ -6,6 +6,7 @@ State: `installed acceptance required`.
 
 - [Participation contract](multi-party-conversation/participation.md): participant binding, channel composition, authority constraints, and provider selection.
 - [Installed scope](multi-party-conversation/installed-scope.md): deployment behavior, implemented capabilities, organization topology, and remaining work.
+- [Asynchronous conversation knowledge lifecycle](../../../knowledge/asynchronous-conversation-lifecycle.md): agent-owned canonicalization and refresh without live-response delay; implementation and installed acceptance remain required.
 
 ## Acceptance
 
