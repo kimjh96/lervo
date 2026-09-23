@@ -127,6 +127,7 @@ export interface OutboxStore extends EventStore<OutboxTransaction> {
   acknowledge(request: AcknowledgeOutboxRequest): AcknowledgeOutboxResult;
   reschedule(request: RescheduleOutboxRequest): RescheduleOutboxResult;
   purgeAcknowledged(request: PurgeAcknowledgedOutboxRequest): PurgeAcknowledgedOutboxResult;
+  getOutbox(eventId: string, destinationId: string): OutboxDelivery | null;
   listOutbox(options?: ListOutboxOptions): OutboxDelivery[];
 }
 

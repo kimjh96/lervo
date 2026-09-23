@@ -80,6 +80,15 @@ export class SQLiteOutboxRepository {
     return row.count;
   }
 
+  get(eventId: string, destinationId: string): OutboxDelivery | null {
+    const event = requireOutboxIdentifier(eventId, "eventId");
+    const destination = requireOutboxIdentifier(destinationId, "destinationId");
+    const row = this.database
+      .prepare(`${outboxDeliverySelection} WHERE o.event_id = ? AND o.destination_id = ?`)
+      .get(event, destination);
+    return row === undefined ? null : rowToOutboxDelivery(row);
+  }
+
   claim(request: ClaimOutboxRequest): OutboxDelivery[] {
     const workerId = requireOutboxIdentifier(request.workerId, "workerId");
     const claimedAt = requireOutboxTimestamp(request.claimedAt, "claimedAt");

@@ -205,6 +205,11 @@ export class SQLiteEventStore implements OutboxStore {
     return this.outbox.list(options);
   }
 
+  getOutbox(eventId: string, destinationId: string): OutboxDelivery | null {
+    this.assertOpen();
+    return this.outbox.get(eventId, destinationId);
+  }
+
   journalMode(): string {
     this.assertOpen();
     const mode = this.database.prepare("PRAGMA journal_mode;").get()?.journal_mode;

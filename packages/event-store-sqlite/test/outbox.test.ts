@@ -132,6 +132,47 @@ describe("SQLite transactional outbox", () => {
     store.close();
   });
 
+  it("reads one exact destination through pending, leased, and acknowledged states", async () => {
+    const path = await databasePath();
+    const store = await SQLiteEventStore.open({ path, projectId });
+    const event = store.append(draft()).event;
+    expect(store.getOutbox(event.eventId, destinationId)).toBeNull();
+    store.enqueue(enqueueRequest(event.eventId));
+    store.enqueue({ ...enqueueRequest(event.eventId), destinationId: "hub:backup" });
+    expect(store.getOutbox(event.eventId, destinationId)).toMatchObject({
+      event: { eventId: event.eventId, eventHash: event.eventHash },
+      destinationId,
+      status: "pending",
+      attemptCount: 0,
+    });
+    const claimed = store.claim({
+      destinationId,
+      workerId: "worker-1",
+      claimedAt: "2026-08-18T00:02:00Z",
+      leaseDurationMs: 60_000,
+    });
+    expect(store.getOutbox(event.eventId, destinationId)).toEqual(claimed[0]);
+    expect(store.getOutbox(event.eventId, "hub:backup")?.status).toBe("pending");
+    store.acknowledge({
+      eventId: event.eventId,
+      destinationId,
+      workerId: "worker-1",
+      acknowledgedAt: "2026-08-18T00:02:01Z",
+    });
+    expect(store.getOutbox(event.eventId, destinationId)).toMatchObject({
+      status: "acknowledged",
+      lease: null,
+      attemptCount: 1,
+    });
+    store.close();
+    const reopened = await SQLiteEventStore.openReadOnly({ path, projectId });
+    expect(reopened.getOutbox(event.eventId, destinationId)?.status).toBe("acknowledged");
+    expect(() => reopened.getOutbox("invalid event", destinationId)).toThrowError(
+      expect.objectContaining({ code: "invalid_outbox_request" }),
+    );
+    reopened.close();
+  });
+
   it("counts only outstanding rows for one destination inside an enqueue transaction", async () => {
     const store = await SQLiteEventStore.open({ path: await databasePath(), projectId });
     const first = store.append(draft(1)).event;

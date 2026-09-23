@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6cb99e0d0c54e97d7141d105"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Fence asynchronous conversation knowledge work with exact outbox lease and source preflight."
