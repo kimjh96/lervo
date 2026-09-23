@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_852600de3c0005e7a14a7e74"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Stop repeated owner supervision failures from malformed escalation details."

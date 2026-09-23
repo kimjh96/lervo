@@ -1,7 +1,9 @@
 import { nativeResultPublication } from "./supervision-native-publication.js";
 import { nativeScopedHandoff } from "./supervision-native-handoff.js";
-import type { SupervisedOwnerAttentionV1 } from "@lervo/application-contract";
-import { supervisedOwnerAttentionFields } from "@lervo/work-controller";
+import {
+  invalidNativeOwnerProposal,
+  nativeOwnerAttention,
+} from "./supervision-native-attention.js";
 import type {
   ScopedWorkHandoffV1,
   ScopedWorkHandoffAcceptanceV1,
@@ -18,6 +20,7 @@ import { nativeAssignmentCompletion } from "./supervision-native-completion.js";
 import type {
   OperatingActionPlanV1,
   OwnerReasoningDecisionV1,
+  SupervisedOwnerAttentionV1,
   SupervisedArtifactReviewV1,
   SupervisedGoalCompletionV1,
   AutomaticTopologyEffectV1,
@@ -29,9 +32,11 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import {
   automaticTopologyEffectFields,
+  classifyOwnerEscalationDetails,
   operatingContractHash,
   supervisedArtifactReviewFields,
   supervisedGoalCompletionFields,
+  validOwnerHandoffAcceptanceDetails,
 } from "@lervo/work-controller";
 import { nativeAllocation } from "./supervision-native-allocation.js";
 import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
@@ -76,24 +81,37 @@ export async function materializeNativeOwnerProposal(
     | SupervisedAssignmentRecovery
     | SupervisedResponsibilityClaimV1;
   let fields: Partial<OperatingActionPlanV1>;
-  if (decision.operation === "escalate" && Object.keys(details).join(",") === "reasonCode") {
-    if (typeof details.reasonCode !== "string")
-      throw new Error("Owner attention requires a bounded decision reason code.");
-    effect = {
-      schemaVersion: 1,
-      kind: "work.owner_attention",
-      basisHash: base.responsibilityArtifactHash,
-      reasonCode: details.reasonCode,
-      rationaleArtifactHash,
-      deadline: base.deadline,
-    };
-    fields = supervisedOwnerAttentionFields(effect, base.roleId, base.provider);
-  } else if (
-    ["request_team_support", "accept_team_support", "escalate"].includes(decision.operation)
-  ) {
-    const handoff = await nativeScopedHandoff(input, details, rationaleArtifactHash);
-    effect = handoff.effect;
-    fields = handoff.fields;
+  if (decision.operation === "escalate" || decision.operation === "request_team_support") {
+    const selected = classifyOwnerEscalationDetails(details);
+    if (decision.operation === "escalate" && selected.kind === "attention") {
+      ({ effect, fields } = nativeOwnerAttention(base, selected.reasonCode, rationaleArtifactHash));
+    } else if (selected.kind === "handoff") {
+      const handoff = await nativeScopedHandoff(input, details, rationaleArtifactHash);
+      effect = handoff.effect;
+      fields = handoff.fields;
+    } else {
+      ({ effect, fields, rationaleArtifactHash } = await invalidNativeOwnerProposal({
+        artifacts: storage.artifacts,
+        base,
+        decision,
+        reasoningPlanHash: input.reasoningPlanHash,
+        resultArtifactHash: input.resultArtifactHash,
+      }));
+    }
+  } else if (decision.operation === "accept_team_support") {
+    if (validOwnerHandoffAcceptanceDetails(details)) {
+      const handoff = await nativeScopedHandoff(input, details, rationaleArtifactHash);
+      effect = handoff.effect;
+      fields = handoff.fields;
+    } else {
+      ({ effect, fields, rationaleArtifactHash } = await invalidNativeOwnerProposal({
+        artifacts: storage.artifacts,
+        base,
+        decision,
+        reasoningPlanHash: input.reasoningPlanHash,
+        resultArtifactHash: input.resultArtifactHash,
+      }));
+    }
   } else if (decision.operation === "prepare_publication") {
     const publication = await nativeResultPublication(input, details, rationaleArtifactHash);
     effect = publication.effect;

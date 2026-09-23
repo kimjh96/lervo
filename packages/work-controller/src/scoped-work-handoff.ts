@@ -54,6 +54,22 @@ export function assertScopedHandoffRequest(
   offer: ScopedWorkHandoffV1,
 ): void {
   assertScopedWorkHandoff(offer);
+  if (
+    !validScopedHandoffRequestShape(request) ||
+    operatingContractHash(request) !== offer.requestArtifactHash ||
+    operatingContractHash(request.acceptanceCriteria) !== offer.acceptanceHash
+  )
+    throw new Error(
+      "The scoped handoff request differs from its exact outcome and acceptance contract.",
+    );
+}
+
+/** Validates the model's request shape before any recipient or authority lookup. */
+export function validScopedHandoffRequestShape(
+  request: unknown,
+): request is ScopedWorkHandoffRequestV1 {
+  if (request === null || typeof request !== "object" || Array.isArray(request)) return false;
+  const value = request as Record<string, unknown>;
   const texts = (items: unknown): items is string[] =>
     Array.isArray(items) &&
     items.length > 0 &&
@@ -62,25 +78,22 @@ export function assertScopedHandoffRequest(
     items.every(
       (item) => typeof item === "string" && item.trim().length > 0 && item.length <= 2000,
     );
-  if (
-    request === null ||
-    typeof request !== "object" ||
-    Object.keys(request).length !== 4 ||
-    typeof request.objective !== "string" ||
-    !request.objective.trim() ||
-    request.objective.length > 4000 ||
-    !texts(request.deliverables) ||
-    !texts(request.acceptanceCriteria) ||
-    !Array.isArray(request.evidenceArtifactHashes) ||
-    request.evidenceArtifactHashes.length > 32 ||
-    new Set(request.evidenceArtifactHashes).size !== request.evidenceArtifactHashes.length ||
-    !request.evidenceArtifactHashes.every((hash) => operatingHashPattern.test(hash)) ||
-    operatingContractHash(request) !== offer.requestArtifactHash ||
-    operatingContractHash(request.acceptanceCriteria) !== offer.acceptanceHash
-  )
-    throw new Error(
-      "The scoped handoff request differs from its exact outcome and acceptance contract.",
-    );
+  return !(
+    Object.keys(value).length !== 4 ||
+    !Object.hasOwn(value, "objective") ||
+    !Object.hasOwn(value, "deliverables") ||
+    !Object.hasOwn(value, "acceptanceCriteria") ||
+    !Object.hasOwn(value, "evidenceArtifactHashes") ||
+    typeof value.objective !== "string" ||
+    !value.objective.trim() ||
+    value.objective.length > 4000 ||
+    !texts(value.deliverables) ||
+    !texts(value.acceptanceCriteria) ||
+    !Array.isArray(value.evidenceArtifactHashes) ||
+    value.evidenceArtifactHashes.length > 32 ||
+    new Set(value.evidenceArtifactHashes).size !== value.evidenceArtifactHashes.length ||
+    !value.evidenceArtifactHashes.every((hash) => operatingHashPattern.test(hash))
+  );
 }
 
 export function assertScopedHandoffAcceptance(

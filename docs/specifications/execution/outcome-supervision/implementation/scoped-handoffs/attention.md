@@ -4,6 +4,8 @@
 
 An unchanged basis waits across restart without another model call. A canonical goal, staff, task, review, or relevant peer change invalidates the basis and permits fresh planning. Existing authority and escalation limits still apply. Publication remains a separate receipt-backed operation.
 
+`owner_proposal_invalid` is the bounded local-attention reason for an owner model result whose escalation, support-request, or support-acceptance detail fields are malformed or mix incompatible effect variants. The exact result stays in private CAS, linked by hash from a bounded string rationale; neither the raw result nor optional explanatory fields enter the event or health projection. This state prevents repeated processing of the same poisoned result. It is not a claim that the missing user decision has been delivered or that the underlying goal is complete.
+
 An attention decision for exhausted retry authority remains pending after a validity-only mandate renewal and workstream bookkeeping update when all of these conditions hold:
 
 - Its exact receipt is confirmed.

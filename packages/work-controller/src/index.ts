@@ -96,6 +96,10 @@ export {
   ownerReasoningDecisionSchema,
   parseOwnerReasoningDecision,
 } from "./owner-reasoning-decision.js";
+export {
+  classifyOwnerEscalationDetails,
+  validOwnerHandoffAcceptanceDetails,
+} from "./owner-escalation-details.js";
 export { supervisedWorkspacePreparationFields } from "./supervised-workspace-preparation.js";
 export { supervisedAssignmentCompletionFields } from "./supervised-assignment-completion.js";
 export { supervisedWorkerHireFields } from "./supervised-worker-hire.js";
