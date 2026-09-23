@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { digestRepositoryWorkPath } from "./repository-work-observation.js";
+import { readRepositoryWorkGitTreeEntry } from "./repository-work-git-objects.js";
 import type {
   RepositoryWorkSourceManifest,
   SourceCoordinate,
@@ -49,28 +50,6 @@ async function safeParentDirectories(repositoryRoot: string, path: string): Prom
   return true;
 }
 
-async function gitTreeEntry(
-  repositoryRoot: string,
-  commit: string,
-  path: string,
-): Promise<string | null> {
-  const output = await git(repositoryRoot, ["ls-tree", "-z", commit, "--", path]);
-  if (output === "") return null;
-  const entries = output.split("\0").filter(Boolean);
-  if (entries.length !== 1) throw new Error("The Git tree path is ambiguous.");
-  const entry = entries[0]!;
-  const separator = entry.indexOf("\t");
-  const descriptor = entry.slice(0, separator);
-  if (
-    separator < 0 ||
-    entry.slice(separator + 1) !== path ||
-    !/^[0-7]{6} (?:blob|tree|commit) [a-f0-9]{40,64}$/u.test(descriptor)
-  ) {
-    throw new Error("The Git tree path is invalid.");
-  }
-  return descriptor;
-}
-
 async function afterCoordinateIsCurrent(input: {
   repositoryRoot: string;
   path: string;
@@ -92,8 +71,14 @@ async function afterCoordinateIsCurrent(input: {
   ]);
   if (dirty !== "") return false;
   return (
-    (await gitTreeEntry(input.repositoryRoot, input.coordinate.commit, input.path)) ===
-    (await gitTreeEntry(input.repositoryRoot, "HEAD", input.path))
+    JSON.stringify(
+      await readRepositoryWorkGitTreeEntry(
+        input.repositoryRoot,
+        input.coordinate.commit,
+        input.path,
+      ),
+    ) ===
+    JSON.stringify(await readRepositoryWorkGitTreeEntry(input.repositoryRoot, "HEAD", input.path))
   );
 }
 
@@ -131,7 +116,7 @@ export async function inspectRepositoryWorkSourceCurrency(input: {
         return { status: "stale", changedPathCount, reasonCode: "source_bytes_changed" };
       }
       if (item.before.kind === "git_tree") {
-        await gitTreeEntry(input.repositoryRoot, item.before.commit, item.path);
+        await readRepositoryWorkGitTreeEntry(input.repositoryRoot, item.before.commit, item.path);
       } else if (item.before.kind === "working_tree") {
         beforeBytesUnavailable = true;
       }

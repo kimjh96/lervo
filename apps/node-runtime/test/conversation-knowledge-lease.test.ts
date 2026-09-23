@@ -10,6 +10,7 @@ import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { readLeasedConversationKnowledgeJob } from "../src/conversation-knowledge-lease.js";
+import { captureLeasedConversationKnowledgeReviewSource } from "../src/conversation-knowledge-review-source.js";
 import { inspectLeasedConversationKnowledgeSource } from "../src/conversation-knowledge-source-preflight.js";
 import {
   compareRepositoryWork,
@@ -225,6 +226,24 @@ describe("leased conversation knowledge source", () => {
       changedPathCount: 1,
       manifest: source.manifest,
     });
+    const review = await captureLeasedConversationKnowledgeReviewSource(input);
+    expect(review).toMatchObject({
+      status: "ready_for_review",
+      snapshot: { changedPathCount: 1, totalByteCount: 13 },
+    });
+    if (review.status !== "ready_for_review") throw new Error("Expected a leased source snapshot.");
+    const afterSource = review.snapshot.paths[0]!.after;
+    expect(afterSource.kind === "file" ? Buffer.from(afterSource.content).toString() : null).toBe(
+      "after\n",
+    );
+    let snapshotClockReads = 0;
+    await expect(
+      captureLeasedConversationKnowledgeReviewSource({
+        ...input,
+        now: () =>
+          ++snapshotClockReads <= 2 ? "2026-09-23T00:02:01.000Z" : "2026-09-23T00:03:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_job_lease_conflict" });
     await writeFile(resolve(repositoryRoot, "README.md"), "later\n");
     expect(await inspectLeasedConversationKnowledgeSource(input)).toMatchObject({
       status: "stale",

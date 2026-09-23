@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3aefd33cb0ab099be1e8ae32"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Capture exact leased conversation source bytes for background knowledge review."
