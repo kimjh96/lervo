@@ -72,4 +72,18 @@ describe("conversation operation drain", () => {
     await expect(waiting).rejects.toThrow("admission is closed");
     expect(work).not.toHaveBeenCalled();
   });
+
+  it("bounds queued work while a service upgrade holds admission", async () => {
+    const work = vi.fn(async () => undefined);
+    const drain = new ConversationOperationDrain({
+      tryAcquire: () => null,
+      release: () => undefined,
+    });
+    const queued = Array.from({ length: 256 }, () => drain.run(work));
+    await expect(drain.run(work)).rejects.toThrow("admission is saturated");
+    drain.stop();
+    const settled = await Promise.allSettled(queued);
+    expect(settled.every((result) => result.status === "rejected")).toBe(true);
+    expect(work).not.toHaveBeenCalled();
+  });
 });

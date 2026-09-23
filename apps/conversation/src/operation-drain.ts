@@ -5,6 +5,8 @@ export interface ConversationOperationAdmissionPort {
   release(claim: unknown): void;
 }
 
+const MAXIMUM_QUEUED_OPERATIONS = 256;
+
 /** Tracks admitted application work so shutdown cannot close stores during an active turn. */
 export class ConversationOperationDrain {
   private state: "open" | "draining" = "open";
@@ -13,6 +15,7 @@ export class ConversationOperationDrain {
   private readonly operations = new Set<Promise<unknown>>();
   private readonly waiters = new Set<() => void>();
   private readonly retryWaiters = new Map<ReturnType<typeof setTimeout>, (error: Error) => void>();
+  private queuedAdmissions = 0;
 
   constructor(private readonly admission?: ConversationOperationAdmissionPort) {}
 
@@ -33,22 +36,38 @@ export class ConversationOperationDrain {
   }
 
   private async startWithAdmission<T>(operation: () => Promise<T>): Promise<T> {
-    for (;;) {
-      const parent = this.scope.getStore();
-      if (this.state === "draining" && (parent === undefined || !this.activeScopes.has(parent))) {
-        throw new Error("Conversation operation admission is closed.");
-      }
-      const claim = this.admission!.tryAcquire();
-      if (claim !== null) {
-        return this.start(async () => {
-          try {
-            return await operation();
-          } finally {
-            this.admission!.release(claim);
+    let queued = false;
+    try {
+      for (;;) {
+        const parent = this.scope.getStore();
+        if (this.state === "draining" && (parent === undefined || !this.activeScopes.has(parent))) {
+          throw new Error("Conversation operation admission is closed.");
+        }
+        const claim = this.admission!.tryAcquire();
+        if (claim !== null) {
+          if (queued) {
+            this.queuedAdmissions -= 1;
+            queued = false;
           }
-        });
+          return this.start(async () => {
+            try {
+              return await operation();
+            } finally {
+              this.admission!.release(claim);
+            }
+          });
+        }
+        if (!queued) {
+          if (this.queuedAdmissions >= MAXIMUM_QUEUED_OPERATIONS) {
+            throw new Error("Conversation operation admission is saturated.");
+          }
+          this.queuedAdmissions += 1;
+          queued = true;
+        }
+        await this.waitForAdmissionRetry();
       }
-      await this.waitForAdmissionRetry();
+    } finally {
+      if (queued) this.queuedAdmissions -= 1;
     }
   }
 
