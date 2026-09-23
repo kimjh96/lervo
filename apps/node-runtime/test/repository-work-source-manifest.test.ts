@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { prepareRepositoryWorkSourceManifest } from "../src/repository-work-source-manifest.js";
+import {
+  parseRepositoryWorkSourceManifest,
+  prepareRepositoryWorkSourceManifest,
+} from "../src/repository-work-source-manifest.js";
 
 const before = {
   head: "a".repeat(40),
@@ -38,6 +41,7 @@ describe("repository work source manifest", () => {
       },
     ]);
     expect(prepared.contentHash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(parseRepositoryWorkSourceManifest(prepared.content)).toEqual(prepared.manifest);
     expect(new TextDecoder().decode(prepared.content)).not.toContain("source body");
   });
 
@@ -67,6 +71,33 @@ describe("repository work source manifest", () => {
         after: before,
         change: { ...change, repositoryRevisionAfter: before.revision },
       }),
+    ).toThrowError(expect.objectContaining({ code: "repository_source_manifest_invalid" }));
+  });
+
+  it("rejects malformed, noncanonical, and traversal source evidence", () => {
+    const prepared = prepareRepositoryWorkSourceManifest({
+      before,
+      after,
+      change: {
+        repositoryRevisionBefore: before.revision,
+        repositoryRevisionAfter: after.revision,
+        changedPaths: ["src/dirty.ts"],
+      },
+    });
+    expect(() =>
+      parseRepositoryWorkSourceManifest(
+        Buffer.from(` ${new TextDecoder().decode(prepared.content)}`),
+      ),
+    ).toThrowError(expect.objectContaining({ code: "repository_source_manifest_invalid" }));
+    const unsafe = structuredClone(prepared.manifest);
+    unsafe.paths[0]!.path = "../secret.txt";
+    expect(() =>
+      parseRepositoryWorkSourceManifest(Buffer.from(JSON.stringify(unsafe))),
+    ).toThrowError(expect.objectContaining({ code: "repository_source_manifest_invalid" }));
+    const malformed = structuredClone(prepared.manifest);
+    malformed.paths[0]!.after = { kind: "working_tree", digest: "file:bad" };
+    expect(() =>
+      parseRepositoryWorkSourceManifest(Buffer.from(JSON.stringify(malformed))),
     ).toThrowError(expect.objectContaining({ code: "repository_source_manifest_invalid" }));
   });
 });

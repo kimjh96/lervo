@@ -105,7 +105,7 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
   replicaConfigured: boolean;
   checkpointDisposition: "not_needed" | "provider_checkpoint" | "host_checkpoint" | "not_observed";
   knowledgeMode?: "synchronous" | "pending_background";
-  sourceManifest?: PreparedRepositoryWorkSourceManifest;
+  sourceManifest?: PreparedRepositoryWorkSourceManifest | undefined;
 }): Promise<void> {
   const changedPaths = input.repositoryChange.changedPaths;
   if (changedPaths.length > MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS) {

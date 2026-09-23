@@ -12,6 +12,7 @@ import {
   verifyConversationRepositoryWorkCompletion,
 } from "../src/conversation-repository-work-completion.js";
 import { reconcileConversationKnowledgeOutbox } from "../src/conversation-knowledge-outbox-reconciliation.js";
+import { readConversationKnowledgeJobSource } from "../src/conversation-knowledge-job-source.js";
 import { prepareRepositoryWorkSourceManifest } from "../src/repository-work-source-manifest.js";
 import {
   availablePort,
@@ -182,6 +183,28 @@ describe("conversation repository work completion", () => {
           sourceManifestByteCount: sourceManifest.content.byteLength,
         },
       });
+      expect(
+        await readConversationKnowledgeJobSource({
+          completion: completions[0]!,
+          artifacts: reopened.artifacts,
+        }),
+      ).toEqual(sourceManifest.manifest);
+      await expect(
+        readConversationKnowledgeJobSource({
+          completion: completions[0]!,
+          artifacts: {
+            get: async () => {
+              throw new Error("private storage failure");
+            },
+          } as never,
+        }),
+      ).rejects.toMatchObject({ code: "knowledge_job_source_unavailable" });
+      await expect(
+        readConversationKnowledgeJobSource({
+          completion: completions[0]!,
+          artifacts: { get: async () => Buffer.from("wrong manifest") } as never,
+        }),
+      ).rejects.toMatchObject({ code: "knowledge_job_source_invalid" });
       const manifestBytes = await reopened.artifacts.get(
         `lervo-cas://sha256/${sourceManifest.contentHash.slice(7)}`,
       );

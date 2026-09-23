@@ -64,7 +64,10 @@ function statusPaths(output: string): string[] {
   return uniquePaths;
 }
 
-async function pathDigest(repositoryRoot: string, path: string): Promise<string> {
+export async function digestRepositoryWorkPath(
+  repositoryRoot: string,
+  path: string,
+): Promise<string> {
   const absolute = resolve(repositoryRoot, path);
   try {
     const metadata = await lstat(absolute);
@@ -95,7 +98,8 @@ export async function observeRepositoryWork(
     git(repositoryRoot, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]),
   ]);
   const paths = new Map<string, string>();
-  for (const path of statusPaths(status)) paths.set(path, await pathDigest(repositoryRoot, path));
+  for (const path of statusPaths(status))
+    paths.set(path, await digestRepositoryWorkPath(repositoryRoot, path));
   const resolvedHead = head.trim();
   const revision = `sha256:${createHash("sha256")
     .update(JSON.stringify([resolvedHead, [...paths.entries()]]))
