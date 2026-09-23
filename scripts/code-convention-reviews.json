@@ -116,9 +116,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:3992d9de37c511c2df6c6a53bfd2244b6a6ddd0667f611bbb76f474fe047c71c",
+      "contentHash": "sha256:0e784cf22b0fd646b02b9f83b6946444b1708d050f245f366cf2db6a5fd2c2ac",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns one pure event-payload privacy boundary: allowlist entries, schema dispatch, and coordinate checks determine the same sanitized result without I/O. Knowledge-job assignment provenance adds only bounded completion, manifest, and agent coordinates; its specific validator is separate. Prompts, source bytes, paths, credentials, and provider output remain excluded. Event-specific schemas and persistence remain in separate modules.",
+      "rationale": "The module owns one pure event-payload privacy boundary: its large declarative allowlist, schema dispatch, and coordinate checks produce one sanitized result without I/O. Assignment access-mode and knowledge-job validators are separate. Prompts, source bytes, paths, credentials, and provider output remain excluded; schemas and persistence stay in separate modules.",
       "disposition": "cohesive"
     },
     {

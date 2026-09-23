@@ -6,6 +6,7 @@ export type WorkforceProvider = "codex" | "claude" | "any";
 export type AgentStatus = "active" | "suspended" | "retired";
 export type AssignmentStatus =
   "queued" | "leased" | "blocked" | "completed" | "failed" | "cancelled";
+export type AssignmentAccessMode = "read_only" | "write";
 
 export interface WorkforceAgent {
   schemaVersion: 1;
@@ -126,6 +127,8 @@ export interface WorkforceAssignment {
   verificationSuiteIds: string[];
   approvalRequirements: string[];
   expectedPaths: string[];
+  /** Historical assignments without this field retain write-lease semantics. */
+  accessMode?: AssignmentAccessMode;
   workstreamId: string | null;
   assigneeAgentId: string | null;
   lease: WorkforceLease | null;

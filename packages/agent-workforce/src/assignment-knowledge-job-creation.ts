@@ -27,6 +27,7 @@ export function createKnowledgeJobAssignment(input: {
   return retryConcurrent(() =>
     createAssignmentOnce({
       ...input,
+      accessMode: "read_only",
       expectedRoleVersion: input.roleVersion,
       expectedRoleContractHash: input.roleContractHash,
     }),

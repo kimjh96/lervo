@@ -1,19 +1,12 @@
-import { repositoryPathWithinScope } from "@lervo/work-controller";
-import {
-  type WorkforceEventRecorder,
-  type WorkforceAssignment,
-  type WorkforceAgent,
-} from "./types.js";
+import { type WorkforceEventRecorder, type WorkforceAssignment } from "./types.js";
 import {
   AGENT_ID,
   MINIMUM_LEASE_MS,
   MAXIMUM_LEASE_MS,
   fail,
-  safePath,
 } from "./workforce-state-validation.js";
-import { readAssignmentState, assignmentPath, readAssignment } from "./assignment-state.js";
+import { readAssignmentState, assignmentPath } from "./assignment-state.js";
 import { transition, retryConcurrent } from "./workforce-state-io.js";
-import { listAgents } from "./agent-registry.js";
 
 export async function renewAssignmentLeaseOnce(input: {
   repositoryRoot: string;
@@ -100,53 +93,4 @@ export function exactLease(
       "assignment_lease_conflict",
       "The assignment lease is absent, stale, expired, or owned by another agent.",
     );
-}
-
-export async function assertAssignmentExecutionAuthority(input: {
-  repositoryRoot: string;
-  assignmentId: string;
-  agentId: string;
-  leaseId: string;
-  provider: "codex" | "claude";
-  expectedPaths: string[];
-  verificationSuiteIds: string[];
-  now?: Date;
-}): Promise<{ assignment: WorkforceAssignment; agent: WorkforceAgent }> {
-  const now = input.now ?? new Date();
-  const [assignment, agents] = await Promise.all([
-    readAssignment(input.repositoryRoot, input.assignmentId),
-    listAgents(input.repositoryRoot),
-  ]);
-  const agent = agents.find((item) => item.agentId === input.agentId);
-  if (
-    agent === undefined ||
-    agent.status !== "active" ||
-    agent.roleId !== assignment.roleId ||
-    (agent.provider !== "any" && agent.provider !== input.provider)
-  )
-    fail(
-      "agent_state_conflict",
-      "The managed run agent, role, status, or provider does not match the assignment.",
-    );
-  if (
-    agent.roleVersion !== assignment.roleVersion ||
-    agent.roleContractHash !== assignment.roleContractHash
-  )
-    fail("agent_state_conflict", "The managed run agent and assignment role contracts differ.");
-  exactLease(assignment, input.agentId, input.leaseId, now);
-  const expectedPaths = [...new Set(input.expectedPaths)].sort();
-  const suites = [...new Set(input.verificationSuiteIds)].sort();
-  if (
-    expectedPaths.length !== input.expectedPaths.length ||
-    !expectedPaths.every(safePath) ||
-    !expectedPaths.every((path) =>
-      assignment.expectedPaths.some((scope) => repositoryPathWithinScope(path, scope)),
-    ) ||
-    JSON.stringify(suites) !== JSON.stringify([...assignment.verificationSuiteIds].sort())
-  )
-    fail(
-      "assignment_path_conflict",
-      "The managed run paths or verification suites differ from the leased assignment.",
-    );
-  return { assignment: structuredClone(assignment), agent: structuredClone(agent) };
 }

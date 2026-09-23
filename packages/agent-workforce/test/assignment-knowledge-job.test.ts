@@ -7,7 +7,10 @@ import { resolveRoleContract } from "@lervo/roles";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  assertAssignmentExecutionAuthority,
+  assertReadOnlyKnowledgeReviewAuthority,
   claimAssignment,
+  createAssignment,
   createKnowledgeJobAssignment,
   registerAgent,
   type WorkforceEvent,
@@ -76,6 +79,7 @@ describe("knowledge-job assignment provenance", () => {
       },
     };
     const assignment = await createKnowledgeJobAssignment(input);
+    expect(assignment.accessMode).toBe("read_only");
     const replay = await createKnowledgeJobAssignment(input);
     expect(replay.assignmentId).toBe(assignment.assignmentId);
     expect(events).toHaveLength(1);
@@ -86,6 +90,7 @@ describe("knowledge-job assignment provenance", () => {
         knowledgeJobId: input.knowledgeJob.jobId,
         knowledgeCompletionEventId: input.knowledgeJob.completionEventId,
         knowledgeAgentId: owner.agentId,
+        accessMode: "read_only",
       },
     });
     await expect(
@@ -111,6 +116,133 @@ describe("knowledge-job assignment provenance", () => {
       }),
     ).resolves.toMatchObject({ status: "leased", assigneeAgentId: owner.agentId });
   });
+
+  it.each(["reader_first", "writer_first"])(
+    "lets a read-only knowledge review overlap a live writer without granting write authority (%s)",
+    async (order) => {
+      const root = await repository();
+      const reviewer = await registerAgent({
+        repositoryRoot: root,
+        roleId: "developer",
+        provider: "codex",
+        responsibilityPaths: ["docs"],
+      });
+      const writer = await registerAgent({
+        repositoryRoot: root,
+        roleId: "developer",
+        provider: "codex",
+        responsibilityPaths: ["docs"],
+      });
+      const contract = await resolveRoleContract(root, "developer");
+      const review = await createKnowledgeJobAssignment({
+        repositoryRoot: root,
+        taskType: "repository.knowledge.review",
+        roleId: "developer",
+        roleVersion: contract.version,
+        roleContractHash: contract.contractHash,
+        requiredCapabilityHash: reviewer.capabilityHash,
+        priority: 30,
+        dependencyIds: [],
+        acceptanceCriteria: ["Review the exact source without modifying the repository."],
+        verificationSuiteIds: ["knowledge.lifecycle"],
+        approvalRequirements: [],
+        expectedPaths: ["docs/knowledge.md"],
+        workstreamId: "wks_abcdefabcdefabcdefabcdef",
+        knowledgeJob: {
+          contractVersion: 1,
+          jobId: `kjb_${"a".repeat(24)}`,
+          completionEventId: "evt_knowledge_completion_001",
+          completionEventHash: `sha256:${"b".repeat(64)}`,
+          sourceConversationEventId: `cve_${"c".repeat(64)}`,
+          sourceManifestHash: `sha256:${"d".repeat(64)}`,
+          agentId: reviewer.agentId,
+        },
+      });
+      const live = await createAssignment({
+        repositoryRoot: root,
+        roleId: "developer",
+        taskType: "implementation",
+        acceptanceCriteria: ["Update the authorized source."],
+        verificationSuiteIds: ["project.quick"],
+        expectedPaths: ["docs/knowledge.md"],
+      });
+      const claimReview = () =>
+        claimAssignment({
+          repositoryRoot: root,
+          assignmentId: review.assignmentId,
+          agentId: reviewer.agentId,
+          sessionId: "ses_knowledge_review_01",
+        });
+      const claimLive = () =>
+        claimAssignment({
+          repositoryRoot: root,
+          assignmentId: live.assignmentId,
+          agentId: writer.agentId,
+          sessionId: "ses_knowledge_writer_01",
+        });
+      const claimed =
+        order === "reader_first"
+          ? await (async () => {
+              const read = await claimReview();
+              await claimLive();
+              return read;
+            })()
+          : await (async () => {
+              await claimLive();
+              return claimReview();
+            })();
+      await expect(
+        assertAssignmentExecutionAuthority({
+          repositoryRoot: root,
+          assignmentId: review.assignmentId,
+          agentId: reviewer.agentId,
+          leaseId: claimed.lease!.leaseId,
+          provider: "codex",
+          expectedPaths: ["docs/knowledge.md"],
+          verificationSuiteIds: ["knowledge.lifecycle"],
+        }),
+      ).rejects.toMatchObject({ code: "assignment_lease_conflict" });
+      await expect(
+        assertReadOnlyKnowledgeReviewAuthority({
+          repositoryRoot: root,
+          assignmentId: review.assignmentId,
+          agentId: reviewer.agentId,
+          leaseId: claimed.lease!.leaseId,
+          provider: "codex",
+          sourcePaths: ["docs/knowledge.md"],
+          verificationSuiteIds: ["knowledge.lifecycle"],
+          knowledgeJob: review.knowledgeJob!,
+        }),
+      ).resolves.toMatchObject({ assignment: { accessMode: "read_only" } });
+      await expect(
+        assertReadOnlyKnowledgeReviewAuthority({
+          repositoryRoot: root,
+          assignmentId: review.assignmentId,
+          agentId: reviewer.agentId,
+          leaseId: claimed.lease!.leaseId,
+          provider: "codex",
+          sourcePaths: ["docs/other.md"],
+          verificationSuiteIds: ["knowledge.lifecycle"],
+          knowledgeJob: review.knowledgeJob!,
+        }),
+      ).rejects.toMatchObject({ code: "assignment_lease_conflict" });
+      await expect(
+        assertReadOnlyKnowledgeReviewAuthority({
+          repositoryRoot: root,
+          assignmentId: review.assignmentId,
+          agentId: reviewer.agentId,
+          leaseId: claimed.lease!.leaseId,
+          provider: "codex",
+          sourcePaths: ["docs/knowledge.md"],
+          verificationSuiteIds: ["knowledge.lifecycle"],
+          knowledgeJob: {
+            ...review.knowledgeJob!,
+            sourceManifestHash: `sha256:${"e".repeat(64)}`,
+          },
+        }),
+      ).rejects.toMatchObject({ code: "assignment_lease_conflict" });
+    },
+  );
 
   it("rejects missing workstream and malformed provenance before writing state", async () => {
     const root = await repository();

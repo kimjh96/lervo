@@ -22,6 +22,7 @@ import { supervisionPayloadAllowlists, validateSupervisionPayload } from "./supe
 import { roleInputPayloadFields, validateRoleInputPayload } from "./role-input-payload.js";
 import { validateTopologyPolicyPayload } from "./topology-policy-payload.js";
 import { validateKnowledgeJobAssignmentPayload } from "./knowledge-job-assignment-payload.js";
+import { validateAssignmentAccessModePayload } from "./assignment-access-mode-payload.js";
 
 export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
@@ -252,6 +253,7 @@ export const eventPayloadAllowlists = {
     "priority",
     "dependencyIds",
     "expectedPathDigest",
+    "accessMode",
     "acceptanceDigest",
     "verificationDigest",
     "approvalDigest",
@@ -264,6 +266,7 @@ export const eventPayloadAllowlists = {
     "generation",
     "expiresAt",
     "expectedPathDigest",
+    "accessMode",
   ],
   "assignment.lease.renewed": ["assignmentId", "agentId", "leaseId", "generation", "expiresAt"],
   "assignment.handoff.recorded": [
@@ -1203,6 +1206,7 @@ export function sanitizeEventPayload(
     if (type === "role.input.bound") validateRoleInputPayload(sanitized);
     validateTopologyPolicyPayload(type, sanitized);
     validateKnowledgeJobAssignmentPayload(type, sanitized);
+    validateAssignmentAccessModePayload(type, sanitized);
   } catch {
     throw new RedactionError("invalid_payload", "$", "The event payload coordinates are invalid.");
   }

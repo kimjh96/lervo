@@ -1,4 +1,5 @@
 import { nextAssignmentLeaseGeneration } from "./assignment-lease-generation.js";
+import { assignmentAccessMode } from "./assignment-access-mode.js";
 import { type WorkResponsibilityV1 } from "@lervo/application-contract";
 import { type WorkforceEventRecorder, type WorkforceAssignment } from "./types.js";
 import {
@@ -114,6 +115,8 @@ export async function claimAssignmentOnce(input: {
         item.status === "leased" &&
         item.lease !== null &&
         Date.parse(item.lease.expiresAt) > now.getTime() &&
+        assignmentAccessMode(item) === "write" &&
+        assignmentAccessMode(assignment) === "write" &&
         overlaps(item.expectedPaths, assignment.expectedPaths),
     );
     if (conflicting !== undefined)
@@ -157,6 +160,7 @@ export async function claimAssignmentOnce(input: {
           generation,
           expiresAt: lease.expiresAt,
           expectedPathDigest: digest(stableJson(next.expectedPaths)),
+          accessMode: assignmentAccessMode(next),
         },
       });
     } catch (error) {

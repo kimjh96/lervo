@@ -14,7 +14,11 @@ export {
 } from "./assignment-creation.js";
 export { createKnowledgeJobAssignment } from "./assignment-knowledge-job-creation.js";
 export { claimAssignment } from "./assignment-claim.js";
-export { renewAssignmentLease, assertAssignmentExecutionAuthority } from "./assignment-lease.js";
+export { renewAssignmentLease } from "./assignment-lease.js";
+export {
+  assertAssignmentExecutionAuthority,
+  assertReadOnlyKnowledgeReviewAuthority,
+} from "./assignment-authority.js";
 export { cancelAssignment } from "./assignment-cancellation.js";
 export { recordAssignmentHandoff, acknowledgeAssignmentHandoff } from "./assignment-handoff.js";
 export { completeAssignment, reconcileAssignmentCompletion } from "./assignment-completion.js";

@@ -4,6 +4,7 @@ import {
   type WorkforceAssignmentKnowledgeJobProvenance,
   type WorkforceEventRecorder,
   type WorkforceAssignment,
+  type AssignmentAccessMode,
 } from "./types.js";
 import { resolveRoleContract } from "@lervo/roles";
 import { state, transition, retryConcurrent, acquireLock } from "./workforce-state-io.js";
@@ -52,6 +53,7 @@ export async function createAssignmentOnce(input: {
   verificationSuiteIds: string[];
   approvalRequirements?: string[];
   expectedPaths: string[];
+  accessMode?: AssignmentAccessMode;
   workstreamId?: string;
   requiredCapabilityHash?: string | null;
   routine?: WorkforceAssignmentRoutineProvenance | null;
@@ -89,6 +91,9 @@ export async function createAssignmentOnce(input: {
     input.acceptanceCriteria.length === 0 ||
     verificationSuiteIds.length === 0 ||
     expectedPaths.length === 0 ||
+    (input.accessMode !== undefined && !["read_only", "write"].includes(input.accessMode)) ||
+    (input.accessMode === "read_only" && input.knowledgeJob == null) ||
+    (input.knowledgeJob != null && input.accessMode !== "read_only") ||
     (input.workstreamId !== undefined && !WORKSTREAM_ID.test(input.workstreamId)) ||
     (input.requiredCapabilityHash !== undefined &&
       input.requiredCapabilityHash !== null &&
@@ -148,6 +153,7 @@ export async function createAssignmentOnce(input: {
             verificationSuiteIds,
             approvalRequirements,
             expectedPaths,
+            accessMode: input.accessMode ?? "write",
             workstreamId: input.workstreamId,
           })
         : input.workstreamId !== undefined &&
@@ -210,6 +216,7 @@ export async function createAssignmentOnce(input: {
     verificationSuiteIds,
     approvalRequirements,
     expectedPaths,
+    accessMode: input.accessMode ?? "write",
     workstreamId: input.workstreamId ?? null,
     assigneeAgentId: null,
     lease: null,
@@ -252,6 +259,7 @@ export async function createAssignmentOnce(input: {
         priority: assignment.priority,
         dependencyIds,
         expectedPathDigest: digest(stableJson(expectedPaths)),
+        accessMode: input.accessMode ?? "write",
         acceptanceDigest: digest(stableJson(input.acceptanceCriteria)),
         verificationDigest: digest(stableJson(verificationSuiteIds)),
         approvalDigest: digest(stableJson(approvalRequirements)),

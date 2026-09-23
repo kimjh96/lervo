@@ -57,6 +57,7 @@ export function knowledgeJobAssignmentMatches(
     verificationSuiteIds: string[];
     approvalRequirements: string[];
     expectedPaths: string[];
+    accessMode: "read_only" | "write";
     workstreamId: string;
   },
 ): boolean {
@@ -73,6 +74,7 @@ export function knowledgeJobAssignmentMatches(
     stableJson(existing.verificationSuiteIds) === stableJson(expected.verificationSuiteIds) &&
     stableJson(existing.approvalRequirements) === stableJson(expected.approvalRequirements) &&
     stableJson(existing.expectedPaths) === stableJson(expected.expectedPaths) &&
+    (existing.accessMode ?? "write") === expected.accessMode &&
     existing.workstreamId === expected.workstreamId
   );
 }

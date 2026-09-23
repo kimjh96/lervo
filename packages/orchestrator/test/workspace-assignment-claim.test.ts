@@ -2,8 +2,14 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { createAssignment, registerAgent, type WorkforceAssignment } from "@lervo/agent-workforce";
+import {
+  createAssignment,
+  createKnowledgeJobAssignment,
+  registerAgent,
+  type WorkforceAssignment,
+} from "@lervo/agent-workforce";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
+import { resolveRoleContract } from "@lervo/roles";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -121,6 +127,51 @@ describe("workspace assignment coordination", () => {
       reservation: { reservationId: expect.stringMatching(/^hrs_[a-f0-9]{24}$/u) },
       assignment: { status: "leased" },
     });
+  });
+
+  it("does not reserve a write path for a read-only assignment", async () => {
+    const current = await fixture(["docs"]);
+    const contract = await resolveRoleContract(current.root, "developer");
+    const review = await createKnowledgeJobAssignment({
+      repositoryRoot: current.root,
+      taskType: "repository.knowledge.review",
+      roleId: "developer",
+      roleVersion: contract.version,
+      roleContractHash: contract.contractHash,
+      requiredCapabilityHash: current.agent.capabilityHash,
+      priority: 30,
+      dependencyIds: [],
+      acceptanceCriteria: ["Inspect source without writing."],
+      verificationSuiteIds: ["knowledge.lifecycle"],
+      approvalRequirements: [],
+      expectedPaths: ["docs"],
+      workstreamId: "wks_abcdefabcdefabcdefabcdef",
+      knowledgeJob: {
+        contractVersion: 1,
+        jobId: `kjb_${"a".repeat(24)}`,
+        completionEventId: "evt_workspace_review_001",
+        completionEventHash: `sha256:${"b".repeat(64)}`,
+        sourceConversationEventId: `cve_${"c".repeat(64)}`,
+        sourceManifestHash: `sha256:${"d".repeat(64)}`,
+        agentId: current.agent.agentId,
+      },
+    });
+    const port = new RecordingReservationPort();
+    await expect(
+      claimWorkspaceAssignment({
+        repositoryRoot: current.root,
+        assignmentId: review.assignmentId,
+        agentId: current.agent.agentId,
+        sessionId: "ses_read_only_review",
+        mode: "hub_coordinated",
+        nodeId: "nod_workspace_claim_01",
+        repositoryIdentityHash: `sha256:${"a".repeat(64)}`,
+        baseCommit: "b".repeat(40),
+        integrationTargetDigest: `sha256:${"c".repeat(64)}`,
+        reservationPort: port,
+      }),
+    ).rejects.toMatchObject({ code: "assignment_lease_conflict" });
+    expect(port.calls).toEqual([]);
   });
 
   it("releases a granted Hub reservation when the local path lease loses the race", async () => {

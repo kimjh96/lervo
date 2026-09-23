@@ -93,6 +93,11 @@ export async function claimWorkspaceAssignment(input: {
   );
   if (assignment === undefined)
     throw new AgentWorkforceError("assignment_not_found", "The workspace assignment is absent.");
+  if (assignment.accessMode === "read_only" && input.mode === "hub_coordinated")
+    throw new AgentWorkforceError(
+      "assignment_lease_conflict",
+      "A read-only assignment cannot reserve a Hub write-path scope.",
+    );
   const now = input.now ?? new Date();
   const duration = input.leaseDurationMs ?? 5 * 60_000;
   const workspaceId = id("wsp");

@@ -520,6 +520,7 @@ describe("event payload privacy boundary", () => {
       knowledgeSourceConversationEventId: `cve_${"d".repeat(64)}`,
       knowledgeSourceManifestHash: `sha256:${"e".repeat(64)}`,
       knowledgeAgentId: `agt_${"f".repeat(24)}`,
+      accessMode: "read_only",
     };
     const result = sanitizeEventPayload("assignment.created", {
       ...payload,
@@ -543,6 +544,15 @@ describe("event payload privacy boundary", () => {
       sanitizeEventPayload("assignment.created", {
         ...payload,
         knowledgeSourceManifestHash: undefined,
+      }),
+    ).toThrow();
+    expect(() =>
+      sanitizeEventPayload("assignment.created", { ...payload, accessMode: "read_write" }),
+    ).toThrow();
+    expect(() =>
+      sanitizeEventPayload("assignment.claimed", {
+        assignmentId: payload.assignmentId,
+        accessMode: "read_write",
       }),
     ).toThrow();
   });
