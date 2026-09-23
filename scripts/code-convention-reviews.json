@@ -116,9 +116,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:4b85010a54691b164b382e8d89bf4a5ff732c216f4610d36cdcda02e8825891f",
+      "contentHash": "sha256:88d180801ef6d52213c70af15630ceb7e8cebabc8678ed4ebc47b44813aa61b5",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns one event payload privacy boundary with a declarative allowlist catalog and exact coordinate validation. Named deliberation binding fields and the repository-work checkpoint disposition remain bounded organization, policy-seat, agent-role, route-hash, provider, state, and timestamp evidence; prompts, credentials, model output, reasoning, paths beyond their owning event schemas, and raw Discord identifiers remain excluded.",
+      "rationale": "The module owns one pure event-payload privacy boundary: allowlist entries, schema dispatch, and coordinate checks determine the same sanitized result without I/O. The new knowledge outcome keeps only completion, agent, source-manifest, state, and bounded failure coordinates; prompts, source bytes, credentials, and provider output remain excluded. Event-specific schemas and persistence remain in separate modules.",
       "disposition": "cohesive"
     },
     {
@@ -333,9 +333,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:c9a00b11c6a83d79a5e084e4c49d64cd4c3daee238e8c631d307694a27a52f03",
+      "contentHash": "sha256:285090f4df9ed57bdff60e405146e6990cadf49b084c2b605c55bb9b468fe03d",
       "responsibility": "Repository schema validator registry",
-      "rationale": "This module registers compiled validators for the schema catalog. Product-surface projections, steering, and subscription hints add only linked declarative validators; schema definitions, domain decisions, configuration handling, and persistence remain in their owning modules. No runtime workflow policy is added.",
+      "rationale": "This module registers compiled validators for the schema catalog. The conversation knowledge outcome adds only a linked declarative validator; schema definitions, domain decisions, configuration handling, and persistence remain in their owning modules. No runtime workflow policy is added.",
       "disposition": "cohesive"
     },
     {

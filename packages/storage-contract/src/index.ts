@@ -99,6 +99,7 @@ export interface ListOutboxOptions {
 
 export interface OutboxTransaction extends EventStoreTransaction {
   enqueue(request: EnqueueOutboxRequest): EnqueueOutboxResult;
+  outstandingCount(destinationId: string): number;
   claim(request: ClaimOutboxRequest): OutboxDelivery[];
   acknowledge(request: AcknowledgeOutboxRequest): AcknowledgeOutboxResult;
   reschedule(request: RescheduleOutboxRequest): RescheduleOutboxResult;
@@ -121,6 +122,7 @@ export interface EventStore<TTransaction extends EventStoreTransaction = EventSt
 
 export interface OutboxStore extends EventStore<OutboxTransaction> {
   enqueue(request: EnqueueOutboxRequest): EnqueueOutboxResult;
+  outstandingCount(destinationId: string): number;
   claim(request: ClaimOutboxRequest): OutboxDelivery[];
   acknowledge(request: AcknowledgeOutboxRequest): AcknowledgeOutboxResult;
   reschedule(request: RescheduleOutboxRequest): RescheduleOutboxResult;

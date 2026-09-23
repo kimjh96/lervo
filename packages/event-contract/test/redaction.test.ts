@@ -3,6 +3,32 @@ import { describe, expect, it } from "vitest";
 import { RedactionError, sanitizeEventPayload } from "../src/index.js";
 
 describe("event payload privacy boundary", () => {
+  it("keeps knowledge-job outcome coordinates without raw review content", () => {
+    const payload = {
+      completionEventId: "evt_completion01",
+      completionEventHash: `sha256:${"a".repeat(64)}`,
+      sourceConversationEventId: `cve_${"b".repeat(64)}`,
+      jobId: `kjb_${"c".repeat(24)}`,
+      agentId: `agt_${"d".repeat(24)}`,
+      sourceManifest: { kind: "legacy_unavailable" },
+      terminalState: "attention_required",
+      attemptCount: 3,
+      failureCode: "legacy_source_unavailable",
+      knowledgeSnapshotHash: null,
+      resolvedAt: "2026-09-23T00:00:00.000Z",
+    };
+    const result = sanitizeEventPayload("conversation.repository_knowledge.resolved", {
+      ...payload,
+      sourceText: "private source",
+      prompt: "private prompt",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(result.redactions).toEqual([
+      { path: "$.sourceText", reason: "not_allowlisted" },
+      { path: "$.prompt", reason: "not_allowlisted" },
+    ]);
+  });
+
   it("keeps bounded managed conversation-work evidence without raw provider content", () => {
     const payload = {
       sourceConversationEventId: `cve_${"a".repeat(64)}`,
@@ -54,6 +80,15 @@ describe("event payload privacy boundary", () => {
       changedPaths: [],
       changedPathCount: 0,
     });
+    expect(() =>
+      sanitizeEventPayload("conversation.repository_work.completed", {
+        ...payload,
+        knowledgeDisposition: "pending_background",
+        sourceManifestContentHash: payload.resultContentHash,
+        sourceManifestByteCount: 256,
+        changedPathCount: 2,
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
   });
 
   it("keeps organization identity coordinates while removing external identifiers", () => {

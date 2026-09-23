@@ -132,6 +132,39 @@ describe("SQLite transactional outbox", () => {
     store.close();
   });
 
+  it("counts only outstanding rows for one destination inside an enqueue transaction", async () => {
+    const store = await SQLiteEventStore.open({ path: await databasePath(), projectId });
+    const first = store.append(draft(1)).event;
+    const second = store.append(draft(2)).event;
+    store.enqueue(enqueueRequest(first.eventId));
+    store.enqueue({ ...enqueueRequest(first.eventId), destinationId: "hub:backup" });
+
+    expect(store.outstandingCount(destinationId)).toBe(1);
+    expect(
+      store.transact((transaction) => {
+        transaction.enqueue(enqueueRequest(second.eventId, 2));
+        return transaction.outstandingCount(destinationId);
+      }),
+    ).toBe(2);
+
+    store.claim({
+      destinationId,
+      workerId: "worker-1",
+      claimedAt: "2026-08-18T00:02:00Z",
+      leaseDurationMs: 60_000,
+    });
+    expect(store.outstandingCount(destinationId)).toBe(2);
+    store.acknowledge({
+      eventId: first.eventId,
+      destinationId,
+      workerId: "worker-1",
+      acknowledgedAt: "2026-08-18T00:02:01Z",
+    });
+    expect(store.outstandingCount(destinationId)).toBe(1);
+    expect(store.outstandingCount("hub:backup")).toBe(1);
+    store.close();
+  });
+
   it("recovers a committed pending item after reopening", async () => {
     const path = await databasePath();
     const first = await SQLiteEventStore.open({ path, projectId });

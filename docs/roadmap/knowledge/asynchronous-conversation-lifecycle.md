@@ -8,7 +8,7 @@ Repository agents own source-bound canonicalization and knowledge convergence wi
 
 ## Delivery and completion criteria
 
-- [ ] Record an exact changed-path hash manifest and atomically enqueue one local knowledge job with each eligible canonical conversation-work completion. Reject overflow rather than truncating path evidence.
+- [ ] Record an exact changed-path source-coordinate manifest in each eligible canonical conversation-work completion; rebuild one idempotent local job from bounded event pages after restart. Reject overflow rather than truncating path evidence.
 - [ ] Remove global knowledge preflight and postflight from the live provider path while retaining result CAS, workstream, replica, and truthful pending-state checks.
 - [ ] Run a bounded, restart-safe, provider-neutral background owner in an isolated assignment/workspace, without sharing the live turn's writer or provider session.
 - [ ] Have that agent assess durable outcomes, make authorized canonical edits through reviewed integration, or create an exact review candidate when user-owned content blocks automatic change. A structural refresh alone is not a semantic completion.
@@ -18,3 +18,7 @@ Repository agents own source-bound canonicalization and knowledge convergence wi
 - [ ] Measure live response latency while the worker is busy; verify installed Discord result and subsequent knowledge convergence independently, including no-Hub operation and user-owned conflict safety.
 
 Until every criterion and installed evidence pass, `pending_background` must not be enabled on an installed Node and existing synchronous completion remains the runtime behavior.
+
+## Reader-first foundation
+
+The shared reader now accepts the bounded version-3 knowledge-outcome payload; no producer emits it. A local event-chain reconciler can reconstruct eligible historical `baseline_valid` work into a capacity-bound outbox, detect conflicting outcome coordinates, and recover idempotently after reopening SQLite. A source-coordinate manifest builder binds observed Git trees and dirty-path digests without source bodies, but the live completion writer does not yet persist that artifact or switch to `pending_background`. The background agent, reviewed integration, and installed latency evidence remain required.

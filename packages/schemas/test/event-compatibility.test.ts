@@ -152,6 +152,20 @@ describe("reader-first event envelope compatibility", () => {
       }).valid,
     ).toBe(true);
     expect(
+      validateSchema("conversationRepositoryWorkCompletedEventPayload", {
+        ...payload,
+        knowledgeDisposition: "pending_background",
+        sourceManifestContentHash: hash,
+        sourceManifestByteCount: 256,
+      }).valid,
+    ).toBe(true);
+    expect(
+      validateSchema("conversationRepositoryWorkCompletedEventPayload", {
+        ...payload,
+        knowledgeDisposition: "pending_background",
+      }).valid,
+    ).toBe(false);
+    expect(
       validateSchema(
         "event",
         envelope({
@@ -172,6 +186,60 @@ describe("reader-first event envelope compatibility", () => {
           payload,
         }),
       ).valid,
+    ).toBe(false);
+  });
+
+  it("admits privacy-bounded repository-knowledge outcomes only on v3 readers", () => {
+    const payload = {
+      completionEventId: "evt_completion01",
+      completionEventHash: hash,
+      sourceConversationEventId: `cve_${"b".repeat(64)}`,
+      jobId: `kjb_${"c".repeat(24)}`,
+      agentId: `agt_${"d".repeat(24)}`,
+      sourceManifest: { kind: "legacy_unavailable" },
+      terminalState: "attention_required",
+      attemptCount: 3,
+      failureCode: "legacy_source_unavailable",
+      knowledgeSnapshotHash: null,
+      resolvedAt: "2026-09-23T00:00:00.000Z",
+    };
+    expect(
+      validateSchema("conversationRepositoryKnowledgeResolvedEventPayload", payload).valid,
+    ).toBe(true);
+    expect(
+      validateSchema("conversationRepositoryKnowledgeResolvedEventPayload", {
+        ...payload,
+        terminalState: "current",
+      }).valid,
+    ).toBe(false);
+    expect(
+      validateSchema("conversationRepositoryKnowledgeResolvedEventPayload", {
+        ...payload,
+        terminalState: "current",
+        failureCode: null,
+        knowledgeSnapshotHash: hash,
+      }).valid,
+    ).toBe(false);
+    expect(
+      validateSchema("conversationRepositoryKnowledgeResolvedEventPayload", {
+        ...payload,
+        sourceManifest: { kind: "content_bound", contentHash: hash, byteCount: 256 },
+        terminalState: "current",
+        failureCode: null,
+        knowledgeSnapshotHash: hash,
+      }).valid,
+    ).toBe(true);
+    expect(
+      validateSchema("event", {
+        ...envelope({ schemaVersion: 3, type: "conversation.repository_knowledge.resolved" }),
+        payload,
+      }).valid,
+    ).toBe(true);
+    expect(
+      validateSchema("event", {
+        ...envelope({ schemaVersion: 2, type: "conversation.repository_knowledge.resolved" }),
+        payload,
+      }).valid,
     ).toBe(false);
   });
 

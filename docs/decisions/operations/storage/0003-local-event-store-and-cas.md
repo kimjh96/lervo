@@ -31,6 +31,7 @@ Local execution evidence must remain complete without a Hub and recover ordering
 - An active lease is exclusive. An expired lease may be reclaimed and increments attempts. Only the current lease owner may acknowledge or retry. Acknowledgement is idempotent; failure releases the lease and schedules the next attempt.
 - Store only a lowercase failure code of at most 64 characters and its time. Never retain exception text, response bodies, credentials, or provider payloads.
 - Cleanup may delete a bounded number of acknowledged rows older than a cutoff, but never events or pending or leased work.
+- A destination-scoped outstanding count includes pending and leased rows but excludes acknowledged rows. Reconciliation reads it inside the same immediate transaction as enqueue so a capacity rejection rolls back only the attempted projection; the canonical source event remains discoverable. Invalid destinations retain `invalid_outbox_request`, and an unreadable count is `integrity_failed`.
 
 ### Content-addressed storage
 

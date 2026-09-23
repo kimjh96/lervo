@@ -63,7 +63,12 @@ export const conversationRepositoryWorkCompletedEventPayloadSchema = {
     workstreamId: { type: "string", pattern: "^wks_[a-f0-9]{24}$" },
     workstreamRevision: { type: "integer", minimum: 1 },
     workstreamSnapshotHash: sha256Schema,
-    knowledgeDisposition: { type: "string", enum: ["current", "baseline_valid"] },
+    knowledgeDisposition: {
+      type: "string",
+      enum: ["current", "baseline_valid", "pending_background"],
+    },
+    sourceManifestContentHash: sha256Schema,
+    sourceManifestByteCount: { type: "integer", minimum: 1, maximum: 1_048_576 },
     checkpointDisposition: {
       type: "string",
       enum: ["not_needed", "provider_checkpoint", "host_checkpoint", "not_observed"],
@@ -90,6 +95,22 @@ export const conversationRepositoryWorkCompletedEventPayloadSchema = {
     "replicaDisposition",
     "verificationStatus",
     "completedAt",
+  ],
+  allOf: [
+    {
+      if: {
+        properties: { knowledgeDisposition: { const: "pending_background" } },
+        required: ["knowledgeDisposition"],
+      },
+      then: {
+        required: ["sourceManifestContentHash", "sourceManifestByteCount"],
+        properties: {
+          changedPathCount: { type: "integer", minimum: 1 },
+          sourceManifestContentHash: sha256Schema,
+          sourceManifestByteCount: { type: "integer", minimum: 1, maximum: 1_048_576 },
+        },
+      },
+    },
   ],
   additionalProperties: false,
 } as const;

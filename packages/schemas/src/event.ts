@@ -129,6 +129,7 @@ export const supervisionEventTypes = [
 
 export const eventTypesV3 = [
   ...eventTypesV2,
+  "conversation.repository_knowledge.resolved",
   ...supervisionEventTypes,
   "managed.execution.reserved",
   "role.input.bound",

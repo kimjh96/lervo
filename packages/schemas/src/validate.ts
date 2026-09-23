@@ -38,6 +38,7 @@ import { contextEvidenceSchema } from "./context-evidence.js";
 import { contextRecommendationEventPayloadSchema } from "./context-recommendation.js";
 import { conversationAdapterDescriptorSchema } from "./conversation.js";
 import { conversationRepositoryWorkCompletedEventPayloadSchema } from "./conversation-repository-work-event.js";
+import { conversationRepositoryKnowledgeResolvedEventPayloadSchema } from "./conversation-repository-knowledge-event.js";
 import { conversationInboundEventSchema } from "./conversation-event.js";
 import {
   conversationDeliveryReceiptSchema,
@@ -350,6 +351,9 @@ const validators = {
   conversationOutboundMessage: ajv.compile(conversationOutboundMessageSchema),
   conversationRepositoryWorkCompletedEventPayload: ajv.compile(
     conversationRepositoryWorkCompletedEventPayloadSchema,
+  ),
+  conversationRepositoryKnowledgeResolvedEventPayload: ajv.compile(
+    conversationRepositoryKnowledgeResolvedEventPayloadSchema,
   ),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
   productActivityPage: ajv.compile(productActivityPageSchema),

@@ -52,10 +52,25 @@ export const eventPayloadAllowlists = {
     "workstreamRevision",
     "workstreamSnapshotHash",
     "knowledgeDisposition",
+    "sourceManifestContentHash",
+    "sourceManifestByteCount",
     "checkpointDisposition",
     "replicaDisposition",
     "verificationStatus",
     "completedAt",
+  ],
+  "conversation.repository_knowledge.resolved": [
+    "completionEventId",
+    "completionEventHash",
+    "sourceConversationEventId",
+    "jobId",
+    "agentId",
+    "sourceManifest",
+    "terminalState",
+    "attemptCount",
+    "failureCode",
+    "knowledgeSnapshotHash",
+    "resolvedAt",
   ],
   "context.recommended": [
     "recommendationId",
@@ -1278,6 +1293,8 @@ export function sanitizeEventPayload(
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "conversation.repository_work.completed": "conversationRepositoryWorkCompletedEventPayload",
+  "conversation.repository_knowledge.resolved":
+    "conversationRepositoryKnowledgeResolvedEventPayload",
   "agent.context.promoted": "agentContextPromotedEventPayload",
   "agent.context.handoff.recorded": "agentContextHandoffRecordedEventPayload",
   "agent.liveness.observed": "agentLivenessObservedEventPayload",
@@ -1337,6 +1354,11 @@ function conversationRepositoryWorkCoordinateMatches(
   payload: ConversationRepositoryWorkCompletedEventPayload,
 ): boolean {
   if (payload.changedPathCount < payload.changedPaths.length) return false;
+  if (
+    payload.knowledgeDisposition === "pending_background" &&
+    payload.changedPathCount !== payload.changedPaths.length
+  )
+    return false;
   return payload.changedPathCount === 0
     ? payload.changedPaths.length === 0 &&
         payload.repositoryRevisionBefore === payload.repositoryRevisionAfter

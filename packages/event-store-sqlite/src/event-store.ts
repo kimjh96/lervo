@@ -133,6 +133,7 @@ export class SQLiteEventStore implements OutboxStore {
       const result = work({
         append: (draft) => this.events.append(draft),
         enqueue: (request) => this.outbox.enqueue(request),
+        outstandingCount: (destinationId) => this.outbox.outstandingCount(destinationId),
         claim: (request) => this.outbox.claim(request),
         acknowledge: (request) => this.outbox.acknowledge(request),
         reschedule: (request) => this.outbox.reschedule(request),
@@ -161,6 +162,11 @@ export class SQLiteEventStore implements OutboxStore {
 
   enqueue(request: EnqueueOutboxRequest): EnqueueOutboxResult {
     return this.transact((transaction) => transaction.enqueue(request));
+  }
+
+  outstandingCount(destinationId: string): number {
+    this.assertOpen();
+    return this.outbox.outstandingCount(destinationId);
   }
 
   claim(request: ClaimOutboxRequest): OutboxDelivery[] {

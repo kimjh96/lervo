@@ -67,6 +67,19 @@ export class SQLiteOutboxRepository {
     return { inserted: true };
   }
 
+  outstandingCount(destinationId: string): number {
+    const destination = requireOutboxIdentifier(destinationId, "destinationId");
+    const row = this.database
+      .prepare(
+        "SELECT COUNT(*) AS count FROM outbox WHERE destination_id = ? AND acknowledged_at IS NULL",
+      )
+      .get(destination);
+    if (typeof row?.count !== "number") {
+      throw new EventStoreError("integrity_failed", "The outstanding outbox count is invalid.");
+    }
+    return row.count;
+  }
+
   claim(request: ClaimOutboxRequest): OutboxDelivery[] {
     const workerId = requireOutboxIdentifier(request.workerId, "workerId");
     const claimedAt = requireOutboxTimestamp(request.claimedAt, "claimedAt");

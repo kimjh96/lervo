@@ -79,7 +79,7 @@ async function pathDigest(repositoryRoot: string, path: string): Promise<string>
       const stream = createReadStream(absolute);
       stream.on("data", (chunk) => hash.update(chunk));
       stream.once("error", reject);
-      stream.once("end", () => resolveDigest(`file:${hash.digest("hex")}`));
+      stream.once("end", () => resolveDigest(`file:${metadata.mode}:${hash.digest("hex")}`));
     });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return "missing";
