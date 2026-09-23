@@ -6,6 +6,7 @@ import {
   reconcileDiscordConversationHistory,
 } from "./discord-ingress.js";
 import { ConversationDiscordGatewayRuntime } from "./discord-runtime.js";
+import type { ConversationOperationDrain } from "./operation-drain.js";
 import type { ConversationInteractionRuntime } from "./interaction-runtime.js";
 import type { ConversationApplicationOptions } from "./types.js";
 
@@ -20,11 +21,15 @@ export class ConversationDiscordDeploymentRuntime {
   private readonly gatewayRuntime: ConversationDiscordGatewayRuntime;
   private context: DiscordDeploymentContext | null = null;
 
-  constructor(private readonly options: ConversationApplicationOptions) {
+  constructor(
+    private readonly options: ConversationApplicationOptions,
+    private readonly operations: ConversationOperationDrain,
+  ) {
     this.gatewayRuntime = new ConversationDiscordGatewayRuntime(
       options.discord ?? [],
-      (integrationId, dispatch) => this.handleDispatch(integrationId, dispatch),
-      (integrationId) => this.reconcileHistory(integrationId),
+      (integrationId, dispatch) =>
+        this.operations.run(() => this.handleDispatch(integrationId, dispatch)),
+      (integrationId) => this.operations.run(() => this.reconcileHistory(integrationId)),
       options.fetch,
     );
   }

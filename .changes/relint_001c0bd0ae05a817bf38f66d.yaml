@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_001c0bd0ae05a817bf38f66d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep admitted conversation work alive until Node shutdown finishes draining."

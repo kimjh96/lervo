@@ -2,6 +2,7 @@
 
 - Status: accepted (amended 2026-09-16)
 - Decision date: 2026-09-07
+- Shutdown-drain amendment: 2026-09-24
 
 ## Context
 
@@ -46,6 +47,12 @@ Accepted interactions are durable before response work. Generation and publicati
 A conversation-owned worker retries one ready interaction at a time without another platform event, including an expired lease after process interruption. Selection binds the exact current integration, participation policy, and role so historical pending records cannot gain new policy meaning or block current work. Retry provider work stays outside the Gateway control queue.
 
 Durable-inbox inspection or advancement failure reports the privacy-bounded `interaction_retry_failed` health code and terminates the supervised Node; provider and message content are excluded.
+
+### Shutdown admission and drain
+
+The conversation application owns a process-local operation admission state, `open` or `draining`, and an active-operation count. Gateway dispatch and history reconciliation, direct inbound handling, interaction retry and delivery, deliberation control and workers, and deliberation notification operations enter through this admission boundary. On shutdown, `draining` refuses new operations while already admitted operations, including nested work they invoke, finish before their SQLite stores close. An operation accepted before shutdown is not reclassified as interrupted merely because the Node received a stop signal. The state contains no message, provider output, credential, or repository content and emits no durable event. A new operation during `draining` fails with the bounded admission-closed error; an admitted operation retains its own underlying failure meaning.
+
+This process-local drain is not by itself an upgrade fence. The service manager must coordinate admission before stopping the installed Node and account for independently managed result delivery and supervision as well as conversation work; until then, an all-work busy/idle upgrade acceptance claim is invalid.
 
 Semantic writing evaluators pass an exact JSON schema through the common provider-adapter construction boundary. Provider-specific structured-output mechanics remain inside Codex and Claude adapters. The common evaluator validates exact check order, identifiers, states, and violation counts before publication.
 

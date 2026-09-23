@@ -192,5 +192,5 @@ export interface ConversationApplication {
       }) => Promise<ConversationDeliberationReconciliationResult>)
     | null;
   stopIngress(): void;
-  close(): void;
+  close(): Promise<void>;
 }

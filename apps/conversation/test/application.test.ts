@@ -371,6 +371,66 @@ describe("conversation deployment composition", () => {
     application.close();
   });
 
+  it("keeps stores open until an admitted deliberation worker finishes during shutdown", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-drain-"));
+    roots.push(root);
+    let release!: () => void;
+    let started!: () => void;
+    const workGate = new Promise<void>((resolve) => (release = resolve));
+    const workStarted = new Promise<void>((resolve) => (started = resolve));
+    const application = await openConversationApplication({
+      ...options(root),
+      deliberations: {
+        bindings: [
+          {
+            projectId: "prj_platform01",
+            participantId: "ptc_platform01",
+            principalId: "operator:reviewer",
+            permissions: ["deliberation.start"] as const,
+          },
+        ],
+        executor: {
+          execute: async (job) => {
+            started();
+            await workGate;
+            return {
+              deliberationId: job.deliberationId,
+              status: "no_consensus" as const,
+              artifactCount: 0,
+              nextAction: "none" as const,
+            };
+          },
+        },
+        workerId: "conversation-worker-1",
+      },
+    });
+    const adapter = application.slackAdapters.get("itg_slack001");
+    if (adapter === undefined || application.deliberations === null) {
+      throw new Error("The deliberation deployment is unavailable.");
+    }
+    const received = await adapter.receive(
+      signed(event({ id: "Ev-drain-1", ts: "1787191200.000200" })),
+    );
+    if (received.status !== "accepted") throw new Error("The test event was not accepted.");
+    await application.deliberations.start({
+      event: received.event,
+      policyId: "deliberation_product-review",
+      topic: "Review the upgrade boundary.",
+      requestedAt: now.toISOString(),
+    });
+
+    const active = application.runDeliberationWorkerCycle();
+    await workStarted;
+    let closed = false;
+    const closing = application.close().then(() => (closed = true));
+    await expect(application.runDeliberationWorkerCycle()).rejects.toThrow("admission is closed");
+    expect(closed).toBe(false);
+    release();
+    await expect(active).resolves.toMatchObject({ status: "settled" });
+    await closing;
+    expect(closed).toBe(true);
+  });
+
   it("reconciles an interruption and runs its durable resume queue", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-reconcile-"));
     roots.push(root);

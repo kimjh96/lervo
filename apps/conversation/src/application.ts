@@ -25,6 +25,7 @@ import { SQLiteConversationPlatformStore } from "@lervo/conversation-platform-sq
 import { configuredConversationIntegrations } from "./built-in-integrations.js";
 import { ConversationDiscordDeploymentRuntime } from "./discord-deployment-runtime.js";
 import { ConversationInteractionRuntime } from "./interaction-runtime.js";
+import { ConversationOperationDrain } from "./operation-drain.js";
 import type { ConversationApplication, ConversationApplicationOptions } from "./types.js";
 
 function uniqueIntegrations(
@@ -63,7 +64,8 @@ export async function openConversationApplication(
 ): Promise<ConversationApplication> {
   let interactions: ConversationInteractionRuntime | null = null;
   let adapters = new Map<string, ConversationAdapter>();
-  const discordRuntime = new ConversationDiscordDeploymentRuntime(options);
+  const operations = new ConversationOperationDrain();
+  const discordRuntime = new ConversationDiscordDeploymentRuntime(options, operations);
   if (discordRuntime.gateways.size > 0 && options.interactions === undefined) {
     throw new Error("A managed Discord Gateway requires a conversation interaction deployment.");
   }
@@ -132,6 +134,17 @@ export async function openConversationApplication(
             ),
             bindings: deliberationOptions.bindings,
           });
+    const trackedDeliberations =
+      deliberations === null
+        ? null
+        : {
+            start: (input: Parameters<typeof deliberations.start>[0]) =>
+              operations.run(() => deliberations.start(input)),
+            resume: (input: Parameters<typeof deliberations.resume>[0]) =>
+              operations.run(() => deliberations.resume(input)),
+            inspect: (input: Parameters<typeof deliberations.inspect>[0]) =>
+              operations.run(() => deliberations.inspect(input)),
+          };
     const reconciliation =
       deliberationOptions?.reconciliationSource === undefined || deliberationStore === null
         ? null
@@ -203,146 +216,168 @@ export async function openConversationApplication(
       slackAdapters,
       discordAdapters,
       discordGateways: discordRuntime.gateways,
-      deliberations,
-      inspectDeliberationOrigin,
-      claimDeliberationNotification: async () => {
-        if (deliberationStore === null || deliberationOptions === undefined) return null;
-        const claimedAt = (options.now?.() ?? new Date()).toISOString();
-        const leaseDurationMs = deliberationOptions.leaseDurationMs ?? 5 * 60_000;
-        const notification =
-          (await deliberationStore.claimNotification({
-            workerId: `${deliberationOptions.workerId.slice(0, 114)}:notification`,
-            claimedAt,
-            leaseDurationMs,
-          })) ??
-          (resumeStore === null
-            ? null
-            : await resumeStore.claimNotification({
-                workerId: `${deliberationOptions.workerId.slice(0, 107)}:resume:notification`,
-                claimedAt,
-                leaseDurationMs,
-              }));
-        if (notification === null) return null;
-        return {
-          ...notification,
-          origin: await inspectDeliberationOrigin(notification.notification),
-        };
-      },
-      acceptDeliberationNotification: async (input) => {
-        const store = input.operation === "start" ? deliberationStore : resumeStore;
-        if (store === null) {
-          throw new Error("The deliberation notification store is not configured.");
-        }
-        await store.acceptNotification({
-          deliberationId: input.deliberationId,
-          leaseId: input.leaseId,
-          conversationEventId: input.conversationEventId,
-          acceptedAt: (options.now?.() ?? new Date()).toISOString(),
-        });
-      },
-      listUncertainDeliberations: async (input) => {
-        if (deliberationStore === null) return [];
-        const start = await deliberationStore.listUncertain(input);
-        if (resumeStore === null || start.length >= input.limit) return start;
-        const resume = await resumeStore.listUncertain({
-          ...input,
-          limit: input.limit - start.length,
-        });
-        return [
-          ...new Map([...start, ...resume].map((item) => [item.deliberationId, item])).values(),
-        ]
-          .toSorted((left, right) =>
-            left.uncertainAt === right.uncertainAt
-              ? left.deliberationId.localeCompare(right.deliberationId)
-              : left.uncertainAt.localeCompare(right.uncertainAt),
-          )
-          .slice(0, input.limit);
-      },
+      deliberations: trackedDeliberations,
+      inspectDeliberationOrigin: (input) => operations.run(() => inspectDeliberationOrigin(input)),
+      claimDeliberationNotification: () =>
+        operations.run(async () => {
+          if (deliberationStore === null || deliberationOptions === undefined) return null;
+          const claimedAt = (options.now?.() ?? new Date()).toISOString();
+          const leaseDurationMs = deliberationOptions.leaseDurationMs ?? 5 * 60_000;
+          const notification =
+            (await deliberationStore.claimNotification({
+              workerId: `${deliberationOptions.workerId.slice(0, 114)}:notification`,
+              claimedAt,
+              leaseDurationMs,
+            })) ??
+            (resumeStore === null
+              ? null
+              : await resumeStore.claimNotification({
+                  workerId: `${deliberationOptions.workerId.slice(0, 107)}:resume:notification`,
+                  claimedAt,
+                  leaseDurationMs,
+                }));
+          if (notification === null) return null;
+          return {
+            ...notification,
+            origin: await inspectDeliberationOrigin(notification.notification),
+          };
+        }),
+      acceptDeliberationNotification: (input) =>
+        operations.run(async () => {
+          const store = input.operation === "start" ? deliberationStore : resumeStore;
+          if (store === null) {
+            throw new Error("The deliberation notification store is not configured.");
+          }
+          await store.acceptNotification({
+            deliberationId: input.deliberationId,
+            leaseId: input.leaseId,
+            conversationEventId: input.conversationEventId,
+            acceptedAt: (options.now?.() ?? new Date()).toISOString(),
+          });
+        }),
+      listUncertainDeliberations: (input) =>
+        operations.run(async () => {
+          if (deliberationStore === null) return [];
+          const start = await deliberationStore.listUncertain(input);
+          if (resumeStore === null || start.length >= input.limit) return start;
+          const resume = await resumeStore.listUncertain({
+            ...input,
+            limit: input.limit - start.length,
+          });
+          return [
+            ...new Map([...start, ...resume].map((item) => [item.deliberationId, item])).values(),
+          ]
+            .toSorted((left, right) =>
+              left.uncertainAt === right.uncertainAt
+                ? left.deliberationId.localeCompare(right.deliberationId)
+                : left.uncertainAt.localeCompare(right.uncertainAt),
+            )
+            .slice(0, input.limit);
+        }),
       hasConversationSourceEventKeyHash: (sourceEventKeyHash) =>
         interactions?.hasSourceEventKeyHash(sourceEventKeyHash) ?? false,
-      handleInboundEvent: interactions === null ? null : (event) => interactions!.handle(event),
+      handleInboundEvent:
+        interactions === null ? null : (event) => operations.run(() => interactions!.handle(event)),
       runDeliveryCycle:
         interactions === null
           ? null
-          : async (integrationId) => {
-              const adapter = adapters.get(integrationId);
-              if (adapter === undefined) {
-                throw new Error("The conversation delivery integration is not deployed.");
-              }
-              return interactions!.runDeliveryCycle(adapter);
-            },
+          : (integrationId) =>
+              operations.run(async () => {
+                const adapter = adapters.get(integrationId);
+                if (adapter === undefined) {
+                  throw new Error("The conversation delivery integration is not deployed.");
+                }
+                return interactions!.runDeliveryCycle(adapter);
+              }),
       runInteractionRetryCycle:
         interactions === null
           ? null
-          : async (integrationId) => {
-              const adapter = adapters.get(integrationId);
-              if (adapter === undefined) {
-                throw new Error("The conversation retry integration is not deployed.");
-              }
-              const result = await interactions!.runRetryCycle(integrationId);
-              await interactions!.runDeliveryCycle(adapter);
-              return result;
-            },
-      runDeliberationWorkerCycle: async () => {
-        if (deliberationOptions === undefined || deliberationStore === null) {
-          return { status: "idle" };
-        }
-        return runConversationDeliberationWorkerCycle({
-          store: deliberationStore,
-          executor: deliberationOptions.executor,
-          workerId: deliberationOptions.workerId,
-          ...(options.now === undefined ? {} : { now: options.now }),
-          ...(deliberationOptions.leaseDurationMs === undefined
-            ? {}
-            : {
-                leaseDurationMs: deliberationOptions.leaseDurationMs,
+          : (integrationId) =>
+              operations.run(async () => {
+                const adapter = adapters.get(integrationId);
+                if (adapter === undefined) {
+                  throw new Error("The conversation retry integration is not deployed.");
+                }
+                const result = await interactions!.runRetryCycle(integrationId);
+                await interactions!.runDeliveryCycle(adapter);
+                return result;
               }),
-        });
-      },
-      runDeliberationResumeWorkerCycle: async () => {
-        if (deliberationOptions?.resumeExecutor === undefined || resumeStore === null)
-          return { status: "idle" };
-        return runConversationDeliberationResumeWorkerCycle({
-          store: resumeStore,
-          executor: deliberationOptions.resumeExecutor,
-          workerId:
-            deliberationOptions.resumeWorkerId ??
-            `${deliberationOptions.workerId.slice(0, 120)}:resume`,
-          ...(options.now === undefined ? {} : { now: options.now }),
-          ...(deliberationOptions.leaseDurationMs === undefined
-            ? {}
-            : {
-                leaseDurationMs: deliberationOptions.leaseDurationMs,
-              }),
-        });
-      },
+      runDeliberationWorkerCycle: () =>
+        operations.run(async () => {
+          if (deliberationOptions === undefined || deliberationStore === null) {
+            return { status: "idle" };
+          }
+          return runConversationDeliberationWorkerCycle({
+            store: deliberationStore,
+            executor: deliberationOptions.executor,
+            workerId: deliberationOptions.workerId,
+            ...(options.now === undefined ? {} : { now: options.now }),
+            ...(deliberationOptions.leaseDurationMs === undefined
+              ? {}
+              : {
+                  leaseDurationMs: deliberationOptions.leaseDurationMs,
+                }),
+          });
+        }),
+      runDeliberationResumeWorkerCycle: () =>
+        operations.run(async () => {
+          if (deliberationOptions?.resumeExecutor === undefined || resumeStore === null)
+            return { status: "idle" };
+          return runConversationDeliberationResumeWorkerCycle({
+            store: resumeStore,
+            executor: deliberationOptions.resumeExecutor,
+            workerId:
+              deliberationOptions.resumeWorkerId ??
+              `${deliberationOptions.workerId.slice(0, 120)}:resume`,
+            ...(options.now === undefined ? {} : { now: options.now }),
+            ...(deliberationOptions.leaseDurationMs === undefined
+              ? {}
+              : {
+                  leaseDurationMs: deliberationOptions.leaseDurationMs,
+                }),
+          });
+        }),
       reconcileDeliberation:
         reconciliation === null
           ? null
-          : async (input) => {
-              let store: ConversationDeliberationReconciliationStore = reconciliation.store;
-              if (resumeStore !== null && (await resumeStore.inspect(input)) !== null) {
-                store = resumeStore;
-              }
-              return reconcileConversationDeliberation({
-                store,
-                source: reconciliation.source,
-                projectId: input.projectId,
-                deliberationId: input.deliberationId,
-                ...(options.now === undefined ? {} : { now: options.now }),
-              });
-            },
-      stopIngress: () => discordRuntime.stop(),
-      close: () => {
+          : (input) =>
+              operations.run(async () => {
+                let store: ConversationDeliberationReconciliationStore = reconciliation.store;
+                if (resumeStore !== null && (await resumeStore.inspect(input)) !== null) {
+                  store = resumeStore;
+                }
+                return reconcileConversationDeliberation({
+                  store,
+                  source: reconciliation.source,
+                  projectId: input.projectId,
+                  deliberationId: input.deliberationId,
+                  ...(options.now === undefined ? {} : { now: options.now }),
+                });
+              }),
+      stopIngress: () => {
+        operations.stop();
         discordRuntime.stop();
-        interactions?.close();
-        resumeStore?.close();
-        deliberationStore?.close();
-        store.close();
+      },
+      close: () => {
+        operations.stop();
+        discordRuntime.stop();
+        const closeStores = () => {
+          interactions?.close();
+          resumeStore?.close();
+          deliberationStore?.close();
+          store.close();
+        };
+        if (operations.activeCount === 0) {
+          closeStores();
+          return Promise.resolve();
+        }
+        return operations.drain().then(closeStores);
       },
     };
   } catch (error) {
+    operations.stop();
     discordRuntime.stop();
+    await operations.drain();
     interactions?.close();
     resumeStore?.close();
     deliberationStore?.close();

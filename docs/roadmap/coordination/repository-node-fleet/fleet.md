@@ -38,7 +38,7 @@ Completed under [ADR-0202](../../../decisions/operations/services/0202-repositor
 - Device restart, Lervo upgrade, or checkout relocation preserves or safely reconciles repository identity and restores replication automatically.
 - A malformed local batch, registration mismatch, unavailable Hub, or divergent head is visible and bounded. Local state is retained; synchronization success is never falsely claimed.
 - Installed-runtime evidence records exact versions, observations, Hub coordinates, and replication results without secrets.
-- A busy supervised cycle refuses upgrade before any service-manager stop, then an idle upgrade preserves and releases the owner fence; independently managed conversation turns retain a separate drain acceptance gate.
+- A busy supervised cycle refuses upgrade before any service-manager stop, then an idle upgrade preserves and releases the owner fence. For independent conversation turns, prove that application shutdown waits for admitted work, that the manager atomically stops new admission and refuses an active turn before any stop command, and that an idle installed upgrade succeeds without duplicate or lost work. Process-local shutdown tracking alone does not satisfy this gate.
 
 ## Acceptance evidence
 

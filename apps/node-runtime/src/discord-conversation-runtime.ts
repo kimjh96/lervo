@@ -244,7 +244,7 @@ export async function openNodeDiscordConversationRuntime(
         await discussionDeadlineLoop?.stop();
         await repositorySignalLoop?.stop();
         await response.deliberationRuntime?.stop();
-        openedApplication.close();
+        await openedApplication.close();
         resultRuntime!.close();
         await response.close();
       },
@@ -256,7 +256,7 @@ export async function openNodeDiscordConversationRuntime(
     await discussionDeadlineLoop?.stop();
     await repositorySignalLoop?.stop();
     await response.deliberationRuntime?.stop();
-    application?.close();
+    await application?.close();
     resultRuntime?.close();
     await response.close();
     if (resultRuntime === null) response.resultStore.close();
