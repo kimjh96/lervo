@@ -31,9 +31,20 @@ function replaceExactModels(value, replacements, path = []) {
 export function reconcilePoModelPolicy(configuration, policy) {
   const source = record(configuration, "Node configuration");
   const selected = record(policy, "PO model policy");
-  if (selected.schemaVersion !== 1) throw new Error("The PO model policy version is unsupported.");
+  if (selected.schemaVersion !== 2) throw new Error("The PO model policy version is unsupported.");
   const replacements = record(selected.modelReplacements, "Model replacements");
   const profiles = record(selected.executionProfiles, "Execution profiles");
+  const conversationRoutes = record(selected.conversationRoutes, "Conversation routes");
+  const routineProviders = record(
+    record(profiles.routine, "Policy routine profile").providers,
+    "Policy routine providers",
+  );
+  const modelByProvider = Object.fromEntries(
+    providerIds.map((providerId) => [
+      providerId,
+      record(routineProviders[providerId], `Policy routine.${providerId} route`).model,
+    ]),
+  );
   for (const [from, to] of Object.entries(replacements)) {
     if (typeof to !== "string" || from.length === 0 || to.length === 0 || from === to) {
       throw new Error("A model replacement is invalid.");
@@ -42,6 +53,8 @@ export function reconcilePoModelPolicy(configuration, policy) {
 
   const result = replaceExactModels(source, replacements);
   const host = record(result.remoteCommands?.providerHost, "Node provider host");
+  const models = record(host.models, "Node provider models");
+  for (const providerId of providerIds) models[providerId] = modelByProvider[providerId];
   const installed = record(host.executionProfiles, "Installed execution profiles");
   for (const profileId of profileIds) {
     const target = record(installed[profileId], `Installed ${profileId} profile`);
@@ -72,6 +85,43 @@ export function reconcilePoModelPolicy(configuration, policy) {
       targetProvider.model = routeProvider.model;
       targetProvider.reasoningEffort = routeProvider.reasoningEffort;
     }
+  }
+  for (const [participantId, route] of Object.entries(conversationRoutes)) {
+    const selection = record(route, `Conversation route ${participantId}`);
+    if (
+      !/^ptc_[a-z0-9_]+$/.test(participantId) ||
+      !providerIds.includes(selection.provider) ||
+      selection.model !== modelByProvider[selection.provider]
+    ) {
+      throw new Error(`The ${participantId} conversation route is invalid.`);
+    }
+  }
+  const conversations = [
+    ...(result.discordConversation === undefined ? [] : [result.discordConversation]),
+    ...(result.discordConversations ?? []),
+  ];
+  const seen = new Set();
+  for (const conversation of conversations) {
+    const participantId = conversation.agentParticipantId;
+    if (!(participantId in conversationRoutes)) continue;
+    if (seen.has(participantId)) throw new Error(`Duplicate conversation route: ${participantId}`);
+    seen.add(participantId);
+    const route = conversationRoutes[participantId];
+    const routing = record(conversation.routing, `${participantId} routing`);
+    const response = record(routing.response, `${participantId} response`);
+    response.provider = route.provider;
+    response.model = route.model;
+    response.reasoningEffort = "medium";
+    const reviewer = route.provider === "codex" ? "claude" : "codex";
+    routing.resultEvaluation = {
+      ...record(routing.resultEvaluation ?? {}, `${participantId} result evaluation`),
+      provider: reviewer,
+      model: modelByProvider[reviewer],
+      reasoningEffort: "high",
+    };
+  }
+  if (result.outcomeSupervision?.ownerReasoning?.provider === "codex") {
+    result.outcomeSupervision.ownerReasoning.model = modelByProvider.codex;
   }
   return result;
 }
