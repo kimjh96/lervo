@@ -99,12 +99,14 @@ it.each(["success", "admission_failure", "probe_failure"])(
               status: "passed",
               evidenceHash: expect.stringMatching(/^sha256:/u),
             });
+          const { providerLoginContexts: _loginContexts, ...configurationWithoutLogin } =
+            f.runtimeReadiness;
           const missingLogin = await readNodeDispatchPreflight({
             repositoryRoot: f.root,
             plan,
             session,
             ports: f.ports,
-            configuration: { ...f.runtimeReadiness, providerLoginContexts: undefined },
+            configuration: configurationWithoutLogin,
             expectedKnowledgeSnapshotId: knowledgeSnapshotId,
             sourceBinding: {
               authorityDigest: operatingContractHash("preflight authority"),

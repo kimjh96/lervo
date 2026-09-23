@@ -12,11 +12,12 @@ export async function observeSupervisionRepositoryReadiness(input: {
   plan: OperatingActionPlanV1;
   readiness: Awaited<ReturnType<OutcomeSupervisionPorts["readWorkerReadiness"]>>;
   now(): string;
-  workspaceEvidenceStorage?: ProjectStorage;
+  workspaceEvidenceStorage: ProjectStorage;
 }) {
   const started = input.now();
   const readiness = structuredClone(input.readiness);
   try {
+    const eventHeadHash = input.workspaceEvidenceStorage.events.latest()?.eventHash ?? null;
     const coordinates = {
       repositoryRoot: input.repositoryRoot,
       plan: input.plan,
@@ -48,19 +49,13 @@ export async function observeSupervisionRepositoryReadiness(input: {
         check.evidenceHash = null;
       }
     }
-    const confirmedWorkspace = await readSupervisionWorkspaceSource(
-      input.repositoryRoot,
-      before.assignment,
-      input.plan,
-      input.workspaceEvidenceStorage,
-    );
     const after = await readSupervisionAssignmentSource({ ...coordinates, now: input.now() });
     const elapsed = Date.parse(input.now()) - Date.parse(started);
     if (
       !Number.isFinite(elapsed) ||
       elapsed < 0 ||
       elapsed > 5000 ||
-      workspace.evidenceHash !== confirmedWorkspace.evidenceHash ||
+      (input.workspaceEvidenceStorage.events.latest()?.eventHash ?? null) !== eventHeadHash ||
       before.leaseHash !== after.leaseHash ||
       before.ancestryHash !== after.ancestryHash
     )
@@ -68,7 +63,7 @@ export async function observeSupervisionRepositoryReadiness(input: {
     const evidence = {
       lease: after.leaseHash,
       ancestry: after.ancestryHash,
-      workspace: confirmedWorkspace.evidenceHash,
+      workspace: workspace.evidenceHash,
     };
     readiness.observation.checks = readiness.observation.checks.map((check) => {
       if (check.kind !== "lease" && check.kind !== "ancestry" && check.kind !== "workspace")
@@ -90,7 +85,7 @@ export async function observeSupervisionRepositoryReadiness(input: {
         ...readiness.observation,
         checks: readiness.observation.checks.map((check) =>
           ["lease", "ancestry", "workspace", "read_scope", "write_scope"].includes(check.kind) &&
-          check.status !== "failed"
+          check.status === "passed"
             ? { ...check, status: "unobserved" as const, evidenceHash: null }
             : check,
         ),
