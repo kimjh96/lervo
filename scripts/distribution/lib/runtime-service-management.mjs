@@ -6,12 +6,14 @@ import { isAbsolute, resolve } from "node:path";
 import {
   createRuntimeServiceDefinition,
   runtimeServiceIdentity,
+  runtimeServiceStopTimeoutMs,
 } from "../render-runtime-service.mjs";
 
 const MAXIMUM_DEFINITION_BYTES = 131_072;
 const SERVICE_STABILITY_OBSERVATIONS = 3;
 const SERVICE_STABILITY_INTERVAL_MS = 500;
 const SERVICE_STOP_MAXIMUM_OBSERVATIONS = 6;
+const SERVICE_STOP_COMMAND_TIMEOUT_MS = runtimeServiceStopTimeoutMs + 30_000;
 
 export class RuntimeServiceManagementError extends Error {
   constructor(code, message, options) {
@@ -178,7 +180,7 @@ async function exactDefinition(input) {
   return expected;
 }
 
-function defaultRunCommand(command, args) {
+function defaultRunCommand(command, args, options = {}) {
   return new Promise((resolvePromise) => {
     execFile(
       command,
@@ -186,7 +188,7 @@ function defaultRunCommand(command, args) {
       {
         encoding: "utf8",
         maxBuffer: 4_096,
-        timeout: 30_000,
+        timeout: options.timeoutMs ?? 30_000,
         windowsHide: true,
       },
       (error) => {
@@ -201,9 +203,9 @@ function defaultWait(durationMs) {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, durationMs));
 }
 
-async function command(runCommand, executable, args) {
+async function command(runCommand, executable, args, options) {
   try {
-    const result = await runCommand(executable, args);
+    const result = await runCommand(executable, args, options);
     return result?.exitCode === null ? null : Number(result?.exitCode);
   } catch {
     return null;
@@ -400,17 +402,19 @@ async function install(input, expected, context) {
 
 async function compensateInstall(input, expected, context) {
   if (input.manager === "systemd") {
-    await command(context.runCommand, "systemctl", [
-      "--user",
-      "disable",
-      "--now",
-      context.identity.name,
-    ]);
+    await command(
+      context.runCommand,
+      "systemctl",
+      ["--user", "disable", "--now", context.identity.name],
+      { timeoutMs: SERVICE_STOP_COMMAND_TIMEOUT_MS },
+    );
   } else {
-    await command(context.runCommand, "launchctl", [
-      "bootout",
-      `${context.identity.domain}/${context.identity.label}`,
-    ]);
+    await command(
+      context.runCommand,
+      "launchctl",
+      ["bootout", `${context.identity.domain}/${context.identity.label}`],
+      { timeoutMs: SERVICE_STOP_COMMAND_TIMEOUT_MS },
+    );
     await command(context.runCommand, "launchctl", [
       "disable",
       `${context.identity.domain}/${context.identity.label}`,
@@ -458,20 +462,22 @@ async function remove(input, expected, context) {
   if (input.manager === "systemd") {
     if (
       (before.active || before.enabled) &&
-      (await command(context.runCommand, "systemctl", [
-        "--user",
-        "disable",
-        "--now",
-        context.identity.name,
-      ])) !== 0
+      (await command(
+        context.runCommand,
+        "systemctl",
+        ["--user", "disable", "--now", context.identity.name],
+        { timeoutMs: SERVICE_STOP_COMMAND_TIMEOUT_MS },
+      )) !== 0
     )
       fail("service_remove_failed", "The service could not be stopped and disabled.");
   } else if (before.active) {
     if (
-      (await command(context.runCommand, "launchctl", [
-        "bootout",
-        `${context.identity.domain}/${context.identity.label}`,
-      ])) !== 0
+      (await command(
+        context.runCommand,
+        "launchctl",
+        ["bootout", `${context.identity.domain}/${context.identity.label}`],
+        { timeoutMs: SERVICE_STOP_COMMAND_TIMEOUT_MS },
+      )) !== 0
     )
       fail("service_remove_failed", "The service could not be stopped.");
   }
@@ -533,18 +539,18 @@ async function activate(input, context) {
 async function stopForUpgrade(input, context) {
   if (input.manager === "systemd") {
     return (
-      (await command(context.runCommand, "systemctl", [
-        "--user",
-        "stop",
-        context.identity.name,
-      ])) === 0
+      (await command(context.runCommand, "systemctl", ["--user", "stop", context.identity.name], {
+        timeoutMs: SERVICE_STOP_COMMAND_TIMEOUT_MS,
+      })) === 0
     );
   }
   return (
-    (await command(context.runCommand, "launchctl", [
-      "bootout",
-      `${context.identity.domain}/${context.identity.label}`,
-    ])) === 0
+    (await command(
+      context.runCommand,
+      "launchctl",
+      ["bootout", `${context.identity.domain}/${context.identity.label}`],
+      { timeoutMs: SERVICE_STOP_COMMAND_TIMEOUT_MS },
+    )) === 0
   );
 }
 
@@ -566,16 +572,17 @@ async function upgrade(input, expected, previous, context) {
     );
   }
   if (wasOperational) {
-    if (!(await stopForUpgrade(input, context))) {
-      fail("service_upgrade_failed", "The previous service could not be stopped for upgrade.");
-    }
+    const stopReportedSuccess = await stopForUpgrade(input, context);
     const stopped = await stabilizedInactiveServiceStatus(
       input,
       context,
       await serviceStatus(input, context),
     );
     if (!isInactiveServiceStatus(stopped)) {
-      fail("service_upgrade_unknown", "The previous service stop could not be verified.");
+      fail(
+        stopReportedSuccess ? "service_upgrade_unknown" : "service_upgrade_failed",
+        "The previous service stop could not be verified.",
+      );
     }
   }
   await replaceTarget(context.target, expected);

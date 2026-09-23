@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c851cd7805e50b44d5cc9f8b"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Preserve service upgrades when graceful shutdown outlasts a short manager command timeout."

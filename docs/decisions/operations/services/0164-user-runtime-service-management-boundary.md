@@ -4,6 +4,7 @@
 - Decision date: 2026-08-22
 - Provider child environment amendment: 2026-09-09
 - Requested runtime amendment: 2026-09-19
+- Graceful-stop command amendment: 2026-09-24
 
 ## Context
 
@@ -59,6 +60,8 @@ Failure for a new target compensates by stopping and disabling, then deletes onl
 Removal acts only when the target equals the canonical source. It stops and disables the service, verifies inactivity and bytes, then deletes the exact definition. It permits at most six observations and requires three consecutive stopped observations before deletion, preventing asynchronous manager teardown from being mistaken for failure or completion. Missing or differing definitions are never guessed.
 
 A transactional upgrade binds both exact predecessor and replacement definitions, accepts either a stably operational predecessor or its exact inactive installed form, and restores the predecessor's prior disposition if replacement activation fails. Runtime material uses `SIGHUP` only where the runtime explicitly supports reload.
+
+The manager command deadline for a stop, bootout, or stop-bearing disable exceeds the canonical systemd `TimeoutStopSec=120s` by a bounded margin. A command-level stop failure is not itself proof that the service stayed active: upgrade reobserves stable inactivity before changing definition bytes. If stop did complete, it continues the exact predecessor-bound transaction; if inactivity cannot be proved, it does not publish the replacement. A previously operational service must not be left down solely because a manager command timed out while a normal graceful shutdown continued.
 
 ### Failures, privacy, and evidence
 

@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { manageRuntimeService } from "../manage-runtime-service.mjs";
-import { renderRuntimeService } from "../render-runtime-service.mjs";
+import { renderRuntimeService, runtimeServiceStopTimeoutMs } from "../render-runtime-service.mjs";
 
 const roots = [];
 const nodeInstance = "nfi_0123456789abcdef01234567";
@@ -411,6 +411,104 @@ describe("runtime user service management", () => {
       active: true,
     });
     expect(await readFile(target, "utf8")).toBe(await readFile(previous.definition, "utf8"));
+  });
+
+  it("reconciles an ambiguous slow stop before replacing an operational service", async () => {
+    const previous = await fixture("systemd", "hub");
+    const replacementExecutable = resolve(previous.root, "lervo-runtime-v2");
+    const replacementDefinition = resolve(previous.root, "runtime-v2.service");
+    await writeFile(replacementExecutable, "#!/bin/sh\n", { mode: 0o700 });
+    await chmod(replacementExecutable, 0o700);
+    await renderRuntimeService([
+      "--manager",
+      "systemd",
+      "--runtime",
+      "hub",
+      "--executable",
+      replacementExecutable,
+      "--config",
+      previous.config,
+      "--output",
+      replacementDefinition,
+    ]);
+    const manager = systemdManager();
+    const options = {
+      platform: "linux",
+      homeDirectory: previous.root,
+      runCommand: manager.run.bind(manager),
+      wait: async () => {},
+    };
+    await manageRuntimeService(previous.writeArgs("install"), options);
+    let stopTimeoutMs;
+    const upgradeArgs = [
+      "--action",
+      "upgrade",
+      "--manager",
+      "systemd",
+      "--runtime",
+      "hub",
+      "--definition",
+      replacementDefinition,
+      "--previous-definition",
+      previous.definition,
+      "--executable",
+      replacementExecutable,
+      "--config",
+      previous.config,
+      "--write",
+    ];
+    await expect(
+      manageRuntimeService(upgradeArgs, {
+        ...options,
+        runCommand: async (command, args, commandOptions) => {
+          if (command === "systemctl" && args[1] === "stop") {
+            stopTimeoutMs = commandOptions?.timeoutMs;
+            await manager.run(command, args);
+            return { exitCode: null };
+          }
+          return manager.run(command, args);
+        },
+      }),
+    ).resolves.toMatchObject({ change: "upgraded", active: true });
+    expect(stopTimeoutMs).toBeGreaterThan(runtimeServiceStopTimeoutMs);
+    expect(
+      await readFile(resolve(previous.root, ".config/systemd/user/lervo-hub.service"), "utf8"),
+    ).toBe(await readFile(replacementDefinition, "utf8"));
+
+    await expect(
+      manageRuntimeService(
+        [
+          "--action",
+          "rollback",
+          "--manager",
+          "systemd",
+          "--runtime",
+          "hub",
+          "--definition",
+          replacementDefinition,
+          "--previous-definition",
+          previous.definition,
+          "--executable",
+          replacementExecutable,
+          "--config",
+          previous.config,
+          "--write",
+        ],
+        options,
+      ),
+    ).resolves.toMatchObject({ change: "rolled_back", active: true });
+    await expect(
+      manageRuntimeService(upgradeArgs, {
+        ...options,
+        runCommand: async (command, args) =>
+          command === "systemctl" && args[1] === "stop"
+            ? { exitCode: null }
+            : manager.run(command, args),
+      }),
+    ).rejects.toMatchObject({ code: "service_upgrade_failed" });
+    expect(
+      await readFile(resolve(previous.root, ".config/systemd/user/lervo-hub.service"), "utf8"),
+    ).toBe(await readFile(previous.definition, "utf8"));
   });
 
   it("repairs an exact inactive installed service during upgrade", async () => {

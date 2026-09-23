@@ -2,6 +2,8 @@ import { constants } from "node:fs";
 import { access, chmod, lstat, open } from "node:fs/promises";
 import { dirname, isAbsolute, resolve } from "node:path";
 
+export const runtimeServiceStopTimeoutMs = 120_000;
+
 function fail(message) {
   throw new Error(message);
 }
@@ -147,7 +149,7 @@ function systemd(input) {
     .filter((value) => value !== null)
     .map(systemdEscape)
     .join(" ");
-  return `[Unit]\nDescription=${title}\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nEnvironment=${systemdEscape(`PATH=${runtimePath(input)}`)}\nExecStart=${command} --config ${systemdEscape(input.config)}\nExecReload=/bin/kill -HUP $MAINPID\nKillSignal=SIGTERM\nRestart=on-failure\nRestartSec=5s\nTimeoutStopSec=120s\nUMask=0077\nNoNewPrivileges=true\n\n[Install]\nWantedBy=default.target\n`;
+  return `[Unit]\nDescription=${title}\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nEnvironment=${systemdEscape(`PATH=${runtimePath(input)}`)}\nExecStart=${command} --config ${systemdEscape(input.config)}\nExecReload=/bin/kill -HUP $MAINPID\nKillSignal=SIGTERM\nRestart=on-failure\nRestartSec=5s\nTimeoutStopSec=${runtimeServiceStopTimeoutMs / 1000}s\nUMask=0077\nNoNewPrivileges=true\n\n[Install]\nWantedBy=default.target\n`;
 }
 
 function launchd(input) {
