@@ -3,6 +3,7 @@
 - Status: accepted (amended 2026-09-16)
 - Decision date: 2026-09-07
 - Shutdown-drain amendment: 2026-09-24
+- Cross-process admission amendment: 2026-09-24
 
 ## Context
 
@@ -53,6 +54,8 @@ Durable-inbox inspection or advancement failure reports the privacy-bounded `int
 The conversation application owns a process-local operation admission state, `open` or `draining`, and an active-operation count. Gateway dispatch and history reconciliation, direct inbound handling, interaction retry and delivery, deliberation control and workers, and deliberation notification operations enter through this admission boundary. On shutdown, `draining` refuses new operations while already admitted operations, including nested work they invoke, finish before their SQLite stores close. An operation accepted before shutdown is not reclassified as interrupted merely because the Node received a stop signal. The state contains no message, provider output, credential, or repository content and emits no durable event. A new operation during `draining` fails with the bounded admission-closed error; an admitted operation retains its own underlying failure meaning.
 
 This process-local drain is not by itself an upgrade fence. The service manager must coordinate admission before stopping the installed Node and account for independently managed result delivery and supervision as well as conversation work; until then, an all-work busy/idle upgrade acceptance claim is invalid.
+
+For a service-launched Node, the application drain also acquires one claim from the repository-scoped SQLite work-admission authority for each operation. Its session is bound to the exact configuration path and byte digest. A manager-held upgrade freeze makes newly arriving application work wait; shutdown rejects waiting work, preserves the original failure meaning for already admitted work, and closes the session only after the shared drain and independent result-delivery and remote-control paths settle. The scope, digest, session, claim and freeze fields, privacy restrictions, and failure codes are defined in [ADR-0164](../../operations/services/0164-user-runtime-service-management-boundary.md). Local direct application composition without a service configuration path retains the process-local drain alone and makes no service-upgrade claim.
 
 Semantic writing evaluators pass an exact JSON schema through the common provider-adapter construction boundary. Provider-specific structured-output mechanics remain inside Codex and Claude adapters. The common evaluator validates exact check order, identifiers, states, and violation counts before publication.
 

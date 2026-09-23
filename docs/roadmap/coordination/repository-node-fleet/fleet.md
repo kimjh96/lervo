@@ -39,6 +39,8 @@ Completed under [ADR-0202](../../../decisions/operations/services/0202-repositor
 - A malformed local batch, registration mismatch, unavailable Hub, or divergent head is visible and bounded. Local state is retained; synchronization success is never falsely claimed.
 - Installed-runtime evidence records exact versions, observations, Hub coordinates, and replication results without secrets.
 - A busy supervised cycle refuses upgrade before any service-manager stop, then an idle upgrade preserves and releases the owner fence. For independent conversation turns, prove that application shutdown waits for admitted work, that the manager atomically stops new admission and refuses an active turn before any stop command, and that an idle installed upgrade succeeds without duplicate or lost work. Process-local shutdown tracking alone does not satisfy this gate.
+- Prove the first installed Node transition from the legacy, non-participating runtime without assuming that missing admission rows mean idle. Preserve ongoing work and test active and inactive service states, rollback, restart, and configuration binding. Source-level SQLite exclusion alone does not satisfy this installed gate.
+- Bounded structural follow-up: extract service-management argument and source validation from the long lifecycle transaction module, preserving the same typed failures; verify the systemd/launchd management suite and the bundled CLI entrypoint after extraction. Keep this separate from the safety-critical first-transition change.
 
 ## Acceptance evidence
 

@@ -96,6 +96,7 @@ export async function runRemoteControlLoop(
     try {
       policy = await options.runPolicyCycle();
     } catch (error) {
+      if (options.signal.aborted) break;
       if (!(error instanceof PolicyRuntimeError)) throw error;
       lastCycle = { status: "policy_rejected", failureCode: error.code };
       cycleCount += 1;
@@ -107,10 +108,17 @@ export async function runRemoteControlLoop(
     if (policy.status === "offline") {
       lastCycle = { status: "policy_unavailable", policy };
     } else {
+      let command: RemoteCommandReconnectCycleResult;
+      try {
+        command = await options.runCommandCycle();
+      } catch (error) {
+        if (options.signal.aborted) break;
+        throw error;
+      }
       lastCycle = {
         status: "command_checked",
         policy,
-        command: await options.runCommandCycle(),
+        command,
       };
     }
     cycleCount += 1;

@@ -23,6 +23,7 @@ import type { ConversationTurnFocusStore } from "./conversation-turn-focus-store
 import type { CoResidentConversationPeerTurnRouter } from "./conversation-peer-turn-router.js";
 import type { ConversationDeliberationParticipantAssignmentPort } from "./conversation-deliberation-participant-router.js";
 import type { ConversationRequestedRuntimeProcessPort } from "./conversation-requested-runtime.js";
+import type { ConversationOperationDrain } from "@lervo/conversation-app";
 
 export interface NodeDiscordConversationRuntime {
   readonly failed: Promise<void>;
@@ -55,6 +56,7 @@ export interface NodeDiscordConversationRuntimeOptions {
   /** Standing supervision only: lets the goal intake hand the runtime its next lineage binding. */
   supervisionControl?: { onRebound(binding: NodeSupervisionBinding): Promise<void> };
   dataDirectory: string;
+  operationDrain?: ConversationOperationDrain;
   runtimeConfigPath?: string;
   bearerToken(): string;
   continuation?: ConversationRemoteContinuationPort;

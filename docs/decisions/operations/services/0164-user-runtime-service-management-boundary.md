@@ -6,6 +6,7 @@
 - Requested runtime amendment: 2026-09-19
 - Graceful-stop command amendment: 2026-09-24
 - Supervised-upgrade owner-fence amendment: 2026-09-24
+- Node work-admission amendment: 2026-09-24
 
 ## Context
 
@@ -68,6 +69,10 @@ For a Node with configured outcome supervision, upgrade and rollback acquire the
 
 An in-place Node upgrade must retain the predecessor service's exact configuration path. The manager extracts that path from the exact predecessor definition and refuses an unreadable or changed coordinate before any manager command; guarding only a replacement config could miss active work owned by the predecessor. A configuration-path migration needs a separately reviewed multi-owner transition rather than this single-config transaction.
 
+The Node and service manager also share an owner-only SQLite work-admission store under the configured repository root. The exact absolute configuration path hashes to a `scope`; the exact owner-only configuration bytes hash to `config_digest`. A running Node registers one `node_work_session` containing a random session token, scope and owner PID. Each admitted conversation, direct interaction, independent result-delivery operation and remote-command cycle holds a `node_work_claim` containing a random claim token and session token until that operation settles. A manager upgrade or rollback atomically checks the exact live session and absence of claims, then records a `node_work_scope` freeze containing scope, config digest, random freeze token and manager PID. While frozen, new Node work waits without beginning its effect. The manager holds the freeze through replacement activation or recovery and releases only its own token afterward. Supervision's separate owner leases still guard owner cycles; neither mechanism substitutes for the other.
+
+These rows contain no message, provider output, token usage, credential, or raw configuration. Scope and configuration digests, random tokens and PIDs remain local in owner-controlled storage; no new repository event is emitted. A live claim yields `service_upgrade_work_busy` before any stop. An unregistered or conflicting Node, unreadable source, schema mismatch, or missing exact session yields `service_upgrade_fence_invalid`, also before any stop. Lost freeze release yields `service_upgrade_unknown`, never success. Dead-process rows may be reclaimed only after process-liveness checks. An older installed Node that cannot register a session is **not** silently treated as idle: its first transition to this protocol requires a separately reviewed maintenance and deployment procedure. An inactive legacy Node is likewise not eligible for this guarded in-place upgrade merely because the manager reports it stopped.
+
 ### Failures, privacy, and evidence
 
 Fixed failures distinguish argument, authority, manager, source, CAS, conflict, and unknown external apply or removal errors. A missing, non-executable, or symlinked Node executable fails before any service-manager call.
@@ -78,5 +83,6 @@ Output excludes manager streams, commands, definitions, secrets, paths, and caus
 
 Fixtures cover user-only install, status, idempotency, removal, active and inactive transactional upgrades, rollback, transient activation compensation, transient launchd removal, missing `--write`, conflicting or symlinked sources, launchd compensation, unavailable managers, renderer safety, and signal, restart, and umask contracts.
 The owner-fence fixtures additionally prove busy-cycle refusal before manager commands, cross-connection lock exclusion, exact binding selection, release after a failed replacement, and supervisor close ordering. Installed proof still requires a busy live-cycle upgrade attempt followed by a clean idle upgrade.
+Work-admission fixtures additionally prove cross-connection active-claim refusal, idle freeze exclusion, exact release, source-binding conflict, dead-owner recovery and Node session lifecycle. Installed busy/idle evidence and the first legacy-node transition remain open acceptance work.
 
 A WSL2 user Hub and Mac Node were upgraded through explicit remove and install operations and separately passed service-stability and runtime-readiness checks. Manager state still does not establish runtime readiness.

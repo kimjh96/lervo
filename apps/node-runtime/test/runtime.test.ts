@@ -24,6 +24,11 @@ import {
 import { type RemoteCommandDeliveryAcknowledgement, type WorkstreamSnapshot } from "@lervo/schemas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import {
+  SQLiteNodeWorkAdmission,
+  nodeWorkAdmissionDatabasePath,
+  nodeWorkAdmissionScope,
+} from "@lervo/node-work-admission";
+import {
   AuthenticatedHubHttpTransport,
   runOutboundSyncCycle,
   runWorkstreamReplicationCycle,
@@ -112,6 +117,35 @@ async function startHub(path: string, port: number): Promise<HubSyncSQLiteStore>
 }
 
 describe("installed Node sync runtime", () => {
+  it("registers an exact live work-admission session until shutdown", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, await availablePort());
+    const source = await readFile(fixture.configPath, "utf8");
+    const deployment = await openNodeRuntime(await loadNodeRuntimeConfig(fixture.configPath), {
+      runtimeConfigPath: fixture.configPath,
+      runtimeConfigDigest: `sha256:${createHash("sha256").update(source).digest("hex")}`,
+    });
+    deployments.push(deployment);
+    const manager = await SQLiteNodeWorkAdmission.open({
+      path: nodeWorkAdmissionDatabasePath(fixture.repositoryRoot),
+    });
+    try {
+      const scope = nodeWorkAdmissionScope(fixture.configPath);
+      const configDigest = `sha256:${createHash("sha256").update(source).digest("hex")}`;
+      const result = manager.tryFreeze({ scope, configDigest });
+      if (result.status !== "frozen")
+        throw new Error("The live Node did not register its session.");
+      expect(manager.unfreeze(result.freeze)).toBe(true);
+      await deployment.close();
+      expect(manager.tryFreeze({ scope, configDigest })).toEqual({
+        status: "busy",
+        reason: "session_missing",
+      });
+    } finally {
+      manager.close();
+    }
+  });
+
   it.each([2, 3] as const)(
     "opens its persistent writer at the selected repository version %i",
     async (version) => {
@@ -537,7 +571,7 @@ describe("installed Node sync runtime", () => {
       },
     });
 
-    await expect(running).resolves.toBe(0);
+    expect({ code: await running, stderr }).toEqual({ code: 0, stderr: [] });
     expect(stdout).toEqual(["Lervo Node synchronization started.\n"]);
     expect(stderr).toEqual([]);
     const output = [...stdout, ...stderr].join("");

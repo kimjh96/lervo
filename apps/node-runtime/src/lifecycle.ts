@@ -1,4 +1,5 @@
 import type { NodeSupervisionService } from "./supervision-startup.js";
+import type { ConversationOperationDrain } from "@lervo/conversation-app";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import type { OrganizationRuntimeCredentialDeliveryReceipt } from "@lervo/schemas";
 import { type OutboundSyncLoopResult } from "@lervo/sync";
@@ -65,6 +66,8 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
     private readonly health: Pick<NodeRuntimeHealthPublisher, "stopping"> | null,
     private readonly organizationCredentialDelivery: NodeOrganizationCredentialDelivery | null,
     private readonly supervision: NodeSupervisionService | null,
+    private readonly operationDrain: ConversationOperationDrain | null,
+    private readonly closeOperationAdmission: (() => void) | null,
   ) {
     this.closed = new Promise<NodeRuntimeCloseResult>((resolve, reject) => {
       this.resolveClosed = resolve;
@@ -107,6 +110,7 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
 
   close(): Promise<NodeRuntimeCloseResult> {
     if (this.closePromise === null) {
+      this.operationDrain?.stop();
       this.abort.abort();
       this.closePromise =
         this.health
@@ -242,6 +246,11 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
       shutdownErrors.push(error);
     }
     try {
+      this.closeOperationAdmission?.();
+    } catch (error) {
+      shutdownErrors.push(error);
+    }
+    try {
       this.store.close();
     } catch (error) {
       shutdownErrors.push(error);
@@ -276,6 +285,8 @@ export function createNodeRuntimeDeployment(
   health: Pick<NodeRuntimeHealthPublisher, "stopping"> | null = null,
   organizationCredentialDelivery: NodeOrganizationCredentialDelivery | null = null,
   supervision: NodeSupervisionService | null = null,
+  operationDrain: ConversationOperationDrain | null = null,
+  closeOperationAdmission: (() => void) | null = null,
 ): NodeRuntimeDeployment {
   return new DefaultNodeRuntimeDeployment(
     store,
@@ -287,5 +298,7 @@ export function createNodeRuntimeDeployment(
     health,
     organizationCredentialDelivery,
     supervision,
+    operationDrain,
+    closeOperationAdmission,
   );
 }

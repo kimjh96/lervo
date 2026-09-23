@@ -22,7 +22,7 @@ export async function withNodeSupervisionUpgradeFence(input, operation) {
   } catch (error) {
     throw new NodeSupervisionUpgradeFenceError("service_upgrade_fence_invalid", error);
   }
-  if (coordinates === null) return operation();
+  if (coordinates === null) return operation(null);
   const resolveStanding = input.resolveStanding ?? resolveCurrentStandingUpgradeBinding;
   let current;
   try {
@@ -79,7 +79,7 @@ export async function withNodeSupervisionUpgradeFence(input, operation) {
         if (error instanceof NodeSupervisionUpgradeFenceError) throw error;
         throw new NodeSupervisionUpgradeFenceError("service_upgrade_fence_invalid", error);
       }
-      return await operation();
+      return await operation(coordinates);
     } finally {
       for (const lease of acquired.toReversed()) leases.release(lease);
     }

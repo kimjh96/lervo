@@ -12,6 +12,7 @@ import {
   NodeSupervisionUpgradeFenceError,
   withNodeSupervisionUpgradeFence,
 } from "./node-supervision-upgrade-fence.mjs";
+import { NodeWorkUpgradeFenceError, withNodeWorkUpgradeFence } from "./node-work-upgrade-fence.mjs";
 import { nodeUpgradePredecessorConfig } from "./node-upgrade-predecessor-config.mjs";
 
 const MAXIMUM_DEFINITION_BYTES = 131_072;
@@ -672,14 +673,27 @@ export async function manageRuntimeService(args, options = {}) {
           openLeases: options.openSupervisionLeases,
           resolveStanding: options.resolveStandingSupervision,
         },
-        async () => {
-          if (input.action === "upgrade") return upgrade(input, expected, previous, context);
-          const restored = await upgrade(input, previous, expected, context);
-          return { ...restored, change: "rolled_back" };
-        },
+        (supervisionCoordinates) =>
+          withNodeWorkUpgradeFence(
+            {
+              ...input,
+              ...(supervisionCoordinates?.sourceDigest === undefined
+                ? {}
+                : { expectedSourceDigest: supervisionCoordinates.sourceDigest }),
+              openAdmission: options.openNodeWorkAdmission,
+            },
+            async () => {
+              if (input.action === "upgrade") return upgrade(input, expected, previous, context);
+              const restored = await upgrade(input, previous, expected, context);
+              return { ...restored, change: "rolled_back" };
+            },
+          ),
       );
     } catch (error) {
-      if (error instanceof NodeSupervisionUpgradeFenceError)
+      if (
+        error instanceof NodeSupervisionUpgradeFenceError ||
+        error instanceof NodeWorkUpgradeFenceError
+      )
         throw new RuntimeServiceManagementError(error.code, error.message, { cause: error });
       throw error;
     }

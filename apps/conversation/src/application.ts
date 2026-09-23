@@ -64,7 +64,7 @@ export async function openConversationApplication(
 ): Promise<ConversationApplication> {
   let interactions: ConversationInteractionRuntime | null = null;
   let adapters = new Map<string, ConversationAdapter>();
-  const operations = new ConversationOperationDrain();
+  const operations = options.operationDrain ?? new ConversationOperationDrain();
   const discordRuntime = new ConversationDiscordDeploymentRuntime(options, operations);
   if (discordRuntime.gateways.size > 0 && options.interactions === undefined) {
     throw new Error("A managed Discord Gateway requires a conversation interaction deployment.");

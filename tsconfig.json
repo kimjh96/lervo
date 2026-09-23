@@ -73,6 +73,7 @@
       "@lervo/live-trigger-contract": ["packages/live-trigger-contract/src/index.ts"],
       "@lervo/live-trigger-sqlite": ["packages/live-trigger-sqlite/src/index.ts"],
       "@lervo/managed-provider-host": ["packages/managed-provider-host/src/index.ts"],
+      "@lervo/node-work-admission": ["packages/node-work-admission/src/index.ts"],
       "@lervo/node-runtime": ["apps/node-runtime/src/index.ts"],
       "@lervo/orchestrator": ["packages/orchestrator/src/index.ts"],
       "@lervo/operating-client": ["apps/operating-client/src/index.ts"],

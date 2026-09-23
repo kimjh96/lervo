@@ -485,6 +485,9 @@ importers:
       '@lervo/managed-provider-host':
         specifier: workspace:*
         version: link:../../packages/managed-provider-host
+      '@lervo/node-work-admission':
+        specifier: workspace:*
+        version: link:../../packages/node-work-admission
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
@@ -1432,6 +1435,8 @@ importers:
       '@lervo/remote-command-contract':
         specifier: workspace:*
         version: link:../remote-command-contract
+
+  packages/node-work-admission: {}
 
   packages/orchestrator:
     dependencies:

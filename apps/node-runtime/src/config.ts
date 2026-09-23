@@ -1,5 +1,6 @@
 import { parseSupervisionStartupConfiguration } from "./supervision-startup-config.js";
 import { dirname, resolve } from "node:path";
+import { createHash } from "node:crypto";
 
 import { readOwnerOnlyText, RuntimeSecurityError } from "@lervo/runtime-security";
 
@@ -276,7 +277,10 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
   };
 }
 
-export async function loadNodeRuntimeConfig(path: string): Promise<NodeRuntimeConfig> {
+export async function loadNodeRuntimeConfigSnapshot(path: string): Promise<{
+  config: NodeRuntimeConfig;
+  sourceDigest: string;
+}> {
   const absolutePath = resolve(path);
   let serialized: string;
   try {
@@ -298,5 +302,12 @@ export async function loadNodeRuntimeConfig(path: string): Promise<NodeRuntimeCo
       cause: error,
     });
   }
-  return parseNodeRuntimeConfig(value, dirname(absolutePath));
+  return {
+    config: parseNodeRuntimeConfig(value, dirname(absolutePath)),
+    sourceDigest: `sha256:${createHash("sha256").update(serialized).digest("hex")}`,
+  };
+}
+
+export async function loadNodeRuntimeConfig(path: string): Promise<NodeRuntimeConfig> {
+  return (await loadNodeRuntimeConfigSnapshot(path)).config;
 }

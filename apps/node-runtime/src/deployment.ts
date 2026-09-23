@@ -7,6 +7,7 @@ import { watchLocalEventChanges } from "./local-event-wakeup.js";
 import { lstat } from "node:fs/promises";
 
 import { FileSystemCas } from "@lervo/cas";
+import { ConversationOperationDrain } from "@lervo/conversation-app";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
@@ -30,6 +31,7 @@ import { openNodeRemoteControlRuntime, type NodeRemoteControlRuntime } from "./c
 import type { NodeRuntimeOpenPorts } from "./open-ports.js";
 import { loadNodeRuntimeTrust, ReloadableNodeRuntimeTrust } from "./trust.js";
 import { NodeWorkstreamReplicationLocalPort } from "./workstream-replication.js";
+import { openNodeRuntimeWorkAdmission, type NodeRuntimeWorkAdmission } from "./work-admission.js";
 
 async function assertRepositoryRoot(path: string): Promise<void> {
   try {
@@ -53,6 +55,8 @@ export async function openNodeRuntime(
   let runtimeTrust: ReloadableNodeRuntimeTrust | undefined;
   let conversation: NodeDiscordConversationRuntime | undefined;
   let supervision: NodeSupervisionService | null = null;
+  let operationDrain = new ConversationOperationDrain();
+  let workAdmission: NodeRuntimeWorkAdmission | undefined;
   try {
     const validated = parseNodeRuntimeConfig(config, process.cwd());
     await assertRepositoryRoot(validated.repositoryRoot);
@@ -66,6 +70,14 @@ export async function openNodeRuntime(
     }
     const preparedStorage = await openProjectStorage(validated.repositoryRoot);
     await preparedStorage.close();
+    workAdmission = await openNodeRuntimeWorkAdmission({
+      repositoryRoot: validated.repositoryRoot,
+      ...(ports.runtimeConfigPath === undefined ? {} : { configPath: ports.runtimeConfigPath }),
+      ...(ports.runtimeConfigDigest === undefined
+        ? {}
+        : { configDigest: ports.runtimeConfigDigest }),
+    });
+    operationDrain = workAdmission.drain;
     const bearerToken = new ReloadableNodeBearerToken(
       await loadNodeBearerToken(validated.hub.bearerTokenFile),
     );
@@ -107,6 +119,7 @@ export async function openNodeRuntime(
         token: () => bearerToken.current(),
         target,
         stateDirectory: paths.data,
+        operationDrain,
         ports: {
           ...ports.remoteCommands,
           onAcknowledgementPrepared: async (input) => {
@@ -178,6 +191,7 @@ export async function openNodeRuntime(
       projectIdentityHash: target.projectIdentityHash,
       repositoryRoot: paths.repositoryRoot,
       dataDirectory: paths.data,
+      operationDrain,
       ...(ports.runtimeConfigPath === undefined
         ? {}
         : { runtimeConfigPath: ports.runtimeConfigPath }),
@@ -292,8 +306,11 @@ export async function openNodeRuntime(
             },
           }),
       supervision,
+      operationDrain,
+      () => workAdmission?.close(),
     );
   } catch (error) {
+    operationDrain.stop();
     const cleanupErrors: unknown[] = [];
     try {
       await supervision?.close();
@@ -302,6 +319,11 @@ export async function openNodeRuntime(
     }
     try {
       await conversation?.close();
+    } catch (cleanupError) {
+      cleanupErrors.push(cleanupError);
+    }
+    try {
+      workAdmission?.close();
     } catch (cleanupError) {
       cleanupErrors.push(cleanupError);
     }

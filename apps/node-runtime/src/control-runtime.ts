@@ -1,4 +1,5 @@
 import { AuthenticatedHubHttpTransport } from "@lervo/sync";
+import type { ConversationOperationDrain } from "@lervo/conversation-app";
 import { RuntimeIdleWait } from "./runtime-idle-wait.js";
 import { resolve } from "node:path";
 
@@ -92,6 +93,7 @@ export async function openNodeRemoteControlRuntime(input: {
   token: () => string;
   target: RemoteCommandTarget;
   stateDirectory: string;
+  operationDrain?: ConversationOperationDrain;
   ports: NodeRemoteCommandPorts;
   trust?: ReloadableNodeRuntimeTrust;
 }): Promise<NodeRemoteControlRuntime> {
@@ -215,6 +217,25 @@ export async function openNodeRemoteControlRuntime(input: {
     });
     const openedPolicyStore = policyStore;
     const openedReplayStore = replayStore;
+    const commandCycle = () =>
+      runRemoteCommandReconnectCycle({
+        destinationId: input.config.hub.destinationId,
+        expectedPeerIdentityHash: input.config.hub.hubIdentityHash,
+        nodeId: commands.nodeId,
+        target: input.target,
+        transport: commandTransport,
+        handler: receiver,
+        clock,
+        ...(commands.leaseDurationMs === undefined
+          ? {}
+          : { leaseDurationMs: commands.leaseDurationMs }),
+        ...(commands.retryDelayMs === undefined ? {} : { retryDelayMs: commands.retryDelayMs }),
+        ...(commands.clockSkewMs === undefined ? {} : { clockSkewMs: commands.clockSkewMs }),
+        ...(commands.limit === undefined ? {} : { limit: commands.limit }),
+        ...(input.ports.onAcknowledgementPrepared === undefined
+          ? {}
+          : { onAcknowledgementPrepared: input.ports.onAcknowledgementPrepared }),
+      });
     return {
       run: (signal) =>
         runRemoteControlLoop({
@@ -222,37 +243,20 @@ export async function openNodeRemoteControlRuntime(input: {
           ...(input.ports.wait === undefined && input.ports.createCommandTransport === undefined
             ? { waitForIdleChange: (signal: AbortSignal) => idleWait.wait(signal) }
             : {}),
-          runPolicyCycle: () =>
-            runPolicySyncCycle({
-              destinationId: input.config.hub.destinationId,
-              expectedPeerIdentityHash: input.config.hub.hubIdentityHash,
-              target: input.target,
-              transport: policyTransport,
-              trustStore: policyTrust,
-              store: openedPolicyStore,
-              clock,
-            }),
-          runCommandCycle: () =>
-            runRemoteCommandReconnectCycle({
-              destinationId: input.config.hub.destinationId,
-              expectedPeerIdentityHash: input.config.hub.hubIdentityHash,
-              nodeId: commands.nodeId,
-              target: input.target,
-              transport: commandTransport,
-              handler: receiver,
-              clock,
-              ...(commands.leaseDurationMs === undefined
-                ? {}
-                : { leaseDurationMs: commands.leaseDurationMs }),
-              ...(commands.retryDelayMs === undefined
-                ? {}
-                : { retryDelayMs: commands.retryDelayMs }),
-              ...(commands.clockSkewMs === undefined ? {} : { clockSkewMs: commands.clockSkewMs }),
-              ...(commands.limit === undefined ? {} : { limit: commands.limit }),
-              ...(input.ports.onAcknowledgementPrepared === undefined
-                ? {}
-                : { onAcknowledgementPrepared: input.ports.onAcknowledgementPrepared }),
-            }),
+          runPolicyCycle: () => {
+            const cycle = () =>
+              runPolicySyncCycle({
+                destinationId: input.config.hub.destinationId,
+                expectedPeerIdentityHash: input.config.hub.hubIdentityHash,
+                target: input.target,
+                transport: policyTransport,
+                trustStore: policyTrust,
+                store: openedPolicyStore,
+                clock,
+              });
+            return input.operationDrain?.run(cycle) ?? cycle();
+          },
+          runCommandCycle: () => input.operationDrain?.run(commandCycle) ?? commandCycle(),
           ...(commands.idlePollIntervalMs === undefined
             ? {}
             : {

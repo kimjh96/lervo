@@ -40,6 +40,7 @@ import type {
 import type { ConversationIntegrationDeployment } from "./integration.js";
 import type { ConversationInteractionResult } from "./interaction-runtime.js";
 import type { ConversationInteractionRetryCycleResult } from "./interaction-runtime.js";
+import type { ConversationOperationDrain } from "./operation-drain.js";
 
 interface PlatformCredentialTransportOptions {
   requestTimeoutMs?: number;
@@ -116,6 +117,7 @@ export interface ConversationInteractionDeployment {
 
 export interface ConversationApplicationOptions {
   dataDirectory: string;
+  operationDrain?: ConversationOperationDrain;
   conversations: readonly ConversationPlatformConversationBinding[];
   participants: readonly ConversationPlatformParticipantBinding[];
   threads?: readonly ConversationPlatformThreadBinding[];

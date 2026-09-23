@@ -1,12 +1,20 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
+export interface ConversationOperationAdmissionPort {
+  tryAcquire(): unknown | null;
+  release(claim: unknown): void;
+}
+
 /** Tracks admitted application work so shutdown cannot close stores during an active turn. */
 export class ConversationOperationDrain {
-  private accepting = true;
+  private state: "open" | "draining" = "open";
   private readonly scope = new AsyncLocalStorage<symbol>();
   private readonly activeScopes = new Set<symbol>();
   private readonly operations = new Set<Promise<unknown>>();
   private readonly waiters = new Set<() => void>();
+  private readonly retryWaiters = new Map<ReturnType<typeof setTimeout>, (error: Error) => void>();
+
+  constructor(private readonly admission?: ConversationOperationAdmissionPort) {}
 
   get activeCount(): number {
     return this.operations.size;
@@ -14,9 +22,47 @@ export class ConversationOperationDrain {
 
   run<T>(operation: () => Promise<T>): Promise<T> {
     const parent = this.scope.getStore();
-    if (!this.accepting && (parent === undefined || !this.activeScopes.has(parent))) {
-      return Promise.reject(new Error("Conversation operation admission is closed."));
+    if (parent === undefined || !this.activeScopes.has(parent)) {
+      if (this.state === "draining") {
+        return Promise.reject(new Error("Conversation operation admission is closed."));
+      }
     }
+    return this.admission === undefined
+      ? this.start(operation)
+      : this.startWithAdmission(operation);
+  }
+
+  private async startWithAdmission<T>(operation: () => Promise<T>): Promise<T> {
+    for (;;) {
+      const parent = this.scope.getStore();
+      if (this.state === "draining" && (parent === undefined || !this.activeScopes.has(parent))) {
+        throw new Error("Conversation operation admission is closed.");
+      }
+      const claim = this.admission!.tryAcquire();
+      if (claim !== null) {
+        return this.start(async () => {
+          try {
+            return await operation();
+          } finally {
+            this.admission!.release(claim);
+          }
+        });
+      }
+      await this.waitForAdmissionRetry();
+    }
+  }
+
+  private waitForAdmissionRetry(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.retryWaiters.delete(timer);
+        resolve();
+      }, 100);
+      this.retryWaiters.set(timer, reject);
+    });
+  }
+
+  private start<T>(operation: () => Promise<T>): Promise<T> {
     const token = Symbol("conversation-operation");
     this.activeScopes.add(token);
     const active = this.scope.run(token, () => Promise.resolve().then(operation));
@@ -35,7 +81,12 @@ export class ConversationOperationDrain {
   }
 
   stop(): void {
-    this.accepting = false;
+    this.state = "draining";
+    for (const [timer, reject] of this.retryWaiters) {
+      clearTimeout(timer);
+      reject(new Error("Conversation operation admission is closed."));
+    }
+    this.retryWaiters.clear();
   }
 
   drain(): Promise<void> {

@@ -1,9 +1,15 @@
+import { createHash } from "node:crypto";
 import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import {
+  SQLiteNodeWorkAdmission,
+  nodeWorkAdmissionDatabasePath,
+  nodeWorkAdmissionScope,
+} from "../../../packages/node-work-admission/src/index.js";
 import { manageRuntimeService } from "../manage-runtime-service.mjs";
 import { renderRuntimeService, runtimeServiceStopTimeoutMs } from "../render-runtime-service.mjs";
 
@@ -22,7 +28,9 @@ async function fixture(manager, runtime = "hub") {
   const definition = resolve(root, manager === "systemd" ? "runtime.service" : "runtime.plist");
   await writeFile(executable, "#!/bin/sh\n", { mode: 0o700 });
   await chmod(executable, 0o700);
-  await writeFile(config, "{}", { mode: 0o600 });
+  await writeFile(config, JSON.stringify(runtime === "node" ? { repositoryRoot: root } : {}), {
+    mode: 0o600,
+  });
   await renderRuntimeService([
     "--manager",
     manager,
@@ -53,6 +61,20 @@ async function fixture(manager, runtime = "hub") {
     "--write",
   ];
   return { root, executable, config, definition, writeArgs };
+}
+
+function openIdleNodeAdmission() {
+  return {
+    scope: `sha256:${"a".repeat(64)}`,
+    store: {
+      tryFreeze: ({ scope }) => ({
+        status: "frozen",
+        freeze: { token: "fixture-freeze", scope, ownerPid: process.pid },
+      }),
+      unfreeze: () => true,
+      close: () => undefined,
+    },
+  };
 }
 
 it("does not stop an active supervised Node when its owner lease is busy", async () => {
@@ -100,6 +122,89 @@ it("does not stop an active supervised Node when its owner lease is busy", async
     ),
   ).rejects.toMatchObject({ code: "service_upgrade_supervision_busy" });
   expect(commands).toEqual([]);
+});
+
+it("refuses a busy Node before stop and holds the idle freeze through manager replacement", async () => {
+  const previous = await fixture("systemd", "node");
+  const replacementExecutable = resolve(previous.root, "lervo-runtime-v2");
+  const replacementDefinition = resolve(previous.root, "runtime-v2.service");
+  await writeFile(replacementExecutable, "#!/bin/sh\n", { mode: 0o700 });
+  await chmod(replacementExecutable, 0o700);
+  await renderRuntimeService([
+    "--manager",
+    "systemd",
+    "--runtime",
+    "node",
+    "--instance",
+    nodeInstance,
+    "--executable",
+    replacementExecutable,
+    "--config",
+    previous.config,
+    "--output",
+    replacementDefinition,
+  ]);
+  const source = await readFile(previous.config, "utf8");
+  const configDigest = `sha256:${createHash("sha256").update(source).digest("hex")}`;
+  const scope = nodeWorkAdmissionScope(previous.config);
+  const admission = await SQLiteNodeWorkAdmission.open({
+    path: nodeWorkAdmissionDatabasePath(previous.root),
+  });
+  const session = admission.registerSession({ scope, configDigest });
+  const manager = systemdManager();
+  let frozenDuringStop = false;
+  const options = {
+    platform: "linux",
+    homeDirectory: previous.root,
+    runCommand: async (command, args) => {
+      if (command === "systemctl" && args[1] === "stop") {
+        frozenDuringStop = admission.tryAcquireWork(session) === null;
+      }
+      return manager.run(command, args);
+    },
+    wait: async () => {},
+  };
+  const upgradeArgs = [
+    "--action",
+    "upgrade",
+    "--manager",
+    "systemd",
+    "--runtime",
+    "node",
+    "--instance",
+    nodeInstance,
+    "--definition",
+    replacementDefinition,
+    "--previous-definition",
+    previous.definition,
+    "--executable",
+    replacementExecutable,
+    "--config",
+    previous.config,
+    "--write",
+  ];
+  try {
+    await manageRuntimeService(previous.writeArgs("install"), options);
+    const claim = admission.tryAcquireWork(session);
+    if (claim === null) throw new Error("The test Node did not admit work.");
+    const callsBeforeBusy = manager.calls.length;
+    await expect(manageRuntimeService(upgradeArgs, options)).rejects.toMatchObject({
+      code: "service_upgrade_work_busy",
+    });
+    expect(manager.calls.length).toBe(callsBeforeBusy);
+    admission.releaseWork(claim);
+    await expect(manageRuntimeService(upgradeArgs, options)).resolves.toMatchObject({
+      change: "upgraded",
+      active: true,
+    });
+    expect(frozenDuringStop).toBe(true);
+    const resumed = admission.tryAcquireWork(session);
+    expect(resumed).not.toBeNull();
+    admission.releaseWork(resumed);
+  } finally {
+    admission.unregisterSession(session);
+    admission.close();
+  }
 });
 
 it.each(["systemd", "launchd"])(
@@ -380,6 +485,7 @@ describe("runtime user service management", () => {
       uid: 501,
       runCommand,
       wait: async () => {},
+      openNodeWorkAdmission: async () => openIdleNodeAdmission(),
     };
     await manageRuntimeService(previous.writeArgs("install"), options);
     await expect(
@@ -465,6 +571,7 @@ describe("runtime user service management", () => {
       homeDirectory: previous.root,
       runCommand: manager.run.bind(manager),
       wait: async () => {},
+      openNodeWorkAdmission: async () => openIdleNodeAdmission(),
     };
     await manageRuntimeService(previous.writeArgs("install"), options);
     const upgradeArgs = [
@@ -619,7 +726,7 @@ describe("runtime user service management", () => {
     ).toBe(await readFile(previous.definition, "utf8"));
   });
 
-  it("repairs an exact inactive installed service during upgrade", async () => {
+  it("does not upgrade an inactive Node without a participating admission session", async () => {
     const previous = await fixture("systemd", "node");
     const replacementExecutable = resolve(previous.root, "lervo-runtime-v2");
     const replacementDefinition = resolve(previous.root, "runtime-v2.service");
@@ -676,13 +783,13 @@ describe("runtime user service management", () => {
         ],
         options,
       ),
-    ).resolves.toMatchObject({ change: "upgraded", active: true });
+    ).rejects.toMatchObject({ code: "service_upgrade_fence_invalid" });
     expect(
       await readFile(
         resolve(previous.root, ".config/systemd/user/lervo-node-0123456789abcdef01234567.service"),
         "utf8",
       ),
-    ).toBe(await readFile(replacementDefinition, "utf8"));
+    ).toBe(await readFile(previous.definition, "utf8"));
   });
 
   it("rejects a symlinked definition before invoking the manager", async () => {

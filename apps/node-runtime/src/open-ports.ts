@@ -24,6 +24,7 @@ export interface NodeDiscordConversationOpenPorts {
 
 export interface NodeRuntimeOpenPorts {
   runtimeConfigPath?: string;
+  runtimeConfigDigest?: string;
   createTransport?: (options: SyncHttpTransportOptions) => AuthenticatedHubTransport;
   wait?: OutboundSyncPollingWaitPort;
   nowMilliseconds?: () => number;

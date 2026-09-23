@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 
 import type { ProjectManifest } from "@lervo/schemas";
 import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
+import type { ConversationOperationDrain } from "@lervo/conversation-app";
 
 import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
 import type { NodeDiscordConversationRuntimeOptions } from "./discord-conversation-runtime-types.js";
@@ -82,6 +83,7 @@ export async function openDeploymentConversation(input: {
   projectIdentityHash: string;
   repositoryRoot: string;
   dataDirectory: string;
+  operationDrain?: ConversationOperationDrain;
   runtimeConfigPath?: string;
   bearerToken(): string;
   repositoryArtifacts: ArtifactStore;
@@ -163,6 +165,7 @@ export async function openDeploymentConversation(input: {
             ? {}
             : { repositoryReplica: input.config.repositoryReplica }),
           dataDirectory: resolve(input.dataDirectory, "conversation", conversation.integrationId),
+          ...(input.operationDrain === undefined ? {} : { operationDrain: input.operationDrain }),
           ...(input.runtimeConfigPath === undefined
             ? {}
             : { runtimeConfigPath: input.runtimeConfigPath }),

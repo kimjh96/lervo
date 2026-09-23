@@ -109,6 +109,34 @@ describe("Node remote control loop", () => {
     expect(result).toEqual({ status: "stopped", cycleCount: 0, lastCycle: null });
     expect(runCommandCycle).not.toHaveBeenCalled();
   });
+
+  it("does not report a failed command cycle when admission closes during shutdown", async () => {
+    const abort = new AbortController();
+    const result = await runRemoteControlLoop({
+      signal: abort.signal,
+      runPolicyCycle: async () => ({ status: "unchanged", snapshotId: null }),
+      runCommandCycle: async () => {
+        abort.abort();
+        throw new Error("Admission closed after shutdown began.");
+      },
+    });
+    expect(result).toEqual({ status: "stopped", cycleCount: 0, lastCycle: null });
+  });
+
+  it("does not report a failed policy cycle when admission closes during shutdown", async () => {
+    const abort = new AbortController();
+    const runCommandCycle = vi.fn();
+    const result = await runRemoteControlLoop({
+      signal: abort.signal,
+      runPolicyCycle: async () => {
+        abort.abort();
+        throw new Error("Admission closed after shutdown began.");
+      },
+      runCommandCycle,
+    });
+    expect(result).toEqual({ status: "stopped", cycleCount: 0, lastCycle: null });
+    expect(runCommandCycle).not.toHaveBeenCalled();
+  });
 });
 
 it("checks policy again after every notification before requesting another command", async () => {

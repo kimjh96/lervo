@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ConversationOperationDrain } from "../src/operation-drain.js";
 
@@ -41,5 +41,35 @@ describe("conversation operation drain", () => {
     await expect(turn).resolves.toBe("completed");
     await drain.drain();
     await expect(drain.run(async () => "late")).rejects.toThrow("admission is closed");
+  });
+
+  it("waits for a cross-process admission claim and releases it after settled work", async () => {
+    let frozen = true;
+    const released: unknown[] = [];
+    const claim = { id: "claim-1" };
+    const drain = new ConversationOperationDrain({
+      tryAcquire: () => (frozen ? null : claim),
+      release: (value) => released.push(value),
+    });
+    const work = vi.fn(async () => "done");
+    const waiting = drain.run(work);
+    expect(work).not.toHaveBeenCalled();
+    frozen = false;
+    await expect(waiting).resolves.toBe("done");
+    expect(work).toHaveBeenCalledOnce();
+    expect(released).toEqual([claim]);
+    await drain.drain();
+  });
+
+  it("stops a queued cross-process admission without invoking work", async () => {
+    const work = vi.fn(async () => undefined);
+    const drain = new ConversationOperationDrain({
+      tryAcquire: () => null,
+      release: () => undefined,
+    });
+    const waiting = drain.run(work);
+    drain.stop();
+    await expect(waiting).rejects.toThrow("admission is closed");
+    expect(work).not.toHaveBeenCalled();
   });
 });

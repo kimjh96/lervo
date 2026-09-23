@@ -368,9 +368,9 @@
     },
     {
       "path": "scripts/distribution/lib/runtime-service-management.mjs",
-      "contentHash": "sha256:d9e67c9608a2e548a98ee704a4c1daee81ddeba98ec144ed78f1ac14900e379e",
+      "contentHash": "sha256:a441802428425ab035af1ac91b72745f4625fea577565169f004b9bdc61b05ac",
       "responsibility": "Runtime service lifecycle manager",
-      "rationale": "Parsing, definition validation, status stabilization, install, compensate, remove, activate, and upgrade operate on one service transaction boundary; status presentation and process exit behavior are isolated in the command adapter.",
+      "rationale": "The touched orchestration composes isolated supervision and work-admission guards around one exact service transaction. Status stabilization, activation, compensation and rollback share the same manager-state recovery policy; presentation and process exit remain outside. Existing argument and source validation are bounded to this transaction's exact inputs.",
       "disposition": "cohesive"
     },
     {

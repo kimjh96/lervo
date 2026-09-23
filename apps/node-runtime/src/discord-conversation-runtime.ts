@@ -78,6 +78,7 @@ export async function openNodeDiscordConversationRuntime(
   try {
     application = await openConversationApplication({
       dataDirectory: options.dataDirectory,
+      ...(options.operationDrain === undefined ? {} : { operationDrain: options.operationDrain }),
       ...bindings,
       discord: [
         {
@@ -226,9 +227,12 @@ export async function openNodeDiscordConversationRuntime(
               outboundId,
             })
           : null,
-      observeRemoteAcknowledgement: (input) => resultRuntime!.observe(input),
+      observeRemoteAcknowledgement: (input) =>
+        options.operationDrain?.run(() => resultRuntime!.observe(input)) ??
+        resultRuntime!.observe(input),
       runResultDeliveryCycle: async () => {
-        await resultRuntime!.runCycle();
+        await (options.operationDrain?.run(() => resultRuntime!.runCycle()) ??
+          resultRuntime!.runCycle());
       },
       stopIngress: () => {
         void interactionRetryLoop!.stop();
