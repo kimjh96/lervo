@@ -58,6 +58,7 @@ export async function observeSupervisionTaskResources(input: {
   // Reporting groups remain exact; a separate proof can resolve default model identity.
   const groups = source.workstreamResources.groups;
   const workRuns = new Set(source.workstreamResources.runIds);
+  const interruptedOwnerRuns = new Set(source.reconciledRunIds);
   const preTurnFailures = new Set<string>();
   for (const runId of workRuns)
     if (
@@ -79,14 +80,18 @@ export async function observeSupervisionTaskResources(input: {
     )
       abandonedFailures.add(runId);
   const accountedRunIds = [...workRuns].filter(
-    (runId) => !preTurnFailures.has(runId) && !abandonedFailures.has(runId),
+    (runId) =>
+      !preTurnFailures.has(runId) &&
+      !abandonedFailures.has(runId) &&
+      !interruptedOwnerRuns.has(runId),
   );
   const allStartedObserved = source.events
     .filter(
       (event) =>
         event.type === "adapter.started" &&
         workRuns.has(event.runId) &&
-        !abandonedFailures.has(event.runId),
+        !abandonedFailures.has(event.runId) &&
+        !interruptedOwnerRuns.has(event.runId),
     )
     .every((event) =>
       source.events.some(
@@ -280,14 +285,16 @@ export async function observeSupervisionTaskResources(input: {
     const identity = managedExecutionIdentity(plan.projectId, operatingContractHash(recorded));
     const run = source.events.filter((item) => item.runId === identity.runId);
     const abandoned = abandonedFailures.has(identity.runId);
+    const interruptedOwner = interruptedOwnerRuns.has(identity.runId);
     const finished =
       preTurnFailures.has(identity.runId) ||
       abandoned ||
+      interruptedOwner ||
       observedSupervisionRunTermination(run) !== null;
     if (!finished) reservedRuns.add(identity.runId);
     if (event.payload.decisionId !== currentDecision) {
-      // An abandoned turn keeps its reservation charged; treating it as zero would erase spend.
-      if (abandoned)
+      // A fenced missing usage receipt remains spent-unknown, never zero tokens.
+      if (abandoned || interruptedOwner)
         reservedAggregateTokens =
           reservedAggregateTokens === null
             ? null

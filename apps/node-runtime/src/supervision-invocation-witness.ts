@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 
-import type { AbandonedTurnInvocationWitness } from "./supervision-abandoned-turn-failure.js";
+import type { UnitInvocationWitness } from "./supervision-unit-invocation-proof.js";
 
 const INVOCATION_ID = /^[a-f0-9]{32}$/u;
 const UNIT = /^[A-Za-z0-9@._-]{1,128}$/u;
@@ -31,7 +31,7 @@ export function observeAbandonedTurnWitness(input: {
   unit: string;
   incidentAt: string;
   observedAt: string;
-}): AbandonedTurnInvocationWitness {
+}): UnitInvocationWitness {
   if (!UNIT.test(input.unit)) throw new Error("The witness unit name is invalid.");
   const inventory = run("journalctl", [
     "--user",

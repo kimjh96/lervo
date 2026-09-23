@@ -115,6 +115,7 @@ export const supervisionEventTypes = [
   "work.responsibility.bound",
   "work.supervision.decision.recorded",
   "work.supervision.decision.superseded",
+  "work.supervision.owner_reasoning.interruption_reconciled",
   "work.supervision.effect.observed",
   "work.supervision.readiness.failed",
   "work.supervision.review.recorded",

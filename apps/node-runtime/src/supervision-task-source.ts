@@ -19,12 +19,12 @@ import type { OperatingActionPlanV1 } from "@lervo/application-contract";
 import type { OwnerControlReadinessV1 } from "@lervo/application-contract";
 import { readSupervisionOwnerControl } from "./supervision-owner-control.js";
 import { readCanonicalOwnerReasoning } from "./supervision-reasoning-source.js";
+import { readInterruptedOwnerResourceSource } from "./supervision-interrupted-owner-resources.js";
 import { observeResultDelivery } from "./supervision-result-delivery-observation.js";
 import {
   operatingContractHash,
   operatingDecisionId,
   projectManagedAttempts,
-  projectWorkstreamResources,
   projectWorkGraphV2,
 } from "@lervo/work-controller";
 import { SupervisionAuthorityHistory } from "./supervision-authority-history.js";
@@ -113,10 +113,11 @@ export class SupervisionTaskSource {
       workstreamId: this.binding.workstreamId,
       scopeAnchor,
     });
-    const workstreamResources = projectWorkstreamResources({
+    const { workstreamResources, reconciledRunIds } = await readInterruptedOwnerResourceSource({
+      storage: this.storage,
       events,
       workstreamId: this.binding.workstreamId,
-      scopeAnchor,
+      ...(scopeAnchor === undefined ? {} : { scopeAnchor }),
     });
     const graph = projectWorkGraphV2({
       projectId: this.storage.manifest.projectId,
@@ -139,6 +140,7 @@ export class SupervisionTaskSource {
           "work.supervision.handoff.offered",
           "work.supervision.handoff.accepted",
           "work.supervision.peer.observed",
+          "work.supervision.owner_reasoning.interruption_reconciled",
         ].includes(event.type),
     );
     if (
@@ -170,6 +172,7 @@ export class SupervisionTaskSource {
       responsibilities,
       execution,
       workstreamResources,
+      reconciledRunIds,
       graph,
       supervisionEvents,
       events,

@@ -8,6 +8,7 @@ import { collectRunEventsBounded } from "@lervo/storage-contract";
 import { managedExecutionIdentity, operatingContractHash } from "@lervo/work-controller";
 import { readAdmittedControlDecision } from "./supervision-control-decision.js";
 import { readSupervisionTextArtifact } from "./supervision-artifact-json.js";
+import { readProvenInterruptedOwnerReasoning } from "./supervision-interrupted-owner-source.js";
 
 /** A reconciled model invocation is not an accepted business result or a new effect authorization. */
 export async function inspectOwnerReasoning(
@@ -49,10 +50,27 @@ export async function inspectOwnerReasoning(
     causal.payload.agentId !== plan.ownerAgentId ||
     causal.payload.assignmentId !== null ||
     causal.payload.relationship !== (effect.attemptNumber === 1 ? "root" : "retry") ||
-    causal.payload.attemptOrdinal !== effect.attemptNumber ||
-    termination === null
+    causal.payload.attemptOrdinal !== effect.attemptNumber
   )
     return { status: "uncertain" as const };
+  if (termination === null) {
+    const interrupted = await readProvenInterruptedOwnerReasoning({
+      storage,
+      plan,
+      runEvents: events,
+    });
+    return interrupted === null
+      ? { status: "uncertain" as const }
+      : {
+          status: "confirmed" as const,
+          eventIds: [
+            reservation.eventId,
+            requested.eventId,
+            interrupted.terminal.eventId,
+            interrupted.reconciliation.eventId,
+          ],
+        };
+  }
   const { terminal, stopped } = termination;
   if (terminal.type === "run.completed")
     await readSupervisionTextArtifact(storage.artifacts, String(terminal.payload.resultDigest));

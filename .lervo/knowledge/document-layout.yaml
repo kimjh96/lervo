@@ -294,6 +294,14 @@ routes:
       - conversation evidence
       - supervision request
       - request intake
+  - id: execution.orchestration.governed-work.owner-recovery
+    path: execution/orchestration/governed-work/owner-recovery
+    priority: 59
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - owner interruption
+      - read-only owner
+      - owner recovery
   - id: execution.orchestration.governed-work
     path: execution/orchestration/governed-work
     priority: 58

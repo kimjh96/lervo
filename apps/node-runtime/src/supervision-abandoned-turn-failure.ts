@@ -1,4 +1,8 @@
 import type { EventEnvelope } from "@lervo/schemas";
+import {
+  validUnitInvocationWitness,
+  type UnitInvocationWitness,
+} from "./supervision-unit-invocation-proof.js";
 
 const PREFIX = [
   "managed.execution.reserved",
@@ -15,24 +19,7 @@ const EFFECT_TYPES = [
   "capability.invoked",
   "unmanaged_change.detected",
 ] as const;
-const HASH = /^sha256:[a-f0-9]{64}$/u;
-const INVOCATION_ID = /^[a-f0-9]{32}$/u;
-
-/** One completed unit invocation transition fences the process that owned an abandoned turn. */
-export interface AbandonedTurnInvocationWitness {
-  schemaVersion: 1;
-  kind: "host.unit_invocation_witness";
-  unit: string;
-  incidentAt: string;
-  incidentInvocationId: string;
-  incidentInvocationFirstAt: string;
-  incidentInvocationLastAt: string;
-  successorInvocationId: string;
-  successorInvocationFirstAt: string;
-  currentInvocationId: string;
-  inventorySha256: string;
-  observedAt: string;
-}
+export type AbandonedTurnInvocationWitness = UnitInvocationWitness;
 
 export interface AbandonedTurnFailureDiagnostic {
   schemaVersion: 1;
@@ -50,10 +37,6 @@ function record(value: unknown): Record<string, unknown> | null {
 
 function exactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
   return Object.keys(value).sort().join(",") === [...keys].sort().join(",");
-}
-
-function instant(value: unknown): number {
-  return typeof value === "string" ? Date.parse(value) : NaN;
 }
 
 /**
@@ -106,51 +89,10 @@ export function isProvenAbandonedTurnFailure(
     )
   )
     return false;
-  const witness = record(diagnostic.witness);
-  if (
-    witness === null ||
-    !exactKeys(witness, [
-      "schemaVersion",
-      "kind",
-      "unit",
-      "incidentAt",
-      "incidentInvocationId",
-      "incidentInvocationFirstAt",
-      "incidentInvocationLastAt",
-      "successorInvocationId",
-      "successorInvocationFirstAt",
-      "currentInvocationId",
-      "inventorySha256",
-      "observedAt",
-    ]) ||
-    witness.schemaVersion !== 1 ||
-    witness.kind !== "host.unit_invocation_witness" ||
-    typeof witness.unit !== "string" ||
-    !/^[A-Za-z0-9@._-]{1,128}$/u.test(witness.unit) ||
-    !INVOCATION_ID.test(String(witness.incidentInvocationId)) ||
-    !INVOCATION_ID.test(String(witness.successorInvocationId)) ||
-    !INVOCATION_ID.test(String(witness.currentInvocationId)) ||
-    witness.incidentInvocationId === witness.successorInvocationId ||
-    witness.incidentInvocationId === witness.currentInvocationId ||
-    !HASH.test(String(witness.inventorySha256))
-  )
-    return false;
-  const incident = instant(witness.incidentAt);
-  const first = instant(witness.incidentInvocationFirstAt);
-  const last = instant(witness.incidentInvocationLastAt);
-  const successor = instant(witness.successorInvocationFirstAt);
-  const observed = instant(witness.observedAt);
-  const terminalAt = instant(terminal.occurredAt);
   const runEvents = diagnostic.runEvents as unknown[];
+  const witness = diagnostic.witness;
   if (
-    ![incident, first, last, successor, observed, terminalAt].every(Number.isFinite) ||
-    first > incident ||
-    incident > last ||
-    last > successor ||
-    successor > observed ||
-    observed > terminalAt ||
-    terminalAt - observed > 5_000 ||
-    witness.incidentAt !== original.at(-1)!.occurredAt ||
+    !validUnitInvocationWitness(witness, original.at(-1)!.occurredAt, terminal.occurredAt) ||
     terminal.type !== "run.failed" ||
     terminal.schemaVersion !== 1 ||
     terminal.actor.kind !== "system" ||
@@ -174,8 +116,8 @@ export function isProvenAbandonedTurnFailure(
     return (
       event.seq < terminal.seq &&
       (index === 0 || original[index - 1]!.seq < event.seq) &&
-      first <= instant(event.occurredAt) &&
-      instant(event.occurredAt) <= last &&
+      Date.parse(witness.incidentInvocationFirstAt) <= Date.parse(event.occurredAt) &&
+      Date.parse(event.occurredAt) <= Date.parse(witness.incidentInvocationLastAt) &&
       pinned !== null &&
       exactKeys(pinned, ["eventId", "eventHash", "type"]) &&
       pinned.eventId === event.eventId &&

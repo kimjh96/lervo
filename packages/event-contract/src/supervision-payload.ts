@@ -63,6 +63,14 @@ export const supervisionPayloadAllowlists = {
     "inspectionArtifactHash",
     "sourceRevisionDigest",
   ],
+  "work.supervision.owner_reasoning.interruption_reconciled": [
+    ...common,
+    "decisionId",
+    "planHash",
+    "managedRunId",
+    "terminalEventId",
+    "diagnosticArtifactHash",
+  ],
   "work.supervision.effect.observed": [
     ...common,
     "decisionId",
@@ -240,6 +248,8 @@ export function validateSupervisionPayload(
       if (key === "projectId") valid &&= /^prj_[a-f0-9]{16}$/u.test(String(value));
       if (key === "workstreamId") valid &&= /^wks_[a-f0-9]{24}$/u.test(String(value));
       if (key === "assignmentId") valid &&= /^asn_[a-f0-9]{24}$/u.test(String(value));
+      if (key === "managedRunId") valid &&= /^run_[a-f0-9]{32}$/u.test(String(value));
+      if (key === "terminalEventId") valid &&= /^evt_[a-f0-9]{32}$/u.test(String(value));
       if (key === "actionKind") valid &&= actions.includes(String(value));
       if (key === "disposition")
         valid &&= ["admitted", "blocked", "uncertain"].includes(String(value));

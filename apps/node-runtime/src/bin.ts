@@ -6,6 +6,7 @@ import { runRepositoryReplicaCli } from "./repository-replica-cli.js";
 import { runLocalSupervisionCli } from "./local-supervision-cli.js";
 import { runAbandonedTurnRecoveryCli } from "./supervision-abandoned-turn-recovery-cli.js";
 import { runPreTurnRecoveryCli } from "./supervision-pre-turn-recovery-cli.js";
+import { runInterruptedOwnerRecoveryCli } from "./supervision-interrupted-owner-recovery-cli.js";
 
 const args = process.argv.slice(2);
 if (args[0] === "recover-abandoned-turn") {
@@ -16,6 +17,12 @@ if (args[0] === "recover-abandoned-turn") {
   });
 } else if (args[0] === "recover-pre-turn") {
   process.exitCode = await runPreTurnRecoveryCli(args.slice(1), {
+    cwd: process.cwd(),
+    stdout: (message) => process.stdout.write(message),
+    stderr: (message) => process.stderr.write(message),
+  });
+} else if (args[0] === "reconcile-interrupted-owner") {
+  process.exitCode = await runInterruptedOwnerRecoveryCli(args.slice(1), {
     cwd: process.cwd(),
     stdout: (message) => process.stdout.write(message),
     stderr: (message) => process.stderr.write(message),

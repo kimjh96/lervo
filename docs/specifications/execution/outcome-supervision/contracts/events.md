@@ -22,6 +22,7 @@ Exclude raw user text, prompts, reasoning, paths, external message identifiers, 
 | `work.responsibility.bound` | assignment ID/revision, executor ID, reviewer ID, role ID/version/hash, responsibility artifact hash, predecessor binding hash or null | Binds exact duties; stale roles, conflicting live leases, and authority overflow reject. |
 | `work.supervision.decision.recorded` | decision ID, source revision digest, action kind, plan hash, plan artifact hash, rationale artifact hash, policy review hash or null, disposition | `admitted`, `blocked`, or `uncertain`; admission does not prove an effect. |
 | `work.supervision.decision.superseded` | decision ID, plan hash, inspection artifact hash, replacement source revision digest | Closes a proven not-started old-source decision under the effect adapter's source lock and owner fence; never cancels or confirms an executed effect. |
+| `work.supervision.owner_reasoning.interruption_reconciled` | decision ID, plan hash, managed run ID, terminal event ID, diagnostic artifact hash | An owner-fenced, invocation-proven read-only owner turn already ended with nonretryable `provider_stop_failed` and unavailable usage. It preserves the original terminal and full spent-unknown reservation; it does not prove zero tokens, successful work, safe replay, or publication. Missing or changed proof leaves the decision uncertain. |
 | `work.supervision.review.recorded` | assignment IDs, artifact hashes, verification event IDs, acceptance hash, reviewer ID, verdict | `accepted`, `rework`, or `blocked`; missing mandatory evidence prevents acceptance. |
 | `work.supervision.escalation.recorded` | escalation ID, recipient ID, reason code, evidence event IDs, decision artifact hash, next check time | Routes an issue, not ownership; undelivered escalation retains owner responsibility. |
 | `work.supervision.handoff.offered` | `decisionId`, `planHash`, `handoffHash`, `recipientProjectId`, `recipientWorkstreamId`, `recipientAgentId` | Exact admitted local offer; the source retains follow-up responsibility until the successor accepts. |
@@ -36,6 +37,8 @@ Exclude raw user text, prompts, reasoning, paths, external message identifiers, 
 Every stored event must satisfy a readable event schema of the reader opening the store. CLI, Node, and Hub bundles built before envelope-version-3 `work.supervision.readiness.failed` reject journals containing it with `integrity_failed` (`The stored event does not satisfy a readable event schema.`). Hub replication stops at the preceding sequence.
 
 Before an installed owner can record this event, deploy the managed CLI bundle, Node bundle, and Hub from one revision that knows it. A mixed deployment is a non-start, not data loss.
+
+The same reader-first rule applies to `work.supervision.owner_reasoning.interruption_reconciled`: old readers reject the new event, so deploy compatible CLI, Hub and Node readers before an explicit repair writes it. Its CAS diagnostic pins every run event and a fresh host unit-invocation witness; no prompt, output, path, source bytes or token estimate enters the event. See [ADR-0430](../../../../decisions/execution/orchestration/governed-work/owner-recovery/0430-reconcile-terminal-read-only-owner-interruptions.md).
 
 ## Idempotency and recovery
 

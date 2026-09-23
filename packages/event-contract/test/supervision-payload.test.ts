@@ -61,4 +61,27 @@ describe("supervision privacy and evidence payloads", () => {
         expect.objectContaining({ code: "invalid_payload" }),
       );
   });
+
+  it("accepts only bounded coordinates for an interrupted owner reconciliation", () => {
+    const payload = {
+      ...common,
+      decisionId: "osd_fixture",
+      planHash: hash,
+      managedRunId: `run_${"b".repeat(32)}`,
+      terminalEventId: `evt_${"c".repeat(32)}`,
+      diagnosticArtifactHash: hash,
+    };
+    expect(
+      sanitizeEventPayload("work.supervision.owner_reasoning.interruption_reconciled", payload)
+        .payload,
+    ).toEqual(payload);
+    for (const invalid of [
+      { ...payload, managedRunId: "run_wrong" },
+      { ...payload, terminalEventId: "evt_wrong" },
+      { ...payload, diagnosticArtifactHash: "private_path" },
+    ])
+      expect(() =>
+        sanitizeEventPayload("work.supervision.owner_reasoning.interruption_reconciled", invalid),
+      ).toThrowError(expect.objectContaining({ code: "invalid_payload" }));
+  });
 });
