@@ -68,6 +68,7 @@ it("reconciles one terminal owner interruption and keeps its full unknown-spend 
   const storage = await openProjectStorage(f.root);
   const sourceReader = new SupervisionTaskSource(storage, f.binding, f.ports.now);
   let plan: OperatingActionPlanV1 | undefined;
+  let attemptNumber = 1;
   vi.spyOn(SupervisionOwnerReasoningEffects.prototype, "execute").mockImplementation(async () => {
     throw new Error("fixture_provider_process_lost");
   });
@@ -104,7 +105,7 @@ it("reconciles one terminal owner interruption and keeps its full unknown-spend 
           provider: "codex",
           requestedModel: null,
           reservedTokens: f.mandate.maximumAttemptTokens,
-          attemptNumber: 1,
+          attemptNumber,
           deadline: new Date(Date.now() + 120_000).toISOString(),
         };
         await storage.artifacts.put(canonicalJson(effect));
@@ -138,11 +139,13 @@ it("reconciles one terminal owner interruption and keeps its full unknown-spend 
       type: Draft["type"],
       payload: Draft["payload"],
       actor: Draft["actor"] = { kind: "system" },
+      target: typeof identity = identity,
+      occurredAtOffsetMs = index * 1000,
     ) =>
       storage.events.append({
-        eventId: `evt_${operatingContractHash({ type, index, ...identity }).slice(7, 39)}`,
+        eventId: `evt_${operatingContractHash({ type, index, ...target }).slice(7, 39)}`,
         projectId: action.projectId,
-        ...identity,
+        ...target,
         schemaVersion:
           type === "managed.execution.reserved"
             ? 3
@@ -150,11 +153,12 @@ it("reconciles one terminal owner interruption and keeps its full unknown-spend 
                   "work.causality.recorded",
                   "provider.process.observed",
                   "resource.usage.recorded",
+                  "execution.stages.observed",
                 ].includes(type)
               ? 2
               : 1,
         type,
-        occurredAt: at(index * 1000),
+        occurredAt: at(occurredAtOffsetMs),
         actor,
         policyVersion: action.mandateHash,
         payload,
@@ -352,6 +356,123 @@ it("reconciles one terminal owner interruption and keeps its full unknown-spend 
           (event) => event.type === "work.supervision.owner_reasoning.interruption_reconciled",
         ),
     ).toHaveLength(1);
+    attemptNumber = 2;
+    expect((await runtime.runCycle()).disposition).toBe("uncertain");
+    expect(plan?.attemptNumber).toBe(2);
+    const second = plan!;
+    const secondIdentity = managedExecutionIdentity(
+      second.projectId,
+      operatingContractHash(second),
+    );
+    append(
+      11,
+      "managed.execution.reserved",
+      { executionKey: operatingContractHash(second), requestHash: second.effectHash },
+      { kind: "system" },
+      secondIdentity,
+      141_000,
+    );
+    append(
+      12,
+      "work.causality.recorded",
+      {
+        workId,
+        executionContractVersion: 1,
+        relationship: "retry",
+        parentRunId: identity.runId,
+        retryOfRunId: identity.runId,
+        attemptOrdinal: 2,
+        workstreamId: second.workstreamId,
+        assignmentId: null,
+        agentId: second.ownerAgentId,
+      },
+      { kind: "system" },
+      secondIdentity,
+      142_000,
+    );
+    append(13, "run.requested", {}, { kind: "system" }, secondIdentity, 143_000);
+    append(14, "run.resolved", {}, { kind: "system" }, secondIdentity, 144_000);
+    const oldUsage = storage.events
+      .list()
+      .find((event) => event.runId === identity.runId && event.type === "resource.usage.recorded")!;
+    append(
+      15,
+      "resource.usage.recorded",
+      { ...oldUsage.payload, resourceObservationId: `ruo_${"b".repeat(24)}` },
+      { kind: "provider", provider: "codex" },
+      secondIdentity,
+      145_000,
+    );
+    append(
+      16,
+      "execution.stages.observed",
+      {
+        executionMode: "managed",
+        workId,
+        terminalObservationId: null,
+        terminalHook: null,
+        observationSetId: `stgobs_${"c".repeat(24)}`,
+        stageCatalogVersion: 2,
+        environmentProfileDigest: `sha256:${"d".repeat(64)}`,
+        repositoryProfile: "small",
+        stages: [
+          {
+            stageId: "total",
+            parentStageId: null,
+            durationMs: 1,
+            budgetMs: null,
+            outcome: "failed",
+            coldState: "unknown",
+          },
+        ],
+      },
+      { kind: "system" },
+      secondIdentity,
+      146_000,
+    );
+    append(
+      17,
+      "run.failed",
+      {
+        failureCode: "provider_start_failed",
+        retryable: false,
+        diagnosticDigest: `sha256:${"e".repeat(64)}`,
+      },
+      { kind: "system" },
+      secondIdentity,
+      147_000,
+    );
+    expect(await inspectOwnerReasoning(storage, second)).toMatchObject({ status: "uncertain" });
+    const secondAt = at(152_000);
+    const secondWitness = {
+      ...witness,
+      incidentAt: at(147_000),
+      incidentInvocationId: "4".repeat(32),
+      incidentInvocationFirstAt: at(130_000),
+      incidentInvocationLastAt: at(150_000),
+      successorInvocationId: "5".repeat(32),
+      successorInvocationFirstAt: at(151_000),
+      currentInvocationId: "6".repeat(32),
+      observedAt: secondAt,
+    };
+    const secondResult = await reconcileInterruptedOwnerReasoning({
+      repositoryRoot: f.root,
+      binding: f.binding,
+      runId: secondIdentity.runId,
+      unit: secondWitness.unit,
+      now: () => secondAt,
+      observeWitness: () => secondWitness,
+      currentInvocation: () => secondWitness.currentInvocationId,
+    });
+    expect(
+      (await readProvenInterruptedOwnerReasoning({ storage, plan: second }))?.reconciliation
+        .eventId,
+    ).toBe(secondResult.eventId);
+    expect(await inspectOwnerReasoning(storage, second)).toMatchObject({ status: "confirmed" });
+    await expect(runtime.runCycle()).resolves.toBeDefined();
+    expect((await sourceReader.read()).reconciledRunIds).toEqual(
+      [identity.runId, secondIdentity.runId].sort(),
+    );
   } finally {
     await runtime.close();
     await storage.close();

@@ -57,6 +57,14 @@ describe("interrupted owner effect evidence", () => {
 
   it("accepts only the decision-bound record with its exact earlier stop-failure terminal", () => {
     expect(isDecisionBoundSupervisionEffectEvidence(reconciliation, decision, events)).toBe(true);
+    expect(
+      isDecisionBoundSupervisionEffectEvidence(reconciliation, decision, {
+        get: () => ({
+          ...terminal,
+          payload: { ...terminal.payload, failureCode: "provider_start_failed" },
+        }),
+      } as unknown as EventStore),
+    ).toBe(true);
     for (const payload of [
       { planHash: `sha256:${"3".repeat(64)}` },
       { causationEventIds: [terminalEventId, decisionEventId] },

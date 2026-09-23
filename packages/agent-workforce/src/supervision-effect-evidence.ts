@@ -31,7 +31,9 @@ export function isDecisionBoundSupervisionEffectEvidence(
       ].every((key) => event.payload[key] === decision.payload[key]) &&
       terminal?.type === "run.failed" &&
       terminal.runId === event.payload.managedRunId &&
-      terminal.payload.failureCode === "provider_stop_failed" &&
+      ["provider_stop_failed", "provider_start_failed"].includes(
+        String(terminal.payload.failureCode),
+      ) &&
       terminal.payload.retryable === false &&
       terminal.seq < event.seq &&
       Array.isArray(event.payload.causationEventIds) &&

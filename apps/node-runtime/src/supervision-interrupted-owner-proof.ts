@@ -28,7 +28,9 @@ const NON_EFFECT_TYPES = new Set([
 
 export interface InterruptedOwnerReasoningDiagnostic {
   schemaVersion: 1;
-  kind: "work.owner_reasoning_interrupted_stop_failure";
+  kind:
+    | "work.owner_reasoning_interrupted_stop_failure"
+    | "work.owner_reasoning_unacknowledged_start_failure";
   runEvents: { eventId: string; eventHash: string; type: string }[];
   witness: UnitInvocationWitness;
 }
@@ -54,20 +56,25 @@ export function isProvenInterruptedOwnerReasoning(
 ): diagnosticValue is InterruptedOwnerReasoningDiagnostic {
   const diagnostic = record(diagnosticValue);
   const terminal = events.at(-1);
+  const stopFailure =
+    diagnostic?.kind === "work.owner_reasoning_interrupted_stop_failure" &&
+    terminal?.payload.failureCode === "provider_stop_failed";
+  const startFailure =
+    diagnostic?.kind === "work.owner_reasoning_unacknowledged_start_failure" &&
+    terminal?.payload.failureCode === "provider_start_failed";
   if (
     diagnostic === null ||
     !exactKeys(diagnostic, ["schemaVersion", "kind", "runEvents", "witness"]) ||
     diagnostic.schemaVersion !== 1 ||
-    diagnostic.kind !== "work.owner_reasoning_interrupted_stop_failure" ||
+    (!stopFailure && !startFailure) ||
     !Array.isArray(diagnostic.runEvents) ||
     diagnostic.runEvents.length !== events.length ||
-    events.length < PREFIX.length + 5 ||
+    events.length < PREFIX.length + 3 ||
     events.length > 512 ||
     !PREFIX.every((type, index) => events[index]?.type === type) ||
     terminal?.type !== "run.failed" ||
     terminal.schemaVersion !== 1 ||
     terminal.actor.kind !== "system" ||
-    terminal.payload.failureCode !== "provider_stop_failed" ||
     terminal.payload.retryable !== false ||
     !HASH.test(String(terminal.payload.diagnosticDigest)) ||
     reconciliation.type !== "work.supervision.owner_reasoning.interruption_reconciled" ||
@@ -89,32 +96,49 @@ export function isProvenInterruptedOwnerReasoning(
   const started = events.filter((event) => event.type === "adapter.started");
   const processes = events.filter((event) => event.type === "provider.process.observed");
   const usage = events.filter((event) => event.type === "resource.usage.recorded");
+  const modelIdentity = record(usage[0]?.payload.modelIdentity);
   if (
-    started.length !== 1 ||
-    started[0]!.actor.kind !== "provider" ||
-    started[0]!.payload.executionMode !== "read_only" ||
-    started[0]!.seq <= events[PREFIX.length - 1]!.seq ||
-    processes.length === 0 ||
-    processes.some(
-      (event) =>
-        event.actor.kind !== "provider" ||
-        event.actor.provider !== started[0]!.actor.provider ||
-        event.payload.provesWorkProgress !== false,
-    ) ||
     usage.length !== 1 ||
     usage[0]!.actor.kind !== "provider" ||
-    usage[0]!.actor.provider !== started[0]!.actor.provider ||
     usage[0]!.payload.source !== "provider_reported" ||
     usage[0]!.payload.status !== "unavailable" ||
     usage[0]!.payload.usage !== null ||
     usage[0]!.payload.reasonCode !== "resource_observation_missing" ||
-    usage[0]!.seq <= started[0]!.seq ||
     usage[0]!.seq >= terminal.seq ||
-    events.some((event) => !NON_EFFECT_TYPES.has(event.type)) ||
     events.filter((event) => event.type === "run.failed").length !== 1 ||
     events[1]!.payload.workstreamId !== reconciliation.payload.workstreamId ||
     events[1]!.payload.agentId !== reconciliation.payload.ownerAgentId ||
     events[1]!.payload.assignmentId !== null
+  )
+    return false;
+
+  if (stopFailure) {
+    if (
+      started.length !== 1 ||
+      started[0]!.actor.kind !== "provider" ||
+      started[0]!.payload.executionMode !== "read_only" ||
+      started[0]!.seq <= events[PREFIX.length - 1]!.seq ||
+      processes.length === 0 ||
+      processes.some(
+        (event) =>
+          event.actor.kind !== "provider" ||
+          event.actor.provider !== started[0]!.actor.provider ||
+          event.payload.provesWorkProgress !== false,
+      ) ||
+      usage[0]!.actor.provider !== started[0]!.actor.provider ||
+      usage[0]!.seq <= started[0]!.seq ||
+      events.some((event) => !NON_EFFECT_TYPES.has(event.type)) ||
+      events.length < PREFIX.length + 5
+    )
+      return false;
+  } else if (
+    started.length !== 0 ||
+    processes.length !== 0 ||
+    events.length !== PREFIX.length + 3 ||
+    events[PREFIX.length]?.type !== "resource.usage.recorded" ||
+    events[PREFIX.length + 1]?.type !== "execution.stages.observed" ||
+    usage[0]!.seq <= events[PREFIX.length - 1]!.seq ||
+    modelIdentity?.provider !== usage[0]!.actor.provider
   )
     return false;
 

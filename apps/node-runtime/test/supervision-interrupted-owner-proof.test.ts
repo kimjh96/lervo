@@ -113,6 +113,69 @@ it("proves an exact read-only owner stop failure without estimating its token us
   expect(isProvenInterruptedOwnerReasoning(events, reconciliation, diagnostic)).toBe(true);
 });
 
+function startFailureFixture() {
+  const { reconciliation, diagnostic } = fixture();
+  const events = [
+    event(1, "managed.execution.reserved", { executionKey: planHash }, 3),
+    event(2, "work.causality.recorded", {
+      workstreamId,
+      agentId: ownerAgentId,
+      assignmentId: null,
+    }),
+    event(3, "run.requested", {}),
+    event(4, "run.resolved", {}),
+    event(
+      5,
+      "resource.usage.recorded",
+      {
+        source: "provider_reported",
+        status: "unavailable",
+        usage: null,
+        reasonCode: "resource_observation_missing",
+        modelIdentity: { provider: "codex" },
+      },
+      2,
+    ),
+    event(6, "execution.stages.observed", {}),
+    event(7, "run.failed", {
+      failureCode: "provider_start_failed",
+      retryable: false,
+      diagnosticDigest: hash,
+    }),
+  ];
+  reconciliation.seq = 9;
+  reconciliation.occurredAt = new Date(baseAt + 9000).toISOString();
+  reconciliation.payload.terminalEventId = events.at(-1)!.eventId;
+  diagnostic.kind = "work.owner_reasoning_unacknowledged_start_failure";
+  diagnostic.runEvents = events.map(({ eventId, eventHash, type }) => ({
+    eventId,
+    eventHash,
+    type,
+  }));
+  diagnostic.witness.incidentAt = events.at(-1)!.occurredAt;
+  diagnostic.witness.incidentInvocationLastAt = new Date(baseAt + 7000).toISOString();
+  diagnostic.witness.successorInvocationFirstAt = new Date(baseAt + 8000).toISOString();
+  diagnostic.witness.observedAt = new Date(baseAt + 8500).toISOString();
+  return { events, reconciliation, diagnostic };
+}
+
+it("settles only the terminal unacknowledged owner start with unknown usage", () => {
+  const { events, reconciliation, diagnostic } = startFailureFixture();
+  expect(isProvenInterruptedOwnerReasoning(events, reconciliation, diagnostic)).toBe(true);
+});
+
+it.each(["observed usage", "other provider", "other terminal", "unfenced process"] as const)(
+  "refuses an unacknowledged start with %s",
+  (scenario) => {
+    const { events, reconciliation, diagnostic } = startFailureFixture();
+    if (scenario === "observed usage") events[4]!.payload.status = "observed";
+    if (scenario === "other provider") events[4]!.payload.modelIdentity = { provider: "claude" };
+    if (scenario === "other terminal") events[6]!.payload.failureCode = "provider_turn_failed";
+    if (scenario === "unfenced process") events[5]!.type = "provider.process.observed";
+    expect(isProvenInterruptedOwnerReasoning(events, reconciliation, diagnostic)).toBe(false);
+  },
+);
+
 it.each([
   "writable adapter",
   "provider work progress",

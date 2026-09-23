@@ -117,7 +117,10 @@ export async function reconcileInterruptedOwnerReasoning(input: {
         });
         const diagnostic: InterruptedOwnerReasoningDiagnostic = {
           schemaVersion: 1,
-          kind: "work.owner_reasoning_interrupted_stop_failure",
+          kind:
+            terminal.payload.failureCode === "provider_start_failed"
+              ? "work.owner_reasoning_unacknowledged_start_failure"
+              : "work.owner_reasoning_interrupted_stop_failure",
           runEvents: runEvents.map((event) => ({
             eventId: event.eventId,
             eventHash: event.eventHash,
