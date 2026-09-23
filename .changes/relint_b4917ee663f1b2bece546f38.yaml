@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b4917ee663f1b2bece546f38"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add isolated no-tool semantic review for leased conversation knowledge jobs."

@@ -10,11 +10,13 @@ import {
   readRepositoryWorkReviewSnapshot,
   type RepositoryWorkReviewSnapshot,
 } from "./repository-work-review-snapshot.js";
+import type { RepositoryWorkSourceManifest } from "./repository-work-source-manifest.js";
 
 export type LeasedConversationKnowledgeReviewSource =
   | {
       status: "ready_for_review";
       job: LeasedConversationKnowledgeJob;
+      manifest: RepositoryWorkSourceManifest;
       snapshot: Extract<RepositoryWorkReviewSnapshot, { status: "ready_for_review" }>;
     }
   | Extract<LeasedConversationKnowledgeSource, { status: "stale" | "needs_review" }>
@@ -43,6 +45,6 @@ export async function captureLeasedConversationKnowledgeReviewSource(
   }
   const job = readLeasedConversationKnowledgeJob({ ...input, now: input.now() });
   return snapshot.status === "ready_for_review"
-    ? { status: "ready_for_review", job, snapshot }
+    ? { status: "ready_for_review", job, manifest: preflight.manifest, snapshot }
     : { ...snapshot, job };
 }
