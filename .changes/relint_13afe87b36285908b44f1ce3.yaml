@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_13afe87b36285908b44f1ce3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Settle missing or corrupt background knowledge sources as exact attention outcomes without claiming currency."

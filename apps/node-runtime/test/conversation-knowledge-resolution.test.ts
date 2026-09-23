@@ -14,6 +14,7 @@ import type { EventDraftV3 } from "@lervo/event-contract";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { resolveRoleContract } from "@lervo/roles";
+import type { ArtifactStore } from "@lervo/storage-contract";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -228,6 +229,72 @@ describe("conversation knowledge non-success resolution", () => {
         .list({ runId: f.completion.runId })
         .filter((event) => event.type === "conversation.repository_knowledge.resolved"),
     ).toHaveLength(0);
+    f.events.close();
+  });
+
+  it.each([
+    {
+      failureCode: "knowledge_job_source_unavailable",
+      get: async () => {
+        throw new Error("Missing source artifact");
+      },
+    },
+    {
+      failureCode: "knowledge_job_source_invalid",
+      get: async () => Buffer.from("wrong source artifact"),
+    },
+  ])(
+    "settles a $failureCode artifact failure without inventing source currency",
+    async ({ failureCode, get }) => {
+      const f = await fixture();
+      const artifacts = { get } as unknown as ArtifactStore;
+      await expect(
+        resolveLeasedConversationKnowledgeFailure({
+          ...f.input,
+          artifacts,
+          failureCode: "review_context_unavailable",
+        }),
+      ).rejects.toMatchObject({ code: "knowledge_resolution_invalid" });
+      await expect(
+        resolveLeasedConversationKnowledgeFailure({
+          ...f.input,
+          artifacts,
+          terminalState: "stale",
+          failureCode,
+        }),
+      ).rejects.toMatchObject({ code: "knowledge_resolution_invalid" });
+      const result = await resolveLeasedConversationKnowledgeFailure({
+        ...f.input,
+        artifacts,
+        failureCode,
+      });
+      expect(result.event.payload).toMatchObject({
+        terminalState: "attention_required",
+        failureCode,
+        sourceManifest: {
+          kind: "content_bound",
+          contentHash: f.completion.payload.sourceManifestContentHash,
+        },
+        knowledgeSnapshotHash: null,
+      });
+      expect(
+        f.events.getOutbox(f.completion.eventId, CONVERSATION_KNOWLEDGE_OUTBOX_DESTINATION),
+      ).toMatchObject({ status: "acknowledged" });
+      f.events.close();
+    },
+  );
+
+  it("rejects a source-artifact failure code when the artifact is valid", async () => {
+    const f = await fixture();
+    await expect(
+      resolveLeasedConversationKnowledgeFailure({
+        ...f.input,
+        failureCode: "knowledge_job_source_unavailable",
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_resolution_invalid" });
+    expect(
+      f.events.getOutbox(f.completion.eventId, CONVERSATION_KNOWLEDGE_OUTBOX_DESTINATION),
+    ).toMatchObject({ status: "leased" });
     f.events.close();
   });
 

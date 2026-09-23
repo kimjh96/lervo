@@ -7,7 +7,10 @@ import type { ArtifactStore, OutboxDelivery, OutboxStore } from "@lervo/storage-
 import { collectRunEventsBounded } from "@lervo/storage-contract";
 
 import { conversationKnowledgeAssignmentProvenance } from "./conversation-knowledge-assignment-provenance.js";
-import { readConversationKnowledgeJobSource } from "./conversation-knowledge-job-source.js";
+import {
+  ConversationKnowledgeJobSourceError,
+  readConversationKnowledgeJobSource,
+} from "./conversation-knowledge-job-source.js";
 import { readLeasedConversationKnowledgeJob } from "./conversation-knowledge-lease.js";
 import {
   CONVERSATION_KNOWLEDGE_OUTBOX_DESTINATION,
@@ -23,6 +26,14 @@ const SOURCE_CURRENCY_FAILURES = new Set([
   "unsafe_path_resolution",
   "source_evidence_unavailable",
 ]);
+const SOURCE_MANIFEST_FAILURES = new Set([
+  "knowledge_job_source_invalid",
+  "knowledge_job_source_unavailable",
+]);
+
+function stringPaths(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((path: unknown) => typeof path === "string");
+}
 
 export class ConversationKnowledgeResolutionError extends Error {
   constructor(readonly code: "knowledge_resolution_invalid" | "knowledge_resolution_conflict") {
@@ -98,22 +109,43 @@ export async function resolveLeasedConversationKnowledgeFailure(input: {
     job: first,
     agentId: input.agentId,
   });
-  const manifest = await readConversationKnowledgeJobSource({
-    completion: first.completion,
-    artifacts: input.artifacts,
-  });
-  const sourcePaths = manifest.paths.map((item) => item.path);
-  const currency = await inspectRepositoryWorkSourceCurrency({
-    repositoryRoot: input.repositoryRoot,
-    manifest,
-  });
-  if (
-    (input.terminalState === "stale" &&
-      (currency.status !== "stale" || currency.reasonCode !== input.failureCode)) ||
-    (input.terminalState === "attention_required" && currency.status === "stale") ||
-    (currency.status === "needs_review" && currency.reasonCode !== input.failureCode) ||
-    (currency.status === "ready_for_review" && SOURCE_CURRENCY_FAILURES.has(input.failureCode))
-  )
+  let manifest;
+  let manifestFailure: ConversationKnowledgeJobSourceError | undefined;
+  try {
+    manifest = await readConversationKnowledgeJobSource({
+      completion: first.completion,
+      artifacts: input.artifacts,
+    });
+  } catch (error) {
+    if (!(error instanceof ConversationKnowledgeJobSourceError)) throw error;
+    manifestFailure = error;
+  }
+  if (manifestFailure !== undefined) {
+    if (
+      input.terminalState !== "attention_required" ||
+      (input.failureCode !== manifestFailure.code &&
+        input.failureCode !== "knowledge_retry_exhausted")
+    )
+      throw new ConversationKnowledgeResolutionError("knowledge_resolution_invalid");
+  } else if (manifest !== undefined) {
+    if (SOURCE_MANIFEST_FAILURES.has(input.failureCode))
+      throw new ConversationKnowledgeResolutionError("knowledge_resolution_invalid");
+    const currency = await inspectRepositoryWorkSourceCurrency({
+      repositoryRoot: input.repositoryRoot,
+      manifest,
+    });
+    if (
+      (input.terminalState === "stale" &&
+        (currency.status !== "stale" || currency.reasonCode !== input.failureCode)) ||
+      (input.terminalState === "attention_required" && currency.status === "stale") ||
+      (currency.status === "needs_review" && currency.reasonCode !== input.failureCode) ||
+      (currency.status === "ready_for_review" && SOURCE_CURRENCY_FAILURES.has(input.failureCode))
+    )
+      throw new ConversationKnowledgeResolutionError("knowledge_resolution_invalid");
+  }
+  const sourcePaths: unknown =
+    manifest?.paths.map((item) => item.path) ?? first.completion.payload.changedPaths;
+  if (!stringPaths(sourcePaths))
     throw new ConversationKnowledgeResolutionError("knowledge_resolution_invalid");
   await assertReadOnlyKnowledgeReviewAuthority({
     repositoryRoot: input.repositoryRoot,
