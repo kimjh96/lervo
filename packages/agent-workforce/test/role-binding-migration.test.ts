@@ -8,6 +8,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   applyWorkforceRoleBindingMigration,
+  changeAgentStatus,
+  claimAssignment,
   createAssignment,
   createWorkforceRoleBindingMigrationPlan,
   listAgents,
@@ -30,6 +32,72 @@ async function repository(): Promise<string> {
 }
 
 describe("workforce role-binding migration", () => {
+  it("keeps retired custom-role history inspectable without weakening active claims", async () => {
+    const root = await repository();
+    const rolePath = resolve(root, ".lervo/roles/archived-reviewer.json");
+    await mkdir(resolve(root, ".lervo/roles"), { recursive: true });
+    const roleSource = `${JSON.stringify({
+      schemaVersion: 1,
+      kind: "lervo_repository_role",
+      roleId: "archived-reviewer",
+      version: "1.0.0",
+      extends: [{ roleId: "developer", version: "1.0.0" }],
+      profile: { name: "Archived Reviewer", description: "Reviews historical repository work." },
+      checks: [],
+    })}\n`;
+    await writeFile(rolePath, roleSource);
+    const retired = await registerAgent({ repositoryRoot: root, roleId: "archived-reviewer" });
+    await rm(rolePath);
+    await expect(listAgents(root)).rejects.toMatchObject({ code: "role_not_found" });
+    await writeFile(rolePath, roleSource);
+    await changeAgentStatus({
+      repositoryRoot: root,
+      agentId: retired.agentId,
+      expectedRevision: retired.revision,
+      status: "retired",
+    });
+    await rm(rolePath);
+
+    const active = await registerAgent({ repositoryRoot: root, roleId: "developer" });
+    const agents = await listAgents(root);
+    expect(agents).toHaveLength(2);
+    expect(agents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          agentId: retired.agentId,
+          roleId: "archived-reviewer",
+          status: "retired",
+          roleContractHash: retired.roleContractHash,
+        }),
+        expect.objectContaining({ agentId: active.agentId, roleId: "developer", status: "active" }),
+      ]),
+    );
+    const assignment = await createAssignment({
+      repositoryRoot: root,
+      taskType: "review",
+      roleId: "developer",
+      acceptanceCriteria: ["Review the source-bound change."],
+      verificationSuiteIds: ["project.quick"],
+      expectedPaths: ["src/change.ts"],
+    });
+    await expect(
+      claimAssignment({
+        repositoryRoot: root,
+        assignmentId: assignment.assignmentId,
+        agentId: active.agentId,
+        sessionId: "ses_archived_role_claim_01",
+      }),
+    ).resolves.toMatchObject({ status: "leased", assigneeAgentId: active.agentId });
+    await expect(
+      changeAgentStatus({
+        repositoryRoot: root,
+        agentId: retired.agentId,
+        expectedRevision: retired.revision + 1,
+        status: "active",
+      }),
+    ).rejects.toMatchObject({ code: "agent_state_conflict" });
+  });
+
   it("refreshes stale built-in agent and assignment bindings under one exact plan", async () => {
     const root = await repository();
     const agent = await registerAgent({ repositoryRoot: root, roleId: "developer" });

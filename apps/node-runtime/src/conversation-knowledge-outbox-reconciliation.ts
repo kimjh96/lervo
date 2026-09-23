@@ -59,7 +59,6 @@ function hasResolution(events: OutboxStore, completion: EventEnvelope): boolean 
       payload.completionEventHash !== completion.eventHash ||
       payload.sourceConversationEventId !== completionPayload.sourceConversationEventId ||
       payload.jobId !== conversationKnowledgeJobId(completion.eventId) ||
-      payload.agentId !== completionPayload.workerAgentId ||
       !sourceManifestMatches
     );
   });

@@ -60,6 +60,13 @@ export async function normalizeAgentRole(
   root: string,
   agent: WorkforceAgent,
 ): Promise<WorkforceAgent> {
+  // Retirement is terminal; removed role sources must not erase inspectable historical identities.
+  if (
+    agent.status === "retired" &&
+    agent.roleVersion !== undefined &&
+    agent.roleContractHash !== undefined
+  )
+    return agent;
   const contract = await resolveRoleContract(root, agent.roleId);
   const currentProfileHash = roleProfileHash(contract.definition.profile);
   const legacyCapabilityHash = digest(stableJson(contract.definition.profile.capabilities));

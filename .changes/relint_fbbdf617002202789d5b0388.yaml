@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fbbdf617002202789d5b0388"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Preserve retired agent history and distinct background knowledge ownership during reconciliation."

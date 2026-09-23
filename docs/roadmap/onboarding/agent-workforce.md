@@ -51,6 +51,8 @@ All six built-in roles, including researcher recognized as `researcher`, `연구
 
 Production `lervo init` continues safe generated onboarding stages, creates the initial developer agent, stops only at user-owned bytes, provider-native trust, or external authority, and reports the pending boundary. Tests cover built-in and custom-role hiring, specialization and composition, version/hash drift, same-role and mixed-role concurrency, overlap rejection, lease renewal and reclaim, dependency ordering, CAS conflict, event rollback, nested subagents, exact handoff, natural-language researcher and custom-role intent, managed role and assignment binding, and onboarding without user bookkeeping commands.
 
+Terminal retired agents remain inspectable with their stored version and hash after a former custom-role source is removed. This does not reactivate those agents or relax current-role checks for active and suspended workers; it prevents historical roster entries from blocking new, independently validated assignments.
+
 ## Planned workspace extension
 
 This completed milestone covers declared path conflicts within the existing workforce store. The separate [isolated agent workspace lifecycle](agent-workspace-lifecycle.md) plans shared coordination across sibling Git worktrees, worker/integrator finalization, immutable sealing, optional Hub reservations, and evidence-bound automatic worktree removal. Its planned status does not reopen or overstate this milestone's completed acceptance.

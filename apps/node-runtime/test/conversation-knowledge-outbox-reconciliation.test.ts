@@ -91,7 +91,7 @@ describe("conversation knowledge outbox reconciliation", () => {
         completionEventHash: resolved.eventHash,
         sourceConversationEventId: resolved.payload.sourceConversationEventId,
         jobId: conversationKnowledgeJobId(resolved.eventId),
-        agentId: resolved.payload.workerAgentId,
+        agentId: `agt_${"d".repeat(24)}`,
         sourceManifest: { kind: "legacy_unavailable" },
         terminalState: "attention_required",
         attemptCount: 1,
