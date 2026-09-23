@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a1ef699709f4072b40151e89"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add source-bound agent assignment provenance for asynchronous conversation knowledge work."

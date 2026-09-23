@@ -16,6 +16,7 @@ Event rejection restores the individual state file. Interruption can leave earli
 
 - [Root-agent liveness](workforce-events/root-agent-liveness.md)
 - [Routine assignment provenance](workforce-events/routine-assignment-provenance.md)
+- [Conversation knowledge-job assignment provenance](workforce-events/knowledge-job-assignment-provenance.md)
 - [Handoff and connector delivery](workforce-events/handoff-and-connector-delivery.md)
 - [Governed-loop projection](workforce-events/governed-loop-projection.md)
 - [Cancellation](workforce-events/cancellation.md)

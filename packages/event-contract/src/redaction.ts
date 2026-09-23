@@ -21,6 +21,7 @@ import {
 import { supervisionPayloadAllowlists, validateSupervisionPayload } from "./supervision-payload.js";
 import { roleInputPayloadFields, validateRoleInputPayload } from "./role-input-payload.js";
 import { validateTopologyPolicyPayload } from "./topology-policy-payload.js";
+import { validateKnowledgeJobAssignmentPayload } from "./knowledge-job-assignment-payload.js";
 
 export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
@@ -227,6 +228,13 @@ export const eventPayloadAllowlists = {
     "routineTriggerKind",
     "routineTriggerDigest",
     "routineNodeKey",
+    "knowledgeJobContractVersion",
+    "knowledgeJobId",
+    "knowledgeCompletionEventId",
+    "knowledgeCompletionEventHash",
+    "knowledgeSourceConversationEventId",
+    "knowledgeSourceManifestHash",
+    "knowledgeAgentId",
     "topologyContractVersion",
     "topologyChangeId",
     "topologyChangeKey",
@@ -1194,8 +1202,9 @@ export function sanitizeEventPayload(
     validateSupervisionPayload(type, sanitized);
     if (type === "role.input.bound") validateRoleInputPayload(sanitized);
     validateTopologyPolicyPayload(type, sanitized);
+    validateKnowledgeJobAssignmentPayload(type, sanitized);
   } catch {
-    throw new RedactionError("invalid_payload", "$", "The supervision payload is invalid.");
+    throw new RedactionError("invalid_payload", "$", "The event payload coordinates are invalid.");
   }
   const schemaName = eventPayloadSchemas[type];
   const invalidSchema = schemaName !== undefined && !validateSchema(schemaName, sanitized).valid;

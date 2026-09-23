@@ -510,6 +510,43 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify(result.payload)).not.toContain("private");
   });
 
+  it("keeps complete knowledge-job coordinates but never source paths or bodies", () => {
+    const payload = {
+      assignmentId: `asn_${"a".repeat(24)}`,
+      knowledgeJobContractVersion: 1,
+      knowledgeJobId: `kjb_${"b".repeat(24)}`,
+      knowledgeCompletionEventId: "evt_knowledge_completion_001",
+      knowledgeCompletionEventHash: `sha256:${"c".repeat(64)}`,
+      knowledgeSourceConversationEventId: `cve_${"d".repeat(64)}`,
+      knowledgeSourceManifestHash: `sha256:${"e".repeat(64)}`,
+      knowledgeAgentId: `agt_${"f".repeat(24)}`,
+    };
+    const result = sanitizeEventPayload("assignment.created", {
+      ...payload,
+      sourcePath: "private/path.md",
+      sourceBody: "private source",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(result.redactions).toEqual(
+      expect.arrayContaining([
+        { path: "$.sourcePath", reason: "not_allowlisted" },
+        { path: "$.sourceBody", reason: "not_allowlisted" },
+      ]),
+    );
+    expect(() =>
+      sanitizeEventPayload("assignment.created", {
+        ...payload,
+        knowledgeCompletionEventHash: "bad",
+      }),
+    ).toThrow();
+    expect(() =>
+      sanitizeEventPayload("assignment.created", {
+        ...payload,
+        knowledgeSourceManifestHash: undefined,
+      }),
+    ).toThrow();
+  });
+
   it("keeps bounded topology coordinates while excluding reviewed node content", () => {
     const payload = {
       assignmentId: `asn_${"a".repeat(24)}`,

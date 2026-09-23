@@ -12,6 +12,7 @@ export {
   withAssignmentRoutineLock,
   withAssignmentTopologyLock,
 } from "./assignment-creation.js";
+export { createKnowledgeJobAssignment } from "./assignment-knowledge-job-creation.js";
 export { claimAssignment } from "./assignment-claim.js";
 export { renewAssignmentLease, assertAssignmentExecutionAuthority } from "./assignment-lease.js";
 export { cancelAssignment } from "./assignment-cancellation.js";

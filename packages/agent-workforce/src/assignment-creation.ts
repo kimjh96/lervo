@@ -1,6 +1,7 @@
 import {
   type WorkforceAssignmentRoutineProvenance,
   type WorkforceAssignmentTopologyProvenance,
+  type WorkforceAssignmentKnowledgeJobProvenance,
   type WorkforceEventRecorder,
   type WorkforceAssignment,
 } from "./types.js";
@@ -32,6 +33,12 @@ import {
   topologyAssignmentMatches,
   topologyAssignmentEventCoordinates,
 } from "./assignment-topology-state.js";
+import {
+  validKnowledgeJobProvenance,
+  knowledgeJobAssignmentId,
+  knowledgeJobAssignmentMatches,
+  knowledgeJobAssignmentEventCoordinates,
+} from "./assignment-knowledge-job-state.js";
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
@@ -49,6 +56,7 @@ export async function createAssignmentOnce(input: {
   requiredCapabilityHash?: string | null;
   routine?: WorkforceAssignmentRoutineProvenance | null;
   topology?: WorkforceAssignmentTopologyProvenance | null;
+  knowledgeJob?: WorkforceAssignmentKnowledgeJobProvenance | null;
   initialStatus?: "queued" | "blocked";
   expectedRoleVersion?: string;
   expectedRoleContractHash?: string;
@@ -92,6 +100,10 @@ export async function createAssignmentOnce(input: {
     (input.topology !== undefined &&
       input.topology !== null &&
       (!validWorkforceTopologyProvenance(input.topology) || input.workstreamId === undefined)) ||
+    (input.knowledgeJob !== undefined &&
+      input.knowledgeJob !== null &&
+      (!validKnowledgeJobProvenance(input.knowledgeJob) || input.workstreamId === undefined)) ||
+    [input.routine, input.topology, input.knowledgeJob].filter((item) => item != null).length > 1 ||
     (input.routine !== undefined &&
       input.routine !== null &&
       input.topology !== undefined &&
@@ -110,22 +122,26 @@ export async function createAssignmentOnce(input: {
     fail("assignment_invalid", "An assignment dependency does not exist.");
   const createdAt = now.toISOString();
   const assignmentId =
-    input.topology !== undefined && input.topology !== null
-      ? topologyAssignmentId(current.manifest.projectId, input.topology)
-      : input.routine === undefined || input.routine === null
-        ? id("asn", { projectId: current.manifest.projectId, nonce: randomUUID() })
-        : routineAssignmentId(current.manifest.projectId, input.routine);
+    input.knowledgeJob !== undefined && input.knowledgeJob !== null
+      ? knowledgeJobAssignmentId(current.manifest.projectId, input.knowledgeJob)
+      : input.topology !== undefined && input.topology !== null
+        ? topologyAssignmentId(current.manifest.projectId, input.topology)
+        : input.routine === undefined || input.routine === null
+          ? id("asn", { projectId: current.manifest.projectId, nonce: randomUUID() })
+          : routineAssignmentId(current.manifest.projectId, input.routine);
   const existing = assignments.find((item) => item.assignmentId === assignmentId);
   if (existing !== undefined) {
     const exact =
-      input.workstreamId !== undefined && input.topology !== undefined && input.topology !== null
-        ? topologyAssignmentMatches(existing, {
+      input.workstreamId !== undefined &&
+      input.knowledgeJob !== undefined &&
+      input.knowledgeJob !== null
+        ? knowledgeJobAssignmentMatches(existing, {
             taskType: input.taskType,
             roleId: input.roleId,
             roleVersion: contract.version,
             roleContractHash: contract.contractHash,
             requiredCapabilityHash: input.requiredCapabilityHash ?? null,
-            topology: input.topology,
+            knowledgeJob: input.knowledgeJob,
             priority: input.priority ?? 50,
             dependencyIds,
             acceptanceCriteria: input.acceptanceCriteria,
@@ -134,24 +150,42 @@ export async function createAssignmentOnce(input: {
             expectedPaths,
             workstreamId: input.workstreamId,
           })
-        : input.routine !== undefined &&
-          input.routine !== null &&
-          input.workstreamId !== undefined &&
-          routineAssignmentMatches(existing, {
-            taskType: input.taskType,
-            roleId: input.roleId,
-            roleVersion: contract.version,
-            roleContractHash: contract.contractHash,
-            requiredCapabilityHash: input.requiredCapabilityHash ?? null,
-            routine: input.routine,
-            priority: input.priority ?? 50,
-            dependencyIds,
-            acceptanceCriteria: input.acceptanceCriteria,
-            verificationSuiteIds,
-            approvalRequirements,
-            expectedPaths,
-            workstreamId: input.workstreamId,
-          });
+        : input.workstreamId !== undefined &&
+            input.topology !== undefined &&
+            input.topology !== null
+          ? topologyAssignmentMatches(existing, {
+              taskType: input.taskType,
+              roleId: input.roleId,
+              roleVersion: contract.version,
+              roleContractHash: contract.contractHash,
+              requiredCapabilityHash: input.requiredCapabilityHash ?? null,
+              topology: input.topology,
+              priority: input.priority ?? 50,
+              dependencyIds,
+              acceptanceCriteria: input.acceptanceCriteria,
+              verificationSuiteIds,
+              approvalRequirements,
+              expectedPaths,
+              workstreamId: input.workstreamId,
+            })
+          : input.routine !== undefined &&
+            input.routine !== null &&
+            input.workstreamId !== undefined &&
+            routineAssignmentMatches(existing, {
+              taskType: input.taskType,
+              roleId: input.roleId,
+              roleVersion: contract.version,
+              roleContractHash: contract.contractHash,
+              requiredCapabilityHash: input.requiredCapabilityHash ?? null,
+              routine: input.routine,
+              priority: input.priority ?? 50,
+              dependencyIds,
+              acceptanceCriteria: input.acceptanceCriteria,
+              verificationSuiteIds,
+              approvalRequirements,
+              expectedPaths,
+              workstreamId: input.workstreamId,
+            });
     if (!exact) fail("assignment_invalid", "The deterministic assignment ID is already in use.");
     return structuredClone(existing);
   }
@@ -168,6 +202,7 @@ export async function createAssignmentOnce(input: {
     requiredCapabilityHash: input.requiredCapabilityHash ?? null,
     routine: input.routine ?? null,
     topology: input.topology ?? null,
+    knowledgeJob: input.knowledgeJob ?? null,
     status: input.initialStatus ?? "queued",
     priority: input.priority ?? 50,
     dependencyIds,
@@ -207,6 +242,7 @@ export async function createAssignmentOnce(input: {
         roleVersion: assignment.roleVersion,
         roleContractHash: assignment.roleContractHash,
         ...routineAssignmentEventCoordinates(assignment),
+        ...knowledgeJobAssignmentEventCoordinates(assignment),
         ...(assignment.topology === null
           ? {}
           : {

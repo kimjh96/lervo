@@ -71,6 +71,8 @@ export async function claimAssignmentOnce(input: {
     const all = await listAssignments(input.repositoryRoot);
     if (assignment.roleId !== agent.roleId)
       fail("assignment_lease_conflict", "The agent role does not match the assignment role.");
+    if (assignment.knowledgeJob != null && assignment.knowledgeJob.agentId !== agent.agentId)
+      fail("assignment_lease_conflict", "The knowledge job is bound to another agent.");
     if (
       assignment.roleVersion !== agent.roleVersion ||
       assignment.roleContractHash !== agent.roleContractHash

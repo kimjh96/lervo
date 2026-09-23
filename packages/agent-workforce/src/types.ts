@@ -97,6 +97,16 @@ export interface WorkforceAssignmentTopologyProvenance {
   policyReview?: AssignmentTopologyPolicyReviewBindingV1;
 }
 
+export interface WorkforceAssignmentKnowledgeJobProvenance {
+  contractVersion: 1;
+  jobId: string;
+  completionEventId: string;
+  completionEventHash: string;
+  sourceConversationEventId: string;
+  sourceManifestHash: string | null;
+  agentId: string;
+}
+
 export interface WorkforceAssignment {
   schemaVersion: 1;
   assignmentId: string;
@@ -108,6 +118,7 @@ export interface WorkforceAssignment {
   requiredCapabilityHash?: string | null;
   routine?: WorkforceAssignmentRoutineProvenance | null;
   topology?: WorkforceAssignmentTopologyProvenance | null;
+  knowledgeJob?: WorkforceAssignmentKnowledgeJobProvenance | null;
   status: AssignmentStatus;
   priority: number;
   dependencyIds: string[];

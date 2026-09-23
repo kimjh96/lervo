@@ -16,6 +16,7 @@ import { validAgentDisplayName } from "./agent-display-identity.js";
 import { workforceLimits } from "./limits.js";
 import { validWorkforceRoutineProvenance } from "./assignment-routine-state.js";
 import { validWorkforceTopologyProvenance } from "./assignment-topology-state.js";
+import { validKnowledgeJobProvenance } from "./assignment-knowledge-job-state.js";
 import { isAssignmentRecoveryCoordinate } from "@lervo/work-controller";
 
 export const HASH = /^sha256:[a-f0-9]{64}$/u;
@@ -221,6 +222,12 @@ export function validAssignment(value: unknown, projectId: string): value is Wor
     (item.topology === undefined ||
       item.topology === null ||
       validWorkforceTopologyProvenance(item.topology)) &&
+    (item.knowledgeJob === undefined ||
+      item.knowledgeJob === null ||
+      (validKnowledgeJobProvenance(item.knowledgeJob) &&
+        item.workstreamId !== null &&
+        item.routine == null &&
+        item.topology == null)) &&
     ["queued", "leased", "blocked", "completed", "failed", "cancelled"].includes(item.status) &&
     Number.isSafeInteger(item.priority) &&
     item.priority >= 0 &&
