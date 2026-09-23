@@ -456,6 +456,35 @@ describe("authenticated platform conversation adapters", () => {
         audienceParticipation: "observe_only",
       },
     });
+    for (const [messageId, content, audienceParticipation] of [
+      ["323456789012345681", "Completed for the owner.", "observe_only"],
+      ["323456789012345682", "@Navi continue the research.", "eligible"],
+    ] as const) {
+      const webhookIngress = await adapter.receiveGatewayDispatch({
+        sessionHandle: "authenticated-session",
+        body: Buffer.from(
+          JSON.stringify({
+            op: 0,
+            s: Number(messageId.slice(-2)),
+            t: "MESSAGE_CREATE",
+            d: {
+              id: messageId,
+              channel_id: "223456789012345678",
+              guild_id: "123456789012345678",
+              webhook_id: "723456789012345678",
+              author: { id: "723456789012345678", bot: true },
+              content,
+              mentions: [],
+              timestamp: "2026-08-20T00:00:02.000Z",
+            },
+          }),
+        ),
+      });
+      expect(webhookIngress).toMatchObject({
+        status: "accepted",
+        event: { actor: { kind: "agent" }, audienceParticipation },
+      });
+    }
     expect(identity.inbound).toHaveBeenCalledWith(
       expect.objectContaining({
         mentionedParticipantKeys: ["user:623456789012345678", "webhook:723456789012345678"],

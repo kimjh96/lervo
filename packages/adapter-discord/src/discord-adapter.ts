@@ -23,6 +23,7 @@ import type {
 } from "./types.js";
 import type { DiscordGoalInteraction } from "./goal-interaction.js";
 import { mapDiscordInboundCoordination } from "./inbound-coordination.js";
+import { webhookInboundAudience } from "./webhook-publication.js";
 import { resolveManagedBotRoleAddresses } from "./managed-role-address.js";
 import { deliverDiscordConversationMessage } from "./delivery.js";
 import {
@@ -342,7 +343,11 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       mentions: identity.mentions,
       replyToEventId: identity.replyToEventId,
       signalCode: null,
-      audienceParticipation: parsed.audienceParticipation,
+      audienceParticipation: webhookInboundAudience(
+        parsed.participantKey.startsWith("webhook:"),
+        identity.mentions.participantIds.length > 0 || identity.mentions.roleIds.length > 0,
+        parsed.audienceParticipation,
+      ),
       automationDepth: identity.automationDepth,
       occurredAt: parsed.occurredAt,
     });

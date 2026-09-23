@@ -55,11 +55,13 @@ function responderFor(
   artifactStore: Awaited<ReturnType<typeof FileSystemCas.open>>,
   dispatch: (request: ConversationPeerTurnRequest) => Promise<"accepted" | "not_registered">,
   peers: readonly DiscordPeerAgentBinding[] = [researcher()],
+  remoteCoordinationSpeaker: "bot" | "webhook" = "bot",
 ) {
   return new ConversationTaskDelegateResponder({
     artifactStore,
     parentParticipantId: "ptc_agent_owner0001",
     parentRoleId: "product-owner",
+    remoteCoordinationSpeaker,
     parentAgentBinding: {
       agentId: `agt_${"a".repeat(24)}`,
       roleVersion: "1.0.0",
@@ -163,6 +165,7 @@ describe("conversation task delegate responder", () => {
       artifactStore,
       parentParticipantId: "ptc_agent_owner0001",
       parentRoleId: "product-owner",
+      remoteCoordinationSpeaker: "bot",
       parentAgentBinding: {
         agentId: `agt_${"a".repeat(24)}`,
         roleVersion: "1.0.0",
@@ -257,4 +260,31 @@ describe("conversation task delegate responder", () => {
       coordinatorParticipantId: "ptc_agent_owner0001",
     });
   });
+
+  it.each([
+    ["webhook", ["bot:999999999999999992"]],
+    ["bot", ["webhook:999999999999999992"]],
+  ] as const)(
+    "refuses remote task coordination when the source is %s and the target cannot share a bot nonce",
+    async (speaker, participantKeys) => {
+      const root = await temporaryRoot();
+      const artifactStore = await FileSystemCas.open(resolve(root, "artifacts"));
+      const event = await sourceEvent(artifactStore, "Ask the remote researcher.");
+      const remote = { ...researcher(), participantKeys: [...participantKeys] };
+      await expect(
+        responderFor(artifactStore, async () => "not_registered", [remote], speaker).respond(
+          { event } as Parameters<ConversationTaskDelegateResponder["respond"]>[0],
+          {
+            kind: "workforce_task_delegate",
+            specification: JSON.stringify({
+              participantId: remote.participantId,
+              task: "Survey competitor pricing.",
+            }),
+          },
+          { effectRequesterAuthorized: true },
+        ),
+      ).rejects.toThrow("requires bot identities at both ends");
+      await removeTemporaryRoots();
+    },
+  );
 });

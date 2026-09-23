@@ -320,8 +320,18 @@ describe("credential-backed platform delivery", () => {
     expect(request).toHaveBeenCalledOnce();
   });
 
-  it("fails closed when a webhook cannot preserve observation-only publication lineage", async () => {
-    const request = vi.fn();
+  it("publishes an unaddressed observation-only webhook result as presentation", async () => {
+    const request = vi.fn(
+      async (_url: string | URL | Request, _init?: RequestInit) =>
+        new Response(
+          JSON.stringify({
+            id: "423456789012345678",
+            channel_id: "223456789012345678",
+            webhook_id: "523456789012345678",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    );
     const delivery = new DiscordRestWebhookDelivery({
       integrationId: "itg_discord02",
       webhookId: "523456789012345678",
@@ -342,12 +352,63 @@ describe("credential-backed platform delivery", () => {
         content: "Review complete.",
         automationDepth: 1,
         audienceParticipation: "observe_only",
+        coordination: {
+          kind: "task.result",
+          taskId: `tsk_${"a".repeat(20)}`,
+          coordinatorParticipantId: "ptc_coordinator0001",
+        },
         allowedMentions: "none",
         enforceIdempotency: true,
       }),
-    ).rejects.toMatchObject({ code: "platform_delivery_failed" });
-    expect(request).not.toHaveBeenCalled();
+    ).resolves.toMatchObject({ messageId: "423456789012345678" });
+    expect(request).toHaveBeenCalledOnce();
+    expect(JSON.parse(String(request.mock.calls[0]?.[1]?.body))).not.toHaveProperty("nonce");
   });
+
+  it.each([
+    { content: "@Ruen review this", coordination: undefined },
+    { content: "＠Ruen review this", coordination: undefined },
+    { content: "<@523456789012345678> review this", coordination: undefined },
+    {
+      content: "Review complete.",
+      coordination: {
+        kind: "task.assignment" as const,
+        taskId: `tsk_${"a".repeat(20)}`,
+        coordinatorParticipantId: "ptc_coordinator0001",
+      },
+    },
+  ])(
+    "refuses webhook observation that could become control or an addressed turn",
+    async (fixture) => {
+      const request = vi.fn();
+      const delivery = new DiscordRestWebhookDelivery({
+        integrationId: "itg_discord02",
+        webhookId: "523456789012345678",
+        webhookToken: "w".repeat(40),
+        parentChannelId: "223456789012345678",
+        username: "Arac Reviewer",
+        replay: new MemoryReplay(),
+        fetch: request as typeof fetch,
+        now: () => new Date(at),
+      });
+      await expect(
+        delivery.send({
+          outboundId,
+          guildId: "123456789012345678",
+          channelId: "223456789012345678",
+          threadId: null,
+          replyToMessageId: null,
+          content: fixture.content,
+          automationDepth: 1,
+          audienceParticipation: "observe_only",
+          ...(fixture.coordination === undefined ? {} : { coordination: fixture.coordination }),
+          allowedMentions: "none",
+          enforceIdempotency: true,
+        }),
+      ).rejects.toMatchObject({ code: "platform_delivery_failed" });
+      expect(request).not.toHaveBeenCalled();
+    },
+  );
 
   it("redacts a Discord webhook token from an ambiguous transport failure", async () => {
     const replay = new MemoryReplay();

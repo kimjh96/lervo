@@ -59,6 +59,7 @@ export function createDiscordConversationEffects(input: {
   delegation?: {
     parentParticipantId: string;
     parentAgentBinding?: ConversationInboundEvent["actor"]["agentBinding"];
+    remoteCoordinationSpeaker: "bot" | "webhook";
     peers: readonly DiscordPeerAgentBinding[];
     dispatcher: ConversationPeerTurnDispatcher;
   };

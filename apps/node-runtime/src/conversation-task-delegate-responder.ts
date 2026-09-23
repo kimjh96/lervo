@@ -76,6 +76,7 @@ export class ConversationTaskDelegateResponder implements DiscordPlatformActionR
       parentParticipantId: string;
       parentRoleId: string;
       parentAgentBinding?: ConversationInboundEvent["actor"]["agentBinding"];
+      remoteCoordinationSpeaker: "bot" | "webhook";
       peers: readonly DiscordPeerAgentBinding[];
       dispatcher: ConversationPeerTurnDispatcher;
       now?: () => Date;
@@ -135,6 +136,15 @@ export class ConversationTaskDelegateResponder implements DiscordPlatformActionR
       task: delegatedTask,
       requestedAt: (this.options.now ?? (() => new Date()))().toISOString(),
     });
+    if (
+      dispatch === "not_registered" &&
+      (this.options.remoteCoordinationSpeaker !== "bot" ||
+        !target.participantKeys.some((key) => /^bot:\d{1,32}$/u.test(key)))
+    ) {
+      throw new Error(
+        "Remote Discord task coordination requires bot identities at both ends; no task was published.",
+      );
+    }
     const name = target.displayName ?? target.roleId;
     const content =
       dispatch === "accepted"

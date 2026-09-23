@@ -222,6 +222,7 @@ export async function openDiscordConversationResponseComposition(input: {
         : {
             delegation: {
               parentParticipantId: config.agentParticipantId,
+              remoteCoordinationSpeaker: config.speaker?.kind === "webhook" ? "webhook" : "bot",
               ...(participation.agentBinding === undefined
                 ? {}
                 : { parentAgentBinding: participation.agentBinding }),

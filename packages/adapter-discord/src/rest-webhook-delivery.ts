@@ -15,6 +15,7 @@ import type {
   DiscordDeliveryRequest,
   DiscordDeliveryResult,
 } from "./types.js";
+import { webhookCanPublish } from "./webhook-publication.js";
 
 export interface DiscordRestWebhookDeliveryOptions {
   integrationId: string;
@@ -86,8 +87,7 @@ export class DiscordRestWebhookDelivery implements DiscordDeliveryPort {
 
   async send(input: DiscordDeliveryRequest): Promise<DiscordDeliveryResult> {
     if (
-      input.audienceParticipation === "observe_only" ||
-      input.coordination !== undefined ||
+      !webhookCanPublish(input) ||
       input.guildId === null ||
       [...input.content].length > 2_000 ||
       input.channelId !== this.options.parentChannelId ||
