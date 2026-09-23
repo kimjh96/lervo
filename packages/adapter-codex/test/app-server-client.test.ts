@@ -117,4 +117,50 @@ describe("Codex stdio app-server client", () => {
       else process.env.PATH = previousPath;
     }
   });
+
+  it.each([
+    {
+      argument: "--reject-thread-start",
+      failureKind: "server_rejected",
+      transportCode: -32000,
+    },
+    {
+      argument: "--ignore-thread-start",
+      failureKind: "response_timeout",
+      transportCode: null,
+    },
+    {
+      argument: "--exit-on-thread-start",
+      failureKind: "process_exited",
+      transportCode: null,
+    },
+  ])("retains bounded $failureKind diagnostics without a server error body", async (scenario) => {
+    const client = await CodexStdioAppServerClient.connect({
+      executable: process.execPath,
+      commandArguments: [
+        join(import.meta.dirname, "fixtures/fake-app-server.mjs"),
+        scenario.argument,
+      ],
+      cwd: process.cwd(),
+      requestTimeoutMs: 200,
+    });
+    try {
+      await expect(
+        client.startThread({ cwd: process.cwd(), approvalPolicy: "never", sandbox: "read-only" }),
+      ).rejects.toMatchObject({
+        code:
+          scenario.failureKind === "process_exited"
+            ? "provider_process_failed"
+            : "provider_protocol_failed",
+        providerFailureDiagnostic: {
+          provider: "codex",
+          operation: "session_start",
+          failureKind: scenario.failureKind,
+          transportCode: scenario.transportCode,
+        },
+      });
+    } finally {
+      await client.close();
+    }
+  });
 });

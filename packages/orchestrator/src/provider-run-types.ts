@@ -1,4 +1,4 @@
-import type { ProviderAdapter } from "@lervo/adapter-contract";
+import type { ProviderAdapter, ProviderFailureDiagnostic } from "@lervo/adapter-contract";
 import type { ContextArtifactPort, ResolvedWritingPolicy } from "@lervo/context-delivery";
 import type {
   ManagedProjectVerification,
@@ -54,6 +54,7 @@ export class ManagedProviderRunError extends Error {
     code: ManagedProviderRunFailureCode;
     phase: ManagedProviderRunPhase;
     retryable: boolean;
+    providerDiagnostic?: ProviderFailureDiagnostic;
   }>;
   readonly originPhase: ManagedProviderRunPhase | undefined;
 
@@ -66,6 +67,7 @@ export class ManagedProviderRunError extends Error {
         code: ManagedProviderRunFailureCode;
         phase: ManagedProviderRunPhase;
         retryable: boolean;
+        providerDiagnostic?: ProviderFailureDiagnostic;
       }>;
       originPhase?: ManagedProviderRunPhase;
     },

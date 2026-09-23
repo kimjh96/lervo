@@ -17,6 +17,53 @@ import { FakeManagedAdapter } from "./provider-run-fake-adapter.js";
 afterEach(cleanupManagedFixtures);
 
 describe("managed provider failure boundaries", () => {
+  it("persists only bounded provider transport evidence for a failed adapter start", async () => {
+    const data = await createManagedFixture();
+    const artifacts = new MemoryArtifactStore();
+    const adapter = new FakeManagedAdapter("codex", {
+      startFailure: Object.assign(new Error("private provider detail"), {
+        providerFailureDiagnostic: {
+          provider: "codex",
+          operation: "session_start",
+          failureKind: "server_rejected",
+          transportCode: -32000,
+        },
+      }),
+    });
+    await expect(
+      coordinator(adapter, data.root, data.store, undefined, artifacts).run({
+        ...providerRunInput(),
+        repositoryRoot: data.root,
+      }),
+    ).rejects.toMatchObject({ code: "provider_start_failed" });
+    const terminal = data.store.list({ runId }).at(-1)!;
+    expect(terminal.payload).toMatchObject({
+      failureCode: "provider_start_failed",
+      retryable: false,
+    });
+    const diagnostic = String(terminal.payload.diagnosticDigest);
+    const artifact = new TextDecoder().decode(
+      await artifacts.get(`lervo-cas://sha256/${diagnostic.slice(7)}`),
+    );
+    expect(JSON.parse(artifact)).toMatchObject({
+      failures: [
+        {
+          code: "provider_start_failed",
+          phase: "adapter_start",
+          retryable: false,
+          providerDiagnostic: {
+            provider: "codex",
+            operation: "session_start",
+            failureKind: "server_rejected",
+            transportCode: -32000,
+          },
+        },
+      ],
+    });
+    expect(artifact).not.toContain("private provider detail");
+    data.store.close();
+  });
+
   it("preserves capability activation failures raised while starting a provider", async () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("claude", { failActivationAtStart: true });

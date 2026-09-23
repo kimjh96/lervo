@@ -1,5 +1,9 @@
 import { ContextPreparationError } from "@lervo/context";
 import { ContextDeliveryError } from "@lervo/context-delivery";
+import {
+  readProviderFailureDiagnostic,
+  type ProviderFailureDiagnostic,
+} from "@lervo/adapter-contract";
 
 import { TelemetryWriteError } from "./telemetry.js";
 import { ManagedContextError } from "./types.js";
@@ -14,6 +18,18 @@ export interface RunFailure {
   error: ManagedProviderRunError;
   phase: ManagedProviderRunPhase;
   retryable: boolean;
+  providerDiagnostic?: ProviderFailureDiagnostic;
+}
+
+function providerDiagnosticInCauseChain(error: unknown): ProviderFailureDiagnostic | null {
+  let current = error;
+  for (let depth = 0; depth < 4; depth += 1) {
+    const diagnostic = readProviderFailureDiagnostic(current);
+    if (diagnostic !== null) return diagnostic;
+    if (typeof current !== "object" || current === null || !("cause" in current)) break;
+    current = current.cause;
+  }
+  return null;
 }
 
 const priority: Record<ManagedProviderRunFailureCode, number> = {
@@ -178,8 +194,10 @@ export class RunFailureLedger {
 
   add(error: unknown, phase: ManagedProviderRunPhase): RunFailure {
     const failure = classifyRunFailure(error, phase);
-    this.failures.push(failure);
-    return failure;
+    const providerDiagnostic = providerDiagnosticInCauseChain(error);
+    const observed = providerDiagnostic === null ? failure : { ...failure, providerDiagnostic };
+    this.failures.push(observed);
+    return observed;
   }
 
   get empty(): boolean {
@@ -200,11 +218,15 @@ export class RunFailureLedger {
     code: ManagedProviderRunFailureCode;
     phase: ManagedProviderRunPhase;
     retryable: boolean;
+    providerDiagnostic?: ProviderFailureDiagnostic;
   }> {
     return this.failures.map((failure) => ({
       code: failure.error.code,
       phase: failure.phase,
       retryable: failure.retryable,
+      ...(failure.providerDiagnostic === undefined
+        ? {}
+        : { providerDiagnostic: failure.providerDiagnostic }),
     }));
   }
 

@@ -5,6 +5,7 @@ import type {
   AdapterTurn,
 } from "@lervo/schemas";
 import type { AdapterNativeProcessState, ProviderLoginContext } from "@lervo/adapter-contract";
+import type { ProviderFailureDiagnostic } from "@lervo/adapter-contract";
 
 export type CodexApprovalPolicy = "untrusted" | "on-request" | "never";
 export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
@@ -128,6 +129,7 @@ export class CodexAdapterError extends Error {
   constructor(
     readonly code: CodexAdapterErrorCode,
     message: string,
+    readonly providerFailureDiagnostic?: ProviderFailureDiagnostic,
   ) {
     super(message);
     this.name = "CodexAdapterError";

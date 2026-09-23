@@ -55,6 +55,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
       failResult?: boolean;
       failActivation?: boolean;
       failActivationAtStart?: boolean;
+      startFailure?: Error;
       resultContent?: (envelope: AdapterContextEnvelope) => string;
       managedWrite?: {
         path: string;
@@ -104,6 +105,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
 
   async start(request: AdapterStartRequest): Promise<AdapterSession> {
     this.calls.push("start");
+    if (this.options.startFailure !== undefined) throw this.options.startFailure;
     if (this.options.failActivationAtStart === true) {
       throw Object.assign(new Error("activation failed during provider start"), {
         code: "capability_activation_failed",

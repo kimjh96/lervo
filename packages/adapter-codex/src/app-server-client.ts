@@ -2,6 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createInterface } from "node:readline";
 
 import { createProviderProcessEnvironment } from "@lervo/adapter-contract";
+import type { ProviderFailureDiagnostic } from "@lervo/adapter-contract";
 
 import { AsyncQueue } from "./async-queue.js";
 import {
@@ -17,6 +18,7 @@ interface PendingRequest {
   resolve(value: unknown): void;
   reject(error: Error): void;
   timer: ReturnType<typeof setTimeout>;
+  operation: ProviderFailureDiagnostic["operation"];
 }
 
 export interface StdioClientOptions {
@@ -49,6 +51,35 @@ function requiredString(value: unknown): string {
     );
   }
   return value;
+}
+
+function diagnosticOperation(method: string): ProviderFailureDiagnostic["operation"] {
+  switch (method) {
+    case "initialize":
+      return "session_initialize";
+    case "thread/start":
+      return "session_start";
+    case "thread/inject_items":
+      return "context_inject";
+    case "mcpServerStatus/list":
+      return "capability_status";
+    case "turn/start":
+      return "turn_start";
+    case "turn/interrupt":
+      return "turn_interrupt";
+    case "thread/unsubscribe":
+      return "session_stop";
+    default:
+      return "other";
+  }
+}
+
+function failureDiagnostic(
+  operation: ProviderFailureDiagnostic["operation"],
+  failureKind: ProviderFailureDiagnostic["failureKind"],
+  transportCode: number | null = null,
+): ProviderFailureDiagnostic {
+  return { provider: "codex", operation, failureKind, transportCode };
 }
 
 export class CodexStdioAppServerClient implements CodexAppServerClient {
@@ -224,6 +255,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
       );
     }
     const id = this.nextRequestId;
+    const operation = diagnosticOperation(method);
     this.nextRequestId += 1;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -232,10 +264,11 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
           new CodexAdapterError(
             "provider_protocol_failed",
             "The Codex app-server response timed out.",
+            failureDiagnostic(operation, "response_timeout"),
           ),
         );
       }, this.requestTimeoutMs);
-      this.pending.set(id, { resolve, reject, timer });
+      this.pending.set(id, { resolve, reject, timer, operation });
       this.write({ method, id, params });
     });
   }
@@ -266,10 +299,22 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
       this.pending.delete(message.id);
       clearTimeout(pending.timer);
       if (Object.hasOwn(message, "error")) {
+        const serverError = isRecord(message.error) ? message.error : null;
+        const code = serverError?.code;
         pending.reject(
           new CodexAdapterError(
             "provider_protocol_failed",
             "The Codex app-server request was rejected.",
+            failureDiagnostic(
+              pending.operation,
+              "server_rejected",
+              typeof code === "number" &&
+                Number.isSafeInteger(code) &&
+                code >= -2_147_483_648 &&
+                code <= 2_147_483_647
+                ? code
+                : null,
+            ),
           ),
         );
       } else {
@@ -300,7 +345,14 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
       "provider_protocol_failed",
       "The Codex app-server sent an invalid protocol message.",
     );
-    this.rejectPending(error);
+    this.rejectPending(
+      (operation) =>
+        new CodexAdapterError(
+          error.code,
+          error.message,
+          failureDiagnostic(operation, "invalid_message"),
+        ),
+    );
     this.notificationsQueue.fail(error);
   }
 
@@ -310,17 +362,24 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
     this.processStateUnavailable ||= !didExit;
     const error = new CodexAdapterError(
       "provider_process_failed",
-      "The Codex app-server process has exited.",
+      didExit ? "The Codex app-server process has exited." : "The Codex app-server is unavailable.",
     );
-    this.rejectPending(error);
+    this.rejectPending(
+      (operation) =>
+        new CodexAdapterError(
+          error.code,
+          error.message,
+          failureDiagnostic(operation, didExit ? "process_exited" : "process_unavailable"),
+        ),
+    );
     if (this.closed) this.notificationsQueue.end();
     else this.notificationsQueue.fail(error);
   }
 
-  private rejectPending(error: Error): void {
+  private rejectPending(errorFor: (operation: PendingRequest["operation"]) => Error): void {
     for (const request of this.pending.values()) {
       clearTimeout(request.timer);
-      request.reject(error);
+      request.reject(errorFor(request.operation));
     }
     this.pending.clear();
   }

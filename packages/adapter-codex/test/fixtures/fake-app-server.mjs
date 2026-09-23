@@ -29,6 +29,14 @@ lines.on("line", (line) => {
   }
   if (message.method === "initialized") return;
   if (message.method === "thread/start") {
+    if (process.argv.includes("--reject-thread-start")) {
+      send({ id: message.id, error: { code: -32000, message: "private provider detail" } });
+      return;
+    }
+    if (process.argv.includes("--ignore-thread-start")) return;
+    if (process.argv.includes("--exit-on-thread-start")) {
+      process.exit(7);
+    }
     send({
       id: message.id,
       result: { thread: { id: "thread-stdio-1" }, model: "codex-observed-fixture" },

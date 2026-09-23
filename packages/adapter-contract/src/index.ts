@@ -10,6 +10,7 @@ export * from "./result-binding.js";
 export * from "./runtime-inspection.js";
 export * from "./process-observation.js";
 export * from "./provider-process-environment.js";
+export * from "./failure-diagnostic.js";
 export * from "./repository-work.js";
 export * from "./repository-work-deadline.js";
 
