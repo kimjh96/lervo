@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_11dd93015d645e639473d2a7"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Resume unfinished supervised worker duties after a Node restart."

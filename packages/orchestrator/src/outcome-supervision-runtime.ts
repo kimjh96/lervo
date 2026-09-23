@@ -1,4 +1,7 @@
-import type { OutcomeSupervisionReportV1 } from "@lervo/application-contract";
+import type {
+  OutcomeSupervisionReportV1,
+  OutcomeSupervisionSnapshotV1,
+} from "@lervo/application-contract";
 import {
   operatingContractHash,
   operatingDecisionId,
@@ -44,6 +47,15 @@ function boundedErrorCode(error: unknown): string[] {
   return typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code) ? [code] : [];
 }
 
+/** A leased or dispatched assignment is an unfinished duty, not a new request trigger. */
+function hasDurableWorkerContinuation(snapshot: OutcomeSupervisionSnapshotV1): boolean {
+  return snapshot.assignments.some(
+    (assignment) =>
+      assignment.terminalEventId === null &&
+      (assignment.status === "leased" || assignment.dispatchedAt !== null),
+  );
+}
+
 /** Composes canonical sources and effects; contains no provider or chat routing. */
 export class OutcomeSupervisionRuntime {
   private readonly cursors = new Map<string, { digest: string; nextCheckAt: string | null }>();
@@ -64,7 +76,8 @@ export class OutcomeSupervisionRuntime {
         pending === null &&
         snapshot.evidenceStatus === "valid" &&
         snapshot.authorityStatus === "active" &&
-        snapshot.workstreamStatus === "active"
+        snapshot.workstreamStatus === "active" &&
+        !hasDurableWorkerContinuation(snapshot)
       ) {
         this.cursors.set(supervisionId, {
           digest: snapshot.sourceRevisionDigest,

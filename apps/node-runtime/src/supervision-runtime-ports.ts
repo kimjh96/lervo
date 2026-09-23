@@ -94,6 +94,6 @@ export interface NodeOutcomeSupervisionRuntimeInput {
   handoffPeers?: NodeSupervisionPeerConfiguration[];
   /** Installed conversation owners remain dormant until one exact request origin is bound. */
   requireBoundRequest?: boolean;
-  /** Existing bound work at process start is observed but not treated as a fresh trigger. */
+  /** Old bound requests defer, except unfinished leased or dispatched worker duties. */
   deferInitialActionUntilChange?: boolean;
 }

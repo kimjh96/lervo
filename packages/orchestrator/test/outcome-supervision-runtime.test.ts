@@ -144,6 +144,34 @@ describe("serialized causal owner decisions", () => {
     expect(f.execute).toHaveBeenCalledOnce();
   });
 
+  it.each(["leased", "dispatched"] as const)(
+    "resumes a durable %s assignment at startup without a new source revision",
+    async (state) => {
+      const f = fixture();
+      if (state === "leased") f.state.assignments[0]!.status = "leased";
+      else {
+        f.state.assignments[0]!.dispatchedAt = now;
+        f.ports.now = () => "2026-09-11T03:06:00.000Z";
+      }
+      const propose = vi.fn(async () => null);
+      const runtime = new OutcomeSupervisionRuntime({
+        ...f.ports,
+        propose,
+        deferInitialActionUntilChange: true,
+      });
+
+      expect((await runtime.runCycle(f.state.supervisionId)).disposition).toBe("blocked");
+      expect(propose).toHaveBeenCalledOnce();
+      expect(f.attention).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reasonCode: state === "leased" ? "ready_for_dispatch_review" : "worker_deadline_elapsed",
+        }),
+        ["owner_plan_unavailable"],
+      );
+      expect(f.execute).not.toHaveBeenCalled();
+    },
+  );
+
   it("requires independent non-start evidence before retrying a failed preflight", async () => {
     const f = fixture();
     f.execute.mockRejectedValueOnce(new SupervisionPreflightError());
