@@ -257,3 +257,82 @@ it("keeps canonical task context fresh through the final parallel probes", async
     await store.close();
   }
 });
+
+it("dates canonical final context after slow independent admission", async () => {
+  const f = await dispatchFixture(roots);
+  const combined = operatingContractHash("slow final admission source");
+  const plan = {
+    ...(await f.ports.propose(
+      projectOutcomeSupervision({
+        snapshot: f.observation,
+        now: f.ports.now(),
+        maximumRecoveryDecisions: 1,
+      }),
+    ))!,
+    sourceRevisionDigest: combined,
+    effectContract: "work.managed_execution.v1",
+  };
+  const { readWorkerReadiness: _readWorkerReadiness, ...canonicalPorts } = f.ports;
+  let nowMs = Date.now();
+  const initialNowMs = nowMs;
+  const now = () => new Date(nowMs).toISOString();
+  const knowledge = await inspectSupervisionKnowledgeReadiness({
+    repositoryRoot: f.root,
+    projectId: plan.projectId,
+    requiredPaths: plan.expectedPaths,
+    now,
+  });
+  if (knowledge.sourceSnapshotId === null)
+    throw new Error("The fixture has no knowledge snapshot.");
+  const knowledgeSnapshotId = knowledge.sourceSnapshotId;
+  const store = await NodeSupervisionStore.open({
+    repositoryRoot: f.root,
+    binding: f.binding,
+    now,
+  });
+  try {
+    await store.withOwner(async (session) => {
+      let taskAdmissionReads = 0;
+      let finalAdmissionReads = 0;
+      const result = await readNodeDispatchPreflight({
+        repositoryRoot: f.root,
+        plan,
+        session: {
+          ...session,
+          readTaskResponsibility: async () => ({
+            responsibility: f.task,
+            workstreamRevision: f.observation.workstreamRevision,
+          }),
+          readTaskAdmission: async () => {
+            taskAdmissionReads++;
+            return f.ports.readAdmission(plan);
+          },
+        },
+        ports: { ...canonicalPorts, now },
+        configuration: f.runtimeReadiness,
+        expectedKnowledgeSnapshotId: knowledgeSnapshotId,
+        sourceBinding: {
+          authorityDigest: operatingContractHash("slow final admission authority"),
+          taskDigest: f.observation.sourceRevisionDigest,
+          combined,
+        },
+        readAdmission: async () => {
+          finalAdmissionReads++;
+          nowMs += 8000;
+          return { ...(await f.ports.readAdmission(plan)), observedAt: now() };
+        },
+      });
+      expect(taskAdmissionReads).toBe(2);
+      expect(finalAdmissionReads).toBe(1);
+      expect(Date.parse(result.readiness.observation.observedAt)).toBeGreaterThanOrEqual(
+        initialNowMs + 8000,
+      );
+      expect(
+        Date.parse(now()) - Date.parse(result.readiness.observation.observedAt),
+      ).toBeLessThanOrEqual(5000);
+      expect(Date.parse(now()) - Date.parse(result.admission.observedAt)).toBeLessThanOrEqual(5000);
+    });
+  } finally {
+    await store.close();
+  }
+});

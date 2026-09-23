@@ -22,6 +22,7 @@ export async function prepareCanonicalSupervisionReadiness(input: {
   responsibility: WorkResponsibilityV1;
   workstreamRevision: number;
   admission: OperatingAdmissionSnapshotV1;
+  confirmAdmissionBeforeContext?: () => Promise<OperatingAdmissionSnapshotV1>;
   aggregateBudgetRequired: boolean;
   configuration: NodeRuntimeReadinessConfiguration | undefined;
   now(): string;
@@ -52,6 +53,12 @@ export async function prepareCanonicalSupervisionReadiness(input: {
     plan,
     input.workspaceEvidenceStorage,
   );
+  // A full source/authority admission may outlast the five-second context window.
+  // Complete it before loading and dating the exact task context.
+  const confirmedAdmission =
+    input.confirmAdmissionBeforeContext === undefined
+      ? admission
+      : await input.confirmAdmissionBeforeContext();
   // Loading the exact context is the final preparation read: its timestamp must not
   // precede the potentially slow workspace and role observations.
   const context = await loadSupervisionPlanningContext({
@@ -105,7 +112,7 @@ export async function prepareCanonicalSupervisionReadiness(input: {
     knowledge: operatingContractHash({ contextHash: context.contextHash, writing, research }),
     verification: permissionHash,
     budget: operatingContractHash({
-      admission,
+      admission: confirmedAdmission,
       aggregateBudgetRequired: input.aggregateBudgetRequired,
       mandateHash: plan.mandateHash,
     }),
@@ -137,7 +144,7 @@ export async function prepareCanonicalSupervisionReadiness(input: {
         if (
           (kind === "budget" &&
             input.aggregateBudgetRequired &&
-            admission.resourceAdmission !== "within") ||
+            confirmedAdmission.resourceAdmission !== "within") ||
           (kind === "knowledge" && !contextRulesMapped) ||
           (kind === "cli" && (!shellAuthorized || configuration === undefined)) ||
           (["provider", "tools", "verification"].includes(kind) && configuration === undefined) ||

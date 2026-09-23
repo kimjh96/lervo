@@ -36,7 +36,7 @@ export async function readNodeDispatchReadiness(input: DispatchReadinessInput) {
   return { readiness: observed.readiness, sourceSnapshotId: observed.sourceSnapshotId };
 }
 
-/** Final independent reads share one observation window and must both settle before effects. */
+/** Final admission precedes the short context window; independent probes settle before effects. */
 export function readNodeDispatchPreflight(
   input: DispatchReadinessInput & {
     expectedKnowledgeSnapshotId: string;
@@ -76,10 +76,18 @@ async function readDispatchObservations<Admission>(
     )
       throw new NodeSupervisionError("supervision_binding_invalid");
     let taskReadiness = supplied;
+    const admissionBeforeContext: { value: Admission | null } = { value: null };
     if (taskReadiness === null) {
       if (installation === null) throw new NodeSupervisionError("supervision_binding_invalid");
       const taskSource = await input.session.readTaskResponsibility(plan);
       const taskAdmission = await input.session.readTaskAdmission(plan);
+      const sameTaskAdmission = (candidate: OperatingAdmissionSnapshotV1) => {
+        const { observedAt: _preparedAt, ...prepared } = taskAdmission;
+        const { observedAt: _confirmedAt, ...confirmed } = candidate;
+        if (operatingContractHash(confirmed) !== operatingContractHash(prepared))
+          throw new NodeSupervisionError("supervision_readiness_changed");
+        return candidate;
+      };
       taskReadiness = await prepareCanonicalSupervisionReadiness({
         repositoryRoot: input.repositoryRoot,
         plan,
@@ -89,12 +97,24 @@ async function readDispatchObservations<Admission>(
         configuration,
         now: input.ports.now,
         workspaceEvidenceStorage,
+        ...(input.expectedKnowledgeSnapshotId === undefined
+          ? {}
+          : {
+              confirmAdmissionBeforeContext: async () => {
+                const [taskResult, admissionResult] = await Promise.allSettled([
+                  input.session.readTaskAdmission(plan),
+                  readAdmission(),
+                ]);
+                if (taskResult.status === "rejected") throw taskResult.reason;
+                if (admissionResult.status === "rejected") throw admissionResult.reason;
+                const currentTaskAdmission = sameTaskAdmission(taskResult.value);
+                admissionBeforeContext.value = admissionResult.value;
+                return currentTaskAdmission;
+              },
+            }),
       });
-      const { observedAt: _preparedAt, ...preparedAdmission } = taskAdmission;
-      const { observedAt: _confirmedAt, ...confirmedAdmission } =
-        await input.session.readTaskAdmission(plan);
-      if (operatingContractHash(confirmedAdmission) !== operatingContractHash(preparedAdmission))
-        throw new NodeSupervisionError("supervision_readiness_changed");
+      if (input.expectedKnowledgeSnapshotId === undefined)
+        sameTaskAdmission(await input.session.readTaskAdmission(plan));
     }
     const readiness = bindNodeSupervisionReadiness({
       plan,
@@ -119,6 +139,12 @@ async function readDispatchObservations<Admission>(
         workspaceEvidenceStorage,
       });
     };
+    if (admissionBeforeContext.value !== null)
+      return {
+        readiness: await finishReadiness(),
+        admission: admissionBeforeContext.value,
+        sourceSnapshotId: knowledge.sourceSnapshotId,
+      };
     const [observed, admission] = await Promise.allSettled([finishReadiness(), readAdmission()]);
     if (observed.status === "rejected") throw observed.reason;
     if (admission.status === "rejected") throw admission.reason;
