@@ -3,8 +3,43 @@ import { operatingContractHash } from "@lervo/work-controller";
 
 type Event = NonNullable<ReturnType<EventStore["get"]>>;
 
-/** Narrow receipt exception; the concrete inspector still validates exact CAS review bytes. */
-export function isDecisionBoundReviewReceipt(event: Event, decision: Event): boolean {
+/** Causal receipt guard; the concrete effect inspector proves exact artifacts and run history. */
+export function isDecisionBoundSupervisionEffectEvidence(
+  event: Event,
+  decision: Event,
+  events: EventStore,
+): boolean {
+  if (
+    decision.payload.actionKind === "execute_as_owner" &&
+    event.type === "work.supervision.owner_reasoning.interruption_reconciled"
+  ) {
+    const terminal = events.get(String(event.payload.terminalEventId));
+    return (
+      event.schemaVersion === 3 &&
+      event.actor.kind === "system" &&
+      event.runId === decision.runId &&
+      event.eventId ===
+        `evt_${operatingContractHash({ runId: decision.runId, type: event.type, identity: decision.payload.decisionId }).slice(7, 39)}` &&
+      [
+        "supervisionId",
+        "workstreamId",
+        "workstreamRevision",
+        "ownerAgentId",
+        "mandateHash",
+        "decisionId",
+        "planHash",
+      ].every((key) => event.payload[key] === decision.payload[key]) &&
+      terminal?.type === "run.failed" &&
+      terminal.runId === event.payload.managedRunId &&
+      terminal.payload.failureCode === "provider_stop_failed" &&
+      terminal.payload.retryable === false &&
+      terminal.seq < event.seq &&
+      Array.isArray(event.payload.causationEventIds) &&
+      event.payload.causationEventIds.length === 2 &&
+      event.payload.causationEventIds[0] === decision.eventId &&
+      event.payload.causationEventIds[1] === terminal.eventId
+    );
+  }
   if (
     decision.payload.actionKind === "escalate" &&
     event.type === "work.supervision.escalation.recorded"

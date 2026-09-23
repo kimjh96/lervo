@@ -5,7 +5,7 @@ import type {
   SupervisedWorkspacePreparationV1,
 } from "@lervo/application-contract";
 import { canonicalJson } from "@lervo/event-contract";
-import { isDecisionBoundReviewReceipt } from "./supervision-review-receipt.js";
+import { isDecisionBoundSupervisionEffectEvidence } from "./supervision-effect-evidence.js";
 import {
   collectRunEventsBounded,
   type ArtifactStore,
@@ -277,7 +277,7 @@ export class SupervisionDecisionJournal {
         evidence.projectId !== this.coordinates.projectId ||
         evidence.seq <= decision.seq ||
         (evidence.type.startsWith("work.supervision.") &&
-          !isDecisionBoundReviewReceipt(evidence, decision))
+          !isDecisionBoundSupervisionEffectEvidence(evidence, decision, this.events))
       )
         throw new Error("The supervision effect evidence is unavailable or noncausal.");
     }

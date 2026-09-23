@@ -40,6 +40,8 @@ Before an installed owner can record this event, deploy the managed CLI bundle, 
 
 The same reader-first rule applies to `work.supervision.owner_reasoning.interruption_reconciled`: old readers reject the new event, so deploy compatible CLI, Hub and Node readers before an explicit repair writes it. Its CAS diagnostic pins every run event and a fresh host unit-invocation witness; no prompt, output, path, source bytes or token estimate enters the event. See [ADR-0430](../../../../decisions/execution/orchestration/governed-work/owner-recovery/0430-reconcile-terminal-read-only-owner-interruptions.md).
 
+When the concrete owner-reasoning inspector proves that exact reconciliation and failed run, `work.supervision.effect.observed` may confirm only the invocation's settled terminal state, not a successful owner result. The decision journal additionally requires the reconciliation's deterministic ID, matching decision coordinates, and the exact earlier `provider_stop_failed` terminal as its second cause. An unrelated supervision event cannot confirm a decision.
+
 ## Idempotency and recovery
 
 Keyed managed invocation uses envelope-version-3 `managed.execution.reserved`, a generic managed-execution event outside the supervision journal. Required payload fields `executionKey` and `requestHash` are SHA-256 digests. It records one prelude reservation before any provider call and excludes the request, paths, credentials, and owner token. A reservation without a causal/request record means an unresolved invocation, not safe absence or successful dispatch.

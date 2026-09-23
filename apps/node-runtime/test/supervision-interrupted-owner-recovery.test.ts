@@ -288,6 +288,17 @@ it("reconciles one terminal owner interruption and keeps its full unknown-spend 
         .eventId,
     ).toBe(result.eventId);
     expect(await inspectOwnerReasoning(storage, action)).toMatchObject({ status: "confirmed" });
+    await expect(runtime.runCycle()).resolves.toBeDefined();
+    expect(
+      storage.events
+        .list()
+        .filter(
+          (event) =>
+            event.type === "work.supervision.effect.observed" &&
+            event.payload.status === "effect_confirmed" &&
+            (event.payload.effectEventIds as string[]).includes(result.eventId),
+        ),
+    ).toHaveLength(1);
     const source = await sourceReader.read();
     expect(source.reconciledRunIds).toEqual([identity.runId]);
     expect(source.workstreamResources.groups).toEqual([]);
