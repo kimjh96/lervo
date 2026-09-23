@@ -35,6 +35,25 @@ export async function prepareCanonicalSupervisionReadiness(input: {
   const unmappedCapability = task.requiredCapabilities.some(
     (capability) => !["filesystem.read", "filesystem.write", "shell.execute"].includes(capability),
   );
+  const workforce = await readSupervisionAssignmentSource({ ...input, now: input.now() });
+  const role = await resolveRoleContract(input.repositoryRoot, task.roleId);
+  if (role.contractHash !== task.roleContractHash)
+    throw new Error("The canonical readiness role changed.");
+  const shellRequired = task.requiredCapabilities.includes("shell.execute");
+  const shellAuthorized = role.definition.profile.capabilities["shell.execute"] === "allow";
+  const sourcePolicyRequired =
+    role.definition.profile.contextPolicy.requiredDocumentRuleIds.includes(
+      "research.source-policy",
+    );
+  const knowledgePolicy = await loadRepositoryKnowledgePolicy(input.repositoryRoot);
+  const workspace = await readSupervisionWorkspaceSource(
+    input.repositoryRoot,
+    workforce.assignment,
+    plan,
+    input.workspaceEvidenceStorage,
+  );
+  // Loading the exact context is the final preparation read: its timestamp must not
+  // precede the potentially slow workspace and role observations.
   const context = await loadSupervisionPlanningContext({
     repositoryRoot: input.repositoryRoot,
     projectId: plan.projectId,
@@ -45,16 +64,12 @@ export async function prepareCanonicalSupervisionReadiness(input: {
     now: input.now,
   });
   const observedAt = context.observedAt;
-  const workforce = await readSupervisionAssignmentSource({ ...input, now: observedAt });
-  const role = await resolveRoleContract(input.repositoryRoot, task.roleId);
-  if (role.contractHash !== task.roleContractHash)
-    throw new Error("The canonical readiness role changed.");
-  const shellRequired = task.requiredCapabilities.includes("shell.execute");
-  const shellAuthorized = role.definition.profile.capabilities["shell.execute"] === "allow";
-  const sourcePolicyRequired =
-    role.definition.profile.contextPolicy.requiredDocumentRuleIds.includes(
-      "research.source-policy",
-    );
+  const confirmedRole = await resolveRoleContract(input.repositoryRoot, task.roleId);
+  if (confirmedRole.contractHash !== role.contractHash)
+    throw new Error("The canonical readiness role changed during preparation.");
+  const confirmedKnowledgePolicy = await loadRepositoryKnowledgePolicy(input.repositoryRoot);
+  if (operatingContractHash(confirmedKnowledgePolicy) !== operatingContractHash(knowledgePolicy))
+    throw new Error("The canonical readiness knowledge policy changed during preparation.");
   const research = sourcePolicyRequired
     ? await observeSupervisionResearchReadiness({
         ...input,
@@ -62,7 +77,6 @@ export async function prepareCanonicalSupervisionReadiness(input: {
         role: role.definition.profile,
       })
     : null;
-  const knowledgePolicy = await loadRepositoryKnowledgePolicy(input.repositoryRoot);
   const writing = writingContractForLanguage(knowledgePolicy.publication.language);
   const contextRulesMapped = role.definition.profile.contextPolicy.requiredDocumentRuleIds.every(
     (rule) =>
@@ -71,12 +85,6 @@ export async function prepareCanonicalSupervisionReadiness(input: {
       (rule === "writing.policy" &&
         role.definition.profile.outputContract.presentation.writingPolicyId ===
           writing.writingPolicyId),
-  );
-  const workspace = await readSupervisionWorkspaceSource(
-    input.repositoryRoot,
-    workforce.assignment,
-    plan,
-    input.workspaceEvidenceStorage,
   );
   const permissionHash = operatingContractHash({
     ancestry: workforce.ancestryHash,

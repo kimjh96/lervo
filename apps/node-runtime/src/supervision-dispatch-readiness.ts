@@ -1,12 +1,6 @@
-import { observeSupervisionLoginReadiness } from "./supervision-login-readiness.js";
 import { prepareCanonicalSupervisionReadiness } from "./supervision-canonical-readiness.js";
-import { observeSupervisionVerificationReadiness } from "./supervision-verification-readiness.js";
-import {
-  inspectSupervisionKnowledgeReadiness,
-  observeSupervisionKnowledgeReadiness,
-} from "./supervision-knowledge-readiness.js";
-import { observeSupervisionRuntimeReadiness } from "./supervision-runtime-readiness.js";
-import { observeSupervisionRepositoryReadiness } from "./supervision-repository-readiness.js";
+import { inspectSupervisionKnowledgeReadiness } from "./supervision-knowledge-readiness.js";
+import { observeFinalSupervisionReadiness } from "./supervision-final-readiness.js";
 import { bindNodeSupervisionReadiness } from "./supervision-readiness.js";
 import { NodeSupervisionError } from "./supervision-authority.js";
 import { operatingAggregateBudgetRequired, operatingContractHash } from "@lervo/work-controller";
@@ -84,16 +78,23 @@ async function readDispatchObservations<Admission>(
     let taskReadiness = supplied;
     if (taskReadiness === null) {
       if (installation === null) throw new NodeSupervisionError("supervision_binding_invalid");
+      const taskSource = await input.session.readTaskResponsibility(plan);
+      const taskAdmission = await input.session.readTaskAdmission(plan);
       taskReadiness = await prepareCanonicalSupervisionReadiness({
         repositoryRoot: input.repositoryRoot,
         plan,
-        ...(await input.session.readTaskResponsibility(plan)),
-        admission: await input.session.readTaskAdmission(plan),
+        ...taskSource,
+        admission: taskAdmission,
         aggregateBudgetRequired: operatingAggregateBudgetRequired(installation.mandate),
         configuration,
         now: input.ports.now,
         workspaceEvidenceStorage,
       });
+      const { observedAt: _preparedAt, ...preparedAdmission } = taskAdmission;
+      const { observedAt: _confirmedAt, ...confirmedAdmission } =
+        await input.session.readTaskAdmission(plan);
+      if (operatingContractHash(confirmedAdmission) !== operatingContractHash(preparedAdmission))
+        throw new NodeSupervisionError("supervision_readiness_changed");
     }
     const readiness = bindNodeSupervisionReadiness({
       plan,
@@ -107,34 +108,13 @@ async function readDispatchObservations<Admission>(
       if (recorded === null || recorded.responsibilityHash !== plan.responsibilityArtifactHash)
         throw new NodeSupervisionError("supervision_readiness_changed");
       readiness.responsibility = recorded.responsibility;
-      const verified = await observeSupervisionVerificationReadiness({
+      return await observeFinalSupervisionReadiness({
         repositoryRoot: input.repositoryRoot,
+        projectId: plan.projectId,
+        plan,
         readiness,
         configuration,
-        now: input.ports.now,
-      });
-      const loggedIn = await observeSupervisionLoginReadiness({
-        plan,
-        readiness: verified,
-        configuration,
-        now: input.ports.now,
-      });
-      return await observeSupervisionRepositoryReadiness({
-        repositoryRoot: input.repositoryRoot,
-        plan,
-        readiness: await observeSupervisionRuntimeReadiness({
-          plan,
-          readiness: await observeSupervisionKnowledgeReadiness({
-            repositoryRoot: input.repositoryRoot,
-            projectId: plan.projectId,
-            requiredPaths: plan.expectedPaths,
-            readiness: loggedIn,
-            preparedInspection: knowledge,
-            now: input.ports.now,
-          }),
-          configuration,
-          now: input.ports.now,
-        }),
+        knowledge,
         now: input.ports.now,
         workspaceEvidenceStorage,
       });

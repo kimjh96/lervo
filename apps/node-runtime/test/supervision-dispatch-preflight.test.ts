@@ -84,6 +84,41 @@ it.each(["success", "admission_failure", "probe_failure"])(
           const result = await pending;
           expect(result.admission.sourceRevisionDigest).toBe(f.observation.sourceRevisionDigest);
           expect(result.readiness.responsibility).toEqual(f.task);
+          for (const kind of [
+            "provider",
+            "tools",
+            "verification",
+            "knowledge",
+            "lease",
+            "ancestry",
+            "workspace",
+          ])
+            expect(
+              result.readiness.observation.checks.find((check) => check.kind === kind),
+            ).toMatchObject({
+              status: "passed",
+              evidenceHash: expect.stringMatching(/^sha256:/u),
+            });
+          const missingLogin = await readNodeDispatchPreflight({
+            repositoryRoot: f.root,
+            plan,
+            session,
+            ports: f.ports,
+            configuration: { ...f.runtimeReadiness, providerLoginContexts: undefined },
+            expectedKnowledgeSnapshotId: knowledgeSnapshotId,
+            sourceBinding: {
+              authorityDigest: operatingContractHash("preflight authority"),
+              taskDigest: f.observation.sourceRevisionDigest,
+              combined,
+            },
+            readAdmission: () => f.ports.readAdmission(plan),
+          });
+          expect(
+            missingLogin.readiness.observation.checks.find((check) => check.kind === "provider"),
+          ).toMatchObject({ status: "unobserved", evidenceHash: null });
+          expect(
+            missingLogin.readiness.observation.checks.find((check) => check.kind === "tools"),
+          ).toMatchObject({ status: "passed" });
         } else {
           await expect(pending).rejects.toThrow(
             outcome === "probe_failure" ? "probe changed" : "admission changed",
@@ -135,6 +170,86 @@ it("rejects a changed installed mandate before deriving canonical budget readine
           sourceBinding: null,
         }),
       ).rejects.toMatchObject({ code: "supervision_binding_invalid" });
+    });
+  } finally {
+    await store.close();
+  }
+});
+
+it("keeps canonical task context fresh through the final parallel probes", async () => {
+  const f = await dispatchFixture(roots);
+  const combined = operatingContractHash("canonical preflight source");
+  const plan = {
+    ...(await f.ports.propose(
+      projectOutcomeSupervision({
+        snapshot: f.observation,
+        now: f.ports.now(),
+        maximumRecoveryDecisions: 1,
+      }),
+    ))!,
+    sourceRevisionDigest: combined,
+    effectContract: "work.managed_execution.v1",
+  };
+  const { readWorkerReadiness: _readWorkerReadiness, ...canonicalPorts } = f.ports;
+  const store = await NodeSupervisionStore.open({
+    repositoryRoot: f.root,
+    binding: f.binding,
+    now: f.ports.now,
+  });
+  try {
+    await store.withOwner(async (session) => {
+      const result = await readNodeDispatchReadiness({
+        repositoryRoot: f.root,
+        plan,
+        session: {
+          ...session,
+          readTaskResponsibility: async () => ({
+            responsibility: f.task,
+            workstreamRevision: f.observation.workstreamRevision,
+          }),
+          readTaskAdmission: async () => f.ports.readAdmission(plan),
+        },
+        ports: canonicalPorts,
+        configuration: f.runtimeReadiness,
+        sourceBinding: {
+          authorityDigest: operatingContractHash("canonical preflight authority"),
+          taskDigest: f.observation.sourceRevisionDigest,
+          combined,
+        },
+      });
+      expect(
+        result.readiness.observation.checks.find((check) => check.kind === "provider"),
+      ).toMatchObject({ status: "passed" });
+      expect(
+        Date.parse(f.ports.now()) - Date.parse(result.readiness.observation.observedAt),
+      ).toBeLessThanOrEqual(5000);
+      const initialAdmission = await f.ports.readAdmission(plan);
+      let admissionReads = 0;
+      await expect(
+        readNodeDispatchReadiness({
+          repositoryRoot: f.root,
+          plan,
+          session: {
+            ...session,
+            readTaskResponsibility: async () => ({
+              responsibility: f.task,
+              workstreamRevision: f.observation.workstreamRevision,
+            }),
+            readTaskAdmission: async () =>
+              ++admissionReads === 1
+                ? initialAdmission
+                : { ...initialAdmission, resourceAdmission: "exhausted" },
+          },
+          ports: canonicalPorts,
+          configuration: f.runtimeReadiness,
+          sourceBinding: {
+            authorityDigest: operatingContractHash("canonical preflight authority"),
+            taskDigest: f.observation.sourceRevisionDigest,
+            combined,
+          },
+        }),
+      ).rejects.toMatchObject({ code: "supervision_readiness_changed" });
+      expect(admissionReads).toBe(2);
     });
   } finally {
     await store.close();
