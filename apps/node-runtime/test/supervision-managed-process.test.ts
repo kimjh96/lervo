@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { createVerifiedConversationControlReply } from "@lervo/conversation-control";
 import { calculateConversationOutboundId } from "@lervo/conversation-contract";
 import type { ConversationOutboundMessage } from "@lervo/schemas";
@@ -251,6 +251,20 @@ it.each([
         assignmentCount: 1,
         activeAttempts: 0,
       });
+      let delayedNow = Date.now();
+      const delayedTasks = new SupervisionTaskSource(storage, f.binding, () =>
+        new Date(delayedNow).toISOString(),
+      );
+      const read = delayedTasks.read.bind(delayedTasks);
+      let reads = 0;
+      vi.spyOn(delayedTasks, "read").mockImplementation(async (...args) => {
+        const current = await read(...args);
+        if (++reads === 2) delayedNow += 6_000;
+        return current;
+      });
+      const delayedAdmission = await delayedTasks.readAdmission(dispatchedPlan!);
+      expect(reads).toBe(2);
+      expect(delayedAdmission.observedAt).toBe(new Date(delayedNow).toISOString());
       await expect(tasks.readAdmission({ ...dispatchedPlan!, reservedTokens: 1 })).rejects.toThrow(
         "exact effect",
       );

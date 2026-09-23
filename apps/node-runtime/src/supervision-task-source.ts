@@ -14,7 +14,7 @@ import {
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { OutcomeSupervisionSnapshotV1 } from "@lervo/application-contract";
 import { observeSupervisionTasks } from "./supervision-task-observation.js";
-import { observeSupervisionTaskAdmission } from "./supervision-task-admission.js";
+import { readSupervisionTaskAdmission } from "./supervision-admission-source.js";
 import type { OperatingActionPlanV1 } from "@lervo/application-contract";
 import type { OwnerControlReadinessV1 } from "@lervo/application-contract";
 import { readSupervisionOwnerControl } from "./supervision-owner-control.js";
@@ -292,28 +292,14 @@ export class SupervisionTaskSource {
   }
 
   async readAdmission(plan: OperatingActionPlanV1) {
-    const decisionId = operatingDecisionId(plan);
-    const source = await this.read(decisionId);
-    const authority = await observeNodeSupervisionAuthority(
-      this.storage,
-      this.binding,
-      this.now,
-      this.history,
-    );
-    const observation = await observeSupervisionTaskAdmission({
+    return readSupervisionTaskAdmission({
       storage: this.storage,
-      repositoryRoot: this.storage.paths.repositoryRoot,
-      source,
-      authority,
-      plan,
-      artifacts: this.storage.artifacts,
-      events: this.storage.events,
       binding: this.binding,
-      now: this.now(),
+      history: this.history,
+      readSource: (decisionId) => this.read(decisionId),
+      plan,
+      now: this.now,
     });
-    if ((await this.read(decisionId)).sourceRevisionDigest !== source.sourceRevisionDigest)
-      throw new Error("The supervision admission changed during observation.");
-    return observation;
   }
 
   async readSnapshot(excludeDecisionId?: string): Promise<OutcomeSupervisionSnapshotV1> {
