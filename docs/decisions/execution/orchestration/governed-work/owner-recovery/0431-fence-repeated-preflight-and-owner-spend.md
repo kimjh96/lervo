@@ -35,6 +35,15 @@ The spend check also runs before an owner-reasoning proposal is recorded. If the
 
 A preceding owner run that failed with `provider_usage_limited` ends automatic owner reasoning for that mandate history. Retrying before the provider restores the allowance cannot succeed, and each retry would reserve more tokens. Resuming requires a reviewed mandate change, which starts a new owner-reasoning history.
 
+A block caused by owner spend exhaustion has no source change to review, and its superseded decision can never confirm an effect. It is resolved by `reviewed_authority_change`, which requires all of the following:
+
+- exactly one supersession proving the blocked decision's non-start;
+- a later, current mandate installation for the same owner lineage, appointed by the reviewer;
+- an owner spend allowance anchored at a revocation recorded after the block;
+- the reviewer's approval of the exact review hash.
+
+`lervo agent mandate resolve-preflight` prints that review and records it only with `--approve <hash> --write` under the supervision owner lease. Inside the append transaction it rechecks the block, non-start, installation, and the absence of a later revocation. Installing a mandate alone never clears a block.
+
 ### Reader-first activation
 
 Deploy CLI, Hub, and Node readers for the new event and any allowance artifact before the writer. The writer stays disabled until deterministic replay, restart, lost-response, duplicate-event, stale-witness, unknown-usage, revocation, successor-mandate, and competing-owner fixtures pass. Activation requires a reviewed mandate and an installed canary showing one blocked preflight produces no repeated owner invocation while ordinary Discord conversation remains responsive. An exact repaired witness must then permit at most one newly admitted continuation; worker start, review, publication, and knowledge currency remain independent acceptance gates.

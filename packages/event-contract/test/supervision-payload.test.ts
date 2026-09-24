@@ -138,6 +138,10 @@ describe("supervision privacy and evidence payloads", () => {
     });
     expect(result.payload).toEqual(payload);
     expect(result.redactions).toHaveLength(1);
+    const authority = { ...payload, resolutionKind: "reviewed_authority_change" };
+    expect(sanitizeEventPayload("work.supervision.preflight.resolved", authority).payload).toEqual(
+      authority,
+    );
     for (const invalid of [
       {
         ...payload,

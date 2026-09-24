@@ -20,6 +20,10 @@ import {
   SupervisionEventJournal,
   type SupervisionJournalCoordinates,
 } from "./supervision-event-journal.js";
+import {
+  recordSupervisionPreflightAuthorityResolution,
+  reviewSupervisionPreflightAuthorityChange,
+} from "./supervision-preflight-resolution-journal.js";
 import type {
   SQLiteSupervisionOwnerLeaseStore,
   SupervisionOwnerLease,
@@ -101,6 +105,33 @@ export class SupervisionMandateJournal {
       }
     }
     return current;
+  }
+
+  /** The exact review a reviewer must approve before a block may be resolved by this mandate. */
+  async reviewPreflightResolution(blockedEventId: string, reviewerId: string) {
+    const installation = await this.current();
+    if (installation === null) throw new Error("There is no installed mandate.");
+    return reviewSupervisionPreflightAuthorityChange({
+      events: this.events,
+      coordinates: this.coordinates,
+      installation,
+      blockedEventId,
+      reviewerId,
+    });
+  }
+
+  async resolvePreflight(blockedEventId: string, reviewerId: string, approval: string) {
+    const installation = await this.current();
+    if (installation === null) throw new Error("There is no installed mandate.");
+    return recordSupervisionPreflightAuthorityResolution({
+      journal: this.journal,
+      events: this.events,
+      coordinates: this.coordinates,
+      installation,
+      blockedEventId,
+      reviewerId,
+      approval,
+    });
   }
 
   async install(

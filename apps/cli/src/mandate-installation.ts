@@ -253,3 +253,68 @@ export async function revokeRepositoryMandate(input: {
     await storage.close();
   }
 }
+
+/** Without an approval returns the exact review; with it records the fenced resolution. */
+export async function resolveRepositoryPreflight(input: {
+  root: string;
+  supervisionId: string;
+  workstreamId: string;
+  blockedEventId: string;
+  reviewerId: string;
+  approval?: string;
+}) {
+  const storage = await openProjectStorage(input.root);
+  try {
+    if (storage.writableEventSchemaVersion !== 3)
+      throw new Error("Preflight resolution requires event writer version 3.");
+    const inspected = await journal(
+      storage,
+      input.supervisionId,
+      input.workstreamId,
+      1,
+      `agt_${"0".repeat(24)}`,
+    ).current();
+    if (inspected === null || inspected.revoked)
+      throw new Error("Preflight resolution requires a current installed mandate.");
+    const bound = (fence: Parameters<typeof journal>[5]) =>
+      journal(
+        storage,
+        input.supervisionId,
+        input.workstreamId,
+        Number(storage.events.get(inspected.eventId)!.payload.workstreamRevision),
+        inspected.mandate.ownerAgentId,
+        fence,
+      );
+    const review = await bound(null).reviewPreflightResolution(
+      input.blockedEventId,
+      input.reviewerId,
+    );
+    if (input.approval === undefined)
+      return { review, approvalHash: operatingContractHash(review) };
+    const leases = await openRepositorySupervisionLeases(input.root);
+    try {
+      const lease = leases.acquire({
+        supervisionId: input.supervisionId,
+        ownerAgentId: inspected.mandate.ownerAgentId,
+        nowMs: Date.now(),
+        durationMs: 300_000,
+      });
+      if (lease === null)
+        throw new Error("The supervision owner requires reconciliation before resolution.");
+      try {
+        const eventId = await bound({ store: leases, lease }).resolvePreflight(
+          input.blockedEventId,
+          input.reviewerId,
+          input.approval,
+        );
+        return { eventId, review };
+      } finally {
+        leases.release(lease);
+      }
+    } finally {
+      leases.close();
+    }
+  } finally {
+    await storage.close();
+  }
+}

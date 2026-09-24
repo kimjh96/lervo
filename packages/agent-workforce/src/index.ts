@@ -28,6 +28,7 @@ export * from "./supervision-decision-journal.js";
 export * from "./supervision-readiness-failure-journal.js";
 export * from "./supervision-worker-lease-renewal.js";
 export * from "./supervision-mandate-journal.js";
+export type { SupervisionPreflightAuthorityReviewV1 } from "./supervision-preflight-resolution-journal.js";
 export * from "./supervision-responsibility-reader.js";
 export * from "./repository-supervision-leases.js";
 export * from "./supervision-responsibility-claim.js";

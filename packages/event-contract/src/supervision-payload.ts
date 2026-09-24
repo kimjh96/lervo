@@ -274,7 +274,8 @@ export function validateSupervisionPayload(
       if (key === "terminalEventId") valid &&= /^evt_[a-f0-9]{32}$/u.test(String(value));
       if (["blockedEventId", "supersessionEventId", "sourceSnapshotEventId"].includes(key))
         valid &&= /^evt_[a-f0-9]{32}$/u.test(String(value));
-      if (key === "resolutionKind") valid &&= value === "reviewed_source_change";
+      if (key === "resolutionKind")
+        valid &&= ["reviewed_source_change", "reviewed_authority_change"].includes(String(value));
       if (key === "actionKind") valid &&= actions.includes(String(value));
       if (key === "disposition")
         valid &&= ["admitted", "blocked", "uncertain"].includes(String(value));

@@ -6,6 +6,7 @@ import {
   createRepositoryMandatePlan,
   inspectRepositoryMandate,
   installRepositoryMandate,
+  resolveRepositoryPreflight,
   revokeRepositoryMandate,
   selectRepositoryMandateWorkScope,
 } from "./mandate-installation.js";
@@ -19,6 +20,7 @@ export const agentMandateUsage = [
   "  lervo agent mandate install --from <plan.json> --approve <hash> --reviewer <id> --write [--root <path>] [--json]",
   "  lervo agent mandate inspect --supervision <id> [--workstream <id>] [--root <path>] [--json]",
   "  lervo agent mandate revoke --supervision <id> --workstream <id> --mandate-hash <hash> --installation-event <id> --reviewer <id> --write [--root <path>] [--json]",
+  "  lervo agent mandate resolve-preflight --supervision <id> --workstream <id> --block <event-id> --reviewer <id> [--approve <hash> --write] [--root <path>] [--json]",
 ].join("\n");
 
 export async function runAgentMandateCommand(args: string[], io: CliIo): Promise<number> {
@@ -38,6 +40,7 @@ export async function runAgentMandateCommand(args: string[], io: CliIo): Promise
       write: { type: "boolean" },
       "mandate-hash": { type: "string" },
       "installation-event": { type: "string" },
+      block: { type: "string" },
     },
   });
   if (values.help) {
@@ -66,7 +69,9 @@ export async function runAgentMandateCommand(args: string[], io: CliIo): Promise
                     "reviewer",
                     "write",
                   ]
-                : null;
+                : action === "resolve-preflight"
+                  ? ["supervision", "workstream", "block", "reviewer", "approve", "write"]
+                  : null;
   if (
     allowed === null ||
     Object.keys(values).some((key) => !["root", "json", ...allowed].includes(key))
@@ -113,6 +118,17 @@ export async function runAgentMandateCommand(args: string[], io: CliIo): Promise
       root,
       supervisionId: required("supervision"),
       ...(values.workstream === undefined ? {} : { workstreamId: values.workstream }),
+    });
+  } else if (action === "resolve-preflight") {
+    if ((values.approve === undefined) !== !values.write)
+      throw new Error("Preflight resolution records only with both --approve and --write.");
+    result = await resolveRepositoryPreflight({
+      root,
+      supervisionId: required("supervision"),
+      workstreamId: required("workstream"),
+      blockedEventId: required("block"),
+      reviewerId: required("reviewer"),
+      ...(values.approve === undefined ? {} : { approval: values.approve }),
     });
   } else {
     if (!values.write) throw new Error("Mandate revocation requires --write.");
