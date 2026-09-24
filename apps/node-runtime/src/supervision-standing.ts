@@ -24,6 +24,7 @@ import { observeMandateInstallationSource } from "./supervision-authority-source
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { SupervisionRequestRefusedError } from "./supervision-request-refusal.js";
 import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
+import { resolveStandingRoot } from "./supervision-standing-root.js";
 import {
   recordUnselectedStandingSuccessor,
   standingSuccessorMarker,
@@ -49,10 +50,11 @@ export async function resolveStandingSupervisionBinding(
   root: NodeSupervisionBinding,
   now: () => string,
 ): Promise<StandingSupervisionResolution> {
+  const rootResolution = await resolveStandingRoot(storage, root, now);
   let current: StandingSupervisionResolution = {
-    binding: structuredClone(root),
+    binding: rootResolution.binding,
     index: 0,
-    installation: await readInstalledNodeMandate(storage, root, now),
+    installation: rootResolution.installation,
   };
   for (let index = 1; index <= MAXIMUM_SUCCESSORS; index += 1) {
     const supervisionId = successorId(root.supervisionId, index);

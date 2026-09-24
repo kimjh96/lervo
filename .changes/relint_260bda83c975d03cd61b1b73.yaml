@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_260bda83c975d03cd61b1b73"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Follow reviewed standing root mandate revisions without changing the configured ancestry pin."

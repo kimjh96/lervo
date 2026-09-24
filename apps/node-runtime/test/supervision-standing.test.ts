@@ -119,6 +119,41 @@ async function installStandingRoot(maximumSuccessors: number) {
   return { f, storage, root, rootMandate, request };
 }
 
+it("follows a reviewed root mandate revision while keeping the configured ancestor pinned", async () => {
+  const { f, storage, root, rootMandate } = await installStandingRoot(1);
+  const revised: OperatingMandateV3 = {
+    ...rootMandate,
+    version: rootMandate.version + 1,
+    maximumAttemptsPerAssignment: 3,
+  };
+  const plan = await createRepositoryMandatePlan({
+    root: f.root,
+    supervisionId: root.supervisionId,
+    mandate: revised,
+    reviewerId: revised.appointingAuthorityId,
+  });
+  const installed = await installRepositoryMandate({
+    root: f.root,
+    plan,
+    approval: plan.approvalHash,
+    reviewerId: revised.appointingAuthorityId,
+  });
+  const resolved = await resolveStandingSupervisionBinding(storage, root, () =>
+    new Date().toISOString(),
+  );
+  expect(resolved.index).toBe(0);
+  expect(resolved.binding).toEqual({ ...root, mandateHash: installed.mandateHash });
+  expect(resolved.installation.mandate.maximumAttemptsPerAssignment).toBe(3);
+  await expect(
+    resolveStandingSupervisionBinding(
+      storage,
+      { ...root, mandateHash: hash("unrelated root") },
+      () => new Date().toISOString(),
+    ),
+  ).rejects.toMatchObject({ code: "supervision_binding_invalid" });
+  await storage.close();
+});
+
 it("starts Elio's successor without replacing a separately selected deployment review", async () => {
   const { f, storage, root, request } = await installStandingRoot(1);
   await completeCurrentGoal(f.root);
@@ -367,8 +402,8 @@ it("starts successor goals under a standing grant and follows the lineage bindin
   await storage.close();
 }, 60_000);
 
-it("makes a running standing service follow a successor another process started", async () => {
-  const { f, storage, root, request } = await installStandingRoot(1);
+it("makes a running standing service follow reviewed root and successor revisions", async () => {
+  const { f, storage, root, rootMandate, request } = await installStandingRoot(1);
   const login = await createLoginFixture(roots);
   const health: NodeRuntimeComponentHealth[] = [];
   const logs: string[] = [];
@@ -402,6 +437,36 @@ it("makes a running standing service follow a successor another process started"
     expect(service.currentBinding()).toEqual(root);
     service.start();
     await vi.waitFor(() => expect(health.length).toBeGreaterThan(0), { timeout: 10_000 });
+    const rootRevision: OperatingMandateV3 = {
+      ...rootMandate,
+      version: rootMandate.version + 1,
+      maximumAttemptsPerAssignment: 3,
+    };
+    const rootPlan = await createRepositoryMandatePlan({
+      root: f.root,
+      supervisionId: root.supervisionId,
+      mandate: rootRevision,
+      reviewerId: rootRevision.appointingAuthorityId,
+    });
+    let rootInstall: Awaited<ReturnType<typeof installRepositoryMandate>> | null = null;
+    for (let attempt = 0; attempt < 60 && rootInstall === null; attempt += 1)
+      try {
+        rootInstall = await installRepositoryMandate({
+          root: f.root,
+          plan: rootPlan,
+          approval: rootPlan.approvalHash,
+          reviewerId: rootRevision.appointingAuthorityId,
+        });
+      } catch (error) {
+        if (!/requires reconciliation before installation/u.test(String(error))) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    expect(rootInstall).not.toBeNull();
+    await vi.waitFor(
+      () => expect(service.currentBinding().mandateHash).toBe(rootInstall!.mandateHash),
+      { timeout: 90_000 },
+    );
+    expect(service.currentBinding().supervisionId).toBe(root.supervisionId);
     await completeCurrentGoal(f.root);
     const admitted = await admitStandingSupervisionRequest({
       repositoryRoot: f.root,
