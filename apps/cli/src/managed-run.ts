@@ -586,6 +586,8 @@ export function createManagedRunExecutor(
         risk: request.risk.trim(),
         instructions: providerInstructions,
         targetTurnId: dependencies.createId("turn"),
+        // Each additional expected path is written in its own target turn.
+        createTargetTurnId: () => dependencies.createId("turn"),
         context: {
           registry,
           role,

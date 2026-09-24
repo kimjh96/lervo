@@ -626,6 +626,33 @@ describe("lervo run vertical slice", () => {
       storage.events.close();
     }
   });
+  it("admits a request with several expected paths past the managed contract", async () => {
+    const root = await createRepository();
+    await writeVerificationSuite(root, "process.exit(0)");
+    const client = new ManagedCodexClient(root);
+    const executeManagedRun = createManagedRunExecutor({
+      openStorage: openProjectStorage,
+      createId: identifierFactory(),
+      semanticEvaluator: passingSemanticEvaluator,
+      createAdapter: ({ repositoryRoot, resolveArtifact }) =>
+        new CodexAdapter({ repositoryRoot, resolveArtifact, clientFactory: async () => client }),
+    });
+    const outcome = await executeManagedRun({
+      repositoryRoot: root,
+      provider: "codex",
+      expectedPaths: ["src/result.ts", "src/second.ts"],
+      instructions: "Update both files",
+      risk: "low",
+      verificationSuiteIds: ["project.default"],
+    }).catch((error: unknown) => error);
+    // Without a turn per additional path every multi-file request failed before any provider
+    // turn. This fixture writes one path per turn, so it may still stop at a later write guard.
+    expect(String((outcome as Error | undefined)?.message)).not.toContain(
+      "task, file-write policy, or expected paths are invalid",
+    );
+    expect(client.turnInstructions.length).toBeGreaterThan(0);
+  });
+
   it("executes a repository-specialized role through the managed provider boundary", async () => {
     const root = await createRepository();
     await writeVerificationSuite(root, "process.exit(0)");
