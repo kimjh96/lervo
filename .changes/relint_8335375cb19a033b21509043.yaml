@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8335375cb19a033b21509043"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Read Claude context-window usage keys such as claude-opus-5-5[1m] as their base model so managed Claude results are accepted."

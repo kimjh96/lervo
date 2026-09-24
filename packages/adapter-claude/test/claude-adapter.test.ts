@@ -36,6 +36,7 @@ class FakeClaudeClient implements ClaudeAgentClient {
   closed = false;
   failClose = false;
   invalidUsage = false;
+  usageModelId = "claude-test";
   structuredOutput: unknown = undefined;
   toolUseHandler?: ClaudeToolUseHandler;
 
@@ -158,7 +159,7 @@ class FakeClaudeClient implements ClaudeAgentClient {
         modelUsage: this.invalidUsage
           ? {}
           : {
-              "claude-test": {
+              [this.usageModelId]: {
                 inputTokens: 10,
                 outputTokens: 2,
                 cacheReadInputTokens: 7,
@@ -371,6 +372,27 @@ describe("Claude managed adapter", () => {
     });
     expect(report).toEqual({ passed: true, violations: [] });
     expect(client.closed).toBe(true);
+  });
+
+  it("reads a context-window usage key such as [1m] as its base model ID", async () => {
+    const client = new FakeClaudeClient();
+    client.usageModelId = "claude-answer-model[1m]";
+    const report = await evaluateAdapterContract(adapter(client), {
+      expectedProvider: "claude",
+      ...fixture(),
+      stopReason: "completed",
+      expectedEventCount: 6,
+      expectedResultContent: "super-secret-result",
+      expectedModelIdentity: {
+        provider: "claude",
+        requestedModel: null,
+        answerModel: "claude-answer-model",
+        observedModelIds: ["claude-answer-model", "claude-helper-model"],
+        answerModelEvidence: "assistant_message",
+        unavailableReason: null,
+      },
+    });
+    expect(report).toEqual({ passed: true, violations: [] });
   });
 
   it("captures requested structured output instead of the provider prose result", async () => {

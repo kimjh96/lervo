@@ -8,6 +8,14 @@ export interface CapturedClaudeTurnResult {
   modelIdentity: ProviderModelIdentity;
 }
 
+/**
+ * Claude Code reports a context-window variant such as `claude-opus-5-5[1m]` in usage keys while
+ * assistant messages carry the base model ID; both name one model.
+ */
+export function baseClaudeModelId(modelId: string): string {
+  return modelId.replace(/\[[0-9a-z]+\]$/u, "");
+}
+
 export function captureClaudeAssistantModel(
   raw: unknown,
   providerSessionId: string,
@@ -63,7 +71,9 @@ export function captureClaudeTurnResult(input: {
   ) {
     return null;
   }
-  const observedModelIds = Object.keys(asRecord(message.modelUsage) ?? {}).sort();
+  const observedModelIds = [
+    ...new Set(Object.keys(asRecord(message.modelUsage) ?? {}).map(baseClaudeModelId)),
+  ].sort();
   const answerModels = [...new Set(input.answerModels)].sort();
   const answerModel = answerModels.length === 1 ? answerModels[0]! : null;
   if (answerModel !== null && !observedModelIds.includes(answerModel)) {
