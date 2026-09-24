@@ -3,9 +3,12 @@ import type {
   SupervisionDecisionReceipt,
   SupervisionPreflightInspectionV1,
 } from "@lervo/application-contract";
-import type { EventStore } from "@lervo/storage-contract";
-import { operatingContractHash, operatingDecisionId } from "@lervo/work-controller";
-import type { SupervisionEventJournal } from "./supervision-event-journal.js";
+import { collectProjectEventsBounded, type EventStore } from "@lervo/storage-contract";
+import { lineageRootId, operatingContractHash, operatingDecisionId } from "@lervo/work-controller";
+import type {
+  SupervisionEventJournal,
+  SupervisionJournalCoordinates,
+} from "./supervision-event-journal.js";
 import { supervisionPayloadFromDecision } from "./supervision-readiness-failure-journal.js";
 
 const BLOCKED = "work.supervision.preflight.blocked";
@@ -99,26 +102,60 @@ export async function recordSupervisionPreflightBlocked(input: {
   return journal.eventId(BLOCKED, identity);
 }
 
-/** A superseded decision does not repair its recorded worker preflight blocker. */
-export function findUnresolvedSupervisionPreflightBlock(
-  journal: SupervisionEventJournal,
-): { eventId: string; decisionId: string; reasonCode: string } | null {
-  const unresolved = new Map<string, { eventId: string; decisionId: string; reasonCode: string }>();
-  for (const event of journal.history()) {
+/** A superseded decision or a new successor goal does not repair its recorded blocker. */
+export function findUnresolvedSupervisionPreflightBlock(input: {
+  events: EventStore;
+  coordinates: SupervisionJournalCoordinates;
+}): { eventId: string; decisionId: string; reasonCode: string } | null {
+  const { events, coordinates } = input;
+  const unresolved = new Map<
+    string,
+    {
+      eventId: string;
+      decisionId: string;
+      reasonCode: string;
+      planHash: string;
+      workstreamId: string;
+    }
+  >();
+  for (const event of collectProjectEventsBounded({ events, maximumEvents: 100_000 })) {
+    if (
+      event.projectId !== coordinates.projectId ||
+      event.payload.ownerAgentId !== coordinates.ownerAgentId ||
+      typeof event.payload.supervisionId !== "string" ||
+      lineageRootId(event.payload.supervisionId) !== lineageRootId(coordinates.supervisionId)
+    )
+      continue;
     if (event.type === BLOCKED) {
-      journal.assertEventBinding(event);
+      if (
+        event.schemaVersion !== 3 ||
+        event.runId !==
+          `run_${operatingContractHash({ supervisionId: event.payload.supervisionId }).slice(7, 39)}`
+      )
+        throw new Error("The preflight block has no exact supervision binding.");
       const decisionId = String(event.payload.decisionId);
-      unresolved.set(decisionId, {
+      unresolved.set(event.eventId, {
         eventId: event.eventId,
         decisionId,
         reasonCode: String(event.payload.reasonCode),
+        planHash: String(event.payload.planHash),
+        workstreamId: String(event.payload.workstreamId),
       });
     } else if (
       event.type === "work.supervision.effect.observed" &&
       event.payload.status === "effect_confirmed"
     ) {
-      unresolved.delete(String(event.payload.decisionId));
+      for (const [id, blocked] of unresolved)
+        if (
+          blocked.decisionId === event.payload.decisionId &&
+          blocked.planHash === event.payload.planHash &&
+          blocked.workstreamId === event.payload.workstreamId
+        )
+          unresolved.delete(id);
     }
   }
-  return [...unresolved.values()].at(-1) ?? null;
+  const latest = [...unresolved.values()].at(-1);
+  return latest === undefined
+    ? null
+    : { eventId: latest.eventId, decisionId: latest.decisionId, reasonCode: latest.reasonCode };
 }

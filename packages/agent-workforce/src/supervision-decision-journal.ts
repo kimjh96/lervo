@@ -324,7 +324,10 @@ export class SupervisionDecisionJournal {
   }
 
   findUnresolvedPreflightBlock() {
-    return findUnresolvedSupervisionPreflightBlock(this.journal);
+    return findUnresolvedSupervisionPreflightBlock({
+      events: this.events,
+      coordinates: this.coordinates,
+    });
   }
 
   findReadinessFailures(decisionId: string) {

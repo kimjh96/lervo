@@ -173,6 +173,35 @@ describe("canonical preflight non-start evidence", () => {
     );
   });
 
+  it("does not forget an unresolved block when the standing owner advances to a successor goal", async () => {
+    const f = await fixture();
+    const receipt = await f.journal.recordDecision(f.action, f.review);
+    const blockedEventId = await f.journal.recordPreflightBlocked(receipt, f.action, inspection);
+    const successorId = `${f.coordinates.supervisionId}.s1`;
+    const successorLease = f.fence.store.acquire({
+      supervisionId: successorId,
+      ownerAgentId: f.coordinates.ownerAgentId,
+      nowMs: Date.parse(now),
+      durationMs: 300_000,
+    })!;
+    const successor = new SupervisionDecisionJournal(
+      f.events,
+      f.artifacts,
+      {
+        ...f.coordinates,
+        supervisionId: successorId,
+        workstreamId: `wks_${"b".repeat(24)}`,
+      },
+      () => now,
+      { store: f.fence.store, lease: successorLease },
+    );
+    expect(successor.findUnresolvedPreflightBlock()).toEqual({
+      eventId: blockedEventId,
+      decisionId: receipt.decisionId,
+      reasonCode: inspection.reasonCode,
+    });
+  });
+
   it("rejects malformed or foreign inspection metadata", async () => {
     const f = await fixture();
     const receipt = await f.journal.recordDecision(f.action, f.review);
