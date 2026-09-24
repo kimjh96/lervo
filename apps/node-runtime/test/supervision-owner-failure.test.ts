@@ -24,9 +24,14 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-it.each([true, false])(
+it.each([
+  ["observed", true, false],
+  ["unobserved", false, false],
+  ["usage limited", true, true],
+] as const)(
   "reconciles stopped native owner failure and retries only with observed usage (%s)",
-  async (reportUsage) => {
+  async (_scenario, reportUsage, usageLimited) => {
+    const retries = reportUsage && !usageLimited;
     const login = await createLoginFixture(roots);
     const f = await supervisionFixture(
       roots,
@@ -74,6 +79,7 @@ it.each([true, false])(
     await appendFile(${JSON.stringify(log)}, "invoked\\n");
     ${reportUsage ? 'send({method:"thread/tokenUsage/updated",params:{threadId,turnId,tokenUsage:{total:{inputTokens:40,cachedInputTokens:0,outputTokens:10,reasoningOutputTokens:0,totalTokens:50},modelContextWindow:100000}}});' : ""}
     if (previous.length === 0) {
+      ${usageLimited ? 'send({method:"error",params:{threadId,turnId,willRetry:false,error:{message:"fixture_usage_limit",codexErrorInfo:"usageLimitExceeded"}}});' : ""}
       send({method:"turn/completed",params:{threadId,turn:{id:turnId,status:"failed",error:{message:"fixture_provider_failure"}}}}); return;
     }
     completeTurn(JSON.stringify({schemaVersion:1,operation:"allocate_existing",rationale:"Reuse available qualified staff after the bounded failed planning turn.",details:JSON.stringify({roleId:"developer",taskPurpose:"Inspect the current setup.",deliverables:["A verified report"],acceptanceCriteria:["Preserve existing behavior"],decisionLatitude:["Inspect within the task paths"],expectedPaths:["src"],requiredCapabilities:["filesystem.read"],verificationSuiteIds:["role.development.artifact"],completionSeconds:600})})); return;
@@ -112,12 +118,22 @@ it.each([true, false])(
       expect((await runtime.runCycle()).disposition).toBe("effect_confirmed");
       const retry = await runtime.runCycle();
       expect(retry.disposition, JSON.stringify(f.attention)).toBe(
-        reportUsage ? "effect_confirmed" : "blocked",
+        retries ? "effect_confirmed" : "blocked",
       );
       const source = await new SupervisionTaskSource(storage, f.binding, f.ports.now).read();
       const causes = source.events.filter((event) => event.type === "work.causality.recorded");
-      expect(causes).toHaveLength(reportUsage ? 2 : 1);
-      if (reportUsage) {
+      expect(causes).toHaveLength(retries ? 2 : 1);
+      if (usageLimited) {
+        expect(source.events.filter((event) => event.type === "run.failed")).toMatchObject([
+          { payload: { failureCode: "provider_usage_limited", retryable: false } },
+        ]);
+        // No further owner decision is recorded, so no reservation accrues after the limit.
+        expect(
+          source.events.filter((event) => event.type === "work.supervision.decision.recorded"),
+        ).toHaveLength(1);
+        expect(JSON.stringify(f.attention)).toContain("owner_plan_unavailable");
+      }
+      if (retries) {
         expect(causes[1]!.payload).toMatchObject({
           relationship: "retry",
           parentRunId: causes[0]!.runId,
@@ -132,7 +148,7 @@ it.each([true, false])(
         expect((await runtime.runCycle()).disposition).toBe("effect_confirmed");
         expect(await listAssignments(f.root)).toHaveLength(1);
       } else expect(await listAssignments(f.root)).toHaveLength(0);
-      expect((await readFile(log, "utf8")).trim().split("\n")).toHaveLength(reportUsage ? 2 : 1);
+      expect((await readFile(log, "utf8")).trim().split("\n")).toHaveLength(retries ? 2 : 1);
     } finally {
       await runtime.close();
       await storage.close();

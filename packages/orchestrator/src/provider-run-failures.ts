@@ -48,6 +48,7 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
   provider_stream_failed: 40,
   provider_turn_failed: 40,
   provider_capacity_unavailable: 40,
+  provider_usage_limited: 40,
   provider_model_unavailable: 40,
   provider_tool_limit_exceeded: 45,
   provider_command_limit_exceeded: 45,
@@ -55,6 +56,22 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
   provider_start_failed: 40,
   cancelled: 30,
 };
+
+const terminalTurnMessages = {
+  provider_usage_limited: "The provider reported an exhausted account usage allowance.",
+  provider_capacity_unavailable: "The provider reported temporary model capacity exhaustion.",
+  provider_model_unavailable: "The provider never named a model for the turn.",
+} as const;
+
+/** Maps an adapter's provider-neutral failed-turn code to the run failure it proves. */
+export function terminalTurnFailure(code: unknown): ManagedProviderRunError {
+  return typeof code === "string" && Object.hasOwn(terminalTurnMessages, code)
+    ? new ManagedProviderRunError(
+        code as keyof typeof terminalTurnMessages,
+        terminalTurnMessages[code as keyof typeof terminalTurnMessages],
+      )
+    : new ManagedProviderRunError("provider_turn_failed", "The provider turn failed.");
+}
 
 function retryable(code: ManagedProviderRunFailureCode): boolean {
   return (

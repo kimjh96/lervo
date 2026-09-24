@@ -46,9 +46,27 @@ function isCapacityFailure(value: unknown): boolean {
   });
 }
 
+function isUsageLimitFailure(value: unknown): boolean {
+  const error = asRecord(value);
+  const nested = asRecord(error?.error);
+  const data = asRecord(error?.data);
+  const usageLimit = (candidate: unknown) =>
+    typeof candidate === "string" &&
+    candidate.replace(/[^a-z]/giu, "").toLowerCase() === "usagelimitexceeded";
+  return [error, nested, data].some((record) => {
+    const nativeInfo = record?.codexErrorInfo ?? record?.codex_error_info;
+    const structuredInfo = asRecord(nativeInfo);
+    return (
+      [record?.code, nativeInfo, structuredInfo?.type].some(usageLimit) ||
+      Object.keys(structuredInfo ?? {}).some(usageLimit)
+    );
+  });
+}
+
 export class CodexEventNormalizer {
   private seenStarted = false;
   private capacityFailureObserved = false;
+  private usageLimitObserved = false;
 
   constructor(private readonly options: CodexEventNormalizerOptions) {}
 
@@ -78,6 +96,7 @@ export class CodexEventNormalizer {
     }
     if (method === "turn/started") {
       this.capacityFailureObserved = false;
+      this.usageLimitObserved = false;
       const turn = asRecord(params.turn);
       const providerTurnId = text(turn?.id);
       return providerTurnId === undefined
@@ -103,6 +122,7 @@ export class CodexEventNormalizer {
     }
     if (method === "error") {
       this.capacityFailureObserved ||= isCapacityFailure(params.error);
+      this.usageLimitObserved ||= isUsageLimitFailure(params.error);
       return this.event(
         "provider.error",
         {
@@ -139,17 +159,23 @@ export class CodexEventNormalizer {
       // availability result, not a rejected request. The code stays provider-neutral so the
       // run coordinator reads a contract code rather than a Codex-specific one.
       const modelObserved = this.options.observedModel?.() ?? null;
+      // An exhausted account allowance is not transient capacity: repeating the turn before the
+      // provider restores the allowance cannot succeed, so it keeps a distinct terminal code.
+      const usageLimited = isUsageLimitFailure(turn.error) || this.usageLimitObserved;
       const capacityFailure = isCapacityFailure(turn.error) || this.capacityFailureObserved;
       this.capacityFailureObserved = false;
+      this.usageLimitObserved = false;
       return this.event(
         "provider.turn.failed",
         {
           providerTurnId,
-          failureCode: capacityFailure
-            ? "provider_capacity_unavailable"
-            : modelObserved === null
-              ? "provider_model_unavailable"
-              : "codex_turn_failed",
+          failureCode: usageLimited
+            ? "provider_usage_limited"
+            : capacityFailure
+              ? "provider_capacity_unavailable"
+              : modelObserved === null
+                ? "provider_model_unavailable"
+                : "codex_turn_failed",
           diagnosticDigest: digest(turn.error),
         },
         eventTime(message, params, this.options.now),
@@ -159,6 +185,7 @@ export class CodexEventNormalizer {
       return this.providerError("invalid_provider_turn", turn, message, params);
     }
     this.capacityFailureObserved = false;
+    this.usageLimitObserved = false;
     return this.event(
       "provider.turn.completed",
       {

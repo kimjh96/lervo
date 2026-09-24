@@ -2,22 +2,14 @@ import type { OperatingMandateV3 } from "@lervo/application-contract";
 
 type Allowance = NonNullable<OperatingMandateV3["ownerSpendAllowance"]>;
 
-/** Exact decision reservations in one owner's post-anchor epoch; no cross-model usage conversion. */
-export function projectOwnerSpendAllowance(input: {
-  allowance: Allowance;
-  currentDecisionId: string;
-  reservations: readonly {
-    decisionId: string;
-    reservedTokens: number;
-    observedTokens: number | null;
-    usageUnavailable: boolean;
-  }[];
-}): {
-  disposition: "within" | "exceeded";
+type Reservation = {
+  decisionId: string;
   reservedTokens: number;
-  remainingTokens: number;
-} {
-  const { allowance, currentDecisionId, reservations } = input;
+  observedTokens: number | null;
+  usageUnavailable: boolean;
+};
+
+function sumReservations(reservations: readonly Reservation[]) {
   const seen = new Set<string>();
   let reservedTokens = 0;
   let uncertainOrOverrun = false;
@@ -39,6 +31,21 @@ export function projectOwnerSpendAllowance(input: {
     if (!Number.isSafeInteger(reservedTokens))
       throw new Error("The owner spend epoch exceeds safe integer accounting.");
   }
+  return { seen, reservedTokens, uncertainOrOverrun };
+}
+
+/** Exact decision reservations in one owner's post-anchor epoch; no cross-model usage conversion. */
+export function projectOwnerSpendAllowance(input: {
+  allowance: Allowance;
+  currentDecisionId: string;
+  reservations: readonly Reservation[];
+}): {
+  disposition: "within" | "exceeded";
+  reservedTokens: number;
+  remainingTokens: number;
+} {
+  const { allowance, currentDecisionId, reservations } = input;
+  const { seen, reservedTokens, uncertainOrOverrun } = sumReservations(reservations);
   if (!seen.has(currentDecisionId))
     throw new Error("The owner spend epoch omits its current decision.");
   const remainingTokens = Math.max(0, allowance.maximumReservedTokens - reservedTokens);
@@ -50,4 +57,22 @@ export function projectOwnerSpendAllowance(input: {
     reservedTokens,
     remainingTokens,
   };
+}
+
+/**
+ * Whether one more full reservation could be admitted before any decision is recorded. A proposal
+ * the epoch cannot admit would only record another unspendable reservation.
+ */
+export function ownerSpendAdmitsReservation(input: {
+  allowance: Allowance;
+  reservations: readonly Reservation[];
+  nextReservedTokens: number;
+}): boolean {
+  if (!Number.isSafeInteger(input.nextReservedTokens) || input.nextReservedTokens < 1)
+    throw new Error("The next owner reservation is invalid.");
+  const { reservedTokens, uncertainOrOverrun } = sumReservations(input.reservations);
+  return (
+    !uncertainOrOverrun &&
+    reservedTokens + input.nextReservedTokens <= input.allowance.maximumReservedTokens
+  );
 }

@@ -144,7 +144,7 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:cac27f2425441ef4abbb5c31a68d952c604c04520b704a79a7951c0bde2d11bb",
+      "contentHash": "sha256:8dbabcff0c6ded5c0c8ad9859798e3a4db4b93d69c183352039123a8785dbc70",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "The coordinator owns one provider-neutral run lifecycle and failure ledger. Role input binding, provider-interaction limits, snapshots, result collection, and verification remain delegated to dedicated modules and ports; the coordinator only orders them and records their evidence. No research, filesystem source policy, checker process, or provider-specific behavior is introduced here.",
       "disposition": "cohesive"

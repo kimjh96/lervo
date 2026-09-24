@@ -18,6 +18,13 @@ describe("managed provider retry classification", () => {
         "provider_turn",
       ),
     ).toMatchObject({ retryable: true });
+    // An exhausted account allowance cannot succeed on an immediate repeat.
+    expect(
+      classifyRunFailure(
+        new ManagedProviderRunError("provider_usage_limited", "The allowance is exhausted."),
+        "provider_turn",
+      ),
+    ).toMatchObject({ retryable: false });
     expect(
       classifyRunFailure(
         new ManagedProviderRunError("provider_turn_failed", "The provider turn failed."),

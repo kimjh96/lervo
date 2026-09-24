@@ -16,6 +16,7 @@ describe("Node conversation response failure policy", () => {
     ["provider_start_failed", "response_provider_unavailable", true],
     ["provider_turn_failed", "response_provider_unavailable", true],
     ["provider_capacity_unavailable", "response_provider_capacity", true],
+    ["provider_usage_limited", "response_provider_unavailable", false],
     ["supervision_admission_unconfirmed", "response_effect_unconfirmed", true],
     ["repository_work_checkpoint_missing", "response_effect_unconfirmed", false],
     ["repository_work_knowledge_incomplete", "response_effect_unconfirmed", false],

@@ -93,7 +93,10 @@ export {
 export * from "./supervised-responsibility-claim.js";
 export { projectWorkstreamResources } from "./workstream-resources.js";
 export { comparableSupervisionResourceTotal } from "./supervision-resource-budget.js";
-export { projectOwnerSpendAllowance } from "./owner-spend-allowance.js";
+export {
+  ownerSpendAdmitsReservation,
+  projectOwnerSpendAllowance,
+} from "./owner-spend-allowance.js";
 export { supervisedOwnerReasoningFields } from "./supervised-owner-reasoning.js";
 export {
   ownerReasoningDecisionSchema,

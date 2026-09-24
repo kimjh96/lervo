@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { projectOwnerSpendAllowance } from "../src/owner-spend-allowance.js";
+import {
+  ownerSpendAdmitsReservation,
+  projectOwnerSpendAllowance,
+} from "../src/owner-spend-allowance.js";
 
 const allowance = {
   schemaVersion: 1 as const,
@@ -77,5 +80,37 @@ describe("owner spend epoch", () => {
           reservations: [prior, reservation("b", 100_000)],
         }).disposition,
       ).toBe("exceeded");
+  });
+
+  it("refuses a further reservation before recording once the epoch cannot admit it", () => {
+    const first = reservation("a", 100_000);
+    expect(
+      ownerSpendAdmitsReservation({ allowance, reservations: [], nextReservedTokens: 100_000 }),
+    ).toBe(true);
+    expect(
+      ownerSpendAdmitsReservation({
+        allowance,
+        reservations: [first],
+        nextReservedTokens: 100_000,
+      }),
+    ).toBe(true);
+    expect(
+      ownerSpendAdmitsReservation({
+        allowance,
+        reservations: [first],
+        nextReservedTokens: 100_001,
+      }),
+    ).toBe(false);
+    // An unavailable receipt already makes every later reservation exceed the epoch.
+    expect(
+      ownerSpendAdmitsReservation({
+        allowance,
+        reservations: [{ ...first, usageUnavailable: true }],
+        nextReservedTokens: 1,
+      }),
+    ).toBe(false);
+    expect(() =>
+      ownerSpendAdmitsReservation({ allowance, reservations: [first], nextReservedTokens: 0 }),
+    ).toThrow(/invalid/u);
   });
 });

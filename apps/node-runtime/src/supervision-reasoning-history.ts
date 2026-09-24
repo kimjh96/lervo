@@ -86,6 +86,24 @@ export async function readReusableOwnerDecision(input: {
   now(): string;
 }) {
   const history = await readOwnerReasoningHistory(input);
+  // An exhausted provider allowance blocks every later owner turn, whatever its trigger, until a
+  // reviewed mandate change starts a new history; retrying would only reserve more tokens.
+  const latest = history.at(-1);
+  if (latest !== undefined) {
+    const identity = managedExecutionIdentity(
+      latest.plan.projectId,
+      operatingContractHash(latest.plan),
+    );
+    if (
+      input.source.events.some(
+        (event) =>
+          event.runId === identity.runId &&
+          event.type === "run.failed" &&
+          event.payload.failureCode === "provider_usage_limited",
+      )
+    )
+      return { history, decision: null, reason: "provider_usage_limited" as const };
+  }
   for (const entry of [...history].reverse()) {
     const context = (await readSupervisionJsonArtifact(
       input.storage.artifacts,

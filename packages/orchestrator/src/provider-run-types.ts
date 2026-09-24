@@ -38,6 +38,7 @@ export type ManagedProviderRunFailureCode =
   | "provider_stream_failed"
   | "provider_turn_failed"
   | "provider_capacity_unavailable"
+  | "provider_usage_limited"
   | "provider_model_unavailable"
   | "provider_tool_limit_exceeded"
   | "provider_command_limit_exceeded"

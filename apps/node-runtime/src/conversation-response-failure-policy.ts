@@ -32,6 +32,7 @@ const providerFailures = new Set([
   "provider_stop_failed",
   "provider_stream_failed",
   "provider_turn_failed",
+  "provider_usage_limited",
   "session_mismatch",
   "session_not_found",
   "session_stopped",

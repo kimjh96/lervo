@@ -1037,6 +1037,45 @@ describe("Codex managed adapter", () => {
         payload: { failureCode: "provider_capacity_unavailable" },
       });
     }
+    for (const error of [
+      { codexErrorInfo: "usageLimitExceeded" },
+      { codex_error_info: "usage_limit_exceeded" },
+      { codexErrorInfo: { type: "UsageLimitExceeded" } },
+    ]) {
+      expect(
+        normalizerFor("gpt-6-sol").normalize({
+          method: "turn/completed",
+          params: {
+            threadId: session.providerSessionId,
+            turn: { id: "codex-turn-15", status: "failed", error },
+          },
+        }),
+      ).toMatchObject({
+        type: "provider.turn.failed",
+        payload: { failureCode: "provider_usage_limited" },
+      });
+    }
+    const limited = normalizerFor("gpt-6-sol");
+    limited.normalize({
+      method: "turn/started",
+      params: { threadId: session.providerSessionId, turn: { id: "codex-turn-16" } },
+    });
+    limited.normalize({
+      method: "error",
+      params: {
+        threadId: session.providerSessionId,
+        error: { codexErrorInfo: "usageLimitExceeded", message: "private provider detail" },
+      },
+    });
+    expect(
+      limited.normalize({
+        method: "turn/completed",
+        params: {
+          threadId: session.providerSessionId,
+          turn: { id: "codex-turn-16", status: "failed", error: { message: "private" } },
+        },
+      }),
+    ).toMatchObject({ payload: { failureCode: "provider_usage_limited" } });
     const structuredNotification = normalizerFor("gpt-5.6-terra");
     structuredNotification.normalize({
       method: "turn/started",

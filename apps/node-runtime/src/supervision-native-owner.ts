@@ -36,6 +36,7 @@ import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-co
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { readAdmittedControlDecision } from "./supervision-control-decision.js";
 import { reclaimReservationOnlyLease } from "./supervision-reservation-reclaim.js";
+import { readOwnerSpendHeadroom } from "./supervision-owner-spend-source.js";
 
 /** Uses durable native judgement, then proposes separate canonically admitted business effects. */
 export class NativeSupervisionOwner {
@@ -187,6 +188,7 @@ export class NativeSupervisionOwner {
           reasoningPlanHash: previous.reasoningPlanHash,
           resultArtifactHash: previous.resultArtifactHash,
         };
+      if (previous.reason === "provider_usage_limited") return null;
       if (
         previous.reason === "reasoning_effect_unresolved" ||
         previous.history.length >= Math.min(3, facts.mandate.maximumAttemptsPerAssignment)
@@ -208,6 +210,20 @@ export class NativeSupervisionOwner {
         }
         return null;
       }
+      const reservedTokens = Math.max(
+        this.configuration.reservedTokens,
+        facts.mandate.maximumAttemptTokens,
+      );
+      if (
+        (await readOwnerSpendHeadroom({
+          mandate: authority.installation.mandate,
+          scope: base,
+          events: source.events,
+          artifacts: storage.artifacts,
+          nextReservedTokens: reservedTokens,
+        })) === false
+      )
+        return null;
       const context = await createOwnerReasoningContext({
         storage,
         binding: this.binding,
@@ -227,10 +243,7 @@ export class NativeSupervisionOwner {
         roleContractHash: owner.roleContractHash,
         provider: this.configuration.provider,
         requestedModel: this.configuration.model ?? null,
-        reservedTokens: Math.max(
-          this.configuration.reservedTokens,
-          facts.mandate.maximumAttemptTokens,
-        ),
+        reservedTokens,
         attemptNumber: previous.history.length + 1,
         deadline: base.deadline,
       };

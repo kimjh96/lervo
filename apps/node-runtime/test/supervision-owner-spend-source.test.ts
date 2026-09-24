@@ -13,7 +13,10 @@ import {
   plan as fixturePlan,
   mandate as fixtureMandate,
 } from "../../../packages/work-controller/test/operating-supervision.fixture.js";
-import { readOwnerSpendAdmission } from "../src/supervision-owner-spend-source.js";
+import {
+  readOwnerSpendAdmission,
+  readOwnerSpendHeadroom,
+} from "../src/supervision-owner-spend-source.js";
 
 const hash = (letter: string) => `sha256:${letter.repeat(64)}`;
 const anchorId = `evt_${"b".repeat(32)}`;
@@ -186,4 +189,22 @@ it("blocks a successor after an observed owner overrun without refunding the fir
   expect(await readOwnerSpendAdmission({ ...source, plan: source.plans[1]! })).toMatchObject({
     disposition: "exceeded",
   });
+});
+
+it("reports proposal headroom from the same epoch before any decision is recorded", async () => {
+  const one = setup(1);
+  const scope = one.plans[0]!;
+  expect(await readOwnerSpendHeadroom({ ...one, scope, nextReservedTokens: 100_000 })).toBe(true);
+  const full = setup(2);
+  expect(
+    await readOwnerSpendHeadroom({ ...full, scope: full.plans[0]!, nextReservedTokens: 1 }),
+  ).toBe(false);
+  expect(
+    await readOwnerSpendHeadroom({
+      ...one,
+      scope,
+      mandate: (({ ownerSpendAllowance: _omitted, ...rest }) => rest)(one.mandate),
+      nextReservedTokens: 100_000,
+    }),
+  ).toBeNull();
 });

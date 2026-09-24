@@ -42,7 +42,7 @@ import {
   withinDeadline,
   type ManagedProviderRunDeadlines,
 } from "./provider-run-deadline.js";
-import { RunFailureLedger } from "./provider-run-failures.js";
+import { RunFailureLedger, terminalTurnFailure } from "./provider-run-failures.js";
 import { persistProviderFailureDiagnostic } from "./provider-failure-diagnostic.js";
 import { prepareRoleInputBinding } from "./role-input-binding.js";
 import { finalizeProviderRun } from "./provider-run-finalizer.js";
@@ -541,17 +541,7 @@ export class ManagedProviderRunCoordinator {
           }),
         ]);
         if (terminal.type === "provider.turn.failed") {
-          throw terminal.payload.failureCode === "provider_capacity_unavailable"
-            ? new ManagedProviderRunError(
-                "provider_capacity_unavailable",
-                "The provider reported temporary model capacity exhaustion.",
-              )
-            : terminal.payload.failureCode === "provider_model_unavailable"
-              ? new ManagedProviderRunError(
-                  "provider_model_unavailable",
-                  "The provider never named a model for the turn.",
-                )
-              : new ManagedProviderRunError("provider_turn_failed", "The provider turn failed.");
+          throw terminalTurnFailure(terminal.payload.failureCode);
         }
         if (expectedPath !== null) state.writeBridge.assertTurnSettled(expectedPath);
         monitor.throwIfFailed();

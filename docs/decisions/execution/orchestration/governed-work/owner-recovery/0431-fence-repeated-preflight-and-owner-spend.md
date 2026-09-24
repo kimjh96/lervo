@@ -31,6 +31,10 @@ The owner selected the procedure for **up to 200,000 additional tokens after rev
 
 Reservation and admission must be serialized with the existing owner lease, with a final authority/budget recheck before provider start. A provider response that exceeds its reservation is an explicit overrun and blocks further owner starts pending review; it is never silently charged as zero. The guard covers source-change replanning as well as normal retries and applies to both Codex and Claude adapters through the common execution contract.
 
+The spend check also runs before an owner-reasoning proposal is recorded. If the epoch cannot admit one more full reservation (an unavailable receipt, an overrun, or insufficient remaining tokens), the native owner proposes nothing and supervision reports `owner_plan_unavailable` attention. Otherwise every re-proposal of a plan that expires before its execution-time recheck records another full reservation that was never spendable. The execution-time check stays authoritative; the earlier check only prevents recording unspendable decisions.
+
+A preceding owner run that failed with `provider_usage_limited` ends automatic owner reasoning for that mandate history. Retrying before the provider restores the allowance cannot succeed, and each retry would reserve more tokens. Resuming requires a reviewed mandate change, which starts a new owner-reasoning history.
+
 ### Reader-first activation
 
 Deploy CLI, Hub, and Node readers for the new event and any allowance artifact before the writer. The writer stays disabled until deterministic replay, restart, lost-response, duplicate-event, stale-witness, unknown-usage, revocation, successor-mandate, and competing-owner fixtures pass. Activation requires a reviewed mandate and an installed canary showing one blocked preflight produces no repeated owner invocation while ordinary Discord conversation remains responsive. An exact repaired witness must then permit at most one newly admitted continuation; worker start, review, publication, and knowledge currency remain independent acceptance gates.

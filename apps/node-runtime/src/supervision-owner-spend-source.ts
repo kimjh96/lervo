@@ -7,9 +7,12 @@ import {
   managedExecutionIdentity,
   operatingContractHash,
   operatingDecisionId,
+  ownerSpendAdmitsReservation,
   projectOwnerSpendAllowance,
 } from "@lervo/work-controller";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
+
+type OwnerSpendScope = { projectId: string; ownerAgentId: string };
 
 /** Rebuilds an owner's full-reservation epoch from a verified project event chain and exact plans. */
 export async function readOwnerSpendAdmission(input: {
@@ -18,7 +21,33 @@ export async function readOwnerSpendAdmission(input: {
   events: readonly EventEnvelope[];
   artifacts: ArtifactStore;
 }): Promise<ReturnType<typeof projectOwnerSpendAllowance> | null> {
-  const { mandate, plan, events, artifacts } = input;
+  const epoch = await readOwnerSpendEpoch({ ...input, scope: input.plan });
+  return epoch === null
+    ? null
+    : projectOwnerSpendAllowance({ ...epoch, currentDecisionId: operatingDecisionId(input.plan) });
+}
+
+/** Whether the epoch can admit one more owner reservation; null when no allowance applies. */
+export async function readOwnerSpendHeadroom(input: {
+  mandate: OperatingMandate;
+  scope: OwnerSpendScope;
+  events: readonly EventEnvelope[];
+  artifacts: ArtifactStore;
+  nextReservedTokens: number;
+}): Promise<boolean | null> {
+  const epoch = await readOwnerSpendEpoch(input);
+  return epoch === null
+    ? null
+    : ownerSpendAdmitsReservation({ ...epoch, nextReservedTokens: input.nextReservedTokens });
+}
+
+async function readOwnerSpendEpoch(input: {
+  mandate: OperatingMandate;
+  scope: OwnerSpendScope;
+  events: readonly EventEnvelope[];
+  artifacts: ArtifactStore;
+}) {
+  const { mandate, scope: plan, events, artifacts } = input;
   if (mandate.schemaVersion !== 3 || mandate.ownerSpendAllowance === undefined) return null;
   const allowance = mandate.ownerSpendAllowance;
   const anchor = events.find((event) => event.eventId === allowance.anchorEventId);
@@ -32,7 +61,6 @@ export async function readOwnerSpendAdmission(input: {
     anchor.payload.ownerAgentId !== plan.ownerAgentId
   )
     throw new Error("The owner spend allowance does not bind an exact revocation anchor.");
-  const currentDecisionId = operatingDecisionId(plan);
   const reservations: {
     decisionId: string;
     reservedTokens: number;
@@ -88,5 +116,5 @@ export async function readOwnerSpendAdmission(input: {
       });
     }
   }
-  return projectOwnerSpendAllowance({ allowance, currentDecisionId, reservations });
+  return { allowance, reservations };
 }

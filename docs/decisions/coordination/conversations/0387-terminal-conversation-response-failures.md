@@ -52,6 +52,8 @@ Retry selection uses availability time and bounded batches. Rescheduling places 
 
 No new global event is added. The existing `provider.turn.failed` event may carry `failureCode=provider_capacity_unavailable` when a provider's machine-readable overload code or structured upstream HTTP 503 reports temporary capacity loss. HTTP 429 and untyped failure prose do not imply this code. Its required `providerTurnId`, `failureCode`, and `diagnosticDigest` follow the existing private adapter-event retention; the digest, never the provider message or prompt, is recorded. This code means that turn failed for explicitly reported temporary capacity, not that the model was invalid or that repository work is safe to replay. The interaction SQLite inbox and outbox own the response state. A future global telemetry event must separately define retention and allowlisted fields.
 
+The same event may instead carry `failureCode=provider_usage_limited` when the provider's machine-readable error code reports an exhausted account usage allowance (Codex `usageLimitExceeded` / `usage_limit_exceeded`). It uses the same fields and digest-only retention; the provider's reset prose is not parsed or recorded. The code means that account cannot serve another turn until the provider restores its allowance, so a conversation response classifies it as `response_provider_unavailable` without retry. It does not prove that the model, request, or repository was invalid.
+
 The new policy value and decision reason contain no message text, provider payload, credential, or model output. They inherit the existing bounded participation-decision retention and privacy contract.
 
 ## Consequences
