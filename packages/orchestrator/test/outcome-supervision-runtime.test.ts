@@ -169,6 +169,12 @@ describe("serialized causal owner decisions", () => {
         ["owner_plan_unavailable"],
       );
       expect(f.execute).not.toHaveBeenCalled();
+      // The unchanged source stays blocked instead of reading as idle and hiding its attention.
+      expect(await runtime.runCycle(f.state.supervisionId)).toEqual({
+        disposition: "blocked",
+        report: null,
+      });
+      expect(propose).toHaveBeenCalledOnce();
     },
   );
 

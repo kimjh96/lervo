@@ -1,3 +1,4 @@
+import { SupervisionCycleCursors } from "./outcome-supervision-cursors.js";
 import type {
   OutcomeSupervisionReportV1,
   OutcomeSupervisionSnapshotV1,
@@ -58,7 +59,7 @@ function hasDurableWorkerContinuation(snapshot: OutcomeSupervisionSnapshotV1): b
 
 /** Composes canonical sources and effects; contains no provider or chat routing. */
 export class OutcomeSupervisionRuntime {
-  private readonly cursors = new Map<string, { digest: string; nextCheckAt: string | null }>();
+  private readonly cursors = new SupervisionCycleCursors();
 
   constructor(private readonly ports: OutcomeSupervisionPorts) {}
 
@@ -68,10 +69,9 @@ export class OutcomeSupervisionRuntime {
       if (snapshot.supervisionId !== supervisionId)
         throw new Error("The supervision owner binding changed.");
       const now = this.ports.now();
-      const previous = this.cursors.get(supervisionId);
       const pending = await this.ports.findPendingPlan(supervisionId);
       if (
-        previous === undefined &&
+        !this.cursors.has(supervisionId) &&
         this.ports.deferInitialActionUntilChange === true &&
         pending === null &&
         snapshot.evidenceStatus === "valid" &&
@@ -79,20 +79,16 @@ export class OutcomeSupervisionRuntime {
         snapshot.workstreamStatus === "active" &&
         !hasDurableWorkerContinuation(snapshot)
       ) {
-        this.cursors.set(supervisionId, {
-          digest: snapshot.sourceRevisionDigest,
-          nextCheckAt: null,
-        });
+        this.cursors.defer(supervisionId, snapshot.sourceRevisionDigest);
         return { disposition: "idle" as const, report: null };
       }
+      const unchanged = this.cursors.unchanged(supervisionId, snapshot.sourceRevisionDigest, now);
       if (
         snapshot.evidenceStatus === "valid" &&
         snapshot.authorityStatus === "active" &&
-        previous?.digest === snapshot.sourceRevisionDigest &&
-        (previous.nextCheckAt === null || Date.parse(previous.nextCheckAt) > Date.parse(now))
-      ) {
-        return { disposition: "idle" as const, report: null };
-      }
+        unchanged !== null
+      )
+        return { disposition: unchanged, report: null };
       const mandate = await this.ports.readMandate(snapshot.mandateHash);
       if (operatingContractHash(mandate) !== snapshot.mandateHash)
         throw new Error("The supervision mandate artifact is corrupt.");
@@ -163,7 +159,7 @@ export class OutcomeSupervisionRuntime {
         return { disposition: "blocked" as const, report };
       }
       if (report.nextAction === null) {
-        this.remember(supervisionId, report, mandate.expiresAt);
+        this.cursors.remember(supervisionId, report, mandate.expiresAt);
         return { disposition: "idle" as const, report };
       }
       if (report.nextAction === "reconcile_cancellation" && pending === null) {
@@ -178,7 +174,7 @@ export class OutcomeSupervisionRuntime {
           return { disposition: "changed" as const, report };
         }
         await this.ports.recordAttention(report, ["cancellation_requires_effect_reconciliation"]);
-        this.remember(supervisionId, report, mandate.expiresAt);
+        this.cursors.remember(supervisionId, report, mandate.expiresAt, true);
         return { disposition: "blocked" as const, report };
       }
       if (
@@ -191,7 +187,7 @@ export class OutcomeSupervisionRuntime {
       const plan = pending ?? (await this.ports.propose(report));
       if (plan === null) {
         await this.ports.recordAttention(report, ["owner_plan_unavailable"]);
-        this.remember(supervisionId, report, mandate.expiresAt);
+        this.cursors.remember(supervisionId, report, mandate.expiresAt, true);
         return { disposition: "blocked" as const, report };
       }
       if (
@@ -260,7 +256,7 @@ export class OutcomeSupervisionRuntime {
       const review = reviewOperatingAction({ mandate, plan, snapshot: admission });
       if (review.disposition !== "admitted") {
         await this.ports.recordAttention(report, review.reasonCodes);
-        this.remember(supervisionId, report, mandate.expiresAt);
+        this.cursors.remember(supervisionId, report, mandate.expiresAt, true);
         return { disposition: "blocked" as const, report };
       }
       const existing = await this.ports.findDecision(review.decisionId);
@@ -275,7 +271,7 @@ export class OutcomeSupervisionRuntime {
           };
           assertReceipt(receipt, review.decisionId, review.planHash);
           await this.ports.recordEffect(receipt);
-          this.remember(supervisionId, report, mandate.expiresAt);
+          this.cursors.remember(supervisionId, report, mandate.expiresAt);
           return { disposition: "effect_confirmed" as const, report };
         }
         if (observed.status === "uncertain" || existing.status !== "recorded") {
@@ -344,7 +340,7 @@ export class OutcomeSupervisionRuntime {
         };
         assertReceipt(receipt, review.decisionId, review.planHash);
         await this.ports.recordEffect(receipt);
-        this.remember(supervisionId, report, mandate.expiresAt);
+        this.cursors.remember(supervisionId, report, mandate.expiresAt);
         return { disposition: "effect_confirmed" as const, report };
       } catch (error) {
         if (error instanceof SupervisionPreflightError) {
@@ -370,21 +366,5 @@ export class OutcomeSupervisionRuntime {
     if (!Number.isFinite(age) || age < 0 || age > 5_000) {
       throw new Error("The operating admission observation is stale.");
     }
-  }
-
-  private remember(
-    supervisionId: string,
-    report: OutcomeSupervisionReportV1,
-    expiresAt: string,
-  ): void {
-    this.cursors.delete(supervisionId);
-    this.cursors.set(supervisionId, {
-      digest: report.sourceRevisionDigest,
-      nextCheckAt:
-        report.nextCheckAt !== null && Date.parse(report.nextCheckAt) < Date.parse(expiresAt)
-          ? report.nextCheckAt
-          : expiresAt,
-    });
-    while (this.cursors.size > 256) this.cursors.delete(this.cursors.keys().next().value!);
   }
 }
