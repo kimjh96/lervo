@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b48fc8189aea1c00a72846b8"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Accept reviewed preflight repair evidence in v3 event readers"

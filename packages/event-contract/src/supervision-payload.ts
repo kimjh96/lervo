@@ -99,6 +99,18 @@ export const supervisionPayloadAllowlists = {
     "failurePhase",
     "reasonCode",
   ],
+  "work.supervision.preflight.resolved": [
+    ...common,
+    "blockedEventId",
+    "blockedEventHash",
+    "supersessionEventId",
+    "supersessionEventHash",
+    "sourceSnapshotEventId",
+    "sourceSnapshotEventHash",
+    "reviewArtifactHash",
+    "reviewerIdDigest",
+    "resolutionKind",
+  ],
   "work.supervision.review.recorded": [
     ...common,
     "assignmentIds",
@@ -260,6 +272,9 @@ export function validateSupervisionPayload(
       if (key === "assignmentId") valid &&= /^asn_[a-f0-9]{24}$/u.test(String(value));
       if (key === "managedRunId") valid &&= /^run_[a-f0-9]{32}$/u.test(String(value));
       if (key === "terminalEventId") valid &&= /^evt_[a-f0-9]{32}$/u.test(String(value));
+      if (["blockedEventId", "supersessionEventId", "sourceSnapshotEventId"].includes(key))
+        valid &&= /^evt_[a-f0-9]{32}$/u.test(String(value));
+      if (key === "resolutionKind") valid &&= value === "reviewed_source_change";
       if (key === "actionKind") valid &&= actions.includes(String(value));
       if (key === "disposition")
         valid &&= ["admitted", "blocked", "uncertain"].includes(String(value));
@@ -283,6 +298,14 @@ export function validateSupervisionPayload(
     (payload.causationEventIds as unknown[]).length !== 1
   )
     throw new TypeError("A blocked supervision preflight requires one causal decision event.");
+  if (
+    type === "work.supervision.preflight.resolved" &&
+    (payload.causationEventIds as unknown[]).join("\0") !==
+      [payload.blockedEventId, payload.supersessionEventId, payload.sourceSnapshotEventId].join(
+        "\0",
+      )
+  )
+    throw new TypeError("A preflight resolution requires its exact causal events in order.");
   if (
     type === "work.supervision.delivery.observed" &&
     (Number(payload.attemptNumber) > 4 ||

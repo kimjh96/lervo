@@ -114,4 +114,41 @@ describe("supervision privacy and evidence payloads", () => {
         sanitizeEventPayload("work.supervision.preflight.blocked", invalid),
       ).toThrowError(expect.objectContaining({ code: "invalid_payload" }));
   });
+
+  it("accepts only reviewed, exactly causal source-change repair coordinates", () => {
+    const blockedEventId = `evt_${"b".repeat(32)}`;
+    const supersessionEventId = `evt_${"c".repeat(32)}`;
+    const sourceSnapshotEventId = `evt_${"d".repeat(32)}`;
+    const payload = {
+      ...common,
+      causationEventIds: [blockedEventId, supersessionEventId, sourceSnapshotEventId],
+      blockedEventId,
+      blockedEventHash: hash,
+      supersessionEventId,
+      supersessionEventHash: hash,
+      sourceSnapshotEventId,
+      sourceSnapshotEventHash: hash,
+      reviewArtifactHash: hash,
+      reviewerIdDigest: hash,
+      resolutionKind: "reviewed_source_change",
+    };
+    const result = sanitizeEventPayload("work.supervision.preflight.resolved", {
+      ...payload,
+      rawRationale: "private review",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(result.redactions).toHaveLength(1);
+    for (const invalid of [
+      {
+        ...payload,
+        causationEventIds: [supersessionEventId, blockedEventId, sourceSnapshotEventId],
+      },
+      { ...payload, blockedEventHash: "private/file" },
+      { ...payload, sourceSnapshotEventId: "external-message" },
+      { ...payload, resolutionKind: "timer_elapsed" },
+    ])
+      expect(() =>
+        sanitizeEventPayload("work.supervision.preflight.resolved", invalid),
+      ).toThrowError(expect.objectContaining({ code: "invalid_payload" }));
+  });
 });

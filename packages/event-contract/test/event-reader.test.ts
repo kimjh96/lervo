@@ -36,6 +36,14 @@ describe("event reader compatibility", () => {
     );
   });
 
+  it("accepts a preflight repair reader event only in a v3 envelope", () => {
+    const resolved = { ...event(3), type: "work.supervision.preflight.resolved" };
+    expect(readEventEnvelope(resolved)).toEqual(resolved);
+    expect(() => readEventEnvelope({ ...resolved, schemaVersion: 2 })).toThrowError(
+      expect.objectContaining({ code: "event_invalid" }),
+    );
+  });
+
   it("distinguishes unsupported versions from invalid supported envelopes", () => {
     expect(() => readEventEnvelope(event(4))).toThrowError(
       expect.objectContaining({ code: "event_schema_unsupported" }),
