@@ -140,4 +140,19 @@ With owner-approved maintenance, Kael's worker CLI bindings moved to the byte-ma
 
 On the owner's choice, mandate v3 was revoked at event 8690 (`evt_eb4025f0a9f141ea92cc6cf769f4fbe2`). Mandate v4 (`sha256:be10b10e86cb852e3a04ecf5374033b95ff32c8beedc66f160b971a70a81f72f`, approval `sha256:6a3665fde4c8d0336e3562eca7b421a95d310b2c7d3bc0bec8d53ef8681cb0d1`) was installed at event 8691. It is identical to v3 except for version, issue time, and a new 200,000-token owner epoch anchored at event 8690. Supervision stayed at `preflight_repair_requires_review` with no new decision. A read-only `resolve-preflight` review binds block 8688, supersession 8689 and installation 8691 (approval `sha256:815c01a3d6d091b5b5d8e4465d3cc39701c9fd2b11c541d9309149059fe3d539`). It is intentionally not recorded until the Codex account's usage limit resets, because an owner turn before then would fail and end the v4 reasoning history.
 
-The 38 retained never-used worker checkouts cannot be removed through `lervo workspace cleanup`, which accepts only integrated workspaces. Retiring them needs a separate reviewed contract.
+The 38 retained never-used worker checkouts could not be removed through `lervo workspace cleanup`, which accepts only integrated workspaces.
+
+The owner chose Claude for owner reasoning. Mandate v5 (event 8692) added `claude` to the providers and kept the epoch. A fenced configuration transition set `ownerReasoning` to `claude`/`claude-opus-5-5` and added Claude's executable and login context; Node PID `1574683` was active with zero restarts. The resolution was recorded at event 8693 with approval `sha256:7737da9027630299b5f943560a5bf5fb6207529b0550b5a113e36b9e039da3df`.
+
+The first Claude owner run (`osd_52212bddce2d556629ff3918`) failed after about six seconds. Claude Code returned only a synthetic `Failed to refresh OAuth token` message with zero reported usage. On the owner's choice, v5 was revoked (8724) and v6 (`sha256:ee3f8f7d0c93faeb4dc5ad2155282168ec67ba5cbe93234b7db042ef068b5ed6`, event 8725) opened a new epoch there. The retry failed the same way. After each failure the unavailable usage receipt closed the epoch, and the proposal-time spend check stopped further decisions (`owner_plan_unavailable`): this was the first installed exercise of that path.
+
+Diagnosis on the host found the cause:
+
+- the stored Claude access token expired on 2026-09-23 16:13Z;
+- `claude auth status` still reports `loggedIn: true`;
+- `claude auth status` itself leaves an `.oauth_refresh.lock` directory behind with no live process, and Lervo runs it as its login readiness probe just before each start;
+- the lock is left without refreshing the token.
+
+Owner reasoning through Claude therefore needs an interactive `claude auth login` on the host. The earlier stale lock is preserved as `.oauth_refresh.lock.stale-20260924T2233`.
+
+Commit `b6d761b0` was installed as Node r81 `sha256:474461c076f8c73fe7576bf0188cc9326983201c9443d710218511f4441c016c` (PID `1629689`, zero restarts). CLI `settled-b6d761b0-r81` then ran `lervo workspace retire-unstarted` under the owner lease. A one-workspace canary came first, then the rest: 38 checkouts were removed and none refused. That freed 612 MB and left only the main worktree registered. Afterwards supervision, conversation and sync reported ready.
