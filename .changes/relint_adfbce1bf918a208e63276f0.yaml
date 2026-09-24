@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_adfbce1bf918a208e63276f0"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Allow a new owner spend epoch only at an explicit mandate revocation"

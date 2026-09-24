@@ -214,14 +214,47 @@ describe("standing successor mandates", () => {
     expect(() => assertMandateExecutionSuccession(previous, renewed)).not.toThrow();
     const installed = {
       ...previous,
+      eventId: `evt_${"c".repeat(32)}`,
+      latestEventId: `evt_${"c".repeat(32)}`,
+      revoked: false,
       mandate: renewed,
       mandateHash: operatingContractHash(renewed),
     };
+    const reset = (anchorEventId: string) => ({
+      ...renewed,
+      version: 4,
+      ownerSpendAllowance: { ...renewed.ownerSpendAllowance!, anchorEventId },
+    });
+    // A running successor cannot raise or restart its epoch.
     expect(() =>
       assertMandateExecutionSuccession(installed, {
         ...renewed,
         version: 4,
         ownerSpendAllowance: { ...renewed.ownerSpendAllowance!, maximumReservedTokens: 300_000 },
+      }),
+    ).toThrow(/cannot reset/u);
+    expect(() => assertMandateExecutionSuccession(installed, reset(installed.eventId))).toThrow(
+      /cannot reset/u,
+    );
+    // After an explicit revocation a reviewed installation may open an epoch at that revocation only.
+    const revoked = { ...installed, revoked: true, latestEventId: `evt_${"d".repeat(32)}` };
+    expect(() =>
+      assertMandateExecutionSuccession(revoked, reset(revoked.latestEventId)),
+    ).not.toThrow();
+    // Continuing the same epoch is not a reset; any other anchor than the revocation is.
+    expect(() =>
+      assertMandateExecutionSuccession(revoked, reset(previous.latestEventId)),
+    ).not.toThrow();
+    expect(() => assertMandateExecutionSuccession(revoked, reset(installed.eventId))).toThrow(
+      /cannot reset/u,
+    );
+    expect(() =>
+      assertMandateExecutionSuccession(revoked, {
+        ...reset(revoked.latestEventId),
+        ownerSpendAllowance: {
+          ...reset(revoked.latestEventId).ownerSpendAllowance,
+          projectId: `prj_${"f".repeat(16)}`,
+        },
       }),
     ).toThrow(/cannot reset/u);
   });

@@ -36,13 +36,19 @@ export function assertMandateExecutionSuccession(
     throw new Error("Mandate succession cannot reset or remove its reviewed work scope.");
   if (previous.mandate.schemaVersion !== 3 && mandate.schemaVersion === 3 && !previous.revoked)
     throw new Error("Revoke the workstream-wide mandate before installing a bounded work scope.");
+  // A goal or version succession keeps the exact epoch. Only a reviewed installation after an
+  // explicit revocation may open a new epoch, and it must begin at that exact revocation.
   if (
     previous.mandate.schemaVersion === 3 &&
     previous.mandate.ownerSpendAllowance !== undefined &&
     (mandate.schemaVersion !== 3 ||
       mandate.ownerSpendAllowance === undefined ||
-      operatingContractHash(mandate.ownerSpendAllowance) !==
-        operatingContractHash(previous.mandate.ownerSpendAllowance))
+      (operatingContractHash(mandate.ownerSpendAllowance) !==
+        operatingContractHash(previous.mandate.ownerSpendAllowance) &&
+        (!previous.revoked ||
+          mandate.ownerSpendAllowance.anchorEventId !== previous.latestEventId ||
+          mandate.ownerSpendAllowance.projectId !==
+            previous.mandate.ownerSpendAllowance.projectId)))
   )
     throw new Error("Mandate succession cannot reset the reviewed owner spend allowance.");
   if (
