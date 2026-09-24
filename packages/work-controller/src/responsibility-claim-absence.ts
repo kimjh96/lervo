@@ -3,12 +3,14 @@ import { operatingContractHash, operatingDecisionId } from "./operating-mandate-
 
 /**
  * A superseded responsibility claim proves that no binding was written for its exact decision;
- * it never proves lease release, worker start, or later claim authority.
+ * it never proves lease release, worker start, or later claim authority. The claim expires at the
+ * earlier of its plan deadline and its responsibility start deadline, after which it cannot bind.
  */
 export function isResponsibilityClaimAbsence(
   inspection: Record<string, unknown>,
   plan: OperatingActionPlanV1,
   sourceRevisionDigest: string,
+  startDeadline: string,
 ): boolean {
   return (
     Object.keys(inspection).length === 13 &&
@@ -33,6 +35,7 @@ export function isResponsibilityClaimAbsence(
     ((inspection.invalidatedBy === "source_changed" &&
       sourceRevisionDigest !== plan.sourceRevisionDigest) ||
       (inspection.invalidatedBy === "deadline_expired" &&
-        Date.parse(plan.deadline) <= Date.parse(inspection.observedAt)))
+        Math.min(Date.parse(plan.deadline), Date.parse(startDeadline)) <=
+          Date.parse(inspection.observedAt)))
   );
 }

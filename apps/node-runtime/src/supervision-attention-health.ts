@@ -1,4 +1,7 @@
-import type { OutcomeSupervisionReportV1 } from "@lervo/application-contract";
+import type {
+  OperatingActionPlanV1,
+  OutcomeSupervisionReportV1,
+} from "@lervo/application-contract";
 import type { SupervisionResourceBudgetV1 } from "@lervo/application-contract";
 
 import { boundedHealthReasonCodes } from "./health-contract.js";
@@ -69,9 +72,20 @@ export function supervisionCycleHealth(error: unknown): NodeRuntimeComponentHeal
 
 /** Journal line for a failed cycle: bounded code, error name, and the message's first 200 characters. */
 export function supervisionCycleFailureLine(error: unknown): string {
+  return `Lervo supervision cycle failed (${supervisionCycleFailureCode(error)}): ${boundedError(error)}`;
+}
+
+/** Journal line for an effect whose outcome became uncertain; canonical attention keeps only codes. */
+export function supervisionEffectFailureLine(
+  plan: Pick<OperatingActionPlanV1, "effectContract" | "actionKind">,
+  error: unknown,
+): string {
+  return `Lervo supervision effect uncertain (${plan.actionKind} ${plan.effectContract}): ${boundedError(error)}`;
+}
+
+function boundedError(error: unknown): string {
   const message = (error instanceof Error ? error.message : String(error))
     .replace(/[\r\n\0]+/gu, " ")
     .slice(0, 200);
-  const name = error instanceof Error ? error.name : "unknown";
-  return `Lervo supervision cycle failed (${supervisionCycleFailureCode(error)}): ${name}: ${message}`;
+  return `${error instanceof Error ? error.name : "unknown"}: ${message}`;
 }

@@ -3,6 +3,7 @@ import type {
   OperatingPolicyReviewV1,
   SupervisionDecisionReceipt,
   SupervisionPreflightInspectionV1,
+  SupervisedResponsibilityClaimV1,
   SupervisedWorkspacePreparationV1,
 } from "@lervo/application-contract";
 import { canonicalJson } from "@lervo/event-contract";
@@ -23,6 +24,7 @@ import {
   isResultDeliveryAbsence,
   isResponsibilityClaimAbsence,
   isWorkspacePreparationAbsence,
+  supervisedResponsibilityClaimFields,
   supervisedWorkspacePreparationFields,
 } from "@lervo/work-controller";
 
@@ -202,6 +204,7 @@ export class SupervisionDecisionJournal {
                     inspection,
                     plan,
                     String(supersession.payload.sourceRevisionDigest),
+                    await this.claimStartDeadline(plan),
                   )
                 : inspection.schemaVersion === 8
                   ? isResultDeliveryAbsence(
@@ -338,6 +341,14 @@ export class SupervisionDecisionJournal {
     const plan = (await this.journal.read(hash)) as OperatingActionPlanV1;
     assertOperatingActionPlan(plan);
     return plan;
+  }
+
+  /** The exact claim effect's start deadline; its absence may be proven once that window closes. */
+  private async claimStartDeadline(plan: OperatingActionPlanV1): Promise<string> {
+    const effect = (await this.journal.read(plan.effectHash)) as SupervisedResponsibilityClaimV1;
+    if (supervisedResponsibilityClaimFields(effect).effectHash !== plan.effectHash)
+      throw new Error("The superseded claim effect differs from its plan.");
+    return effect.responsibility.startDeadline;
   }
 
   private common(plan: OperatingActionPlanV1): Record<string, unknown> {

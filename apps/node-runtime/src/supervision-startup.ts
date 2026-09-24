@@ -5,6 +5,7 @@ import {
   supervisionAttentionReasonCodes,
   supervisionCycleHealth,
   supervisionCycleFailureLine,
+  supervisionEffectFailureLine,
 } from "./supervision-attention-health.js";
 import type { NodeRuntimeComponentHealth } from "./health-contract.js";
 import { openNodeOutcomeSupervisionRuntime } from "./outcome-supervision-runtime.js";
@@ -102,6 +103,7 @@ export async function openNodeSupervisionService(input: {
           }),
       ports: {
         now,
+        reportEffectFailure: (plan, error) => log(supervisionEffectFailureLine(plan, error)),
         recordAttention: async (report, reasonCodes, details) => {
           attention = {
             reasonCodes: supervisionAttentionReasonCodes(report, reasonCodes),

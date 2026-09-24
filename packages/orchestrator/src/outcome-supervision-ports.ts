@@ -80,6 +80,8 @@ export interface OutcomeSupervisionPorts {
     plan: OperatingActionPlanV1,
     receipt: SupervisionDecisionReceipt,
   ): Promise<{ status: "confirmed"; eventIds: string[] } | { status: "not_started" | "uncertain" }>;
+  /** Instant after which a not-started effect can never begin, when earlier than plan.deadline. */
+  readEffectStartDeadline?(plan: OperatingActionPlanV1): Promise<string | null>;
   /** Optional fenced adapter: verifies absence again and records canonical supersession atomically. */
   supersedeNotStarted?(plan: OperatingActionPlanV1, sourceRevisionDigest: string): Promise<boolean>;
   /** The effect adapter validates its exact payload against plan.effectHash and fences admission at commit. */
@@ -88,6 +90,8 @@ export interface OutcomeSupervisionPorts {
     review: OperatingPolicyReviewV1,
   ): Promise<{ eventIds: string[] }>;
   recordEffect(receipt: SupervisionDecisionReceipt): Promise<void>;
+  /** Host diagnostics for an effect whose outcome became uncertain; never canonical evidence. */
+  reportEffectFailure?(plan: OperatingActionPlanV1, error: unknown): void;
   /** Canonical safe non-start evidence for an observed (not merely unobserved) readiness failure. */
   recordReadinessFailure?(
     receipt: SupervisionDecisionReceipt,

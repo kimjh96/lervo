@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_da48244678324e4efb185a4d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Supersede a never-bound responsibility claim once its start deadline passes, and log the cause of uncertain supervision effects."

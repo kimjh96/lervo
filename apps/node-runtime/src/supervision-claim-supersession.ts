@@ -22,7 +22,7 @@ import { SupervisionTaskSource } from "./supervision-task-source.js";
 
 /**
  * Supersedes a responsibility claim whose binding was never written, once its source changed or
- * its deadline passed, so the owner can decide again instead of holding the goal in attention.
+ * its start or plan deadline passed, so the owner can decide again instead of holding the goal.
  */
 export async function supersedeUnstartedResponsibilityClaim(input: {
   repositoryRoot: string;
@@ -63,7 +63,10 @@ export async function supersedeUnstartedResponsibilityClaim(input: {
         authorityDigest: before.authority.source.sourceRevisionDigest,
         taskDigest: taskWithoutDecision.sourceRevisionDigest,
       }) !== plan.sourceRevisionDigest;
-    const deadlineExpired = Date.parse(plan.deadline) <= Date.parse(input.now());
+    // A claim can never bind after its start deadline, which precedes the plan deadline.
+    const deadlineExpired =
+      Math.min(Date.parse(plan.deadline), Date.parse(basis.effect.responsibility.startDeadline)) <=
+      Date.parse(input.now());
     if (!sourceChanged && !deadlineExpired) return false;
     const assignments = await listAssignments(input.repositoryRoot);
     const inspection = {
@@ -83,7 +86,12 @@ export async function supersedeUnstartedResponsibilityClaim(input: {
     };
     if (
       before.digest !== input.sourceRevisionDigest ||
-      !isResponsibilityClaimAbsence(inspection, plan, input.sourceRevisionDigest)
+      !isResponsibilityClaimAbsence(
+        inspection,
+        plan,
+        input.sourceRevisionDigest,
+        basis.effect.responsibility.startDeadline,
+      )
     )
       throw new Error("Claim supersession requires exact source or deadline evidence.");
     const artifact = await storage.artifacts.put(canonicalJson(inspection));

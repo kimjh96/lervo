@@ -1,8 +1,16 @@
-import type { OperatingActionPlanV1 } from "@lervo/application-contract";
+import type {
+  OperatingActionPlanV1,
+  SupervisedResponsibilityClaimV1,
+} from "@lervo/application-contract";
 import { listAgents, listAssignments, listWorkspaces } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
-import { operatingContractHash, operatingDecisionId } from "@lervo/work-controller";
+import {
+  operatingContractHash,
+  operatingDecisionId,
+  supervisedResponsibilityClaimFields,
+} from "@lervo/work-controller";
+import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import {
   readInstalledNodeMandate,
   observeNodeSupervisionAuthority,
@@ -32,6 +40,21 @@ export class SupervisionClaimEffects {
     const storage = await openProjectStorage(this.root);
     try {
       return await inspectSupervisionClaim(storage, this.binding, plan, this.now);
+    } finally {
+      await storage.close();
+    }
+  }
+  /** The claim cannot bind at or after its responsibility start deadline. */
+  async startDeadline(plan: OperatingActionPlanV1): Promise<string> {
+    const storage = await openProjectStorage(this.root);
+    try {
+      const effect = (await readSupervisionJsonArtifact(
+        storage.artifacts,
+        plan.effectHash,
+      )) as SupervisedResponsibilityClaimV1;
+      if (supervisedResponsibilityClaimFields(effect).effectHash !== plan.effectHash)
+        throw new Error("The responsibility claim effect differs from its plan.");
+      return effect.responsibility.startDeadline;
     } finally {
       await storage.close();
     }

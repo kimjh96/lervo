@@ -321,6 +321,33 @@ describe("serialized causal owner decisions", () => {
     expect(supersede).toHaveBeenCalledOnce();
     expect(f.execute).toHaveBeenCalledOnce();
   });
+  it("reports an uncertain effect failure and supersedes it once its start deadline passes", async () => {
+    const f = fixture();
+    const failure = new Error("The claim role or resource evidence changed before commit.");
+    f.execute.mockRejectedValueOnce(failure);
+    const reported = vi.fn();
+    f.ports.reportEffectFailure = reported;
+    expect(
+      (await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId)).disposition,
+    ).toBe("uncertain");
+    expect(reported).toHaveBeenCalledWith(
+      expect.objectContaining({ supervisionId: f.state.supervisionId }),
+      failure,
+    );
+    const supersede = vi.fn(async () => {
+      for (const [id, receipt] of f.decisions)
+        f.decisions.set(id, { ...receipt, status: "superseded" });
+      return true;
+    });
+    f.ports.supersedeNotStarted = supersede;
+    f.ports.inspectEffect = async () => ({ status: "not_started" });
+    f.ports.readEffectStartDeadline = async () => f.ports.now();
+    expect(
+      (await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId)).disposition,
+    ).toBe("changed");
+    expect(supersede).toHaveBeenCalledOnce();
+    expect(f.execute).toHaveBeenCalledOnce();
+  });
   it("reconciles an old-source uncertain effect before proposing new work, including after revocation", async () => {
     const f = fixture();
     f.execute.mockRejectedValueOnce(new Error("effect_response_lost"));

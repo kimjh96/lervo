@@ -19,6 +19,7 @@ type ApplicationPorts = Omit<
   | "execute"
   | "inspectEffect"
   | "supersedeNotStarted"
+  | "readEffectStartDeadline"
   | "readOwnerControlReadiness"
 >;
 
@@ -77,7 +78,7 @@ export type NodeCanonicalOutcomeSupervisionPorts = Omit<
 /** The native owner supplies planning and built-in effects; the host records bounded attention. */
 export type NodeNativeOutcomeSupervisionPorts = Pick<
   NodeCanonicalOutcomeSupervisionPorts,
-  "now" | "recordAttention"
+  "now" | "recordAttention" | "reportEffectFailure"
 >;
 
 export interface NodeOutcomeSupervisionRuntimeInput {

@@ -284,6 +284,10 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     readOwnerControlReadiness,
     inspectEffect: (plan, receipt) =>
       inspectNodeSupervisionEffect({ effects, delivery, ports, plan, receipt, session: session() }),
+    readEffectStartDeadline: async (plan) =>
+      plan.effectContract === "work.responsibility_claim.v1"
+        ? effects.claims.startDeadline(plan)
+        : null,
     supersedeNotStarted: (plan, digest) =>
       supersedeNodeSupervisionEffect({
         plan,

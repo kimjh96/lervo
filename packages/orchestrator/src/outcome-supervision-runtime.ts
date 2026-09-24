@@ -105,8 +105,12 @@ export class OutcomeSupervisionRuntime {
         now,
         maximumRecoveryDecisions: Math.min(3, mandate.maximumAttemptsPerAssignment - 1),
       });
+      const pendingStartDeadline =
+        pending === null ? null : ((await this.ports.readEffectStartDeadline?.(pending)) ?? null);
       const pendingDeadlineElapsed =
-        pending !== null && Date.parse(now) >= Date.parse(pending.deadline);
+        pending !== null &&
+        (Date.parse(now) >= Date.parse(pending.deadline) ||
+          (pendingStartDeadline !== null && Date.parse(now) >= Date.parse(pendingStartDeadline)));
       if (
         pending !== null &&
         (pending.sourceRevisionDigest !== snapshot.sourceRevisionDigest ||
@@ -349,6 +353,7 @@ export class OutcomeSupervisionRuntime {
           await this.ports.recordAttention(report, error.reasonCodes);
           return { disposition: "blocked" as const, report };
         }
+        this.ports.reportEffectFailure?.(plan, error);
         await this.ports.recordEffect({ ...recorded, status: "uncertain", effectEventIds: [] });
         await this.ports.recordAttention(report, [
           "effect_outcome_uncertain",
