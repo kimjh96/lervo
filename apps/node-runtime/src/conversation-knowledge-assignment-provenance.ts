@@ -13,12 +13,13 @@ export function conversationKnowledgeAssignmentProvenance(input: {
   const { completion, jobId } = input.job;
   const sourceConversationEventId = completion.payload.sourceConversationEventId;
   const sourceManifestHash = completion.payload.sourceManifestContentHash;
-  if (
-    completion.schemaVersion !== 3 ||
-    completion.payload.knowledgeDisposition !== "pending_background" ||
-    typeof sourceConversationEventId !== "string" ||
-    typeof sourceManifestHash !== "string"
-  )
+  const sourceBound =
+    completion.schemaVersion === 3 &&
+    completion.payload.knowledgeDisposition === "pending_background" &&
+    typeof sourceManifestHash === "string";
+  const legacy =
+    completion.schemaVersion === 2 && completion.payload.knowledgeDisposition === "baseline_valid";
+  if (typeof sourceConversationEventId !== "string" || (!sourceBound && !legacy))
     throw new ConversationKnowledgeLeaseError(
       "knowledge_job_completion_invalid",
       "The review source does not match a source-bound completion.",
@@ -29,7 +30,7 @@ export function conversationKnowledgeAssignmentProvenance(input: {
     completionEventId: completion.eventId,
     completionEventHash: completion.eventHash,
     sourceConversationEventId,
-    sourceManifestHash,
+    sourceManifestHash: sourceBound ? sourceManifestHash : null,
     agentId: input.agentId,
   };
 }

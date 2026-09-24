@@ -76,9 +76,11 @@ function matchingResolution(
     payload.sourceConversationEventId === input.completion.payload.sourceConversationEventId &&
     payload.jobId === conversationKnowledgeJobId(input.completion.eventId) &&
     payload.agentId === input.agentId &&
-    manifest.kind === "content_bound" &&
-    manifest.contentHash === input.completion.payload.sourceManifestContentHash &&
-    manifest.byteCount === input.completion.payload.sourceManifestByteCount &&
+    (input.completion.payload.knowledgeDisposition === "baseline_valid"
+      ? manifest.kind === "legacy_unavailable"
+      : manifest.kind === "content_bound" &&
+        manifest.contentHash === input.completion.payload.sourceManifestContentHash &&
+        manifest.byteCount === input.completion.payload.sourceManifestByteCount) &&
     payload.terminalState === input.terminalState &&
     payload.failureCode === input.failureCode &&
     payload.knowledgeSnapshotHash === null &&
@@ -109,18 +111,27 @@ export async function resolveLeasedConversationKnowledgeFailure(input: {
     job: first,
     agentId: input.agentId,
   });
+  const legacy = first.completion.payload.knowledgeDisposition === "baseline_valid";
   let manifest;
   let manifestFailure: ConversationKnowledgeJobSourceError | undefined;
-  try {
-    manifest = await readConversationKnowledgeJobSource({
-      completion: first.completion,
-      artifacts: input.artifacts,
-    });
-  } catch (error) {
-    if (!(error instanceof ConversationKnowledgeJobSourceError)) throw error;
-    manifestFailure = error;
+  if (!legacy) {
+    try {
+      manifest = await readConversationKnowledgeJobSource({
+        completion: first.completion,
+        artifacts: input.artifacts,
+      });
+    } catch (error) {
+      if (!(error instanceof ConversationKnowledgeJobSourceError)) throw error;
+      manifestFailure = error;
+    }
   }
-  if (manifestFailure !== undefined) {
+  if (legacy) {
+    if (
+      input.terminalState !== "attention_required" ||
+      !["legacy_source_unavailable", "knowledge_retry_exhausted"].includes(input.failureCode)
+    )
+      throw new ConversationKnowledgeResolutionError("knowledge_resolution_invalid");
+  } else if (manifestFailure !== undefined) {
     if (
       input.terminalState !== "attention_required" ||
       (input.failureCode !== manifestFailure.code &&
@@ -213,11 +224,13 @@ export async function resolveLeasedConversationKnowledgeFailure(input: {
           sourceConversationEventId: provenance.sourceConversationEventId,
           jobId: job.jobId,
           agentId: input.agentId,
-          sourceManifest: {
-            kind: "content_bound",
-            contentHash: provenance.sourceManifestHash,
-            byteCount: completion.payload.sourceManifestByteCount,
-          },
+          sourceManifest: legacy
+            ? { kind: "legacy_unavailable" }
+            : {
+                kind: "content_bound",
+                contentHash: provenance.sourceManifestHash,
+                byteCount: completion.payload.sourceManifestByteCount,
+              },
           terminalState: input.terminalState,
           // A recovery lease after the retry ceiling is not another work attempt.
           attemptCount: Math.min(job.attemptCount, MAXIMUM_ATTEMPTS),

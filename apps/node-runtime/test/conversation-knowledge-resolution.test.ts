@@ -10,7 +10,7 @@ import {
   registerAgent,
 } from "@lervo/agent-workforce";
 import { FileSystemCas } from "@lervo/cas";
-import type { EventDraftV3 } from "@lervo/event-contract";
+import type { EventDraft } from "@lervo/event-contract";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { resolveRoleContract } from "@lervo/roles";
@@ -38,7 +38,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-async function fixture() {
+async function fixture(mode: "source_bound" | "legacy" = "source_bound") {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-knowledge-resolution-"));
   roots.push(root);
   await applyInitPlan(await createInitPlan({ root, projectId }));
@@ -72,7 +72,7 @@ async function fixture() {
     type: "conversation.repository_work.completed",
     occurredAt: completedAt,
     actor: { kind: "agent", provider: "codex" },
-    schemaVersion: 3,
+    schemaVersion: mode === "legacy" ? 2 : 3,
     policyVersion: hash,
     payload: {
       sourceConversationEventId: `cve_${"b".repeat(64)}`,
@@ -92,15 +92,19 @@ async function fixture() {
       workstreamId: `wks_${"d".repeat(24)}`,
       workstreamRevision: 1,
       workstreamSnapshotHash: hash,
-      knowledgeDisposition: "pending_background",
-      sourceManifestContentHash: source.contentHash,
-      sourceManifestByteCount: source.content.byteLength,
+      knowledgeDisposition: mode === "legacy" ? "baseline_valid" : "pending_background",
+      ...(mode === "legacy"
+        ? {}
+        : {
+            sourceManifestContentHash: source.contentHash,
+            sourceManifestByteCount: source.content.byteLength,
+          }),
       checkpointDisposition: "provider_checkpoint",
       replicaDisposition: "not_configured",
       verificationStatus: "passed",
       completedAt,
     },
-  } satisfies EventDraftV3).event;
+  } as EventDraft).event;
   reconcileConversationKnowledgeOutbox({ events, afterSeq: 0, now: claimedAt });
   const workerId = "knowledge-resolution-worker-1";
   const claimed = events.claim({
@@ -136,7 +140,7 @@ async function fixture() {
       completionEventId: completion.eventId,
       completionEventHash: completion.eventHash,
       sourceConversationEventId: String(completion.payload.sourceConversationEventId),
-      sourceManifestHash: source.contentHash,
+      sourceManifestHash: mode === "legacy" ? null : source.contentHash,
       agentId: agent.agentId,
     },
   });
@@ -161,12 +165,63 @@ async function fixture() {
     provider: "codex" as const,
     verificationSuiteIds: ["knowledge.lifecycle"],
     terminalState: "attention_required" as const,
-    failureCode: "review_context_unavailable",
+    failureCode: mode === "legacy" ? "legacy_source_unavailable" : "review_context_unavailable",
   };
   return { root, eventPath, events, completion, claimed, input };
 }
 
 describe("conversation knowledge non-success resolution", () => {
+  it("records historical baseline debt as attention without inventing a source manifest", async () => {
+    const f = await fixture("legacy");
+    const result = await resolveLeasedConversationKnowledgeFailure({
+      ...f.input,
+      artifacts: {
+        get: async () => {
+          throw new Error("A legacy completion has no manifest artifact.");
+        },
+      } as unknown as ArtifactStore,
+    });
+    expect(result).toMatchObject({
+      inserted: true,
+      event: {
+        payload: {
+          sourceManifest: { kind: "legacy_unavailable" },
+          terminalState: "attention_required",
+          failureCode: "legacy_source_unavailable",
+          knowledgeSnapshotHash: null,
+        },
+      },
+    });
+    expect(
+      f.events.getOutbox(f.completion.eventId, CONVERSATION_KNOWLEDGE_OUTBOX_DESTINATION),
+    ).toMatchObject({ status: "acknowledged" });
+    expect(
+      reconcileConversationKnowledgeOutbox({ events: f.events, afterSeq: 0, now: f.input.now() }),
+    ).toMatchObject({ enqueuedCount: 0, outstandingCount: 0 });
+    f.events.close();
+  });
+
+  it("rejects a fabricated stale or source-bound outcome for historical baseline debt", async () => {
+    const f = await fixture("legacy");
+    await expect(
+      resolveLeasedConversationKnowledgeFailure({
+        ...f.input,
+        terminalState: "stale",
+        failureCode: "source_bytes_changed",
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_resolution_invalid" });
+    await expect(
+      resolveLeasedConversationKnowledgeFailure({
+        ...f.input,
+        failureCode: "knowledge_job_source_unavailable",
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_resolution_invalid" });
+    expect(
+      f.events.getOutbox(f.completion.eventId, CONVERSATION_KNOWLEDGE_OUTBOX_DESTINATION),
+    ).toMatchObject({ status: "leased" });
+    f.events.close();
+  });
+
   it("atomically records one private failure and acknowledges the exact queue lease", async () => {
     const f = await fixture();
     const result = await resolveLeasedConversationKnowledgeFailure(f.input);
