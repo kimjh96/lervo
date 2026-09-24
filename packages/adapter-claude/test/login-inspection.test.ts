@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { rm, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { createLoginFixture } from "../../adapter-contract/test/login.fixture.js";
 import { inspectClaudeLogin } from "../src/login-inspection.js";
 const roots: string[] = [];
@@ -30,6 +31,33 @@ describe("claude native login inspection", () => {
       );
       expect(Object.keys(result).sort()).toEqual(["provider", "reasonCode", "status"]);
       expect(result.provider).toBe("claude");
+    },
+  );
+
+  it.each([
+    ["malformed", 60 * 60_000, "login_present"],
+    ["malformed", -1, "unobserved"],
+    ["absent", 60 * 60_000, "login_absent"],
+  ] as const)(
+    "treats an unanswered %s probe with a refreshable stored login as present (%d ms)",
+    async (state, refreshLifetimeMs, expected) => {
+      const f = await createLoginFixture(roots);
+      await writeFile(f.statePath, state);
+      const now = 1_800_000_000_000;
+      await writeFile(
+        resolve(f.context.configurationDirectory, ".credentials.json"),
+        JSON.stringify({
+          claudeAiOauth: {
+            accessToken: "expired-access",
+            expiresAt: now - 1,
+            refreshToken: "refresh-secret",
+            refreshTokenExpiresAt: now + refreshLifetimeMs,
+          },
+        }),
+      );
+      const result = await inspectClaudeLogin(f.executable, f.context, () => now);
+      expect(result.status).toBe(expected);
+      expect(JSON.stringify(result)).not.toContain("secret");
     },
   );
 });
