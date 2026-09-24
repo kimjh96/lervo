@@ -14,7 +14,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-it.each(["success", "admission_failure", "probe_failure"])(
+it.each(["success", "admission_failure", "late_admission_failure", "probe_failure"])(
   "settles both independent final observations before returning (%s)",
   async (outcome) => {
     const f = await dispatchFixture(roots);
@@ -48,6 +48,7 @@ it.each(["success", "admission_failure", "probe_failure"])(
     });
     let probeSettled = false;
     let admissionSettled = false;
+    let admissionReads = 0;
     try {
       await store.withOwner(async (session) => {
         const observedSession = {
@@ -73,10 +74,13 @@ it.each(["success", "admission_failure", "probe_failure"])(
             combined,
           },
           readAdmission: async () => {
+            admissionReads++;
             enterAdmission();
             await probeEntered;
             admissionSettled = true;
             if (outcome === "admission_failure") throw new Error("admission changed");
+            if (outcome === "late_admission_failure" && admissionReads === 2)
+              throw new Error("late admission changed");
             return f.ports.readAdmission(plan);
           },
         });
@@ -123,7 +127,11 @@ it.each(["success", "admission_failure", "probe_failure"])(
           ).toMatchObject({ status: "passed" });
         } else {
           await expect(pending).rejects.toThrow(
-            outcome === "probe_failure" ? "probe changed" : "admission changed",
+            outcome === "probe_failure"
+              ? "probe changed"
+              : outcome === "late_admission_failure"
+                ? "late admission changed"
+                : "admission changed",
           );
         }
         expect(probeSettled && admissionSettled).toBe(true);
@@ -318,12 +326,12 @@ it("dates canonical final context after slow independent admission", async () =>
         },
         readAdmission: async () => {
           finalAdmissionReads++;
-          nowMs += 8000;
+          if (finalAdmissionReads === 1) nowMs += 8000;
           return { ...(await f.ports.readAdmission(plan)), observedAt: now() };
         },
       });
       expect(taskAdmissionReads).toBe(2);
-      expect(finalAdmissionReads).toBe(1);
+      expect(finalAdmissionReads).toBe(2);
       expect(Date.parse(result.readiness.observation.observedAt)).toBeGreaterThanOrEqual(
         initialNowMs + 8000,
       );

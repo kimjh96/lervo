@@ -36,7 +36,7 @@ export async function readNodeDispatchReadiness(input: DispatchReadinessInput) {
   return { readiness: observed.readiness, sourceSnapshotId: observed.sourceSnapshotId };
 }
 
-/** Final admission precedes the short context window; independent probes settle before effects. */
+/** Confirms admission before costly context, then re-reads it after final probes. */
 export function readNodeDispatchPreflight(
   input: DispatchReadinessInput & {
     expectedKnowledgeSnapshotId: string;
@@ -139,18 +139,22 @@ async function readDispatchObservations<Admission>(
         workspaceEvidenceStorage,
       });
     };
-    if (admissionBeforeContext.value !== null)
+    if (admissionBeforeContext.value !== null) {
+      const observed = await finishReadiness();
+      // Final probes may outlast admission's five-second window on a large repository.
+      // Re-read the exact task and authority after they settle; the effect then reviews it.
       return {
-        readiness: await finishReadiness(),
-        admission: admissionBeforeContext.value,
+        readiness: observed,
+        admission: await readAdmission(),
         sourceSnapshotId: knowledge.sourceSnapshotId,
       };
+    }
     const [observed, admission] = await Promise.allSettled([finishReadiness(), readAdmission()]);
     if (observed.status === "rejected") throw observed.reason;
     if (admission.status === "rejected") throw admission.reason;
     return {
       readiness: observed.value,
-      admission: admission.value,
+      admission: await readAdmission(),
       sourceSnapshotId: knowledge.sourceSnapshotId,
     };
   } finally {
