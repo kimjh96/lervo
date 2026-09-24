@@ -30,6 +30,7 @@ import { prepareNodeSupervisionEffect } from "./supervision-execution-preflight.
 import { supersedeNodeSupervisionEffect } from "./supervision-supersession-routing.js";
 import { observeSupervisionResourceBudget } from "./supervision-resource-budget.js";
 import { assertBoundSupervisionRequest } from "./supervision-request-presence.js";
+import { assertSupervisionSourceBinding } from "./supervision-source-binding.js";
 
 import type {
   NodeSupervisionEffectSession,
@@ -125,19 +126,17 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
         : await session().readTaskAdmission(plan);
     const authority = await session().readAuthority();
     const age = Date.parse(ports.now()) - Date.parse(authority.observedAt);
-    if (
-      !Number.isFinite(age) ||
-      age < 0 ||
-      age > 5000 ||
-      sourceBinding === null ||
-      authority.source.sourceRevisionDigest !== sourceBinding.authorityDigest ||
-      observation.sourceRevisionDigest !== sourceBinding.taskDigest ||
-      plan.sourceRevisionDigest !== sourceBinding.combined
-    )
-      throw new NodeSupervisionError("supervision_authority_changed");
+    if (!Number.isFinite(age) || age < 0 || age > 5000)
+      throw new NodeSupervisionError("supervision_admission_stale");
+    const admittedBinding = assertSupervisionSourceBinding({
+      binding: sourceBinding,
+      authorityDigest: authority.source.sourceRevisionDigest,
+      taskDigest: observation.sourceRevisionDigest,
+      planDigest: plan.sourceRevisionDigest,
+    });
     const resolved = {
       ...observation,
-      sourceRevisionDigest: sourceBinding.combined,
+      sourceRevisionDigest: admittedBinding.combined,
       installedMandateHash: authority.installation.mandateHash,
       installationReviewHash: authority.installation.installationReviewHash,
       revocationCoordinate: authority.installation.mandate.revocationCoordinate,

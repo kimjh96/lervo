@@ -28,8 +28,10 @@ export async function prepareNodeSupervisionEffect(input: {
     const owner = input.session();
     const installation = await owner.readMandate();
     const review = reviewOperatingAction({ mandate: installation.mandate, plan, snapshot });
-    if (!Number.isFinite(age) || age < 0 || age > 5000 || review.disposition !== "admitted")
-      throw new NodeSupervisionError("supervision_authority_changed");
+    if (!Number.isFinite(age) || age < 0 || age > 5000)
+      throw new NodeSupervisionError("supervision_admission_stale");
+    if (review.disposition !== "admitted")
+      throw new NodeSupervisionError("supervision_admission_rejected");
     if (readiness !== null)
       assertNodeSupervisionReadiness({
         readiness,

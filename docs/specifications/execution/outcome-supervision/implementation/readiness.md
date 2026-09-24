@@ -25,6 +25,8 @@ For dispatch, retry, and owner execution, Node obtains readiness again before it
 - `supervision_readiness_changed` identifies an invalid binding or negative final evaluation.
 - `supervision_readiness_stale` identifies an observation older than five seconds at effect time.
 - `supervision_knowledge_snapshot_changed` identifies a knowledge snapshot that differs between the cycle's readiness read and final preflight.
+- `supervision_mandate_source_changed`, `supervision_task_source_changed`, and `supervision_plan_source_changed` distinguish the exact digest boundary that changed before final admission. They carry no source path or content.
+- `supervision_admission_stale` means the final admission observation missed the five-second window; `supervision_admission_rejected` means the reviewed plan was not admitted against the freshly read snapshot. Neither permits the effect to start.
 
 A typed final-preflight failure reports `supervision_preflight_failed` with the bounded cause code (or `preflight_cause_unclassified`) and retains the recorded decision for independent non-start inspection before replay. Failures after effect invocation retain uncertain execution for reconciliation.
 

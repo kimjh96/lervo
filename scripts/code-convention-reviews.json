@@ -60,7 +60,7 @@
     },
     {
       "path": "apps/node-runtime/src/outcome-supervision-runtime.ts",
-      "contentHash": "sha256:5cb5bcd713600cd8ecc304487d3f138f1af80b824f98845e8e98725b9f6fbf0a",
+      "contentHash": "sha256:0466c5877c7329d287155afb7f18a906f05391dc6b4433d5263e14138caed86c",
       "responsibility": "Node outcome-supervision port composition",
       "rationale": "The module composes one provider-neutral supervision runtime from storage, admission, reasoning, execution, and evidence ports. Request-origin evaluation, resource policy, provider effects, supersession, leases, and snapshot projection remain in dedicated modules; this boundary only wires their ordered lifecycle and cleanup.",
       "disposition": "cohesive"
