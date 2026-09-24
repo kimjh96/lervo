@@ -39,6 +39,8 @@ The source implementation now records bounded inspection evidence and retains an
 
 The owner chose the incremental 200,000-token procedure. This is not approval of an unreviewed mandate artifact or provider start. Supervision remains revoked until the cumulative guard, durable preflight barrier, compatible readers, exact pending-effect recovery, and separately reviewed successor installation are verified. Dispatch 8647 may be closed only with its existing exact non-start and owner-fence contract under authority valid for that recovery; read-only absence observation is insufficient.
 
+An installed mandate's revocation denies new worker effects and owner reasoning, but does not erase authority to record that an already recorded dispatch never started. The managed-execution supersession reader may use the exact revoked installation only for this terminal non-start transition: it must re-read the canonical recovery source, prove the run has no effect events (or only the separately admitted reservation-only shape), require the plan deadline or changed source, hold the owner lease, and recheck the event head and absence in the append transaction. Any partial or uncertain run remains blocked. This transition emits only the existing `work.supervision.decision.superseded` event; it grants no new decision, lease, worker invocation, or token spend. If source or owner authority changes before commit, it fails without an event. A fresh mandate is still required before further work.
+
 ## References
 
 - [Supervision events](../../../../../specifications/execution/outcome-supervision/contracts/events.md)

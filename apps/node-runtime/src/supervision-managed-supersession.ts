@@ -11,7 +11,7 @@ import {
   operatingDecisionId,
 } from "@lervo/work-controller";
 import {
-  observeNodeSupervisionAuthority,
+  observeNodeSupervisionRecoveryAuthority,
   supervisionJournalCoordinates,
   type NodeSupervisionBinding,
 } from "./supervision-authority.js";
@@ -46,7 +46,11 @@ export async function supersedeUnstartedManagedExecution(input: {
     if (runEvidence === null) return false;
     const tasks = new SupervisionTaskSource(storage, input.binding, input.now);
     const observe = async () => {
-      const authority = await observeNodeSupervisionAuthority(storage, input.binding, input.now);
+      const authority = await observeNodeSupervisionRecoveryAuthority(
+        storage,
+        input.binding,
+        input.now,
+      );
       const source = await tasks.read();
       return {
         authority,
@@ -86,11 +90,7 @@ export async function supersedeUnstartedManagedExecution(input: {
       throw new Error("Managed execution supersession requires an exact changed source.");
     const artifact = await storage.artifacts.put(canonicalJson(inspection));
     const after = await observe();
-    if (
-      after.digest !== before.digest ||
-      after.authority.installation.revoked ||
-      !after.authority.source.eligible
-    )
+    if (after.digest !== before.digest || !after.authority.source.eligible)
       throw new Error("Managed execution absence sources changed before supersession.");
     const coordinates = supervisionJournalCoordinates(
       storage,

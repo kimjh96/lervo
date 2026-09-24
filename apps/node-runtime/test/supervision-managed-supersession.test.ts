@@ -7,6 +7,7 @@ import {
   openRepositorySupervisionLeases,
   readWorkspace,
   SupervisionDecisionJournal,
+  SupervisionMandateJournal,
 } from "@lervo/agent-workforce";
 import {
   managedExecutionIdentity,
@@ -23,6 +24,7 @@ import { SupervisionManagedEffects } from "../src/supervision-managed-effects.js
 import { admitSupervisedManagedInvocation } from "../src/supervision-managed-admission.js";
 import {
   observeNodeSupervisionAuthority,
+  observeNodeSupervisionRecoveryAuthority,
   supervisionJournalCoordinates,
 } from "../src/supervision-authority.js";
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
@@ -45,11 +47,12 @@ it.each(
     "bad_reservation",
     "fence_lost",
     "reserved_fence_lost",
+    "revoked",
   ].flatMap((change) => [false, true].map((sharedReader) => ({ change, sharedReader }))),
 )(
   "recovers exact fenced absence ($change, shared reader: $sharedReader)",
   async ({ change, sharedReader }) => {
-    const recoverable = change === "absent" || change === "reserved";
+    const recoverable = change === "absent" || change === "reserved" || change === "revoked";
     const fenceLost = change.endsWith("fence_lost");
     const partial = ["partial", "reserved_requested", "bad_reservation"].includes(change);
     const f = await dispatchFixture(roots, true, undefined, "developer", [
@@ -154,9 +157,25 @@ it.each(
           payload: {},
         });
       expect((await adapter.inspect(action)).status).toBe(partial ? "uncertain" : "not_started");
+      if (change === "revoked") {
+        await new SupervisionMandateJournal(
+          storage.events,
+          storage.artifacts,
+          supervisionJournalCoordinates(storage, f.binding, f.observation.workstreamRevision),
+          now,
+          { store: leases, lease },
+        ).revoke({
+          mandateHash: f.binding.mandateHash,
+          installationEventId: f.installed.eventId,
+          reviewerId: f.mandate.appointingAuthorityId,
+        });
+      }
       const tasks = new SupervisionTaskSource(storage, f.binding, now);
       const source = await tasks.read();
-      const authority = await observeNodeSupervisionAuthority(storage, f.binding, now);
+      const authority =
+        change === "revoked"
+          ? await observeNodeSupervisionRecoveryAuthority(storage, f.binding, now)
+          : await observeNodeSupervisionAuthority(storage, f.binding, now);
       const digest = operatingContractHash({
         authorityDigest: authority.source.sourceRevisionDigest,
         taskDigest: source.sourceRevisionDigest,
@@ -194,7 +213,11 @@ it.each(
               throw new Error("late worker committed");
             },
           }),
-        ).rejects.toThrow("no current recorded decision");
+        ).rejects.toThrow(
+          change === "revoked"
+            ? "supervision_authority_unavailable"
+            : "no current recorded decision",
+        );
       }
       const resources = await observeSupervisionTaskResources({
         source: await tasks.read(),
