@@ -6,11 +6,12 @@ import {
   type AgentWorkspace,
 } from "@lervo/agent-workforce";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
-import type { WorkspaceOwnershipMarker } from "@lervo/workspace-host";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import { observeUnstartedSupervisionWorkspace } from "./supervision-unstarted-workspace.js";
 
 const RETIREMENT = "unstarted_retirement";
+
+type WorkspaceOwnershipMarker = Parameters<GitWorkspaceHostAdapter["remove"]>[0]["marker"];
 
 function markerFor(workspace: AgentWorkspace): WorkspaceOwnershipMarker {
   return {
