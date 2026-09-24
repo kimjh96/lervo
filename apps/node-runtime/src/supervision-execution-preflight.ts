@@ -18,6 +18,8 @@ export async function prepareNodeSupervisionEffect(input: {
 }) {
   try {
     const { plan } = input;
+    const owner = input.session();
+    const installation = await owner.readMandate();
     if (operatingReadinessKind(plan) === "owner_control")
       await input.readOwnerControlReadiness(plan);
     const preflight =
@@ -25,8 +27,6 @@ export async function prepareNodeSupervisionEffect(input: {
     const readiness = preflight?.readiness ?? null;
     const snapshot = preflight?.admission ?? (await input.readAdmission(plan));
     const age = Date.parse(input.now()) - Date.parse(snapshot.observedAt);
-    const owner = input.session();
-    const installation = await owner.readMandate();
     const review = reviewOperatingAction({ mandate: installation.mandate, plan, snapshot });
     if (!Number.isFinite(age) || age < 0 || age > 5000)
       throw new NodeSupervisionError("supervision_admission_stale");

@@ -14,7 +14,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-it.each(["success", "admission_failure", "late_admission_failure", "probe_failure"])(
+it.each(["success", "admission_failure", "probe_failure"])(
   "settles both independent final observations before returning (%s)",
   async (outcome) => {
     const f = await dispatchFixture(roots);
@@ -48,7 +48,6 @@ it.each(["success", "admission_failure", "late_admission_failure", "probe_failur
     });
     let probeSettled = false;
     let admissionSettled = false;
-    let admissionReads = 0;
     try {
       await store.withOwner(async (session) => {
         const observedSession = {
@@ -74,13 +73,10 @@ it.each(["success", "admission_failure", "late_admission_failure", "probe_failur
             combined,
           },
           readAdmission: async () => {
-            admissionReads++;
             enterAdmission();
             await probeEntered;
             admissionSettled = true;
             if (outcome === "admission_failure") throw new Error("admission changed");
-            if (outcome === "late_admission_failure" && admissionReads === 2)
-              throw new Error("late admission changed");
             return f.ports.readAdmission(plan);
           },
         });
@@ -127,11 +123,7 @@ it.each(["success", "admission_failure", "late_admission_failure", "probe_failur
           ).toMatchObject({ status: "passed" });
         } else {
           await expect(pending).rejects.toThrow(
-            outcome === "probe_failure"
-              ? "probe changed"
-              : outcome === "late_admission_failure"
-                ? "late admission changed"
-                : "admission changed",
+            outcome === "probe_failure" ? "probe changed" : "admission changed",
           );
         }
         expect(probeSettled && admissionSettled).toBe(true);
@@ -266,81 +258,101 @@ it("keeps canonical task context fresh through the final parallel probes", async
   }
 });
 
-it("dates canonical final context after slow independent admission", async () => {
-  const f = await dispatchFixture(roots);
-  const combined = operatingContractHash("slow final admission source");
-  const plan = {
-    ...(await f.ports.propose(
-      projectOutcomeSupervision({
-        snapshot: f.observation,
-        now: f.ports.now(),
-        maximumRecoveryDecisions: 1,
-      }),
-    ))!,
-    sourceRevisionDigest: combined,
-    effectContract: "work.managed_execution.v1",
-  };
-  const { readWorkerReadiness: _readWorkerReadiness, ...canonicalPorts } = f.ports;
-  let nowMs = Date.now();
-  const initialNowMs = nowMs;
-  const now = () => new Date(nowMs).toISOString();
-  const knowledge = await inspectSupervisionKnowledgeReadiness({
-    repositoryRoot: f.root,
-    projectId: plan.projectId,
-    requiredPaths: plan.expectedPaths,
-    now,
-  });
-  if (knowledge.sourceSnapshotId === null)
-    throw new Error("The fixture has no knowledge snapshot.");
-  const knowledgeSnapshotId = knowledge.sourceSnapshotId;
-  const store = await NodeSupervisionStore.open({
-    repositoryRoot: f.root,
-    binding: f.binding,
-    now,
-  });
-  try {
-    await store.withOwner(async (session) => {
-      let taskAdmissionReads = 0;
-      let finalAdmissionReads = 0;
-      const result = await readNodeDispatchPreflight({
-        repositoryRoot: f.root,
-        plan,
-        session: {
-          ...session,
-          readTaskResponsibility: async () => ({
-            responsibility: f.task,
-            workstreamRevision: f.observation.workstreamRevision,
-          }),
-          readTaskAdmission: async () => {
-            taskAdmissionReads++;
-            return f.ports.readAdmission(plan);
-          },
-        },
-        ports: { ...canonicalPorts, now },
-        configuration: f.runtimeReadiness,
-        expectedKnowledgeSnapshotId: knowledgeSnapshotId,
-        sourceBinding: {
-          authorityDigest: operatingContractHash("slow final admission authority"),
-          taskDigest: f.observation.sourceRevisionDigest,
-          combined,
-        },
-        readAdmission: async () => {
-          finalAdmissionReads++;
-          if (finalAdmissionReads === 1) nowMs += 8000;
-          return { ...(await f.ports.readAdmission(plan)), observedAt: now() };
-        },
-      });
-      expect(taskAdmissionReads).toBe(2);
-      expect(finalAdmissionReads).toBe(2);
-      expect(Date.parse(result.readiness.observation.observedAt)).toBeGreaterThanOrEqual(
-        initialNowMs + 8000,
-      );
-      expect(
-        Date.parse(now()) - Date.parse(result.readiness.observation.observedAt),
-      ).toBeLessThanOrEqual(5000);
-      expect(Date.parse(now()) - Date.parse(result.admission.observedAt)).toBeLessThanOrEqual(5000);
+it.each([0, 31_000])(
+  "dates canonical final checks without extending context validity (%i ms delay)",
+  async (finalDelayMs) => {
+    const f = await dispatchFixture(roots);
+    const combined = operatingContractHash("slow final admission source");
+    const plan = {
+      ...(await f.ports.propose(
+        projectOutcomeSupervision({
+          snapshot: f.observation,
+          now: f.ports.now(),
+          maximumRecoveryDecisions: 1,
+        }),
+      ))!,
+      sourceRevisionDigest: combined,
+      effectContract: "work.managed_execution.v1",
+    };
+    const { readWorkerReadiness: _readWorkerReadiness, ...canonicalPorts } = f.ports;
+    let nowMs = Date.now();
+    const initialNowMs = nowMs;
+    const now = () => new Date(nowMs).toISOString();
+    const knowledge = await inspectSupervisionKnowledgeReadiness({
+      repositoryRoot: f.root,
+      projectId: plan.projectId,
+      requiredPaths: plan.expectedPaths,
+      now,
     });
-  } finally {
-    await store.close();
-  }
-});
+    if (knowledge.sourceSnapshotId === null)
+      throw new Error("The fixture has no knowledge snapshot.");
+    const knowledgeSnapshotId = knowledge.sourceSnapshotId;
+    const store = await NodeSupervisionStore.open({
+      repositoryRoot: f.root,
+      binding: f.binding,
+      now,
+    });
+    try {
+      await store.withOwner(async (session) => {
+        let taskAdmissionReads = 0;
+        let finalAdmissionReads = 0;
+        let delayedFinalRead = false;
+        const preflight = readNodeDispatchPreflight({
+          repositoryRoot: f.root,
+          plan,
+          session: {
+            ...session,
+            readTaskResponsibility: async () => ({
+              responsibility: f.task,
+              workstreamRevision: f.observation.workstreamRevision,
+            }),
+            readTaskAdmission: async () => {
+              taskAdmissionReads++;
+              return f.ports.readAdmission(plan);
+            },
+            readResponsibility: async (assignmentId) => {
+              if (!delayedFinalRead) {
+                nowMs += finalDelayMs;
+                delayedFinalRead = true;
+              }
+              return session.readResponsibility(assignmentId);
+            },
+          },
+          ports: { ...canonicalPorts, now },
+          configuration: f.runtimeReadiness,
+          expectedKnowledgeSnapshotId: knowledgeSnapshotId,
+          sourceBinding: {
+            authorityDigest: operatingContractHash("slow final admission authority"),
+            taskDigest: f.observation.sourceRevisionDigest,
+            combined,
+          },
+          readAdmission: async () => {
+            finalAdmissionReads++;
+            if (finalAdmissionReads === 1) nowMs += 8000;
+            return { ...(await f.ports.readAdmission(plan)), observedAt: now() };
+          },
+        });
+        if (finalDelayMs !== 0) {
+          await expect(preflight).rejects.toMatchObject({ code: "supervision_readiness_stale" });
+          expect(taskAdmissionReads).toBe(2);
+          expect(finalAdmissionReads).toBe(2);
+          return;
+        }
+        const result = await preflight;
+        expect(taskAdmissionReads).toBe(2);
+        expect(finalAdmissionReads).toBe(2);
+        expect(Date.parse(result.readiness.observation.observedAt)).toBeGreaterThanOrEqual(
+          initialNowMs + 8000,
+        );
+        expect(
+          Date.parse(now()) - Date.parse(result.readiness.observation.observedAt),
+        ).toBeLessThanOrEqual(5000);
+        expect(Date.parse(now()) - Date.parse(result.admission.observedAt)).toBeLessThanOrEqual(
+          5000,
+        );
+      });
+    } finally {
+      await store.close();
+    }
+  },
+);

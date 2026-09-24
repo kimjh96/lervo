@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f1f30608d4d1db07b8243842"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep final worker readiness and admission witnesses inside one bounded window after context preparation."

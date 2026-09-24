@@ -22,7 +22,7 @@ Node accepts readiness observations at the application task digest and binds a d
 
 For dispatch, retry, and owner execution, Node obtains readiness again before its final admission observation and evaluates it after asynchronous authority reads. Future observations, observations older than five seconds, expired checks, missing evidence, and negative dispositions prevent effect invocation.
 
-Canonical dispatch first confirms task and authority before loading potentially expensive context. Once context and independent final probes settle, it obtains a new admission observation and reviews that exact snapshot immediately before the effect. The earlier confirmation cannot be reused as the final five-second witness. A changed source or a failed late read blocks before worker invocation; no timestamp is simply refreshed on old evidence.
+Canonical dispatch first confirms task and authority before loading potentially expensive context. It then observes final mutable readiness probes and a new admission independently in the same bounded five-second window. The readiness witness dates those final probes only when they settle within five seconds and the prepared context remains inside its original validity bound; it never extends that context bound or re-dates a supplied adapter observation. The earlier admission cannot be reused as the final witness. A changed source, failed final probe, or failed admission blocks before worker invocation.
 
 - `supervision_readiness_changed` identifies an invalid binding or negative final evaluation.
 - `supervision_readiness_stale` identifies an observation older than five seconds at effect time.

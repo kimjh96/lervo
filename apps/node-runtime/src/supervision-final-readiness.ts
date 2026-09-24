@@ -26,8 +26,10 @@ export async function observeFinalSupervisionReadiness(input: {
   knowledge: KnowledgeInspection;
   now(): string;
   workspaceEvidenceStorage: ProjectStorage;
+  canonicalPrepared: boolean;
 }): Promise<Readiness> {
   const { plan, readiness, configuration, now } = input;
+  const finalStartedAt = now();
   const results = await Promise.allSettled([
     observeSupervisionVerificationReadiness({
       repositoryRoot: input.repositoryRoot,
@@ -64,6 +66,11 @@ export async function observeFinalSupervisionReadiness(input: {
   });
   if (!verification || !runtime || !knowledge || !repository)
     throw new NodeSupervisionError("supervision_readiness_changed");
+  const finalElapsed = Date.parse(now()) - Date.parse(finalStartedAt);
+  if (!Number.isFinite(finalElapsed) || finalElapsed < 0 || finalElapsed > 5000)
+    throw new NodeSupervisionError("supervision_readiness_stale");
+  if (input.canonicalPrepared && Date.parse(readiness.observation.validUntil) < Date.parse(now()))
+    throw new NodeSupervisionError("supervision_readiness_stale");
   const owner = (kind: Readiness["observation"]["checks"][number]["kind"]): Readiness => {
     if (kind === "verification") return verification;
     if (kind === "provider" || kind === "tools" || kind === "cli") return runtime;
@@ -76,6 +83,9 @@ export async function observeFinalSupervisionReadiness(input: {
     ...readiness,
     observation: {
       ...readiness.observation,
+      // Canonical context is still within its own validity bound. The final five-second
+      // witness dates the fresh mutable probes, not the earlier context preparation.
+      observedAt: input.canonicalPrepared ? finalStartedAt : readiness.observation.observedAt,
       validUntil:
         Date.parse(knowledge.observation.validUntil) < Date.parse(readiness.observation.validUntil)
           ? knowledge.observation.validUntil

@@ -137,15 +137,18 @@ async function readDispatchObservations<Admission>(
         knowledge,
         now: input.ports.now,
         workspaceEvidenceStorage,
+        canonicalPrepared: supplied === null,
       });
     };
     if (admissionBeforeContext.value !== null) {
-      const observed = await finishReadiness();
-      // Final probes may outlast admission's five-second window on a large repository.
-      // Re-read the exact task and authority after they settle; the effect then reviews it.
+      // The earlier admission protects context preparation. Independently re-observe both
+      // short-lived witnesses in the same final window before the effect reviews them.
+      const [observed, admission] = await Promise.allSettled([finishReadiness(), readAdmission()]);
+      if (observed.status === "rejected") throw observed.reason;
+      if (admission.status === "rejected") throw admission.reason;
       return {
-        readiness: observed,
-        admission: await readAdmission(),
+        readiness: observed.value,
+        admission: admission.value,
         sourceSnapshotId: knowledge.sourceSnapshotId,
       };
     }
@@ -154,7 +157,7 @@ async function readDispatchObservations<Admission>(
     if (admission.status === "rejected") throw admission.reason;
     return {
       readiness: observed.value,
-      admission: await readAdmission(),
+      admission: admission.value,
       sourceSnapshotId: knowledge.sourceSnapshotId,
     };
   } finally {
