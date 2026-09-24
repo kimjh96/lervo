@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_411dc6de5c83fbab219c469b"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Inspect retained supervision workspaces in bounded parallel during owner reasoning"

@@ -1,5 +1,5 @@
 import { listWorkspaces } from "@lervo/agent-workforce";
-import { observeUnstartedSupervisionWorkspace } from "./supervision-unstarted-workspace.js";
+import { observeUnstartedSupervisionWorkspaces } from "./supervision-unstarted-workspaces.js";
 import { observeSupervisionFailure } from "./supervision-failure-observation.js";
 import { readAcceptedSupervisionGoal } from "./supervision-accepted-goal.js";
 import { resultWritingContract } from "./conversation-result-publication.js";
@@ -109,22 +109,18 @@ export async function canonicalOwnerReasoningFacts(
     boundRequest?.source === "discord" && requesterProvenance === null
       ? { ...boundRequest, conversationContext: null }
       : boundRequest;
-  const unstartedWorkspaces = [];
-  for (const workspace of await listWorkspaces(storage.paths.repositoryRoot)) {
-    const assignment = source.assignments.find(
-      (item) => item.assignmentId === workspace.assignmentId,
-    );
-    if (assignment === undefined) continue;
-    const proof = await observeUnstartedSupervisionWorkspace({
-      repositoryRoot: storage.paths.repositoryRoot,
-      binding,
-      assignment,
-      workspace,
-      now,
-      storage,
-    });
-    if (proof !== null) unstartedWorkspaces.push(proof);
-  }
+  const unstartedWorkspaces = await observeUnstartedSupervisionWorkspaces({
+    repositoryRoot: storage.paths.repositoryRoot,
+    binding,
+    now,
+    storage,
+    candidates: (await listWorkspaces(storage.paths.repositoryRoot)).flatMap((workspace) => {
+      const assignment = source.assignments.find(
+        (item) => item.assignmentId === workspace.assignmentId,
+      );
+      return assignment === undefined ? [] : [{ assignment, workspace }];
+    }),
+  });
   const assignmentIds = new Set(source.assignments.map((item) => item.assignmentId));
   const recoveryObservations = {
     // Canonical safe non-starts and lease extensions; each proves only its own recorded fact.
