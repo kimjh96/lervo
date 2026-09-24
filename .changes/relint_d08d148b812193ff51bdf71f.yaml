@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d08d148b812193ff51bdf71f"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Read bounded supervision preflight non-start events without activating a writer."

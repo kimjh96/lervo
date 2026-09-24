@@ -89,6 +89,16 @@ export const supervisionPayloadAllowlists = {
     "readinessEvidenceHash",
     "reasonCode",
   ],
+  "work.supervision.preflight.blocked": [
+    ...common,
+    "decisionId",
+    "planHash",
+    "effectContract",
+    "sourceRevisionDigest",
+    "inspectionArtifactHash",
+    "failurePhase",
+    "reasonCode",
+  ],
   "work.supervision.review.recorded": [
     ...common,
     "assignmentIds",
@@ -260,12 +270,19 @@ export function validateSupervisionPayload(
             : ["recorded", "effect_confirmed", "uncertain"]
         ).includes(String(value));
       if (key === "verdict") valid &&= ["accepted", "rework", "blocked"].includes(String(value));
+      if (key === "failurePhase")
+        valid &&= ["admission", "readiness", "authority"].includes(String(value));
     }
     if (!valid) throw new TypeError(`The supervision event coordinate ${key} is invalid.`);
   }
   if (payload.status === "effect_confirmed" && (payload.effectEventIds as unknown[]).length === 0) {
     throw new TypeError("A confirmed supervision effect requires evidence.");
   }
+  if (
+    type === "work.supervision.preflight.blocked" &&
+    (payload.causationEventIds as unknown[]).length !== 1
+  )
+    throw new TypeError("A blocked supervision preflight requires one causal decision event.");
   if (
     type === "work.supervision.delivery.observed" &&
     (Number(payload.attemptNumber) > 4 ||

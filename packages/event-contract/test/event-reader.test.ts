@@ -28,6 +28,14 @@ describe("event reader compatibility", () => {
     }
   });
 
+  it("accepts the preflight non-start event only in a v3 envelope", () => {
+    const blocked = { ...event(3), type: "work.supervision.preflight.blocked" };
+    expect(readEventEnvelope(blocked)).toEqual(blocked);
+    expect(() => readEventEnvelope({ ...blocked, schemaVersion: 2 })).toThrowError(
+      expect.objectContaining({ code: "event_invalid" }),
+    );
+  });
+
   it("distinguishes unsupported versions from invalid supported envelopes", () => {
     expect(() => readEventEnvelope(event(4))).toThrowError(
       expect.objectContaining({ code: "event_schema_unsupported" }),

@@ -118,6 +118,7 @@ export const supervisionEventTypes = [
   "work.supervision.owner_reasoning.interruption_reconciled",
   "work.supervision.effect.observed",
   "work.supervision.readiness.failed",
+  "work.supervision.preflight.blocked",
   "work.supervision.review.recorded",
   "work.supervision.workspace.prepared",
   "work.supervision.delivery.queued",

@@ -84,4 +84,34 @@ describe("supervision privacy and evidence payloads", () => {
         sanitizeEventPayload("work.supervision.owner_reasoning.interruption_reconciled", invalid),
       ).toThrowError(expect.objectContaining({ code: "invalid_payload" }));
   });
+
+  it("reads only bounded, decision-causal preflight non-start coordinates", () => {
+    const payload = {
+      ...common,
+      decisionId: "osd_fixture",
+      planHash: hash,
+      effectContract: "work.managed_execution.v1",
+      sourceRevisionDigest: hash,
+      inspectionArtifactHash: hash,
+      failurePhase: "readiness",
+      reasonCode: "supervision_readiness_stale",
+    };
+    const result = sanitizeEventPayload("work.supervision.preflight.blocked", {
+      ...payload,
+      rawPrompt: "private request",
+      sourcePath: "private/file",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(result.redactions).toHaveLength(2);
+    for (const invalid of [
+      { ...payload, causationEventIds: [] },
+      { ...payload, causationEventIds: [...common.causationEventIds, ...common.causationEventIds] },
+      { ...payload, inspectionArtifactHash: "private/file" },
+      { ...payload, failurePhase: "provider_started" },
+      { ...payload, reasonCode: "unbounded error with raw text" },
+    ])
+      expect(() =>
+        sanitizeEventPayload("work.supervision.preflight.blocked", invalid),
+      ).toThrowError(expect.objectContaining({ code: "invalid_payload" }));
+  });
 });
