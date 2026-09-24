@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f1c98f80d690ef3b1800d54a"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Retire never-used supervised worker checkouts under the owner lease"

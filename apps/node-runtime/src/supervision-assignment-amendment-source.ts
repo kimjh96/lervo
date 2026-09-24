@@ -64,8 +64,9 @@ export async function readCanonicalAssignmentAmendment(input: {
     (item) => item.assignmentId === previous.assignmentId,
   )?.binding;
   const next = amendedAssignment(previous, effect, input.now());
+  // A retired checkout was proven unused before removal and holds no execution authority.
   const workspaces = (await listWorkspaces(storage.paths.repositoryRoot)).filter(
-    (item) => item.assignmentId === previous.assignmentId,
+    (item) => item.assignmentId === previous.assignmentId && item.state !== "removed",
   );
   // An unstarted checkout with positive proof is retained, as for a plain revision; a started
   // or unproven one still blocks the amendment.

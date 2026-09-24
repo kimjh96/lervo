@@ -48,3 +48,4 @@ export {
   resolveSupervisedManagedWorkspace,
   type SupervisedManagedInvocation,
 } from "./supervision-managed-admission.js";
+export { retireUnstartedSupervisionWorkspace } from "./supervision-workspace-retirement.js";

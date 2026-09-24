@@ -72,8 +72,9 @@ export async function readCanonicalSupervisionClaim(input: {
     throw new Error(
       "The canonical responsibility claim is stale, leased or outside its exact scope.",
     );
+  // A retired checkout was proven unused before removal and holds no execution authority.
   const workspaces = (await listWorkspaces(input.repositoryRoot)).filter(
-    (item) => item.assignmentId === assignment.assignmentId,
+    (item) => item.assignmentId === assignment.assignmentId && item.state !== "removed",
   );
   if (predecessor !== null && predecessor !== undefined && assignment.recovery === undefined) {
     if (

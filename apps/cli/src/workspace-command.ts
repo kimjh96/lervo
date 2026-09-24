@@ -21,10 +21,12 @@ import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { OrcaWorkspaceHostAdapter } from "@lervo/workspace-host-orca";
 
 import type { CliIo } from "./types.js";
+import { retireRepositoryUnstartedWorkspaces } from "./workspace-retirement.js";
 
 export const workspaceUsage = `  lervo workspace inspect [--root <path>] [--json]
   lervo workspace cleanup --workspace <workspace-id> --workspace-path <path> --target-ref <ref> [--root <path>] [--stdin --apply <plan-id>] [--json]
-  lervo workspace recover --journal <journal-id> --workspace-path <path> --target-ref <ref> [--root <path>] [--json]`;
+  lervo workspace recover --journal <journal-id> --workspace-path <path> --target-ref <ref> [--root <path>] [--json]
+  lervo workspace retire-unstarted --supervision <id> --workstream <id> [--workspace <workspace-id>] --write [--root <path>] [--json]`;
 
 function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
@@ -53,6 +55,31 @@ async function repositoryRootFrom(start: string): Promise<string> {
     if (parent === current) throw new Error("No initialized Lervo repository was found.");
     current = parent;
   }
+}
+
+async function runRetireUnstarted(args: string[], io: CliIo): Promise<number> {
+  const { values } = parseArgs({
+    args,
+    strict: true,
+    options: {
+      supervision: { type: "string" },
+      workstream: { type: "string" },
+      workspace: { type: "string" },
+      write: { type: "boolean" },
+      root: { type: "string" },
+      json: { type: "boolean" },
+    },
+  });
+  if (!values.write || values.supervision === undefined || values.workstream === undefined)
+    throw new Error("Workspace retirement requires --supervision, --workstream and --write.");
+  const result = await retireRepositoryUnstartedWorkspaces({
+    root: await repositoryRootFrom(resolve(io.cwd, values.root ?? ".")),
+    supervisionId: values.supervision,
+    workstreamId: values.workstream,
+    ...(values.workspace === undefined ? {} : { workspaceId: values.workspace }),
+  });
+  io.stdout(`${JSON.stringify(result, null, 2)}\n`);
+  return result.results.some((item) => item.status === "refused") ? 1 : 0;
 }
 
 async function runInspect(args: string[], io: CliIo): Promise<number> {
@@ -261,6 +288,7 @@ export async function runWorkspaceCommand(args: string[], io: CliIo): Promise<nu
     if (action === "inspect") return await runInspect(rest, io);
     if (action === "cleanup") return await runCleanup(rest, io);
     if (action === "recover") return await runRecover(rest, io);
+    if (action === "retire-unstarted") return await runRetireUnstarted(rest, io);
     throw new Error("The workspace action is invalid.");
   } catch (error) {
     io.stderr(`${error instanceof Error ? error.message : String(error)}\n${workspaceUsage}\n`);

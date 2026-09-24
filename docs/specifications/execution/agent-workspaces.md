@@ -139,6 +139,17 @@ A plan is `ready` only when the workspace is Lervo-owned, `cleanup_eligible`, cl
 
 Apply journals durably before the host effect, invokes only adapter non-force removal, confirms directory and Git metadata absence, records removal, then clears the journal. It never recursively deletes an unresolved path. Ref deletion, CAS pruning, assignment retirement, and Hub-record retention have separate lifecycles.
 
+### Never-used supervised checkouts
+
+A supervised checkout that was prepared but never dispatched has no sealed result or integration, so the cleanup plan cannot apply to it. `lervo workspace retire-unstarted --supervision <id> --workstream <id> [--workspace <id>] --write` retires such checkouts while it holds the supervision owner lease. Holding the lease means no owner decision can observe a half-changed workspace set. Each retirement runs these steps:
+
+1. Recompute the fresh never-used proof. This is the proof supervision already uses to retain the checkout: an expired or superseded lease, no admitted or recorded dispatch, and an unchanged, clean checkout at its base commit with a matching marker.
+2. Move the record from `ready` to `recovery_required` with reason `unstarted_retirement`, which removes it from any further use.
+3. Invoke only adapter non-force removal. That removal rechecks the marker, cleanliness, and Git operation state.
+4. After the worktree is absent from Git's registry, record `removed`.
+
+A rerun resumes an interrupted retirement. A checkout without the proof, including one with user-owned files, is refused unchanged. Claim and amendment readers ignore `removed` records, because a retired checkout holds no execution authority.
+
 Orca cannot prove quiescence with a live or uncertain terminal. Native Git without reliable process observation leaves cleanup pending unless Lervo created and durably closed every writer. Manual cleanup uses the same plan and recheck contract.
 
 ## Hub-coordinated mode
