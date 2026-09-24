@@ -49,6 +49,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
       postTerminalMismatch?: boolean;
       streamFailure?: boolean;
       extraToolEvents?: number;
+      usageTotalTokens?: number;
       failStop?: boolean;
       hangOnStop?: boolean;
       invalidStopCoordinates?: boolean;
@@ -347,6 +348,22 @@ export class FakeManagedAdapter implements ProviderAdapter {
           inputDigest: requestDigest,
           status: "completed",
           durationMs: 1,
+        },
+      };
+    }
+    if (this.options.usageTotalTokens !== undefined) {
+      yield {
+        ...base(),
+        eventId: `evt_${this.descriptor.provider}usage1`,
+        type: "provider.usage.updated",
+        payload: {
+          providerTurnId: this.turnId as string,
+          inputTokens: this.options.usageTotalTokens - 1,
+          cachedInputTokens: 0,
+          outputTokens: 1,
+          reasoningOutputTokens: 0,
+          totalTokens: this.options.usageTotalTokens,
+          contextWindow: null,
         },
       };
     }

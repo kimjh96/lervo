@@ -333,6 +333,14 @@ routes:
       - terminal hook
       - hook isolation
       - provider hook
+  - id: execution.provider-resource-limits
+    path: execution/providers/resource-limits
+    priority: 55
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - reserved tokens
+      - token limit
+      - resource limit
   - id: execution.verification
     path: execution/verification
     priority: 52

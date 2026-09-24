@@ -23,6 +23,7 @@ export const adapterNormalizedEventTypes = [
   "provider.command.executed",
   "provider.file_change.reported",
   "provider.usage.updated",
+  "provider.usage.estimated",
   "provider.error",
 ] as const;
 
@@ -201,6 +202,23 @@ const providerEventPayloadRules = [
             diffDigest: sha256Schema,
           },
           required: ["providerItemId", "paths", "changeKinds", "status", "diffDigest"],
+          additionalProperties: false,
+        },
+      },
+    },
+  },
+  {
+    // An in-flight lower bound for budget enforcement only; accounting uses provider.usage.updated.
+    if: { properties: { type: { const: "provider.usage.estimated" } }, required: ["type"] },
+    then: {
+      properties: {
+        payload: {
+          type: "object",
+          properties: {
+            providerTurnId: { type: "string", minLength: 1 },
+            totalTokens: { type: "integer", minimum: 0 },
+          },
+          required: ["providerTurnId", "totalTokens"],
           additionalProperties: false,
         },
       },

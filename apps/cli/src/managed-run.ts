@@ -571,6 +571,14 @@ export function createManagedRunExecutor(
         policyVersion,
         createEventId: () => dependencies.createId("evt"),
         projectVerifier: verification.verifier,
+        // A supervised attempt stops in flight at the tokens its owner reserved for it.
+        ...(request.supervisedInvocation === undefined
+          ? {}
+          : {
+              providerInteractionLimits: {
+                maximumTotalTokens: request.supervisedInvocation.effect.reservedTokens,
+              },
+            }),
       });
       const recommendedCapabilityIds = new Set(
         runCapabilities.recommendations.map((recommendation) => recommendation.capabilityId),

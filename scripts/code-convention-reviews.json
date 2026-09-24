@@ -32,7 +32,7 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:218344dfe8f577f3a481850f3106d08a650a859670e0b632845292b922623914",
+      "contentHash": "sha256:ed0598e7e3521925a5a3a2be13bd96d1d3130953770a3ed7f4d39c851ee51851",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The CLI composes one managed run from admission through writing publication and finalization. Research source capture and checker environment validation are delegated to dedicated CLI adapters; the entrypoint adds only ordered preparation and port coordinates. Capability, skill, provider and storage policies remain behind their existing boundaries.",
       "disposition": "cohesive"

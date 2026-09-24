@@ -42,6 +42,7 @@ export type ManagedProviderRunFailureCode =
   | "provider_model_unavailable"
   | "provider_tool_limit_exceeded"
   | "provider_command_limit_exceeded"
+  | "provider_token_limit_exceeded"
   | "provider_write_failed"
   | "provider_result_failed"
   | "repository_snapshot_failed"

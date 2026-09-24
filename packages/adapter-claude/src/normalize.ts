@@ -1,3 +1,4 @@
+import { ClaudeTurnUsageEstimator } from "./usage-estimate.js";
 import type {
   AdapterNormalizedEvent,
   AdapterNormalizedEventType,
@@ -34,6 +35,7 @@ export interface ClaudeEventNormalizerOptions {
 export class ClaudeEventNormalizer {
   private readonly pendingTools = new Map<string, PendingTool>();
   private readonly startedProviderTurns = new Set<string>();
+  private readonly usageEstimator = new ClaudeTurnUsageEstimator();
   private seenInit = false;
 
   constructor(private readonly options: ClaudeEventNormalizerOptions) {}
@@ -159,7 +161,22 @@ export class ClaudeEventNormalizer {
         });
       }
     }
-    return [];
+    return this.estimatedUsage(message);
+  }
+
+  private estimatedUsage(message: Record<string, unknown>): AdapterNormalizedEvent[] {
+    const providerTurnId = this.options.activeProviderTurnId();
+    const totalTokens =
+      providerTurnId === undefined ? null : this.usageEstimator.observe(providerTurnId, message);
+    return totalTokens === null
+      ? []
+      : [
+          this.event(
+            "provider.usage.estimated",
+            { providerTurnId: providerTurnId!, totalTokens },
+            eventTime(message, this.options.now),
+          ),
+        ];
   }
 
   private toolResults(message: Record<string, unknown>): AdapterNormalizedEvent[] {

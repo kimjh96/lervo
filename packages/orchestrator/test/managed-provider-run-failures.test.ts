@@ -173,6 +173,38 @@ describe("managed provider failure boundaries", () => {
     data.store.close();
   });
 
+  it.each([
+    [1_001, "provider_token_limit_exceeded"],
+    [1_000, null],
+  ] as const)(
+    "bounds turn-cumulative provider tokens to 1000 (observed %d)",
+    async (usageTotalTokens, failureCode) => {
+      const data = await createManagedFixture();
+      const adapter = new FakeManagedAdapter("claude", { usageTotalTokens });
+      const run = coordinator(
+        adapter,
+        data.root,
+        data.store,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { maximumTotalTokens: 1_000 },
+      ).run({ ...providerRunInput(), repositoryRoot: data.root });
+      if (failureCode === null) {
+        await expect(run).resolves.toBeDefined();
+      } else {
+        await expect(run).rejects.toMatchObject({ code: failureCode });
+        expect(adapter.stopReason).toBe("failed");
+        expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
+          failureCode,
+          retryable: false,
+        });
+      }
+      data.store.close();
+    },
+  );
+
   it("records and stops a provider tool call that exceeds a zero-tool boundary", async () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("claude");

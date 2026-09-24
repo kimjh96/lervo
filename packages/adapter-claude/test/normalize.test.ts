@@ -122,3 +122,37 @@ describe("Claude structured-output carrier normalization", () => {
     expect(instance.normalize(toolResult())[0]?.type).toBe("provider.tool.called");
   });
 });
+
+describe("Claude in-flight usage estimate", () => {
+  it("sums each provider message once and keeps its largest reported usage", () => {
+    const events = normalizer(false);
+    const assistant = (id: string, output: number) => ({
+      type: "assistant",
+      session_id: session.providerSessionId,
+      parent_tool_use_id: null,
+      message: {
+        id,
+        content: [{ type: "text", text: "working" }],
+        usage: {
+          input_tokens: 10,
+          cache_read_input_tokens: 100,
+          cache_creation_input_tokens: 5,
+          output_tokens: output,
+        },
+      },
+    });
+    const estimate = (raw: unknown) =>
+      events
+        .normalize(raw)
+        .filter((event) => event.type === "provider.usage.estimated")
+        .map((event) => event.payload);
+    const turn = "22222222-2222-4222-8222-222222222222";
+    expect(estimate(assistant("msg_1", 1))).toEqual([{ providerTurnId: turn, totalTokens: 116 }]);
+    // Content blocks of one API message repeat its usage; it is counted once at its largest.
+    expect(estimate(assistant("msg_1", 3))).toEqual([{ providerTurnId: turn, totalTokens: 118 }]);
+    expect(estimate(assistant("msg_2", 2))).toEqual([{ providerTurnId: turn, totalTokens: 235 }]);
+    expect(estimate({ ...assistant("msg_3", 1), message: { id: "msg_3", content: [] } })).toEqual(
+      [],
+    );
+  });
+});
