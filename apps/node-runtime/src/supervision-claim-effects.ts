@@ -2,7 +2,7 @@ import type {
   OperatingActionPlanV1,
   SupervisedResponsibilityClaimV1,
 } from "@lervo/application-contract";
-import { listAgents, listAssignments, listWorkspaces } from "@lervo/agent-workforce";
+import { listAgents, listAssignments } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import {
@@ -18,7 +18,7 @@ import {
 } from "./supervision-authority.js";
 import type { NodeSupervisionEffectSession } from "./outcome-supervision-runtime.js";
 import { SupervisionTaskSource } from "./supervision-task-source.js";
-import { readCanonicalSupervisionClaim } from "./supervision-claim-source.js";
+import { listClaimWorkspaces, readCanonicalSupervisionClaim } from "./supervision-claim-source.js";
 import {
   inspectSupervisionClaim,
   readSupervisionClaimReceiptBasis,
@@ -125,9 +125,7 @@ export class SupervisionClaimEffects {
           throw new Error("The canonical claim sources changed at the assignment transition.");
         if (
           operatingContractHash(
-            (await listWorkspaces(this.root)).filter(
-              (item) => item.assignmentId === basis.assignment.assignmentId,
-            ),
+            await listClaimWorkspaces(this.root, basis.assignment.assignmentId),
           ) !== operatingContractHash(basis.workspaces)
         )
           throw new Error("The responsibility workspace sources changed during claim.");

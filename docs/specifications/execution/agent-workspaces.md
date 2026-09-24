@@ -148,7 +148,7 @@ A supervised checkout that was prepared but never dispatched has no sealed resul
 3. Invoke only adapter non-force removal. That removal rechecks the marker, cleanliness, and Git operation state.
 4. After the worktree is absent from Git's registry, record `removed`.
 
-A rerun resumes an interrupted retirement. A checkout without the proof, including one with user-owned files, is refused unchanged. Claim and amendment readers ignore `removed` records, because a retired checkout holds no execution authority.
+A rerun resumes an interrupted retirement. A checkout without the proof, including one with user-owned files, is refused unchanged. Claim and amendment readers ignore `removed` records, because a retired checkout holds no execution authority. The claim's commit-time recheck uses the same filter as its admission basis. On 2026-09-24 the recheck still counted removed records, so every claim over an assignment with a retired checkout ended `uncertain` with "The responsibility workspace sources changed during claim."
 
 Orca cannot prove quiescence with a live or uncertain terminal. Native Git without reliable process observation leaves cleanup pending unless Lervo created and durably closed every writer. Manual cleanup uses the same plan and recheck contract.
 

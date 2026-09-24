@@ -16,6 +16,13 @@ import type { SupervisionTaskSource } from "./supervision-task-source.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { observeSupervisionWorkforce } from "./supervision-workforce-source.js";
 
+/** A retired checkout was proven unused before removal and holds no execution authority. */
+export async function listClaimWorkspaces(repositoryRoot: string, assignmentId: string) {
+  return (await listWorkspaces(repositoryRoot)).filter(
+    (item) => item.assignmentId === assignmentId && item.state !== "removed",
+  );
+}
+
 /** Observes the exact unleased predecessor and qualified executor before responsibility acquisition. */
 export async function readCanonicalSupervisionClaim(input: {
   storage: ProjectStorage;
@@ -72,10 +79,7 @@ export async function readCanonicalSupervisionClaim(input: {
     throw new Error(
       "The canonical responsibility claim is stale, leased or outside its exact scope.",
     );
-  // A retired checkout was proven unused before removal and holds no execution authority.
-  const workspaces = (await listWorkspaces(input.repositoryRoot)).filter(
-    (item) => item.assignmentId === assignment.assignmentId && item.state !== "removed",
-  );
+  const workspaces = await listClaimWorkspaces(input.repositoryRoot, assignment.assignmentId);
   if (predecessor !== null && predecessor !== undefined && assignment.recovery === undefined) {
     if (
       source.execution.attempts.some((item) => item.assignmentId === assignment.assignmentId) ||

@@ -8,10 +8,13 @@ import { afterEach, expect, it, vi } from "vitest";
 import {
   createAssignment,
   claimAssignment,
+  createWorkspace,
   listAssignments,
+  readWorkspace,
   registerAgent,
+  updateWorkspace,
 } from "@lervo/agent-workforce";
-import { openProjectStorage } from "@lervo/project-storage";
+import { openProjectStorage, RepositoryCoordinationRecords } from "@lervo/project-storage";
 import {
   applyKnowledgeMigrationPlan,
   createKnowledgeMigrationPlan,
@@ -28,6 +31,69 @@ import { canonicalOwnerReasoningFacts } from "../src/supervision-reasoning-conte
 import { materializeNativeOwnerProposal } from "../src/supervision-native-plans.js";
 
 const roots: string[] = [];
+
+/** A retired checkout keeps its removed record; it must never block a later claim. */
+async function recordRetiredWorkspace(
+  root: string,
+  projectId: string,
+  assignmentId: string,
+  agentId: string,
+) {
+  const hash = `sha256:${"a".repeat(64)}`;
+  const { stdout } = await promisify(execFile)("git", ["-C", root, "rev-parse", "HEAD"]);
+  const records = await RepositoryCoordinationRecords.open(root);
+  const workspaceId = "wsp_0123456789abcdef01234567";
+  await createWorkspace({
+    repositoryRoot: root,
+    eventId: "evt_retired_workspace_created",
+    workspace: {
+      schemaVersion: 1,
+      workspaceId,
+      generation: 1,
+      repositoryInstanceId: records.home.repositoryInstanceId,
+      projectId,
+      assignmentId,
+      agentId,
+      leaseGeneration: 1,
+      executionKind: "worker",
+      host: { kind: "git", version: "1.0.0", nativeInstanceDigest: null },
+      baseCommit: stdout.trim(),
+      integrationTargetDigest: hash,
+      creationPlanId: "wpl_0123456789abcdef01234567",
+      markerHash: hash,
+      pathDigest: hash,
+      state: "provisioning",
+      writerSession: null,
+      sealedResult: null,
+      integrationQueueEntryId: null,
+      integrationEvidenceId: null,
+      cleanupPlanId: null,
+      recoveryReason: null,
+      revision: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  });
+  for (const [revision, nextState, evidence] of [
+    [1, "recovery_required", {}],
+    [2, "removed", { hostAbsent: true, gitMetadataAbsent: true }],
+  ] as const) {
+    const current = (await readWorkspace(root, workspaceId))!;
+    await updateWorkspace({
+      repositoryRoot: root,
+      workspaceId,
+      expectedContentHash: current.contentHash,
+      eventId: `evt_retired_workspace_${nextState}`,
+      expectedRevision: revision,
+      expectedGeneration: 1,
+      nextState,
+      occurredAt: new Date().toISOString(),
+      evidence,
+      ...(nextState === "recovery_required" ? { recoveryReason: "unstarted_retirement" } : {}),
+    });
+  }
+}
+
 afterEach(async () => {
   vi.restoreAllMocks();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
@@ -116,6 +182,13 @@ it.each(["expired", "live", "criteria_changed", "criteria_receipt_failure"])(
       workstreamRevision: f.observation.workstreamRevision,
       causationEventIds: f.observation.causationEventIds,
     });
+    if (scenario === "expired")
+      await recordRetiredWorkspace(
+        f.root,
+        f.owner.projectId,
+        claimed.assignmentId,
+        f.owner.agentId,
+      );
     const child = await registerAgent({
       repositoryRoot: f.root,
       roleId: "developer",
