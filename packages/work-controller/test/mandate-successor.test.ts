@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertDerivedMandate,
+  assertOperatingMandate,
   assertMandateInstallationPlan,
+  assertMandateExecutionSuccession,
   deriveSuccessorMandate,
   lineageRootId,
   operatingContractHash,
@@ -142,6 +144,86 @@ describe("standing successor mandates", () => {
       maximumSuccessors: 2,
       maximumAggregateTokens: 2_000_000,
     });
+  });
+
+  it("preserves one post-revocation owner allowance across successor goals", () => {
+    const parent: OperatingMandateV3 = {
+      ...root(),
+      ownerSpendAllowance: {
+        schemaVersion: 1,
+        mode: "incremental_reservation",
+        projectId: `prj_${"a".repeat(16)}`,
+        anchorEventId: `evt_${"b".repeat(32)}`,
+        anchorEventHash: hash("c"),
+        maximumReservedTokens: 200_000,
+      },
+    };
+    assertOperatingMandate(parent);
+    const child = deriveSuccessorMandate(parent, {
+      successorIndex: 1,
+      workScope: scope("2"),
+      issuedAt: "2026-09-16T00:00:00.000Z",
+    });
+    expect(child.ownerSpendAllowance).toEqual(parent.ownerSpendAllowance);
+    const { ownerSpendAllowance: _allowance, ...stripped } = child;
+    expect(() =>
+      assertDerivedMandate(parent, stripped, {
+        schemaVersion: 1,
+        parentInstallationEventId: `evt_${"d".repeat(32)}`,
+        parentMandateHash: operatingContractHash(parent),
+        successorIndex: 1,
+      }),
+    ).toThrow();
+    expect(() =>
+      assertOperatingMandate({
+        ...parent,
+        ownerSpendAllowance: { ...parent.ownerSpendAllowance!, anchorEventHash: "invalid" },
+      }),
+    ).toThrow();
+  });
+
+  it("refuses a renewed per-attempt owner grant without a shared spend boundary", () => {
+    const prior: OperatingMandateV3 = {
+      ...root(),
+      aggregateTokenPolicy: { schemaVersion: 1, mode: "per_attempt_only" },
+    };
+    const previous = {
+      eventId: `evt_${"a".repeat(32)}`,
+      latestEventId: `evt_${"b".repeat(32)}`,
+      mandate: prior,
+      mandateHash: operatingContractHash(prior),
+      installationReviewHash: hash("c"),
+      sourceRevisionDigest: hash("d"),
+      revoked: true,
+    };
+    expect(() => assertMandateExecutionSuccession(previous, { ...prior, version: 3 })).toThrow(
+      /spend allowance/u,
+    );
+    const renewed: OperatingMandateV3 = {
+      ...prior,
+      version: 3,
+      ownerSpendAllowance: {
+        schemaVersion: 1,
+        mode: "incremental_reservation",
+        projectId: prior.projectIds[0]!,
+        anchorEventId: previous.latestEventId,
+        anchorEventHash: hash("e"),
+        maximumReservedTokens: 200_000,
+      },
+    };
+    expect(() => assertMandateExecutionSuccession(previous, renewed)).not.toThrow();
+    const installed = {
+      ...previous,
+      mandate: renewed,
+      mandateHash: operatingContractHash(renewed),
+    };
+    expect(() =>
+      assertMandateExecutionSuccession(installed, {
+        ...renewed,
+        version: 4,
+        ownerSpendAllowance: { ...renewed.ownerSpendAllowance!, maximumReservedTokens: 300_000 },
+      }),
+    ).toThrow(/cannot reset/u);
   });
 
   it("binds a derived plan to its parent installation and rejects widened bounds", () => {

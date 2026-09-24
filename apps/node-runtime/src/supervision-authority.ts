@@ -29,6 +29,7 @@ export class NodeSupervisionError extends Error {
       | "supervision_session_closed"
       | "supervision_readiness_changed"
       | "supervision_readiness_stale"
+      | "supervision_owner_spend_exceeded"
       | "supervision_knowledge_snapshot_changed"
       | "supervision_workstream_inactive",
   ) {

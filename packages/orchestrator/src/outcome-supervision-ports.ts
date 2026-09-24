@@ -10,6 +10,7 @@ import type {
   WorkResponsibilityV1,
   SupervisionDecisionReceipt,
   OwnerControlReadinessV1,
+  SupervisionPreflightInspectionV1,
 } from "@lervo/application-contract";
 
 export type { SupervisionDecisionReceipt } from "@lervo/application-contract";
@@ -26,8 +27,9 @@ export class SupervisionPreflightError extends Error {
   readonly code = "supervision_preflight_failed";
   /** The failure code plus the bounded identifier code of its cause, when the cause carries one. */
   readonly reasonCodes: string[];
+  readonly inspection: SupervisionPreflightInspectionV1 | null;
 
-  constructor(options?: ErrorOptions) {
+  constructor(options?: ErrorOptions & { inspection?: SupervisionPreflightInspectionV1 }) {
     super("Supervision preflight failed before effect invocation.", options);
     this.name = "SupervisionPreflightError";
     const cause = options?.cause as { code?: unknown } | undefined;
@@ -38,6 +40,8 @@ export class SupervisionPreflightError extends Error {
         ? cause.code
         : "preflight_cause_unclassified";
     this.reasonCodes = [this.code, causeCode];
+    this.inspection =
+      options?.inspection === undefined ? null : structuredClone(options.inspection);
   }
 }
 
@@ -63,6 +67,8 @@ export interface OutcomeSupervisionPorts {
   ): Promise<{ eventIds: string[] } | null>;
   /** Includes unresolved old-source decisions; revision changes never erase uncertain effects. */
   findPendingPlan(supervisionId: string): Promise<OperatingActionPlanV1 | null>;
+  /** A canonical preflight block survives source-change supersession until its exact effect settles. */
+  hasUnresolvedPreflightBlock?(supervisionId: string): Promise<boolean>;
   /** Durable content-addressed decision record. Same identity with different bytes rejects. */
   recordDecision(
     plan: OperatingActionPlanV1,
@@ -86,6 +92,12 @@ export interface OutcomeSupervisionPorts {
   recordReadinessFailure?(
     receipt: SupervisionDecisionReceipt,
     failure: SupervisionReadinessFailure,
+  ): Promise<void>;
+  /** Owner-fenced canonical evidence that the final effect preflight never invoked an effect. */
+  recordPreflightBlocked?(
+    receipt: SupervisionDecisionReceipt,
+    plan: OperatingActionPlanV1,
+    inspection: SupervisionPreflightInspectionV1,
   ): Promise<void>;
   recordAttention(
     report: OutcomeSupervisionReportV1,

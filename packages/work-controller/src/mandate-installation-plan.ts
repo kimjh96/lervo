@@ -36,6 +36,26 @@ export function assertMandateExecutionSuccession(
     throw new Error("Mandate succession cannot reset or remove its reviewed work scope.");
   if (previous.mandate.schemaVersion !== 3 && mandate.schemaVersion === 3 && !previous.revoked)
     throw new Error("Revoke the workstream-wide mandate before installing a bounded work scope.");
+  if (
+    previous.mandate.schemaVersion === 3 &&
+    previous.mandate.ownerSpendAllowance !== undefined &&
+    (mandate.schemaVersion !== 3 ||
+      mandate.ownerSpendAllowance === undefined ||
+      operatingContractHash(mandate.ownerSpendAllowance) !==
+        operatingContractHash(previous.mandate.ownerSpendAllowance))
+  )
+    throw new Error("Mandate succession cannot reset the reviewed owner spend allowance.");
+  if (
+    previous.revoked &&
+    previous.mandate.schemaVersion === 3 &&
+    previous.mandate.aggregateTokenPolicy?.mode === "per_attempt_only" &&
+    mandate.schemaVersion === 3 &&
+    mandate.aggregateTokenPolicy?.mode === "per_attempt_only" &&
+    mandate.ownerSpendAllowance === undefined
+  )
+    throw new Error(
+      "Renewed per-attempt-only owner authority requires a reviewed spend allowance.",
+    );
 }
 
 export function planMandateInstallation(input: {

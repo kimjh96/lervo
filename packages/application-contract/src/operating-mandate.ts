@@ -61,6 +61,15 @@ export interface OperatingMandateV3 extends Omit<OperatingMandateV2, "schemaVers
   };
   /** Long-lived owners may rely on attempt, retry, concurrency, and deadline circuit breakers. */
   aggregateTokenPolicy?: { schemaVersion: 1; mode: "per_attempt_only" };
+  /** Reviewed post-event reservation ceiling shared by this owner's successor lineage. */
+  ownerSpendAllowance?: {
+    schemaVersion: 1;
+    mode: "incremental_reservation";
+    projectId: string;
+    anchorEventId: string;
+    anchorEventHash: string;
+    maximumReservedTokens: number;
+  };
   /**
    * Reviewed standing grant: the owner may install up to this many derived successor mandates,
    * one per successor goal, each identical in bounds and scoped to that goal's start snapshot.

@@ -1,0 +1,124 @@
+import type {
+  OperatingActionPlanV1,
+  SupervisionDecisionReceipt,
+  SupervisionPreflightInspectionV1,
+} from "@lervo/application-contract";
+import type { EventStore } from "@lervo/storage-contract";
+import { operatingContractHash, operatingDecisionId } from "@lervo/work-controller";
+import type { SupervisionEventJournal } from "./supervision-event-journal.js";
+import { supervisionPayloadFromDecision } from "./supervision-readiness-failure-journal.js";
+
+const BLOCKED = "work.supervision.preflight.blocked";
+const HASH = /^sha256:[a-f0-9]{64}$/u;
+const CODE = /^[a-z][a-z0-9_]{0,63}$/u;
+
+function validWitness(value: SupervisionPreflightInspectionV1): boolean {
+  const admission = value.finalAdmission;
+  const readiness = value.finalReadiness;
+  const validTime = (time: string) => time.length <= 32 && Number.isFinite(Date.parse(time));
+  return (
+    value.schemaVersion === 1 &&
+    value.kind === "work.supervision.preflight_inspection" &&
+    ["admission", "readiness", "authority"].includes(value.failurePhase) &&
+    CODE.test(value.reasonCode) &&
+    (admission === null ||
+      (HASH.test(admission.snapshotHash) &&
+        validTime(admission.observedAt) &&
+        [null, "admitted", "blocked"].includes(admission.disposition))) &&
+    (readiness === null ||
+      (HASH.test(readiness.observationHash) &&
+        validTime(readiness.observedAt) &&
+        validTime(readiness.validUntil) &&
+        [readiness.failedCheckKinds, readiness.unobservedCheckKinds].every(
+          (items) =>
+            Array.isArray(items) &&
+            items.length <= 16 &&
+            new Set(items).size === items.length &&
+            items.every((item) => CODE.test(item)),
+        )))
+  );
+}
+
+/** Records only the witnessed pre-effect boundary; it grants no replay or supersession. */
+export async function recordSupervisionPreflightBlocked(input: {
+  journal: SupervisionEventJournal;
+  events: EventStore;
+  findDecision(decisionId: string): SupervisionDecisionReceipt | null;
+  receipt: SupervisionDecisionReceipt;
+  plan: OperatingActionPlanV1;
+  inspection: SupervisionPreflightInspectionV1;
+}): Promise<string> {
+  const { journal, events, plan } = input;
+  const receipt = structuredClone(input.receipt);
+  const inspection = structuredClone(input.inspection);
+  const current = input.findDecision(receipt.decisionId);
+  if (
+    current === null ||
+    current.status !== "recorded" ||
+    receipt.status !== "recorded" ||
+    current.planHash !== receipt.planHash ||
+    receipt.decisionId !== operatingDecisionId(plan) ||
+    receipt.planHash !== operatingContractHash(plan) ||
+    !validWitness(inspection)
+  )
+    throw new Error("The preflight block is not bound to a recorded, unexecuted decision.");
+  const decision = events.get(
+    journal.eventId("work.supervision.decision.recorded", receipt.decisionId),
+  );
+  if (
+    decision === null ||
+    decision.payload.planHash !== receipt.planHash ||
+    decision.payload.sourceRevisionDigest !== plan.sourceRevisionDigest ||
+    decision.payload.mandateHash !== plan.mandateHash ||
+    decision.payload.workstreamId !== plan.workstreamId
+  )
+    throw new Error("The preflight block differs from its canonical decision.");
+  const inspectionArtifactHash = await journal.put({
+    ...inspection,
+    decisionId: receipt.decisionId,
+    planHash: receipt.planHash,
+  });
+  const identity = operatingContractHash({
+    decisionId: receipt.decisionId,
+    inspectionArtifactHash,
+  });
+  const payload = {
+    ...supervisionPayloadFromDecision(decision),
+    decisionId: receipt.decisionId,
+    planHash: receipt.planHash,
+    effectContract: plan.effectContract,
+    sourceRevisionDigest: plan.sourceRevisionDigest,
+    inspectionArtifactHash,
+    failurePhase: inspection.failurePhase,
+    reasonCode: inspection.reasonCode,
+  };
+  journal.append(BLOCKED, payload, identity, () => {
+    if (input.findDecision(receipt.decisionId)?.status !== "recorded")
+      throw new Error("The decision changed before its preflight block was recorded.");
+  });
+  return journal.eventId(BLOCKED, identity);
+}
+
+/** A superseded decision does not repair its recorded worker preflight blocker. */
+export function findUnresolvedSupervisionPreflightBlock(
+  journal: SupervisionEventJournal,
+): { eventId: string; decisionId: string; reasonCode: string } | null {
+  const unresolved = new Map<string, { eventId: string; decisionId: string; reasonCode: string }>();
+  for (const event of journal.history()) {
+    if (event.type === BLOCKED) {
+      journal.assertEventBinding(event);
+      const decisionId = String(event.payload.decisionId);
+      unresolved.set(decisionId, {
+        eventId: event.eventId,
+        decisionId,
+        reasonCode: String(event.payload.reasonCode),
+      });
+    } else if (
+      event.type === "work.supervision.effect.observed" &&
+      event.payload.status === "effect_confirmed"
+    ) {
+      unresolved.delete(String(event.payload.decisionId));
+    }
+  }
+  return [...unresolved.values()].at(-1) ?? null;
+}

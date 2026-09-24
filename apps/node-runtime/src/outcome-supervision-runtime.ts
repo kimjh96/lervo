@@ -295,6 +295,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
         ports,
       }),
     findPendingPlan: async () => session().findPendingPlan(),
+    hasUnresolvedPreflightBlock: async () => session().findUnresolvedPreflightBlock() !== null,
     recordDecision: async (plan, review) => {
       if (sourceBinding === null)
         throw new NodeSupervisionError("supervision_authority_unavailable");
@@ -304,6 +305,9 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     recordEffect: async (receipt) => session().recordEffect(receipt),
     recordReadinessFailure: async (receipt, failure) => {
       await session().recordReadinessFailure(receipt, failure);
+    },
+    recordPreflightBlocked: async (receipt, plan, inspection) => {
+      await session().recordPreflightBlocked(receipt, plan, inspection);
     },
     recordAttention: (report, reasonCodes) => {
       const resourceBudget =

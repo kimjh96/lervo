@@ -21,6 +21,7 @@ export * from "./types.js";
 export * from "./unattended-scheduler.js";
 export * from "./outcome-supervision.js";
 export * from "./supervision-decision.js";
+export type { SupervisionPreflightInspectionV1 } from "./supervision-preflight.js";
 export * from "./mandate-installation.js";
 export type {
   SupervisedManagedExecutionV1,

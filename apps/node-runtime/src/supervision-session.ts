@@ -4,6 +4,7 @@ import type {
   AssignmentTopologyPlanV2,
   OperatingPolicyReviewV1,
   SupervisionDecisionReceipt,
+  SupervisionPreflightInspectionV1,
   SupervisedManagedExecution,
   SupervisedArtifactReviewV1,
   SupervisedGoalCompletionV1,
@@ -120,6 +121,16 @@ export interface NodeSupervisionSession {
     receipt: SupervisionDecisionReceipt,
     failure: SupervisionReadinessFailureRecord,
   ): Promise<string>;
+  recordPreflightBlocked(
+    receipt: SupervisionDecisionReceipt,
+    plan: OperatingActionPlanV1,
+    inspection: SupervisionPreflightInspectionV1,
+  ): Promise<string>;
+  findUnresolvedPreflightBlock(): {
+    eventId: string;
+    decisionId: string;
+    reasonCode: string;
+  } | null;
   /** Renewal invalidates earlier fence coordinates; callers must settle any journal write first. */
   renew(): void;
   /** Storage fence only. The effect adapter still owns exact admission at its commit boundary. */
@@ -336,6 +347,14 @@ export function createNodeSupervisionSession(context: {
     recordReadinessFailure: (receipt, failure) => {
       assertOpen();
       return journal().recordReadinessFailure(receipt, failure);
+    },
+    recordPreflightBlocked: (receipt, plan, inspection) => {
+      assertOpen();
+      return journal().recordPreflightBlocked(receipt, plan, inspection);
+    },
+    findUnresolvedPreflightBlock: () => {
+      assertOpen();
+      return journal().findUnresolvedPreflightBlock();
     },
     renew: () => {
       assertOpen();

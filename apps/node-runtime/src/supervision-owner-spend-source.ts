@@ -1,0 +1,92 @@
+import type { OperatingActionPlanV1, OperatingMandate } from "@lervo/application-contract";
+import type { EventEnvelope } from "@lervo/schemas";
+import type { ArtifactStore } from "@lervo/storage-contract";
+import { readResourceUsageEventPayload } from "@lervo/execution-contract";
+import {
+  assertOperatingActionPlan,
+  managedExecutionIdentity,
+  operatingContractHash,
+  operatingDecisionId,
+  projectOwnerSpendAllowance,
+} from "@lervo/work-controller";
+import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
+
+/** Rebuilds an owner's full-reservation epoch from a verified project event chain and exact plans. */
+export async function readOwnerSpendAdmission(input: {
+  mandate: OperatingMandate;
+  plan: OperatingActionPlanV1;
+  events: readonly EventEnvelope[];
+  artifacts: ArtifactStore;
+}): Promise<ReturnType<typeof projectOwnerSpendAllowance> | null> {
+  const { mandate, plan, events, artifacts } = input;
+  if (mandate.schemaVersion !== 3 || mandate.ownerSpendAllowance === undefined) return null;
+  const allowance = mandate.ownerSpendAllowance;
+  const anchor = events.find((event) => event.eventId === allowance.anchorEventId);
+  if (
+    allowance.projectId !== plan.projectId ||
+    mandate.ownerAgentId !== plan.ownerAgentId ||
+    anchor === undefined ||
+    anchor.eventHash !== allowance.anchorEventHash ||
+    anchor.type !== "work.supervision.mandate.revoked" ||
+    anchor.projectId !== plan.projectId ||
+    anchor.payload.ownerAgentId !== plan.ownerAgentId
+  )
+    throw new Error("The owner spend allowance does not bind an exact revocation anchor.");
+  const currentDecisionId = operatingDecisionId(plan);
+  const reservations: {
+    decisionId: string;
+    reservedTokens: number;
+    observedTokens: number | null;
+    usageUnavailable: boolean;
+  }[] = [];
+  for (const event of events) {
+    if (
+      event.seq <= anchor.seq ||
+      event.type !== "work.supervision.decision.recorded" ||
+      event.projectId !== plan.projectId ||
+      event.payload.ownerAgentId !== plan.ownerAgentId
+    )
+      continue;
+    const recorded = (await readSupervisionJsonArtifact(
+      artifacts,
+      String(event.payload.planArtifactHash),
+    )) as OperatingActionPlanV1;
+    assertOperatingActionPlan(recorded);
+    if (
+      operatingContractHash(recorded) !== event.payload.planHash ||
+      operatingDecisionId(recorded) !== event.payload.decisionId ||
+      recorded.projectId !== event.projectId ||
+      recorded.ownerAgentId !== plan.ownerAgentId ||
+      recorded.mandateHash !== event.payload.mandateHash ||
+      recorded.workstreamId !== event.payload.workstreamId
+    )
+      throw new Error("The owner spend decision differs from its exact recorded plan.");
+    if (recorded.effectContract === "work.owner_reasoning.v1") {
+      const runId = managedExecutionIdentity(
+        recorded.projectId,
+        operatingContractHash(recorded),
+      ).runId;
+      const receipts = events.filter(
+        (item) => item.runId === runId && item.type === "resource.usage.recorded",
+      );
+      if (receipts.length > 1)
+        throw new Error("The owner spend decision has conflicting usage receipts.");
+      const usage = receipts[0] === undefined ? null : readResourceUsageEventPayload(receipts[0]);
+      if (
+        (receipts.length === 1 && usage === null) ||
+        (usage !== null &&
+          (usage.source !== "provider_reported" ||
+            usage.scope !== "primary_provider" ||
+            receipts[0]!.actor.provider !== recorded.provider))
+      )
+        throw new Error("The owner spend usage differs from its provider decision.");
+      reservations.push({
+        decisionId: operatingDecisionId(recorded),
+        reservedTokens: recorded.reservedTokens,
+        observedTokens: usage?.status === "observed" ? usage.usage!.totalTokens : null,
+        usageUnavailable: usage?.status === "unavailable",
+      });
+    }
+  }
+  return projectOwnerSpendAllowance({ allowance, currentDecisionId, reservations });
+}

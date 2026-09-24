@@ -177,6 +177,13 @@ export class OutcomeSupervisionRuntime {
         this.remember(supervisionId, report, mandate.expiresAt);
         return { disposition: "blocked" as const, report };
       }
+      if (
+        pending === null &&
+        (await this.ports.hasUnresolvedPreflightBlock?.(supervisionId)) === true
+      ) {
+        await this.ports.recordAttention(report, ["preflight_repair_requires_review"]);
+        return { disposition: "blocked" as const, report };
+      }
       const plan = pending ?? (await this.ports.propose(report));
       if (plan === null) {
         await this.ports.recordAttention(report, ["owner_plan_unavailable"]);
@@ -337,6 +344,8 @@ export class OutcomeSupervisionRuntime {
         return { disposition: "effect_confirmed" as const, report };
       } catch (error) {
         if (error instanceof SupervisionPreflightError) {
+          if (error.inspection !== null)
+            await this.ports.recordPreflightBlocked?.(recorded, plan, error.inspection);
           await this.ports.recordAttention(report, error.reasonCodes);
           return { disposition: "blocked" as const, report };
         }

@@ -2,6 +2,7 @@ import { supervisionReasoningDecisionSchema } from "./supervision-reasoning-oper
 import { inspectCodexLogin, inspectCodexRuntime } from "@lervo/adapter-codex";
 import { inspectClaudeLogin, inspectClaudeRuntime } from "@lervo/adapter-claude";
 import type { OperatingActionPlanV1 } from "@lervo/application-contract";
+import { SupervisionPreflightError } from "@lervo/orchestrator";
 import { openProjectStorage } from "@lervo/project-storage";
 import { collectRunEventsBounded } from "@lervo/storage-contract";
 import {
@@ -24,6 +25,8 @@ import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-co
 import type { NodeSupervisionEffectSession } from "./outcome-supervision-runtime.js";
 import { readAdmittedControlDecision } from "./supervision-control-decision.js";
 import { supersedeUnstartedOwnerReasoning } from "./supervision-reasoning-supersession.js";
+import { readOwnerSpendAdmission } from "./supervision-owner-spend-source.js";
+import { NodeSupervisionError } from "./supervision-authority.js";
 
 export interface NodeOwnerReasoningConfiguration {
   provider: "codex" | "claude";
@@ -165,6 +168,19 @@ export class SupervisionOwnerReasoningEffects {
       )
         throw new Error("The owner reasoning source changed before reservation.");
       await readAdmittedControlDecision(storage, plan);
+      try {
+        const spend = await readOwnerSpendAdmission({
+          mandate: authority.installation.mandate,
+          plan,
+          events: source.events,
+          artifacts: storage.artifacts,
+        });
+        if (spend?.disposition === "exceeded")
+          throw new NodeSupervisionError("supervision_owner_spend_exceeded");
+      } catch (cause) {
+        throw new SupervisionPreflightError({ cause });
+      }
+      const admissionHead = source.events.at(-1)?.eventHash;
       const identity = managedExecutionIdentity(plan.projectId, operatingContractHash(plan));
       let authorityCheck = Promise.resolve();
       const revalidateAuthority = () =>
@@ -189,6 +205,8 @@ export class SupervisionOwnerReasoningEffects {
       timer.unref?.();
       session.commit(() =>
         storage.events.transact((transaction) => {
+          if (storage.events.latest()?.eventHash !== admissionHead)
+            throw new Error("The owner spend source changed before reservation.");
           if (
             collectRunEventsBounded({
               events: storage.events,
@@ -246,6 +264,14 @@ export class SupervisionOwnerReasoningEffects {
         revalidate: async () => {
           await revalidateAuthority();
           const current = await taskSource.read(operatingDecisionId(plan));
+          const spend = await readOwnerSpendAdmission({
+            mandate: authority.installation.mandate,
+            plan,
+            events: current.events,
+            artifacts: storage.artifacts,
+          });
+          if (spend?.disposition === "exceeded")
+            throw new NodeSupervisionError("supervision_owner_spend_exceeded");
           await readCanonicalOwnerReasoning({
             storage,
             source: current,

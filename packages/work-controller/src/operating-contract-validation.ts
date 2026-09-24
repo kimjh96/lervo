@@ -93,6 +93,9 @@ export function assertOperatingMandate(value: OperatingMandate): void {
       ...(value?.schemaVersion === 3 && Object.hasOwn(value, "aggregateTokenPolicy")
         ? ["aggregateTokenPolicy"]
         : []),
+      ...(value?.schemaVersion === 3 && Object.hasOwn(value, "ownerSpendAllowance")
+        ? ["ownerSpendAllowance"]
+        : []),
       ...(value?.schemaVersion === 3 && Object.hasOwn(value, "successorAuthority")
         ? ["successorAuthority"]
         : []),
@@ -129,6 +132,25 @@ export function assertOperatingMandate(value: OperatingMandate): void {
           (!object(value.aggregateTokenPolicy, ["schemaVersion", "mode"]) ||
             value.aggregateTokenPolicy.schemaVersion !== 1 ||
             value.aggregateTokenPolicy.mode !== "per_attempt_only")) ||
+        (value.ownerSpendAllowance !== undefined &&
+          (!object(value.ownerSpendAllowance, [
+            "schemaVersion",
+            "mode",
+            "projectId",
+            "anchorEventId",
+            "anchorEventHash",
+            "maximumReservedTokens",
+          ]) ||
+            value.ownerSpendAllowance.schemaVersion !== 1 ||
+            value.ownerSpendAllowance.mode !== "incremental_reservation" ||
+            !/^prj_[a-f0-9]{16}$/u.test(value.ownerSpendAllowance.projectId) ||
+            !value.projectIds.includes(value.ownerSpendAllowance.projectId) ||
+            !/^evt_[a-f0-9]{32}$/u.test(value.ownerSpendAllowance.anchorEventId) ||
+            !operatingHashPattern.test(value.ownerSpendAllowance.anchorEventHash) ||
+            !operatingInteger(
+              value.ownerSpendAllowance.maximumReservedTokens,
+              value.maximumAttemptTokens,
+            ))) ||
         (value.successorAuthority !== undefined &&
           (value.successorAuthority.schemaVersion === 1
             ? !object(value.successorAuthority, ["schemaVersion", "maximumSuccessors"]) ||

@@ -2,6 +2,7 @@ import type {
   OperatingActionPlanV1,
   OperatingPolicyReviewV1,
   SupervisionDecisionReceipt,
+  SupervisionPreflightInspectionV1,
   SupervisedWorkspacePreparationV1,
 } from "@lervo/application-contract";
 import { canonicalJson } from "@lervo/event-contract";
@@ -43,6 +44,10 @@ import {
   SupervisionEventJournal,
   type SupervisionJournalCoordinates,
 } from "./supervision-event-journal.js";
+import {
+  findUnresolvedSupervisionPreflightBlock,
+  recordSupervisionPreflightBlocked,
+} from "./supervision-preflight-block-journal.js";
 
 /** Stores evidence, never grants authority. The effect adapter must independently admit effects. */
 export class SupervisionDecisionJournal {
@@ -301,6 +306,25 @@ export class SupervisionDecisionJournal {
       receipt,
       failure,
     });
+  }
+
+  recordPreflightBlocked(
+    receipt: SupervisionDecisionReceipt,
+    plan: OperatingActionPlanV1,
+    inspection: SupervisionPreflightInspectionV1,
+  ): Promise<string> {
+    return recordSupervisionPreflightBlocked({
+      journal: this.journal,
+      events: this.events,
+      findDecision: (id) => this.findDecision(id),
+      receipt,
+      plan,
+      inspection,
+    });
+  }
+
+  findUnresolvedPreflightBlock() {
+    return findUnresolvedSupervisionPreflightBlock(this.journal);
   }
 
   findReadinessFailures(decisionId: string) {

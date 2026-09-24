@@ -2,6 +2,7 @@ import { mkdtemp, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
+import { openProjectStorage } from "@lervo/project-storage";
 import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
 
@@ -42,6 +43,19 @@ it("resumes the recorded decision after repairing a final preflight failure and 
       "supervision_preflight_failed",
       "supervision_readiness_changed",
     ]);
+    const blockedStorage = await openProjectStorage(f.root);
+    try {
+      const blocks = blockedStorage.events
+        .list({ limit: 1000 })
+        .filter((event) => event.type === "work.supervision.preflight.blocked");
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0]!.payload).toMatchObject({
+        failurePhase: "readiness",
+        reasonCode: "supervision_readiness_changed",
+      });
+    } finally {
+      await blockedStorage.close();
+    }
     await runtime.close();
     await symlink(original, executable);
     runtime = await open();

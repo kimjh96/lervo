@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f4174fe7fd1980b714553028"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add a durable supervision preflight barrier and reviewed post-revocation owner spend allowance."

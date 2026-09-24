@@ -188,6 +188,39 @@ describe("serialized causal owner decisions", () => {
     expect(f.propose).toHaveBeenCalledOnce();
   });
 
+  it("records a witnessed non-start and does not replan through an unresolved barrier", async () => {
+    const f = fixture();
+    const inspection = {
+      schemaVersion: 1 as const,
+      kind: "work.supervision.preflight_inspection" as const,
+      failurePhase: "readiness" as const,
+      reasonCode: "supervision_readiness_stale",
+      finalAdmission: null,
+      finalReadiness: null,
+    };
+    const record = vi.fn(async () => undefined);
+    f.ports.recordPreflightBlocked = record;
+    f.execute.mockRejectedValueOnce(new SupervisionPreflightError({ inspection }));
+    expect(
+      (await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId)).disposition,
+    ).toBe("blocked");
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "recorded" }),
+      expect.objectContaining({ effectContract: plan().effectContract }),
+      inspection,
+    );
+    f.ports.findPendingPlan = async () => null;
+    f.ports.hasUnresolvedPreflightBlock = async () => true;
+    expect(
+      (await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId)).disposition,
+    ).toBe("blocked");
+    expect(f.propose).toHaveBeenCalledOnce();
+    expect(f.execute).toHaveBeenCalledOnce();
+    expect(f.attention).toHaveBeenCalledWith(expect.anything(), [
+      "preflight_repair_requires_review",
+    ]);
+  });
+
   it("does not treat an effect error with a matching code as proof that execution never started", async () => {
     const f = fixture();
     f.execute.mockRejectedValueOnce(

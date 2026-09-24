@@ -129,6 +129,66 @@ describe("canonical readiness failure evidence", () => {
   });
 });
 
+describe("canonical preflight non-start evidence", () => {
+  const inspection = {
+    schemaVersion: 1 as const,
+    kind: "work.supervision.preflight_inspection" as const,
+    failurePhase: "readiness" as const,
+    reasonCode: "supervision_readiness_stale",
+    finalAdmission: {
+      snapshotHash: hash("b"),
+      observedAt: now,
+      disposition: "admitted" as const,
+    },
+    finalReadiness: {
+      observationHash: hash("c"),
+      observedAt: now,
+      validUntil: "2026-09-11T03:01:00.000Z",
+      failedCheckKinds: [],
+      unobservedCheckKinds: [],
+    },
+  };
+
+  it("writes one bounded block and retains it across a recorded decision", async () => {
+    const f = await fixture();
+    const receipt = await f.journal.recordDecision(f.action, f.review);
+    const first = await f.journal.recordPreflightBlocked(receipt, f.action, inspection);
+    expect(await f.journal.recordPreflightBlocked(receipt, f.action, inspection)).toBe(first);
+    expect(f.journal.findUnresolvedPreflightBlock()).toEqual({
+      eventId: first,
+      decisionId: receipt.decisionId,
+      reasonCode: inspection.reasonCode,
+    });
+    const event = f.events.get(first)!;
+    expect(event.payload).toMatchObject({
+      planHash: receipt.planHash,
+      failurePhase: "readiness",
+      reasonCode: inspection.reasonCode,
+    });
+    expect(JSON.stringify(event.payload)).not.toContain("observedAt");
+    f.journal.recordEffect({ ...receipt, status: "uncertain", effectEventIds: [] });
+    expect(f.journal.findUnresolvedPreflightBlock()).not.toBeNull();
+    await expect(f.journal.recordPreflightBlocked(receipt, f.action, inspection)).rejects.toThrow(
+      /unexecuted/u,
+    );
+  });
+
+  it("rejects malformed or foreign inspection metadata", async () => {
+    const f = await fixture();
+    const receipt = await f.journal.recordDecision(f.action, f.review);
+    await expect(
+      f.journal.recordPreflightBlocked(receipt, f.action, {
+        ...inspection,
+        finalReadiness: { ...inspection.finalReadiness, failedCheckKinds: ["raw/path"] },
+      }),
+    ).rejects.toThrow(/not bound/u);
+    await expect(
+      f.journal.recordPreflightBlocked(receipt, { ...f.action, effectHash: hash("f") }, inspection),
+    ).rejects.toThrow(/not bound/u);
+    expect(f.journal.findUnresolvedPreflightBlock()).toBeNull();
+  });
+});
+
 describe("canonical supervision decision recovery", () => {
   it("retains reviewed bytes if the caller mutates its inputs while CAS persistence awaits", async () => {
     const f = await fixture();
