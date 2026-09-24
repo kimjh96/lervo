@@ -51,8 +51,25 @@ export async function runSupervisedManagedCommand(
       outcome.writingPublication.status === "allowed"
       ? 0
       : 1;
-  } catch {
-    io.stderr('{"code":"supervised_execution_failed"}\n');
+  } catch (error) {
+    io.stderr(`${JSON.stringify(supervisedFailure(error))}\n`);
     return 1;
   }
+}
+
+/** Bounded diagnostics for the supervising Node's journal; never canonical evidence. */
+export function supervisedFailure(error: unknown) {
+  const code = (error as { code?: unknown } | null)?.code;
+  return {
+    code: "supervised_execution_failed",
+    reason:
+      typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code)
+        ? code
+        : error instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/u.test(error.name)
+          ? error.name
+          : "unknown",
+    message: (error instanceof Error ? error.message : String(error))
+      .replace(/[\r\n\0]+/gu, " ")
+      .slice(0, 200),
+  };
 }

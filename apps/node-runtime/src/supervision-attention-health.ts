@@ -72,7 +72,7 @@ export function supervisionCycleHealth(error: unknown): NodeRuntimeComponentHeal
 
 /** Journal line for a failed cycle: bounded code, error name, and the message's first 200 characters. */
 export function supervisionCycleFailureLine(error: unknown): string {
-  return `Lervo supervision cycle failed (${supervisionCycleFailureCode(error)}): ${boundedError(error)}`;
+  return `Lervo supervision cycle failed (${supervisionCycleFailureCode(error)}): ${boundedError(error, 200)}`;
 }
 
 /** Journal line for an effect whose outcome became uncertain; canonical attention keeps only codes. */
@@ -80,12 +80,12 @@ export function supervisionEffectFailureLine(
   plan: Pick<OperatingActionPlanV1, "effectContract" | "actionKind">,
   error: unknown,
 ): string {
-  return `Lervo supervision effect uncertain (${plan.actionKind} ${plan.effectContract}): ${boundedError(error)}`;
+  return `Lervo supervision effect uncertain (${plan.actionKind} ${plan.effectContract}): ${boundedError(error, 400)}`;
 }
 
-function boundedError(error: unknown): string {
+function boundedError(error: unknown, limit: number): string {
   const message = (error instanceof Error ? error.message : String(error))
     .replace(/[\r\n\0]+/gu, " ")
-    .slice(0, 200);
+    .slice(0, limit);
   return `${error instanceof Error ? error.name : "unknown"}: ${message}`;
 }

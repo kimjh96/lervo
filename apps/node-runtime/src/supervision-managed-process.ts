@@ -66,6 +66,7 @@ export async function runSupervisedManagedProcess(input: {
   const body = JSON.stringify({ invocation, providerExecutable: configuration.providerExecutable });
   if (Buffer.byteLength(body) > 256 * 1024) throw new Error("The managed invocation is too large.");
   let monitor: Promise<void> = Promise.resolve();
+  let stderrTail = Buffer.alloc(0);
   try {
     await new Promise<void>((resolve, reject) => {
       let child: ReturnType<typeof spawn>;
@@ -131,7 +132,10 @@ export async function runSupervisedManagedProcess(input: {
         if (bytes > 1024 * 1024) abort("managed_output_bound_exceeded");
       };
       child.stdout!.on("data", collect);
-      child.stderr!.on("data", collect);
+      child.stderr!.on("data", (chunk: Buffer) => {
+        collect(chunk);
+        stderrTail = Buffer.concat([stderrTail, chunk]).subarray(-4096);
+      });
       child.stdin!.on("error", () => abort("managed_stdin_failed"));
       child.once("error", () => {
         cleanup();
@@ -175,7 +179,7 @@ export async function runSupervisedManagedProcess(input: {
   )
     throw new SupervisedManagedProcessError(
       "managed_dispatch_evidence_missing",
-      "The managed worker has no exact canonical dispatch evidence.",
+      `The managed worker has no exact canonical dispatch evidence${workerFailureSuffix(stderrTail)}.`,
     );
   if (observedSupervisionRunTermination(events) === null)
     throw new SupervisedManagedProcessError(
@@ -200,5 +204,17 @@ async function revalidateWithinAuthorityWindow(revalidate: () => Promise<void>):
     ]);
   } finally {
     if (deadline !== undefined) clearTimeout(deadline);
+  }
+}
+
+/** The worker CLI's last bounded failure line, for host diagnostics only. */
+export function workerFailureSuffix(stderrTail: Buffer): string {
+  const line = stderrTail.toString("utf8").trim().split("\n").at(-1) ?? "";
+  try {
+    const failure = JSON.parse(line) as { reason?: unknown; message?: unknown };
+    if (typeof failure.reason !== "string" || typeof failure.message !== "string") return "";
+    return ` (worker ${failure.reason.slice(0, 64)}: ${failure.message.replace(/[\r\n\0]+/gu, " ").slice(0, 200)})`;
+  } catch {
+    return "";
   }
 }
