@@ -7,13 +7,17 @@ import {
   type NodeSupervisionBinding,
 } from "./supervision-authority.js";
 
-/** Resolve only reviewed revisions descending from the root pinned by Node configuration. */
+/**
+ * Resolve only reviewed revisions at or after the root installation pinned by Node configuration.
+ * The pin may name the first or a later installation, so a configuration written against a revised
+ * root stays valid; revisions installed before the pin are never selected.
+ */
 export async function resolveStandingRoot(
   storage: ProjectStorage,
   pinned: NodeSupervisionBinding,
   now: () => string,
 ): Promise<{ binding: NodeSupervisionBinding; installation: InstalledOperatingMandate }> {
-  let firstHash: string | null = null;
+  let pinnedSeen = false;
   let latestHash: string | null = null;
   let afterSeq = 0;
   while (true) {
@@ -30,12 +34,12 @@ export async function resolveStandingRoot(
       )
         continue;
       const hash = String(event.payload.mandateHash);
-      firstHash ??= hash;
-      latestHash = hash;
+      if (hash === pinned.mandateHash) pinnedSeen = true;
+      if (pinnedSeen) latestHash = hash;
     }
     if (events.length < 1000) break;
   }
-  if (firstHash !== pinned.mandateHash || latestHash === null)
+  if (!pinnedSeen || latestHash === null)
     throw new NodeSupervisionError("supervision_binding_invalid");
   const binding = { ...pinned, mandateHash: latestHash };
   // The journal verifies every installation and predecessor, not just the newest event.

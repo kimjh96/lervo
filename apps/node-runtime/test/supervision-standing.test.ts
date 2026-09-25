@@ -119,7 +119,7 @@ async function installStandingRoot(maximumSuccessors: number) {
   return { f, storage, root, rootMandate, request };
 }
 
-it("follows a reviewed root mandate revision while keeping the configured ancestor pinned", async () => {
+it("follows a reviewed root mandate revision from the configured first or later installation", async () => {
   const { f, storage, root, rootMandate } = await installStandingRoot(1);
   const revised: OperatingMandateV3 = {
     ...rootMandate,
@@ -144,6 +144,13 @@ it("follows a reviewed root mandate revision while keeping the configured ancest
   expect(resolved.index).toBe(0);
   expect(resolved.binding).toEqual({ ...root, mandateHash: installed.mandateHash });
   expect(resolved.installation.mandate.maximumAttemptsPerAssignment).toBe(3);
+  // A configuration written against the revision keeps resolving it.
+  const pinnedToRevision = await resolveStandingSupervisionBinding(
+    storage,
+    { ...root, mandateHash: installed.mandateHash },
+    () => new Date().toISOString(),
+  );
+  expect(pinnedToRevision.binding).toEqual({ ...root, mandateHash: installed.mandateHash });
   await expect(
     resolveStandingSupervisionBinding(
       storage,
