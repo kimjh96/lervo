@@ -10,6 +10,7 @@ import type { OperatingActionPlanV1 } from "@lervo/application-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 
 import {
+  abandonedTurnFailureCode,
   isProvenAbandonedTurnFailure,
   type AbandonedTurnFailureDiagnostic,
 } from "./supervision-abandoned-turn-failure.js";
@@ -101,6 +102,7 @@ export async function recoverAbandonedTurn(input: {
           reserved.payload.executionKey !== operatingContractHash(plan)
         )
           throw new Error("The abandoned run differs from its admitted decision.");
+        const failureCode = abandonedTurnFailureCode(events);
         const observedAt = now();
         const witness = observeWitness({
           unit: input.unit,
@@ -110,7 +112,7 @@ export async function recoverAbandonedTurn(input: {
         const diagnostic: AbandonedTurnFailureDiagnostic = {
           schemaVersion: 1,
           kind: "work.managed_abandoned_turn_failure",
-          failures: [{ code: "interrupted_after_turn_start", phase: "recovery", retryable: false }],
+          failures: [{ code: failureCode, phase: "recovery", retryable: false }],
           runEvents: events.map((event) => ({
             eventId: event.eventId,
             eventHash: event.eventHash,
@@ -121,7 +123,7 @@ export async function recoverAbandonedTurn(input: {
         const artifact = await storage.artifacts.put(canonicalJson(diagnostic));
         const head = storage.events.latest();
         if (head === null) throw new Error("The recovery event head is absent.");
-        const eventId = `evt_${operatingContractHash({ runId: input.runId, kind: "interrupted_after_turn_start" }).slice(7, 39)}`;
+        const eventId = `evt_${operatingContractHash({ runId: input.runId, kind: failureCode }).slice(7, 39)}`;
         const terminal = {
           ...events.at(-1)!,
           type: "run.failed" as const,
@@ -131,7 +133,7 @@ export async function recoverAbandonedTurn(input: {
           seq: head.seq + 1,
           occurredAt: now(),
           payload: {
-            failureCode: "interrupted_after_turn_start",
+            failureCode,
             retryable: false,
             diagnosticDigest: artifact.contentHash,
           },
@@ -174,7 +176,7 @@ export async function recoverAbandonedTurn(input: {
               actor: { kind: "system" },
               policyVersion: events.at(-1)!.policyVersion,
               payload: {
-                failureCode: "interrupted_after_turn_start",
+                failureCode,
                 retryable: false,
                 diagnosticDigest: artifact.contentHash,
               },

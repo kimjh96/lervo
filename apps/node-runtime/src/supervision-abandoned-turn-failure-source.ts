@@ -2,7 +2,11 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
-import { isProvenAbandonedTurnFailure } from "./supervision-abandoned-turn-failure.js";
+import {
+  ABANDONED_READ_ONLY_TURN,
+  ABANDONED_WRITE_TURN,
+  isProvenAbandonedTurnFailure,
+} from "./supervision-abandoned-turn-failure.js";
 
 /** Settles no run unless the exact terminal and its local proof artifact remain readable. */
 export async function readProvenAbandonedTurnFailure(
@@ -10,7 +14,11 @@ export async function readProvenAbandonedTurnFailure(
   artifacts: ArtifactStore,
 ): Promise<boolean> {
   const terminal = events.find((event) => event.type === "run.failed");
-  if (terminal?.payload.failureCode !== "interrupted_after_turn_start") return false;
+  if (
+    terminal === undefined ||
+    ![ABANDONED_READ_ONLY_TURN, ABANDONED_WRITE_TURN].includes(String(terminal.payload.failureCode))
+  )
+    return false;
   const hash = terminal.payload.diagnosticDigest;
   if (
     terminal.schemaVersion !== 1 ||

@@ -2,6 +2,10 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 import { type EventEnvelope } from "@lervo/schemas";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { isProvenPreTurnFailure } from "./supervision-pre-turn-failure.js";
+import {
+  ABANDONED_READ_ONLY_TURN,
+  ABANDONED_WRITE_TURN,
+} from "./supervision-abandoned-turn-failure.js";
 import { observedSupervisionRunTermination } from "./supervision-run-termination.js";
 
 /** A stopped turn is safely repeatable only when its actual session cannot perform tool effects. */
@@ -18,6 +22,16 @@ export async function observeSupervisionFailure(
     !/^sha256:[a-f0-9]{64}$/u.test(String(terminal.payload.diagnosticDigest))
   )
     throw new Error("The failed task has malformed terminal evidence.");
+  // An abandoned turn is settled by a separate proof and never claims its effects were safe.
+  if (
+    terminal.payload.failureCode === ABANDONED_READ_ONLY_TURN ||
+    terminal.payload.failureCode === ABANDONED_WRITE_TURN
+  )
+    return {
+      status: "uncertain" as const,
+      reasonCode: "abandoned_turn_effects_uncertain",
+      diagnostic: null,
+    };
   const hash = String(terminal.payload.diagnosticDigest);
   if (!(await artifacts.has(`lervo-cas://sha256/${hash.slice(7)}`)))
     return {

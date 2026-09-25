@@ -20,11 +20,25 @@ const EFFECT_TYPES = [
   "unmanaged_change.detected",
 ] as const;
 export type AbandonedTurnInvocationWitness = UnitInvocationWitness;
+/** A read-only turn proves no work; a writable turn settles only as effects-uncertain. */
+export const ABANDONED_READ_ONLY_TURN = "interrupted_after_turn_start";
+export const ABANDONED_WRITE_TURN = "interrupted_after_write_turn_start";
+export type AbandonedTurnFailureCode =
+  typeof ABANDONED_READ_ONLY_TURN | typeof ABANDONED_WRITE_TURN;
+
+export function abandonedTurnFailureCode(
+  events: readonly EventEnvelope[],
+): AbandonedTurnFailureCode {
+  const started = events.find((event) => event.type === "adapter.started");
+  return started?.payload.executionMode === "read_only"
+    ? ABANDONED_READ_ONLY_TURN
+    : ABANDONED_WRITE_TURN;
+}
 
 export interface AbandonedTurnFailureDiagnostic {
   schemaVersion: 1;
   kind: "work.managed_abandoned_turn_failure";
-  failures: [{ code: "interrupted_after_turn_start"; phase: "recovery"; retryable: false }];
+  failures: [{ code: AbandonedTurnFailureCode; phase: "recovery"; retryable: false }];
   runEvents: { eventId: string; eventHash: string; type: string }[];
   witness: AbandonedTurnInvocationWitness;
 }
@@ -40,9 +54,10 @@ function exactKeys(value: Record<string, unknown>, keys: readonly string[]): boo
 }
 
 /**
- * A provider session that opened and was then killed with its owning process proves no work and no
- * usage. The proof settles the run as terminal and never claims the turn was safe to repeat: the
- * adapter must have been read-only, nothing may prove work progress, and no effect event may exist.
+ * A provider session that opened and was then killed with its owning process settles as terminal
+ * and never claims the turn was safe to repeat. A read-only turn additionally proves no work: no
+ * work progress and no effect event may exist. A writable turn may carry effects, so it settles
+ * only with the separate write code, which failure observation reports as effects-uncertain.
  */
 export function isProvenAbandonedTurnFailure(
   events: readonly EventEnvelope[],
@@ -62,7 +77,7 @@ export function isProvenAbandonedTurnFailure(
     diagnostic.failures.length !== 1 ||
     failure === null ||
     !exactKeys(failure, ["code", "phase", "retryable"]) ||
-    failure.code !== "interrupted_after_turn_start" ||
+    failure.code !== abandonedTurnFailureCode(events) ||
     failure.phase !== "recovery" ||
     failure.retryable !== false ||
     !Array.isArray(diagnostic.runEvents) ||
@@ -75,13 +90,15 @@ export function isProvenAbandonedTurnFailure(
     original.length < PREFIX.length + 1 ||
     !PREFIX.every((type, index) => original[index]?.type === type) ||
     started.length !== 1 ||
-    started[0]!.payload.executionMode !== "read_only" ||
     started[0]!.seq <= original[PREFIX.length - 1]!.seq ||
     processes.length === 0 ||
-    processes.some((event) => event.payload.provesWorkProgress !== false) ||
+    (started[0]!.payload.executionMode === "read_only" &&
+      (processes.some((event) => event.payload.provesWorkProgress !== false) ||
+        original.some((event) =>
+          EFFECT_TYPES.includes(event.type as (typeof EFFECT_TYPES)[number]),
+        ))) ||
     original.some(
       (event) =>
-        EFFECT_TYPES.includes(event.type as (typeof EFFECT_TYPES)[number]) ||
         event.type === "resource.usage.recorded" ||
         event.type === "adapter.stopped" ||
         event.type === "run.completed" ||
@@ -101,7 +118,7 @@ export function isProvenAbandonedTurnFailure(
       "retryable",
       "diagnosticDigest",
     ]) ||
-    terminal.payload.failureCode !== "interrupted_after_turn_start" ||
+    terminal.payload.failureCode !== failure.code ||
     terminal.payload.retryable !== false ||
     events.some(
       (event) =>

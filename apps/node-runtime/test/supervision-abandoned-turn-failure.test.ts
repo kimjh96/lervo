@@ -33,7 +33,9 @@ function event(
   } as unknown as EventEnvelope;
 }
 
-function scenario(overrides: { original?: EventEnvelope[]; retryable?: boolean } = {}) {
+function scenario(
+  overrides: { original?: EventEnvelope[]; retryable?: boolean; code?: string } = {},
+) {
   const original = overrides.original ?? [
     event(1, "managed.execution.reserved", 0),
     event(2, "work.causality.recorded", 1000),
@@ -56,7 +58,7 @@ function scenario(overrides: { original?: EventEnvelope[]; retryable?: boolean }
     actor: { kind: "system" },
     occurredAt: new Date(START + 601_000).toISOString(),
     payload: {
-      failureCode: "interrupted_after_turn_start",
+      failureCode: overrides.code ?? "interrupted_after_turn_start",
       retryable: overrides.retryable ?? false,
       diagnosticDigest: `sha256:${"d".repeat(64)}`,
     },
@@ -64,7 +66,13 @@ function scenario(overrides: { original?: EventEnvelope[]; retryable?: boolean }
   const diagnostic: AbandonedTurnFailureDiagnostic = {
     schemaVersion: 1,
     kind: "work.managed_abandoned_turn_failure",
-    failures: [{ code: "interrupted_after_turn_start", phase: "recovery", retryable: false }],
+    failures: [
+      {
+        code: (overrides.code ?? "interrupted_after_turn_start") as "interrupted_after_turn_start",
+        phase: "recovery",
+        retryable: false,
+      },
+    ],
     runEvents: original.map((item) => ({
       eventId: item.eventId,
       eventHash: item.eventHash,
@@ -104,6 +112,41 @@ describe("abandoned managed turn proof", () => {
     });
     expect(isProvenAbandonedTurnFailure(withUsage.events, withUsage.diagnostic)).toBe(false);
     expect(isProvenAbandonedTurnFailure(events, diagnostic)).toBe(true);
+  });
+
+  it("settles a writable turn that changed files only with the effects-uncertain write code", () => {
+    // Kael's documentation worker changed a file and its CLI died without a terminal event.
+    const original = [
+      ...scenario().events.slice(0, 5),
+      event(6, "adapter.started", 23_000, { executionMode: "write" }),
+      event(7, "provider.process.observed", 23_100, { provesWorkProgress: true }),
+      event(8, "file.changed", 26_000),
+      event(9, "provider.process.observed", 39_000, { provesWorkProgress: true }),
+    ];
+    const written = scenario({ original, code: "interrupted_after_write_turn_start" });
+    expect(isProvenAbandonedTurnFailure(written.events, written.diagnostic)).toBe(true);
+    const claimedReadOnly = scenario({ original });
+    expect(isProvenAbandonedTurnFailure(claimedReadOnly.events, claimedReadOnly.diagnostic)).toBe(
+      false,
+    );
+    const withUsage = scenario({
+      original: [...original, event(10, "resource.usage.recorded", 40_000)],
+      code: "interrupted_after_write_turn_start",
+    });
+    expect(isProvenAbandonedTurnFailure(withUsage.events, withUsage.diagnostic)).toBe(false);
+  });
+
+  it("reports every abandoned turn as effects-uncertain, never as a safe failure", async () => {
+    const { observeSupervisionFailure } = await import("../src/supervision-failure-observation.js");
+    const { events } = scenario({ code: "interrupted_after_write_turn_start" });
+    const artifacts = {
+      has: async () => true,
+      get: async () => new TextEncoder().encode("{}"),
+    } as unknown as Parameters<typeof observeSupervisionFailure>[1];
+    await expect(observeSupervisionFailure(events, artifacts)).resolves.toMatchObject({
+      status: "uncertain",
+      reasonCode: "abandoned_turn_effects_uncertain",
+    });
   });
 
   it("refuses a writable adapter, a proven work turn, an effect event, or a retryable terminal", () => {
