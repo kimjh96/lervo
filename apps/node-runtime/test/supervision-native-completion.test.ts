@@ -434,6 +434,24 @@ it.each([
         ...(scenario === "publication_retry" ? ["prepare_publication"] : []),
       ]);
       const source = await new SupervisionTaskSource(storage, f.binding, f.ports.now).read();
+      const dispatched = (
+        await Promise.all(
+          source.events
+            .filter((event) => event.type === "work.supervision.decision.recorded")
+            .map(
+              (event) =>
+                readSupervisionJsonArtifact(
+                  storage.artifacts,
+                  String(event.payload.planArtifactHash),
+                ) as Promise<OperatingActionPlanV1>,
+            ),
+        )
+      ).filter((plan) => plan.effectContract === "work.managed_execution.v1");
+      expect(dispatched.length).toBeGreaterThan(0);
+      // The worker is capped at its reservation, so it carries the reviewed attempt budget
+      // rather than the owner reasoning reservation of 100.
+      for (const plan of dispatched)
+        expect(plan.reservedTokens).toBe(f.mandate.maximumAttemptTokens);
       if (scenario.startsWith("late_")) {
         const decisions = source.events.filter(
           (event) => event.type === "work.supervision.decision.recorded",

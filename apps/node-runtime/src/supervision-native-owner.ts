@@ -124,7 +124,9 @@ export class NativeSupervisionOwner {
           base,
           assignmentIds: report.assignmentIds,
           readiness: this.readiness,
-          reservedTokens: this.configuration.reservedTokens,
+          // The worker run is capped at this reservation, so it is the reviewed attempt budget,
+          // never the owner reasoning reservation.
+          reservedTokens: facts.mandate.maximumAttemptTokens,
           now: this.now,
         });
       if (report.reasonCode === "responsibility_installation_required") {

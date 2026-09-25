@@ -11,6 +11,7 @@ Resource usage of a managed provider run was recorded only after the run ended. 
 
 - `ManagedProviderInteractionLimits` accepts an optional `maximumTotalTokens`. The limit uses the same measure as resource accounting: turn-cumulative total tokens, cached input included. The limiter keeps the largest value observed per provider turn and sums the turns. When the sum exceeds the limit, the run fails with `provider_token_limit_exceeded`. The provider turn is then stopped through the existing failure path, like the tool and command limits.
 - A supervised managed run passes its effect's `reservedTokens` as `maximumTotalTokens`. Unsupervised runs are unchanged.
+- A native owner dispatch reserves the mandate's reviewed `maximumAttemptTokens` for the worker. The owner reasoning reservation (`ownerReasoning.reservedTokens`) bounds only owner reasoning turns and never caps a worker. Admission still blocks a dispatch that exceeds the attempt or aggregate budget.
 - The Claude adapter emits the new normalized event `provider.usage.estimated` (`providerTurnId`, `totalTokens`) after each assistant API message. The total counts every API message in the turn once, at its largest reported input, cache-read, cache-creation and output usage. The event is a lower bound for enforcement only. It is neither persisted nor accounting evidence. `provider.usage.updated` remains the only input to resource accounting, so an estimate can never regress the recorded counters. Codex already emits turn-cumulative `provider.usage.updated` during a turn.
 - The estimate carries only counts and a provider turn ID, with no prompt, output or model text.
 
@@ -27,6 +28,7 @@ A supervised attempt can no longer spend far beyond its reservation unnoticed. A
 - Orchestrator: a run whose turn-cumulative usage reaches 1,001 against a 1,000 limit fails `provider_token_limit_exceeded` and stops the adapter; usage of exactly 1,000 completes.
 - Claude normalizer: repeated content blocks of one API message count once at their largest usage, and distinct messages sum.
 - Existing supervised managed-run suites pass with reservations applied.
+- Native completion: every dispatched `work.managed_execution.v1` plan reserves the mandate's attempt budget, not the owner reservation. On 2026-09-25 Kael's documentation worker had been stopped with `provider_token_limit_exceeded` (150,173 tokens recorded) because dispatch had reused the 160,000 owner reservation instead of the 600,000 attempt budget.
 
 ## References
 
