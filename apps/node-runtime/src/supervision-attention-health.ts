@@ -87,5 +87,9 @@ function boundedError(error: unknown, limit: number): string {
   const message = (error instanceof Error ? error.message : String(error))
     .replace(/[\r\n\0]+/gu, " ")
     .slice(0, limit);
-  return `${error instanceof Error ? error.name : "unknown"}: ${message}`;
+  const code = (error as { code?: unknown } | null)?.code;
+  // A bounded failure code names which guard ended the effect, such as a revalidation abort.
+  const suffix =
+    typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code) ? ` [${code}]` : "";
+  return `${error instanceof Error ? error.name : "unknown"}: ${message}${suffix}`;
 }

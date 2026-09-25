@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import {
+  authorityRenewalTick,
   runSupervisedManagedProcess,
   SupervisedManagedProcessError,
 } from "../src/supervision-managed-process.js";
@@ -78,4 +79,49 @@ it("reports cancellation and a missing dispatch record distinctly", async () => 
     `process.stdin.resume(); process.stdin.on("end", () => process.exit(0));`,
   );
   await expect(silent.run()).rejects.toMatchObject({ code: "managed_dispatch_evidence_missing" });
+});
+
+it("tolerates two slow authority reads, but aborts on the third, a rejection, or a late failure", async () => {
+  const sleep = (ms: number) => new Promise<void>((settle) => setTimeout(settle, ms));
+  const record = (revalidate: () => Promise<void>) => {
+    const outcome = { renewed: 0, aborted: 0 };
+    const tick = authorityRenewalTick({
+      revalidate,
+      renew: () => outcome.renewed++,
+      abort: () => outcome.aborted++,
+      windowMs: 20,
+    });
+    return { tick, outcome };
+  };
+
+  const slow = record(() => sleep(60));
+  await slow.tick();
+  await slow.tick();
+  expect(slow.outcome).toEqual({ renewed: 0, aborted: 0 });
+  await slow.tick();
+  expect(slow.outcome.aborted).toBe(1);
+
+  let calls = 0;
+  const recovering = record(() => (++calls <= 2 ? sleep(60) : Promise.resolve()));
+  await recovering.tick();
+  await recovering.tick();
+  await recovering.tick();
+  await recovering.tick();
+  await recovering.tick();
+  expect(recovering.outcome).toEqual({ renewed: 3, aborted: 0 });
+
+  const revoked = record(async () => {
+    throw new Error("revoked");
+  });
+  await revoked.tick();
+  expect(revoked.outcome).toEqual({ renewed: 0, aborted: 1 });
+
+  const late = record(async () => {
+    await sleep(60);
+    throw new Error("revoked after the window");
+  });
+  await late.tick();
+  expect(late.outcome.aborted).toBe(0);
+  await sleep(80);
+  expect(late.outcome.aborted).toBe(1);
 });

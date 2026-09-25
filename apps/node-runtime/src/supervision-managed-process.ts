@@ -105,18 +105,19 @@ export async function runSupervisedManagedProcess(input: {
       };
       const deadline = setTimeout(() => abort("managed_deadline_elapsed"), timeout);
       let checking = false;
+      const tick = authorityRenewalTick({
+        revalidate: input.revalidate,
+        renew: () => {
+          if (!settled && interrupted === null) input.fence.renew();
+        },
+        abort: () => abort("managed_revalidation_failed"),
+      });
       const renewal = setInterval(() => {
         if (checking || settled) return;
         checking = true;
-        monitor = Promise.resolve()
-          .then(() => revalidateWithinAuthorityWindow(input.revalidate))
-          .then(() => {
-            if (!settled && interrupted === null) input.fence.renew();
-          })
-          .catch(() => abort("managed_revalidation_failed"))
-          .finally(() => {
-            checking = false;
-          });
+        monitor = tick().finally(() => {
+          checking = false;
+        });
       }, 60_000);
       const cancel = () => abort("managed_cancelled");
       input.signal?.addEventListener("abort", cancel, { once: true });
@@ -190,16 +191,57 @@ export async function runSupervisedManagedProcess(input: {
 }
 
 /** An unavailable authority read must not hold cancellation or the serial owner indefinitely. */
-async function revalidateWithinAuthorityWindow(revalidate: () => Promise<void>): Promise<void> {
+/**
+ * One authority renewal per tick. A revoked or invalid authority aborts the worker at once. A read
+ * that outlives its window is tolerated twice in a row, which still ends within the five-minute
+ * worker lease since the last renewal, because heavy verification load can slow the read.
+ */
+export function authorityRenewalTick(input: {
+  revalidate: () => Promise<void>;
+  renew: () => void;
+  abort: () => void;
+  windowMs?: number;
+}): () => Promise<void> {
+  let expiredObservations = 0;
+  return () =>
+    revalidateWithinAuthorityWindow(input.revalidate, input.abort, input.windowMs ?? 5000)
+      .then(() => {
+        expiredObservations = 0;
+        input.renew();
+      })
+      .catch((error) => {
+        if (error instanceof AuthorityObservationExpired && ++expiredObservations < 3) return;
+        input.abort();
+      });
+}
+
+class AuthorityObservationExpired extends Error {
+  constructor() {
+    super("The managed process authority observation expired.");
+    this.name = "AuthorityObservationExpired";
+  }
+}
+
+async function revalidateWithinAuthorityWindow(
+  revalidate: () => Promise<void>,
+  onLateFailure: () => void,
+  windowMs: number,
+): Promise<void> {
   let deadline: ReturnType<typeof setTimeout> | undefined;
+  let expired = false;
+  const observation = Promise.resolve().then(revalidate);
+  // An observation that outlives its window still aborts the worker if it later fails.
+  observation.catch(() => {
+    if (expired) onLateFailure();
+  });
   try {
     await Promise.race([
-      Promise.resolve().then(revalidate),
+      observation,
       new Promise<never>((_resolve, reject) => {
-        deadline = setTimeout(
-          () => reject(new Error("The managed process authority observation expired.")),
-          5000,
-        );
+        deadline = setTimeout(() => {
+          expired = true;
+          reject(new AuthorityObservationExpired());
+        }, windowMs);
       }),
     ]);
   } finally {
