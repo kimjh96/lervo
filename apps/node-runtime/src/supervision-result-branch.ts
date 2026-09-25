@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { listAssignments, listWorkspaces } from "@lervo/agent-workforce";
+import { openProjectStorage } from "@lervo/project-storage";
 
 import { ConversationChangeLoop } from "./conversation-change-loop.js";
 
@@ -86,32 +87,84 @@ export async function publishSupervisionResultWorkspace(input: {
 }
 
 /**
- * Publishes every completed worker assignment's checkout as `lervo/results/<assignment>`. The
+ * `<assignment>:<artifact>` pairs the owner accepted. A completed assignment only means the worker
+ * returned a result; the owner may still reject it, so publication needs an accepted review that
+ * names that exact result artifact.
+ */
+export function acceptedResultKeys(
+  events: readonly { type: string; payload: unknown }[],
+): Set<string> {
+  const accepted = new Set<string>();
+  for (const event of events) {
+    if (event.type !== "work.supervision.review.recorded") continue;
+    const payload = event.payload as {
+      verdict?: unknown;
+      assignmentIds?: unknown;
+      artifactHashes?: unknown;
+    };
+    if (
+      payload.verdict !== "accepted" ||
+      !Array.isArray(payload.assignmentIds) ||
+      !Array.isArray(payload.artifactHashes)
+    )
+      continue;
+    for (const assignmentId of payload.assignmentIds)
+      for (const artifact of payload.artifactHashes)
+        accepted.add(`${String(assignmentId)}:${String(artifact)}`);
+  }
+  return accepted;
+}
+
+async function acceptedResults(repositoryRoot: string): Promise<ReadonlySet<string>> {
+  const storage = await openProjectStorage(repositoryRoot);
+  try {
+    const accepted = new Set<string>();
+    let afterSeq = 0;
+    while (true) {
+      const events = storage.events.list({ afterSeq, limit: 1000 });
+      for (const key of acceptedResultKeys(events)) accepted.add(key);
+      afterSeq = events.at(-1)?.seq ?? afterSeq;
+      if (events.length < 1000) break;
+    }
+    return accepted;
+  } finally {
+    await storage.close();
+  }
+}
+
+/**
+ * Publishes every owner-accepted worker assignment's checkout as `lervo/results/<assignment>`. The
  * user's checked-out branch and working tree are never touched: landing a result is a merge by a
  * later observed turn, which also queues its background knowledge review (ADR-0433).
  */
 export async function publishCompletedSupervisionResults(input: {
   repositoryRoot: string;
   parentDirectory: string;
+  acceptedResults?: (repositoryRoot: string) => Promise<ReadonlySet<string>>;
 }): Promise<PublishedSupervisionResult[]> {
   const assignments = new Map(
     (await listAssignments(input.repositoryRoot)).map((item) => [item.assignmentId, item]),
   );
   const published: PublishedSupervisionResult[] = [];
+  let accepted: ReadonlySet<string> | null = null;
   for (const workspace of await listWorkspaces(input.repositoryRoot)) {
     const assignment = assignments.get(workspace.assignmentId);
+    const artifact = assignment?.resultArtifacts[0]?.contentHash;
     if (
       workspace.executionKind !== "worker" ||
       workspace.state === "removed" ||
-      assignment?.status !== "completed"
+      assignment?.status !== "completed" ||
+      artifact === undefined
     )
       continue;
+    accepted ??= await (input.acceptedResults ?? acceptedResults)(input.repositoryRoot);
+    if (!accepted.has(`${assignment.assignmentId}:${artifact}`)) continue;
     const path = resolve(input.parentDirectory, workspace.workspaceId);
     if (!(await stat(path).catch(() => null))?.isDirectory()) continue;
     const result = await publishSupervisionResultWorkspace({
       path,
       assignmentId: workspace.assignmentId,
-      resultContentHash: assignment.resultArtifacts[0]?.contentHash ?? null,
+      resultContentHash: artifact,
       completedAt: assignment.updatedAt,
     });
     if (result !== null) published.push(result);
