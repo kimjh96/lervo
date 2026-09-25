@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
 
 import { SQLiteEventStore } from "../../event-store-sqlite/src/index.js";
+import { listCanonicalizationCandidates } from "../src/canonicalization-candidate.js";
 import {
   appendRepositoryChange,
   planRepositoryChange,
@@ -172,6 +173,38 @@ it("never claims currency for drifted source, candidates, or unavailable former 
     expect(outcome).toMatchObject({ terminalState: "stale", failureCode: "source_bytes_changed" });
   } finally {
     drifted.events.close();
+  }
+});
+
+it("registers the canonicalization candidate that assigns a pending review's canonical write", async () => {
+  const job = await queuedChange({ before: null });
+  try {
+    await processRepositoryKnowledgeJobs({
+      repositoryRoot: job.root,
+      events: job.events,
+      artifacts: job.artifacts,
+      workerId: "worker-a",
+      host: host("canonical_change_candidate"),
+    });
+    const payload = resolved(job.events)[0]?.payload as { canonicalizationCandidateId: string };
+    expect(payload).toMatchObject({ terminalState: "pending_review" });
+    const [candidate] = await listCanonicalizationCandidates(job.root);
+    expect(candidate).toMatchObject({
+      candidateId: payload.canonicalizationCandidateId,
+      observedState: "candidate",
+      sourceBindings: [
+        {
+          path: "src/a.ts",
+          beforeHash: null,
+          afterHash: digest("export const a = 2;\n"),
+          responsibility: "architecture_or_specification",
+        },
+      ],
+    });
+    await writeFile(resolve(job.root, "src/a.ts"), "export const a = 3;\n");
+    expect((await listCanonicalizationCandidates(job.root))[0]?.observedState).toBe("stale");
+  } finally {
+    job.events.close();
   }
 });
 

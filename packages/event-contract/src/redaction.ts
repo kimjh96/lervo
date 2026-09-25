@@ -70,6 +70,7 @@ export const eventPayloadAllowlists = {
     "attemptCount",
     "failureCode",
     "knowledgeSnapshotHash",
+    "canonicalizationCandidateId",
     "resolvedAt",
   ],
   "repository.change.completed": [

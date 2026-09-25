@@ -7,6 +7,7 @@ import {
   createVerifiedConversationControlReply,
 } from "@lervo/conversation-control";
 import { realtimeConversationWritingContract } from "@lervo/core";
+import { inspectEventWriterCoordinate } from "@lervo/project";
 import type { ConversationResponder } from "@lervo/interaction";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
@@ -148,6 +149,21 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
     );
   }
 
+  /**
+   * A v3 event writer settles knowledge through the ADR-0433 repository queue; an older writer
+   * or an unreadable coordinate keeps the synchronous knowledge check. An explicit option wins.
+   */
+  private async knowledgeMode(): Promise<"synchronous" | "pending_background"> {
+    if (this.options.knowledgeMode !== undefined) return this.options.knowledgeMode;
+    try {
+      const writer = await inspectEventWriterCoordinate(this.options.repositoryRoot);
+      if (writer.coordinate.selectedEventSchemaVersion === 3) return "pending_background";
+    } catch {
+      // The stricter synchronous check needs no writer coordinate.
+    }
+    return "synchronous";
+  }
+
   async respond(input: Parameters<ConversationResponder["respond"]>[0]) {
     const request = await readConversationControlMessage({
       artifactStore: this.options.artifactStore,
@@ -188,9 +204,10 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
     if (executor === undefined) {
       throw new Error(`The ${provider} repository work executor is not configured.`);
     }
+    const knowledgeMode = await this.knowledgeMode();
     const completionLifecycle = this.options.completionLifecycle ?? {
       capture:
-        this.options.knowledgeMode === "pending_background"
+        knowledgeMode === "pending_background"
           ? captureConversationRepositoryWorkPendingBaseline
           : captureConversationRepositoryWorkCompletionBaseline,
       reconcile: reconcileConversationRepositoryWorkCheckpoint,
@@ -324,8 +341,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           completedAt: result.completedAt,
         })) ?? "not_observed";
       const sourceManifest =
-        this.options.knowledgeMode === "pending_background" &&
-        repositoryChange.changedPaths.length > 0
+        knowledgeMode === "pending_background" && repositoryChange.changedPaths.length > 0
           ? prepareRepositoryWorkSourceManifest({ before, after, change: repositoryChange })
           : undefined;
       await completionLifecycle.verify({
@@ -345,9 +361,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         completedAt: result.completedAt,
         replicaConfigured: this.options.repositoryReplica !== undefined,
         checkpointDisposition,
-        ...(this.options.knowledgeMode === undefined
-          ? {}
-          : { knowledgeMode: this.options.knowledgeMode }),
+        knowledgeMode,
         ...(sourceManifest === undefined ? {} : { sourceManifest }),
       });
       this.options.store.complete({

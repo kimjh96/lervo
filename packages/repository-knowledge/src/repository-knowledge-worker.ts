@@ -6,6 +6,8 @@ import { promisify } from "node:util";
 
 import type { ArtifactStore, OutboxDelivery, OutboxStore } from "@lervo/storage-contract";
 
+import { assessCanonicalization } from "./canonicalization-candidate.js";
+
 import {
   MAXIMUM_REPOSITORY_CHANGE_PUBLISHED_PATHS,
   REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION,
@@ -50,6 +52,7 @@ class TerminalOutcome {
     readonly failureCode: string | null,
     readonly classification: RepositoryKnowledgeReviewDecision["classification"] | null = null,
     readonly knowledgeSnapshotHash: string | null = null,
+    readonly canonicalizationCandidateId: string | null = null,
   ) {}
 }
 
@@ -139,6 +142,51 @@ async function readManifest(artifacts: ArtifactStore, reference: { contentHash: 
   return { paths: manifest.paths };
 }
 
+/**
+ * Registers the canonicalization candidate whose review assigns the canonical write. Bindings stay
+ * exact to the reviewed bytes, so a later source change turns the candidate stale.
+ */
+async function pendingReview(
+  root: string,
+  delivery: OutboxDelivery,
+  manifest: { paths: { path: string; before: string | null; after: string | null }[] },
+): Promise<TerminalOutcome> {
+  const payload = delivery.event.payload as {
+    repositoryRevisionBefore: string;
+    repositoryRevisionAfter: string;
+  };
+  const files = (side: "before" | "after") =>
+    Object.fromEntries(
+      manifest.paths.flatMap((entry) => (entry[side] === null ? [] : [[entry.path, entry[side]]])),
+    );
+  try {
+    const assessment = await assessCanonicalization({
+      repositoryRoot: root,
+      beforeRevision: payload.repositoryRevisionBefore,
+      afterRevision: payload.repositoryRevisionAfter,
+      beforeFiles: files("before"),
+      afterFiles: files("after"),
+      disposition: "canonical_sources_current",
+      now: new Date(delivery.event.occurredAt),
+    });
+    return new TerminalOutcome(
+      "pending_review",
+      null,
+      "canonical_change_candidate",
+      null,
+      assessment.candidate?.candidateId ?? null,
+    );
+  } catch (error) {
+    if ((error as { code?: unknown }).code === "knowledge_source_limit_exceeded")
+      return new TerminalOutcome(
+        "attention_required",
+        "canonicalization_candidate_limit_exceeded",
+        "canonical_change_candidate",
+      );
+    throw error;
+  }
+}
+
 async function resolveJob(
   root: string,
   delivery: OutboxDelivery,
@@ -158,7 +206,7 @@ async function resolveJob(
     const sources = await reviewSources(root, manifest);
     const decision = await host.review(sources);
     if (decision.classification === "canonical_change_candidate")
-      return new TerminalOutcome("pending_review", null, decision.classification);
+      return await pendingReview(root, delivery, manifest);
     if (decision.classification === "needs_review")
       return new TerminalOutcome("attention_required", "review_needs_attention", "needs_review");
     // Unreconstructable former bytes cannot support a knowledge-currency claim.
@@ -210,6 +258,7 @@ function settle(
         attemptCount: Math.min(delivery.attemptCount, MAXIMUM_ATTEMPTS),
         failureCode: outcome.failureCode,
         knowledgeSnapshotHash: outcome.knowledgeSnapshotHash,
+        canonicalizationCandidateId: outcome.canonicalizationCandidateId,
         resolvedAt,
       },
     });

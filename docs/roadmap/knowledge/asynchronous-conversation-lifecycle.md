@@ -33,7 +33,11 @@ The core owner `processRepositoryKnowledgeJobs` claims these jobs and settles ea
 
 An installed Node with owner reasoning configured also hosts the owner in a bounded loop. The loop wakes on local event changes and at least every minute, using the configured absolute provider executable. It shares the CLI worker lock and per-job lease, so the two hosts never process the same job.
 
-Still outstanding: supervised-run integration, the narrow write assignment for canonical candidates, conversation completions on the shared destination, and installed evidence.
+A Discord repository-work turn on a version-3 writer now selects `pending_background` per turn from the writer coordinate. Its changed completion appends `repository.change.completed` with `sourceKind: conversation` and the same outbox job in the completion transaction. A replay adds nothing. An older or unreadable writer coordinate keeps the synchronous knowledge check. A link, special file, or unreadable Git commit records no job rather than an unreviewable one.
+
+A `pending_review` outcome now registers an exact-byte canonicalization candidate and names it in `canonicalizationCandidateId`. The candidate surfaces as a `canonicalization_review` attention item in the next terminal prompt context and in the operating attention report. That item is the narrow write assignment: the reviewing agent updates the canonical document and promotes the candidate with the target's exact hash. A later source change makes the candidate stale. A change that touches only canonical documents registers no candidate.
+
+Still outstanding: installed evidence and latency measurement. Supervised runs have no workspace integration step yet: Kael's worker results stay in isolated worktrees, and nothing calls `completeWorkspaceIntegration`. The ADR-0433 source for supervised runs waits for that integration step, because appending it earlier would claim unintegrated bytes as repository state.
 
 ## Reader-first foundation
 

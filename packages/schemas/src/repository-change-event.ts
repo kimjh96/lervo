@@ -84,6 +84,10 @@ export const repositoryKnowledgeResolvedEventPayloadSchema = {
       anyOf: [{ type: "string", pattern: "^[a-z][a-z0-9_]{0,63}$" }, { type: "null" }],
     },
     knowledgeSnapshotHash: { anyOf: [sha256Schema, { type: "null" }] },
+    /** The registered canonicalization candidate that assigns the canonical write. */
+    canonicalizationCandidateId: {
+      anyOf: [{ type: "string", pattern: "^kcanon_[a-f0-9]{24}$" }, { type: "null" }],
+    },
     resolvedAt: timestampSchema,
   },
   required: [

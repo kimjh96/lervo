@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { openProjectStorage } from "@lervo/project-storage";
+import { REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION } from "@lervo/repository-knowledge";
 import {
   applyWorkstreamStartPlan,
   createWorkstreamStartPlan,
@@ -222,6 +223,86 @@ describe("conversation repository work completion", () => {
           now: input.completedAt,
         }).enqueuedCount,
       ).toBe(0);
+    } finally {
+      await reopened.close();
+    }
+  });
+
+  it("queues a background repository knowledge job with a new-file completion exactly once", async () => {
+    const repositoryRoot = await currentRepository();
+    const baseline = await captureConversationRepositoryWorkPendingBaseline(repositoryRoot);
+    const repositoryChange = {
+      repositoryRevisionBefore: `sha256:${"a".repeat(64)}`,
+      repositoryRevisionAfter: `sha256:${"b".repeat(64)}`,
+      changedPaths: ["notes.md"],
+    };
+    const sourceManifest = prepareRepositoryWorkSourceManifest({
+      before: {
+        head: "1".repeat(40),
+        paths: new Map([["notes.md", "missing"]]),
+        revision: repositoryChange.repositoryRevisionBefore,
+      },
+      after: {
+        head: "1".repeat(40),
+        paths: new Map([["notes.md", `file:33188:${"2".repeat(64)}`]]),
+        revision: repositoryChange.repositoryRevisionAfter,
+      },
+      change: repositoryChange,
+    });
+    const storage = await openProjectStorage(repositoryRoot);
+    const result = await storage.artifacts.put("done");
+    await storage.close();
+    const input = {
+      repositoryRoot,
+      provider: "claude" as const,
+      baseline: { ...baseline, workstreamRevision: null },
+      repositoryChange,
+      sourceConversationEventId: `cve_${"9".repeat(64)}`,
+      workerAgentId: `agt_${"4".repeat(24)}`,
+      providerSessionId: "session",
+      requestedModel: null,
+      requestedReasoningEffort: null,
+      executionProfile: null,
+      allocationReason: "configured_default" as const,
+      requestContentHash: `sha256:${"5".repeat(64)}`,
+      result: { contentHash: result.contentHash, byteCount: result.byteCount, summary: "done" },
+      completedAt: "2026-09-23T00:01:00.000Z",
+      replicaConfigured: false,
+      checkpointDisposition: "provider_checkpoint" as const,
+      knowledgeMode: "pending_background" as const,
+      sourceManifest,
+    };
+    await verifyConversationRepositoryWorkCompletion(input);
+    await verifyConversationRepositoryWorkCompletion(input);
+    const reopened = await openProjectStorage(repositoryRoot);
+    try {
+      const events = reopened.events.list({ limit: 100 });
+      const completion = events.find(
+        (event) => event.type === "conversation.repository_work.completed",
+      );
+      const changes = events.filter((event) => event.type === "repository.change.completed");
+      expect(changes).toHaveLength(1);
+      expect(changes[0]).toMatchObject({
+        runId: completion?.runId,
+        payload: {
+          sourceKind: "conversation",
+          sourceEventId: completion?.eventId,
+          repositoryRevisionBefore: repositoryChange.repositoryRevisionBefore,
+          repositoryRevisionAfter: repositoryChange.repositoryRevisionAfter,
+          changedPaths: ["notes.md"],
+        },
+      });
+      expect(reopened.events.outstandingCount(REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION)).toBe(1);
+      const manifest = JSON.parse(
+        Buffer.from(
+          await reopened.artifacts.get(
+            `lervo-cas://sha256/${(changes[0]!.payload as { sourceManifest: { contentHash: string } }).sourceManifest.contentHash.slice(7)}`,
+          ),
+        ).toString("utf8"),
+      );
+      expect(manifest.paths).toEqual([
+        { path: "notes.md", before: null, after: `sha256:${"2".repeat(64)}` },
+      ]);
     } finally {
       await reopened.close();
     }

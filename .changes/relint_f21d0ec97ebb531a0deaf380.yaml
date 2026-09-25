@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f21d0ec97ebb531a0deaf380"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Queue Discord repository-work completions for background knowledge and register a canonicalization candidate for every pending review."

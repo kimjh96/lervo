@@ -10,12 +10,17 @@ import { assertManagedRepositoryKnowledgeCurrent } from "@lervo/managed-provider
 import { openProjectStorage } from "@lervo/project-storage";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
 import { MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS } from "@lervo/schemas";
+import { appendRepositoryChange } from "@lervo/repository-knowledge";
 import { collectRunEventsBounded } from "@lervo/storage-contract";
 
 import {
   createVerifiedConversationWorkMemoryDraft,
   prepareConversationWorkMemory,
 } from "./conversation-agent-memory.js";
+import {
+  conversationRepositoryChangeEventId,
+  planConversationRepositoryChange,
+} from "./conversation-repository-change.js";
 import { prepareConversationRepositoryWorkKnowledgeEvidence } from "./conversation-repository-work-knowledge-evidence.js";
 import type { RepositoryWorkChange } from "./repository-work-observation.js";
 import type { PreparedRepositoryWorkSourceManifest } from "./repository-work-source-manifest.js";
@@ -238,8 +243,35 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
         }),
       );
     } else {
+      // ADR-0433: a background-knowledge turn queues its change unit with the completion.
+      const change =
+        input.knowledgeMode === "pending_background" &&
+        input.sourceManifest !== undefined &&
+        storage.writableEventSchemaVersion === 3
+          ? await planConversationRepositoryChange({
+              repositoryRoot: input.repositoryRoot,
+              artifacts: storage.artifacts,
+              sourceManifest: input.sourceManifest,
+              completionEventId: draft.eventId,
+              completedAt: input.completedAt,
+            })
+          : null;
       storage.events.transact((transaction) => {
         const completion = transaction.append(draft).event;
+        if (change !== null)
+          appendRepositoryChange(
+            transaction,
+            {
+              eventId: conversationRepositoryChangeEventId(draft.eventId),
+              projectId: draft.projectId,
+              runId: draft.runId,
+              sessionId: draft.sessionId,
+              occurredAt: input.completedAt,
+              actor: { kind: "system" },
+              policyVersion: CONVERSATION_REPOSITORY_WORK_ASYNC_POLICY_VERSION,
+            },
+            change,
+          );
         transaction.append(
           createVerifiedConversationWorkMemoryDraft({
             projectId: storage.manifest.projectId,

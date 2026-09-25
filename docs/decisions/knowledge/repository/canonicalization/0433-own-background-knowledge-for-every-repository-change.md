@@ -45,7 +45,7 @@ A repository-scoped process lock allows one worker at a time. The per-job outbox
 The worker records one `conversation.repository_knowledge.resolved` outcome per job, extended with the generic source fields. The outcome is one of:
 
 - `current`: the review classified the change as implementation-only with a source-bound rationale, and the ordered migrate, refresh, and lint then passed. The outcome carries the resulting knowledge snapshot hash.
-- `pending_review`: the review found a canonical change candidate. The candidate is inspectable, and a separate narrow write assignment is required before the knowledge becomes current.
+- `pending_review`: the review found a canonical change candidate. The worker registers an exact-byte canonicalization candidate and records its `canonicalizationCandidateId`. The candidate's `canonicalization_review` attention item is the separate narrow write assignment: a reviewing agent updates the canonical document and promotes the candidate with the target's exact hash before the knowledge becomes current.
 - `stale` or `attention_required`: as defined in ADR-0427.
 
 A projection refresh alone never closes a canonicalization obligation. Retries, the attempt ceiling, capacity, and backpressure follow ADR-0427.
@@ -57,6 +57,8 @@ A projection refresh alone never closes a canonicalization obligation. Retries, 
 - `knowledge_worker_launch_failed`: the detached worker could not start. The job stays queued for the next worker or Node loop.
 
 ## Consequences
+
+A Discord conversation turn selects the background mode per turn when the writer coordinate is version 3, and otherwise keeps the synchronous check. Supervised runs have no workspace integration step today, so they record no change source until one exists.
 
 Terminal agents no longer need to keep global knowledge current synchronously before they stop. Until the core owner is verified in an installed repository, the existing synchronous terminal declaration remains available and the new source only adds durable obligations. Enabling `pending_background` on an installed Node still requires the ADR-0427 acceptance evidence.
 
