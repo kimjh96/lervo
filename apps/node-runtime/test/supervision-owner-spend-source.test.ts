@@ -103,13 +103,13 @@ it("charges earlier successor decisions against the same exact revocation epoch"
   const source = setup(2);
   expect(await readOwnerSpendAdmission({ ...source, plan: source.plans[1]! })).toEqual({
     disposition: "within",
-    reservedTokens: 200_000,
+    chargedTokens: 200_000,
     remainingTokens: 0,
   });
   const exceeded = setup(3);
   expect(await readOwnerSpendAdmission({ ...exceeded, plan: exceeded.plans[2]! })).toEqual({
     disposition: "exceeded",
-    reservedTokens: 300_000,
+    chargedTokens: 300_000,
     remainingTokens: 0,
   });
 });
@@ -145,19 +145,17 @@ it("rejects a changed anchor, missing current decision and corrupt plan evidence
   ).rejects.toThrow(/differs/u);
 });
 
-it("blocks a successor after an observed owner overrun without refunding the first reservation", async () => {
-  const source = setup(2);
-  const prior = source.plans[0]!;
-  const runId = managedExecutionIdentity(prior.projectId, operatingContractHash(prior)).runId;
-  source.events.push({
+function usageReceipt(plan: OperatingActionPlanV1, totalTokens: number): EventEnvelope {
+  const runId = managedExecutionIdentity(plan.projectId, operatingContractHash(plan)).runId;
+  return {
     eventId: `evt_${"f".repeat(32)}`,
     eventHash: hash("f"),
     seq: 4,
     schemaVersion: 3,
     type: "resource.usage.recorded",
-    projectId: prior.projectId,
+    projectId: plan.projectId,
     runId,
-    actor: { kind: "provider", provider: prior.provider },
+    actor: { kind: "provider", provider: plan.provider },
     payload: {
       workId: `wrk_${"f".repeat(24)}`,
       resourceObservationId: `ruo_${"f".repeat(24)}`,
@@ -169,7 +167,7 @@ it("blocks a successor after an observed owner overrun without refunding the fir
       status: "observed",
       reasonCode: null,
       modelIdentity: {
-        provider: prior.provider,
+        provider: plan.provider,
         requestedModel: "fixture",
         answerModel: "fixture",
         observedModelIds: ["fixture"],
@@ -177,18 +175,38 @@ it("blocks a successor after an observed owner overrun without refunding the fir
         unavailableReason: null,
       },
       usage: {
-        inputTokens: 100_001,
+        inputTokens: totalTokens,
         cachedInputTokens: 0,
         outputTokens: 0,
         reasoningOutputTokens: 0,
-        totalTokens: 100_001,
+        totalTokens,
         contextWindow: 200_000,
       },
     },
-  } as unknown as EventEnvelope);
+  } as unknown as EventEnvelope;
+}
+
+it("blocks a successor after an observed owner overrun without refunding the first reservation", async () => {
+  const source = setup(2);
+  source.events.push(usageReceipt(source.plans[0]!, 100_001));
   expect(await readOwnerSpendAdmission({ ...source, plan: source.plans[1]! })).toMatchObject({
     disposition: "exceeded",
   });
+});
+
+it("charges a completed owner decision its observed receipt instead of its reservation", async () => {
+  const source = setup(2);
+  source.events.push(usageReceipt(source.plans[0]!, 40_000));
+  expect(await readOwnerSpendAdmission({ ...source, plan: source.plans[1]! })).toEqual({
+    disposition: "within",
+    chargedTokens: 140_000,
+    remainingTokens: 60_000,
+  });
+  const next = setup(1);
+  next.events.push(usageReceipt(next.plans[0]!, 40_000));
+  expect(
+    await readOwnerSpendHeadroom({ ...next, scope: next.plans[0]!, nextReservedTokens: 160_000 }),
+  ).toBe(true);
 });
 
 it("reports proposal headroom from the same epoch before any decision is recorded", async () => {

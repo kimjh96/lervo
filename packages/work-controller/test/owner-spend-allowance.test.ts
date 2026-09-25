@@ -21,7 +21,7 @@ const reservation = (hex: string, reservedTokens: number) => ({
 });
 
 describe("owner spend epoch", () => {
-  it("retains full reservations across model changes, unavailable receipts and successors", () => {
+  it("charges a decision without a usage receipt at its full reservation", () => {
     const first = reservation("a", 100_000);
     const second = reservation("b", 100_000);
     expect(
@@ -30,14 +30,40 @@ describe("owner spend epoch", () => {
         currentDecisionId: second.decisionId,
         reservations: [first, second],
       }),
-    ).toEqual({ disposition: "within", reservedTokens: 200_000, remainingTokens: 0 });
+    ).toEqual({ disposition: "within", chargedTokens: 200_000, remainingTokens: 0 });
     expect(
       projectOwnerSpendAllowance({
         allowance,
         currentDecisionId: id("c"),
         reservations: [first, second, reservation("c", 1)],
       }),
-    ).toEqual({ disposition: "exceeded", reservedTokens: 200_001, remainingTokens: 0 });
+    ).toEqual({ disposition: "exceeded", chargedTokens: 200_001, remainingTokens: 0 });
+  });
+
+  it("charges a completed decision its provider-reported usage, not its reservation", () => {
+    const completed = { ...reservation("a", 150_000), observedTokens: 40_000 };
+    const current = reservation("b", 150_000);
+    expect(
+      projectOwnerSpendAllowance({
+        allowance,
+        currentDecisionId: current.decisionId,
+        reservations: [completed, current],
+      }),
+    ).toEqual({ disposition: "within", chargedTokens: 190_000, remainingTokens: 10_000 });
+    expect(
+      ownerSpendAdmitsReservation({
+        allowance,
+        reservations: [completed],
+        nextReservedTokens: 150_000,
+      }),
+    ).toBe(true);
+    expect(
+      ownerSpendAdmitsReservation({
+        allowance,
+        reservations: [completed, current],
+        nextReservedTokens: 10_001,
+      }),
+    ).toBe(false);
   });
 
   it("fails closed for missing, duplicated, malformed, or overflowing evidence", () => {

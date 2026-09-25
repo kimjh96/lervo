@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_505096fcbea0fc35fb307264"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Charge a completed supervised owner turn its provider-reported usage against the owner spend epoch instead of its full reservation."

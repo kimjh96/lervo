@@ -9,9 +9,13 @@ type Reservation = {
   usageUnavailable: boolean;
 };
 
+/**
+ * A completed turn is charged its provider-reported usage, which ADR-0432 enforces in the same
+ * measure as its reservation; a turn without a usage receipt stays charged in full.
+ */
 function sumReservations(reservations: readonly Reservation[]) {
   const seen = new Set<string>();
-  let reservedTokens = 0;
+  let chargedTokens = 0;
   let uncertainOrOverrun = false;
   for (const item of reservations) {
     if (
@@ -27,34 +31,34 @@ function sumReservations(reservations: readonly Reservation[]) {
     seen.add(item.decisionId);
     if (item.usageUnavailable || (item.observedTokens ?? 0) > item.reservedTokens)
       uncertainOrOverrun = true;
-    reservedTokens += item.reservedTokens;
-    if (!Number.isSafeInteger(reservedTokens))
+    chargedTokens += item.observedTokens ?? item.reservedTokens;
+    if (!Number.isSafeInteger(chargedTokens))
       throw new Error("The owner spend epoch exceeds safe integer accounting.");
   }
-  return { seen, reservedTokens, uncertainOrOverrun };
+  return { seen, chargedTokens, uncertainOrOverrun };
 }
 
-/** Exact decision reservations in one owner's post-anchor epoch; no cross-model usage conversion. */
+/** Charged decisions in one owner's post-anchor epoch; usage is never converted across models. */
 export function projectOwnerSpendAllowance(input: {
   allowance: Allowance;
   currentDecisionId: string;
   reservations: readonly Reservation[];
 }): {
   disposition: "within" | "exceeded";
-  reservedTokens: number;
+  chargedTokens: number;
   remainingTokens: number;
 } {
   const { allowance, currentDecisionId, reservations } = input;
-  const { seen, reservedTokens, uncertainOrOverrun } = sumReservations(reservations);
+  const { seen, chargedTokens, uncertainOrOverrun } = sumReservations(reservations);
   if (!seen.has(currentDecisionId))
     throw new Error("The owner spend epoch omits its current decision.");
-  const remainingTokens = Math.max(0, allowance.maximumReservedTokens - reservedTokens);
+  const remainingTokens = Math.max(0, allowance.maximumReservedTokens - chargedTokens);
   return {
     disposition:
-      !uncertainOrOverrun && reservedTokens <= allowance.maximumReservedTokens
+      !uncertainOrOverrun && chargedTokens <= allowance.maximumReservedTokens
         ? "within"
         : "exceeded",
-    reservedTokens,
+    chargedTokens,
     remainingTokens,
   };
 }
@@ -70,9 +74,9 @@ export function ownerSpendAdmitsReservation(input: {
 }): boolean {
   if (!Number.isSafeInteger(input.nextReservedTokens) || input.nextReservedTokens < 1)
     throw new Error("The next owner reservation is invalid.");
-  const { reservedTokens, uncertainOrOverrun } = sumReservations(input.reservations);
+  const { chargedTokens, uncertainOrOverrun } = sumReservations(input.reservations);
   return (
     !uncertainOrOverrun &&
-    reservedTokens + input.nextReservedTokens <= input.allowance.maximumReservedTokens
+    chargedTokens + input.nextReservedTokens <= input.allowance.maximumReservedTokens
   );
 }
