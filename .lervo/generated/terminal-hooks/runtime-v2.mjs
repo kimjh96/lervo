@@ -72712,12 +72712,18 @@ function gitIgnoredPaths(root2, paths) {
     child.stdin.end(paths.map((path) => `${path}\0`).join(""));
   });
 }
+var GENERATED_PREFIXES = [
+  ".lervo/generated/",
+  ".lervo/state/",
+  ".lervo/data/",
+  "docs/knowledge/"
+];
 async function planRepositoryChangeInRepository(input) {
   const { repositoryRoot, ...change } = input;
   const ignored2 = await gitIgnoredPaths(repositoryRoot, [
     .../* @__PURE__ */ new Set([...Object.keys(change.before.files), ...Object.keys(change.after.files)])
   ]);
-  const kept = (files) => Object.fromEntries(Object.entries(files).filter(([path]) => !ignored2.has(path)));
+  const kept = (files) => Object.fromEntries(Object.entries(files).filter(([path]) => !ignored2.has(path) && !GENERATED_PREFIXES.some((prefix) => path.startsWith(prefix))));
   return planRepositoryChange({
     ...change,
     before: { revision: change.before.revision, files: kept(change.before.files) },
