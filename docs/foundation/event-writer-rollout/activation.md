@@ -28,6 +28,10 @@ Follow the [safety boundary](safety.md). The commands below default to version 2
 
 Evidence creation, planning, and apply are separate operations. A changed manifest, coordinate, capability bundle, or evidence file makes the plan stale before mutation.
 
+## Hub-enabled repository without a Node
+
+A Hub-enabled clone with no registered Node on its host follows the local-only steps. `lervo event-contract evidence` then reports `authority.kind: repository_node_absent_v1` and the local runtime as the only reader, because only a Node synchronizes events to the Hub. Retire or upgrade a stale registration for the repository first; any matching registration requires the full Hub-enabled flow below.
+
 ## Hub-enabled activation
 
 1. Upgrade the local CLI, registered repository Node, and Hub to version 2-capable readers. Keep the registered Node running so its owner-only health snapshot is no older than two minutes.

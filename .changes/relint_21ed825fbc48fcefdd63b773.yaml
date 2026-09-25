@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_21ed825fbc48fcefdd63b773"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Let a Hub-enabled repository with no registered Node on its host activate a newer event writer from its local reader alone."

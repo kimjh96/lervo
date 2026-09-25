@@ -25,6 +25,19 @@ The Node health publisher additively binds its event-reader report to project, r
 
 Planning and applying remain separate. Before producing a ready plan, the CLI compares supplied distributed evidence with a fresh authoritative observation. Apply observes the fleet, service, config, Node health, and Hub again, requiring identical inventory, reader identities, and capabilities. The project domain owns pure exact-membership and revalidation decisions. CLI adapters own filesystem and network observation. The existing durable coordinate transaction owns mutation and recovery.
 
+### Amendment 2026-09-25: a Hub-enabled repository without a Node
+
+Only a repository Node synchronizes repository events to the Hub, and no CLI path does. A Hub-enabled clone with no registered Node on its host therefore has exactly one reader of its event database: the local runtime. Before this amendment such a clone could never activate a newer writer, because evidence required exactly one fleet member. That blocked the terminal change source for every Mac clone whose Node runs on another host.
+
+The evidence collector now first checks the fleet registry. If no registration shares the project ID or the canonical repository root, it emits schema version 2 evidence with:
+
+- `kind: repository_node_absent_v1`;
+- the manifest-derived repository identity hash;
+- an `inventoryHash` over the project, repository identity, and root;
+- exactly one reader, the local runtime.
+
+Any matching registration, including a stale or inactive one, keeps the `repository_node_fleet_v1` path and its Node and Hub requirements. A stale registration must be upgraded or retired, never ignored. Apply observes the registry again, so registering a Node between plan and apply makes the plan stale. A Node onboarded later runs a current runtime and synchronizes to a Hub that must already read the selected version. This relies on the release order that upgrades the Hub first.
+
 ## State and failure semantics
 
 `EventWriterActivationEvidence` schema version 1 remains the local-only form; schema version 2 is the distributed-authority form. The independently versioned selected-writer coordinate stores the resulting configuration hash and reader set. Both evidence forms are bounded to 64 KiB and at most 32 readers.

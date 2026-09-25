@@ -266,6 +266,40 @@ describe("event writer activation", () => {
     ).resolves.toMatchObject({ selectedEventSchemaVersion: 2 });
   });
 
+  it("activates a Node-less Hub-synced repository from its local reader only", async () => {
+    const root = await fixture();
+    const manifestPath = resolve(root, ".lervo/project.yaml");
+    const manifest = await readFile(manifestPath, "utf8");
+    await writeFile(
+      manifestPath,
+      manifest.replace("hubSyncEnabled: false", "hubSyncEnabled: true"),
+    );
+    const distributed = distributedEvidence();
+    const absent = {
+      ...distributed,
+      authority: { ...distributed.authority, kind: "repository_node_absent_v1" as const },
+      readers: distributed.readers.filter((reader) => reader.readerKind === "local"),
+    };
+    const plan = await planEventWriterActivation({
+      repositoryRoot: root,
+      evidence: absent,
+      targetEventSchemaVersion: 3,
+    });
+    expect(plan.status).toBe("ready");
+    // A Node or Hub reader contradicts the absence authority.
+    const contradicted = await planEventWriterActivation({
+      repositoryRoot: root,
+      evidence: { ...distributed, authority: absent.authority },
+      targetEventSchemaVersion: 3,
+    });
+    expect(contradicted.blockers).toContainEqual(
+      expect.objectContaining({ code: "reader_inventory_incomplete" }),
+    );
+    await expect(
+      applyEventWriterActivationPlan({ plan, approval: plan.planId, currentEvidence: absent }),
+    ).resolves.toMatchObject({ selectedEventSchemaVersion: 3 });
+  });
+
   it("blocks an incapable distributed reader before producing a ready plan", async () => {
     const root = await fixture();
     const manifestPath = resolve(root, ".lervo/project.yaml");

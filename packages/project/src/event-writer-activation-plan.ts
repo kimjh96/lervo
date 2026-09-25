@@ -96,12 +96,15 @@ export function createEventWriterActivationPlan(input: {
             message: "Hub synchronization requires repository Node fleet inventory authority.",
           },
         ]
-      : distributedKinds.join(",") !== "hub,local,node"
+      : distributedKinds.join(",") !==
+          (evidence.authority.kind === "repository_node_absent_v1" ? "local" : "hub,local,node")
         ? [
             {
               code: "reader_inventory_incomplete",
               message:
-                "Distributed activation requires exactly the local runtime, configured Node, and configured Hub readers.",
+                evidence.authority.kind === "repository_node_absent_v1"
+                  ? "A repository without a registered Node has exactly the local runtime reader."
+                  : "Distributed activation requires exactly the local runtime, configured Node, and configured Hub readers.",
             },
           ]
         : []

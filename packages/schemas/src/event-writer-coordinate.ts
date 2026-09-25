@@ -25,7 +25,7 @@ const eventReaderActivationEvidenceListSchema = {
 const distributedReaderInventoryAuthorityValueSchema = {
   type: "object",
   properties: {
-    kind: { type: "string", const: "repository_node_fleet_v1" },
+    kind: { type: "string", enum: ["repository_node_fleet_v1", "repository_node_absent_v1"] },
     repositoryIdentityHash: sha256Schema,
     inventoryHash: sha256Schema,
   },

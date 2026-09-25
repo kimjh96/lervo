@@ -18,7 +18,9 @@ import {
 } from "@lervo/sync";
 
 import {
+  observeAbsentRepositoryNode,
   resolveDistributedReaderInventorySource,
+  type AbsentRepositoryNodeObservation,
   type DistributedReaderInventorySource,
 } from "./event-reader-inventory-source.js";
 
@@ -44,6 +46,10 @@ export class EventReaderInventoryError extends Error {
 }
 
 export interface EventReaderInventoryPorts {
+  observeAbsence(input: {
+    repositoryRoot: string;
+    registryPath?: string;
+  }): Promise<AbsentRepositoryNodeObservation | null>;
   resolveSource(input: {
     repositoryRoot: string;
     registryPath?: string;
@@ -77,6 +83,7 @@ function createHubTransport(source: DistributedReaderInventorySource) {
 }
 
 const defaultPorts: EventReaderInventoryPorts = {
+  observeAbsence: observeAbsentRepositoryNode,
   resolveSource: resolveDistributedReaderInventorySource,
   readHealth,
   createHubTransport,
@@ -164,6 +171,29 @@ export async function collectEventReaderActivationEvidence(input: {
       ],
     };
   }
+  const absent = await ports.observeAbsence({
+    repositoryRoot: input.repositoryRoot,
+    ...(input.registryPath === undefined ? {} : { registryPath: input.registryPath }),
+  });
+  if (absent !== null)
+    return {
+      schemaVersion: 2,
+      projectId: absent.projectId,
+      observedAt: ports.now().toISOString(),
+      authority: {
+        kind: "repository_node_absent_v1",
+        repositoryIdentityHash: absent.repositoryIdentityHash,
+        inventoryHash: absent.inventoryHash,
+      },
+      readers: [
+        {
+          readerId: "reader_local_runtime",
+          readerKind: "local",
+          peerIdentityHash: null,
+          capabilities: createEventReaderCapabilities(),
+        },
+      ],
+    };
   const source = await ports.resolveSource({
     repositoryRoot: input.repositoryRoot,
     ...(input.registryPath === undefined ? {} : { registryPath: input.registryPath }),

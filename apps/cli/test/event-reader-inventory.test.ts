@@ -7,7 +7,10 @@ import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { collectEventReaderActivationEvidence } from "../src/event-reader-inventory.js";
-import type { DistributedReaderInventorySource } from "../src/event-reader-inventory-source.js";
+import {
+  observeAbsentRepositoryNode,
+  type DistributedReaderInventorySource,
+} from "../src/event-reader-inventory-source.js";
 
 const roots: string[] = [];
 const observedAt = "2026-09-01T09:00:00.000Z";
@@ -92,6 +95,7 @@ function health(overrides: Record<string, unknown> = {}) {
 
 function ports(root: string, healthValue: unknown = health()) {
   return {
+    observeAbsence: async () => null,
     resolveSource: async () => source(root),
     readHealth: async () => healthValue,
     createHubTransport: () => ({
@@ -127,6 +131,25 @@ describe("distributed event reader inventory", () => {
         { readerKind: "node", peerIdentityHash: expect.stringMatching(/^sha256:/) },
       ],
     });
+  });
+
+  it("proves a Node-less Hub-synced repository has only the local reader", async () => {
+    const root = await repository();
+    const registryPath = resolve(root, "node-fleet.json");
+    const absent = await collectEventReaderActivationEvidence({
+      repositoryRoot: root,
+      registryPath,
+      ports: { ...ports(root), observeAbsence: observeAbsentRepositoryNode },
+    });
+    expect(absent).toMatchObject({
+      schemaVersion: 2,
+      authority: {
+        kind: "repository_node_absent_v1",
+        repositoryIdentityHash: expect.stringMatching(/^sha256:/),
+      },
+      readers: [{ readerId: "reader_local_runtime", readerKind: "local", peerIdentityHash: null }],
+    });
+    expect(absent.readers).toHaveLength(1);
   });
 
   it("fails closed on stale or identity-mismatched Node capability evidence", async () => {

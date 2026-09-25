@@ -68,6 +68,58 @@ async function readNodeConfig(path: string): Promise<{ config: NodeRuntimeConfig
   }
 }
 
+export interface AbsentRepositoryNodeObservation {
+  projectId: string;
+  repositoryIdentityHash: string;
+  inventoryHash: string;
+}
+
+/**
+ * Proves that no Node on this host is registered for the repository, by project or by root. Only
+ * a Node synchronizes repository events to the Hub, so the local runtime is then the only reader.
+ * Null means a registration exists and the fleet authority must be used instead.
+ */
+export async function observeAbsentRepositoryNode(input: {
+  repositoryRoot: string;
+  registryPath?: string;
+}): Promise<AbsentRepositoryNodeObservation | null> {
+  const repositoryRoot = await realpath(resolve(input.repositoryRoot));
+  const manifest = await loadProjectManifest(repositoryRoot);
+  const repositoryIdentityHash = calculateProjectIdentityHash(manifest);
+  let registrations: NodeFleetInstanceRegistration[];
+  try {
+    registrations = await listNodeFleetInstances(
+      input.registryPath ?? defaultNodeFleetRegistryPath(),
+    );
+  } catch (error) {
+    fail(
+      "reader_inventory_fleet_unavailable",
+      "The owner-only Node fleet registry cannot prove whether this repository has a Node.",
+      error,
+    );
+  }
+  if (
+    registrations.some(
+      (candidate) =>
+        candidate.projectId === manifest.projectId || candidate.repositoryRoot === repositoryRoot,
+    )
+  )
+    return null;
+  return {
+    projectId: manifest.projectId,
+    repositoryIdentityHash,
+    inventoryHash: sha256(
+      canonicalJson({
+        schemaVersion: 1,
+        kind: "repository_node_absent",
+        projectId: manifest.projectId,
+        repositoryIdentityHash,
+        repositoryRoot,
+      }),
+    ),
+  };
+}
+
 export async function resolveDistributedReaderInventorySource(input: {
   repositoryRoot: string;
   registryPath?: string;
