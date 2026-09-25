@@ -35213,7 +35213,7 @@ import { dirname as dirname16, resolve as resolve70 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // apps/cli/src/knowledge-worker-command.ts
-import { spawn as spawn2 } from "node:child_process";
+import { spawn as spawn3 } from "node:child_process";
 
 // packages/cas/dist/cas.js
 import { createHash, randomUUID } from "node:crypto";
@@ -41317,7 +41317,7 @@ var eventReaderActivationEvidenceListSchema = {
 var distributedReaderInventoryAuthorityValueSchema = {
   type: "object",
   properties: {
-    kind: { type: "string", const: "repository_node_fleet_v1" },
+    kind: { type: "string", enum: ["repository_node_fleet_v1", "repository_node_absent_v1"] },
     repositoryIdentityHash: sha256Schema,
     inventoryHash: sha256Schema
   },
@@ -53996,7 +53996,7 @@ var RepositoryCoordinationRecords = class _RepositoryCoordinationRecords {
 };
 
 // packages/repository-knowledge-compiler/dist/process-compiler.js
-import { spawn } from "node:child_process";
+import { spawn as spawn2 } from "node:child_process";
 import { mkdtemp as mkdtemp3, rm as rm9, writeFile as writeFile2 } from "node:fs/promises";
 import { tmpdir as tmpdir2 } from "node:os";
 import { resolve as resolve44 } from "node:path";
@@ -72627,6 +72627,7 @@ async function queryRepositoryKnowledge(input) {
 var import_yaml24 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-change-source.js
+import { spawn } from "node:child_process";
 import { createHash as createHash15 } from "node:crypto";
 var REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION = "knowledge:repository";
 var MAXIMUM_REPOSITORY_CHANGE_PUBLISHED_PATHS = 64;
@@ -72694,6 +72695,34 @@ function appendRepositoryChange(transaction, draft, planned) {
     enqueuedAt: planned.payload.occurredAt
   }).inserted;
   return { eventId: draft.eventId, enqueued };
+}
+function gitIgnoredPaths(root2, paths) {
+  if (paths.length === 0)
+    return Promise.resolve(/* @__PURE__ */ new Set());
+  return new Promise((settle2) => {
+    const child = spawn("git", ["check-ignore", "-z", "--stdin"], {
+      cwd: root2,
+      stdio: ["pipe", "pipe", "ignore"]
+    });
+    const chunks = [];
+    child.stdout.on("data", (chunk) => chunks.push(chunk));
+    child.on("error", () => settle2(/* @__PURE__ */ new Set()));
+    child.on("close", (code) => settle2(code === 0 ? new Set(Buffer.concat(chunks).toString("utf8").split("\0").filter(Boolean)) : /* @__PURE__ */ new Set()));
+    child.stdin.on("error", () => void 0);
+    child.stdin.end(paths.map((path) => `${path}\0`).join(""));
+  });
+}
+async function planRepositoryChangeInRepository(input) {
+  const { repositoryRoot, ...change } = input;
+  const ignored2 = await gitIgnoredPaths(repositoryRoot, [
+    .../* @__PURE__ */ new Set([...Object.keys(change.before.files), ...Object.keys(change.after.files)])
+  ]);
+  const kept = (files) => Object.fromEntries(Object.entries(files).filter(([path]) => !ignored2.has(path)));
+  return planRepositoryChange({
+    ...change,
+    before: { revision: change.before.revision, files: kept(change.before.files) },
+    after: { revision: change.after.revision, files: kept(change.after.files) }
+  });
 }
 
 // packages/repository-knowledge/dist/repository-knowledge-worker.js
@@ -73536,7 +73565,7 @@ async function runProcess(input) {
   return new Promise((finish) => {
     let child;
     try {
-      child = spawn(input.executable, [...input.arguments], {
+      child = spawn2(input.executable, [...input.arguments], {
         cwd: input.cwd,
         detached: process.platform !== "win32",
         env: processEnvironment(),
@@ -74098,7 +74127,7 @@ async function runKnowledgeWorkerCommand(args, io) {
 }
 function launchDetachedKnowledgeWorker(input) {
   try {
-    const child = spawn2(process.execPath, [input.entry, ...input.args], {
+    const child = spawn3(process.execPath, [input.entry, ...input.args], {
       cwd: input.root,
       detached: true,
       stdio: "ignore",
@@ -77127,7 +77156,8 @@ async function plannedTerminalRepositoryChange(input) {
     return null;
   const after = await captureRepositorySnapshot(input.root);
   if (after.revision !== input.lifecycle.repositoryChange.afterRevision) return null;
-  const planned = planRepositoryChange({
+  const planned = await planRepositoryChangeInRepository({
+    repositoryRoot: input.root,
     sourceKind: "terminal_turn",
     sourceEventId: input.turnEventId,
     before,
@@ -80560,7 +80590,7 @@ function eventId() {
 }
 async function recordTerminalStageObservation(input) {
   const writerVersion = input.storage?.writableEventSchemaVersion ?? (await inspectEventWriterCoordinate(input.root)).coordinate.selectedEventSchemaVersion;
-  if (writerVersion !== 2) return null;
+  if (writerVersion < 2) return null;
   const finalized = input.timing.finalize(input.observationId, input.hookEvent, input.outcome);
   if (finalized === null) return null;
   const validation = validateSchema("executionStagesObservedEventPayload", finalized.payload);
@@ -80967,7 +80997,7 @@ import { tmpdir as tmpdir3 } from "node:os";
 import { resolve as resolve69 } from "node:path";
 
 // packages/adapter-codex/dist/app-server-client.js
-import { spawn as spawn3 } from "node:child_process";
+import { spawn as spawn4 } from "node:child_process";
 import { createInterface } from "node:readline";
 
 // packages/adapter-codex/dist/async-queue.js
@@ -81098,7 +81128,7 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     process2.once("exit", () => this.failProcess(true));
   }
   static async connect(options) {
-    const child = spawn3(options.executable, options.commandArguments ?? ["app-server", "--stdio"], {
+    const child = spawn4(options.executable, options.commandArguments ?? ["app-server", "--stdio"], {
       cwd: options.cwd,
       env: createProviderProcessEnvironment(options.environment),
       stdio: ["pipe", "pipe", "pipe"]
@@ -81301,7 +81331,7 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
 var MAXIMUM_RESPONSE_BYTES = 1024 * 1024;
 
 // packages/adapter-codex/dist/repository-work.js
-import { execFile as execFile8, spawn as spawn4 } from "node:child_process";
+import { execFile as execFile8, spawn as spawn5 } from "node:child_process";
 import { promisify as promisify7 } from "node:util";
 var MAXIMUM_OUTPUT_BYTES = 64 * 1024 * 1024;
 var executeFile2 = promisify7(execFile8);
