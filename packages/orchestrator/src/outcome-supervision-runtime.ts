@@ -205,11 +205,16 @@ export class OutcomeSupervisionRuntime {
       const allowedActions =
         report.reasonCode === "workforce_plan_required"
           ? ["allocate_existing", "execute_as_owner", "hire_worker", "request_team_support"]
-          : report.nextAction === "review_artifacts" || report.nextAction === "complete_workstream"
-            ? ["execute_as_owner"]
-            : report.nextAction === "reconcile_cancellation"
-              ? ["inspect_uncertain_effect"]
-              : [report.nextAction];
+          : // An exhausted rework may escalate or be replaced by a fresh assignment; each fresh
+            // assignment keeps its own attempt limit, and the owner spend epoch bounds the chain.
+            report.reasonCode === "acceptance_rejected" && report.nextAction === "escalate"
+            ? ["escalate", "allocate_existing"]
+            : report.nextAction === "review_artifacts" ||
+                report.nextAction === "complete_workstream"
+              ? ["execute_as_owner"]
+              : report.nextAction === "reconcile_cancellation"
+                ? ["inspect_uncertain_effect"]
+                : [report.nextAction];
       const ownerReasoning =
         plan.actionKind === "execute_as_owner" &&
         plan.effectContract === "work.owner_reasoning.v1" &&

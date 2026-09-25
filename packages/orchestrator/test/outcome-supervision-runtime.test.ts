@@ -473,6 +473,37 @@ describe("serialized causal owner decisions", () => {
       }
     },
   );
+  it.each(["allocate_existing", "request_rework"] as const)(
+    "lets an exhausted rework be replaced by a fresh assignment, but never retried (%s)",
+    async (actionKind) => {
+      const f = fixture();
+      const assignment = f.state.assignments[0]!;
+      assignment.status = "completed";
+      assignment.terminalEventId = `evt_${"c".repeat(32)}`;
+      assignment.effectDisposition = "reconciled";
+      assignment.artifactHashes = [hash("c")];
+      assignment.recoveryDecisionCount = 3;
+      assignment.review = {
+        verdict: "rework",
+        reviewerAgentId: owner,
+        acceptanceHash: assignment.acceptanceHash,
+        artifactHashes: [...assignment.artifactHashes],
+        verificationEventIds: [],
+      };
+      f.propose.mockResolvedValue({ ...plan(), actionKind });
+      const admission = vi.fn(async () => {
+        throw new Error("Reached independent admission after effect mapping.");
+      });
+      f.ports.readAdmission = admission;
+      const cycle = new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId);
+      if (actionKind === "allocate_existing") {
+        await expect(cycle).rejects.toThrow("Reached independent admission");
+      } else {
+        expect((await cycle).disposition).toBe("blocked");
+        expect(f.attention).toHaveBeenCalledWith(expect.anything(), ["effect_mapping_unavailable"]);
+      }
+    },
+  );
   it("executes once, does no idle model work, and reconciles after runtime restart", async () => {
     const f = fixture();
     const runtime = new OutcomeSupervisionRuntime(f.ports);
