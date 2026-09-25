@@ -2,8 +2,24 @@ import type { WorkResponsibilityV1 } from "@lervo/application-contract";
 import { assertWorkResponsibility, operatingPath } from "@lervo/work-controller";
 import type { NativeOwnerPlanInput } from "./supervision-native-plans.js";
 
+/** Exact allocation detail keys; feedback names only these so no model text is echoed. */
+export const NATIVE_TASK_DETAIL_KEYS = [
+  "roleId",
+  "taskPurpose",
+  "deliverables",
+  "acceptanceCriteria",
+  "decisionLatitude",
+  "expectedPaths",
+  "requiredCapabilities",
+  "verificationSuiteIds",
+  "completionSeconds",
+] as const;
+
 export class InvalidNativeOwnerProposalError extends Error {
-  constructor(readonly reasonCode: "invalid_expected_path" | "invalid_task_contract") {
+  constructor(
+    readonly reasonCode: "invalid_expected_path" | "invalid_task_contract",
+    readonly invalidFields: readonly string[] = [],
+  ) {
     super(`The owner proposal has ${reasonCode}.`);
     this.name = "InvalidNativeOwnerProposalError";
   }
@@ -17,17 +33,7 @@ export function nativeTaskRequirement(
   details: Record<string, unknown>,
 ) {
   const { facts, base } = input;
-  const keys = [
-    "roleId",
-    "taskPurpose",
-    "deliverables",
-    "acceptanceCriteria",
-    "decisionLatitude",
-    "expectedPaths",
-    "requiredCapabilities",
-    "verificationSuiteIds",
-    "completionSeconds",
-  ];
+  const keys: readonly string[] = NATIVE_TASK_DETAIL_KEYS;
   const textList = (value: unknown): value is string[] =>
     Array.isArray(value) &&
     value.length > 0 &&
@@ -35,32 +41,37 @@ export function nativeTaskRequirement(
     value.every(
       (item) => typeof item === "string" && item.trim().length > 0 && item.length <= 2048,
     );
-  if (
-    Object.keys(details).length !== keys.length ||
-    keys.some((key) => !Object.hasOwn(details, key)) ||
-    typeof details.roleId !== "string" ||
-    typeof details.taskPurpose !== "string" ||
-    details.taskPurpose.trim().length === 0 ||
-    details.taskPurpose.length > 4096 ||
-    !keys.slice(2, -1).every((key) => textList(details[key])) ||
-    !Number.isSafeInteger(details.completionSeconds) ||
-    Number(details.completionSeconds) < 30 ||
-    Number(details.completionSeconds) * 1000 > facts.mandate.maximumDeadlineMs
-  )
-    throw new InvalidNativeOwnerProposalError("invalid_task_contract");
+  const invalidFields = keys.filter((key) =>
+    key === "roleId"
+      ? typeof details.roleId !== "string"
+      : key === "taskPurpose"
+        ? typeof details.taskPurpose !== "string" ||
+          details.taskPurpose.trim().length === 0 ||
+          details.taskPurpose.length > 4096
+        : key === "completionSeconds"
+          ? !Number.isSafeInteger(details.completionSeconds) ||
+            Number(details.completionSeconds) < 30 ||
+            Number(details.completionSeconds) * 1000 > facts.mandate.maximumDeadlineMs
+          : !textList(details[key]),
+  );
+  if (Object.keys(details).some((key) => !keys.includes(key)))
+    invalidFields.push("unexpected_field");
+  if (invalidFields.length > 0)
+    throw new InvalidNativeOwnerProposalError("invalid_task_contract", invalidFields);
   if (!(details.expectedPaths as string[]).every(operatingPath))
-    throw new InvalidNativeOwnerProposalError("invalid_expected_path");
+    throw new InvalidNativeOwnerProposalError("invalid_expected_path", ["expectedPaths"]);
   if (
     (details.requiredCapabilities as string[]).some(
       (capability) =>
         !["filesystem.read", "filesystem.write", "shell.execute"].includes(capability),
     )
   )
-    throw new InvalidNativeOwnerProposalError("invalid_task_contract");
+    throw new InvalidNativeOwnerProposalError("invalid_task_contract", ["requiredCapabilities"]);
   const role = facts.roles.find(
     (item) => item.roleId === details.roleId && facts.mandate.roleIds.includes(item.roleId),
   );
-  if (role === undefined) throw new InvalidNativeOwnerProposalError("invalid_task_contract");
+  if (role === undefined)
+    throw new InvalidNativeOwnerProposalError("invalid_task_contract", ["roleId"]);
   const now = Date.parse(input.now());
   // A worker turn needs a full bounded lease plus admission latency; the owner cannot go below it.
   const duration = Math.max(
@@ -76,7 +87,7 @@ export function nativeTaskRequirement(
     roleId: role.roleId,
     roleVersion: role.version,
     roleContractHash: role.contractHash,
-    taskPurpose: details.taskPurpose,
+    taskPurpose: details.taskPurpose as string,
     deliverables: details.deliverables as string[],
     acceptanceCriteria: details.acceptanceCriteria as string[],
     decisionLatitude: details.decisionLatitude as string[],

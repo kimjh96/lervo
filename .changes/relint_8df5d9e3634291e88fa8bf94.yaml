@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8df5d9e3634291e88fa8bf94"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Name the missing or invalid allocation fields when a supervised owner proposal is rejected, so the next owner turn can correct them."

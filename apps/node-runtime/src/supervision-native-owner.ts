@@ -181,6 +181,9 @@ export class NativeSupervisionOwner {
             reasonCode: error.reasonCode,
             reasoningPlanHash: previous.reasoningPlanHash!,
             resultArtifactHash: previous.resultArtifactHash!,
+            ...(error.invalidFields.length === 0
+              ? {}
+              : { invalidFields: [...error.invalidFields] }),
           };
         }
       }

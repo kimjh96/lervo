@@ -1,11 +1,16 @@
 import type { EventEnvelope } from "@lervo/schemas";
 import { managedExecutionIdentity } from "@lervo/work-controller";
+import { NATIVE_TASK_DETAIL_KEYS } from "./supervision-native-task.js";
 
 export interface OwnerProposalFeedback {
   reasonCode: "invalid_expected_path" | "invalid_task_contract" | "invalid_reasoning_result";
   reasoningPlanHash: string;
   resultArtifactHash: string;
+  /** Allocation detail keys that were missing or invalid; never model text. */
+  invalidFields?: string[];
 }
+
+const FEEDBACK_FIELDS = new Set([...NATIVE_TASK_DETAIL_KEYS, "unexpected_field"]);
 
 /** A retry hint is private, exact prior-run evidence rather than a new authority source. */
 export function assertOwnerProposalFeedback(input: {
@@ -20,7 +25,7 @@ export function assertOwnerProposalFeedback(input: {
     feedback === null ||
     typeof feedback !== "object" ||
     Array.isArray(feedback) ||
-    Object.keys(feedback).length !== 3 ||
+    Object.keys(feedback).length !== (Object.hasOwn(feedback, "invalidFields") ? 4 : 3) ||
     !Object.hasOwn(feedback, "reasonCode") ||
     !Object.hasOwn(feedback, "reasoningPlanHash") ||
     !Object.hasOwn(feedback, "resultArtifactHash")
@@ -35,7 +40,13 @@ export function assertOwnerProposalFeedback(input: {
     typeof value.reasoningPlanHash !== "string" ||
     !/^sha256:[a-f0-9]{64}$/u.test(value.reasoningPlanHash) ||
     typeof value.resultArtifactHash !== "string" ||
-    !/^sha256:[a-f0-9]{64}$/u.test(value.resultArtifactHash)
+    !/^sha256:[a-f0-9]{64}$/u.test(value.resultArtifactHash) ||
+    (value.invalidFields !== undefined &&
+      (!Array.isArray(value.invalidFields) ||
+        value.invalidFields.length === 0 ||
+        value.invalidFields.length > FEEDBACK_FIELDS.size ||
+        new Set(value.invalidFields).size !== value.invalidFields.length ||
+        !value.invalidFields.every((field) => FEEDBACK_FIELDS.has(field))))
   )
     throw new Error("The owner proposal feedback is invalid.");
   const identity = managedExecutionIdentity(input.projectId, value.reasoningPlanHash);
