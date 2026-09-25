@@ -134,6 +134,7 @@ export const eventTypesV3 = [
   ...eventTypesV2,
   "conversation.repository_knowledge.resolved",
   "repository.change.completed",
+  "repository.knowledge.resolved",
   ...supervisionEventTypes,
   "managed.execution.reserved",
   "role.input.bound",

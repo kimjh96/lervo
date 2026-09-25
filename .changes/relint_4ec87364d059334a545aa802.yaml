@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4ec87364d059334a545aa802"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add the core repository knowledge worker that settles each queued repository change as current, pending review, stale or attention required."

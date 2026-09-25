@@ -123,7 +123,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:4be1e9dcc9aa362679cf79ed861c3c3093692279c6a471977fa575c1d3ec25a5",
+      "contentHash": "sha256:b393520885bd83f2e6456c8b122e354fd2db6cce66b163ef5a2b2e190f7b127a",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The module owns one pure event-payload privacy boundary: its large declarative allowlist, schema dispatch, and coordinate checks produce one sanitized result without I/O. Assignment access-mode and knowledge-job validators are separate. Prompts, source bytes, paths, credentials, and provider output remain excluded; schemas and persistence stay in separate modules.",
       "disposition": "cohesive"
@@ -340,7 +340,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:5a90a3024663098f293b82f20e336b6fb1162a24bff3dc1939f875a8dddb2e61",
+      "contentHash": "sha256:cd970537281b86e5ac3618cbf4ed3d6ece6234049ae27860c0f48880ea5eada4",
       "responsibility": "Repository schema validator registry",
       "rationale": "This module registers compiled validators for the schema catalog. The conversation knowledge outcome adds only a linked declarative validator; schema definitions, domain decisions, configuration handling, and persistence remain in their owning modules. No runtime workflow policy is added.",
       "disposition": "cohesive"
