@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a8ee9a594d6049c46e742d52"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Exclude Playwright test-results and playwright-report output from repository knowledge scans and change evidence."

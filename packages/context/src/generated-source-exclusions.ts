@@ -1,4 +1,4 @@
-/** Generated tool caches are never repository source or managed change evidence. */
+/** Generated tool caches and test-runner output are never repository source or managed change evidence. */
 export const transientToolCacheDirectoryNames = Object.freeze([
   ".cache",
   ".mypy_cache",
@@ -7,6 +7,8 @@ export const transientToolCacheDirectoryNames = Object.freeze([
   ".tox",
   ".nox",
   "__pycache__",
+  "playwright-report",
+  "test-results",
 ]);
 
 const transientToolCacheNames = new Set<string>(transientToolCacheDirectoryNames);

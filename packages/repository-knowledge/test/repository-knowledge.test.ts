@@ -61,7 +61,7 @@ afterEach(async () => {
 });
 
 describe("repository knowledge migration", () => {
-  it("ignores generated tool caches even with an older policy that omits them", async () => {
+  it("ignores generated tool caches and test-runner output even with an older policy that omits them", async () => {
     const root = await repository();
     await mkdir(resolve(root, "services/worker/.mypy_cache/3.12"), { recursive: true });
     await mkdir(resolve(root, ".mypy_cache/3.12"), { recursive: true });
@@ -70,6 +70,8 @@ describe("repository knowledge migration", () => {
     await writeFile(resolve(root, "services/worker/.mypy_cache/3.12/cache.json"), "x".repeat(200));
     await writeFile(resolve(root, ".mypy_cache/3.12/cache.json"), "x".repeat(200));
     await writeFile(resolve(root, "services/worker/__pycache__/main.pyc"), "x".repeat(200));
+    await mkdir(resolve(root, "apps/web/test-results/case-chromium"), { recursive: true });
+    await writeFile(resolve(root, "apps/web/test-results/case-chromium/error-context.md"), "# x\n");
 
     const oldPolicy = {
       ...defaultRepositoryKnowledgePolicy,
