@@ -97,6 +97,15 @@ async function readOwnerSpendEpoch(input: {
       const receipts = events.filter(
         (item) => item.runId === runId && item.type === "resource.usage.recorded",
       );
+      // A superseded decision whose run left no event at all never started a provider, so it
+      // is charged nothing; any run event keeps the full reservation.
+      const neverStarted =
+        events.some(
+          (item) =>
+            item.type === "work.supervision.decision.superseded" &&
+            item.payload.decisionId === event.payload.decisionId &&
+            item.payload.planHash === event.payload.planHash,
+        ) && !events.some((item) => item.runId === runId);
       if (receipts.length > 1)
         throw new Error("The owner spend decision has conflicting usage receipts.");
       const usage = receipts[0] === undefined ? null : readResourceUsageEventPayload(receipts[0]);
@@ -111,7 +120,11 @@ async function readOwnerSpendEpoch(input: {
       reservations.push({
         decisionId: operatingDecisionId(recorded),
         reservedTokens: recorded.reservedTokens,
-        observedTokens: usage?.status === "observed" ? usage.usage!.totalTokens : null,
+        observedTokens: neverStarted
+          ? 0
+          : usage?.status === "observed"
+            ? usage.usage!.totalTokens
+            : null,
         usageUnavailable: usage?.status === "unavailable",
       });
     }

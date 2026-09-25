@@ -209,6 +209,41 @@ it("charges a completed owner decision its observed receipt instead of its reser
   ).toBe(true);
 });
 
+function supersession(source: ReturnType<typeof setup>, index: number): EventEnvelope {
+  const decision = source.events.find(
+    (event) =>
+      event.type === "work.supervision.decision.recorded" &&
+      event.payload.planHash === operatingContractHash(source.plans[index]!),
+  )!;
+  return {
+    eventId: `evt_${"d".repeat(32)}`,
+    eventHash: hash("d"),
+    seq: 5,
+    type: "work.supervision.decision.superseded",
+    projectId: decision.projectId,
+    payload: { decisionId: decision.payload.decisionId, planHash: decision.payload.planHash },
+  } as unknown as EventEnvelope;
+}
+
+it("charges nothing for a superseded owner decision whose provider never started", async () => {
+  const source = setup(2);
+  source.events.push(supersession(source, 0));
+  expect(await readOwnerSpendAdmission({ ...source, plan: source.plans[1]! })).toEqual({
+    disposition: "within",
+    chargedTokens: 100_000,
+    remainingTokens: 100_000,
+  });
+  const started = setup(2);
+  started.events.push(supersession(started, 0), {
+    ...usageReceipt(started.plans[0]!, 1),
+    type: "run.requested",
+    payload: {},
+  } as unknown as EventEnvelope);
+  expect(await readOwnerSpendAdmission({ ...started, plan: started.plans[1]! })).toMatchObject({
+    chargedTokens: 200_000,
+  });
+});
+
 it("reports proposal headroom from the same epoch before any decision is recorded", async () => {
   const one = setup(1);
   const scope = one.plans[0]!;
