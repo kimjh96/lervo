@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cdfbf94baf77495e888f5dbe"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Host the repository knowledge owner in the Node alongside the CLI worker, sharing one repository lock."

@@ -1,4 +1,5 @@
 import { openDeploymentSupervision } from "./deployment-supervision.js";
+import { startRepositoryKnowledgeLoop } from "./repository-knowledge-loop.js";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import type { NodeSupervisionService } from "./supervision-startup.js";
 import { createSyncCycleObserver } from "./sync-cycle-observer.js";
@@ -217,6 +218,30 @@ export async function openNodeRuntime(
       store,
       async (signal) => {
         const stopWatching = watchLocalEventChanges(store!, () => idleWait.notify());
+        const knowledgeProvider = validated.outcomeSupervision?.ownerReasoning.provider;
+        const stopKnowledge =
+          knowledgeProvider === "claude" || knowledgeProvider === "codex"
+            ? startRepositoryKnowledgeLoop({
+                repositoryRoot: paths.repositoryRoot,
+                store: store!,
+                artifacts,
+                provider: knowledgeProvider,
+                ...(validated.outcomeSupervision?.runtimeReadiness?.providerExecutables?.[
+                  knowledgeProvider
+                ] === undefined
+                  ? {}
+                  : {
+                      executable:
+                        validated.outcomeSupervision.runtimeReadiness.providerExecutables[
+                          knowledgeProvider
+                        ],
+                    }),
+                onFailure: (error) =>
+                  process.stderr.write(
+                    `Lervo repository knowledge cycle failed: ${error instanceof Error ? error.message : "unknown error"}\n`,
+                  ),
+              })
+            : async () => undefined;
         try {
           return await runOutboundSyncLoop({
             worker,
@@ -260,6 +285,7 @@ export async function openNodeRuntime(
             }),
           });
         } finally {
+          await stopKnowledge();
           stopWatching();
         }
       },

@@ -31,7 +31,9 @@ The core owner `processRepositoryKnowledgeJobs` claims these jobs and settles ea
 
 `lervo knowledge worker --once --provider <claude|codex>` hosts the owner under a repository lock. A changed terminal Stop or managed run launches it detached from the verified hook runtime or CLI entry, so the turn never waits.
 
-Still outstanding: the Node host loop, supervised-run integration, the narrow write assignment for canonical candidates, and installed evidence.
+An installed Node with owner reasoning configured also hosts the owner in a bounded loop. The loop wakes on local event changes and at least every minute, using the configured absolute provider executable. It shares the CLI worker lock and per-job lease, so the two hosts never process the same job.
+
+Still outstanding: supervised-run integration, the narrow write assignment for canonical candidates, conversation completions on the shared destination, and installed evidence.
 
 ## Reader-first foundation
 
