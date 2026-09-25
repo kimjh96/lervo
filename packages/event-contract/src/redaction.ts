@@ -61,6 +61,16 @@ export const eventPayloadAllowlists = {
     "verificationStatus",
     "completedAt",
   ],
+  "repository.change.completed": [
+    "sourceKind",
+    "sourceEventId",
+    "repositoryRevisionBefore",
+    "repositoryRevisionAfter",
+    "changedPathCount",
+    "changedPaths",
+    "sourceManifest",
+    "occurredAt",
+  ],
   "conversation.repository_knowledge.resolved": [
     "completionEventId",
     "completionEventHash",
@@ -1308,6 +1318,7 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "conversation.repository_work.completed": "conversationRepositoryWorkCompletedEventPayload",
   "conversation.repository_knowledge.resolved":
     "conversationRepositoryKnowledgeResolvedEventPayload",
+  "repository.change.completed": "repositoryChangeCompletedEventPayload",
   "agent.context.promoted": "agentContextPromotedEventPayload",
   "agent.context.handoff.recorded": "agentContextHandoffRecordedEventPayload",
   "agent.liveness.observed": "agentLivenessObservedEventPayload",

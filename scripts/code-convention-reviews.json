@@ -32,7 +32,7 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:ed0598e7e3521925a5a3a2be13bd96d1d3130953770a3ed7f4d39c851ee51851",
+      "contentHash": "sha256:d03d1f62c3636034f8320fdd85407c4a5a1ff067591e42fbf71d2f21b0f7184f",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The CLI composes one managed run from admission through writing publication and finalization. Research source capture and checker environment validation are delegated to dedicated CLI adapters; the entrypoint adds only ordered preparation and port coordinates. Capability, skill, provider and storage policies remain behind their existing boundaries.",
       "disposition": "cohesive"
@@ -42,6 +42,13 @@
       "contentHash": "sha256:544b06b45ea239203a2b2247019ed4f9f02487db5a5da6f8f54a10c83e3a9022",
       "responsibility": "Versioned product-host capability catalog composition",
       "rationale": "The module owns the immutable v1 base route catalog and composes additive protocol upgrades. Version-specific v4 through v11 additions remain in dedicated modules; command parsing, product inspection, projection policy, and rendering are separate. Its length is declarative catalog data rather than mixed execution responsibility.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/cli/src/terminal-turn-observation.ts",
+      "contentHash": "sha256:fb866c7dbfad1f84c94f12d9d2c7c699938d837078c2fda421eccf7bb44dbb6c",
+      "responsibility": "Terminal turn context preparation and Stop observation records",
+      "rationale": "The module records one terminal turn lifecycle: prepared context, observed references and the Stop turn event, all in the shared hook transaction. Snapshot storage, event coordinates and the repository-change knowledge source are extracted modules; what remains shares the prepared-context contract.",
       "disposition": "cohesive"
     },
     {
@@ -116,7 +123,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:0e784cf22b0fd646b02b9f83b6946444b1708d050f245f366cf2db6a5fd2c2ac",
+      "contentHash": "sha256:4be1e9dcc9aa362679cf79ed861c3c3093692279c6a471977fa575c1d3ec25a5",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The module owns one pure event-payload privacy boundary: its large declarative allowlist, schema dispatch, and coordinate checks produce one sanitized result without I/O. Assignment access-mode and knowledge-job validators are separate. Prompts, source bytes, paths, credentials, and provider output remain excluded; schemas and persistence stay in separate modules.",
       "disposition": "cohesive"
@@ -333,7 +340,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:285090f4df9ed57bdff60e405146e6990cadf49b084c2b605c55bb9b468fe03d",
+      "contentHash": "sha256:5a90a3024663098f293b82f20e336b6fb1162a24bff3dc1939f875a8dddb2e61",
       "responsibility": "Repository schema validator registry",
       "rationale": "This module registers compiled validators for the schema catalog. The conversation knowledge outcome adds only a linked declarative validator; schema definitions, domain decisions, configuration handling, and persistence remain in their owning modules. No runtime workflow policy is added.",
       "disposition": "cohesive"

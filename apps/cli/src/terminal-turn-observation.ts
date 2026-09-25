@@ -27,6 +27,10 @@ import type {
   PreparedTerminalPromptContext,
 } from "./terminal-prompt-context.js";
 import { writePreparedRepositorySnapshot } from "./terminal-prepared-snapshot.js";
+import {
+  appendTerminalRepositoryChange,
+  plannedTerminalRepositoryChange,
+} from "./terminal-repository-change.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
@@ -315,6 +319,14 @@ export async function recordObservedTerminalTurn(input: {
     const finalWorkstream = await verifiedCurrentWorkstream(storage);
     const referenceEventIds = references.map(() => newTerminalIdentifier("evt"));
     const turnEventId = newTerminalIdentifier("evt");
+    const change = await plannedTerminalRepositoryChange({
+      root: input.root,
+      storage,
+      contextPayload: payload,
+      lifecycle: input.lifecycle,
+      turnEventId,
+      occurredAt: input.occurredAt,
+    });
     storage.events.transact((transaction) => {
       references.forEach((document, index) =>
         transaction.append(
@@ -380,6 +392,14 @@ export async function recordObservedTerminalTurn(input: {
           },
         }),
       );
+      if (change !== null)
+        appendTerminalRepositoryChange(transaction, {
+          projectId: storage.manifest.projectId,
+          coordinates: input.coordinates,
+          provider: input.provider,
+          occurredAt: input.occurredAt,
+          change,
+        });
     });
     return { eventId: turnEventId, referenceCount: references.length };
   } finally {

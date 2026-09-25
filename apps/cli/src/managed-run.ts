@@ -26,6 +26,7 @@ import {
 } from "@lervo/orchestrator";
 import { loadDocumentRegistry } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
+import { recordManagedRunRepositoryChange } from "./managed-run-repository-change.js";
 import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
 import type { AdapterCapabilityActivationReceipt } from "@lervo/schemas";
 import { resolveRoleContract } from "@lervo/roles";
@@ -661,6 +662,16 @@ export function createManagedRunExecutor(
         createEnvelopeId: () => dependencies.createId("envelope"),
         createEvidenceReceiptId: () => dependencies.createId("ctx"),
       });
+      if (request.supervisedInvocation === undefined)
+        await recordManagedRunRepositoryChange({
+          storage,
+          runId,
+          sessionId,
+          policyVersion,
+          completion: result,
+          eventId: dependencies.createId("evt"),
+          occurredAt: (dependencies.now?.() ?? new Date()).toISOString(),
+        });
       recordManagedRoleProfileActivation({
         storage,
         runId,

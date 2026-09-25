@@ -19,6 +19,12 @@ Repository agents own source-bound canonicalization and knowledge convergence wi
 
 Until every criterion and installed evidence pass, `pending_background` must not be enabled on an installed Node and existing synchronous completion remains the runtime behavior.
 
+## Every entry point (ADR-0433)
+
+[ADR-0433](../../decisions/knowledge/repository/canonicalization/0433-own-background-knowledge-for-every-repository-change.md) extends this lifecycle from Discord conversations to managed `lervo run` executions and Claude Code or Codex terminal turns. When the repository writer is on event schema version 3, a changed managed run or terminal Stop now appends one `repository.change.completed` event and one `knowledge:repository` outbox job in the same transaction. The job carries a content-bound manifest with every changed path. Beyond 64 paths the event publishes only the count, and an unchanged unit records nothing. Writers below version 3 keep their previous behavior.
+
+These sources are producers only. The core owner, its Node and detached CLI hosts, supervised-run integration and the `current` outcome remain outstanding.
+
 ## Reader-first foundation
 
 The shared reader now accepts the bounded version-3 knowledge-outcome payload; no producer emits it. A local event-chain reconciler can reconstruct eligible historical `baseline_valid` work into a capacity-bound outbox, detect conflicting outcome coordinates, and recover idempotently after reopening SQLite. A source-coordinate manifest builder binds observed Git trees and dirty-path digests without source bodies. Its read-only job reader verifies the exact local CAS artifact against the completion; a currency inspector rechecks current after-path bytes, Git objects, and unsafe parent resolution before semantic review. Old dirty before-path bytes that cannot be reconstructed remain `needs_review`, never a success claim. The conversation completion writer has a dormant, explicitly selected version-3 path: it stores and rechecks that manifest before a changed-source `pending_background` completion, emits `not_applicable` for unchanged work, and omits global knowledge preflight/postflight only in that mode. Production composition still selects the existing synchronous path; the background agent, reviewed integration, reader activation, and installed latency evidence remain required before changing that selection.
