@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_abe09b423280f824a6977c38"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Recover a supervised write run that died during verification after its provider stopped."

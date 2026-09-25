@@ -136,6 +136,29 @@ describe("abandoned managed turn proof", () => {
     expect(isProvenAbandonedTurnFailure(withUsage.events, withUsage.diagnostic)).toBe(false);
   });
 
+  it("settles a writable run killed during verification after its provider stopped", () => {
+    // Kael's worker finished its turn and its CLI died during the full verification suite.
+    const original = [
+      ...scenario().events.slice(0, 4),
+      event(6, "adapter.started", 23_000, { executionMode: "write" }),
+      event(7, "provider.process.observed", 23_100, { provesWorkProgress: true }),
+      event(8, "file.changed", 26_000),
+      event(9, "adapter.stopped", 39_000, { status: "completed" }),
+      event(10, "verification.started", 41_000),
+    ];
+    const verifying = scenario({ original, code: "interrupted_after_write_turn_start" });
+    expect(isProvenAbandonedTurnFailure(verifying.events, verifying.diagnostic)).toBe(true);
+    const readOnly = scenario({
+      original: [...scenario().events.slice(0, -1), event(9, "adapter.stopped", 31_000)],
+    });
+    expect(isProvenAbandonedTurnFailure(readOnly.events, readOnly.diagnostic)).toBe(false);
+    const completed = scenario({
+      original: [...original, event(11, "run.completed", 50_000)],
+      code: "interrupted_after_write_turn_start",
+    });
+    expect(isProvenAbandonedTurnFailure(completed.events, completed.diagnostic)).toBe(false);
+  });
+
   it("reports every abandoned turn as effects-uncertain, never as a safe failure", async () => {
     const { observeSupervisionFailure } = await import("../src/supervision-failure-observation.js");
     const { events } = scenario({ code: "interrupted_after_write_turn_start" });

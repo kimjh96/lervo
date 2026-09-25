@@ -105,7 +105,9 @@ export function isProvenAbandonedTurnFailure(
     original.some(
       (event) =>
         event.type === "resource.usage.recorded" ||
-        event.type === "adapter.stopped" ||
+        // A writable run killed after its provider stopped, such as during verification, is still
+        // interrupted with uncertain effects; a read-only turn must not have stopped.
+        (event.type === "adapter.stopped" && failure.code !== ABANDONED_WRITE_TURN) ||
         event.type === "run.completed" ||
         event.type === "run.failed",
     )
