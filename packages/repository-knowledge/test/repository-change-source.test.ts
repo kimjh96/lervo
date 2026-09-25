@@ -1,4 +1,5 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -8,6 +9,7 @@ import { SQLiteEventStore } from "../../event-store-sqlite/src/index.js";
 import {
   appendRepositoryChange,
   planRepositoryChange,
+  planRepositoryChangeInRepository,
   REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION,
 } from "../src/repository-change-source.js";
 
@@ -94,4 +96,29 @@ it("publishes only the count beyond the path bound while the manifest keeps ever
   } finally {
     store.close();
   }
+});
+
+it("drops Git-ignored build outputs but keeps every path outside Git", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-change-ignore-"));
+  roots.push(root);
+  const input = {
+    repositoryRoot: root,
+    sourceKind: "terminal_turn" as const,
+    sourceEventId: "evt_fedcba9876543210fedcba9876543210",
+    before: { revision: hash("1"), files: { "src/a.ts": hash("2") } },
+    after: {
+      revision: hash("3"),
+      files: { "src/a.ts": hash("4"), "pkg/tsconfig.tsbuildinfo": hash("5") },
+    },
+    occurredAt: "2026-09-25T09:00:00.000Z",
+  };
+  expect((await planRepositoryChangeInRepository(input))?.payload.changedPaths).toEqual([
+    "pkg/tsconfig.tsbuildinfo",
+    "src/a.ts",
+  ]);
+  execFileSync("git", ["init", "-q"], { cwd: root });
+  await writeFile(resolve(root, ".gitignore"), "*.tsbuildinfo\n");
+  expect((await planRepositoryChangeInRepository(input))?.payload.changedPaths).toEqual([
+    "src/a.ts",
+  ]);
 });

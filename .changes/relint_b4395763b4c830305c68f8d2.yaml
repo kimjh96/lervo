@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b4395763b4c830305c68f8d2"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Drop Git-ignored build outputs from background knowledge change sources."

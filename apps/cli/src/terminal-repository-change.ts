@@ -2,7 +2,7 @@ import { captureRepositorySnapshot } from "@lervo/orchestrator";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   appendRepositoryChange,
-  planRepositoryChange,
+  planRepositoryChangeInRepository,
   type PlannedRepositoryChange,
   type TerminalIntegrationProvider,
 } from "@lervo/repository-knowledge";
@@ -39,7 +39,8 @@ export async function plannedTerminalRepositoryChange(input: {
   const after = await captureRepositorySnapshot(input.root);
   // A change after lifecycle inspection belongs to the next observed turn.
   if (after.revision !== input.lifecycle.repositoryChange.afterRevision) return null;
-  const planned = planRepositoryChange({
+  const planned = await planRepositoryChangeInRepository({
+    repositoryRoot: input.root,
     sourceKind: "terminal_turn",
     sourceEventId: input.turnEventId,
     before,

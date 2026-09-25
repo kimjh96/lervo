@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 
 import type { EventDraftV3 } from "@lervo/event-contract";
@@ -112,4 +113,47 @@ export function appendRepositoryChange(
       enqueuedAt: planned.payload.occurredAt,
     }).inserted;
   return { eventId: draft.eventId, enqueued };
+}
+
+/**
+ * The untracked paths Git ignores, such as build outputs. Git never reports a tracked file, and a
+ * root outside Git or an unavailable Git ignores nothing, so no source is silently dropped.
+ */
+function gitIgnoredPaths(root: string, paths: readonly string[]): Promise<ReadonlySet<string>> {
+  if (paths.length === 0) return Promise.resolve(new Set());
+  return new Promise((settle) => {
+    const child = spawn("git", ["check-ignore", "-z", "--stdin"], {
+      cwd: root,
+      stdio: ["pipe", "pipe", "ignore"],
+    });
+    const chunks: Buffer[] = [];
+    child.stdout.on("data", (chunk: Buffer) => chunks.push(chunk));
+    child.on("error", () => settle(new Set()));
+    child.on("close", (code) =>
+      settle(
+        code === 0
+          ? new Set(Buffer.concat(chunks).toString("utf8").split("\0").filter(Boolean))
+          : new Set(),
+      ),
+    );
+    child.stdin.on("error", () => undefined);
+    child.stdin.end(paths.map((path) => `${path}\0`).join(""));
+  });
+}
+
+/** Plans a change unit after removing Git-ignored paths, which carry no repository knowledge. */
+export async function planRepositoryChangeInRepository(
+  input: Parameters<typeof planRepositoryChange>[0] & { repositoryRoot: string },
+): Promise<PlannedRepositoryChange | null> {
+  const { repositoryRoot, ...change } = input;
+  const ignored = await gitIgnoredPaths(repositoryRoot, [
+    ...new Set([...Object.keys(change.before.files), ...Object.keys(change.after.files)]),
+  ]);
+  const kept = (files: Readonly<Record<string, string>>) =>
+    Object.fromEntries(Object.entries(files).filter(([path]) => !ignored.has(path)));
+  return planRepositoryChange({
+    ...change,
+    before: { revision: change.before.revision, files: kept(change.before.files) },
+    after: { revision: change.after.revision, files: kept(change.after.files) },
+  });
 }

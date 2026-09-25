@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 
 import type { ArtifactStore } from "@lervo/storage-contract";
 import {
-  planRepositoryChange,
+  planRepositoryChangeInRepository,
   type PlannedRepositoryChange,
   type RepositoryChangeSnapshot,
 } from "@lervo/repository-knowledge";
@@ -78,7 +78,8 @@ export async function planConversationRepositoryChange(input: {
     revision,
     files,
   });
-  const planned = planRepositoryChange({
+  const planned = await planRepositoryChangeInRepository({
+    repositoryRoot: input.repositoryRoot,
     sourceKind: "conversation",
     sourceEventId: input.completionEventId,
     before: snapshot(manifest.repositoryRevisionBefore, before),

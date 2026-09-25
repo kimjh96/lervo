@@ -1,6 +1,9 @@
 import type { ManagedFileChangeEvidence } from "@lervo/execution-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
-import { appendRepositoryChange, planRepositoryChange } from "@lervo/repository-knowledge";
+import {
+  appendRepositoryChange,
+  planRepositoryChangeInRepository,
+} from "@lervo/repository-knowledge";
 
 import { launchDetachedKnowledgeWorker } from "./knowledge-worker-command.js";
 
@@ -32,7 +35,8 @@ export async function recordManagedRunRepositoryChange(input: {
         change[side] === null ? [] : [[change.path, change[side]!]],
       ),
     );
-  const planned = planRepositoryChange({
+  const planned = await planRepositoryChangeInRepository({
+    repositoryRoot: input.storage.paths.repositoryRoot,
     sourceKind: "managed_run",
     sourceEventId: input.completion.terminalEventId,
     before: { revision: input.completion.beforeRevision, files: files("beforeHash") },

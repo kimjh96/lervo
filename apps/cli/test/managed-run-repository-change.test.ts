@@ -28,6 +28,7 @@ async function storage(version: 2 | 3) {
   });
   return {
     manifest: { projectId },
+    paths: { repositoryRoot: root },
     writableEventSchemaVersion: version,
     events,
     artifacts: {
