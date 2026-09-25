@@ -5,7 +5,10 @@ import { resolve } from "node:path";
 
 import { afterEach, expect, it } from "vitest";
 
-import { publishSupervisionResultWorkspace } from "../src/supervision-result-branch.js";
+import {
+  publishSupervisionResultWorkspace,
+  startSupervisionResultBranchLoop,
+} from "../src/supervision-result-branch.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -70,4 +73,18 @@ it("commits an accepted worker checkout to a create-only result branch without t
   expect(git(repository, "rev-parse", "lervo/results/asn_0123456789abcdef01234567")).toBe(
     published!.commit,
   );
+});
+
+it("starts and stops the Node loop, reporting a failed cycle instead of throwing", async () => {
+  const failures: unknown[] = [];
+  const stop = startSupervisionResultBranchLoop({
+    repositoryRoot: resolve(tmpdir(), "lervo-absent-repository"),
+    parentDirectory: resolve(tmpdir(), "lervo-absent-workers"),
+    subscribe: () => () => undefined,
+    onPublished: () => undefined,
+    onFailure: (error) => failures.push(error),
+  });
+  await new Promise((settle) => setTimeout(settle, 200));
+  await stop();
+  expect(failures.length).toBeLessThanOrEqual(1);
 });

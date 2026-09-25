@@ -127,9 +127,9 @@ export function startSupervisionResultBranchLoop(input: {
   onFailure(error: unknown): void;
 }): () => Promise<void> {
   const loop = new ConversationChangeLoop({
-    intervalMs: 5 * 60_000,
+    intervalMs: 60_000,
     continueOnFailure: true,
-    failureRetryMs: () => 5 * 60_000,
+    failureRetryMs: () => 60_000,
     subscribe: input.subscribe,
     onFailure: input.onFailure,
     runCycle: async () => {
