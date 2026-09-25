@@ -34,3 +34,13 @@ A supervised attempt can no longer spend far beyond its reservation unnoticed. A
 
 - [ADR-0013 managed write bridge](../0013-provider-neutral-managed-write-bridge.md)
 - [ADR-0431 preflight and owner spend guard](../../orchestration/governed-work/owner-recovery/0431-fence-repeated-preflight-and-owner-spend.md)
+
+## Amendment 2026-09-25: cost-equivalent budget tokens
+
+Every provider turn re-reads the whole cached context. A Kael worker therefore used its full 600,000-token reservation in 90 seconds across three turns, although most of those tokens were cached re-reads (317,135 of the 424,506 recorded before the stop). Budget enforcement now charges a cached input read at one tenth of a token (`budgetTokens` in `@lervo/execution-contract`), which matches its relative price. The rule applies to three places:
+
+- the running turn limit;
+- the aggregate task budget;
+- the owner spend allowance.
+
+Recorded `resource.usage.recorded` counters keep the raw provider values, and cache writes and uncached input still count in full.

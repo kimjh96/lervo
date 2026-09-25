@@ -7,3 +7,4 @@ export * from "./stage-timing.js";
 export * from "./execution-environment.js";
 export * from "./types.js";
 export * from "./work-causality.js";
+export * from "./budget-tokens.js";

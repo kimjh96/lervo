@@ -1,7 +1,7 @@
 import type { OperatingActionPlanV1, OperatingMandate } from "@lervo/application-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
-import { readResourceUsageEventPayload } from "@lervo/execution-contract";
+import { budgetTokens, readResourceUsageEventPayload } from "@lervo/execution-contract";
 import {
   assertOperatingActionPlan,
   managedExecutionIdentity,
@@ -123,7 +123,7 @@ async function readOwnerSpendEpoch(input: {
         observedTokens: neverStarted
           ? 0
           : usage?.status === "observed"
-            ? usage.usage!.totalTokens
+            ? budgetTokens(usage.usage!)
             : null,
         usageUnavailable: usage?.status === "unavailable",
       });

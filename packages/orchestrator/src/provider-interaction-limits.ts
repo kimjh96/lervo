@@ -1,3 +1,4 @@
+import { budgetTokens } from "@lervo/execution-contract";
 import type { AdapterNormalizedEvent } from "@lervo/schemas";
 
 import { ManagedProviderRunError } from "./provider-run-types.js";
@@ -74,12 +75,23 @@ export class ManagedProviderInteractionLimiter {
       this.maximumTotalTokens !== null
     ) {
       // Both are turn-cumulative, so the largest value per turn bounds that turn's total.
-      const payload = event.payload as { providerTurnId?: unknown; totalTokens?: unknown };
+      const payload = event.payload as {
+        providerTurnId?: unknown;
+        totalTokens?: unknown;
+        cachedInputTokens?: unknown;
+      };
       if (typeof payload.providerTurnId !== "string" || typeof payload.totalTokens !== "number")
         return;
+      // Budgets charge cached re-reads at their cost, not as full input tokens.
+      const charged = budgetTokens({
+        totalTokens: payload.totalTokens,
+        ...(typeof payload.cachedInputTokens === "number"
+          ? { cachedInputTokens: payload.cachedInputTokens }
+          : {}),
+      });
       this.turnTokens.set(
         payload.providerTurnId,
-        Math.max(this.turnTokens.get(payload.providerTurnId) ?? 0, payload.totalTokens),
+        Math.max(this.turnTokens.get(payload.providerTurnId) ?? 0, charged),
       );
       let total = 0;
       for (const tokens of this.turnTokens.values()) total += tokens;

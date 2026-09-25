@@ -1,3 +1,4 @@
+import { budgetTokens } from "@lervo/execution-contract";
 import type { SupervisedAssignmentAmendmentV1 } from "@lervo/application-contract";
 import { supervisedAssignmentAmendmentFields } from "@lervo/work-controller";
 import { observedSupervisionRunTermination } from "./supervision-run-termination.js";
@@ -129,11 +130,21 @@ export async function observeSupervisionTaskResources(input: {
       : null;
   const zeroOnly = accountedRunIds.length === 0 && groups.length === 0;
   const completeUsage = zeroOnly || exactUsage || comparableTotal !== null;
+  // The aggregate budget charges cached re-reads at their cost, like the running worker limit.
+  const groupBudget = (group: (typeof groups)[number]) =>
+    group.tokenUsage === null
+      ? group.totalTokens
+      : budgetTokens({
+          totalTokens: group.totalTokens ?? group.tokenUsage.totalTokens,
+          cachedInputTokens: group.tokenUsage.cachedInputTokens,
+        });
   let observedAggregateTokens = zeroOnly
     ? 0
     : exactUsage
-      ? groups[0]!.totalTokens
-      : comparableTotal;
+      ? groupBudget(groups[0]!)
+      : comparableTotal === null
+        ? null
+        : groups.reduce((sum, group) => sum + (groupBudget(group) ?? 0), 0);
   let reservedAggregateTokens: number | null = 0;
   const reservedRuns = new Set<string>();
   const currentDecision = operatingDecisionId(plan);
