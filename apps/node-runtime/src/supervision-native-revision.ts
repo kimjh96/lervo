@@ -4,7 +4,10 @@ import type { SupervisedResponsibilityClaimV1 } from "@lervo/application-contrac
 import { canonicalJson } from "@lervo/event-contract";
 import { operatingContractHash, supervisedResponsibilityClaimFields } from "@lervo/work-controller";
 import type { NativeOwnerPlanInput } from "./supervision-native-plans.js";
-import { nativeTaskRequirement } from "./supervision-native-task.js";
+import {
+  InvalidNativeOwnerProposalError,
+  nativeTaskRequirement,
+} from "./supervision-native-task.js";
 import { prepareSupervisionWorkforcePlan } from "./supervision-workforce-planning.js";
 
 /** Revises unstarted work through the same exact responsibility claim, never by editing a live lease. */
@@ -40,7 +43,9 @@ export async function nativeResponsibilityRevision(
     !["queued", "leased"].includes(assignment.status) ||
     (assignment.lease !== null && Date.parse(assignment.lease.expiresAt) > Date.parse(input.now()))
   )
-    throw new Error("The proposed responsibility has an unresolved live or terminal assignment.");
+    // The owner named an assignment that cannot be revised (unclaimed, live, or terminal). This is
+    // proposal feedback, not a cycle failure; a plain error repeated the same proposal forever.
+    throw new InvalidNativeOwnerProposalError("invalid_task_contract", ["assignmentId"]);
   const { task } = nativeTaskRequirement(input, details.task as Record<string, unknown>);
   task.assignmentId = assignment.assignmentId;
   const changesCriteria =

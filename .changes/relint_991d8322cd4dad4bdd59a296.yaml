@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_991d8322cd4dad4bdd59a296"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Return an owner's revision of an unrevisable assignment as proposal feedback instead of failing every supervision cycle."
