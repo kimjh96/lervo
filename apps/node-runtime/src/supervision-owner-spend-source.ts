@@ -125,7 +125,15 @@ async function readOwnerSpendEpoch(input: {
           : usage?.status === "observed"
             ? budgetTokens(usage.usage!)
             : null,
-        usageUnavailable: usage?.status === "unavailable",
+        // A terminated turn could not outspend its reservation (the running limit enforces it),
+        // so missing usage charges the full reservation; only a turn that may still run is
+        // uncertain and blocks the epoch.
+        usageUnavailable:
+          usage?.status === "unavailable" &&
+          !events.some(
+            (item) =>
+              item.runId === runId && (item.type === "run.failed" || item.type === "run.completed"),
+          ),
       });
     }
   }

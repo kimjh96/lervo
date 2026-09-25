@@ -67,3 +67,7 @@ An installed mandate's revocation denies new worker effects and owner reasoning,
 - [Owner reasoning](../../../../../specifications/execution/outcome-supervision/implementation/owner-reasoning.md)
 - [ADR-0400](../0400-prove-default-model-supervision-budget-comparability.md)
 - [Installed observations](../../../../../roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/installed-observations.md)
+
+## Amendment 2026-09-25: terminated turns without usage
+
+A usage receipt of `unavailable` blocked the whole owner spend epoch. That rule was meant for a turn that might still be running. Kael's first owner turn under a freshly reinstalled mandate failed in nine seconds without usage, and this silently blocked every later owner turn for hours. A turn that recorded `run.failed` or `run.completed` can no longer spend, and ADR-0432 caps it at its reservation, so it is now charged its full reservation. Only a turn without a terminal event remains uncertain and blocks the epoch.

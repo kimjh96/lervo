@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d56125b8c4f21e532d20e172"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Charge a terminated owner turn without usage its reservation instead of blocking the owner spend epoch."

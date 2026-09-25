@@ -261,3 +261,32 @@ it("reports proposal headroom from the same epoch before any decision is recorde
     }),
   ).toBeNull();
 });
+
+it("charges a failed owner turn without usage its reservation instead of blocking the epoch", async () => {
+  const unavailable = (source: ReturnType<typeof setup>) => {
+    const receipt = usageReceipt(source.plans[0]!, 1);
+    return {
+      ...receipt,
+      payload: { ...receipt.payload, status: "unavailable", usage: null, reasonCode: "x" },
+    } as unknown as EventEnvelope;
+  };
+  const running = setup(2);
+  running.events.push(unavailable(running));
+  expect(await readOwnerSpendAdmission({ ...running, plan: running.plans[1]! })).toMatchObject({
+    disposition: "exceeded",
+  });
+  const failed = setup(2);
+  const receipt = unavailable(failed);
+  failed.events.push(receipt, {
+    ...receipt,
+    eventId: `evt_${"e".repeat(32)}`,
+    seq: 5,
+    type: "run.failed",
+    payload: { failureCode: "provider_turn_failed", retryable: false },
+  } as unknown as EventEnvelope);
+  expect(await readOwnerSpendAdmission({ ...failed, plan: failed.plans[1]! })).toEqual({
+    disposition: "within",
+    chargedTokens: 200_000,
+    remainingTokens: 0,
+  });
+});
