@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { loadNodeRuntimeConfig } from "./config.js";
+import { resolveRecoveryBinding } from "./supervision-recovery-binding.js";
 import { recoverAbandonedTurn } from "./supervision-abandoned-turn-recovery.js";
 
 /** One explicit repair command; never invoked by the background owner loop. */
@@ -24,7 +25,7 @@ export async function runAbandonedTurnRecoveryCli(
       throw new Error("The installed Node has no outcome supervision binding.");
     const result = await recoverAbandonedTurn({
       repositoryRoot: config.repositoryRoot,
-      binding: config.outcomeSupervision.binding,
+      binding: await resolveRecoveryBinding(config.repositoryRoot, config.outcomeSupervision),
       runId: args[3]!,
       unit: args[5]!,
     });

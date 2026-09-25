@@ -1,9 +1,8 @@
 import { resolve } from "node:path";
-import { openProjectStorage } from "@lervo/project-storage";
 
 import { loadNodeRuntimeConfig } from "./config.js";
 import { reconcileInterruptedOwnerReasoning } from "./supervision-interrupted-owner-recovery.js";
-import { resolveStandingSupervisionBinding } from "./supervision-standing.js";
+import { resolveRecoveryBinding } from "./supervision-recovery-binding.js";
 
 /** Explicit repair after compatible readers are installed; never background-replays provider work. */
 export async function runInterruptedOwnerRecoveryCli(
@@ -25,17 +24,7 @@ export async function runInterruptedOwnerRecoveryCli(
     const config = await loadNodeRuntimeConfig(resolve(ports.cwd, args[1]!));
     if (config.outcomeSupervision === undefined)
       throw new Error("The installed Node has no outcome supervision binding.");
-    let binding = config.outcomeSupervision.binding;
-    if (config.outcomeSupervision.standing) {
-      const storage = await openProjectStorage(config.repositoryRoot);
-      try {
-        binding = (
-          await resolveStandingSupervisionBinding(storage, binding, () => new Date().toISOString())
-        ).binding;
-      } finally {
-        await storage.close();
-      }
-    }
+    const binding = await resolveRecoveryBinding(config.repositoryRoot, config.outcomeSupervision);
     const result = await reconcileInterruptedOwnerReasoning({
       repositoryRoot: config.repositoryRoot,
       binding,
