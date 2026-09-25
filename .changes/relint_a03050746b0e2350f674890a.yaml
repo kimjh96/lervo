@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a03050746b0e2350f674890a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reopen supervision escalation capacity after each reviewed mandate installation."
