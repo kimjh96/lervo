@@ -37,7 +37,9 @@ A Discord repository-work turn on a version-3 writer now selects `pending_backgr
 
 A `pending_review` outcome now registers an exact-byte canonicalization candidate and names it in `canonicalizationCandidateId`. The candidate surfaces as a `canonicalization_review` attention item in the next terminal prompt context and in the operating attention report. That item is the narrow write assignment: the reviewing agent updates the canonical document and promotes the candidate with the target's exact hash. A later source change makes the candidate stale. A Discord repository-work turn receives the same open and stale candidates in its instructions, so repositories worked only through Discord also resolve them. A change that touches only canonical documents registers no candidate.
 
-Still outstanding: installed evidence and latency measurement. Supervised runs have no workspace integration step yet: Kael's worker results stay in isolated worktrees, and nothing calls `completeWorkspaceIntegration`. The ADR-0433 source for supervised runs waits for that integration step, because appending it earlier would claim unintegrated bytes as repository state.
+Supervised worker results on every Node now reach the repository as create-only `lervo/results/<assignment>` branches after the owner completes the assignment. Merging one through a terminal or Discord turn queues its knowledge job. The full ADR-0222 integrator lifecycle (seal, integration queue, verified target advance) remains unused.
+
+Installed evidence: a Mac terminal Stop on the v3 writer appended its change and job in one transaction. The detached worker settled it 18 s later as pending_review, and the resulting candidate was promoted after its canonical document was updated. The v3 Stop hook took 5.6 s, against 4.5 s on the v2 writer. A Discord turn on a v3 repository is still unobserved.
 
 ## Reader-first foundation
 

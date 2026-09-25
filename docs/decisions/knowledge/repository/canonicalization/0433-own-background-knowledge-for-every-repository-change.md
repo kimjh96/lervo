@@ -60,7 +60,9 @@ A projection refresh alone never closes a canonicalization obligation. Retries, 
 
 ## Consequences
 
-A Discord conversation turn selects the background mode per turn when the writer coordinate is version 3, and otherwise keeps the synchronous check. Supervised runs have no workspace integration step today, so they record no change source until one exists.
+A Discord conversation turn selects the background mode per turn when the writer coordinate is version 3, and otherwise keeps the synchronous check.
+
+Supervised worker results (amended 2026-09-25): a worker edits a detached checkout, and the owner accepts only its result artifact, so accepted file changes previously never left the checkout. The Node now commits each completed worker assignment's checkout onto a create-only branch `lervo/results/<assignment>`. It uses a private index and fixed dates, and it excludes Git-ignored files. The checked-out branch and working tree are never touched, because they may hold user-owned uncommitted work. Landing a result is a merge by a later observed terminal or Discord turn, which records the change source and queues its knowledge job like any other change.
 
 Terminal agents no longer need to keep global knowledge current synchronously before they stop. Until the core owner is verified in an installed repository, the existing synchronous terminal declaration remains available and the new source only adds durable obligations. Enabling `pending_background` on an installed Node still requires the ADR-0427 acceptance evidence.
 

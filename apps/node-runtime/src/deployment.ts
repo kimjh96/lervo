@@ -1,5 +1,6 @@
 import { openDeploymentSupervision } from "./deployment-supervision.js";
 import { startRepositoryKnowledgeLoop } from "./repository-knowledge-loop.js";
+import { startSupervisionResultBranchLoop } from "./supervision-result-branch.js";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import type { NodeSupervisionService } from "./supervision-startup.js";
 import { createSyncCycleObserver } from "./sync-cycle-observer.js";
@@ -242,6 +243,23 @@ export async function openNodeRuntime(
                   ),
               })
             : async () => undefined;
+        const workerWorkspace = validated.outcomeSupervision?.runtimeReadiness?.workerWorkspace;
+        const stopResults =
+          workerWorkspace === undefined
+            ? async () => undefined
+            : startSupervisionResultBranchLoop({
+                repositoryRoot: paths.repositoryRoot,
+                parentDirectory: workerWorkspace.parentDirectory,
+                subscribe: (notify) => watchLocalEventChanges(store!, notify),
+                onPublished: (result) =>
+                  process.stdout.write(
+                    `Lervo supervision result ${result.assignmentId} published as ${result.ref} (${result.commit}).\n`,
+                  ),
+                onFailure: (error) =>
+                  process.stderr.write(
+                    `Lervo supervision result publication failed: ${error instanceof Error ? error.message : "unknown error"}\n`,
+                  ),
+              });
         try {
           return await runOutboundSyncLoop({
             worker,
@@ -286,6 +304,7 @@ export async function openNodeRuntime(
           });
         } finally {
           await stopKnowledge();
+          await stopResults();
           stopWatching();
         }
       },
