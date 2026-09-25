@@ -98,7 +98,7 @@ it("publishes only the count beyond the path bound while the manifest keeps ever
   }
 });
 
-it("drops Git-ignored build outputs but keeps every path outside Git", async () => {
+it("drops Lervo projections everywhere and Git-ignored build outputs inside Git", async () => {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-change-ignore-"));
   roots.push(root);
   const input = {
@@ -108,7 +108,12 @@ it("drops Git-ignored build outputs but keeps every path outside Git", async () 
     before: { revision: hash("1"), files: { "src/a.ts": hash("2") } },
     after: {
       revision: hash("3"),
-      files: { "src/a.ts": hash("4"), "pkg/tsconfig.tsbuildinfo": hash("5") },
+      files: {
+        "src/a.ts": hash("4"),
+        "pkg/tsconfig.tsbuildinfo": hash("5"),
+        ".lervo/generated/terminal-hooks/runtime-v2.mjs": hash("6"),
+        "docs/knowledge/index.md": hash("7"),
+      },
     },
     occurredAt: "2026-09-25T09:00:00.000Z",
   };

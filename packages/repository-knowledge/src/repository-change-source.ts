@@ -141,7 +141,18 @@ function gitIgnoredPaths(root: string, paths: readonly string[]): Promise<Readon
   });
 }
 
-/** Plans a change unit after removing Git-ignored paths, which carry no repository knowledge. */
+/** Lervo-generated projections and state; the review never treats them as knowledge sources. */
+const GENERATED_PREFIXES = [
+  ".lervo/generated/",
+  ".lervo/state/",
+  ".lervo/data/",
+  "docs/knowledge/",
+];
+
+/**
+ * Plans a change unit after removing Git-ignored paths and Lervo-generated projections, which
+ * carry no repository knowledge of their own.
+ */
 export async function planRepositoryChangeInRepository(
   input: Parameters<typeof planRepositoryChange>[0] & { repositoryRoot: string },
 ): Promise<PlannedRepositoryChange | null> {
@@ -150,7 +161,12 @@ export async function planRepositoryChangeInRepository(
     ...new Set([...Object.keys(change.before.files), ...Object.keys(change.after.files)]),
   ]);
   const kept = (files: Readonly<Record<string, string>>) =>
-    Object.fromEntries(Object.entries(files).filter(([path]) => !ignored.has(path)));
+    Object.fromEntries(
+      Object.entries(files).filter(
+        ([path]) =>
+          !ignored.has(path) && !GENERATED_PREFIXES.some((prefix) => path.startsWith(prefix)),
+      ),
+    );
   return planRepositoryChange({
     ...change,
     before: { revision: change.before.revision, files: kept(change.before.files) },
