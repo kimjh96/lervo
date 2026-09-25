@@ -23,7 +23,8 @@ export async function recordTerminalStageObservation(input: {
   const writerVersion =
     input.storage?.writableEventSchemaVersion ??
     (await inspectEventWriterCoordinate(input.root)).coordinate.selectedEventSchemaVersion;
-  if (writerVersion !== 2) return null;
+  // Stage observations are version-2 events, which every later writer also accepts.
+  if (writerVersion < 2) return null;
   const finalized = input.timing.finalize(input.observationId, input.hookEvent, input.outcome);
   if (finalized === null) return null;
   const validation = validateSchema("executionStagesObservedEventPayload", finalized.payload);

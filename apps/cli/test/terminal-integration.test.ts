@@ -35,7 +35,10 @@ import {
 } from "@lervo/repository-knowledge";
 import { openProjectStorage, RepositoryCoordinationRecords } from "@lervo/project-storage";
 import type { VerificationSuite } from "@lervo/schemas";
-import { activateFixtureEventWriterV2 } from "../../../packages/project/test/fixture-event-writer.js";
+import {
+  activateFixtureEventWriterV2,
+  activateFixtureEventWriterV3,
+} from "../../../packages/project/test/fixture-event-writer.js";
 import { createSearchQueryProjection, searchQueryProjectorBuildId } from "@lervo/search";
 import { runVerificationSuite } from "@lervo/verification";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
@@ -235,104 +238,107 @@ afterEach(async () => {
 });
 
 describe("terminal integration CLI", () => {
-  it("records bounded monotonic prompt and Stop stages only with a version-2 writer", async () => {
-    const root = await initializedRepository();
-    const initialStorage = await openProjectStorage(root);
-    const projectId = initialStorage.manifest.projectId;
-    await initialStorage.close();
-    await activateFixtureEventWriterV2({
-      repositoryRoot: root,
-      projectId,
-      observedAt: "2026-09-01T00:00:00.000Z",
-    });
-    const invoke = (hookEvent: "UserPromptSubmit" | "Stop") =>
-      runCli(["terminal", "hook", "--provider", "codex", "--contract", "2"], {
-        cwd: root,
-        stdout: () => undefined,
-        stderr: () => undefined,
-        stdin: async () =>
-          JSON.stringify({
-            hook_event_name: hookEvent,
-            session_id: "timed-terminal-session",
-            turn_id: "timed-terminal-turn",
-            ...(hookEvent === "UserPromptSubmit"
-              ? { prompt: "Explain the terminal fixture." }
-              : { last_assistant_message: "Done." }),
-          }),
+  it.each([2, 3] as const)(
+    "records bounded monotonic prompt and Stop stages with a version-%i writer",
+    async (writer) => {
+      const root = await initializedRepository();
+      const initialStorage = await openProjectStorage(root);
+      const projectId = initialStorage.manifest.projectId;
+      await initialStorage.close();
+      await (writer === 3 ? activateFixtureEventWriterV3 : activateFixtureEventWriterV2)({
+        repositoryRoot: root,
+        projectId,
+        observedAt: "2026-09-01T00:00:00.000Z",
       });
+      const invoke = (hookEvent: "UserPromptSubmit" | "Stop") =>
+        runCli(["terminal", "hook", "--provider", "codex", "--contract", "2"], {
+          cwd: root,
+          stdout: () => undefined,
+          stderr: () => undefined,
+          stdin: async () =>
+            JSON.stringify({
+              hook_event_name: hookEvent,
+              session_id: "timed-terminal-session",
+              turn_id: "timed-terminal-turn",
+              ...(hookEvent === "UserPromptSubmit"
+                ? { prompt: "Explain the terminal fixture." }
+                : { last_assistant_message: "Done." }),
+            }),
+        });
 
-    expect(await invoke("UserPromptSubmit")).toBe(0);
-    expect(await invoke("Stop")).toBe(0);
+      expect(await invoke("UserPromptSubmit")).toBe(0);
+      expect(await invoke("Stop")).toBe(0);
 
-    await expect(
-      access(resolve(root, ".lervo/state/terminal-integration/knowledge-lifecycle-cache.json")),
-    ).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(
+        access(resolve(root, ".lervo/state/terminal-integration/knowledge-lifecycle-cache.json")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
 
-    const storage = await openProjectStorage(root);
-    try {
-      const stages = storage.events
-        .list()
-        .filter((event) => event.type === "execution.stages.observed");
-      expect(stages).toHaveLength(2);
-      expect(stages.map((event) => event.schemaVersion)).toEqual([2, 2]);
-      expect(stages.map((event) => event.payload.stageCatalogVersion)).toEqual([2, 2]);
-      expect(stages[0]!.payload).toMatchObject({
-        executionMode: "unmanaged_terminal",
-        workId: null,
-        repositoryProfile: "custom",
-      });
-      expect(
-        (stages[0]!.payload.stages as Array<{ stageId: string }>).map((item) => item.stageId),
-      ).toEqual(
-        expect.arrayContaining([
-          "ingress_integrity",
-          "repository_discovery",
-          "query_projection",
-          "corpus_preparation",
-          "search",
-          "context_assembly",
-          "event_commit",
-          "total",
-        ]),
-      );
-      expect(
-        (stages[1]!.payload.stages as Array<{ stageId: string }>).map((item) => item.stageId),
-      ).toEqual(
-        expect.arrayContaining([
-          "ingress_integrity",
-          "repository_discovery",
-          "lifecycle_inspection",
-          "event_commit",
-          "total",
-        ]),
-      );
-      for (const event of stages) {
-        const digest = String(event.payload.environmentProfileDigest);
-        expect(await storage.artifacts.has(`lervo-cas://sha256/${digest.slice(7)}`)).toBe(true);
+      const storage = await openProjectStorage(root);
+      try {
+        const stages = storage.events
+          .list()
+          .filter((event) => event.type === "execution.stages.observed");
+        expect(stages).toHaveLength(2);
+        expect(stages.map((event) => event.schemaVersion)).toEqual([2, 2]);
+        expect(stages.map((event) => event.payload.stageCatalogVersion)).toEqual([2, 2]);
+        expect(stages[0]!.payload).toMatchObject({
+          executionMode: "unmanaged_terminal",
+          workId: null,
+          repositoryProfile: "custom",
+        });
+        expect(
+          (stages[0]!.payload.stages as Array<{ stageId: string }>).map((item) => item.stageId),
+        ).toEqual(
+          expect.arrayContaining([
+            "ingress_integrity",
+            "repository_discovery",
+            "query_projection",
+            "corpus_preparation",
+            "search",
+            "context_assembly",
+            "event_commit",
+            "total",
+          ]),
+        );
+        expect(
+          (stages[1]!.payload.stages as Array<{ stageId: string }>).map((item) => item.stageId),
+        ).toEqual(
+          expect.arrayContaining([
+            "ingress_integrity",
+            "repository_discovery",
+            "lifecycle_inspection",
+            "event_commit",
+            "total",
+          ]),
+        );
+        for (const event of stages) {
+          const digest = String(event.payload.environmentProfileDigest);
+          expect(await storage.artifacts.has(`lervo-cas://sha256/${digest.slice(7)}`)).toBe(true);
+        }
+      } finally {
+        await storage.close();
       }
-    } finally {
-      await storage.close();
-    }
-    const budgetMessages: string[] = [];
-    const budgetErrors: string[] = [];
-    expect(
-      await runCli(["terminal", "budget", "--limit", "1", "--minimum-samples", "1", "--json"], {
-        cwd: root,
-        stdout: (message: string) => budgetMessages.push(message),
-        stderr: (message: string) => budgetErrors.push(message),
-      }),
-      budgetErrors.join(""),
-    ).toBe(0);
-    expect(JSON.parse(budgetMessages.join(""))).toMatchObject({
-      reportKind: "unmanaged_terminal_budget",
-      disposition: "passed",
-      hookProfiles: [
-        { hookEvent: "Stop", status: "below" },
-        { hookEvent: "UserPromptSubmit", status: "below" },
-      ],
-      queryProjections: [{ status: "not_configured" }],
-    });
-  });
+      const budgetMessages: string[] = [];
+      const budgetErrors: string[] = [];
+      expect(
+        await runCli(["terminal", "budget", "--limit", "1", "--minimum-samples", "1", "--json"], {
+          cwd: root,
+          stdout: (message: string) => budgetMessages.push(message),
+          stderr: (message: string) => budgetErrors.push(message),
+        }),
+        budgetErrors.join(""),
+      ).toBe(0);
+      expect(JSON.parse(budgetMessages.join(""))).toMatchObject({
+        reportKind: "unmanaged_terminal_budget",
+        disposition: "passed",
+        hookProfiles: [
+          { hookEvent: "Stop", status: "below" },
+          { hookEvent: "UserPromptSubmit", status: "below" },
+        ],
+        queryProjections: [{ status: "not_configured" }],
+      });
+    },
+  );
 
   it("uses query projection without invoking effect grounding or a separate admission path", async () => {
     const root = await initializedRepository();
