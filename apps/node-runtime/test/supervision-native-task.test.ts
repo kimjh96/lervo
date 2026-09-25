@@ -44,6 +44,22 @@ it("names the missing and unexpected allocation keys of a rejected proposal", ()
   ]);
 });
 
+it("names an overlong task purpose that the responsibility contract would reject", () => {
+  // Kael's owner then sent 2,069 and 2,362 character purposes without any named field.
+  const error = rejection({
+    roleId: "developer",
+    taskPurpose: "x".repeat(2049),
+    deliverables: ["An updated document"],
+    acceptanceCriteria: ["The document states the verified span"],
+    decisionLatitude: ["Wording"],
+    expectedPaths: ["docs/a.md"],
+    requiredCapabilities: ["filesystem.read"],
+    verificationSuiteIds: ["role.development.artifact"],
+    completionSeconds: 1800,
+  });
+  expect(error.invalidFields).toEqual(["taskPurpose"]);
+});
+
 it("accepts feedback that names only exact allocation keys", () => {
   const projectId = `prj_${"b".repeat(16)}`;
   const reasoningPlanHash = `sha256:${"c".repeat(64)}`;

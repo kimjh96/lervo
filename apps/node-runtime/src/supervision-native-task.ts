@@ -47,7 +47,8 @@ export function nativeTaskRequirement(
       : key === "taskPurpose"
         ? typeof details.taskPurpose !== "string" ||
           details.taskPurpose.trim().length === 0 ||
-          details.taskPurpose.length > 4096
+          // The work responsibility contract bounds every text field at 2,048 characters.
+          details.taskPurpose.length > 2048
         : key === "completionSeconds"
           ? !Number.isSafeInteger(details.completionSeconds) ||
             Number(details.completionSeconds) < 30 ||
