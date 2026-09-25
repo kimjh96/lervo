@@ -671,6 +671,7 @@ export function createManagedRunExecutor(
           completion: result,
           eventId: dependencies.createId("evt"),
           occurredAt: (dependencies.now?.() ?? new Date()).toISOString(),
+          provider: request.provider,
         });
       recordManagedRoleProfileActivation({
         storage,

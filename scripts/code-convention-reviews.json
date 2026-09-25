@@ -32,7 +32,7 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:d03d1f62c3636034f8320fdd85407c4a5a1ff067591e42fbf71d2f21b0f7184f",
+      "contentHash": "sha256:43065d3061f3fb6b00166499d0639e9f7dd0ee224186cce24027f726dc817f05",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The CLI composes one managed run from admission through writing publication and finalization. Research source capture and checker environment validation are delegated to dedicated CLI adapters; the entrypoint adds only ordered preparation and port coordinates. Capability, skill, provider and storage policies remain behind their existing boundaries.",
       "disposition": "cohesive"
@@ -46,7 +46,7 @@
     },
     {
       "path": "apps/cli/src/terminal-turn-observation.ts",
-      "contentHash": "sha256:fb866c7dbfad1f84c94f12d9d2c7c699938d837078c2fda421eccf7bb44dbb6c",
+      "contentHash": "sha256:b337f8dce23a7a45c11a9b2cef09c396aa20015f1929341743d82640cdbfe07a",
       "responsibility": "Terminal turn context preparation and Stop observation records",
       "rationale": "The module records one terminal turn lifecycle: prepared context, observed references and the Stop turn event, all in the shared hook transaction. Snapshot storage, event coordinates and the repository-change knowledge source are extracted modules; what remains shares the prepared-context contract.",
       "disposition": "cohesive"

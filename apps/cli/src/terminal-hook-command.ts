@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 
+import { launchDetachedKnowledgeWorker } from "./knowledge-worker-command.js";
 import { openProjectStorage } from "@lervo/project-storage";
 import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 
@@ -219,6 +220,13 @@ export async function runTerminalHookCommand(
           occurredAt,
         }),
       );
+      const hookRuntime = process.env.LERVO_TERMINAL_HOOK_RUNTIME;
+      if (observation.knowledgeJobQueued && hookRuntime !== undefined)
+        launchDetachedKnowledgeWorker({
+          root,
+          entry: hookRuntime,
+          args: ["knowledge-worker", "--provider", provider],
+        });
       if (
         expectation.workspaceBinding?.executionKind === "worker" &&
         lifecycle.status === "action_required"

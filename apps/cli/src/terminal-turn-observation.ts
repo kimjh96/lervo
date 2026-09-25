@@ -304,7 +304,7 @@ export async function recordObservedTerminalTurn(input: {
   lifecycle: TerminalLifecycleInspection;
   workspaceCheckpointEventId: string | null;
   occurredAt: string;
-}): Promise<{ eventId: string; referenceCount: number }> {
+}): Promise<{ eventId: string; referenceCount: number; knowledgeJobQueued: boolean }> {
   const storage = await openProjectStorage(input.root);
   try {
     const context = findLatestPreparedContext(storage.events, input.coordinates, input.provider);
@@ -401,7 +401,11 @@ export async function recordObservedTerminalTurn(input: {
           change,
         });
     });
-    return { eventId: turnEventId, referenceCount: references.length };
+    return {
+      eventId: turnEventId,
+      referenceCount: references.length,
+      knowledgeJobQueued: change !== null,
+    };
   } finally {
     await storage.close();
   }

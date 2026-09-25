@@ -2,6 +2,8 @@ import type { ManagedFileChangeEvidence } from "@lervo/execution-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
 import { appendRepositoryChange, planRepositoryChange } from "@lervo/repository-knowledge";
 
+import { launchDetachedKnowledgeWorker } from "./knowledge-worker-command.js";
+
 /**
  * Records the durable background-knowledge source for a completed managed run (ADR-0433). A
  * supervised run is recorded only after its workspace integrates, and a writer without v3 events
@@ -20,6 +22,8 @@ export async function recordManagedRunRepositoryChange(input: {
   };
   eventId: string;
   occurredAt: string;
+  /** The provider for the detached knowledge worker; omitted, no worker is launched. */
+  provider?: "claude" | "codex";
 }): Promise<{ eventId: string; enqueued: boolean } | null> {
   if (input.storage.writableEventSchemaVersion !== 3) return null;
   const files = (side: "beforeHash" | "afterHash") =>
@@ -39,7 +43,7 @@ export async function recordManagedRunRepositoryChange(input: {
   const stored = await input.storage.artifacts.put(planned.manifestContent);
   if (stored.contentHash !== planned.payload.sourceManifest.contentHash)
     throw new Error("The repository change manifest differs from its stored artifact.");
-  return input.storage.events.transact((transaction) =>
+  const recorded = input.storage.events.transact((transaction) =>
     appendRepositoryChange(
       transaction,
       {
@@ -54,4 +58,13 @@ export async function recordManagedRunRepositoryChange(input: {
       planned,
     ),
   );
+  // Only the installed CLI entry launches a worker; tests and embedded callers never spawn one.
+  const entry = process.env.LERVO_CLI_ENTRY;
+  if (recorded.enqueued && input.provider !== undefined && entry !== undefined)
+    launchDetachedKnowledgeWorker({
+      root: input.storage.paths.repositoryRoot,
+      entry,
+      args: ["knowledge", "worker", "--once", "--provider", input.provider],
+    });
+  return recorded;
 }

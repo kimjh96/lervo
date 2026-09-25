@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
+import { fileURLToPath } from "node:url";
+
 import { runCli } from "./main.js";
+
+process.env.LERVO_CLI_ENTRY = fileURLToPath(import.meta.url);
 
 process.exitCode = await runCli(process.argv.slice(2), {
   cwd: process.cwd(),

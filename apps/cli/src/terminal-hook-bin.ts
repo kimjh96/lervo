@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { runKnowledgeWorkerCommand } from "./knowledge-worker-command.js";
 import { runTerminalCommand } from "./terminal-command.js";
 import { projectProductionSearchQueries } from "./provider-query-projector.js";
 import { createTerminalStageObservation } from "./terminal-stage-observation.js";
@@ -32,7 +33,14 @@ async function verifiedRuntime(): Promise<boolean> {
 if (!(await verifiedRuntime())) {
   process.stderr.write("Lervo terminal hook runtime integrity verification failed.\n");
   process.exitCode = 2;
+} else if (process.argv[2] === "knowledge-worker") {
+  process.exitCode = await runKnowledgeWorkerCommand(["--once", ...process.argv.slice(3)], {
+    cwd: process.cwd(),
+    stdout: (message) => process.stdout.write(message),
+    stderr: (message) => process.stderr.write(message),
+  });
 } else {
+  process.env.LERVO_TERMINAL_HOOK_RUNTIME = fileURLToPath(import.meta.url);
   process.exitCode = await runTerminalCommand(
     ["hook", ...process.argv.slice(2)],
     {

@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { runKnowledgeWorkerCommand } from "./knowledge-worker-command.js";
 import { parseArgs } from "node:util";
 import {
   analyzeRepositoryKnowledgeImpact,
@@ -45,6 +46,7 @@ export async function runKnowledgeCommand(
   const subcommand = args[0];
   if (subcommand === "export" || subcommand === "import" || subcommand === "okf")
     return runKnowledgeOkfExchange(args, io);
+  if (subcommand === "worker") return runKnowledgeWorkerCommand(args.slice(1), io);
   if (subcommand === "refresh")
     return runKnowledgeMigration({ args: args.slice(1), io, mode: "refresh" });
   if (subcommand === "canonicalization") return runKnowledgeCanonicalization(args.slice(1), io);

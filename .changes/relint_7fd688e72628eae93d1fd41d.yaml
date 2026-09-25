@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_7fd688e72628eae93d1fd41d"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Run the repository knowledge worker from the CLI and launch it detached after a changed terminal turn or managed run."

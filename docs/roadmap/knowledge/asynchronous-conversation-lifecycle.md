@@ -23,7 +23,15 @@ Until every criterion and installed evidence pass, `pending_background` must not
 
 [ADR-0433](../../decisions/knowledge/repository/canonicalization/0433-own-background-knowledge-for-every-repository-change.md) extends this lifecycle from Discord conversations to managed `lervo run` executions and Claude Code or Codex terminal turns. When the repository writer is on event schema version 3, a changed managed run or terminal Stop now appends one `repository.change.completed` event and one `knowledge:repository` outbox job in the same transaction. The job carries a content-bound manifest with every changed path. Beyond 64 paths the event publishes only the count, and an unchanged unit records nothing. Writers below version 3 keep their previous behavior.
 
-These sources are producers only. The core owner, its Node and detached CLI hosts, supervised-run integration and the `current` outcome remain outstanding.
+The core owner `processRepositoryKnowledgeJobs` claims these jobs and settles each one with `repository.knowledge.resolved` and its queue acknowledgement in one transaction:
+
+- It rechecks the manifest and current bytes (`stale` on drift) and recovers exact former bytes from recent commits.
+- A no-capability review classifies the change. Implementation-only work becomes `current` only when the read-only knowledge lifecycle check passes, which never applies a migration. A canonical candidate stays `pending_review`. Unavailable former bytes, lifecycle debt, or a `needs_review` verdict become `attention_required`.
+- Transient failures back off, and the sixteenth attempt settles as exhausted.
+
+`lervo knowledge worker --once --provider <claude|codex>` hosts the owner under a repository lock. A changed terminal Stop or managed run launches it detached from the verified hook runtime or CLI entry, so the turn never waits.
+
+Still outstanding: the Node host loop, supervised-run integration, the narrow write assignment for canonical candidates, and installed evidence.
 
 ## Reader-first foundation
 
