@@ -32,6 +32,7 @@ export async function cancelAssignmentOnce(input: {
     assignments: planAssignments,
     assignmentId: input.assignmentId,
     reason: input.reason,
+    now,
   });
   if (plan.planId !== input.expectedPlanId) {
     fail("agent_state_conflict", "The assignment cancellation plan is stale.");

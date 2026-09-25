@@ -29,6 +29,7 @@ export function createAssignmentCancellationPlan(input: {
   assignments: readonly WorkforceAssignment[];
   assignmentId: string;
   reason: AssignmentCancellationStep["reason"];
+  now?: Date;
 }): AssignmentCancellationPlan {
   if (
     input.assignments.length > workforceLimits.maximumAssignments ||
@@ -50,7 +51,10 @@ export function createAssignmentCancellationPlan(input: {
   const terminal = ["completed", "failed", "cancelled"].includes(assignment.status);
   const blockedReason = terminal
     ? ("terminal" as const)
-    : assignment.status === "leased"
+    : // An expired lease cannot commit a result; only a live holder blocks cancellation.
+      assignment.status === "leased" &&
+        (!assignment.lease ||
+          Date.parse(assignment.lease.expiresAt) > (input.now ?? new Date()).getTime())
       ? ("active_lease" as const)
       : input.reason === "dependency_cancelled" && cancelledDependencyIds.length === 0
         ? ("dependency_not_cancelled" as const)

@@ -84,6 +84,31 @@ describe("assignment graph safety", () => {
         reason: "requested",
       }),
     ).toMatchObject({ status: "blocked", blockedReason: "active_lease" });
+    const leased = (expiresAt: string) =>
+      ({
+        ...dependent,
+        status: "leased",
+        revision: 2,
+        lease: { expiresAt },
+      }) as unknown as WorkforceAssignment;
+    const now = new Date("2026-09-25T00:00:00.000Z");
+    // An expired lease can no longer commit a result, so it no longer blocks cancellation.
+    expect(
+      createAssignmentCancellationPlan({
+        assignments: [leased("2026-09-24T16:04:55.156Z")],
+        assignmentId: dependent.assignmentId,
+        reason: "requested",
+        now,
+      }),
+    ).toMatchObject({ status: "ready", blockedReason: null, previousStatus: "leased" });
+    expect(
+      createAssignmentCancellationPlan({
+        assignments: [leased("2026-09-25T00:05:00.000Z")],
+        assignmentId: dependent.assignmentId,
+        reason: "requested",
+        now,
+      }),
+    ).toMatchObject({ status: "blocked", blockedReason: "active_lease" });
   });
 
   it("reports each capacity and backpressure boundary without mutation", () => {

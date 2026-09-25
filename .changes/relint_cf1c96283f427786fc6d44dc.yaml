@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cf1c96283f427786fc6d44dc"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Allow cancelling a leased assignment whose lease has already expired."
