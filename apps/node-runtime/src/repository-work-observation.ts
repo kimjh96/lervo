@@ -9,6 +9,15 @@ import { MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS } from "@lervo/schem
 
 const execute = promisify(execFile);
 const MAXIMUM_CHANGED_PATHS = 1_024;
+/**
+ * Lervo projections and state are not repository work. Verification evidence under
+ * `.lervo/generated/` alone once exceeded the path bound and failed every Discord turn in axli.
+ */
+const LERVO_PROJECTION_PATHSPECS = [
+  ":(exclude).lervo/generated",
+  ":(exclude).lervo/state",
+  ":(exclude).lervo/data",
+];
 
 export class RepositoryWorkObservationLimitError extends Error {
   readonly code = "repository_changed_path_limit_exceeded";
@@ -95,7 +104,15 @@ export async function observeRepositoryWork(
 ): Promise<RepositoryWorkObservation> {
   const [head, status] = await Promise.all([
     git(repositoryRoot, ["rev-parse", "HEAD"]),
-    git(repositoryRoot, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]),
+    git(repositoryRoot, [
+      "status",
+      "--porcelain=v1",
+      "-z",
+      "--untracked-files=all",
+      "--",
+      ".",
+      ...LERVO_PROJECTION_PATHSPECS,
+    ]),
   ]);
   const paths = new Map<string, string>();
   for (const path of statusPaths(status))
@@ -120,6 +137,9 @@ export async function compareRepositoryWork(input: {
       "-z",
       input.before.head,
       input.after.head,
+      "--",
+      ".",
+      ...LERVO_PROJECTION_PATHSPECS,
     ]);
     for (const path of committed.split("\0")) if (path.length > 0) candidates.add(path);
   }

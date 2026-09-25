@@ -102,4 +102,29 @@ describe("repository work observation", () => {
       code: "repository_changed_path_limit_exceeded",
     });
   });
+
+  it("does not count untracked Lervo projections toward repository work", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-repository-observation-projection-"));
+    roots.push(root);
+    await execute("git", ["init", "-b", "main"], { cwd: root });
+    await execute("git", ["config", "user.email", "lervo-test@example.invalid"], { cwd: root });
+    await execute("git", ["config", "user.name", "Lervo Test"], { cwd: root });
+    await writeFile(resolve(root, "README.md"), "before\n");
+    await execute("git", ["add", "README.md"], { cwd: root });
+    await execute("git", ["commit", "-m", "fixture"], { cwd: root });
+    const evidence = resolve(root, ".lervo/generated/verification/pilot");
+    await mkdir(evidence, { recursive: true });
+    for (let index = 0; index < 1_100; index += 1)
+      await writeFile(resolve(evidence, `evidence-${index}.json`), `${index}\n`);
+
+    const before = await observeRepositoryWork(root);
+    expect([...before.paths.keys()]).toEqual([]);
+    await writeFile(resolve(root, "README.md"), "after\n");
+    const changed = await compareRepositoryWork({
+      repositoryRoot: root,
+      before,
+      after: await observeRepositoryWork(root),
+    });
+    expect(changed.changedPaths).toEqual(["README.md"]);
+  });
 });

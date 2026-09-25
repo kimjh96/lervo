@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b53a5ff6699068f4d3219d08"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Exclude Lervo projections and state from Discord repository-work observation so generated evidence cannot exceed its path bound."
