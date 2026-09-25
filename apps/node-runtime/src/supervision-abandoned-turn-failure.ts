@@ -86,11 +86,16 @@ export function isProvenAbandonedTurnFailure(
     return false;
   const started = original.filter((event) => event.type === "adapter.started");
   const processes = original.filter((event) => event.type === "provider.process.observed");
+  // A managed worker run records no role input binding; a read-only turn still requires it.
+  const prefix =
+    failure.code === ABANDONED_WRITE_TURN && original[PREFIX.length - 1]?.type !== PREFIX.at(-1)
+      ? PREFIX.slice(0, -1)
+      : PREFIX;
   if (
-    original.length < PREFIX.length + 1 ||
-    !PREFIX.every((type, index) => original[index]?.type === type) ||
+    original.length < prefix.length + 1 ||
+    !prefix.every((type, index) => original[index]?.type === type) ||
     started.length !== 1 ||
-    started[0]!.seq <= original[PREFIX.length - 1]!.seq ||
+    started[0]!.seq <= original[prefix.length - 1]!.seq ||
     processes.length === 0 ||
     (started[0]!.payload.executionMode === "read_only" &&
       (processes.some((event) => event.payload.provesWorkProgress !== false) ||

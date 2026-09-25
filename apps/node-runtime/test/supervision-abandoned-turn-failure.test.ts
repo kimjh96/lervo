@@ -117,7 +117,7 @@ describe("abandoned managed turn proof", () => {
   it("settles a writable turn that changed files only with the effects-uncertain write code", () => {
     // Kael's documentation worker changed a file and its CLI died without a terminal event.
     const original = [
-      ...scenario().events.slice(0, 5),
+      ...scenario().events.slice(0, 4),
       event(6, "adapter.started", 23_000, { executionMode: "write" }),
       event(7, "provider.process.observed", 23_100, { provesWorkProgress: true }),
       event(8, "file.changed", 26_000),
