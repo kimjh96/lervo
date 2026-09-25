@@ -10,6 +10,7 @@ import {
 } from "@lervo/work-controller";
 import { evaluateWritingPublication, type SemanticWritingEvaluationResponse } from "@lervo/writing";
 import type { NativeOwnerPlanInput } from "./supervision-native-plans.js";
+import { InvalidNativeOwnerProposalError } from "./supervision-native-task.js";
 import { prepareSupervisionResearchEvaluation } from "./supervision-research-evaluation.js";
 import {
   readSupervisionJsonArtifact,
@@ -36,27 +37,47 @@ export async function nativeAssignmentCompletion(
     input.facts.roles
       .find((item) => item.roleId === assignment?.roleId)
       ?.profile.contextPolicy.requiredDocumentRuleIds.includes("research.source-policy") === true;
-  if (
-    Object.keys(details).sort().join(",") !==
-      (researchRequired
-        ? "assignmentId,checks,researchChecks,resultContentHash,writingPolicyId"
-        : "assignmentId,checks,resultContentHash,writingPolicyId") ||
-    task?.terminalEventId === null ||
+  const expectedKeys = researchRequired
+    ? ["assignmentId", "checks", "researchChecks", "resultContentHash", "writingPolicyId"]
+    : ["assignmentId", "checks", "resultContentHash", "writingPolicyId"];
+  // Each mismatch names its detail key so the next owner turn corrects it instead of the cycle
+  // failing on every attempt without evidence.
+  const invalidFields = [
+    ...expectedKeys.filter((key) => !Object.hasOwn(details, key)),
+    ...(Object.keys(details).some((key) => !expectedKeys.includes(key))
+      ? ["unexpected_field"]
+      : []),
+    ...(task?.terminalEventId === null ||
     task === undefined ||
     assignment?.status !== "leased" ||
     assignment.lease === null ||
     binding === undefined ||
-    binding === null ||
+    binding === null
+      ? ["assignmentId"]
+      : []),
+    ...(task === undefined ||
     task.artifactHashes.length !== 1 ||
-    details.resultContentHash !== task.artifactHashes[0] ||
-    details.writingPolicyId !== policy.writingPolicyId ||
-    !Array.isArray(details.checks) ||
+    details.resultContentHash !== task.artifactHashes[0]
+      ? ["resultContentHash"]
+      : []),
+    ...(details.writingPolicyId !== policy.writingPolicyId ? ["writingPolicyId"] : []),
+    ...(!Array.isArray(details.checks) ||
     details.checks.length !==
       policy.verification.semanticChecks.filter((item) => item.required).length
+      ? ["checks"]
+      : []),
+  ];
+  if (invalidFields.length > 0)
+    throw new InvalidNativeOwnerProposalError("invalid_task_contract", [...new Set(invalidFields)]);
+  if (
+    task === undefined ||
+    task.terminalEventId === null ||
+    assignment === undefined ||
+    assignment.lease === null ||
+    binding === undefined ||
+    binding === null
   )
-    throw new Error(
-      "The native completion verdict differs from the returned task and writing policy.",
-    );
+    throw new Error("The native completion task is unavailable.");
   const contentHash = task.artifactHashes[0]!;
   const content = await readSupervisionTextArtifact(input.storage.artifacts, contentHash);
   const preparedAt = input.now();

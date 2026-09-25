@@ -10,7 +10,15 @@ export interface OwnerProposalFeedback {
   invalidFields?: string[];
 }
 
-const FEEDBACK_FIELDS = new Set([...NATIVE_TASK_DETAIL_KEYS, "unexpected_field"]);
+const FEEDBACK_FIELDS = new Set([
+  ...NATIVE_TASK_DETAIL_KEYS,
+  "assignmentId",
+  "resultContentHash",
+  "writingPolicyId",
+  "checks",
+  "researchChecks",
+  "unexpected_field",
+]);
 
 /** A retry hint is private, exact prior-run evidence rather than a new authority source. */
 export function assertOwnerProposalFeedback(input: {

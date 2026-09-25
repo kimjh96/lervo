@@ -92,3 +92,33 @@ it("accepts feedback that names only exact allocation keys", () => {
   expect(() => check(["free text from the model"])).toThrow(/invalid/u);
   expect(() => check([])).toThrow(/invalid/u);
 });
+
+it("names the fields of a completion verdict that cannot be materialized", async () => {
+  // Kael's completion verdict failed on every cycle with one unexplained error.
+  const { nativeAssignmentCompletion } = await import("../src/supervision-native-completion.js");
+  const completionInput = {
+    ...input,
+    facts: {
+      tasks: { assignments: [] },
+      assignments: [],
+      responsibilities: [],
+      roles: [],
+      writingContract: {
+        writingPolicyId: "writing_en-human",
+        verification: { semanticChecks: [{ required: true }, { required: true }] },
+      },
+    },
+  } as unknown as NativeOwnerPlanInput;
+  const error = await nativeAssignmentCompletion(
+    completionInput,
+    { assignmentId: "asn_000000000000000000000000", writingPolicyId: "other", checks: [] },
+    `sha256:${"e".repeat(64)}`,
+  ).catch((caught: unknown) => caught);
+  expect(error).toBeInstanceOf(InvalidNativeOwnerProposalError);
+  expect((error as InvalidNativeOwnerProposalError).invalidFields).toEqual([
+    "resultContentHash",
+    "assignmentId",
+    "writingPolicyId",
+    "checks",
+  ]);
+});
