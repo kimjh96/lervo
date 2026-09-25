@@ -23,6 +23,7 @@ if(process.env.LERVO_LOGIN_PROBE_SECRET || process.env.OPENAI_API_KEY || process
 const directory=codex?process.env.CODEX_HOME:process.env.CLAUDE_CONFIG_DIR;
 if(process.cwd()!==realpathSync(process.env.HOME) || process.env.USERPROFILE!==process.env.HOME)process.exit(2);
 const state=readFileSync(directory+'/status','utf8');
+if(state==='hang')await new Promise((resolve)=>setTimeout(resolve,60000));
 if(state==='overflow'){process.stdout.write('sensitive'.repeat(4096));process.exit(0);}
 if(state==='malformed'){console.log('unrecognized sensitive output');process.exit(0);}
 if(state==='absent'){

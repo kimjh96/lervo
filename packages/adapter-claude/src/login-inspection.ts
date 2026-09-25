@@ -66,6 +66,9 @@ function probeClaudeLogin(executable: string, context: ProviderLoginContext) {
     provider: "claude",
     executable,
     arguments: ["auth", "status", "--json"],
+    // A hung probe falls back to the stored login, which must still fit the five-second
+    // readiness window that callers apply to the whole inspection.
+    timeoutMs: 3000,
     workingDirectory: context.homeDirectory,
     environment: claudeStoredLoginEnvironment(context),
     parse: (code, stdout, stderr) => {

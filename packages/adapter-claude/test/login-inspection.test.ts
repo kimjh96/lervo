@@ -60,4 +60,19 @@ describe("claude native login inspection", () => {
       expect(JSON.stringify(result)).not.toContain("secret");
     },
   );
+  it("answers a hung status probe from the stored login within the five-second readiness window", async () => {
+    const f = await createLoginFixture(roots);
+    await writeFile(f.statePath, "hang");
+    const now = 1_800_000_000_000;
+    await writeFile(
+      resolve(f.context.configurationDirectory, ".credentials.json"),
+      JSON.stringify({
+        claudeAiOauth: { refreshToken: "refresh-secret", refreshTokenExpiresAt: now + 60 * 60_000 },
+      }),
+    );
+    const started = Date.now();
+    const result = await inspectClaudeLogin(f.executable, f.context, () => now);
+    expect(result.status).toBe("login_present");
+    expect(Date.now() - started).toBeLessThan(4000);
+  });
 });

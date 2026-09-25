@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_662c011cbbc2bf9e90ce29dc"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Bound the Claude login status probe so a hung probe still falls back to the stored login within the readiness window."
