@@ -1,3 +1,8 @@
+import {
+  canonicalizationAssignment,
+  type CanonicalizationAssignment,
+} from "./conversation-canonicalization-assignment.js";
+
 const MAXIMUM_DISCORD_CHARACTERS = 1_950;
 
 export function executionInstructions(input: {
@@ -7,6 +12,8 @@ export function executionInstructions(input: {
   worker: { displayName: string; roleId: string } | null;
   externalEffectsAuthorized: boolean;
   finalizationStartsAt: string;
+  /** Background knowledge review left these candidates; this write-capable turn owns them. */
+  canonicalizationCandidates?: readonly CanonicalizationAssignment[];
 }): string {
   const history = input.priorTurns
     .slice(-4)
@@ -45,8 +52,14 @@ export function executionInstructions(input: {
     durableHistory.length === 0
       ? "No earlier durable work result was available for this worker."
       : `Earlier durable work results for this worker:\n${durableHistory}`,
+    canonicalizationAssignment(
+      input.canonicalizationCandidates ?? [],
+      input.worker === null ? "conversation-agent" : input.worker.roleId,
+    ),
     `Current request:\n${input.request}`,
-  ].join("\n\n");
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n\n");
 }
 
 export function fitDiscord(content: string): string {
