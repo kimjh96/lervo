@@ -198,24 +198,37 @@ export async function runSupervisedManagedProcess(input: {
 /** An unavailable authority read must not hold cancellation or the serial owner indefinitely. */
 /**
  * One authority renewal per tick. A revoked or invalid authority aborts the worker at once. A read
- * that outlives its window is tolerated twice in a row, which still ends within the five-minute
- * worker lease since the last renewal, because heavy verification load can slow the read.
+ * slowed by verification load is not a revocation: it may finish late and still renew, and the
+ * worker is aborted only when no read has confirmed authority for four minutes, which is inside
+ * the five-minute worker lease that each confirmation renews.
  */
 export function authorityRenewalTick(input: {
   revalidate: () => Promise<void>;
   renew: () => void;
   abort: (reason: unknown) => void;
   windowMs?: number;
+  maximumUnconfirmedMs?: number;
+  now?: () => number;
 }): () => Promise<void> {
-  let expiredObservations = 0;
+  const now = input.now ?? Date.now;
+  let confirmedAt = now();
+  const confirm = () => {
+    confirmedAt = now();
+    input.renew();
+  };
   return () =>
-    revalidateWithinAuthorityWindow(input.revalidate, input.abort, input.windowMs ?? 5000)
-      .then(() => {
-        expiredObservations = 0;
-        input.renew();
-      })
+    revalidateWithinAuthorityWindow(
+      input.revalidate,
+      { onLateSuccess: confirm, onLateFailure: input.abort },
+      input.windowMs ?? 30_000,
+    )
+      .then(confirm)
       .catch((error) => {
-        if (error instanceof AuthorityObservationExpired && ++expiredObservations < 3) return;
+        if (
+          error instanceof AuthorityObservationExpired &&
+          now() - confirmedAt < (input.maximumUnconfirmedMs ?? 240_000)
+        )
+          return;
         input.abort(error);
       });
 }
@@ -229,16 +242,22 @@ class AuthorityObservationExpired extends Error {
 
 async function revalidateWithinAuthorityWindow(
   revalidate: () => Promise<void>,
-  onLateFailure: (reason: unknown) => void,
+  late: { onLateSuccess: () => void; onLateFailure: (reason: unknown) => void },
   windowMs: number,
 ): Promise<void> {
   let deadline: ReturnType<typeof setTimeout> | undefined;
   let expired = false;
   const observation = Promise.resolve().then(revalidate);
-  // An observation that outlives its window still aborts the worker if it later fails.
-  observation.catch((reason: unknown) => {
-    if (expired) onLateFailure(reason);
-  });
+  // An observation that outlives its window still counts: a late confirmation renews, and a late
+  // rejection aborts the worker.
+  observation.then(
+    () => {
+      if (expired) late.onLateSuccess();
+    },
+    (reason: unknown) => {
+      if (expired) late.onLateFailure(reason);
+    },
+  );
   try {
     await Promise.race([
       observation,

@@ -81,8 +81,9 @@ it("reports cancellation and a missing dispatch record distinctly", async () => 
   await expect(silent.run()).rejects.toMatchObject({ code: "managed_dispatch_evidence_missing" });
 });
 
-it("tolerates two slow authority reads, but aborts on the third, a rejection, or a late failure", async () => {
+it("keeps a worker through slow authority reads until four unconfirmed minutes, and aborts on rejection", async () => {
   const sleep = (ms: number) => new Promise<void>((settle) => setTimeout(settle, ms));
+  let clock = 0;
   const reasons: unknown[] = [];
   const record = (revalidate: () => Promise<void>) => {
     const outcome = { renewed: 0, aborted: 0 };
@@ -94,25 +95,31 @@ it("tolerates two slow authority reads, but aborts on the third, a rejection, or
         outcome.aborted++;
       },
       windowMs: 20,
+      maximumUnconfirmedMs: 240_000,
+      now: () => clock,
     });
     return { tick, outcome };
   };
 
-  const slow = record(() => sleep(60));
-  await slow.tick();
-  await slow.tick();
-  expect(slow.outcome).toEqual({ renewed: 0, aborted: 0 });
-  await slow.tick();
-  expect(slow.outcome.aborted).toBe(1);
+  const hung = record(() => new Promise<void>(() => undefined));
+  for (const minute of [1, 2, 3]) {
+    clock = minute * 60_000;
+    await hung.tick();
+  }
+  expect(hung.outcome).toEqual({ renewed: 0, aborted: 0 });
+  clock = 4 * 60_000;
+  await hung.tick();
+  expect(hung.outcome.aborted).toBe(1);
 
-  let calls = 0;
-  const recovering = record(() => (++calls <= 2 ? sleep(60) : Promise.resolve()));
-  await recovering.tick();
-  await recovering.tick();
-  await recovering.tick();
-  await recovering.tick();
-  await recovering.tick();
-  expect(recovering.outcome).toEqual({ renewed: 3, aborted: 0 });
+  clock = 0;
+  const lateSuccess = record(() => sleep(60));
+  clock = 60_000;
+  await lateSuccess.tick();
+  await sleep(80);
+  expect(lateSuccess.outcome).toEqual({ renewed: 1, aborted: 0 });
+  clock = 290_000;
+  await lateSuccess.tick();
+  expect(lateSuccess.outcome.aborted).toBe(0);
 
   const revoked = record(async () => {
     throw new Error("revoked");
