@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 
-import { escalationsSinceLatestInstallation } from "../src/supervision-task-source.js";
+import { escalationsSinceLatestInstallation } from "../src/supervision-escalation-capacity.js";
 
 it("counts escalations only after the latest reviewed mandate installation", () => {
   const id = "supervision.discord.arca-next.standing";
