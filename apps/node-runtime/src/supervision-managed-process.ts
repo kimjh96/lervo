@@ -44,6 +44,8 @@ export async function runSupervisedManagedProcess(input: {
   fence: { commit<T>(effect: () => T): T; renew(): void };
   now(): string;
   revalidate(): Promise<void>;
+  /** Host diagnostics for the guard that rejected a running worker's authority. */
+  onRevalidationFailure?(reason: unknown): void;
   signal?: AbortSignal;
 }): Promise<{ eventIds: string[] }> {
   const invocation = structuredClone(input.invocation);
@@ -110,7 +112,10 @@ export async function runSupervisedManagedProcess(input: {
         renew: () => {
           if (!settled && interrupted === null) input.fence.renew();
         },
-        abort: () => abort("managed_revalidation_failed"),
+        abort: (reason) => {
+          input.onRevalidationFailure?.(reason);
+          abort("managed_revalidation_failed");
+        },
       });
       const renewal = setInterval(() => {
         if (checking || settled) return;
@@ -199,7 +204,7 @@ export async function runSupervisedManagedProcess(input: {
 export function authorityRenewalTick(input: {
   revalidate: () => Promise<void>;
   renew: () => void;
-  abort: () => void;
+  abort: (reason: unknown) => void;
   windowMs?: number;
 }): () => Promise<void> {
   let expiredObservations = 0;
@@ -211,7 +216,7 @@ export function authorityRenewalTick(input: {
       })
       .catch((error) => {
         if (error instanceof AuthorityObservationExpired && ++expiredObservations < 3) return;
-        input.abort();
+        input.abort(error);
       });
 }
 
@@ -224,15 +229,15 @@ class AuthorityObservationExpired extends Error {
 
 async function revalidateWithinAuthorityWindow(
   revalidate: () => Promise<void>,
-  onLateFailure: () => void,
+  onLateFailure: (reason: unknown) => void,
   windowMs: number,
 ): Promise<void> {
   let deadline: ReturnType<typeof setTimeout> | undefined;
   let expired = false;
   const observation = Promise.resolve().then(revalidate);
   // An observation that outlives its window still aborts the worker if it later fails.
-  observation.catch(() => {
-    if (expired) onLateFailure();
+  observation.catch((reason: unknown) => {
+    if (expired) onLateFailure(reason);
   });
   try {
     await Promise.race([

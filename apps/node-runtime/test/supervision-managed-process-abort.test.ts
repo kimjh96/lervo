@@ -83,12 +83,16 @@ it("reports cancellation and a missing dispatch record distinctly", async () => 
 
 it("tolerates two slow authority reads, but aborts on the third, a rejection, or a late failure", async () => {
   const sleep = (ms: number) => new Promise<void>((settle) => setTimeout(settle, ms));
+  const reasons: unknown[] = [];
   const record = (revalidate: () => Promise<void>) => {
     const outcome = { renewed: 0, aborted: 0 };
     const tick = authorityRenewalTick({
       revalidate,
       renew: () => outcome.renewed++,
-      abort: () => outcome.aborted++,
+      abort: (reason) => {
+        reasons.push(reason);
+        outcome.aborted++;
+      },
       windowMs: 20,
     });
     return { tick, outcome };
@@ -115,6 +119,7 @@ it("tolerates two slow authority reads, but aborts on the third, a rejection, or
   });
   await revoked.tick();
   expect(revoked.outcome).toEqual({ renewed: 0, aborted: 1 });
+  expect(reasons.at(-1)).toMatchObject({ message: "revoked" });
 
   const late = record(async () => {
     await sleep(60);

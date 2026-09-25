@@ -84,6 +84,10 @@ export class SupervisionManagedEffects {
         fence,
         now: this.now,
         signal: this.cancellation.signal,
+        onRevalidationFailure: (reason) =>
+          process.stderr.write(
+            `Lervo managed worker revalidation failed: ${(reason instanceof Error ? reason.message : String(reason)).replace(/[\r\n\0]+/gu, " ").slice(0, 300)}\n`,
+          ),
         revalidate: async () => {
           await admitSupervisedManagedInvocation({
             storage,
