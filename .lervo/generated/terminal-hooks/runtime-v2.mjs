@@ -56495,7 +56495,9 @@ var transientToolCacheDirectoryNames = Object.freeze([
   ".ruff_cache",
   ".tox",
   ".nox",
-  "__pycache__"
+  "__pycache__",
+  "playwright-report",
+  "test-results"
 ]);
 var transientToolCacheNames = new Set(transientToolCacheDirectoryNames);
 function isTransientToolCachePath(path) {
