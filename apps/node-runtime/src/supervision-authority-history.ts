@@ -3,6 +3,8 @@ import { computeEventHash, eventWithoutHash } from "@lervo/event-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
 
+const MAXIMUM_OBSERVATION_PASSES = 16;
+
 /** Rebuildable authority projection; hints and cached rows never replace canonical events. */
 export class SupervisionAuthorityHistory {
   private cursor: EventEnvelope | null = null;
@@ -39,36 +41,7 @@ export class SupervisionAuthorityHistory {
     this.auditedAt = null;
   }
 
-  private async readVerified(): Promise<EventEnvelope[]> {
-    const metadata = await lstat(this.databasePath, { bigint: true });
-    const identity = `${metadata.dev}:${metadata.ino}`;
-    if (
-      !metadata.isFile() ||
-      metadata.isSymbolicLink() ||
-      (this.databaseIdentity !== null && identity !== this.databaseIdentity)
-    )
-      throw new Error("The supervision event database was replaced; reopen the runtime.");
-    this.databaseIdentity = identity;
-    const at = this.now();
-    if (!Number.isFinite(at)) throw new Error("The supervision authority clock is invalid.");
-    if (this.auditedAt === null || at < this.auditedAt || at - this.auditedAt >= 60_000)
-      this.reset();
-    else if (this.cursor !== null) {
-      const anchor = this.events.get(this.cursor.eventId);
-      const tail = this.events.latest();
-      if (
-        anchor === null ||
-        tail === null ||
-        tail.seq < this.cursor.seq ||
-        anchor.seq !== this.cursor.seq ||
-        anchor.eventHash !== this.cursor.eventHash ||
-        computeEventHash(eventWithoutHash(anchor)) !== this.cursor.eventHash
-      )
-        this.reset();
-    }
-    const head = this.events.latest();
-    if ((head?.seq ?? 0) > 100_000)
-      throw new Error("The supervision authority history exceeds its source bound.");
+  private readThrough(head: EventEnvelope | null): void {
     while ((this.cursor?.seq ?? 0) < (head?.seq ?? 0)) {
       const page = this.events.list({ afterSeq: this.cursor?.seq ?? 0, limit: 1_000 });
       const observed = page.filter((event) => event.seq <= head!.seq);
@@ -97,14 +70,53 @@ export class SupervisionAuthorityHistory {
         this.cursor = structuredClone(event);
       }
     }
-    const confirmed = this.events.latest();
+  }
+
+  private async readVerified(): Promise<EventEnvelope[]> {
+    const metadata = await lstat(this.databasePath, { bigint: true });
+    const identity = `${metadata.dev}:${metadata.ino}`;
     if (
-      confirmed?.eventId !== head?.eventId ||
-      confirmed?.seq !== head?.seq ||
-      confirmed?.eventHash !== head?.eventHash ||
-      this.cursor?.eventHash !== head?.eventHash
+      !metadata.isFile() ||
+      metadata.isSymbolicLink() ||
+      (this.databaseIdentity !== null && identity !== this.databaseIdentity)
     )
-      throw new Error("The supervision authority history changed while being observed.");
+      throw new Error("The supervision event database was replaced; reopen the runtime.");
+    this.databaseIdentity = identity;
+    const at = this.now();
+    if (!Number.isFinite(at)) throw new Error("The supervision authority clock is invalid.");
+    if (this.auditedAt === null || at < this.auditedAt || at - this.auditedAt >= 60_000)
+      this.reset();
+    else if (this.cursor !== null) {
+      const anchor = this.events.get(this.cursor.eventId);
+      const tail = this.events.latest();
+      if (
+        anchor === null ||
+        tail === null ||
+        tail.seq < this.cursor.seq ||
+        anchor.seq !== this.cursor.seq ||
+        anchor.eventHash !== this.cursor.eventHash ||
+        computeEventHash(eventWithoutHash(anchor)) !== this.cursor.eventHash
+      )
+        this.reset();
+    }
+    // Workers append events while the owner observes, so follow the tail until one pass ends at
+    // a stable head instead of failing on the first concurrent append.
+    for (let pass = 1; ; pass += 1) {
+      const head = this.events.latest();
+      if ((head?.seq ?? 0) > 100_000)
+        throw new Error("The supervision authority history exceeds its source bound.");
+      this.readThrough(head);
+      const confirmed = this.events.latest();
+      if (
+        confirmed?.eventId === head?.eventId &&
+        confirmed?.seq === head?.seq &&
+        confirmed?.eventHash === head?.eventHash &&
+        this.cursor?.eventHash === head?.eventHash
+      )
+        break;
+      if (pass >= MAXIMUM_OBSERVATION_PASSES)
+        throw new Error("The supervision authority history changed while being observed.");
+    }
     this.auditedAt ??= at;
     return structuredClone(this.retained);
   }

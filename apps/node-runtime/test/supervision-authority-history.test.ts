@@ -82,6 +82,38 @@ describe("incremental supervision authority history", () => {
     },
   );
 
+  it("follows events a worker appends during the observation instead of failing", async () => {
+    const f = await fixture();
+    try {
+      const append = (id: string) =>
+        f.storage.events.append({
+          eventId: `evt_${id.repeat(32)}`,
+          projectId: f.owner.projectId,
+          runId: "run_history_fixture",
+          sessionId: "ses_history_fixture",
+          schemaVersion: 1,
+          type: "run.requested",
+          occurredAt: new Date().toISOString(),
+          actor: { kind: "system" },
+          policyVersion: `sha256:${"a".repeat(64)}`,
+          payload: {},
+        });
+      const list = f.storage.events.list.bind(f.storage.events);
+      let appended = 0;
+      vi.spyOn(f.storage.events, "list").mockImplementation((options) => {
+        const rows = list(options);
+        // Two concurrent appends land while the first passes read the chain.
+        if (appended < 2) append(["d", "e"][appended++]!);
+        return rows;
+      });
+      await f.reader.read();
+      expect(appended).toBe(2);
+      expect(f.storage.events.latest()!.eventId).toBe(`evt_${"e".repeat(32)}`);
+    } finally {
+      await f.storage.close();
+    }
+  });
+
   it("requires reopening after the database file is replaced", async () => {
     const f = await fixture();
     try {

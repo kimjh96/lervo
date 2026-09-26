@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5f04dea0c7f3661572139bf6"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Follow events a worker appends during an authority observation instead of killing the worker."
