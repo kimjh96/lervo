@@ -70054,6 +70054,12 @@ async function inspectConfiguredDocumentNormalization(input) {
   };
 }
 
+// packages/repository-knowledge/dist/document-normalization-procedure.js
+function documentNormalizationProcedure(pendingCount) {
+  const run2 = "lervo knowledge normalize --provider <your provider: claude|codex> --scope all-pending --max-provider-calls 8 --json";
+  return `${pendingCount} documents await normalization. In every repository-changing turn, whatever its task, run \`${run2}\`, compare each candidate with its source for preserved meaning, links and lifecycle lines, then rerun the same command with \`--apply <planId>\` and one \`--approve-item <operationId>=<approvalHash>\` per accepted candidate. Leave a candidate that loses meaning unapproved and report it; later turns continue until none remain.`;
+}
+
 // packages/repository-knowledge/dist/document-rewriter-adapters.js
 import { resolve as resolve33 } from "node:path";
 async function inspectRepositoryDocumentRewriters(input) {
@@ -77027,7 +77033,9 @@ async function inspectValidationLifecycle(input) {
     if (normalization.pendingDocuments.length > 0) {
       lintIssues.push({
         code: "document_normalization_pending",
-        command: "lervo migrate knowledge --provider codex"
+        // Agent-owned in every repository-changing turn, whatever its task, so the debt never
+        // waits for a user to notice it: one bounded batch per turn until none remain.
+        command: documentNormalizationProcedure(normalization.pendingDocuments.length)
       });
     }
   } else {
@@ -80173,9 +80181,6 @@ function canonicalizationItem(candidate) {
 function lifecycleOwner(issue) {
   if (issue.code === "turn_approval_pending" || issue.code.includes("review_required")) {
     return { actionOwner: "user", requiresUserAction: true };
-  }
-  if (issue.code === "document_normalization_pending") {
-    return { actionOwner: "reviewer", requiresUserAction: false };
   }
   return { actionOwner: "agent", requiresUserAction: false };
 }
