@@ -57,8 +57,11 @@ export class ManagedProviderRunError extends Error {
     phase: ManagedProviderRunPhase;
     retryable: boolean;
     providerDiagnostic?: ProviderFailureDiagnostic;
+    providerTurnFailureCode?: string;
   }>;
   readonly originPhase: ManagedProviderRunPhase | undefined;
+  /** The adapter's own bounded turn failure code when it maps to no contract code. */
+  readonly providerTurnFailureCode: string | undefined;
 
   constructor(
     readonly code: ManagedProviderRunFailureCode,
@@ -70,8 +73,10 @@ export class ManagedProviderRunError extends Error {
         phase: ManagedProviderRunPhase;
         retryable: boolean;
         providerDiagnostic?: ProviderFailureDiagnostic;
+        providerTurnFailureCode?: string;
       }>;
       originPhase?: ManagedProviderRunPhase;
+      providerTurnFailureCode?: string;
     },
   ) {
     super(message, options);
@@ -80,6 +85,7 @@ export class ManagedProviderRunError extends Error {
     this.relatedFailures =
       options?.relatedFailures === undefined ? [] : structuredClone(options.relatedFailures);
     this.originPhase = options?.originPhase;
+    this.providerTurnFailureCode = options?.providerTurnFailureCode;
   }
 }
 

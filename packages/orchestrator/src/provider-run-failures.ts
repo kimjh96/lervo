@@ -71,7 +71,12 @@ export function terminalTurnFailure(code: unknown): ManagedProviderRunError {
         code as keyof typeof terminalTurnMessages,
         terminalTurnMessages[code as keyof typeof terminalTurnMessages],
       )
-    : new ManagedProviderRunError("provider_turn_failed", "The provider turn failed.");
+    : typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code)
+      ? // Keep the adapter's bounded code, such as codex_turn_failed, so a failure is diagnosable.
+        new ManagedProviderRunError("provider_turn_failed", `The provider turn failed (${code}).`, {
+          providerTurnFailureCode: code,
+        })
+      : new ManagedProviderRunError("provider_turn_failed", "The provider turn failed.");
 }
 
 function retryable(code: ManagedProviderRunFailureCode): boolean {
@@ -237,6 +242,7 @@ export class RunFailureLedger {
     phase: ManagedProviderRunPhase;
     retryable: boolean;
     providerDiagnostic?: ProviderFailureDiagnostic;
+    providerTurnFailureCode?: string;
   }> {
     return this.failures.map((failure) => ({
       code: failure.error.code,
@@ -245,6 +251,9 @@ export class RunFailureLedger {
       ...(failure.providerDiagnostic === undefined
         ? {}
         : { providerDiagnostic: failure.providerDiagnostic }),
+      ...(failure.error.providerTurnFailureCode === undefined
+        ? {}
+        : { providerTurnFailureCode: failure.error.providerTurnFailureCode }),
     }));
   }
 

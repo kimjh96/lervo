@@ -76,6 +76,8 @@ export async function openNodeSupervisionService(input: {
     reasonCodes: string[];
     resourceBudget?: Parameters<typeof supervisionAttentionHealth>[0]["resourceBudget"];
   } | null = null;
+  /** Whether a cycle of the current binding has produced a report since it opened. */
+  let evaluated = false;
   const now = input.now ?? (() => new Date().toISOString());
   const log = input.log ?? ((line: string) => process.stderr.write(`${line}\n`));
   const openRuntime = (binding: NodeSupervisionBinding, deferInitialActionUntilChange: boolean) =>
@@ -185,9 +187,13 @@ export async function openNodeSupervisionService(input: {
           log(supervisionCycleFailureLine(error));
         });
         if (cycle.report === null) {
-          if (cycle.disposition === "idle") await observe({ status: "ready" });
+          // A restart defers the owner until its source changes; until one cycle has evaluated
+          // the goal, idleness proves nothing and must not read as ready.
+          if (cycle.disposition === "idle")
+            await observe(evaluated ? { status: "ready" } : { status: "pending" });
           return;
         }
+        evaluated = true;
         await observe(
           cycle.disposition === "blocked" || cycle.disposition === "uncertain"
             ? supervisionAttentionHealth(attentionObservation ?? { reasonCodes: null })
@@ -205,6 +211,7 @@ export async function openNodeSupervisionService(input: {
       await runtime.close();
       binding = structuredClone(next);
       runtime = await openRuntime(binding, false);
+      evaluated = false;
       void observe({ status: "pending" });
       if (started) start(runtime);
     });
