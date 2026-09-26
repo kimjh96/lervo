@@ -4,6 +4,7 @@ import {
   supervisionAttentionHealth,
   supervisionAttentionReasonCodes,
   supervisionCycleHealth,
+  supervisionEffectFailureLine,
 } from "../src/supervision-attention-health.js";
 import { NodeSupervisionError } from "../src/supervision-authority.js";
 
@@ -97,4 +98,21 @@ it("names a failed cycle with one bounded code and a journal line without newlin
   const line = supervisionCycleFailureLine(new TypeError("bad\nvalue"));
   expect(line).toBe("Lervo supervision cycle failed (type): TypeError: bad value");
   expect(supervisionCycleFailureLine(new Error("x".repeat(400))).length).toBeLessThan(280);
+});
+
+it("names the wrapped cause of an uncertain effect", () => {
+  const error = Object.assign(
+    new Error("The workforce event failed and state was restored.", {
+      cause: new Error("The assignment event chain is invalid."),
+    }),
+    { code: "workforce_write_failed" },
+  );
+  expect(
+    supervisionEffectFailureLine(
+      { actionKind: "allocate_existing", effectContract: "assignment.topology.materialize.v1" },
+      error,
+    ),
+  ).toBe(
+    "Lervo supervision effect uncertain (allocate_existing assignment.topology.materialize.v1): Error: The workforce event failed and state was restored. <- Error: The assignment event chain is invalid. [workforce_write_failed]",
+  );
 });

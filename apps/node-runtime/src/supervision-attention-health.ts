@@ -84,7 +84,15 @@ export function supervisionEffectFailureLine(
 }
 
 function boundedError(error: unknown, limit: number): string {
-  const message = (error instanceof Error ? error.message : String(error))
+  // A wrapped failure such as workforce_write_failed hides its real reason in the cause chain.
+  const causes: string[] = [];
+  let cause = (error as { cause?: unknown } | null)?.cause;
+  for (let depth = 0; depth < 3 && cause !== undefined && cause !== null; depth += 1) {
+    causes.push(cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause));
+    cause = (cause as { cause?: unknown }).cause;
+  }
+  const message = [error instanceof Error ? error.message : String(error), ...causes]
+    .join(" <- ")
     .replace(/[\r\n\0]+/gu, " ")
     .slice(0, limit);
   const code = (error as { code?: unknown } | null)?.code;

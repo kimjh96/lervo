@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_90355d952d477854e85bfc32"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Name the wrapped cause when a supervision effect becomes uncertain."
