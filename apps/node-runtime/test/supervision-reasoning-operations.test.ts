@@ -11,3 +11,20 @@ it("permits exact re-review or escalation after a blocked review without reopeni
     "escalate",
   ]);
 });
+
+it("lets the owner allocate remaining goal scope once every current assignment is accepted", () => {
+  const context = {
+    trigger: {
+      reasonCode: "canonical_completion_required",
+      nextAction: "complete_workstream",
+      assignmentIds: [],
+    },
+  } as unknown as OwnerReasoningContext;
+  expect(supervisionReasoningDecisionSchema(context).properties.operation.enum).toEqual([
+    "complete_workstream",
+    "allocate_existing",
+    "hire_worker",
+    "request_team_support",
+    "escalate",
+  ]);
+});

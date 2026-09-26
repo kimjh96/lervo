@@ -23,7 +23,15 @@ export function supervisionReasoningDecisionSchema(context: OwnerReasoningContex
   } else if (context.trigger.nextAction === "request_rework") {
     operations = ["request_rework", "escalate"];
   } else if (context.trigger.nextAction === "complete_workstream") {
-    operations = ["complete_workstream", "escalate"];
+    // Every current assignment is accepted, but the goal may still name unallocated scope, such as
+    // the next of several requested tasks; the owner then allocates it instead of completing.
+    operations = [
+      "complete_workstream",
+      "allocate_existing",
+      "hire_worker",
+      "request_team_support",
+      "escalate",
+    ];
   } else if (context.trigger.nextAction === "publish_result") {
     operations = ["prepare_publication", "escalate"];
   }

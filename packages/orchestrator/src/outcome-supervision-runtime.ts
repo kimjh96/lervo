@@ -209,12 +209,14 @@ export class OutcomeSupervisionRuntime {
             // assignment keeps its own attempt limit, and the owner spend epoch bounds the chain.
             report.reasonCode === "acceptance_rejected" && report.nextAction === "escalate"
             ? ["escalate", "allocate_existing"]
-            : report.nextAction === "review_artifacts" ||
-                report.nextAction === "complete_workstream"
-              ? ["execute_as_owner"]
-              : report.nextAction === "reconcile_cancellation"
-                ? ["inspect_uncertain_effect"]
-                : [report.nextAction];
+            : report.nextAction === "complete_workstream"
+              ? // Accepted work may leave requested goal scope unallocated.
+                ["execute_as_owner", "allocate_existing", "hire_worker", "request_team_support"]
+              : report.nextAction === "review_artifacts"
+                ? ["execute_as_owner"]
+                : report.nextAction === "reconcile_cancellation"
+                  ? ["inspect_uncertain_effect"]
+                  : [report.nextAction];
       const ownerReasoning =
         plan.actionKind === "execute_as_owner" &&
         plan.effectContract === "work.owner_reasoning.v1" &&
