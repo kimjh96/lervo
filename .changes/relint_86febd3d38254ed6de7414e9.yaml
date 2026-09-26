@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_86febd3d38254ed6de7414e9"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Drain document normalization debt in bounded batches that skip a document whose normalized output was rejected."
