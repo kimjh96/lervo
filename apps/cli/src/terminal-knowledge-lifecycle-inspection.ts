@@ -1,3 +1,4 @@
+import { documentNormalizationProcedure } from "@lervo/repository-knowledge";
 import {
   createKnowledgeInstructionBootstrapPlan,
   createKnowledgeInstructionBridgePlan,
@@ -204,7 +205,9 @@ async function inspectValidationLifecycle(input: {
     if (normalization.pendingDocuments.length > 0) {
       lintIssues.push({
         code: "document_normalization_pending",
-        command: "lervo migrate knowledge --provider codex",
+        // Agent-owned in every repository-changing turn, whatever its task, so the debt never
+        // waits for a user to notice it: one bounded batch per turn until none remain.
+        command: documentNormalizationProcedure(normalization.pendingDocuments.length),
       });
     }
   } else {

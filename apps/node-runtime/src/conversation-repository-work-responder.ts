@@ -1,4 +1,4 @@
-import { pendingCanonicalizationCandidates } from "./conversation-canonicalization-assignment.js";
+import { readKnowledgeAssignments } from "./conversation-canonicalization-assignment.js";
 import { executionInstructions, fitDiscord } from "./conversation-repository-work-writing.js";
 import { createHash } from "node:crypto";
 
@@ -291,9 +291,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           worker: delegate,
           externalEffectsAuthorized,
           finalizationStartsAt: finalizationStartsAt(this.options.timeoutMs),
-          canonicalizationCandidates: await pendingCanonicalizationCandidates(
-            this.options.repositoryRoot,
-          ),
+          ...(await readKnowledgeAssignments(this.options.repositoryRoot)),
         }),
         providerSessionId: turn.providerSessionId,
         ...(route.model === null ? {} : { model: route.model }),

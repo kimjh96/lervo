@@ -7,6 +7,7 @@ import { afterEach, expect, it } from "vitest";
 
 import {
   canonicalizationAssignment,
+  normalizationAssignment,
   pendingCanonicalizationCandidates,
 } from "../src/conversation-canonicalization-assignment.js";
 import { executionInstructions } from "../src/conversation-repository-work-writing.js";
@@ -52,4 +53,17 @@ it("assigns open background candidates to the next write-capable Discord turn", 
   expect(canonicalizationAssignment([stale!], "developer")).toContain("--decision reject");
   expect(canonicalizationAssignment([], "developer")).toBeNull();
   expect(await pendingCanonicalizationCandidates(resolve(root, "missing"))).toEqual([]);
+  expect(normalizationAssignment(0)).toBeNull();
+  expect(normalizationAssignment(3)).toContain("3 documents await normalization");
+  expect(
+    executionInstructions({
+      request: "Fix the typo.",
+      priorTurns: [],
+      durableResults: [],
+      worker: null,
+      externalEffectsAuthorized: false,
+      finalizationStartsAt: "2026-09-25T12:10:00.000Z",
+      pendingNormalizationDocuments: 3,
+    }),
+  ).toContain("Document normalization debt: 3 documents await normalization");
 });

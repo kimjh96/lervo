@@ -1,5 +1,6 @@
 import {
   canonicalizationAssignment,
+  normalizationAssignment,
   type CanonicalizationAssignment,
 } from "./conversation-canonicalization-assignment.js";
 
@@ -14,6 +15,8 @@ export function executionInstructions(input: {
   finalizationStartsAt: string;
   /** Background knowledge review left these candidates; this write-capable turn owns them. */
   canonicalizationCandidates?: readonly CanonicalizationAssignment[];
+  /** Pending document normalization this repository-changing turn must advance. */
+  pendingNormalizationDocuments?: number;
 }): string {
   const history = input.priorTurns
     .slice(-4)
@@ -56,6 +59,7 @@ export function executionInstructions(input: {
       input.canonicalizationCandidates ?? [],
       input.worker === null ? "conversation-agent" : input.worker.roleId,
     ),
+    normalizationAssignment(input.pendingNormalizationDocuments ?? 0),
     `Current request:\n${input.request}`,
   ]
     .filter((line): line is string => line !== null)

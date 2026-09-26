@@ -107,8 +107,10 @@ describe("operating attention projection", () => {
       proposedTargetPaths: [],
       hasProposedContent: false,
     });
+    // Normalization debt is agent work in every repository-changing turn, never a reviewer queue.
     expect(report.items.find((item) => item.kind === "knowledge_lifecycle")).toMatchObject({
-      actionOwner: "reviewer",
+      actionOwner: "agent",
+      requiresUserAction: false,
       issueCode: "document_normalization_pending",
     });
   });

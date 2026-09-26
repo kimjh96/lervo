@@ -36,4 +36,6 @@ Skill resource hashes bind lifecycle and approval; scripts and assets are not re
 
 Candidates and shard responses remain ignored local state. Cache identity binds the envelope and compiler build. Plans bind exact candidate bytes and require per-source approval.
 
+Normalization debt is agent work, not a user or reviewer queue (amended 2026-09-26). Documents become pending whenever they are added or edited after normalization. Every repository-changing agent turn therefore advances one bounded batch, whatever its task: a terminal turn receives it as an agent-owned attention item, and a Discord repository-work turn receives it in its instructions. The turn runs `lervo knowledge normalize --scope all-pending --max-provider-calls 8`, compares each candidate with its source, and applies the accepted ones with their exact approval hashes. A candidate that loses meaning stays unapproved and is reported.
+
 Apply never reruns the provider. It writes candidates and sharded lifecycle records through the journal, then emits `knowledge.materialization.applied` with `operation=normalize_documents`.

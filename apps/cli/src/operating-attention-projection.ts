@@ -64,9 +64,6 @@ function lifecycleOwner(
   if (issue.code === "turn_approval_pending" || issue.code.includes("review_required")) {
     return { actionOwner: "user", requiresUserAction: true };
   }
-  if (issue.code === "document_normalization_pending") {
-    return { actionOwner: "reviewer", requiresUserAction: false };
-  }
   return { actionOwner: "agent", requiresUserAction: false };
 }
 

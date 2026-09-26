@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_51435ebf59fdc8c4fa83b39a"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Assign pending document normalization to every repository-changing agent turn instead of a reviewer queue."

@@ -1,4 +1,8 @@
-import { listCanonicalizationCandidates } from "@lervo/repository-knowledge";
+import {
+  documentNormalizationProcedure,
+  inspectConfiguredDocumentNormalization,
+  listCanonicalizationCandidates,
+} from "@lervo/repository-knowledge";
 
 export interface CanonicalizationAssignment {
   candidateId: string;
@@ -46,4 +50,29 @@ export async function pendingCanonicalizationCandidates(
   } catch {
     return [];
   }
+}
+
+/** Pending document normalization; an unreadable lifecycle assigns nothing rather than guessing. */
+export async function pendingNormalizationCount(repositoryRoot: string): Promise<number> {
+  try {
+    return (await inspectConfiguredDocumentNormalization({ repositoryRoot })).pendingDocuments
+      .length;
+  } catch {
+    return 0;
+  }
+}
+
+export function normalizationAssignment(pendingCount: number): string | null {
+  return pendingCount === 0
+    ? null
+    : `Document normalization debt: ${documentNormalizationProcedure(pendingCount)}`;
+}
+
+/** The knowledge work a write-capable Discord turn owns, read together before the turn. */
+export async function readKnowledgeAssignments(repositoryRoot: string) {
+  const [canonicalizationCandidates, pendingNormalizationDocuments] = await Promise.all([
+    pendingCanonicalizationCandidates(repositoryRoot),
+    pendingNormalizationCount(repositoryRoot),
+  ]);
+  return { canonicalizationCandidates, pendingNormalizationDocuments };
 }
