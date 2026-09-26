@@ -290,12 +290,18 @@ export class ClaudeEventNormalizer {
       ];
     }
     const subtype = text(message.subtype) ?? "unknown";
+    // A turn that failed before any model answered, such as a contended OAuth refresh or an API
+    // outage reported as a synthetic message, proves no model ran; like Codex, it is retryable.
+    const modelUsage = asRecord(message.modelUsage);
+    const modelObserved = modelUsage !== undefined && Object.keys(modelUsage).length > 0;
     return [
       this.event(
         "provider.turn.failed",
         {
           providerTurnId,
-          failureCode: `claude_${subtype}`.replaceAll(/[^a-z0-9_]/g, "_").slice(0, 64),
+          failureCode: modelObserved
+            ? `claude_${subtype}`.replaceAll(/[^a-z0-9_]/g, "_").slice(0, 64)
+            : "provider_model_unavailable",
           diagnosticDigest: digest({ subtype, stopReason: message.stop_reason }),
         },
         eventTime(message, this.options.now),

@@ -156,3 +156,17 @@ describe("Claude in-flight usage estimate", () => {
     );
   });
 });
+
+describe("Claude failed turn classification", () => {
+  it("marks a failure before any model answered as a retryable unavailable model", () => {
+    const failed = (modelUsage: unknown) =>
+      normalizer(false)
+        .normalize({ ...successfulResult(undefined, false), is_error: true, modelUsage })
+        .find((event) => event.type === "provider.turn.failed")?.payload;
+    // A contended OAuth refresh reports a synthetic error with no model usage.
+    expect(failed({})).toMatchObject({ failureCode: "provider_model_unavailable" });
+    expect(failed(successfulResult().modelUsage)).toMatchObject({
+      failureCode: "claude_success",
+    });
+  });
+});
