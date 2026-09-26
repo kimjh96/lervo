@@ -108,4 +108,30 @@ describe("Node dispatch readiness integration", { timeout: 30_000 }, () => {
       await runtime.close();
     }
   });
+  it("retries a stale readiness observation once before blocking", async () => {
+    const f = await dispatchFixture(roots);
+    const read = f.ports.readWorkerReadiness;
+    let calls = 0;
+    f.ports.readWorkerReadiness = async (plan) => {
+      const result = await read(plan);
+      if (++calls === 2) {
+        const observed = Date.parse(f.ports.now()) - 6_000;
+        result.observation.observedAt = new Date(observed).toISOString();
+        result.observation.validUntil = new Date(observed + 5_000).toISOString();
+      }
+      return result;
+    };
+    const runtime = await openNodeOutcomeSupervisionRuntime({
+      repositoryRoot: f.root,
+      binding: f.binding,
+      ports: f.ports,
+      runtimeReadiness: f.runtimeReadiness,
+    });
+    try {
+      await runtime.runCycle();
+      expect(f.attention.join(" ")).not.toContain("supervision_preflight_failed");
+    } finally {
+      await runtime.close();
+    }
+  });
 });

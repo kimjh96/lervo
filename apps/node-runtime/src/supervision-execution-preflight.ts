@@ -13,10 +13,18 @@ import type { NodeSupervisionSession } from "./supervision-session.js";
 
 type PreflightInput = Parameters<typeof preflightOnce>[0];
 
+/** Failures that describe timing or a racing read, not the effect's authority or readiness. */
+const TRANSIENT_PREFLIGHT_CAUSES = [
+  "preflight_cause_unclassified",
+  "supervision_admission_stale",
+  "supervision_readiness_stale",
+];
+
 /**
  * Classifies only checks completed before the concrete effect adapter is called. An unclassified
- * failure, such as an observation that changed while it was read, is retried once before it
- * becomes a durable block; a real change of authority or readiness fails again.
+ * or stale-observation failure, such as a read that changed underneath or a readiness probe that
+ * outlived its five-second window under load, is retried once before it becomes a durable block;
+ * a real change of authority or readiness fails again.
  */
 export async function prepareNodeSupervisionEffect(input: PreflightInput) {
   try {
@@ -24,7 +32,7 @@ export async function prepareNodeSupervisionEffect(input: PreflightInput) {
   } catch (error) {
     if (
       !(error instanceof SupervisionPreflightError) ||
-      error.inspection?.reasonCode !== "preflight_cause_unclassified"
+      !TRANSIENT_PREFLIGHT_CAUSES.includes(error.inspection?.reasonCode ?? "")
     )
       throw error;
     await new Promise((resolve) => setTimeout(resolve, 250));
