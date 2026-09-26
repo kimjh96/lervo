@@ -33,6 +33,7 @@ export async function observeSupervisionTasks(
 ) {
   const assignments: SupervisedAssignmentObservationV1[] = [];
   const unboundAssignmentIds: string[] = [];
+  const reviewSequences = new Map<string, number>();
   for (const assignment of source.assignments) {
     if (
       source.workstream.status === "cancelled" &&
@@ -175,7 +176,45 @@ export async function observeSupervisionTasks(
       authority,
       assignment: observation,
     });
+    if (review !== undefined) reviewSequences.set(assignment.assignmentId, review.seq);
     assignments.push(observation);
   }
-  return { assignments, unboundAssignmentIds };
+  const replacedAssignmentIds = replacedReworkAssignments(source, assignments, reviewSequences);
+  return {
+    assignments: assignments.filter((item) => !replacedAssignmentIds.includes(item.assignmentId)),
+    unboundAssignmentIds,
+    replacedAssignmentIds,
+  };
+}
+
+/**
+ * While a rework rejection stands, the owner may only rework it, escalate, or allocate a fresh
+ * assignment, so an assignment created after that rejection replaces it. The replaced result is
+ * settled history: it neither routes the owner nor blocks goal completion or publication.
+ */
+export function replacedReworkAssignments(
+  source: Source,
+  assignments: readonly SupervisedAssignmentObservationV1[],
+  reviewSequences: ReadonlyMap<string, number>,
+): string[] {
+  const created = new Map(
+    source.events
+      .filter((event) => event.type === "assignment.created")
+      .map((event) => [String(event.payload.assignmentId), event.seq] as const),
+  );
+  const live = source.assignments.filter((item) => item.status !== "cancelled");
+  return assignments
+    .filter((item) => {
+      const rejectedAt = reviewSequences.get(item.assignmentId);
+      return (
+        item.review?.verdict === "rework" &&
+        rejectedAt !== undefined &&
+        live.some(
+          (other) =>
+            other.assignmentId !== item.assignmentId &&
+            (created.get(other.assignmentId) ?? 0) > rejectedAt,
+        )
+      );
+    })
+    .map((item) => item.assignmentId);
 }

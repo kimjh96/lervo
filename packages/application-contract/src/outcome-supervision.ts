@@ -50,6 +50,8 @@ export interface OutcomeSupervisionSnapshotV1 {
   assignments: SupervisedAssignmentObservationV1[];
   /** Canonical assignments that still require an exact responsibility; never count as accepted. */
   unboundAssignmentIds?: string[];
+  /** Rework-rejected assignments replaced by a later assignment; settled history, not work. */
+  replacedAssignmentIds?: string[];
   escalationCount: number;
   pendingDecision: boolean;
   attentionPending?: boolean;

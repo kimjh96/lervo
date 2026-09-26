@@ -174,24 +174,8 @@ export function projectOutcomeSupervision(input: {
     item.review?.verdict === "rework" &&
     currentReview(item) &&
     item.recoveryDecisionCount >= input.maximumRecoveryDecisions;
-  // A fresh assignment under the same acceptance contract replaces an exhausted rework: the
-  // rejected result neither preempts its replacement nor blocks completion once that is accepted.
-  const replaced = new Set(
-    snapshot.assignments
-      .filter(
-        (item) =>
-          exhaustedRework(item) &&
-          snapshot.assignments.some(
-            (other) =>
-              other.assignmentId !== item.assignmentId &&
-              other.status !== "cancelled" &&
-              other.acceptanceHash === item.acceptanceHash &&
-              !exhaustedRework(other),
-          ),
-      )
-      .map((item) => item.assignmentId),
-  );
-  const assignments = snapshot.assignments.filter((item) => !replaced.has(item.assignmentId));
+  // Replaced rework assignments are already excluded by the observation (replacedAssignmentIds).
+  const assignments = snapshot.assignments;
   const report = (
     status: OutcomeSupervisionReportV1["status"],
     reasonCode: string,

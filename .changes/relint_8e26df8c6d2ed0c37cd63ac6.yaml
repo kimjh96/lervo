@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8e26df8c6d2ed0c37cd63ac6"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Settle a rework-rejected assignment once a later assignment replaces it, across routing, completion and publication."

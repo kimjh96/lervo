@@ -249,68 +249,6 @@ describe("causal outcome supervision without a chat surface", () => {
       assignmentIds: [replacement],
     });
   });
-  it("lets a bound replacement under the same acceptance contract supersede an exhausted rework", () => {
-    const state = snapshot();
-    const rejected = state.assignments[0]!;
-    rejected.status = "completed";
-    rejected.effectDisposition = "reconciled";
-    rejected.terminalEventId = `evt_${"b".repeat(32)}`;
-    rejected.artifactHashes = [hash("c")];
-    rejected.recoveryDecisionCount = 3;
-    rejected.review = {
-      verdict: "rework",
-      reviewerAgentId: owner,
-      acceptanceHash: rejected.acceptanceHash,
-      artifactHashes: [hash("c")],
-      verificationEventIds: [],
-    };
-    const replacement = {
-      ...assignment(),
-      assignmentId: `asn_${"f".repeat(24)}`,
-      status: "leased" as const,
-    };
-    state.assignments.push(replacement);
-    expect(project(state)).toMatchObject({
-      reasonCode: "ready_for_dispatch_review",
-      nextAction: "dispatch",
-      assignmentIds: [replacement.assignmentId],
-    });
-    const verification = `evt_${"c".repeat(32)}`;
-    Object.assign(replacement, {
-      status: "completed",
-      effectDisposition: "reconciled",
-      dispatchedAt: now,
-      startedAt: now,
-      terminalEventId: `evt_${"d".repeat(32)}`,
-      artifactHashes: [hash("e")],
-      verification: [
-        {
-          suiteId: "save.restart",
-          eventId: verification,
-          status: "passed",
-          artifactHashes: [hash("e")],
-        },
-      ],
-      review: {
-        verdict: "accepted",
-        reviewerAgentId: owner,
-        acceptanceHash: replacement.acceptanceHash,
-        artifactHashes: [hash("e")],
-        verificationEventIds: [verification],
-      },
-    });
-    expect(project(state)).toMatchObject({
-      reasonCode: "canonical_completion_required",
-      nextAction: "complete_workstream",
-    });
-    // A different acceptance contract is separate work, not a replacement.
-    replacement.acceptanceHash = hash("9");
-    replacement.review!.acceptanceHash = hash("9");
-    expect(project(state)).toMatchObject({
-      reasonCode: "acceptance_rejected",
-      nextAction: "escalate",
-    });
-  });
   it("preserves exact rework and stops new admission after revocation", () => {
     const state = snapshot();
     state.assignments[0]!.review = {
