@@ -170,11 +170,33 @@ export function projectOutcomeSupervision(input: {
     typeof snapshot.pendingDecision !== "boolean"
   )
     throw new TypeError("The outcome supervision snapshot is invalid.");
+  const exhaustedRework = (item: SupervisedAssignmentObservationV1) =>
+    item.review?.verdict === "rework" &&
+    currentReview(item) &&
+    item.recoveryDecisionCount >= input.maximumRecoveryDecisions;
+  // A fresh assignment under the same acceptance contract replaces an exhausted rework: the
+  // rejected result neither preempts its replacement nor blocks completion once that is accepted.
+  const replaced = new Set(
+    snapshot.assignments
+      .filter(
+        (item) =>
+          exhaustedRework(item) &&
+          snapshot.assignments.some(
+            (other) =>
+              other.assignmentId !== item.assignmentId &&
+              other.status !== "cancelled" &&
+              other.acceptanceHash === item.acceptanceHash &&
+              !exhaustedRework(other),
+          ),
+      )
+      .map((item) => item.assignmentId),
+  );
+  const assignments = snapshot.assignments.filter((item) => !replaced.has(item.assignmentId));
   const report = (
     status: OutcomeSupervisionReportV1["status"],
     reasonCode: string,
     nextAction: OutcomeSupervisionReportV1["nextAction"],
-    assignments = snapshot.assignments,
+    reported = assignments,
     nextCheckAt: string | null = null,
   ): OutcomeSupervisionReportV1 => ({
     schemaVersion: 1,
@@ -189,7 +211,7 @@ export function projectOutcomeSupervision(input: {
       nextAction === "escalate" && snapshot.escalationCount >= 8
         ? "escalation_capacity_exceeded"
         : reasonCode,
-    assignmentIds: assignments.map((item) => item.assignmentId),
+    assignmentIds: reported.map((item) => item.assignmentId),
     nextCheckAt,
     nextAction: nextAction === "escalate" && snapshot.escalationCount >= 8 ? null : nextAction,
   });
@@ -226,12 +248,10 @@ export function projectOutcomeSupervision(input: {
     return report("waiting_decision", "owner_attention_pending", null);
   if ((snapshot.handoffs?.pendingIncoming.length ?? 0) > 0)
     return report("planning", "scoped_handoff_acceptance_required", "allocate_existing");
-  const rejected = snapshot.assignments.filter(
+  const rejected = assignments.filter(
     (item) => item.review?.verdict === "rework" && currentReview(item),
   );
-  const exhausted = rejected.some(
-    (item) => item.recoveryDecisionCount >= input.maximumRecoveryDecisions,
-  );
+  const exhausted = rejected.some(exhaustedRework);
   // A replacement for an exhausted rework already exists as an unbound assignment: install it
   // instead of escalating again, which only created further unclaimed replacements.
   if (exhausted && unbound.length > 0)
@@ -246,12 +266,12 @@ export function projectOutcomeSupervision(input: {
       exhausted ? "escalate" : "request_rework",
       rejected,
     );
-  const blockedReviews = snapshot.assignments.filter(
+  const blockedReviews = assignments.filter(
     (item) => item.review?.verdict === "blocked" && currentReview(item),
   );
   if (blockedReviews.length > 0)
     return report("waiting_decision", "acceptance_blocked", "escalate", blockedReviews);
-  const failed = snapshot.assignments.filter((item) => item.status === "failed");
+  const failed = assignments.filter((item) => item.status === "failed");
   if (failed.length > 0)
     return report(
       "recovering",
@@ -265,7 +285,7 @@ export function projectOutcomeSupervision(input: {
         : "escalate",
       failed,
     );
-  const returned = snapshot.assignments.filter(
+  const returned = assignments.filter(
     (item) =>
       item.terminalEventId !== null &&
       !isSupervisedAssignmentAccepted(item) &&
@@ -275,8 +295,8 @@ export function projectOutcomeSupervision(input: {
     return report("reviewing", "artifact_acceptance_required", "review_artifacts", returned);
   if (
     unbound.length === 0 &&
-    snapshot.assignments.length > 0 &&
-    snapshot.assignments.every(isSupervisedAssignmentAccepted)
+    assignments.length > 0 &&
+    assignments.every(isSupervisedAssignmentAccepted)
   ) {
     if ((snapshot.handoffs?.pendingOutgoing.length ?? 0) > 0)
       return report(
@@ -320,7 +340,7 @@ export function projectOutcomeSupervision(input: {
   }
   if (snapshot.workstreamStatus === "completed")
     return report("invalid", "canonical_completion_without_acceptance", null);
-  const active = snapshot.assignments.filter(
+  const active = assignments.filter(
     (item) =>
       item.status === "leased" || (item.dispatchedAt !== null && item.terminalEventId === null),
   );
@@ -332,7 +352,7 @@ export function projectOutcomeSupervision(input: {
   if (due.length > 0)
     return report("recovering", "worker_deadline_elapsed", "inspect_uncertain_effect", due);
   if (snapshot.pendingDecision) return report("waiting_decision", "bounded_decision_pending", null);
-  if (snapshot.assignments.length === 0 && (snapshot.handoffs?.pendingOutgoing.length ?? 0) > 0)
+  if (assignments.length === 0 && (snapshot.handoffs?.pendingOutgoing.length ?? 0) > 0)
     return report(
       "waiting_decision",
       "scoped_handoff_acceptance_pending",
@@ -340,7 +360,7 @@ export function projectOutcomeSupervision(input: {
       [],
       snapshot.handoffs!.nextCheckAt,
     );
-  const queued = snapshot.assignments.filter(
+  const queued = assignments.filter(
     (item) => ["queued", "leased"].includes(item.status) && item.dispatchedAt === null,
   );
   if (queued.length > 0) return report("planning", "ready_for_dispatch_review", "dispatch", queued);
@@ -365,7 +385,7 @@ export function projectOutcomeSupervision(input: {
     );
   }
   if (
-    snapshot.assignments.some(
+    assignments.some(
       (item) =>
         item.status === "blocked" || (item.review?.verdict === "blocked" && currentReview(item)),
     )

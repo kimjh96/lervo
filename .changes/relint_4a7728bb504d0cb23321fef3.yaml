@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4a7728bb504d0cb23321fef3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Let a replacement under the same acceptance contract supersede an exhausted rework, and stop counting cancelled assignments as unbound work."

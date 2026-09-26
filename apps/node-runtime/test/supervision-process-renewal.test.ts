@@ -69,7 +69,7 @@ function start(revalidate: () => Promise<void>) {
   return { child, renew, controller, result };
 }
 
-it("interrupts the worker when authority observation hangs and ignores a late success", async () => {
+it("renews on a late authority confirmation instead of interrupting the worker", async () => {
   let complete!: () => void;
   const revalidate = vi.fn(
     () =>
@@ -80,13 +80,27 @@ it("interrupts the worker when authority observation hangs and ignores a late su
   const f = start(revalidate);
   await vi.advanceTimersByTimeAsync(60_000);
   expect(revalidate).toHaveBeenCalledTimes(1);
-  await vi.advanceTimersByTimeAsync(5_000);
-  expect(f.child.kill).toHaveBeenCalledExactlyOnceWith("SIGTERM");
+  await vi.advanceTimersByTimeAsync(35_000);
+  expect(f.child.kill).not.toHaveBeenCalled();
   complete();
-  await vi.advanceTimersByTimeAsync(5_000);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(f.renew).toHaveBeenCalledTimes(1);
+  expect(f.child.kill).not.toHaveBeenCalled();
+  f.controller.abort();
+  f.child.emit("close", null, "SIGTERM");
+  expect(await f.result).toMatch(/requires reconciliation/u);
+});
+
+it("interrupts the worker once authority stays unconfirmed past its bound", async () => {
+  const f = start(() => new Promise<void>(() => undefined));
+  await vi.advanceTimersByTimeAsync(260_000);
+  expect(f.child.kill).not.toHaveBeenCalled();
+  // The fourth observation window closes at 270s, past the 240s unconfirmed bound.
+  await vi.advanceTimersByTimeAsync(12_000);
+  expect(f.child.kill).toHaveBeenCalledExactlyOnceWith("SIGTERM");
   expect(f.renew).not.toHaveBeenCalled();
-  expect(f.child.kill).toHaveBeenLastCalledWith("SIGKILL");
-  f.child.emit("close", null, "SIGKILL");
+  f.child.emit("close", null, "SIGTERM");
+  await vi.advanceTimersByTimeAsync(30_000);
   expect(await f.result).toMatch(/requires reconciliation/u);
 });
 
@@ -99,7 +113,8 @@ it("finishes cancellation after child close even if revalidation never settles",
   await vi.advanceTimersByTimeAsync(60_000);
   f.controller.abort();
   f.child.emit("close", null, "SIGTERM");
-  await vi.advanceTimersByTimeAsync(5_000);
+  // The pending observation is abandoned when its authority window closes.
+  await vi.advanceTimersByTimeAsync(30_000);
   expect(outcome).toMatch(/requires reconciliation/u);
   expect(f.renew).not.toHaveBeenCalled();
 });

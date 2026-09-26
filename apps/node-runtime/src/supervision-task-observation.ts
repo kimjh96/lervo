@@ -65,7 +65,8 @@ export async function observeSupervisionTasks(
       binding === undefined ||
       (binding.responsibility.assignmentRevision !== assignment.revision && completion === null)
     ) {
-      unboundAssignmentIds.push(assignment.assignmentId);
+      // A cancelled assignment is settled; it is never a responsibility left to install.
+      if (assignment.status !== "cancelled") unboundAssignmentIds.push(assignment.assignmentId);
       continue;
     }
     const task = binding.responsibility;
