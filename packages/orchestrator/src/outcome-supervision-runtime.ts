@@ -60,6 +60,7 @@ function hasDurableWorkerContinuation(snapshot: OutcomeSupervisionSnapshotV1): b
 /** Composes canonical sources and effects; contains no provider or chat routing. */
 export class OutcomeSupervisionRuntime {
   private readonly cursors = new SupervisionCycleCursors();
+  private readonly started = new Set<string>();
 
   constructor(private readonly ports: OutcomeSupervisionPorts) {}
 
@@ -70,7 +71,12 @@ export class OutcomeSupervisionRuntime {
         throw new Error("The supervision owner binding changed.");
       const now = this.ports.now();
       const pending = await this.ports.findPendingPlan(supervisionId);
+      // Only the literal first cycle after start may defer; a first cycle that reconciled a
+      // pending decision changed the source, so the next cycle proceeds normally.
+      const initial = !this.started.has(supervisionId);
+      this.started.add(supervisionId);
       if (
+        initial &&
         !this.cursors.has(supervisionId) &&
         this.ports.deferInitialActionUntilChange === true &&
         pending === null &&

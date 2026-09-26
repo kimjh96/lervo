@@ -300,6 +300,34 @@ describe("serialized causal owner decisions", () => {
       expect(f.propose).toHaveBeenCalledTimes(1);
     },
   );
+  it("acts after a restart that first reconciled a pending decision", async () => {
+    const f = fixture();
+    let reads = 0;
+    f.ports.readAdmission = async () => ({ ...snapshot(), revoked: ++reads > 1 });
+    expect(
+      (await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId)).disposition,
+    ).toBe("changed");
+    f.ports.inspectEffect = async () => ({ status: "not_started" });
+    f.ports.supersedeNotStarted = async () => {
+      for (const [id, receipt] of f.decisions)
+        f.decisions.set(id, { ...receipt, status: "superseded" });
+      return true;
+    };
+    f.state.sourceRevisionDigest = hash("f");
+    const restarted = new OutcomeSupervisionRuntime({
+      ...f.ports,
+      findPendingPlan: async () =>
+        [...f.decisions.values()].some((receipt) => receipt.status === "recorded") ? plan() : null,
+      deferInitialActionUntilChange: true,
+    });
+    expect((await restarted.runCycle(f.state.supervisionId)).disposition).toBe("changed");
+    // The reconciliation was the canonical change; the owner must not now defer as if idle.
+    f.propose.mockClear();
+    f.propose.mockImplementation(async () => null);
+    const next = await restarted.runCycle(f.state.supervisionId);
+    expect(next.disposition).not.toBe("idle");
+    expect(f.propose).toHaveBeenCalled();
+  });
   it("supersedes a deadline-expired uncertain decision only after exact non-start proof", async () => {
     const f = fixture();
     f.execute.mockRejectedValueOnce(
