@@ -290,6 +290,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
         : null,
     supersedeNotStarted: (plan, digest) =>
       supersedeNodeSupervisionEffect({
+        repositoryRoot: input.repositoryRoot,
         plan,
         sourceRevisionDigest: digest,
         session: session(),

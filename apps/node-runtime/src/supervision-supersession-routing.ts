@@ -5,9 +5,11 @@ import type { SupervisionResultDelivery } from "./supervision-result-delivery.js
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import type { NodeSupervisionSession } from "./supervision-session.js";
 import type { NodeOutcomeSupervisionRuntimeInput } from "./supervision-runtime-ports.js";
+import { supersedeUnstartedOwnerAttention } from "./supervision-attention-supersession.js";
 
 /** Routes only adapters that can prove non-start under their own current source fence. */
 export async function supersedeNodeSupervisionEffect(input: {
+  repositoryRoot: string;
   plan: OperatingActionPlanV1;
   sourceRevisionDigest: string;
   session: NodeSupervisionSession;
@@ -24,6 +26,7 @@ export async function supersedeNodeSupervisionEffect(input: {
     (["work.result_delivery.v1", "work.result_delivery.v2"].includes(plan.effectContract) &&
       delivery !== null) ||
     (plan.effectContract === "work.owner_reasoning.v1" && reasoning !== null) ||
+    plan.effectContract === "work.owner_attention.v1" ||
     (plan.effectContract === "work.workspace_preparation.v1" && workspaces !== null) ||
     (["work.managed_execution.v1", "work.managed_execution.v2"].includes(plan.effectContract) &&
       managed !== null);
@@ -56,6 +59,15 @@ export async function supersedeNodeSupervisionEffect(input: {
     return delivery.supersede(plan, digest, session);
   if (plan.effectContract === "work.responsibility_claim.v1")
     return claims.supersede(plan, digest, session);
+  if (plan.effectContract === "work.owner_attention.v1")
+    return supersedeUnstartedOwnerAttention({
+      repositoryRoot: input.repositoryRoot,
+      binding,
+      plan,
+      sourceRevisionDigest: digest,
+      session,
+      now: ports.now,
+    });
   return "supersedeNotStarted" in ports
     ? (ports.supersedeNotStarted?.(plan, input.sourceRevisionDigest, session) ?? false)
     : false;
