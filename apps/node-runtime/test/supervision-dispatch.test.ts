@@ -85,4 +85,27 @@ describe("Node dispatch readiness integration", { timeout: 30_000 }, () => {
       }
     },
   );
+  it("retries an unclassified transient preflight failure instead of blocking the owner", async () => {
+    const f = await dispatchFixture(roots);
+    const read = f.ports.readWorkerReadiness;
+    let calls = 0;
+    f.ports.readWorkerReadiness = async (plan) => {
+      if (++calls === 2)
+        throw new Error("The supervision observation changed while reading result evidence.");
+      return read(plan);
+    };
+    const runtime = await openNodeOutcomeSupervisionRuntime({
+      repositoryRoot: f.root,
+      binding: f.binding,
+      ports: f.ports,
+      runtimeReadiness: f.runtimeReadiness,
+    });
+    try {
+      await runtime.runCycle();
+      expect(f.attention.join(" ")).not.toContain("supervision_preflight_failed");
+      expect(calls).toBeGreaterThan(2);
+    } finally {
+      await runtime.close();
+    }
+  });
 });

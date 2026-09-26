@@ -11,8 +11,28 @@ import type { readNodeDispatchPreflight } from "./supervision-dispatch-readiness
 import { assertNodeSupervisionReadiness } from "./supervision-readiness.js";
 import type { NodeSupervisionSession } from "./supervision-session.js";
 
-/** Classifies only checks completed before the concrete effect adapter is called. */
-export async function prepareNodeSupervisionEffect(input: {
+type PreflightInput = Parameters<typeof preflightOnce>[0];
+
+/**
+ * Classifies only checks completed before the concrete effect adapter is called. An unclassified
+ * failure, such as an observation that changed while it was read, is retried once before it
+ * becomes a durable block; a real change of authority or readiness fails again.
+ */
+export async function prepareNodeSupervisionEffect(input: PreflightInput) {
+  try {
+    return await preflightOnce(input);
+  } catch (error) {
+    if (
+      !(error instanceof SupervisionPreflightError) ||
+      error.inspection?.reasonCode !== "preflight_cause_unclassified"
+    )
+      throw error;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    return preflightOnce(input);
+  }
+}
+
+async function preflightOnce(input: {
   plan: OperatingActionPlanV1;
   now(): string;
   readOwnerControlReadiness: NonNullable<OutcomeSupervisionPorts["readOwnerControlReadiness"]>;

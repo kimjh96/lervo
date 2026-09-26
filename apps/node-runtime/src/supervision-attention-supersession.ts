@@ -24,14 +24,21 @@ export async function supersedeUnstartedOwnerAttention(input: {
   sourceRevisionDigest: string;
   session: Pick<NodeSupervisionEffectSession, "commit">;
   now(): string;
+  /** Other owner controls, such as an artifact review, prove non-start with their own inspector. */
+  inspectOwnerControl?: (plan: OperatingActionPlanV1) => Promise<{ status: string }>;
 }): Promise<boolean> {
   const plan = structuredClone(input.plan);
-  if (plan.effectContract !== "work.owner_attention.v1") return false;
+  const attention = plan.effectContract === "work.owner_attention.v1";
+  if (!attention && input.inspectOwnerControl === undefined) return false;
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
     const admitted = await readAdmittedControlDecision(storage, plan);
-    if ((await inspectSupervisionAttentionReceipt(storage, plan)).status !== "not_started")
-      return false;
+    const notStarted = async () =>
+      (attention
+        ? await inspectSupervisionAttentionReceipt(storage, plan)
+        : await input.inspectOwnerControl!(plan)
+      ).status === "not_started";
+    if (!(await notStarted())) return false;
     const tasks = new SupervisionTaskSource(storage, input.binding, input.now);
     const observe = async () => {
       const authority = await observeNodeSupervisionAuthority(storage, input.binding, input.now);
@@ -56,10 +63,12 @@ export async function supersedeUnstartedOwnerAttention(input: {
     if (!sourceChanged && !deadlineExpired) return false;
     if (before.digest !== input.sourceRevisionDigest)
       throw new Error("Owner attention supersession requires the current source.");
-    const receiptEventId = `evt_${operatingContractHash({ runId: admitted.runId, type: "work.supervision.escalation.recorded", identity: admitted.identity }).slice(7, 39)}`;
+    const receiptEventId = attention
+      ? `evt_${operatingContractHash({ runId: admitted.runId, type: "work.supervision.escalation.recorded", identity: admitted.identity }).slice(7, 39)}`
+      : null;
     const inspection = {
       schemaVersion: 1,
-      kind: "work.owner_attention_absence",
+      kind: attention ? "work.owner_attention_absence" : "work.owner_control_absence",
       effectContract: plan.effectContract,
       decisionId: operatingDecisionId(plan),
       planHash: operatingContractHash(plan),
@@ -73,6 +82,7 @@ export async function supersedeUnstartedOwnerAttention(input: {
     };
     const artifact = await storage.artifacts.put(canonicalJson(inspection));
     const after = await observe();
+    if (!(await notStarted())) throw new Error("The owner control started before supersession.");
     if (after.digest !== before.digest)
       throw new Error("Owner attention absence sources changed before supersession.");
     const coordinates = supervisionJournalCoordinates(
@@ -88,7 +98,7 @@ export async function supersedeUnstartedOwnerAttention(input: {
           age < 0 ||
           age > 5000 ||
           storage.events.latest()?.eventHash !== inspection.eventHeadHash ||
-          storage.events.get(receiptEventId) !== null
+          (receiptEventId !== null && storage.events.get(receiptEventId) !== null)
         )
           throw new Error("Owner attention absence changed at the fenced transition.");
         const type = "work.supervision.decision.superseded";

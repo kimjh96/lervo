@@ -21,7 +21,7 @@ import {
   operatingContractHash,
   operatingDecisionId,
   isOwnerReasoningAbsence,
-  isOwnerAttentionAbsence,
+  ownerControlSupersession,
   isResultDeliveryAbsence,
   isResponsibilityClaimAbsence,
   isWorkspacePreparationAbsence,
@@ -173,17 +173,15 @@ export class SupervisionDecisionJournal {
           String(supersession.payload.inspectionArtifactHash),
         )) as Record<string, unknown>;
         const plan = await this.readPlan(String(event.payload.planArtifactHash));
-        // An owner attention decision proves only that its escalation was never recorded.
-        if (plan.effectContract === "work.owner_attention.v1") {
-          if (
-            operatingContractHash(plan) !== receipt.planHash ||
-            !isOwnerAttentionAbsence(
-              inspection,
-              plan,
-              String(supersession.payload.sourceRevisionDigest),
-            ) ||
-            this.events.get(String(inspection.receiptEventId)) !== null
-          )
+        // An owner control proves only that its receipt, such as an escalation, never took effect.
+        const control = ownerControlSupersession(
+          inspection,
+          plan,
+          supersession.payload,
+          (id) => this.events.get(id) !== null,
+        );
+        if (control !== null) {
+          if (!control || operatingContractHash(plan) !== receipt.planHash)
             throw new Error("The superseded decision inspection is inconsistent.");
           continue;
         }
