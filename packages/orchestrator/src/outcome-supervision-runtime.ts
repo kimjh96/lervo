@@ -106,7 +106,10 @@ export class OutcomeSupervisionRuntime {
       const pendingDeadlineElapsed =
         pending !== null &&
         (Date.parse(now) >= Date.parse(pending.deadline) ||
-          (pendingStartDeadline !== null && Date.parse(now) >= Date.parse(pendingStartDeadline)));
+          (pendingStartDeadline !== null && Date.parse(now) >= Date.parse(pendingStartDeadline)) ||
+          // An attempt that already ended uncertain will not run again; reconcile it now instead
+          // of waiting for its deadline or an unrelated source change.
+          (await this.ports.findDecision(operatingDecisionId(pending)))?.status === "uncertain");
       if (
         pending !== null &&
         (pending.sourceRevisionDigest !== snapshot.sourceRevisionDigest ||

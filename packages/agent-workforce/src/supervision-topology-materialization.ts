@@ -161,11 +161,25 @@ export class SupervisionTopologyMaterializer {
   ) {
     effect = structuredClone(effect);
     plan = structuredClone(plan);
+    // A changed source, an elapsed deadline, or an attempt that already ended uncertain means the
+    // admitted materialization can no longer run; absence is still proven under the lock below.
+    const attemptEnded = this.journal
+      .history()
+      .some(
+        (event) =>
+          event.type === "work.supervision.effect.observed" &&
+          event.payload.decisionId === operatingDecisionId(plan) &&
+          event.payload.status === "uncertain",
+      );
     if (
       !/^sha256:[a-f0-9]{64}$/u.test(sourceRevisionDigest) ||
-      sourceRevisionDigest === plan.sourceRevisionDigest
+      (sourceRevisionDigest === plan.sourceRevisionDigest &&
+        Date.parse(this.now()) < Date.parse(plan.deadline) &&
+        !attemptEnded)
     )
-      throw new Error("Topology supersession requires a changed exact source.");
+      throw new Error(
+        "Topology supersession requires a changed source, deadline, or ended attempt.",
+      );
     const expected = await this.expected(effect, plan);
     return withAssignmentTopologyLock({
       repositoryRoot: this.repositoryRoot,
