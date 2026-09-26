@@ -227,6 +227,28 @@ describe("causal outcome supervision without a chat surface", () => {
     state.assignments[0]!.status = "cancelled";
     expect(project(state).status).toBe("cancelled");
   });
+  it("installs an existing replacement for an exhausted rework instead of escalating again", () => {
+    const state = snapshot();
+    state.assignments[0]!.recoveryDecisionCount = 3;
+    state.assignments[0]!.review = {
+      verdict: "rework",
+      reviewerAgentId: owner,
+      acceptanceHash: hash("b"),
+      artifactHashes: [],
+      verificationEventIds: [],
+    };
+    expect(project(state)).toMatchObject({
+      reasonCode: "acceptance_rejected",
+      nextAction: "escalate",
+    });
+    const replacement = `asn_${"f".repeat(24)}`;
+    state.unboundAssignmentIds = [replacement];
+    expect(project(state)).toMatchObject({
+      reasonCode: "responsibility_installation_required",
+      nextAction: "allocate_existing",
+      assignmentIds: [replacement],
+    });
+  });
   it("preserves exact rework and stops new admission after revocation", () => {
     const state = snapshot();
     state.assignments[0]!.review = {

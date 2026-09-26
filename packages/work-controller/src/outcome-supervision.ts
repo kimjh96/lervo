@@ -229,13 +229,21 @@ export function projectOutcomeSupervision(input: {
   const rejected = snapshot.assignments.filter(
     (item) => item.review?.verdict === "rework" && currentReview(item),
   );
+  const exhausted = rejected.some(
+    (item) => item.recoveryDecisionCount >= input.maximumRecoveryDecisions,
+  );
+  // A replacement for an exhausted rework already exists as an unbound assignment: install it
+  // instead of escalating again, which only created further unclaimed replacements.
+  if (exhausted && unbound.length > 0)
+    return {
+      ...report("planning", "responsibility_installation_required", "allocate_existing"),
+      assignmentIds: [...unbound],
+    };
   if (rejected.length > 0)
     return report(
       "reviewing",
       "acceptance_rejected",
-      rejected.some((item) => item.recoveryDecisionCount >= input.maximumRecoveryDecisions)
-        ? "escalate"
-        : "request_rework",
+      exhausted ? "escalate" : "request_rework",
       rejected,
     );
   const blockedReviews = snapshot.assignments.filter(
