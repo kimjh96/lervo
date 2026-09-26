@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4d503078e236d94227568581"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Bound supervision artifacts and the owner reasoning context at 1 MiB so long goals keep reasoning."

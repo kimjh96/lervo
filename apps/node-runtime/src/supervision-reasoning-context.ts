@@ -20,7 +20,10 @@ import type { SupervisionTaskSource } from "./supervision-task-source.js";
 import { readInstalledNodeMandate, type NodeSupervisionBinding } from "./supervision-authority.js";
 import { observeSupervisionTasks } from "./supervision-task-observation.js";
 import { loadSupervisionPlanningContext } from "./supervision-planning-context.js";
-import { readSupervisionTextArtifact } from "./supervision-artifact-json.js";
+import {
+  MAXIMUM_SUPERVISION_ARTIFACT_BYTES,
+  readSupervisionTextArtifact,
+} from "./supervision-artifact-json.js";
 import { readSupervisedReviewFeedback } from "./supervision-review-observation.js";
 import { readSupervisionPeerFacts } from "./supervision-peer-facts.js";
 import { readSupervisionHandoffState } from "./supervision-handoff-state.js";
@@ -292,7 +295,7 @@ export async function createOwnerReasoningContext(input: {
     ...(input.proposalFeedback === undefined ? {} : { proposalFeedback: input.proposalFeedback }),
   };
   const content = canonicalJson(context);
-  if (Buffer.byteLength(content) > 256 * 1024)
+  if (Buffer.byteLength(content) > MAXIMUM_SUPERVISION_ARTIFACT_BYTES)
     throw new Error("Owner reasoning context exceeds its byte bound.");
   const artifact = await input.storage.artifacts.put(content);
   return { context, artifact };
