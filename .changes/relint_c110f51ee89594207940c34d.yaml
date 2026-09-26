@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c110f51ee89594207940c34d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep earlier verification results valid after their suite definition changes, so a suite edit no longer stops the Node."

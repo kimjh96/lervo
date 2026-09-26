@@ -1,9 +1,11 @@
 import type { VerificationResult, VerificationSuite } from "@lervo/schemas";
 import { visitEventSnapshot, type ArtifactStore, type EventStore } from "@lervo/storage-contract";
 import {
+  validateHistoricalVerificationResult,
   validateVerificationResult,
   verificationResultBytes,
   verificationSha256,
+  verificationSuiteHash,
 } from "@lervo/verification-contract";
 
 import type { RepositorySupplementalSource } from "./types.js";
@@ -101,7 +103,11 @@ export async function collectVerificationResultSources(input: {
       result = JSON.parse(
         new TextDecoder("utf-8", { fatal: true }).decode(bytes),
       ) as VerificationResult;
-      validateVerificationResult(result, suite);
+      // A result recorded under an earlier suite definition stays bound to its own suite hash;
+      // a later change to the suite must not invalidate every earlier result.
+      if (verificationSuiteHash(suite) === payload.suiteHash)
+        validateVerificationResult(result, suite);
+      else validateHistoricalVerificationResult(result);
     } catch {
       return fail();
     }

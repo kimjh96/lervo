@@ -104,10 +104,25 @@ export function validateVerificationResult(
   value: unknown,
   suite: VerificationSuite,
 ): asserts value is VerificationResult {
+  validateResult(value, suite);
+}
+
+/**
+ * Validates a recorded result whose suite definition has since changed. The result stays bound
+ * to its own recorded suite hash, so only suite-independent evidence is checked: schema, command
+ * outcomes, execution interval, overall status and the content-derived result ID.
+ */
+export function validateHistoricalVerificationResult(
+  value: unknown,
+): asserts value is VerificationResult {
+  validateResult(value, null);
+}
+
+function validateResult(value: unknown, suite: VerificationSuite | null): void {
   if (!validateSchema("verificationResult", value).valid) {
     invalidResult("The verification result does not satisfy its schema.");
   }
-  validateVerificationSuite(suite);
+  if (suite !== null) validateVerificationSuite(suite);
   const result = value as VerificationResult;
   const suiteStarted = timestamp(result.startedAt);
   const suiteCompleted = timestamp(result.completedAt);
@@ -115,18 +130,20 @@ export function validateVerificationResult(
     invalidResult("Verification cannot complete before it starts.");
   }
   if (
-    result.suiteId !== suite.suiteId ||
-    result.suiteHash !== verificationSuiteHash(suite) ||
-    result.commands.length !== suite.commands.length
+    suite !== null &&
+    (result.suiteId !== suite.suiteId ||
+      result.suiteHash !== verificationSuiteHash(suite) ||
+      result.commands.length !== suite.commands.length)
   ) {
     invalidResult("The verification result does not match the executed suite.");
   }
   for (let index = 0; index < result.commands.length; index += 1) {
-    const command = suite.commands[index]!;
+    const command = suite?.commands[index];
     const commandResult = result.commands[index]!;
     if (
-      commandResult.commandId !== command.commandId ||
-      commandResult.commandDigest !== verificationCommandDigest(command)
+      command !== undefined &&
+      (commandResult.commandId !== command.commandId ||
+        commandResult.commandDigest !== verificationCommandDigest(command))
     ) {
       invalidResult("The verification command result order or digest differs from the suite.");
     }

@@ -173,4 +173,26 @@ describe("verification result knowledge source", () => {
     await expect(result).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
     await expect(result).rejects.not.toThrow(/private-verification-fixture|project\.check/);
   });
+  it("keeps an earlier result valid after its suite gains a command", async () => {
+    const { suite, result, bytes, event } = fixture();
+    const extended: VerificationSuite = {
+      ...suite,
+      commands: [...suite.commands, { ...suite.commands[0]!, commandId: "lint" }],
+    };
+    const sources = await collectVerificationResultSources({
+      ...ports(event, bytes),
+      loadSuite: async () => extended,
+    });
+    expect(sources.map((source) => source.path)).toEqual([
+      `@verification/${result.verificationId}`,
+    ]);
+    // Integrity still binds the recorded bytes even when the suite changed.
+    const tampered = verificationResultBytes({ ...result, status: "failed" });
+    await expect(
+      collectVerificationResultSources({
+        ...ports(event, tampered),
+        loadSuite: async () => extended,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
+  });
 });
