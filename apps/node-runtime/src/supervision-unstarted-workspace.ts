@@ -8,8 +8,10 @@ import type {
 import type { WorkspaceProvisionPlan } from "@lervo/orchestrator";
 import { openReadOnlyProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { resolve } from "node:path";
+import type { EventEnvelope } from "@lervo/schemas";
 import { collectRunEventsBounded } from "@lervo/storage-contract";
 import {
+  managedExecutionIdentity,
   operatingContractHash,
   supervisedManagedExecutionFields,
   supervisedWorkspacePreparationFields,
@@ -56,10 +58,12 @@ export async function observeUnstartedSupervisionWorkspace(input: {
       storage.manifest.projectId !== assignment.projectId
     )
       throw new Error("Retained workspace evidence belongs to another repository.");
-    const eventHeadHash = storage.events.latest()?.eventHash ?? null;
+    const head = storage.events.latest();
+    const supervisionRunId = `run_${operatingContractHash({ supervisionId: binding.supervisionId }).slice(7, 39)}`;
+    const dispatchRunIds = new Set<string>();
     const history = collectRunEventsBounded({
       events: storage.events,
-      runId: `run_${operatingContractHash({ supervisionId: binding.supervisionId }).slice(7, 39)}`,
+      runId: supervisionRunId,
       maximumEvents: 4096,
     });
     const prepared = history.filter(
@@ -153,6 +157,9 @@ export async function observeUnstartedSupervisionWorkspace(input: {
         )
       )
         throw new Error("Retained workspace dispatch evidence differs from its plan.");
+      dispatchRunIds.add(
+        managedExecutionIdentity(candidate.projectId, operatingContractHash(candidate)).runId,
+      );
       if (!(await readHistoricalManagedDecision(storage, candidate)).superseded) return null;
       const supersession = history.find(
         (item) =>
@@ -186,7 +193,18 @@ export async function observeUnstartedSupervisionWorkspace(input: {
       observed.changedPaths?.length !== 0 ||
       after === null ||
       operatingContractHash(after.workspace) !== operatingContractHash(workspace) ||
-      (storage.events.latest()?.eventHash ?? null) !== eventHeadHash ||
+      // A running worker of the current generation keeps appending its own events; only an event
+      // that could touch this generation, its assignment, the owner journal or its old dispatch
+      // invalidates the proof.
+      changedSince(
+        storage,
+        head?.seq ?? 0,
+        (event) =>
+          event.runId === supervisionRunId ||
+          dispatchRunIds.has(event.runId) ||
+          event.payload.workspaceId === workspace.workspaceId ||
+          event.payload.assignmentId === assignment.assignmentId,
+      ) ||
       !Number.isFinite(elapsed) ||
       elapsed < 0 ||
       elapsed > 5000
@@ -205,4 +223,20 @@ export async function observeUnstartedSupervisionWorkspace(input: {
   } finally {
     if (input.storage === undefined) await storage.close();
   }
+}
+
+/** Whether any event after `afterSeq` matches; an unbounded tail counts as a change. */
+function changedSince(
+  storage: Pick<ProjectStorage, "events">,
+  afterSeq: number,
+  relevant: (event: EventEnvelope) => boolean,
+): boolean {
+  let seq = afterSeq;
+  for (let page = 0; page < 16; page += 1) {
+    const events = storage.events.list({ afterSeq: seq, limit: 1000 });
+    if (events.some(relevant)) return true;
+    if (events.length < 1000) return false;
+    seq = events.at(-1)!.seq;
+  }
+  return true;
 }

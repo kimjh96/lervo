@@ -1,3 +1,5 @@
+import * as workforce from "@lervo/agent-workforce";
+import { operatingContractHash } from "@lervo/work-controller";
 import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -14,7 +16,14 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-it.each(["unrecorded", "live_lease", "changed_checkout", "missing_receipt", "changed_head"])(
+it.each([
+  "unrecorded",
+  "live_lease",
+  "changed_checkout",
+  "missing_receipt",
+  "changed_head",
+  "concurrent_unrelated",
+])(
   "retains only an expired unchanged workspace with no admitted dispatch: %s",
   async (condition) => {
     const f = await dispatchFixture(roots, true, undefined, "developer", [
@@ -39,24 +48,30 @@ it.each(["unrecorded", "live_lease", "changed_checkout", "missing_receipt", "cha
       };
       if (condition === "changed_checkout")
         await writeFile(resolve(workspace.ownerWorkspacePath!, "user-owned.txt"), "retain me\n");
-      if (condition === "changed_head") {
-        const latest = storage.events.latest.bind(storage.events);
-        let observations = 0;
-        vi.spyOn(storage.events, "latest").mockImplementation(() => {
-          if (++observations === 2)
-            storage.events.append({
-              eventId: "evt_workspace_inspection_race",
-              projectId: storage.manifest.projectId,
-              runId: "run_workspace_inspection_race",
-              sessionId: "ses_workspace_inspection_race",
-              schemaVersion: 1,
-              type: "run.requested",
-              occurredAt: now(),
-              actor: { kind: "system" },
-              policyVersion: f.binding.mandateHash,
-              payload: {},
-            });
-          return latest();
+      // A concurrent event bound to this assignment invalidates the proof; a running worker's
+      // unrelated events of another generation do not.
+      if (condition === "changed_head" || condition === "concurrent_unrelated") {
+        const read = workforce.readWorkspace;
+        vi.spyOn(workforce, "readWorkspace").mockImplementation(async (...args) => {
+          // The event lands during the final checkout re-read, after the head was captured.
+          storage.events.append({
+            eventId: "evt_workspace_inspection_race",
+            projectId: storage.manifest.projectId,
+            // The owner journal run is relevant to every retained generation.
+            runId:
+              condition === "changed_head"
+                ? `run_${operatingContractHash({ supervisionId: f.binding.supervisionId }).slice(7, 39)}`
+                : "run_workspace_inspection_race",
+            sessionId: "ses_workspace_inspection_race",
+            schemaVersion: 1,
+            type: "run.requested",
+            occurredAt: now(),
+            actor: { kind: "system" },
+            policyVersion: f.binding.mandateHash,
+            payload: {},
+          });
+          vi.mocked(workforce.readWorkspace).mockRestore();
+          return read(...args);
         });
       }
       const retained = await observeUnstartedSupervisionWorkspace(input);
@@ -86,7 +101,9 @@ it.each(["unrecorded", "live_lease", "changed_checkout", "missing_receipt", "cha
         expect(await currentSupervisionWorkspaces(f.root, successor, f.binding, storage)).toEqual(
           [],
         );
-      } else expect(retained).toBeNull();
+      } else if (condition === "concurrent_unrelated")
+        expect(retained).toMatchObject({ workspaceId: workspace.workspaceId });
+      else expect(retained).toBeNull();
       expect((await readWorkspace(f.root, workspace.workspaceId))!.workspace).toEqual(workspace);
     } finally {
       await storage.close();
