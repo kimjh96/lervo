@@ -8,6 +8,32 @@ import {
 } from "./supervision-abandoned-turn-failure.js";
 import { observedSupervisionRunTermination } from "./supervision-run-termination.js";
 
+const OPTIONAL_FAILURE_KEYS = new Set([
+  "providerTurnFailureCode",
+  "providerDiagnostic",
+  "causeCode",
+]);
+
+/**
+ * Each failure names code, phase and retryability, and may add bounded diagnosis that the run
+ * ledger records, such as the adapter's own failure code. Unknown keys stay invalid.
+ */
+function validFailureKeys(item: object): boolean {
+  const keys = Object.keys(item);
+  const record = item as Record<string, unknown>;
+  return (
+    ["code", "phase", "retryable"].every((key) => keys.includes(key)) &&
+    keys.every(
+      (key) => ["code", "phase", "retryable"].includes(key) || OPTIONAL_FAILURE_KEYS.has(key),
+    ) &&
+    ["providerTurnFailureCode", "causeCode"].every(
+      (key) => record[key] === undefined || /^[a-z][a-z0-9_]{0,63}$/u.test(String(record[key])),
+    ) &&
+    (record.providerDiagnostic === undefined ||
+      (typeof record.providerDiagnostic === "object" && record.providerDiagnostic !== null))
+  );
+}
+
 /** A stopped turn is safely repeatable only when its actual session cannot perform tool effects. */
 export async function observeSupervisionFailure(
   events: readonly EventEnvelope[],
@@ -61,7 +87,7 @@ export async function observeSupervisionFailure(
       (item) =>
         item === null ||
         typeof item !== "object" ||
-        Object.keys(item).sort().join(",") !== "code,phase,retryable" ||
+        !validFailureKeys(item) ||
         !/^[a-z_]{1,64}$/u.test(item.code) ||
         !/^[a-z_]{1,64}$/u.test(item.phase) ||
         typeof item.retryable !== "boolean",

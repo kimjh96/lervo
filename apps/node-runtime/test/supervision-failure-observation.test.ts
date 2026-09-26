@@ -58,6 +58,25 @@ it.each(["codex", "claude"] as const)(
       expect(await observeSupervisionFailure(widened, artifacts)).toMatchObject({
         status: "uncertain",
       });
+      // Bounded diagnosis added by the run ledger must not make the whole snapshot unreadable.
+      const failed = events.find((event) => event.type === "run.failed")!;
+      const diagnosed = await artifacts.put(
+        JSON.stringify({
+          failures: [
+            {
+              code: failed.payload.failureCode,
+              phase: "provider_turn",
+              retryable: false,
+              providerTurnFailureCode: "claude_error_during_execution",
+              causeCode: "provider_protocol_failed",
+            },
+          ],
+        }),
+      );
+      const annotated = structuredClone(events);
+      annotated.find((event) => event.type === "run.failed")!.payload.diagnosticDigest =
+        diagnosed.contentHash;
+      await expect(observeSupervisionFailure(annotated, artifacts)).resolves.toBeTruthy();
       const missing = structuredClone(events);
       missing.find((event) => event.type === "run.failed")!.payload.diagnosticDigest =
         "sha256:" + "0".repeat(64);

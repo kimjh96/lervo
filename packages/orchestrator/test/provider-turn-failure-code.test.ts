@@ -22,3 +22,21 @@ it("keeps the adapter's own turn failure code instead of discarding it", () => {
   expect(terminalTurnFailure("provider_usage_limited").code).toBe("provider_usage_limited");
   expect(terminalTurnFailure("Not A Code!").providerTurnFailureCode).toBeUndefined();
 });
+
+it("keeps an adapter error code behind a generic phase failure", () => {
+  const ledger = new RunFailureLedger();
+  ledger.add(
+    Object.assign(new Error("The Claude turn has already started or is still active."), {
+      code: "invalid_request",
+    }),
+    "turn_start",
+  );
+  expect(ledger.details()).toEqual([
+    {
+      code: "provider_turn_failed",
+      phase: "turn_start",
+      retryable: false,
+      causeCode: "invalid_request",
+    },
+  ]);
+});

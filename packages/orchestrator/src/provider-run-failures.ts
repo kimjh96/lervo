@@ -243,8 +243,24 @@ export class RunFailureLedger {
     retryable: boolean;
     providerDiagnostic?: ProviderFailureDiagnostic;
     providerTurnFailureCode?: string;
+    causeCode?: string;
   }> {
-    return this.failures.map((failure) => ({
+    return this.failures.map((failure) => {
+      // An adapter error, such as a refused turn start, keeps its bounded code for diagnosis.
+      const causeCode = (failure.error.cause as { code?: unknown } | undefined)?.code;
+      return {
+        ...this.detail(failure),
+        ...(typeof causeCode === "string" &&
+        /^[a-z][a-z0-9_]{0,63}$/u.test(causeCode) &&
+        causeCode !== failure.error.code
+          ? { causeCode }
+          : {}),
+      };
+    });
+  }
+
+  private detail(failure: RunFailure) {
+    return {
       code: failure.error.code,
       phase: failure.phase,
       retryable: failure.retryable,
@@ -254,7 +270,7 @@ export class RunFailureLedger {
       ...(failure.error.providerTurnFailureCode === undefined
         ? {}
         : { providerTurnFailureCode: failure.error.providerTurnFailureCode }),
-    }));
+    };
   }
 
   resultError(): ManagedProviderRunError | undefined {
