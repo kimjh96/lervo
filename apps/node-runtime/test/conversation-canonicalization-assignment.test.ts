@@ -53,17 +53,32 @@ it("assigns open background candidates to the next write-capable Discord turn", 
   expect(canonicalizationAssignment([stale!], "developer")).toContain("--decision reject");
   expect(canonicalizationAssignment([], "developer")).toBeNull();
   expect(await pendingCanonicalizationCandidates(resolve(root, "missing"))).toEqual([]);
-  expect(normalizationAssignment(0)).toBeNull();
-  expect(normalizationAssignment(3)).toContain("3 documents await normalization");
-  expect(
-    executionInstructions({
-      request: "Fix the typo.",
-      priorTurns: [],
-      durableResults: [],
-      worker: null,
-      externalEffectsAuthorized: false,
-      finalizationStartsAt: "2026-09-25T12:10:00.000Z",
-      pendingNormalizationDocuments: 3,
-    }),
-  ).toContain("Document normalization debt: 3 documents await normalization");
+  expect(normalizationAssignment(null)).toBeNull();
+  const review = {
+    pendingCount: 3,
+    candidateId: `knorm_${"a".repeat(24)}`,
+    planId: "knormplan_fixture",
+    items: [
+      {
+        sourcePath: "docs/a.md",
+        operationId: `knormop_${"b".repeat(24)}`,
+        approvalHash: `sha256:${"c".repeat(64)}`,
+      },
+    ],
+  };
+  const assigned = executionInstructions({
+    request: "Fix the typo.",
+    priorTurns: [],
+    durableResults: [],
+    worker: null,
+    externalEffectsAuthorized: false,
+    finalizationStartsAt: "2026-09-25T12:10:00.000Z",
+    normalizationReview: review,
+  });
+  expect(assigned).toContain("Document normalization debt: 3 documents await normalization");
+  // The sandboxed turn reviews and applies the stored candidate; it never starts a provider.
+  expect(assigned).toContain(
+    `lervo knowledge normalize --candidate ${review.candidateId} --apply knormplan_fixture --approve-item ${review.items[0]!.operationId}=${review.items[0]!.approvalHash}`,
+  );
+  expect(assigned).toContain("Do not run `--provider`");
 });

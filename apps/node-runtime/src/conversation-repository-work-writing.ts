@@ -3,6 +3,7 @@ import {
   normalizationAssignment,
   type CanonicalizationAssignment,
 } from "./conversation-canonicalization-assignment.js";
+import type { NormalizationReview } from "./conversation-normalization-candidate.js";
 
 const MAXIMUM_DISCORD_CHARACTERS = 1_950;
 
@@ -15,8 +16,8 @@ export function executionInstructions(input: {
   finalizationStartsAt: string;
   /** Background knowledge review left these candidates; this write-capable turn owns them. */
   canonicalizationCandidates?: readonly CanonicalizationAssignment[];
-  /** Pending document normalization this repository-changing turn must advance. */
-  pendingNormalizationDocuments?: number;
+  /** A host-generated normalization candidate this repository-changing turn must review. */
+  normalizationReview?: NormalizationReview | null;
 }): string {
   const history = input.priorTurns
     .slice(-4)
@@ -59,7 +60,7 @@ export function executionInstructions(input: {
       input.canonicalizationCandidates ?? [],
       input.worker === null ? "conversation-agent" : input.worker.roleId,
     ),
-    normalizationAssignment(input.pendingNormalizationDocuments ?? 0),
+    normalizationAssignment(input.normalizationReview ?? null),
     `Current request:\n${input.request}`,
   ]
     .filter((line): line is string => line !== null)

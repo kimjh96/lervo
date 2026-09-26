@@ -5,6 +5,7 @@ import { CodexRepositoryWorkTurnExecutor } from "@lervo/adapter-codex";
 import type { RepositoryWorkTurnExecutor } from "@lervo/adapter-contract";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
+import { NormalizationCandidatePreparer } from "./conversation-normalization-candidate.js";
 import { ConversationRepositoryWorkResponder } from "./conversation-repository-work-responder.js";
 import { SQLiteConversationRepositoryWorkStore } from "./conversation-repository-work-store.js";
 import type {
@@ -80,6 +81,14 @@ export function openDiscordConversationRepositoryWork(input: {
         ? {}
         : { authorizedEffectRequesters: input.authorizedEffectRequesters }),
       defaultProvider: input.config.command.provider,
+      normalization: new NormalizationCandidatePreparer({
+        repositoryRoot: input.repositoryRoot,
+        provider: input.config.command.provider,
+        ...(input.providerExecutables === undefined
+          ? {}
+          : { executables: input.providerExecutables }),
+        log: (line) => process.stderr.write(`${line}\n`),
+      }),
       timeoutMs: input.config.routing.workTimeoutMs ?? 1_800_000,
     }),
   };

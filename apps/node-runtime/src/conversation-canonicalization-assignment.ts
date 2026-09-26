@@ -1,8 +1,12 @@
 import {
-  documentNormalizationProcedure,
-  inspectConfiguredDocumentNormalization,
   listCanonicalizationCandidates,
+  storedNormalizationReviewProcedure,
 } from "@lervo/repository-knowledge";
+
+import type {
+  NormalizationCandidatePreparer,
+  NormalizationReview,
+} from "./conversation-normalization-candidate.js";
 
 export interface CanonicalizationAssignment {
   candidateId: string;
@@ -52,27 +56,20 @@ export async function pendingCanonicalizationCandidates(
   }
 }
 
-/** Pending document normalization; an unreadable lifecycle assigns nothing rather than guessing. */
-export async function pendingNormalizationCount(repositoryRoot: string): Promise<number> {
-  try {
-    return (await inspectConfiguredDocumentNormalization({ repositoryRoot })).pendingDocuments
-      .length;
-  } catch {
-    return 0;
-  }
-}
-
-export function normalizationAssignment(pendingCount: number): string | null {
-  return pendingCount === 0
+export function normalizationAssignment(review: NormalizationReview | null): string | null {
+  return review === null
     ? null
-    : `Document normalization debt: ${documentNormalizationProcedure(pendingCount)}`;
+    : `Document normalization debt: ${storedNormalizationReviewProcedure(review)}`;
 }
 
 /** The knowledge work a write-capable Discord turn owns, read together before the turn. */
-export async function readKnowledgeAssignments(repositoryRoot: string) {
-  const [canonicalizationCandidates, pendingNormalizationDocuments] = await Promise.all([
-    pendingCanonicalizationCandidates(repositoryRoot),
-    pendingNormalizationCount(repositoryRoot),
+export async function readKnowledgeAssignments(input: {
+  repositoryRoot: string;
+  normalization?: NormalizationCandidatePreparer;
+}) {
+  const [canonicalizationCandidates, normalizationReview] = await Promise.all([
+    pendingCanonicalizationCandidates(input.repositoryRoot),
+    input.normalization === undefined ? null : input.normalization.review().catch(() => null),
   ]);
-  return { canonicalizationCandidates, pendingNormalizationDocuments };
+  return { canonicalizationCandidates, normalizationReview };
 }

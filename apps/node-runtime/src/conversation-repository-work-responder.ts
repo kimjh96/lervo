@@ -1,4 +1,5 @@
 import { readKnowledgeAssignments } from "./conversation-canonicalization-assignment.js";
+import type { NormalizationCandidatePreparer } from "./conversation-normalization-candidate.js";
 import { executionInstructions, fitDiscord } from "./conversation-repository-work-writing.js";
 import { createHash } from "node:crypto";
 
@@ -128,6 +129,8 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         verify: typeof verifyConversationRepositoryWorkCompletion;
       };
       knowledgeMode?: "synchronous" | "pending_background";
+      /** Generates normalization candidates outside the provider sandbox for turns to review. */
+      normalization?: NormalizationCandidatePreparer;
       authorizedEffectRequesters?: readonly {
         participantId: string;
         roleId: string;
@@ -291,7 +294,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           worker: delegate,
           externalEffectsAuthorized,
           finalizationStartsAt: finalizationStartsAt(this.options.timeoutMs),
-          ...(await readKnowledgeAssignments(this.options.repositoryRoot)),
+          ...(await readKnowledgeAssignments(this.options)),
         }),
         providerSessionId: turn.providerSessionId,
         ...(route.model === null ? {} : { model: route.model }),
@@ -389,6 +392,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
 
   close(): void {
     this.abortController.abort();
+    void this.options.normalization?.close();
     this.options.store.close();
   }
 }
