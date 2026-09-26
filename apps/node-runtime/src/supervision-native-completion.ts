@@ -191,7 +191,10 @@ export async function nativeAssignmentCompletion(
           roleEvaluationArtifactHash,
           terminalEventId: terminal!.eventId,
           executionCompletedAt: terminal!.occurredAt,
-          settlementDeadline: input.base.deadline,
+          // Settlement keeps its two-minute bound although owner reasoning now has longer.
+          settlementDeadline: new Date(
+            Math.min(Date.parse(input.base.deadline), Date.parse(preparedAt) + 120_000),
+          ).toISOString(),
         }
       : research === null
         ? { schemaVersion: 1 as const }

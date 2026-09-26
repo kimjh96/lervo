@@ -27,6 +27,7 @@ import { readAdmittedControlDecision } from "./supervision-control-decision.js";
 import { supersedeUnstartedOwnerReasoning } from "./supervision-reasoning-supersession.js";
 import { readOwnerSpendAdmission } from "./supervision-owner-spend-source.js";
 import { NodeSupervisionError } from "./supervision-authority.js";
+import { OWNER_REASONING_WINDOW_MS } from "./supervision-native-owner.js";
 
 export interface NodeOwnerReasoningConfiguration {
   provider: "codex" | "claude";
@@ -199,7 +200,7 @@ export class SupervisionOwnerReasoningEffects {
           session.commit(() => undefined);
         }));
       const remaining = Date.parse(plan.deadline) - Date.parse(this.now());
-      if (!Number.isFinite(remaining) || remaining <= 0 || remaining > 180_000)
+      if (!Number.isFinite(remaining) || remaining <= 0 || remaining > OWNER_REASONING_WINDOW_MS)
         throw new Error("The owner reasoning deadline exceeds its bounded invocation window.");
       timer = setTimeout(stop, remaining);
       timer.unref?.();

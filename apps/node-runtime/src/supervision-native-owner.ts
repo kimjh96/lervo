@@ -103,8 +103,14 @@ export class NativeSupervisionOwner {
         concurrentAttempts: 0,
         attemptNumber: 1,
         reservedTokens: 1,
+        // Admission, readiness and context preparation take about a minute before the model
+        // starts, so a two-minute window left too little time for a turn that reads sources.
         deadline: new Date(
-          Math.min(Date.parse(this.now()) + 120_000, Date.parse(facts.mandate.expiresAt)),
+          Math.min(
+            Date.parse(this.now()) +
+              Math.min(OWNER_REASONING_WINDOW_MS, facts.mandate.maximumDeadlineMs),
+            Date.parse(facts.mandate.expiresAt),
+          ),
         ).toISOString(),
       };
       const stale = staleResponsibilityFacts(source).map((item) => item.assignmentId);
@@ -330,3 +336,6 @@ export class NativeSupervisionOwner {
   }
 }
 import { supervisionClaimDuration } from "./supervision-claim-duration.js";
+
+/** The owner reasoning invocation window from plan to the end of the provider turn. */
+export const OWNER_REASONING_WINDOW_MS = 300_000;

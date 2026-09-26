@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1c66faf47bd9830ddb729908"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Give owner reasoning a five-minute invocation window so a turn that reads sources is not cut off."
