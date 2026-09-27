@@ -6,6 +6,7 @@ import {
   managedContextReferenceComment,
   managedContextReferenceToken,
   projectManagedContextReferences,
+  projectManagedJsonContextReferences,
 } from "../src/index.js";
 
 const documents = [
@@ -73,5 +74,57 @@ describe("managed context publication projection", () => {
       referencedDocuments: [],
       publicationContent: result,
     });
+  });
+});
+
+describe("structured managed context publication projection", () => {
+  it("projects decoded standalone comments atomically and deduplicates references", () => {
+    const comment = managedContextReferenceComment(documents[0]!);
+    const result = JSON.stringify({
+      operation: "prepare_publication",
+      rationale: `The accepted result passed review.\n\n${comment}`,
+      details: { accepted: true, checks: [`Verified.\n${comment}`] },
+    });
+    expect(() => projectManagedContextReferences(result, documents)).toThrow();
+    const projected = projectManagedJsonContextReferences(result, documents);
+    expect(projected.referencedDocuments).toEqual(documents);
+    expect(JSON.parse(projected.publicationContent)).toEqual({
+      operation: "prepare_publication",
+      rationale: "The accepted result passed review.\n\n",
+      details: { accepted: true, checks: ["Verified.\n"] },
+    });
+  });
+
+  it("preserves exact JSON bytes when no projection changes a string", () => {
+    const result = '{ "rationale": "Verified", "checks": [true, 0, null] }';
+    expect(projectManagedJsonContextReferences(result, documents)).toEqual({
+      referencedDocuments: [],
+      publicationContent: result,
+    });
+  });
+
+  it("changes only string values while retaining number lexemes and duplicate keys", () => {
+    const comment = managedContextReferenceComment(documents[0]!);
+    const value = JSON.stringify(`Verified.\n${comment}`);
+    const prefix = '{ "n": 9007199254740993, "n": 1e400, "quote": "\\\"", "rationale": ';
+    const projected = projectManagedJsonContextReferences(`${prefix}${value} }`, documents);
+    expect(projected.referencedDocuments).toEqual(documents);
+    expect(projected.publicationContent).toBe(`${prefix}${JSON.stringify("Verified.\n")} }`);
+  });
+
+  it("rejects malformed JSON and inline references without publishing partial evidence", () => {
+    expect(() => projectManagedJsonContextReferences("not JSON", documents)).toThrowError(
+      expect.objectContaining({ code: "json_parse_failed" }),
+    );
+    const comment = managedContextReferenceComment(documents[0]!);
+    expect(() =>
+      projectManagedJsonContextReferences(
+        JSON.stringify({
+          accepted: `Verified.\n${comment}`,
+          invalid: `Inline ${comment} metadata.`,
+        }),
+        documents,
+      ),
+    ).toThrowError(expect.objectContaining({ code: "reference_not_standalone" }));
   });
 });

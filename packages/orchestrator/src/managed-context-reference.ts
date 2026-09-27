@@ -4,6 +4,7 @@ import {
   ManagedContextReferenceError,
   managedContextReferenceToken,
   projectManagedContextReferences,
+  projectManagedJsonContextReferences,
 } from "@lervo/adapter-contract";
 import type { InjectedContext } from "@lervo/context-delivery";
 import {
@@ -30,14 +31,16 @@ export function managedResultReferenceSpecs(input: {
   turn: AdapterTurn;
   result: AdapterTurnResult;
   injected: InjectedContext;
+  resultFormat?: "markdown" | "json";
   createEvidenceReceiptId?: () => string;
 }): { specs: ManagedEventSpec[]; evidence: ContextEvidence[]; publicationContent: string } {
   let projection;
   try {
-    projection = projectManagedContextReferences(
-      input.result.content,
-      input.injected.envelope.documents,
-    );
+    const project =
+      input.resultFormat === "json"
+        ? projectManagedJsonContextReferences
+        : projectManagedContextReferences;
+    projection = project(input.result.content, input.injected.envelope.documents);
   } catch (error) {
     if (error instanceof ManagedContextReferenceError) {
       throw new ManagedProviderRunError(

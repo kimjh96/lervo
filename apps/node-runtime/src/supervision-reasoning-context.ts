@@ -4,6 +4,7 @@ import { observeSupervisionFailure } from "./supervision-failure-observation.js"
 import { readAcceptedSupervisionGoal } from "./supervision-accepted-goal.js";
 import { resultWritingContract } from "./conversation-result-publication.js";
 import { writingContractForLanguage } from "@lervo/core";
+import { managedJsonReferenceContract } from "@lervo/adapter-contract";
 import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
 import { createHash } from "node:crypto";
 import { canonicalJson } from "@lervo/event-contract";
@@ -157,6 +158,7 @@ export async function canonicalOwnerReasoningFacts(
       })),
   };
   const facts = {
+    resultReferenceContract: managedJsonReferenceContract,
     unstartedWorkspaces,
     staleResponsibilities: staleResponsibilityFacts(source),
     recoveryObservations,

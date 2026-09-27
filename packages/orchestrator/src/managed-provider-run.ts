@@ -600,6 +600,7 @@ export class ManagedProviderRunCoordinator {
         );
       }
       const reference = managedResultReferenceSpecs({
+        ...(input.resultFormat === undefined ? {} : { resultFormat: input.resultFormat }),
         sourceEventId: this.telemetry.reserveEventId(),
         session: state.session,
         turn: state.turn!,

@@ -40,10 +40,10 @@ it("reports a goal budget stop as bounded attention without degrading the Node",
   });
 });
 
-it("reports a completed goal with nothing to publish as a canonical local result", () => {
+it("preserves unavailable publication diagnostics without inferring a local origin", () => {
   expect(
     supervisionAttentionReasonCodes({ nextAction: "publish_result" }, ["owner_plan_unavailable"]),
-  ).toEqual(["local_result_canonical"]);
+  ).toEqual(["owner_plan_unavailable"]);
   expect(
     supervisionAttentionReasonCodes({ nextAction: "dispatch" }, ["owner_plan_unavailable"]),
   ).toEqual(["owner_plan_unavailable"]);

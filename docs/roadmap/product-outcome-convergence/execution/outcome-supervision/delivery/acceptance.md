@@ -22,7 +22,8 @@ Use common provider/host contract fixtures. Record bundle/source, role/mandate h
 
 ## Supervision repair regression criteria
 
-- Restarting an unchanged bound goal evaluates it after at most sixty seconds without a new source event; pending decisions and leased or dispatched duties continue immediately.
+- The first valid snapshot of an unchanged bound goal starts a grace period of at most sixty seconds, after which it evaluates without a new source event. Startup processing adds its own latency; pending decisions and leased or dispatched duties continue immediately.
 - A configured conversation adapter does not require publication for a verified local request. Completed local goals expose dormant `local_result_canonical`, retain the accepted result, and invoke no publication model or transport.
 - A receipt failure after canonical workspace readiness preserves ready state. Exact clean historical preparation can acquire its missing receipt after the original deadline or lease expires, including the legacy receipt-failure transition, without Git mutation or lease revival. Dirty, mismatched, dispatched, or changed evidence remains uncertain.
 - Installed observations record runtime versions and each repaired outcome separately from local fixture results and from user-result publication.
+- Structured owner results validate standalone evidence comments after JSON string decoding for both providers. Historical failed attempts remain recorded, and a versioned contract repair never resets the independent owner-spend allowance. A missing publication proposal reports its actual blocker and cannot be relabeled as local completion without verified request origin.

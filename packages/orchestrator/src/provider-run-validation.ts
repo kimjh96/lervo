@@ -75,6 +75,15 @@ export function validateManagedProviderRunInput(
   input: ManagedProviderRunInput,
   options: Pick<ManagedProviderRunOptions, "coordinates" | "projectVerifier">,
 ): void {
+  if (
+    (input.resultFormat !== undefined && !["markdown", "json"].includes(input.resultFormat)) ||
+    (input.resultFormat === "json" &&
+      input.context.role.outputContract.presentation.audience !== "machine")
+  )
+    throw new ManagedProviderRunError(
+      "contract_validation_failed",
+      "The result format is invalid.",
+    );
   const skillIds = input.resolvedSkills.map((skill) => skill.skillId);
   const capabilityActivations = input.capabilityActivations ?? [];
   const roleSkillIds = [...input.context.role.defaultSkills].sort();

@@ -422,17 +422,26 @@ describe("managed provider run lifecycle", () => {
     data.store.close();
   });
 
-  it.each(["codex", "claude"] as const)(
-    "records exact managed E4 output citations for %s without retaining the result body",
-    async (provider) => {
+  it.each([
+    ["codex", "markdown"],
+    ["claude", "markdown"],
+    ["codex", "json"],
+    ["claude", "json"],
+  ] as const)(
+    "records exact managed E4 output citations for %s %s without retaining the result body",
+    async (provider, resultFormat) => {
       const data = await createManagedFixture();
       await writeFile(resolve(data.root, "task-evidence.md"), "Direct task evidence.\n");
       const artifactStore = new MemoryArtifactStore();
       const adapter = new FakeManagedAdapter(provider, {
-        resultContent: (envelope) =>
-          `Applied repository guidance.\n\n${managedContextReferenceComment(
+        resultContent: (envelope) => {
+          const rationale = `Applied repository guidance.\n\n${managedContextReferenceComment(
             envelope.documents.find((document) => document.referenceEligible)!,
-          )}`,
+          )}`;
+          return resultFormat === "json"
+            ? JSON.stringify({ rationale, details: { accepted: true } })
+            : rationale;
+        },
       });
       const input = providerRunInput();
       input.context.registry.documents.doc_task_evidence1 = {
@@ -454,6 +463,7 @@ describe("managed provider run lifecycle", () => {
       ).run({
         ...input,
         repositoryRoot: data.root,
+        resultFormat,
       });
       const referenced = result.contextEvidence.filter((item) => item.state === "referenced");
       expect(referenced).toHaveLength(1);
@@ -467,9 +477,17 @@ describe("managed provider run lifecycle", () => {
       expect(events.filter((event) => event.type === "adapter.result.captured")).toHaveLength(1);
       expect(events.filter((event) => event.type === "context.referenced")).toHaveLength(1);
       expect(JSON.stringify(events)).not.toContain("Applied repository guidance");
-      expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8")).toBe(
-        "Applied repository guidance.\n\n",
+      const publication = Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString(
+        "utf8",
       );
+      if (resultFormat === "json") {
+        expect(JSON.parse(publication)).toEqual({
+          rationale: "Applied repository guidance.\n\n",
+          details: { accepted: true },
+        });
+      } else {
+        expect(publication).toBe("Applied repository guidance.\n\n");
+      }
       expect(result.resultArtifact.contentHash).not.toBe(
         events.find((event) => event.type === "adapter.result.captured")?.payload.resultDigest,
       );
