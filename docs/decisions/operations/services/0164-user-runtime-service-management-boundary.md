@@ -7,6 +7,7 @@
 - Graceful-stop command amendment: 2026-09-24
 - Supervised-upgrade owner-fence amendment: 2026-09-24
 - Node work-admission amendment: 2026-09-24
+- Parsed standing-coordinate compatibility amendment: 2026-09-27
 
 ## Context
 
@@ -74,6 +75,8 @@ The Node and service manager also share an owner-only SQLite work-admission stor
 These rows contain no message, provider output, token usage, credential, or raw configuration. Scope and configuration digests, random tokens and PIDs remain local in owner-controlled storage; no new repository event is emitted. A live claim yields `service_upgrade_work_busy` before any stop. An unregistered or conflicting Node, unreadable source, schema mismatch, or missing exact session yields `service_upgrade_fence_invalid`, also before any stop. Lost freeze release yields `service_upgrade_unknown`, never success. Dead-process rows may be reclaimed only after process-liveness checks. An older installed Node that cannot register a session is **not** silently treated as idle: its first transition to this protocol requires a separately reviewed maintenance and deployment procedure. An inactive legacy Node is likewise not eligible for this guarded in-place upgrade merely because the manager reports it stopped.
 
 At Node startup, `admission_invalid` means the owner-only path, scope, stored digest, schema or state failed validation; a missing configuration-source digest fails as `invalid_config`. `admission_session_busy` means another live Node owns the exact scope. None starts a second participating runtime. During an operation, `admission_claim_lost` means its session or claim disappeared unexpectedly; the operation fails and cannot be promoted to a successful effect. A manager freeze holds at most 256 new operations in process-local retry waiters until release or Node shutdown; excess work fails admission as saturated without starting its effect, and shutdown rejects waiting work as admission closed. The database retains only current scope, session, claim and freeze rows; session cleanup removes an unfrozen empty scope, and dead-owner recovery removes orphaned claims. No per-operation history is appended to this store.
+
+The upgrade reader accepts both the raw `standing` root object and the startup parser's `standing: true` plus `binding` root form. Both resolve and fence the same current successor and next-successor coordinates. Other mixed forms fail before service effects. This compatibility does not permit replacing the running configuration path or bypassing work admission.
 
 ### Failures, privacy, and evidence
 
