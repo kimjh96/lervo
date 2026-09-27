@@ -187,17 +187,20 @@ export async function openNodeSupervisionService(input: {
           log(supervisionCycleFailureLine(error));
         });
         if (cycle.report === null) {
-          // A restart defers the owner until its source changes; until one cycle has evaluated
+          // A restart gives the owner a bounded grace period; until one cycle has evaluated
           // the goal, idleness proves nothing and must not read as ready.
-          if (cycle.disposition === "idle")
-            await observe(evaluated ? { status: "ready" } : { status: "pending" });
+          if (cycle.disposition === "idle" && !evaluated) await observe({ status: "pending" });
           return;
         }
         evaluated = true;
         await observe(
           cycle.disposition === "blocked" || cycle.disposition === "uncertain"
             ? supervisionAttentionHealth(attentionObservation ?? { reasonCodes: null })
-            : { status: "ready" },
+            : cycle.report.status === "completed" &&
+                cycle.report.reasonCode === "accepted_local_result_available" &&
+                cycle.report.nextAction === null
+              ? { status: "dormant", reasonCode: "local_result_canonical" }
+              : { status: "ready" },
         );
       },
     });

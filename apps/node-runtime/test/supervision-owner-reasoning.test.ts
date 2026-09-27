@@ -27,7 +27,12 @@ import { createOwnerReasoningContext } from "../src/supervision-reasoning-contex
 import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
 import { inspectOwnerReasoning } from "../src/supervision-reasoning-receipt.js";
 import { observeSupervisionTaskResources } from "../src/supervision-task-resources.js";
-import { listAssignments, listWorkspaces } from "@lervo/agent-workforce";
+import {
+  listAssignments,
+  listWorkspaces,
+  readWorkspace,
+  updateWorkspace,
+} from "@lervo/agent-workforce";
 import { SupervisionOwnerReasoningEffects } from "../src/supervision-reasoning-effects.js";
 import { readReusableOwnerDecision } from "../src/supervision-reasoning-history.js";
 import { canonicalOwnerReasoningFacts } from "../src/supervision-reasoning-context.js";
@@ -39,10 +44,20 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-it.each(["normal", "lost_receipt", "expired_absent", "expired_path", "unexpired_absent"])(
+it.each([
+  "normal",
+  "lost_receipt",
+  "expired_lost_receipt",
+  "legacy_expired_receipt",
+  "dirty_legacy_receipt",
+  "expired_absent",
+  "expired_path",
+  "unexpired_absent",
+])(
   "runs isolated native owner planning and recovers exact workspace preparation (%s)",
   async (scenario) => {
-    const loseWorkspaceReceipt = scenario === "lost_receipt";
+    const loseWorkspaceReceipt = scenario.includes("receipt");
+    const legacyReceipt = scenario.includes("legacy");
     let clockOffset = 0;
     if (loseWorkspaceReceipt)
       vi.spyOn(SupervisionWorkspaceEffects.prototype, "execute").mockImplementationOnce(
@@ -54,6 +69,31 @@ it.each(["normal", "lost_receipt", "expired_absent", "expired_path", "unexpired_
               plan: basis.provision,
               host: new GitWorkspaceHostAdapter(),
             });
+            if (legacyReceipt) {
+              const stored = (await readWorkspace(
+                currentFixtureRoot!,
+                basis.provision.workspace.workspaceId,
+              ))!;
+              await updateWorkspace({
+                repositoryRoot: currentFixtureRoot!,
+                workspaceId: stored.workspace.workspaceId,
+                expectedContentHash: stored.contentHash,
+                expectedRevision: stored.workspace.revision,
+                expectedGeneration: stored.workspace.generation,
+                nextState: "recovery_required",
+                recoveryReason: "host_effect_uncertain",
+                reasonCode: "host_effect_uncertain",
+                occurredAt: new Date().toISOString(),
+                eventId: basis.provision.recoveryEventId,
+              });
+            }
+            if (scenario === "dirty_legacy_receipt")
+              await writeFile(
+                resolve(basis.provision.workspacePath, "unobserved.txt"),
+                "Retain these bytes.\n",
+              );
+            if (scenario.includes("expired"))
+              clockOffset = Date.parse(plan.deadline) - Date.now() + 1;
             throw new Error("fixture_process_lost_after_ready");
           } finally {
             await fixtureStorage.close();
@@ -336,9 +376,24 @@ it.each(["normal", "lost_receipt", "expired_absent", "expired_path", "unexpired_
           native = await openNative();
           prepared = await native.runCycle();
         }
+        if (scenario === "dirty_legacy_receipt") {
+          expect(prepared.disposition).toBe("uncertain");
+          expect(
+            await readFile(
+              resolve((await listWorkspaces(f.root))[0]!.ownerWorkspacePath!, "unobserved.txt"),
+              "utf8",
+            ),
+          ).toBe("Retain these bytes.\n");
+          expect((await readFile(startLog, "utf8")).trim().split("\n")).toHaveLength(1);
+          return;
+        }
         expect(prepared.disposition, JSON.stringify(prepared)).toBe("effect_confirmed");
         expect(await listWorkspaces(f.root)).toMatchObject([
-          { state: "ready", revision: 2, agentId: f.owner.agentId },
+          {
+            state: legacyReceipt ? "recovery_required" : "ready",
+            revision: legacyReceipt ? 3 : 2,
+            agentId: f.owner.agentId,
+          },
         ]);
         const workspace = (await listWorkspaces(f.root))[0]!;
         expect(

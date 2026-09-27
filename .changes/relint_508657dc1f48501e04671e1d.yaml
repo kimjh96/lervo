@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_508657dc1f48501e04671e1d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Recover exact prepared workspace receipts, bound supervision startup deferral, and preserve local completion without forced publication."

@@ -13,6 +13,11 @@ export class SupervisionCycleCursors {
     return this.cursors.has(supervisionId);
   }
 
+  nextCheckAt(supervisionId: string): number | null {
+    const next = this.cursors.get(supervisionId)?.nextCheckAt;
+    return next == null ? null : Date.parse(next);
+  }
+
   /** The disposition to repeat for an unchanged source, or null when the cycle must run. */
   unchanged(supervisionId: string, digest: string, now: string): "idle" | "blocked" | null {
     const previous = this.cursors.get(supervisionId);
@@ -25,9 +30,13 @@ export class SupervisionCycleCursors {
     return previous.blocked ? "blocked" : "idle";
   }
 
-  /** Defers an old bound request until its source changes. */
-  defer(supervisionId: string, digest: string): void {
-    this.set(supervisionId, { digest, nextCheckAt: null, blocked: false });
+  /** Allows one bounded startup grace period before evaluating an unchanged bound goal. */
+  defer(supervisionId: string, digest: string, now: string): void {
+    this.set(supervisionId, {
+      digest,
+      nextCheckAt: new Date(Date.parse(now) + 60_000).toISOString(),
+      blocked: false,
+    });
   }
 
   remember(

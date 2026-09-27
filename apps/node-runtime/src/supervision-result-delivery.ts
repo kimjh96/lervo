@@ -107,6 +107,13 @@ export class SupervisionResultDelivery {
       throw new Error("The result delivery target differs from its configured origin.");
     return { effect, source, outbound };
   }
+  /** An installed transport does not make a locally bound goal require publication. */
+  async required(): Promise<boolean> {
+    if (this.origin !== undefined) return true;
+    const source = await this.tasks.read();
+    const request = await readBoundSupervisionRequest(this.storage, source, this.binding);
+    return request?.origin != null;
+  }
   async assertReady(plan: OperatingActionPlanV1) {
     await this.publication(plan, true);
   }

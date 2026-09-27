@@ -6,6 +6,7 @@ import { operatingContractHash } from "@lervo/work-controller";
 import { readAdmittedControlDecision } from "./supervision-control-decision.js";
 import { readSupervisionWorkspacePlan } from "./supervision-workspace-plan.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
+import { readPreparedWorkspaceState } from "./supervision-workspace-prepared-state.js";
 
 export async function supervisionWorkspaceReceiptBasis(
   storage: ProjectStorage,
@@ -25,30 +26,11 @@ export async function recordSupervisionWorkspaceReceipt(input: {
 }) {
   const { storage, plan } = input;
   const basis = await supervisionWorkspaceReceiptBasis(storage, plan);
-  const workspace = await readWorkspace(
-    storage.paths.repositoryRoot,
-    basis.provision.workspace.workspaceId,
-  );
-  const coordinates = (await listWorkspaceCoordinationEvents(storage.paths.repositoryRoot)).filter(
-    (event) =>
-      [basis.provision.provisionEventId, basis.provision.readyEventId].includes(event.eventId),
-  );
-  if (
-    workspace?.workspace.state !== "ready" ||
-    workspace.workspace.revision !== 2 ||
-    workspace.workspace.creationPlanId !== basis.provision.planId ||
-    coordinates.length !== 2 ||
-    !coordinates.some(
-      (event) =>
-        event.eventId === basis.provision.readyEventId &&
-        event.state === "ready" &&
-        event.revision === 2,
-    ) ||
-    coordinates.some((event) => event.workspaceId !== basis.provision.workspace.workspaceId)
-  )
+  const prepared = await readPreparedWorkspaceState(storage, basis.provision);
+  if (prepared === null)
     throw new Error("The exact ready workspace has no canonical coordination evidence.");
-  const artifact = await storage.artifacts.put(canonicalJson(workspace.workspace));
-  const evidence = await storage.artifacts.put(canonicalJson(coordinates));
+  const artifact = await storage.artifacts.put(canonicalJson(prepared.workspace));
+  const evidence = await storage.artifacts.put(canonicalJson(prepared.coordinates));
   const payload = {
     schemaVersion: 1,
     projectId: plan.projectId,
@@ -61,7 +43,7 @@ export async function recordSupervisionWorkspaceReceipt(input: {
     decisionId: basis.identity,
     planHash: operatingContractHash(plan),
     assignmentId: basis.effect.responsibility.assignmentId,
-    workspaceId: workspace.workspace.workspaceId,
+    workspaceId: prepared.workspace.workspaceId,
     provisionPlanHash: basis.effect.provisionPlanHash,
     workspaceArtifactHash: artifact.contentHash,
     coordinationEvidenceHash: evidence.contentHash,

@@ -285,7 +285,8 @@ export async function applyWorkspaceProvision(input: {
     return ready;
   } catch (error) {
     const latest = await readWorkspace(input.plan.repositoryRoot, input.plan.workspace.workspaceId);
-    if (latest !== null && ["provisioning", "ready"].includes(latest.workspace.state))
+    // A failed supervision receipt cannot undo the independently recorded host preparation.
+    if (latest !== null && latest.workspace.state === "provisioning")
       await updateWorkspace({
         repositoryRoot: input.plan.repositoryRoot,
         workspaceId: input.plan.workspace.workspaceId,

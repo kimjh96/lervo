@@ -50,6 +50,7 @@ it.each([
   "rework",
   "rework_receipt_failure",
   "publication_retry",
+  "local_transport",
   "parallel_review",
 ])(
   "completes native supervised work with exact semantic evidence (%s)",
@@ -209,12 +210,17 @@ it.each([
         },
       },
     };
+    const { origin: _origin, ...localDelivery } = resultDelivery;
     const openRuntime = () =>
       openNodeOutcomeSupervisionRuntime({
         repositoryRoot: f.root,
         binding: f.binding,
         ports: { now, recordAttention: f.ports.recordAttention },
-        ...(scenario === "publication_retry" ? { resultDelivery } : {}),
+        ...(scenario === "publication_retry"
+          ? { resultDelivery }
+          : scenario === "local_transport"
+            ? { resultDelivery: localDelivery }
+            : {}),
         ownerReasoning: { provider: "codex", reservedTokens: 100 },
         runtimeReadiness: f.runtimeReadiness,
         managedExecution: {
@@ -423,6 +429,16 @@ it.each([
         const calls = await readFile(log, "utf8");
         for (let i = 0; i < 2; i++) expect((await runtime.runCycle()).disposition).toBe("idle");
         expect(await readFile(log, "utf8")).toBe(calls);
+        if (scenario === "local_transport") {
+          expect(sent).toEqual([]);
+          await runtime.close();
+          runtime = await openRuntime();
+          expect((await runtime.runCycle()).report).toMatchObject({
+            reasonCode: "accepted_local_result_available",
+            nextAction: null,
+          });
+          expect(await readFile(log, "utf8")).toBe(calls);
+        }
       }
       expect(await listAssignments(f.root)).toMatchObject([{ status: "completed", lease: null }]);
       expect((await readFile(log, "utf8")).trim().split("\n")).toEqual([

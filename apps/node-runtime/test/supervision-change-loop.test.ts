@@ -21,6 +21,27 @@ function report(nextCheckAt: string | null): OutcomeSupervisionReportV1 {
 }
 
 describe("supervision event and deadline scheduling", () => {
+  it("wakes an initially deferred owner without a source notification or report", async () => {
+    vi.useFakeTimers();
+    let deadline: number | null = null;
+    const cycle = vi.fn(async () => {
+      deadline = cycle.mock.calls.length === 1 ? Date.now() + 60_000 : null;
+      return { disposition: "idle" as const, report: null };
+    });
+    const loop = createSupervisionChangeLoop({
+      runCycle: cycle,
+      subscribe: () => () => {},
+      nextAuthorityCheckAt: () => deadline,
+      onFailure: vi.fn(),
+    });
+    loop.start();
+    await vi.advanceTimersByTimeAsync(59_999);
+    expect(cycle).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(cycle).toHaveBeenCalledTimes(2);
+    await loop.stop();
+  });
+
   it("preserves a durable deadline across idle reports and coalesced event hints", async () => {
     vi.useFakeTimers();
     let notify = () => {};

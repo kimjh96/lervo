@@ -8,7 +8,7 @@ import { NodeRuntimeError } from "./errors.js";
 
 export type NodeRuntimeComponentHealth =
   | { status: "pending" | "ready" | "disabled" }
-  | { status: "dormant"; reasonCode: "workstream_inactive" }
+  | { status: "dormant"; reasonCode: "workstream_inactive" | "local_result_canonical" }
   | {
       status: "attention";
       reasonCode: "goal_budget_insufficient";
@@ -66,7 +66,7 @@ function componentHealth(value: unknown): value is NodeRuntimeComponentHealth {
   }
   if (component.status === "dormant") {
     return (
-      component.reasonCode === "workstream_inactive" &&
+      ["workstream_inactive", "local_result_canonical"].includes(String(component.reasonCode)) &&
       component.failureCode === undefined &&
       component.reasonCodes === undefined &&
       component.resourceBudget === undefined

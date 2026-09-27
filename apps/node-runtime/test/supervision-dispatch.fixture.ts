@@ -102,7 +102,29 @@ export async function dispatchFixture(
           parentAgentId: f.owner.agentId,
           responsibilityPaths: ["src"],
         });
+  const recordEvent: NonNullable<Parameters<typeof createAssignment>[0]["recordEvent"]> = async (
+    event,
+  ) => {
+    const storage = await openProjectStorage(f.root);
+    try {
+      storage.events.append({
+        eventId: `evt_${randomBytes(16).toString("hex")}`,
+        projectId: storage.manifest.projectId,
+        runId: "run_fixture_claim",
+        sessionId: "ses_supervision_dispatch",
+        type: event.type,
+        schemaVersion: 3,
+        occurredAt: event.occurredAt,
+        actor: { kind: "system" },
+        policyVersion: f.binding.mandateHash,
+        payload: event.payload,
+      });
+    } finally {
+      await storage.close();
+    }
+  };
   const created = await createAssignment({
+    recordEvent,
     repositoryRoot: f.root,
     taskType: "implementation",
     roleId: worker.roleId,
@@ -117,25 +139,7 @@ export async function dispatchFixture(
     agentId: worker.agentId,
     sessionId: "ses_supervision_dispatch",
     ...(leaseDurationMs === undefined ? {} : { leaseDurationMs }),
-    recordEvent: async (event) => {
-      const storage = await openProjectStorage(f.root);
-      try {
-        storage.events.append({
-          eventId: `evt_${randomBytes(16).toString("hex")}`,
-          projectId: storage.manifest.projectId,
-          runId: "run_fixture_claim",
-          sessionId: "ses_supervision_dispatch",
-          type: event.type,
-          schemaVersion: 3,
-          occurredAt: event.occurredAt,
-          actor: { kind: "system" },
-          policyVersion: f.binding.mandateHash,
-          payload: event.payload,
-        });
-      } finally {
-        await storage.close();
-      }
-    },
+    recordEvent,
   });
   const parent = await mkdtemp(resolve(tmpdir(), "lervo-supervision-worker-"));
   roots.push(parent);

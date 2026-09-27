@@ -236,6 +236,11 @@ it("reports an unrelated current workstream as dormant without hiding supervisio
     supervision: { status: "dormant", reasonCode: "workstream_inactive" },
   });
   const dormant = await snapshot(publisher.path);
+  await publisher.observeSupervision({ status: "dormant", reasonCode: "local_result_canonical" });
+  expect(readNodeRuntimeHealthSnapshot(await snapshot(publisher.path))).toMatchObject({
+    status: "ready",
+    supervision: { status: "dormant", reasonCode: "local_result_canonical" },
+  });
   expect(() =>
     readNodeRuntimeHealthSnapshot({
       ...dormant,

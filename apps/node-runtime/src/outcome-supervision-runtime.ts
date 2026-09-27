@@ -232,7 +232,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
               ...(await session().readTaskSnapshot(
                 pending === null ? undefined : operatingDecisionId(pending),
               )),
-              deliveryRequired: delivery !== null,
+              deliveryRequired: delivery !== null && (await delivery.required()),
             };
       const deliveryRecoverySafe =
         snapshot.delivery === "failed" && delivery !== null ? await delivery.recoverySafe() : false;
@@ -396,6 +396,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
               : null;
           const candidates = [
             futureExpiry,
+            runtime.nextCheckAt(binding.supervisionId),
             store.nextAuthorityAuditAt(),
             peers.nextAuditAt(),
           ].filter((value): value is number => value !== null);
