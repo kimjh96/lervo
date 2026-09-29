@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a7131815bdf11a62f8700b79
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8389c1119c2843ef7683bc9a
+outputLanguage: en
+outputs:
+  - byteCount: 6181
+    contentHash: sha256:058f541c8c8d42e2ef8efb8e17fc425b70d674e252e10d24ad9911f3195320b9
+    path: docs/decisions/execution/orchestration/governed-work/workstream-concurrency/0423-parallel-bound-workstreams.md
+    userRegionHash: sha256:058f541c8c8d42e2ef8efb8e17fc425b70d674e252e10d24ad9911f3195320b9
+profile: decision_record
+recordId: knormdoc_ce9ad16e5a45f563d4f019f1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:18771d31ff190fbf9bf9785e1f455f0c38168a70b1d0905bd128de6923c38d5f
+sourcePath: docs/decisions/execution/orchestration/governed-work/workstream-concurrency/0423-parallel-bound-workstreams.md
+sourceUnitVersionIds:
+  - uv_1b668dd4caf3edc3d46b2698
+  - uv_22873fa990e74eff3c291fd3
+  - uv_7c5d9aba08e0b53bbd27cb61
+  - uv_993e6d79d0ec465191fdd0af
+  - uv_ce0567d9ee122a409f9325fc
+  - uv_e05af90734485360f66a7967

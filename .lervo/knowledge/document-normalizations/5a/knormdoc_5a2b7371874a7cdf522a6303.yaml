@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_525bf74819e2e00cc8a80758
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b055e924d90a3d445b1132c1
+outputLanguage: en
+outputs:
+  - byteCount: 2987
+    contentHash: sha256:446a504eae895b1073fe4cb0b81310e7e2387d7cb4cfcb7012eb10c6a1c8a0b6
+    path: docs/decisions/execution/orchestration/governed-work/0416-supersede-unqueued-result-delivery.md
+    userRegionHash: sha256:446a504eae895b1073fe4cb0b81310e7e2387d7cb4cfcb7012eb10c6a1c8a0b6
+profile: decision_record
+recordId: knormdoc_5a2b7371874a7cdf522a6303
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4bac6eb415078b00c23d51f69a3f44348bb35c1b556de243b91a9dacb1f45bf9
+sourcePath: docs/decisions/execution/orchestration/governed-work/0416-supersede-unqueued-result-delivery.md
+sourceUnitVersionIds:
+  - uv_0920b2035056f06c872e95d1
+  - uv_1341acfad0cef449c0946527
+  - uv_481bbd13ecaf9c54c3991f2a
+  - uv_7d09a29c5121f578bd77b734
+  - uv_99429188cfb7e690e8fd8250
+  - uv_bcec91d835956e781cd82e34

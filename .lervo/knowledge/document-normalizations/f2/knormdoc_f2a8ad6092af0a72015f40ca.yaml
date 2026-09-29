@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b70f809b344ea4fec063dbaf
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_975b52097c80b8683161a10f
+outputLanguage: en
+outputs:
+  - byteCount: 8443
+    contentHash: sha256:ed652084c0a4c78dd4bc640ec17870b44e520dfdc8aefcd03621f28d2d95fb6b
+    path: docs/decisions/coordination/conversations/0408-conversation-task-delegation-to-hired-agents.md
+    userRegionHash: sha256:ed652084c0a4c78dd4bc640ec17870b44e520dfdc8aefcd03621f28d2d95fb6b
+profile: decision_record
+recordId: knormdoc_f2a8ad6092af0a72015f40ca
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:cfefc331dd56ff8ad913eefe20c032c21a67032438efcfb43d0766e8a4d63979
+sourcePath: docs/decisions/coordination/conversations/0408-conversation-task-delegation-to-hired-agents.md
+sourceUnitVersionIds:
+  - uv_1e9308e9e848815810dd44dc
+  - uv_4621eaa1e844a88890b0f03c
+  - uv_69eb3ea117c9c614fe7949dd
+  - uv_9dbe292bde195248606d262b
+  - uv_a89a7baf0a005d2f989068f7
+  - uv_ea2662b5ef416b9c12820227
+  - uv_ee048f2449ef3b9d1fb1953e
+  - uv_f2a4f8b7df214efc90e22309

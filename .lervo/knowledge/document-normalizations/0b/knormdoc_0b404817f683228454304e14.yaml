@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_948d45e28a155cd4ced34610
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6b3f1e027475a0c75a11846a
+outputLanguage: en
+outputs:
+  - byteCount: 16367
+    contentHash: sha256:2d31c9ba1f91b80418ac209f4034d6bce79dff0cdf090dd969b27566fdb68b9f
+    path: docs/decisions/execution/applications/0418-retain-deliberation-as-bounded-decision-workflow.md
+    userRegionHash: sha256:2d31c9ba1f91b80418ac209f4034d6bce79dff0cdf090dd969b27566fdb68b9f
+profile: decision_record
+recordId: knormdoc_0b404817f683228454304e14
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:454df6d741372ce2d01e9afc8793fa1bd1416b3061624ed1f4a6556be1802b0c
+sourcePath: docs/decisions/execution/applications/0418-retain-deliberation-as-bounded-decision-workflow.md
+sourceUnitVersionIds:
+  - uv_0d72e51261e95231c0db7a38
+  - uv_33ad50b77795b33184623066
+  - uv_605f524f174886f8c8c0b5f7
+  - uv_71a8f31c2e60872cabaff68c
+  - uv_8f1be3b2ca135b9b9f540de1
+  - uv_cc87c2daadbbd672260d3481
+  - uv_ed282436ff68363f75051364
+  - uv_f9c96f40adfd2eb9a0d449c7

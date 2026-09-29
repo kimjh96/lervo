@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_525bf74819e2e00cc8a80758
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_147db0eb34ba7a8aed40a173
+outputLanguage: en
+outputs:
+  - byteCount: 4863
+    contentHash: sha256:b0338406f4756d6303277ff69f98c287d7f0e1f8b898a221082f69aac3e214e9
+    path: docs/decisions/execution/orchestration/governed-work/node-composition/0439-project-complete-scoped-supervision-history.md
+    userRegionHash: sha256:b0338406f4756d6303277ff69f98c287d7f0e1f8b898a221082f69aac3e214e9
+profile: decision_record
+recordId: knormdoc_ce1c9ddb692973ba8e50f85d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c6161fdf45b64ad54fb2425bd82dd905309904f41fdbda151bbfb8e7dbdb9351
+sourcePath: docs/decisions/execution/orchestration/governed-work/node-composition/0439-project-complete-scoped-supervision-history.md
+sourceUnitVersionIds:
+  - uv_29c5540cd8aaa0d4670e0c3f
+  - uv_2e764005107ddf7365c816e9
+  - uv_67ea51a8eb2330d7d3626047
+  - uv_7140dbd1af7a6621dc47a849
+  - uv_90c5e636d54c5cc43f7a0984
+  - uv_e52f32a4521d17458777b03a

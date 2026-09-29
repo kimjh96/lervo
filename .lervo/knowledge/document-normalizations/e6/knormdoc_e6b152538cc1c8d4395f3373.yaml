@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a7131815bdf11a62f8700b79
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f4d15a80c9d40fe9e0db59b0
+outputLanguage: en
+outputs:
+  - byteCount: 4338
+    contentHash: sha256:46b8677f1acb00237018ede1146cd6159cd4396c4d08487aec180b543bc3ba29
+    path: docs/decisions/execution/providers/resource-limits/0432-enforce-reserved-tokens-during-managed-turns.md
+    userRegionHash: sha256:46b8677f1acb00237018ede1146cd6159cd4396c4d08487aec180b543bc3ba29
+profile: decision_record
+recordId: knormdoc_e6b152538cc1c8d4395f3373
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5010b808c52bfbc0da1a2d9508bdb9f080ace1c5284e012018385eaf798c622c
+sourcePath: docs/decisions/execution/providers/resource-limits/0432-enforce-reserved-tokens-during-managed-turns.md
+sourceUnitVersionIds:
+  - uv_4a14a79f0a1804ee9498f75c
+  - uv_4e6d017a1260bd3911539806
+  - uv_6bc1096b49fb8676e7dc72f6
+  - uv_7709e878314e1ae367a15ddd
+  - uv_b4dcc231f424ab32754044f2
+  - uv_bc739c621449b2debebe4f88
+  - uv_c68d3cac0723ae5c443844e5
+  - uv_d4a9049c1a0c294a2ae7abf4

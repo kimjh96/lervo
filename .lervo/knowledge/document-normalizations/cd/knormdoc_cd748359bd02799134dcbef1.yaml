@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_13b8193306d010e94903e65a
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d888dca618d63735dbfd199a
+outputLanguage: en
+outputs:
+  - byteCount: 11697
+    contentHash: sha256:8637415eaeb882cf5c193afdefee28cfda469af33f7f16207b3563eb803b4278
+    path: docs/decisions/coordination/conversations/agent-organization/0421-separate-real-agent-discussion-from-policy-coverage.md
+    userRegionHash: sha256:8637415eaeb882cf5c193afdefee28cfda469af33f7f16207b3563eb803b4278
+profile: decision_record
+recordId: knormdoc_cd748359bd02799134dcbef1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:666d094d49ddb18e3008c8ce7369cc35dee0dd1a7744d822bd0a441abdadbcc4
+sourcePath: docs/decisions/coordination/conversations/agent-organization/0421-separate-real-agent-discussion-from-policy-coverage.md
+sourceUnitVersionIds:
+  - uv_12e83db391c8e223a2c89480
+  - uv_605d529aa470b0f54fec469f
+  - uv_661ff21c0587d93008bd5bca
+  - uv_738de331cf198eb3e5d71369
+  - uv_cb2d62d061c7809308bd2e2f
+  - uv_cda20755cb89a48f5aa81f8d
+  - uv_e890f250f2c06350bab7c6a3
+  - uv_e9ca63de6bfd483041b1631c
+  - uv_ed4efd42586eaa312f5e0fea
+  - uv_f1e260fa32572d5043250960

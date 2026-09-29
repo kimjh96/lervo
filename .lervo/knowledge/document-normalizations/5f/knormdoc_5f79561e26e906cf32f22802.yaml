@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_84b1dc299b8902ed196f23f0
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0ea10577955a2db04e69b228
+outputLanguage: en
+outputs:
+  - byteCount: 5929
+    contentHash: sha256:dd0a9603c51296eae9d2edaa2f14ecb1f668bea7d31a2a21d5b34fbd8545bb9a
+    path: docs/decisions/execution/orchestration/governed-work/0410-intent-routed-supervision-goal-intake.md
+    userRegionHash: sha256:dd0a9603c51296eae9d2edaa2f14ecb1f668bea7d31a2a21d5b34fbd8545bb9a
+profile: decision_record
+recordId: knormdoc_5f79561e26e906cf32f22802
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:09aec9e4944cff9e1d857fa8885df721c168aa5b96700a62b8da4dcc638426db
+sourcePath: docs/decisions/execution/orchestration/governed-work/0410-intent-routed-supervision-goal-intake.md
+sourceUnitVersionIds:
+  - uv_2616620af22e8ccabfdf0569
+  - uv_2c3ebc141c59e3bd592f9d3f
+  - uv_3e9db7b830ec19bdecc69c48
+  - uv_6ab5af9032090eb030863068
+  - uv_73249296b099226ce7bc796d

@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_525bf74819e2e00cc8a80758
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e7da96440b37a40582c45747
+outputLanguage: en
+outputs:
+  - byteCount: 2977
+    contentHash: sha256:861ec83f3b924179b331bda54d9f8ed39d3d7da18d8304ddbf2f306cd400cb16
+    path: docs/decisions/execution/orchestration/governed-work/node-composition/0425-require-supervision-for-deployed-product-owners.md
+    userRegionHash: sha256:861ec83f3b924179b331bda54d9f8ed39d3d7da18d8304ddbf2f306cd400cb16
+profile: decision_record
+recordId: knormdoc_f70857ef680f1c288a71fe45
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1d9c45b2454c298baee4e25b1b955374725dbbb9d1e2a508f3ceea893dd3cf84
+sourcePath: docs/decisions/execution/orchestration/governed-work/node-composition/0425-require-supervision-for-deployed-product-owners.md
+sourceUnitVersionIds:
+  - uv_21b1d5532a13a30119b883c9
+  - uv_7ad2fa930085048fb81d908e
+  - uv_ead318ec578b6470daa8e7df
+  - uv_ec5f90c7a269dd3bf8161ccd

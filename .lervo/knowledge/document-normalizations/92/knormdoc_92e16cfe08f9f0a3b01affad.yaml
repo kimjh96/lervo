@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6cf5b3df8fe0d91499cb1055
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ff70c09302872969bdfe3af9
+outputLanguage: en
+outputs:
+  - byteCount: 3173
+    contentHash: sha256:6f3b4ff6d4f30fba32395e0ab20e30c628ce1af625b25abba42c5688cb5beb87
+    path: docs/decisions/execution/orchestration/governed-work/request-intake/0429-resume-durable-worker-duty-after-owner-restart.md
+    userRegionHash: sha256:6f3b4ff6d4f30fba32395e0ab20e30c628ce1af625b25abba42c5688cb5beb87
+profile: decision_record
+recordId: knormdoc_92e16cfe08f9f0a3b01affad
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:11b5d0fb9861e8bc308be92abfe205917217619da6413916225d324e0d9c6ac2
+sourcePath: docs/decisions/execution/orchestration/governed-work/request-intake/0429-resume-durable-worker-duty-after-owner-restart.md
+sourceUnitVersionIds:
+  - uv_425d8baac95fdaa16daac1bb
+  - uv_73dec380d4dfc462b797dee9
+  - uv_b04a4f4b6748a2c512447cb8
+  - uv_ed56468b0c76e70fa95b2927
+  - uv_f0380795eac30ce78f50b7e2

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_84b1dc299b8902ed196f23f0
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_24fb030d0adddd20516c032d
+outputLanguage: en
+outputs:
+  - byteCount: 7684
+    contentHash: sha256:2664f71ab74b7780b22019efe1b3c242cb5d051c98fe885827e4b882402e2c79
+    path: docs/decisions/execution/orchestration/governed-work/0405-standing-supervision-lineage.md
+    userRegionHash: sha256:2664f71ab74b7780b22019efe1b3c242cb5d051c98fe885827e4b882402e2c79
+profile: decision_record
+recordId: knormdoc_f0c7fc4e3baa333ad0ec617d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:491f104b48b55bacf5c19d2f90ba1a29ee5e5bb4105f362259145be917e64d0d
+sourcePath: docs/decisions/execution/orchestration/governed-work/0405-standing-supervision-lineage.md
+sourceUnitVersionIds:
+  - uv_29d1ef6ced7a90266131f5da
+  - uv_48649d689af76c835eda7f2f
+  - uv_6b7e343c94ca6b9e9b2e1373
+  - uv_7cf6d029691e050244d2fb64
+  - uv_819836670524a06c83d73890
+  - uv_a4cd8d5efa399fe46fc128c4

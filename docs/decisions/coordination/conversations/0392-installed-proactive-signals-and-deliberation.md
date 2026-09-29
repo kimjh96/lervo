@@ -5,7 +5,7 @@
 
 ## Context
 
-The conversation contract supported proactive participation and a durable deliberation queue, but installed Node deployments configured neither signal producers nor a deliberation executor. Discord could answer repository-grounded messages but could not initiate contributions after repository events or execute explicit deliberation commands.
+The conversation contract supported proactive participation and a durable deliberation queue, but installed Node deployments configured neither signal producers nor a deliberation executor. Discord could answer repository-grounded messages but could neither initiate contributions after repository events nor execute explicit deliberation commands.
 
 Implementing these behaviors in Discord would give the adapter repository-policy ownership. Importing CLI application internals into Node would reverse package dependencies. Replaying event payloads into chat would violate event privacy.
 
@@ -20,31 +20,35 @@ An optional Node repository-signal source reads the canonical local project even
 - Content contains only the source event type and signal code; it excludes event payloads, prompts, credentials, provider output, and platform identifiers.
 - Before replying, the selected agent must retrieve current state through the ordinary managed repository context path.
 
-The rebuildable `repository-signal-cursor.json` projection contains schema version, project ID, integration ID, last fully dispatched source sequence, and update time. It is an owner-only atomic current file, not an event or knowledge source. A missing cursor starts at the current event head. Invalid coordinates, a cursor beyond the current head, read failure, CAS failure, or dispatch failure produces `repository_signal_failed`; Node fails closed rather than skipping an unknown interval. A crash before cursor advancement may replay a signal, but interaction idempotency uses the deterministic source-event hash to prevent duplicate publication.
+The rebuildable `repository-signal-cursor.json` projection contains schema version, project ID, integration ID, last fully dispatched source sequence, and update time. It is an owner-only atomic current file, not an event or knowledge source. A missing cursor starts at the current event head.
+
+Invalid coordinates, a cursor beyond the current head, read failure, CAS failure, or dispatch failure produces `repository_signal_failed`. Node fails closed rather than skipping an unknown interval. A crash before cursor advancement may replay a signal; interaction idempotency uses the deterministic source-event hash to prevent duplicate publication.
 
 Proactive production requires a participation policy that explicitly uses `proactive`, permits the `system` actor, and subscribes to every mapped signal code. Existing cooldown, hourly response limit, automation-depth limit, deterministic multi-agent turn ownership, relevance policy, typing lifecycle, provider budget, and terminal failure behavior remain in force. Unconfigured deployments produce no signals.
 
-Assignment completion is excluded from proactive repository signals, even when a legacy
-configuration still maps `assignment.completed`. Completion already has an origin-bound result
-path. Background knowledge convergence can complete many assignments in a short interval;
-turning each one into a general-channel model response multiplies provider use without a new
-human request. The signal cursor still advances over these canonical events, and other mapped
-signals retain their normal behavior. This exclusion adds no event or private content to the
-conversation projection.
+Assignment completion is excluded from proactive repository signals, even when a legacy configuration maps `assignment.completed`. Completion already has an origin-bound result path. Background knowledge convergence can complete many assignments quickly; turning each into a general-channel model response multiplies provider use without a new human request. The signal cursor still advances over these canonical events, and other mapped signals retain normal behavior. This exclusion adds no event or private content to the conversation projection.
 
 ### Installed deliberation
 
-Installed deliberation uses the existing platform-neutral durable queue. Exact human participant bindings separately grant start, read, and resume permissions. Explicit `/lervo deliberate` commands bypass model intent classification and enter the queue immediately. ADR-0415 additionally permits natural-language start through the same port when a deployment explicitly selects a default policy.
+Installed deliberation uses the existing platform-neutral durable queue. Exact human participant bindings separately grant start, read, and resume permissions. Explicit `/lervo deliberate` commands bypass model intent classification and enter the queue immediately. ADR-0415 also permits natural-language start through the same port when a deployment explicitly selects a default policy.
 
-Node owns change-driven queue execution and invokes an executable adapter instead of importing CLI application code. Durable change notifications and exact lease or reconciliation deadlines wake the worker; startup recovery performs one initial scan. The adapter passes the topic only on stdin and supplies the queue-assigned deliberation ID, expected project ID, repository root, and operation as separate bounded coordinates. The internal assigned-worker CLI calls the existing managed deliberation lifecycle, preserving repository search, context evidence, Codex or Claude provider adapters, verification, CAS artifacts, event recording, leases, and exact project checks.
+Node owns change-driven queue execution and invokes an executable adapter rather than importing CLI application code. Durable change notifications and exact lease or reconciliation deadlines wake the worker; startup recovery performs one initial scan. The adapter passes the topic only on stdin and supplies the queue-assigned deliberation ID, expected project ID, repository root, and operation as separate bounded coordinates.
 
-Only a matching terminal status and artifact count settle the queue. Spawn failure, timeout, oversized or malformed output, non-terminal output, and coordinate mismatch become `deliberation_execution_uncertain`; they never automatically replay an unprovable provider execution.
+The internal assigned-worker CLI calls the existing managed deliberation lifecycle, preserving repository search, context evidence, Codex or Claude provider adapters, verification, CAS artifacts, event recording, leases, and exact project checks.
 
-No new global event type is introduced. Canonical deliberation events, CAS artifacts, the queue database, and the repository event chain retain their existing ownership. Discord receives only a writing-gated conversational status. A future Lervo surface can supply the same normalized inbound event and deliberation port without Discord.
+Only a matching terminal status and artifact count settle the queue. Spawn failure, timeout, oversized or malformed output, non-terminal output, and coordinate mismatch become `deliberation_execution_uncertain`. They never automatically replay an unprovable provider execution.
 
-The product deliberation extension also projects every newly recorded structured artifact into the exact bound origin thread. It reads `deliberation.artifact.recorded` through the shared artifact validator and emits only a bounded proposal, objection, revision, verification, or decision summary. The summary uses an existing `signal.raised` event with `signalCode: deliberation.artifact.recorded`; actor, target, reply, content-reference, automation-depth, and occurrence fields retain their existing meanings. It contains no artifact body, prompt, reasoning, provider response, credential, or native platform identifier. A fixed-contract responder publishes this Lervo-owned status without another provider turn.
+No new global event type is introduced. Canonical deliberation events, CAS artifacts, the queue database, and the repository event chain retain existing ownership. Discord receives only a writing-gated conversational status. A future Lervo surface can supply the same normalized inbound event and deliberation port without Discord.
 
-The rebuildable `deliberation-artifact-cursor.json` has its own owner-only atomic cursor kind, path, and responsibility in addition to project, integration, sequence, and update-time coordinates. First enablement checkpoints the current head. A bound event advances only after exactly one interaction policy durably commits an outbound. Invalid evidence or ambiguous ownership fails before advancement; a crash before advancement is idempotent, and delivery after advancement remains recoverable through the interaction outbox. Origin-less legacy events are skipped and do not count as Discord acceptance.
+### Deliberation artifact publication
+
+The product deliberation extension projects every newly recorded structured artifact into the exact bound origin thread. It reads `deliberation.artifact.recorded` through the shared artifact validator and emits only a bounded proposal, objection, revision, verification, or decision summary.
+
+The summary uses an existing `signal.raised` event with `signalCode: deliberation.artifact.recorded`. Actor, target, reply, content-reference, automation-depth, and occurrence fields retain existing meanings. It contains no artifact body, prompt, reasoning, provider response, credential, or native platform identifier. A fixed-contract responder publishes this Lervo-owned status without another provider turn.
+
+The rebuildable `deliberation-artifact-cursor.json` has its own owner-only atomic cursor kind, path, and responsibility, plus project, integration, sequence, and update-time coordinates. First enablement checkpoints the current head. A bound event advances only after exactly one interaction policy durably commits an outbound.
+
+Invalid evidence or ambiguous ownership fails before advancement. A crash before advancement is idempotent; delivery after advancement remains recoverable through the interaction outbox. Origin-less legacy events are skipped and do not count as Discord acceptance.
 
 ## Consequences
 

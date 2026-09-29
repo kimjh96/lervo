@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0e4028ebfa01a43e2a03241e
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_46544844da137ce539dcef84
+outputLanguage: en
+outputs:
+  - byteCount: 5153
+    contentHash: sha256:229d2728438e6dea8c8a6218c39992e920af841d0cc5804f75cbf863415f4dfc
+    path: docs/decisions/execution/orchestration/governed-work/owner-recovery/0430-reconcile-terminal-read-only-owner-interruptions.md
+    userRegionHash: sha256:229d2728438e6dea8c8a6218c39992e920af841d0cc5804f75cbf863415f4dfc
+profile: decision_record
+recordId: knormdoc_94383852c7f15461fb49dfe5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c2d99e70ed86f953acd7049fe6a67837c46170e07fa4dc5a1f2980a930e5fc90
+sourcePath: docs/decisions/execution/orchestration/governed-work/owner-recovery/0430-reconcile-terminal-read-only-owner-interruptions.md
+sourceUnitVersionIds:
+  - uv_0469f9437f0fa33a0b34c3c7
+  - uv_52a48e1ab9294f4a4230cd53
+  - uv_5307418dade7128cb791ece2
+  - uv_a5562c48f5ad7a7a1ca9dcec
+  - uv_bdb9adb4a8482de6c69a2a54
