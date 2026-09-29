@@ -1,7 +1,7 @@
 # Agent workspace, integration, and cleanup specification
 
 Status: `active`
-As of: 2026-08-26
+As of: 2026-09-28
 
 ## Scope and invariants
 
@@ -64,24 +64,25 @@ Users need not relay commands between agents. Provisioning normally occurs durin
 
 ## Lifecycle transition table
 
-| Current | Next | Required proof | Failure meaning |
-| --- | --- | --- | --- |
-| absent | `provisioning` | exact creation plan, assignment scope, active agent | no host effect yet |
-| `provisioning` | `ready` | adapter result, marker, clean checkout, exact base | uncertain effect becomes `recovery_required` |
-| `ready` | `active` | current local lease and single writer | rejection proves no write authority |
-| `active` | `paused` | exact scoped checkpoint and writer freeze | failed pause retains the writer and requires inspection |
-| `paused` | `active` | current generation, assignment lease, marker, host, provider, and new single writer | rejection leaves the checkout paused |
-| `active` | `sealing` | writer freeze and current generation | deny new writes |
-| `sealing` | `sealed` | quiescence, clean Git state, exact result and verification artifact | unfinished bytes remain recoverable, not completed |
-| `sealed` | `integration_pending` | completed dependencies and immutable queue entry | no attempt yet |
-| `integration_pending` | `integrating` | exclusive target-generation lease and exact plan | rejection leaves target unchanged |
-| `integrating` | `integrated` | target result and required verification | failure records no successful integration event |
-| `integrating` | `integration_conflict` | cleanly aborted exact Git conflict | worker result stays sealed |
-| `integration_conflict` | `integration_pending` | new sealed generation or explicit resolution plan | failed attempt grants no authority |
-| `integrated` | `cleanup_eligible` | current removal predicates | diagnostic only |
-| `cleanup_eligible` | `removing` | exact plan and last-moment recheck | stale plan deletes nothing |
-| `removing` | `removed` | checkout and Git metadata absent, committed event | uncertainty becomes `recovery_required` |
-| any nonterminal | `recovery_required` | bounded interruption or integrity reason | block integration and cleanup |
+| Current                | Next                   | Required proof                                                                      | Failure meaning                                         |
+| ---------------------- | ---------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| absent                 | `provisioning`         | exact creation plan, assignment scope, active agent                                 | no host effect yet                                      |
+| `provisioning`         | `ready`                | adapter result, marker, clean checkout, exact base                                  | uncertain effect becomes `recovery_required`            |
+| `ready`                | `active`               | current local lease and single writer                                               | rejection proves no write authority                     |
+| `active`               | `paused`               | exact scoped checkpoint and writer freeze                                           | failed pause retains the writer and requires inspection |
+| `paused`               | `active`               | current generation, assignment lease, marker, host, provider, and new single writer | rejection leaves the checkout paused                    |
+| `active`               | `sealing`              | writer freeze and current generation                                                | deny new writes                                         |
+| `sealing`              | `sealed`               | quiescence, clean Git state, exact result and verification artifact                 | unfinished bytes remain recoverable, not completed      |
+| `sealed`               | `integration_pending`  | completed dependencies and immutable queue entry                                    | no attempt yet                                          |
+| `sealed`               | `integrated`           | integrator kind, immutable seal, and exact verified completed integration evidence  | worker bypass or missing evidence is rejected           |
+| `integration_pending`  | `integrating`          | exclusive target-generation lease and exact plan                                    | rejection leaves target unchanged                       |
+| `integrating`          | `integrated`           | target result and required verification                                             | failure records no successful integration event         |
+| `integrating`          | `integration_conflict` | cleanly aborted exact Git conflict                                                  | worker result stays sealed                              |
+| `integration_conflict` | `integration_pending`  | new sealed generation or explicit resolution plan                                   | failed attempt grants no authority                      |
+| `integrated`           | `cleanup_eligible`     | current removal predicates                                                          | diagnostic only                                         |
+| `cleanup_eligible`     | `removing`             | exact plan and last-moment recheck                                                  | stale plan deletes nothing                              |
+| `removing`             | `removed`              | checkout and Git metadata absent, committed event                                   | uncertainty becomes `recovery_required`                 |
+| any nonterminal        | `recovery_required`    | bounded interruption or integrity reason                                            | block integration and cleanup                           |
 
 `removed` is terminal; retry requires a new workspace generation or ID. Lease expiry never changes workspace state automatically.
 
@@ -130,6 +131,8 @@ Verification is also non-success. Planning binds ordered suite IDs and hashes. E
 Target advancement is separate from candidate and verification success. It accepts only the recorded target-before and candidate commit/tree, rejects a target checked out by any registered worktree, proves target-before ancestry, and uses old-value-bound Git `update-ref` compare-and-swap. Retry accepts only the exact already-advanced candidate. Rollback accepts only target-before or that candidate and uses inverse compare-and-swap. Concurrent movement fails closed and is never overwritten. Orchestration calls advancement only after persisting an `advancing` attempt bound to the receipt hash and ordered verification-result coordinates.
 
 The authoritative success commit writes the `integrated` attempt and `assignment.integration.recorded` event through one coordination-record transition. Before it, event-write failure requires exact target rollback and returns the attempt to `candidate`; failed rollback leaves `advancing` and blocks any different receipt. After it, retry verifies the same event and target, then completes only missing source projections. A different target, candidate, receipt, plan, or success event fails closed as uncertain state.
+
+After completed target integration, an integrator may close its own clean workspace through `active` → `sealing` → `sealed` → `integrated` under its current assignment lease. The direct sealed-to-integrated transition requires `executionKind: integrator`, exact verified integration evidence, and the immutable seal; workers cannot bypass their existing integration queue. Cleanup proof may match the completed attempt's exact integrator workspace/generation as well as a source workspace. The [background recovery contract](../../specs/background-knowledge-convergence/recovery-and-retention.md) defines its bounded automatic use.
 
 ## Cleanup contract
 

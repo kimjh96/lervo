@@ -42,6 +42,7 @@ export interface PreparedTerminalPromptContext {
   documents: PreparedTerminalDocument[];
   repositoryRevision: string;
   repositoryFiles: RepositorySnapshot["files"];
+  repositoryCommits?: RepositorySnapshot["commits"];
   workstream: {
     workstreamId: string;
     revision: number;
@@ -266,6 +267,9 @@ export async function prepareTerminalPromptContext(input: {
     documents: assembled.documents,
     repositoryRevision: repositorySnapshot.revision,
     repositoryFiles: repositorySnapshot.files,
+    ...(repositorySnapshot.commits === undefined
+      ? {}
+      : { repositoryCommits: repositorySnapshot.commits }),
     workstream: assembled.workstream,
     attention,
     grounding: {

@@ -33,13 +33,13 @@ export class NodeSupervisionStore {
     private readonly binding: NodeSupervisionBinding,
     private readonly now: () => string,
   ) {
-    this.tasks = new SupervisionTaskSource(storage, binding, now);
     this.authorityHistory = new SupervisionAuthorityHistory(
       storage.events,
       storage.paths.eventDatabase,
       storage.manifest.projectId,
       () => Date.parse(now()),
     );
+    this.tasks = new SupervisionTaskSource(storage, binding, now, this.authorityHistory);
   }
 
   static async open(input: {

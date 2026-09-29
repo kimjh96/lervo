@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d33963035e9ddf25102df177"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Accept the canonical parsed standing-owner form in guarded Node service upgrades while retaining exact configuration and work-admission fences."

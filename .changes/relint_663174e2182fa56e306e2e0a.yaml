@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_663174e2182fa56e306e2e0a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reserve the reviewed per-attempt token budget for a supervised worker dispatch instead of the owner reasoning reservation."

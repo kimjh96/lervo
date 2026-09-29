@@ -301,7 +301,7 @@ describe("conversation repository work completion", () => {
         ).toString("utf8"),
       );
       expect(manifest.paths).toEqual([
-        { path: "notes.md", before: null, after: `sha256:${"2".repeat(64)}` },
+        { path: "notes.md", before: null, beforeCommit: null, after: `sha256:${"2".repeat(64)}` },
       ]);
     } finally {
       await reopened.close();

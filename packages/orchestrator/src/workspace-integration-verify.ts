@@ -85,7 +85,7 @@ export async function verifyWorkspaceIntegrationCandidate(input: {
     storedAttempt.attempt.candidateTreeHash === null ||
     assignment === undefined ||
     stableWorkspaceIntegrationJson(assignment.verificationSuiteIds) !==
-      stableWorkspaceIntegrationJson(input.suites.map((suite) => suite.suiteId)) ||
+      stableWorkspaceIntegrationJson(input.suites.map((suite) => suite.suiteId).sort()) ||
     stableWorkspaceIntegrationJson(input.plan.verificationRequirements) !==
       stableWorkspaceIntegrationJson(actualRequirements)
   )

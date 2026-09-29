@@ -36,6 +36,7 @@ import type {
 import { prepareConversationRepositoryContext } from "./conversation-repository-context.js";
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 import { SQLiteConversationResponseArtifactStore } from "./conversation-response-artifact-store.js";
+import { createConversationSnapshotProcessCapture } from "./conversation-snapshot-process.js";
 import {
   conversationPolicyDigest,
   conversationWritingDocumentId,
@@ -48,9 +49,14 @@ export interface ManagedConversationRepositoryResources {
   knowledgeQuery: RevisionedRepositoryKnowledgeQuery;
 }
 
-export function createManagedConversationRepositoryResources(): ManagedConversationRepositoryResources {
+export function createManagedConversationRepositoryResources(input?: {
+  snapshotWorkerEntry?: string;
+}): ManagedConversationRepositoryResources {
   return {
-    captureSnapshot: createCachedRepositorySnapshotCapture(),
+    captureSnapshot:
+      input?.snapshotWorkerEntry === undefined
+        ? createCachedRepositorySnapshotCapture()
+        : createConversationSnapshotProcessCapture(input.snapshotWorkerEntry),
     knowledgeQuery: new RevisionedRepositoryKnowledgeQuery(),
   };
 }

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6a3cad6a7ff7c6b51aae4f81"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Preserve verified prior conversation context in new supervised Discord goal bindings."

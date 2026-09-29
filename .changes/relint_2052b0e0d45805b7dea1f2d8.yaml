@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2052b0e0d45805b7dea1f2d8"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Project managed owner evidence comments from decoded JSON strings, version the repaired reference contract without resetting spend limits, and preserve truthful publication blockers."

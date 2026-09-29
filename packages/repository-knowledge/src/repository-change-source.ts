@@ -16,6 +16,8 @@ export type RepositoryChangeSourceKind = "conversation" | "managed_run" | "termi
 export interface RepositoryChangeSnapshot {
   revision: string;
   files: Readonly<Record<string, string>>;
+  /** Exact Git coordinates observed with the bytes, never a later HEAD guess. */
+  commits?: Readonly<Record<string, string>>;
 }
 
 export interface PlannedRepositoryChange {
@@ -41,6 +43,7 @@ export class RepositoryChangeSourceError extends Error {
 
 /** Null for an unchanged unit; the manifest keeps every changed path and both digests. */
 export function planRepositoryChange(input: {
+  projectId?: string;
   sourceKind: RepositoryChangeSourceKind;
   sourceEventId: string;
   before: RepositoryChangeSnapshot;
@@ -54,7 +57,8 @@ export function planRepositoryChange(input: {
     .sort();
   if (paths.length === 0) return null;
   const manifestContent = JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: input.projectId !== undefined ? 3 : input.before.commits === undefined ? 1 : 2,
+    ...(input.projectId === undefined ? {} : { projectId: input.projectId }),
     kind: "repository.change.source_manifest",
     sourceKind: input.sourceKind,
     sourceEventId: input.sourceEventId,
@@ -64,6 +68,9 @@ export function planRepositoryChange(input: {
       path,
       before: input.before.files[path] ?? null,
       after: input.after.files[path] ?? null,
+      ...(input.before.commits === undefined && input.projectId === undefined
+        ? {}
+        : { beforeCommit: input.before.commits?.[path] ?? null }),
     })),
   });
   const byteCount = Buffer.byteLength(manifestContent);
@@ -169,7 +176,7 @@ export async function planRepositoryChangeInRepository(
     );
   return planRepositoryChange({
     ...change,
-    before: { revision: change.before.revision, files: kept(change.before.files) },
-    after: { revision: change.after.revision, files: kept(change.after.files) },
+    before: { ...change.before, files: kept(change.before.files) },
+    after: { ...change.after, files: kept(change.after.files) },
   });
 }

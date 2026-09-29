@@ -25,7 +25,7 @@ export interface EventContractCommandPorts {
 
 export const eventContractUsage = `  lervo event-contract status [--root <path>] [--json]
   lervo event-contract evidence [--root <path>] [--json]
-  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3>] [--apply <plan-id>] [--root <path>] [--json]
+  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3|4>] [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract rollback [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract recover [--root <path>] [--json]`;
 
@@ -92,12 +92,12 @@ export async function runEventContractCommand(
     const action = parsed.positionals[0];
     const selectedVersion = parsed.values["schema-version"] ?? "2";
     if (
-      (selectedVersion !== "2" && selectedVersion !== "3") ||
+      (selectedVersion !== "2" && selectedVersion !== "3" && selectedVersion !== "4") ||
       (parsed.values["schema-version"] !== undefined && action !== "activate")
     ) {
-      throw new Error("--schema-version accepts 2 or 3 for activation only.");
+      throw new Error("--schema-version accepts 2, 3, or 4 for activation only.");
     }
-    const targetEventSchemaVersion = selectedVersion === "3" ? 3 : 2;
+    const targetEventSchemaVersion = selectedVersion === "4" ? 4 : selectedVersion === "3" ? 3 : 2;
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
     if (action === "status") {
       if (parsed.values.from || parsed.values.stdin || parsed.values.apply) {
@@ -120,7 +120,7 @@ export async function runEventContractCommand(
       const suppliedEvidence = readEventWriterActivationEvidence(evidence);
       const manifest = await loadProjectManifest(repositoryRoot);
       const currentEvidence =
-        manifest.dataPolicy.hubSyncEnabled || targetEventSchemaVersion === 3
+        manifest.dataPolicy.hubSyncEnabled || targetEventSchemaVersion >= 3
           ? await collectEvidence({ repositoryRoot })
           : undefined;
       if (

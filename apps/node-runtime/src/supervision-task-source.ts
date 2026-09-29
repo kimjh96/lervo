@@ -28,6 +28,7 @@ import {
   projectManagedAttempts,
   projectWorkGraphV2,
 } from "@lervo/work-controller";
+import { ScopedSupervisionExecutionHistory } from "./supervision-scoped-history.js";
 import { SupervisionAuthorityHistory } from "./supervision-authority-history.js";
 import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
 import {
@@ -40,7 +41,8 @@ import {
 
 /** Reads canonical task and run sources; no inferred start, acceptance, usage, or remote convergence. */
 export class SupervisionTaskSource {
-  private readonly history: SupervisionAuthorityHistory;
+  private readonly history: ScopedSupervisionExecutionHistory;
+  private readonly authorityHistory: SupervisionAuthorityHistory;
   private readonly binding: NodeSupervisionBinding;
   private readonly workScope: SupervisionWorkScopeSource;
 
@@ -48,16 +50,25 @@ export class SupervisionTaskSource {
     private readonly storage: ProjectStorage,
     binding: NodeSupervisionBinding,
     private readonly now: () => string,
+    authorityHistory?: SupervisionAuthorityHistory,
   ) {
     this.binding = structuredClone(binding);
     this.workScope = new SupervisionWorkScopeSource(storage, this.binding, now);
-    this.history = new SupervisionAuthorityHistory(
-      storage.events,
-      storage.paths.eventDatabase,
-      storage.manifest.projectId,
-      () => Date.parse(now()),
-      "execution",
-    );
+    this.history = new ScopedSupervisionExecutionHistory({
+      events: storage.events,
+      databasePath: storage.paths.eventDatabase,
+      projectId: storage.manifest.projectId,
+      workstreamId: binding.workstreamId,
+      now: () => Date.parse(now()),
+    });
+    this.authorityHistory =
+      authorityHistory ??
+      new SupervisionAuthorityHistory(
+        storage.events,
+        storage.paths.eventDatabase,
+        storage.manifest.projectId,
+        () => Date.parse(now()),
+      );
   }
 
   async read(excludeDecisionId?: string) {
@@ -152,8 +163,11 @@ export class SupervisionTaskSource {
           await this.history.read(),
         )
       )?.contentHash !== workstream.contentHash ||
-      operatingContractHash(await listAssignments(this.storage.paths.repositoryRoot)) !==
-        operatingContractHash(allAssignments) ||
+      operatingContractHash(
+        (await listAssignments(this.storage.paths.repositoryRoot)).filter(
+          (item) => item.workstreamId === this.binding.workstreamId,
+        ),
+      ) !== operatingContractHash(workstreamAssignments) ||
       operatingContractHash(await listAgents(this.storage.paths.repositoryRoot)) !==
         operatingContractHash(agents)
     )
@@ -214,7 +228,10 @@ export class SupervisionTaskSource {
   }
 
   nextAuditAt() {
-    return this.history.nextAuditAt();
+    const audits = [this.history.nextAuditAt(), this.authorityHistory.nextAuditAt()].filter(
+      (value): value is number => value !== null,
+    );
+    return audits.length === 0 ? null : Math.min(...audits);
   }
 
   async readOwnerControlReadiness(plan: OperatingActionPlanV1): Promise<OwnerControlReadinessV1> {
@@ -224,7 +241,7 @@ export class SupervisionTaskSource {
       this.storage,
       this.binding,
       this.now,
-      this.history,
+      this.authorityHistory,
     );
     const control =
       plan.effectContract === "work.owner_attention.v1"
@@ -312,7 +329,7 @@ export class SupervisionTaskSource {
       this.storage,
       this.binding,
       this.now,
-      this.history,
+      this.authorityHistory,
     );
     const tasks = await observeSupervisionTasks(
       source,

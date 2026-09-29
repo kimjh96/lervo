@@ -369,6 +369,37 @@ export class SQLiteNodeWorkAdmission {
     });
   }
 
+  replaceFrozenConfiguration(input: {
+    freeze: NodeUpgradeFreeze;
+    expectedConfigDigest: string;
+    configDigest: string;
+  }): boolean {
+    assertScope(input.freeze.scope);
+    assertScope(input.expectedConfigDigest);
+    assertScope(input.configDigest);
+    assertPid(input.freeze.ownerPid);
+    return this.transaction(() => {
+      if (!this.isAlive(input.freeze.ownerPid)) return false;
+      this.clearDeadSessions(input.freeze.scope);
+      const sessions = this.database
+        .prepare("SELECT COUNT(*) AS count FROM node_work_session WHERE scope = ?")
+        .get(input.freeze.scope) as Row;
+      if (Number(sessions.count) !== 0) return false;
+      const result = this.database
+        .prepare(
+          "UPDATE node_work_scope SET config_digest = ? WHERE scope = ? AND config_digest = ? AND freeze_token = ? AND freeze_pid = ?",
+        )
+        .run(
+          input.configDigest,
+          input.freeze.scope,
+          input.expectedConfigDigest,
+          input.freeze.token,
+          input.freeze.ownerPid,
+        );
+      return result.changes === 1;
+    });
+  }
+
   unfreeze(freeze: NodeUpgradeFreeze): boolean {
     return this.transaction(() => {
       const result = this.database

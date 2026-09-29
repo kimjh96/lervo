@@ -25,7 +25,7 @@ export class SQLiteEventRepository {
   constructor(
     private readonly database: DatabaseSync,
     private readonly projectId: string,
-    private readonly writableEventSchemaVersion: 1 | 2 | 3,
+    private readonly writableEventSchemaVersion: 1 | 2 | 3 | 4,
   ) {}
 
   append(draft: EventDraft): AppendEventResult {
@@ -35,6 +35,11 @@ export class SQLiteEventRepository {
         `Event projectId ${draft.projectId} differs from store ${this.projectId}.`,
       );
     }
+    if (draft.schemaVersion < 4 && Object.hasOwn(draft.payload, "convergenceContractVersion"))
+      throw new EventStoreError(
+        "event_schema_unsupported",
+        "Convergence assignment provenance requires event schema version 4.",
+      );
     const sanitized = sanitizeEventPayload(draft.type, draft.payload);
     const requestedIdentity = eventIdentity(draft, sanitized.payload);
     const effectiveDraft: EventDraft =

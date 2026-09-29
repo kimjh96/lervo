@@ -1,3 +1,4 @@
+import { assertKnowledgeProviderAvailable } from "./provider-availability.js";
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -54,6 +55,7 @@ interface ProcessResult {
 }
 
 const ADAPTER_VERSION = "1";
+const NORMALIZATION_ADAPTER_VERSION = "2";
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 180_000;
 const LOCAL_KEY = "^[a-z][a-z0-9_-]{0,63}$";
@@ -838,6 +840,7 @@ export async function createProcessSemanticCompiler(
           ...(signal === undefined ? {} : { signal }),
           timeoutMs,
         });
+        assertKnowledgeProviderAvailable({ provider: options.provider, ...result });
         if (result.status === "cancelled")
           throw signal.reason ?? compileFailure("Semantic compilation was cancelled.");
         if (result.status !== "completed")
@@ -966,6 +969,7 @@ export async function createNoCapabilityProviderJsonRunner(
         timeoutMs,
         maxOutputBytes: MAX_OUTPUT_BYTES,
       });
+      assertKnowledgeProviderAvailable({ provider: options.provider, ...result });
       if (result.status !== "completed") {
         throw compileFailure(`The provider JSON runner did not complete (${result.status}).`);
       }
@@ -1016,7 +1020,7 @@ export async function createProcessDocumentNormalizationCompiler(
     await rm(probeDirectory, { recursive: true, force: true });
   }
   const invocationContract = {
-    adapter: `lervo-process-document-normalizer@${ADAPTER_VERSION}`,
+    adapter: `lervo-process-document-normalizer@${NORMALIZATION_ADAPTER_VERSION}`,
     provider: options.provider,
     providerCliVersion: version,
     model: options.model ?? "provider-default",
@@ -1029,7 +1033,7 @@ export async function createProcessDocumentNormalizationCompiler(
   };
   const descriptor = {
     compilerId: `lervo.${options.provider}.document-normalizer`,
-    compilerVersion: `${ADAPTER_VERSION}+${version}`,
+    compilerVersion: `${NORMALIZATION_ADAPTER_VERSION}+${version}`,
     compilerBuildId: sha256(canonicalJson(invocationContract)),
     provider: options.provider,
     isolation: "external_no_capabilities" as const,
@@ -1044,6 +1048,16 @@ export async function createProcessDocumentNormalizationCompiler(
         responseSchema: documentNormalizationResponseSchema,
         envelope,
       });
+      const responseSchemaJson = canonicalJson(
+        providerNativeResponseSchema(documentNormalizationResponseSchema),
+      );
+      const codexResponseSchemaPath = resolve(directory, "response-schema.json");
+      if (options.provider === "codex")
+        await writeFile(codexResponseSchemaPath, `${responseSchemaJson}\n`, {
+          encoding: "utf8",
+          mode: 0o600,
+          flag: "wx",
+        });
       const arguments_ =
         options.provider === "claude"
           ? [
@@ -1065,6 +1079,8 @@ export async function createProcessDocumentNormalizationCompiler(
               "--no-chrome",
               "--permission-mode",
               "dontAsk",
+              "--json-schema",
+              responseSchemaJson,
               "--system-prompt",
               documentNormalizationInstruction,
               ...(options.model === undefined ? [] : ["--model", options.model]),
@@ -1081,6 +1097,8 @@ export async function createProcessDocumentNormalizationCompiler(
               "--json",
               "-c",
               "mcp_servers={}",
+              "--output-schema",
+              codexResponseSchemaPath,
               ...codexNoCapabilityFeatureArguments(),
               ...(options.model === undefined ? [] : ["--model", options.model]),
               "-",
@@ -1094,6 +1112,7 @@ export async function createProcessDocumentNormalizationCompiler(
         timeoutMs,
         maxOutputBytes: MAX_OUTPUT_BYTES,
       });
+      assertKnowledgeProviderAvailable({ provider: options.provider, ...result });
       if (result.status === "cancelled")
         throw signal.reason ?? compileFailure("Document normalization was cancelled.");
       if (result.status !== "completed")
@@ -1102,7 +1121,9 @@ export async function createProcessDocumentNormalizationCompiler(
         );
       const response =
         options.provider === "claude"
-          ? parseClaudeOutput<DocumentNormalizationResponse>(result.stdout)
+          ? parseClaudeOutput<DocumentNormalizationResponse>(result.stdout, {
+              structuredOutputRequired: true,
+            })
           : parseCodexOutput<DocumentNormalizationResponse>(result.stdout);
       const usage =
         options.provider === "claude"

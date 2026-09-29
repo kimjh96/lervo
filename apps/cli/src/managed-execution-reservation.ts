@@ -10,7 +10,7 @@ export function reserveManagedExecution(
   now: Date,
 ) {
   if (request.executionKey === undefined) return null;
-  if (storage.writableEventSchemaVersion !== 3)
+  if ((storage.writableEventSchemaVersion ?? 1) < 3)
     throw new Error("Stable managed execution requires reviewed event writer version 3.");
   const identity = managedExecutionIdentity(storage.manifest.projectId, request.executionKey);
   const eventId = `evt_${operatingContractHash({ kind: "managed.execution.reserved", ...identity }).slice(7, 39)}`;

@@ -38,6 +38,7 @@ Hub event synchronization does not transfer workstream bodies. The separately au
 
 ## Failure meaning
 
+- Verification of an existing selected projection binds the latest committed snapshot for that exact workstream ID. Recording a cancellation or update for another independently bound goal cannot replace, resume, or invalidate the selected workstream. A newer conflicting snapshot for the selected ID still blocks verification. Recovery with no selected projection continues to use the latest recorded snapshot and its exact CAS artifact.
 - Invalid or conflicting current state blocks import or update; Lervo does not replace a different active workstream.
 - A successor whose origin does not exactly identify a settled completed or cancelled predecessor fails validation or replication. Distinct unlinked roots remain divergent rather than silently replacing a completed goal.
 - A stale plan means the source, reference, lifecycle record, current state, or desired snapshot changed and requires replanning.

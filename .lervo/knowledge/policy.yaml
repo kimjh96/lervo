@@ -26,6 +26,6 @@ exclude:
   - apps/node-runtime-dependencies/**
   - apps/hub-runtime-dependencies/**
 limits:
-  maxFiles: 20000
+  maxFiles: 32768
   maxFileBytes: 1048576
   maxTotalBytes: 67108864

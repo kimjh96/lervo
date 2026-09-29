@@ -1,3 +1,4 @@
+import { validConvergenceProvenance } from "./assignment-convergence-state.js";
 import {
   isAssignmentAmendmentCoordinate,
   repositoryPathScopesOverlap,
@@ -228,6 +229,11 @@ export function validAssignment(value: unknown, projectId: string): value is Wor
         item.workstreamId !== null &&
         item.routine == null &&
         item.topology == null)) &&
+    (item.convergence == null ||
+      (validConvergenceProvenance(item.convergence) &&
+        item.knowledgeJob == null &&
+        item.routine == null &&
+        item.topology == null)) &&
     ["queued", "leased", "blocked", "completed", "failed", "cancelled"].includes(item.status) &&
     Number.isSafeInteger(item.priority) &&
     item.priority >= 0 &&
@@ -240,7 +246,7 @@ export function validAssignment(value: unknown, projectId: string): value is Wor
     boundedStrings(item.expectedPaths, 128) &&
     item.expectedPaths.every(safePath) &&
     (item.accessMode === undefined || ["read_only", "write"].includes(item.accessMode)) &&
-    (item.accessMode !== "read_only" || item.knowledgeJob != null) &&
+    (item.accessMode !== "read_only" || item.knowledgeJob != null || item.convergence != null) &&
     (item.workstreamId === null || WORKSTREAM_ID.test(item.workstreamId)) &&
     (item.assigneeAgentId === null || AGENT_ID.test(item.assigneeAgentId)) &&
     (item.lastLeaseGeneration === undefined ||

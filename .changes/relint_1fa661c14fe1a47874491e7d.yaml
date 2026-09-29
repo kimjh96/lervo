@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1fa661c14fe1a47874491e7d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Let the supervision owner allocate remaining goal scope after every current assignment is accepted."

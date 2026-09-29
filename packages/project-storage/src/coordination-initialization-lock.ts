@@ -6,6 +6,7 @@ import { ProjectStorageError } from "./types.js";
 
 const INITIALIZATION_LOCK_BYTES = 1_024;
 const STALE_INITIALIZATION_LOCK_AGE_MS = 5_000;
+const INITIALIZATION_LOCK_ATTEMPTS = 1_500;
 
 interface InitializationLock {
   schemaVersion: 1;
@@ -79,7 +80,9 @@ async function staleInitializationLock(path: string, now: Date): Promise<boolean
 
 export async function acquireInitializationLock(root: string): Promise<() => Promise<void>> {
   const path = resolve(root, ".initializing.lock");
-  for (let attempt = 0; attempt < 200; attempt += 1) {
+  // A busy repository may hold the lock for several seconds while preparing
+  // coordination state. Keep retries bounded, but outwait that normal overlap.
+  for (let attempt = 0; attempt < INITIALIZATION_LOCK_ATTEMPTS; attempt += 1) {
     try {
       const handle = await open(
         path,

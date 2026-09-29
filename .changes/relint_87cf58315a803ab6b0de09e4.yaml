@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_87cf58315a803ab6b0de09e4"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Restore bounded supervisor history by retaining complete causal workstream execution and validating all original canonical events."

@@ -8,6 +8,8 @@ Document normalization produces bounded, reviewable Markdown candidates after ca
 - [Normalization contract](document-content-normalization/contract.md): document profiles, output constraints, preservation, review, and apply.
 - [Worksets and preflight](document-content-normalization/worksets-and-preflight.md): selection, budgets, resource observations, telemetry, and lifecycle validation.
 
+The [background convergence runtime](background-knowledge-convergence/runtime.md) implements independently assigned review and exact application without waiting for another conversation. Native installed Codex acceptance verified a private no-Hub repository; production activation still requires reviewed version-4 writers and per-project delegation. Existing turn-owned review remains available.
+
 ## References
 
 - [Repository knowledge compilation](repository-knowledge-compilation.md)

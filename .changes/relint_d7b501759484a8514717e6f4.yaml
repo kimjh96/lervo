@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d7b501759484a8514717e6f4"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep a refreshable stored Claude login ready when the status probe cannot answer after the access token lapses."

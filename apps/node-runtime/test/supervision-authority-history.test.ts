@@ -2,6 +2,7 @@ import { rename, rm, writeFile } from "node:fs/promises";
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SupervisionAuthorityHistory } from "../src/supervision-authority-history.js";
+import { observeNodeSupervisionRecoveryAuthority } from "../src/supervision-authority.js";
 import { supervisionFixture } from "./supervision.fixture.js";
 
 const roots: string[] = [];
@@ -31,6 +32,31 @@ async function fixture() {
 }
 
 describe("incremental supervision authority history", () => {
+  it("audits a slow historical chain before the bounded recovery observation", async () => {
+    const f = await fixture();
+    try {
+      let elapsed = 0;
+      const base = Date.now();
+      const read = f.reader.read.bind(f.reader);
+      let calls = 0;
+      vi.spyOn(f.reader, "read").mockImplementation(async () => {
+        calls += 1;
+        if (calls === 1) elapsed += 6_000;
+        return read();
+      });
+      const observed = await observeNodeSupervisionRecoveryAuthority(
+        f.storage,
+        f.binding,
+        () => new Date(base + elapsed).toISOString(),
+        f.reader,
+      );
+      expect(observed.source.workstreamId).toBe(f.binding.workstreamId);
+      expect(calls).toBeGreaterThanOrEqual(2);
+    } finally {
+      await f.storage.close();
+    }
+  });
+
   it("reuses detached verified authority rows and reads only the appended chain", async () => {
     const f = await fixture();
     try {

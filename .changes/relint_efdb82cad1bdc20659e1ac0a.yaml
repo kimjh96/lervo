@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_efdb82cad1bdc20659e1ac0a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Report pending supervision health until a restarted owner evaluates its goal, and keep the adapter's turn failure code in run diagnostics."

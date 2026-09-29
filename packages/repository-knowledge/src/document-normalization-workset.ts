@@ -145,7 +145,9 @@ export function documentNormalizationWorksetBinding(input: {
   documents: ReadonlyArray<{ path: string; contentHash: string; byteCount: number }>;
   selectionPaths?: readonly string[];
 }): DocumentNormalizationWorksetBinding {
-  const documents = [...input.documents].sort((left, right) => left.path.localeCompare(right.path));
+  const documents = [...input.documents].sort((left, right) =>
+    left.path < right.path ? -1 : left.path > right.path ? 1 : 0,
+  );
   const selectionPaths =
     input.selectionPaths === undefined ? undefined : [...input.selectionPaths].sort();
   const counts = [

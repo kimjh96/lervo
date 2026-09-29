@@ -80,4 +80,44 @@ describe("repository conversation signal source", () => {
     expect(body).toContain("run.completed");
     expect(body).not.toContain("must-not-cross");
   });
+
+  it("does not start a proactive conversation for an assignment completion", async () => {
+    const root = await temporaryRoot();
+    const artifacts = await FileSystemCas.open(resolve(root, "artifacts"));
+    const values = [event(1, "run.requested")];
+    const dispatch = vi.fn<(event: ConversationInboundEvent) => Promise<void>>(
+      async () => undefined,
+    );
+    const source = new RepositoryConversationSignalSource({
+      projectId: "prj_node_runtime_01",
+      integrationId: "itg_discord01",
+      conversationIds: ["cnv_operator01"],
+      mappings: [
+        { eventType: "assignment.completed", signalCode: "work.completed" },
+        { eventType: "assignment.handoff.recorded", signalCode: "assignment.attention" },
+      ],
+      events: {
+        latest: () => values.at(-1) ?? null,
+        list: ({ afterSeq = 0, limit = 100 } = {}) =>
+          values.filter((item) => item.seq > afterSeq).slice(0, limit),
+      },
+      artifacts,
+      cursor: new FileConversationRepositorySignalCursor(resolve(root, "cursor.json"), {
+        projectId: "prj_node_runtime_01",
+        integrationId: "itg_discord01",
+      }),
+      dispatch,
+      now: () => new Date("2026-09-09T00:01:00.000Z"),
+    });
+
+    await source.runCycle();
+    values.push(event(2, "assignment.completed"));
+    await expect(source.runCycle()).resolves.toEqual({ status: "processed", eventCount: 1 });
+    expect(dispatch).not.toHaveBeenCalled();
+
+    values.push(event(3, "assignment.handoff.recorded"));
+    await source.runCycle();
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0].signalCode).toBe("assignment.attention");
+  });
 });

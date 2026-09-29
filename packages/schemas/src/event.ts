@@ -139,7 +139,14 @@ export const eventTypesV3 = [
   "managed.execution.reserved",
   "role.input.bound",
 ] as const;
-export const eventTypes = eventTypesV3;
+export const eventTypesV4 = [
+  ...eventTypesV3,
+  "repository.knowledge.baseline.requested",
+  "repository.knowledge.stage.recorded",
+  "repository.knowledge.convergence.recorded",
+  "assignment.convergence.archived",
+] as const;
+export const eventTypes = eventTypesV4;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -246,6 +253,14 @@ export const eventEnvelopeSchema = {
         schemaVersion: { type: "integer", const: 3 },
       },
     },
+    {
+      ...eventEnvelopeV2Schema,
+      properties: {
+        ...eventEnvelopeV2Schema.properties,
+        type: { type: "string", enum: eventTypesV4 },
+        schemaVersion: { type: "integer", const: 4 },
+      },
+    },
   ],
 } as const;
 
@@ -255,9 +270,13 @@ export type EventEnvelopeV3 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & 
   schemaVersion: 3;
   type: (typeof eventTypesV3)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV3, "schemaVersion"> & {
-  schemaVersion: EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3;
+export type EventEnvelopeV4 = Omit<EventEnvelopeV3, "schemaVersion" | "type"> & {
+  schemaVersion: 4;
+  type: (typeof eventTypesV4)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV4, "schemaVersion"> & {
+  schemaVersion: EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4;
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV3)[number];
+export type EventType = (typeof eventTypesV4)[number];

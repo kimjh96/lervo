@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_86888e6dbeb80895281ad4c3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Record historical conversation knowledge debt with exact agent authority and no invented source evidence."

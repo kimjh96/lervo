@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6827c86c6c865657e327ee42"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Let a supervision owner act after a restart whose first cycle reconciled a pending decision."

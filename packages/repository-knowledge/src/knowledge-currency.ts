@@ -7,6 +7,7 @@ import { createRepositoryLayoutMigrationPlan } from "./repository-layout-migrati
 import { lintRepositoryKnowledge } from "./lint-query.js";
 import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
 import { assertNoKnowledgeMaterializationTransaction } from "./durable-apply.js";
+import { listCanonicalizationCandidates } from "./canonicalization-candidate-record.js";
 
 export type RepositoryKnowledgeCurrencyReason =
   | "instruction_bootstrap_pending"
@@ -14,7 +15,9 @@ export type RepositoryKnowledgeCurrencyReason =
   | "knowledge_migration_pending"
   | "instruction_bridge_pending"
   | "normalization_pending"
-  | "knowledge_lint_invalid";
+  | "knowledge_lint_invalid"
+  | "canonicalization_pending"
+  | "knowledge_snapshot_changed";
 
 /**
  * Read-only: whether managed knowledge is current, and the snapshot it was checked against. It
@@ -47,6 +50,15 @@ export async function inspectRepositoryKnowledgeCurrency(repositoryRoot: string)
   if (bridge.status !== "current") reasons.push("instruction_bridge_pending");
   if (normalization.pendingDocuments.length > 0) reasons.push("normalization_pending");
   if (!lint.valid) reasons.push("knowledge_lint_invalid");
+  const candidates = await listCanonicalizationCandidates(repositoryRoot);
+  if (
+    candidates.some((candidate) =>
+      ["candidate", "pending", "stale"].includes(candidate.observedState),
+    )
+  )
+    reasons.push("canonicalization_pending");
+  const after = await scanConfiguredRepositoryKnowledge(repositoryRoot);
+  if (after.scan.snapshotId !== scan.snapshotId) reasons.push("knowledge_snapshot_changed");
   return {
     current: reasons.length === 0,
     snapshotHash: `sha256:${createHash("sha256").update(scan.snapshotId).digest("hex")}`,

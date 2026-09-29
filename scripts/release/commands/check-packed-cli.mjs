@@ -167,7 +167,7 @@ async function verifyConsumerCommands(consumerRoot, expectedVersion, eventContra
   assert.deepEqual(report.eventReader, {
     schemaVersion: 1,
     capability: "event_reader",
-    readableEventSchemaVersions: [1, 2, 3],
+    readableEventSchemaVersions: [1, 2, 3, 4],
   });
 
   const initialized = await runConsumerCli(consumerRoot, [

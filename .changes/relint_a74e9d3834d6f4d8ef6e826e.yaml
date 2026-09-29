@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a74e9d3834d6f4d8ef6e826e"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Tell the supervision owner that managed workers have no shell, so command checks must be verification suites the host runs."

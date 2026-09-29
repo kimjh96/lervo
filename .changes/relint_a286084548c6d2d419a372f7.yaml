@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a286084548c6d2d419a372f7"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Verify conversation knowledge job artifacts and repository source bytes before agent review."

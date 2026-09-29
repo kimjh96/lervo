@@ -39,8 +39,8 @@ export async function observeMandateInstallationSource(
     hubSyncEnabled: manifest.dataPolicy.hubSyncEnabled,
   });
   if (
-    storage.writableEventSchemaVersion !== 3 ||
-    writer.coordinate.selectedEventSchemaVersion !== 3
+    (storage.writableEventSchemaVersion ?? 1) < 3 ||
+    writer.coordinate.selectedEventSchemaVersion < 3
   )
     throw new Error("Mandate installation requires reviewed event writer version 3 activation.");
   if (authorityHistory === undefined && !storage.events.verifyIntegrity().valid)

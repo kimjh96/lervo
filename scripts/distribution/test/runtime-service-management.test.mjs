@@ -268,6 +268,120 @@ it.each(["systemd", "launchd"])(
   },
 );
 
+it.each([false, true])(
+  "keeps CLI configuration replacement frozen through success or restoration (failure=%s)",
+  async (rejectReplacement) => {
+    const f = await fixture("systemd", "node");
+    const before = JSON.stringify({
+      repositoryRoot: f.root,
+      discordConversation: { deliberation: { cliExecutable: f.executable } },
+    });
+    await writeFile(f.config, before);
+    const cli = resolve(f.root, "new-cli");
+    await writeFile(cli, "#!/bin/sh\n", { mode: 0o700 });
+    const candidate = resolve(f.root, "candidate.json");
+    const after = JSON.parse(before);
+    after.discordConversation.deliberation.cliExecutable = cli;
+    await writeFile(candidate, JSON.stringify(after), { mode: 0o600 });
+    const runtime = resolve(f.root, "new-runtime");
+    await writeFile(runtime, "#!/bin/sh\n", { mode: 0o700 });
+    const definition = resolve(f.root, "new.service");
+    await renderRuntimeService([
+      "--manager",
+      "systemd",
+      "--runtime",
+      "node",
+      "--instance",
+      nodeInstance,
+      "--executable",
+      runtime,
+      "--config",
+      f.config,
+      "--output",
+      definition,
+    ]);
+    const admission = await SQLiteNodeWorkAdmission.open({
+      path: nodeWorkAdmissionDatabasePath(f.root),
+    });
+    const scope = nodeWorkAdmissionScope(f.config);
+    let session = admission.registerSession({
+      scope,
+      configDigest: `sha256:${createHash("sha256").update(before).digest("hex")}`,
+    });
+    const manager = systemdManager();
+    const options = {
+      platform: "linux",
+      homeDirectory: f.root,
+      wait: async () => {},
+      runCommand: async (command, args) => {
+        if (args[1] === "stop") {
+          expect(admission.tryAcquireWork(session)).toBeNull();
+          admission.unregisterSession(session);
+          session = null;
+        }
+        if (
+          (args[1] === "start" || (args[1] === "enable" && args[2] === "--now")) &&
+          session === null
+        ) {
+          const bytes = await readFile(f.config);
+          if (
+            rejectReplacement &&
+            JSON.parse(bytes).discordConversation.deliberation.cliExecutable === cli
+          )
+            return { exitCode: 1 };
+          session = admission.registerSession({
+            scope,
+            configDigest: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+          });
+          expect(admission.tryAcquireWork(session)).toBeNull();
+        }
+        return manager.run(command, args);
+      },
+    };
+    try {
+      await manageRuntimeService(f.writeArgs("install"), options);
+      const args = [
+        "--action",
+        "upgrade",
+        "--manager",
+        "systemd",
+        "--runtime",
+        "node",
+        "--instance",
+        nodeInstance,
+        "--definition",
+        definition,
+        "--previous-definition",
+        f.definition,
+        "--executable",
+        runtime,
+        "--config",
+        f.config,
+        "--configuration-source",
+        candidate,
+        "--write",
+      ];
+      if (rejectReplacement) {
+        await expect(manageRuntimeService(args, options)).rejects.toMatchObject({
+          code: "service_upgrade_failed",
+        });
+        expect(await readFile(f.config, "utf8")).toBe(before);
+      } else {
+        await expect(manageRuntimeService(args, options)).resolves.toMatchObject({
+          change: "upgraded",
+        });
+        expect(JSON.parse(await readFile(f.config, "utf8"))).toEqual(after);
+      }
+      const claim = admission.tryAcquireWork(session);
+      expect(claim).not.toBeNull();
+      admission.releaseWork(claim);
+    } finally {
+      if (session) admission.unregisterSession(session);
+      admission.close();
+    }
+  },
+);
+
 function systemdManager() {
   const calls = [];
   const enabled = new Set();

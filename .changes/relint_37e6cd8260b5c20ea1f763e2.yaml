@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_37e6cd8260b5c20ea1f763e2"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Stop a supervised managed provider turn once its tokens pass the attempt's reserved budget."

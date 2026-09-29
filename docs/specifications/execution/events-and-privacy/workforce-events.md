@@ -14,6 +14,8 @@ Event rejection restores the individual state file. Interruption can leave earli
 
 ## Related contracts
 
+Version-four background convergence assignments additionally support `assignment.convergence.archived`. Its exact required fields, private original-byte archive, terminal evidence, consumer protection, append-before-removal ordering, and failure meaning are defined in [background recovery and retention](../../../specs/background-knowledge-convergence/recovery-and-retention.md). This event removes only a proven terminal current projection and never rewrites canonical assignment history.
+
 - [Root-agent liveness](workforce-events/root-agent-liveness.md)
 - [Routine assignment provenance](workforce-events/routine-assignment-provenance.md)
 - [Conversation knowledge-job assignment provenance](workforce-events/knowledge-job-assignment-provenance.md)

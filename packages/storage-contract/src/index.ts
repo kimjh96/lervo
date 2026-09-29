@@ -71,6 +71,8 @@ export interface RescheduleOutboxResult {
 export interface PurgeAcknowledgedOutboxRequest {
   before: string;
   limit?: number;
+  destinationId?: string;
+  keepMostRecent?: number;
 }
 
 export interface PurgeAcknowledgedOutboxResult {

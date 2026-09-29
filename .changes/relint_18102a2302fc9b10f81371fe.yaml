@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_18102a2302fc9b10f81371fe"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Allow exact interrupted owner reconciliation to confirm its decision without claiming successful work."

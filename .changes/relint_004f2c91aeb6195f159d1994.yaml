@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_004f2c91aeb6195f159d1994"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Resolve the current standing supervision binding in the abandoned-turn and pre-turn repair commands."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8a3d21ca9d847e6db5cd81c1"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Require matching supervision authority for Discord goal intake and write bounded outcomes through managed conversation prose."

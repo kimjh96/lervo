@@ -8,10 +8,11 @@ import {
   type ContextEvidence,
 } from "@lervo/schemas";
 import type { InjectedContext } from "@lervo/context-delivery";
+import { acquireRepositorySourceRead, type RepositorySourceLease } from "@lervo/project-storage";
 
 import { ManagedContextRun } from "./managed-context-run.js";
 import { observeManagedProviderProcess } from "./provider-process-observation.js";
-import { managedResultReferenceSpecs } from "./managed-context-reference.js";
+import { observeManagedResultReferences } from "./failed-reference-result.js";
 import { createManagedWritePlan } from "./managed-write-plan.js";
 import {
   adapterStartedSpec,
@@ -207,11 +208,26 @@ export class ManagedProviderRunCoordinator {
       );
     }
     this.running = true;
-    return this.execute(snapshotInput(input));
+    const request = snapshotInput(input);
+    validateManagedProviderRunInput(request, this.options);
+    let lease: RepositorySourceLease;
+    try {
+      lease = await acquireRepositorySourceRead(request.repositoryRoot);
+    } catch (error) {
+      throw new ManagedProviderRunError(
+        "repository_snapshot_failed",
+        "The repository source could not be admitted for a managed run.",
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
+    try {
+      return await this.execute(request);
+    } finally {
+      lease.release();
+    }
   }
 
   private async execute(input: ManagedProviderRunInput): Promise<ManagedProviderRunResult> {
-    validateManagedProviderRunInput(input, this.options);
     const targetTurnIds = resolveTargetTurnIds(input);
     const state: ManagedProviderRunExecutionState = {
       verifications: [],
@@ -599,17 +615,21 @@ export class ManagedProviderRunCoordinator {
           "The managed result has no matching injected context.",
         );
       }
-      const reference = managedResultReferenceSpecs({
-        ...(input.resultFormat === undefined ? {} : { resultFormat: input.resultFormat }),
-        sourceEventId: this.telemetry.reserveEventId(),
-        session: state.session,
-        turn: state.turn!,
-        result: state.turnResult,
-        injected: state.injected,
-        ...(input.createEvidenceReceiptId === undefined
-          ? {}
-          : { createEvidenceReceiptId: input.createEvidenceReceiptId }),
-      });
+      const reference = await observeManagedResultReferences(
+        {
+          ...(input.resultFormat === undefined ? {} : { resultFormat: input.resultFormat }),
+          sourceEventId: this.telemetry.reserveEventId(),
+          session: state.session,
+          turn: state.turn!,
+          result: state.turnResult,
+          injected: state.injected,
+          ...(input.createEvidenceReceiptId === undefined
+            ? {}
+            : { createEvidenceReceiptId: input.createEvidenceReceiptId }),
+        },
+        this.options.artifactStore,
+        (specs) => this.append(specs),
+      );
       this.append(reference.specs);
       state.contextEvidence = [...state.contextEvidence, ...reference.evidence];
       state.publicationContent = reference.publicationContent;
@@ -794,6 +814,7 @@ export class ManagedProviderRunCoordinator {
       managedChanges: state.writeBridge?.evidence() ?? [],
       contextGeneration: this.context.snapshot().contextGeneration,
       beforeRevision: state.before.revision,
+      ...(state.before.commits === undefined ? {} : { beforeCommits: state.before.commits }),
       afterRevision: state.after.revision,
       verificationStatus,
       verifications: copy(state.verifications),

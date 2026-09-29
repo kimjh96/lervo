@@ -254,6 +254,19 @@ export class SQLiteOutboxRepository {
   purgeAcknowledged(request: PurgeAcknowledgedOutboxRequest): PurgeAcknowledgedOutboxResult {
     const before = requireOutboxTimestamp(request.before, "before");
     const limit = requireOutboxPositiveInteger(request.limit ?? 100, "limit", 1_000);
+    const destination =
+      request.destinationId === undefined
+        ? null
+        : requireOutboxIdentifier(request.destinationId, "destinationId");
+    const keep =
+      request.keepMostRecent === undefined
+        ? null
+        : requireOutboxPositiveInteger(request.keepMostRecent, "keepMostRecent", 10_000);
+    if (keep !== null && destination === null)
+      throw new EventStoreError(
+        "invalid_outbox_request",
+        "Bounded retention requires an exact destination.",
+      );
     const result = this.database
       .prepare(
         `
@@ -261,13 +274,18 @@ export class SQLiteOutboxRepository {
         WHERE rowid IN (
           SELECT rowid
           FROM outbox
-          WHERE acknowledged_at IS NOT NULL AND acknowledged_at < ?
+          WHERE acknowledged_at IS NOT NULL
+            AND (? IS NULL OR destination_id = ?)
+            AND (acknowledged_at < ? OR (? IS NOT NULL AND rowid NOT IN (
+              SELECT rowid FROM outbox WHERE acknowledged_at IS NOT NULL AND destination_id = ?
+              ORDER BY acknowledged_at DESC, event_id DESC LIMIT ?
+            )))
           ORDER BY acknowledged_at, event_id, destination_id
           LIMIT ?
         )
       `,
       )
-      .run(before, limit);
+      .run(destination, destination, before, keep, destination, keep ?? -1, limit);
     return { deleted: Number(result.changes) };
   }
 

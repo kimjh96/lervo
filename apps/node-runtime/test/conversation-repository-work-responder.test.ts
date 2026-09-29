@@ -5,6 +5,13 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { FileSystemCas } from "@lervo/cas";
+import { createEventReaderCapabilities } from "@lervo/event-contract";
+import {
+  applyEventWriterActivationPlan,
+  applyInitPlan,
+  createInitPlan,
+  planEventWriterActivation,
+} from "@lervo/project";
 import {
   createConversationInboundEvent,
   hashConversationSourceEventKey,
@@ -25,6 +32,7 @@ describe("ConversationRepositoryWorkResponder", () => {
   it.each([
     "changed",
     "changed_async",
+    "changed_writer4",
     "read_only",
     "running",
     "recovered",
@@ -34,7 +42,7 @@ describe("ConversationRepositoryWorkResponder", () => {
   ])(
     "keeps contextual results and independent evidence without replaying work (%s)",
     async (scenario) => {
-      const changed = scenario === "changed" || scenario === "changed_async";
+      const changed = ["changed", "changed_async", "changed_writer4"].includes(scenario);
       const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-work-"));
       roots.push(root);
       await execute("git", ["init", "-b", "main"], { cwd: root });
@@ -43,6 +51,32 @@ describe("ConversationRepositoryWorkResponder", () => {
       await writeFile(resolve(root, "README.md"), "before\n");
       await execute("git", ["add", "README.md"], { cwd: root });
       await execute("git", ["commit", "-m", "fixture"], { cwd: root });
+      if (scenario === "changed_writer4") {
+        await applyInitPlan(await createInitPlan({ root, projectId: "prj_test0001" }));
+        const evidence = {
+          schemaVersion: 1 as const,
+          projectId: "prj_test0001",
+          observedAt: new Date().toISOString(),
+          readers: [
+            {
+              readerId: "reader_local_runtime",
+              readerKind: "local" as const,
+              peerIdentityHash: null,
+              capabilities: createEventReaderCapabilities(),
+            },
+          ],
+        };
+        const plan = await planEventWriterActivation({
+          repositoryRoot: root,
+          evidence,
+          targetEventSchemaVersion: 4,
+        });
+        await applyEventWriterActivationPlan({
+          plan,
+          approval: plan.planId,
+          currentEvidence: evidence,
+        });
+      }
       const artifacts = await FileSystemCas.open(resolve(root, ".artifacts"));
       const source = await artifacts.put(
         changed ? "README를 실제로 수정해." : "README의 내용을 확인해.",
@@ -260,7 +294,7 @@ describe("ConversationRepositoryWorkResponder", () => {
             scenario === "legacy_delegate" ? "bound_agent_provider" : "configured_default",
         }),
       );
-      if (scenario === "changed_async") {
+      if (scenario === "changed_async" || scenario === "changed_writer4") {
         expect(verifyCompletion).toHaveBeenCalledWith(
           expect.objectContaining({
             knowledgeMode: "pending_background",

@@ -1,132 +1,132 @@
-<!-- lervo-release package="@lervo/cli" version="0.17.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.18.0" schema="1" -->
 
 ## What's changed
 
-- Accept a settled cancelled predecessor when validating and replicating successor workstreams, matching the recorded continuation contract.
-- Add authenticated Discord thread addressing and native bot reply projection.
-- Add autonomous agent delegation and request-scoped conversation runtimes without boot enablement or automatic restart.
-- Add bounded operating mandate review, exact worker readiness, and provider-neutral outcome supervision composition.
-- Add designated-host supervision, policy-bound topology and responsibility claims, proven-absent decision supersession, and grounded workforce planning observations.
-- Add deterministic privacy-bounded activity projection from canonical Lervo events.
-- Add domain-routed product steering and cursor-bound activity subscription contracts.
-- Add durable multi-agent conversation focus, clean publication metadata, and task-aware provider quality profiles for Discord repository work.
-- Add exact bound-agent conversation and deliberation routes with deterministic ownership and model allocation.
-- Add governed per-agent memory, owner-proxy capabilities, natural goal and deliberation routing, lexical-v2 knowledge retrieval, and change-driven runtime recovery.
-- Add installed Discord goal intake and a fenced recovery command for interrupted supervised runs.
-- Add native Discord /goal command for installed supervised owner intake.
-- Add reviewed event writer version 3 activation and local operating mandate installation, inspection, and revocation.
-- Add revision-stable Lexical v2 repository-knowledge product search through protocol v9.
-- Add source-bound product surface contracts for activity, search, observability, and deliberation.
-- Add stable managed execution keys, atomic duplicate admission, bounded stdin requests, explicit multi-file CLI targets, and primary provider executable selection.
-- Add versioned supervision evidence storage, durable owner fencing, and recovery of unresolved decisions across source changes.
-- Add webhook-backed Discord agent identities with scoped provisioning and durable deployment bindings.
-- Allow exact repository role binding migration approval and preserve settled supervision evidence across administrative binding refreshes.
-- Allow explicitly bound coordinating agents to start bounded Discord automation chains.
-- Allow supervision review to resume when complete provider evidence proves default and explicit model accounting equivalent, while preserving original usage groups and budget limits.
-- Bind a reviewed supervision goal to an exact workstream snapshot while preserving prior assignments, resource history, and mandate budget succession.
-- Bind conversation deliberations to durable Lervo origins and preserve structured decision evidence for product surfaces.
-- Bind managed deliberation to exact topic evidence, prevent provider exploration, reserve finalization time, and settle recorded failures without uncertain replay.
-- Bind native semantic writing judgement to supervised assignment completion before independent owner acceptance and goal completion.
-- Bind Node dispatch readiness to verified task sources and recheck required capabilities, evidence freshness, and authority immediately before execution.
-- Bind repository research inputs to exact artifact checks and independent role evaluation; add scoped owner handoff admission, read-only peer observations, and bounded attention for unresolved worker effects.
-- Bind the exact repository writing contract when a human-facing role performs a managed CLI run.
-- Bound retained workspace proof reads to four concurrent observations while preserving complete checks, failure settlement and authority windows.
-- Bound worker authority revalidation so cancellation can finish when a repository observation stalls.
-- Check host filesystem access for supervised task paths before dispatch and final execution, rejecting unsafe aliases and preserving independent worker and tool permission evidence.
-- Clarify dormant outcome supervision readiness in Node and fleet status.
-- Complete verified worker results under current owner authority after the original execution lease expires, without replaying completed work.
-- Compose bounded native owner reasoning with canonical staffing allocation, responsibility acquisition and goal resource accounting.
-- Compose local Node supervision with verified mandate authority and durable owner fencing, and preserve the selected repository event writer version.
-- Compose native accepted-result publication with managed semantic evidence and bounded transport retries; start installed supervision through explicit Node configuration with scoped delivery and independent health.
-- Compose native staffing-gap proposals with fenced child registration and exact same-team membership before separate assignment admission.
-- Connect canonical owner-control admission, accepted-goal completion, and durable publication-only retry under exact authority and result evidence.
-- Correct PO work routing, preserve provider sessions, recover provider results, ground supervision acknowledgments in requests, and honor authorized Node deployments.
-- Correct provider version probes for minimal Node service environments.
-- Enable exact bound-workstream supervision while preserving selected review and agent identity.
-- Enable explicitly authorized Discord agent effects and cross-Node peer identity bindings.
-- Enable repository product owners to hire bounded child agents and atomically activate their Discord and durable organization deployments.
-- Expose privacy-bounded canonical activity through product-host protocol v8.
-- Improve deliberation reliability, targeted writing repair, and Discord status-publication routing.
-- Keep a hash-valid version-one captured result syncable when it predates provider-observed model identity, so Hub integrity audits stop failing on recorded history.
-- Keep addressed product owners in their own native execution sessions after hiring separately deployed conversation workers.
-- Keep Discord deliberation artifacts live, preserve recovery obligations, localize participant labels, and prevent automatic peer reply loops.
-- Keep Discord intake live for empty-content messages and let reviewed manual chain starters override automatic co-resident peer bindings.
-- Keep long supervision escalation histories readable after the action limit.
-- Keep native repository-work completion coordinates consistent when ignored generated files change.
-- Keep natural Discord deliberations in the source language, reply to the originating message, retain human design context, and target writing repairs to failed checks.
-- Keep shared repository knowledge indexes stable when hosts have different local execution histories or Git revision availability.
-- Make native reply selection contextual and expose allowlisted Discord channel and thread creation through managed conversation.
-- Observe native Codex and Claude stored-login status through explicit profiles before Node supervision execution, discarding account data and preserving independent service and tool authorization.
-- Overlap independent final dispatch probes and admission reads while preserving exact authority, five-second freshness checks, and settled reader cleanup.
-- Pass installed provider executables, models, reasoning settings, and evaluator schemas into managed deliberations, and require explicit agent effect authority.
-- Persist canonical workstream cancellation and reconcile unstarted assignments after mandate expiry or revocation without new provider execution.
-- Persist exact owner artifact reviews with canonical task evidence, fenced recovery, and separate completion and delivery boundaries.
-- Prepare exact supervised Git workspaces before native worker dispatch with authority revalidation and canonical preparation receipts.
-- Preserve assignment recovery lineage and lease generations; reopen rejected work under owner fencing and dispatch separately admitted successor attempts with retry causality in isolated workspace generations.
-- Preserve exact legacy v2 provider events while synchronizing repositories created before model identity evidence.
-- Preserve exhausted retry attention across validity-only mandate renewal.
-- Preserve explicit Discord addressees when notification suppression omits native mention metadata.
-- Preserve historical provider token observations without model identity in governed resource accounting and work reports.
-- Preserve managed-work resource, cached-input, and stage evidence in product observability.
-- Preserve newly prepared terminal snapshots when pruning the bounded local snapshot cache.
-- Preserve typed publication diagnostics and bound uncertain delivery with verified Discord reconciliation.
-- Prevent a running native conversation request from starting a second provider attempt when its source event is replayed.
-- Prevent repository replica outages from hung transports and unloaded coordinators.
-- Prevent repository work deadline misclassification and stabilize constrained replica synchronization.
-- Prevent unaddressed agent reply acknowledgements from starting another automated Discord response.
-- Provide observed UTC time to supervised owner planning so local calendar boundaries do not imply expired execution authority.
-- Publish verified deliberation contributions as natural Discord dialogue and prevent repair drafts from delegating review conclusions to other roles.
-- Read canonical Node service definitions that explicitly bind the Node executable before the runtime entry point.
-- Read Git checkout coordinates once and derive empty changes from a clean checkout at the exact base, retaining full changed-path inspection for dirty or advanced workspaces.
-- Reconcile terminated owner observations with bounded causal retries only when usage is observed; refresh changed source context and reassign unstarted responsibilities through exact expired-lease claims.
-- Record worker permission-denied readiness as canonical safe non-start evidence and resume the same admitted decision after the host repairs the permission.
-- Recover a fenced managed invocation with only its exact retained reservation before any requested run, preserving usage and rejecting partial lifecycle evidence.
-- Recover abandoned supervision ownership after process termination while preserving unresolved work and fencing previous owners.
-- Recover admitted result delivery that remained unqueued after its supervision source changed.
-- Recover canonical responsibility artifacts and predecessor history before Node execution, rejecting missing, corrupt, changed, or superseded duty bindings.
-- Recover existing responsibility bindings across exact reviewed mandate succession while preserving original evidence and current execution admission.
-- Recover expired owner reasoning plans only after exact fenced proof that no provider invocation began.
-- Recover expired prepared workspaces after admission blocks dispatch before any managed decision, preserving history and authority checks.
-- Recover expired supervised dispatch decisions only after fenced proof that their exact managed run has no events, preserving partial attempts for reconciliation.
-- Recover expired unstarted workspace preparation only with exact host absence evidence, and allow bounded preparation time for native responsibilities.
-- Recover unstarted native owner decisions through fenced source-change supersession, preserve their absence evidence across history and budget admission, and complete supervised event labels and idle health behavior.
-- Reduce idle Node CPU usage with incremental workstream verification and authenticated change notifications while preserving bounded integrity audits and recovery.
-- Reject provider-call budgets that cannot complete their configured deliberation and align the installed architecture review with bounded publication and process time.
-- Release a captured Discord conversation after the addressed exchange goes idle so one mention no longer keeps every later unaddressed message with the same agent.
-- Require canonical managed worker termination before confirming supervised dispatch.
-- Require configured provider and verification-tool executable observations on Node supervision preflights while preserving missing or negative authentication and permission evidence.
-- Require current repository knowledge and document normalization before Node supervision execution without treating repository currency as delivered task context.
-- Require provider-observed model identity in managed execution and conversation evidence.
-- Require trusted verification-suite hash pins and valid local definitions and working directories before Node supervision execution, without claiming verification success.
-- Reserve keyed managed invocations before provider work and connect fenced Node workers to isolated execution, canonical governance context, and result observations.
-- Reserve the full owner reasoning attempt ceiling before aggregate admission.
-- Resolve Git worktree and common-directory coordinates in one fresh observation to reduce repeated process startup during authority checks without caching repository identity.
-- Restore safe supervised replay, retry admission, and scoped knowledge readiness.
-- Resume supervised work after repaired preflight failures only when independent inspection proves execution never started.
-- Retain supervised request and review evidence across approved mandate successors.
-- Retain verified unstarted Git workspaces while renewing expired responsibility leases; dispatch only from the successor lease workspace.
-- Retire inactive Discord workforce webhooks and runtime deployments during reconciliation.
-- Retry a managed provider turn that failed without the provider ever naming a model instead of ending the assignment.
-- Reuse one verified read-only store during dispatch readiness so retained workspace checks preserve short authority windows without repeating full store audits.
-- Reuse the verified caller store for retained workspace proofs during responsibility claim admission so recovery avoids repeated full-store audits without weakening proof checks.
-- Reuse the verified event reader while checking retained workspaces for owner reasoning admission.
-- Reuse verified readers throughout workspace preparation, dispatch planning, receipt recovery and worker admission.
-- Route installed owner requests through shared local and Discord supervision intake.
-- Route managed Discord task delegation to the selected hired agent instead of dropping the action.
-- Run installed outcome supervision locally without a Hub using exact existing mandate authority and graceful process shutdown.
-- Run resumable native Codex and Claude repository work from Discord with durable per-agent sessions, duplicate coalescing, and Git-backed completion bookkeeping.
-- Scope result delivery recovery to the exact completed workstream snapshot.
-- Separate bounded repository knowledge inspection from fresh worker permissions and lease checks so large repositories can dispatch verified work.
-- Separate ordinary conversation checks from independent completed-result review.
-- Start a distinct workstream after settled completion while retaining local and Hub ancestry.
-- Start successor goals automatically under a reviewed standing supervision grant instead of a manual mandate transition per request.
-- Store a cancelled workstream status in the Hub replication schema so a successor of a settled cancelled goal can publish.
-- Support exact versioned amendments of unstarted assignment acceptance and verification, with fenced rollback and successor claims.
-- Support explicit native login profiles and observation-only managed turns without widening role write authority.
-- Support opaque binary resources in portable repository skills.
-- Synchronize exact uncommitted repository state across local and Discord Nodes, enforce native work completion, and route exact webhook-agent display-name addresses.
-- Treat repository-root workforce scopes consistently in worker admission, execution authority, and overlapping lease checks.
-- Validate assignment listings against one freshly resolved repository coordinate while retaining exact record and role checks.
-- Validate deliberation participant bindings against workforce provider policy evidence.
-- Verify canonical worker assignments, leases, role ancestry, and actual Git workspace ownership before Node supervision invokes an execution effect.
-- Wake repository replicas and conversation queues on change, coalesce snapshots, distribute integrity audits, and reduce redundant idle writes without weakening verification.
+- Accept a standing supervision configuration pinned to a later root mandate revision so upgraded Nodes keep starting.
+- Accept reviewed preflight repair evidence in v3 event readers
+- Accept the canonical parsed standing-owner form in guarded Node service upgrades while retaining exact configuration and work-admission fences.
+- Accept the owner attention absence proof when reading superseded supervision decisions.
+- Accept verified sparse Hub workstream checkpoints during bound supervision without weakening local ancestry checks.
+- Add a durable supervision preflight barrier and reviewed post-revocation owner spend allowance.
+- Add an exact-lease background knowledge failure outcome with restart-safe retry exhaustion.
+- Add delegated background canonicalization and independently reviewed document normalization with durable recovery, bounded provider admission, and explicit knowledge convergence status.
+- Add isolated no-tool semantic review for leased conversation knowledge jobs.
+- Add read-only knowledge review assignments without blocking live repository writers.
+- Add reader-first contracts and bounded local reconciliation for asynchronous repository knowledge work.
+- Add source-bound agent assignment provenance for asynchronous conversation knowledge work.
+- Add source-bound asynchronous conversation knowledge completion evidence while retaining the installed synchronous default.
+- Add the core repository knowledge worker that settles each queued repository change as current, pending review, stale or attention required.
+- Align supervised worker budget readiness with the reviewed per-attempt mandate policy.
+- Allow a new owner spend epoch only at an explicit mandate revocation
+- Allow cancelling a leased assignment whose lease has already expired.
+- Allow exact interrupted owner reconciliation to confirm its decision without claiming successful work.
+- Allow guarded Node upgrades to replace reviewed CLI bindings after verified stop while preserving work admission and restoring exact predecessor configuration on failure.
+- Assign open canonicalization candidates to the next Discord repository-work turn.
+- Assign pending document normalization to every repository-changing agent turn instead of a reviewer queue.
+- Bind complete bounded asset declarations to reviewed delegation and apply both authority files in one exact durable transaction.
+- Bound admission waiters during Node service upgrades without accepting unstarted work.
+- Bound supervision artifacts and the owner reasoning context at 1 MiB so long goals keep reasoning.
+- Bound the Claude login status probe so a hung probe still falls back to the stored login within the readiness window.
+- Capture exact leased conversation source bytes for background knowledge review.
+- Charge a completed supervised owner turn its provider-reported usage against the owner spend epoch instead of its full reservation.
+- Charge a terminated owner turn without usage its reservation instead of blocking the owner spend epoch.
+- Charge cached input re-reads at their cost against supervision token budgets.
+- Charge nothing for a superseded owner decision whose provider never started against the owner spend epoch.
+- Compile complete execution evidence through verified bounded pages while preserving original event identities and repository source policy.
+- Correct Discord work recovery and runtime status reporting.
+- Date supervised admission after final source validation to avoid false stale failures under slow repository reads.
+- Distinguish stale supervision admission from changed mandate, task, and plan sources.
+- Drain document normalization debt in bounded batches that skip a document whose normalized output was rejected.
+- Drop Git-ignored build outputs from background knowledge change sources.
+- Drop Lervo-generated projections from background knowledge change sources.
+- Exclude Lervo projections and state from Discord repository-work observation so generated evidence cannot exceed its path bound.
+- Exclude Playwright test-results and playwright-report output from repository knowledge scans and change evidence.
+- Fence asynchronous conversation knowledge work with exact outbox lease and source preflight.
+- Fix multi-suite knowledge integration and keep host-bound grants local.
+- Follow events a worker appends during an authority observation instead of killing the worker.
+- Follow reviewed standing root mandate revisions without changing the configured ancestry pin.
+- Generate document normalization candidates on the Node outside the provider sandbox, and have repository-work turns review and apply the stored candidate.
+- Give owner reasoning a five-minute invocation window so a turn that reads sources is not cut off.
+- Honor reviewed canonical workset limits and capture explicitly reviewed repository references and asset inventories.
+- Host the repository knowledge owner in the Node alongside the CLI worker, sharing one repository lock.
+- Include linked review contracts, renew long verification leases, and isolate compiler caches.
+- Inspect retained supervision workspaces in bounded parallel during owner reasoning
+- Install an existing replacement for an exhausted rework instead of escalating again.
+- Isolate the bundled Node resident knowledge owner in its own managed process while preserving authority and graceful shutdown.
+- Keep a refreshable stored Claude login ready when the status probe cannot answer after the access token lapses.
+- Keep a superseded workspace generation proven unstarted while the current worker appends its own events.
+- Keep a supervised worker running through slow authority reads during verification, and log the failure code of an uncertain effect.
+- Keep admitted conversation work alive until Node shutdown finishes draining.
+- Keep an unchanged blocked supervision source reported as blocked instead of healthy.
+- Keep earlier verification results valid after their suite definition changes, so a suite edit no longer stops the Node.
+- Keep final worker readiness and admission witnesses inside one bounded window after context preparation.
+- Keep interactive startup available with streaming validated recent execution evidence while preserving complete-history limits.
+- Keep supervised worker readiness current through task context and final checks.
+- Let a Hub-enabled repository with no registered Node on its host activate a newer event writer from its local reader alone.
+- Let a managed run with several expected paths create a target turn per path instead of failing validation.
+- Let a replacement under the same acceptance contract supersede an exhausted rework, and stop counting cancelled assignments as unbound work.
+- Let a responsibility claim bind over an assignment whose earlier checkout was retired.
+- Let a supervision owner act after a restart whose first cycle reconciled a pending decision.
+- Let a supervision owner replace an exhausted rework with a fresh assignment instead of only escalating.
+- Let the supervision owner allocate remaining goal scope after every current assignment is accepted.
+- Load exact canonical context automatically for bounded asynchronous conversation knowledge review.
+- Move managed conversation repository snapshots into owned Node subprocesses to keep Discord replies responsive.
+- Name the fields of a supervised owner completion verdict that cannot be materialized instead of failing every cycle.
+- Name the missing or invalid allocation fields when a supervised owner proposal is rejected, so the next owner turn can correct them.
+- Name the wrapped cause when a supervision effect becomes uncertain.
+- Permit exact non-start dispatch reconciliation after supervision revocation.
+- Preserve privacy-bounded provider transport failure diagnostics for managed runs.
+- Preserve retired agent history and distinct background knowledge ownership during reconciliation.
+- Preserve safe Discord webhook result publication and reject unsupported remote task coordination before send.
+- Preserve service upgrades when graceful shutdown outlasts a short manager command timeout.
+- Preserve unavailable pre-start usage and revalidate owner budgets against reconciled sources.
+- Preserve verified prior conversation context in new supervised Discord goal bindings.
+- Prevent Node service upgrades from interrupting admitted conversation and remote command work.
+- Prevent product-owner services from replaying supervised work during installation or restart.
+- Prevent supervised Node upgrades from interrupting active owner work.
+- Project managed owner evidence comments from decoded JSON strings, version the repaired reference contract without resetting spend limits, and preserve truthful publication blockers.
+- Publish every completed supervision worker result as a create-only lervo/results branch.
+- Queue Discord repository-work completions for background knowledge and register a canonicalization candidate for every pending review.
+- Read bounded supervision preflight non-start events without activating a writer.
+- Read Claude context-window usage keys such as claude-opus-5-5[1m] as their base model so managed Claude results are accepted.
+- Reconcile a supervision decision whose attempt already ended uncertain, and let a rolled-back topology allocation be superseded.
+- Reconcile interrupted read-only owner turns without inventing token usage or replaying work.
+- Reconcile terminal owner start failures with exact host proof and unknown usage.
+- Record a durable background knowledge job for every changed managed run and terminal turn on a version-3 event writer.
+- Record historical conversation knowledge debt with exact agent authority and no invented source evidence.
+- Record terminal hook stage timings for repositories on the version-3 event writer.
+- Record the adapter error behind a failed managed turn, and read annotated failure diagnostics without failing supervision.
+- Recover a supervised write run that died during verification after its provider stopped.
+- Recover exact prepared workspace receipts, bound supervision startup deferral, and preserve local completion without forced publication.
+- Recover invalid supervised owner proposals and map authorized shell readiness without recurring cycle errors.
+- Recover verified Discord repository-work completions after restart and keep repeated messages distinct.
+- Refresh exact worker admission after slow readiness probes without weakening the freshness bound.
+- Reject an overlong supervised owner task purpose with a named field instead of an unexplained contract failure.
+- Reject repository work whose changed-path evidence exceeds the canonical completion bound.
+- Reopen supervision escalation capacity after each reviewed mandate installation.
+- Report pending supervision health until a restarted owner evaluates its goal, and keep the adapter's turn failure code in run diagnostics.
+- Report the worker CLI's bounded failure reason when a supervised dispatch leaves no canonical evidence.
+- Require matching supervision authority for Discord goal intake and write bounded outcomes through managed conversation prose.
+- Reserve the reviewed per-attempt token budget for a supervised worker dispatch instead of the owner reasoning reservation.
+- Resolve spend-exhausted supervision preflight blocks through an approved authority review
+- Resolve the current standing supervision binding in the abandoned-turn and pre-turn repair commands.
+- Restore bounded supervisor history by retaining complete causal workstream execution and validating all original canonical events.
+- Resume unfinished supervised worker duties after a Node restart.
+- Retain supervised preflight barriers across standing successor goals
+- Retire never-used supervised worker checkouts under the owner lease
+- Retry a stale supervision admission or readiness observation once before blocking the owner.
+- Retry an unclassified supervision preflight failure once before blocking, and supersede unrecorded artifact reviews and goal completions.
+- Return an owner's revision of an unrevisable assignment as proposal feedback instead of failing every supervision cycle.
+- Run the repository knowledge worker from the CLI and launch it detached after a changed terminal turn or managed run.
+- Send the supervised owner a compact view of its context: recent workstream notes, live assignments and one workstream copy.
+- Settle a dead writable supervised worker turn as effects-uncertain so it stops holding worker concurrency.
+- Settle a rework-rejected assignment once a later assignment replaces it, across routing, completion and publication.
+- Settle missing or corrupt background knowledge sources as exact attention outcomes without claiming currency.
+- Stop a supervised managed provider turn once its tokens pass the attempt's reserved budget.
+- Stop owner reasoning retries after a provider usage limit and before unspendable reservations
+- Stop repeated owner supervision failures from malformed escalation details.
+- Supersede a never-bound responsibility claim once its start deadline passes, and log the cause of uncertain supervision effects.
+- Supersede an owner escalation that a preflight blocked before it was recorded, so the owner can decide again.
+- Tell the supervision owner that managed workers have no shell, so command checks must be verification suites the host runs.
+- Treat a Claude turn that failed before any model answered, such as a contended OAuth refresh, as a retryable unavailable model.
+- Verify conversation knowledge job artifacts and repository source bytes before agent review.

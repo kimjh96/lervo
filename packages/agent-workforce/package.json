@@ -23,6 +23,7 @@
     "@lervo/project": "workspace:*",
     "@lervo/project-storage": "workspace:*",
     "@lervo/request-grounding": "workspace:*",
-    "@lervo/roles": "workspace:*"
+    "@lervo/roles": "workspace:*",
+    "@lervo/schemas": "workspace:*"
   }
 }

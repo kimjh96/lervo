@@ -31,6 +31,12 @@ Within a multi-bot Node, an exact reviewed manual participant binding overrides 
 
 Installed Node deployments can map bounded canonical repository event types to proactive signals and run explicit cross-provider deliberation through the durable queue. Both preserve deterministic turn ownership, managed retrieval, provider budgets, repository verification, CAS, and event evidence. Discord is only the current transport.
 
+Generic `assignment.completed` signals no longer start a conversation turn. Frequent background
+knowledge assignments had caused each completion to wake an expensive general-channel model
+reader. Origin-bound result delivery remains the acceptance path for completed work; installed
+verification must show that convergence completions advance the repository-signal cursor without
+new proactive provider runs, while other configured signals continue to work.
+
 Named conversation speakers and formal-deliberation participants are separate identity planes. An ordinary Discord speaker is backed by a durable hired-agent binding (`agentId`, role version and hashes, participant, and bot or webhook deployment). A formal policy seat remains internal unless an explicit participation route joins it to one exact active organization membership, deployment, channel membership, provider policy, model, and effort. The repository-local participant runtime must accept that immutable route before execution, work causality records the durable agent, the verified workforce role supplies its role and context profile, and artifact publication uses the already attached speaker deployment without a synthetic seat heading. Presence, provider compatibility, or a matching job label cannot create the binding. User-facing copy must not present an unbound policy role as a speaker, and installation work must not create same-named shadow webhooks or agents for an already bound application bot.
 
 The installed executive boundary executes hash-bound, allowlisted Discord text-channel and public-thread effects with durable replay and fail-closed uncertainty. The installed deliberation worker reconciles uncertain outcomes from canonical CLI evidence and publishes a bounded visible result through the managed conversation path.

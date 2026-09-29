@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d16f636a158b597ed1be53b5"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Let a responsibility claim bind over an assignment whose earlier checkout was retired."

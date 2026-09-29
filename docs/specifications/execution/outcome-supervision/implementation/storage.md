@@ -4,6 +4,8 @@ The workforce package owns `SupervisionDecisionJournal`, `SupervisionMandateJour
 
 The CLI composes reviewed local mandate installation. The explicit Node factory connects local authority, storage, and responsibility recovery; production startup activation remains open.
 
+[ADR-0439](../../../../decisions/execution/orchestration/governed-work/node-composition/0439-project-complete-scoped-supervision-history.md) defines the task reader's complete workstream projection. Incremental control metadata selects validated whole causal trees and explicitly linked runs; a second reader retains every original event for those runs and backfills earlier rows when a binding changes. Both readers validate the entire encountered chain and retain the existing audit, inode, sequence, and byte bounds. Unrelated execution bodies are outside this task projection, rather than deleted or treated as current repository knowledge. Unstable selection fails with `supervision_history_scope_unstable`. Peer observations use the existing authority projection.
+
 - [Reviewed installation](storage/installation.md): local plan, apply, inspection, revocation, and source validation.
 - [Decisions and artifacts](storage/decisions-and-artifacts.md): journal evidence, CAS artifacts, recovery, and bounds.
 - [Canonical responsibilities](storage/responsibilities.md): exact CAS recovery, predecessor history, and Node admission.

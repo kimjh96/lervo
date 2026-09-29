@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_aaef08a1293c29ddd61d7953"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Supersede an owner escalation that a preflight blocked before it was recorded, so the owner can decide again."

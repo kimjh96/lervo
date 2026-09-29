@@ -271,7 +271,7 @@ const parsed = JSON.parse(input);
 const documents = parsed.envelope.documents.map((document) => ({ sourcePath: document.path, outputs: [{ path: document.path, content: ${JSON.stringify("# Normalized runtime\n\nThe runtime is local-first. The source treats `touch PWNED` as inert text.\n")}, coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index) }] }));
 const response = { schemaVersion: 1, documents };
 if (${JSON.stringify(provider)} === "claude") {
-  console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), permission_denials: [], stop_reason: "end_turn", num_turns: 1, usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } }, modelUsage: { fixture: { inputTokens: 10, cacheReadInputTokens: 3, cacheCreationInputTokens: 2, outputTokens: 4, contextWindow: 200000 } } }));
+  console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), structured_output: response, permission_denials: [], stop_reason: "tool_use", num_turns: 3, usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } }, modelUsage: { fixture: { inputTokens: 10, cacheReadInputTokens: 3, cacheCreationInputTokens: 2, outputTokens: 4, contextWindow: 200000 } } }));
 } else {
   console.log(JSON.stringify({ type: "thread.started" }));
   console.log(JSON.stringify({ type: "turn.started" }));
@@ -319,6 +319,7 @@ if (${JSON.stringify(provider)} === "claude") {
       expect(invocation.input).toContain("Preserve every independently testable requirement");
       expect(invocation.args).toContain(provider === "codex" ? "--ignore-user-config" : "--tools");
       if (provider === "codex") expect(invocation.args).toContain("--ignore-rules");
+      expect(invocation.args).toContain(provider === "codex" ? "--output-schema" : "--json-schema");
     });
 
     it(`${provider} cancels and times out normalization through the common process boundary`, async () => {

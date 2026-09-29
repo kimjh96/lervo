@@ -54,6 +54,9 @@ export class RepositoryConversationSignalSource {
   }
 
   private async dispatchMappings(source: EventEnvelope): Promise<void> {
+    // Assignment completion has its own origin-bound result path. A generic repository signal
+    // turns every background convergence completion into another costly conversation run.
+    if (source.type === "assignment.completed") return;
     for (const mapping of this.options.mappings.filter((item) => item.eventType === source.type)) {
       const conversationIds = mapping.conversationIds ?? this.options.conversationIds;
       for (const conversationId of conversationIds) {

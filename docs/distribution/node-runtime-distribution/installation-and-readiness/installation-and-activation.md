@@ -36,6 +36,10 @@ Use `--manager systemd` on Linux.
 
 For a configured supervised Node, `service:manage --action upgrade` and `rollback` acquire the repository supervision owner fence before stopping the old unit. `service_upgrade_supervision_busy` means a cycle is still active: leave the old service running and retry after it settles. Do not stop the unit manually to bypass the fence. This guard does not yet prove independent conversation turns are drained.
 
+When an existing configuration directly pins an older deliberation CLI, prepare an exact owner-only candidate that changes only its `cliExecutable` references. A guarded Node upgrade may add `--configuration-source <candidate.json>` while retaining the running configuration path. The manager verifies stop before replacing bytes and the frozen admission digest; failure restores both before predecessor restart. An unresolved private transition journal requires recovery, not another unchecked attempt. Reader rehearsal must include these pinned CLI entrypoints before enabling a newer event writer.
+
+The same guarded transition can instead add one already shared Discord channel to one identity, with no other candidate changes. For an organization-bound identity, the durable deployment must be rebound under the same stopped-service work freeze and returned to its predecessor binding on rollback. Preflight the replacement after the rebind and observe the Node's `conversation.status: ready` after activation.
+
 ## Readiness
 
 Check service-manager stability and the owner-only health snapshot separately. Discord readiness appears as `conversation.status: ready` after Gateway READY or RESUMED authentication. Startup history reconciliation runs as application work after that authenticated observation; a bounded history or platform failure is reported as `dispatch_failed` and must not be relabeled as a Gateway protocol failure or force a reconnect loop. Live authenticated dispatch remains available, and a later genuine reconnect retries reconciliation.

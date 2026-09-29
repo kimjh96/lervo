@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { watch, type FSWatcher } from "node:fs";
 import { basename, dirname, resolve, sep } from "node:path";
 import { promisify } from "node:util";
+import { observeRepositoryChangeHint } from "./repository-change-observation.js";
 
 const execute = promisify(execFile);
 const maximumDirectories = 4_096;
@@ -11,11 +12,20 @@ export async function watchRepositoryChanges(
   root: string,
   notify: () => void,
   failed: () => void = notify,
+  options: { recoveryIntervalMs?: number } = {},
 ): Promise<() => void> {
+  const recoveryInterval = options.recoveryIntervalMs ?? 60_000;
+  if (
+    !Number.isSafeInteger(recoveryInterval) ||
+    recoveryInterval < 100 ||
+    recoveryInterval > 60_000
+  )
+    throw new Error("Repository watcher recovery interval is invalid.");
   const watchers = new Map<string, FSWatcher>();
   let stopped = false;
   let refreshTimer: ReturnType<typeof setTimeout> | undefined;
   let refreshing: Promise<void> | undefined;
+  let recoveryTimer: ReturnType<typeof setInterval> | undefined;
   const git = async (args: string[]) =>
     (await execute("git", ["-C", root, ...args], { maxBuffer: 4 * 1024 * 1024 })).stdout;
   const gitDirectory = resolve(root, (await git(["rev-parse", "--git-dir"])).trim());
@@ -26,6 +36,7 @@ export async function watchRepositoryChanges(
   const close = () => {
     stopped = true;
     if (refreshTimer !== undefined) clearTimeout(refreshTimer);
+    if (recoveryTimer !== undefined) clearInterval(recoveryTimer);
     for (const watcher of watchers.values()) watcher.close();
     watchers.clear();
   };
@@ -117,6 +128,30 @@ export async function watchRepositoryChanges(
   };
   try {
     await refresh();
+    const observe = () => observeRepositoryChangeHint({ root, gitDirectory, commonDirectory, git });
+    let observation = await observe();
+    let observing = false;
+    recoveryTimer = setInterval(() => {
+      if (stopped || observing) return;
+      observing = true;
+      void observe()
+        .then((next) => {
+          if (stopped || next === observation) return;
+          observation = next;
+          notify();
+          scheduleRefresh();
+        })
+        .catch(() => {
+          if (!stopped) {
+            close();
+            failed();
+          }
+        })
+        .finally(() => {
+          observing = false;
+        });
+    }, recoveryInterval);
+    recoveryTimer.unref();
   } catch (error) {
     close();
     throw error;

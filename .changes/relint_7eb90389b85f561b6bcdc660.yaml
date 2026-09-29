@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7eb90389b85f561b6bcdc660"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Name the fields of a supervised owner completion verdict that cannot be materialized instead of failing every cycle."

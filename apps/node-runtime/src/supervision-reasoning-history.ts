@@ -24,6 +24,7 @@ import {
   type OwnerReasoningContext,
 } from "./supervision-reasoning-context.js";
 import { inspectOwnerReasoning } from "./supervision-reasoning-receipt.js";
+import { readInvalidReasoningResult } from "./supervision-invalid-reasoning-result.js";
 
 export async function readOwnerReasoningHistory(input: {
   storage: ProjectStorage;
@@ -134,7 +135,18 @@ export async function readReusableOwnerDecision(input: {
     const terminal = input.source.events.find(
       (event) => event.runId === identity.runId && event.type === "run.completed",
     );
-    if (terminal === undefined) continue;
+    if (terminal === undefined) {
+      const resultArtifactHash = await readInvalidReasoningResult(input.storage, identity.runId);
+      if (resultArtifactHash !== null)
+        return {
+          history,
+          decision: null,
+          reasoningPlanHash: operatingContractHash(entry.plan),
+          resultArtifactHash,
+          reason: "invalid_reasoning_result" as const,
+        };
+      continue;
+    }
     const resultArtifactHash = String(terminal.payload.resultDigest);
     const resultText = await readSupervisionTextArtifact(
       input.storage.artifacts,

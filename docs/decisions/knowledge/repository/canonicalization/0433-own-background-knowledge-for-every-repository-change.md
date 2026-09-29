@@ -60,7 +60,7 @@ A projection refresh alone never closes a canonicalization obligation. Retries, 
 
 ## Consequences
 
-A Discord conversation turn selects the background mode per turn when the writer coordinate is version 3, and otherwise keeps the synchronous check.
+A Discord conversation turn selects the background mode per turn when the writer coordinate is version 3 or its compatible version-4 successor, and otherwise keeps the synchronous check. The version-4 transition also preserves reviewed mandate installation and supervision authority checks; it grants no new mandate or execution authority.
 
 Supervised worker results (amended 2026-09-25): a worker edits a detached checkout, and the owner accepts only its result artifact, so accepted file changes previously never left the checkout. The Node now commits each owner-accepted worker assignment's checkout onto a create-only branch `lervo/results/<assignment>`. Acceptance means a `work.supervision.review.recorded` event with verdict `accepted` that names the assignment's exact result artifact. A completed assignment alone only means the worker returned a result, which the owner may still send back for rework. It uses a private index and fixed dates, and it excludes Git-ignored files. The checked-out branch and working tree are never touched, because they may hold user-owned uncommitted work. Landing a result is a merge by a later observed terminal or Discord turn, which records the change source and queues its knowledge job like any other change.
 

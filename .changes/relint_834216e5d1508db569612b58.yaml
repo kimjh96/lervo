@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_834216e5d1508db569612b58"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Isolate the bundled Node resident knowledge owner in its own managed process while preserving authority and graceful shutdown."

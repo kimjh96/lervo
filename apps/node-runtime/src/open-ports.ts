@@ -23,6 +23,7 @@ export interface NodeDiscordConversationOpenPorts {
 }
 
 export interface NodeRuntimeOpenPorts {
+  knowledgeWorkerEntry?: string;
   runtimeConfigPath?: string;
   runtimeConfigDigest?: string;
   createTransport?: (options: SyncHttpTransportOptions) => AuthenticatedHubTransport;

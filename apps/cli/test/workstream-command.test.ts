@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { openProjectStorage } from "@lervo/project-storage";
+import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
@@ -14,6 +15,95 @@ afterEach(async () => {
 });
 
 describe("workstream CLI", () => {
+  it("verifies the selected workstream independently of another goal's cancellation", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-workstream-selection-"));
+    roots.push(root);
+    const quiet = { cwd: root, stdout: () => undefined, stderr: () => undefined };
+    expect(await runCli(["init"], quiet)).toBe(0);
+    const draft = JSON.stringify({
+      schemaVersion: 1,
+      status: "active",
+      title: "Continue background convergence",
+      objective: "Preserve independently selected work.",
+      nextActions: [],
+      blockers: [],
+      notes: [],
+      references: [],
+      updatedAt: "2026-09-28T00:00:00.000Z",
+    });
+    const output: string[] = [];
+    expect(
+      await runCli(["workstream", "start", "--stdin", "--json"], {
+        ...quiet,
+        stdin: async () => draft,
+        stdout: (value) => output.push(value),
+      }),
+    ).toBe(0);
+    const plan = JSON.parse(output.join("")) as { planId: string };
+    expect(
+      await runCli(["workstream", "start", "--stdin", "--apply", plan.planId], {
+        ...quiet,
+        stdin: async () => draft,
+      }),
+    ).toBe(0);
+    const currentPath = resolve(root, ".lervo/state/workstreams/current.json");
+    const currentBytes = await readFile(currentPath, "utf8");
+    const selected = JSON.parse(currentBytes) as Record<string, unknown>;
+    const cancelled = {
+      ...selected,
+      workstreamId: "wks_0123456789abcdef01234567",
+      revision: 2,
+      status: "cancelled",
+    };
+    const storage = await openProjectStorage(root);
+    try {
+      const artifact = await storage.artifacts.put(`${canonicalJson(cancelled)}\n`);
+      storage.events.append({
+        eventId: "evt_0123456789abcdef0123456789abcdef",
+        projectId: storage.manifest.projectId,
+        runId: "run_0123456789abcdef0123456789abcdef",
+        sessionId: "ses_0123456789abcdef0123456789abcdef",
+        type: "workstream.snapshot.recorded",
+        actor: { kind: "user" },
+        schemaVersion: 1,
+        policyVersion: artifact.contentHash,
+        occurredAt: "2026-09-28T00:01:00.000Z",
+        payload: {
+          workstreamId: cancelled.workstreamId,
+          revision: 2,
+          status: "cancelled",
+          changeKind: "user_update",
+          snapshotArtifactId: `art_${artifact.contentHash.slice(7)}`,
+          snapshotContentHash: artifact.contentHash,
+          previousSnapshotContentHash: sha256("fixture predecessor"),
+          sourceArtifactId: null,
+          sourceContentHash: null,
+          recordedAt: "2026-09-28T00:01:00.000Z",
+        },
+      });
+    } finally {
+      await storage.close();
+    }
+    const observed: string[] = [];
+    expect(
+      await runCli(["workstream", "current", "--json"], {
+        ...quiet,
+        stdout: (value) => observed.push(value),
+      }),
+    ).toBe(0);
+    expect(JSON.parse(observed.join(""))).toMatchObject({ workstream: selected });
+    expect(await readFile(currentPath, "utf8")).toBe(currentBytes);
+    await writeFile(currentPath, `${canonicalJson({ ...selected, revision: 2 })}\n`);
+    const errors: string[] = [];
+    expect(
+      await runCli(["workstream", "current", "--json"], {
+        ...quiet,
+        stderr: (value) => errors.push(value),
+      }),
+    ).toBe(1);
+    expect(errors.join("")).toContain("differs from its latest committed event");
+  });
+
   it("starts a first workstream without requiring a legacy filename", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-workstream-start-"));
     roots.push(root);

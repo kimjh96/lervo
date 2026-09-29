@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_20aa3f17e053858cb65a8ff2"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Report the worker CLI's bounded failure reason when a supervised dispatch leaves no canonical evidence."

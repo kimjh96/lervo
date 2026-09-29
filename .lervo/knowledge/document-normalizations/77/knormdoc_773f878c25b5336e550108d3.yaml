@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b84b4304b6d888d109e5f686
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c75c2b2f586d09f67cf4c9a3
+outputLanguage: en
+outputs:
+  - byteCount: 4439
+    contentHash: sha256:7c71c45abdc4266aa26d187f1e5475b8265d37f01ecd618a8f3fc05cb78346e2
+    path: docs/decisions/coordination/conversations/0049-durable-conversation-deployment.md
+    userRegionHash: sha256:7c71c45abdc4266aa26d187f1e5475b8265d37f01ecd618a8f3fc05cb78346e2
+profile: decision_record
+recordId: knormdoc_773f878c25b5336e550108d3
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:423ecf99b49f98c868d3193493fcb221af39ba77f41b1229dcd11f45de460e65
+sourcePath: docs/decisions/coordination/conversations/0049-durable-conversation-deployment.md
+sourceUnitVersionIds:
+  - uv_05fb9a2c498dfb6ccd46150d
+  - uv_14edeba585cc16e268934013
+  - uv_4ee7840cf7f08d662376f1f8
+  - uv_5d4586702240fbb4b4df6989
+  - uv_7290bf153907cab13eeb0ac4
+  - uv_7c29c6fc90dfa10e4d692a0c
+  - uv_8cadc884d51b3ce2cd85c526
+  - uv_e6cf7c162fd088f14f9486e6
+  - uv_eaa4b2b1a9bab3d2cc3d0a4f

@@ -1,4 +1,5 @@
 import { watch, type FSWatcher } from "node:fs";
+import { lstat } from "node:fs/promises";
 import { basename, dirname } from "node:path";
 import { resolveProjectPaths } from "@lervo/project";
 
@@ -38,11 +39,20 @@ export function createSchedulerChangeWait(root: string, killSwitchPath: string) 
       await new Promise<void>((resolve) => {
         const finish = () => {
           clearTimeout(timer);
+          clearInterval(killSwitchRecovery);
           release = undefined;
           pending = false;
           resolve();
         };
         const timer = setTimeout(finish, milliseconds);
+        const killSwitchRecovery = setInterval(() => {
+          void lstat(killSwitchPath)
+            .then(finish)
+            .catch((error: NodeJS.ErrnoException) => {
+              if (error.code !== "ENOENT") finish();
+            });
+        }, 1000);
+        killSwitchRecovery.unref();
         release = finish;
       });
     },

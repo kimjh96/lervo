@@ -28,7 +28,8 @@ describe("reader-first event envelope compatibility", () => {
     expect(validateSchema("event", envelope()).valid).toBe(true);
     expect(validateSchema("event", envelope({ schemaVersion: 2 })).valid).toBe(true);
     expect(validateSchema("event", envelope({ schemaVersion: 3 })).valid).toBe(true);
-    expect(validateSchema("event", envelope({ schemaVersion: 4 })).valid).toBe(false);
+    expect(validateSchema("event", envelope({ schemaVersion: 4 })).valid).toBe(true);
+    expect(validateSchema("event", envelope({ schemaVersion: 5 })).valid).toBe(false);
   });
 
   it("reserves supervision event types for v3 envelopes", () => {

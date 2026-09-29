@@ -42,10 +42,10 @@ export function createEventWriterActivationPlan(input: {
   currentCoordinate: EventWriterCoordinate;
   currentContentHash: string | null;
   evidence: unknown;
-  targetEventSchemaVersion?: 2 | 3;
+  targetEventSchemaVersion?: 2 | 3 | 4;
 }): EventWriterActivationPlan {
   const target = input.targetEventSchemaVersion ?? 2;
-  if (target !== 2 && target !== 3) {
+  if (target !== 2 && target !== 3 && target !== 4) {
     failEventWriterActivation(
       "event_writer_evidence_invalid",
       "The requested writer version is unsupported.",
@@ -123,7 +123,7 @@ export function createEventWriterActivationPlan(input: {
     hubSyncEnabled: input.hubSyncEnabled,
   });
   const desiredCoordinate = readEventWriterCoordinate({
-    schemaVersion: target === 3 ? 2 : 1,
+    schemaVersion: target === 4 ? 3 : target === 3 ? 2 : 1,
     projectId: input.projectId,
     selectedEventSchemaVersion: target,
     activationEvidence: {

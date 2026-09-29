@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e44f83af1bcc47ce6a636018"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Record terminal hook stage timings for repositories on the version-3 event writer."

@@ -24,6 +24,14 @@ The rebuildable `repository-signal-cursor.json` projection contains schema versi
 
 Proactive production requires a participation policy that explicitly uses `proactive`, permits the `system` actor, and subscribes to every mapped signal code. Existing cooldown, hourly response limit, automation-depth limit, deterministic multi-agent turn ownership, relevance policy, typing lifecycle, provider budget, and terminal failure behavior remain in force. Unconfigured deployments produce no signals.
 
+Assignment completion is excluded from proactive repository signals, even when a legacy
+configuration still maps `assignment.completed`. Completion already has an origin-bound result
+path. Background knowledge convergence can complete many assignments in a short interval;
+turning each one into a general-channel model response multiplies provider use without a new
+human request. The signal cursor still advances over these canonical events, and other mapped
+signals retain their normal behavior. This exclusion adds no event or private content to the
+conversation projection.
+
 ### Installed deliberation
 
 Installed deliberation uses the existing platform-neutral durable queue. Exact human participant bindings separately grant start, read, and resume permissions. Explicit `/lervo deliberate` commands bypass model intent classification and enter the queue immediately. ADR-0415 additionally permits natural-language start through the same port when a deployment explicitly selects a default policy.

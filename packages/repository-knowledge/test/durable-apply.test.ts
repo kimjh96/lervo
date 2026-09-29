@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { applyInitPlan, createInitPlan } from "@lervo/project";
+import { acquireRepositorySourceRead } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -40,6 +41,34 @@ afterEach(async () => {
 });
 
 describe("durable semantic knowledge materialization", () => {
+  it("defers a materialization while a live repository reader is active", async () => {
+    const root = await repository();
+    const operation = createOperation();
+    const lease = await acquireRepositorySourceRead(root);
+    const input = {
+      repositoryRoot: root,
+      projectId: "prj_durableknowledge",
+      planId: `ksmat_${"f".repeat(24)}`,
+      operations: [operation],
+      documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+        repositoryRoot: root,
+        operations: [operation],
+      }),
+      receipt: { ok: true },
+      recordApplied: () => undefined,
+    };
+    try {
+      await expect(applyDurableKnowledgeOperations(input)).rejects.toMatchObject({
+        code: "knowledge_materialization_busy",
+      });
+      await expect(access(resolve(root, operation.path))).rejects.toThrow();
+    } finally {
+      lease.release();
+    }
+    await expect(applyDurableKnowledgeOperations(input)).resolves.toEqual({ ok: true });
+    await expect(readFile(resolve(root, operation.path), "utf8")).resolves.toBe("after\n");
+  });
+
   it("rejects a document mutation without a projected-layout permit", async () => {
     const root = await repository();
     await expect(

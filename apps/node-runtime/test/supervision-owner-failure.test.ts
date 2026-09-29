@@ -3,6 +3,7 @@ import { readFile, writeFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, expect, it } from "vitest";
+import { invalidReasoningResultCapture } from "../src/supervision-invalid-reasoning-result.js";
 import { listAssignments } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 import type { OperatingActionPlanV1 } from "@lervo/application-contract";
@@ -226,8 +227,63 @@ it.each(["corrected", "exhausted", "malformed"] as const)(
       });
     let runtime = await open();
     try {
-      expect((await runtime.runCycle()).disposition).toBe("effect_confirmed");
+      const initial = await runtime.runCycle();
+      expect(
+        initial.disposition,
+        JSON.stringify(
+          storage.events
+            .list({ limit: 1000 })
+            .filter((event) =>
+              [
+                "adapter.result.captured",
+                "adapter.stopped",
+                "run.failed",
+                "resource.usage.recorded",
+              ].includes(event.type),
+            )
+            .map((event) => ({ type: event.type, payload: event.payload })),
+        ),
+      ).toBe("effect_confirmed");
       expect(await listAssignments(f.root)).toHaveLength(0);
+      if (scenario === "malformed") {
+        const events = storage.events.list({ limit: 1000 });
+        const failed = events.find(
+          (event) =>
+            event.type === "run.failed" &&
+            event.payload.failureCode === "contract_validation_failed",
+        );
+        expect(failed).toBeDefined();
+        const captured = events.find(
+          (event) => event.type === "adapter.result.captured" && event.runId === failed!.runId,
+        );
+        expect(captured?.payload.referenceTelemetry).toBe("supported");
+        expect(invalidReasoningResultCapture(events, failed!.runId)?.eventId).toBe(
+          captured!.eventId,
+        );
+        expect(
+          invalidReasoningResultCapture(
+            events.filter((event) => event.type !== "adapter.stopped"),
+            failed!.runId,
+          ),
+        ).toBeNull();
+        expect(
+          invalidReasoningResultCapture(
+            events.filter((event) => event.type !== "resource.usage.recorded"),
+            failed!.runId,
+          ),
+        ).toBeNull();
+        expect(invalidReasoningResultCapture([...events, captured!], failed!.runId)).toBeNull();
+        expect(
+          new TextDecoder().decode(
+            await storage.artifacts.get(
+              `lervo-cas://sha256/${String(captured!.payload.resultDigest).slice(7)}`,
+            ),
+          ),
+        ).toBe("{not-json");
+        expect(
+          events.some((event) => event.type === "run.completed" && event.runId === failed!.runId),
+        ).toBe(false);
+      }
       await runtime.close();
       runtime = await open();
       const retried = await runtime.runCycle();

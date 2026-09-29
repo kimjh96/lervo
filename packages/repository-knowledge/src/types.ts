@@ -414,6 +414,8 @@ export class RepositoryKnowledgeError extends Error {
       | "knowledge_recovery_not_found"
       | "knowledge_recovery_busy"
       | "knowledge_recovery_invalid"
+      | "knowledge_materialization_busy"
+      | "knowledge_source_gate_invalid"
       | "knowledge_rollback_failed"
       | "knowledge_impact_invalid"
       | "knowledge_lint_failed"

@@ -1,3 +1,4 @@
+import { runKnowledgeConvergenceCommand } from "./knowledge-convergence-command.js";
 import { resolve } from "node:path";
 import { runKnowledgeWorkerCommand } from "./knowledge-worker-command.js";
 import { parseArgs } from "node:util";
@@ -46,6 +47,7 @@ export async function runKnowledgeCommand(
   const subcommand = args[0];
   if (subcommand === "export" || subcommand === "import" || subcommand === "okf")
     return runKnowledgeOkfExchange(args, io);
+  if (subcommand === "convergence") return runKnowledgeConvergenceCommand(args.slice(1), io);
   if (subcommand === "worker") return runKnowledgeWorkerCommand(args.slice(1), io);
   if (subcommand === "refresh")
     return runKnowledgeMigration({ args: args.slice(1), io, mode: "refresh" });

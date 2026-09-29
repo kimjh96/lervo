@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0c66e31d6b23760c8cb69c70"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Publish every completed supervision worker result as a create-only lervo/results branch."

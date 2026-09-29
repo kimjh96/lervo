@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_82fa0cf30a28bc86e669f32d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Permit exact non-start dispatch reconciliation after supervision revocation."

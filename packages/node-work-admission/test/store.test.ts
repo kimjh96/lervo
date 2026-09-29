@@ -126,3 +126,41 @@ it("allows a replacement session under a freeze but blocks its work until releas
     second.close();
   }
 });
+
+it("changes a frozen configuration only after the exact Node stops and keeps replacement work frozen", async () => {
+  const { first, second, scope, configDigest } = await fixture();
+  try {
+    const session = first.registerSession({ scope, configDigest, ownerPid: 1001 });
+    const selected = second.tryFreeze({ scope, configDigest, ownerPid: 2001 });
+    if (selected.status !== "frozen") throw new Error("The idle Node was not frozen.");
+    const next = `sha256:${"b".repeat(64)}`;
+    const input = {
+      freeze: selected.freeze,
+      expectedConfigDigest: configDigest,
+      configDigest: next,
+    };
+    expect(second.replaceFrozenConfiguration(input)).toBe(false);
+    first.unregisterSession(session);
+    expect(
+      second.replaceFrozenConfiguration({ ...input, freeze: { ...input.freeze, token: "wrong" } }),
+    ).toBe(false);
+    expect(second.replaceFrozenConfiguration(input)).toBe(true);
+    expect(second.replaceFrozenConfiguration(input)).toBe(false);
+    const replacement = first.registerSession({ scope, configDigest: next, ownerPid: 3001 });
+    expect(first.tryAcquireWork(replacement)).toBeNull();
+    first.unregisterSession(replacement);
+    expect(
+      second.replaceFrozenConfiguration({ ...input, expectedConfigDigest: next, configDigest }),
+    ).toBe(true);
+    const restored = first.registerSession({ scope, configDigest, ownerPid: 1001 });
+    expect(first.tryAcquireWork(restored)).toBeNull();
+    expect(second.unfreeze(selected.freeze)).toBe(true);
+    const claim = first.tryAcquireWork(restored);
+    expect(claim).not.toBeNull();
+    first.releaseWork(claim!);
+    first.unregisterSession(restored);
+  } finally {
+    first.close();
+    second.close();
+  }
+});

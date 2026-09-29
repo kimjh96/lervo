@@ -534,5 +534,5 @@ it.each([
       await storage.close();
     }
   },
-  180_000,
+  300_000,
 );

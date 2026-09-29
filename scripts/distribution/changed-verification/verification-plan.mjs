@@ -1,6 +1,4 @@
 const RELATED_TEST_ARGUMENTS = [
-  "exec",
-  "vitest",
   "run",
   "--changed",
   "HEAD",
@@ -10,14 +8,7 @@ const RELATED_TEST_ARGUMENTS = [
   "--reporter=dot",
 ];
 
-const FULL_TEST_ARGUMENTS = [
-  "exec",
-  "vitest",
-  "run",
-  "--pool=threads",
-  "--maxWorkers=1",
-  "--reporter=dot",
-];
+const FULL_TEST_ARGUMENTS = ["run", "--pool=threads", "--maxWorkers=1", "--reporter=dot"];
 
 const ROOT_WORKSPACE_PATHS = new Set(["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"]);
 
@@ -69,7 +60,6 @@ export function createChangedRuntimeVerificationPlan(changedPaths) {
   const mode = escalationTriggers.length === 0 ? "related" : "full";
   return {
     mode,
-    executable: "pnpm",
     arguments: [...(mode === "full" ? FULL_TEST_ARGUMENTS : RELATED_TEST_ARGUMENTS)],
     changedPathCount: normalizedPaths.length,
     escalationTriggers,

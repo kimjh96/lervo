@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
 import { runNodeRuntimeCli } from "./cli.js";
+import { fileURLToPath } from "node:url";
+import { runKnowledgeWorkerCli } from "./knowledge-worker-cli.js";
+import { runConversationSnapshotCli } from "./conversation-snapshot-cli.js";
 import { runDiscordWorkforceReconciliationCli } from "./discord-workforce-reconciliation-cli.js";
 import { runRepositoryReplicaCli } from "./repository-replica-cli.js";
 import { runLocalSupervisionCli } from "./local-supervision-cli.js";
@@ -9,7 +12,11 @@ import { runPreTurnRecoveryCli } from "./supervision-pre-turn-recovery-cli.js";
 import { runInterruptedOwnerRecoveryCli } from "./supervision-interrupted-owner-recovery-cli.js";
 
 const args = process.argv.slice(2);
-if (args[0] === "recover-abandoned-turn") {
+if (args[0] === "knowledge-worker") {
+  process.exitCode = await runKnowledgeWorkerCli(args.slice(1));
+} else if (args[0] === "conversation-snapshot") {
+  process.exitCode = await runConversationSnapshotCli(args.slice(1));
+} else if (args[0] === "recover-abandoned-turn") {
   process.exitCode = await runAbandonedTurnRecoveryCli(args.slice(1), {
     cwd: process.cwd(),
     stdout: (message) => process.stdout.write(message),
@@ -62,6 +69,7 @@ if (args[0] === "recover-abandoned-turn") {
   }
 } else {
   process.exitCode = await runNodeRuntimeCli(args, {
+    knowledgeWorkerEntry: fileURLToPath(import.meta.url),
     cwd: process.cwd(),
     stdout: (message) => process.stdout.write(message),
     stderr: (message) => process.stderr.write(message),

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d1d150de562ff022d6897ae0"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Generate document normalization candidates on the Node outside the provider sandbox, and have repository-work turns review and apply the stored candidate."

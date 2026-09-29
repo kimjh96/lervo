@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ddb029400beb7a7ae1906f0d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Accept the owner attention absence proof when reading superseded supervision decisions."

@@ -46,9 +46,9 @@
     },
     {
       "path": "apps/cli/src/terminal-turn-observation.ts",
-      "contentHash": "sha256:b337f8dce23a7a45c11a9b2cef09c396aa20015f1929341743d82640cdbfe07a",
+      "contentHash": "sha256:6a9d9a6a246adfcb2ce873034675f7875ba2668f93c4f0e910f514303e67c4cb",
       "responsibility": "Terminal turn context preparation and Stop observation records",
-      "rationale": "The module records one terminal turn lifecycle: prepared context, observed references and the Stop turn event, all in the shared hook transaction. Snapshot storage, event coordinates and the repository-change knowledge source are extracted modules; what remains shares the prepared-context contract.",
+      "rationale": "The module records one prepared-context and Stop lifecycle. Exact Git pins are copied into the existing prepared snapshot; snapshot persistence, source validation, event coordinates, and background ownership stay in separate modules.",
       "disposition": "cohesive"
     },
     {
@@ -70,6 +70,13 @@
       "contentHash": "sha256:1754acf6f680f27587ff2564137ef54f4b6d7c06243853e38ea220af9fd04f69",
       "responsibility": "Node outcome-supervision port composition",
       "rationale": "The module composes one provider-neutral supervision runtime from storage, admission, reasoning, execution, and evidence ports. Request-origin evaluation, resource policy, provider effects, supersession, leases, and snapshot projection remain in dedicated modules; this boundary only wires their ordered lifecycle and cleanup.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-task-source.ts",
+      "contentHash": "sha256:373c2274a75f364e1e1a2bcd4d8dbafb29010ed72817de71ce97a3823deae73f",
+      "responsibility": "Canonical supervised task observation",
+      "rationale": "The class observes one bound goal for task, admission, owner-control, and cycle snapshots. It composes dedicated workforce, execution, authority, result, and handoff readers; effect execution, persistence, provider transport, domain policy, and runtime scheduling remain in separate modules. The two history projections share a canonical event chain but retain distinct task and authority scopes.",
       "disposition": "cohesive"
     },
     {
@@ -123,9 +130,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:e3c3dca064e994db4c0ef521ca58609aa3a4190af2c8b84bbae89e44d8dcbc83",
+      "contentHash": "sha256:fc4f7bacea1d93ebe47d9d0fdb937617cfcf5b3780e023bfe0658a1631c3e5b1",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns one pure event-payload privacy boundary: its large declarative allowlist, schema dispatch, and coordinate checks produce one sanitized result without I/O. Assignment access-mode and knowledge-job validators are separate. Prompts, source bytes, paths, credentials, and provider output remain excluded; schemas and persistence stay in separate modules.",
+      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. V4 convergence payload/provenance rules remain separate modules; the added archive coordinate introduces no provider work, authority decision or persistence.",
       "disposition": "cohesive"
     },
     {
@@ -150,10 +157,17 @@
       "disposition": "cohesive"
     },
     {
+      "path": "packages/node-work-admission/src/store.ts",
+      "contentHash": "sha256:b474b78fcc519eb11e66521d23387a252351a2b94671d09f4fa79aa735a0f446",
+      "responsibility": "SQLite Node work session, claim and upgrade freeze adapter",
+      "rationale": "The adapter owns one bounded admission lifecycle. The new exact configuration-digest CAS requires the same live freeze owner and no remaining Node session. Configuration bytes, CLI-reference policy, service effects and rollback stay in separate distribution adapters; no new provider or document authority enters the store. Secure database opening and SQLite transactions serve the same owner-controlled lifecycle.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:a4cee30ec849f671ed50372758bb7938959769e1022b6625223c98e7778451ed",
+      "contentHash": "sha256:09ee509473da7036d6b52171d266a027e7f0077d342512232d46515c1d5c3adb",
       "responsibility": "Managed provider-run coordinator",
-      "rationale": "The coordinator owns one provider-neutral run lifecycle and failure ledger. Role input binding, provider-interaction limits, snapshots, result collection, and verification remain delegated to dedicated modules and ports; the coordinator only orders them and records their evidence. No research, filesystem source policy, checker process, or provider-specific behavior is introduced here.",
+      "rationale": "One provider-neutral run lifecycle delegates source capture, process observation, capability policy, result collection and verification to existing ports. Source admission uses the project-storage gate for the complete run; failed reference-result preservation stays behind its own CAS/evidence boundary. The coordinator sequences both without owning SQLite or background retry policy.",
       "disposition": "cohesive"
     },
     {
@@ -172,9 +186,9 @@
     },
     {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:12c8c733a896291ec22620136c7acfec469426a1cc37ea38796823601b464339",
+      "contentHash": "sha256:56516fb26667ab676d8feaa694249d6181556847df7ae2351051af36fb24647c",
       "responsibility": "Isolated no-capability provider process adapter",
-      "rationale": "Process control plus Codex and Claude response and usage parsing implement one capability-free provider boundary for typed JSON, semantic compilation, and document normalization contracts; resource admission remains in repository knowledge.",
+      "rationale": "The module implements one isolated no-capability process boundary for both existing providers, including native structured JSON output. Native availability failure translation is extracted and shared by the three JSON workflows; host admission, persistent budgets, source policy and document effects remain outside this adapter. Common tests cover schema delivery, exact structured response extraction, no tools, usage, cancellation and timeout.",
       "disposition": "cohesive"
     },
     {
@@ -214,9 +228,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/durable-apply.ts",
-      "contentHash": "sha256:6e7f7aa4b721132fbc6fbc0579be179f0c922560e995af60226ef317d5b1d1f8",
+      "contentHash": "sha256:761ed17e1de1f2ad661b1e6e3a44a0995c4989a159c35b7d0518df1c48c31f12",
       "responsibility": "Durable knowledge filesystem transaction",
-      "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, and cleanup implement one atomic filesystem transaction protocol.",
+      "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, and cleanup implement one atomic filesystem transaction protocol. Apply and recovery take the same external source gate through a small wrapper; SQLite mechanics and background retry policy remain in separate modules.",
       "disposition": "cohesive"
     },
     {
@@ -298,7 +312,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:6c4d9227c45bd8741a3355278eeaa746206ccfa179ae5c8017d786d2e268eb12",
+      "contentHash": "sha256:7ec334a2cb57cf44b4f2f354d8d40484514784ae5cb4581a63d234512a2c65ca",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
       "disposition": "cohesive"
@@ -340,9 +354,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:cd970537281b86e5ac3618cbf4ed3d6ece6234049ae27860c0f48880ea5eada4",
+      "contentHash": "sha256:1b0278cc2d89720c2017ec1147140bbfe849443aac8dcde3b83757211168c68f",
       "responsibility": "Repository schema validator registry",
-      "rationale": "This module registers compiled validators for the schema catalog. The conversation knowledge outcome adds only a linked declarative validator; schema definitions, domain decisions, configuration handling, and persistence remain in their owning modules. No runtime workflow policy is added.",
+      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence and archival schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry.",
       "disposition": "cohesive"
     },
     {
@@ -375,9 +389,9 @@
     },
     {
       "path": "scripts/distribution/lib/runtime-service-management.mjs",
-      "contentHash": "sha256:a441802428425ab035af1ac91b72745f4625fea577565169f004b9bdc61b05ac",
+      "contentHash": "sha256:4b572cc5c299feec888fba7e4097646f914e55120f7a264fbc423f46b6c55e96",
       "responsibility": "Runtime service lifecycle manager",
-      "rationale": "The touched orchestration composes isolated supervision and work-admission guards around one exact service transaction. Status stabilization, activation, compensation and rollback share the same manager-state recovery policy; presentation and process exit remain outside. Existing argument and source validation are bounded to this transaction's exact inputs.",
+      "rationale": "The module composes the existing exact predecessor service lifecycle. CLI configuration replacement policy, private journal and byte effects are isolated in node-cli-configuration-transition; the coordinator invokes apply only after verified stop, restoration before restarting the predecessor, and completion after stable replacement. Existing argument/source validation extraction remains the already bounded roadmap follow-up; this change adds no independent policy to the lifecycle.",
       "disposition": "cohesive"
     },
     {

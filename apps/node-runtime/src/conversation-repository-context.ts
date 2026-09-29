@@ -1,11 +1,13 @@
 import { documentIdForPath, type ContextDocumentCandidate } from "@lervo/context";
 import { readConversationControlMessage } from "@lervo/conversation-control";
 import {
+  prepareManagedOperationalSearchContext,
   prepareManagedSearchContext,
   productDefaultSearchEngine,
   type ManagedRepositoryKnowledgeQuery,
 } from "@lervo/repository-context";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
+import { RepositoryKnowledgeError } from "@lervo/repository-knowledge";
 import type { ConversationInboundEvent, DocumentRegistry, RoleProfile } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
@@ -40,16 +42,26 @@ export async function prepareConversationRepositoryContext(input: {
     readConversationControlMessage({ artifactStore: input.artifactStore, event: input.event }),
     readCurrentWorkstreamState(input.repositoryRoot),
   ]);
-  const search = await prepareManagedSearchContext({
+  const searchInput = {
     repositoryRoot: input.repositoryRoot,
     projectId: input.projectId,
     query: message,
     fallbackQuery: "repository conversation context",
     observedAt: new Date(),
     productDefault: productDefaultSearchEngine,
-    documentRegistry: input.registry,
     runId: input.runId,
+  };
+  const search = await prepareManagedSearchContext({
+    ...searchInput,
+    documentRegistry: input.registry,
     ...(input.knowledgeQuery === undefined ? {} : { knowledgeQuery: input.knowledgeQuery }),
+  }).catch((error: unknown) => {
+    if (
+      !(error instanceof RepositoryKnowledgeError) ||
+      error.code !== "knowledge_recovery_required"
+    )
+      throw error;
+    return prepareManagedOperationalSearchContext(searchInput);
   });
   const role = structuredClone(input.baseRole);
   const documentRules: Record<string, string[]> = {};

@@ -11,10 +11,7 @@ describe("changed runtime verification plan", () => {
       ]),
     ).toMatchObject({
       mode: "related",
-      executable: "pnpm",
       arguments: [
-        "exec",
-        "vitest",
         "run",
         "--changed",
         "HEAD",
@@ -42,7 +39,7 @@ describe("changed runtime verification plan", () => {
     const plan = createChangedRuntimeVerificationPlan([path]);
     expect(plan).toMatchObject({
       mode: "full",
-      arguments: ["exec", "vitest", "run", "--pool=threads", "--maxWorkers=1", "--reporter=dot"],
+      arguments: ["run", "--pool=threads", "--maxWorkers=1", "--reporter=dot"],
       escalationTriggers: [{ path, reason }],
     });
     expect(plan.arguments).not.toContain("--changed");

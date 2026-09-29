@@ -17,9 +17,13 @@ boundary.
 
 `lervo-node repository-replica watch --root <root>` emits newline-delimited `{ "schemaVersion": 1, "status": "changed" }` frames. Startup and the 60-second recovery timeout also emit hints; the status does not prove a file changed. The client accepts only the exact versioned frame and limits buffered output to 1,024 characters. Streams carry no filenames, contents, snapshot hashes, credentials, or authorization decisions. Existing configured SSH authentication and peer/root selection control access.
 
+Local subscriptions also compare a disposable metadata fingerprint every 60 seconds to recover silent native filesystem notifications. The fingerprint binds Git status/ref coordinates, dirty-path inode/size/timestamps, HEAD/index, and the exact replica request; it excludes source bodies and ignored caches, writes no Git index, and grants no snapshot authority. A changed fingerprint refreshes directory subscriptions and emits only a hint. Focused host tests may select a shorter recovery interval. Closing the watch disposes this timer and prevents pending observations from notifying again.
+
 ## Snapshot capture
 
 Snapshot capture creates Git tree objects through a temporary index. Index-tree observation uses an isolated copy of the user's index, including split-index staging, so Git cache updates cannot notify the coordinator of its own observation. Ordinary observation creates no export commit or ref. Bundle creation and explicit history-replacement recovery create the commits they need. No unchanged-head cache can authorize apply or native work without a fresh snapshot.
+
+Replica apply preserves the host-reviewed `.lervo/knowledge/convergence-delegation.json` while cleaning source files. The cleanup excludes that exact path even when resetting to an older HEAD temporarily removes the worktree's newer ignore rule. The grant remains local authority and never enters the replica snapshot; it must be separately reviewed on each host.
 
 A bundle request binds the exact snapshot hash selected by reconciliation. If the source advances before bundle creation, no newer bytes are substituted into the older decision. After an exact target apply, the coordinator persists that transferred snapshot as the new common base before recapturing the active source. If the source advanced concurrently, the cycle remains pending and the successor cycle continues as a one-sided change instead of manufacturing dual divergence from the older base. A readiness receipt is written only after both freshly captured sides are equal.
 

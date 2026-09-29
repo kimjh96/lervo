@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ddbcb03100a31726d1b1be9b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Install an existing replacement for an exhausted rework instead of escalating again."

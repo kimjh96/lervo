@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_96c86bbc5a59576214dac2ab"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Prevent Node service upgrades from interrupting admitted conversation and remote command work."

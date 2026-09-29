@@ -129,7 +129,7 @@ export async function planWorkspaceIntegrationCandidate(input: {
     storedIntegrator.workspace.integrationTargetDigest !== targetDigest ||
     storedIntegrator.workspace.host.kind !== input.integrationHost.kind ||
     storedIntegrator.workspace.host.version !== input.integrationHost.version ||
-    stableWorkspaceIntegrationJson(verificationSuiteIds) !==
+    stableWorkspaceIntegrationJson([...verificationSuiteIds].sort()) !==
       stableWorkspaceIntegrationJson(assignment.verificationSuiteIds)
   )
     throw new WorkspaceHostError(

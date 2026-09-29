@@ -1,5 +1,5 @@
 import { openDeploymentSupervision } from "./deployment-supervision.js";
-import { startRepositoryKnowledgeLoop } from "./repository-knowledge-loop.js";
+import { startDeploymentKnowledgeLoop } from "./deployment-knowledge.js";
 import { startSupervisionResultBranchLoop } from "./supervision-result-branch.js";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import type { NodeSupervisionService } from "./supervision-startup.js";
@@ -192,6 +192,9 @@ export async function openNodeRuntime(
       project: manifest,
       projectIdentityHash: target.projectIdentityHash,
       repositoryRoot: paths.repositoryRoot,
+      ...(ports.knowledgeWorkerEntry === undefined
+        ? {}
+        : { snapshotWorkerEntry: ports.knowledgeWorkerEntry }),
       dataDirectory: paths.data,
       operationDrain,
       ...(ports.runtimeConfigPath === undefined
@@ -219,30 +222,24 @@ export async function openNodeRuntime(
       store,
       async (signal) => {
         const stopWatching = watchLocalEventChanges(store!, () => idleWait.notify());
-        const knowledgeProvider = validated.outcomeSupervision?.ownerReasoning.provider;
-        const stopKnowledge =
-          knowledgeProvider === "claude" || knowledgeProvider === "codex"
-            ? startRepositoryKnowledgeLoop({
-                repositoryRoot: paths.repositoryRoot,
-                store: store!,
-                artifacts,
-                provider: knowledgeProvider,
-                ...(validated.outcomeSupervision?.runtimeReadiness?.providerExecutables?.[
-                  knowledgeProvider
-                ] === undefined
-                  ? {}
-                  : {
-                      executable:
-                        validated.outcomeSupervision.runtimeReadiness.providerExecutables[
-                          knowledgeProvider
-                        ],
-                    }),
-                onFailure: (error) =>
-                  process.stderr.write(
-                    `Lervo repository knowledge cycle failed: ${error instanceof Error ? error.message : "unknown error"}\n`,
-                  ),
-              })
-            : async () => undefined;
+        const stopKnowledge = await startDeploymentKnowledgeLoop({
+          ...(ports.knowledgeWorkerEntry === undefined
+            ? {}
+            : { workerEntry: ports.knowledgeWorkerEntry }),
+          storage: {
+            manifest,
+            paths,
+            events: store!,
+            artifacts,
+            writableEventSchemaVersion: preparedStorage.writableEventSchemaVersion ?? 1,
+            close: async () => undefined,
+          },
+          store: store!,
+          signal,
+          ...(validated.outcomeSupervision === undefined
+            ? {}
+            : { supervision: validated.outcomeSupervision }),
+        });
         const workerWorkspace = validated.outcomeSupervision?.runtimeReadiness?.workerWorkspace;
         const stopResults =
           workerWorkspace === undefined

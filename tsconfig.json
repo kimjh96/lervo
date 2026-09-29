@@ -120,7 +120,9 @@
       "@lervo/workspace-host-git": ["packages/workspace-host-git/src/index.ts"],
       "@lervo/workspace-host-orca": ["packages/workspace-host-orca/src/index.ts"],
       "@lervo/work-controller": ["packages/work-controller/src/index.ts"],
-      "@lervo/workspace-reservation-hub": ["packages/workspace-reservation-hub/src/index.ts"]
+      "@lervo/workspace-reservation-hub": ["packages/workspace-reservation-hub/src/index.ts"],
+      "@lervo/repository-knowledge-runtime": ["packages/repository-knowledge-runtime/src/index.ts"],
+      "@lervo/repository-context": ["packages/repository-context/src/index.ts"]
     },
     "types": ["node", "vitest/globals"]
   },

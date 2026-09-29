@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f3e0790b40e2bcba5861ee7e"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Settle a dead writable supervised worker turn as effects-uncertain so it stops holding worker concurrency."

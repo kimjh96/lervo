@@ -82,6 +82,7 @@ export async function openDeploymentConversation(input: {
   project: ProjectManifest;
   projectIdentityHash: string;
   repositoryRoot: string;
+  snapshotWorkerEntry?: string;
   dataDirectory: string;
   operationDrain?: ConversationOperationDrain;
   runtimeConfigPath?: string;
@@ -119,7 +120,11 @@ export async function openDeploymentConversation(input: {
   const providerModels = input.config.remoteCommands?.providerHost?.models;
   const providerReasoningEfforts = input.config.remoteCommands?.providerHost?.reasoningEfforts;
   const providerExecutionProfiles = input.config.remoteCommands?.providerHost?.executionProfiles;
-  const managedRepositoryResources = createManagedConversationRepositoryResources();
+  const managedRepositoryResources = createManagedConversationRepositoryResources(
+    input.snapshotWorkerEntry === undefined
+      ? undefined
+      : { snapshotWorkerEntry: input.snapshotWorkerEntry },
+  );
   const turnFocusStore = await SQLiteConversationTurnFocusStore.open(
     resolve(input.dataDirectory, "conversation", "turn-focus.sqlite"),
   );

@@ -21,13 +21,17 @@ import { readPreparedRepositorySnapshot } from "./terminal-prepared-snapshot.js"
  */
 export async function plannedTerminalRepositoryChange(input: {
   root: string;
-  storage: Pick<ProjectStorage, "writableEventSchemaVersion" | "artifacts">;
+  storage: Pick<ProjectStorage, "writableEventSchemaVersion" | "artifacts"> &
+    Partial<Pick<ProjectStorage, "manifest">>;
   contextPayload: Record<string, unknown>;
   lifecycle: TerminalLifecycleInspection;
   turnEventId: string;
   occurredAt: string;
 }): Promise<PlannedRepositoryChange | null> {
-  if (!input.lifecycle.repositoryChange.changed || input.storage.writableEventSchemaVersion !== 3)
+  if (
+    !input.lifecycle.repositoryChange.changed ||
+    (input.storage.writableEventSchemaVersion ?? 1) < 3
+  )
     return null;
   if (typeof input.contextPayload.observationId !== "string") return null;
   const before = await readPreparedRepositorySnapshot(
@@ -41,6 +45,9 @@ export async function plannedTerminalRepositoryChange(input: {
   if (after.revision !== input.lifecycle.repositoryChange.afterRevision) return null;
   const planned = await planRepositoryChangeInRepository({
     repositoryRoot: input.root,
+    ...(input.storage.manifest === undefined
+      ? {}
+      : { projectId: input.storage.manifest.projectId }),
     sourceKind: "terminal_turn",
     sourceEventId: input.turnEventId,
     before,

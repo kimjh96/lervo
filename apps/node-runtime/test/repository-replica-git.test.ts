@@ -73,7 +73,7 @@ describe("Git repository replica", () => {
     const root = await repository();
     await captureRepositoryReplicaSnapshot(root);
     const notify = vi.fn();
-    const stop = await watchRepositoryChanges(root, notify);
+    const stop = await watchRepositoryChanges(root, notify, notify, { recoveryIntervalMs: 1000 });
     // The watcher reacts to these Git files and to root entries, so comparing their exact bytes
     // proves an observation cannot wake itself. Waiting for a notification that must never
     // arrive could only ever prove that it had not arrived yet.
@@ -163,6 +163,34 @@ describe("Git repository replica", () => {
     });
     expect(nextApplied).toEqual(nextSourceSnapshot);
     expect(await readFile(join(target, "tracked.ts"), "utf8")).toBe("const a = 1;");
+  });
+
+  it("retains a host-local convergence grant while applying a new ignore rule", async () => {
+    const source = await repository();
+    const target = await clone(source);
+    const localGrant = join(target, ".lervo/knowledge/convergence-delegation.json");
+    await mkdir(join(target, ".lervo/knowledge"), { recursive: true });
+    await writeFile(localGrant, "target-host-reviewed-grant\n");
+    // Both sides begin at the same snapshot before either has an ignore rule.
+    const common = await captureRepositoryReplicaSnapshot(target);
+    await mkdir(join(source, ".lervo"), { recursive: true });
+    await writeFile(
+      join(source, ".lervo/.gitignore"),
+      "data/\nstate/\nknowledge/convergence-delegation.json\n",
+    );
+    await writeFile(join(source, "tracked.ts"), "export const source = true;\n");
+
+    const applied = await applyRepositoryReplicaBundle({
+      repositoryRoot: target,
+      bundle: await createRepositoryReplicaBundle(source),
+      expectedCurrentSnapshotHash: common.snapshotHash,
+    });
+
+    expect(applied).toEqual(await captureRepositoryReplicaSnapshot(source));
+    expect(await readFile(localGrant, "utf8")).toBe("target-host-reviewed-grant\n");
+    expect(await git(target, "check-ignore", ".lervo/knowledge/convergence-delegation.json")).toBe(
+      ".lervo/knowledge/convergence-delegation.json",
+    );
   });
 
   it("rejects an apply when the target moved after reconciliation", async () => {

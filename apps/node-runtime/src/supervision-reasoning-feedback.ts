@@ -1,6 +1,7 @@
 import type { EventEnvelope } from "@lervo/schemas";
 import { managedExecutionIdentity } from "@lervo/work-controller";
 import { NATIVE_TASK_DETAIL_KEYS } from "./supervision-native-task.js";
+import { invalidReasoningResultCapture } from "./supervision-invalid-reasoning-result.js";
 
 export interface OwnerProposalFeedback {
   reasonCode: "invalid_expected_path" | "invalid_task_contract" | "invalid_reasoning_result";
@@ -66,12 +67,17 @@ export function assertOwnerProposalFeedback(input: {
         event.payload.supervisionId === input.supervisionId &&
         event.payload.workstreamId === input.workstreamId,
     ) ||
-    !input.events.some(
+    (!input.events.some(
       (event) =>
         event.type === "run.completed" &&
         event.runId === identity.runId &&
         event.payload.resultDigest === value.resultArtifactHash,
-    )
+    ) &&
+      !(
+        value.reasonCode === "invalid_reasoning_result" &&
+        invalidReasoningResultCapture(input.events, identity.runId)?.payload.resultDigest ===
+          value.resultArtifactHash
+      ))
   )
     throw new Error("The owner proposal feedback lacks exact completed reasoning evidence.");
 }

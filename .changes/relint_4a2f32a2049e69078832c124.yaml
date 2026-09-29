@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4a2f32a2049e69078832c124"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Load exact canonical context automatically for bounded asynchronous conversation knowledge review."

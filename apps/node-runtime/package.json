@@ -64,7 +64,8 @@
     "@lervo/application-contract": "workspace:*",
     "@lervo/work-controller": "workspace:*",
     "@lervo/workspace-host-git": "workspace:*",
-    "@lervo/verification": "workspace:*"
+    "@lervo/verification": "workspace:*",
+    "@lervo/repository-knowledge-runtime": "workspace:*"
   },
   "devDependencies": {
     "@lervo/hub": "workspace:*",

@@ -146,6 +146,9 @@ export async function observeNodeSupervisionRecoveryAuthority(
   now: () => string,
   authorityHistory?: SupervisionAuthorityHistory,
 ) {
+  // The full-chain audit can exceed the five-second observation window. The source read below
+  // still follows and validates events appended after this warm-up before authority is returned.
+  await authorityHistory?.read();
   const started = Date.parse(now());
   const installation = await readInstalledNodeMandate(storage, binding, now);
   const source = await observeMandateInstallationSource(

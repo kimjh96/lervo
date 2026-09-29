@@ -1,0 +1,50 @@
+schemaVersion: 1
+suiteId: repository.default.v7
+stopOnFailure: true
+commands:
+  - commandId: repository-lint
+    executable: node
+    arguments:
+      - --run
+      - lint
+    cwd: .
+    timeoutMs: 300000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []
+  - commandId: repository-typecheck
+    executable: node
+    arguments:
+      - --run
+      - typecheck
+    cwd: .
+    timeoutMs: 900000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []
+  - commandId: repository-risk-based-tests-shard-1
+    executable: node
+    arguments: [scripts/distribution/run-changed-runtime-verification-v7.mjs, 1/4]
+    cwd: .
+    timeoutMs: 1800000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []
+  - commandId: repository-risk-based-tests-shard-2
+    executable: node
+    arguments: [scripts/distribution/run-changed-runtime-verification-v7.mjs, 2/4]
+    cwd: .
+    timeoutMs: 1800000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []
+  - commandId: repository-risk-based-tests-shard-3
+    executable: node
+    arguments: [scripts/distribution/run-changed-runtime-verification-v7.mjs, 3/4]
+    cwd: .
+    timeoutMs: 1800000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []
+  - commandId: repository-risk-based-tests-shard-4
+    executable: node
+    arguments: [scripts/distribution/run-changed-runtime-verification-v7.mjs, 4/4]
+    cwd: .
+    timeoutMs: 1800000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []

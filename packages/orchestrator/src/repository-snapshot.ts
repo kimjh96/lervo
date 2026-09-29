@@ -1,3 +1,4 @@
+import { repositorySnapshotGitHead } from "./repository-snapshot-git.js";
 import { createHash } from "node:crypto";
 import type { BigIntStats } from "node:fs";
 import { lstat, readdir, readlink } from "node:fs/promises";
@@ -9,6 +10,7 @@ import type { ManagedFileChangeEvidence } from "./types.js";
 export interface RepositorySnapshot {
   revision: string;
   files: Readonly<Record<string, string>>;
+  commits?: Readonly<Record<string, string>>;
 }
 
 export type CaptureRepositorySnapshot = (
@@ -148,6 +150,7 @@ async function captureRepositorySnapshotWithCache(input: {
   previous: SnapshotCaptureState | undefined;
   readFile: RepositorySnapshotFileReader;
 }): Promise<{ snapshot: RepositorySnapshot; state: SnapshotCaptureState }> {
+  const head = await repositorySnapshotGitHead(input.repositoryRoot);
   const resolvedPolicy = resolveRepositorySnapshotPolicy(input.policy);
   const excludedDirectories = new Set(resolvedPolicy.excludedDirectoryNames);
   const excludedPaths = new Set(resolvedPolicy.excludedPaths);
@@ -249,6 +252,8 @@ async function captureRepositorySnapshotWithCache(input: {
   }
 
   await visit(root);
+  if (head !== (await repositorySnapshotGitHead(input.repositoryRoot)))
+    throw new RepositorySnapshotError("The Git coordinate changed during snapshot capture.");
   const canonicalEntries = Object.keys(files)
     .sort()
     .map((path) => [path, files[path]]);
@@ -256,6 +261,9 @@ async function captureRepositorySnapshotWithCache(input: {
     snapshot: {
       revision: sha256(JSON.stringify(canonicalEntries)),
       files,
+      ...(head === undefined
+        ? {}
+        : { commits: Object.fromEntries(Object.keys(files).map((path) => [path, head])) }),
     },
     state: { cacheKey, entries: nextEntries },
   };

@@ -19,6 +19,7 @@ import { syncDirectory } from "@lervo/filesystem-durability";
 
 import { evaluateCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256 } from "./integrity.js";
+import { withKnowledgeSourceWrite } from "./knowledge-source-gate.js";
 import type { KnowledgeFileOperation } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
@@ -429,14 +430,24 @@ export async function assertNoKnowledgeMaterializationTransaction(input: {
   );
 }
 
-export async function recoverKnowledgeMaterialization(input: {
+type RecoveryInput = {
   repositoryRoot: string;
   eventRecorded: (planId: string) => boolean;
-}): Promise<{
+};
+
+type RecoveryResult = {
   schemaVersion: 1;
   planId: string;
   disposition: "rolled_back" | "committed_cleanup";
-}> {
+};
+
+export function recoverKnowledgeMaterialization(input: RecoveryInput): Promise<RecoveryResult> {
+  return withKnowledgeSourceWrite(input.repositoryRoot, () =>
+    recoverMaterializationUnderGate(input),
+  );
+}
+
+async function recoverMaterializationUnderGate(input: RecoveryInput): Promise<RecoveryResult> {
   const root = resolve(input.repositoryRoot);
   const journal = await readJournal(root);
   if (ownerAlive(journal.ownerPid))
@@ -464,7 +475,7 @@ export async function recoverKnowledgeMaterialization(input: {
   return { schemaVersion: 1, planId: journal.planId, disposition: "rolled_back" };
 }
 
-export async function applyDurableKnowledgeOperations<T>(input: {
+type DurableApplyInput<T> = {
   repositoryRoot: string;
   projectId: string;
   planId: string;
@@ -481,7 +492,13 @@ export async function applyDurableKnowledgeOperations<T>(input: {
   failureInjector?: (
     checkpoint: KnowledgeMaterializationCheckpoint,
   ) => "interrupt" | void | Promise<"interrupt" | void>;
-}): Promise<T> {
+};
+
+export function applyDurableKnowledgeOperations<T>(input: DurableApplyInput<T>): Promise<T> {
+  return withKnowledgeSourceWrite(input.repositoryRoot, () => applyOperationsUnderGate(input));
+}
+
+async function applyOperationsUnderGate<T>(input: DurableApplyInput<T>): Promise<T> {
   const root = resolve(input.repositoryRoot);
   const transaction = transactionRoot(root);
   const changed = input.operations.filter(

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6c43bea903e65bfb30935d05"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reconcile terminal owner start failures with exact host proof and unknown usage."

@@ -57,6 +57,7 @@ async function byteDigest(
  */
 export async function planConversationRepositoryChange(input: {
   repositoryRoot: string;
+  projectId?: string;
   artifacts: Pick<ArtifactStore, "put">;
   sourceManifest: PreparedRepositoryWorkSourceManifest;
   completionEventId: string;
@@ -80,9 +81,17 @@ export async function planConversationRepositoryChange(input: {
   });
   const planned = await planRepositoryChangeInRepository({
     repositoryRoot: input.repositoryRoot,
+    ...(input.projectId === undefined ? {} : { projectId: input.projectId }),
     sourceKind: "conversation",
     sourceEventId: input.completionEventId,
-    before: snapshot(manifest.repositoryRevisionBefore, before),
+    before: {
+      ...snapshot(manifest.repositoryRevisionBefore, before),
+      commits: Object.fromEntries(
+        manifest.paths.flatMap((entry) =>
+          entry.before.kind === "git_tree" ? [[entry.path, entry.before.commit]] : [],
+        ),
+      ),
+    },
     after: snapshot(manifest.repositoryRevisionAfter, after),
     occurredAt: input.completedAt,
   });

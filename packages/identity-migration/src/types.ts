@@ -35,7 +35,7 @@ export interface IdentityMigrationPlan {
   readonly missingCurrentDirectories: readonly string[];
   readonly missingCurrentFiles: readonly {
     readonly path: ".lervo/.gitignore";
-    readonly content: "data/\nstate/\n";
+    readonly content: "data/\nstate/\nknowledge/convergence-delegation.json\n";
   }[];
   readonly blockers: readonly IdentityMigrationBlocker[];
 }

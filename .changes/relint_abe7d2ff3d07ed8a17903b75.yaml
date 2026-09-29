@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_abe7d2ff3d07ed8a17903b75"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Date supervised admission after final source validation to avoid false stale failures under slow repository reads."

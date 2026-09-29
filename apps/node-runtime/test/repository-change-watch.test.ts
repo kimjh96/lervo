@@ -48,7 +48,7 @@ it("observes nested source edits and replica requests without watching ignored f
     await writeFile(join(root, "source/nested/file.ts"), "first");
     await writeFile(join(root, "cache/file"), "first");
     const notify = vi.fn();
-    stop = await watchRepositoryChanges(root, notify);
+    stop = await watchRepositoryChanges(root, notify, notify, { recoveryIntervalMs: 1000 });
     // Native watch registration can settle asynchronously; first observe a source hint.
     await vi.waitFor(
       async () => {
