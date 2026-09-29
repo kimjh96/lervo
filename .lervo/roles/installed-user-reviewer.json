@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "lervo_repository_role",
+  "roleId": "installed-user-reviewer",
+  "version": "1.0.0",
+  "extends": [{ "roleId": "researcher", "version": "1.0.0" }],
+  "profile": {
+    "name": "Installed user and channel reviewer",
+    "description": "Reviews the installed conversation from the user's perspective, including plain language, participant identity, live steering, and complete response delivery.",
+    "requestTypes": ["experience.review"]
+  },
+  "checks": []
+}

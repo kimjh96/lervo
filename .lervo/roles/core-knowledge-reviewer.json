@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "lervo_repository_role",
+  "roleId": "core-knowledge-reviewer",
+  "version": "1.0.0",
+  "extends": [{ "roleId": "researcher", "version": "1.0.0" }],
+  "profile": {
+    "name": "Lervo core and knowledge reviewer",
+    "description": "Reviews provider-neutral execution, evidence distinctions, canonical knowledge authority, rebuildable projections, and protocol compatibility against cited repository sources.",
+    "requestTypes": ["knowledge.review"]
+  },
+  "checks": []
+}
