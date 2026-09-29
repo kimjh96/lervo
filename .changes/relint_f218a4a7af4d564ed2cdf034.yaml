@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f218a4a7af4d564ed2cdf034"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Bind complete bounded asset declarations to reviewed delegation and apply both authority files in one exact durable transaction."

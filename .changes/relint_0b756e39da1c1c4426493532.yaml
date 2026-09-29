@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0b756e39da1c1c4426493532"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Honor reviewed canonical workset limits and capture explicitly reviewed repository references and asset inventories."

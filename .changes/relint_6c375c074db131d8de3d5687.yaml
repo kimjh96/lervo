@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6c375c074db131d8de3d5687"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add delegated background canonicalization and independently reviewed document normalization with durable recovery, bounded provider admission, and explicit knowledge convergence status."

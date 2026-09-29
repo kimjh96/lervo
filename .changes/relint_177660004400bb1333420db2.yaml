@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_177660004400bb1333420db2"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Move managed conversation repository snapshots into owned Node subprocesses to keep Discord replies responsive."

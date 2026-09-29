@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_72e8342e459b23ecaf552881"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep interactive startup available with streaming validated recent execution evidence while preserving complete-history limits."

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ebd03b7a74c701179091e88f"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Allow guarded Node upgrades to replace reviewed CLI bindings after verified stop while preserving work admission and restoring exact predecessor configuration on failure."
