@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_731b2cf432a9ea9d8481f742
+outputLanguage: en
+outputs:
+  - byteCount: 10735
+    contentHash: sha256:cfb0fdb81ff5e2b47c38d1019a4c6207440694a20609bf212007165b233d69cb
+    path: docs/decisions/release/packaging/0025-writing-publication-gate.md
+    userRegionHash: sha256:cfb0fdb81ff5e2b47c38d1019a4c6207440694a20609bf212007165b233d69cb
+profile: decision_record
+recordId: knormdoc_e61be051ce8f674b3c6564a1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5e4029c7db7853a38d21db788f0d7ea1d6666170cc7c0888b2fc6e0cabfa2233
+sourcePath: docs/decisions/release/packaging/0025-writing-publication-gate.md
+sourceUnitVersionIds:
+  - uv_05600c0992cf51532c6e0629
+  - uv_242a88c0f8870ebf2e53ca46
+  - uv_3d80d7685a819e7c982aed3f
+  - uv_78669e107e6cbb19ed51caae
+  - uv_7ae78b538132891aca5b7a61
+  - uv_7aef887803370ca8d48a18e8
+  - uv_82ac22d8bb3ec1c6bd621e5b
+  - uv_9372d0a9b6b38fce594075a9
+  - uv_998a799a78a1e461ac09b4ea
+  - uv_a26a96ccb421fea0a42707f4
+  - uv_ec1c86cf7f999b964396ef4f
+  - uv_f4d16d64086949349200d0d8

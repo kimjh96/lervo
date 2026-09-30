@@ -31,4 +31,4 @@ operating and collaboration products
 
 ## Related research and authority
 
-The [product positioning and verified improvement research](lervo-product-positioning-and-verified-improvement.md) owns the broader comparison and terminology. The [system architecture](../architecture/system.md), [product vision](../product/vision.md), [execution specification](../specifications/execution.md), and [repository knowledge specification](../specs/repository-knowledge-compilation.md) remain authoritative for implemented behavior.
+[Product positioning and verified improvement research](lervo-product-positioning-and-verified-improvement.md) owns the broader comparison and terminology. [System architecture](../architecture/system.md), [product vision](../product/vision.md), [execution specification](../specifications/execution.md), and [repository knowledge specification](../specs/repository-knowledge-compilation.md) remain authoritative for implemented behavior.

@@ -4,9 +4,9 @@ Part of [Role-backed multi-party conversation](../multi-party-conversation.md).
 
 ## Participant binding
 
-Each hired agent instance is a participant; its role template is not. Its unique display name is separate from its role: `CEO`, `developer`, and other role labels are never synthesized as names.
+Each hired agent instance is a participant; its role template is not. Its unique display name is separate from its role. `CEO`, `developer`, and other role labels are never synthesized as names.
 
-Channel membership binds durable participant ID, agent ID, exact role ID and version or hash, repository scope, active lifecycle state, and provider policy. Workforce policy allows fixed `codex` or `claude` providers, or `any` for policy-driven selection. Every turn records provider and model, preserving responsibility when agents share roles, are replaced, or retire.
+Channel membership binds durable participant ID, agent ID, exact role ID and version or hash, repository scope, active lifecycle state, and provider policy. Workforce policy permits fixed `codex` or `claude` providers, or `any` for policy-driven selection. Every turn records provider and model to preserve responsibility when agents share roles, are replaced, or retire.
 
 A Discord speaker principal is a hired agent's one-to-one external identity for an immutable deployment binding: a bot user or exact channel-to-webhook set. Hiring, Gateway installation, webhook preparation, channel membership, provider selection, and execution authority are separate transitions. Each deployment retains agent-specific durable conversation history. Broader expertise follows the source-bound context lifecycle in [ADR-0386](../../../../../decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md).
 
@@ -19,10 +19,10 @@ Every resulting turn retains speaker, addressee, thread or deliberation ID, role
 ## Constraints
 
 - Human and agent turns share natural-language intent and per-agent participation resolution.
-- Every eligible unaddressed human message has one deterministic owner in conversational deployments; semantic participation failure cannot silently discard it.
+- Every eligible unaddressed human message has one deterministic owner in conversational deployments. Semantic participation failure cannot silently discard it.
 - A deployment ignores messages containing Discord mentions it cannot map. It must not reclassify them as unaddressed or let an unrelated stable owner answer for the missing addressee.
 - Agent-authored discussion is read-only by default.
-- Unbound and unaddressed agent messages start at maximum automation depth. An exact hired-agent author starts at depth zero only when it addresses another exact agent binding; mentioning a person does not start an automation chain. Every agent-to-agent response uses reply correlation so separate integrations advance the same depth and stop at the configured maximum. This grants no effect authority.
+- Unbound and unaddressed agent messages start at maximum automation depth. An exact hired-agent author starts at depth zero only when addressing another exact agent binding; mentioning a person does not start an automation chain. Every agent-to-agent response uses reply correlation so separate integrations advance the same depth and stop at the configured maximum. This grants no effect authority.
 - Agent-authored continuation and platform effects require a separate exact participant, role, tenant, and conversation opt-in, retaining existing signed command and allowlisted-effect boundaries.
 - Repository mutation, external effects, assignment changes, and approval resolution require existing authority paths.
 - Participation policies, maximum automation depth, response budgets, explicit deliberation termination, and self-message suppression must prevent agent reply loops.

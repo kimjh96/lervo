@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_59047ce26792c24afe1805bd
+outputLanguage: en
+outputs:
+  - byteCount: 972
+    contentHash: sha256:3f50a127ab77c32899d9d1517a4e4a6c7da88359e5b13d5835ad9f45c6fbfd39
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/run-evidence.md
+    userRegionHash: sha256:3f50a127ab77c32899d9d1517a4e4a6c7da88359e5b13d5835ad9f45c6fbfd39
+  - byteCount: 1355
+    contentHash: sha256:9b95ab014b3db665cf217cfac230e5035f285bbb7720188425c1b2c629e21cd6
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/run-evidence/failure-diagnostics.md
+    userRegionHash: sha256:9b95ab014b3db665cf217cfac230e5035f285bbb7720188425c1b2c629e21cd6
+  - byteCount: 416
+    contentHash: sha256:388a7737fc153736c085728d88ee391efbf99b8956e34962412570df265609e2
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/run-evidence/validation-boundary.md
+    userRegionHash: sha256:388a7737fc153736c085728d88ee391efbf99b8956e34962412570df265609e2
+profile: specification_document
+recordId: knormdoc_0514cd2e8441f123675d8c8b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5d1e10d630fcfea9068768e74710f4855d4ce1e8194295a013a7804c73d0e6d5
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/run-evidence.md
+sourceUnitVersionIds:
+  - uv_13818e00fc48b7eca853d874
+  - uv_6711c062228e432acfdb2202
+  - uv_9547dd9deb8edbdcf87f2365

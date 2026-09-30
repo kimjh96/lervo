@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0b2b387322f7399c60d36f1e
+outputLanguage: en
+outputs:
+  - byteCount: 392
+    contentHash: sha256:de0cb9da2668168db5202ef261987f42d340aacf9b7f3e75db83009365bdd385
+    path: docs/foundation/event-writer-rollout/recovery.md
+    userRegionHash: sha256:de0cb9da2668168db5202ef261987f42d340aacf9b7f3e75db83009365bdd385
+profile: repository_document
+recordId: knormdoc_167929e1628849df764fe371
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ba06418ead71b2d17d20975842f25c1c97fed77c685d22b271a7d55171053663
+sourcePath: docs/foundation/event-writer-rollout/recovery.md
+sourceUnitVersionIds:
+  - uv_f802f075e27328a92add5331

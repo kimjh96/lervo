@@ -1,0 +1,5 @@
+# Grounding and retrieval
+
+- Managed context grounding and coverage: per-document E1–E4 evidence; every selection ground; separate delivery, reference, and relevance coverage; explicit managed and unmanaged boundaries without claiming understanding.
+- Local hybrid search and reviewed relation context: registered deterministic keyword-plus-sparse-embedding candidates; top-50 and reviewed top-10 contracts; reproducible 20-case quality and latency observation. Optimized build and warm-query costs passed, but quality gates remain unresolved and activation undetermined. Activation requires measured need. Snapshot-bound, sidecar-bound one-hop graph recommendations and registered-document-only E1 selection use ordinary E2/E3 delivery.
+- Claim-eligible linked supporting context: completed the default-off canary, typed claim-authority boundary, and fresh 8+8 activation population. A lexical-only control found no quality uplift, so ADR-0302 retired the ordinary default while preserving historical evidence.

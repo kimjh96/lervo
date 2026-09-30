@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_fb621d79c16e85aff903c986
+compiler:
+  compilerBuildId: sha256:a2216f7588fc16d305062a2962940204a12e8ef517c44d07d779270139a672bd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_351dba9084e88d9efbefbd04
+outputLanguage: en
+outputs:
+  - byteCount: 3471
+    contentHash: sha256:39f9a5ccec1fcdb929078ff6a465280615f9ca7ed8d573e7190ae39e80ced1ed
+    path: docs/specifications/coordination/node-change-driven-work/repository-replicas/subscriptions-and-recovery.md
+    userRegionHash: sha256:39f9a5ccec1fcdb929078ff6a465280615f9ca7ed8d573e7190ae39e80ced1ed
+profile: specification_document
+recordId: knormdoc_fba8288593aa32de4e18c079
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:304e62cffbda8fcf14896dbf17b7d27d06eea2f0531f4d1b0a528aa7ef64e468
+sourcePath: docs/specifications/coordination/node-change-driven-work/repository-replicas/subscriptions-and-recovery.md
+sourceUnitVersionIds:
+  - uv_3f717019c9d6432d4143ef63

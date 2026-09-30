@@ -2,16 +2,16 @@
 
 ## Evolution under rapid AI change
 
-Extensibility is a product invariant because models, agent harnesses, context techniques, tool protocols, retrieval methods, evaluation practices, and product interfaces change rapidly.
+Extensibility is a product invariant: models, agent harnesses, context techniques, tool protocols, retrieval methods, evaluation practices, and product interfaces change rapidly.
 
-| Stable core responsibility                                   | Replaceable or additive edge                          |
-| ------------------------------------------------------------ | ----------------------------------------------------- |
-| Repository source authority and ownership                    | Model and provider                                    |
-| Work, identity, policy, approval, and verification semantics | Agent harness and orchestration strategy              |
-| Evidence states and privacy meanings                         | Prompt and context-preparation technique              |
-| Content hashes, plans, events, and recovery                  | Search, retrieval, reranking, and compression adapter |
-| Canonical knowledge and reviewed promotion                   | Skill, tool, MCP, plugin, and capability format       |
-| Local-first operation and explicit external authority        | Execution target, host product, and UI                |
+| Stable core responsibility | Replaceable or additive edge |
+| --- | --- |
+| Repository source authority and ownership | Model and provider |
+| Work, identity, policy, approval, and verification semantics | Agent harness and orchestration strategy |
+| Evidence states and privacy meanings | Prompt and context-preparation technique |
+| Content hashes, plans, events, and recovery | Search, retrieval, reranking, and compression adapter |
+| Canonical knowledge and reviewed promotion | Skill, tool, MCP, plugin, and capability format |
+| Local-first operation and explicit external authority | Execution target, host product, and UI |
 
 Core packages must depend on provider-neutral contracts. Adapters translate external capabilities and telemetry into those contracts. Missing observations lower assurance; adapters cannot fabricate parity with other providers or techniques.
 

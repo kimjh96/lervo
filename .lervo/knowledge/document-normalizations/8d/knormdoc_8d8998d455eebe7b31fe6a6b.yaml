@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c0344ae191d8e5375287d539
+outputLanguage: en
+outputs:
+  - byteCount: 6147
+    contentHash: sha256:1846cfb878193f998ced8a3866d91208a1ad30efe4b92c51e5919581cc4a40e0
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/conversation-knowledge-jobs.md
+    userRegionHash: sha256:1846cfb878193f998ced8a3866d91208a1ad30efe4b92c51e5919581cc4a40e0
+profile: specification_document
+recordId: knormdoc_8d8998d455eebe7b31fe6a6b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:50b5256be70d697e870c94512ee24b1f7d0971d2ef7ad657ceec8df924c53af3
+sourcePath: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/conversation-knowledge-jobs.md
+sourceUnitVersionIds:
+  - uv_9a3f7e2b8c4081bfea3dc007

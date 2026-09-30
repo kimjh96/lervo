@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_fb621d79c16e85aff903c986
+compiler:
+  compilerBuildId: sha256:a2216f7588fc16d305062a2962940204a12e8ef517c44d07d779270139a672bd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e695300e263c648c005d12ee
+outputLanguage: en
+outputs:
+  - byteCount: 1408
+    contentHash: sha256:dc968d3e80020b19146e9f48efe6cd6a9fead9315216a948aa7dc94b691cff8f
+    path: docs/specifications/coordination/node-change-driven-work/repository-replicas/snapshot-capture.md
+    userRegionHash: sha256:dc968d3e80020b19146e9f48efe6cd6a9fead9315216a948aa7dc94b691cff8f
+profile: specification_document
+recordId: knormdoc_e9687f21c4956cfd2b10273f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:306f26db44a8118b5e785b4f19b7afd59362857a154cd3a820b2b66b8c7d4024
+sourcePath: docs/specifications/coordination/node-change-driven-work/repository-replicas/snapshot-capture.md
+sourceUnitVersionIds:
+  - uv_c2c34315b7e85f6ac5a25712

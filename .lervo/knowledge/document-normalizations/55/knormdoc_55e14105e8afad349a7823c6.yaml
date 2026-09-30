@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_cf6a90294e058ce1fb9ad47e
+outputLanguage: en
+outputs:
+  - byteCount: 1598
+    contentHash: sha256:dafbb258c4d13bab4e819c0ce8a761af8ca3d0bfd6f95f27305306578395ddb8
+    path: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/invocation.md
+    userRegionHash: sha256:dafbb258c4d13bab4e819c0ce8a761af8ca3d0bfd6f95f27305306578395ddb8
+  - byteCount: 1105
+    contentHash: sha256:88971df36555928522765c6556f21ea3f200a908a69c87fa3f9d5299fdf9337e
+    path: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/invocation/allowance.md
+    userRegionHash: sha256:88971df36555928522765c6556f21ea3f200a908a69c87fa3f9d5299fdf9337e
+  - byteCount: 1407
+    contentHash: sha256:e11d0d10901593a34c98ad487a215860de52d2cfe4d3bed18d8f37e92410783d
+    path: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/invocation/lifecycle.md
+    userRegionHash: sha256:e11d0d10901593a34c98ad487a215860de52d2cfe4d3bed18d8f37e92410783d
+  - byteCount: 505
+    contentHash: sha256:6ccea6afe07578bdd491bfa1d2d89b3365f922e545615927a3c5eb41bb3c7788
+    path: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/invocation/readiness.md
+    userRegionHash: sha256:6ccea6afe07578bdd491bfa1d2d89b3365f922e545615927a3c5eb41bb3c7788
+profile: specification_document
+recordId: knormdoc_55e14105e8afad349a7823c6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:78c4bf88bb28fc167fc321034bd5e2e9be300275a1d7332cd1ffb41299e5aca1
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/invocation.md
+sourceUnitVersionIds:
+  - uv_1bd1ffe3c7420d244efb4108
+  - uv_693c5264818377cbf37744ac
+  - uv_bd66eb8450c6f9759b375caa

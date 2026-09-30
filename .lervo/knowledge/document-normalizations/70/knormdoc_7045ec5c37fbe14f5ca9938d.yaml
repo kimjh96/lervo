@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ef1735ca7a04856f3fc58b26
+outputLanguage: en
+outputs:
+  - byteCount: 1609
+    contentHash: sha256:6c614b8318e6fc57cf13c8f094bf0b47d4dffa8c74d4c70df8d05b076649fd4e
+    path: docs/specifications/execution/product-surfaces/search-knowledge-and-compatibility/search/unified-search.md
+    userRegionHash: sha256:6c614b8318e6fc57cf13c8f094bf0b47d4dffa8c74d4c70df8d05b076649fd4e
+profile: specification_document
+recordId: knormdoc_7045ec5c37fbe14f5ca9938d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5d07114ce251f31d463ab6e32d5ee5c14036395ff930fe5eaa6d36bffc4dbf80
+sourcePath: docs/specifications/execution/product-surfaces/search-knowledge-and-compatibility/search/unified-search.md
+sourceUnitVersionIds:
+  - uv_bfd6b7802578e232a3db6aeb

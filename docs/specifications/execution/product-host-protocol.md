@@ -24,8 +24,7 @@ Explicit protocol versions add capabilities without changing earlier versions:
 - v8: source-bound, privacy-bounded product activity projection from the verified canonical event chain.
 - v9: revision-stable repository-knowledge product search through the qualified Lexical v2 adapter.
 - v10: source-bound managed-work observability over canonical execution evidence.
-- v11: source-bound installed deliberation projection over queue, event, artifact, verification,
-  organization, resource, publication, and delivery evidence.
+- v11: source-bound installed deliberation projection over queue, event, artifact, verification, organization, resource, publication, and delivery evidence.
 
 ```bash
 lervo application capabilities --protocol 2 --json
@@ -42,7 +41,7 @@ lervo application capabilities --protocol 11 --json
 
 Versions are compatibility and discovery contracts. They do not grant authority, identify repository snapshots, or assert that route prerequisites are satisfied.
 
-Future versions add Lervo-owned reference-product capabilities defined by the [product-surface specification](product-surfaces.md). Additions remain explicit and capability-negotiated; existing versions retain their route and evidence meanings. Discord and the future first-party surface must pass the same host-neutral conformance cases even when their rendering differs.
+Future versions add Lervo-owned reference-product capabilities defined by the [product-surface specification](product-surfaces.md). Additions remain explicit and capability-negotiated; existing versions retain their route and evidence meanings. Discord and the future first-party surface must pass the same host-neutral conformance cases even when rendering differs.
 
 ## Specification
 

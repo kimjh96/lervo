@@ -1,0 +1,42 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d02b0d50051756836d96a67a
+outputLanguage: en
+outputs:
+  - byteCount: 531
+    contentHash: sha256:70e0cc9d06d77b2a77b56c2c8c514873a051809f8afa5f537b3ebb598d1034bd
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/claim-supersession.md
+    userRegionHash: sha256:70e0cc9d06d77b2a77b56c2c8c514873a051809f8afa5f537b3ebb598d1034bd
+  - byteCount: 2530
+    contentHash: sha256:bc8ab3d49c42e9002954474f37a552be63f71b42df8e98d80346c74a62aac60e
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/claim-supersession/claim-contract.md
+    userRegionHash: sha256:bc8ab3d49c42e9002954474f37a552be63f71b42df8e98d80346c74a62aac60e
+  - byteCount: 1524
+    contentHash: sha256:ad91dc922916a9870cd16c3828d5068d896b3945ee12c68e25aa15cbc930f2d0
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/claim-supersession/managed-worker-and-claude-recovery.md
+    userRegionHash: sha256:ad91dc922916a9870cd16c3828d5068d896b3945ee12c68e25aa15cbc930f2d0
+  - byteCount: 457
+    contentHash: sha256:b418209c094343c54e2255984f84365b4bda7d241bf12a9c04826d541515ad80
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/claim-supersession/settled-cycle-disposition.md
+    userRegionHash: sha256:b418209c094343c54e2255984f84365b4bda7d241bf12a9c04826d541515ad80
+  - byteCount: 568
+    contentHash: sha256:ac00a3f8bd1a353702c914e2b4df3673ec869b553a13437a3b481644cab135e6
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/claim-supersession/uncertain-effect-diagnostics.md
+    userRegionHash: sha256:ac00a3f8bd1a353702c914e2b4df3673ec869b553a13437a3b481644cab135e6
+profile: specification_document
+recordId: knormdoc_0c8bbf7871d9431f84750c30
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2db9db8b00c498b9da0e5e45abd1f91c4c54512454dcadcd8597ded6df4163ba
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/claim-supersession.md
+sourceUnitVersionIds:
+  - uv_7fbb77869bdaf55471ee21f8

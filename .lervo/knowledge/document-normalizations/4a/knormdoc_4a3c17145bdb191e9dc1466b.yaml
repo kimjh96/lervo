@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5d7725d7618c2aeb24c72260
+outputLanguage: en
+outputs:
+  - byteCount: 1365
+    contentHash: sha256:c8516c52494a510eed945135829856d34a12e9ab630d07294483f84c56d26dde
+    path: docs/specifications/execution/outcome-supervision/implementation/readiness/permission-failures.md
+    userRegionHash: sha256:c8516c52494a510eed945135829856d34a12e9ab630d07294483f84c56d26dde
+profile: specification_document
+recordId: knormdoc_4a3c17145bdb191e9dc1466b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:41e31095b6c182523a776f0e9847d339811105bd1bff0a23c49b1945bd37cf83
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/readiness/permission-failures.md
+sourceUnitVersionIds:
+  - uv_a7cce1163d93d99bdd703088

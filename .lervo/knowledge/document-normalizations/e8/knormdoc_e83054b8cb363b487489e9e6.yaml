@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_32505ea31c91e737f6b90e24
+outputLanguage: en
+outputs:
+  - byteCount: 389
+    contentHash: sha256:c888808b3f1aaab37eda36bde289c11bcbfa84c2ee3007e0f4d1accd535ea499
+    path: docs/distribution/node-runtime-distribution/installation-and-readiness.md
+    userRegionHash: sha256:c888808b3f1aaab37eda36bde289c11bcbfa84c2ee3007e0f4d1accd535ea499
+profile: repository_document
+recordId: knormdoc_e83054b8cb363b487489e9e6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c888808b3f1aaab37eda36bde289c11bcbfa84c2ee3007e0f4d1accd535ea499
+sourcePath: docs/distribution/node-runtime-distribution/installation-and-readiness.md
+sourceUnitVersionIds:
+  - uv_e19faa6bbd79a03c6b86fde7

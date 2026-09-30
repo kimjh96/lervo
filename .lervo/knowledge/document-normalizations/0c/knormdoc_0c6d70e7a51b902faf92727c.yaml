@@ -1,0 +1,66 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_68dc43be549d849ef877c9c5
+compiler:
+  compilerBuildId: sha256:a2216f7588fc16d305062a2962940204a12e8ef517c44d07d779270139a672bd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ced0236fc5fed4d2bc9e875b
+outputLanguage: en
+outputs:
+  - byteCount: 3820
+    contentHash: sha256:f436b37174d2d798fdbeec485c424bf693430de4f0c8d42c0a8c341047431b87
+    path: docs/evidence/quality/background-knowledge-convergence-implementation.md
+    userRegionHash: sha256:f436b37174d2d798fdbeec485c424bf693430de4f0c8d42c0a8c341047431b87
+  - byteCount: 6031
+    contentHash: sha256:daf8e6a1d7382b8e82deff30fd1030b56a8a99306cf52850265506a8bed2ef87
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation.md
+    userRegionHash: sha256:daf8e6a1d7382b8e82deff30fd1030b56a8a99306cf52850265506a8bed2ef87
+  - byteCount: 4045
+    contentHash: sha256:3790a41943cc986d6e226e8e22141cb443da010718c483e3aa11cea55169bc46
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/complete-execution-evidence.md
+    userRegionHash: sha256:3790a41943cc986d6e226e8e22141cb443da010718c483e3aa11cea55169bc46
+  - byteCount: 8803
+    contentHash: sha256:7c345f84bdc352f88982717e8fb8bd70542136d5ab0d244c020fb759be5fb5b8
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/discord-and-verification-v4-v8.md
+    userRegionHash: sha256:7c345f84bdc352f88982717e8fb8bd70542136d5ab0d244c020fb759be5fb5b8
+  - byteCount: 10690
+    contentHash: sha256:0bbd25e7802bd25315cb51693e5f87aba38a3820edae2ecde551e84c128a88f1
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/implementation-and-canaries.md
+    userRegionHash: sha256:0bbd25e7802bd25315cb51693e5f87aba38a3820edae2ecde551e84c128a88f1
+  - byteCount: 12588
+    contentHash: sha256:118137f59dd3e2b4c9768f88976ff2b394fd4c3145ed2d9255ac411a02ac917d
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-r152-r157.md
+    userRegionHash: sha256:118137f59dd3e2b4c9768f88976ff2b394fd4c3145ed2d9255ac411a02ac917d
+  - byteCount: 5380
+    contentHash: sha256:d6d195d8d84ac38fa7d413d6c4c3358d2af29d5e76acfe6f4d2b26320530576c
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-reviews-and-authority.md
+    userRegionHash: sha256:d6d195d8d84ac38fa7d413d6c4c3358d2af29d5e76acfe6f4d2b26320530576c
+  - byteCount: 8597
+    contentHash: sha256:7e8a497c2a3996125c915c0c9a8f7fa774713f1e28d73f5173883d176f00aebc
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/later-retries-and-acceptance.md
+    userRegionHash: sha256:7e8a497c2a3996125c915c0c9a8f7fa774713f1e28d73f5173883d176f00aebc
+  - byteCount: 9686
+    contentHash: sha256:6f8f91ef8d4abb8e3fb24638a7bdd256a6d4a75d0716cf70666ef7118db5c799
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/verification-v9-r160.md
+    userRegionHash: sha256:6f8f91ef8d4abb8e3fb24638a7bdd256a6d4a75d0716cf70666ef7118db5c799
+profile: repository_document
+recordId: knormdoc_0c6d70e7a51b902faf92727c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bae6c7b4d66d9a1c7859cea1ea99f9ee92da18d72e878dbb81776bd54e4356ac
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation.md
+sourceUnitVersionIds:
+  - uv_481171c375a9784fc2b070d9
+  - uv_4e50b57243d4ff8de8b93eb5
+  - uv_523b81ea10ba6b726a78b5a9
+  - uv_575dfd19a6a163d08b4f669c
+  - uv_5a77501c7817b73eb2b6e363
+  - uv_6fd58663814046b2e6005592
+  - uv_70c6b0af36154c9ab73710f6
+  - uv_78a0225001fbf8f65f7f8117
+  - uv_fd88bae222b62660053b5574

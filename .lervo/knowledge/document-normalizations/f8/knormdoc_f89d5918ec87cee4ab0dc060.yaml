@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_55885b693cb808d77c4d1e85
+outputLanguage: en
+outputs:
+  - byteCount: 4748
+    contentHash: sha256:4b9ed444ad7fdd03ca8964677fd35c9b97732afe012243399719f4cd3eee2001
+    path: docs/research/lervo-product-positioning-and-verified-improvement.md
+    userRegionHash: sha256:4b9ed444ad7fdd03ca8964677fd35c9b97732afe012243399719f4cd3eee2001
+profile: repository_document
+recordId: knormdoc_f89d5918ec87cee4ab0dc060
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8d6f906efcd54e5be44ebaf7771554e7ee7cbbc0d19b5155d1b4b8336ac9a046
+sourcePath: docs/research/lervo-product-positioning-and-verified-improvement.md
+sourceUnitVersionIds:
+  - uv_0df418aac7bca411a6101872
+  - uv_383a3c5dd10a5276c4b5cf8a
+  - uv_5ba30f90e44e759a5f7da7cb
+  - uv_9e8e80b86b2bf3db856eab5d
+  - uv_c6bdb28975a02be72ae4721d
+  - uv_f059187ba974fb4b64001d2c

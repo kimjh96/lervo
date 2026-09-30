@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_15b3f1f8f9aa1882486d8780
+outputLanguage: en
+outputs:
+  - byteCount: 925
+    contentHash: sha256:d04de0760c9295c710232743e5c7f5626fe04ae451266a0c78a192b1e469bb24
+    path: docs/specifications/execution/product-surfaces/architecture-and-ownership/application-capabilities.md
+    userRegionHash: sha256:d04de0760c9295c710232743e5c7f5626fe04ae451266a0c78a192b1e469bb24
+profile: specification_document
+recordId: knormdoc_15a4d2455954a76bb482ab84
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d04de0760c9295c710232743e5c7f5626fe04ae451266a0c78a192b1e469bb24
+sourcePath: docs/specifications/execution/product-surfaces/architecture-and-ownership/application-capabilities.md
+sourceUnitVersionIds:
+  - uv_f08490787e292d329d7788d1

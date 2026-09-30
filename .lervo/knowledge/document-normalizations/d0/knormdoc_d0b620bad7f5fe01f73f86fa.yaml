@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1ba0ad174d511ad098b21a7f
+outputLanguage: en
+outputs:
+  - byteCount: 1307
+    contentHash: sha256:8d8c2fec6b31eb1aae714a33a0545b7da9c075968ab7b64fac283ecb40d95d0d
+    path: docs/specifications/execution/product-host-protocol/routes/collaboration.md
+    userRegionHash: sha256:8d8c2fec6b31eb1aae714a33a0545b7da9c075968ab7b64fac283ecb40d95d0d
+profile: specification_document
+recordId: knormdoc_d0b620bad7f5fe01f73f86fa
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e932a14b1083b42d3209b55a32ba2d7b2df116d9c0c8896322a8716657c31fe3
+sourcePath: docs/specifications/execution/product-host-protocol/routes/collaboration.md
+sourceUnitVersionIds:
+  - uv_29a2fbfefbc63b0265f07111

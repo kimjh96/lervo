@@ -9,9 +9,9 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 
 ## Completion criteria
 
-- Planning is read-only and binds the physical repository, project, CLI build, and exact current inner plans.
+- Read-only planning binds the physical repository, project, CLI build, and exact current inner plans.
 - Apply rejects stale approval, permits only generated or Lervo-owned automatic changes, refreshes content-bound stale built-in workforce role bindings before Node reconciliation, and stops at user-owned or provider-owned authority.
-- Built-in agent and assignment refreshes advance revisions and record canonical events. Repository-defined role drift exposes a content-bound per-role approval; only an exact `--approve-role-binding` value refreshes those records, and the user-owned role source remains unchanged.
+- Built-in agent and assignment refreshes advance revisions and record canonical events. Repository-defined role drift exposes content-bound per-role approval: only an exact `--approve-role-binding` value refreshes those records, leaving the user-owned role source unchanged.
 - Loose skills migrate before knowledge. Generated AGENTS routes include portable skills on first materialization.
 - Registered Node services compare content-addressed payload identity, not semantic version alone, and reuse existing owner-only configuration without exposing it.
 - Same-version rebuilt Node payloads upgrade transactionally. Fleet registry commit requires complete readiness or three fresh Hub-unavailable-only `offline_ready` observations.

@@ -1,0 +1,48 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e85949cb3c51d493a15bc8e7
+outputLanguage: en
+outputs:
+  - byteCount: 2104
+    contentHash: sha256:ae7bc33c5c16ddf636754e75f090fd89dc6e8e7be42665017eefe0406b0b8741
+    path: docs/specs/background-knowledge-convergence/recovery-and-retention.md
+    userRegionHash: sha256:ae7bc33c5c16ddf636754e75f090fd89dc6e8e7be42665017eefe0406b0b8741
+  - byteCount: 822
+    contentHash: sha256:6ed63cf6841a58736711d9192a8b50c709b4af5640fe9c8a8bb074bd62b48163
+    path: docs/specs/background-knowledge-convergence/recovery-and-retention/archive-event-and-privacy.md
+    userRegionHash: sha256:6ed63cf6841a58736711d9192a8b50c709b4af5640fe9c8a8bb074bd62b48163
+  - byteCount: 1450
+    contentHash: sha256:ca4ad0a705bb07d3e513125f29b0029b2b7d358144df1bc9f80935238c7d2b08
+    path: docs/specs/background-knowledge-convergence/recovery-and-retention/assignment-failure-and-retry.md
+    userRegionHash: sha256:ca4ad0a705bb07d3e513125f29b0029b2b7d358144df1bc9f80935238c7d2b08
+  - byteCount: 2177
+    contentHash: sha256:1123dd6fe9b8f275bdfd82c345a89077ad8ab721dc1ddc8c62f61ede571a7ad7
+    path: docs/specs/background-knowledge-convergence/recovery-and-retention/known-effects-and-uncertainty.md
+    userRegionHash: sha256:1123dd6fe9b8f275bdfd82c345a89077ad8ab721dc1ddc8c62f61ede571a7ad7
+  - byteCount: 1662
+    contentHash: sha256:e0b0d3238a1decbbf32d37b017452ed65691d3297f5e51cc57927649f419818e
+    path: docs/specs/background-knowledge-convergence/recovery-and-retention/workspace-closure-and-retention.md
+    userRegionHash: sha256:e0b0d3238a1decbbf32d37b017452ed65691d3297f5e51cc57927649f419818e
+profile: specification_document
+recordId: knormdoc_9a87a26f5f60168b115c3fa5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a2dba73e410c6ba19059fc0e9e4c88a8d5a47ad998e1ef5bab6278252f885811
+sourcePath: docs/specs/background-knowledge-convergence/recovery-and-retention.md
+sourceUnitVersionIds:
+  - uv_13dad0409d761a9a4205e3b0
+  - uv_2b3e6b76af8074064eaebd7f
+  - uv_6a6baa54459149ad88f4bbd1
+  - uv_760510dcbac0efe7ff1fa592
+  - uv_8c0f151bb3583b2090a033ac
+  - uv_d969214b5e184ec095d6c9a3
+  - uv_f11dff21324fc43cb1998c0b

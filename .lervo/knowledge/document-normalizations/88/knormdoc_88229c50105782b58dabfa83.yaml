@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a6b7aaba8c59704f4c952cbf
+outputLanguage: en
+outputs:
+  - byteCount: 1520
+    contentHash: sha256:ab6bf6c9cfd8cfc145f08f1541003adae79325efc11670bca68593d93f7cba6d
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories/runtime-identity.md
+    userRegionHash: sha256:ab6bf6c9cfd8cfc145f08f1541003adae79325efc11670bca68593d93f7cba6d
+profile: repository_document
+recordId: knormdoc_88229c50105782b58dabfa83
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d47f755e764d69f0fc19749ca5375cf70c029e33c13541afecbe38d8b4b9c049
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories/runtime-identity.md
+sourceUnitVersionIds:
+  - uv_7bd42f185119fc38cc3a2da6

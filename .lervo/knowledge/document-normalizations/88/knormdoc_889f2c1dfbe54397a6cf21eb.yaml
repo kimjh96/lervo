@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7a7705411402c1155fa3c891
+outputLanguage: en
+outputs:
+  - byteCount: 406
+    contentHash: sha256:2cca450404eae12c4487260360f20d4669c70e40d76f0af93791e69efa7c1364
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/review-and-responsibility/delivery.md
+    userRegionHash: sha256:2cca450404eae12c4487260360f20d4669c70e40d76f0af93791e69efa7c1364
+profile: specification_document
+recordId: knormdoc_889f2c1dfbe54397a6cf21eb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ac8c4169a1222a59ce3481ab68d537e3b168c709af41e85b87bfea7e77e624dd
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/review-and-responsibility/delivery.md
+sourceUnitVersionIds:
+  - uv_1d00810cc37d6c1689d0efdd

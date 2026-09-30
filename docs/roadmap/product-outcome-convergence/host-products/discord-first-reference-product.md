@@ -19,10 +19,10 @@ The first-party surface must reuse the same commands, queries, subscriptions, du
 
 ### 2. Observation and control
 
-- Add the bounded, event-derived activity feed and subscription cursor.
+- Add a bounded, event-derived activity feed and subscription cursor.
 - Add live-steering commands through the product-host protocol and Discord adapter.
 - Add a unified operating view over existing canonical authorities and projections.
-- Show observed tokens; show cost separately as observed or explicitly unavailable. Add warnings, with any hard-stop policy deferred to separate review.
+- Show observed tokens. Show cost separately as observed or explicitly unavailable. Add warnings; defer any hard-stop policy to separate review.
 - Integrate formal deliberation as an optional, origin-bound decision thread with structured artifacts, per-role resources, and explicit `converged`, `no_consensus`, and failure meanings. Keep it off default conversation and goal paths.
 
 ### 3. Unified discovery and collaboration artifacts
@@ -49,9 +49,9 @@ The first-party surface must reuse the same commands, queries, subscriptions, du
 - A Korean natural-language deliberation request produces Korean start, artifact, failure, and substantive terminal content; replies to the exact originating Discord message; and retains relevant prior human design context despite intervening agent chatter.
 - Discord renders every writing-gated stakeholder contribution as natural proposal, challenge, revision, or verification prose. Round numbers, artifact and claim counts, and publication-gate status belong in activity and evidence projections, not participant dialogue.
 - A transient pre-provider repository snapshot race receives one bounded fresh attempt. Exhaustion creates no deliberation job. Installed acceptance covers a request arriving while replica bytes change.
-- Installed acceptance includes a reviewer draft that initially fails `plain_audience_language`: the fresh repair omits internal coordinates, preserves exact provenance in execution evidence, passes the unchanged publication gate, and permits the remaining reviewers and decision owner to finish.
-- Installed acceptance includes a reviewer draft that initially fails `direct_result_and_action` by assigning work to another named role: the fresh repair states the reviewer's own result and expresses missing work as an approval condition without delegating to another person or team.
-- The installed policy's provider-call ceiling covers its complete maximum-round no-repair path plus both required single-repair acceptance journeys, and the service process timeout preserves terminalization time beyond the policy elapsed ceiling. Static feasibility rejection and an installed provider run both verify this relation.
+- Installed acceptance includes a reviewer draft initially failing `plain_audience_language`: the fresh repair omits internal coordinates, preserves exact provenance in execution evidence, passes the unchanged publication gate, and permits the remaining reviewers and decision owner to finish.
+- Installed acceptance includes a reviewer draft initially failing `direct_result_and_action` by assigning work to another named role: the fresh repair states the reviewer's own result and expresses missing work as an approval condition without delegating to another person or team.
+- The installed policy's provider-call ceiling covers its complete maximum-round no-repair path plus both required single-repair acceptance journeys. The service process timeout preserves terminalization time beyond the policy elapsed ceiling. Static feasibility rejection and an installed provider run both verify this relation.
 - Repository grounding uses the current resolved search plan and records exact ranking evidence.
 - Knowledge promotion remains explicit, source-bound, reviewed, and rollback-aware.
 - Before making version claims, verify current and predecessor release compatibility, migration interruption, rollback, stale-projection rejection, and historical replay.

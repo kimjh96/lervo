@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5de7c3d03e177e37eb2b3638
+outputLanguage: en
+outputs:
+  - byteCount: 7716
+    contentHash: sha256:1551d29c5488b1a2ea77b4ebde96935eb33803a12a0edd9cd389174365c3b21a
+    path: docs/decisions/knowledge/repository/canonicalization/0433-own-background-knowledge-for-every-repository-change.md
+    userRegionHash: sha256:1551d29c5488b1a2ea77b4ebde96935eb33803a12a0edd9cd389174365c3b21a
+profile: decision_record
+recordId: knormdoc_bf0195afe6e17b26dc15bd10
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c4f45ad65fb952a7f2cfc47de40eaa4152ab7e5e67aabfa8d2cae4d686447574
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0433-own-background-knowledge-for-every-repository-change.md
+sourceUnitVersionIds:
+  - uv_5878486cf918ba715b0295f6
+  - uv_5e98990562e27ef3e7062f8b
+  - uv_6c82789ba7354d42057e2c3a
+  - uv_9b7d2afbcf5b8488f49ac8d8
+  - uv_9e9123a57c1c8db79467867a
+  - uv_ad145957088673b2d7d18f2a
+  - uv_b49f6efc6562d08cd2a42fda
+  - uv_b8bc3c366e980f352c345087
+  - uv_e599512f497d761ef28fa970
+  - uv_fa07681f2cce4302726bd0bb

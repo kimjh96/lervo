@@ -16,7 +16,7 @@ One real channel with one person and at least two hired agents in distinct roles
 - Use threads, replies, and mentions as needed.
 - Complete a bounded discussion and stop at its declared terminal condition.
 - Complete ordinary multi-agent discussion without implicitly starting formal deliberation, then pass a separate, explicit formal-decision journey in one bound thread.
-- Route a task to the hired agent whose role owns it, without the person naming that agent, and let the agent answer from its own context.
+- Route a task to the hired agent whose role owns it without the person naming that agent, and let the agent answer from its own context.
 - Let one non-source agent autonomously join a materially relevant human or agent turn without a mention, while irrelevant peers observe and bounded chains terminate.
 - Preserve every participant, role, provider-model, and agent-context coordinate across restart.
 - Keep one reviewed unaddressed-owner priority for every local and cross-Node peer, and fail startup when Nodes disagree.
@@ -36,7 +36,7 @@ The same scenario must be replayable through a non-Discord test surface over sha
 - [ADR-0393](../../../../decisions/coordination/conversations/0393-named-agent-identity-and-installed-organization-effects.md)
 - [ADR-0394](../../../../decisions/coordination/conversations/0394-webhook-backed-discord-agent-identities.md)
 - [ADR-0395](../../../../decisions/coordination/conversations/0395-resumable-native-repository-work-turns.md)
-- [ADR-0396](../../../../decisions/coordination/conversations/0396-conflict-safe-repository-replica-continuation.md)
+- [ADR-0396](../../../../decisions/coordination/sync/0396-conflict-safe-repository-replica-continuation.md)
 - [ADR-0408](../../../../decisions/coordination/conversations/0408-conversation-task-delegation-to-hired-agents.md)
 - [ADR-0411](../../../../decisions/coordination/conversations/agent-organization/0411-governed-agent-memory-and-autonomous-participation.md)
 - [ADR-0420](../../../../decisions/coordination/conversations/agent-organization/0420-bound-agent-conversation-and-deliberation-routes.md)

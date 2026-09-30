@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9e1d3ed5898c045b69a9c4cc
+outputLanguage: en
+outputs:
+  - byteCount: 2136
+    contentHash: sha256:180affb0ce260de3ee813010e70ae494483d9aa3a549a3abf536c8fe772b905d
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories/runtime-identity/mac-replica-coordinator.md
+    userRegionHash: sha256:180affb0ce260de3ee813010e70ae494483d9aa3a549a3abf536c8fe772b905d
+profile: repository_document
+recordId: knormdoc_9db97375b015460149714dce
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1479edfd903388b83bc7ff27b35f36e317680a40653c04c3c301de03133a2569
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories/runtime-identity/mac-replica-coordinator.md
+sourceUnitVersionIds:
+  - uv_39dc39e1667bcc2dcd56f44d
+  - uv_749c4d949de3bea58a37f230

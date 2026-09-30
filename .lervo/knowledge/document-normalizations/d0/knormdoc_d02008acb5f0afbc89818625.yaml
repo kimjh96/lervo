@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3ffb8ed431b44bc3938fd6ec
+outputLanguage: en
+outputs:
+  - byteCount: 5109
+    contentHash: sha256:a4a88c7860903a0dfe3c7172aa1c962742d32f78cb3942251edd96977467e47a
+    path: docs/decisions/knowledge/repository/canonicalization/0436-reviewed-source-capture-and-bounded-canonical-worksets.md
+    userRegionHash: sha256:a4a88c7860903a0dfe3c7172aa1c962742d32f78cb3942251edd96977467e47a
+profile: decision_record
+recordId: knormdoc_d02008acb5f0afbc89818625
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b7ae48d3f95826a4466e480d0223eb7498d1d36efc94a64bb0364a9fe9350151
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0436-reviewed-source-capture-and-bounded-canonical-worksets.md
+sourceUnitVersionIds:
+  - uv_2f80597927a44c59e995210b
+  - uv_3884bc9ca42a4fcec198520d
+  - uv_93d50d52975ae507edd4a6e3
+  - uv_a86bdf0d1933d7325c016fdc
+  - uv_d7c7c430f5e4562c1f18a996
+  - uv_e89628437477305e1f9d5ff9

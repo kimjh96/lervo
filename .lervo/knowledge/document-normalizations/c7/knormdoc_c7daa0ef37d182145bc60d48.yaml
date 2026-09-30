@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_cdd973de11bb1ccfda966eb9
+outputLanguage: en
+outputs:
+  - byteCount: 2339
+    contentHash: sha256:37176b06e3a0679aa562889a0a27308e4911cc3241d20d3c2b617c03870d87da
+    path: docs/specifications/execution/product-surfaces/architecture-and-ownership/layering-and-ownership.md
+    userRegionHash: sha256:37176b06e3a0679aa562889a0a27308e4911cc3241d20d3c2b617c03870d87da
+profile: specification_document
+recordId: knormdoc_c7daa0ef37d182145bc60d48
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0a3439451771a6797b8ed35a1f0a5b28de0d6034c6bcbdf487a60470a8f2396a
+sourcePath: docs/specifications/execution/product-surfaces/architecture-and-ownership/layering-and-ownership.md
+sourceUnitVersionIds:
+  - uv_4e7bb02ccc41f3a5bdbdbd42
+  - uv_52e293d08a76fa7ca249a62d

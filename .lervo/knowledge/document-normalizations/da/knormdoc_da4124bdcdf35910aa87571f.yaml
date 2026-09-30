@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4b9dd733d7286a6c3e1d5131
+outputLanguage: en
+outputs:
+  - byteCount: 1574
+    contentHash: sha256:f1d9f455e986e165b33fb786026c17ab6231170ec3191ef3a9e10496c2fd7953
+    path: docs/specifications/coordination/native-repository-work-recovery.md
+    userRegionHash: sha256:f1d9f455e986e165b33fb786026c17ab6231170ec3191ef3a9e10496c2fd7953
+profile: specification_document
+recordId: knormdoc_da4124bdcdf35910aa87571f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6d10792ab3292aa2487079e19c5e692bce6d3b4d42a48f899ee18acdf46ca4a1
+sourcePath: docs/specifications/coordination/native-repository-work-recovery.md
+sourceUnitVersionIds:
+  - uv_17b7311928ca50e56d636c2f
+  - uv_378b09008251d12e5511aeaf
+  - uv_b37c4ce94dc4b267eb7e322d
+  - uv_b6af8d79963e71dcbbbf6007

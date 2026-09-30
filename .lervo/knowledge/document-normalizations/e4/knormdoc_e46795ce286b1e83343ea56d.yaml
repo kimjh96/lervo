@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_64e66586d32fa4a6172ff581
+outputLanguage: en
+outputs:
+  - byteCount: 500
+    contentHash: sha256:d01ef2460b4b7865f615df091c40e4cf98d7526769e738bddb59fb1f570edfd1
+    path: docs/roadmap/v0/repository-knowledge-hardening.md
+    userRegionHash: sha256:d01ef2460b4b7865f615df091c40e4cf98d7526769e738bddb59fb1f570edfd1
+  - byteCount: 1245
+    contentHash: sha256:1f6a186e3426ad819ec200476b1abdc7443bd0bcb448de8b71a5ceb6e9d62897
+    path: docs/roadmap/v0/repository-knowledge-hardening/discovery-migration-routing.md
+    userRegionHash: sha256:1f6a186e3426ad819ec200476b1abdc7443bd0bcb448de8b71a5ceb6e9d62897
+  - byteCount: 1198
+    contentHash: sha256:7b32b5f484ce5dd873e597291ea48d9f68233af68287ee8b162c05c6e7bdace8
+    path: docs/roadmap/v0/repository-knowledge-hardening/normalization-and-acceptance.md
+    userRegionHash: sha256:7b32b5f484ce5dd873e597291ea48d9f68233af68287ee8b162c05c6e7bdace8
+  - byteCount: 1144
+    contentHash: sha256:a00799ac40fdabfc5b7218b512449d49f55092e521d3e4b66a77cb8de8954dac
+    path: docs/roadmap/v0/repository-knowledge-hardening/terminal-hooks-and-evidence.md
+    userRegionHash: sha256:a00799ac40fdabfc5b7218b512449d49f55092e521d3e4b66a77cb8de8954dac
+  - byteCount: 1217
+    contentHash: sha256:8e29c216ebbb733483b737a93a4d1d2ea8c0c0659e2fb13de7d6136745d10bbd
+    path: docs/roadmap/v0/repository-knowledge-hardening/workstreams-and-semantic-grounding.md
+    userRegionHash: sha256:8e29c216ebbb733483b737a93a4d1d2ea8c0c0659e2fb13de7d6136745d10bbd
+profile: roadmap_document
+recordId: knormdoc_e46795ce286b1e83343ea56d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e104d3c919ef0d0067660740825fae506bc65b140d2b181cf6d198069560029d
+sourcePath: docs/roadmap/v0/repository-knowledge-hardening.md
+sourceUnitVersionIds:
+  - uv_1bc821d041c277d3892129d2
+  - uv_56ca70148de081c502bcba9d
+  - uv_5b636fe17f1c4c9329704a13
+  - uv_a488420afb946d71bbc9520a
+  - uv_b094f380f0813d9078629895

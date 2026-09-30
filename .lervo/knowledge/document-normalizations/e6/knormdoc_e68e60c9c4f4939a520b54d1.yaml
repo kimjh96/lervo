@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d822e0c166ee72defdc3cf24
+outputLanguage: en
+outputs:
+  - byteCount: 903
+    contentHash: sha256:c38e9c29eb260a414f01659793a191a6588a11d8157d9952d4b3a5a2c0b047d2
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/topology-supersession.md
+    userRegionHash: sha256:c38e9c29eb260a414f01659793a191a6588a11d8157d9952d4b3a5a2c0b047d2
+profile: specification_document
+recordId: knormdoc_e68e60c9c4f4939a520b54d1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c7367b36569997f245bd1f8b507ffdfea2678e0d010d11faf4f6a7f743541cd2
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/topology-supersession.md
+sourceUnitVersionIds:
+  - uv_26bc9c9e79d49a4756000ab2

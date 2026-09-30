@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3cf704a6e15b06396e44e87e
+outputLanguage: en
+outputs:
+  - byteCount: 655
+    contentHash: sha256:a856bdc48ad51d7411e06e36dbabfd1ccf663790ee5805145ce97b8c7a2cdaf5
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/research-and-deployment-history.md
+    userRegionHash: sha256:a856bdc48ad51d7411e06e36dbabfd1ccf663790ee5805145ce97b8c7a2cdaf5
+  - byteCount: 736
+    contentHash: sha256:cfa1e2e38e3193491030157b979b421c4b7a17fc47bfab98dcdb4391804752f7
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/research-and-deployment-history/discord-publication.md
+    userRegionHash: sha256:cfa1e2e38e3193491030157b979b421c4b7a17fc47bfab98dcdb4391804752f7
+  - byteCount: 1591
+    contentHash: sha256:ac28154af28f0de297ece22c3ea2068d44117ca6fe1802a4a8d171ca556cc780
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/research-and-deployment-history/research-successors.md
+    userRegionHash: sha256:ac28154af28f0de297ece22c3ea2068d44117ca6fe1802a4a8d171ca556cc780
+  - byteCount: 634
+    contentHash: sha256:13781ba6e5dbd0a0f5bbb4cb0640eb9b52c8b00ad88ba741682cfaa2d4ceb571
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/research-and-deployment-history/wsl-boot-repair.md
+    userRegionHash: sha256:13781ba6e5dbd0a0f5bbb4cb0640eb9b52c8b00ad88ba741682cfaa2d4ceb571
+profile: roadmap_document
+recordId: knormdoc_8786d35d559b82dee3a6952e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:387871804c9f8e8674c87168972dc1cab071fcc9b792d54f0f24fa16a6d179a7
+sourcePath: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/research-and-deployment-history.md
+sourceUnitVersionIds:
+  - uv_1d98565b8da3031a7483eb13
+  - uv_b555c61845de297ab3329eda
+  - uv_bb97da6b1987b336b921906f
+  - uv_e03102fc402b439b01660351

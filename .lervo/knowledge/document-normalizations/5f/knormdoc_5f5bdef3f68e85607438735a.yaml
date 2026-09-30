@@ -1,0 +1,42 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9f719a55f73b8b63e4b85a49
+outputLanguage: en
+outputs:
+  - byteCount: 670
+    contentHash: sha256:d4f7cbb6a73a66aabdd965bfae3027617d852228cee6ac77e7c6a43cdad37112
+    path: docs/specifications/execution/product-host-protocol/routes/product.md
+    userRegionHash: sha256:d4f7cbb6a73a66aabdd965bfae3027617d852228cee6ac77e7c6a43cdad37112
+  - byteCount: 928
+    contentHash: sha256:fd8aacc901613c9c30b63fcd03855bb7c3400d686150f47e424ecd002b6bbe02
+    path: docs/specifications/execution/product-host-protocol/routes/product/activity.md
+    userRegionHash: sha256:fd8aacc901613c9c30b63fcd03855bb7c3400d686150f47e424ecd002b6bbe02
+  - byteCount: 2007
+    contentHash: sha256:41def292687c73a9e03646059ac40463098dc1f443b65c7b75eda6a935e49694
+    path: docs/specifications/execution/product-host-protocol/routes/product/deliberation.md
+    userRegionHash: sha256:41def292687c73a9e03646059ac40463098dc1f443b65c7b75eda6a935e49694
+  - byteCount: 1098
+    contentHash: sha256:09bfda2cf654e64594099835dc26678bc353658390de3a94731b07f06b97d04f
+    path: docs/specifications/execution/product-host-protocol/routes/product/observability.md
+    userRegionHash: sha256:09bfda2cf654e64594099835dc26678bc353658390de3a94731b07f06b97d04f
+  - byteCount: 1004
+    contentHash: sha256:5a0311f803ed3caf303f9c5af8b615304913ce060dc0fd7a66c391bd44125c20
+    path: docs/specifications/execution/product-host-protocol/routes/product/search.md
+    userRegionHash: sha256:5a0311f803ed3caf303f9c5af8b615304913ce060dc0fd7a66c391bd44125c20
+profile: specification_document
+recordId: knormdoc_5f5bdef3f68e85607438735a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f92922cb49b7c7593d2a3558f054b50d7aca567a48119cac0927300d5e42ccdd
+sourcePath: docs/specifications/execution/product-host-protocol/routes/product.md
+sourceUnitVersionIds:
+  - uv_b894ff5416b242eff03c013d

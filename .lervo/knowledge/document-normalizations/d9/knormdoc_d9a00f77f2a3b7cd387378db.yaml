@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9b1faa9915cc6bd3f651ceac
+outputLanguage: en
+outputs:
+  - byteCount: 4445
+    contentHash: sha256:5f4e8d8a4edca617eeca3c8ef2a5c0a81e676c85ebbbee8d17910428e91075ac
+    path: docs/decisions/knowledge/repository/0403-expand-execution-event-source-capacity.md
+    userRegionHash: sha256:5f4e8d8a4edca617eeca3c8ef2a5c0a81e676c85ebbbee8d17910428e91075ac
+profile: decision_record
+recordId: knormdoc_d9a00f77f2a3b7cd387378db
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:aff65d9c8351fb6b56c3abbadca5db0b920421ae8b27a1af695d05727162df10
+sourcePath: docs/decisions/knowledge/repository/0403-expand-execution-event-source-capacity.md
+sourceUnitVersionIds:
+  - uv_26be7eff97cecac562b4868f
+  - uv_28aba0cc5fba8833cd8eadd2
+  - uv_525f124515870628bab72222
+  - uv_75b772ce175f5a05c5b2c4cc
+  - uv_a30e46a10c60636d401303ac
+  - uv_e3f2be67dfe682b5d616040c

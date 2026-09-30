@@ -1,6 +1,6 @@
 # Product-host external-consumer acceptance
 
-`pnpm smoke:packed-cli` builds the real tarball, installs it into an empty temporary consumer, and runs the protocol without workspace imports. The fixture verifies:
+`pnpm smoke:packed-cli` builds the real tarball, installs it into an empty temporary consumer, and runs the protocol without workspace imports. It verifies:
 
 - Default 21-route v1 and explicit 23-route v2, 24-route v3, 26-route v4, 27-route v5, 29-route v6, 38-route v7, 39-route v8, 40-route v9, 41-route v10, and 42-route v11 reports.
 - The exact connector limitation and unsupported capabilities.

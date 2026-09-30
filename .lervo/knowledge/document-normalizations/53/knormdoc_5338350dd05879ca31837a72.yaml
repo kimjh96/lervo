@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_281216452b95dc5f847a84c5
+outputLanguage: en
+outputs:
+  - byteCount: 3972
+    contentHash: sha256:320a47769c3ce4f592d18df55d6e08d99cee084548a309f3d59b603c406f3e8f
+    path: docs/decisions/execution/verification/0358-cover-busy-host-verification-stage-leases.md
+    userRegionHash: sha256:320a47769c3ce4f592d18df55d6e08d99cee084548a309f3d59b603c406f3e8f
+profile: decision_record
+recordId: knormdoc_5338350dd05879ca31837a72
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1ec2bc5ae6ae37eb7bd58ee7fc4a81b45272ccb06348cf8360c4a3a58475993c
+sourcePath: docs/decisions/execution/verification/0358-cover-busy-host-verification-stage-leases.md
+sourceUnitVersionIds:
+  - uv_24e957958a693255af8d5537
+  - uv_317e69196936a13887799be9
+  - uv_38fae8b08c4186ca3725bcc3
+  - uv_47a3b2b297f2cbeb120f5fa8
+  - uv_7016cf4931bb947a756f7fdf
+  - uv_71192b87a9f7fb6a8d5e9dcd

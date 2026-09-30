@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2a9b12f89171aca89eefe078
+outputLanguage: en
+outputs:
+  - byteCount: 1671
+    contentHash: sha256:9be64959e7fdae36ce9ec516ef9e6ed338601e4ae10cff12eb4baeed6ac3b36c
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/request-intake/standing-lineage.md
+    userRegionHash: sha256:9be64959e7fdae36ce9ec516ef9e6ed338601e4ae10cff12eb4baeed6ac3b36c
+profile: specification_document
+recordId: knormdoc_bb682d5b8142b2c06208328d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f471fbc4c4250cad8b401b913ea743eab88712f8d60a341373b294f67f5c7e24
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/request-intake/standing-lineage.md
+sourceUnitVersionIds:
+  - uv_a4afe0843afb6a2f65e38682
+  - uv_d7b56e6c9dd9c7ceacb76be3
+  - uv_f4250fb0ce3f5104bd0055e7

@@ -1,0 +1,42 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1a15ddd60ae0bc016eb40541
+outputLanguage: en
+outputs:
+  - byteCount: 784
+    contentHash: sha256:b4ec99c918d21e68d4a1b7cc73a152080a16962676321ca6f543b04e524c40c9
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/provider-execution.md
+    userRegionHash: sha256:b4ec99c918d21e68d4a1b7cc73a152080a16962676321ca6f543b04e524c40c9
+  - byteCount: 1134
+    contentHash: sha256:6d56294dea2de49016a83b4e03991c2e254b1add90e0ff7a29798a0c1cc39625
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/provider-execution/fleet-model-policy.md
+    userRegionHash: sha256:6d56294dea2de49016a83b4e03991c2e254b1add90e0ff7a29798a0c1cc39625
+  - byteCount: 1140
+    contentHash: sha256:df9d8149dfde20f41165bd0bc7fac4682bcec50b5b1cbce71a8587c21284ca90
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/provider-execution/runtime-validation.md
+    userRegionHash: sha256:df9d8149dfde20f41165bd0bc7fac4682bcec50b5b1cbce71a8587c21284ca90
+  - byteCount: 1492
+    contentHash: sha256:7a4a35d38cef66cf572647c5e647d8ae92075fcedefbe6945842636c78b065c5
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/provider-execution/semantic-allocation.md
+    userRegionHash: sha256:7a4a35d38cef66cf572647c5e647d8ae92075fcedefbe6945842636c78b065c5
+  - byteCount: 1635
+    contentHash: sha256:fc38542bc80c627d66899dc2336afee2944b65bfb663e0be54523d81e8c51309
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/provider-execution/turn-lifecycle.md
+    userRegionHash: sha256:fc38542bc80c627d66899dc2336afee2944b65bfb663e0be54523d81e8c51309
+profile: repository_document
+recordId: knormdoc_382c8fa6350b62ee3eec63be
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ec292c92fd1f6913ef025419a9df550c904db5b835582fb7a49a313838abaa91
+sourcePath: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/provider-execution.md
+sourceUnitVersionIds:
+  - uv_d6d801bf11c0c351b7cdb2f6

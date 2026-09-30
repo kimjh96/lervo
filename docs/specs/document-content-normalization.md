@@ -5,10 +5,10 @@ As of: 2026-09-04
 
 Document normalization produces bounded, reviewable Markdown candidates after canonical bootstrap, layout, and bridges are current. Entrypoint adoption, bridge disposition, and prose normalization remain independent.
 
-- [Normalization contract](document-content-normalization/contract.md): document profiles, output constraints, preservation, review, and apply.
+- [Normalization contract](document-content-normalization/contract.md): profiles, output constraints, preservation, review, and apply.
 - [Worksets and preflight](document-content-normalization/worksets-and-preflight.md): selection, budgets, resource observations, telemetry, and lifecycle validation.
 
-The [background convergence runtime](background-knowledge-convergence/runtime.md) implements independently assigned review and exact application without waiting for another conversation. Native installed Codex acceptance verified a private no-Hub repository; production activation still requires reviewed version-4 writers and per-project delegation. Existing turn-owned review remains available.
+The [background convergence runtime](background-knowledge-convergence/runtime.md) implements independently assigned review and exact application without waiting for another conversation. Native installed Codex acceptance verified a private no-Hub repository. Production activation still requires reviewed version-4 writers and per-project delegation. Existing turn-owned review remains available.
 
 ## References
 

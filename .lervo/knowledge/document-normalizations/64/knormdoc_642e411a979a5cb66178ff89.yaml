@@ -1,0 +1,42 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1fcc6af1d0ad59fc11bd8e14
+outputLanguage: en
+outputs:
+  - byteCount: 740
+    contentHash: sha256:81b0f21fca367720f752d9946a3d6c31adc0a278ef2f336b762b0bd05d12795d
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/deliberation.md
+    userRegionHash: sha256:81b0f21fca367720f752d9946a3d6c31adc0a278ef2f336b762b0bd05d12795d
+  - byteCount: 1712
+    contentHash: sha256:b612d1673a731005700863344586a44ae864c080a89941c38a78b18a75c2bcee
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/deliberation/artifact-delivery.md
+    userRegionHash: sha256:b612d1673a731005700863344586a44ae864c080a89941c38a78b18a75c2bcee
+  - byteCount: 1900
+    contentHash: sha256:fb83086f2deeece95c4f1ba39856bf1b18adc37e82e16f1571124a9716f74a28
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/deliberation/budgets-and-evidence.md
+    userRegionHash: sha256:fb83086f2deeece95c4f1ba39856bf1b18adc37e82e16f1571124a9716f74a28
+  - byteCount: 2107
+    contentHash: sha256:6acfe697f8502720f8f61a3a31576f2c08f73484da004a4a5cf469c107c23831
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/deliberation/formal-participation.md
+    userRegionHash: sha256:6acfe697f8502720f8f61a3a31576f2c08f73484da004a4a5cf469c107c23831
+  - byteCount: 4379
+    contentHash: sha256:56ecdc197e8f7ba1bff081dc5c5465bc9d00ff514532ffa89c3283d3137b430e
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/deliberation/runtime-and-discussion.md
+    userRegionHash: sha256:56ecdc197e8f7ba1bff081dc5c5465bc9d00ff514532ffa89c3283d3137b430e
+profile: repository_document
+recordId: knormdoc_642e411a979a5cb66178ff89
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:42a03ad5424381ffdc8725aab51d1c75f3a83167878555639c05ca2848d0d2b1
+sourcePath: docs/distribution/node-runtime-distribution/discord-configuration/execution/deliberation.md
+sourceUnitVersionIds:
+  - uv_efb0c7e8d947fd7621d8a49d

@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8a4a9dd1b763210dbd786330
+outputLanguage: en
+outputs:
+  - byteCount: 1757
+    contentHash: sha256:76bebcd7dd72e21e8227a52ae194ba8b15c8f214dd07afc752c2dec402700a7e
+    path: docs/specs/repository-knowledge-lifecycle-convergence/semantic-durable-rule-intake.md
+    userRegionHash: sha256:76bebcd7dd72e21e8227a52ae194ba8b15c8f214dd07afc752c2dec402700a7e
+profile: specification_document
+recordId: knormdoc_947259186e2582c22f8d72d1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6e6f578e3482f7a44a8e88bf308de4400a505bbd7c3ae08687b8fc588ba4e742
+sourcePath: docs/specs/repository-knowledge-lifecycle-convergence/semantic-durable-rule-intake.md
+sourceUnitVersionIds:
+  - uv_2632bc52ffe425233620611c
+  - uv_5446187ff5271b56f3c92f5b
+  - uv_a5bfb922e47c63c8ac2a7cc4
+  - uv_c47442bb45be96fccf0b5ce4

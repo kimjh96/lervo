@@ -1,0 +1,64 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_68dc43be549d849ef877c9c5
+compiler:
+  compilerBuildId: sha256:a2216f7588fc16d305062a2962940204a12e8ef517c44d07d779270139a672bd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0e13751f6d10891074995111
+outputLanguage: en
+outputs:
+  - byteCount: 1680
+    contentHash: sha256:86f5b03e33b63983c57358b84e0a3599f2b05fba8330cfad61a32c3c5909898a
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/installed-observations.md
+    userRegionHash: sha256:86f5b03e33b63983c57358b84e0a3599f2b05fba8330cfad61a32c3c5909898a
+  - byteCount: 4306
+    contentHash: sha256:97c203104fbde771d2d59f3173d891114ee9fcf65f5a36f78ac5f1f4f3cd7172
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/installed-observations/intake-and-recovery.md
+    userRegionHash: sha256:97c203104fbde771d2d59f3173d891114ee9fcf65f5a36f78ac5f1f4f3cd7172
+  - byteCount: 11710
+    contentHash: sha256:c160065686c2708139b684b8d4962196c95c9a97eb698df322377360c2d3e6d1
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/installed-observations/kael-r54-r68.md
+    userRegionHash: sha256:c160065686c2708139b684b8d4962196c95c9a97eb698df322377360c2d3e6d1
+  - byteCount: 13966
+    contentHash: sha256:844a32fdb1fdca257706225a0a24f5da4062efc8b6962e79eb765a3b97cd5ebf
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/installed-observations/kael-r69-r78.md
+    userRegionHash: sha256:844a32fdb1fdca257706225a0a24f5da4062efc8b6962e79eb765a3b97cd5ebf
+  - byteCount: 5934
+    contentHash: sha256:867c87355aab38a9a96a5032ef02516a7b96f3967da337d57799efb46d1d0b2f
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/installed-observations/kael-r79-r88.md
+    userRegionHash: sha256:867c87355aab38a9a96a5032ef02516a7b96f3967da337d57799efb46d1d0b2f
+  - byteCount: 3536
+    contentHash: sha256:627ddd0a9a866f352874fa7e7e2464628ff47b9f97285c782b6b3411cc2adda7
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/installed-observations/standing-supervision.md
+    userRegionHash: sha256:627ddd0a9a866f352874fa7e7e2464628ff47b9f97285c782b6b3411cc2adda7
+  - byteCount: 4699
+    contentHash: sha256:1868e365d5a6015fccd23f4a27982fbf3b429ba6ab2650072527b0b1ed02c8dc
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/installed-observations/supervision-recovery.md
+    userRegionHash: sha256:1868e365d5a6015fccd23f4a27982fbf3b429ba6ab2650072527b0b1ed02c8dc
+  - byteCount: 736
+    contentHash: sha256:9c3fd53bb1e6e8bc1aa80f8760b6d6fa3c752b699bb813850a619c4d25d25972
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/installed-observations/unqueued-publication.md
+    userRegionHash: sha256:9c3fd53bb1e6e8bc1aa80f8760b6d6fa3c752b699bb813850a619c4d25d25972
+profile: roadmap_document
+recordId: knormdoc_1a8ae7aea7c0885b056c5456
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a75a32834df2e77cd39a0b2c9064a9e6232d4139ae77a70a6f500145d84ac35c
+sourcePath: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/installed-observations.md
+sourceUnitVersionIds:
+  - uv_282d974e283986928fcdffff
+  - uv_3fe21959f6408402f6f63f62
+  - uv_49308f94e541da8eb0be1f2d
+  - uv_7cf04c03ad3ecfcd11b8ce46
+  - uv_a4816d81a40df64c3426be2d
+  - uv_a9416f26fde345710e615b9d
+  - uv_be824499d694d99885c67171
+  - uv_c13187e1939e511bbdb011d3
+  - uv_c45b2a926ff8a05d3c1282a4
+  - uv_d4ddbf9559c1246881c48a87
+  - uv_faaeda2eea1def9d6d7bca4e

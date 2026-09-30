@@ -17,7 +17,7 @@ Each outcome has exactly one acceptance owner and one state:
 - `external dependency`: provider or platform support and evidence beyond Lervo's control are required. Lervo delivery becomes actionable only when that dependency exists.
 - `external product`: Lervo supplies primitives; a separate host owns the outcome outside Lervo's core delivery scope.
 
-Do not use intermediate states to imply narrower slices satisfy incomplete outcomes. Split mixed outcomes into installed Lervo behavior, remaining Lervo-owned delivery, external dependencies, and external products.
+Do not use intermediate states to imply that narrower slices satisfy incomplete outcomes. Split mixed outcomes into installed Lervo behavior, remaining Lervo-owned delivery, external dependencies, and external products.
 
 ## Acceptance baseline
 

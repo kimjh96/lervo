@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c0dcb08c57347fe1bcfd6e03
+outputLanguage: en
+outputs:
+  - byteCount: 1834
+    contentHash: sha256:abbd1ba429a37494e124aed7d8cfa59ed502d7bf783cb927e2ee5a7165f6ceb5
+    path: docs/foundation/event-writer-rollout/safety.md
+    userRegionHash: sha256:abbd1ba429a37494e124aed7d8cfa59ed502d7bf783cb927e2ee5a7165f6ceb5
+profile: repository_document
+recordId: knormdoc_5ddd362bcf22d43fa850d1fe
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:479fe2dbc51a2602dec6ed9bb6d800c276245b2b2f8624163f2700053ed5a481
+sourcePath: docs/foundation/event-writer-rollout/safety.md
+sourceUnitVersionIds:
+  - uv_db877d6523fd6f0e851a5b35

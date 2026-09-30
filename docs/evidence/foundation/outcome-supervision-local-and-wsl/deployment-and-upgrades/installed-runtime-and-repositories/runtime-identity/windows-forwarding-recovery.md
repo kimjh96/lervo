@@ -2,7 +2,7 @@
 
 During rollout, the Windows WSL localhost relay accepted connections but timed out forwarding to the healthy Hub. Lervo and Shiflo failed readiness and rolled back; both later passed a new exact-predecessor upgrade. Restarting the unchanged Hub did not restore the relay.
 
-A private-interface systemd socket proxy, a Windows loopback-only port proxy, and an exact Tailscale Serve upstream change restored the existing HTTPS endpoint. Hub credentials, identity, executable bytes, and configuration remained unchanged. The two observations 58.456 seconds apart in [earlier transitions](earlier-transitions.md) verify local and HTTPS health.
+A private-interface systemd socket proxy, a Windows loopback-only port proxy, and an exact Tailscale Serve upstream change restored the existing HTTPS endpoint. Hub credentials, identity, executable bytes, and configuration remained unchanged. Two observations 58.456 seconds apart in [earlier transitions](earlier-transitions.md) verify local and HTTPS health.
 
 - Proxy installation: `sha256:cad8f5a2402c1de04f57e1b6667cb837d776ed29a1bd126297bd165b3fb49abd`.
 - Windows transition and exact rollback: `sha256:c0e39fd11b679ddfc97962c66841f7870ce3d44a4e61836686789780e2f38dd9`.

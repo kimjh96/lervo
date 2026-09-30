@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f7fdfd2f3c4f8f3df5725de3
+outputLanguage: en
+outputs:
+  - byteCount: 3674
+    contentHash: sha256:e748b5a588b2f23d5aab0bd25423a036fffb583ef4c5c852feae113076b1da6f
+    path: docs/specs/repository-knowledge-lifecycle-convergence/canonicalization-assessment.md
+    userRegionHash: sha256:e748b5a588b2f23d5aab0bd25423a036fffb583ef4c5c852feae113076b1da6f
+profile: specification_document
+recordId: knormdoc_114c29129e87673d1df23ddf
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6f5f62fe0a4ab4e79413efd0ca5ea064548df070f7f1c79570d4a58b6b95203e
+sourcePath: docs/specs/repository-knowledge-lifecycle-convergence/canonicalization-assessment.md
+sourceUnitVersionIds:
+  - uv_46d8a501c8a9dee084c60ff7
+  - uv_47f3ca3651a9e2544f30d9f8
+  - uv_a16b1dcdfdb62bdd6996107f
+  - uv_af8382eb74a184ff6f911e4b
+  - uv_d52261353b9659e67ac7045a

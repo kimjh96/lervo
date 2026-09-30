@@ -2,7 +2,7 @@
 
 Part of [Paperclip-, Buzz-, loop-, graph-, and host-product outcomes](../host-products.md); its product-convergence acceptance baseline and state definitions apply.
 
-Discord is the current installed reference product surface. The [Discord-first reference-product roadmap](discord-first-reference-product.md) tracks the combined delivery sequence, observability, activity, search, steering, collaboration-artifact, and future first-party parity requirements.
+Discord is the current installed reference product surface. The [Discord-first reference-product roadmap](discord-first-reference-product.md) tracks the combined delivery sequence, observability, activity, search, steering, collaboration artifacts, and future first-party parity requirements.
 
 - [Authenticated exact-workstream intake](discord/authenticated-intake.md): `implemented`.
 - [Natural-language conversation routing](discord/read-only-conversation.md): `delivery required`. Realtime lifecycle and bounded nickname administration are implemented; post-deployment human-turn p95 acceptance remains open.

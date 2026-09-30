@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_11a732f3a893e6d3190fe270
+outputLanguage: en
+outputs:
+  - byteCount: 7512
+    contentHash: sha256:494f057090af84e8b1c60da7e5f6cd209466ccd637b79ffe4b1ea2ab3ce830e4
+    path: docs/specifications/execution/outcome-supervision/contracts/work-scope.md
+    userRegionHash: sha256:494f057090af84e8b1c60da7e5f6cd209466ccd637b79ffe4b1ea2ab3ce830e4
+profile: specification_document
+recordId: knormdoc_06d918f61e96c2ef08b3ba95
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f52014a38d3c6ff7eb373bcf9c6b1596e0213e7b6ab5e52734f2d8256f83b42d
+sourcePath: docs/specifications/execution/outcome-supervision/contracts/work-scope.md
+sourceUnitVersionIds:
+  - uv_128775b155098d2b702892ea
+  - uv_3ce61001a72b36646965ede2
+  - uv_6ab866b84ee36c357a32c523
+  - uv_d103cfcb0494622eb5062a09
+  - uv_f8d2111b9697792aa6333cc2

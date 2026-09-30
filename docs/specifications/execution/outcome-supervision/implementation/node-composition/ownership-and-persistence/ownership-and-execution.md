@@ -6,13 +6,13 @@ Each cycle holds one repository-owned lease while reading pending decisions, rec
 
 Leases last five minutes. Explicit renewal requires pending journal writes to settle first and invalidates prior fence coordinates. Expiry alone never authorizes abandoned-owner takeover.
 
-New leases hold a separate SQLite transaction for the entire owner operation. This operating-system lock serializes owner operations for one supervision identity and releases when its process dies. Different supervision identities retain independent ownership. Worker processes can still observe and commit the current private lease token through the separate lease database.
+New leases hold a separate SQLite transaction throughout the owner operation. This operating-system lock serializes owner operations for one supervision identity and releases when its process dies. Different supervision identities retain independent ownership. Worker processes can still observe and commit the current private lease token through the separate lease database.
 
-After the owner operation and its started effects settle, release closes the process lock inside the durable lease transaction before recording `released = 1`. A reported lock-close failure rolls back that record rather than claiming a completed release. The lock handle remains available for a later close attempt; expiry alone remains insufficient to claim ownership.
+After the owner operation and its started effects settle, release closes the process lock inside the durable lease transaction before recording `released = 1`. A reported lock-close failure rolls back that record. The lock handle remains available for a later close attempt; expiry alone remains insufficient to claim ownership.
 
 ## Recovery and private protocol
 
-Recovery acquires the process lock and binds a new token and generation before inspecting unresolved effects; it does not wait for the former lease to expire.
+Recovery acquires the process lock and binds a new token and generation before inspecting unresolved effects, without waiting for the former lease to expire.
 
 The private `sop1:` token protocol records the token and lock-file device/inode identity in one row per supervisor, within the existing 4,096-supervisor bound. A private directory contains at most 4,096 hashed lock files, including orphan files left by interrupted acquisition. The lease transaction serializes allocation. Capacity exhaustion fails closed and requires explicit reconciliation before another identity can acquire ownership.
 

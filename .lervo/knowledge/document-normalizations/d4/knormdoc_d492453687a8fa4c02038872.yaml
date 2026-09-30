@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b5a4ef771e9cd91125855822
+outputLanguage: en
+outputs:
+  - byteCount: 449
+    contentHash: sha256:f0ed7a38b867ea5929bf78fb0d0204f8189d21386ec647d028f0315ae4304a0b
+    path: docs/specifications/execution/product-surfaces/search-knowledge-and-compatibility/search/quality-gates.md
+    userRegionHash: sha256:f0ed7a38b867ea5929bf78fb0d0204f8189d21386ec647d028f0315ae4304a0b
+profile: specification_document
+recordId: knormdoc_d492453687a8fa4c02038872
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:870abc9acc2467c0b3f3e1112944927ccf9ad7e4316edc6f85547d52d79da434
+sourcePath: docs/specifications/execution/product-surfaces/search-knowledge-and-compatibility/search/quality-gates.md
+sourceUnitVersionIds:
+  - uv_0108972f9ee214abdc718ac0

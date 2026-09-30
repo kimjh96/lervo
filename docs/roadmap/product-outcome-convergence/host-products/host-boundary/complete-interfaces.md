@@ -8,4 +8,4 @@ Lervo retains a headless kernel and owns a Discord-visible reference product plu
 
 Completion: deliver the [Discord-first reference-product roadmap](../discord-first-reference-product.md), then pass the same host-neutral conformance scenarios through the first-party surface.
 
-Separately installed products may continue to supply UI and bounded presentation state through the versioned host boundary without becoming repository authority.
+Separately installed products may supply UI and bounded presentation state through the versioned host boundary without becoming repository authority.

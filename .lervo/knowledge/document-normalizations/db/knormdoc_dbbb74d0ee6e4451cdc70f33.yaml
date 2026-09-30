@@ -1,0 +1,43 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_10c2cc6ad084c1f67e5a271f
+outputLanguage: en
+outputs:
+  - byteCount: 420
+    contentHash: sha256:df1c9e04dc55081f627d0800570f9dabf4027876eb41db513f4fbd22314ec32a
+    path: docs/specs/repository-knowledge-compilation/structural-publication.md
+    userRegionHash: sha256:df1c9e04dc55081f627d0800570f9dabf4027876eb41db513f4fbd22314ec32a
+  - byteCount: 2541
+    contentHash: sha256:6e465f20342cfe5bd7c1e257d41d671a5ddae8989c2ca76e74e56aec5ca53f41
+    path: docs/specs/repository-knowledge-compilation/structural-publication/compilation-and-publication.md
+    userRegionHash: sha256:6e465f20342cfe5bd7c1e257d41d671a5ddae8989c2ca76e74e56aec5ca53f41
+  - byteCount: 2113
+    contentHash: sha256:5c70e966290806074bc5e5cf129185624e93ac4dc784cf62ed04e5a6266d3c13
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy.md
+    userRegionHash: sha256:5c70e966290806074bc5e5cf129185624e93ac4dc784cf62ed04e5a6266d3c13
+  - byteCount: 1734
+    contentHash: sha256:8fc9f5bf68eba54b1c2dc35ef7949247661cb2a319aea366bcd935496df77c65
+    path: docs/specs/repository-knowledge-compilation/structural-publication/sources.md
+    userRegionHash: sha256:8fc9f5bf68eba54b1c2dc35ef7949247661cb2a319aea366bcd935496df77c65
+profile: specification_document
+recordId: knormdoc_dbbb74d0ee6e4451cdc70f33
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:de1f4d4c17744d07f20974d20d0b67f015a6cef815e9b54b6a16913f50fc1756
+sourcePath: docs/specs/repository-knowledge-compilation/structural-publication.md
+sourceUnitVersionIds:
+  - uv_170bcf6c149ab90caccf0ce8
+  - uv_1d1b09c812d6ec8ba2157aa7
+  - uv_2fbc73a402aa3da9817ae088
+  - uv_a737ad85f16d20ea7e4470c5
+  - uv_b0acea0a44392833a5a51205
+  - uv_e4fe523e26ac88ef52919e17
