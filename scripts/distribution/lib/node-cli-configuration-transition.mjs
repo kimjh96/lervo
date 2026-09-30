@@ -57,6 +57,19 @@ function cliBindings(config) {
     .map((conversation) => conversation.deliberation);
 }
 
+async function assertOwnedCliExecutable(executable) {
+  if (typeof executable !== "string" || !isAbsolute(executable)) fail();
+  const stat = await lstat(executable);
+  if (
+    !stat.isFile() ||
+    stat.isSymbolicLink() ||
+    (stat.mode & 0o022) !== 0 ||
+    stat.uid !== process.getuid() ||
+    (stat.mode & 0o111) === 0
+  )
+    fail();
+}
+
 /** Changes only one reviewed configuration scope after verified stop. */
 export async function createNodeCliConfigurationTransition(input, admission) {
   try {
@@ -82,19 +95,17 @@ async function prepare(input, admission) {
     for (let index = 0; index < oldBindings.length; index += 1) {
       const executable = newBindings[index].cliExecutable;
       if (oldBindings[index].cliExecutable === executable) continue;
-      if (typeof executable !== "string" || !isAbsolute(executable)) fail();
-      const stat = await lstat(executable);
-      if (
-        !stat.isFile() ||
-        stat.isSymbolicLink() ||
-        (stat.mode & 0o022) !== 0 ||
-        stat.uid !== process.getuid() ||
-        (stat.mode & 0o111) === 0
-      )
-        fail();
+      await assertOwnedCliExecutable(executable);
       cliChanged = true;
       oldBindings[index].cliExecutable = executable;
     }
+  }
+  const oldManaged = expected.outcomeSupervision?.managedExecution;
+  const newManaged = after.outcomeSupervision?.managedExecution;
+  if (oldManaged && newManaged && oldManaged.cliBundle !== newManaged.cliBundle) {
+    await assertOwnedCliExecutable(newManaged.cliBundle);
+    cliChanged = true;
+    oldManaged.cliBundle = newManaged.cliBundle;
   }
   const onlyCliChange = cliChanged && isDeepStrictEqual(expected, after);
   const onlyChannelChange = !cliChanged && applySharedDiscordChannelBinding(before, after);

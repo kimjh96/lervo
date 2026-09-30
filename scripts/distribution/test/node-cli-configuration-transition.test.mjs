@@ -21,7 +21,10 @@ async function fixture() {
   const before = {
     repositoryRoot: root,
     discordConversation: { deliberation: { cliExecutable: resolve(root, "old-cli") } },
-    outcomeSupervision: { owner: "preserved" },
+    outcomeSupervision: {
+      owner: "preserved",
+      managedExecution: { cliBundle: resolve(root, "old-cli") },
+    },
   };
   const after = structuredClone(before);
   after.discordConversation.deliberation.cliExecutable = executable;
@@ -52,6 +55,39 @@ it("keeps exact original bytes, applies only CLI references, and restores both b
   expect(JSON.parse(await readFile(`${f.config}.cli-transition.json`, "utf8")).state).toBe(
     "restored",
   );
+});
+
+it.each(["managed", "both"])(
+  "replaces exact %s CLI references and restores the predecessor",
+  async (binding) => {
+    const f = await fixture();
+    const after = structuredClone(f.before);
+    const executable = f.after.discordConversation.deliberation.cliExecutable;
+    after.outcomeSupervision.managedExecution.cliBundle = executable;
+    if (binding === "both") after.discordConversation.deliberation.cliExecutable = executable;
+    await writeFile(f.configurationSource, JSON.stringify(after), { mode: 0o600 });
+    const original = await readFile(f.config);
+    const transition = await createNodeCliConfigurationTransition(f, f.admission);
+    await transition.apply();
+    expect(JSON.parse(await readFile(f.config, "utf8"))).toEqual(after);
+    expect(f.current()).toBe(hash(await readFile(f.config)));
+    await transition.restore();
+    expect(await readFile(f.config)).toEqual(original);
+    expect(f.current()).toBe(hash(original));
+  },
+);
+
+it("rejects an unrelated managed execution change with a CLI reference", async () => {
+  const f = await fixture();
+  const after = structuredClone(f.before);
+  after.outcomeSupervision.managedExecution.cliBundle =
+    f.after.discordConversation.deliberation.cliExecutable;
+  after.outcomeSupervision.managedExecution.nodeExecutable = resolve(f.root, "new-node");
+  await writeFile(f.configurationSource, JSON.stringify(after), { mode: 0o600 });
+  await expect(createNodeCliConfigurationTransition(f, f.admission)).rejects.toMatchObject({
+    code: "service_upgrade_unknown",
+  });
+  expect(JSON.parse(await readFile(f.config, "utf8"))).toEqual(f.before);
 });
 
 it("rejects new repository or supervision authority before configuration effects", async () => {

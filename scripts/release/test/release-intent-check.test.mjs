@@ -123,6 +123,7 @@ describe("release intent change classification", () => {
       "scripts/distribution/render-runtime-service.mjs",
       "scripts/distribution/manage-runtime-service.mjs",
       "scripts/distribution/lib/runtime-service-management.mjs",
+      "scripts/distribution/lib/node-cli-configuration-transition.mjs",
       "scripts/distribution/build-hub-runtime-distribution.mjs",
       "scripts/distribution/lib/product-release-version.mjs",
       "apps/hub/assets/trace.js",
