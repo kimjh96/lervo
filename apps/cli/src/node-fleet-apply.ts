@@ -16,6 +16,8 @@ import {
 // @ts-expect-error The repository service script intentionally remains plain ESM.
 import { manageRuntimeService } from "../../../scripts/distribution/manage-runtime-service.mjs";
 // @ts-expect-error The repository service script intentionally remains plain ESM.
+import { RuntimeServiceManagementError } from "../../../scripts/distribution/manage-runtime-service.mjs";
+// @ts-expect-error The repository service script intentionally remains plain ESM.
 import { createRuntimeServiceDefinition } from "../../../scripts/distribution/render-runtime-service.mjs";
 
 import {
@@ -285,6 +287,12 @@ export async function applyNodeFleetOnboarding(input: {
         ),
       );
     if (error instanceof NodeFleetApplyError) throw error;
+    if (error instanceof RuntimeServiceManagementError)
+      fail(
+        (error as { code: string }).code,
+        "The repository Node service operation failed.",
+        error,
+      );
     fail("node_fleet_apply_failed", "The repository Node onboarding operation failed.", error);
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });

@@ -17,7 +17,7 @@ function io(cwd: string, stdout: string[], stderr: string[]) {
 }
 
 describe("repository selection command", () => {
-  it("installs a repository-scoped Node and registers it only after stable complete readiness", async () => {
+  it("registers a ready Node and preserves the service fence during upgrade", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-repository-node-apply-"));
     const repository = resolve(root, "repository");
     const home = resolve(root, "home");
@@ -118,6 +118,39 @@ describe("repository selection command", () => {
     expect(readinessReads).toBe(3);
     expect(await listNodeFleetInstances(registry)).toHaveLength(1);
     expect((await stat(plan.service.targetPath)).mode & 0o077).toBe(0);
+
+    const originalDefinition = await readFile(plan.service.targetPath);
+    const replacementExecutable = resolve(root, "lervo-node-next");
+    await writeFile(replacementExecutable, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    const replacementPlan = await createNodeFleetOnboardingPlan({
+      registryPath: registry,
+      repositoryRoot: repository,
+      nodeId: "node_fixture_device_01",
+      destinationId: "hub:fixture",
+      runtimeVersion: "0.2.0",
+      serviceManager: "launchd",
+      homeDirectory: home,
+    });
+    await expect(
+      applyNodeFleetOnboarding({
+        plan: replacementPlan,
+        configPath: config,
+        homeDirectory: home,
+        ports: {
+          executablePath: replacementExecutable,
+          serviceOptions: {
+            platform: "darwin",
+            uid: 501,
+            homeDirectory: home,
+            runCommand: async (_command, args) => ({
+              exitCode: args[0] === "print" ? (active ? 0 : 1) : 0,
+            }),
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: "service_upgrade_fence_invalid" });
+    expect(await readFile(plan.service.targetPath)).toEqual(originalDefinition);
+    expect((await listNodeFleetInstances(registry))[0]?.runtimeVersion).toBe("0.1.0");
   });
 
   it("exposes a read-only repository Node onboarding plan", async () => {

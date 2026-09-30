@@ -41,6 +41,8 @@ The receipt excludes bearer tokens, config bodies, service bodies, prompts, prov
 
 `node_fleet_plan_stale`, configuration or identity errors, service conflicts, readiness timeout, registry failure, and recovery failure mean only that the named stage was not proved; none implies successful synchronization. `offline_ready` proves deployment continuity while Hub-dependent capability remains unavailable and retryable. A legacy singleton requires an explicit transition and is never silently overwritten.
 
+The repository Node apply command preserves a service manager's bounded failure code, including `service_upgrade_supervision_busy`, `service_upgrade_work_busy`, and `service_upgrade_fence_invalid`. These failures occur before a service stop and retain the installed definition and fleet registration. A generic `node_fleet_apply_failed` remains for failures without a typed service meaning.
+
 ## Consequences
 
 Installed artifacts can create, reconcile, inspect, and transactionally upgrade independent repository Node services. Registry state is a post-readiness commit, not an optimistic installation claim. External Hub registration and scoped credential issuance remain separate authority inputs.
