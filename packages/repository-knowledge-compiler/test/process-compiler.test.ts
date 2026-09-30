@@ -24,7 +24,7 @@ const roots: string[] = [];
 
 async function fixture(
   provider: "codex" | "claude",
-  behavior: "success" | "tool" | "hang" = "success",
+  behavior: "success" | "tool" | "hang" | "multi_message" = "success",
 ) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-process-semantic-test-"));
   roots.push(root);
@@ -70,6 +70,7 @@ if (${JSON.stringify(provider)} === "claude") {
   console.log(JSON.stringify({ type: "thread.started" }));
   console.log(JSON.stringify({ type: "turn.started" }));
   if (${JSON.stringify(behavior)} === "tool") console.log(JSON.stringify({ type: "item.completed", item: { type: "command_execution" } }));
+  if (${JSON.stringify(behavior)} === "multi_message") console.log(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: "Preparing the structured result." } }));
   console.log(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: JSON.stringify(response) } }));
   console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, cached_input_tokens: 3, output_tokens: 4, reasoning_output_tokens: 1 } }));
 }
@@ -89,6 +90,34 @@ afterEach(async () => {
 });
 
 describe("generate-only process semantic compilers", () => {
+  it("accepts the final structured Codex message after an earlier agent message", async () => {
+    const item = await fixture("codex", "multi_message");
+    const runner = await createNoCapabilityProviderJsonRunner({
+      provider: "codex",
+      executable: item.executable,
+      timeoutMs: 5_000,
+    });
+    await expect(
+      runner.resolveObserved?.({
+        task: "structured_result",
+        responseContract: {
+          schemaVersion: 1,
+          schema: {
+            type: "object",
+            properties: {
+              schemaVersion: { type: "integer" },
+              decision: { type: "string" },
+              tags: { type: "array", items: { type: "string" } },
+            },
+            required: ["schemaVersion", "decision", "tags"],
+          },
+        },
+      }),
+    ).resolves.toMatchObject({
+      value: { schemaVersion: 1, decision: "typed", tags: ["typed"] },
+    });
+  });
+
   for (const provider of ["codex", "claude"] as const) {
     it(`${provider} runs provider-neutral JSON through the common no-capability contract`, async () => {
       const item = await fixture(provider);

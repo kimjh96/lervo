@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_71e39e94ca2f3efc16c3cbd4"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Accept the final structured Codex response after intermediate messages during background knowledge compilation."

@@ -548,9 +548,8 @@ function parseCodexOutput<
         );
       }
       if (event.type === "item.completed" && itemType === "agent_message") {
-        if (typeof event.item?.text !== "string" || finalText !== null) {
-          throw compileFailure("The Codex final response event is not a single JSON message.");
-        }
+        if (typeof event.item?.text !== "string")
+          throw compileFailure("The Codex final response event is not a JSON message.");
         finalText = event.item.text;
       }
       continue;
