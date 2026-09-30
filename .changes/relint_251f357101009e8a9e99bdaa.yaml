@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_251f357101009e8a9e99bdaa"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Record supervision lease release only after its process lock closes."

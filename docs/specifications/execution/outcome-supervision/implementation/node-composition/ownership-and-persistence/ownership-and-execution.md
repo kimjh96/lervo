@@ -8,6 +8,8 @@ Leases last five minutes. Explicit renewal requires pending journal writes to se
 
 New leases hold a separate SQLite transaction for the entire owner operation. This operating-system lock serializes owner operations for one supervision identity and releases when its process dies. Different supervision identities retain independent ownership. Worker processes can still observe and commit the current private lease token through the separate lease database.
 
+After the owner operation and its started effects settle, release closes the process lock inside the durable lease transaction before recording `released = 1`. A reported lock-close failure rolls back that record rather than claiming a completed release. The lock handle remains available for a later close attempt; expiry alone remains insufficient to claim ownership.
+
 ## Recovery and private protocol
 
 Recovery acquires the process lock and binds a new token and generation before inspecting unresolved effects; it does not wait for the former lease to expire.

@@ -203,13 +203,16 @@ export class SQLiteSupervisionOwnerLeaseStore {
 
   /** Call only after the owner operation and every started effect have settled. */
   release(lease: SupervisionOwnerLease): void {
+    const processLock = this.processLocks.get(lease.supervisionId);
     this.transaction(() => {
       this.assertToken(lease);
+      if (processLock === undefined) throw new SupervisionLeaseError("lease_lost");
+      // Keep the durable row locked until the native owner lock has closed.
+      processLock.release();
       this.database
         .prepare("UPDATE supervision_owner_leases SET released = 1 WHERE supervision_id = ?")
         .run(lease.supervisionId);
     });
-    this.processLocks.get(lease.supervisionId)?.release();
     this.processLocks.delete(lease.supervisionId);
     publishLeaseChange(this.path);
   }
