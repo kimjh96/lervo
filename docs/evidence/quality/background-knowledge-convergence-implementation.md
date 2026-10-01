@@ -4,7 +4,7 @@ Status: `active`
 As of: 2026-10-01
 Task base: `b3798091d8d49c3c331e25b1f440e4150adc6e93`
 
-This evidence distinguishes source tests, private installed observations, guarded deployment, and verified currency. A later WSL eight-document delegation is installed; an earlier isolated integration candidate failed on a stale lockfile, and the worker subsequently resumed review without a new currency receipt. A fresh human-authored `#general` turn reached Tarin and produced one delivered reply; the wider multi-party acceptance remains open. Shiflo's corrected source families received scoped approval, but full baseline currency and the pending Bora workforce publication remain unverified. No public release is claimed.
+This evidence distinguishes source tests, private installed observations, guarded deployment, and verified currency. A later WSL eight-document delegation is installed; one normalization apply reached `current`, but the next batch exceeded its provider-call budget. A corrected Linux Node distribution is installed at an immutable path, while the guarded service upgrade is waiting on the supervision fence. A fresh human-authored `#general` turn reached Tarin and produced one delivered reply; the wider multi-party acceptance remains open. Shiflo's corrected source families received scoped approval, but full baseline currency and the pending Bora workforce publication remain unverified. No public release is claimed.
 
 ## Evidence records
 
