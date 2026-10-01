@@ -31,7 +31,8 @@ export async function resolveConvergenceCandidates(
   const review = state.stageData.candidateReview as CandidateReview | null | undefined;
   const candidates = (await listCanonicalizationCandidates(root))
     .filter((item) => ["candidate", "pending", "stale"].includes(item.observedState))
-    .slice(0, 8);
+    // Source-specific context cannot cover unrelated candidates in one bounded review.
+    .slice(0, 1);
   if (!review && !candidates.length) return null;
   if (!review) {
     const paths = [

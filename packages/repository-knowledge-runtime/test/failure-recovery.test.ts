@@ -182,6 +182,52 @@ it(
 );
 
 it(
+  "reviews old candidates with separate source-specific contexts",
+  { timeout: 90_000 },
+  async () => {
+    const f = await fixture(true);
+    fixtures.push(f);
+    for (const [index, path] of ["first.ts", "second.ts"].entries()) {
+      const content = `export const candidate${index} = true;\n`;
+      await writeFile(resolve(f.root, path), content);
+      await assessCanonicalization({
+        repositoryRoot: f.root,
+        beforeRevision: sha256(`before-${index}`),
+        afterRevision: sha256(`after-${index}`),
+        beforeFiles: {},
+        afterFiles: { [path]: sha256(content) },
+        disposition: "canonical_sources_current",
+        now: new Date(),
+      });
+    }
+    expect(await listCanonicalizationCandidates(f.root)).toHaveLength(2);
+    let result: Awaited<ReturnType<typeof run>>;
+    for (let cycle = 0; cycle < 12; cycle++) {
+      result = await run(f);
+      if (result.status === "processed" && result.convergence.lastVerifiedCurrency) break;
+    }
+    expect(result!).toMatchObject({
+      convergence: { state: "idle", debtCounts: { canonicalization: 0 } },
+    });
+    const calls = (await readFile(f.log, "utf8"))
+      .trim()
+      .split("\n")
+      .map(
+        (line) =>
+          JSON.parse(line) as {
+            request: { task: string; untrustedSourceData?: { candidates?: unknown[] } };
+          },
+      )
+      .filter((call) => call.request.task === "canonical_candidate_resolution");
+    expect(calls).toHaveLength(2);
+    expect(calls.map((call) => call.request.untrustedSourceData?.candidates)).toEqual([
+      [expect.objectContaining({ candidateId: expect.any(String) })],
+      [expect.objectContaining({ candidateId: expect.any(String) })],
+    ]);
+  },
+);
+
+it(
   "isolates a rejected leading family while applying another exact accepted family",
   { timeout: 60_000 },
   async () => {
