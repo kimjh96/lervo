@@ -75,6 +75,46 @@ it("fails closed without an exact live session or matching configuration", async
   }
 });
 
+it("freezes a previously registered stopped Node only with exact inactive authority", async () => {
+  const { first, second, scope, configDigest, live } = await fixture();
+  try {
+    expect(second.tryFreeze({ scope, configDigest, ownerPid: 2001, allowNoSession: true })).toEqual(
+      {
+        status: "busy",
+        reason: "session_missing",
+      },
+    );
+    first.registerSession({ scope, configDigest, ownerPid: 1001 });
+    live.delete(1001);
+    expect(second.tryFreeze({ scope, configDigest, ownerPid: 2001 })).toEqual({
+      status: "busy",
+      reason: "session_missing",
+    });
+    expect(
+      second.tryFreeze({
+        scope,
+        configDigest: `sha256:${"b".repeat(64)}`,
+        ownerPid: 2001,
+        allowNoSession: true,
+      }),
+    ).toEqual({ status: "busy", reason: "session_conflict" });
+    const frozen = second.tryFreeze({
+      scope,
+      configDigest,
+      ownerPid: 2001,
+      allowNoSession: true,
+    });
+    if (frozen.status !== "frozen") throw new Error("The stopped Node was not frozen.");
+    const replacement = first.registerSession({ scope, configDigest, ownerPid: 3001 });
+    expect(first.tryAcquireWork(replacement)).toBeNull();
+    expect(second.unfreeze(frozen.freeze)).toBe(true);
+    first.unregisterSession(replacement);
+  } finally {
+    first.close();
+    second.close();
+  }
+});
+
 it("recovers only dead owners and never discards a live work claim", async () => {
   const { first, second, scope, configDigest, live } = await fixture();
   try {

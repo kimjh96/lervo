@@ -906,6 +906,75 @@ describe("runtime user service management", () => {
     ).toBe(await readFile(previous.definition, "utf8"));
   });
 
+  it("recovers an exact inactive Node with a prior registered session", async () => {
+    const previous = await fixture("systemd", "node");
+    const replacementExecutable = resolve(previous.root, "lervo-runtime-v2");
+    const replacementDefinition = resolve(previous.root, "runtime-v2.service");
+    await writeFile(replacementExecutable, "#!/bin/sh\n", { mode: 0o700 });
+    await chmod(replacementExecutable, 0o700);
+    await renderRuntimeService([
+      "--manager",
+      "systemd",
+      "--runtime",
+      "node",
+      "--instance",
+      nodeInstance,
+      "--executable",
+      replacementExecutable,
+      "--config",
+      previous.config,
+      "--output",
+      replacementDefinition,
+    ]);
+    const manager = systemdManager();
+    const options = {
+      platform: "linux",
+      homeDirectory: previous.root,
+      runCommand: manager.run.bind(manager),
+      wait: async () => {},
+    };
+    await manageRuntimeService(previous.writeArgs("install"), options);
+    const admission = await SQLiteNodeWorkAdmission.open({
+      path: nodeWorkAdmissionDatabasePath(previous.root),
+    });
+    const source = await readFile(previous.config, "utf8");
+    admission.registerSession({
+      scope: nodeWorkAdmissionScope(previous.config),
+      configDigest: `sha256:${createHash("sha256").update(source).digest("hex")}`,
+      ownerPid: 2147483000,
+    });
+    admission.close();
+    await manager.run("systemctl", [
+      "--user",
+      "stop",
+      `lervo-node-${nodeInstance.slice(4)}.service`,
+    ]);
+    await expect(
+      manageRuntimeService(
+        [
+          "--action",
+          "upgrade",
+          "--manager",
+          "systemd",
+          "--runtime",
+          "node",
+          "--instance",
+          nodeInstance,
+          "--definition",
+          replacementDefinition,
+          "--previous-definition",
+          previous.definition,
+          "--executable",
+          replacementExecutable,
+          "--config",
+          previous.config,
+          "--write",
+        ],
+        options,
+      ),
+    ).resolves.toMatchObject({ change: "upgraded", active: true });
+  });
+
   it("rejects a symlinked definition before invoking the manager", async () => {
     if (process.platform === "win32") return;
     const value = await fixture("systemd", "hub");

@@ -700,6 +700,18 @@ export async function manageRuntimeService(args, options = {}) {
           withNodeWorkUpgradeFence(
             {
               ...input,
+              verifyInactivePredecessor: async () => {
+                const installed = await currentTarget(context.target);
+                const predecessor = input.action === "upgrade" ? previous : expected;
+                if (!installed?.equals(predecessor)) return false;
+                const state = await serviceStatus(input, context);
+                return (
+                  isInactiveServiceStatus(state) &&
+                  isInactiveServiceStatus(
+                    await stabilizedInactiveServiceStatus(input, context, state),
+                  )
+                );
+              },
               ...(supervisionCoordinates?.sourceDigest === undefined
                 ? {}
                 : { expectedSourceDigest: supervisionCoordinates.sourceDigest }),

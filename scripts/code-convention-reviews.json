@@ -158,9 +158,9 @@
     },
     {
       "path": "packages/node-work-admission/src/store.ts",
-      "contentHash": "sha256:b474b78fcc519eb11e66521d23387a252351a2b94671d09f4fa79aa735a0f446",
+      "contentHash": "sha256:c0c94fbbafddffd0242adc66c94c6718c91913f5d19da0a0a9b8a639de6da864",
       "responsibility": "SQLite Node work session, claim and upgrade freeze adapter",
-      "rationale": "The adapter owns one bounded admission lifecycle. The new exact configuration-digest CAS requires the same live freeze owner and no remaining Node session. Configuration bytes, CLI-reference policy, service effects and rollback stay in separate distribution adapters; no new provider or document authority enters the store. Secure database opening and SQLite transactions serve the same owner-controlled lifecycle.",
+      "rationale": "One SQLite adapter owns the bounded session, claim, and freeze lifecycle. Its exact digest check and dead-session cleanup permit inactive recovery only when the service manager explicitly verifies that state. Configuration bytes, service status, rollback, and provider behavior remain outside the store.",
       "disposition": "cohesive"
     },
     {
@@ -389,9 +389,9 @@
     },
     {
       "path": "scripts/distribution/lib/runtime-service-management.mjs",
-      "contentHash": "sha256:4b572cc5c299feec888fba7e4097646f914e55120f7a264fbc423f46b6c55e96",
+      "contentHash": "sha256:edfd8766e5f9811886500cfa10bf5a80196c4194b5b29d66275edf7bed84e583",
       "responsibility": "Runtime service lifecycle manager",
-      "rationale": "The module composes the existing exact predecessor service lifecycle. CLI configuration replacement policy, private journal and byte effects are isolated in node-cli-configuration-transition; the coordinator invokes apply only after verified stop, restoration before restarting the predecessor, and completion after stable replacement. Existing argument/source validation extraction remains the already bounded roadmap follow-up; this change adds no independent policy to the lifecycle.",
+      "rationale": "One runtime service coordinator owns exact predecessor validation, stable manager observations, and transactional replacement. It verifies inactive recovery only after a missing-session freeze result while the supervision fence is held. CLI configuration policy and its journal remain in a separate adapter. Argument and source validation extraction remains the existing bounded roadmap follow-up.",
       "disposition": "cohesive"
     },
     {

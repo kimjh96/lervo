@@ -43,10 +43,17 @@ export async function withNodeWorkUpgradeFence(input, operation) {
   try {
     let decision;
     try {
-      decision = admission.store.tryFreeze({
+      const freezeInput = {
         scope: admission.scope,
         configDigest: source.sourceDigest,
-      });
+      };
+      decision = admission.store.tryFreeze(freezeInput);
+      if (
+        decision.status === "busy" &&
+        decision.reason === "session_missing" &&
+        (await input.verifyInactivePredecessor?.()) === true
+      )
+        decision = admission.store.tryFreeze({ ...freezeInput, allowNoSession: true });
     } catch (error) {
       throw new NodeWorkUpgradeFenceError("service_upgrade_fence_invalid", error);
     }

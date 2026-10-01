@@ -330,6 +330,7 @@ export class SQLiteNodeWorkAdmission {
     scope: string;
     configDigest: string;
     ownerPid?: number;
+    allowNoSession?: boolean;
   }): NodeUpgradeFreezeResult {
     assertScope(input.scope);
     assertScope(input.configDigest);
@@ -349,7 +350,7 @@ export class SQLiteNodeWorkAdmission {
       const sessions = this.database
         .prepare("SELECT token FROM node_work_session WHERE scope = ?")
         .all(input.scope) as Row[];
-      if (sessions.length !== 1) {
+      if (sessions.length !== 1 && !(sessions.length === 0 && input.allowNoSession === true)) {
         return {
           status: "busy",
           reason: sessions.length === 0 ? "session_missing" : "session_conflict",
