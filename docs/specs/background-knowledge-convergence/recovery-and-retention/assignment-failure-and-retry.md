@@ -8,4 +8,6 @@ Provider reservations survive retries. Semantic stages permit at most three call
 
 A document normalizer process that reports the typed `timed_out` status retries as a transient stage failure under the existing backoff and attempt ceiling. Its provider reservation remains in the same batch; other `knowledge_compile_failed` outcomes still require attention.
 
+Normalization generation allows each provider process up to ten minutes within the existing 25-minute batch elapsed ceiling. The longer process window addresses observed five-minute timeouts on a busy WSL host; it does not increase the reviewed provider-call budget or assignment lease.
+
 Generator and reviewer identities retain the existing parent's read responsibility. New source roots may enter later baselines without widening parent authority or writer paths. Writer and integrator assignments remain limited to approved target paths. A legacy narrow reader may be replaced once by a stable identity bound to the existing parent responsibility, without new write authority.

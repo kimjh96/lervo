@@ -117,7 +117,7 @@ export async function generateNormalizationBatch(
   const compiler = await createProcessDocumentNormalizationCompiler({
     provider: context.provider,
     ...(context.executable === undefined ? {} : { executable: context.executable }),
-    timeoutMs: 300_000,
+    timeoutMs: 600_000,
   });
   const bounded = await selectNormalizationBatchWithinCallBudget({
     repositoryRoot: root,
