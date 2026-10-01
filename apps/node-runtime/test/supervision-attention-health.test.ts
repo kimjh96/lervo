@@ -4,6 +4,7 @@ import {
   supervisionAttentionHealth,
   supervisionAttentionReasonCodes,
   supervisionCycleHealth,
+  supervisionEvidenceReadFailureLine,
   supervisionEffectFailureLine,
 } from "../src/supervision-attention-health.js";
 import { NodeSupervisionError } from "../src/supervision-authority.js";
@@ -107,6 +108,15 @@ it("records a bundle coordinate without exposing its host path", async () => {
   const line = supervisionCycleFailureLine(failure);
   expect(line).toContain("origin=bin.js:123:45");
   expect(line).not.toContain("/private/host");
+});
+
+it("records bounded recovery evidence diagnostics without changing the failure state", () => {
+  const error = Object.assign(new Error("unavailable\nsource"), {
+    code: "supervision_authority_changed",
+  });
+  expect(supervisionEvidenceReadFailureLine(error)).toBe(
+    "Lervo supervision evidence unavailable (supervision_authority_changed): Error: unavailable source [supervision_authority_changed]",
+  );
 });
 
 it("names the wrapped cause of an uncertain effect", () => {

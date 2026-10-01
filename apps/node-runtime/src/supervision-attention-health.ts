@@ -74,6 +74,11 @@ export function supervisionCycleFailureLine(error: unknown): string {
   return `Lervo supervision cycle failed (${supervisionCycleFailureCode(error)}): ${detail}${origin === undefined ? "" : ` origin=${origin}`}`;
 }
 
+/** Journal line for recovery evidence failure; the returned snapshot still fails closed. */
+export function supervisionEvidenceReadFailureLine(error: unknown): string {
+  return `Lervo supervision evidence unavailable (${supervisionCycleFailureCode(error)}): ${boundedError(error, 200)}`;
+}
+
 /** Journal line for an effect whose outcome became uncertain; canonical attention keeps only codes. */
 export function supervisionEffectFailureLine(
   plan: Pick<OperatingActionPlanV1, "effectContract" | "actionKind">,

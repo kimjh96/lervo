@@ -5,6 +5,7 @@ import {
   supervisionAttentionReasonCodes,
   supervisionCycleHealth,
   supervisionCycleFailureLine,
+  supervisionEvidenceReadFailureLine,
   supervisionEffectFailureLine,
 } from "./supervision-attention-health.js";
 import type { NodeRuntimeComponentHealth } from "./health-contract.js";
@@ -86,6 +87,7 @@ export async function openNodeSupervisionService(input: {
       binding,
       requireBoundRequest: true,
       deferInitialActionUntilChange,
+      reportEvidenceReadFailure: (error) => log(supervisionEvidenceReadFailureLine(error)),
       runtimeReadiness: config.runtimeReadiness,
       ownerReasoning: config.ownerReasoning,
       managedExecution: config.managedExecution,

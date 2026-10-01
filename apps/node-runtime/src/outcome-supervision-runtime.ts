@@ -268,7 +268,8 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
               ? "expired"
               : snapshot.authorityStatus,
         };
-      } catch {
+      } catch (error) {
+        input.reportEvidenceReadFailure?.(error);
         return { ...snapshot, authorityStatus: "unobserved", evidenceStatus: "unavailable" };
       }
     },
