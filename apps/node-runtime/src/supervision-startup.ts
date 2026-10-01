@@ -77,8 +77,9 @@ export async function openNodeSupervisionService(input: {
     reasonCodes: string[];
     resourceBudget?: Parameters<typeof supervisionAttentionHealth>[0]["resourceBudget"];
   } | null = null;
-  /** Whether a cycle of the current binding has produced a report since it opened. */
-  let evaluated = false;
+  /** Last evaluated health for this binding; an idle cycle has reread current authority. */
+  let settledHealth: NodeRuntimeComponentHealth | null = null;
+  let needsHealthRecovery = false;
   const now = input.now ?? (() => new Date().toISOString());
   const log = input.log ?? ((line: string) => process.stderr.write(`${line}\n`));
   const openRuntime = (binding: NodeSupervisionBinding, deferInitialActionUntilChange: boolean) =>
@@ -174,6 +175,7 @@ export async function openNodeSupervisionService(input: {
   const start = (target: typeof runtime) =>
     target.start({
       onFailure: (error) => {
+        needsHealthRecovery = true;
         const health = supervisionCycleHealth(error);
         if (health.status !== "dormant") log(supervisionCycleFailureLine(error));
         // A settled goal whose successor another process started fails the old owner's cycle.
@@ -189,21 +191,24 @@ export async function openNodeSupervisionService(input: {
           log(supervisionCycleFailureLine(error));
         });
         if (cycle.report === null) {
-          // A restart gives the owner a bounded grace period; until one cycle has evaluated
-          // the goal, idleness proves nothing and must not read as ready.
-          if (cycle.disposition === "idle" && !evaluated) await observe({ status: "pending" });
+          // An unchanged cycle reread the source and authority before returning idle.
+          if (cycle.disposition === "idle" || cycle.disposition === "blocked") {
+            if (settledHealth === null || needsHealthRecovery)
+              await observe(settledHealth ?? { status: "pending" });
+            needsHealthRecovery = false;
+          }
           return;
         }
-        evaluated = true;
-        await observe(
+        settledHealth =
           cycle.disposition === "blocked" || cycle.disposition === "uncertain"
             ? supervisionAttentionHealth(attentionObservation ?? { reasonCodes: null })
             : cycle.report.status === "completed" &&
                 cycle.report.reasonCode === "accepted_local_result_available" &&
                 cycle.report.nextAction === null
               ? { status: "dormant", reasonCode: "local_result_canonical" }
-              : { status: "ready" },
-        );
+              : { status: "ready" };
+        await observe(settledHealth);
+        needsHealthRecovery = false;
       },
     });
   const rebind = (next: NodeSupervisionBinding): Promise<void> => {
@@ -216,7 +221,8 @@ export async function openNodeSupervisionService(input: {
       await runtime.close();
       binding = structuredClone(next);
       runtime = await openRuntime(binding, false);
-      evaluated = false;
+      settledHealth = null;
+      needsHealthRecovery = false;
       void observe({ status: "pending" });
       if (started) start(runtime);
     });
