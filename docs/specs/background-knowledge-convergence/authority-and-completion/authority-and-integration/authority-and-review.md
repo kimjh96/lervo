@@ -8,6 +8,8 @@ The coordinator registers each worker with its parent and claims a scoped assign
 
 Normalization review is separate from generation, with a distinct durable reviewer identity and no shared provider session. Another provider is optional, must already be permitted, and gives no correctness guarantee. Review validates meaning, requirements, examples, links, lifecycle metadata, protected regions, skill identity, and resource bindings. Structural coverage alone is insufficient.
 
+If a reviewer response fails the exact candidate, source-unit, and output-hash contract, the reviewer may make one fresh independent call within the same durable batch call ceiling. The invalid response grants no approval. A second invalid response or exhausted budget retains explicit review attention; neither path edits the candidate or raises the approved ceiling.
+
 Each accepted item has an exact approval binding original source, candidate and output hashes, source-unit coverage, skill resources, compiler build, policy, language, format, reviewer assignment, verification, and current delegation. Rejected items retain a bounded reason and remain unapplied. Applying stored candidates never invokes the generator again.
 
 Conflict with user-owned material or a requested decision lacking authority creates one content-bound decision, without repeated permission prompts or silent rewriting.

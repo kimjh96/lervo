@@ -148,3 +148,40 @@ it(
     expect((await readFile(f.log, "utf8")).trim().split("\n")).toHaveLength(calls.length);
   },
 );
+
+it(
+  "retries an invalid independent review within the batch budget before applying source bytes",
+  { timeout: 60_000 },
+  async () => {
+    const f = await fixture(true);
+    fixtures.push(f);
+    const script = await readFile(f.executable, "utf8");
+    await writeFile(
+      f.executable,
+      script
+        .replace("import {appendFileSync}", "import {appendFileSync,readFileSync}")
+        .replace(
+          "console.log(JSON.stringify({is_error:false",
+          `if(request.task==='independent_normalization_review'&&readFileSync(${JSON.stringify(f.log)},'utf8').split('\\n').filter(line=>line.includes('independent_normalization_review')).length===1){response.decisions[0].unitReviews[0].outputHashes.push('sha256:${"0".repeat(64)}');}\nconsole.log(JSON.stringify({is_error:false`,
+        ),
+    );
+    let result: Awaited<ReturnType<typeof run>>;
+    for (let cycle = 0; cycle < 8; cycle++) {
+      result = await run(f);
+      if (result.status === "processed" && result.convergence.lastVerifiedCurrency) break;
+    }
+    expect(result!).toMatchObject({
+      convergence: { state: "idle", lastVerifiedCurrency: expect.any(Object) },
+    });
+    const calls = (await readFile(f.log, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line).request);
+    expect(
+      calls.filter((request) => request.task === "independent_normalization_review"),
+    ).toHaveLength(2);
+    expect(await readFile(resolve(f.root, "docs/specs/runtime.md"), "utf8")).toContain(
+      "locally without a Hub",
+    );
+  },
+);
