@@ -78,6 +78,7 @@ export function parseCanonicalAssessment(
   value: unknown,
   sources: CanonicalAssessmentSource[],
   context: { path: string; contentHash: string; content: string }[],
+  capturedSources: readonly { path: string; contentHash: string }[],
 ): CanonicalAssessment {
   const result = value as CanonicalAssessment | null;
   const fail = () => {
@@ -134,6 +135,9 @@ export function parseCanonicalAssessment(
             draft.beforeHash === sha256(draft.content))),
     )
   )
+    return fail();
+  const targetHashes = new Map(capturedSources.map((source) => [source.path, source.contentHash]));
+  if (result.drafts.some((draft) => (targetHashes.get(draft.path) ?? null) !== draft.beforeHash))
     return fail();
   return result;
 }
