@@ -23,3 +23,9 @@ WSL type checking, six focused tests, quality checks, and release completion wit
 Two guarded Node upgrade attempts returned `service_upgrade_supervision_busy`. The installed bundle was not enabled; the previous service remained active with zero restarts. Read-only lock inspection found PID 354 holding the SQLite read and write locks for `supervision.discord.standing.s4`, the current standing binding.
 
 Before any service transition, the worker still reported `normalization_budget_exceeded` and `baselineCurrent: false`. No installed call-budget recovery is claimed.
+
+## Later linked-authority correction
+
+After the call-budget deployment, the guarded WSL r6 Node stayed ready. Its background worker passed canonical integration and three successive normalization apply verifications, with the third recorded at 17:34:19 UTC on October 1. These are source-scoped results; complete baseline currency and a live transient supervision recovery are not observed.
+
+Mac canonical review rejected the PR-template batch again because its bounded context included the newly recorded PR contract but omitted that contract's linked release decision and versioned writing policy. Rejection artifact `sha256:955d06ee57b98ba2123dc727f71c10fd7fbd7f9af5c0f616498366b870b99918` identifies that exact gap. A source correction now selects direct links from source-relevant canonical documents before unrelated child links within the unchanged four-document bound. The focused loader test passed 6/6, and a direct repository context probe returned both `docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md` and `packages/core/src/writing-contract.ts` among twelve loaded documents for the three-source batch. This proves source behavior and local context selection, not an installed reviewer decision. The Mac resident worker still needs a guarded upgraded bundle and a fresh exact review before the historical rejection can close.

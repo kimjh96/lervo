@@ -101,30 +101,31 @@ async function contextQuery(root: string, paths: readonly string[]): Promise<str
   return terms.join(" ") || "repository knowledge canonicalization";
 }
 
-function linkedChildDocuments(document: SemanticReviewContextDocument): string[] {
-  if (document.role !== "canonical_candidate" || !document.path.endsWith(".md")) return [];
-  const childRoot = `${document.path.slice(0, -3)}/`;
+function linkedRepositoryPaths(document: SemanticReviewContextDocument): string[] {
+  if (!document.path.endsWith(".md")) return [];
   const paths: string[] = [];
   for (const match of document.content.matchAll(/\[[^\]]+\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
     const link = match[1]?.split("#", 1)[0];
     if (!link || link.startsWith("/") || link.includes(":") || link.includes("\\")) continue;
     const path = posix.normalize(posix.join(posix.dirname(document.path), link));
-    if (path.startsWith(childRoot) && path.endsWith(".md") && !paths.includes(path))
-      paths.push(path);
+    if (path !== ".." && !path.startsWith("../") && !paths.includes(path)) paths.push(path);
   }
   return paths;
 }
 
+function linkedChildDocuments(document: SemanticReviewContextDocument): string[] {
+  if (document.role !== "canonical_candidate" || !document.path.endsWith(".md")) return [];
+  const childRoot = `${document.path.slice(0, -3)}/`;
+  return linkedRepositoryPaths(document).filter(
+    (path) => path.startsWith(childRoot) && path.endsWith(".md"),
+  );
+}
+
 function linkedInstructionDocuments(document: SemanticReviewContextDocument): string[] {
   if (document.role !== "instruction" || !document.path.endsWith(".md")) return [];
-  const paths: string[] = [];
-  for (const match of document.content.matchAll(/\[[^\]]+\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
-    const link = match[1]?.split("#", 1)[0];
-    if (!link || link.startsWith("/") || link.includes(":") || link.includes("\\")) continue;
-    const path = posix.normalize(posix.join(posix.dirname(document.path), link));
-    if (path.startsWith("docs/") && path.endsWith(".md") && !paths.includes(path)) paths.push(path);
-  }
-  return paths;
+  return linkedRepositoryPaths(document).filter(
+    (path) => path.startsWith("docs/") && path.endsWith(".md"),
+  );
 }
 
 async function loadDocument(input: {
@@ -213,7 +214,21 @@ export async function loadCanonicalReviewContext(input: {
     );
     excluded.add(hit.path);
   }
+  const sourceTerms = new Set(
+    input.sourcePaths.flatMap((path) => [...pathTerms(path)]).filter((term) => term !== "md"),
+  );
+  const sourceRelevantDocuments = documents
+    .map((document, index) => ({
+      document,
+      index,
+      score: [...pathTerms(document.path)].filter((term) => sourceTerms.has(term)).length,
+    }))
+    .filter((item) => item.document.role === "canonical_candidate" && item.score > 0)
+    .sort((left, right) => right.score - left.score || left.index - right.index);
   const linkedPaths = [
+    ...sourceRelevantDocuments.flatMap(({ document }) =>
+      linkedRepositoryPaths(document).filter((path) => /\.(?:md|ts)$/u.test(path)),
+    ),
     ...documents.flatMap(linkedChildDocuments),
     ...documents.flatMap(linkedInstructionDocuments),
   ];

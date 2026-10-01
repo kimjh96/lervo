@@ -153,6 +153,56 @@ describe("canonical review context", () => {
     );
   });
 
+  it("loads direct authorities from the source-specific contract before broad child links", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
+    roots.push(root);
+    await mkdir(resolve(root, ".lervo"));
+    await fixtureFile(
+      root,
+      ".lervo/knowledge/policy.yaml",
+      serializeRepositoryKnowledgePolicy(defaultRepositoryKnowledgePolicy),
+    );
+    await fixtureFile(root, "AGENTS.md", "Repository instructions.\n");
+    const template = ".github/PULL_REQUEST_TEMPLATE.md";
+    await fixtureFile(root, template, "## Release impact\nFollow writing_en-human.\n");
+    const contract = "docs/foundation/pull-request-contract.md";
+    const policy = "packages/core/src/writing-contract.ts";
+    const release = "docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md";
+    const hits = [
+      {
+        path: "docs/roadmap/v0.md",
+        contentHash: await fixtureFile(root, "docs/roadmap/v0.md", "[Broad child](v0/child.md)\n"),
+      },
+      {
+        path: contract,
+        contentHash: await fixtureFile(
+          root,
+          contract,
+          "[Policy](../../packages/core/src/writing-contract.ts)\n" +
+            "[Release](../decisions/release/packaging/0221-reviewed-cli-release-preparation.md)\n",
+        ),
+      },
+    ];
+    for (let index = 0; index < 5; index += 1) {
+      const path = "docs/broad-" + index + ".md";
+      hits.push({ path, contentHash: await fixtureFile(root, path, "Broad context.\n") });
+    }
+    await fixtureFile(root, "docs/roadmap/v0/child.md", "Broad child.\n");
+    await fixtureFile(root, policy, "export const writingPolicyId = 'writing_en-human';\n");
+    await fixtureFile(root, release, "CLI intent exemptions.\n");
+    const documents = await loadCanonicalReviewContext({
+      repositoryRoot: root,
+      sourcePaths: [template],
+      queryKnowledge: async () => ({ hits }),
+    });
+    const paths = documents.map((document) => document.path);
+    expect(paths.slice(8, 10)).toEqual([policy, release]);
+    expect(paths).toContain("docs/roadmap/v0/child.md");
+    expect(documents.find((document) => document.path === policy)?.role).toBe(
+      "canonical_candidate",
+    );
+  });
+
   it("refuses linked context above the aggregate byte bound", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
     roots.push(root);
