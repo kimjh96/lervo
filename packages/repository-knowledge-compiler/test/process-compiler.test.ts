@@ -398,7 +398,10 @@ setInterval(() => {}, 1000);
           compiler: timedOut,
           signal: new AbortController().signal,
         }),
-      ).rejects.toThrow("timed_out");
+      ).rejects.toMatchObject({
+        code: "knowledge_compile_failed",
+        processStatus: "timed_out",
+      });
     });
   }
 });

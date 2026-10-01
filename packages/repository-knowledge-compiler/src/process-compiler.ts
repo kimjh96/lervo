@@ -1115,8 +1115,9 @@ export async function createProcessDocumentNormalizationCompiler(
       if (result.status === "cancelled")
         throw signal.reason ?? compileFailure("Document normalization was cancelled.");
       if (result.status !== "completed")
-        throw compileFailure(
-          `The document normalizer process did not complete (${result.status}).`,
+        throw Object.assign(
+          compileFailure(`The document normalizer process did not complete (${result.status}).`),
+          { processStatus: result.status },
         );
       const response =
         options.provider === "claude"

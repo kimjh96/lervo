@@ -186,7 +186,7 @@
     },
     {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:13ec62236456d3b79a8f01c75146aff335fb3864ddd1a2c966993adea7f31e5c",
+      "contentHash": "sha256:088b3046e11b88ff2a933615d757ee07562a599cc2e840f2e50e73245100b91b",
       "responsibility": "Isolated no-capability provider process adapter",
       "rationale": "The module implements one isolated no-capability process boundary for both existing providers, including native structured JSON output. Native availability failure translation is extracted and shared by the three JSON workflows; host admission, persistent budgets, source policy and document effects remain outside this adapter. Common tests cover schema delivery, exact structured response extraction, no tools, usage, cancellation and timeout.",
       "disposition": "cohesive"

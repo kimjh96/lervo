@@ -1,6 +1,11 @@
 export function normalizedConvergenceFailure(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
   if (code === "cancelled") return "knowledge_cancelled";
+  if (
+    code === "knowledge_compile_failed" &&
+    (error as { processStatus?: unknown }).processStatus === "timed_out"
+  )
+    return "knowledge_job_transient_failure";
   const allowed = [
     "source_bytes_changed",
     "review_context_stale",

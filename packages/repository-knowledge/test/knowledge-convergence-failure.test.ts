@@ -10,3 +10,15 @@ it("normalizes managed verification cancellation without retrying it as a transi
     "knowledge_job_transient_failure",
   );
 });
+
+it("retries a typed normalizer timeout while retaining other compile failures", () => {
+  expect(
+    normalizedConvergenceFailure({ code: "knowledge_compile_failed", processStatus: "timed_out" }),
+  ).toBe("knowledge_job_transient_failure");
+  expect(
+    normalizedConvergenceFailure({ code: "knowledge_compile_failed", processStatus: "failed" }),
+  ).toBe("knowledge_compile_failed");
+  expect(normalizedConvergenceFailure({ code: "knowledge_compile_failed" })).toBe(
+    "knowledge_compile_failed",
+  );
+});

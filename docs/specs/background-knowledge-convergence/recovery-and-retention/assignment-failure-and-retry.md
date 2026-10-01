@@ -6,4 +6,6 @@ Retry requires the exact canonical failed completion and private artifact, curre
 
 Provider reservations survive retries. Semantic stages permit at most three calls per stage batch within the delegation ceiling; normalization generation and review retain their shared eight-call bound. An unknown native reset still requires an exact successful availability probe.
 
+A document normalizer process that reports the typed `timed_out` status retries as a transient stage failure under the existing backoff and attempt ceiling. Its provider reservation remains in the same batch; other `knowledge_compile_failed` outcomes still require attention.
+
 Generator and reviewer identities retain the existing parent's read responsibility. New source roots may enter later baselines without widening parent authority or writer paths. Writer and integrator assignments remain limited to approved target paths. A legacy narrow reader may be replaced once by a stable identity bound to the existing parent responsibility, without new write authority.
