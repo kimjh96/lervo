@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
 
-import { discoverInstructionDocuments, readRepositoryFile } from "@lervo/context";
+import {
+  ContextPreparationError,
+  discoverInstructionDocuments,
+  readRepositoryFile,
+} from "@lervo/context";
 import { loadDocumentRegistry } from "@lervo/project";
 import {
   loadRepositoryKnowledgePolicy,
@@ -74,6 +78,7 @@ async function contextQuery(root: string, paths: readonly string[]): Promise<str
         await readRepositoryFile(root, path, 256 * 1024),
       );
     } catch (error) {
+      if (error instanceof ContextPreparationError && error.code === "document_missing") continue;
       throw new KnowledgeReviewContextError("review_context_unavailable", { cause: error });
     }
     add(

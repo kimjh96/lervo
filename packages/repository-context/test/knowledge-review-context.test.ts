@@ -24,6 +24,30 @@ afterEach(async () => {
 });
 
 describe("canonical review context", () => {
+  it("uses available source paths when a planned generated document is not present yet", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
+    roots.push(root);
+    await mkdir(resolve(root, ".lervo"));
+    await fixtureFile(
+      root,
+      ".lervo/knowledge/policy.yaml",
+      serializeRepositoryKnowledgePolicy(defaultRepositoryKnowledgePolicy),
+    );
+    await fixtureFile(root, "AGENTS.md", "Repository instructions.\n");
+    await fixtureFile(root, "docs/specs/runtime.md", "# Runtime\nLocal execution.\n");
+    let query = "";
+    const documents = await loadCanonicalReviewContext({
+      repositoryRoot: root,
+      sourcePaths: ["docs/knowledge/documentation.md", "docs/specs/runtime.md"],
+      queryKnowledge: async (input) => {
+        query = input.query;
+        return { hits: [] };
+      },
+    });
+    expect(query).toContain("runtime");
+    expect(documents.map((document) => document.path)).toEqual(["AGENTS.md"]);
+  });
+
   it("keeps ranked release evidence for a pull request template source", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
     roots.push(root);
