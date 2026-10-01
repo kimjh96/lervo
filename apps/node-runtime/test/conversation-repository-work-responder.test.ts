@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ConversationRepositoryWorkResponder } from "../src/conversation-repository-work-responder.js";
 import { SQLiteConversationRepositoryWorkStore } from "../src/conversation-repository-work-store.js";
+import type { NormalizationCandidatePreparer } from "../src/conversation-normalization-candidate.js";
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -115,6 +116,7 @@ describe("ConversationRepositoryWorkResponder", () => {
         };
       });
       const verifyCompletion = vi.fn(async () => undefined);
+      const reviewNormalization = vi.fn(async () => null);
       const recoveredResult = await artifacts.put("중단 전에 완료된 검증 결과입니다.");
       let store = SQLiteConversationRepositoryWorkStore.open(resolve(root, "work.sqlite"));
       if (scenario === "configured_owner" || scenario === "legacy_delegate") {
@@ -171,6 +173,10 @@ describe("ConversationRepositoryWorkResponder", () => {
           },
         ],
         defaultProvider: "codex",
+        normalization: {
+          review: reviewNormalization,
+          close: async () => undefined,
+        } as unknown as NormalizationCandidatePreparer,
         ...(scenario === "changed_async" ? { knowledgeMode: "pending_background" as const } : {}),
         timeoutMs: 5_000,
         completionLifecycle: {
@@ -250,6 +256,9 @@ describe("ConversationRepositoryWorkResponder", () => {
       const first = await responder.respond({ event } as never);
       const second = await responder.respond({ event } as never);
       expect(executeTurn).toHaveBeenCalledTimes(1);
+      expect(reviewNormalization).toHaveBeenCalledTimes(
+        scenario === "changed_async" || scenario === "changed_writer4" ? 0 : 1,
+      );
       if (scenario === "configured_owner" || scenario === "legacy_delegate") {
         const delegated = scenario === "legacy_delegate";
         expect(executeTurn).toHaveBeenCalledWith(
