@@ -62,9 +62,16 @@ export function supervisionCycleHealth(error: unknown): NodeRuntimeComponentHeal
       };
 }
 
-/** Journal line for a failed cycle: bounded code, error name, and the message's first 200 characters. */
+/** Journal line for a failed cycle: bounded reason and bundle coordinate without a local path. */
 export function supervisionCycleFailureLine(error: unknown): string {
-  return `Lervo supervision cycle failed (${supervisionCycleFailureCode(error)}): ${boundedError(error, 200)}`;
+  const origin =
+    error instanceof Error
+      ? /\b(bin\.js:[1-9][0-9]{0,7}:[1-9][0-9]{0,7})\)?$/u.exec(
+          error.stack?.split("\n")[1] ?? "",
+        )?.[1]
+      : undefined;
+  const detail = boundedError(error, 200);
+  return `Lervo supervision cycle failed (${supervisionCycleFailureCode(error)}): ${detail}${origin === undefined ? "" : ` origin=${origin}`}`;
 }
 
 /** Journal line for an effect whose outcome became uncertain; canonical attention keeps only codes. */

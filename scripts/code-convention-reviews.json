@@ -66,6 +66,13 @@
       "disposition": "cohesive"
     },
     {
+      "path": "apps/node-runtime/src/discord-conversation-mode.ts",
+      "contentHash": "sha256:10c96d6352421ecc918e750ca4f4a1d491976078763c5ef1d626739e746c0673",
+      "responsibility": "Natural-language Discord conversation mode routing",
+      "rationale": "The class resolves one conversation event to a mode and dispatches its response through injected ports. Discussion eligibility, effect admission, intent conversion, and discussion response policy remain in dedicated modules; this boundary only selects the current event's available effects, caches its resolution, and routes the admitted result.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "apps/node-runtime/src/outcome-supervision-runtime.ts",
       "contentHash": "sha256:1754acf6f680f27587ff2564137ef54f4b6d7c06243853e38ea220af9fd04f69",
       "responsibility": "Node outcome-supervision port composition",

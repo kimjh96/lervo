@@ -100,6 +100,15 @@ it("names a failed cycle with one bounded code and a journal line without newlin
   expect(supervisionCycleFailureLine(new Error("x".repeat(400))).length).toBeLessThan(280);
 });
 
+it("records a bundle coordinate without exposing its host path", async () => {
+  const { supervisionCycleFailureLine } = await import("../src/supervision-attention-health.js");
+  const failure = new NodeSupervisionError("supervision_authority_changed");
+  failure.stack = `${failure.name}: ${failure.message}\n    at observeAuthority (/private/host/dist/bin.js:123:45)`;
+  const line = supervisionCycleFailureLine(failure);
+  expect(line).toContain("origin=bin.js:123:45");
+  expect(line).not.toContain("/private/host");
+});
+
 it("names the wrapped cause of an uncertain effect", () => {
   const error = Object.assign(
     new Error("The workforce event failed and state was restored.", {

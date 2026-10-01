@@ -33,6 +33,10 @@ import {
   effectForManagedConversationResolution,
   withoutLeadingBotMention,
 } from "./discord-conversation-mode-selection.js";
+import {
+  availableDiscussionIntentEffects,
+  availableDiscussionSurfaceEffects,
+} from "./conversation-discussion-availability.js";
 import type {
   DiscordGoalResponder,
   DiscordNonPlatformEffect,
@@ -76,6 +80,7 @@ export class NaturalLanguageDiscordConversationResponder
       intentResolver?: ConversationIntentResolver;
       managedTurnResolver?: ManagedConversationTurnResolverPort;
       surfaceEffects?: readonly ManagedConversationSurfaceEffect[];
+      discussionEligibleConversationIds?: readonly string[];
       availableEffects?: readonly ConversationRequestedEffect["kind"][];
       participationPolicy: Parameters<ConversationRelevanceEvaluator["evaluate"]>[0]["policy"];
       readOnly: ConversationResponder;
@@ -235,13 +240,23 @@ export class NaturalLanguageDiscordConversationResponder
     const respondingAgentMentioned =
       event.mentions.participantIds.includes(this.options.respondingAgent.participantId) ||
       event.mentions.roleIds.includes(this.options.respondingAgent.roleId);
+    const discussionAvailable =
+      this.options.discussionEligibleConversationIds?.includes(event.target.conversationId) ?? true;
+    const surfaceEffects = availableDiscussionSurfaceEffects(
+      this.options.surfaceEffects ?? [],
+      discussionAvailable,
+    );
+    const availableEffects = availableDiscussionIntentEffects(
+      this.options.availableEffects ?? this.options.platformAction.availableEffects,
+      discussionAvailable,
+    );
     if (this.options.managedTurnResolver !== undefined) {
       const managed = await this.options.managedTurnResolver.resolve({
         event,
         policy: this.options.participationPolicy,
         respondingAgent: this.options.respondingAgent,
         mentioned: respondingAgentMentioned,
-        surfaceEffects: this.options.surfaceEffects ?? [],
+        surfaceEffects,
         context: { priorTurns },
       });
       const effect = effectForManagedConversationResolution(managed.effect);
@@ -293,8 +308,7 @@ export class NaturalLanguageDiscordConversationResponder
         current === null
           ? null
           : { title: current.title, objective: current.objective, status: current.status },
-      availableEffects:
-        this.options.availableEffects ?? this.options.platformAction.availableEffects,
+      availableEffects,
     });
     await this.options.resolutionStore.record({
       event,

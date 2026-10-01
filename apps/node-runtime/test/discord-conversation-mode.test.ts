@@ -609,6 +609,71 @@ describe("natural-language Discord conversation mode", () => {
       },
       { effectRequesterAuthorized: true },
     );
+
+    const resolveWithoutDiscussion = vi.fn(agentWorkResolver.resolve);
+    const withoutDiscussion = new NaturalLanguageDiscordConversationResponder({
+      applicationId,
+      respondingAgent: {
+        participantId: "ptc_lervoagent",
+        agentId: `agt_${"a".repeat(24)}`,
+        roleId: "product-owner",
+      },
+      repositoryRoot: process.cwd(),
+      artifactStore,
+      history: { recent: async () => [] },
+      resolutionStore: { read: async () => null, record: async () => undefined },
+      managedTurnResolver: { resolve: resolveWithoutDiscussion },
+      surfaceEffects: [
+        {
+          effectId: "deliberation_start",
+          description: "Start a governed discussion.",
+          argumentDescription: "Topic.",
+          maximumArgumentCharacters: 4_096,
+        },
+        {
+          effectId: "workforce_task_delegate",
+          description: "Delegate to one peer.",
+          argumentDescription: "Task.",
+          maximumArgumentCharacters: 1_024,
+        },
+      ],
+      discussionEligibleConversationIds: [],
+      participationPolicy,
+      readOnly: readOnly as ConversationResponder,
+      continuation: continuation as ConversationResponder,
+      platformAction: deliberationAction,
+    });
+    await withoutDiscussion.mode((await input("cevt_test0012")).event);
+    expect(resolveWithoutDiscussion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        surfaceEffects: [expect.objectContaining({ effectId: "workforce_task_delegate" })],
+      }),
+    );
+
+    const legacyResolver = vi.fn(resolveIntent);
+    const legacyWithoutDiscussion = new NaturalLanguageDiscordConversationResponder({
+      applicationId,
+      respondingAgent: {
+        participantId: "ptc_lervoagent",
+        agentId: `agt_${"a".repeat(24)}`,
+        roleId: "product-owner",
+      },
+      repositoryRoot: process.cwd(),
+      artifactStore,
+      history: { recent: async () => [] },
+      resolutionStore: { read: async () => null, record: async () => undefined },
+      intentResolver: { resolve: legacyResolver },
+      availableEffects: ["deliberation_start", "workforce_task_delegate"],
+      discussionEligibleConversationIds: [],
+      participationPolicy,
+      readOnly: readOnly as ConversationResponder,
+      continuation: continuation as ConversationResponder,
+      platformAction: deliberationAction,
+    });
+    await legacyWithoutDiscussion.mode((await input("cevt_test0013")).event);
+    expect(legacyResolver).toHaveBeenCalledWith(
+      expect.objectContaining({ availableEffects: ["workforce_task_delegate"] }),
+    );
   });
 });
 
