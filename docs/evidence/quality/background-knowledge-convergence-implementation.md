@@ -23,6 +23,7 @@ Fresh human-authored `#general` and `#shiflo` turns produced delivered replies. 
 - [Installed reviews, renewed authority, and first passing batch](background-knowledge-convergence-implementation/installed-reviews-and-authority.md)
 - [Later retries, source corrections, and remaining acceptance](background-knowledge-convergence-implementation/later-retries-and-acceptance.md)
 - [October 1 installed WSL and Discord observations](background-knowledge-convergence-implementation/installed-2026-10-01.md)
+- [October 1 WSL Node supervision and normalization timeout](background-knowledge-convergence-implementation/wsl-2026-10-01-recovery.md)
 
 ## Contracts and decisions
 
