@@ -34,4 +34,6 @@ This closes the single-turn installed Vero continuation check, not every product
 
 ## Remaining observations
 
-Fresh independently human-authored Lervo and Shiflo response observations remain required by the later deployment records. Historical requests, healthy fleets, startup projection repair, and bot-authored probes do not supply them. Shiflo r55 also still needs visible webhook publication and exact coordinator continuation; its historical five Sora plus seven Nuri attention rows remain unresolved. See the [Shiflo correction record](shiflo-webhook-2026-09-23.md).
+The owner stated on 2026-10-01 that Kael is no longer operated. Current installed acceptance therefore does not require a new Kael request or standing successor. Historical Kael incidents remain evidence of the earlier deployment, without a current operation claim.
+
+A fresh human-authored Lervo `#general` turn reached Tarin and produced one delivered reply. This closes that single basic intake and response observation; it does not close the two-direction matrix, Sol/Opus profile selection, or multi-party technical acceptance. Fresh Shiflo response and visible webhook publication with exact coordinator continuation remain required; its historical five Sora plus seven Nuri attention rows remain unresolved. See the [Lervo observation](../../../../../../evidence/quality/background-knowledge-convergence-implementation/installed-2026-10-01.md) and [Shiflo correction record](shiflo-webhook-2026-09-23.md).
