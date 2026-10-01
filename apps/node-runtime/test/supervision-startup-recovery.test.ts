@@ -10,7 +10,10 @@ import type { NodeRuntimeComponentHealth } from "../src/health-contract.js";
 const fake = vi.hoisted(() => ({
   hooks: null as null | {
     onFailure(error: unknown): void;
-    onCycle(cycle: { disposition: "idle" | "busy" | "changed"; report: unknown }): Promise<void>;
+    onCycle(cycle: {
+      disposition: "idle" | "busy" | "blocked" | "changed";
+      report: unknown;
+    }): Promise<void>;
   },
 }));
 vi.mock("../src/outcome-supervision-runtime.js", () => ({
@@ -77,6 +80,27 @@ it("restores evaluated health after an unchanged authority read, but not a busy 
     const count = observations.length;
     await hooks.onCycle({ disposition: "idle", report: null });
     expect(observations).toHaveLength(count);
+    await hooks.onCycle({
+      disposition: "blocked",
+      report: { status: "invalid", reasonCode: "evidence_unavailable", nextAction: null },
+    });
+    expect(observations.at(-1)?.status).toBe("unavailable");
+    await hooks.onCycle({ disposition: "busy", report: null });
+    expect(observations.at(-1)?.status).toBe("unavailable");
+    await hooks.onCycle({ disposition: "idle", report: null });
+    expect(observations.at(-1)).toEqual({ status: "ready" });
+    await hooks.onCycle({
+      disposition: "blocked",
+      report: {
+        status: "waiting_decision",
+        reasonCode: "owner_plan_unavailable",
+        nextAction: null,
+      },
+    });
+    expect(observations.at(-1)?.status).toBe("unavailable");
+    const blockedCount = observations.length;
+    await hooks.onCycle({ disposition: "idle", report: null });
+    expect(observations).toHaveLength(blockedCount);
   } finally {
     await service.close();
   }

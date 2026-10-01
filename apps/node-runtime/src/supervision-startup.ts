@@ -199,7 +199,7 @@ export async function openNodeSupervisionService(input: {
           }
           return;
         }
-        settledHealth =
+        const health: NodeRuntimeComponentHealth =
           cycle.disposition === "blocked" || cycle.disposition === "uncertain"
             ? supervisionAttentionHealth(attentionObservation ?? { reasonCodes: null })
             : cycle.report.status === "completed" &&
@@ -207,7 +207,19 @@ export async function openNodeSupervisionService(input: {
                 cycle.report.nextAction === null
               ? { status: "dormant", reasonCode: "local_result_canonical" }
               : { status: "ready" };
-        await observe(settledHealth);
+        if (
+          cycle.disposition === "blocked" &&
+          cycle.report.status === "invalid" &&
+          cycle.report.reasonCode === "evidence_unavailable"
+        ) {
+          // The prior cursor can still be idle after a transient unavailable evidence read.
+          // Keep its last valid health for a later successful source and authority reread.
+          needsHealthRecovery = true;
+          await observe(health);
+          return;
+        }
+        settledHealth = health;
+        await observe(health);
         needsHealthRecovery = false;
       },
     });
