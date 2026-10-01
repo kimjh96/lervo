@@ -1,4 +1,4 @@
-<!-- Follow writing_en-human. GitHub renders the title separately, so start at H2. -->
+<!-- Follow writing_en-human in packages/core/src/writing-contract.ts and the repository contract in docs/foundation/pull-request-contract.md. GitHub renders the title separately, so start at H2. -->
 
 ## Summary
 
