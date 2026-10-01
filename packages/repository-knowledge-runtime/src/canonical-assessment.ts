@@ -11,7 +11,8 @@ import { withConvergenceAssignment } from "./workforce.js";
 import { prepareCanonicalAssessmentSources } from "./canonical-assessment-workset.js";
 import { loadCanonicalReviewContext } from "./review-context.js";
 import { reviewKnowledgeJson } from "./provider-call.js";
-import { convergenceSourceBytes, type captureConvergenceSources } from "./source-capture.js";
+import type { captureConvergenceSources } from "./source-capture.js";
+import { loadAssessmentRetryTargets } from "./canonical-assessment-retry-targets.js";
 import {
   canonicalAssessmentSchema,
   parseCanonicalAssessment,
@@ -71,7 +72,6 @@ export async function assessCanonicalBaseline(
       const capturedSources =
         (state.stageData.sourceCapture as ReturnType<typeof captureConvergenceSources> | undefined)
           ?.sources ?? state.baseline.sources;
-      const capturedByPath = new Map(capturedSources.map((source) => [source.path, source]));
       const batchId = sha256(
         canonicalJson([state.obligationId, "canonical", offset, state.snapshotHash]),
       );
@@ -116,27 +116,12 @@ export async function assessCanonicalBaseline(
           throw error;
         // A malformed response cannot settle coverage; one new call retains the same batch ceiling.
         try {
-          const proposedDrafts = (observed.value as { drafts?: unknown } | null)?.drafts;
-          const existingDraftTargets = (Array.isArray(proposedDrafts) ? proposedDrafts : [])
-            .slice(0, 8)
-            .flatMap((draft: unknown) => {
-              const path = (draft as { path?: unknown } | null)?.path;
-              const source = typeof path === "string" ? capturedByPath.get(path) : undefined;
-              if (!source) return [];
-              const bytes = convergenceSourceBytes(root, source.path);
-              if (sha256(bytes) !== source.contentHash)
-                throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
-              return [
-                {
-                  path: source.path,
-                  contentHash: source.contentHash,
-                  content:
-                    source.kind === "text" && bytes.byteLength <= 131072
-                      ? new TextDecoder("utf8", { fatal: true }).decode(bytes)
-                      : null,
-                },
-              ];
-            });
+          const existingDraftTargets = loadAssessmentRetryTargets({
+            repositoryRoot: root,
+            response: observed.value,
+            capturedSources,
+            canonicalRoots: authority.delegation.canonicalRoots,
+          });
           observed = await reviewKnowledgeJson({
             ...reviewInput,
             prompt: RETRY_PROMPT,

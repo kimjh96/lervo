@@ -115,6 +115,18 @@ function linkedChildDocuments(document: SemanticReviewContextDocument): string[]
   return paths;
 }
 
+function linkedInstructionDocuments(document: SemanticReviewContextDocument): string[] {
+  if (document.role !== "instruction" || !document.path.endsWith(".md")) return [];
+  const paths: string[] = [];
+  for (const match of document.content.matchAll(/\[[^\]]+\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
+    const link = match[1]?.split("#", 1)[0];
+    if (!link || link.startsWith("/") || link.includes(":") || link.includes("\\")) continue;
+    const path = posix.normalize(posix.join(posix.dirname(document.path), link));
+    if (path.startsWith("docs/") && path.endsWith(".md") && !paths.includes(path)) paths.push(path);
+  }
+  return paths;
+}
+
 async function loadDocument(input: {
   repositoryRoot: string;
   path: string;
@@ -201,7 +213,10 @@ export async function loadCanonicalReviewContext(input: {
     );
     excluded.add(hit.path);
   }
-  const linkedPaths = documents.flatMap(linkedChildDocuments);
+  const linkedPaths = [
+    ...documents.flatMap(linkedChildDocuments),
+    ...documents.flatMap(linkedInstructionDocuments),
+  ];
   let policy: Awaited<ReturnType<typeof loadRepositoryKnowledgePolicy>>;
   try {
     policy = await loadRepositoryKnowledgePolicy(input.repositoryRoot);

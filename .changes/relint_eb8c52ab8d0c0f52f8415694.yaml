@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_eb8c52ab8d0c0f52f8415694"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Include bounded linked instruction contracts in canonical review context."

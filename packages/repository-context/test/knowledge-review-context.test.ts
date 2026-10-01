@@ -187,4 +187,34 @@ describe("canonical review context", () => {
       }),
     ).rejects.toMatchObject({ code: "review_context_limit_exceeded" });
   });
+
+  it("loads directly linked canonical instructions needed to review a source", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
+    roots.push(root);
+    await mkdir(resolve(root, ".lervo"));
+    await fixtureFile(
+      root,
+      ".lervo/knowledge/policy.yaml",
+      serializeRepositoryKnowledgePolicy(defaultRepositoryKnowledgePolicy),
+    );
+    await fixtureFile(
+      root,
+      "AGENTS.md",
+      "Follow [commit convention](docs/foundation/commit-convention.md).\n" +
+        "Ignore [outside](../outside.md) and [remote](https://example.com/rules.md).\n",
+    );
+    const path = "docs/foundation/commit-convention.md";
+    const contentHash = await fixtureFile(root, path, "# Commit convention\nExact range.\n");
+    const documents = await loadCanonicalReviewContext({
+      repositoryRoot: root,
+      sourcePaths: [".github/workflows/commit-convention.yml"],
+      queryKnowledge: async () => ({ hits: [] }),
+    });
+    expect(documents.map((document) => document.path)).toEqual(["AGENTS.md", path]);
+    expect(documents[1]).toMatchObject({
+      role: "canonical_candidate",
+      contentHash,
+      content: "# Commit convention\nExact range.\n",
+    });
+  });
 });
