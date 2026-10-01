@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_424e1addc2663f7c482f0a91"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep background document normalization batches within reviewed provider-call ceilings."

@@ -16,6 +16,7 @@ import { withConvergenceAssignment, type ConvergenceAssignmentAuthority } from "
 import { pathWithinConvergenceRoots } from "./delegation.js";
 import { convergenceSourceBytes } from "./source-capture.js";
 import { withKnowledgeProviderAdmission } from "./provider-call.js";
+import { selectNormalizationBatchWithinCallBudget } from "./normalization-batch-selection.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 
 export interface NormalizationBatch {
@@ -102,15 +103,38 @@ export async function generateNormalizationBatch(
         delegationHash: state.baseline.delegationHash,
       },
     });
+  if (delegation.resourceCeilings.maximumProviderCalls < 2)
+    return waitingConvergenceStage({
+      artifacts: context.storage.artifacts,
+      state,
+      reason: "knowledge_authority_unavailable",
+      dependency: {
+        kind: "normalization_scope",
+        snapshotHash: state.snapshotHash,
+        delegationHash: state.baseline.delegationHash,
+      },
+    });
+  const compiler = await createProcessDocumentNormalizationCompiler({
+    provider: context.provider,
+    ...(context.executable === undefined ? {} : { executable: context.executable }),
+    timeoutMs: 300_000,
+  });
+  const bounded = await selectNormalizationBatchWithinCallBudget({
+    repositoryRoot: root,
+    paths: selected,
+    compiler,
+    maximumSourceBytes: delegation.resourceCeilings.maximumSourceBytes,
+    maximumProviderCalls: delegation.resourceCeilings.maximumProviderCalls,
+  });
   return withConvergenceAssignment({
     storage: context.storage,
     provider: context.provider,
     stage: "normalization_generation",
     role: "generator",
     state,
-    paths: selected,
+    paths: bounded,
     assertLease,
-    run: (authority) => generate(context, state, selected, authority),
+    run: (authority) => generate(context, state, bounded, authority, compiler),
   });
 }
 
@@ -119,6 +143,7 @@ async function generate(
   state: KnowledgeConvergenceInput,
   paths: string[],
   authority: ConvergenceAssignmentAuthority,
+  compiler: RepositoryDocumentNormalizationCompiler,
 ): Promise<KnowledgeConvergenceStageResult> {
   const root = context.storage.paths.repositoryRoot;
   const ceilings = authority.delegation.resourceCeilings;
@@ -144,11 +169,6 @@ async function generate(
       },
     });
   const batchId = sha256(canonicalJson([state.obligationId, selected, state.snapshotHash]));
-  const compiler = await createProcessDocumentNormalizationCompiler({
-    provider: context.provider,
-    ...(context.executable === undefined ? {} : { executable: context.executable }),
-    timeoutMs: 300_000,
-  });
   const normalize: NonNullable<
     RepositoryDocumentNormalizationCompiler["normalizeObserved"]
   > = async (envelope, signal) => {

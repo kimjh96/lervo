@@ -1,7 +1,7 @@
 # Autonomous background knowledge convergence
 
 Status: `in_progress`
-As of: 2026-09-28
+As of: 2026-10-01
 
 ## Outcome
 
@@ -38,6 +38,7 @@ The local runtime is implemented. A [privately installed native Codex canary](..
 - [ ] A source replica between hosts with distinct workforce identities preserves each host's reviewed convergence delegation while synchronizing canonical knowledge and asset dispositions.
 - [ ] Crashes before/after journal apply and outcome append recover as verified apply, verified rollback, or owned uncertainty, with no duplicate write or model rerun.
 - [ ] Quota/authentication, cancellation, missing usage, resource ceilings, exhaustion, and a rejected leading family remain visible without hot-looping or starving unrelated authorized work.
+- [ ] A miss-heavy normalization batch narrows to the largest ordered prefix that fits the approved provider-call ceiling before assignment; installed verification must show forward progress without raising that ceiling.
 - [ ] Full installed verification outlives 30 minutes while its exact assignment lease renews and all four shards settle under [ADR-0359](../../decisions/execution/verification/0359-renew-assignment-leases-during-long-verification.md). An expired claim cannot turn failure into success.
 - [x] Stable source reaches a bounded fixed point: normalization writes cause no endless candidate regeneration, and zero debt produces no provider calls.
 - [x] Codex and Claude pass the same review, no-capability, usage, cancellation, and failure contracts. Provider configuration remains behind adapters.
@@ -53,7 +54,7 @@ Observed gates are supported by implementation evidence and focused tests. Share
 
 Before implementation completion, run structural review, focused lifecycle/provider tests, quality checks, and the task-base-bound release completion check with reviewed CLI/private release intent. Run `lervo migrate knowledge` and `lervo knowledge lint` on the implementation repository. Rehearse readers and writers for every installed consumer before activation.
 
-The 311-document inventory is a bounded starting observation, not a fixed workset or automatic approval. Capture fresh per-project sources and review authority before generation or cleanup. AXLI's product-verification configuration and Kael's provider quota remain separate prerequisites; this design grants neither tools nor additional usage.
+The 311-document inventory is a bounded starting observation, not a fixed workset or automatic approval. Capture fresh per-project sources and review authority before generation or cleanup. AXLI's product-verification configuration remains a separate prerequisite; this design grants neither tools nor additional usage. The owner stated on 2026-10-01 that Kael is no longer operated, so Kael's former provider quota is outside the current rollout.
 
 Installed verification history:
 
@@ -65,4 +66,4 @@ Installed verification history:
 - A second installed version-nine attempt passed two full shards before a 30-second native recovery test deadline failed. Its 30-minute stage lease also left too little time for the final shard. [ADR-0358](../../decisions/execution/verification/0358-cover-busy-host-verification-stage-leases.md) bounds both durations.
 - The next installed apply exposed two 60-second full-worker test limits. Corrected tests passed in a focused WSL run, and the longer-lease r159 Node is ready.
 
-Completion still requires the source-bearing integration ref, exact reviewed version-nine delegation, passing installed canonical integration and normalization apply, and a current knowledge receipt.
+The reviewed version-nine eight-document delegation is installed. Its first later normalization apply reached `current`, but the next miss-heavy batch estimated 12 generator calls against the seven available after reserving review. Completion still requires installed verification of call-budget-aware selection, any recurring integration-ref correction, passing apply, and a current knowledge receipt.
