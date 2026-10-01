@@ -54,6 +54,14 @@ jobs:
             git -c user.name='lervo-release[bot]' -c user.email='lervo-release[bot]@users.noreply.github.com' commit -m 'chore(cli): prepare release'
             pnpm check
             pnpm lervo knowledge lint --json
+            while IFS= read -r changed_path; do
+              case "${changed_path}" in
+                apps/cli/package.json|apps/cli/release-artifact-manifest.json|apps/cli/release-sbom.cdx.json|pnpm-lock.yaml|.changes/current-release.md|.changes/relint_*.yaml) ;;
+                *) echo "Unexpected release preparation path: ${changed_path}" >&2; exit 1 ;;
+              esac
+            done < <(git diff --name-only "${GITHUB_SHA}" HEAD)
+            release_commit="$(git rev-parse HEAD)"
+            evidence_checked='[x]'
             release_ref='heads/lervo/release-cli'
             if gh api "repos/${GITHUB_REPOSITORY}/git/ref/${release_ref}" >/dev/null 2>&1; then
               gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/${release_ref}" \
@@ -64,44 +72,44 @@ jobs:
             fi
             git push origin lervo/release-cli
             body_file="${RUNNER_TEMP}/lervo-release-pr.md"
-            cat >"${body_file}" <<'EOF'
+            cat >"${body_file}" <<EOF
           ## Summary
 
-          Prepare the exact reviewed `@lervo/cli` release version and bounded current release notes.
+          Prepare the reviewed \`@lervo/cli\` release version and current release notes from plan \`${plan_id}\` at commit \`${release_commit}\`.
 
           ## Scope and authority
 
-          In scope: package version, lockfile, current release note, release manifest, SBOM, and consumed intent. Out of scope: npm staging, approval, and publication.
+          The release plan changed only the CLI package version, lockfile, current release note, release manifest, software bill of materials, and consumed intent files. The exact changed-path check passed against \`${GITHUB_SHA}\`. This workflow has no npm staging or publication authority. The workflow cannot attest that an agent read \`AGENTS.md\`; that checklist item remains open for review.
 
           ## Contract and architecture
 
-          The release-preparation owner generated every version-bound byte from one exact plan. This pull request changes no provider or runtime authority boundary.
+          The release-preparation command applied plan \`${plan_id}\` and generated version-bound files. N/A: The checked diff contains no source module, so this pull request requires no new module split.
 
           ## Release impact
 
-          This is the release aggregation pull request; the consumed intent and generated version are the review coordinates.
+          The consumed intent records and plan \`${plan_id}\` bind the release impact. This pull request prepares the version; it does not authorize npm publication.
 
           ## Verification
 
-          The workflow applied the exact release-preparation plan, ran `pnpm check` on the resulting release bytes, and confirmed that Lervo knowledge lint reported no issues.
+          On exact release commit \`${release_commit}\`, \`pnpm check\` and \`pnpm lervo knowledge lint --json\` both exited successfully in [workflow run ${GITHUB_RUN_ID}](https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}). The changed-path check passed. These observations support the checked generated-file and verification items below; they do not attest to source pull-request review.
 
           ## Knowledge and documentation
 
-          N/A: Canonical release documentation and knowledge lifecycle changes belong to the source pull requests aggregated here.
+          The generated current release note is the documentation changed here. N/A: This generated-only release aggregation changes no repository-wide knowledge lifecycle source, so migration is not required. N/A: Release aggregation does not change roadmap criteria. Canonical source documentation and roadmap evidence remain the responsibility of the aggregated source pull requests.
 
           ## Risk and recovery
 
-          The fixed branch ref is aligned to the exact existing `main` revision before a fast-forward artifact push. A stale source, changed intent, owner-command failure, or concurrent branch change fails closed and is recoverable by rerunning from current `main`.
+          The fixed branch ref was aligned to exact \`main\` revision \`${GITHUB_SHA}\` before the generated commit was pushed. A stale source, changed intent, failed command, or concurrent branch change stops this run; the next run replans from current \`main\`. No dedicated secret scan ran here, so that checklist item remains open for review.
 
           ## Checklist
 
-          - [x] N/A: This bot applies a reviewed release plan. Source pull-request authors provide instruction-entrypoint evidence.
-          - [x] N/A: Release preparation changes generated artifacts and package coordinates, not source modules.
-          - [x] Repository-authored state is bounded; this change adds neither an append-only file nor a one-file-per-operation archive.
-          - [x] Lervo-managed, generated, and user-owned bytes retain distinct owners.
-          - [x] N/A: Each aggregated source pull request provides its canonical documentation and roadmap evidence.
-          - [x] Relevant tests, `pnpm quality:check`, and required Lervo migration/lint checks pass on the exact release branch.
-          - [x] No secret, mutable credential, or unsupported authority is included.
+          - [ ] I read \`AGENTS.md\` and the relevant linked entrypoints before changing bytes.
+          - ${evidence_checked} I reviewed every touched source against \`docs/foundation/code-convention.md\`.
+          - ${evidence_checked} Repository-authored state is bounded; this change adds neither an append-only file nor a one-file-per-operation archive.
+          - ${evidence_checked} Lervo-managed, generated, and user-owned bytes retain distinct owners.
+          - ${evidence_checked} Affected documentation and roadmap completion criteria are current.
+          - ${evidence_checked} Relevant tests, \`pnpm quality:check\`, and required Lervo migration/lint checks pass.
+          - [ ] No secret, mutable credential, or unsupported authority is included.
           EOF
             open_pr_number="$(gh pr list --base main --head lervo/release-cli --state open --json number --jq '.[0].number // empty')"
             if [ -z "${open_pr_number}" ]; then
