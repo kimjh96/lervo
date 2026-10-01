@@ -12,3 +12,9 @@ When a provider adapter supplies a bounded transport diagnostic, the artifact al
 The field never records a server message or data object. Missing or malformed adapter diagnostics are omitted, not guessed. `run.failed.failureCode` still describes the managed-run failure; retryability remains unchanged. A server rejection code alone never authorizes retry or proves a model was unavailable.
 
 Storage failure remains a failed run with an unavailable diagnostic, not a safely retryable result. Older digest-only failures remain readable and uncertain. Owner context exposes exact available worker diagnostics; owner-reasoning failures do not change their own task basis.
+
+## Supervision failure observation
+
+The failure ledger accepts the required bounded `code`, `phase`, and `retryable` fields and optional bounded `providerTurnFailureCode`, `causeCode`, and structured `providerDiagnostic`; unknown keys remain invalid. The diagnostic must agree with the canonical `run.failed` terminal and exact CAS digest. A missing artifact or contradictory terminal remains uncertain.
+
+`known_safe_failure` requires one settled read-only adapter session whose tool calls, command execution, and file changes were all unsupported. The stop must belong to the same terminal; every diagnostic entry must name an allowed no-tool provider or result phase and code; and no tool, command, file, capability, or unmanaged-change event may appear. A read-only configuration or provider failure code alone cannot prove this. Abandoned turns remain uncertain under their separate proof boundary.

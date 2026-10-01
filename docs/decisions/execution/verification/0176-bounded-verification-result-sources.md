@@ -26,3 +26,5 @@ Any event-chain, CAS, canonicalization, suite, result, event-binding, bound, or 
 ## Consequences
 
 Fixtures bind canonical suites, results, events, and CAS objects into exact units; distinguish full and content snapshots; reject tampering without leakage; and reopen real managed Codex and Claude storage to collect verified result sources.
+
+The current [source contract](../../../specs/repository-knowledge-compilation/structural-publication/sources.md) also records the later historical-suite validation path. A changed suite definition preserves the old result only after suite-independent evidence and its original event/CAS binding pass; it does not certify the new suite.
