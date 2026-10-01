@@ -70,6 +70,8 @@ Supervised worker results were amended on 2026-09-25. Workers edit detached chec
 
 Committing uses a private index and fixed dates and excludes Git-ignored files. It never touches the checked-out branch or working tree, which may contain user-owned uncommitted work. A later observed terminal or Discord turn lands the result by merge, records the change source, and queues its knowledge job like any other change.
 
+The Node implementation boundary is `apps/node-runtime/src/supervision-result-branch.ts`. Its supervision result branch publisher requires the first exact result artifact and an accepted `work.supervision.review.recorded` pairing for that assignment. It uses a private Git index, skips unchanged trees and ignored files, fixes commit identity and dates, and creates `refs/heads/lervo/results/<assignment>` only when the ref is absent. The 60-second loop retries publication after failure and reports published refs or bounded failures through host callbacks; it does not rerun the worker or move an existing result ref.
+
 Terminal agents no longer need to maintain global knowledge synchronously before stopping. Until the core owner is verified in an installed repository, the existing synchronous terminal declaration remains available and the new source only adds durable obligations. Enabling `pending_background` on an installed Node still requires ADR-0427 acceptance evidence.
 
 ## Verification
