@@ -6,6 +6,8 @@ Retry requires the exact canonical failed completion and private artifact, curre
 
 Provider reservations survive retries. Semantic stages permit at most three calls per stage batch within the delegation ceiling; normalization generation and review retain their shared eight-call bound. An unknown native reset still requires an exact successful availability probe.
 
+Canonical assessment may retry one structurally invalid provider response within its existing stage batch. Both calls retain separate private observations, and neither an invalid response nor an exhausted reservation becomes source coverage.
+
 A document normalizer process that reports the typed `timed_out` status retries as a transient stage failure under the existing backoff and attempt ceiling. Its provider reservation remains in the same batch; other `knowledge_compile_failed` outcomes still require attention.
 
 Normalization generation allows each provider process up to ten minutes within the existing 25-minute batch elapsed ceiling. The longer process window addresses observed five-minute timeouts on a busy WSL host; it does not increase the reviewed provider-call budget or assignment lease.

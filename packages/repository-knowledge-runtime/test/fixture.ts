@@ -20,7 +20,12 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import { convergenceDelegationPlanHash, type ConvergenceDelegation } from "../src/delegation.js";
 
 const execute = promisify(execFile);
-export async function fixture(authorized = false, canonical = false, multipleSuites = false) {
+export async function fixture(
+  authorized = false,
+  canonical = false,
+  multipleSuites = false,
+  invalidAssessmentCalls = 0,
+) {
   const directory = await mkdtemp(resolve(tmpdir(), "lervo-autonomous-knowledge-"));
   const root = resolve(directory, "repository");
   await mkdir(root);
@@ -186,15 +191,17 @@ export async function fixture(authorized = false, canonical = false, multipleSui
   await writeFile(
     executable,
     `#!/usr/bin/env node
-import {appendFileSync} from 'node:fs';
+import {appendFileSync,existsSync,readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 const hash=value=>'sha256:'+createHash('sha256').update(typeof value==='string'?value:JSON.stringify(value)).digest('hex');
 if(process.argv.includes('--version')){console.log('claude-fixture 1.0.0');process.exit(0);}
 let text='';for await(const chunk of process.stdin)text+=chunk;
 const request=JSON.parse(text);const data=request.untrustedSourceData;let response;
+const prior=existsSync(${JSON.stringify(log)})?readFileSync(${JSON.stringify(log)},'utf8').trim().split('\\n').filter(Boolean).map(line=>JSON.parse(line)).filter(call=>call.request.task==='canonical_baseline_assessment').length:0;
 appendFileSync(${JSON.stringify(log)},JSON.stringify({cwd:process.cwd(),request})+'\\n');
 if(request.envelope){response={schemaVersion:1,documents:request.envelope.documents.map(document=>({sourcePath:document.path,outputs:[{path:document.path,content:document.untrustedSourceData,coveredUnitIndexes:document.sourceUnits.map(unit=>unit.index)}]})),telemetry:{filesystemReads:0,filesystemWrites:0,shellProcesses:0,networkRequests:0,externalActions:0,toolCalls:0,complete:true}};}
 else if(request.task==='canonical_baseline_assessment')response={decisions:data.sources.map(source=>({path:source.path,contentHash:source.contentHash,disposition:'no_change',rationale:'This exact source preserves the existing local runtime contract. No new durable fact or behavioral obligation requires a canonical change.',canonicalReferences:[]})),drafts:[]};
+if(request.task==='canonical_baseline_assessment' && prior<${JSON.stringify(invalidAssessmentCalls)})response.decisions[0].contentHash=hash('wrong source bytes');
 if(request.task==='canonical_baseline_assessment' && ${JSON.stringify(canonical)}) { const source=data.sources.find(source=>source.path==='src/runtime.ts'); const target=data.sources.find(source=>source.path==='docs/specs/runtime.md'); if(source && target) { const limit=source.content?.includes('= 3')?'three':'two'; response.decisions.find(item=>item.path===source.path).disposition='candidate'; response.drafts=[{path:target.path,beforeHash:target.contentHash,content:target.content+'\\nBackground model calls are limited to '+limit+' per host.\\n'}];} }
 if(request.task==='independent_canonical_review')response={assessmentHash:data.assessmentHash,decision:'approve',rationale:'Each supplied source has been independently compared with the exact current instructions and documentation. The current durable runtime requirement remains fully preserved.',sourceHashes:data.sourceHashes,draftHashes:data.draftHashes};
 else if(request.task==='independent_normalization_review')response={candidateId:data.candidate.candidateId,decisions:data.candidate.items.map(item=>({operationId:item.operationId,sourceContentHash:item.sourceContentHash,decision:'approve',rationale:'The exact source and all output bytes preserve the runtime requirement, examples, links, lifecycle metadata, protected regions and resource identities.',checks:Object.fromEntries(['meaning','requirements','examples','links','lifecycle','protectedRegions','skillIdentity','resources'].map(check=>[check,true])),unitReviews:item.sourceUnitVersionIds.map(id=>({unitVersionId:id,outputHashes:item.outputs.filter(output=>output.coveredUnitVersionIds.includes(id)).map(output=>output.contentHash),rationale:'This exact source unit is preserved in the specified output bytes.'}))}))};
