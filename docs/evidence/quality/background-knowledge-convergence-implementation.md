@@ -4,7 +4,7 @@ Status: `active`
 As of: 2026-10-01
 Task base: `b3798091d8d49c3c331e25b1f440e4150adc6e93`
 
-This evidence distinguishes source tests, private installed observations, guarded deployment, and verified currency. A later WSL eight-document delegation is installed; one normalization apply reached `current`, but the next batch exceeded its provider-call budget. A corrected Linux Node distribution is installed at an immutable path, while the guarded service upgrade is waiting on the supervision fence. A fresh human-authored `#general` turn reached Tarin and produced one delivered reply; the wider multi-party acceptance remains open. Shiflo's corrected source families received scoped approval, but full baseline currency and the pending Bora workforce publication remain unverified. No public release is claimed.
+This evidence separates source tests, private installed observations, guarded deployment, and verified currency. Mac background convergence resumed after source-specific canonical review; normalization apply passed, while old-candidate and lifecycle completion remain open. The WSL eight-document delegation is installed, and the guarded r6 Node is ready after correcting transient supervision health; WSL canonical integration passed v9 verification, while current normalization currency remains unverified. Fresh human-authored `#general` and `#shiflo` turns produced delivered replies. Shiflo delegated work reached Nuri and Sora, and a completed-turn restart caused no duplicate publication. Exact same-turn Sol/Opus usage and the held two-direction failure/retry acceptance matrix remain open. No public release is claimed.
 
 ## Evidence records
 
