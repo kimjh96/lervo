@@ -52,28 +52,48 @@ function pathTerms(path: string): Set<string> {
   );
 }
 
-function contextQuery(paths: readonly string[]): string {
-  const terms = ["repository", "knowledge", "canonicalization"];
-  for (const term of new Set(paths.flatMap((path) => [...pathTerms(path)]))) {
-    if (terms.length === 32) break;
-    if (!terms.includes(term) && [...terms, term].join(" ").length <= 500) terms.push(term);
+async function contextQuery(root: string, paths: readonly string[]): Promise<string> {
+  const terms: string[] = [];
+  const add = (values: Iterable<string>, maximum: number) => {
+    let added = 0;
+    for (const term of values) {
+      if (terms.length === 32 || added === maximum) break;
+      if (terms.includes(term) || [...terms, term].join(" ").length > 500) continue;
+      terms.push(term);
+      added += 1;
+    }
+  };
+  add(
+    paths.flatMap((path) => [...pathTerms(path)]),
+    32,
+  );
+  for (const path of paths.filter((source) => /\.mdx?$/iu.test(source)).slice(0, 8)) {
+    let source: string;
+    try {
+      source = new TextDecoder("utf8", { fatal: true }).decode(
+        await readRepositoryFile(root, path, 256 * 1024),
+      );
+    } catch (error) {
+      throw new KnowledgeReviewContextError("review_context_unavailable", { cause: error });
+    }
+    add(
+      [...source.matchAll(/^\s{0,3}#{1,6}\s+(.+)$/gmu)].flatMap((match) => [
+        ...pathTerms(match[1]!),
+      ]),
+      12,
+    );
+    add(
+      [...source.matchAll(/`([^`\n]+\.md)`/gu)].flatMap((match) => [...pathTerms(match[1]!)]),
+      5,
+    );
+    add(
+      [...source.matchAll(/\bnever\s+([^.!?\n]{0,100})/giu)].flatMap((match) => [
+        ...pathTerms(match[1]!),
+      ]),
+      3,
+    );
   }
-  return terms.join(" ");
-}
-
-function prioritizeSourceAdjacentRecommendations<T extends { path: string }>(
-  hits: readonly T[],
-  sourcePaths: readonly string[],
-): T[] {
-  const sourceTerms = new Set(sourcePaths.flatMap((path) => [...pathTerms(path)]));
-  return hits
-    .map((hit, index) => ({
-      hit,
-      index,
-      sharedPathTerms: [...pathTerms(hit.path)].filter((term) => sourceTerms.has(term)).length,
-    }))
-    .sort((left, right) => right.sharedPathTerms - left.sharedPathTerms || left.index - right.index)
-    .map(({ hit }) => hit);
+  return terms.join(" ") || "repository knowledge canonicalization";
 }
 
 function linkedChildDocuments(document: SemanticReviewContextDocument): string[] {
@@ -153,7 +173,7 @@ export async function loadCanonicalReviewContext(input: {
   try {
     recommendations = await (input.queryKnowledge ?? queryRepositoryKnowledge)({
       repositoryRoot: input.repositoryRoot,
-      query: contextQuery(input.sourcePaths),
+      query: await contextQuery(input.repositoryRoot, input.sourcePaths),
       limit: MAXIMUM_RECOMMENDATIONS,
       ranker: productDefaultRepositoryKnowledgeRanker,
     });
@@ -163,10 +183,7 @@ export async function loadCanonicalReviewContext(input: {
     });
   }
   const excluded = new Set([...instructionPaths, ...input.sourcePaths]);
-  for (const hit of prioritizeSourceAdjacentRecommendations(
-    recommendations.hits,
-    input.sourcePaths,
-  )) {
+  for (const hit of recommendations.hits) {
     if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS) break;
     if (excluded.has(hit.path)) continue;
     documents.push(

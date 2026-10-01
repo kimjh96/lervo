@@ -24,6 +24,64 @@ afterEach(async () => {
 });
 
 describe("canonical review context", () => {
+  it("keeps ranked release evidence for a pull request template source", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
+    roots.push(root);
+    await mkdir(resolve(root, ".lervo"));
+    await fixtureFile(
+      root,
+      ".lervo/knowledge/policy.yaml",
+      serializeRepositoryKnowledgePolicy(defaultRepositoryKnowledgePolicy),
+    );
+    await fixtureFile(root, "AGENTS.md", "Repository instructions.\n");
+    await fixtureFile(
+      root,
+      ".github/PULL_REQUEST_TEMPLATE.md",
+      [
+        "## Summary",
+        "## Scope and authority",
+        "## Contract and architecture",
+        "## Release impact",
+        "A release PR never grants npm publication authority.",
+        "## Verification",
+        "## Knowledge and documentation",
+        "## Risk and recovery",
+        "## Checklist",
+        "Read `docs/foundation/code-convention.md`.",
+      ].join("\n"),
+    );
+    const releasePath = "docs/distribution/cli-version-management.md";
+    const hits = [
+      {
+        path: releasePath,
+        contentHash: await fixtureFile(
+          root,
+          releasePath,
+          "A release PR grants no publication authority.\n",
+        ),
+      },
+    ];
+    for (let index = 0; index < 7; index += 1) {
+      const path = `docs/request-${index}.md`;
+      hits.push({ path, contentHash: await fixtureFile(root, path, "Unrelated request.\n") });
+    }
+    let query = "";
+    const documents = await loadCanonicalReviewContext({
+      repositoryRoot: root,
+      sourcePaths: [".github/PULL_REQUEST_TEMPLATE.md"],
+      queryKnowledge: async (input) => {
+        query = input.query;
+        return { hits };
+      },
+    });
+    expect(query).toContain("github pull request template md");
+    expect(query).toContain("release impact");
+    expect(query).toContain("code convention");
+    expect(query).toContain("npm publication");
+    expect(documents.map((document) => document.path)).toContain(releasePath);
+    expect(documents).toHaveLength(8);
+  });
+
   it("loads bounded linked child contracts beyond the recommendation window", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
     roots.push(root);
