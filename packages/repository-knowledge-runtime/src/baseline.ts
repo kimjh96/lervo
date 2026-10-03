@@ -14,6 +14,7 @@ import { loadConvergenceDelegation } from "./delegation.js";
 import { captureConvergenceChangedPaths, captureConvergenceSources } from "./source-capture.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { historicalObligations } from "./historical-obligations.js";
+import { settledCanonicalDispositions } from "./canonical-disposition-ledger.js";
 
 export async function discoverConvergenceBaseline(
   root: string,
@@ -41,16 +42,29 @@ export async function discoverConvergenceBaseline(
   )
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   const historicalEvents = historical.events;
-  const assessmentPaths = [
-    ...new Set([
-      ...afterChanged,
-      ...historical.paths,
-      ...normalization.pendingDocuments,
-      ...candidates
-        .filter((candidate) => ["candidate", "pending", "stale"].includes(candidate.observedState))
-        .flatMap((candidate) => candidate.sourceBindings.map((binding) => binding.path)),
-    ]),
-  ].sort();
+  const obligationPaths = new Set([
+    ...afterChanged,
+    ...historical.paths,
+    ...normalization.pendingDocuments,
+    ...candidates
+      .filter((candidate) => ["candidate", "pending", "stale"].includes(candidate.observedState))
+      .flatMap((candidate) => candidate.sourceBindings.map((binding) => binding.path)),
+  ]);
+  // Exact bytes with an integrated independent approval never return to provider review.
+  const settledAssessments = (
+    await settledCanonicalDispositions({
+      repositoryRoot: root,
+      events,
+      artifacts,
+      projectId: manifest.projectId,
+      policyHash,
+      sources: after.sources.filter(
+        (source) => source.kind === "text" && obligationPaths.has(source.path),
+      ),
+    })
+  ).map(({ path, contentHash, eventId }) => ({ path, contentHash, eventId }));
+  const settled = new Set(settledAssessments.map((item) => item.path));
+  const assessmentPaths = [...obligationPaths].filter((path) => !settled.has(path)).sort();
   const canonicalization = candidates.filter((candidate) =>
     ["candidate", "pending", "stale"].includes(candidate.observedState),
   ).length;
@@ -78,12 +92,14 @@ export async function discoverConvergenceBaseline(
         ]),
         historicalEvents,
         assessmentPaths,
+        settledAssessments,
       }),
     ),
     delegationHash: delegation?.contentHash ?? null,
     debtCounts,
     sources: after.sources,
     assessmentPaths,
+    settledAssessments,
     sourceDispositions: after.sources.map((source) => {
       const record = scan.sources.find((item) => item.path === source.path);
       const kind =

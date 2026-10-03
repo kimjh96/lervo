@@ -89,39 +89,6 @@ export async function reviewCanonicalBaseline(
     });
   if (!batch || !Array.isArray(batch.sources))
     throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
-  const reused = state.stageData.reusedCanonicalApproval as
-    | (CanonicalReviewResult & {
-        eventId: string;
-        reviewerAgentId: string;
-        delegationHash: string;
-        policyHash: string;
-      })
-    | null;
-  if (reused) {
-    const result = validatedReview(reused, batch);
-    if (
-      result.decision !== "approve" ||
-      batch.assessment.drafts.length !== 0 ||
-      batch.assessment.decisions.some((decision) => decision.disposition === "needs_review") ||
-      reused.delegationHash !== state.baseline.delegationHash ||
-      reused.policyHash !== state.baseline.policyHash ||
-      reused.reviewerAgentId === batch.generatorAgentId
-    )
-      throw new KnowledgeConvergenceRuntimeError("knowledge_semantic_review_invalid");
-    return completeConvergenceStage({
-      repositoryRoot: root,
-      artifacts: context.storage.artifacts,
-      state,
-      stage: "canonical_review",
-      nextStage: "canonical_integration",
-      stageData: {
-        canonicalApproval: reused,
-        reusedCanonicalApproval: null,
-        canonicalReviewRetry: null,
-      },
-      proof: { status: "review_reused", sourceEventId: reused.eventId, ...result },
-    });
-  }
   if (state.baseline.normalizationPaths.length > 0) {
     const retained = await retainedCanonicalRejection(context, state, batch);
     if (retained !== null) {

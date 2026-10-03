@@ -22,6 +22,8 @@ export interface KnowledgeConvergenceBaseline {
   sources: { path: string; contentHash: string; kind: "text" | "opaque" }[];
   /** Exact paths with an observed change, pending document, or unresolved source obligation. */
   assessmentPaths?: string[];
+  /** Obligation paths whose exact bytes already carry an integrated independent approval. */
+  settledAssessments?: { path: string; contentHash: string; eventId: string }[];
   sourceDispositions?: {
     path: string;
     contentHash: string;

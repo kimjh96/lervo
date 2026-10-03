@@ -10,11 +10,10 @@ export function prepareCanonicalAssessmentSources(input: {
   sources: readonly CanonicalAssessmentSource[];
   offset: number;
   ceilings: ConvergenceDelegation["resourceCeilings"];
-  documentLimit?: number;
 }): CanonicalAssessmentSource[] {
   const selected: CanonicalAssessmentSource[] = [];
   const maximumBytes = Math.min(512 * 1024, input.ceilings.maximumSourceBytes);
-  const maximumDocuments = Math.min(8, input.documentLimit ?? 8, input.ceilings.maximumDocuments);
+  const maximumDocuments = Math.min(8, input.ceilings.maximumDocuments);
   let byteCount = 0;
   for (const source of input.sources.slice(input.offset)) {
     if (selected.length >= maximumDocuments) break;

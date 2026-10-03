@@ -54,7 +54,7 @@ it("honors a reviewed count ceiling while covering the complete source cursor ex
   );
 });
 
-it("uses the reviewed eight-document ceiling and can retain a four-source replay boundary", async () => {
+it("uses the reviewed eight-document ceiling", async () => {
   const { root, sources } = await sourceFixture();
   const largeCeilings = { ...ceilings, maximumDocuments: 8 };
   const first = prepareCanonicalAssessmentSources({
@@ -70,14 +70,6 @@ it("uses the reviewed eight-document ceiling and can retain a four-source replay
     ceilings: largeCeilings,
   });
   expect([first.length, second.length]).toEqual([7, 0]);
-  const retained = prepareCanonicalAssessmentSources({
-    repositoryRoot: root,
-    sources,
-    offset: 0,
-    ceilings: largeCeilings,
-    documentLimit: 4,
-  });
-  expect(retained).toHaveLength(4);
   expect([...first, ...second].map((source) => source.path)).toEqual(
     sources.map((source) => source.path),
   );

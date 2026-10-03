@@ -18,16 +18,10 @@ If an independent reviewer rejects a semantically valid assessment with no docum
 
 A `canonical_change_candidate` verdict without a target cannot become a null `pending_review` success. Existing canonical files do not prove semantic coverage. These cases require a durable assessment/authority dependency with a bounded reason.
 
-## Reusing a prior batch
+## Settled dispositions
 
-After a new baseline begins, an earlier draft-free canonical batch may be reused only if its integration stage settled `current` with independent approval. All these bindings must match exactly:
+[ADR-0446](../../../../../decisions/knowledge/repository/canonicalization/0446-retain-integrated-dispositions-across-baseline-supersession.md) defines how a reviewed, integrated disposition outlives the snapshot that produced it. A decision settles only after independent approval and `current` canonical integration. That approval must match the assessment hash, source hashes, and draft hashes. Its reviewer must differ from its generator. The settled decision binds an exact source path, content hash, project, and policy.
 
-- Selected source bytes.
-- Selected canonical context bytes and roles.
-- Project.
-- Reviewed delegation.
-- Policy.
+Later baselines remove settled source bytes from semantic assessment. They record each removed path, hash, and integration event ID in private `settledAssessments`. `covered` stays settled only while every quoted passage remains in current bytes of its referenced canonical document. Delegation renewal does not invalidate a settled disposition.
 
-The reused assessment and approval carry the original integration event ID in the new stage receipts. Any changed binding requires fresh generation and review.
-
-Reuse advances the new baseline's complete cursor without replaying provider calls for unchanged worksets. A previous rejection or unintegrated approval never supplies coverage.
+`needs_review`, rejected, and unintegrated decisions never settle. Changed source bytes, a removed quote, a changed policy, or missing private evidence return the source to fresh generation and review.

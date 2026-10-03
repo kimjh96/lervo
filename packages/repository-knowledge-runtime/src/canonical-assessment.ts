@@ -11,7 +11,6 @@ import { withConvergenceAssignment } from "./workforce.js";
 import { prepareCanonicalAssessmentSources } from "./canonical-assessment-workset.js";
 import { loadCanonicalReviewContext } from "./review-context.js";
 import { selectCanonicalAssessmentContext } from "./canonical-assessment-context.js";
-import { findApprovedCanonicalBatch } from "./canonical-review-reuse.js";
 import { reviewKnowledgeJson } from "./provider-call.js";
 import type { captureConvergenceSources } from "./source-capture.js";
 import { loadAssessmentRetryTargets } from "./canonical-assessment-retry-targets.js";
@@ -46,12 +45,11 @@ export async function assessCanonicalBaseline(
     expectedHash: state.baseline.delegationHash,
     provider: context.provider,
   });
-  let selected = prepareCanonicalAssessmentSources({
+  const selected = prepareCanonicalAssessmentSources({
     repositoryRoot: root,
     sources: all,
     offset,
     ceilings: delegation.resourceCeilings,
-    documentLimit: 4,
   });
   if (!selected.length)
     return completeConvergenceStage({
@@ -64,41 +62,12 @@ export async function assessCanonicalBaseline(
       proof: { status: "empty_scope", scopeDigest: sha256(canonicalJson(all)) },
     });
   assertLease();
-  let reviewContext = await loadCanonicalReviewContext({
-    repositoryRoot: root,
-    sourcePaths: selected.map((source) => source.path),
-  });
-  let documents = selectCanonicalAssessmentContext(reviewContext);
-  let retained = await findApprovedCanonicalBatch({
-    events: context.storage.events,
-    artifacts: context.storage.artifacts,
-    state,
-    sources: selected,
-    context: documents,
-  });
-  if (!retained) {
-    const expanded = prepareCanonicalAssessmentSources({
+  const documents = selectCanonicalAssessmentContext(
+    await loadCanonicalReviewContext({
       repositoryRoot: root,
-      sources: all,
-      offset,
-      ceilings: delegation.resourceCeilings,
-    });
-    if (expanded.length > selected.length) {
-      selected = expanded;
-      reviewContext = await loadCanonicalReviewContext({
-        repositoryRoot: root,
-        sourcePaths: selected.map((source) => source.path),
-      });
-      documents = selectCanonicalAssessmentContext(reviewContext);
-      retained = await findApprovedCanonicalBatch({
-        events: context.storage.events,
-        artifacts: context.storage.artifacts,
-        state,
-        sources: selected,
-        context: documents,
-      });
-    }
-  }
+      sourcePaths: selected.map((source) => source.path),
+    }),
+  );
   const sourceFacts = [
     ...canonicalSourceFacts(selected),
     ...canonicalReleaseManifestFacts({
@@ -107,37 +76,6 @@ export async function assessCanonicalBaseline(
       capturedSources: state.baseline.sources,
     }),
   ];
-  if (retained) {
-    const batchId = sha256(
-      canonicalJson([state.obligationId, "canonical", offset, state.snapshotHash]),
-    );
-    return completeConvergenceStage({
-      repositoryRoot: root,
-      artifacts: context.storage.artifacts,
-      state,
-      stage: "assessment",
-      nextStage: "canonical_review",
-      stageData: {
-        canonicalBatch: {
-          offset,
-          count: selected.length,
-          assessment: retained.assessment,
-          sources: selected,
-          sourceFacts,
-          context: documents,
-          batchId,
-          generatorAgentId: retained.generatorAgentId,
-        },
-        reusedCanonicalApproval: { ...retained.approval, eventId: retained.eventId },
-      },
-      proof: {
-        status: "review_reused",
-        sourceEventId: retained.eventId,
-        assessmentHash: retained.approval.assessmentHash,
-        sourceBindings: selected.map(({ path, contentHash }) => ({ path, contentHash })),
-      },
-    });
-  }
   return withConvergenceAssignment({
     storage: context.storage,
     provider: context.provider,
@@ -247,7 +185,6 @@ export async function assessCanonicalBaseline(
         stage: "assessment",
         nextStage: "canonical_review",
         stageData: {
-          reusedCanonicalApproval: null,
           canonicalBatch: {
             offset,
             count: selected.length,
