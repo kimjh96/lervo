@@ -1,7 +1,7 @@
 byteOwnership:
   owner: reviewer
   rewritePolicy: reviewed_exact
-candidateId: knorm_44524277b9cd8af73aaa7fb9
+candidateId: knorm_6e34c3796f7ccd2858a7bb44
 compiler:
   compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
   compilerId: lervo.codex.document-normalizer
@@ -9,22 +9,22 @@ compiler:
   isolation: external_no_capabilities
   provider: codex
 formatVersion: lervo.document.v1
-operationId: knormop_a0a9c75f87bf6fb4cdb4f112
+operationId: knormop_c0166bd22871d5549bdf45e8
 outputLanguage: en
 outputs:
-  - byteCount: 5243
-    contentHash: sha256:616c16d4931e7ed8a3ce9658af253c2acd4665abbaa189b8c8613ebb06c41630
+  - byteCount: 5239
+    contentHash: sha256:c71806e2fee655b2911a5fa7c512ab7a64306a04c8794b1ac6b4f5a1aa984a0c
     path: docs/decisions/knowledge/repository/canonicalization/0445-scope-baseline-assessment-to-observed-obligations.md
-    userRegionHash: sha256:616c16d4931e7ed8a3ce9658af253c2acd4665abbaa189b8c8613ebb06c41630
+    userRegionHash: sha256:c71806e2fee655b2911a5fa7c512ab7a64306a04c8794b1ac6b4f5a1aa984a0c
 profile: decision_record
-recordId: knormdoc_1fda272e4de1f5a148f3d391
+recordId: knormdoc_6c1ca0a0d7db2d01e56a091c
 resourceBindings: []
 schemaVersion: 2
-sourceContentHash: sha256:4266bfee264014288b6e78a3cc6818bc5ae1ac8fc9ba24f0c091457bca487dfd
+sourceContentHash: sha256:1cd7a56f2b4adac9e99c85db24940ef87fc76dda8fb99c4881d1fffd086bb211
 sourcePath: docs/decisions/knowledge/repository/canonicalization/0445-scope-baseline-assessment-to-observed-obligations.md
 sourceUnitVersionIds:
-  - uv_154c781d6b689ad3c77d061b
-  - uv_53612c0e34e843bfc707ac9a
-  - uv_c32337839ce8c58a6eea8cf7
-  - uv_e1134c8750ed816fb8818aef
-  - uv_f133c8b9adb482e8e5db3426
+  - uv_03ae90dc1f4aef14ae30d4a3
+  - uv_3ed52fa036f288fcab824d1c
+  - uv_4ac1ad7b9cfe27c6808820d5
+  - uv_9cfd3a3d4afd39674a634876
+  - uv_fdcf9f26da447097bfcc4d22
