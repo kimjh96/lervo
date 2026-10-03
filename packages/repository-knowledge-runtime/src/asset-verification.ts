@@ -7,7 +7,10 @@ import { waitingConvergenceStage } from "./stage-receipt.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { resolveConvergenceAssetDispositions } from "./asset-disposition-manifest.js";
 
-/** Opaque and sensitive bytes never enter text review or silently count as semantic coverage. */
+/**
+ * Opaque bytes need exact typed verification before currency. Sensitive bytes are never read, so the
+ * baseline's explicit `sensitive_local` disposition settles them; a content hash would add no proof.
+ */
 export async function unresolvedConvergenceAssets(
   context: ConvergenceRuntimeContext,
   state: KnowledgeConvergenceInput,
@@ -18,14 +21,13 @@ export async function unresolvedConvergenceAssets(
     expectedHash: state.baseline.delegationHash,
     provider: context.provider,
   });
+  const dispositionKinds = new Map(
+    state.baseline.sourceDispositions?.map((item) => [item.path, item.kind]),
+  );
   const assets = state.baseline.sources.filter(
     (source) =>
-      (source.kind === "opaque" &&
-        state.baseline.sourceDispositions?.find((item) => item.path === source.path)?.kind !==
-          "policy_excluded") ||
-      state.baseline.sourceDispositions?.some(
-        (item) => item.path === source.path && item.kind === "sensitive_local",
-      ),
+      source.kind === "opaque" &&
+      !["policy_excluded", "sensitive_local"].includes(dispositionKinds.get(source.path) ?? ""),
   );
   const dispositions = resolveConvergenceAssetDispositions(
     context.storage.paths.repositoryRoot,
@@ -37,7 +39,7 @@ export async function unresolvedConvergenceAssets(
         (item) =>
           item.path === source.path &&
           item.contentHash === source.contentHash &&
-          item.kind === (source.kind === "opaque" ? "opaque_verified" : "sensitive_local"),
+          item.kind === "opaque_verified",
       ),
   );
   if (!unresolved.length) return null;

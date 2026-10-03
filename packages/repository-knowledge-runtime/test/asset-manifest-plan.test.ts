@@ -147,3 +147,42 @@ it("rolls back both files when the canonical materialization event fails", async
       .filter((event) => event.type === "knowledge.materialization.applied"),
   ).toHaveLength(0);
 });
+
+it("settles unread sensitive sources by their baseline disposition while opaque bytes still need verification", async () => {
+  const f = await fixture(true);
+  fixtures.push(f);
+  await mkdir(resolve(f.root, "src"), { recursive: true });
+  await writeFile(
+    resolve(f.root, "src/credentials.ts"),
+    "export const credentialSource = 'env';\n",
+  );
+  const baseline = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
+  expect(baseline.sourceDispositions).toContainEqual(
+    expect.objectContaining({ path: "src/credentials.ts", kind: "sensitive_local" }),
+  );
+  const state: KnowledgeConvergenceInput = {
+    schemaVersion: 1,
+    obligationId: "kconv_sensitive",
+    baseline,
+    snapshotHash: baseline.sourceSnapshotHash,
+    receipts: [],
+    stageData: {},
+  };
+  const context: ConvergenceRuntimeContext = {
+    storage: f.storage,
+    provider: "claude",
+    signal: new AbortController().signal,
+    liveWorkPending: async () => false,
+    assertSource() {},
+  };
+  expect(await unresolvedConvergenceAssets(context, state)).toBeNull();
+
+  await writeFile(resolve(f.root, "src/model.bin"), Buffer.from([0, 1, 2]));
+  const withAsset = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
+  expect(
+    await unresolvedConvergenceAssets(context, { ...state, baseline: withAsset }),
+  ).toMatchObject({
+    state: "attention_required",
+    failureCode: "asset_verification_required",
+  });
+});
