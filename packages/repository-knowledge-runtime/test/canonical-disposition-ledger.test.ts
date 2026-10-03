@@ -1,7 +1,7 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
-import { canonicalJson, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
+import { canonicalJson, sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { discoverConvergenceBaseline } from "../src/baseline.js";
 import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
@@ -153,7 +153,6 @@ it(
         canonicalReferences: [{ path: "docs/specs/runtime.md", contentHash: "sha256:any", quote }],
       })),
     };
-    const { sha256 } = await import("@lervo/repository-knowledge");
     const covered = await f.artifacts.put(
       canonicalJson({
         ...prior,
@@ -173,9 +172,9 @@ it(
       runId: integrated!.runId,
       sessionId: integrated!.sessionId,
       actor: integrated!.actor,
-      schemaVersion: integrated!.schemaVersion,
+      schemaVersion: 4,
       policyVersion: integrated!.policyVersion,
-      type: integrated!.type,
+      type: "repository.knowledge.stage.recorded",
       occurredAt: new Date().toISOString(),
       payload: { ...integrated!.payload, inputArtifactHash: covered.contentHash },
     });
