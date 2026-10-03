@@ -25,3 +25,9 @@ A `canonical_change_candidate` verdict without a target cannot become a null `pe
 Later baselines remove settled source bytes from semantic assessment. They record each removed path, hash, and integration event ID in private `settledAssessments`. `covered` stays settled only while every quoted passage remains in current bytes of its referenced canonical document. Delegation renewal does not invalidate a settled disposition.
 
 `needs_review`, rejected, and unintegrated decisions never settle. Changed source bytes, a removed quote, a changed policy, or missing private evidence return the source to fresh generation and review.
+
+## Owner-accepted history and reviewed outputs
+
+[ADR-0447](../../../../../decisions/knowledge/repository/canonicalization/0447-close-historical-backlog-by-owner-acceptance.md) lets the owner close exact historical obligations in `.lervo/knowledge/history-acceptance.json`. Acceptance claims no semantic coverage. Later changes to the same paths receive ordinary assessment.
+
+Baselines also omit exact bytes produced by reviewed Lervo effects: integrated canonical drafts and current reviewed normalization rewrites. A later manual edit returns those bytes to assessment.

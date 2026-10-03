@@ -15,6 +15,7 @@ import { captureConvergenceChangedPaths, captureConvergenceSources } from "./sou
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { historicalObligations } from "./historical-obligations.js";
 import { settledCanonicalDispositions } from "./canonical-disposition-ledger.js";
+import { loadHistoricalAcceptance } from "./historical-acceptance.js";
 
 export async function discoverConvergenceBaseline(
   root: string,
@@ -33,7 +34,8 @@ export async function discoverConvergenceBaseline(
     inspectRepositoryKnowledgeCurrency(root),
     listCanonicalizationCandidates(root),
   ]);
-  const historical = await historicalObligations(events, artifacts);
+  const acceptance = loadHistoricalAcceptance(root, manifest.projectId);
+  const historical = await historicalObligations(events, artifacts, acceptance?.accepted);
   const after = captureConvergenceSources(root, policyHash);
   const afterChanged = captureConvergenceChangedPaths(root);
   if (
@@ -50,19 +52,31 @@ export async function discoverConvergenceBaseline(
       .filter((candidate) => ["candidate", "pending", "stale"].includes(candidate.observedState))
       .flatMap((candidate) => candidate.sourceBindings.map((binding) => binding.path)),
   ]);
-  // Exact bytes with an integrated independent approval never return to provider review.
-  const settledAssessments = (
-    await settledCanonicalDispositions({
-      repositoryRoot: root,
-      events,
-      artifacts,
-      projectId: manifest.projectId,
-      policyHash,
-      sources: after.sources.filter(
-        (source) => source.kind === "text" && obligationPaths.has(source.path),
-      ),
-    })
-  ).map(({ path, contentHash, eventId }) => ({ path, contentHash, eventId }));
+  const obligationSources = after.sources.filter(
+    (source) => source.kind === "text" && obligationPaths.has(source.path),
+  );
+  // Exact bytes produced or settled by reviewed Lervo effects never return to provider review.
+  const reviewedRewrites = new Map(
+    normalization.records
+      .filter((record) => record.status === "current" && record.recordId !== null)
+      .flatMap((record) => record.reviewedRewritePaths.map((path) => [path, record.recordId!])),
+  );
+  const ledger = new Map(
+    (
+      await settledCanonicalDispositions({
+        repositoryRoot: root,
+        events,
+        artifacts,
+        projectId: manifest.projectId,
+        policyHash,
+        sources: obligationSources,
+      })
+    ).map((item) => [item.path, item.eventId]),
+  );
+  const settledAssessments = obligationSources.flatMap(({ path, contentHash }) => {
+    const reference = ledger.get(path) ?? reviewedRewrites.get(path);
+    return reference === undefined ? [] : [{ path, contentHash, reference }];
+  });
   const settled = new Set(settledAssessments.map((item) => item.path));
   const assessmentPaths = [...obligationPaths].filter((path) => !settled.has(path)).sort();
   const canonicalization = candidates.filter((candidate) =>
@@ -93,6 +107,7 @@ export async function discoverConvergenceBaseline(
         historicalEvents,
         assessmentPaths,
         settledAssessments,
+        historyAcceptanceHash: acceptance?.contentHash ?? null,
       }),
     ),
     delegationHash: delegation?.contentHash ?? null,
@@ -100,6 +115,7 @@ export async function discoverConvergenceBaseline(
     sources: after.sources,
     assessmentPaths,
     settledAssessments,
+    historyAcceptanceHash: acceptance?.contentHash ?? null,
     sourceDispositions: after.sources.map((source) => {
       const record = scan.sources.find((item) => item.path === source.path);
       const kind =

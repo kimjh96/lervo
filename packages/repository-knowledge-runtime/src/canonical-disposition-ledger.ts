@@ -6,11 +6,11 @@ import { ordinaryConvergenceSourceBytes } from "./source-file.js";
 
 type Decision = CanonicalAssessment["decisions"][number];
 
-/** One independently approved and integrated disposition for exact source bytes. */
+/** Exact source bytes settled by an independently approved, integrated canonical effect. */
 export interface SettledCanonicalDisposition {
   path: string;
   contentHash: string;
-  disposition: "no_change" | "covered" | "candidate";
+  disposition: "no_change" | "covered" | "candidate" | "integrated_draft";
   eventId: string;
 }
 
@@ -99,6 +99,19 @@ async function canonicalDispositionLedger(
           projectId: event.projectId,
           policyHash: approval.policyHash,
           references: decision.canonicalReferences,
+        });
+      }
+      // An integrated draft is reviewed canonical output; assessing its own bytes is circular.
+      for (const draft of batch.assessment.drafts) {
+        const contentHash = sha256(draft.content);
+        ledger.entries.set(key(draft.path, contentHash), {
+          path: draft.path,
+          contentHash,
+          disposition: "integrated_draft",
+          eventId: event.eventId,
+          projectId: event.projectId,
+          policyHash: approval.policyHash,
+          references: [],
         });
       }
     }

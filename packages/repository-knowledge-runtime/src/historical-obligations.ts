@@ -6,6 +6,7 @@ import {
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { historicalAcceptanceKey } from "./historical-acceptance.js";
 
 async function changedPathsForEvent(
   payload: Record<string, unknown>,
@@ -68,6 +69,7 @@ async function changedPathsForEvent(
 export async function historicalObligations(
   events: OutboxStore,
   artifacts: ArtifactStore,
+  accepted: ReadonlySet<string> = new Set(),
 ): Promise<{ events: KnowledgeConvergenceBaseline["historicalEvents"]; paths: string[] }> {
   const changes = new Map<
     string,
@@ -128,7 +130,8 @@ export async function historicalObligations(
   const outstanding = [...changes.entries()]
     .filter(
       ([id, source]) =>
-        source.eventId !== id || events.getOutbox(id, "knowledge:repository") === null,
+        (source.eventId !== id || events.getOutbox(id, "knowledge:repository") === null) &&
+        !accepted.has(historicalAcceptanceKey(source)),
     )
     .map(([, source]) => source);
   return {

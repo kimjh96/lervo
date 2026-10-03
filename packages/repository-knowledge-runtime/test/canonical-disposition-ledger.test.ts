@@ -89,7 +89,9 @@ it(
     const successor = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
     const settledPaths = successor.settledAssessments!.map((item) => item.path);
     expect(settledPaths.length).toBe(settledBefore.length);
-    expect(successor.settledAssessments!.every((item) => item.eventId)).toBe(true);
+    expect(successor.settledAssessments!.every((item) => item.reference.startsWith("evt_"))).toBe(
+      true,
+    );
     expect(successor.assessmentPaths).toContain("src/late.ts");
     expect(successor.assessmentPaths!.some((path) => settledPaths.includes(path))).toBe(false);
 
@@ -208,5 +210,41 @@ it(
         sources: batch.sources,
       }),
     ).toEqual([]);
+  },
+);
+
+it(
+  "settles integrated draft bytes so a later baseline never reassesses its own canonical output",
+  { timeout: 300_000 },
+  async () => {
+    const f = await fixture(true, true);
+    fixtures.push(f);
+    await writeFile(
+      resolve(f.root, "src/runtime.ts"),
+      "export const maximumBackgroundCalls = 3;\n",
+    );
+    const target = "docs/specs/runtime.md";
+    const drafted = async () =>
+      (await readFile(resolve(f.root, target), "utf8")).includes("limited to three per host");
+    for (let cycle = 0; cycle < 24 && !(await drafted()); cycle++)
+      await runAutonomousKnowledgeWorker({
+        storage: f.storage,
+        workerId: `draft-${cycle}`,
+        provider: "claude",
+        executable: f.executable,
+        maximumStages: 1,
+        admissionDirectory: f.admissionDirectory,
+      });
+    expect(await drafted()).toBe(true);
+    const drafting = integrations(f).at(-1)!;
+    const successor = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
+    expect(successor.settledAssessments).toContainEqual(
+      expect.objectContaining({ path: target, reference: drafting.eventId }),
+    );
+    expect(successor.assessmentPaths).not.toContain(target);
+
+    await writeFile(resolve(f.root, target), "# Runtime\n\nA later manual edit.\n");
+    const edited = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
+    expect(edited.assessmentPaths).toContain(target);
   },
 );
