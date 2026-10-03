@@ -3,6 +3,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": "node_modules/.cache/lervo/typecheck.tsbuildinfo",
     "paths": {
       "@lervo/agent-workforce": ["packages/agent-workforce/src/index.ts"],
       "@lervo/application-contract": ["packages/application-contract/src/index.ts"],
