@@ -10,4 +10,6 @@ Default capture bounds are 20,000 paths, 64 MiB per ordinary file, and 256 MiB t
 
 Opaque descriptor capture establishes no asset acceptance. Canonical worksets must obey both reviewed document/source-byte ceilings and the existing canonical request bound, advancing a complete durable cursor.
 
-Text review, sensitive local material, and opaque verified assets retain separate dispositions. Unread sensitive sources settle by their explicit `sensitive_local` baseline disposition; only nonsensitive opaque assets require exact typed verification ([ADR-0448](../../../../decisions/knowledge/repository/canonicalization/0448-settle-unread-sensitive-sources-by-disposition.md)). Tracked assets must never be silently classified as generated caches. Pinned before-commits remain reviewable beyond four commits; unavailable dirty history remains explicitly unsupported.
+Text review, sensitive local material, and opaque verified assets retain separate dispositions. Unread sensitive sources settle by their explicit `sensitive_local` baseline disposition; only nonsensitive opaque assets require exact typed verification ([ADR-0448](../../../../decisions/knowledge/repository/canonicalization/0448-settle-unread-sensitive-sources-by-disposition.md)).
+
+Tracked assets must never be silently classified as generated caches. Pinned before-commits remain reviewable beyond four commits; unavailable dirty history remains explicitly unsupported.

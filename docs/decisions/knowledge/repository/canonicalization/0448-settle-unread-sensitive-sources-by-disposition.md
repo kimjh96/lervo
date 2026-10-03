@@ -6,21 +6,21 @@ Amends: [ADR-0438](0438-bind-bounded-asset-manifests-to-delegation.md) and [ADR-
 
 ## Context
 
-Final lifecycle verification required an exact reviewed asset disposition for every opaque and every sensitive source. The installed Mac delegation declared no asset dispositions, so 20 sensitive sources made Mac baseline currency unreachable. These were ordinary source and documentation files whose paths or classifications mark them as possible secrets, such as `credentials.ts` and `budget-tokens.ts`.
+Final lifecycle verification required an exact reviewed asset disposition for every opaque and sensitive source. The installed Mac delegation declared no asset dispositions, so 20 sensitive sources blocked Mac baseline currency. These were ordinary source and documentation files whose paths or classifications indicate possible secrets, such as `credentials.ts` and `budget-tokens.ts`.
 
-The scanner never reads these bytes. Binding them to a reviewed content hash adds no semantic or privacy guarantee, because Lervo cannot inspect what changed. Every routine edit to such a file would still block currency until the owner renewed the manifest.
+The scanner never reads their bytes. Binding them to a reviewed content hash adds no semantic or privacy guarantee because Lervo cannot inspect changes. Every routine edit would block currency until the owner renewed the manifest.
 
 ## Decision
 
-- Sensitive sources are settled by their explicit baseline `sensitive_local` disposition. The baseline records each path, hash, and classification reason. Their bytes remain unread and excluded from provider review and semantic coverage.
+- Sensitive sources settle by their explicit baseline `sensitive_local` disposition. The baseline records each path, hash, and classification reason. Their bytes remain unread and excluded from provider review and semantic coverage.
 - Final lifecycle verification requires an exact `opaque_verified` disposition only for opaque sources that are neither `policy_excluded` nor `sensitive_local`.
-- Delegation manifests may still declare `sensitive_local` entries for compatibility. They no longer gate currency.
+- Delegation manifests may retain `sensitive_local` entries for compatibility; these entries no longer gate currency.
 - Opaque asset verification, manifest binding, and settlement fences remain unchanged.
 
 ## Failure and privacy
 
-This decision adds no event, state, or failure code. `asset_verification_required` now means that an unread, nonsensitive opaque asset lacks typed verification. Sensitive bytes are still never read, sent to a provider, or counted as semantic coverage.
+This decision adds no event, state, or failure code. `asset_verification_required` now means an unread, nonsensitive opaque asset lacks typed verification. Sensitive bytes are never read, sent to a provider, or counted as semantic coverage.
 
 ## Verification
 
-A focused test must show that an unread sensitive source no longer blocks lifecycle verification. It must also show that an unverified opaque asset still returns `asset_verification_required`. Installed verification must show the Mac baseline reaching `current` with its sensitive sources unread.
+A focused test must show that an unread sensitive source no longer blocks lifecycle verification and that an unverified opaque asset still returns `asset_verification_required`. Installed verification must show the Mac baseline reaching `current` with its sensitive sources unread.
