@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_23298fe1158059e1ed207347
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d779dab02185700e0dc5cdf3
+outputLanguage: en
+outputs:
+  - byteCount: 3476
+    contentHash: sha256:a519c32d765ae564cd22fe2c32711db4e94df3a928c4982e5f8cac5d2bbb7df4
+    path: docs/decisions/knowledge/repository/canonicalization/0446-retain-integrated-dispositions-across-baseline-supersession.md
+    userRegionHash: sha256:a519c32d765ae564cd22fe2c32711db4e94df3a928c4982e5f8cac5d2bbb7df4
+profile: decision_record
+recordId: knormdoc_fb4dd048469cb520269de2ed
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0cf111730bbfea21162866e2001958105fc265625b73e658bbc798e605668ced
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0446-retain-integrated-dispositions-across-baseline-supersession.md
+sourceUnitVersionIds:
+  - uv_0665478f481055050c20006e
+  - uv_1d761f21468fd922068c22a5
+  - uv_316c12957f929fc8f9e939b2
+  - uv_396a5b20f056c1d777d063be
+  - uv_b15fde01c708b1ef87209540

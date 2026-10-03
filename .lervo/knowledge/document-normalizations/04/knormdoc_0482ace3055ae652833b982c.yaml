@@ -1,0 +1,57 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_23298fe1158059e1ed207347
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_62c8c4248171f3984e343787
+outputLanguage: en
+outputs:
+  - byteCount: 1359
+    contentHash: sha256:6ef286f5393ec5cee36de3367c350d4ee1e9cb88de1ec5bd6d51fb797591a6cd
+    path: docs/evidence/conversation-knowledge-capture-and-node-composition.md
+    userRegionHash: sha256:6ef286f5393ec5cee36de3367c350d4ee1e9cb88de1ec5bd6d51fb797591a6cd
+  - byteCount: 1391
+    contentHash: sha256:3b1a3d27c99178ddf9204a714748407a6b1f198f5bd5666e18ba5d3f14c80845
+    path: docs/evidence/conversation-knowledge-capture-and-node-composition/change-planning.md
+    userRegionHash: sha256:3b1a3d27c99178ddf9204a714748407a6b1f198f5bd5666e18ba5d3f14c80845
+  - byteCount: 1787
+    contentHash: sha256:0aac601301fd6a84df365f7d5f91b811ca98c32248cca9f3f2a0309a14d13082
+    path: docs/evidence/conversation-knowledge-capture-and-node-composition/completion.md
+    userRegionHash: sha256:0aac601301fd6a84df365f7d5f91b811ca98c32248cca9f3f2a0309a14d13082
+  - byteCount: 2602
+    contentHash: sha256:e34f44573ab421179f6eac70950dc9b4774acb4c171f6654fea1f189db8f9851
+    path: docs/evidence/conversation-knowledge-capture-and-node-composition/deployment.md
+    userRegionHash: sha256:e34f44573ab421179f6eac70950dc9b4774acb4c171f6654fea1f189db8f9851
+  - byteCount: 2179
+    contentHash: sha256:bbbbaa32f69b552376f11b6f1f4507c784d3d21c7ff0381bea1feaf0bb11a7e2
+    path: docs/evidence/conversation-knowledge-capture-and-node-composition/execution.md
+    userRegionHash: sha256:bbbbaa32f69b552376f11b6f1f4507c784d3d21c7ff0381bea1feaf0bb11a7e2
+  - byteCount: 1707
+    contentHash: sha256:f77e772c32686ae9a6f8dc39b7b11e14abb703aee8ca932794e64c4bb3f9db4c
+    path: docs/evidence/conversation-knowledge-capture-and-node-composition/legacy-candidates.md
+    userRegionHash: sha256:f77e772c32686ae9a6f8dc39b7b11e14abb703aee8ca932794e64c4bb3f9db4c
+  - byteCount: 1912
+    contentHash: sha256:75f277435a0f6fb48b5fa47cbf19cf036b540efba953e8f77696a0e3707cea5f
+    path: docs/evidence/conversation-knowledge-capture-and-node-composition/provider-instructions.md
+    userRegionHash: sha256:75f277435a0f6fb48b5fa47cbf19cf036b540efba953e8f77696a0e3707cea5f
+profile: repository_document
+recordId: knormdoc_0482ace3055ae652833b982c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:26e5580ffeaa45bcdb2bd905d60878b43110c7860e988f74f16b544d0e94422c
+sourcePath: docs/evidence/conversation-knowledge-capture-and-node-composition.md
+sourceUnitVersionIds:
+  - uv_04f177d3b64bd5e9a4bbf7f0
+  - uv_05fae2699598915ee0f3b16b
+  - uv_7c77d363fd59bff57eae26f0
+  - uv_978eca5f7b59ec75506bce92
+  - uv_9fb96cc51f09dc0d8098dfb4
+  - uv_bf8eff693ccc8d0214c6daa5
+  - uv_fa3d7c207d842ceb7c0d874b
+  - uv_ff6cceddf25541678585734c
