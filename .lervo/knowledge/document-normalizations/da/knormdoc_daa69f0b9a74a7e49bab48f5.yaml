@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_08addb157145bf0b58170a60
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b87d6e64ff04f7a519619f9e
+outputLanguage: en
+outputs:
+  - byteCount: 427
+    contentHash: sha256:c1a58fdd2927cb44d9745ad81edba47304be3d1b764bca825e5812f007b93349
+    path: docs/distribution/cli-bundle-construction.md
+    userRegionHash: sha256:c1a58fdd2927cb44d9745ad81edba47304be3d1b764bca825e5812f007b93349
+  - byteCount: 1984
+    contentHash: sha256:f32119c91cd4abf1838e4c65e1d202fe22c89db33248f35d518a78eac2917020
+    path: docs/distribution/cli-bundle-construction/build.md
+    userRegionHash: sha256:f32119c91cd4abf1838e4c65e1d202fe22c89db33248f35d518a78eac2917020
+  - byteCount: 1382
+    contentHash: sha256:fce94b2707e64c72ed6fac982bce1ebfa33c024dc29d742f1e173e67d11f9678
+    path: docs/distribution/cli-bundle-construction/evidence.md
+    userRegionHash: sha256:fce94b2707e64c72ed6fac982bce1ebfa33c024dc29d742f1e173e67d11f9678
+profile: repository_document
+recordId: knormdoc_daa69f0b9a74a7e49bab48f5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c7c1e72a39a351b6be87ef46c4edd1742ab79cf5e5403da64cb31dfe22c8e4df
+sourcePath: docs/distribution/cli-bundle-construction.md
+sourceUnitVersionIds:
+  - uv_08c55dfa7e668e29935b93aa
+  - uv_e0d9ebd2683b2f75cc5b4623

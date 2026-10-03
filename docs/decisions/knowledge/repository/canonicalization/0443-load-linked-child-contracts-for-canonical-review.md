@@ -5,13 +5,13 @@ Decision date: 2026-09-29
 
 ## Context
 
-Shiflo's installed screenshot-kit review rejected a generator supplement at event 9385. Canonical context included `reproduction.md` but omitted three linked preview-capture, composition, and invocation contracts. The eight-document recommendation window was full, and lexical recommendations omitted those paths. The reviewer correctly refused to infer their contents from links or an introductory quotation.
+Shiflo's installed screenshot-kit review rejected a generator supplement at event 9385. Canonical context included `reproduction.md` but omitted three linked preview-capture, composition, and invocation contracts. The eight-document recommendation window was full; lexical recommendations omitted those paths. The reviewer correctly refused to infer their contents from links or an introductory quotation.
 
 ## Decision
 
 After loading the instruction hierarchy and at most eight ranked recommendations, load up to four direct Markdown children linked from selected canonical candidates. Each child must resolve inside a directory named for its parent document, such as `reproduction.md` to `reproduction/*.md`. Reject path escapes and nonlocal links. Follow only ordinary paths permitted by current repository knowledge policy; skip sensitive, excluded, and generated-publication paths.
 
-Read every selected child through the repository-confined file boundary and bind its exact content hash to the existing settlement fence. Combined context must not exceed 12 documents or 1 MiB of UTF-8 text. Exceeding the byte bound fails with `review_context_limit_exceeded`; missing or unreadable selected children fail with `review_context_unavailable`.
+Read each selected child through the repository-confined file boundary and bind its exact content hash to the existing settlement fence. Combined context must not exceed 12 documents or 1 MiB of UTF-8 text. Exceeding the byte bound fails with `review_context_limit_exceeded`; missing or unreadable selected children fail with `review_context_unavailable`.
 
 This supplies routed contract bytes to the generator and independent reviewer without establishing semantic coverage or approving a draft. The reviewer must still verify exact source facts and substantive canonical quotations. The prior rejection remains unresolved until a fresh installed review accepts corrected input.
 
@@ -33,7 +33,9 @@ This supplies assessment and independent-review evidence without accepting a dra
 
 An installed Lervo review received the PR-template contract but omitted its linked release decision and versioned writing policy because unrelated roadmap children consumed the additional-document limit. The independent reviewer rejected an otherwise substantive contract quotation because it could not verify those authorities.
 
-After loading the eight ranked documents, rank selected canonical candidates by overlap between their repository path terms and exact source paths. Follow direct local Markdown links from matching candidates before generic child and instruction links. An explicitly linked ordinary Markdown or TypeScript repository source may fill one of the same four additional slots; there is no separate allowance or unbounded traversal. Reject escaping and remote links. Retain included-source classification, publication-root exclusion, confined reads, the per-document 128-KiB limit, aggregate 1-MiB limit, and exact content hashes. Loaded policy source remains review context, not a new authority or proof of model use.
+After loading the eight ranked documents, rank selected canonical candidates by overlap between their repository path terms and exact source paths. Follow direct local Markdown links from matching candidates before generic child and instruction links. An explicitly linked ordinary Markdown or TypeScript repository source may fill one of the same four additional slots; there is no separate allowance or unbounded traversal.
+
+Reject escaping and remote links. Retain included-source classification, publication-root exclusion, confined reads, the per-document 128-KiB limit, aggregate 1-MiB limit, and exact content hashes. Loaded policy source remains review context, not a new authority or proof of model use.
 
 A focused full-window fixture must show that a PR-template contract's linked writing policy and release decision arrive before an unrelated roadmap child. The installed reviewer must still accept exact quotations for the PR template and older supervision-result candidate separately. A source test or context probe settles neither historical obligation nor baseline currency.
 
@@ -44,6 +46,12 @@ An installed Lervo review of `document-normalization-procedure.test.ts` received
 For source paths ending in `.test` or `.spec` followed by a supported JavaScript or TypeScript extension, query stem terms plus `contract` before the ordinary stem query. Within existing document and byte bounds, follow direct child Markdown contracts from source-specific query hits before unrelated recommendation children. Retain exact hashes, policy filtering, and independent review. This changes review-input ordering only; neither a test nor context probe proves installed approval or baseline currency.
 
 The same installed run reviewed `knowledge-worker-command.ts` without the already integrated CLI wrapper contract because a generic worker query ranked it beyond the four-hit window. For CLI knowledge-command sources, query basename terms with `cli wrappers` before the generic basename query. Link the wrapper contract from the runtime entrypoint. The independent reviewer must still resolve the rejected wrapper draft; a source-specific hit grants no approval.
+
+## 2026-10-03 release-source context amendment
+
+An installed mixed release batch omitted the pull-request template's delegated evidence contract and writing policy, and described three shipped JavaScript files as three package `bin` commands.
+
+Query the pull-request evidence contract for `.github/PULL_REQUEST_TEMPLATE.md` and the CLI bundle construction contract for `apps/cli/package.json` before broad recommendations. Follow the evidence contract's local writing-policy link within the existing four-document and byte limits. Keep package `bin` mappings distinct from shipped files. These are review inputs; a fresh independent review must still approve each disposition.
 
 ## 2026-10-03 integrated adapter contract amendment
 

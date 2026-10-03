@@ -11,7 +11,7 @@ npm install --global ./apps/cli
 lervo init
 ```
 
-For an existing repository, use the [repository upgrade guide](docs/roadmap/onboarding/repository-upgrade.md). The [CLI guide](apps/cli/README.md) covers first use and available workflows.
+For an existing repository, use the [repository upgrade guide](docs/roadmap/onboarding/repository-upgrade.md). The [CLI guide](apps/cli/README.md) covers installation and first use.
 
 ## Work with Lervo
 

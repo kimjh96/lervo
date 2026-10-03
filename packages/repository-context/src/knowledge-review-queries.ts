@@ -59,6 +59,10 @@ export async function contextQuery(root: string, paths: readonly string[]): Prom
 export async function sourceSpecificQueries(root: string, paths: readonly string[]) {
   const focused: { query: string; eventBearing: boolean }[] = [];
   for (const path of paths) {
+    if (path === ".github/PULL_REQUEST_TEMPLATE.md")
+      focused.push({ query: "pull request evidence contract", eventBearing: false });
+    if (path === "apps/cli/package.json")
+      focused.push({ query: "cli bundle construction", eventBearing: false });
     if (!/\.[cm]?[jt]sx?$/u.test(path)) continue;
     let source: string;
     try {

@@ -107,6 +107,52 @@ describe("canonical review context", () => {
     expect(documents.map((document) => document.path)).toEqual(["AGENTS.md", contract]);
   });
 
+  it("prioritizes PR policy and CLI bundle facts for a mixed release batch", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
+    roots.push(root);
+    await mkdir(resolve(root, ".lervo"));
+    await fixtureFile(
+      root,
+      ".lervo/knowledge/policy.yaml",
+      serializeRepositoryKnowledgePolicy(defaultRepositoryKnowledgePolicy),
+    );
+    await fixtureFile(root, "AGENTS.md", "Repository instructions.\n");
+    const template = ".github/PULL_REQUEST_TEMPLATE.md";
+    const manifest = "apps/cli/package.json";
+    await fixtureFile(root, template, "## Summary\nFollow the PR contract.\n");
+    await fixtureFile(root, manifest, '{"bin":{"lervo":"./dist/bin.js"}}\n');
+    const policy = "packages/core/src/writing-contract.ts";
+    await fixtureFile(root, policy, "export const policy = 'writing_en-human';\n");
+    const contract = "docs/foundation/pull-request-contract.md";
+    const contractHash = await fixtureFile(
+      root,
+      contract,
+      "[Writing policy](../../packages/core/src/writing-contract.ts)\n",
+    );
+    const bundle = "docs/distribution/cli-bundle-construction.md";
+    const bundleHash = await fixtureFile(root, bundle, "Two bin commands; three shipped files.\n");
+    const queries: string[] = [];
+    const documents = await loadCanonicalReviewContext({
+      repositoryRoot: root,
+      sourcePaths: [template, manifest],
+      queryKnowledge: async (input) => {
+        queries.push(input.query);
+        if (input.query === "pull request evidence contract")
+          return { hits: [{ path: contract, contentHash: contractHash }] };
+        if (input.query === "cli bundle construction")
+          return { hits: [{ path: bundle, contentHash: bundleHash }] };
+        return { hits: [] };
+      },
+    });
+    expect(queries.slice(0, 2)).toEqual([
+      "pull request evidence contract",
+      "cli bundle construction",
+    ]);
+    expect(documents.map((document) => document.path)).toContain(contract);
+    expect(documents.map((document) => document.path)).toContain(bundle);
+    expect(documents.map((document) => document.path)).toContain(policy);
+  });
+
   it("prioritizes an integrated repository-change adapter contract", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
     roots.push(root);
@@ -425,10 +471,16 @@ describe("canonical review context", () => {
     const documents = await loadCanonicalReviewContext({
       repositoryRoot: root,
       sourcePaths: [template],
-      queryKnowledge: async () => ({ hits }),
+      queryKnowledge: async (input) => ({
+        hits:
+          input.query === "pull request evidence contract"
+            ? hits.filter((hit) => hit.path === contract)
+            : hits,
+      }),
     });
     const paths = documents.map((document) => document.path);
-    expect(paths.slice(8, 10)).toEqual([policy, release]);
+    expect(paths.indexOf(policy)).toBeLessThan(paths.indexOf("docs/roadmap/v0/child.md"));
+    expect(paths.indexOf(release)).toBeLessThan(paths.indexOf("docs/roadmap/v0/child.md"));
     expect(paths).toContain("docs/roadmap/v0/child.md");
     expect(documents.find((document) => document.path === policy)?.role).toBe(
       "canonical_candidate",
