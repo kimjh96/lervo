@@ -4,8 +4,12 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   readlinkSync,
+  renameSync,
+  rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -65,4 +69,53 @@ export function recordVerificationBuild(root, digest) {
   const marker = resolve(root, VERIFICATION_BUILD_MARKER);
   mkdirSync(dirname(marker), { recursive: true });
   writeFileSync(marker, `${JSON.stringify({ schemaVersion: 1, inputDigest: digest })}\n`);
+}
+
+const retainedArchives = 2;
+
+/** Worktrees share one Git common directory, so archives survive disposable checkouts. */
+function sharedArchiveDirectory(root) {
+  const common = execFileSync(
+    "git",
+    ["-C", root, "rev-parse", "--path-format=absolute", "--git-common-dir"],
+    { encoding: "utf8" },
+  ).trim();
+  return resolve(common, "lervo-verification-builds");
+}
+
+const archivePath = (root, digest) =>
+  resolve(sharedArchiveDirectory(root), `${digest.replace("sha256:", "")}.tar`);
+
+function buildOutputDirectories(root) {
+  return ["apps", "packages"].flatMap((group) =>
+    existsSync(resolve(root, group))
+      ? readdirSync(resolve(root, group))
+          .map((name) => `${group}/${name}/dist`)
+          .filter((path) => existsSync(resolve(root, path)))
+      : [],
+  );
+}
+
+/** Store successful build outputs under their exact input digest, keeping only recent archives. */
+export function archiveVerificationBuild(root, digest) {
+  const directories = buildOutputDirectories(root);
+  if (!directories.length) return;
+  const target = archivePath(root, digest);
+  mkdirSync(dirname(target), { recursive: true });
+  const temporary = `${target}.${process.pid}.tmp`;
+  execFileSync("tar", ["-cf", temporary, "-C", root, ...directories]);
+  renameSync(temporary, target);
+  const archives = readdirSync(dirname(target))
+    .filter((name) => name.endsWith(".tar"))
+    .map((name) => resolve(dirname(target), name))
+    .sort((left, right) => statSync(right).mtimeMs - statSync(left).mtimeMs);
+  for (const stale of archives.slice(retainedArchives)) rmSync(stale, { force: true });
+}
+
+/** Restore outputs built from identical inputs in another checkout of the same repository. */
+export function restoreVerificationBuild(root, digest, requiredOutputs) {
+  const source = archivePath(root, digest);
+  if (!existsSync(source)) return false;
+  execFileSync("tar", ["-xf", source, "-C", root]);
+  return requiredOutputs.every((path) => existsSync(resolve(root, path)));
 }

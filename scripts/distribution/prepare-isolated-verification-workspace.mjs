@@ -2,7 +2,9 @@ import { spawnSync } from "node:child_process";
 import { lstatSync } from "node:fs";
 
 import {
+  archiveVerificationBuild,
   recordVerificationBuild,
+  restoreVerificationBuild,
   verificationBuildCurrent,
   verificationBuildInputDigest,
 } from "./lib/verification-build-cache.mjs";
@@ -28,7 +30,11 @@ if (gitMetadata.isFile()) run("install", ["install", "--frozen-lockfile", "--off
 const digest = verificationBuildInputDigest(".");
 if (verificationBuildCurrent(".", digest, builtOutputs)) {
   console.log(`Isolated verification build reused for ${digest}.`);
+} else if (restoreVerificationBuild(".", digest, builtOutputs)) {
+  recordVerificationBuild(".", digest);
+  console.log(`Isolated verification build restored for ${digest}.`);
 } else {
   run("build", ["build"], 1_200_000);
   recordVerificationBuild(".", digest);
+  archiveVerificationBuild(".", digest);
 }

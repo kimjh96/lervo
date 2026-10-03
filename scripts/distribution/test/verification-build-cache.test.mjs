@@ -6,8 +6,10 @@ import { resolve } from "node:path";
 import { afterEach, describe, it } from "vitest";
 
 import {
+  archiveVerificationBuild,
   isVerificationBuildInput,
   recordVerificationBuild,
+  restoreVerificationBuild,
   verificationBuildCurrent,
   verificationBuildInputDigest,
 } from "../lib/verification-build-cache.mjs";
@@ -53,5 +55,46 @@ describe("verification build reuse", () => {
     const changed = verificationBuildInputDigest(root);
     assert.notEqual(changed, digest);
     assert.equal(verificationBuildCurrent(root, changed, ["dist/index.js"]), false);
+  });
+});
+
+describe("shared verification build archives", () => {
+  it("restores outputs of identical inputs into another worktree only", () => {
+    const root = repository();
+    writeFileSync(resolve(root, "README.md"), "# Root\n");
+    execFileSync("git", ["-C", root, "add", "."]);
+    execFileSync("git", [
+      "-C",
+      root,
+      "-c",
+      "user.email=test@example.com",
+      "-c",
+      "user.name=Test",
+      "commit",
+      "-qm",
+      "base",
+    ]);
+    mkdirSync(resolve(root, "packages/core/dist"), { recursive: true });
+    writeFileSync(resolve(root, "packages/core/dist/index.js"), "built\n");
+    const digest = verificationBuildInputDigest(root);
+    archiveVerificationBuild(root, digest);
+
+    const worktree = `${root}-worktree`;
+    roots.push(worktree);
+    execFileSync("git", ["-C", root, "worktree", "add", "-q", "--detach", worktree]);
+    writeFileSync(resolve(worktree, "docs/guide.md"), "# Guide\n\nDraft.\n");
+    const worktreeDigest = verificationBuildInputDigest(worktree);
+    assert.equal(worktreeDigest, digest);
+    assert.equal(
+      restoreVerificationBuild(worktree, worktreeDigest, ["packages/core/dist/index.js"]),
+      true,
+    );
+    writeFileSync(resolve(worktree, "src/index.ts"), "export const value = 3;\n");
+    assert.equal(
+      restoreVerificationBuild(worktree, verificationBuildInputDigest(worktree), [
+        "packages/core/dist/index.js",
+      ]),
+      false,
+    );
   });
 });
