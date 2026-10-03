@@ -9,7 +9,7 @@ import type { CanonicalDraft } from "./canonical-assessment-contract.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { hasCanonicalNormalizationLineage } from "./canonical-normalization-lineage.js";
 import { synchronizeIntegrationTarget } from "./integration-target-sync.js";
-import { canonicalDraftKey, integratedCanonicalDraftKeys } from "./canonical-disposition-ledger.js";
+import { canonicalDraftKey, integratedCanonicalDrafts } from "./canonical-disposition-ledger.js";
 
 /** A reviewed working copy cannot silently replace different committed target bytes. */
 export async function preflightCanonicalTargets(
@@ -62,7 +62,7 @@ export async function preflightCanonicalTargets(
     ) {
       const integrated = synchronized
         ? null
-        : await integratedCanonicalDraftKeys(context.storage.events, context.storage.artifacts);
+        : await integratedCanonicalDrafts(context.storage.events, context.storage.artifacts);
       if (
         integrated !== null &&
         (await synchronizeIntegrationTarget({

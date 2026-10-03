@@ -18,6 +18,8 @@ interface LedgerEntry extends SettledCanonicalDisposition {
   projectId: string;
   policyHash: string;
   references: Decision["canonicalReferences"];
+  /** Integrated drafts only: the exact target bytes the draft replaced. */
+  beforeHash?: string | null;
 }
 
 const ledgers = new WeakMap<OutboxStore, { afterSeq: number; entries: Map<string, LedgerEntry> }>();
@@ -112,6 +114,7 @@ async function canonicalDispositionLedger(
           projectId: event.projectId,
           policyHash: approval.policyHash,
           references: [],
+          beforeHash: draft.beforeHash,
         });
       }
     }
@@ -170,16 +173,19 @@ export async function settledCanonicalDispositions(input: {
   });
 }
 
-/** Exact `(path, contentHash)` keys of drafts whose integration settled `current`, including root apply. */
-export async function integratedCanonicalDraftKeys(
+/**
+ * Drafts whose integration settled `current`, including root apply, keyed by exact
+ * `(path, contentHash)` and mapped to the target bytes they replaced.
+ */
+export async function integratedCanonicalDrafts(
   events: OutboxStore,
   artifacts: ArtifactStore,
-): Promise<Set<string>> {
+): Promise<Map<string, string | null>> {
   const ledger = await canonicalDispositionLedger(events, artifacts);
-  return new Set(
+  return new Map(
     [...ledger.entries()]
       .filter(([, entry]) => entry.disposition === "integrated_draft")
-      .map(([entryKey]) => entryKey),
+      .map(([entryKey, entry]) => [entryKey, entry.beforeHash ?? null]),
   );
 }
 

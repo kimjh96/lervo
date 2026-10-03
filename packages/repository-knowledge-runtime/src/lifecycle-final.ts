@@ -2,6 +2,7 @@ import { resolveConvergenceCandidates } from "./candidate-resolution.js";
 import { convergenceManagedKnowledgePath } from "./managed-knowledge-scope.js";
 import { convergenceOperationEffects } from "./effect-source-fence.js";
 import { unresolvedConvergenceAssets } from "./asset-verification.js";
+import { commitSettledKnowledgeOutputs } from "./knowledge-output-commit.js";
 import { convergenceAssessmentSources } from "./assessment-scope.js";
 import {
   canonicalJson,
@@ -34,6 +35,26 @@ export async function verifyConvergenceLifecycle(
   const root = context.storage.paths.repositoryRoot;
   const candidates = await resolveConvergenceCandidates(context, state, assertLease);
   if (candidates !== null) return candidates;
+  // Settled reviewed outputs leave the developer's working tree as their own commit. Publication
+  // and instruction bridges bind HEAD, so they are planned only after this commit.
+  context.assertSource(state);
+  const output = await commitSettledKnowledgeOutputs({
+    repositoryRoot: root,
+    events: context.storage.events,
+    artifacts: context.storage.artifacts,
+    obligationId: state.obligationId,
+  });
+  if (output.head !== null)
+    return completeConvergenceStage({
+      repositoryRoot: root,
+      artifacts: context.storage.artifacts,
+      state,
+      stage: "lifecycle_verification",
+      nextStage: "lifecycle_verification",
+      stageData: {},
+      committedHead: output.head,
+      proof: { status: "settled_outputs_committed", head: output.head, paths: output.committed },
+    });
   const bridge = await createKnowledgeInstructionBridgePlan({
     repositoryRoot: root,
     provider: "claude",

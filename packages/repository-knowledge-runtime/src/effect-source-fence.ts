@@ -13,12 +13,18 @@ export function assertConvergenceEffectSources(
   state: KnowledgeConvergenceInput,
   after: ReturnType<typeof captureConvergenceSources>,
   effects: readonly ConvergenceApprovedEffect[] = [],
+  committedHead?: { before: string; after: string },
 ): void {
   if (after.snapshotHash === state.snapshotHash) return;
   const beforeCapture = state.stageData.sourceCapture as
     ReturnType<typeof captureConvergenceSources> | undefined;
   const beforeHead = beforeCapture?.head ?? state.baseline.sourceCommit;
-  if (beforeHead !== undefined && after.head !== beforeHead)
+  // Only this stage's own child commit of the observed HEAD may move it; bytes still must match.
+  const ownCommit =
+    committedHead !== undefined &&
+    committedHead.before === beforeHead &&
+    committedHead.after === after.head;
+  if (beforeHead !== undefined && after.head !== beforeHead && !ownCommit)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   const prior =
     (state.stageData.sourceCapture as ReturnType<typeof captureConvergenceSources> | undefined)
@@ -39,7 +45,7 @@ export function assertConvergenceEffectSources(
     changed = true;
   }
   // HEAD drift cannot be hidden by supplying an empty effect list.
-  if (!changed) throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
+  if (!changed && !ownCommit) throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
 }
 
 export function convergenceOperationEffects(

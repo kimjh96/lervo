@@ -22,9 +22,11 @@ export async function completeConvergenceStage(input: {
   proof: unknown;
   approvedEffects?: ConvergenceApprovedEffect[];
   knowledgeSnapshotHash?: string;
+  /** This stage's own commit of settled outputs, verified as a child of the observed HEAD. */
+  committedHead?: { before: string; after: string };
 }): Promise<KnowledgeConvergenceStageResult> {
   const capture = captureConvergenceSources(input.repositoryRoot, input.state.baseline.policyHash);
-  assertConvergenceEffectSources(input.state, capture, input.approvedEffects);
+  assertConvergenceEffectSources(input.state, capture, input.approvedEffects, input.committedHead);
   const proof = await input.artifacts.put(
     canonicalJson({
       schemaVersion: 1,
@@ -39,6 +41,7 @@ export async function completeConvergenceStage(input: {
         input.state.receipts.findLast((receipt) => receipt.stage === input.stage)?.artifactHash ??
         null,
       approvedEffects: input.approvedEffects ?? [],
+      committedHead: input.committedHead ?? null,
     }),
   );
   const state: KnowledgeConvergenceInput = {
