@@ -8,13 +8,16 @@ import { convergenceGit } from "./canonical-workspace.js";
 import type { CanonicalDraft } from "./canonical-assessment-contract.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { hasCanonicalNormalizationLineage } from "./canonical-normalization-lineage.js";
+import { synchronizeIntegrationTarget } from "./integration-target-sync.js";
+import { canonicalDraftKey, integratedCanonicalDraftKeys } from "./canonical-disposition-ledger.js";
 
 /** A reviewed working copy cannot silently replace different committed target bytes. */
 export async function preflightCanonicalTargets(
   context: ConvergenceRuntimeContext,
   state: KnowledgeConvergenceInput,
   drafts: CanonicalDraft[],
-) {
+  synchronized = false,
+): Promise<Awaited<ReturnType<typeof waitingConvergenceStage>> | null> {
   const root = context.storage.paths.repositoryRoot;
   const delegation = await assertConvergenceDelegation({
     repositoryRoot: root,
@@ -56,7 +59,19 @@ export async function preflightCanonicalTargets(
         before,
         draft.beforeHash,
       ))
-    )
+    ) {
+      const integrated = synchronized
+        ? null
+        : await integratedCanonicalDraftKeys(context.storage.events, context.storage.artifacts);
+      if (
+        integrated !== null &&
+        (await synchronizeIntegrationTarget({
+          repositoryRoot: root,
+          ref: targetRef,
+          integrated: (path, hash) => integrated.has(canonicalDraftKey(path, hash)),
+        })) === "synchronized"
+      )
+        return preflightCanonicalTargets(context, state, drafts, true);
       return waitingConvergenceStage({
         artifacts: context.storage.artifacts,
         state,
@@ -73,6 +88,7 @@ export async function preflightCanonicalTargets(
           observedHash: before,
         },
       });
+    }
   }
   context.assertSource(state);
   return null;

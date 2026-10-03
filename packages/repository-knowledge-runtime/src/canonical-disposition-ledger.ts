@@ -169,3 +169,18 @@ export async function settledCanonicalDispositions(input: {
     ];
   });
 }
+
+/** Exact `(path, contentHash)` keys of drafts whose integration settled `current`, including root apply. */
+export async function integratedCanonicalDraftKeys(
+  events: OutboxStore,
+  artifacts: ArtifactStore,
+): Promise<Set<string>> {
+  const ledger = await canonicalDispositionLedger(events, artifacts);
+  return new Set(
+    [...ledger.entries()]
+      .filter(([, entry]) => entry.disposition === "integrated_draft")
+      .map(([entryKey]) => entryKey),
+  );
+}
+
+export const canonicalDraftKey = key;
