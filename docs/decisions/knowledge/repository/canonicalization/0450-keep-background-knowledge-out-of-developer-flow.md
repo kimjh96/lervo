@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-10-03
-Amends: [ADR-0434](0434-converge-background-canonicalization-normalization-and-knowledge.md) and [ADR-0357](../../../execution/verification/0357-prepare-isolated-candidate-verification-workspaces.md)
+Amends: [ADR-0434](0434-converge-background-canonicalization-normalization-and-knowledge.md), [ADR-0449](0449-synchronize-integration-target-with-working-branch.md), and [ADR-0357](../../../execution/verification/0357-prepare-isolated-candidate-verification-workspaces.md)
 
 ## Context
 
@@ -15,6 +15,7 @@ After ADR-0446 through ADR-0449, Mac convergence reached `current` and followed 
 
 - **Build reuse.** Verification preparation digests exact build-input bytes from tracked and untracked nonignored files, excluding Markdown, `docs/`, `.lervo/`, `.changes/`, and `*.tsbuildinfo`. It skips the build only when a recorded successful build has the same digest and its CLI, Node, and Hub bundles exist.
 - **Shared build archives.** Archive successful builds by digest under the Git common directory, retaining the two newest archives. A worktree with identical build inputs restores the archive instead of building.
+- **Current integration base.** Every canonical integration first synchronizes the integration ref with `HEAD` under the ADR-0449 safety rule, not only after a preimage mismatch. Drafts are then verified on the reviewed working-branch code, with the same build inputs as the main checkout. Installed worktrees previously built a stale tree for 288-345 seconds.
 - **Output commits.** At the start of `lifecycle_verification`, before bridge or publication planning, the worker commits settled reviewed outputs as `docs: apply reviewed background knowledge`, authored by `Lervo Knowledge`. Select only these dirty paths:
   - Integrated drafts whose replaced preimage is committed.
   - Current reviewed normalization outputs and records whose source is committed or is such an integrated draft.

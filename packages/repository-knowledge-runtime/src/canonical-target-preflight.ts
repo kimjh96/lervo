@@ -16,7 +16,6 @@ export async function preflightCanonicalTargets(
   context: ConvergenceRuntimeContext,
   state: KnowledgeConvergenceInput,
   drafts: CanonicalDraft[],
-  synchronized = false,
 ): Promise<Awaited<ReturnType<typeof waitingConvergenceStage>> | null> {
   const root = context.storage.paths.repositoryRoot;
   const delegation = await assertConvergenceDelegation({
@@ -27,6 +26,16 @@ export async function preflightCanonicalTargets(
   });
   context.assertSource(state);
   const targetRef = delegation.integrationTarget.ref;
+  // Integrate and verify drafts on the reviewed working branch, not on a stale target tree.
+  const integrated = await integratedCanonicalDrafts(
+    context.storage.events,
+    context.storage.artifacts,
+  );
+  await synchronizeIntegrationTarget({
+    repositoryRoot: root,
+    ref: targetRef,
+    integrated: (path, hash) => integrated.has(canonicalDraftKey(path, hash)),
+  });
   const targetCommit = await convergenceGit(root, ["rev-parse", targetRef]);
   const sourceHashes = new Map(
     (
@@ -59,19 +68,7 @@ export async function preflightCanonicalTargets(
         before,
         draft.beforeHash,
       ))
-    ) {
-      const integrated = synchronized
-        ? null
-        : await integratedCanonicalDrafts(context.storage.events, context.storage.artifacts);
-      if (
-        integrated !== null &&
-        (await synchronizeIntegrationTarget({
-          repositoryRoot: root,
-          ref: targetRef,
-          integrated: (path, hash) => integrated.has(canonicalDraftKey(path, hash)),
-        })) === "synchronized"
-      )
-        return preflightCanonicalTargets(context, state, drafts, true);
+    )
       return waitingConvergenceStage({
         artifacts: context.storage.artifacts,
         state,
@@ -88,7 +85,6 @@ export async function preflightCanonicalTargets(
           observedHash: before,
         },
       });
-    }
   }
   context.assertSource(state);
   return null;
