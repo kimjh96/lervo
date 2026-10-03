@@ -9,6 +9,7 @@ import { runKnowledgeWorkerCommand } from "./knowledge-worker-command.js";
 import { runTerminalCommand } from "./terminal-command.js";
 import { projectProductionSearchQueries } from "./provider-query-projector.js";
 import { createTerminalStageObservation } from "./terminal-stage-observation.js";
+import { prefetchTerminalPromptContext } from "./terminal-compact-context.js";
 
 async function verifiedRuntime(): Promise<boolean> {
   try {
@@ -33,6 +34,9 @@ async function verifiedRuntime(): Promise<boolean> {
 if (!(await verifiedRuntime())) {
   process.stderr.write("Lervo terminal hook runtime integrity verification failed.\n");
   process.exitCode = 2;
+} else if (process.argv[2] === "prefetch-context") {
+  // Detached after Stop; a failure only means the next prompt computes the snapshot itself.
+  await prefetchTerminalPromptContext(process.cwd()).catch(() => undefined);
 } else if (process.argv[2] === "knowledge-worker") {
   process.exitCode = await runKnowledgeWorkerCommand(["--once", ...process.argv.slice(3)], {
     cwd: process.cwd(),

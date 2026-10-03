@@ -1,11 +1,12 @@
 import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { captureRepositorySnapshot } from "@lervo/orchestrator";
 import { openProjectStorage } from "@lervo/project-storage";
 import { inspectTerminalIntegration } from "@lervo/repository-knowledge";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
+import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
+import { inspectKnowledgeResidentHealth } from "@lervo/repository-knowledge-runtime";
 import {
   inspectTerminalRuntimeActivation,
   readTerminalActivationReceipts,
@@ -24,14 +25,20 @@ import {
 import { inspectTerminalWorkspace } from "./terminal-workspace-lifecycle.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
+/**
+ * A healthy background owner settles canonicalization and knowledge for every observed change, so
+ * a direct turn then owes no synchronous declaration (the ADR-0433 activation condition).
+ */
+export async function terminalTurnDeclarationRequired(root: string): Promise<boolean> {
+  return (await inspectKnowledgeResidentHealth(root)).status !== "healthy";
+}
+
 export async function inspectTerminalLifecycle(
   root: string,
   expected?: PreparedTerminalTurnExpectation,
 ): Promise<TerminalLifecycleInspection> {
-  const [supplementalSources, currentRepository] = await Promise.all([
-    collectLocalKnowledgeSources(root),
-    captureRepositorySnapshot(root),
-  ]);
+  // Execution-evidence sources scan the whole event log; only knowledge inspection needs them.
+  const currentRepository = await captureTerminalRepositorySnapshot(root);
   const repositoryChange = {
     beforeRevision: expected?.repositoryRevision ?? currentRepository.revision,
     afterRevision: currentRepository.revision,
@@ -96,7 +103,11 @@ export async function inspectTerminalLifecycle(
         });
       }
     }
-    if (expected !== undefined && repositoryChange.changed) {
+    if (
+      expected !== undefined &&
+      repositoryChange.changed &&
+      (await terminalTurnDeclarationRequired(root))
+    ) {
       const declaration = latestTerminalTurnDeclaration(
         workstreamStorage.events,
         expected.contextEventId,
@@ -174,7 +185,7 @@ export async function inspectTerminalLifecycle(
       ...(await inspectTerminalRepositoryKnowledgeLifecycle({
         root,
         repositoryRevision: currentRepository.revision,
-        supplementalSources,
+        supplementalSources: await collectLocalKnowledgeSources(root),
       })),
     );
   }

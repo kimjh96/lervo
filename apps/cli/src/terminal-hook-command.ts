@@ -227,6 +227,9 @@ export async function runTerminalHookCommand(
           entry: hookRuntime,
           args: ["knowledge-worker", "--provider", provider],
         });
+      // Prepare the next compact prompt's knowledge snapshot after this turn's final bytes.
+      if (hookRuntime !== undefined && process.env.LERVO_TERMINAL_CONTEXT !== "retrieval")
+        launchDetachedKnowledgeWorker({ root, entry: hookRuntime, args: ["prefetch-context"] });
       if (
         expectation.workspaceBinding?.executionKind === "worker" &&
         lifecycle.status === "action_required"

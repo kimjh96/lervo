@@ -60,7 +60,7 @@ export class RepositorySnapshotError extends Error {
   }
 }
 
-interface CachedSnapshotEntry {
+export interface CachedSnapshotEntry {
   kind: "file" | "symlink";
   identity: string;
   hash: string;
@@ -266,6 +266,37 @@ async function captureRepositorySnapshotWithCache(input: {
         : { commits: Object.fromEntries(Object.keys(files).map((path) => [path, head])) }),
     },
     state: { cacheKey, entries: nextEntries },
+  };
+}
+
+/** Serializable stat-identity cache, so short-lived processes reuse unchanged file hashes. */
+export interface RepositorySnapshotCacheState {
+  schemaVersion: 1;
+  cacheKey: string;
+  entries: [string, CachedSnapshotEntry][];
+}
+
+export async function captureRepositorySnapshotIncrementally(input: {
+  repositoryRoot: string;
+  previous?: RepositorySnapshotCacheState;
+  policy?: RepositorySnapshotPolicy;
+}): Promise<{ snapshot: RepositorySnapshot; cache: RepositorySnapshotCacheState }> {
+  const result = await captureRepositorySnapshotWithCache({
+    repositoryRoot: input.repositoryRoot,
+    policy: input.policy ?? defaultRepositorySnapshotPolicy,
+    previous:
+      input.previous === undefined
+        ? undefined
+        : { cacheKey: input.previous.cacheKey, entries: new Map(input.previous.entries) },
+    readFile: readRepositoryFile,
+  });
+  return {
+    snapshot: result.snapshot,
+    cache: {
+      schemaVersion: 1,
+      cacheKey: result.state.cacheKey,
+      entries: [...result.state.entries],
+    },
   };
 }
 

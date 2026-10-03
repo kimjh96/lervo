@@ -2991,7 +2991,7 @@ var require_compile = __commonJS({
       const schOrFunc = root2.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve86.call(this, root2, ref);
+      let _sch = resolve89.call(this, root2, ref);
       if (_sch === void 0) {
         const schema3 = (_a = root2.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3018,7 +3018,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve86(root2, ref) {
+    function resolve89(root2, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3645,11 +3645,11 @@ var require_fast_uri = __commonJS({
         normalizeString(uri, options);
       } else if (typeof uri === "object") {
         uri = /** @type {T} */
-        parse30(serialize(uri, options), options);
+        parse31(serialize(uri, options), options);
       }
       return uri;
     }
-    function resolve86(baseURI, relativeURI, options) {
+    function resolve89(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const { parsed: baseParsed, malformedAuthorityOrPort: baseMalformed } = parseWithStatus(baseURI, schemelessOptions);
       const { parsed: relativeParsed, malformedAuthorityOrPort: relativeMalformed } = parseWithStatus(relativeURI, schemelessOptions);
@@ -3663,8 +3663,8 @@ var require_fast_uri = __commonJS({
     function resolveComponent(base, relative19, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
-        base = parse30(serialize(base, options), options);
-        relative19 = parse30(serialize(relative19, options), options);
+        base = parse31(serialize(base, options), options);
+        relative19 = parse31(serialize(relative19, options), options);
       }
       options = options || {};
       if (!options.tolerant && relative19.scheme) {
@@ -3908,7 +3908,7 @@ var require_fast_uri = __commonJS({
       }
       return { parsed, malformedAuthorityOrPort };
     }
-    function parse30(uri, opts) {
+    function parse31(uri, opts) {
       return parseWithStatus(uri, opts).parsed;
     }
     function normalizeString(uri, opts) {
@@ -3933,11 +3933,11 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve: resolve86,
+      resolve: resolve89,
       resolveComponent,
       equal,
       serialize,
-      parse: parse30
+      parse: parse31
     };
     module.exports = fastUri;
     module.exports.default = fastUri;
@@ -14407,7 +14407,7 @@ var require_public_api = __commonJS({
       }
       return doc;
     }
-    function parse30(src, reviver, options) {
+    function parse31(src, reviver, options) {
       let _reviver = void 0;
       if (typeof reviver === "function") {
         _reviver = reviver;
@@ -14448,7 +14448,7 @@ var require_public_api = __commonJS({
         return value.toString(options);
       return new Document2.Document(value, _replacer, options).toString(options);
     }
-    exports.parse = parse30;
+    exports.parse = parse31;
     exports.parseAllDocuments = parseAllDocuments2;
     exports.parseDocument = parseDocument;
     exports.stringify = stringify19;
@@ -17586,14 +17586,14 @@ var require_lib = __commonJS({
         super.checkParams(node2, false, true);
         this.scope.exit();
       }
-      forwardNoArrowParamsConversionAt(node2, parse31) {
+      forwardNoArrowParamsConversionAt(node2, parse32) {
         let result;
         if (this.state.noArrowParamsConversionAt.includes(this.offsetToSourcePos(node2.start))) {
           this.state.noArrowParamsConversionAt.push(this.state.start);
-          result = parse31();
+          result = parse32();
           this.state.noArrowParamsConversionAt.pop();
         } else {
-          result = parse31();
+          result = parse32();
         }
         return result;
       }
@@ -29001,7 +29001,7 @@ var require_lib = __commonJS({
         return result;
       }
     };
-    function parse30(input, options) {
+    function parse31(input, options) {
       var _options;
       if (((_options = options) == null ? void 0 : _options.sourceType) === "unambiguous") {
         options = Object.assign({}, options);
@@ -29088,7 +29088,7 @@ var require_lib = __commonJS({
       }
       return cls;
     }
-    exports.parse = parse30;
+    exports.parse = parse31;
     exports.parseExpression = parseExpression;
     exports.tokTypes = tokTypes;
   }
@@ -30408,7 +30408,7 @@ var require_container = __commonJS({
     var Node2 = require_node();
     var { isClean, my } = require_symbols();
     var AtRule2;
-    var parse30;
+    var parse31;
     var Root2;
     var Rule2;
     function cleanSource(nodes) {
@@ -30575,7 +30575,7 @@ var require_container = __commonJS({
       }
       normalize(nodes, sample) {
         if (typeof nodes === "string") {
-          nodes = cleanSource(parse30(nodes).nodes);
+          nodes = cleanSource(parse31(nodes).nodes);
         } else if (typeof nodes === "undefined") {
           nodes = [];
         } else if (Array.isArray(nodes)) {
@@ -30784,7 +30784,7 @@ var require_container = __commonJS({
       }
     };
     Container2.registerParse = (dependant) => {
-      parse30 = dependant;
+      parse31 = dependant;
     };
     Container2.registerRule = (dependant) => {
       Rule2 = dependant;
@@ -32809,8 +32809,8 @@ var require_source_map = __commonJS({
 var require_previous_map = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/previous-map.js"(exports, module) {
     "use strict";
-    var { existsSync, readFileSync: readFileSync6, realpathSync } = __require("fs");
-    var { dirname: dirname22, isAbsolute: isAbsolute6, join, relative: relative19, sep: sep17 } = __require("path");
+    var { existsSync: existsSync3, readFileSync: readFileSync7, realpathSync } = __require("fs");
+    var { dirname: dirname24, isAbsolute: isAbsolute6, join, relative: relative19, sep: sep17 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     function realPath(path) {
       try {
@@ -32837,7 +32837,7 @@ var require_previous_map = __commonJS({
         if (!this.mapFile && opts.from) {
           this.mapFile = opts.from;
         }
-        if (this.mapFile) this.root = dirname22(this.mapFile);
+        if (this.mapFile) this.root = dirname24(this.mapFile);
         if (text6) this.text = text6;
       }
       consumer() {
@@ -32883,15 +32883,15 @@ var require_previous_map = __commonJS({
         if (!trusted && !this.unsafeMap) {
           if (!/\.map$/i.test(path)) return void 0;
           if (!cssFile) return void 0;
-          let rel = relative19(realPath(dirname22(cssFile)), realPath(path));
+          let rel = relative19(realPath(dirname24(cssFile)), realPath(path));
           if (rel === ".." || rel.startsWith(".." + sep17) || isAbsolute6(rel)) {
             return void 0;
           }
         }
-        this.root = dirname22(path);
-        if (existsSync(path)) {
+        this.root = dirname24(path);
+        if (existsSync3(path)) {
           this.mapFile = path;
-          return readFileSync6(path, "utf-8").toString().trim();
+          return readFileSync7(path, "utf-8").toString().trim();
         }
       }
       loadMap(file, prev) {
@@ -32925,7 +32925,7 @@ var require_previous_map = __commonJS({
           return this.decodeInline(this.annotation);
         } else if (this.annotation) {
           let map = this.annotation;
-          if (file) map = join(dirname22(file), map);
+          if (file) map = join(dirname24(file), map);
           let unknown = this.loadFile(map, file, false);
           if (unknown) {
             try {
@@ -32955,7 +32955,7 @@ var require_input = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/input.js"(exports, module) {
     "use strict";
     var { nanoid } = require_non_secure();
-    var { isAbsolute: isAbsolute6, resolve: resolve86 } = __require("path");
+    var { isAbsolute: isAbsolute6, resolve: resolve89 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { fileURLToPath: fileURLToPath2, pathToFileURL } = __require("url");
     var CssSyntaxError2 = require_css_syntax_error();
@@ -32963,7 +32963,7 @@ var require_input = __commonJS({
     var terminalHighlight = require_terminal_highlight();
     var lineToIndexCache = /* @__PURE__ */ Symbol("lineToIndexCache");
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(resolve86 && isAbsolute6);
+    var pathAvailable = Boolean(resolve89 && isAbsolute6);
     function getLineToIndex(input) {
       if (input[lineToIndexCache]) return input[lineToIndexCache];
       let lines = input.css.split("\n");
@@ -32997,7 +32997,7 @@ var require_input = __commonJS({
           if (!pathAvailable || /^\w+:\/\//.test(opts.from) || isAbsolute6(opts.from)) {
             this.file = opts.from;
           } else {
-            this.file = resolve86(opts.from);
+            this.file = resolve89(opts.from);
           }
         }
         if (pathAvailable && sourceMapAvailable) {
@@ -33118,7 +33118,7 @@ var require_input = __commonJS({
         if (/^\w+:\/\//.test(file)) {
           return file;
         }
-        return resolve86(this.map.consumer().sourceRoot || this.map.root || ".", file);
+        return resolve89(this.map.consumer().sourceRoot || this.map.root || ".", file);
       }
       origin(line, column, endLine, endColumn) {
         if (!this.map) return false;
@@ -33428,12 +33428,12 @@ var require_fromJSON = __commonJS({
 var require_map_generator = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/map-generator.js"(exports, module) {
     "use strict";
-    var { dirname: dirname22, relative: relative19, resolve: resolve86, sep: sep17 } = __require("path");
+    var { dirname: dirname24, relative: relative19, resolve: resolve89, sep: sep17 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { pathToFileURL } = __require("url");
     var Input2 = require_input();
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(dirname22 && resolve86 && relative19 && sep17);
+    var pathAvailable = Boolean(dirname24 && resolve89 && relative19 && sep17);
     var MapGenerator = class {
       constructor(stringify19, root2, opts, cssString) {
         this.stringify = stringify19;
@@ -33465,7 +33465,7 @@ var require_map_generator = __commonJS({
       applyPrevMaps() {
         for (let prev of this.previous()) {
           let from = this.toUrl(this.path(prev.file));
-          let root2 = prev.root || dirname22(prev.file);
+          let root2 = prev.root || dirname24(prev.file);
           let map;
           if (this.mapOpts.sourcesContent === false) {
             map = new SourceMapConsumer(prev.text);
@@ -33660,9 +33660,9 @@ var require_map_generator = __commonJS({
         if (/^\w+:\/\//.test(file)) return file;
         let cached = this.memoizedPaths.get(file);
         if (cached) return cached;
-        let from = this.opts.to ? dirname22(this.opts.to) : ".";
+        let from = this.opts.to ? dirname24(this.opts.to) : ".";
         if (typeof this.mapOpts.annotation === "string") {
-          from = dirname22(resolve86(from, this.mapOpts.annotation));
+          from = dirname24(resolve89(from, this.mapOpts.annotation));
         }
         let path = relative19(from, file);
         this.memoizedPaths.set(file, path);
@@ -34296,7 +34296,7 @@ var require_parse = __commonJS({
     var Container2 = require_container();
     var Input2 = require_input();
     var Parser = require_parser2();
-    function parse30(css, opts) {
+    function parse31(css, opts) {
       let input = new Input2(css, opts);
       let parser = new Parser(input);
       try {
@@ -34317,9 +34317,9 @@ var require_parse = __commonJS({
       }
       return parser.root;
     }
-    module.exports = parse30;
-    parse30.default = parse30;
-    Container2.registerParse(parse30);
+    module.exports = parse31;
+    parse31.default = parse31;
+    Container2.registerParse(parse31);
   }
 });
 
@@ -34425,7 +34425,7 @@ var require_lazy_result = __commonJS({
     var Container2 = require_container();
     var Document2 = require_document();
     var MapGenerator = require_map_generator();
-    var parse30 = require_parse();
+    var parse31 = require_parse();
     var Result2 = require_result();
     var Root2 = require_root();
     var stringify19 = require_stringify2();
@@ -34559,7 +34559,7 @@ var require_lazy_result = __commonJS({
             opts.map.prev = css.map;
           }
         } else {
-          let parser = parse30;
+          let parser = parse31;
           if (opts.syntax) parser = opts.syntax.parse;
           if (opts.parser) parser = opts.parser;
           if (parser.parse) parser = parser.parse;
@@ -34950,7 +34950,7 @@ var require_no_work_result = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/no-work-result.js"(exports, module) {
     "use strict";
     var MapGenerator = require_map_generator();
-    var parse30 = require_parse();
+    var parse31 = require_parse();
     var Result2 = require_result();
     var stringify19 = require_stringify2();
     var warnOnce = require_warn_once();
@@ -34978,7 +34978,7 @@ var require_no_work_result = __commonJS({
           return this._root;
         }
         let root2;
-        let parser = parse30;
+        let parser = parse31;
         try {
           root2 = parser(this._css, this._opts);
         } catch (error) {
@@ -35133,7 +35133,7 @@ var require_postcss = __commonJS({
     var LazyResult = require_lazy_result();
     var list3 = require_list();
     var Node2 = require_node();
-    var parse30 = require_parse();
+    var parse31 = require_parse();
     var Processor2 = require_processor();
     var Result2 = require_result();
     var Root2 = require_root();
@@ -35178,7 +35178,7 @@ var require_postcss = __commonJS({
       return creator;
     };
     postcss2.stringify = stringify19;
-    postcss2.parse = parse30;
+    postcss2.parse = parse31;
     postcss2.fromJSON = fromJSON2;
     postcss2.list = list3;
     postcss2.comment = (defaults) => new Comment2(defaults);
@@ -35207,9 +35207,9 @@ var require_postcss = __commonJS({
 });
 
 // apps/cli/src/terminal-hook-bin.ts
-import { createHash as createHash44 } from "node:crypto";
-import { readFile as readFile27 } from "node:fs/promises";
-import { dirname as dirname21, resolve as resolve85 } from "node:path";
+import { createHash as createHash46 } from "node:crypto";
+import { readFile as readFile29 } from "node:fs/promises";
+import { dirname as dirname23, resolve as resolve88 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // packages/event-contract/dist/canonical-json.js
@@ -53223,8 +53223,8 @@ function boundProjectedSearchQueries(values, limits = {
   maximumQueryCharacters: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS
 }) {
   assertProjectionLimits(limits);
-  const bounded = values.slice(0, limits.maximumQueries).map((value) => boundProjectedSearchQuery(value, limits.maximumQueryCharacters));
-  return [...new Set(bounded)];
+  const bounded2 = values.slice(0, limits.maximumQueries).map((value) => boundProjectedSearchQuery(value, limits.maximumQueryCharacters));
+  return [...new Set(bounded2)];
 }
 function projectionCore(input) {
   return {
@@ -57998,13 +57998,13 @@ function compare2(left, right) {
   return left === right ? 0 : left < right ? -1 : 1;
 }
 function compareCapabilityVersions(left, right) {
-  const parse30 = (value) => {
+  const parse31 = (value) => {
     const withoutBuild = value.split("+", 1)[0];
     const [core, prerelease] = withoutBuild.split("-", 2);
     return { core: core.split(".").map(Number), prerelease: prerelease?.split(".") };
   };
-  const a = parse30(left);
-  const b = parse30(right);
+  const a = parse31(left);
+  const b = parse31(right);
   for (let index2 = 0; index2 < 3; index2 += 1) {
     const difference = a.core[index2] - b.core[index2];
     if (difference !== 0)
@@ -66323,10 +66323,10 @@ function resolveAll(constructs2, events, context) {
   const called = [];
   let index2 = -1;
   while (++index2 < constructs2.length) {
-    const resolve86 = constructs2[index2].resolveAll;
-    if (resolve86 && !called.includes(resolve86)) {
-      events = resolve86(events, context);
-      called.push(resolve86);
+    const resolve89 = constructs2[index2].resolveAll;
+    if (resolve89 && !called.includes(resolve89)) {
+      events = resolve89(events, context);
+      called.push(resolve89);
     }
   }
   return events;
@@ -75097,7 +75097,8 @@ async function inspectConfiguredDocumentNormalization(input) {
         path,
         recordId: record4 !== null && typeof record4 === "object" && "recordId" in record4 && typeof record4.recordId === "string" ? record4.recordId : null,
         status: "invalid",
-        outputPaths: []
+        outputPaths: [],
+        reviewedRewritePaths: []
       });
       continue;
     }
@@ -75112,7 +75113,8 @@ async function inspectConfiguredDocumentNormalization(input) {
       path,
       recordId: record4.recordId,
       status,
-      outputPaths: record4.outputs.map((output) => output.path)
+      outputPaths: record4.outputs.map((output) => output.path),
+      reviewedRewritePaths: record4.outputs.filter((output, index2) => hashes[index2] === output.contentHash && (output.path !== record4.sourcePath || output.contentHash !== record4.sourceContentHash)).map((output) => output.path)
     });
   }
   const eligible = eligibleDocuments(scan, policy.publicationRoot, taxonomy, policy.normalization?.exclude);
@@ -75452,6 +75454,22 @@ async function applyDocumentNormalizationPlan(input) {
   });
 }
 
+// packages/repository-knowledge/dist/document-normalization-record-source.js
+var import_yaml15 = __toESM(require_dist(), 1);
+var HASH16 = /^sha256:[a-f0-9]{64}$/u;
+function documentNormalizationRecordSource(content3) {
+  let record4;
+  try {
+    record4 = (0, import_yaml15.parse)(content3);
+  } catch {
+    return null;
+  }
+  const value = record4;
+  if (value === null || typeof value !== "object" || typeof value.sourcePath !== "string" || typeof value.sourceContentHash !== "string" || !HASH16.test(value.sourceContentHash))
+    return null;
+  return { sourcePath: value.sourcePath, sourceContentHash: value.sourceContentHash };
+}
+
 // packages/repository-knowledge/dist/document-normalization-procedure.js
 var REVIEW = "compare each output in the candidate artifact with its source for preserved meaning, links and lifecycle lines";
 function documentNormalizationProcedure(pendingCount) {
@@ -75500,22 +75518,22 @@ async function inspectRepositoryDocumentRewriters(input) {
 }
 
 // packages/repository-knowledge/dist/document-structure-delete.js
-var import_yaml16 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-normalization-record-retirement.js
-var import_yaml15 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-structure-merge.js
 var import_yaml17 = __toESM(require_dist(), 1);
 
-// packages/repository-knowledge/dist/document-structure-move.js
-var import_yaml19 = __toESM(require_dist(), 1);
+// packages/repository-knowledge/dist/document-normalization-record-retirement.js
+var import_yaml16 = __toESM(require_dist(), 1);
 
-// packages/repository-knowledge/dist/document-normalization-record-move.js
+// packages/repository-knowledge/dist/document-structure-merge.js
 var import_yaml18 = __toESM(require_dist(), 1);
 
-// packages/repository-knowledge/dist/document-structure-split.js
+// packages/repository-knowledge/dist/document-structure-move.js
 var import_yaml20 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-normalization-record-move.js
+var import_yaml19 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-structure-split.js
+var import_yaml21 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/durable-instruction.js
 function durableInstructionCatalogEntry(input) {
@@ -75687,7 +75705,7 @@ var maximumWindowBytes = 16 * 1024 * 1024;
 // packages/repository-knowledge/dist/instruction-bootstrap.js
 import { lstat as lstat29 } from "node:fs/promises";
 import { resolve as resolve43 } from "node:path";
-var HASH16 = /^sha256:[a-f0-9]{64}$/;
+var HASH17 = /^sha256:[a-f0-9]{64}$/;
 function includedSource(sources, path) {
   const source = sources.find((item) => item.path === path);
   if (source === void 0)
@@ -75831,7 +75849,7 @@ async function createKnowledgeInstructionBootstrapPlan(input) {
   return { ...state2, planId: stableId("kinstbootplan", state2) };
 }
 async function applyKnowledgeInstructionBootstrapPlan(input) {
-  if (input.plan.status !== "review_required" || input.plan.operationId === null || input.plan.approvalHash === null || input.approvedOperationId !== input.plan.operationId || !HASH16.test(input.approvedHash) || input.approvedHash !== input.plan.approvalHash) {
+  if (input.plan.status !== "review_required" || input.plan.operationId === null || input.plan.approvalHash === null || input.approvedOperationId !== input.plan.operationId || !HASH17.test(input.approvedHash) || input.approvedHash !== input.plan.approvalHash) {
     throw new RepositoryKnowledgeError("knowledge_approval_required", "Canonical instruction adoption requires the exact operation ID and approval hash.");
   }
   const current = await createKnowledgeInstructionBootstrapPlan({
@@ -75870,7 +75888,7 @@ async function applyKnowledgeInstructionBootstrapPlan(input) {
 }
 
 // packages/repository-knowledge/dist/instruction-bridge.js
-var import_yaml21 = __toESM(require_dist(), 1);
+var import_yaml22 = __toESM(require_dist(), 1);
 import { constants as constants17 } from "node:fs";
 import { lstat as lstat30, open as open18 } from "node:fs/promises";
 import { resolve as resolve44 } from "node:path";
@@ -75964,7 +75982,7 @@ function createInstructionBridgeTarget(input) {
 }
 
 // packages/repository-knowledge/dist/instruction-bridge.js
-var HASH17 = /^sha256:[a-f0-9]{64}$/;
+var HASH18 = /^sha256:[a-f0-9]{64}$/;
 var decoder2 = new TextDecoder("utf-8", { fatal: true });
 var profiles = {
   claude: {
@@ -75982,8 +76000,8 @@ function instructionBridgeProfile(provider) {
 }
 function validExistingBridgeRecord(bytes2, profile9, bridgeId) {
   try {
-    const value = (0, import_yaml21.parse)(bytes2.toString("utf8"));
-    return value !== null && typeof value === "object" && value.schemaVersion === 1 && value.bridgeId === bridgeId && value.profile?.id === profile9.profileId && value.profile.version === profile9.profileVersion && value.profile.provider === profile9.provider && value.profile.discoveryContract === profile9.discoveryContract && value.canonical?.path === profile9.canonicalPath && typeof value.canonical.contentHash === "string" && HASH17.test(value.canonical.contentHash) && value.target?.path === profile9.targetPath && value.target.blockId === profile9.blockId && typeof value.target.contentHash === "string" && HASH17.test(value.target.contentHash) && typeof value.target.managedContentHash === "string" && HASH17.test(value.target.managedContentHash);
+    const value = (0, import_yaml22.parse)(bytes2.toString("utf8"));
+    return value !== null && typeof value === "object" && value.schemaVersion === 1 && value.bridgeId === bridgeId && value.profile?.id === profile9.profileId && value.profile.version === profile9.profileVersion && value.profile.provider === profile9.provider && value.profile.discoveryContract === profile9.discoveryContract && value.canonical?.path === profile9.canonicalPath && typeof value.canonical.contentHash === "string" && HASH18.test(value.canonical.contentHash) && value.target?.path === profile9.targetPath && value.target.blockId === profile9.blockId && typeof value.target.contentHash === "string" && HASH18.test(value.target.contentHash) && typeof value.target.managedContentHash === "string" && HASH18.test(value.target.managedContentHash);
   } catch {
     return false;
   }
@@ -76111,7 +76129,7 @@ async function createKnowledgeInstructionBridgePlan(input) {
     targetPath: profile9.targetPath
   });
   const bridgeRecordPath = shardedKnowledgeArtifactPath(".lervo/knowledge/instruction-bridges", bridgeId, "yaml");
-  const bridgeRecordContent = (0, import_yaml21.stringify)({
+  const bridgeRecordContent = (0, import_yaml22.stringify)({
     schemaVersion: 1,
     bridgeId,
     profile: {
@@ -76260,7 +76278,7 @@ async function applyKnowledgeInstructionBridgePlan(input) {
   if (input.plan.status === "current") {
     throw new RepositoryKnowledgeError("knowledge_plan_stale", "The instruction bridge is already current, so there is no change to apply.");
   }
-  if (input.plan.status === "review_required" && (input.approvedOperationId !== input.plan.operationId || input.approvedHash === void 0 || !HASH17.test(input.approvedHash) || input.approvedHash !== input.plan.approvalHash)) {
+  if (input.plan.status === "review_required" && (input.approvedOperationId !== input.plan.operationId || input.approvedHash === void 0 || !HASH18.test(input.approvedHash) || input.approvedHash !== input.plan.approvalHash)) {
     throw new RepositoryKnowledgeError("knowledge_approval_required", "An instruction bridge change requires an operation ID and exact approval hash.");
   }
   if (input.plan.status === "ready" && (input.approvedOperationId !== void 0 || input.approvedHash !== void 0)) {
@@ -76314,7 +76332,7 @@ import { createHash as createHash26 } from "node:crypto";
 import { constants as constants18 } from "node:fs";
 import { lstat as lstat32, open as open19, readFile as readFile20 } from "node:fs/promises";
 import { basename as basename12, posix as posix9, resolve as resolve46 } from "node:path";
-var import_yaml22 = __toESM(require_dist(), 1);
+var import_yaml23 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/projection-ignore.js
 import { lstat as lstat31, readFile as readFile19 } from "node:fs/promises";
@@ -76366,7 +76384,7 @@ async function projectRebuildableKnowledgeIgnore(input) {
 }
 
 // packages/repository-knowledge/dist/repository-layout-migration.js
-var HASH18 = /^sha256:[a-f0-9]{64}$/;
+var HASH19 = /^sha256:[a-f0-9]{64}$/;
 var ECOSYSTEM_ROOT_ENTRYPOINTS = /* @__PURE__ */ new Set([
   "CONTRIBUTING.md",
   "SECURITY.md",
@@ -76534,10 +76552,10 @@ async function normalizationOwnershipUpgradeOperations(root2) {
   });
   for (const path of paths) {
     const source = await readFile20(resolve46(root2, path), "utf8");
-    const value = (0, import_yaml22.parse)(source);
+    const value = (0, import_yaml23.parse)(source);
     if (value.schemaVersion !== 1)
       continue;
-    const content3 = (0, import_yaml22.stringify)({
+    const content3 = (0, import_yaml23.stringify)({
       ...value,
       schemaVersion: 2,
       byteOwnership: { owner: "reviewer", rewritePolicy: "reviewed_exact" }
@@ -77061,7 +77079,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
   })() : [];
   const userUpdates = [...referenceUserUpdates, ...publicationIgnoreUserUpdates];
   const normalizationOwnershipOperations = await normalizationOwnershipUpgradeOperations(root2);
-  const taxonomyUpgradeOperation = decisionTaxonomyRequiresUpgrade((0, import_yaml22.parse)(taxonomySource)) ? [
+  const taxonomyUpgradeOperation = decisionTaxonomyRequiresUpgrade((0, import_yaml23.parse)(taxonomySource)) ? [
     {
       path: ".lervo/knowledge/document-layout.yaml",
       action: "update",
@@ -77099,7 +77117,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     const currentRecord = bridge.operations.find((operation) => operation.path === bridge.bridgeRecordPath && operation.ownership !== "user");
     if (currentRecord === void 0 || currentRecord.action === "conflict")
       throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The instruction bridge record cannot be bound to the layout migration.");
-    const content3 = (0, import_yaml22.stringify)({
+    const content3 = (0, import_yaml23.stringify)({
       schemaVersion: 1,
       bridgeId: bridge.bridgeId,
       profile: {
@@ -77218,7 +77236,7 @@ async function applyRepositoryLayoutMigrationPlan(input) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The repository layout migration plan is not applicable.");
   const approvalItems = [...input.plan.moves, ...input.plan.userUpdates];
   const approvalMap = new Map(input.approvals.map((item) => [item.operationId, item.approvalHash]));
-  if (approvalMap.size !== approvalItems.length || approvalItems.some((item) => !HASH18.test(approvalMap.get(item.operationId) ?? "") || approvalMap.get(item.operationId) !== item.approvalHash)) {
+  if (approvalMap.size !== approvalItems.length || approvalItems.some((item) => !HASH19.test(approvalMap.get(item.operationId) ?? "") || approvalMap.get(item.operationId) !== item.approvalHash)) {
     throw new RepositoryKnowledgeError("knowledge_approval_required", "Repository layout migration requires exact item approval for every user-document move or update.");
   }
   const current = await createRepositoryLayoutMigrationPlan({
@@ -77270,7 +77288,7 @@ async function applyRepositoryLayoutMigrationPlan(input) {
 // packages/repository-knowledge/dist/lint-query.js
 import { lstat as lstat34, readFile as readFile22, readdir as readdir14 } from "node:fs/promises";
 import { relative as relative12, resolve as resolve48, sep as sep12 } from "node:path";
-var import_yaml23 = __toESM(require_dist(), 1);
+var import_yaml24 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-publication-files.js
 import { constants as constants19 } from "node:fs";
@@ -77424,7 +77442,7 @@ async function lintInstructionBridgeRecords(root2, projectId, issues) {
     }
     let value;
     try {
-      value = (0, import_yaml23.parse)(new TextDecoder("utf-8", { fatal: true }).decode(recordBytes));
+      value = (0, import_yaml24.parse)(new TextDecoder("utf-8", { fatal: true }).decode(recordBytes));
       const expectedId = stableId("kbridge", {
         projectId,
         provider: "claude",
@@ -78167,7 +78185,7 @@ async function queryRepositoryKnowledge(input) {
 }
 
 // packages/repository-knowledge/dist/reconciliation-review.js
-var import_yaml24 = __toESM(require_dist(), 1);
+var import_yaml25 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-change-source.js
 import { spawn } from "node:child_process";
@@ -78304,7 +78322,7 @@ var TerminalOutcome = class {
 // packages/repository-knowledge/dist/repository-knowledge-review-source.js
 var run = promisify3(execFile3);
 var MAXIMUM_REVIEW_BYTES = 256 * 1024;
-var HASH19 = /^sha256:[a-f0-9]{64}$/u;
+var HASH20 = /^sha256:[a-f0-9]{64}$/u;
 var COMMIT4 = /^[a-f0-9]{40,64}$/u;
 function invalid8() {
   throw new TerminalOutcome("attention_required", "knowledge_job_source_invalid");
@@ -78318,7 +78336,7 @@ function safePath4(value) {
 async function readManifest(artifacts, delivery) {
   const payload = delivery.event.payload;
   const reference = payload.sourceManifest;
-  if (!record2(reference) || typeof reference.contentHash !== "string" || !HASH19.test(reference.contentHash) || !Number.isInteger(reference.byteCount) || reference.byteCount < 1 || reference.byteCount > 1048576)
+  if (!record2(reference) || typeof reference.contentHash !== "string" || !HASH20.test(reference.contentHash) || !Number.isInteger(reference.byteCount) || reference.byteCount < 1 || reference.byteCount > 1048576)
     invalid8();
   const uri = `lervo-cas://sha256/${reference.contentHash.slice(7)}`;
   if (!await artifacts.has(uri))
@@ -78346,7 +78364,7 @@ async function readManifest(artifacts, delivery) {
   let preceding = "";
   const paths = [];
   for (const entry of value.paths) {
-    if (!record2(entry) || !safePath4(entry.path) || entry.path <= preceding || ![entry.before, entry.after].every((hash3) => hash3 === null || typeof hash3 === "string" && HASH19.test(hash3)) || entry.before === entry.after || Object.keys(entry).sort().join() !== (value.schemaVersion === 1 ? ["path", "before", "after"] : ["path", "before", "after", "beforeCommit"]).sort().join() || value.schemaVersion !== 1 && !(entry.beforeCommit === null || typeof entry.beforeCommit === "string" && COMMIT4.test(entry.beforeCommit)))
+    if (!record2(entry) || !safePath4(entry.path) || entry.path <= preceding || ![entry.before, entry.after].every((hash3) => hash3 === null || typeof hash3 === "string" && HASH20.test(hash3)) || entry.before === entry.after || Object.keys(entry).sort().join() !== (value.schemaVersion === 1 ? ["path", "before", "after"] : ["path", "before", "after", "beforeCommit"]).sort().join() || value.schemaVersion !== 1 && !(entry.beforeCommit === null || typeof entry.beforeCommit === "string" && COMMIT4.test(entry.beforeCommit)))
       invalid8();
     preceding = entry.path;
     paths.push(entry);
@@ -78614,7 +78632,7 @@ async function processRepositoryKnowledgeJobs(input) {
 }
 
 // packages/repository-knowledge/dist/semantic-materialization.js
-var import_yaml25 = __toESM(require_dist(), 1);
+var import_yaml26 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/terminal-integration.js
 import { constants as constants21 } from "node:fs";
@@ -79214,7 +79232,7 @@ function convergenceStatus(input, baseline, now, transport) {
 }
 
 // packages/repository-knowledge/dist/knowledge-convergence-input.js
-var HASH20 = /^sha256:[a-f0-9]{64}$/u;
+var HASH21 = /^sha256:[a-f0-9]{64}$/u;
 function invalid9() {
   throw Object.assign(new Error("The convergence input or receipt is invalid."), {
     code: "knowledge_job_source_invalid"
@@ -79223,16 +79241,16 @@ function invalid9() {
 async function assertKnowledgeConvergenceInput(input) {
   const value = input.value;
   const baseline = input.baseline.payload;
-  if (value?.schemaVersion !== 1 || value.obligationId !== baseline.obligationId || value.baseline?.schemaVersion !== 1 || value.baseline.projectId !== input.baseline.projectId || value.baseline.sourceSnapshotId !== baseline.sourceSnapshotId || value.baseline.sourceSnapshotHash !== baseline.sourceSnapshotHash || value.baseline.policyHash !== baseline.policyHash || value.baseline.debtDigest !== baseline.debtDigest || value.baseline.delegationHash !== baseline.delegationHash || canonicalJson3(value.baseline.debtCounts) !== canonicalJson3(baseline.debtCounts) || input.expectedBaseline !== void 0 && canonicalJson3(input.expectedBaseline) !== canonicalJson3(value.baseline) || !HASH20.test(value.snapshotHash) || !Array.isArray(value.receipts) || value.receipts.length > knowledgeConvergenceStages.length || new Set(value.receipts.map((receipt3) => receipt3?.stage)).size !== value.receipts.length || !value.stageData || typeof value.stageData !== "object" || Array.isArray(value.stageData))
+  if (value?.schemaVersion !== 1 || value.obligationId !== baseline.obligationId || value.baseline?.schemaVersion !== 1 || value.baseline.projectId !== input.baseline.projectId || value.baseline.sourceSnapshotId !== baseline.sourceSnapshotId || value.baseline.sourceSnapshotHash !== baseline.sourceSnapshotHash || value.baseline.policyHash !== baseline.policyHash || value.baseline.debtDigest !== baseline.debtDigest || value.baseline.delegationHash !== baseline.delegationHash || canonicalJson3(value.baseline.debtCounts) !== canonicalJson3(baseline.debtCounts) || input.expectedBaseline !== void 0 && canonicalJson3(input.expectedBaseline) !== canonicalJson3(value.baseline) || !HASH21.test(value.snapshotHash) || !Array.isArray(value.receipts) || value.receipts.length > knowledgeConvergenceStages.length || new Set(value.receipts.map((receipt3) => receipt3?.stage)).size !== value.receipts.length || !value.stageData || typeof value.stageData !== "object" || Array.isArray(value.stageData))
     invalid9();
   for (const receipt3 of value.receipts) {
-    if (!knowledgeConvergenceStages.includes(receipt3?.stage) || !HASH20.test(receipt3.artifactHash) || !HASH20.test(receipt3.snapshotHash))
+    if (!knowledgeConvergenceStages.includes(receipt3?.stage) || !HASH21.test(receipt3.artifactHash) || !HASH21.test(receipt3.snapshotHash))
       invalid9();
     const bytes2 = await input.artifacts.get(`lervo-cas://sha256/${receipt3.artifactHash.slice(7)}`);
     if (!bytes2 || bytes2.byteLength > 16 * 1024 * 1024 || sha2564(bytes2) !== receipt3.artifactHash)
       invalid9();
     const proof = JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(bytes2));
-    if (proof?.schemaVersion !== 1 || proof.obligationId !== value.obligationId || proof.stage !== receipt3.stage || proof.policyHash !== baseline.policyHash || proof.delegationHash !== baseline.delegationHash || !HASH20.test(proof.sourceSnapshotHash ?? "") || proof.resultSnapshotHash !== receipt3.snapshotHash)
+    if (proof?.schemaVersion !== 1 || proof.obligationId !== value.obligationId || proof.stage !== receipt3.stage || proof.policyHash !== baseline.policyHash || proof.delegationHash !== baseline.delegationHash || !HASH21.test(proof.sourceSnapshotHash ?? "") || proof.resultSnapshotHash !== receipt3.snapshotHash)
       invalid9();
   }
 }
@@ -79864,7 +79882,7 @@ function killProcessTree(child) {
 async function executeVerificationCommand(input) {
   const startedAt = input.now();
   const monotonicStart = performance.now();
-  return new Promise((resolve86) => {
+  return new Promise((resolve89) => {
     let child;
     try {
       child = spawn2(input.command.executable, input.command.arguments, {
@@ -79875,7 +79893,7 @@ async function executeVerificationCommand(input) {
         stdio: ["ignore", "pipe", "pipe"]
       });
     } catch {
-      resolve86({
+      resolve89({
         status: "execution_error",
         exitCode: null,
         startedAt: startedAt.toISOString(),
@@ -79934,7 +79952,7 @@ async function executeVerificationCommand(input) {
       clearTimeout(timeout);
       input.signal?.removeEventListener("abort", abort);
       const status = forced ?? (spawnError ? "execution_error" : code === 0 ? "passed" : "failed");
-      resolve86({
+      resolve89({
         status,
         exitCode: code,
         startedAt: startedAt.toISOString(),
@@ -80106,7 +80124,7 @@ async function runVerificationSuite(input, options = {}) {
 }
 
 // packages/verification/dist/suite-loader.js
-var import_yaml26 = __toESM(require_dist(), 1);
+var import_yaml27 = __toESM(require_dist(), 1);
 import { lstat as lstat39, realpath as realpath4 } from "node:fs/promises";
 import { resolve as resolve54 } from "node:path";
 
@@ -80173,7 +80191,7 @@ async function loadVerificationSuite(repositoryRoot, suiteId) {
     const bytes2 = await readVerificationSuiteFile(path, MAXIMUM_SUITE_BYTES);
     let value;
     try {
-      value = (0, import_yaml26.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
+      value = (0, import_yaml27.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
     } catch (error) {
       throw new VerificationError("invalid_verification_suite", "The verification suite YAML could not be read.", { cause: error });
     }
@@ -80283,7 +80301,7 @@ function parseConvergenceSourceCapturePolicy(value) {
 
 // packages/repository-knowledge-runtime/dist/delegation-contract.js
 var CONVERGENCE_DELEGATION_PATH = ".lervo/knowledge/convergence-delegation.json";
-var HASH21 = /^sha256:[a-f0-9]{64}$/u;
+var HASH22 = /^sha256:[a-f0-9]{64}$/u;
 var AGENT2 = /^agt_[a-f0-9]{24}$/u;
 function convergenceDelegationPlanHash(value) {
   return sha2564(canonicalJson3(value));
@@ -80316,7 +80334,7 @@ function parseConvergenceDelegation(value) {
     "maximumDocuments",
     "maximumSourceBytes",
     "maximumProviderCalls"
-  ]) || delegation.schemaVersion !== 1 || !/^prj_[A-Za-z0-9_-]{8,128}$/u.test(delegation.projectId ?? "") || !["active", "revoked"].includes(delegation.state ?? "") || !AGENT2.test(delegation.parentAgentId ?? "") || !HASH21.test(delegation.parentRoleHash ?? "") || !Array.isArray(delegation.canonicalRoots) || !delegation.canonicalRoots.length || delegation.canonicalRoots.length > 32 || !delegation.canonicalRoots.every(safeConvergenceSourcePath) || new Set(delegation.canonicalRoots).size !== delegation.canonicalRoots.length || !Array.isArray(delegation.normalizationRoots) || !delegation.normalizationRoots.length || delegation.normalizationRoots.length > 32 || !delegation.normalizationRoots.every(safeConvergenceSourcePath) || new Set(delegation.normalizationRoots).size !== delegation.normalizationRoots.length || !Array.isArray(delegation.providers) || delegation.providers.length < 1 || delegation.providers.length > 2 || new Set(delegation.providers).size !== delegation.providers.length || !delegation.providers.every((provider) => provider === "codex" || provider === "claude") || !Array.isArray(delegation.verification) || delegation.verification.length < 1 || delegation.verification.length > 16 || !delegation.verification.every((suite) => exactKeys2(suite, ["suiteId", "suiteHash"]) && typeof suite?.suiteId === "string" && HASH21.test(suite.suiteHash)) || !/^refs\/heads\/[A-Za-z0-9][A-Za-z0-9._/-]{0,255}$/u.test(delegation.integrationTarget?.ref ?? "") || delegation.integrationTarget?.ref.includes("..") || !HASH21.test(delegation.integrationTarget?.repositoryIdentityHash ?? "") || !Number.isFinite(Date.parse(delegation.expiresAt ?? "")) || !AGENT2.test(delegation.review?.reviewerAgentId ?? "") || !Number.isFinite(Date.parse(delegation.review?.reviewedAt ?? "")) || !HASH21.test(delegation.review?.planHash ?? "") || delegation.roles === void 0 || !["generator", "reviewer", "writer", "integrator"].every((role) => {
+  ]) || delegation.schemaVersion !== 1 || !/^prj_[A-Za-z0-9_-]{8,128}$/u.test(delegation.projectId ?? "") || !["active", "revoked"].includes(delegation.state ?? "") || !AGENT2.test(delegation.parentAgentId ?? "") || !HASH22.test(delegation.parentRoleHash ?? "") || !Array.isArray(delegation.canonicalRoots) || !delegation.canonicalRoots.length || delegation.canonicalRoots.length > 32 || !delegation.canonicalRoots.every(safeConvergenceSourcePath) || new Set(delegation.canonicalRoots).size !== delegation.canonicalRoots.length || !Array.isArray(delegation.normalizationRoots) || !delegation.normalizationRoots.length || delegation.normalizationRoots.length > 32 || !delegation.normalizationRoots.every(safeConvergenceSourcePath) || new Set(delegation.normalizationRoots).size !== delegation.normalizationRoots.length || !Array.isArray(delegation.providers) || delegation.providers.length < 1 || delegation.providers.length > 2 || new Set(delegation.providers).size !== delegation.providers.length || !delegation.providers.every((provider) => provider === "codex" || provider === "claude") || !Array.isArray(delegation.verification) || delegation.verification.length < 1 || delegation.verification.length > 16 || !delegation.verification.every((suite) => exactKeys2(suite, ["suiteId", "suiteHash"]) && typeof suite?.suiteId === "string" && HASH22.test(suite.suiteHash)) || !/^refs\/heads\/[A-Za-z0-9][A-Za-z0-9._/-]{0,255}$/u.test(delegation.integrationTarget?.ref ?? "") || delegation.integrationTarget?.ref.includes("..") || !HASH22.test(delegation.integrationTarget?.repositoryIdentityHash ?? "") || !Number.isFinite(Date.parse(delegation.expiresAt ?? "")) || !AGENT2.test(delegation.review?.reviewerAgentId ?? "") || !Number.isFinite(Date.parse(delegation.review?.reviewedAt ?? "")) || !HASH22.test(delegation.review?.planHash ?? "") || delegation.roles === void 0 || !["generator", "reviewer", "writer", "integrator"].every((role) => {
     const binding = delegation.roles?.[role];
     return exactKeys2(binding, [
       "roleId",
@@ -80324,7 +80342,7 @@ function parseConvergenceDelegation(value) {
       "contractHash",
       "profileHash",
       "capabilityHash"
-    ]) && typeof binding?.roleId === "string" && typeof binding.version === "string" && HASH21.test(binding.contractHash) && HASH21.test(binding.profileHash) && HASH21.test(binding.capabilityHash);
+    ]) && typeof binding?.roleId === "string" && typeof binding.version === "string" && HASH22.test(binding.contractHash) && HASH22.test(binding.profileHash) && HASH22.test(binding.capabilityHash);
   }))
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   const ceilings = delegation.resourceCeilings;
@@ -80337,7 +80355,7 @@ function parseConvergenceDelegation(value) {
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   if (delegation.assetDispositions !== void 0)
     parseConvergenceAssetDispositions(delegation.assetDispositions, delegation.verification.map((suite) => suite.suiteId), 256);
-  if (delegation.assetDispositionManifestHash !== void 0 && !HASH21.test(delegation.assetDispositionManifestHash))
+  if (delegation.assetDispositionManifestHash !== void 0 && !HASH22.test(delegation.assetDispositionManifestHash))
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   const { review, ...plan2 } = delegation;
   if (delegation.sourceCapture !== void 0)
@@ -81343,18 +81361,18 @@ async function listObservations(input) {
 }
 
 // packages/search-local/dist/evaluation-bundle-files.js
-var import_yaml27 = __toESM(require_dist(), 1);
+var import_yaml28 = __toESM(require_dist(), 1);
 var MAX_BUNDLE_BYTES = 64 * 1024;
 
 // packages/search-local/dist/evaluation-case-files.js
-var import_yaml28 = __toESM(require_dist(), 1);
+var import_yaml29 = __toESM(require_dist(), 1);
 var MAX_CASE_BYTES = 64 * 1024;
 
 // packages/search-local/dist/policy-file-store.js
 import { constants as constants26 } from "node:fs";
 import { link as link3, lstat as lstat41, mkdir as mkdir16, open as open25, readdir as readdir16, realpath as realpath6, unlink as unlink4 } from "node:fs/promises";
 import { resolve as resolve58 } from "node:path";
-var import_yaml29 = __toESM(require_dist(), 1);
+var import_yaml30 = __toESM(require_dist(), 1);
 var MAX_POLICY_BYTES = 64 * 1024;
 async function policyDirectory(repositoryRoot, contract, create) {
   try {
@@ -81409,7 +81427,7 @@ async function readPolicy(path, contract) {
     if (!afterReadHandle.isFile() || afterReadHandle.size > BigInt(MAX_POLICY_BYTES) || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > BigInt(MAX_POLICY_BYTES) || !sameFileWithinStatSurface3(openedHandle, afterReadHandle) || !sameFileWithinStatSurface3(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces3(afterReadPath, afterReadHandle)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} changed while it was being read.`);
     }
-    const value = (0, import_yaml29.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
+    const value = (0, import_yaml30.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
     contract.assertValue(value);
     return value;
   } catch (error) {
@@ -82938,6 +82956,29 @@ function captureConvergenceSources(root2, policyHash) {
   return { head, snapshotId: `ksnap_${snapshotHash.slice(7, 31)}`, snapshotHash, sources };
 }
 
+// packages/repository-knowledge-runtime/dist/historical-acceptance.js
+import { existsSync } from "node:fs";
+var HISTORY_ACCEPTANCE_PATH = ".lervo/knowledge/history-acceptance.json";
+var HASH23 = /^sha256:[a-f0-9]{64}$/u;
+function loadHistoricalAcceptance(root2, projectId) {
+  if (!existsSync(`${root2}/${HISTORY_ACCEPTANCE_PATH}`))
+    return null;
+  const bytes2 = ordinaryConvergenceSourceBytes(root2, HISTORY_ACCEPTANCE_PATH, 4 * 1024 * 1024);
+  let value;
+  try {
+    value = JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(bytes2));
+  } catch (error) {
+    throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid", { cause: error });
+  }
+  if (value?.schemaVersion !== 1 || value.projectId !== projectId || value.disposition !== "owner_accepted" || typeof value.decidedAt !== "string" || Number.isNaN(Date.parse(value.decidedAt)) || typeof value.rationale !== "string" || value.rationale.trim().length < 20 || !Array.isArray(value.events) || value.events.length > 2e4 || value.events.some((event) => typeof event?.eventId !== "string" || !/^evt_[a-z0-9]+$/u.test(event.eventId) || !HASH23.test(event.eventHash ?? "")))
+    throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
+  return {
+    contentHash: sha2564(bytes2),
+    accepted: new Set(value.events.map((event) => `${event.eventId}\0${event.eventHash}`))
+  };
+}
+var historicalAcceptanceKey = (event) => `${event.eventId}\0${event.eventHash}`;
+
 // packages/repository-knowledge-runtime/dist/historical-obligations.js
 async function changedPathsForEvent(payload, artifacts) {
   const count = payload.changedPathCount;
@@ -82966,7 +83007,7 @@ async function changedPathsForEvent(payload, artifacts) {
     throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
   return paths;
 }
-async function historicalObligations(events, artifacts) {
+async function historicalObligations(events, artifacts, accepted = /* @__PURE__ */ new Set()) {
   const changes = /* @__PURE__ */ new Map();
   let afterSeq = 0;
   for (; ; ) {
@@ -83011,7 +83052,7 @@ async function historicalObligations(events, artifacts) {
       }
     }
   }
-  const outstanding = [...changes.entries()].filter(([id5, source]) => source.eventId !== id5 || events.getOutbox(id5, "knowledge:repository") === null).map(([, source]) => source);
+  const outstanding = [...changes.entries()].filter(([id5, source]) => (source.eventId !== id5 || events.getOutbox(id5, "knowledge:repository") === null) && !accepted.has(historicalAcceptanceKey(source))).map(([, source]) => source);
   return {
     events: outstanding.map(({ paths: _paths, ...source }) => source),
     paths: [...new Set(outstanding.flatMap((source) => source.paths))].sort()
@@ -83064,6 +83105,19 @@ async function canonicalDispositionLedger(events, artifacts) {
           references: decision.canonicalReferences
         });
       }
+      for (const draft of batch.assessment.drafts) {
+        const contentHash2 = sha2564(draft.content);
+        ledger.entries.set(key2(draft.path, contentHash2), {
+          path: draft.path,
+          contentHash: contentHash2,
+          disposition: "integrated_draft",
+          eventId: event.eventId,
+          projectId: event.projectId,
+          policyHash: approval.policyHash,
+          references: [],
+          beforeHash: draft.beforeHash
+        });
+      }
     }
   }
   ledgers.set(events, ledger);
@@ -83097,6 +83151,11 @@ async function settledCanonicalDispositions(input) {
     ];
   });
 }
+async function integratedCanonicalDrafts(events, artifacts) {
+  const ledger = await canonicalDispositionLedger(events, artifacts);
+  return new Map([...ledger.entries()].filter(([, entry]) => entry.disposition === "integrated_draft").map(([entryKey, entry]) => [entryKey, entry.beforeHash ?? null]));
+}
+var canonicalDraftKey = key2;
 
 // packages/repository-knowledge-runtime/dist/baseline.js
 async function discoverConvergenceBaseline(root2, events, artifacts) {
@@ -83110,7 +83169,8 @@ async function discoverConvergenceBaseline(root2, events, artifacts) {
     inspectRepositoryKnowledgeCurrency(root2),
     listCanonicalizationCandidates(root2)
   ]);
-  const historical = await historicalObligations(events, artifacts);
+  const acceptance = loadHistoricalAcceptance(root2, manifest.projectId);
+  const historical = await historicalObligations(events, artifacts, acceptance?.accepted);
   const after = captureConvergenceSources(root2, policyHash);
   const afterChanged = captureConvergenceChangedPaths(root2);
   if (before.snapshotHash !== after.snapshotHash || canonicalJson3(beforeChanged) !== canonicalJson3(afterChanged))
@@ -83122,14 +83182,20 @@ async function discoverConvergenceBaseline(root2, events, artifacts) {
     ...normalization.pendingDocuments,
     ...candidates.filter((candidate) => ["candidate", "pending", "stale"].includes(candidate.observedState)).flatMap((candidate) => candidate.sourceBindings.map((binding) => binding.path))
   ]);
-  const settledAssessments = (await settledCanonicalDispositions({
+  const obligationSources = after.sources.filter((source) => source.kind === "text" && obligationPaths.has(source.path));
+  const reviewedRewrites = new Map(normalization.records.filter((record4) => record4.status === "current" && record4.recordId !== null).flatMap((record4) => record4.reviewedRewritePaths.map((path) => [path, record4.recordId])));
+  const ledger = new Map((await settledCanonicalDispositions({
     repositoryRoot: root2,
     events,
     artifacts,
     projectId: manifest.projectId,
     policyHash,
-    sources: after.sources.filter((source) => source.kind === "text" && obligationPaths.has(source.path))
-  })).map(({ path, contentHash: contentHash2, eventId: eventId2 }) => ({ path, contentHash: contentHash2, eventId: eventId2 }));
+    sources: obligationSources
+  })).map((item) => [item.path, item.eventId]));
+  const settledAssessments = obligationSources.flatMap(({ path, contentHash: contentHash2 }) => {
+    const reference = ledger.get(path) ?? reviewedRewrites.get(path);
+    return reference === void 0 ? [] : [{ path, contentHash: contentHash2, reference }];
+  });
   const settled = new Set(settledAssessments.map((item) => item.path));
   const assessmentPaths = [...obligationPaths].filter((path) => !settled.has(path)).sort();
   const canonicalization = candidates.filter((candidate) => ["candidate", "pending", "stale"].includes(candidate.observedState)).length;
@@ -83156,13 +83222,15 @@ async function discoverConvergenceBaseline(root2, events, artifacts) {
       ]),
       historicalEvents,
       assessmentPaths,
-      settledAssessments
+      settledAssessments,
+      historyAcceptanceHash: acceptance?.contentHash ?? null
     })),
     delegationHash: delegation?.contentHash ?? null,
     debtCounts,
     sources: after.sources,
     assessmentPaths,
     settledAssessments,
+    historyAcceptanceHash: acceptance?.contentHash ?? null,
     sourceDispositions: after.sources.map((source) => {
       const record4 = scan.sources.find((item) => item.path === source.path);
       const kind = record4?.classification === "secret_candidate" || record4?.classification === "sensitive" ? "sensitive_local" : repositoryPathMatchesPatterns(source.path, policy.exclude) ? "policy_excluded" : source.kind === "opaque" ? "opaque_verification" : "semantic_source";
@@ -83353,12 +83421,13 @@ function convergenceAssessmentSources(state2) {
 }
 
 // packages/repository-knowledge-runtime/dist/effect-source-fence.js
-function assertConvergenceEffectSources(state2, after, effects = []) {
+function assertConvergenceEffectSources(state2, after, effects = [], committedHead) {
   if (after.snapshotHash === state2.snapshotHash)
     return;
   const beforeCapture = state2.stageData.sourceCapture;
   const beforeHead = beforeCapture?.head ?? state2.baseline.sourceCommit;
-  if (beforeHead !== void 0 && after.head !== beforeHead)
+  const ownCommit = committedHead !== void 0 && committedHead.before === beforeHead && committedHead.after === after.head;
+  if (beforeHead !== void 0 && after.head !== beforeHead && !ownCommit)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   const prior = state2.stageData.sourceCapture?.sources ?? state2.baseline.sources;
   const beforeHashes = new Map(prior.map((source) => [source.path, source.contentHash]));
@@ -83377,7 +83446,7 @@ function assertConvergenceEffectSources(state2, after, effects = []) {
       throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
     changed = true;
   }
-  if (!changed)
+  if (!changed && !ownCommit)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
 }
 function convergenceOperationEffects(operations) {
@@ -83409,7 +83478,7 @@ function convergenceOperationEffects(operations) {
 // packages/repository-knowledge-runtime/dist/stage-receipt.js
 async function completeConvergenceStage(input) {
   const capture = captureConvergenceSources(input.repositoryRoot, input.state.baseline.policyHash);
-  assertConvergenceEffectSources(input.state, capture, input.approvedEffects);
+  assertConvergenceEffectSources(input.state, capture, input.approvedEffects, input.committedHead);
   const proof = await input.artifacts.put(canonicalJson3({
     schemaVersion: 1,
     obligationId: input.state.obligationId,
@@ -83420,7 +83489,8 @@ async function completeConvergenceStage(input) {
     delegationHash: input.state.baseline.delegationHash,
     proof: input.proof,
     previousReceipt: input.state.receipts.findLast((receipt3) => receipt3.stage === input.stage)?.artifactHash ?? null,
-    approvedEffects: input.approvedEffects ?? []
+    approvedEffects: input.approvedEffects ?? [],
+    committedHead: input.committedHead ?? null
   }));
   const state2 = {
     ...input.state,
@@ -84521,8 +84591,8 @@ async function reviewCanonicalBaseline(context, state2, assertLease) {
 // packages/repository-knowledge-runtime/dist/canonical-workspace.js
 import { constants as constants31 } from "node:fs";
 import { execFile as execFile8 } from "node:child_process";
-import { mkdir as mkdir21, lstat as lstat48, open as open27 } from "node:fs/promises";
-import { dirname as dirname19, resolve as resolve69, relative as relative16 } from "node:path";
+import { mkdir as mkdir22, lstat as lstat48, open as open27 } from "node:fs/promises";
+import { dirname as dirname20, resolve as resolve69, relative as relative16 } from "node:path";
 import { promisify as promisify8 } from "node:util";
 
 // packages/workspace-host/dist/index.js
@@ -84537,7 +84607,7 @@ var WorkspaceHostError = class extends Error {
 
 // packages/orchestrator/dist/workspace-cleanup-contract.js
 import { createHash as createHash33 } from "node:crypto";
-var HASH22 = /^sha256:[a-f0-9]{64}$/u;
+var HASH24 = /^sha256:[a-f0-9]{64}$/u;
 function stableWorkspaceCleanupJson(value) {
   if (Array.isArray(value))
     return `[${value.map(stableWorkspaceCleanupJson).join(",")}]`;
@@ -84550,7 +84620,7 @@ function workspaceCleanupDigest(value) {
 }
 function isWorkspaceCleanupPlan(plan2) {
   const { contentHash: contentHash2, ...content3 } = plan2;
-  return plan2.schemaVersion === 1 && plan2.planKind === "workspace_cleanup" && /^wcp_[a-f0-9]{24}$/u.test(plan2.planId) && /^wcj_[a-f0-9]{24}$/u.test(plan2.journalId) && HASH22.test(plan2.repositoryRootDigest) && HASH22.test(plan2.workspacePathDigest) && HASH22.test(plan2.integrationTargetDigest) && HASH22.test(plan2.workspaceContentHash) && HASH22.test(contentHash2) && workspaceCleanupDigest(content3) === contentHash2 && (plan2.status === "ready" ? plan2.blockedReasons.length === 0 : plan2.blockedReasons.length > 0);
+  return plan2.schemaVersion === 1 && plan2.planKind === "workspace_cleanup" && /^wcp_[a-f0-9]{24}$/u.test(plan2.planId) && /^wcj_[a-f0-9]{24}$/u.test(plan2.journalId) && HASH24.test(plan2.repositoryRootDigest) && HASH24.test(plan2.workspacePathDigest) && HASH24.test(plan2.integrationTargetDigest) && HASH24.test(plan2.workspaceContentHash) && HASH24.test(contentHash2) && workspaceCleanupDigest(content3) === contentHash2 && (plan2.status === "ready" ? plan2.blockedReasons.length === 0 : plan2.blockedReasons.length > 0);
 }
 
 // packages/orchestrator/dist/workspace-cleanup-plan.js
@@ -85173,6 +85243,22 @@ async function captureRepositorySnapshotWithCache(input) {
     state: { cacheKey, entries: nextEntries }
   };
 }
+async function captureRepositorySnapshotIncrementally(input) {
+  const result = await captureRepositorySnapshotWithCache({
+    repositoryRoot: input.repositoryRoot,
+    policy: input.policy ?? defaultRepositorySnapshotPolicy,
+    previous: input.previous === void 0 ? void 0 : { cacheKey: input.previous.cacheKey, entries: new Map(input.previous.entries) },
+    readFile: readRepositoryFile
+  });
+  return {
+    snapshot: result.snapshot,
+    cache: {
+      schemaVersion: 1,
+      cacheKey: result.state.cacheKey,
+      entries: [...result.state.entries]
+    }
+  };
+}
 
 // packages/orchestrator/dist/project-verification.js
 async function validateVerificationOriginal(input) {
@@ -85253,9 +85339,41 @@ async function runRequiredProjectVerifications(input) {
   return verifications;
 }
 
+// packages/orchestrator/dist/repository-snapshot-file-cache.js
+import { mkdir as mkdir20, readFile as readFile23, rename as rename10, writeFile as writeFile5 } from "node:fs/promises";
+import { dirname as dirname18 } from "node:path";
+var HASH25 = /^sha256:[a-f0-9]{64}$/u;
+function validCache(value) {
+  const cache = value;
+  return cache !== null && typeof cache === "object" && cache.schemaVersion === 1 && typeof cache.cacheKey === "string" && Array.isArray(cache.entries) && cache.entries.every((item) => Array.isArray(item) && typeof item[0] === "string" && item[1] !== null && typeof item[1] === "object" && (item[1].kind === "file" || item[1].kind === "symlink") && typeof item[1].identity === "string" && HASH25.test(item[1].hash) && Number.isSafeInteger(item[1].byteLength));
+}
+async function capturePersistentRepositorySnapshot(repositoryRoot, cachePath, policy = defaultRepositorySnapshotPolicy) {
+  let previous2;
+  try {
+    const value = JSON.parse(await readFile23(cachePath, "utf8"));
+    if (validCache(value))
+      previous2 = value;
+  } catch {
+    previous2 = void 0;
+  }
+  const { snapshot, cache } = await captureRepositorySnapshotIncrementally({
+    repositoryRoot,
+    policy,
+    ...previous2 === void 0 ? {} : { previous: previous2 }
+  });
+  try {
+    await mkdir20(dirname18(cachePath), { recursive: true, mode: 448 });
+    const temporary = `${cachePath}.${process.pid}.tmp`;
+    await writeFile5(temporary, JSON.stringify(cache), { mode: 384 });
+    await rename10(temporary, cachePath);
+  } catch {
+  }
+  return snapshot;
+}
+
 // packages/orchestrator/dist/workspace-provisioning.js
 import { createHash as createHash35, randomBytes as randomBytes3 } from "node:crypto";
-var HASH23 = /^sha256:[a-f0-9]{64}$/u;
+var HASH26 = /^sha256:[a-f0-9]{64}$/u;
 var COMMIT5 = /^[a-f0-9]{40,64}$/u;
 function stableJson9(value) {
   if (Array.isArray(value))
@@ -85275,10 +85393,10 @@ function planContent(plan2) {
 }
 function validPlan(plan2) {
   const { contentHash: contentHash2, ...content3 } = plan2;
-  return plan2.schemaVersion === 1 && plan2.planKind === "workspace_provision" && /^wpl_[a-f0-9]{24}$/u.test(plan2.planId) && COMMIT5.test(plan2.baseCommit) && HASH23.test(plan2.marker.pathDigest) && HASH23.test(contentHash2) && planContent(content3) === contentHash2;
+  return plan2.schemaVersion === 1 && plan2.planKind === "workspace_provision" && /^wpl_[a-f0-9]{24}$/u.test(plan2.planId) && COMMIT5.test(plan2.baseCommit) && HASH26.test(plan2.marker.pathDigest) && HASH26.test(contentHash2) && planContent(content3) === contentHash2;
 }
 async function planWorkspaceProvision(input) {
-  if (!COMMIT5.test(input.baseCommit) || !HASH23.test(input.integrationTargetDigest))
+  if (!COMMIT5.test(input.baseCommit) || !HASH26.test(input.integrationTargetDigest))
     throw new WorkspaceHostError("host_coordinate_invalid", "The workspace base or integration target coordinate is invalid.");
   const assignment = (await listAssignments(input.repositoryRoot)).find((item) => item.assignmentId === input.assignmentId);
   if (assignment === void 0 || assignment.lease === null)
@@ -85521,7 +85639,7 @@ async function recoverWorkspaceCleanup(input) {
 
 // packages/orchestrator/dist/workspace-seal-contract.js
 import { createHash as createHash37 } from "node:crypto";
-var HASH24 = /^sha256:[a-f0-9]{64}$/u;
+var HASH27 = /^sha256:[a-f0-9]{64}$/u;
 function stableWorkspaceSealJson(value) {
   if (Array.isArray(value))
     return `[${value.map(stableWorkspaceSealJson).join(",")}]`;
@@ -85537,7 +85655,7 @@ function workspaceSealPlanContent(plan2) {
 }
 function isWorkspaceSealPlan(plan2) {
   const { contentHash: contentHash2, ...content3 } = plan2;
-  return plan2.schemaVersion === 1 && plan2.planKind === "workspace_seal" && /^wsl_[a-f0-9]{24}$/u.test(plan2.planId) && HASH24.test(plan2.workspaceContentHash) && HASH24.test(contentHash2) && workspaceSealPlanContent(content3) === contentHash2;
+  return plan2.schemaVersion === 1 && plan2.planKind === "workspace_seal" && /^wsl_[a-f0-9]{24}$/u.test(plan2.planId) && HASH27.test(plan2.workspaceContentHash) && HASH27.test(contentHash2) && workspaceSealPlanContent(content3) === contentHash2;
 }
 function sameWorkspaceSealValue(left, right) {
   return stableWorkspaceSealJson(left) === stableWorkspaceSealJson(right);
@@ -85630,7 +85748,7 @@ async function applyWorkspaceSeal(input) {
 
 // packages/orchestrator/dist/workspace-seal-plan.js
 import { randomBytes as randomBytes4 } from "node:crypto";
-var HASH25 = /^sha256:[a-f0-9]{64}$/u;
+var HASH28 = /^sha256:[a-f0-9]{64}$/u;
 var ARTIFACT_ID4 = /^art_[A-Za-z0-9_-]{8,128}$/u;
 function id4(prefix) {
   return `${prefix}_${randomBytes4(12).toString("hex")}`;
@@ -85648,7 +85766,7 @@ function markerFor3(workspace) {
   };
 }
 function validVerificationResults(results) {
-  return results.length <= 64 && results.every((result) => /^[a-z][a-z0-9._-]{1,99}$/u.test(result.suiteId) && HASH25.test(result.policyHash) && ARTIFACT_ID4.test(result.resultArtifactId) && HASH25.test(result.resultArtifactHash) && Number.isFinite(Date.parse(result.completedAt)) && result.passed);
+  return results.length <= 64 && results.every((result) => /^[a-z][a-z0-9._-]{1,99}$/u.test(result.suiteId) && HASH28.test(result.policyHash) && ARTIFACT_ID4.test(result.resultArtifactId) && HASH28.test(result.resultArtifactHash) && Number.isFinite(Date.parse(result.completedAt)) && result.passed);
 }
 function assertSealableInspection(input) {
   const { workspace, inspection } = input;
@@ -85693,7 +85811,7 @@ async function planWorkspaceSeal(input) {
   const satisfied = new Set(input.satisfiedApprovalRequirements ?? []);
   if (assignment.approvalRequirements.some((requirement) => !satisfied.has(requirement)))
     throw new WorkspaceHostError("host_coordinate_invalid", "The workspace assignment still has an unsatisfied approval requirement.");
-  if (!ARTIFACT_ID4.test(input.resultArtifactId) || !HASH25.test(input.resultArtifactHash) || !validVerificationResults(input.verificationResults) || assignment.verificationSuiteIds.some((suiteId) => !input.verificationResults.some((result) => result.suiteId === suiteId)))
+  if (!ARTIFACT_ID4.test(input.resultArtifactId) || !HASH28.test(input.resultArtifactHash) || !validVerificationResults(input.verificationResults) || assignment.verificationSuiteIds.some((suiteId) => !input.verificationResults.some((result) => result.suiteId === suiteId)))
     throw new WorkspaceHostError("host_coordinate_invalid", "The workspace result or required verification evidence is invalid.");
   const marker = markerFor3(stored.workspace);
   if (workspaceSealDigest(marker) !== stored.workspace.markerHash)
@@ -85778,7 +85896,7 @@ async function planWorkspaceSeal(input) {
 
 // packages/orchestrator/dist/workspace-integration-contract.js
 import { createHash as createHash38 } from "node:crypto";
-var HASH26 = /^sha256:[a-f0-9]{64}$/u;
+var HASH29 = /^sha256:[a-f0-9]{64}$/u;
 function stableWorkspaceIntegrationJson(value) {
   if (Array.isArray(value))
     return `[${value.map(stableWorkspaceIntegrationJson).join(",")}]`;
@@ -85795,7 +85913,7 @@ function workspaceIntegrationPlanContent(plan2) {
 function isWorkspaceIntegrationPlan(plan2) {
   const { contentHash: contentHash2, attempt, ...content3 } = plan2;
   const { planContentHash, ...attemptContent } = attempt;
-  return plan2.schemaVersion === 1 && plan2.planKind === "workspace_integration_candidate" && /^ipl_[a-f0-9]{24}$/u.test(plan2.planId) && HASH26.test(contentHash2) && attempt.planContentHash === contentHash2 && workspaceIntegrationPlanContent({ ...content3, attempt: attemptContent }) === contentHash2;
+  return plan2.schemaVersion === 1 && plan2.planKind === "workspace_integration_candidate" && /^ipl_[a-f0-9]{24}$/u.test(plan2.planId) && HASH29.test(contentHash2) && attempt.planContentHash === contentHash2 && workspaceIntegrationPlanContent({ ...content3, attempt: attemptContent }) === contentHash2;
 }
 
 // packages/orchestrator/dist/workspace-integration-source-state.js
@@ -86078,7 +86196,7 @@ async function applyWorkspaceIntegrationCandidate(input) {
 }
 
 // packages/orchestrator/dist/workspace-integration-complete.js
-var HASH27 = /^sha256:[a-f0-9]{64}$/u;
+var HASH30 = /^sha256:[a-f0-9]{64}$/u;
 function targetRequest2(plan2, candidate) {
   if (candidate.candidateCommit === null || candidate.candidateTreeHash === null)
     throw new WorkspaceHostError("host_coordinate_invalid", "The integration attempt has no exact candidate.");
@@ -86109,7 +86227,7 @@ function assertVerificationReceipt(plan2, receipt3) {
     suiteId,
     suiteHash
   }));
-  if (receipt3.schemaVersion !== 1 || !HASH27.test(contentHash2) || workspaceIntegrationDigest(content3) !== contentHash2 || receipt3.attemptId !== plan2.attempt.attemptId || receipt3.targetLeaseId !== plan2.attempt.targetLeaseId || receipt3.planContentHash !== plan2.contentHash || stableWorkspaceIntegrationJson(actualRequirements) !== stableWorkspaceIntegrationJson(plan2.verificationRequirements) || receipt3.results.some((result) => !/^ver_[A-Za-z0-9_-]{8,128}$/u.test(result.verificationId) || !/^art_[A-Za-z0-9_-]{8,128}$/u.test(result.resultArtifactId) || !HASH27.test(result.resultContentHash) || !Number.isFinite(Date.parse(result.completedAt))) || !Number.isFinite(Date.parse(receipt3.verifiedAt)))
+  if (receipt3.schemaVersion !== 1 || !HASH30.test(contentHash2) || workspaceIntegrationDigest(content3) !== contentHash2 || receipt3.attemptId !== plan2.attempt.attemptId || receipt3.targetLeaseId !== plan2.attempt.targetLeaseId || receipt3.planContentHash !== plan2.contentHash || stableWorkspaceIntegrationJson(actualRequirements) !== stableWorkspaceIntegrationJson(plan2.verificationRequirements) || receipt3.results.some((result) => !/^ver_[A-Za-z0-9_-]{8,128}$/u.test(result.verificationId) || !/^art_[A-Za-z0-9_-]{8,128}$/u.test(result.resultArtifactId) || !HASH30.test(result.resultContentHash) || !Number.isFinite(Date.parse(result.completedAt))) || !Number.isFinite(Date.parse(receipt3.verifiedAt)))
     throw new WorkspaceHostError("host_coordinate_invalid", "The integration verification receipt is invalid or stale.");
 }
 function exactAdvancementBinding(attempt, receipt3) {
@@ -86520,12 +86638,12 @@ async function verifyWorkspaceIntegrationCandidate(input) {
 import { execFile as execFile5 } from "node:child_process";
 import { createHash as createHash40 } from "node:crypto";
 import { constants as constants30 } from "node:fs";
-import { lstat as lstat46, open as open26, readFile as readFile23, realpath as realpath7 } from "node:fs/promises";
-import { dirname as dirname18, isAbsolute as isAbsolute5, resolve as resolve67 } from "node:path";
+import { lstat as lstat46, open as open26, readFile as readFile24, realpath as realpath7 } from "node:fs/promises";
+import { dirname as dirname19, isAbsolute as isAbsolute5, resolve as resolve67 } from "node:path";
 import { promisify as promisify5 } from "node:util";
 var execute3 = promisify5(execFile5);
 var COMMIT6 = /^[a-f0-9]{40,64}$/u;
-var HASH28 = /^sha256:[a-f0-9]{64}$/u;
+var HASH31 = /^sha256:[a-f0-9]{64}$/u;
 var MARKER_NAME = "lervo-workspace-owner.json";
 function fail17(code, message, cause) {
   throw new WorkspaceHostError(code, message, cause === void 0 ? void 0 : { cause });
@@ -86603,7 +86721,7 @@ var GitWorkspaceEvidence = class {
     this.binding = binding;
   }
   validMarker(marker) {
-    return marker.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker.workspaceId) && Number.isSafeInteger(marker.generation) && marker.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker.repositoryInstanceId) && marker.adapterKind === this.binding.kind && marker.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker.creationPlanId) && HASH28.test(marker.pathDigest);
+    return marker.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker.workspaceId) && Number.isSafeInteger(marker.generation) && marker.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker.repositoryInstanceId) && marker.adapterKind === this.binding.kind && marker.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker.creationPlanId) && HASH31.test(marker.pathDigest);
   }
   validateRequest(repositoryRoot, workspacePath, marker, allowSamePath = false) {
     if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve67(repositoryRoot) !== repositoryRoot || resolve67(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker))
@@ -86615,7 +86733,7 @@ var GitWorkspaceEvidence = class {
       const info = await lstat46(path);
       if (!info.isFile() || info.isSymbolicLink() || info.size > 16384)
         return false;
-      return stableJson10(JSON.parse(await readFile23(path, "utf8"))) === stableJson10(expected);
+      return stableJson10(JSON.parse(await readFile24(path, "utf8"))) === stableJson10(expected);
     } catch {
       return false;
     }
@@ -86790,7 +86908,7 @@ var GitWorkspaceEvidence = class {
         return existing;
       fail17("host_effect_uncertain", "A different workspace occupies the provision coordinate.");
     }
-    const parentInfo = await lstat46(dirname18(request.workspacePath));
+    const parentInfo = await lstat46(dirname19(request.workspacePath));
     if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink())
       fail17("host_coordinate_invalid", "The workspace parent must be a real directory.");
     await beforeMutation?.();
@@ -87164,14 +87282,14 @@ function assertConvergenceVerificationPassed(status) {
 }
 
 // packages/repository-knowledge-runtime/dist/effect-checkpoint.js
-import { mkdir as mkdir20, lstat as lstat47, chmod as chmod7 } from "node:fs/promises";
+import { mkdir as mkdir21, lstat as lstat47, chmod as chmod7 } from "node:fs/promises";
 import { resolve as resolve68 } from "node:path";
 async function convergenceEffectCheckpoint(input) {
   const { storage, assignment } = input;
   if (!assignment.convergence || !assignment.lease)
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   const directory = resolve68(storage.paths.repositoryRoot, ".lervo/state/knowledge");
-  await mkdir20(directory, { recursive: true, mode: 448 });
+  await mkdir21(directory, { recursive: true, mode: 448 });
   const parent = await lstat47(directory);
   if (!parent.isDirectory() || parent.isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
@@ -87328,7 +87446,7 @@ async function safeDirectory2(root2, directory) {
   let current = root2;
   for (const part of path.split("/")) {
     current = resolve69(current, part);
-    await mkdir21(current, { mode: 448 }).catch((error) => {
+    await mkdir22(current, { mode: 448 }).catch((error) => {
       if (error.code !== "EEXIST")
         throw error;
     });
@@ -87345,7 +87463,7 @@ async function provisionCanonicalWorkspace(context, authority, kind) {
   ]);
   const host = new GitWorkspaceHostAdapter();
   const path = resolve69(root2, ".lervo/state/knowledge/convergence-workspaces", authority.assignment.assignmentId, `lease-${authority.assignment.lease.generation}`, kind);
-  await safeDirectory2(root2, dirname19(path));
+  await safeDirectory2(root2, dirname20(path));
   const plan2 = await convergenceEffectCheckpoint({
     storage: context.storage,
     assignment: authority.assignment,
@@ -87434,7 +87552,7 @@ async function sealCanonicalDrafts(context, state2, authority, drafts) {
           throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
         await authority.assertCurrent();
         context.assertSource(state2);
-        await safeDirectory2(provision.path, dirname19(resolve69(provision.path, draft.path)));
+        await safeDirectory2(provision.path, dirname20(resolve69(provision.path, draft.path)));
         const file = await open27(resolve69(provision.path, draft.path), constants31.O_WRONLY | constants31.O_CREAT | constants31.O_TRUNC | constants31.O_NOFOLLOW, 384);
         try {
           await file.writeFile(draft.content);
@@ -87918,6 +88036,59 @@ async function integrateCanonicalWorkspace(context, state2, authority, sealedWor
 
 // packages/repository-knowledge-runtime/dist/canonical-target-preflight.js
 import { execFileSync as execFileSync3 } from "node:child_process";
+
+// packages/repository-knowledge-runtime/dist/integration-target-sync.js
+import { createHash as createHash41 } from "node:crypto";
+import { execFile as execFile9 } from "node:child_process";
+import { promisify as promisify9 } from "node:util";
+var execute7 = promisify9(execFile9);
+async function blobHash(root2, commit, path) {
+  try {
+    const { stdout } = await execute7("git", ["-C", root2, "cat-file", "blob", `${commit}:${path}`], {
+      encoding: "buffer",
+      maxBuffer: 64 * 1024 * 1024
+    });
+    return `sha256:${createHash41("sha256").update(stdout).digest("hex")}`;
+  } catch {
+    return null;
+  }
+}
+async function synchronizeIntegrationTarget(input) {
+  const root2 = input.repositoryRoot;
+  const target = await convergenceGit(root2, ["rev-parse", input.ref]);
+  const head = await convergenceGit(root2, ["rev-parse", "HEAD"]);
+  if (target === head)
+    return "unchanged";
+  const isAncestor = async (ancestor, descendant) => execute7("git", ["-C", root2, "merge-base", "--is-ancestor", ancestor, descendant]).then(() => true, () => false);
+  if (await isAncestor(head, target))
+    return "unchanged";
+  if (await isAncestor(target, head)) {
+    await convergenceGit(root2, ["update-ref", input.ref, head, target]);
+    return "synchronized";
+  }
+  const base = await convergenceGit(root2, ["merge-base", target, head]);
+  const changed = (await convergenceGit(root2, ["diff", "--name-only", "-z", base, target])).split("\0").filter(Boolean);
+  for (const path of changed) {
+    const hash3 = await blobHash(root2, target, path);
+    if (hash3 === null || !input.integrated(path, hash3))
+      return "unchanged";
+  }
+  const tree = await convergenceGit(root2, ["rev-parse", "HEAD^{tree}"]);
+  const merge = await convergenceGit(root2, [
+    "commit-tree",
+    tree,
+    "-p",
+    target,
+    "-p",
+    head,
+    "-m",
+    "Synchronize knowledge integration target with the reviewed working branch"
+  ]);
+  await convergenceGit(root2, ["update-ref", input.ref, merge, target]);
+  return "synchronized";
+}
+
+// packages/repository-knowledge-runtime/dist/canonical-target-preflight.js
 async function preflightCanonicalTargets(context, state2, drafts) {
   const root2 = context.storage.paths.repositoryRoot;
   const delegation = await assertConvergenceDelegation({
@@ -87928,6 +88099,12 @@ async function preflightCanonicalTargets(context, state2, drafts) {
   });
   context.assertSource(state2);
   const targetRef = delegation.integrationTarget.ref;
+  const integrated = await integratedCanonicalDrafts(context.storage.events, context.storage.artifacts);
+  await synchronizeIntegrationTarget({
+    repositoryRoot: root2,
+    ref: targetRef,
+    integrated: (path, hash3) => integrated.has(canonicalDraftKey(path, hash3))
+  });
   const targetCommit = await convergenceGit(root2, ["rev-parse", targetRef]);
   const sourceHashes = new Map((state2.stageData.sourceCapture?.sources ?? state2.baseline.sources).map((source) => [source.path, source.contentHash]));
   for (const draft of drafts) {
@@ -88157,7 +88334,7 @@ async function generateNormalizationBatch(context, state2, assertLease) {
     ...context.executable === void 0 ? {} : { executable: context.executable },
     timeoutMs: 6e5
   });
-  const bounded = await selectNormalizationBatchWithinCallBudget({
+  const bounded2 = await selectNormalizationBatchWithinCallBudget({
     repositoryRoot: root2,
     paths: selected,
     compiler: compiler2,
@@ -88170,9 +88347,9 @@ async function generateNormalizationBatch(context, state2, assertLease) {
     stage: "normalization_generation",
     role: "generator",
     state: state2,
-    paths: bounded,
+    paths: bounded2,
     assertLease,
-    run: (authority) => generate(context, state2, bounded, authority, compiler2)
+    run: (authority) => generate(context, state2, bounded2, authority, compiler2)
   });
 }
 async function generate(context, state2, paths, authority, compiler2) {
@@ -88936,9 +89113,10 @@ async function unresolvedConvergenceAssets(context, state2) {
     expectedHash: state2.baseline.delegationHash,
     provider: context.provider
   });
-  const assets = state2.baseline.sources.filter((source) => source.kind === "opaque" && state2.baseline.sourceDispositions?.find((item) => item.path === source.path)?.kind !== "policy_excluded" || state2.baseline.sourceDispositions?.some((item) => item.path === source.path && item.kind === "sensitive_local"));
+  const dispositionKinds = new Map(state2.baseline.sourceDispositions?.map((item) => [item.path, item.kind]));
+  const assets = state2.baseline.sources.filter((source) => source.kind === "opaque" && !["policy_excluded", "sensitive_local"].includes(dispositionKinds.get(source.path) ?? ""));
   const dispositions = resolveConvergenceAssetDispositions(context.storage.paths.repositoryRoot, delegation);
-  const unresolved = assets.filter((source) => !dispositions.some((item) => item.path === source.path && item.contentHash === source.contentHash && item.kind === (source.kind === "opaque" ? "opaque_verified" : "sensitive_local")));
+  const unresolved = assets.filter((source) => !dispositions.some((item) => item.path === source.path && item.contentHash === source.contentHash && item.kind === "opaque_verified"));
   if (!unresolved.length)
     return null;
   return waitingConvergenceStage({
@@ -88956,12 +89134,191 @@ async function unresolvedConvergenceAssets(context, state2) {
   });
 }
 
+// packages/repository-knowledge-runtime/dist/knowledge-output-commit.js
+import { createHash as createHash42 } from "node:crypto";
+import { execFile as execFile10 } from "node:child_process";
+import { existsSync as existsSync2, readFileSync as readFileSync6 } from "node:fs";
+import { resolve as resolve70 } from "node:path";
+import { promisify as promisify10 } from "node:util";
+var execute8 = promisify10(execFile10);
+var RECORD_ROOT = ".lervo/knowledge/document-normalizations/";
+var KNOWLEDGE_OUTPUT_COMMIT_AUTHOR = {
+  name: "Lervo Knowledge",
+  email: "knowledge@lervo.invalid"
+};
+var sha2568 = (bytes2) => `sha256:${createHash42("sha256").update(bytes2).digest("hex")}`;
+async function git5(root2, args, env) {
+  const { stdout } = await execute8("git", ["-C", root2, ...args], {
+    maxBuffer: 64 * 1024 * 1024,
+    ...env === void 0 ? {} : { env: { ...process.env, ...env } }
+  });
+  return stdout;
+}
+async function headBlob(root2, path) {
+  try {
+    const { stdout } = await execute8("git", ["-C", root2, "cat-file", "blob", `HEAD:${path}`], {
+      encoding: "buffer",
+      maxBuffer: 64 * 1024 * 1024
+    });
+    return stdout;
+  } catch {
+    return null;
+  }
+}
+async function commitSafe(root2) {
+  try {
+    await git5(root2, ["symbolic-ref", "-q", "HEAD"]);
+  } catch {
+    return false;
+  }
+  for (const marker of [
+    "MERGE_HEAD",
+    "CHERRY_PICK_HEAD",
+    "REVERT_HEAD",
+    "REBASE_HEAD",
+    "rebase-merge",
+    "rebase-apply",
+    "BISECT_LOG",
+    "index.lock"
+  ]) {
+    const path = (await git5(root2, ["rev-parse", "--git-path", marker])).trim();
+    if (existsSync2(resolve70(root2, path)))
+      return false;
+  }
+  return true;
+}
+function dirtyPaths(status) {
+  const paths = /* @__PURE__ */ new Map();
+  const entries = status.split("\0");
+  for (let index2 = 0; index2 < entries.length; index2++) {
+    const entry = entries[index2];
+    if (entry.length < 4)
+      continue;
+    const code = entry.slice(0, 2);
+    paths.set(entry.slice(3), code.includes("D") ? "deleted" : "present");
+    if (code.includes("R") || code.includes("C"))
+      index2++;
+  }
+  return paths;
+}
+async function selectSettledKnowledgeOutputs(input) {
+  const selected = /* @__PURE__ */ new Set();
+  for (const [path, state2] of input.dirty) {
+    if (state2 !== "present")
+      continue;
+    const key3 = canonicalDraftKey(path, input.current(path));
+    if (input.drafts.has(key3) && input.drafts.get(key3) === await input.head(path))
+      selected.add(path);
+  }
+  const committedSource = async (path, contentHash2) => {
+    const head = await input.head(path);
+    const draft = canonicalDraftKey(path, contentHash2);
+    return head === contentHash2 || input.drafts.has(draft) && input.drafts.get(draft) === head;
+  };
+  const committedSources = /* @__PURE__ */ new Set();
+  for (const record4 of input.records) {
+    if (!await committedSource(record4.source.sourcePath, record4.source.sourceContentHash))
+      continue;
+    committedSources.add(record4.source.sourcePath);
+    for (const path of [record4.path, ...record4.reviewedRewritePaths])
+      if (input.dirty.get(path) === "present")
+        selected.add(path);
+    if (input.dirty.get(record4.source.sourcePath) === "deleted")
+      selected.add(record4.source.sourcePath);
+  }
+  for (const [path, state2] of input.dirty) {
+    if (state2 !== "deleted" || !path.startsWith(RECORD_ROOT))
+      continue;
+    const source = await input.deletedRecordSource(path);
+    if (source && committedSources.has(source.sourcePath))
+      selected.add(path);
+  }
+  return [...selected].sort();
+}
+async function settledKnowledgeOutputPaths(input) {
+  const root2 = input.repositoryRoot;
+  const dirty = dirtyPaths(await git5(root2, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]));
+  if (!dirty.size)
+    return [];
+  const normalization = await inspectConfiguredDocumentNormalization({ repositoryRoot: root2 });
+  return selectSettledKnowledgeOutputs({
+    dirty,
+    head: async (path) => {
+      const committed = await headBlob(root2, path);
+      return committed === null ? null : sha2568(committed);
+    },
+    current: (path) => sha2568(readFileSync6(resolve70(root2, path))),
+    drafts: await integratedCanonicalDrafts(input.events, input.artifacts),
+    records: normalization.records.flatMap((record4) => {
+      if (record4.status !== "current")
+        return [];
+      const source = documentNormalizationRecordSource(readFileSync6(resolve70(root2, record4.path), "utf8"));
+      return source ? [{ ...record4, source }] : [];
+    }),
+    deletedRecordSource: async (path) => {
+      const committed = await headBlob(root2, path);
+      return committed && documentNormalizationRecordSource(committed.toString("utf8"));
+    }
+  });
+}
+async function commitSettledKnowledgeOutputs(input) {
+  const root2 = input.repositoryRoot;
+  if (!await commitSafe(root2))
+    return { committed: [], head: null };
+  const paths = await settledKnowledgeOutputPaths(input);
+  if (!paths.length)
+    return { committed: [], head: null };
+  const before = (await git5(root2, ["rev-parse", "HEAD"])).trim();
+  try {
+    await git5(root2, ["add", "-A", "--", ...paths]);
+    await git5(root2, [
+      "commit",
+      "--only",
+      "--quiet",
+      "-m",
+      "docs: apply reviewed background knowledge",
+      "-m",
+      `Lervo convergence ${input.obligationId} settled these reviewed outputs.`,
+      "--",
+      ...paths
+    ], {
+      GIT_AUTHOR_NAME: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name,
+      GIT_AUTHOR_EMAIL: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email
+    });
+  } catch {
+    return { committed: [], head: null };
+  }
+  const after = (await git5(root2, ["rev-parse", "HEAD"])).trim();
+  const parent = (await git5(root2, ["rev-parse", `${after}^`])).trim();
+  if (parent !== before)
+    return { committed: [], head: null };
+  return { committed: paths, head: { before, after } };
+}
+
 // packages/repository-knowledge-runtime/dist/lifecycle-final.js
 async function verifyConvergenceLifecycle(context, state2, assertLease) {
   const root2 = context.storage.paths.repositoryRoot;
   const candidates = await resolveConvergenceCandidates(context, state2, assertLease);
   if (candidates !== null)
     return candidates;
+  context.assertSource(state2);
+  const output = await commitSettledKnowledgeOutputs({
+    repositoryRoot: root2,
+    events: context.storage.events,
+    artifacts: context.storage.artifacts,
+    obligationId: state2.obligationId
+  });
+  if (output.head !== null)
+    return completeConvergenceStage({
+      repositoryRoot: root2,
+      artifacts: context.storage.artifacts,
+      state: state2,
+      stage: "lifecycle_verification",
+      nextStage: "lifecycle_verification",
+      stageData: {},
+      committedHead: output.head,
+      proof: { status: "settled_outputs_committed", head: output.head, paths: output.committed }
+    });
   const bridge = await createKnowledgeInstructionBridgePlan({
     repositoryRoot: root2,
     provider: "claude"
@@ -89267,7 +89624,7 @@ function convergenceRecoveryStatus(storage) {
 // packages/repository-knowledge-runtime/dist/workforce-retention.js
 import { constants as constants32 } from "node:fs";
 import { open as open28 } from "node:fs/promises";
-import { resolve as resolve70 } from "node:path";
+import { resolve as resolve71 } from "node:path";
 async function compactConvergenceWorkforce(storage) {
   if ((storage.writableEventSchemaVersion ?? 1) < 4)
     return 0;
@@ -89288,7 +89645,7 @@ async function compactConvergenceWorkforce(storage) {
     const terminal = storage.events.get(stableId("evt", [provenance.obligationId, "terminal"], 32));
     if (terminal?.type !== "repository.knowledge.convergence.recorded" || terminal.payload.obligationId !== provenance.obligationId)
       continue;
-    const file = await open28(resolve70(home.workforce, "assignments", `${assignment.assignmentId}.json`), constants32.O_RDONLY | constants32.O_NOFOLLOW);
+    const file = await open28(resolve71(home.workforce, "assignments", `${assignment.assignmentId}.json`), constants32.O_RDONLY | constants32.O_NOFOLLOW);
     let hash3;
     try {
       const stat = await file.stat();
@@ -89331,7 +89688,7 @@ async function compactConvergenceWorkforce(storage) {
 }
 
 // packages/repository-knowledge-runtime/dist/workspace-retention.js
-import { resolve as resolve71, relative as relative17 } from "node:path";
+import { resolve as resolve72, relative as relative17 } from "node:path";
 async function compactConvergenceWorkspaces(storage, provider) {
   if ((storage.writableEventSchemaVersion ?? 1) < 4)
     return;
@@ -89348,7 +89705,7 @@ async function compactConvergenceWorkspaces(storage, provider) {
   await validate2();
   const assignments = await listAssignments(root2);
   const journals = (await (await RepositoryCoordinationRecords.open(root2)).list("cleanupJournals")).map((record4) => record4.value).filter(isWorkspaceCleanupJournal);
-  const ownedRoot = resolve71(root2, ".lervo/state/knowledge/convergence-workspaces");
+  const ownedRoot = resolve72(root2, ".lervo/state/knowledge/convergence-workspaces");
   const host = new GitWorkspaceHostAdapter();
   let count = 0;
   for (const workspace of await listWorkspaces(root2)) {
@@ -89435,14 +89792,14 @@ async function runAutonomousKnowledgeWorker(input) {
 }
 
 // packages/repository-knowledge-runtime/dist/resident-health.js
-import { mkdir as mkdir22, lstat as lstat49, chmod as chmod8 } from "node:fs/promises";
-import { resolve as resolve72 } from "node:path";
+import { mkdir as mkdir23, lstat as lstat49, chmod as chmod8 } from "node:fs/promises";
+import { resolve as resolve73 } from "node:path";
 async function healthDatabase(root2, create) {
   let directory = root2;
   for (const part of [".lervo", "state", "knowledge"]) {
-    directory = resolve72(directory, part);
+    directory = resolve73(directory, part);
     if (create)
-      await mkdir22(directory, { mode: 448 }).catch((error) => {
+      await mkdir23(directory, { mode: 448 }).catch((error) => {
         if (error.code !== "EEXIST")
           throw error;
       });
@@ -89456,7 +89813,7 @@ async function healthDatabase(root2, create) {
       throw error;
     }
   }
-  const path = resolve72(directory, "resident-health.sqlite");
+  const path = resolve73(directory, "resident-health.sqlite");
   try {
     const stat = await lstat49(path);
     if (!stat.isFile() || stat.isSymbolicLink())
@@ -89499,6 +89856,27 @@ async function recordKnowledgeResidentHealth(input) {
     db.exec("COMMIT");
   } finally {
     db.close();
+  }
+}
+async function inspectKnowledgeResidentHealth(root2, now = /* @__PURE__ */ new Date()) {
+  const db = await healthDatabase(root2, false);
+  try {
+    const row = db?.prepare("SELECT * FROM residents WHERE state != 'stopped' ORDER BY heartbeat DESC").all().find((item) => now.getTime() - Number(item.heartbeat) <= 12e4 && alive3(Number(item.pid)));
+    if (!row)
+      return {
+        status: "not_running",
+        state: null,
+        heartbeatAt: null,
+        reason: "knowledge_resident_absent"
+      };
+    return {
+      status: row.state === "attention" ? "degraded" : "healthy",
+      state: row.state,
+      heartbeatAt: new Date(Number(row.heartbeat)).toISOString(),
+      reason: typeof row.reason === "string" ? row.reason : null
+    };
+  } finally {
+    db?.close();
   }
 }
 
@@ -89634,11 +90012,11 @@ async function runKnowledgeWorkerCommand(args, io) {
         )
       });
       try {
-        await new Promise((resolve86) => {
+        await new Promise((resolve89) => {
           const stopped = () => {
             process.removeListener("SIGINT", stopped);
             process.removeListener("SIGTERM", stopped);
-            resolve86();
+            resolve89();
           };
           process.once("SIGINT", stopped);
           process.once("SIGTERM", stopped);
@@ -89675,7 +90053,7 @@ function launchDetachedKnowledgeWorker(input) {
 }
 
 // apps/cli/src/terminal-command-runtime.ts
-import { resolve as resolve83 } from "node:path";
+import { resolve as resolve86 } from "node:path";
 import { parseArgs as parseArgs4 } from "node:util";
 
 // packages/diagnostics/dist/recovery-guidance-environment.js
@@ -90334,7 +90712,7 @@ function formatTerminalCoverageReport(report) {
 }
 
 // apps/cli/src/terminal-budget-command.ts
-import { resolve as resolve74 } from "node:path";
+import { resolve as resolve75 } from "node:path";
 import { parseArgs } from "node:util";
 
 // apps/cli/src/terminal-budget-format.ts
@@ -90365,17 +90743,17 @@ var terminalUsage = "  lervo terminal status [--root <path>] [--json]\n  lervo t
 
 // apps/cli/src/terminal-repository-root.ts
 import { lstat as lstat50 } from "node:fs/promises";
-import { dirname as dirname20, resolve as resolve73 } from "node:path";
+import { dirname as dirname21, resolve as resolve74 } from "node:path";
 async function resolveTerminalRepositoryRoot(start) {
-  let current = resolve73(start);
+  let current = resolve74(start);
   while (true) {
     try {
-      const manifest = await lstat50(resolve73(current, ".lervo/project.yaml"));
+      const manifest = await lstat50(resolve74(current, ".lervo/project.yaml"));
       if (manifest.isFile() && !manifest.isSymbolicLink()) return current;
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
     }
-    const parent = dirname20(current);
+    const parent = dirname21(current);
     if (parent === current)
       throw new Error("No initialized Lervo repository contains the hook working directory.");
     current = parent;
@@ -90419,7 +90797,7 @@ async function runTerminalBudgetCommand(args, io) {
     const limit = boundedInteger(parsed.values.limit, 100, 100);
     const minimumSamples = boundedInteger(parsed.values["minimum-samples"], 30, 100);
     const maxQueryProjectionTokens = parsed.values["max-query-tokens"] === void 0 ? null : boundedInteger(parsed.values["max-query-tokens"], 1, Number.MAX_SAFE_INTEGER);
-    const root2 = await resolveTerminalRepositoryRoot(resolve74(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve75(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const coverage = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -90450,13 +90828,22 @@ ${terminalUsage}
 }
 
 // apps/cli/src/terminal-declaration-command.ts
-import { resolve as resolve78 } from "node:path";
+import { resolve as resolve80 } from "node:path";
 import { parseArgs as parseArgs2 } from "node:util";
+
+// apps/cli/src/terminal-repository-snapshot.ts
+import { resolve as resolve76 } from "node:path";
+function captureTerminalRepositorySnapshot(root2) {
+  return capturePersistentRepositorySnapshot(
+    root2,
+    resolve76(root2, ".lervo/state/cache/terminal-repository-snapshot.json")
+  );
+}
 
 // apps/cli/src/development-pattern-storage.ts
 import { randomUUID as randomUUID12 } from "node:crypto";
-import { mkdir as mkdir23, rename as rename10, writeFile as writeFile5 } from "node:fs/promises";
-import { resolve as resolve75 } from "node:path";
+import { mkdir as mkdir24, rename as rename11, writeFile as writeFile6 } from "node:fs/promises";
+import { resolve as resolve77 } from "node:path";
 function allPatternEvents(storage) {
   const events = [];
   const latest = storage.events.latest();
@@ -90537,16 +90924,16 @@ function projectPatterns(events) {
   );
 }
 async function writePatternProjection(repositoryRoot, patterns) {
-  const path = resolve75(repositoryRoot, ".lervo/state/knowledge/development-patterns/current.json");
-  await mkdir23(resolve75(path, ".."), { recursive: true });
+  const path = resolve77(repositoryRoot, ".lervo/state/knowledge/development-patterns/current.json");
+  await mkdir24(resolve77(path, ".."), { recursive: true });
   const temporary = `${path}.${process.pid}.tmp`;
-  await writeFile5(
+  await writeFile6(
     temporary,
     `${JSON.stringify({ schemaVersion: 1, patterns }, null, 2)}
 `,
     "utf8"
   );
-  await rename10(temporary, path);
+  await rename11(temporary, path);
 }
 function patternArtifactId(contentHash2) {
   return `art_${contentHash2.slice("sha256:".length)}`;
@@ -90724,8 +91111,8 @@ function terminalEventDraft(input) {
 // apps/cli/src/terminal-knowledge-lifecycle-cache.ts
 import { constants as constants33 } from "node:fs";
 import { randomUUID as randomUUID14 } from "node:crypto";
-import { lstat as lstat51, mkdir as mkdir24, open as open29, readFile as readFile24, rename as rename11, rm as rm13 } from "node:fs/promises";
-import { resolve as resolve76 } from "node:path";
+import { lstat as lstat51, mkdir as mkdir25, open as open29, readFile as readFile25, rename as rename12, rm as rm13 } from "node:fs/promises";
+import { resolve as resolve78 } from "node:path";
 
 // apps/cli/src/version-command.ts
 import { createRequire } from "node:module";
@@ -90747,7 +91134,7 @@ var KNOWLEDGE_PROJECTION_COORDINATE_PATHS = [
   ".lervo/state/knowledge/current/source-units.json",
   ".lervo/state/knowledge/current/structural/manifests/current.json"
 ];
-var HASH29 = /^sha256:[a-f0-9]{64}$/u;
+var HASH32 = /^sha256:[a-f0-9]{64}$/u;
 function supplementalSourcesDigest(sources) {
   return sha2564(
     canonicalJson3(
@@ -90795,17 +91182,17 @@ function validIssue(value) {
 }
 function validateCache(value) {
   const cache = value;
-  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 2 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH29.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH29.test(cache.supplementalSourcesDigest) || typeof cache.knowledgeProjectionDigest !== "string" || !HASH29.test(cache.knowledgeProjectionDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
+  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 2 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH32.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH32.test(cache.supplementalSourcesDigest) || typeof cache.knowledgeProjectionDigest !== "string" || !HASH32.test(cache.knowledgeProjectionDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
     return null;
   }
   return cache;
 }
 async function readTerminalKnowledgeLifecycleCache(input) {
   try {
-    const target = resolve76(input.root, CACHE_PATH);
+    const target = resolve78(input.root, CACHE_PATH);
     const stats = await lstat51(target);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_CACHE_BYTES) return null;
-    const cache = validateCache(JSON.parse(await readFile24(target, "utf8")));
+    const cache = validateCache(JSON.parse(await readFile25(target, "utf8")));
     if (cache === null) return null;
     const expected = await cacheCoordinates(input);
     if (expected === null) return null;
@@ -90818,14 +91205,14 @@ async function readTerminalKnowledgeLifecycleCache(input) {
   }
 }
 async function writeTerminalKnowledgeLifecycleCache(input) {
-  if (!HASH29.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
+  if (!HASH32.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
     throw new Error("The terminal knowledge lifecycle cache input is invalid.");
   }
   const coordinates = await cacheCoordinates(input);
   if (coordinates === null)
     throw new Error("The terminal knowledge lifecycle cache coordinates are unavailable.");
-  const directory = resolve76(input.root, ".lervo/state/terminal-integration");
-  await mkdir24(directory, { recursive: true, mode: 448 });
+  const directory = resolve78(input.root, ".lervo/state/terminal-integration");
+  await mkdir25(directory, { recursive: true, mode: 448 });
   const directoryStats = await lstat51(directory);
   if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink())
     throw new Error("Unsafe terminal knowledge lifecycle cache directory.");
@@ -90838,7 +91225,7 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
 `;
   if (Buffer.byteLength(bytes2) > MAXIMUM_CACHE_BYTES)
     throw new Error("The terminal knowledge lifecycle cache exceeds its storage limit.");
-  const temporary = resolve76(directory, `.knowledge-lifecycle-${randomUUID14()}.tmp`);
+  const temporary = resolve78(directory, `.knowledge-lifecycle-${randomUUID14()}.tmp`);
   let handle;
   try {
     handle = await open29(
@@ -90850,7 +91237,7 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename11(temporary, resolve76(input.root, CACHE_PATH));
+    await rename12(temporary, resolve78(input.root, CACHE_PATH));
   } finally {
     await handle?.close();
     await rm13(temporary, { force: true });
@@ -91051,7 +91438,7 @@ async function inspectTerminalRepositoryKnowledgeLifecycle(input) {
   ]);
   const issues = [...structuralIssues, ...validationIssues];
   if (preparedScan !== void 0 && !issues.some((issue) => TRANSIENT_INSPECTION_FAILURES.has(issue.code))) {
-    const confirmedRevision = await captureRepositorySnapshot(input.root).then((snapshot) => snapshot.revision).catch(() => null);
+    const confirmedRevision = await captureTerminalRepositorySnapshot(input.root).then((snapshot) => snapshot.revision).catch(() => null);
     if (confirmedRevision === input.repositoryRevision) {
       await writeTerminalKnowledgeLifecycleCache({ ...input, issues }).catch(() => void 0);
     }
@@ -91062,15 +91449,15 @@ async function inspectTerminalRepositoryKnowledgeLifecycle(input) {
 // apps/cli/src/terminal-prepared-snapshot.ts
 import { constants as constants34 } from "node:fs";
 import { randomUUID as randomUUID15 } from "node:crypto";
-import { lstat as lstat52, mkdir as mkdir25, open as open30, readFile as readFile25, readdir as readdir18, rename as rename12, rm as rm14 } from "node:fs/promises";
-import { resolve as resolve77 } from "node:path";
+import { lstat as lstat52, mkdir as mkdir26, open as open30, readFile as readFile26, readdir as readdir18, rename as rename13, rm as rm14 } from "node:fs/promises";
+import { resolve as resolve79 } from "node:path";
 var DIRECTORY = ".lervo/state/terminal-integration/prepared-snapshots";
 var MAXIMUM_SNAPSHOTS = 64;
 var MAXIMUM_BYTES2 = 8 * 1024 * 1024;
 function snapshotPath(root2, observationId) {
   if (!/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(observationId))
     throw new Error("The prepared snapshot observation ID is invalid.");
-  return resolve77(root2, DIRECTORY, `${observationId}.json`);
+  return resolve79(root2, DIRECTORY, `${observationId}.json`);
 }
 function validate(value) {
   const snapshot = value;
@@ -91083,8 +91470,8 @@ function validate(value) {
   return snapshot;
 }
 async function writePreparedRepositorySnapshot(root2, snapshot) {
-  const directory = resolve77(root2, DIRECTORY);
-  await mkdir25(directory, { recursive: true, mode: 448 });
+  const directory = resolve79(root2, DIRECTORY);
+  await mkdir26(directory, { recursive: true, mode: 448 });
   const stats = await lstat52(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe prepared snapshot state directory.");
@@ -91092,7 +91479,7 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
 `;
   if (Buffer.byteLength(bytes2) > MAXIMUM_BYTES2)
     throw new Error("The prepared repository snapshot exceeds its storage limit.");
-  const temporary = resolve77(directory, `.prepared-${randomUUID15()}.tmp`);
+  const temporary = resolve79(directory, `.prepared-${randomUUID15()}.tmp`);
   let handle;
   try {
     handle = await open30(
@@ -91104,7 +91491,7 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename12(temporary, snapshotPath(root2, snapshot.observationId));
+    await rename13(temporary, snapshotPath(root2, snapshot.observationId));
   } finally {
     await handle?.close();
     await rm14(temporary, { force: true });
@@ -91114,7 +91501,7 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
       (entry) => entry.isFile() && /^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}\.json$/u.test(entry.name)
     ).map(async (entry) => ({
       name: entry.name,
-      modifiedAt: (await lstat52(resolve77(directory, entry.name))).mtimeMs
+      modifiedAt: (await lstat52(resolve79(directory, entry.name))).mtimeMs
     }))
   );
   const currentName = `${snapshot.observationId}.json`;
@@ -91122,7 +91509,7 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
     (left, right) => Number(left.name === currentName) - Number(right.name === currentName) || left.modifiedAt - right.modifiedAt || left.name.localeCompare(right.name)
   );
   for (const entry of entries.slice(0, Math.max(0, entries.length - MAXIMUM_SNAPSHOTS)))
-    await rm14(resolve77(directory, entry.name), { force: true });
+    await rm14(resolve79(directory, entry.name), { force: true });
 }
 async function readPreparedRepositorySnapshot(root2, observationId) {
   try {
@@ -91130,7 +91517,7 @@ async function readPreparedRepositorySnapshot(root2, observationId) {
     const stats = await lstat52(path);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_BYTES2)
       throw new Error("The prepared repository snapshot is unsafe.");
-    const snapshot = validate(JSON.parse(await readFile25(path, "utf8")));
+    const snapshot = validate(JSON.parse(await readFile26(path, "utf8")));
     if (snapshot.observationId !== observationId)
       throw new Error("The prepared repository snapshot coordinate does not match.");
     return snapshot;
@@ -91151,7 +91538,7 @@ async function plannedTerminalRepositoryChange(input) {
   );
   if (before === null || before.revision !== input.lifecycle.repositoryChange.beforeRevision)
     return null;
-  const after = await captureRepositorySnapshot(input.root);
+  const after = await captureTerminalRepositorySnapshot(input.root);
   if (after.revision !== input.lifecycle.repositoryChange.afterRevision) return null;
   const planned = await planRepositoryChangeInRepository({
     repositoryRoot: input.root,
@@ -91641,7 +92028,7 @@ async function runTerminalDeclareCommand(args, io) {
     if (!parsed.values.stdin || io.stdin === void 0)
       throw new Error("The declaration must be supplied through --stdin.");
     const draft = parseTurnDeclarationDraft(await io.stdin());
-    const root2 = await resolveTerminalRepositoryRoot(resolve78(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve80(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const context = allTerminalEvents2(storage.events).filter(
       (event) => event.type === "terminal.context.prepared" && event.actor.kind === "provider" && event.actor.provider === parsed.values.provider && event.payload.observationId === parsed.values.observation
@@ -91650,7 +92037,7 @@ async function runTerminalDeclareCommand(args, io) {
     const contextRevision = context.payload.repositoryRevision;
     if (typeof contextRevision !== "string")
       throw new Error("The prepared terminal observation has no repository revision.");
-    const repository = await captureRepositorySnapshot(root2);
+    const repository = await captureTerminalRepositorySnapshot(root2);
     const repositoryChanged = contextRevision !== repository.revision;
     if (repositoryChanged && draft.taskMode === "inquiry")
       throw new Error("An inquiry declaration cannot bind changed repository bytes.");
@@ -91774,19 +92161,19 @@ import { parseArgs as parseArgs3 } from "node:util";
 // apps/cli/src/terminal-activation-state.ts
 import { constants as constants35 } from "node:fs";
 import { randomUUID as randomUUID16 } from "node:crypto";
-import { lstat as lstat53, mkdir as mkdir26, open as open31, readFile as readFile26, rename as rename13, rm as rm15 } from "node:fs/promises";
-import { resolve as resolve79 } from "node:path";
+import { lstat as lstat53, mkdir as mkdir27, open as open31, readFile as readFile27, rename as rename14, rm as rm15 } from "node:fs/promises";
+import { resolve as resolve81 } from "node:path";
 function activationPath(root2, provider, event) {
-  return resolve79(
+  return resolve81(
     root2,
     ".lervo/state/terminal-integration",
     `${provider}-${event === "UserPromptSubmit" ? "user-prompt-submit" : "stop"}.json`
   );
 }
 async function writeTerminalActivationReceipt(root2, receipt3) {
-  const directory = resolve79(root2, ".lervo/state/terminal-integration");
+  const directory = resolve81(root2, ".lervo/state/terminal-integration");
   try {
-    await mkdir26(directory, { mode: 448 });
+    await mkdir27(directory, { mode: 448 });
   } catch (error) {
     if (error.code !== "EEXIST") throw error;
   }
@@ -91794,7 +92181,7 @@ async function writeTerminalActivationReceipt(root2, receipt3) {
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe terminal activation state directory.");
   const target = activationPath(root2, receipt3.provider, receipt3.hookEvent);
-  const temporary = resolve79(directory, `.activation-${randomUUID16()}.tmp`);
+  const temporary = resolve81(directory, `.activation-${randomUUID16()}.tmp`);
   let handle;
   try {
     handle = await open31(
@@ -91807,7 +92194,7 @@ async function writeTerminalActivationReceipt(root2, receipt3) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename13(temporary, target);
+    await rename14(temporary, target);
   } finally {
     await handle?.close();
     await rm15(temporary, { force: true });
@@ -91821,7 +92208,7 @@ async function readTerminalActivationReceipts(root2) {
         const path = activationPath(root2, provider, event);
         const stats = await lstat53(path);
         if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
-        const value = JSON.parse(await readFile26(path, "utf8"));
+        const value = JSON.parse(await readFile27(path, "utf8"));
         if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v2" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string")
           receipts.push(value);
       } catch (error) {
@@ -91913,18 +92300,18 @@ function parseTerminalHookInput(value) {
 
 // apps/cli/src/terminal-lifecycle-inspection.ts
 import { lstat as lstat55 } from "node:fs/promises";
-import { resolve as resolve81 } from "node:path";
+import { resolve as resolve83 } from "node:path";
 
 // apps/cli/src/terminal-repository-replica-service-inspection.ts
-import { execFile as execFile9 } from "node:child_process";
+import { execFile as execFile11 } from "node:child_process";
 import { lstat as lstat54 } from "node:fs/promises";
 import { homedir as homedir3 } from "node:os";
-import { resolve as resolve80 } from "node:path";
+import { resolve as resolve82 } from "node:path";
 var serviceLabel = "dev.lervo.repository-replica";
 var maximumDefinitionBytes = 128 * 1024;
 function launchdServiceLoaded(uid) {
   return new Promise((done) => {
-    execFile9(
+    execFile11(
       "launchctl",
       ["print", `gui/${uid}/${serviceLabel}`],
       { encoding: "utf8", maxBuffer: 4096, timeout: 5e3 },
@@ -91934,7 +92321,7 @@ function launchdServiceLoaded(uid) {
 }
 async function inspectTerminalRepositoryReplicaService(input = {}) {
   if ((input.platform ?? process.platform) !== "darwin") return [];
-  const definition2 = resolve80(
+  const definition2 = resolve82(
     input.homeDirectory ?? homedir3(),
     "Library",
     "LaunchAgents",
@@ -91982,7 +92369,7 @@ async function inspectTerminalRepositoryReplicaService(input = {}) {
 import { randomBytes as randomBytes6 } from "node:crypto";
 
 // apps/cli/src/terminal-workspace-boundary.ts
-import { createHash as createHash41 } from "node:crypto";
+import { createHash as createHash43 } from "node:crypto";
 function stableJson11(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson11).join(",")}]`;
   if (value !== null && typeof value === "object")
@@ -91990,10 +92377,10 @@ function stableJson11(value) {
   return JSON.stringify(value);
 }
 function terminalWorkspaceDigest(value) {
-  return `sha256:${createHash41("sha256").update(stableJson11(value)).digest("hex")}`;
+  return `sha256:${createHash43("sha256").update(stableJson11(value)).digest("hex")}`;
 }
 function terminalWriterSessionId(provider, providerSessionId) {
-  return `ses_terminal_${createHash41("sha256").update(`${provider}\0${providerSessionId}`).digest("hex").slice(0, 24)}`;
+  return `ses_terminal_${createHash43("sha256").update(`${provider}\0${providerSessionId}`).digest("hex").slice(0, 24)}`;
 }
 function terminalWorkspaceMarker(workspace) {
   return {
@@ -92173,7 +92560,7 @@ async function attachTerminalWorkspace(input) {
 }
 
 // apps/cli/src/terminal-workspace-checkpoint.ts
-import { createHash as createHash42, randomBytes as randomBytes7 } from "node:crypto";
+import { createHash as createHash44, randomBytes as randomBytes7 } from "node:crypto";
 async function pauseTerminalWorkspace(input) {
   const { workspace, binding } = input.inspection;
   if (input.inspection.issues.length > 0 || workspace === null || workspace.state !== "active" || workspace.workspaceId !== input.checkpoint.workspaceId || workspace.revision !== input.checkpoint.workspaceRevision || workspace.writerSession?.sessionId !== binding.writerSessionId || input.checkpoint.writerSessionId !== binding.writerSessionId)
@@ -92198,7 +92585,7 @@ async function checkpointTerminalWorkspace(input) {
   const { workspace, host, assignmentRevision, changedPathSetDigest, changedPathCount } = input.inspection;
   if (input.inspection.issues.length > 0 || workspace === null || host === null || host.headCommit === null || host.treeHash === null || host.changedPaths === null || assignmentRevision === null || changedPathSetDigest === null || changedPathCount === null)
     throw new Error("The worker workspace is not eligible for a checkpoint.");
-  const eventId2 = `evt_${createHash42("sha256").update(`workspace-checkpoint\0${input.contextEventId}`).digest("hex").slice(0, 24)}`;
+  const eventId2 = `evt_${createHash44("sha256").update(`workspace-checkpoint\0${input.contextEventId}`).digest("hex").slice(0, 24)}`;
   return recordWorkspaceCheckpoint({
     repositoryRoot: input.root,
     checkpoint: {
@@ -92306,11 +92693,11 @@ async function inspectTerminalWorkspace(input) {
 }
 
 // apps/cli/src/terminal-lifecycle-inspection.ts
+async function terminalTurnDeclarationRequired(root2) {
+  return (await inspectKnowledgeResidentHealth(root2)).status !== "healthy";
+}
 async function inspectTerminalLifecycle(root2, expected) {
-  const [supplementalSources, currentRepository] = await Promise.all([
-    collectLocalKnowledgeSources2(root2),
-    captureRepositorySnapshot(root2)
-  ]);
+  const currentRepository = await captureTerminalRepositorySnapshot(root2);
   const repositoryChange = {
     beforeRevision: expected?.repositoryRevision ?? currentRepository.revision,
     afterRevision: currentRepository.revision,
@@ -92344,7 +92731,7 @@ async function inspectTerminalLifecycle(root2, expected) {
     }
   }
   try {
-    const handoff = await lstat55(resolve81(root2, "HANDOFF.md"));
+    const handoff = await lstat55(resolve83(root2, "HANDOFF.md"));
     if (handoff.isFile() && !handoff.isSymbolicLink())
       issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
     else
@@ -92375,7 +92762,7 @@ async function inspectTerminalLifecycle(root2, expected) {
         });
       }
     }
-    if (expected !== void 0 && repositoryChange.changed) {
+    if (expected !== void 0 && repositoryChange.changed && await terminalTurnDeclarationRequired(root2)) {
       const declaration = latestTerminalTurnDeclaration(
         workstreamStorage.events,
         expected.contextEventId,
@@ -92441,7 +92828,7 @@ async function inspectTerminalLifecycle(root2, expected) {
       ...await inspectTerminalRepositoryKnowledgeLifecycle({
         root: root2,
         repositoryRevision: currentRepository.revision,
-        supplementalSources
+        supplementalSources: await collectLocalKnowledgeSources2(root2)
       })
     );
   }
@@ -92476,7 +92863,7 @@ function assembleTerminalHookContext(input) {
 // apps/cli/src/terminal-context-loading.ts
 import { constants as constants36 } from "node:fs";
 import { open as open32 } from "node:fs/promises";
-import { relative as relative18, resolve as resolve82, sep as sep16 } from "node:path";
+import { relative as relative18, resolve as resolve84, sep as sep16 } from "node:path";
 var TRUNCATION_NOTICE = "\n[Lervo content truncated]";
 function truncateUtf8(value, maximumBytes2) {
   if (maximumBytes2 <= 0) return "";
@@ -92492,7 +92879,7 @@ function truncateUtf8(value, maximumBytes2) {
   return value.slice(0, end);
 }
 async function loadSelectedTerminalDocument(input) {
-  const target = resolve82(input.repositoryRoot, input.hit.path);
+  const target = resolve84(input.repositoryRoot, input.hit.path);
   const child = relative18(input.repositoryRoot, target);
   if (child === ".." || child.startsWith(`..${sep16}`) || input.maximumBytes <= 0) return null;
   let handle;
@@ -92520,9 +92907,9 @@ async function loadSelectedTerminalDocument(input) {
 }
 
 // apps/cli/src/repository-search-corpus.ts
-import { createHash as createHash43 } from "node:crypto";
+import { createHash as createHash45 } from "node:crypto";
 function sourceId(path) {
-  return `doc_${createHash43("sha256").update(path).digest("hex").slice(0, 24)}`;
+  return `doc_${createHash45("sha256").update(path).digest("hex").slice(0, 24)}`;
 }
 function createRepositoryKnowledgeSearchCorpus(scan) {
   const byPath = /* @__PURE__ */ new Map();
@@ -92716,6 +93103,10 @@ function formatTerminalAttentionContext(report) {
   ].join("\n");
 }
 
+// apps/cli/src/terminal-compact-context.ts
+import { mkdir as mkdir28, readFile as readFile28, rename as rename15, writeFile as writeFile7 } from "node:fs/promises";
+import { dirname as dirname22, resolve as resolve85 } from "node:path";
+
 // apps/cli/src/operating-attention-projection.ts
 var MAXIMUM_ATTENTION_ITEMS = 256;
 function canonicalizationItem(candidate) {
@@ -92866,6 +93257,187 @@ function createOperatingAttentionReport(input) {
   };
 }
 
+// apps/cli/src/terminal-compact-context.ts
+var MAXIMUM_ITEM_BYTES = 360;
+var MAXIMUM_DECISIONS = 3;
+var KNOWLEDGE_SNAPSHOT_CACHE = ".lervo/state/cache/terminal-knowledge-snapshot.json";
+var compactQueryProjector = {
+  id: "lervo.terminal-compact",
+  version: 1,
+  buildId: searchQueryProjectorBuildId("lervo.terminal-compact-projector.v1")
+};
+function bounded(value, maximumBytes2 = MAXIMUM_ITEM_BYTES) {
+  if (Buffer.byteLength(value) <= maximumBytes2) return value;
+  let result = "";
+  for (const character of value) {
+    if (Buffer.byteLength(`${result}${character}\u2026`) > maximumBytes2) break;
+    result += character;
+  }
+  return `${result}\u2026`;
+}
+async function readKnowledgeSnapshotCache(root2) {
+  try {
+    const value = JSON.parse(
+      await readFile28(resolve85(root2, KNOWLEDGE_SNAPSHOT_CACHE), "utf8")
+    );
+    return value?.schemaVersion === 1 && /^ksnap_[a-f0-9]{24}$/u.test(value.sourceSnapshotId) ? value : null;
+  } catch {
+    return null;
+  }
+}
+async function terminalKnowledgeSnapshotId(root2, repositoryRevision) {
+  const [cached, manifest, policy] = await Promise.all([
+    readKnowledgeSnapshotCache(root2),
+    loadProjectManifest(root2),
+    loadRepositoryKnowledgePolicy(root2)
+  ]);
+  if (cached?.repositoryRevision === repositoryRevision && cached.projectId === manifest.projectId && cached.policyId === policy.policyId)
+    return cached.sourceSnapshotId;
+  const { scan } = await scanConfiguredRepositoryKnowledge(root2);
+  if ((await captureTerminalRepositorySnapshot(root2)).revision === repositoryRevision) {
+    const value = {
+      schemaVersion: 1,
+      repositoryRevision,
+      projectId: manifest.projectId,
+      policyId: policy.policyId,
+      sourceSnapshotId: scan.snapshotId
+    };
+    try {
+      const target = resolve85(root2, KNOWLEDGE_SNAPSHOT_CACHE);
+      await mkdir28(dirname22(target), { recursive: true, mode: 448 });
+      await writeFile7(`${target}.${process.pid}.tmp`, JSON.stringify(value), { mode: 384 });
+      await rename15(`${target}.${process.pid}.tmp`, target);
+    } catch {
+    }
+  }
+  return scan.snapshotId;
+}
+async function prefetchTerminalPromptContext(root2) {
+  const snapshot = await captureTerminalRepositorySnapshot(root2);
+  await terminalKnowledgeSnapshotId(root2, snapshot.revision);
+}
+function formatCompactWorkstreamContext(snapshot) {
+  const decisions = snapshot.pendingDecisions ?? [];
+  const context = [
+    `Lervo workstream: ${bounded(snapshot.title, 200)} (revision ${snapshot.revision}).`,
+    ...snapshot.nextActions[0] === void 0 ? [] : [`Next: ${bounded(snapshot.nextActions[0])}`],
+    ...decisions.length === 0 ? [] : [
+      `Pending user decisions: ${decisions.length}.`,
+      ...decisions.slice(0, MAXIMUM_DECISIONS).map(
+        (item) => `- ${item.decisionId}${item.blocking ? " [blocking]" : ""}: ${bounded(item.question, 240)}; recommended=${item.recommendedChoiceId ?? "none"}`
+      )
+    ]
+  ].join("\n");
+  return {
+    workstreamId: snapshot.workstreamId,
+    revision: snapshot.revision,
+    snapshotHash: sha2564(`${canonicalJson3(snapshot)}
+`),
+    scope: "prefix",
+    deliveredByteCount: Buffer.byteLength(context),
+    context
+  };
+}
+function formatCompactTerminalPreamble(input) {
+  const blocking = input.attention.items.filter((item) => item.blocking).slice(0, 5);
+  return [
+    'Lervo compact terminal context. Before changing repository bytes, run `lervo knowledge query "<purpose and paths>"` for applicable rules, as AGENTS.md requires.',
+    ...blocking.length === 0 ? [] : [
+      `Blocking attention: ${blocking.map((item) => `${item.kind}:${item.itemId}${item.requiresUserAction ? " [user]" : ""}`).join("; ")}. Details: \`lervo application attention --json\`.`
+    ],
+    ...input.backgroundKnowledgeActive ? [
+      "Background knowledge convergence is active and owns canonicalization, normalization, and knowledge refresh; this turn needs no knowledge refresh or turn declaration."
+    ] : [input.declarationInstruction],
+    input.workstreamPresent ? "If this turn changes repository-authored bytes, record the next bounded revision with the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow; never ask the user to run bookkeeping." : "If this turn changes repository-authored bytes, create a bounded checkpoint with the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow; never ask the user to run bookkeeping."
+  ].join("\n");
+}
+async function prepareCompactTerminalPromptContext(input) {
+  const requestDigest = sha2564(input.prompt);
+  const repositorySnapshot = await input.timing.measure(
+    "repository_snapshot",
+    () => captureTerminalRepositorySnapshot(input.root)
+  );
+  const [sourceSnapshotId, query, canonicalization, health] = await Promise.all([
+    input.timing.measure(
+      "corpus_preparation",
+      () => terminalKnowledgeSnapshotId(input.root, repositorySnapshot.revision)
+    ),
+    input.timing.measure("query_projection", async () => {
+      const storage = await openProjectStorage(input.root);
+      try {
+        const [policy, currentWorkstream] = await Promise.all([
+          loadRepositoryKnowledgePolicy(input.root),
+          verifiedCurrentWorkstream(storage)
+        ]);
+        const queryProjection = createSearchQueryProjection({
+          projector: compactQueryProjector,
+          requestDigest,
+          contextDigest: sha2564(canonicalJson3({ contextRequirement: "none" })),
+          projectorResultDigest: sha2564("lervo.terminal-compact.no-queries"),
+          requestedLanguage: policy.publication.language,
+          queries: [],
+          durationMs: 0,
+          status: "empty"
+        });
+        return { queryProjection, currentWorkstream, projectId: storage.manifest.projectId };
+      } finally {
+        await storage.close();
+      }
+    }),
+    listCanonicalizationCandidates(input.root).then(
+      (candidates) => ({ coverage: "complete", candidates }),
+      () => ({ coverage: "unavailable", candidates: [] })
+    ),
+    inspectKnowledgeResidentHealth(input.root)
+  ]);
+  const attention2 = createOperatingAttentionReport({
+    projectId: query.projectId,
+    workstream: query.currentWorkstream,
+    canonicalization,
+    knowledgeLifecycle: { coverage: "unavailable", issues: [] },
+    observedAt: /* @__PURE__ */ new Date()
+  });
+  const workstream = query.currentWorkstream === null ? null : formatCompactWorkstreamContext(query.currentWorkstream);
+  const preamble = formatCompactTerminalPreamble({
+    attention: attention2,
+    declarationInstruction: input.declarationInstruction,
+    backgroundKnowledgeActive: input.workspaceBinding?.executionKind === "worker" || health.status === "healthy",
+    workstreamPresent: workstream !== null
+  });
+  return {
+    additionalContext: workstream === null ? preamble : `${preamble}
+
+${workstream.context}`,
+    sourceSnapshotId,
+    recommendationCount: 0,
+    documents: [],
+    repositoryRevision: repositorySnapshot.revision,
+    repositoryFiles: repositorySnapshot.files,
+    ...repositorySnapshot.commits === void 0 ? {} : { repositoryCommits: repositorySnapshot.commits },
+    workstream,
+    attention: attention2,
+    grounding: {
+      requestDigest,
+      queryDigest: query.queryProjection.receipt.projectedQueryDigest,
+      status: "abstain",
+      workflowId: null,
+      sourceClasses: [],
+      subjectIds: [],
+      retrievalQueries: [],
+      providerIds: [],
+      reasons: ["unmanaged_terminal_retrieval_only"],
+      queryProjectionReceipt: query.queryProjection.receipt
+    },
+    durableInstruction: {
+      status: "ignored",
+      ruleId: null,
+      targetPath: null,
+      reasonIds: ["unmanaged_terminal_retrieval_only"]
+    },
+    selection: { disposition: "query_projection_missing", selectedCount: 0 }
+  };
+}
+
 // apps/cli/src/search-projection-context.ts
 function createCurrentWorkstreamSearchProjectionContext(workstream) {
   const contextAnchors = [
@@ -92971,7 +93543,10 @@ async function prepareTerminalPromptInputs(input) {
         await workstreamStorage.close();
       }
     }),
-    captureSnapshot: () => input.timing.measure("repository_snapshot", () => captureRepositorySnapshot(input.root))
+    captureSnapshot: () => input.timing.measure(
+      "repository_snapshot",
+      () => captureTerminalRepositorySnapshot(input.root)
+    )
   });
 }
 
@@ -92997,6 +93572,11 @@ function truncateUtf82(value, maximumBytes2) {
   return value.slice(0, end);
 }
 async function prepareTerminalPromptContext(input) {
+  if (terminalPromptContextMode() === "compact")
+    return prepareCompactTerminalPromptContext({
+      ...input,
+      declarationInstruction: terminalDeclarationInstruction(input.provider, input.observationId)
+    });
   const {
     supplementalSources,
     instructionCatalog,
@@ -93067,7 +93647,7 @@ async function prepareTerminalPromptContext(input) {
       `This direct provider turn is ${input.workspaceBinding.attachmentDisposition ?? "attached"} on worker workspace ${input.workspaceBinding.workspaceId} generation ${input.workspaceBinding.workspaceGeneration}; provider execution remains unmanaged, while checkout ownership, checkpointed pause, and Stop isolation are evidence-bound.`,
       "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
       "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes."
-    ].join("\n\n") : `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${input.provider} --observation ${input.observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; canonicalizationOutcome as one exact v1 object; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. The outcome must bind every changed noncanonical source path exactly once: use kind=canonical_update with summary and targets[{path,contentHash,sourcePaths}] when canonical bytes changed; kind=no_durable_change with summary, reasonCode=implementation_only|verification_only|already_canonical|transient, and sourcePaths when review should reject durable promotion; kind=review_draft with summary and drafts[{targetPath,sourcePaths,proposedMarkdown,proposedContentHash}] when exact Markdown review is required; or kind=portable_skill_candidate with summary, sourcePaths, and a bounded development-pattern proposal only when at least two independent groups bind distinct current passed verification events plus exact source, skill, resource, input, output, tool, and permission contracts. Retrieval selection and provider agreement never satisfy that gate. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, verification, and deliberation evidence; proposal bodies remain local candidate state and are not event content or truth. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
+    ].join("\n\n") : terminalDeclarationInstruction(input.provider, input.observationId);
     const workstreamInstruction = input.workspaceBinding?.executionKind === "worker" ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping." : workstream === null ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint through the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow before completion. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands." : "If this turn changes repository-authored bytes, the agent must record the next bounded revision through the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow before completion. Preserve identity and origin, replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
     const preamble = [
       "Lervo terminal integration v2 used a provider-neutral query projection only for read-only candidate retrieval in the current repository. It did not resolve effects, authority, execution, external systems, or cross-repository routing.",
@@ -93159,6 +93739,12 @@ async function prepareTerminalPromptContext(input) {
       selectedCount: selection.selected.length
     }
   };
+}
+function terminalPromptContextMode() {
+  return process.env.LERVO_TERMINAL_CONTEXT === "retrieval" ? "retrieval" : "compact";
+}
+function terminalDeclarationInstruction(provider, observationId) {
+  return `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; canonicalizationOutcome as one exact v1 object; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. The outcome must bind every changed noncanonical source path exactly once: use kind=canonical_update with summary and targets[{path,contentHash,sourcePaths}] when canonical bytes changed; kind=no_durable_change with summary, reasonCode=implementation_only|verification_only|already_canonical|transient, and sourcePaths when review should reject durable promotion; kind=review_draft with summary and drafts[{targetPath,sourcePaths,proposedMarkdown,proposedContentHash}] when exact Markdown review is required; or kind=portable_skill_candidate with summary, sourcePaths, and a bounded development-pattern proposal only when at least two independent groups bind distinct current passed verification events plus exact source, skill, resource, input, output, tool, and permission contracts. Retrieval selection and provider agreement never satisfy that gate. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, verification, and deliberation evidence; proposal bodies remain local candidate state and are not event content or truth. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
 }
 
 // apps/cli/src/terminal-stage-persistence.ts
@@ -93393,6 +93979,8 @@ ${error.code}: run lervo workspace inspect --json and recover only this assignme
           entry: hookRuntime,
           args: ["knowledge-worker", "--provider", provider]
         });
+      if (hookRuntime !== void 0 && process.env.LERVO_TERMINAL_CONTEXT !== "retrieval")
+        launchDetachedKnowledgeWorker({ root: root2, entry: hookRuntime, args: ["prefetch-context"] });
       if (expectation.workspaceBinding?.executionKind === "worker" && lifecycle.status === "action_required") {
         const reason = [
           "Lervo blocked worker completion because this workspace isolation boundary is not current.",
@@ -93492,7 +94080,7 @@ async function runCoverage(args, io) {
     const limit = parsed.values.limit === void 0 ? 20 : Number(parsed.values.limit);
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
       throw new Error("--limit must be an integer between 1 and 100.");
-    const root2 = await resolveTerminalRepositoryRoot(resolve83(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve86(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const report = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -93537,7 +94125,7 @@ ${terminalUsage}
       return 1;
     }
     try {
-      const root2 = await resolveTerminalRepositoryRoot(resolve83(io.cwd, parsed.values.root ?? "."));
+      const root2 = await resolveTerminalRepositoryRoot(resolve86(io.cwd, parsed.values.root ?? "."));
       const result = await inspectTerminalLifecycle(root2);
       io.stdout(
         parsed.values.json ? `${JSON.stringify(result, null, 2)}
@@ -93572,7 +94160,7 @@ ${terminalUsage}
 // apps/cli/src/provider-query-runner-codex.ts
 import { mkdtemp as mkdtemp5, rm as rm16 } from "node:fs/promises";
 import { tmpdir as tmpdir3 } from "node:os";
-import { resolve as resolve84 } from "node:path";
+import { resolve as resolve87 } from "node:path";
 
 // packages/adapter-codex/dist/app-server-client.js
 import { spawn as spawn5 } from "node:child_process";
@@ -93619,11 +94207,11 @@ var AsyncQueue = class {
   wait(signal) {
     if (signal.aborted || this.ended || this.values.length > 0)
       return Promise.resolve();
-    return new Promise((resolve86) => {
+    return new Promise((resolve89) => {
       const finish = () => {
         this.waiters.delete(finish);
         signal.removeEventListener("abort", finish);
-        resolve86();
+        resolve89();
       };
       this.waiters.add(finish);
       signal.addEventListener("abort", finish, { once: true });
@@ -93800,13 +94388,13 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     if (this.exited)
       return;
     this.process.kill("SIGTERM");
-    const exited = new Promise((resolve86) => this.process.once("exit", () => resolve86()));
+    const exited = new Promise((resolve89) => this.process.once("exit", () => resolve89()));
     let timer;
     try {
       await Promise.race([
         exited,
-        new Promise((resolve86) => {
-          timer = setTimeout(resolve86, 1e3);
+        new Promise((resolve89) => {
+          timer = setTimeout(resolve89, 1e3);
         })
       ]);
     } finally {
@@ -93823,12 +94411,12 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     const id5 = this.nextRequestId;
     const operation = diagnosticOperation(method);
     this.nextRequestId += 1;
-    return new Promise((resolve86, reject) => {
+    return new Promise((resolve89, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id5);
         reject(new CodexAdapterError("provider_protocol_failed", "The Codex app-server response timed out.", failureDiagnostic(operation, "response_timeout")));
       }, this.requestTimeoutMs);
-      this.pending.set(id5, { resolve: resolve86, reject, timer, operation });
+      this.pending.set(id5, { resolve: resolve89, reject, timer, operation });
       this.write({ method, id: id5, params });
     });
   }
@@ -93909,14 +94497,14 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
 var MAXIMUM_RESPONSE_BYTES = 1024 * 1024;
 
 // packages/adapter-codex/dist/repository-work.js
-import { execFile as execFile10, spawn as spawn6 } from "node:child_process";
-import { promisify as promisify9 } from "node:util";
+import { execFile as execFile12, spawn as spawn6 } from "node:child_process";
+import { promisify as promisify11 } from "node:util";
 var MAXIMUM_OUTPUT_BYTES = 64 * 1024 * 1024;
-var executeFile2 = promisify9(execFile10);
+var executeFile2 = promisify11(execFile12);
 
 // apps/cli/src/provider-query-runner-codex.ts
 var defaultDependencies = {
-  createDirectory: () => mkdtemp5(resolve84(tmpdir3(), "lervo-codex-query-runner-")),
+  createDirectory: () => mkdtemp5(resolve87(tmpdir3(), "lervo-codex-query-runner-")),
   removeDirectory: (path) => rm16(path, { recursive: true, force: true }),
   assertNoModelTools: assertCodexHasNoModelTools,
   connect: (input) => CodexStdioAppServerClient.connect(input)
@@ -94346,10 +94934,10 @@ async function verifiedRuntime() {
   try {
     const runtimePath = fileURLToPath(import.meta.url);
     const manifest = JSON.parse(
-      await readFile27(resolve85(dirname21(runtimePath), "runtime-v2.json"), "utf8")
+      await readFile29(resolve88(dirname23(runtimePath), "runtime-v2.json"), "utf8")
     );
-    const content3 = await readFile27(runtimePath);
-    return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash44("sha256").update(content3).digest("hex")}`;
+    const content3 = await readFile29(runtimePath);
+    return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash46("sha256").update(content3).digest("hex")}`;
   } catch {
     return false;
   }
@@ -94357,6 +94945,8 @@ async function verifiedRuntime() {
 if (!await verifiedRuntime()) {
   process.stderr.write("Lervo terminal hook runtime integrity verification failed.\n");
   process.exitCode = 2;
+} else if (process.argv[2] === "prefetch-context") {
+  await prefetchTerminalPromptContext(process.cwd()).catch(() => void 0);
 } else if (process.argv[2] === "knowledge-worker") {
   process.exitCode = await runKnowledgeWorkerCommand(["--once", ...process.argv.slice(3)], {
     cwd: process.cwd(),

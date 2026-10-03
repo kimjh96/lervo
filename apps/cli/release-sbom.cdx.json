@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:ecd056fe-85ba-5004-9959-3ff4e35376c5",
+  "serialNumber": "urn:uuid:24b3266f-0994-5b11-8169-97b348aa8ff3",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "d0c8c65801e6d776b66378c31dad307f60e20e95aff5ebf2fe57d2ab0c1846b7"
+          "content": "a05110c43cf66a4bcf47e276057344dae52c0e84bea4ae36b4a260137ea572f1"
         }
       ],
       "licenses": [
@@ -42,7 +42,7 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:812a516404405aa7e4df0daec2b17bb440ded9d00bd859354e842b38e1be8e05"
+          "value": "sha256:a5679ea660ea4c5608ecfe1705d5499257772b376b7ed2ebb2cd75d22d03acae"
         },
         {
           "name": "lervo:release:bundle-digest",

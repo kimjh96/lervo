@@ -1,4 +1,4 @@
-import { captureRepositorySnapshot } from "@lervo/orchestrator";
+import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   appendRepositoryChange,
@@ -40,7 +40,7 @@ export async function plannedTerminalRepositoryChange(input: {
   );
   if (before === null || before.revision !== input.lifecycle.repositoryChange.beforeRevision)
     return null;
-  const after = await captureRepositorySnapshot(input.root);
+  const after = await captureTerminalRepositorySnapshot(input.root);
   // A change after lifecycle inspection belongs to the next observed turn.
   if (after.revision !== input.lifecycle.repositoryChange.afterRevision) return null;
   const planned = await planRepositoryChangeInRepository({
