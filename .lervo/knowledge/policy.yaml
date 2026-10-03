@@ -5,6 +5,10 @@ publication:
   language: en
   maxNavigationEntries: 24
   maxNavigationBytes: 8192
+normalization:
+  exclude:
+    # The PR authoring contract and its exact test own these template bytes.
+    - .github/PULL_REQUEST_TEMPLATE.md
 exclude:
   - .git/**
   - .lervo/**

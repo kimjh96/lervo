@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_158c87724c1afd647d2cdc68
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0252463f4aafcf5a1913971b
+outputLanguage: en
+outputs:
+  - byteCount: 4330
+    contentHash: sha256:a79256cd6009c897d4bfbf24e294d3d33177ed306f6c3e3b1552be3cac5ca716
+    path: docs/evidence/quality/background-knowledge-convergence-implementation.md
+    userRegionHash: sha256:a79256cd6009c897d4bfbf24e294d3d33177ed306f6c3e3b1552be3cac5ca716
+profile: repository_document
+recordId: knormdoc_582da6d1625c5927b4290e3c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:dd543792844fd30a569cc85ed71919af0fd4898cda51d2d679436fbd0549ccbc
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation.md
+sourceUnitVersionIds:
+  - uv_0fd9819af16588543db0874f
+  - uv_94d5fdf9ac81f9f3ab27aab4
+  - uv_b47d13a03b64c2beef2245cd

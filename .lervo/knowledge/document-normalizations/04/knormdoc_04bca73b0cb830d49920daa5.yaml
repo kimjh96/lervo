@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e82e6cce5128efc75db93e7b
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b600e604f4edc26bdc0bd56c
+outputLanguage: en
+outputs:
+  - byteCount: 4805
+    contentHash: sha256:43ca63e2e9f4a58bcb1728e55a8c388728c1363893ab4d91ea2e7a38e6d5c345
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-2026-10-01/discord.md
+    userRegionHash: sha256:43ca63e2e9f4a58bcb1728e55a8c388728c1363893ab4d91ea2e7a38e6d5c345
+profile: repository_document
+recordId: knormdoc_04bca73b0cb830d49920daa5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:78e1091c2495c5a53748de6ee135921fad0e50d2eedab8e60b9b9e4404296fc1
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/installed-2026-10-01/discord.md
+sourceUnitVersionIds:
+  - uv_003e842aef0ef3e6d0e34075
+  - uv_3561ec86ca921c2f0fee9583
+  - uv_3f2ee52b5cffbb95ec4060a3
+  - uv_42af49c11912456cc935599e
+  - uv_a048a4c89b0d7b5e230fd98d
+  - uv_a20104abc0ee27a49e5b9c70
+  - uv_ce69f5b94cd44703aaf2adb7

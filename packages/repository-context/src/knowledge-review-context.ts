@@ -14,6 +14,7 @@ import {
   repositorySourceClassificationForPath,
 } from "@lervo/repository-knowledge";
 import { productDefaultRepositoryKnowledgeRanker } from "./repository-knowledge-ranker.js";
+import { contextQuery, pathTerms, sourceSpecificQueries } from "./knowledge-review-queries.js";
 
 export interface SemanticReviewContextDocument {
   path: string;
@@ -26,11 +27,22 @@ type CanonicalReviewQuery = (
   input: Parameters<typeof queryRepositoryKnowledge>[0],
 ) => Promise<{ hits: { path: string; contentHash: string }[] }>;
 
-const MAXIMUM_CONTEXT_DOCUMENTS = 8;
-const MAXIMUM_LINKED_DOCUMENTS = 4;
+const MAXIMUM_CONTEXT_DOCUMENTS = 20;
+const MAXIMUM_INSTRUCTION_DOCUMENTS = 8;
+const MAXIMUM_LINKED_DOCUMENTS = 8;
 const MAXIMUM_CONTEXT_BYTES = 1024 * 1024;
 const MAXIMUM_DOCUMENT_BYTES = 128 * 1024;
 const MAXIMUM_RECOMMENDATIONS = 32;
+const GENERIC_DIRECTORY_TERMS = new Set([
+  "apps",
+  "docs",
+  "github",
+  "packages",
+  "src",
+  "test",
+  "tests",
+  "workflows",
+]);
 
 export class KnowledgeReviewContextError extends Error {
   constructor(
@@ -47,60 +59,6 @@ function hash(bytes: Uint8Array): string {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 }
 
-function pathTerms(path: string): Set<string> {
-  return new Set(
-    path
-      .normalize("NFKC")
-      .toLocaleLowerCase()
-      .match(/[\p{L}\p{N}]{2,}/gu) ?? [],
-  );
-}
-
-async function contextQuery(root: string, paths: readonly string[]): Promise<string> {
-  const terms: string[] = [];
-  const add = (values: Iterable<string>, maximum: number) => {
-    let added = 0;
-    for (const term of values) {
-      if (terms.length === 32 || added === maximum) break;
-      if (terms.includes(term) || [...terms, term].join(" ").length > 500) continue;
-      terms.push(term);
-      added += 1;
-    }
-  };
-  add(
-    paths.flatMap((path) => [...pathTerms(path)]),
-    32,
-  );
-  for (const path of paths.filter((source) => /\.mdx?$/iu.test(source)).slice(0, 8)) {
-    let source: string;
-    try {
-      source = new TextDecoder("utf8", { fatal: true }).decode(
-        await readRepositoryFile(root, path, 256 * 1024),
-      );
-    } catch (error) {
-      if (error instanceof ContextPreparationError && error.code === "document_missing") continue;
-      throw new KnowledgeReviewContextError("review_context_unavailable", { cause: error });
-    }
-    add(
-      [...source.matchAll(/^\s{0,3}#{1,6}\s+(.+)$/gmu)].flatMap((match) => [
-        ...pathTerms(match[1]!),
-      ]),
-      12,
-    );
-    add(
-      [...source.matchAll(/`([^`\n]+\.md)`/gu)].flatMap((match) => [...pathTerms(match[1]!)]),
-      5,
-    );
-    add(
-      [...source.matchAll(/\bnever\s+([^.!?\n]{0,100})/giu)].flatMap((match) => [
-        ...pathTerms(match[1]!),
-      ]),
-      3,
-    );
-  }
-  return terms.join(" ") || "repository knowledge canonicalization";
-}
-
 function linkedRepositoryPaths(document: SemanticReviewContextDocument): string[] {
   if (!document.path.endsWith(".md")) return [];
   const paths: string[] = [];
@@ -111,6 +69,32 @@ function linkedRepositoryPaths(document: SemanticReviewContextDocument): string[
     if (path !== ".." && !path.startsWith("../") && !paths.includes(path)) paths.push(path);
   }
   return paths;
+}
+
+async function linkedSourceDocuments(
+  root: string,
+  sourcePaths: readonly string[],
+): Promise<string[]> {
+  const links: string[] = [];
+  for (const path of sourcePaths
+    .filter((source) => source.endsWith(".md"))
+    .sort((left, right) => right.split("/").length - left.split("/").length)) {
+    let source: SemanticReviewContextDocument;
+    try {
+      source = await loadDocument({ repositoryRoot: root, path, role: "canonical_candidate" });
+    } catch (error) {
+      if (
+        error instanceof KnowledgeReviewContextError &&
+        error.cause instanceof ContextPreparationError &&
+        error.cause.code === "document_missing"
+      )
+        continue;
+      throw error;
+    }
+    for (const link of linkedRepositoryPaths(source))
+      if (link.endsWith(".md") && !links.includes(link)) links.push(link);
+  }
+  return links;
 }
 
 function linkedChildDocuments(document: SemanticReviewContextDocument): string[] {
@@ -126,6 +110,17 @@ function linkedInstructionDocuments(document: SemanticReviewContextDocument): st
   return linkedRepositoryPaths(document).filter(
     (path) => path.startsWith("docs/") && path.endsWith(".md"),
   );
+}
+
+function sourceRelevantInstructionReferences(
+  document: SemanticReviewContextDocument,
+  sourceTerms: ReadonlySet<string>,
+): string[] {
+  if (document.role !== "instruction" || !document.path.endsWith(".md")) return [];
+  return document.content.split("\n").flatMap((line) => {
+    if ([...pathTerms(line)].filter((term) => sourceTerms.has(term)).length < 2) return [];
+    return [...line.matchAll(/`(docs\/[a-zA-Z0-9._/-]+\.md)`/g)].map((match) => match[1]!);
+  });
 }
 
 async function loadDocument(input: {
@@ -178,7 +173,7 @@ export async function loadCanonicalReviewContext(input: {
   }
   if (instructionPaths.length === 0)
     throw new KnowledgeReviewContextError("review_context_unavailable");
-  if (instructionPaths.length > MAXIMUM_CONTEXT_DOCUMENTS)
+  if (instructionPaths.length > MAXIMUM_INSTRUCTION_DOCUMENTS)
     throw new KnowledgeReviewContextError("review_context_limit_exceeded");
 
   const documents: SemanticReviewContextDocument[] = [];
@@ -186,6 +181,107 @@ export async function loadCanonicalReviewContext(input: {
     documents.push(
       await loadDocument({ repositoryRoot: input.repositoryRoot, path, role: "instruction" }),
     );
+
+  let policy: Awaited<ReturnType<typeof loadRepositoryKnowledgePolicy>>;
+  try {
+    policy = await loadRepositoryKnowledgePolicy(input.repositoryRoot);
+  } catch (error) {
+    throw new KnowledgeReviewContextError("review_context_unavailable", { cause: error });
+  }
+  const excluded = new Set([...instructionPaths, ...input.sourcePaths]);
+  const focusedPaths = new Set<string>();
+  for (const path of await linkedSourceDocuments(input.repositoryRoot, input.sourcePaths)) {
+    if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS) break;
+    if (
+      excluded.has(path) ||
+      !repositoryPathCanRemainIncluded(path, policy) ||
+      repositorySourceClassificationForPath(path) !== "ordinary" ||
+      path.startsWith(`${policy.publicationRoot}/`)
+    )
+      continue;
+    documents.push(
+      await loadDocument({
+        repositoryRoot: input.repositoryRoot,
+        path,
+        role: "canonical_candidate",
+      }),
+    );
+    excluded.add(path);
+  }
+
+  for (const source of input.sourcePaths.filter(
+    (path) => path.startsWith(".") && !path.includes("/") && !path.endsWith(".md"),
+  )) {
+    if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS) break;
+    let focused: Awaited<ReturnType<CanonicalReviewQuery>>;
+    try {
+      focused = await (input.queryKnowledge ?? queryRepositoryKnowledge)({
+        repositoryRoot: input.repositoryRoot,
+        query: source.slice(1),
+        limit: 4,
+        ranker: productDefaultRepositoryKnowledgeRanker,
+      });
+    } catch (error) {
+      throw new KnowledgeReviewContextError("review_context_unavailable", { cause: error });
+    }
+    const hit = focused.hits.find(
+      (candidate) =>
+        !excluded.has(candidate.path) &&
+        repositoryPathCanRemainIncluded(candidate.path, policy) &&
+        repositorySourceClassificationForPath(candidate.path) === "ordinary" &&
+        !candidate.path.startsWith(`${policy.publicationRoot}/`),
+    );
+    if (hit === undefined) continue;
+    documents.push(
+      await loadDocument({
+        repositoryRoot: input.repositoryRoot,
+        path: hit.path,
+        role: "canonical_candidate",
+        expectedHash: hit.contentHash,
+      }),
+    );
+    excluded.add(hit.path);
+    focusedPaths.add(hit.path);
+  }
+
+  let focusedQueries: Awaited<ReturnType<typeof sourceSpecificQueries>>;
+  try {
+    focusedQueries = await sourceSpecificQueries(input.repositoryRoot, input.sourcePaths);
+  } catch (error) {
+    throw new KnowledgeReviewContextError("review_context_unavailable", { cause: error });
+  }
+  for (const focused of focusedQueries) {
+    if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS) break;
+    let result: Awaited<ReturnType<CanonicalReviewQuery>>;
+    try {
+      result = await (input.queryKnowledge ?? queryRepositoryKnowledge)({
+        repositoryRoot: input.repositoryRoot,
+        query: focused.query,
+        limit: 4,
+        ranker: productDefaultRepositoryKnowledgeRanker,
+      });
+    } catch (error) {
+      throw new KnowledgeReviewContextError("review_context_unavailable", { cause: error });
+    }
+    const hit = result.hits.find(
+      (candidate) =>
+        !excluded.has(candidate.path) &&
+        repositoryPathCanRemainIncluded(candidate.path, policy) &&
+        repositorySourceClassificationForPath(candidate.path) === "ordinary" &&
+        !candidate.path.startsWith(`${policy.publicationRoot}/`),
+    );
+    if (!hit) continue;
+    documents.push(
+      await loadDocument({
+        repositoryRoot: input.repositoryRoot,
+        path: hit.path,
+        role: "canonical_candidate",
+        expectedHash: hit.contentHash,
+      }),
+    );
+    excluded.add(hit.path);
+    focusedPaths.add(hit.path);
+  }
 
   let recommendations: Awaited<ReturnType<CanonicalReviewQuery>>;
   try {
@@ -200,8 +296,21 @@ export async function loadCanonicalReviewContext(input: {
       cause: error,
     });
   }
-  const excluded = new Set([...instructionPaths, ...input.sourcePaths]);
-  for (const hit of recommendations.hits) {
+  const sourceDirectoryTerms = new Set(
+    input.sourcePaths.flatMap((path) =>
+      [...pathTerms(posix.dirname(path))].filter((term) => !GENERIC_DIRECTORY_TERMS.has(term)),
+    ),
+  );
+  const rankedHits = recommendations.hits
+    .map((hit, index) => ({
+      hit,
+      index,
+      affinity: [...pathTerms(posix.dirname(hit.path))].filter((term) =>
+        sourceDirectoryTerms.has(term),
+      ).length,
+    }))
+    .sort((left, right) => right.affinity - left.affinity || left.index - right.index);
+  for (const { hit } of rankedHits) {
     if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS) break;
     if (excluded.has(hit.path)) continue;
     documents.push(
@@ -226,18 +335,16 @@ export async function loadCanonicalReviewContext(input: {
     .filter((item) => item.document.role === "canonical_candidate" && item.score > 0)
     .sort((left, right) => right.score - left.score || left.index - right.index);
   const linkedPaths = [
+    ...documents
+      .filter((document) => focusedPaths.has(document.path))
+      .flatMap(linkedChildDocuments),
+    ...documents.flatMap((document) => sourceRelevantInstructionReferences(document, sourceTerms)),
     ...sourceRelevantDocuments.flatMap(({ document }) =>
       linkedRepositoryPaths(document).filter((path) => /\.(?:md|ts)$/u.test(path)),
     ),
     ...documents.flatMap(linkedChildDocuments),
     ...documents.flatMap(linkedInstructionDocuments),
   ];
-  let policy: Awaited<ReturnType<typeof loadRepositoryKnowledgePolicy>>;
-  try {
-    policy = await loadRepositoryKnowledgePolicy(input.repositoryRoot);
-  } catch (error) {
-    throw new KnowledgeReviewContextError("review_context_unavailable", { cause: error });
-  }
   for (const path of linkedPaths) {
     if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS + MAXIMUM_LINKED_DOCUMENTS) break;
     if (excluded.has(path)) continue;

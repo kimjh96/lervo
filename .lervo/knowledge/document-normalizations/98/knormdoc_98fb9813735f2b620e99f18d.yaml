@@ -1,0 +1,56 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1f13d1a179ecd14c27ad423a
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_658cee28e0a465e9ed22ac8d
+outputLanguage: en
+outputs:
+  - byteCount: 575
+    contentHash: sha256:4450415f0d9dee7795c1b650c5b9eddcc615922f98ad4f81c428d7dd8a99f061
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers.md
+    userRegionHash: sha256:4450415f0d9dee7795c1b650c5b9eddcc615922f98ad4f81c428d7dd8a99f061
+  - byteCount: 380
+    contentHash: sha256:643ec4c71b8b035757a7a43e010fb7f539e5f27d790f44c01f032a7232de987c
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/delegation.md
+    userRegionHash: sha256:643ec4c71b8b035757a7a43e010fb7f539e5f27d790f44c01f032a7232de987c
+  - byteCount: 770
+    contentHash: sha256:fa594ad5c93b89d3186cccddf2e3de961f87c108cb7d32ca81f78a6f41bac9cd
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/detached-launch.md
+    userRegionHash: sha256:fa594ad5c93b89d3186cccddf2e3de961f87c108cb7d32ca81f78a6f41bac9cd
+  - byteCount: 470
+    contentHash: sha256:23fd73762d3b7bdcb03ae2c6730edf698dee8fb5b6be2d6885db79293e2c9bc9
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/inspection.md
+    userRegionHash: sha256:23fd73762d3b7bdcb03ae2c6730edf698dee8fb5b6be2d6885db79293e2c9bc9
+  - byteCount: 639
+    contentHash: sha256:1f2713b7773f875d8afb22cdaba85049e8b0e121e63aba58adeaa21b2ba4add7
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/provider-probe.md
+    userRegionHash: sha256:1f2713b7773f875d8afb22cdaba85049e8b0e121e63aba58adeaa21b2ba4add7
+  - byteCount: 967
+    contentHash: sha256:5b11f9924e69135fc9ebb318436e503d472715f594a11fc2372e8843a7ca9647
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/watch-and-cleanup.md
+    userRegionHash: sha256:5b11f9924e69135fc9ebb318436e503d472715f594a11fc2372e8843a7ca9647
+  - byteCount: 637
+    contentHash: sha256:e0755d0675a76a98e119b70c643bd10b15be84ca7883dd465101e1334887a5e8
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/worker-selection.md
+    userRegionHash: sha256:e0755d0675a76a98e119b70c643bd10b15be84ca7883dd465101e1334887a5e8
+profile: specification_document
+recordId: knormdoc_98fb9813735f2b620e99f18d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:61d70141b37c561c8f49804dbaecfe5d062cd9ea5f78998a84ba8eefc26aa803
+sourcePath: docs/specs/background-knowledge-convergence/runtime/cli-wrappers.md
+sourceUnitVersionIds:
+  - uv_2f8d588f6073aa5f7b4236e2
+  - uv_62296e305f9656bb56952b2b
+  - uv_6ed6e76e9a589cc7248197f9
+  - uv_85b36ddb0f4796eceb83dce6
+  - uv_e2581cf9585d298884b62f99
+  - uv_e2f66623126581273c549555
+  - uv_ec02cdaeee837c20c5fa2283

@@ -44,6 +44,20 @@ function git(root: string, args: string[]): string {
   }
 }
 
+/** Current working-tree obligations; the complete capture still fences every repository source. */
+export function captureConvergenceChangedPaths(root: string): string[] {
+  return [
+    ...new Set(
+      [
+        git(root, ["diff", "--name-only", "-z", "--diff-filter=ACMRTUXB", "HEAD"]),
+        git(root, ["ls-files", "--others", "--exclude-standard", "-z"]),
+      ]
+        .flatMap((output) => output.split("\0"))
+        .filter(Boolean),
+    ),
+  ].sort();
+}
+
 /** Git ignore evidence excludes only untracked paths; tracked opaque assets remain in the capture. */
 export function captureConvergenceSources(
   root: string,
@@ -100,6 +114,7 @@ export function captureConvergenceSources(
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   if (git(root, ["rev-parse", "HEAD"]).trim() !== head)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
-  const snapshotHash = sha256(canonicalJson({ head, policyHash, sources }));
+  const changedPaths = captureConvergenceChangedPaths(root);
+  const snapshotHash = sha256(canonicalJson({ head, policyHash, sources, changedPaths }));
   return { head, snapshotId: `ksnap_${snapshotHash.slice(7, 31)}`, snapshotHash, sources };
 }

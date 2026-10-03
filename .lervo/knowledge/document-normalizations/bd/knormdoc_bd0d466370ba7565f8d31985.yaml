@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0f142690f31f24d345172932
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e19d6d582ca1299e72872d79
+outputLanguage: en
+outputs:
+  - byteCount: 1734
+    contentHash: sha256:8d359294b0ce12234b13706b22856305547cb039b78fac279322993f2e11f48c
+    path: docs/distribution/commit-convention-workflow.md
+    userRegionHash: sha256:8d359294b0ce12234b13706b22856305547cb039b78fac279322993f2e11f48c
+profile: repository_document
+recordId: knormdoc_bd0d466370ba7565f8d31985
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c9acf95123e44aea0e6b4ad24a3232b818d25ff0e5bd38efc90f66f300665ae6
+sourcePath: docs/distribution/commit-convention-workflow.md
+sourceUnitVersionIds:
+  - uv_06de465fb78dedb33b93c252

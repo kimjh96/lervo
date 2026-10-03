@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_51f57a0017d3d043a05d4623
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a664be79ed4c4a9a984f550f
+outputLanguage: en
+outputs:
+  - byteCount: 4001
+    contentHash: sha256:63070a084081fd8daefb6e380a7a31a1fee110edd16c6e80831b626ac5c2166d
+    path: docs/specifications/coordination/conversation-intent-normalization-and-evidence.md
+    userRegionHash: sha256:63070a084081fd8daefb6e380a7a31a1fee110edd16c6e80831b626ac5c2166d
+profile: specification_document
+recordId: knormdoc_2fd5a39ac8390c5d0b38dc45
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:20cbdda3fafa98448498e0ffef22f17112e115f493309b20d69ad17affda7ed6
+sourcePath: docs/specifications/coordination/conversation-intent-normalization-and-evidence.md
+sourceUnitVersionIds:
+  - uv_44ca38fe837f859e9c8b9cb8
+  - uv_66dc4423678b266f3daea4ec
+  - uv_a1a4c2a073bd13bd3be0828a
+  - uv_da1552360721b82a05946c79
+  - uv_dde25c60a8a75358795d2f05

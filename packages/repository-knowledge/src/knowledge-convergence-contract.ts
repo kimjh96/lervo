@@ -20,6 +20,8 @@ export interface KnowledgeConvergenceBaseline {
     historical: number;
   };
   sources: { path: string; contentHash: string; kind: "text" | "opaque" }[];
+  /** Exact paths with an observed change, pending document, or unresolved source obligation. */
+  assessmentPaths?: string[];
   sourceDispositions?: {
     path: string;
     contentHash: string;

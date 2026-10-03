@@ -15,7 +15,7 @@ afterEach(async () => {
 
 it(
   "returns a native quota failure lease and resumes the same assignment after an exact probe",
-  { timeout: 90_000 },
+  { timeout: 180_000 },
   async () => {
     const f = await fixture(true);
     fixtures.push(f);

@@ -1,0 +1,39 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f7805e12f56266e42eae1509
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1c43008a5d3992059c996d2e
+outputLanguage: en
+outputs:
+  - byteCount: 818
+    contentHash: sha256:a0ee69dca9c119c0e442e2efb5329e2053670f0c2f466e4b7dc2b33936ebd84d
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/later-retries-and-acceptance.md
+    userRegionHash: sha256:a0ee69dca9c119c0e442e2efb5329e2053670f0c2f466e4b7dc2b33936ebd84d
+  - byteCount: 4935
+    contentHash: sha256:fb54c20f79e1c804f446841ae08d9508e4438b658ef30a2b1b335ffa762c1fbc
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/later-retries-and-acceptance/lervo.md
+    userRegionHash: sha256:fb54c20f79e1c804f446841ae08d9508e4438b658ef30a2b1b335ffa762c1fbc
+  - byteCount: 4342
+    contentHash: sha256:71d86c89fa073a19c9d5b575b3a684e0488581aec3608b6e842b275ef9d8cab6
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/later-retries-and-acceptance/shiflo.md
+    userRegionHash: sha256:71d86c89fa073a19c9d5b575b3a684e0488581aec3608b6e842b275ef9d8cab6
+profile: repository_document
+recordId: knormdoc_9dc67c9f296dd06803c05dbb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7e8a497c2a3996125c915c0c9a8f7fa774713f1e28d73f5173883d176f00aebc
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/later-retries-and-acceptance.md
+sourceUnitVersionIds:
+  - uv_44da3ca4f8f4eb973815a0df
+  - uv_4f4f5663a9a9d04ec85a7daf
+  - uv_63676c1c7514f0a875e32c2d
+  - uv_a381b6e6c4b92750cfa0283d
+  - uv_d49b39454608c14e8293d2b6
+  - uv_f4ea2dcfcba55a4c08dbf8c3

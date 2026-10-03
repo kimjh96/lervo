@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b7187a72fea433759faa967a
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7de4252393b7c85ca919ebc0
+outputLanguage: en
+outputs:
+  - byteCount: 3277
+    contentHash: sha256:bbc349e87dd4b4061cf2c5034399ef5fe93633a41b763e46c85b5a2d0a984d8b
+    path: docs/evidence/quality/ci-workflow-baseline.md
+    userRegionHash: sha256:bbc349e87dd4b4061cf2c5034399ef5fe93633a41b763e46c85b5a2d0a984d8b
+profile: repository_document
+recordId: knormdoc_15934fbaed0c28d79cbc8ba0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:36035cc2e45306abf980374703abb8dbba21cb6dc5874da62207d059a9646919
+sourcePath: docs/evidence/quality/ci-workflow-baseline.md
+sourceUnitVersionIds:
+  - uv_58a4c48d0f1797f0248abde7
+  - uv_7c08ff252fbdcfa25056c1de
+  - uv_9272e1c9ef2a0c3f9ab4e3ef
+  - uv_d5b5d3d9739496e10f948326
+  - uv_f0675100859d095779f4dea7

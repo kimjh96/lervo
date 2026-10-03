@@ -742,11 +742,16 @@ async function applyOperationsUnderGate<T>(input: DurableApplyInput<T>): Promise
             "The failed knowledge materialization could not be rolled back.",
           );
     }
-    throw error instanceof RepositoryKnowledgeError
+    const domainCode = (error as { code?: unknown } | null)?.code;
+    throw error instanceof RepositoryKnowledgeError ||
+      (typeof domainCode === "string" &&
+        (/^knowledge_[a-z0-9_]+$/u.test(domainCode) || domainCode === "source_bytes_changed"))
       ? error
       : new RepositoryKnowledgeError(
           "knowledge_apply_failed",
           "Knowledge materialization could not be applied and was rolled back to the original state.",
+          undefined,
+          { cause: error },
         );
   }
 }

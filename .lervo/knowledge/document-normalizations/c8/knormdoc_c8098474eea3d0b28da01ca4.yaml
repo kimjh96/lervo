@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a8395406ea1baf3d62366893
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_84abaf9215655fc0c4c9e0a9
+outputLanguage: en
+outputs:
+  - byteCount: 2574
+    contentHash: sha256:d1167e1e37e884d0cca24583fe2fe1b01d6dbd805c34c91cc320c3cf3bbcc19f
+    path: docs/roadmap/onboarding/repository-upgrade.md
+    userRegionHash: sha256:d1167e1e37e884d0cca24583fe2fe1b01d6dbd805c34c91cc320c3cf3bbcc19f
+profile: roadmap_document
+recordId: knormdoc_c8098474eea3d0b28da01ca4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7240329019ece8dc0066d1d46fbc4d792581e9dece0aee4e7a0405bf428fa01f
+sourcePath: docs/roadmap/onboarding/repository-upgrade.md
+sourceUnitVersionIds:
+  - uv_5254a0cedcfe8beaddcb8b55
+  - uv_5cf6c91354cc0f11808de895
+  - uv_749761998d911bdf8df25166
+  - uv_d55399cd531f140594e68370

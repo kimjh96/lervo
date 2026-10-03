@@ -146,7 +146,15 @@ it.each([
         expect(source.workstreamResources.groups).toMatchObject([
           { completeness: "complete", totalTokens: 100 },
         ]);
-        expect((await runtime.runCycle()).disposition).toBe("effect_confirmed");
+        let dispatch = await runtime.runCycle();
+        if (dispatch.disposition === "uncertain") {
+          expect(f.attention.at(-1)).toEqual([
+            "effect_outcome_uncertain",
+            "managed_dispatch_evidence_missing",
+          ]);
+          dispatch = await runtime.runCycle();
+        }
+        expect(dispatch.disposition).toBe("effect_confirmed");
         expect(await listAssignments(f.root)).toHaveLength(1);
       } else expect(await listAssignments(f.root)).toHaveLength(0);
       expect((await readFile(log, "utf8")).trim().split("\n")).toHaveLength(retries ? 2 : 1);

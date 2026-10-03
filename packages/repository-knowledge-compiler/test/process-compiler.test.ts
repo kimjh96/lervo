@@ -90,6 +90,30 @@ afterEach(async () => {
 });
 
 describe("generate-only process semantic compilers", () => {
+  for (const provider of ["codex", "claude"] as const) {
+    it(`${provider} preserves a JSON runner timeout for bounded convergence recovery`, async () => {
+      const item = await fixture(provider, "hang");
+      const runner = await createNoCapabilityProviderJsonRunner({
+        provider,
+        executable: item.executable,
+        timeoutMs: 1_000,
+      });
+      await expect(
+        runner.resolveObserved?.({
+          task: "bounded_review",
+          responseContract: {
+            schemaVersion: 1,
+            schema: {
+              type: "object",
+              properties: { decision: { type: "string" } },
+              required: ["decision"],
+            },
+          },
+        }),
+      ).rejects.toMatchObject({ code: "knowledge_compile_failed", processStatus: "timed_out" });
+    });
+  }
+
   it("accepts the final structured Codex message after an earlier agent message", async () => {
     const item = await fixture("codex", "multi_message");
     const runner = await createNoCapabilityProviderJsonRunner({

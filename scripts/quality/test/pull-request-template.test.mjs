@@ -36,8 +36,11 @@ describe("repository pull-request authoring contract", () => {
     for (const heading of requiredHeadings)
       assert.match(template, new RegExp(`^## ${heading}$`, "mu"));
     assert.match(template, /neither an append-only file nor a one-file-per-operation archive/u);
-    assert.match(template, /must evaluate these items directly/u);
-    assert.match(template, /Change an item to \[x\] only after its/u);
+    assert.match(template, /must evaluate (?:these items|each item) directly/u);
+    assert.match(
+      template,
+      /(?:Change an item to|Mark) \[x\] only after (?:its\s+supporting evidence has been observed|observing supporting evidence)/u,
+    );
     assert.match(template, /Checkboxes are attestations, not substitutes for CI/u);
     assert.match(template, /Use "N\/A: <reason>" instead of deleting a section/u);
     assert.match(agents, /evaluate (?:each|every) checklist item/iu);

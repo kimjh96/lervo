@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b2e30a02c91bbd922c7ada56
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4033cf473f3c83b22dc87f3a
+outputLanguage: en
+outputs:
+  - byteCount: 2772
+    contentHash: sha256:3aad8c56098460c544d743e32c6d535bd224e2f16edc732909ae4a4465aac79b
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/shiflo-webhook-2026-09-23.md
+    userRegionHash: sha256:3aad8c56098460c544d743e32c6d535bd224e2f16edc732909ae4a4465aac79b
+profile: roadmap_document
+recordId: knormdoc_668a8886370f2ed408b463e7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:36b694cd74ede99a81aad8b99f9144153a429501129a5c7bd1eb6c7a41c1de3b
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/shiflo-webhook-2026-09-23.md
+sourceUnitVersionIds:
+  - uv_38a14cb8b4a8e3e8887a9109
+  - uv_4c8b691c84ff3389684b3761
+  - uv_bdf2a64ecc5c794587409cb9
+  - uv_d3ca2c6c1a3fb57638337b31
+  - uv_ebefc129665e2effe2cacea4

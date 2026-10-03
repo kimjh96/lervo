@@ -199,7 +199,17 @@ export async function collectEventReaderActivationEvidence(input: {
     ...(input.registryPath === undefined ? {} : { registryPath: input.registryPath }),
   });
   const now = ports.now();
-  const health = assertCurrentNodeHealth(await ports.readHealth(source.healthPath), source, now);
+  let healthValue: unknown;
+  try {
+    healthValue = await ports.readHealth(source.healthPath);
+  } catch (error) {
+    fail(
+      "reader_inventory_node_health_unavailable",
+      "The configured Node reader health snapshot could not be read or parsed.",
+      error,
+    );
+  }
+  const health = assertCurrentNodeHealth(healthValue, source, now);
   let hub;
   try {
     hub = await observeVerifiedHubEventReaderCapabilities({

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_58bc62f751fb28a5f10b5873
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_85aa662f98120f72556a03c2
+outputLanguage: en
+outputs:
+  - byteCount: 2280
+    contentHash: sha256:7a9f4853b7497af9af62ae017ef79f498d98b5e3460d42f1ca039915afd1dabb
+    path: docs/specs/background-knowledge-convergence/recovery-and-retention/known-effects-and-uncertainty.md
+    userRegionHash: sha256:7a9f4853b7497af9af62ae017ef79f498d98b5e3460d42f1ca039915afd1dabb
+profile: specification_document
+recordId: knormdoc_336706abedb8e3cfe43c4883
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1123dd6fe9b8f275bdfd82c345a89077ad8ab721dc1ddc8c62f61ede571a7ad7
+sourcePath: docs/specs/background-knowledge-convergence/recovery-and-retention/known-effects-and-uncertainty.md
+sourceUnitVersionIds:
+  - uv_8c0a0b6a1ac7b3214450850c

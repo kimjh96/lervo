@@ -27,8 +27,9 @@ afterEach(async () => {
 it.each([61_000, 121_000])(
   "supersedes a never-bound responsibility claim %d ms later so the owner can decide again",
   async (expiredOffset) => {
+    const baseTime = Date.now();
     let clockOffset = 0;
-    const now = () => new Date(Date.now() + clockOffset).toISOString();
+    const now = () => new Date(baseTime + clockOffset).toISOString();
     const f = await supervisionFixture(roots);
     const storage = await openProjectStorage(f.root);
     const reader = new SupervisionTaskSource(storage, f.binding, now);
@@ -41,9 +42,9 @@ it.each([61_000, 121_000])(
       roleContractHash: f.owner.roleContractHash,
       assignmentRevision: 2,
       requiredCapabilities: ["filesystem.read"],
-      startDeadline: new Date(Date.now() + 60_000).toISOString(),
-      progressDeadline: new Date(Date.now() + 90_000).toISOString(),
-      completionDeadline: new Date(Date.now() + 120_000).toISOString(),
+      startDeadline: new Date(baseTime + 60_000).toISOString(),
+      progressDeadline: new Date(baseTime + 90_000).toISOString(),
+      completionDeadline: new Date(baseTime + 120_000).toISOString(),
       handoffRecipientIds: [f.owner.agentId],
     };
     const request = {
@@ -170,9 +171,9 @@ it.each([61_000, 121_000])(
         ...claim,
         responsibility: {
           ...task,
-          startDeadline: new Date(Date.now() + clockOffset + 60_000).toISOString(),
-          progressDeadline: new Date(Date.now() + clockOffset + 90_000).toISOString(),
-          completionDeadline: new Date(Date.now() + clockOffset + 120_000).toISOString(),
+          startDeadline: new Date(baseTime + clockOffset + 60_000).toISOString(),
+          progressDeadline: new Date(baseTime + clockOffset + 90_000).toISOString(),
+          completionDeadline: new Date(baseTime + clockOffset + 120_000).toISOString(),
         },
       };
       await storage.artifacts.put(canonicalJson(renewed));

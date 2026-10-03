@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c9902735ffa650b0a084a8a2
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a3d618faf321f200c612ef67
+outputLanguage: en
+outputs:
+  - byteCount: 469
+    contentHash: sha256:339ba91450e2397b3fd8c794901d89dbcc8e4589f142d85e61e9faed8c9323dd
+    path: docs/specs/repository-knowledge-compilation/structural-publication/compilation-and-publication.md
+    userRegionHash: sha256:339ba91450e2397b3fd8c794901d89dbcc8e4589f142d85e61e9faed8c9323dd
+  - byteCount: 612
+    contentHash: sha256:2bd79ce2e405c485320700a8ed4df86b5685f5ac74af342fb46f2ee0a264dc4e
+    path: docs/specs/repository-knowledge-compilation/structural-publication/compilation-and-publication/inventory-and-currency.md
+    userRegionHash: sha256:2bd79ce2e405c485320700a8ed4df86b5685f5ac74af342fb46f2ee0a264dc4e
+  - byteCount: 630
+    contentHash: sha256:8a83fbd174a99e5c5d245cb64d066ffdca0547b5dc9b0361a8f530b31f6ca83c
+    path: docs/specs/repository-knowledge-compilation/structural-publication/compilation-and-publication/publication-lifecycle.md
+    userRegionHash: sha256:8a83fbd174a99e5c5d245cb64d066ffdca0547b5dc9b0361a8f530b31f6ca83c
+  - byteCount: 1236
+    contentHash: sha256:e9ce250369f52f2ac552cdb4a4192f82f656565d65d7fa8f5e057f539203e18d
+    path: docs/specs/repository-knowledge-compilation/structural-publication/compilation-and-publication/structural-compilation.md
+    userRegionHash: sha256:e9ce250369f52f2ac552cdb4a4192f82f656565d65d7fa8f5e057f539203e18d
+profile: specification_document
+recordId: knormdoc_eb68bba1f83a06ac36822edc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6e465f20342cfe5bd7c1e257d41d671a5ddae8989c2ca76e74e56aec5ca53f41
+sourcePath: docs/specs/repository-knowledge-compilation/structural-publication/compilation-and-publication.md
+sourceUnitVersionIds:
+  - uv_6ca4d347087fad5587ca0d16
+  - uv_70936e2319bab0b361e84357
+  - uv_a98fbd1b58744adfabc79b10
+  - uv_bcad687ef41573be1f3b75b1

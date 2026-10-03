@@ -1,0 +1,37 @@
+# Event-contract CLI command
+
+`apps/cli/src/event-contract-command.ts` exposes writer-coordinate inspection, reader evidence collection, activation planning/application, rollback, and recovery. [ADR-0331](../decisions/operations/trace/0331-adopt-reader-first-causal-work-observability.md) defines the reader-first writer contract; [ADR-0332](../decisions/operations/trace/0332-authoritative-distributed-event-reader-inventory.md) defines distributed reader authority.
+
+## Command surface
+
+```text
+lervo event-contract --help
+lervo event-contract -h
+lervo event-contract status [--root <path>] [--json]
+lervo event-contract evidence [--root <path>] [--json]
+lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3|4>] [--apply <plan-id>] [--root <path>] [--json]
+lervo event-contract rollback [--apply <plan-id>] [--root <path>] [--json]
+lervo event-contract recover [--root <path>] [--json]
+```
+
+Argument parsing is strict. After successful parsing, `--help` or `-h` prints the five action usage lines above to stdout, followed by a newline, and returns 0. Help runs before positional-count, action-validity, schema-version-applicability, and action-specific-option checks, so it requires no action. Parser errors can still fail before help is handled.
+
+Without help, exactly one positional action is required. `--schema-version` accepts only 2, 3, or 4, applies only to activation, and defaults to 2. `--root` resolves relative to the CLI working directory and defaults to `.`.
+
+## Inspection and evidence
+
+`status` delegates to project coordinate inspection. Human output reports the selected event schema version, source, and `.lervo/data/event-contract.json`; `--json` returns the inspection object. `evidence` collects reader activation evidence and always prints JSON. Both reject activation input and apply options.
+
+Activation requires exactly one of `--from` and `--stdin`. File paths resolve from the CLI working directory; stdin must be available. The command rejects UTF-8 content above 64 KiB, invalid JSON, and evidence rejected by the project evidence reader.
+
+For a Hub-sync-enabled project or an activation target of 3 or 4, the command collects current authoritative evidence and compares it with supplied evidence using `eventWriterActivationObservationHash`. A mismatch fails with `event_writer_plan_stale` before planning. For sync-disabled activation targeting 2, the command does not collect this additional observation.
+
+## Planning, application, and recovery
+
+Activation without `--apply` prints a public JSON plan and returns 1 if its status is blocked, otherwise 0. Public plans omit `desiredContent` and `activationEvidence`. With `--apply`, the command passes the plan, supplied approval ID, and any current evidence to `applyEventWriterActivationPlan`, then prints its receipt.
+
+Rollback rejects activation evidence options. Without `--apply`, it prints the redacted rollback plan; with `--apply`, it delegates application and prints the receipt. Recovery rejects activation input and apply options, delegates to `recoverEventWriterActivation`, and prints the result.
+
+The command delegates coordinate mutation, approval validation, transaction durability, and recovery guarantees to `@lervo/project`. These calls alone do not prove that activation, rollback, or recovery succeeded in an installed repository.
+
+Caught failures print a string error code when present, the error message, and action usage to stderr, then return 1. Plans, receipts, evidence, and recovery results are JSON regardless of `--json`; the option changes only status presentation.

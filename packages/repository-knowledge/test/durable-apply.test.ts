@@ -188,6 +188,30 @@ describe("durable semantic knowledge materialization", () => {
     ).rejects.toThrow();
   });
 
+  it("preserves a typed verification failure after rolling back its staged document", async () => {
+    const root = await repository();
+    const operation = createOperation();
+    await expect(
+      applyDurableKnowledgeOperations({
+        repositoryRoot: root,
+        projectId: "prj_durableknowledge",
+        planId: `ksmat_${"e".repeat(24)}`,
+        operations: [operation],
+        documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+          repositoryRoot: root,
+          operations: [operation],
+        }),
+        receipt: { ok: true },
+        recordApplied: () => {
+          throw Object.assign(new Error("Verification suite failed."), {
+            code: "knowledge_verification_failed",
+          });
+        },
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_verification_failed" });
+    await expect(access(resolve(root, operation.path))).rejects.toThrow();
+  });
+
   it("recreates a pruned shard directory before restoring a deleted file", async () => {
     const root = await repository();
     const path = ".lervo/knowledge/concepts/aa/concept_aaaaaaaaaaaaaaaaaaaaaaaa.yaml";

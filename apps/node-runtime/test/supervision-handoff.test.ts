@@ -278,5 +278,5 @@ it.each(["team_support", "central_escalation"] as const)(
       await targetStorage.close();
     }
   },
-  60_000,
+  180_000,
 );

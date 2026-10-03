@@ -186,7 +186,7 @@
     },
     {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:088b3046e11b88ff2a933615d757ee07562a599cc2e840f2e50e73245100b91b",
+      "contentHash": "sha256:e175990083e54951e0d94108ae815908e75ed19b2847ff8ad564a2d4f0cc2d6a",
       "responsibility": "Isolated no-capability provider process adapter",
       "rationale": "The module implements one isolated no-capability process boundary for both existing providers, including native structured JSON output. Native availability failure translation is extracted and shared by the three JSON workflows; host admission, persistent budgets, source policy and document effects remain outside this adapter. Common tests cover schema delivery, exact structured response extraction, no tools, usage, cancellation and timeout.",
       "disposition": "cohesive"
@@ -228,7 +228,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/durable-apply.ts",
-      "contentHash": "sha256:761ed17e1de1f2ad661b1e6e3a44a0995c4989a159c35b7d0518df1c48c31f12",
+      "contentHash": "sha256:f8e5ef1c6d9baec6957353408e5b86aba327eb0424ddbbcd537e19e8ada28d9f",
       "responsibility": "Durable knowledge filesystem transaction",
       "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, and cleanup implement one atomic filesystem transaction protocol. Apply and recovery take the same external source gate through a small wrapper; SQLite mechanics and background retry policy remain in separate modules.",
       "disposition": "cohesive"
@@ -312,7 +312,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:7ec334a2cb57cf44b4f2f354d8d40484514784ae5cb4581a63d234512a2c65ca",
+      "contentHash": "sha256:18258fdd12555cce3bb8c80acc97268378137e32518c09b81eab55075f070468",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
       "disposition": "cohesive"

@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_51f57a0017d3d043a05d4623
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7223fc91a17cb204aa3856e9
+outputLanguage: en
+outputs:
+  - byteCount: 1879
+    contentHash: sha256:e3d0e09822b47db5fd43c56004da72e07b1b3b9cdfd3e393c28871dbb77b4dc8
+    path: docs/specifications/coordination/conversation-turn-knowledge-assignment-helpers.md
+    userRegionHash: sha256:e3d0e09822b47db5fd43c56004da72e07b1b3b9cdfd3e393c28871dbb77b4dc8
+profile: specification_document
+recordId: knormdoc_57bccca0131ec49a65c1eb54
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3668a1c285cebc4cfeca66d712178cfd18a44ff2caf1455f244b4d96e3f8fc63
+sourcePath: docs/specifications/coordination/conversation-turn-knowledge-assignment-helpers.md
+sourceUnitVersionIds:
+  - uv_1f70ec47e3090f36c5ad7326
+  - uv_20bf9068884dcdac4db25d08
+  - uv_3fa4fe3987bb067162845137
+  - uv_884ec98fdcdbbb16e091ee82

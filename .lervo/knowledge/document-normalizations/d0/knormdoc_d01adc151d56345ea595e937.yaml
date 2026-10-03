@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a8395406ea1baf3d62366893
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c59cb586826eca0e308d75d7
+outputLanguage: en
+outputs:
+  - byteCount: 1188
+    contentHash: sha256:b799d655f639e916a4d8c476ef48c522ae7a6f4e318ba04f7dc4fc54eca67c0f
+    path: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation.md
+    userRegionHash: sha256:b799d655f639e916a4d8c476ef48c522ae7a6f4e318ba04f7dc4fc54eca67c0f
+  - byteCount: 2350
+    contentHash: sha256:4113faa6d34ee9e123a3bb05017d956c2bb528eb19b9e34edc35b2cf1ee0807d
+    path: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/asset-manifest-authority.md
+    userRegionHash: sha256:4113faa6d34ee9e123a3bb05017d956c2bb528eb19b9e34edc35b2cf1ee0807d
+  - byteCount: 1491
+    contentHash: sha256:7206b7b44d748bfab8fb33783e893bd09a97bbd4b1ee1dc1eda604fccbb994bf
+    path: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/delegation-and-activation.md
+    userRegionHash: sha256:7206b7b44d748bfab8fb33783e893bd09a97bbd4b1ee1dc1eda604fccbb994bf
+  - byteCount: 2426
+    contentHash: sha256:cec0806c1b37336b51d97910f091a54b6b91ee3dbbde3db8b5421436383a8cce
+    path: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/runtime-ownership.md
+    userRegionHash: sha256:cec0806c1b37336b51d97910f091a54b6b91ee3dbbde3db8b5421436383a8cce
+profile: specification_document
+recordId: knormdoc_d01adc151d56345ea595e937
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bbd4554811c1b48fe9232c8d96ed89d6e9641dbb6ffe3b2dc89af5d013063816
+sourcePath: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation.md
+sourceUnitVersionIds:
+  - uv_4b328f01c6c131bfc19eb6f1
+  - uv_4f1b29d263b3969a63ba8343
+  - uv_52fd91b27e44514830d63de9
+  - uv_63db7cb989d3204b2f71f23b

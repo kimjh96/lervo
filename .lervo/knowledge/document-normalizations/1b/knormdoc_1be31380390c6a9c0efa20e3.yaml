@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f8ac7186919a128d13f83191
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_53c9d8011c8b7d6be45e1698
+outputLanguage: en
+outputs:
+  - byteCount: 241
+    contentHash: sha256:dd19e7d4da5b5aaf43551f67c426907b7a97bbc70fdac03740a9e88ab201513d
+    path: apps/cli/README/assignment-workflows.md
+    userRegionHash: sha256:dd19e7d4da5b5aaf43551f67c426907b7a97bbc70fdac03740a9e88ab201513d
+  - byteCount: 370
+    contentHash: sha256:53dbc1108d1b7792cb5ba0e93a9f51e54c289d3eeed0c77d1853cd78fa57c74c
+    path: apps/cli/README/assignment-workflows/assignment-topology.md
+    userRegionHash: sha256:53dbc1108d1b7792cb5ba0e93a9f51e54c289d3eeed0c77d1853cd78fa57c74c
+  - byteCount: 426
+    contentHash: sha256:dbd5eb3168af93b93fc4792cd1057506049b0764381f099ef4e55991ab58e587
+    path: apps/cli/README/assignment-workflows/authenticated-webhooks.md
+    userRegionHash: sha256:dbd5eb3168af93b93fc4792cd1057506049b0764381f099ef4e55991ab58e587
+  - byteCount: 501
+    contentHash: sha256:158f2819577911b65173dfbd029d4a23dec0af3a071cdf1d219be08dba557947
+    path: apps/cli/README/assignment-workflows/unattended-scheduling.md
+    userRegionHash: sha256:158f2819577911b65173dfbd029d4a23dec0af3a071cdf1d219be08dba557947
+profile: repository_document
+recordId: knormdoc_1be31380390c6a9c0efa20e3
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a0472752e6408c8fb29951b8c7e258edab3963c7c2f73c19324de38ed7c50db4
+sourcePath: apps/cli/README/assignment-workflows.md
+sourceUnitVersionIds:
+  - uv_301bc365db95f787ab56ffb9
+  - uv_765064864e376087c9ac8292
+  - uv_b94e5a7a7c5ce5bd05d23473
+  - uv_d91ea504c7fad7146a4b33c5

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_58bc62f751fb28a5f10b5873
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a88faf897e407909eea65bba
+outputLanguage: en
+outputs:
+  - byteCount: 1717
+    contentHash: sha256:61c53129ae89c20b104849208e9d37e3c29b3af4667f45dace78c0e74fb043ee
+    path: docs/specs/background-knowledge-convergence/recovery-and-retention/workspace-closure-and-retention.md
+    userRegionHash: sha256:61c53129ae89c20b104849208e9d37e3c29b3af4667f45dace78c0e74fb043ee
+profile: specification_document
+recordId: knormdoc_239b9fa3b16a938b0066a295
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e0b0d3238a1decbbf32d37b017452ed65691d3297f5e51cc57927649f419818e
+sourcePath: docs/specs/background-knowledge-convergence/recovery-and-retention/workspace-closure-and-retention.md
+sourceUnitVersionIds:
+  - uv_30bda0304a657d542b8a20fd

@@ -1,0 +1,43 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1ff03082de4d6a7ca9724068
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0ad217771d2567faba537697
+outputLanguage: en
+outputs:
+  - byteCount: 841
+    contentHash: sha256:0b7248bc2241c029bbc7f1ffc7a2e1f993b53898f9512ab98a98b695c38c0222
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/implementation-and-canaries.md
+    userRegionHash: sha256:0b7248bc2241c029bbc7f1ffc7a2e1f993b53898f9512ab98a98b695c38c0222
+  - byteCount: 5996
+    contentHash: sha256:fec285d73535de82842973a7bbc993f5af3d0d25be241ddd82263cabdd055b71
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/implementation-and-canaries/native-canaries.md
+    userRegionHash: sha256:fec285d73535de82842973a7bbc993f5af3d0d25be241ddd82263cabdd055b71
+  - byteCount: 1978
+    contentHash: sha256:781930bc5ba1200753b776afdffac47a4bda73dd68920e9734209ebc9d0395ff
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/implementation-and-canaries/refusal-and-recovery.md
+    userRegionHash: sha256:781930bc5ba1200753b776afdffac47a4bda73dd68920e9734209ebc9d0395ff
+  - byteCount: 2992
+    contentHash: sha256:3c76a010cab608da0697cc98c00edcd57d6e591f7626d119c925f4f6385dca21
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/implementation-and-canaries/validation.md
+    userRegionHash: sha256:3c76a010cab608da0697cc98c00edcd57d6e591f7626d119c925f4f6385dca21
+profile: repository_document
+recordId: knormdoc_f7f6d9ba1a24ca4de0aba8ad
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0bbd25e7802bd25315cb51693e5f87aba38a3820edae2ecde551e84c128a88f1
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/implementation-and-canaries.md
+sourceUnitVersionIds:
+  - uv_080dd89610e7b223fece450e
+  - uv_1e0ae91af12a7e4e59961e95
+  - uv_2a6d43bf5d151b602ee46fe8
+  - uv_4f81ea4db29ea404e84f83ae
+  - uv_a2c06aaeeb0b5af19c12fcb7
+  - uv_ad52d5039f56b281e48194d9

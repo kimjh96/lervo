@@ -21,4 +21,10 @@ it("retries a typed normalizer timeout while retaining other compile failures", 
   expect(normalizedConvergenceFailure({ code: "knowledge_compile_failed" })).toBe(
     "knowledge_compile_failed",
   );
+  expect(
+    normalizedConvergenceFailure({
+      code: "knowledge_compile_failed",
+      message: "The provider compiler executable version could not be determined.",
+    }),
+  ).toBe("knowledge_job_transient_failure");
 });

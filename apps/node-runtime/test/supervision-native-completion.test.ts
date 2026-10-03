@@ -110,10 +110,10 @@ it.each([
         "revise_responsibility",
       ],
       undefined,
-      scenario.startsWith("late_") ? 20_000 : undefined,
-      // A near completion deadline keeps the pre-launch renewal from extending the lease,
-      // so the owner still prepares completion after its original execution authority ended.
-      scenario.startsWith("late_") ? 30_000 : undefined,
+      // Leave the original lease outside the 120-second renewal window during fixture setup.
+      // A near completion deadline still prevents renewal from extending that authority.
+      scenario.startsWith("late_") ? 180_000 : undefined,
+      scenario.startsWith("late_") ? 181_000 : undefined,
     );
     const log = resolve(f.login.context.homeDirectory, "native-operations.log");
     const promptLog = resolve(f.login.context.homeDirectory, "worker-prompt.log");

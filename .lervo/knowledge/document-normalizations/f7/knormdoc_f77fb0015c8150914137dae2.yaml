@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_adffda866b3deaad621836b0
+compiler:
+  compilerBuildId: sha256:28fccadc6cd3a05adb5a1f1651934c86c8f9387a545eb9316b4b2b19eba8f059
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_988b70c96b364477546fd750
+outputLanguage: en
+outputs:
+  - byteCount: 1497
+    contentHash: sha256:d3daab09c2cdcb63a27303628a5d1a616f08eb66f650e2ac5621fd227eb50b1f
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/settlement-and-verification.md
+    userRegionHash: sha256:d3daab09c2cdcb63a27303628a5d1a616f08eb66f650e2ac5621fd227eb50b1f
+profile: specification_document
+recordId: knormdoc_f77fb0015c8150914137dae2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:de069ce9be2646e33158769c455d186556c869fefd84b19740d8185ea64ee646
+sourcePath: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/settlement-and-verification.md
+sourceUnitVersionIds:
+  - uv_652eeebf9546d8810a58bb0a
+  - uv_9ae789e0361991140746d415
+  - uv_d9ddad917b49e264945e4442

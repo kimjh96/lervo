@@ -3,7 +3,9 @@ export function normalizedConvergenceFailure(error: unknown): string {
   if (code === "cancelled") return "knowledge_cancelled";
   if (
     code === "knowledge_compile_failed" &&
-    (error as { processStatus?: unknown }).processStatus === "timed_out"
+    ((error as { processStatus?: unknown }).processStatus === "timed_out" ||
+      (error as { message?: unknown }).message ===
+        "The provider compiler executable version could not be determined.")
   )
     return "knowledge_job_transient_failure";
   const allowed = [

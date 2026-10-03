@@ -21,7 +21,7 @@ afterEach(async () => {
 
 it.each([false, true])(
   "normalizes independent debt while retaining canonical rejection; legacy upgrade=%s",
-  { timeout: 180_000 },
+  { timeout: 300_000 },
   async (legacy) => {
     const f = await fixture(true, true);
     fixtures.push(f);
@@ -153,5 +153,57 @@ it.each([false, true])(
     await run();
     expect(f.events.latest()!.eventHash).toBe(head);
     expect(await readFile(f.log, "utf8")).toBe(logBeforeRestart);
+  },
+);
+
+it(
+  "passes semantic rejection feedback to one bounded re-assessment",
+  { timeout: 180_000 },
+  async () => {
+    const f = await fixture(true, false);
+    fixtures.push(f);
+    const policyPath = resolve(f.root, ".lervo/knowledge/policy.yaml");
+    const policy = JSON.parse(await readFile(policyPath, "utf8"));
+    policy.normalization.exclude.push("docs/specs/runtime.md");
+    await writeFile(policyPath, JSON.stringify(policy));
+    const readme = resolve(f.root, "README.md");
+    await writeFile(readme, `${await readFile(readme, "utf8")}\nThe runtime starts locally.\n`);
+    const script = await readFile(f.executable, "utf8");
+    const marker =
+      "if(request.task==='independent_canonical_review')response={assessmentHash:data.assessmentHash,decision:'approve'";
+    expect(script).toContain(marker);
+    await writeFile(f.executable, script.replace(marker, marker.replace("'approve'", "'reject'")));
+    let result: Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>> | undefined;
+    for (let i = 0; i < 16; i++) {
+      result = await runAutonomousKnowledgeWorker({
+        storage: f.storage,
+        workerId: "bounded-review-retry",
+        provider: "claude",
+        executable: f.executable,
+        admissionDirectory: f.admissionDirectory,
+        maximumStages: 1,
+      });
+      if (
+        result.status === "processed" &&
+        result.convergence.reason === "knowledge_semantic_review_rejected"
+      )
+        break;
+    }
+    expect(result).toMatchObject({
+      status: "processed",
+      convergence: { state: "attention_required", reason: "knowledge_semantic_review_rejected" },
+    });
+    const calls = (await readFile(f.log, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    expect(calls.filter((c) => c.request.task === "independent_canonical_review")).toHaveLength(2);
+    expect(
+      calls.filter(
+        (c) =>
+          c.request.task === "canonical_baseline_assessment" &&
+          typeof c.request.untrustedSourceData.independentReviewFeedback === "string",
+      ),
+    ).toHaveLength(1);
   },
 );

@@ -20,6 +20,10 @@ it(
   async () => {
     const f = await fixture(true, true);
     fixtures.push(f);
+    await writeFile(
+      resolve(f.root, "src/runtime.ts"),
+      "export const maximumBackgroundCalls = 2; // observed runtime limit\n",
+    );
     const repository = resolve(".");
     const child = resolve(f.directory, "crash-worker.mjs");
     await writeFile(

@@ -2,6 +2,8 @@
 
 Part of [Role-backed multi-party conversation](../multi-party-conversation.md). The [2026-09-19 bound-workstream canary record](installed-bound-canary.md) separates Elio's supervision rollout from the held conversation approval.
 
+The capability remains deployed; technical acceptance is open. Healthy services and component tests do not replace independently human-authored acceptance or the full normal/redelivery/failure/retry/restart matrix.
+
 ## Scope and evidence
 
 - [Installed contract and capabilities](installed-scope/contract.md): deployments, context, ownership, peer binding, proactive signals, deliberation, effects, and natural hiring.
@@ -11,8 +13,6 @@ Part of [Role-backed multi-party conversation](../multi-party-conversation.md). 
 - [2026-09-21–22 recovery and admission corrections](installed-scope/recovery-2026-09-21-22.md): request-grounded acknowledgment, recovery evidence, exact supervision ownership, and Hub compatibility.
 - [2026-09-23 supervision and crash recovery](installed-scope/recovery-2026-09-23.md): V3 mandates, startup gating, r52 no-replay evidence, and r53 canonical completion recovery.
 - [2026-09-23 Shiflo webhook correction](installed-scope/shiflo-webhook-2026-09-23.md): r55 deployment and unresolved historical delivery attention.
-
-The capability remains deployed while technical acceptance is open. Healthy services and component tests do not replace independently human-authored acceptance or the full normal/redelivery/failure/retry/restart matrix.
 
 ## Decisions
 

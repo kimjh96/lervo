@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0f142690f31f24d345172932
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a678ceb5bfb7e358b544a52d
+outputLanguage: en
+outputs:
+  - byteCount: 973
+    contentHash: sha256:30e73dca0b24ae61425a48a55d8416b45ced0b8e78b72bdbe3d1deceeb99e0fc
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation.md
+    userRegionHash: sha256:30e73dca0b24ae61425a48a55d8416b45ced0b8e78b72bdbe3d1deceeb99e0fc
+  - byteCount: 2293
+    contentHash: sha256:4b077d674e7e0deafa0f85c31e2452ea40845e77259010e2ebc1af418be60c8c
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/debt-and-authority.md
+    userRegionHash: sha256:4b077d674e7e0deafa0f85c31e2452ea40845e77259010e2ebc1af418be60c8c
+  - byteCount: 1874
+    contentHash: sha256:5c322801bb36146a5f7e1213571ed66e995b3486ee7a9514016971e570a5968e
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/delivery-and-configuration.md
+    userRegionHash: sha256:5c322801bb36146a5f7e1213571ed66e995b3486ee7a9514016971e570a5968e
+  - byteCount: 1998
+    contentHash: sha256:b29ccaf49f522b43c6ee214d345627287e5f10f0cee0413a860997a52be25a5f
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/pauses-review-and-readers.md
+    userRegionHash: sha256:b29ccaf49f522b43c6ee214d345627287e5f10f0cee0413a860997a52be25a5f
+profile: handoff_document
+recordId: knormdoc_7bc12fa6d7374760af5bdefc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:daf8e6a1d7382b8e82deff30fd1030b56a8a99306cf52850265506a8bed2ef87
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation.md
+sourceUnitVersionIds:
+  - uv_0f94d8775e8e09893b7c6ada
+  - uv_91e0679aec28f60289b96929
+  - uv_abf8bb90a16e257f0bc7c841
+  - uv_ac4e4ff9a35e8f19d21da8dd

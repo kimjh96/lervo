@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e1bc705ac8d40979cb169712"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep convergence delegation plans read-only while validating agent bindings."

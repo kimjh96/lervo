@@ -1,0 +1,17 @@
+# Delivery order
+
+1. Repair settlement safety. After review and before outcomes, recheck source/context and exact lease fencing; validate complete source manifests; recover pinned before-bytes; partition opaque assets; forbid null-candidate `pending_review`. Add regressions for both reproduced unsafe paths before changing production behavior. Apply [ADR-0436](../../../decisions/knowledge/repository/canonicalization/0436-reviewed-source-capture-and-bounded-canonical-worksets.md): reviewed capture ceilings, complete opaque link descriptors, and canonical worksets within delegated count/byte bounds. Require actual target/asset verification before full baseline currency. Apply [ADR-0438](../../../decisions/knowledge/repository/canonicalization/0438-bind-bounded-asset-manifests-to-delegation.md): bind larger complete asset declarations in one bounded sidecar and atomic delegation plan. Install compatible readers before activating exact project authority. Integrity declarations cannot promote visual or runtime state.
+2. Implement canonical baseline discovery and durable stage handoff. Replay change events omitted from full queues; recover acknowledged attention/review outcomes without changing historical events. Expose independent debt and worker health before enabling document writes.
+3. Implement reviewed delegation, independent review assignments, and scoped workspace/integration composition. Reuse role, ancestry, capability, verification, path-conflict, document-layout, and exact apply gates. Without delegation, inspect and report only.
+4. Connect canonical assessment to authorized draft integration and exact promotion. Resolve candidates semantically, not by canonical path presence alone. Recovered historical obligations retain source-evidence limits.
+5. Connect normalization generation to autonomous review and exact apply, with fairness, rejection isolation, finite resources, provider pause, and self-generated-change suppression. Reconcile bridges and projections after approved writes. Under [ADR-0435](../../../decisions/knowledge/repository/canonicalization/0435-continue-normalization-after-canonical-rejection.md), retain rejected canonical proposals as unresolved evidence while continuing independently reviewable normalization. Installed evidence must prove continuation never claims canonical acceptance or baseline currency.
+6. Connect ordered lifecycle verification to change-scoped and repository-wide completion. Require stable scans, stage receipts, zero lint errors, and explicit unresolved-debt accounting. Keep partial completion visible.
+7. Complete reader-first compatibility, dry-run baseline migration, and one installed idle canary. Activate further repositories only after verified no-Hub/restart/conflict/provider-capacity journeys and reviewed per-project authority.
+
+## Original reference targets
+
+The source records these exact targets; the links above resolve them from this child document:
+
+- `../../decisions/knowledge/repository/canonicalization/0436-reviewed-source-capture-and-bounded-canonical-worksets.md`
+- `../../decisions/knowledge/repository/canonicalization/0438-bind-bounded-asset-manifests-to-delegation.md`
+- `../../decisions/knowledge/repository/canonicalization/0435-continue-normalization-after-canonical-rejection.md`

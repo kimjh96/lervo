@@ -76,7 +76,7 @@ export async function assertConvergenceDelegationBindings(
     calculateProjectIdentityHash(await loadProjectManifest(root))
   )
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
-  const agents = await listAgents(root);
+  const agents = await listAgents(root, { readOnly: true });
   const parent = agents.find((agent) => agent.agentId === delegation.parentAgentId);
   const reviewer = agents.find((agent) => agent.agentId === delegation.review.reviewerAgentId);
   if (

@@ -124,7 +124,7 @@ async function verifyPackageGuide(consumerRoot) {
   assert.equal(guide.startsWith("# @lervo/cli\n"), true);
   assert.deepEqual(
     [...guide.matchAll(/^## (.+)$/gmu)].map((match) => match[1]),
-    ["Requirements and installation", "First use", "Workflows"],
+    ["Prerequisites", "Install", "First run"],
   );
   for (const requiredText of [
     "npm install --global @lervo/cli",
@@ -137,14 +137,9 @@ async function verifyPackageGuide(consumerRoot) {
   assert.match(guide, /\bNode\.js 22\.13(?:\+| or (?:later|newer))(?:\.|\s|$)/u);
   assert.match(
     guide,
-    /\b(?:works?|operates?|runs?) without a Hub\b|\bdo(?:es)? not require a Hub\b|\brequires? no Hub\b/u,
+    /\b(?:works?(?: locally)?|operates?|runs?) without a Hub\b|\bdo(?:es)? not require a Hub\b|\brequires? no Hub\b/u,
   );
-  for (const canonicalGuide of [
-    "https://github.com/kimjh96/lervo/blob/main/docs/knowledge/repository/knowledge.md",
-    "https://github.com/kimjh96/lervo/blob/main/docs/execution/orchestration/execution.md",
-  ]) {
-    assert.equal(guide.includes(canonicalGuide), true);
-  }
+  assert.match(guide, /[Pp]rovider(?: configuration is separate| separately)/u);
 }
 
 async function runConsumerCli(consumerRoot, args, input) {

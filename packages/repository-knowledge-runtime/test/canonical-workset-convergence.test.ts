@@ -70,6 +70,7 @@ it(
       .filter(
         (source: { path: string; kind: string }) =>
           source.kind === "text" &&
+          initial.baseline.assessmentPaths.includes(source.path) &&
           initial.baseline.sourceDispositions.find(
             (item: { path: string }) => item.path === source.path,
           )?.kind === "semantic_source",

@@ -9,6 +9,8 @@ This specification defines Lervo-owned stage timing and the reproducible perform
 - [Observation contract and managed stages](stage-observation-and-performance/observation-contract.md)
 - [Direct-terminal stages](stage-observation-and-performance/direct-terminal-stages.md)
 - [Paired performance gate and verification](stage-observation-and-performance/paired-performance-gate.md)
+- [Prepared terminal snapshot storage](stage-observation-and-performance/prepared-terminal-snapshot-storage.md)
+- [Prompt assembly and emitted completion instructions](stage-observation-and-performance/prompt-assembly.md)
 
 ## References
 

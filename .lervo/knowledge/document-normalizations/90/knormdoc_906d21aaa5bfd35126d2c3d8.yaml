@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6881e5a323c1dd13b7dc8612
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5d7333222a9ee9aad036b536
+outputLanguage: en
+outputs:
+  - byteCount: 2570
+    contentHash: sha256:a34cfb9a59bdc302e595430ebbbd9986cc2ba979f3eeb3563453f2a1f5f31b44
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope.md
+    userRegionHash: sha256:a34cfb9a59bdc302e595430ebbbd9986cc2ba979f3eeb3563453f2a1f5f31b44
+profile: roadmap_document
+recordId: knormdoc_906d21aaa5bfd35126d2c3d8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d6c52fa6142a7e171ea24f3d8b3918b3b82494ee7311eadf83d7957fa8718c34
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope.md
+sourceUnitVersionIds:
+  - uv_8485dd5cd015cdb33109155c
+  - uv_c827b95b5d16d2327d3b869a
+  - uv_f947ceadbeec4b03daec0d47

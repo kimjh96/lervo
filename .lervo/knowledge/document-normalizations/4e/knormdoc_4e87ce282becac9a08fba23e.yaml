@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b4fd4ff46d011bcf074c2686
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e62feb021cde4c67263a9845
+outputLanguage: en
+outputs:
+  - byteCount: 1944
+    contentHash: sha256:8dc73e8f131bcc37f6e391e23212e189d9e3a63888823b947dce78d16571e882
+    path: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/source-capture.md
+    userRegionHash: sha256:8dc73e8f131bcc37f6e391e23212e189d9e3a63888823b947dce78d16571e882
+profile: roadmap_document
+recordId: knormdoc_4e87ce282becac9a08fba23e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d7a431573a29310471d3604a187f6347a52f682337af76823e760585424ecc50
+sourcePath: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/source-capture.md
+sourceUnitVersionIds:
+  - uv_266d6edb5172daef203cbdf0

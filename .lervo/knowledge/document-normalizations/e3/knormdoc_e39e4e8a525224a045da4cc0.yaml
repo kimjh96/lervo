@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81553bd2a3b0467df965f9ce
+compiler:
+  compilerBuildId: sha256:28fccadc6cd3a05adb5a1f1651934c86c8f9387a545eb9316b4b2b19eba8f059
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_431f365b2bf099be463110aa
+outputLanguage: en
+outputs:
+  - byteCount: 1732
+    contentHash: sha256:c80832a1dfdccc182dbfd22ab87a8a1b8e16fdbb041fa1c22dd616e114468f39
+    path: docs/roadmap/knowledge/autonomous-background-convergence.md
+    userRegionHash: sha256:c80832a1dfdccc182dbfd22ab87a8a1b8e16fdbb041fa1c22dd616e114468f39
+profile: roadmap_document
+recordId: knormdoc_e39e4e8a525224a045da4cc0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:eafa80ec76f331597ed865e35f7f0e7b9311e106c80415f72ab14190a8a9f502
+sourcePath: docs/roadmap/knowledge/autonomous-background-convergence.md
+sourceUnitVersionIds:
+  - uv_024f21762001434f008391ae
+  - uv_7c4f4f8bf9c18f8a31d25bda
+  - uv_8f450141f4bbd7ae43896686

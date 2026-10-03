@@ -1,0 +1,39 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b2e30a02c91bbd922c7ada56
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_dcddcc1cea2b65a238ef5b4f
+outputLanguage: en
+outputs:
+  - byteCount: 370
+    contentHash: sha256:c253b297d515e9cfc43889cf6a14884bc9fd59a6a60aeb733ad14d6becdc1b10
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/recovery-2026-09-23.md
+    userRegionHash: sha256:c253b297d515e9cfc43889cf6a14884bc9fd59a6a60aeb733ad14d6becdc1b10
+  - byteCount: 2620
+    contentHash: sha256:a51b8da68cc51e0286754f5e6c632c15987023107f852831bddc8db27574e54a
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/recovery-2026-09-23/completion-recovery.md
+    userRegionHash: sha256:a51b8da68cc51e0286754f5e6c632c15987023107f852831bddc8db27574e54a
+  - byteCount: 3354
+    contentHash: sha256:768de6b09721e6dc8f61fe2cd42f81430341af9bfd369197ed229ee803ac3e92
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/recovery-2026-09-23/supervision.md
+    userRegionHash: sha256:768de6b09721e6dc8f61fe2cd42f81430341af9bfd369197ed229ee803ac3e92
+profile: roadmap_document
+recordId: knormdoc_9a5140b444fdabc13ec39cf7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:fb2556b0dfde3bdbbe103ca4d336ae43a697bb16318e48298975a3b50026160c
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/recovery-2026-09-23.md
+sourceUnitVersionIds:
+  - uv_26fc07249a0e2f2e8d13f17f
+  - uv_3abcff33f2930018dd26e181
+  - uv_886dc7d60c9ae1582f5eb34a
+  - uv_8eaa7431c2230f8948c3db41
+  - uv_b0901058ac60eebd4c454c34
+  - uv_cc1e33552d151e98dba17b60

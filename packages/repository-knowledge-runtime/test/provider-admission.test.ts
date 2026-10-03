@@ -1,6 +1,9 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import { DatabaseSync } from "node:sqlite";
 import { afterEach, expect, it } from "vitest";
 import {
   acquireKnowledgeProviderAdmission,
@@ -45,6 +48,33 @@ it("shares two host slots across providers, one per repository, and preserves wa
   await second!.release();
   await third!.release();
   await first!.release();
+});
+it("reclaims an interrupted owner's active slot before its timeout", async () => {
+  const input = await host();
+  const initial = await acquireKnowledgeProviderAdmission({
+    ...input,
+    repositoryRoot: "/repo/initial",
+  });
+  await initial!.release();
+  const exited = spawnSync(process.execPath, ["-e", ""], { encoding: "utf8" });
+  expect(exited.status).toBe(0);
+  const db = new DatabaseSync(resolve(input.directory, "admission.sqlite"));
+  try {
+    const now = Date.now();
+    const repositoryHash = `sha256:${createHash("sha256").update(resolve("/repo/dead")).digest("hex")}`;
+    db.prepare(
+      "INSERT INTO requests(repository_hash,owner_pid,requested_at,last_seen_at,provider,purpose,nonce,acquired_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?)",
+    ).run(repositoryHash, exited.pid, now, now, "codex", null, "interrupted", now, now + 600_000);
+  } finally {
+    db.close();
+  }
+  const recovered = await acquireKnowledgeProviderAdmission({
+    ...input,
+    provider: "codex",
+    repositoryRoot: "/repo/dead",
+  });
+  expect(recovered).not.toBeNull();
+  await recovered!.release();
 });
 it("yields to live work and never guesses an unknown provider reset", async () => {
   const input = await host();

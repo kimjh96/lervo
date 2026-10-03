@@ -2,9 +2,9 @@
 
 ## Observed failure
 
-Read-only inspection of Shiflo interaction stores found twelve `attention_required` outbounds after three `adapter_delivery_failed` attempts: five Sora and seven Nuri. All carried `observe_only`; nine also carried `task.result`. None had a platform replay row. The current webhook adapter's pre-replay attribute rejection explains the observed failure without claiming an unavailable historical exception stack.
+Read-only inspection of Shiflo interaction stores found twelve `attention_required` outbounds after three `adapter_delivery_failed` attempts: five Sora and seven Nuri. All carried `observe_only`; nine also carried `task.result`. None had a platform replay row. The current webhook adapter's pre-replay attribute rejection explains the failure without claiming an unavailable historical exception stack.
 
-An exact-content-hash poll of the observed channel window found no matching publication. That absence is neither a verified delivery receipt nor permission to resend. All twelve rows remain unchanged.
+An exact-content-hash poll of the observed channel window found no matching publication. This absence is neither a verified delivery receipt nor permission to resend. All twelve rows remain unchanged.
 
 ## Correction and validation
 
@@ -16,7 +16,7 @@ Commit `fe023951ee` applies ADR-0425, linked from the [scope entrypoint](../inst
 
 Focused adapter, platform, delegation, and co-resident router tests passed 42/42 on Mac and WSL. Typecheck, quality, documentation, build, release-manifest, and SBOM checks passed.
 
-The full Mac suite did not pass. Its initial 3,955-pass run had generated-metadata mismatches, a no-suite test file, and timing/file-watch failures. Metadata tests passed after regeneration; two wakeup tests still failed in isolated reruns. Release completion is `intent_pending`, not a published release.
+The full Mac suite did not pass: its initial 3,955-pass run had generated-metadata mismatches, a no-suite test file, and timing/file-watch failures. Metadata tests passed after regeneration; two wakeup tests still failed in isolated reruns. Release completion is `intent_pending`, not a published release.
 
 ## Shiflo-only r55 deployment
 
@@ -24,7 +24,7 @@ Linux Node distribution `sha256:9b7715bdcc4a74813ad42f6d244d44939d193a5a8d4c45e4
 
 Only Shiflo service `nfi_2bbef9a417cbc00263593a8d` upgraded from r53. Its exact r53 definition remains in the owner-only `webhook-control-r55` acceptance directory. The rendered definition changed only the runtime executable and private path.
 
-Post-upgrade systemd reported active/running, main PID `2480478`, and zero restarts. The owner-only health snapshot had the same PID and ready aggregate, conversation, sync, workstream replication, and remote control. Supervision separately reported `dormant:workstream_inactive`.
+Post-upgrade systemd reported active/running, main PID `2480478`, and zero restarts. The owner-only health snapshot matched that PID and reported ready aggregate, conversation, sync, workstream replication, and remote control. Supervision separately reported `dormant:workstream_inactive`.
 
 ## Acceptance remains open
 

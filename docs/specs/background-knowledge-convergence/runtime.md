@@ -8,6 +8,7 @@ The runtime coordinates delegated background knowledge convergence, bounded exec
 - [Ownership and activation](runtime/ownership-and-activation.md): runtime boundaries, source leases, delegation, and asset authority.
 - [Discovery and bounded progress](runtime/discovery-and-progress.md): scheduling, stages, settlement, verification, and resource bounds.
 - [Events, status, and privacy](runtime/events-and-status.md): canonical payloads, states, diagnostics, worker health, and provider probes.
+- [CLI wrappers](runtime/cli-wrappers.md): inspection, delegation, probes, worker lifetime, and detached launch evidence.
 - [Verification and remaining acceptance](runtime/verification-and-acceptance.md): execution-evidence coverage and production acceptance.
 
 ## References

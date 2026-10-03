@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -175,6 +175,21 @@ describe("distributed event reader inventory", () => {
         ),
       }),
     ).rejects.toMatchObject({ code: "reader_inventory_node_identity_mismatch" });
+  });
+
+  it("maps missing and malformed Node health files to the typed unavailable failure", async () => {
+    const root = await repository();
+    const { readHealth: _readHealth, ...currentPorts } = ports(root);
+    await expect(
+      collectEventReaderActivationEvidence({ repositoryRoot: root, ports: currentPorts }),
+    ).rejects.toMatchObject({ code: "reader_inventory_node_health_unavailable" });
+
+    const healthPath = source(root).healthPath;
+    await mkdir(resolve(healthPath, ".."), { recursive: true });
+    await writeFile(healthPath, "{", { mode: 0o600 });
+    await expect(
+      collectEventReaderActivationEvidence({ repositoryRoot: root, ports: currentPorts }),
+    ).rejects.toMatchObject({ code: "reader_inventory_node_health_unavailable" });
   });
 
   it("fails closed when the Hub response does not prove the configured identity", async () => {

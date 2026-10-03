@@ -4,7 +4,13 @@ Status: `active`
 As of: 2026-10-01
 Task base: `b3798091d8d49c3c331e25b1f440e4150adc6e93`
 
-This evidence separates source tests, private installed observations, guarded deployment, and verified currency. Mac background convergence resumed after source-specific canonical review; normalization apply passed, while old-candidate and lifecycle completion remain open. The WSL eight-document delegation is installed, and the guarded r6 Node is ready after correcting transient supervision health; WSL canonical integration passed v9 verification, while current normalization currency remains unverified. Fresh human-authored `#general` and `#shiflo` turns produced delivered replies. Shiflo delegated work reached Nuri and Sora, and a completed-turn restart caused no duplicate publication. Exact same-turn Sol/Opus usage and the held two-direction failure/retry acceptance matrix remain open. No public release is claimed.
+This evidence distinguishes source tests, private installed observations, guarded deployment, and verified currency. No public release is claimed.
+
+Mac background convergence resumed after source-specific canonical review, and normalization apply passed. Old-candidate and lifecycle completion remain open.
+
+The WSL eight-document delegation is installed. The guarded r6 Node is ready after transient supervision health was corrected. WSL canonical integration passed v9 verification; current normalization currency remains unverified.
+
+Fresh human-authored `#general` and `#shiflo` turns produced delivered replies. Shiflo delegated work reached Nuri and Sora. A completed-turn restart caused no duplicate publication. Exact same-turn Sol/Opus usage and the held two-direction failure/retry acceptance matrix remain open.
 
 ## Evidence records
 

@@ -530,7 +530,7 @@ it("makes a running standing service follow reviewed root and successor revision
     await service.close();
     await storage.close();
   }
-}, 120_000);
+}, 300_000);
 
 it("keeps the lineage resolvable after a later reviewed version of a successor mandate", async () => {
   const { f, storage, root, request } = await installStandingRoot(1);

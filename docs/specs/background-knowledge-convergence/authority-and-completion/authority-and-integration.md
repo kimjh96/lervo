@@ -2,9 +2,13 @@
 
 ## Responsibilities
 
-The repository-knowledge domain owns pure debt selection, obligation identity, stage transitions, completion predicates, and failure classification. Orchestration sequences these policies through ports. Persistence owns atomic events, outbox leases, and recovery. Provider adapters own invocation, model configuration, usage, and normalized provider failures. CLI and Node compose the same owner and render the same status.
+- The repository-knowledge domain owns pure debt selection, obligation identity, stage transitions, completion predicates, and failure classification.
+- Orchestration sequences these policies through ports.
+- Persistence owns atomic events, outbox leases, and recovery.
+- Provider adapters own invocation, model configuration, usage, and normalized provider failures.
+- CLI and Node compose the same owner and render the same status.
 
-Separate baseline discovery, semantic source capture, canonical assessment, normalization review, document integration, lifecycle reconciliation, and outcome settlement into cohesive modules. Reuse the richer source/context and workspace boundaries without adding native provider branches or policies to the current worker facade.
+Keep baseline discovery, semantic source capture, canonical assessment, normalization review, document integration, lifecycle reconciliation, and outcome settlement in separate, cohesive modules. Reuse the richer source/context and workspace boundaries without adding native provider branches or policies to the current worker facade.
 
 ## Contracts
 

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_adffda866b3deaad621836b0
+compiler:
+  compilerBuildId: sha256:28fccadc6cd3a05adb5a1f1651934c86c8f9387a545eb9316b4b2b19eba8f059
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7d80294db28295f33bab6a96
+outputLanguage: en
+outputs:
+  - byteCount: 1787
+    contentHash: sha256:6684631d77a7be81a106fc4726981226bdf5c679bc419138c98bc173c8b62867
+    path: docs/roadmap/natural-language-grounding-quality/evaluation-history/initial-retrieval-and-grounding.md
+    userRegionHash: sha256:6684631d77a7be81a106fc4726981226bdf5c679bc419138c98bc173c8b62867
+profile: roadmap_document
+recordId: knormdoc_41c8dd4551122cfa81529cae
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ee404408e9e9993d946f86bae8547be80e780872cdefba5fe4961bb6a6c4b0e2
+sourcePath: docs/roadmap/natural-language-grounding-quality/evaluation-history/initial-retrieval-and-grounding.md
+sourceUnitVersionIds:
+  - uv_47bd4e2b20345317bfec7814

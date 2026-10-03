@@ -6,7 +6,7 @@
 
 ## Context
 
-ADR-0427 moves canonicalization and knowledge convergence out of live Discord repository-work turns. The repository also changes through managed `lervo run` executions and Claude Code or Codex sessions using Lervo terminal hooks. Managed runs currently perform no knowledge step. Terminal Stop records only revision changes, while the terminal agent maintains knowledge synchronously before stopping. These paths lack durable knowledge obligations, and the dormant ADR-0427 queue accepts only `conversation.repository_work.completed`.
+ADR-0427 moves canonicalization and knowledge convergence out of live Discord repository-work turns. Repositories also change through managed `lervo run` executions and Claude Code or Codex sessions using Lervo terminal hooks. Managed runs perform no knowledge step; terminal Stop records only revision changes while the terminal agent maintains knowledge synchronously before stopping. These paths lack durable knowledge obligations, and the dormant ADR-0427 queue accepts only `conversation.repository_work.completed`.
 
 On 2026-09-25, the owner decided that background canonicalization and knowledge maintenance must be Lervo core behavior for every entry point.
 
@@ -23,12 +23,12 @@ Each Lervo-observed repository change unit appends one schema-version-1 `reposit
 - `sourceManifest`: content hash and byte count of the source-coordinate manifest in local CAS.
 - `occurredAt`.
 
-The event carries no request text, provider output, source bytes, absolute path, or credential. A unit exceeding the path bound records `repository_change_path_limit_exceeded` and an `attention_required` resolution, never a truncated success. Unchanged units append nothing.
+The event contains no request text, provider output, source bytes, absolute path, or credential. Units exceeding the path bound record `repository_change_path_limit_exceeded` and an `attention_required` resolution, never a truncated success. Unchanged units append nothing.
 
-The event and its `knowledge:repository` outbox entry are written in one event-store transaction. As in ADR-0427, the canonical event is the job source; the outbox is a rebuildable projection.
+Write the event and its `knowledge:repository` outbox entry in one event-store transaction. As in ADR-0427, the canonical event is the job source; the outbox is a rebuildable projection.
 
-- A managed run appends the event after its completion.
-- A supervised run appends it only after workspace integration into the target; isolated worktree bytes are not repository state before integration.
+- Managed runs append the event after completion.
+- Supervised runs append it only after workspace integration into the target; isolated worktree bytes are not repository state before integration.
 - Terminal Stop derives changed paths from the prompt-submission snapshot and appends the event in the same fail-soft hook transaction as `terminal.turn.observed`. Hook failure never blocks the user's session.
 
 Before planning, drop Git-ignored untracked paths, such as `*.tsbuildinfo` build outputs, because they carry no repository knowledge. Also drop Lervo-generated projections under `.lervo/generated/`, `.lervo/state/`, `.lervo/data/`, and `docs/knowledge/`: a 3 MB hook runtime otherwise failed review with `review_source_limit_exceeded`. Git never reports tracked files as ignored; a root outside Git drops no other path. This rule was amended on 2026-09-25 after a build output reached a canonicalization candidate.
@@ -37,7 +37,7 @@ The manifest uses ADR-0427 coordinate kinds. Git tree coordinates require the ob
 
 ### One core owner
 
-Move the job lease, source preflight, review, and resolution contract into `@lervo/repository-knowledge` so the CLI and Node share one implementation. Keep `conversation.repository_work.completed` readable and enqueue its jobs through the same destination with `sourceKind: conversation`.
+Move the job lease, source preflight, review, and resolution contract into `@lervo/repository-knowledge` for a shared CLI and Node implementation. Keep `conversation.repository_work.completed` readable and enqueue its jobs through the same destination with `sourceKind: conversation`.
 
 The owner runs in two hosts:
 
@@ -68,9 +68,9 @@ A Discord conversation turn selects background mode per turn when the writer coo
 
 Supervised worker results were amended on 2026-09-25. Workers edit detached checkouts, and the owner accepts only result artifacts; previously, accepted file changes never left the checkout. The Node now commits each owner-accepted assignment's checkout onto a create-only branch `lervo/results/<assignment>`. Acceptance requires a `work.supervision.review.recorded` event with verdict `accepted` naming the assignment's exact result artifact. Completion alone means the worker returned a result, which the owner may return for rework.
 
-Committing uses a private index and fixed dates and excludes Git-ignored files. It never touches the checked-out branch or working tree, which may contain user-owned uncommitted work. A later observed terminal or Discord turn lands the result by merge, records the change source, and queues its knowledge job like any other change.
+The implementation boundary is `apps/node-runtime/src/supervision-result-branch.ts`. Its supervision result branch publisher requires the first exact result artifact and an accepted `work.supervision.review.recorded` pairing for that assignment. It uses a private Git index, excludes Git-ignored files, skips unchanged trees, fixes commit identity and dates, and creates `refs/heads/lervo/results/<assignment>` only when the ref is absent. It never touches the checked-out branch or working tree, which may contain user-owned uncommitted work.
 
-The Node implementation boundary is `apps/node-runtime/src/supervision-result-branch.ts`. Its supervision result branch publisher requires the first exact result artifact and an accepted `work.supervision.review.recorded` pairing for that assignment. It uses a private Git index, skips unchanged trees and ignored files, fixes commit identity and dates, and creates `refs/heads/lervo/results/<assignment>` only when the ref is absent. The 60-second loop retries publication after failure and reports published refs or bounded failures through host callbacks; it does not rerun the worker or move an existing result ref.
+The 60-second loop retries publication after failure and reports published refs or bounded failures through host callbacks; it does not rerun the worker or move an existing result ref. A later observed terminal or Discord turn lands the result by merge, records the change source, and queues its knowledge job like any other change.
 
 Terminal agents no longer need to maintain global knowledge synchronously before stopping. Until the core owner is verified in an installed repository, the existing synchronous terminal declaration remains available and the new source only adds durable obligations. Enabling `pending_background` on an installed Node still requires ADR-0427 acceptance evidence.
 

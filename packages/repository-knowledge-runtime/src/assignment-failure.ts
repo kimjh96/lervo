@@ -25,6 +25,8 @@ export async function failConvergenceAssignment(input: {
     typeof raw === "string" && /^[a-z][a-z0-9_]{1,99}$/u.test(raw)
       ? raw
       : "knowledge_job_transient_failure";
+  const cause = input.error instanceof Error ? input.error.cause : undefined;
+  const causeCode = cause instanceof Error ? (cause as Error & { code?: unknown }).code : undefined;
   const proof = await storage.artifacts.put(
     canonicalJson({
       schemaVersion: 1,
@@ -43,6 +45,14 @@ export async function failConvergenceAssignment(input: {
         : null,
       returnedAt: new Date().toISOString(),
       message: input.error instanceof Error ? input.error.message.slice(0, 8192) : null,
+      privateCause:
+        cause instanceof Error
+          ? {
+              name: cause.name.slice(0, 100),
+              code: typeof causeCode === "string" ? causeCode.slice(0, 100) : null,
+              message: cause.message.slice(0, 8192),
+            }
+          : null,
     }),
   );
   input.assertLease();

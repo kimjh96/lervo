@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_82c50deba57269a5cc91568d
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7cc80f168c370243cccb2888
+outputLanguage: en
+outputs:
+  - byteCount: 873
+    contentHash: sha256:19ac02234bda4196ea0b0b184445c6b5f8e6eeda1e87821b4e3e33a0a3ec80bd
+    path: docs/specs/background-knowledge-convergence/runtime/events-and-status/privacy-and-retention.md
+    userRegionHash: sha256:19ac02234bda4196ea0b0b184445c6b5f8e6eeda1e87821b4e3e33a0a3ec80bd
+profile: specification_document
+recordId: knormdoc_2d4cf88976a998d4c96b209d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b27c791f40ae713dced958f4dd339cfb6d95e49ebdf2f0f4230f744ccd7cd82c
+sourcePath: docs/specs/background-knowledge-convergence/runtime/events-and-status/privacy-and-retention.md
+sourceUnitVersionIds:
+  - uv_54bff03b2135b2f6dc643f91

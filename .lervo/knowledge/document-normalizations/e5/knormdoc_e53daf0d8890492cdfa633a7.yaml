@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2d3489f544b269b9dbc0d19e
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a86591296bd333b9e8100a0e
+outputLanguage: en
+outputs:
+  - byteCount: 1638
+    contentHash: sha256:4f6532aff147785cafd93ca858fc60c869a72270824299f54c5fbca0b50b5505
+    path: docs/evidence/quality/ignore-configuration-baseline.md
+    userRegionHash: sha256:4f6532aff147785cafd93ca858fc60c869a72270824299f54c5fbca0b50b5505
+profile: repository_document
+recordId: knormdoc_e53daf0d8890492cdfa633a7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7b49c4f44ae4cd6a2422af57e2e3bf581cd877c108c755872fd66f1dac67da83
+sourcePath: docs/evidence/quality/ignore-configuration-baseline.md
+sourceUnitVersionIds:
+  - uv_00aff99e87bee3186266640d
+  - uv_1e819095207951b88e4a2b23
+  - uv_7bc742c1eaa27574c47aa1e8

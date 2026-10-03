@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b4fd4ff46d011bcf074c2686
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8cb3d91bbd5bdf582689b608
+outputLanguage: en
+outputs:
+  - byteCount: 1063
+    contentHash: sha256:00281343f16d27eb5d015d13da8ca9d8f13b08a8acdf0435793fe9001327bab4
+    path: docs/specifications/execution/repository-change-adapter-boundaries.md
+    userRegionHash: sha256:00281343f16d27eb5d015d13da8ca9d8f13b08a8acdf0435793fe9001327bab4
+  - byteCount: 1338
+    contentHash: sha256:c0965835fc37f7163965d6f2fc28a228ec6396b9ea85879e6aa71ce3961c99ea
+    path: docs/specifications/execution/repository-change-adapter-boundaries/managed-runs.md
+    userRegionHash: sha256:c0965835fc37f7163965d6f2fc28a228ec6396b9ea85879e6aa71ce3961c99ea
+  - byteCount: 1391
+    contentHash: sha256:047243e99809233f88587b602c39b123e55a10633963e4278c0ebf706445ef2d
+    path: docs/specifications/execution/repository-change-adapter-boundaries/terminal-turns.md
+    userRegionHash: sha256:047243e99809233f88587b602c39b123e55a10633963e4278c0ebf706445ef2d
+profile: specification_document
+recordId: knormdoc_3e2cbd40ef4fe590554a884e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e67afd8386c0f7440c2f19388ed3521fc27cb688d52d189e034f71cd974dc5ac
+sourcePath: docs/specifications/execution/repository-change-adapter-boundaries.md
+sourceUnitVersionIds:
+  - uv_19f9afe4f0b77dd80c5c2f99
+  - uv_83222283ffca8356b9fb8179
+  - uv_af3273967bbe0e74b826c73a
+  - uv_c35270815a4397dca0345fb9

@@ -1,0 +1,47 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b7187a72fea433759faa967a
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_57528b7aad9b55594cd43488
+outputLanguage: en
+outputs:
+  - byteCount: 306
+    contentHash: sha256:e7efafb59f6549b598f7d71c98676ce328661f142f31a6acb658305f59b6cc53
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/contract.md
+    userRegionHash: sha256:e7efafb59f6549b598f7d71c98676ce328661f142f31a6acb658305f59b6cc53
+  - byteCount: 4723
+    contentHash: sha256:8cc18deb33a5356f18ae1968dab14a1037dad0127ea1dace275df19a259ad3aa
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/contract/capabilities.md
+    userRegionHash: sha256:8cc18deb33a5356f18ae1968dab14a1037dad0127ea1dace275df19a259ad3aa
+  - byteCount: 2518
+    contentHash: sha256:9ab8bb0b46302936861563258a60e576eab7e3a65a660ba698c2f9d187079389
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/contract/deliberation.md
+    userRegionHash: sha256:9ab8bb0b46302936861563258a60e576eab7e3a65a660ba698c2f9d187079389
+  - byteCount: 903
+    contentHash: sha256:e446277c44ee805996abb2c78324c33b5f0ff4f7f496288ed5bba4c375b4bb5d
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/contract/hiring.md
+    userRegionHash: sha256:e446277c44ee805996abb2c78324c33b5f0ff4f7f496288ed5bba4c375b4bb5d
+  - byteCount: 2459
+    contentHash: sha256:7fc807318009c5ad9a852a4095597fc0e69c86d844d2daaa674424580cbe29e6
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/contract/ownership.md
+    userRegionHash: sha256:7fc807318009c5ad9a852a4095597fc0e69c86d844d2daaa674424580cbe29e6
+profile: roadmap_document
+recordId: knormdoc_3745a21a40dce824c8d5da65
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9cbb4a34bc696c25589d74d5d2110aa91bc051195cc3fd8117f4bc27021724f4
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/contract.md
+sourceUnitVersionIds:
+  - uv_152cb7ba4d367ef1b6eaeca1
+  - uv_17939b1e3eb5512f29c422e3
+  - uv_59d76a0bd7ca06f910cef404
+  - uv_8a369943d29f47d25730cec6
+  - uv_8f11361035f673242bff6694
+  - uv_af54b1a579eb9099317b7269

@@ -64,8 +64,10 @@ describe("CLI release preparation workflow", () => {
     assert.match(prepare.run, /gh pr create .*--body-file "\$\{body_file\}"/u);
     assert.match(prepare.run, /gh pr edit .*--body-file "\$\{body_file\}"/u);
     assert.doesNotMatch(prepare.run, /gh pr view lervo\/release-cli/u);
-    assert.match(prepare.run, /\[x\] Relevant tests, `pnpm quality:check`/u);
-    assert.match(prepare.run, /exact release branch/u);
+    assert.match(prepare.run, /evidence_checked='\[x\]'/u);
+    assert.ok(prepare.run.indexOf("pnpm check") < prepare.run.indexOf("evidence_checked='[x]'"));
+    assert.match(prepare.run, /\$\{evidence_checked\} Relevant tests, \\`pnpm quality:check\\`/u);
+    assert.match(prepare.run, /fixed branch ref/iu);
     assert.doesNotMatch(prepare.run, /Pending pull-request CI/u);
     assert.doesNotMatch(prepare.run, /—/u);
     for (const heading of [

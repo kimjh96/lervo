@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1f13d1a179ecd14c27ad423a
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ed581a9bd07d0cc0ad3022f0
+outputLanguage: en
+outputs:
+  - byteCount: 900
+    contentHash: sha256:4598dc9785aaee589439639a1ffc1d283038ea5ce67b6550f3f6414613a87d52
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/installation.md
+    userRegionHash: sha256:4598dc9785aaee589439639a1ffc1d283038ea5ce67b6550f3f6414613a87d52
+  - byteCount: 2472
+    contentHash: sha256:8c8a8926ece94bbdf44d8d2d0750b286dc8d02b838dde28a39e2562e59c22415
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/installation/cli-adapter-checks.md
+    userRegionHash: sha256:8c8a8926ece94bbdf44d8d2d0750b286dc8d02b838dde28a39e2562e59c22415
+profile: specification_document
+recordId: knormdoc_da8b0a714289df8776f9c59d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:61583dfb712345bb57db4b37dd1e9f6ed5d0bcd2094a7325316c296f7d6cdfdd
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/storage/installation.md
+sourceUnitVersionIds:
+  - uv_c12ba400c0028f2da3af753c
+  - uv_c8efe1270727186dfc310013

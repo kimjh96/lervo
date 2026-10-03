@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b4fd4ff46d011bcf074c2686
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b6fb8472b77fa17450d464d3
+outputLanguage: en
+outputs:
+  - byteCount: 2502
+    contentHash: sha256:0085e059d8e15d15f5fabeac57f7c47431e796ece0aa530df06bb53195dabbb4
+    path: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/independent-review.md
+    userRegionHash: sha256:0085e059d8e15d15f5fabeac57f7c47431e796ece0aa530df06bb53195dabbb4
+profile: roadmap_document
+recordId: knormdoc_c68c15714ec3622a1a42366c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:02f7c3a0a357efdc810c209605965dbe20ddd4832b5f5ee114113a8b37055b23
+sourcePath: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/independent-review.md
+sourceUnitVersionIds:
+  - uv_89ec99f6d9166e3b296fce89

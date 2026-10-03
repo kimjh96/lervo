@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c9902735ffa650b0a084a8a2
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5e5a45a3d3fff3ffc8e51052
+outputLanguage: en
+outputs:
+  - byteCount: 418
+    contentHash: sha256:b2e424ec98b12de6ff6d3ef628146871b4da06de6155c38c22c509425358a49e
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy.md
+    userRegionHash: sha256:b2e424ec98b12de6ff6d3ef628146871b4da06de6155c38c22c509425358a49e
+  - byteCount: 533
+    contentHash: sha256:313d49e1ccf2dd4e9e557fec19d350353ae19250800acf2abe6d023f4ed10470
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy/layout-and-routing.md
+    userRegionHash: sha256:313d49e1ccf2dd4e9e557fec19d350353ae19250800acf2abe6d023f4ed10470
+  - byteCount: 489
+    contentHash: sha256:4227bd18fb8dbcaeb2fa4d15eaa00ea0cc3e3b0fc283754da4e5f1147da356bc
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy/preservation-boundaries.md
+    userRegionHash: sha256:4227bd18fb8dbcaeb2fa4d15eaa00ea0cc3e3b0fc283754da4e5f1147da356bc
+  - byteCount: 1082
+    contentHash: sha256:80c570e1962dcf904cc9583e0c5908e887085de02643a7dac9f358c1bbcd2e1e
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy/publication-and-source-policy.md
+    userRegionHash: sha256:80c570e1962dcf904cc9583e0c5908e887085de02643a7dac9f358c1bbcd2e1e
+profile: specification_document
+recordId: knormdoc_4f8e4ab8132f449b15abbeb7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5c70e966290806074bc5e5cf129185624e93ac4dc784cf62ed04e5a6266d3c13
+sourcePath: docs/specs/repository-knowledge-compilation/structural-publication/policy.md
+sourceUnitVersionIds:
+  - uv_552fbc6167dd5ec269e2a5ec
+  - uv_e1c4544cc500018398233611
+  - uv_f87fcccdc9c2f9e51d368f6a

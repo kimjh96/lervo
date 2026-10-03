@@ -4,8 +4,14 @@ import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { sha256 } from "@lervo/repository-knowledge";
 import { fixture } from "./fixture.js";
+import { discoverConvergenceBaseline } from "../src/baseline.js";
+import { convergenceAssessmentSources } from "../src/assessment-scope.js";
 import { convergenceDelegationPlanHash, type ConvergenceDelegation } from "../src/delegation.js";
-import { captureConvergenceSources, convergenceSourceBytes } from "../src/source-capture.js";
+import {
+  captureConvergenceChangedPaths,
+  captureConvergenceSources,
+  convergenceSourceBytes,
+} from "../src/source-capture.js";
 import { parseConvergenceSourceCapturePolicy } from "../src/source-capture-contract.js";
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
@@ -14,6 +20,42 @@ afterEach(async () => {
     await f.storage.close();
     await rm(f.directory, { recursive: true, force: true });
   }
+});
+
+it("selects changed tracked and untracked paths without treating committed files as new obligations", async () => {
+  const f = await fixture();
+  fixtures.push(f);
+  expect(captureConvergenceChangedPaths(f.root)).toEqual([]);
+  await writeFile(resolve(f.root, "README.md"), "# Changed repository\n");
+  await writeFile(resolve(f.root, "new-note.md"), "# New note\n");
+  await writeFile(resolve(f.root, ".gitignore"), "ignored-note.md\n");
+  await writeFile(resolve(f.root, "ignored-note.md"), "# Ignored\n");
+  expect(captureConvergenceChangedPaths(f.root)).toEqual([
+    ".gitignore",
+    "README.md",
+    "new-note.md",
+  ]);
+});
+
+it("keeps complete capture while assessing only paths with an exact source obligation", async () => {
+  const f = await fixture(false, true);
+  fixtures.push(f);
+  const initial = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
+  expect(initial.sources.some((source) => source.path === "src/runtime.ts")).toBe(true);
+  expect(initial.assessmentPaths).not.toContain("src/runtime.ts");
+  await writeFile(resolve(f.root, "src/runtime.ts"), "export const maximumBackgroundCalls = 3;\n");
+  const changed = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
+  expect(changed.assessmentPaths).toContain("src/runtime.ts");
+  expect(
+    convergenceAssessmentSources({
+      schemaVersion: 1,
+      obligationId: "test",
+      baseline: changed,
+      snapshotHash: changed.sourceSnapshotHash,
+      receipts: [],
+      stageData: {},
+    }).some((source) => source.path === "src/runtime.ts"),
+  ).toBe(true);
 });
 
 async function setCapturePolicy(

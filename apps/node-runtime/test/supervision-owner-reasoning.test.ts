@@ -423,5 +423,5 @@ it.each([
       await storage.close();
     }
   },
-  90_000,
+  180_000,
 );

@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b5155495fb12fd9b99987a12
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7206bbd1400a801014bb4f1c
+outputLanguage: en
+outputs:
+  - byteCount: 5747
+    contentHash: sha256:fd5004fcbf5b2b6cad46f9f8631690ca7ab8a4ac73c54b344d970e5aa6730ab0
+    path: docs/decisions/release/packaging/0089-cli-multi-platform-release-matrix.md
+    userRegionHash: sha256:fd5004fcbf5b2b6cad46f9f8631690ca7ab8a4ac73c54b344d970e5aa6730ab0
+profile: decision_record
+recordId: knormdoc_615d5dc3c6fe276ed0e10a9c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0d57cd217202a4c8bcc03b6d1f5b27a2353c2ecb84eaa1c52cf549f1fc382a04
+sourcePath: docs/decisions/release/packaging/0089-cli-multi-platform-release-matrix.md
+sourceUnitVersionIds:
+  - uv_0d5a0630365c789f63b7a101
+  - uv_13957b38c627108b9abf5e89
+  - uv_22d46e72a8644b3dae824e25
+  - uv_3025123266fc0461c45aca99
+  - uv_80ab8eac0bd7b98eb816e1d8
+  - uv_90c4102ff99014d4d74e1cce
+  - uv_9a3c39990cac6b70918b224b
+  - uv_9a4984ab5945178cf02ffc86
+  - uv_abbcd4b6eb492cf59cbb2b56
+  - uv_c00c1e45ad3e21dbd42828e1

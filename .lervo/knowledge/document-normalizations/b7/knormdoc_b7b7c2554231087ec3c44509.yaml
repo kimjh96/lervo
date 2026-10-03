@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4a9ab791f4c332282e27538f
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8f973f9503d89685dd00b890
+outputLanguage: en
+outputs:
+  - byteCount: 1733
+    contentHash: sha256:ebbafdb5e4f543bd2b21e13641d3806f56f980135926dabc146c31c74fdf3ac6
+    path: docs/foundation/ci-quality-and-commit-checks.md
+    userRegionHash: sha256:ebbafdb5e4f543bd2b21e13641d3806f56f980135926dabc146c31c74fdf3ac6
+  - byteCount: 1033
+    contentHash: sha256:0eac816741018d03e6075aaab32b0fce5807ada48767aca613878b0a5b770561
+    path: docs/foundation/ci-quality-and-commit-checks/commit-validation.md
+    userRegionHash: sha256:0eac816741018d03e6075aaab32b0fce5807ada48767aca613878b0a5b770561
+  - byteCount: 720
+    contentHash: sha256:0f21e423537b88a4ae47bc4a6a5fdf2bea16953beddbbfc8907fee87c46083b5
+    path: docs/foundation/ci-quality-and-commit-checks/quality-and-release-completion.md
+    userRegionHash: sha256:0f21e423537b88a4ae47bc4a6a5fdf2bea16953beddbbfc8907fee87c46083b5
+profile: repository_document
+recordId: knormdoc_b7b7c2554231087ec3c44509
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1cc5397d82f2f2f3ef50eac627c19de63a14af22ff35d4a88e91e05d8fb1c914
+sourcePath: docs/foundation/ci-quality-and-commit-checks.md
+sourceUnitVersionIds:
+  - uv_05fa37bf23e0d92a24759a08
+  - uv_27a7e5ff9557e1e607dd2f2f
+  - uv_78461d6123edac7c3fcd3fa8
+  - uv_af8c9e66916fc622cbcecc12
+  - uv_ebaf9dc49d11dc43cb6a2075

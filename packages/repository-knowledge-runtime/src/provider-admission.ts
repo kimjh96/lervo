@@ -125,7 +125,7 @@ export async function acquireKnowledgeProviderAdmission(input: {
       db.prepare("DELETE FROM provider_pauses WHERE provider = ?").run(input.provider);
     for (const row of rows(db)) {
       const deadline = row.expires_at ?? row.last_seen_at + 60_000;
-      if (deadline <= now && (row.nonce === null || !alive(row.owner_pid)))
+      if (!alive(row.owner_pid) || (row.nonce === null && deadline <= now))
         db.prepare("DELETE FROM requests WHERE repository_hash = ? AND owner_pid = ?").run(
           row.repository_hash,
           row.owner_pid,

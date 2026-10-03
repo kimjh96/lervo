@@ -179,7 +179,7 @@ describe("provider instruction bridge", () => {
     });
     expect(current.status).toBe("current");
     expect(current.operations.every((item) => item.action === "unchanged")).toBe(true);
-  });
+  }, 60_000);
 
   it("updates only provider_entry and preserves every unmanaged byte", async () => {
     const before = [

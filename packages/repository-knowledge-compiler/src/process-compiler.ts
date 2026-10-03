@@ -221,7 +221,8 @@ const documentNormalizationInstruction = [
   "Do not add unsupported facts, inferred commands, fake verification, generic filler, migration commentary, or Lervo branding unrelated to the source.",
   "Do not introduce trailing spaces or tabs, including Markdown two-space hard breaks. Preserve an exact trailing-whitespace line only when it already exists in the source and is required by a protected fragment. End every output with exactly one newline, never a trailing blank line.",
   "Follow each document constraints.headingPolicy. require_h1 outputs contain one H1. forbid_h1 outputs contain no H1 and start rendered sections at H2 because the host renders the title separately. Every output stays below both maximumOutputBytes and maximumOutputLines. Keep entrypoints short. Always emit requiredEntrypointPath. Split a multi-topic source when its concerns are independently useful or either output bound would be exceeded and allowSiblingTopicSplit is true: retain requiredEntrypointPath as a short index and put each independent topic below the exact allowedSplitPrefix string. Do not invent another directory.",
-  "Copy every supplied protectedFragments value byte-for-byte into at least one output. These are instruction frontmatter, lifecycle metadata, managed blocks, fenced code, inline code or commands, link targets, and provider imports whose omission fails validation.",
+  "Copy every supplied protectedFragments value byte-for-byte into at least one output, except a relative link_target moved to a sibling output must be rebased for that output's directory. Protected fragments include instruction frontmatter, lifecycle metadata, managed blocks, fenced code, inline code or commands, link targets, and provider imports.",
+  "For each protected link_target, keep a Markdown link to the same resolved repository target. When splitting an entrypoint into a child directory, add the necessary ../ segments to relative link destinations; copying the old relative spelling into the child file points elsewhere and fails validation. Preserve URL fragments and query strings. Check every link_target against your final output paths before returning JSON.",
   "Map every supplied sourceUnits index to at least one output coveredUnitIndexes list. Copy integer indexes exactly; do not return unitVersionId values. Coverage asserts preservation mapping, not truth.",
   "Return exactly one result for every source path and only source-backed output matching the supplied JSON schema.",
   "Return one raw JSON object only, with no Markdown fence, preamble, commentary, or trailing text.",
@@ -970,7 +971,10 @@ export async function createNoCapabilityProviderJsonRunner(
       });
       assertKnowledgeProviderAvailable({ provider: options.provider, ...result });
       if (result.status !== "completed") {
-        throw compileFailure(`The provider JSON runner did not complete (${result.status}).`);
+        throw Object.assign(
+          compileFailure(`The provider JSON runner did not complete (${result.status}).`),
+          { processStatus: result.status },
+        );
       }
       const observed =
         options.provider === "claude"

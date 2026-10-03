@@ -18,6 +18,16 @@ The [unattended scheduler](../../specifications/coordination/node-change-driven-
 
 ## Verification
 
-Focused regressions cover exact failed-assignment reopening after a native probe, repeated provision/seal, verified integration before root apply under a new lease, integrator/source cleanup, archive append failure and dependent protection, successive target generations, new source roots, reviewed normalization lineage, and preservation of manual divergence.
+Focused regressions cover:
+
+- Exact failed-assignment reopening after a native probe.
+- Repeated provision/seal.
+- Verified integration before root apply under a new lease.
+- Integrator/source cleanup.
+- Archive append failure and dependent protection.
+- Successive target generations.
+- New source roots.
+- Reviewed normalization lineage.
+- Preservation of manual divergence.
 
 An actual subprocess killed after canonical file apply but before materialization evidence append restarts as owned journal uncertainty, records no currency, and invokes no provider again. The [implementation evidence](../../evidence/quality/background-knowledge-convergence-implementation.md) records installed observations and remaining unobserved windows.

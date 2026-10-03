@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1f13d1a179ecd14c27ad423a
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ba977a54d43803479187f6b3
+outputLanguage: en
+outputs:
+  - byteCount: 1562
+    contentHash: sha256:f80109bc7a6d2809693f139106bc6b819b65ccc23483248eb65ec229d7524b71
+    path: docs/specifications/execution/stage-observation-and-performance.md
+    userRegionHash: sha256:f80109bc7a6d2809693f139106bc6b819b65ccc23483248eb65ec229d7524b71
+  - byteCount: 2330
+    contentHash: sha256:ba82ae29420f56866177a7cab7c7bec5a7508ecc1415039a0450a5c2a9895d62
+    path: docs/specifications/execution/stage-observation-and-performance/prepared-terminal-snapshot-storage.md
+    userRegionHash: sha256:ba82ae29420f56866177a7cab7c7bec5a7508ecc1415039a0450a5c2a9895d62
+  - byteCount: 4347
+    contentHash: sha256:31400e7cbde1fe2bd2ac6939bc8cb8591e2ec84918225a9e2cd08b439784a9c4
+    path: docs/specifications/execution/stage-observation-and-performance/prompt-assembly.md
+    userRegionHash: sha256:31400e7cbde1fe2bd2ac6939bc8cb8591e2ec84918225a9e2cd08b439784a9c4
+profile: specification_document
+recordId: knormdoc_3ddaebb58f51bf9d19c5cf92
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7f01d696ab6fed6a3a8953dcad549fee316472db3c5db3853ab6f4e9d523787b
+sourcePath: docs/specifications/execution/stage-observation-and-performance.md
+sourceUnitVersionIds:
+  - uv_48b458612543cf99c9cfb553
+  - uv_960cc8d6c1086412eccfd670
+  - uv_a13ceced3a6f327395db68e7
+  - uv_cdd107893fa34c7be4f2642d
+  - uv_d9733a20cfecc17ffea09649

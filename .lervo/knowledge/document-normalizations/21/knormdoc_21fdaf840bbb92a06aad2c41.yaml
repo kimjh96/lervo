@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_da9e099adc8ec7e3887d9bf3
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a6a6a850f9f5997f7cbb32ca
+outputLanguage: en
+outputs:
+  - byteCount: 2120
+    contentHash: sha256:8e463189fedf5131e5617d06a560e45306cb9f95db8044274a064715d8f9bc0b
+    path: docs/specs/background-knowledge-convergence/recovery-and-retention.md
+    userRegionHash: sha256:8e463189fedf5131e5617d06a560e45306cb9f95db8044274a064715d8f9bc0b
+profile: specification_document
+recordId: knormdoc_21fdaf840bbb92a06aad2c41
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ae7bc33c5c16ddf636754e75f090fd89dc6e8e7be42665017eefe0406b0b8741
+sourcePath: docs/specs/background-knowledge-convergence/recovery-and-retention.md
+sourceUnitVersionIds:
+  - uv_17e454520ed09d7e15c606ab
+  - uv_570b3c24373774b3aea33809
+  - uv_a68d1b7af55094d524634ad0

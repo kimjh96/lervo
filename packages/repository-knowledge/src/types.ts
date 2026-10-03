@@ -434,8 +434,9 @@ export class RepositoryKnowledgeError extends Error {
       | "document_layout_permit_invalid",
     message: string,
     readonly publicDiagnostic?: { code: string; message: string },
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "RepositoryKnowledgeError";
   }
 }
