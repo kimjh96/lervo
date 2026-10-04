@@ -5,8 +5,14 @@ import { resolve } from "node:path";
 
 import { afterEach, expect, it } from "vitest";
 
+import type { EventEnvelope } from "@lervo/schemas";
+import type { ListEventsOptions } from "@lervo/storage-contract";
+
 import {
+  AcceptedSupervisionResults,
   acceptedResultKeys,
+} from "../src/supervision-accepted-results.js";
+import {
   publishSupervisionResultWorkspace,
   startSupervisionResultBranchLoop,
 } from "../src/supervision-result-branch.js";
@@ -81,6 +87,7 @@ it("starts and stops the Node loop, reporting a failed cycle instead of throwing
   const stop = startSupervisionResultBranchLoop({
     repositoryRoot: resolve(tmpdir(), "lervo-absent-repository"),
     parentDirectory: resolve(tmpdir(), "lervo-absent-workers"),
+    events: { get: () => null, latest: () => null, list: () => [] },
     subscribe: () => () => undefined,
     onPublished: () => undefined,
     onFailure: (error) => failures.push(error),
@@ -101,4 +108,60 @@ it("publishes only results the owner accepted, never a completed but reworked on
     { type: "assignment.completion.prepared", payload: { assignmentId: "asn_a" } },
   ]);
   expect([...keys]).toEqual(["asn_a:sha256:second"]);
+});
+
+it("reads accepted reviews incrementally with the same keys as a full scan", () => {
+  const review = (seq: number, verdict: string, artifact: string): EventEnvelope =>
+    ({
+      seq,
+      eventId: `evt_${String(seq).padStart(32, "0")}`,
+      eventHash: `sha256:${String(seq).padStart(64, "0")}`,
+      type: "work.supervision.review.recorded",
+      payload: { verdict, assignmentIds: [`asn_${seq}`], artifactHashes: [artifact] },
+    }) as unknown as EventEnvelope;
+  const other = (seq: number): EventEnvelope =>
+    ({
+      ...review(seq, "accepted", "sha256:x"),
+      type: "assignment.completion.prepared",
+    }) as EventEnvelope;
+  const rows: EventEnvelope[] = [];
+  let listed = 0;
+  const events = {
+    get: (eventId: string) => rows.find((row) => row.eventId === eventId) ?? null,
+    latest: () => rows.at(-1) ?? null,
+    list: ({ afterSeq = 0, limit = 100, types }: ListEventsOptions = {}) => {
+      const page = rows
+        .filter((row) => row.seq > afterSeq && (types === undefined || types.includes(row.type)))
+        .slice(0, limit);
+      listed += page.length;
+      return page;
+    },
+  };
+  let now = 0;
+  const reader = new AcceptedSupervisionResults(events, () => now);
+  const appended = [
+    review(1, "accepted", "sha256:a"),
+    other(2),
+    review(3, "rework", "sha256:b"),
+    review(4, "accepted", "sha256:c"),
+    other(5),
+  ];
+  for (const row of appended) {
+    rows.push(row);
+    expect(reader.read()).toEqual(acceptedResultKeys(rows));
+  }
+  const before = listed;
+  rows.push(other(6));
+  expect(reader.read()).toEqual(acceptedResultKeys(rows));
+  expect(listed).toBe(before);
+  // A replaced anchor restarts from an empty union.
+  const anchor = { ...other(6), eventHash: `sha256:${"f".repeat(64)}` } as EventEnvelope;
+  rows.splice(0, rows.length, review(1, "rework", "sha256:a"), other(2), other(3), other(4));
+  rows.push(other(5), anchor);
+  expect(reader.read()).toEqual(new Set());
+  // A rewrite below an unchanged anchor is re-proved by the bounded full read.
+  rows.splice(1, 1, review(2, "accepted", "sha256:d"));
+  expect(reader.read()).toEqual(new Set());
+  now += 900_000;
+  expect(reader.read()).toEqual(new Set(["asn_2:sha256:d"]));
 });

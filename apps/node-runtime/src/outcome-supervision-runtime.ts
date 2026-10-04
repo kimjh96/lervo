@@ -29,7 +29,7 @@ import { createSupervisionChangeLoop } from "./supervision-change-loop.js";
 import { prepareNodeSupervisionEffect } from "./supervision-execution-preflight.js";
 import { supersedeNodeSupervisionEffect } from "./supervision-supersession-routing.js";
 import { observeSupervisionResourceBudget } from "./supervision-resource-budget.js";
-import { assertBoundSupervisionRequest } from "./supervision-request-presence.js";
+import { BoundSupervisionRequestPresence } from "./supervision-request-presence.js";
 import { assertSupervisionSourceBinding } from "./supervision-source-binding.js";
 
 import type {
@@ -103,14 +103,15 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
   let latestResourceBudget: SupervisionResourceBudgetV1 | null = null;
   let sourceBinding: { authorityDigest: string; taskDigest: string; combined: string } | null =
     null;
-  const assertRequestBound = () => {
-    if (input.requireBoundRequest !== true) return;
-    assertBoundSupervisionRequest({
-      events: peerStorage.events,
-      projectId: peerStorage.manifest.projectId,
-      binding,
-    });
-  };
+  const requestPresence =
+    input.requireBoundRequest === true
+      ? new BoundSupervisionRequestPresence({
+          events: peerStorage.events,
+          projectId: peerStorage.manifest.projectId,
+          binding,
+        })
+      : null;
+  const assertRequestBound = () => requestPresence?.assert();
   const session = () => {
     if (current === null) throw new NodeSupervisionError("supervision_session_closed");
     return current;

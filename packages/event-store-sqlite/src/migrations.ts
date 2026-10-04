@@ -66,6 +66,15 @@ const migrations = [
 
 export const storageSchemaVersion = migrations.length;
 
+/**
+ * Read-path indexes outside the versioned schema. They add no rows, constraints, or meaning, so
+ * creating them never changes `user_version`, and readers that predate them, including exact-version
+ * read-only readers, keep opening the store. A missing index only makes type-filtered reads slower.
+ */
+const supplementalIndexes = `
+  CREATE INDEX IF NOT EXISTS events_type_seq ON events (project_id, type, seq);
+`;
+
 export function configureDatabase(database: DatabaseSync): void {
   const defensiveDatabase = database as DatabaseSync & {
     enableDefensive?: (active: boolean) => void;
@@ -94,6 +103,7 @@ export function migrateDatabase(database: DatabaseSync): void {
       database.exec(migrations[index] as string);
       database.exec(`PRAGMA user_version = ${index + 1};`);
     }
+    database.exec(supplementalIndexes);
     database.exec("COMMIT;");
   } catch (error) {
     database.exec("ROLLBACK;");

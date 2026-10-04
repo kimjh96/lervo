@@ -1,49 +1,112 @@
 import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
 import { NodeSupervisionError, type NodeSupervisionBinding } from "./supervision-authority.js";
+import { VerifiedEventTail } from "./verified-event-tail.js";
 
 const maximumEvents = 100_000;
+const boundMessage = "The supervised request history exceeds its observation bound.";
+const boundRequestTypes = ["work.supervision.bound"] as const;
+/** Matches the authority history full audit: an out-of-band rewrite is caught within 15 minutes. */
+const presenceFullReadIntervalMs = 900_000;
+
+type PresenceEvents = Pick<EventStore, "get" | "latest" | "list">;
+
+function isBoundRequestEvent(
+  event: EventEnvelope,
+  projectId: string,
+  binding: NodeSupervisionBinding,
+): boolean {
+  return (
+    event.type === "work.supervision.bound" &&
+    event.schemaVersion === 3 &&
+    event.projectId === projectId &&
+    event.payload.supervisionId === binding.supervisionId &&
+    event.payload.workstreamId === binding.workstreamId &&
+    event.payload.ownerAgentId === binding.ownerAgentId
+  );
+}
+
+function accumulateBoundRequest(
+  match: EventEnvelope | null,
+  events: readonly EventEnvelope[],
+  projectId: string,
+  binding: NodeSupervisionBinding,
+): EventEnvelope | null {
+  let current = match;
+  for (const event of events) {
+    if (!isBoundRequestEvent(event, projectId, binding)) continue;
+    if (current !== null) throw new Error("The supervised goal has conflicting request origins.");
+    current = event;
+  }
+  return current;
+}
 
 /** Finds only the exact durable goal-origin coordinate; it does not read or trust request prose. */
 export function findBoundSupervisionRequestEvent(input: {
-  events: Pick<EventStore, "list">;
+  events: PresenceEvents;
   projectId: string;
   binding: NodeSupervisionBinding;
 }): EventEnvelope | null {
-  let afterSeq = 0;
-  let observed = 0;
-  let match: EventEnvelope | null = null;
-  while (true) {
-    const page = input.events.list({ afterSeq, limit: 1_000 });
-    if (page.length === 0) break;
-    observed += page.length;
-    if (observed > maximumEvents)
-      throw new Error("The supervised request history exceeds its observation bound.");
-    for (const event of page) {
-      if (
-        event.type === "work.supervision.bound" &&
-        event.schemaVersion === 3 &&
-        event.projectId === input.projectId &&
-        event.payload.supervisionId === input.binding.supervisionId &&
-        event.payload.workstreamId === input.binding.workstreamId &&
-        event.payload.ownerAgentId === input.binding.ownerAgentId
-      ) {
-        if (match !== null) throw new Error("The supervised goal has conflicting request origins.");
-        match = event;
-      }
-    }
-    afterSeq = page.at(-1)!.seq;
-    if (page.length < 1_000) break;
-  }
-  return match;
+  const tail = new VerifiedEventTail({
+    types: boundRequestTypes,
+    maximumEvents,
+    fullReadIntervalMs: presenceFullReadIntervalMs,
+    boundMessage,
+  });
+  return accumulateBoundRequest(
+    null,
+    tail.read(input.events).events,
+    input.projectId,
+    input.binding,
+  );
 }
 
-/** Rejects work before any lease-side recovery, synchronization, reasoning, or effect can run. */
-export function assertBoundSupervisionRequest(input: {
-  events: Pick<EventStore, "list">;
-  projectId: string;
-  binding: NodeSupervisionBinding;
-}): void {
-  if (findBoundSupervisionRequestEvent(input) === null)
-    throw new NodeSupervisionError("supervision_workstream_inactive");
+/**
+ * The same answer as `findBoundSupervisionRequestEvent` for one fixed binding, read incrementally.
+ * Matching is a per-event predicate and a duplicate always throws, so scanning the verified prefix
+ * once and then each appended tail yields the full scan's result, including a conflicting origin
+ * appended later. Any failure discards the cursor so the next check is a full scan again.
+ */
+export class BoundSupervisionRequestPresence {
+  private readonly tail: VerifiedEventTail;
+  private match: EventEnvelope | null = null;
+
+  constructor(
+    private readonly input: {
+      events: PresenceEvents;
+      projectId: string;
+      binding: NodeSupervisionBinding;
+      now?: () => number;
+    },
+  ) {
+    this.tail = new VerifiedEventTail({
+      types: boundRequestTypes,
+      maximumEvents,
+      fullReadIntervalMs: presenceFullReadIntervalMs,
+      boundMessage,
+      ...(input.now === undefined ? {} : { now: input.now }),
+    });
+  }
+
+  find(): EventEnvelope | null {
+    try {
+      const read = this.tail.read(this.input.events);
+      this.match = accumulateBoundRequest(
+        read.restarted ? null : this.match,
+        read.events,
+        this.input.projectId,
+        this.input.binding,
+      );
+      return this.match === null ? null : structuredClone(this.match);
+    } catch (error) {
+      this.tail.reset();
+      this.match = null;
+      throw error;
+    }
+  }
+
+  /** Rejects work before any lease-side recovery, synchronization, reasoning, or effect can run. */
+  assert(): void {
+    if (this.find() === null) throw new NodeSupervisionError("supervision_workstream_inactive");
+  }
 }

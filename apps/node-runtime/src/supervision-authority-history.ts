@@ -4,6 +4,10 @@ import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
 
 const MAXIMUM_OBSERVATION_PASSES = 16;
+/** Wake-up for an anchor-and-tail check that observes appended authority events without a hint. */
+const TAIL_AUDIT_INTERVAL_MS = 60_000;
+/** Re-verification of every historical byte; also forced by clock rollback or anchor failure. */
+const FULL_AUDIT_INTERVAL_MS = 900_000;
 
 /** Rebuildable authority projection; hints and cached rows never replace canonical events. */
 export class SupervisionAuthorityHistory {
@@ -11,6 +15,7 @@ export class SupervisionAuthorityHistory {
   private retained: EventEnvelope[] = [];
   private bytes = 0;
   private auditedAt: number | null = null;
+  private checkedAt: number | null = null;
   private databaseIdentity: string | null = null;
 
   constructor(
@@ -32,7 +37,7 @@ export class SupervisionAuthorityHistory {
   }
 
   nextAuditAt(): number | null {
-    return this.auditedAt === null ? null : this.auditedAt + 60_000;
+    return this.checkedAt === null ? null : this.checkedAt + TAIL_AUDIT_INTERVAL_MS;
   }
 
   private reset(): void {
@@ -40,6 +45,7 @@ export class SupervisionAuthorityHistory {
     this.retained = [];
     this.bytes = 0;
     this.auditedAt = null;
+    this.checkedAt = null;
   }
 
   private readThrough(head: EventEnvelope | null): void {
@@ -87,7 +93,14 @@ export class SupervisionAuthorityHistory {
     this.databaseIdentity = identity;
     const at = this.now();
     if (!Number.isFinite(at)) throw new Error("The supervision authority clock is invalid.");
-    if (this.auditedAt === null || at < this.auditedAt || at - this.auditedAt >= 60_000)
+    // Appended events are always read and chain-verified from the anchor, so a revocation or any
+    // other authority change is never skipped; the full audit only re-proves bytes below it.
+    if (
+      this.auditedAt === null ||
+      at < this.auditedAt ||
+      (this.checkedAt !== null && at < this.checkedAt) ||
+      at - this.auditedAt >= FULL_AUDIT_INTERVAL_MS
+    )
       this.reset();
     else if (this.cursor !== null) {
       const anchor = this.events.get(this.cursor.eventId);
@@ -121,6 +134,7 @@ export class SupervisionAuthorityHistory {
         throw new Error("The supervision authority history changed while being observed.");
     }
     this.auditedAt ??= at;
+    this.checkedAt = at;
     return structuredClone(this.retained);
   }
 }
