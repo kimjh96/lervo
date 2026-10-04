@@ -77,6 +77,11 @@ export const eventPayloadAllowlists = {
     "failureCode",
     "knowledgeSnapshotHash",
     "canonicalizationCandidateId",
+    "skippedPathCount",
+    "skippedReasons",
+    "subJobIndex",
+    "subJobCount",
+    "supersedesResolutionEventId",
     "resolvedAt",
   ],
   "repository.change.completed": [
