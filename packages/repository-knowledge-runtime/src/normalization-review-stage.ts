@@ -89,6 +89,7 @@ export async function reviewNormalizationBatch(
         authority,
         task: "independent_normalization_review",
         schema: normalizationReviewResponseSchema,
+        contextDocuments,
         untrustedSourceData: { sources, candidate, context: contextDocuments },
       };
       let observed = await reviewKnowledgeJson({ ...reviewInput, prompt: PROMPT });

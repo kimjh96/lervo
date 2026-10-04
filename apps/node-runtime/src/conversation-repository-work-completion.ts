@@ -22,6 +22,7 @@ import {
   planConversationRepositoryChange,
 } from "./conversation-repository-change.js";
 import { prepareConversationRepositoryWorkKnowledgeEvidence } from "./conversation-repository-work-knowledge-evidence.js";
+import { conversationRepositoryWorkCoordinates } from "./conversation-repository-work-measurement.js";
 import type { RepositoryWorkChange } from "./repository-work-observation.js";
 import type { PreparedRepositoryWorkSourceManifest } from "./repository-work-source-manifest.js";
 
@@ -155,10 +156,10 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
       );
     }
     const { disposition: knowledgeDisposition, sourceManifestArtifact } = knowledgeEvidence;
-    const coordinate = sha256(input.sourceConversationEventId).slice("sha256:".length, 31);
+    const coordinates = conversationRepositoryWorkCoordinates(input.sourceConversationEventId);
     const recordedCompletions = collectRunEventsBounded({
       events: storage.events,
-      runId: `run_conversation_${coordinate}`,
+      runId: coordinates.runId,
       maximumEvents: 1_000,
     }).filter(
       (event) =>
@@ -210,8 +211,8 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
     const draft: EventDraft = {
       eventId: `evt_${sha256(`lervo.conversation.repository-work-completed.v1\0${input.sourceConversationEventId}`).slice(7, 39)}`,
       projectId: storage.manifest.projectId,
-      runId: `run_conversation_${coordinate}`,
-      sessionId: `ses_conversation_${coordinate}`,
+      runId: coordinates.runId,
+      sessionId: coordinates.sessionId,
       type: "conversation.repository_work.completed",
       occurredAt: input.completedAt,
       actor: { kind: "agent", provider: input.provider },

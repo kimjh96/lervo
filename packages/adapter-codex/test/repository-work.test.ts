@@ -28,6 +28,7 @@ const external = args.includes("sandbox_workspace_write.network_access=true");
 const repositoryMetadata = args.includes("--add-dir");
 process.stdout.write(JSON.stringify({type:"thread.started",thread_id:"11111111-1111-4111-8111-111111111111"})+"\\n");
 process.stdout.write(JSON.stringify({type:"item.completed",item:{type:"agent_message",text:external?"external":resumed&&repositoryMetadata?"resumed-with-metadata":repositoryMetadata?"completed-with-metadata":"completed"}})+"\\n");
+process.stdout.write(JSON.stringify({type:"turn.completed",usage:{input_tokens:1200,cached_input_tokens:800,output_tokens:90,reasoning_output_tokens:40}})+"\\n");
 `,
     { mode: 0o700 },
   );
@@ -86,6 +87,18 @@ describe("CodexRepositoryWorkTurnExecutor", () => {
       provider: "codex",
       providerSessionId: "11111111-1111-4111-8111-111111111111",
       response: "completed-with-metadata",
+      usage: {
+        adapterId: "codex/repository-work",
+        status: "observed",
+        usage: {
+          inputTokens: 1_200,
+          cachedInputTokens: 800,
+          outputTokens: 90,
+          reasoningOutputTokens: 40,
+          totalTokens: 1_290,
+          contextWindow: null,
+        },
+      },
     });
     await expect(
       executor.execute({

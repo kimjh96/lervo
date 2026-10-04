@@ -6,3 +6,4 @@ export * from "./publication-failure.js";
 export * from "./runtime.js";
 export * from "./types.js";
 export * from "./causal-work.js";
+export * from "./usage-verification.js";

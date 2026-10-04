@@ -12,6 +12,7 @@ import {
   managedConversationTurnOutputSchema,
   type ManagedConversationSurfaceEffect,
 } from "@lervo/conversation-responder";
+import { deliberationProvesMultipleProviders } from "@lervo/deliberation-runtime";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import type { ConversationResponder } from "@lervo/interaction";
 import {
@@ -283,6 +284,8 @@ export async function openManagedConversationReadResponder(input: {
         resolvedSkills: [],
       };
     };
+    const verifiedDeliberation = (deliberationId: string) =>
+      deliberationProvesMultipleProviders({ events, deliberationId });
     const responder = new ManagedConversationResponder({
       repositoryRoot: input.repositoryRoot,
       projectId: input.projectId,
@@ -294,6 +297,7 @@ export async function openManagedConversationReadResponder(input: {
       deadlines: { providerTurnMs: input.config.routing.response.timeoutMs ?? 60_000 },
       ...(semanticEvaluator === undefined ? {} : { semanticEvaluator }),
       createEventId: () => id("evt"),
+      verifiedDeliberation,
       resolvePlan: (request) => resolvePlan(request),
     });
     const turnResolver = new ManagedConversationTurnResolver({
@@ -307,6 +311,7 @@ export async function openManagedConversationReadResponder(input: {
       deadlines: { providerTurnMs: input.config.routing.response.timeoutMs ?? 60_000 },
       ...(semanticEvaluator === undefined ? {} : { semanticEvaluator }),
       createEventId: () => id("evt"),
+      verifiedDeliberation,
       resolvePlan: (request) =>
         resolvePlan(request, managedConversationTurnOutputSchema(input.surfaceEffects, 2_000)),
     });

@@ -266,6 +266,15 @@ describe("same-provider independent role deliberation runtime", () => {
       proposal.artifact,
       review.artifact,
     ]);
+    // The fixture adapter reports no usage, so neither artifact is provider-proven (ADR-0460).
+    expect(artifactEvents.map((event) => event.payload.usageVerification)).toEqual([
+      "unverified",
+      "unverified",
+    ]);
+    expect(
+      events.find((event) => event.type === "deliberation.completed")?.payload
+        .verifiedParticipantCount,
+    ).toBe(0);
     expect(events.map((event) => event.type)).toEqual(
       expect.arrayContaining([
         "deliberation.started",

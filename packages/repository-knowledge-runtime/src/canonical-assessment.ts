@@ -101,6 +101,7 @@ export async function assessCanonicalBaseline(
         authority,
         task: "canonical_baseline_assessment",
         schema: canonicalAssessmentSchema,
+        contextDocuments: documents,
         untrustedSourceData: {
           sources: selected,
           sourceFacts,

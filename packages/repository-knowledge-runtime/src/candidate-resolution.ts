@@ -80,6 +80,7 @@ export async function resolveConvergenceCandidates(
           prompt: candidateReviewPrompt,
           task: "canonical_candidate_resolution",
           schema: candidateReviewSchema,
+          contextDocuments: documents,
           untrustedSourceData: {
             candidates,
             sources,

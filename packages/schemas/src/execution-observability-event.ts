@@ -124,6 +124,28 @@ export const resourceUsageSchema = {
   additionalProperties: false,
 } as const;
 
+/** ADR-0459 measurement channels; a usage record names exactly one. */
+export const resourceUsageChannels = [
+  "terminal",
+  "managed_run",
+  "conversation",
+  "supervision",
+  "knowledge_worker",
+  "deliberation",
+] as const;
+
+/**
+ * Attribution binds usage to the agent, conversation, channel, turn, and stage that spent it.
+ * Historical events omit it; a writer that records one field records all five.
+ */
+const resourceUsageAttributionProperties = {
+  agentId: nullableAgentIdSchema,
+  conversationDigest: { anyOf: [sha256Schema, { type: "null" }] },
+  channel: { type: "string", enum: resourceUsageChannels },
+  turnEventId: { type: "string", pattern: "^[a-z]{3,4}_[A-Za-z0-9][A-Za-z0-9_-]{7,95}$" },
+  stage: reasonCodeSchema,
+} as const;
+
 const resourceUsageRecordedProperties = {
   workId: workIdSchema,
   resourceObservationId: { type: "string", pattern: "^ruo_[a-f0-9]{24}$" },
@@ -139,7 +161,7 @@ const resourceUsageRecordedProperties = {
       "improvement_evaluation",
     ],
   },
-  source: { type: "string", enum: ["provider_reported", "lervo_measured"] },
+  source: { type: "string", enum: ["provider_reported", "lervo_measured", "estimated"] },
   accountingMode: {
     type: "string",
     enum: ["turn_cumulative", "session_cumulative", "operation_delta"],
@@ -149,6 +171,7 @@ const resourceUsageRecordedProperties = {
   status: { type: "string", enum: ["observed", "partial", "unavailable", "invalid"] },
   usage: { anyOf: [resourceUsageSchema, { type: "null" }] },
   reasonCode: { anyOf: [reasonCodeSchema, { type: "null" }] },
+  ...resourceUsageAttributionProperties,
 } as const;
 
 export const resourceUsageRecordedEventPayloadSchema = {
@@ -169,6 +192,13 @@ export const resourceUsageRecordedEventPayloadSchema = {
     "usage",
     "reasonCode",
   ],
+  dependentRequired: {
+    agentId: ["conversationDigest", "channel", "turnEventId", "stage"],
+    conversationDigest: ["agentId", "channel", "turnEventId", "stage"],
+    channel: ["agentId", "conversationDigest", "turnEventId", "stage"],
+    turnEventId: ["agentId", "conversationDigest", "channel", "stage"],
+    stage: ["agentId", "conversationDigest", "channel", "turnEventId"],
+  },
   oneOf: [
     {
       properties: {
@@ -308,6 +338,14 @@ export type ResourceUsage = FromSchema<typeof resourceUsageSchema>;
 export type ResourceUsageRecordedEventPayload = FromSchema<
   typeof resourceUsageRecordedEventPayloadSchema
 >;
+export type ResourceUsageChannel = (typeof resourceUsageChannels)[number];
+export interface ResourceUsageAttribution {
+  agentId: string | null;
+  conversationDigest: string | null;
+  channel: ResourceUsageChannel;
+  turnEventId: string;
+  stage: string;
+}
 export type ExecutionStagesObservedEventPayload = FromSchema<
   typeof executionStagesObservedEventPayloadSchema
 >;

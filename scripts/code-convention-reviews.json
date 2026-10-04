@@ -130,16 +130,16 @@
     },
     {
       "path": "packages/deliberation-runtime/src/runtime.ts",
-      "contentHash": "sha256:d8140bad329845eb5965cd477aa8bdd1f55132440383ce5831b68e3e183bd84c",
+      "contentHash": "sha256:c7239ed7b4ee0bba19ac8c4321fbb93568f2598d1a3ed85456d34ec7cd9d0714",
       "responsibility": "Stateful deliberation lifecycle coordinator",
-      "rationale": "The module owns one in-memory deliberation state machine; artifact publication failure recording, handoff materialization, snapshot restoration, and event recording remain in linked modules, while methods enforce shared history and event invariants. The optional policy-role name is validated once and recorded as provider-neutral event metadata without adding surface rendering or transport behavior.",
+      "rationale": "The module owns one in-memory deliberation state machine; publication failure recording, handoff materialization, snapshot restoration, event recording, and ADR-0460 usage verification decisions remain in linked modules. Methods enforce shared history and event invariants, record each artifact's verification state, and refuse convergence on an unverified artifact. Policy-role names stay provider-neutral metadata.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:022d8000a717f9dbe20f08307eed626b66e62fa31279e7be1cfb43d771876a2b",
+      "contentHash": "sha256:beefbac4424a5b07b2487ef689faecbcf69b8a1e77e04e603a22bc1136482fe6",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. V4 convergence payload/provenance rules remain separate modules; the replica divergence allowlists only map hash-only payloads to their schemas and introduce no provider work, authority decision or persistence.",
+      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. V4 convergence payload/provenance rules remain separate modules; the replica divergence allowlists, the archive coordinate, and the ADR-0459 and ADR-0460 attribution, receipt origin, and usage-verification allowlist fields only map hash-only payloads to their schemas and introduce no provider work, authority decision or persistence.",
       "disposition": "cohesive"
     },
     {

@@ -27,6 +27,8 @@ Slices are ordered by dependency and by how quickly they stop ongoing damage. Ea
 
 The `Status` column is the current label; `Earns` names the label the verification still has to earn.
 
+Current labels: measurement attribution and the two missing channels is `wired`. Discord repository-work turns and knowledge workers now record an attributed `resource.usage.recorded` event and a selected-and-loaded context receipt, and `measurement_unavailable` fails the turn's completion gate; the evidence is unit and contract tests with fixture providers. Deliberation usage verification and `provider_claim_unproven` are `wired`: artifacts record `usageVerification`, convergence requires verified usage, the budget counts only complete usage of the expected scope, and unproven multi-provider replies are repaired. Both rows earn `installed-proven` only after their installed verification passes.
+
 ### Slice 1: core seams the open features land on
 
 | Item                                                                                                                                                           | Design   | Verification                                                                                             | Depends on                                               |

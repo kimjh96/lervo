@@ -14,11 +14,32 @@ export interface RepositoryWorkTurnRequest {
   signal?: AbortSignal;
 }
 
+/** Provider-reported token counters for the turn, normalized by the adapter. */
+export interface RepositoryWorkTurnTokenUsage {
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  reasoningOutputTokens: number;
+  totalTokens: number;
+  contextWindow: number | null;
+}
+
+export type RepositoryWorkTurnUsage = {
+  adapterId: string;
+  /** Names the native counter semantics the adapter normalized. */
+  nativeCounterSemanticsId: string;
+} & (
+  | { status: "observed"; usage: RepositoryWorkTurnTokenUsage }
+  | { status: "unavailable"; reasonCode: string }
+);
+
 export interface RepositoryWorkTurnResult {
   provider: RepositoryWorkProvider;
   providerSessionId: string;
   response: string;
   completedAt: string;
+  /** Absent only for executors that predate ADR-0459; the host records the gap. */
+  usage?: RepositoryWorkTurnUsage;
 }
 
 /**

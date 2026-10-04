@@ -7,6 +7,8 @@ import { canonicalJson, sha256, type KnowledgeConvergenceInput } from "@lervo/re
 
 import { acquireKnowledgeProviderAdmission, pauseKnowledgeProvider } from "./provider-admission.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { recordKnowledgeWorkerMeasurement } from "./knowledge-worker-measurement.js";
+import type { SemanticReviewContextDocument } from "./review-context.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 
@@ -87,6 +89,8 @@ export async function reviewKnowledgeJson(input: {
   task: string;
   schema: unknown;
   untrustedSourceData: unknown;
+  /** The canonical review context Lervo loaded for this call; it forms the ADR-0459 receipt. */
+  contextDocuments: readonly SemanticReviewContextDocument[];
 }): Promise<{
   value: unknown;
   usage: unknown;
@@ -129,6 +133,17 @@ export async function reviewKnowledgeJson(input: {
           admissionObservationHash,
         }),
       );
+      await recordKnowledgeWorkerMeasurement({
+        context: input.context,
+        agentId: input.authority.agent.agentId,
+        task: input.task,
+        snapshotHash: input.state.snapshotHash,
+        observationArtifactHash: proof.contentHash,
+        admissionObservationHash,
+        usage: result.usage,
+        contextDocuments: input.contextDocuments,
+        occurredAt: new Date().toISOString(),
+      });
       return { ...result, admissionObservationHash, observationArtifactHash: proof.contentHash };
     },
   });

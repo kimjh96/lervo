@@ -139,6 +139,7 @@ export const eventPayloadAllowlists = {
     "required",
     "scope",
     "knowledgeContext",
+    "origin",
   ],
   "document.loaded": [
     "evidenceReceiptId",
@@ -520,6 +521,7 @@ export const eventPayloadAllowlists = {
     "contentHash",
     "writingPermitId",
     "artifact",
+    "usageVerification",
   ],
   "deliberation.artifact.publication_failed": [
     "deliberationId",
@@ -549,6 +551,7 @@ export const eventPayloadAllowlists = {
     "unresolvedBlockingObjectionIds",
     "failurePhase",
     "failureCode",
+    "verifiedParticipantCount",
   ],
   "development.pattern.observed": [
     "patternId",
@@ -1066,6 +1069,11 @@ export const eventPayloadAllowlists = {
     "status",
     "usage",
     "reasonCode",
+    "agentId",
+    "conversationDigest",
+    "channel",
+    "turnEventId",
+    "stage",
   ],
   "execution.stages.observed": [
     "executionMode",

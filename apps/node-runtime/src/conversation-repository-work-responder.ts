@@ -1,7 +1,6 @@
 import { readKnowledgeAssignments } from "./conversation-canonicalization-assignment.js";
 import type { NormalizationCandidatePreparer } from "./conversation-normalization-candidate.js";
 import { executionInstructions, fitDiscord } from "./conversation-repository-work-writing.js";
-import { createHash } from "node:crypto";
 
 import type { RepositoryWorkTurnExecutor } from "@lervo/adapter-contract";
 import {
@@ -19,11 +18,15 @@ import type {
   NodeRepositoryWorkExecutionProfile,
   NodeRepositoryWorkExecutionProfilePolicy,
 } from "./config-types.js";
+import { compareRepositoryWork } from "./repository-work-observation.js";
 import {
-  compareRepositoryWork,
-  observeRepositoryWork,
-  RepositoryWorkObservationLimitError,
-} from "./repository-work-observation.js";
+  ConversationRepositoryWorkStageError,
+  failureCode,
+  finalizationStartsAt,
+  measured,
+  observe,
+  readStoredResult,
+} from "./conversation-repository-work-stage.js";
 import { awaitRepositoryReplicaReadiness } from "./repository-replica-readiness.js";
 import {
   captureConversationRepositoryWorkCompletionBaseline,
@@ -33,67 +36,12 @@ import { reconcileConversationRepositoryWorkCheckpoint } from "./conversation-re
 import { recoverConversationRepositoryWorkCompletion } from "./conversation-repository-work-recovery.js";
 import { prepareRepositoryWorkSourceManifest } from "./repository-work-source-manifest.js";
 import { captureConversationRepositoryWorkPendingBaseline } from "./conversation-repository-work-completion.js";
-
-const MAXIMUM_FINALIZATION_RESERVE_MS = 5 * 60_000;
-const MINIMUM_FINALIZATION_RESERVE_MS = 2_000;
-
-function finalizationStartsAt(timeoutMs: number, now = Date.now()): string {
-  const reserve = Math.min(
-    MAXIMUM_FINALIZATION_RESERVE_MS,
-    Math.max(MINIMUM_FINALIZATION_RESERVE_MS, Math.floor(timeoutMs / 5)),
-  );
-  return new Date(now + Math.max(0, timeoutMs - reserve)).toISOString();
-}
-
-class ConversationRepositoryWorkStageError extends Error {
-  constructor(
-    readonly code:
-      | "repository_observation_failed"
-      | "repository_result_storage_failed"
-      | "repository_work_in_progress",
-    message: string,
-    options?: ErrorOptions,
-  ) {
-    super(message, options);
-    this.name = "ConversationRepositoryWorkStageError";
-  }
-}
-
-function failureCode(error: unknown): string {
-  return typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof error.code === "string" &&
-    /^[a-z][a-z0-9_]{0,63}$/u.test(error.code)
-    ? error.code
-    : "repository_work_failed";
-}
-
-async function observe(repositoryRoot: string) {
-  try {
-    return await observeRepositoryWork(repositoryRoot);
-  } catch (error) {
-    if (error instanceof RepositoryWorkObservationLimitError) throw error;
-    throw new ConversationRepositoryWorkStageError(
-      "repository_observation_failed",
-      "The repository work state could not be observed.",
-      { cause: error },
-    );
-  }
-}
-
-async function readStoredResult(
-  artifacts: ArtifactStore,
-  reference: { contentHash: string; byteCount: number },
-): Promise<string> {
-  const uri = `lervo-cas://sha256/${reference.contentHash.slice("sha256:".length)}`;
-  const bytes = new Uint8Array(await artifacts.get(uri));
-  const contentHash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-  if (bytes.byteLength !== reference.byteCount || contentHash !== reference.contentHash) {
-    throw new Error("The durable conversation work result differs from its artifact.");
-  }
-  return new TextDecoder("utf8", { fatal: true }).decode(bytes);
-}
+import {
+  repositoryWorkContextPointers,
+  repositoryWorkMeasurement,
+  type ConversationRepositoryWorkMeasurement,
+} from "./conversation-repository-work-measurement.js";
+import { enforceRepositoryWorkProviderClaim } from "./conversation-provider-claim.js";
 
 export class ConversationRepositoryWorkResponder implements ConversationResponder {
   private readonly abortController = new AbortController();
@@ -129,6 +77,8 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         verify: typeof verifyConversationRepositoryWorkCompletion;
       };
       knowledgeMode?: "synchronous" | "pending_background";
+      /** Records the ADR-0459 context receipt and attributed usage; defaults to the project store. */
+      measurement?: ConversationRepositoryWorkMeasurement;
       /** Generates normalization candidates outside the provider sandbox for turns to review. */
       normalization?: NormalizationCandidatePreparer;
       authorizedEffectRequesters?: readonly {
@@ -275,6 +225,14 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       }
       const before = await observe(this.options.repositoryRoot);
       const completionBaseline = await completionLifecycle.capture(this.options.repositoryRoot);
+      const measurement = this.options.measurement ?? repositoryWorkMeasurement;
+      const contextReceipt = await measured(() =>
+        measurement.prepareContext({
+          repositoryRoot: this.options.repositoryRoot,
+          request,
+          sourceRevision: before.revision,
+        }),
+      );
       const externalEffectsAuthorized = this.externalEffectsAuthorized(input.event);
       const result = await executor.execute({
         repositoryRoot: this.options.repositoryRoot,
@@ -295,6 +253,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           externalEffectsAuthorized,
           finalizationStartsAt: finalizationStartsAt(this.options.timeoutMs),
           knowledgeMode,
+          contextPointers: repositoryWorkContextPointers(contextReceipt),
           ...(knowledgeMode === "synchronous" ? await readKnowledgeAssignments(this.options) : {}),
         }),
         providerSessionId: turn.providerSessionId,
@@ -310,7 +269,12 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         before,
         after,
       });
-      const content = fitDiscord(result.response);
+      const providerClaim = await enforceRepositoryWorkProviderClaim({
+        repositoryRoot: this.options.repositoryRoot,
+        provider,
+        content: result.response,
+      });
+      const content = fitDiscord(providerClaim.content);
       let stored;
       try {
         stored = await this.options.artifactStore.put(Buffer.from(content, "utf8"));
@@ -338,6 +302,21 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           after,
         });
       }
+      await measured(() =>
+        measurement.record({
+          repositoryRoot: this.options.repositoryRoot,
+          sourceConversationEventId: input.event.eventId,
+          conversationId: input.event.target.conversationId,
+          threadId: input.event.target.threadId,
+          workerAgentId: workerId,
+          provider,
+          requestedModel: route.model,
+          providerSessionId: result.providerSessionId,
+          usage: result.usage,
+          receipt: contextReceipt,
+          occurredAt: result.completedAt,
+        }),
+      );
       const checkpointDisposition =
         (await completionLifecycle.reconcile?.({
           repositoryRoot: this.options.repositoryRoot,
