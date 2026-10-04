@@ -13,7 +13,10 @@ import type {
 
 export const MAXIMUM_REPOSITORY_KNOWLEDGE_ATTEMPTS = 16;
 
-function resolutionEventId(changeEventId: string, destinationId: string): string {
+export function repositoryKnowledgeResolutionEventId(
+  changeEventId: string,
+  destinationId: string,
+): string {
   const identity =
     destinationId === REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION
       ? `repository.knowledge.resolved\0${changeEventId}`
@@ -43,7 +46,7 @@ export function settleRepositoryKnowledgeJob(input: {
       now: new Date(resolvedAt),
     });
     transaction.append({
-      eventId: resolutionEventId(change.eventId, delivery.destinationId),
+      eventId: repositoryKnowledgeResolutionEventId(change.eventId, delivery.destinationId),
       projectId: change.projectId,
       runId: change.runId,
       sessionId: change.sessionId,
@@ -68,7 +71,7 @@ export function settleRepositoryKnowledgeJob(input: {
         subJobCount: intake.subJobCount,
         ...(requeued
           ? {
-              supersedesResolutionEventId: resolutionEventId(
+              supersedesResolutionEventId: repositoryKnowledgeResolutionEventId(
                 change.eventId,
                 REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION,
               ),

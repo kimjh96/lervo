@@ -9,11 +9,10 @@ import {
 } from "./repository-change-source.js";
 
 /**
- * Settled jobs that ADR-0457 intake degradation can now finish are re-queued once under this
- * destination. Enqueueing the original change event keeps the event chain the job source.
+ * Settled jobs that ADR-0457 can now finish are re-queued once under this destination. Enqueueing
+ * the original change event keeps the event chain the job source.
  */
-export const REPOSITORY_KNOWLEDGE_INTAKE_REQUEUE_DESTINATION =
-  "knowledge:repository:intake-requeue";
+export const REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION = "knowledge:repository:requeue";
 
 /** Failures that whole-job intake rejection caused and per-file degradation replaces. */
 const INTAKE_REQUEUE_FAILURE_CODES: ReadonlySet<string> = new Set([
@@ -22,8 +21,18 @@ const INTAKE_REQUEUE_FAILURE_CODES: ReadonlySet<string> = new Set([
   "asset_verification_required",
 ]);
 
+/**
+ * A resolution written before ADR-0457 lacks the sub-job fields. Its `review_needs_attention`
+ * came from the v4 placeholder reviewer, or from a review that a real reviewer may now settle.
+ */
+function requeueable(payload: Record<string, unknown>): boolean {
+  if (payload.terminalState !== "attention_required") return false;
+  if (INTAKE_REQUEUE_FAILURE_CODES.has(payload.failureCode as string)) return true;
+  return payload.failureCode === "review_needs_attention" && payload.subJobCount === undefined;
+}
+
 /** A rebuildable scan position; losing it only repeats an idempotent scan. */
-const CURSOR_PATH = ".lervo/state/knowledge/intake-requeue-cursor.json";
+const CURSOR_PATH = ".lervo/state/knowledge/requeue-cursor.json";
 const PAGE_SIZE = 1_000;
 
 interface ScanCursor {
@@ -57,11 +66,12 @@ async function writeCursor(root: string, cursor: ScanCursor): Promise<void> {
 }
 
 /**
- * Re-queues, once, each change whose resolution failed only because the whole job was rejected
- * at intake. A successor resolution names the one it supersedes, so a change is never re-queued
- * twice. Queue capacity is shared with new jobs; a full queue defers the remainder to a later run.
+ * Re-queues, once, each change whose resolution failed because the whole job was rejected at
+ * intake or because the legacy reviewer could not review it. A successor resolution names the one
+ * it supersedes, so a change is never re-queued twice. Queue capacity is shared with new jobs; a
+ * full queue defers the remainder to a later run.
  */
-export async function requeueIntakeStalledRepositoryKnowledgeJobs(input: {
+export async function requeueStalledRepositoryKnowledgeJobs(input: {
   repositoryRoot: string;
   events: OutboxStore;
   now?: () => Date;
@@ -79,11 +89,7 @@ export async function requeueIntakeStalledRepositoryKnowledgeJobs(input: {
       const payload = event.payload as Record<string, unknown>;
       const changeEventId = payload.changeEventId as string;
       if (payload.supersedesResolutionEventId !== undefined) stalled.delete(changeEventId);
-      else if (
-        payload.terminalState === "attention_required" &&
-        INTAKE_REQUEUE_FAILURE_CODES.has(payload.failureCode as string)
-      )
-        stalled.add(changeEventId);
+      else if (requeueable(payload)) stalled.add(changeEventId);
     }
   }
   const enqueuedAt = (input.now ?? (() => new Date()))().toISOString();
@@ -93,13 +99,13 @@ export async function requeueIntakeStalledRepositoryKnowledgeJobs(input: {
     const admitted = input.events.transact((transaction) => {
       if (
         transaction.outstandingCount(REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION) +
-          transaction.outstandingCount(REPOSITORY_KNOWLEDGE_INTAKE_REQUEUE_DESTINATION) >=
+          transaction.outstandingCount(REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION) >=
         MAXIMUM_REPOSITORY_KNOWLEDGE_OUTSTANDING
       )
         return null;
       return transaction.enqueue({
         eventId: changeEventId,
-        destinationId: REPOSITORY_KNOWLEDGE_INTAKE_REQUEUE_DESTINATION,
+        destinationId: REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION,
         enqueuedAt,
       }).inserted;
     });

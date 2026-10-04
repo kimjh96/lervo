@@ -13,28 +13,34 @@ import {
   type RepositoryKnowledgeSourceManifest,
 } from "./repository-knowledge-review-source.js";
 import {
+  RepositoryKnowledgeReviewError,
   TerminalOutcome,
   type RepositoryKnowledgeIntakeSummary,
   type RepositoryKnowledgeJobOutcome,
   type RepositoryKnowledgeWorkerHost,
 } from "./repository-knowledge-worker-contract.js";
+export { RepositoryKnowledgeReviewError } from "./repository-knowledge-worker-contract.js";
 export type {
   RepositoryKnowledgeReviewSource,
   RepositoryKnowledgeReviewDecision,
+  RepositoryKnowledgeReviewFailureCode,
+  RepositoryKnowledgeReviewJob,
   RepositoryKnowledgeWorkerHost,
   RepositoryKnowledgeTerminalState,
   RepositoryKnowledgeJobOutcome,
 } from "./repository-knowledge-worker-contract.js";
 export {
-  REPOSITORY_KNOWLEDGE_INTAKE_REQUEUE_DESTINATION,
-  requeueIntakeStalledRepositoryKnowledgeJobs,
+  REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION,
+  requeueStalledRepositoryKnowledgeJobs,
 } from "./repository-knowledge-requeue.js";
+export { repositoryKnowledgeResolutionEventId } from "./repository-knowledge-settlement.js";
 
 import { assessCanonicalization } from "./canonicalization-candidate.js";
 import { assertRepositoryKnowledgeJobLease } from "./repository-knowledge-job-lease.js";
-import { REPOSITORY_KNOWLEDGE_INTAKE_REQUEUE_DESTINATION } from "./repository-knowledge-requeue.js";
+import { REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION } from "./repository-knowledge-requeue.js";
 import {
   MAXIMUM_REPOSITORY_KNOWLEDGE_ATTEMPTS,
+  repositoryKnowledgeResolutionEventId,
   settleRepositoryKnowledgeJob,
 } from "./repository-knowledge-settlement.js";
 
@@ -44,7 +50,7 @@ const DEFAULT_LEASE_MS = 30 * 60_000;
 /** New jobs first; re-queued history drains behind them. */
 const DESTINATIONS = [
   REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION,
-  REPOSITORY_KNOWLEDGE_INTAKE_REQUEUE_DESTINATION,
+  REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION,
 ];
 
 /**
@@ -139,7 +145,19 @@ async function resolveJob(
     )
       return new TerminalOutcome("attention_required", "review_sources_unreviewable");
     for (const [index, sources] of subJobs.entries()) {
-      const decision = await host.review(sources);
+      summary.subJobIndex = index;
+      const decision = await host.review(sources, {
+        changeEventId: delivery.event.eventId,
+        destinationId: delivery.destinationId,
+        attemptCount: delivery.attemptCount,
+        subJobIndex: index,
+        subJobCount: subJobs.length,
+        resolutionEventId: repositoryKnowledgeResolutionEventId(
+          delivery.event.eventId,
+          delivery.destinationId,
+        ),
+      });
+      summary.subJobIndex = null;
       assertLease();
       host.assertReviewContextCurrent?.();
       fence();
@@ -176,6 +194,8 @@ async function resolveJob(
     return new TerminalOutcome("current", null, "implementation_only", knowledge.snapshotHash);
   } catch (error) {
     if (error instanceof TerminalOutcome) return error;
+    if (error instanceof RepositoryKnowledgeReviewError)
+      return new TerminalOutcome("attention_required", error.code);
     const code = (error as { code?: unknown })?.code;
     if (
       typeof code === "string" &&

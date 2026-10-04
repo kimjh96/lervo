@@ -15,8 +15,8 @@ import {
 } from "../src/repository-change-source.js";
 import {
   processRepositoryKnowledgeJobs,
-  REPOSITORY_KNOWLEDGE_INTAKE_REQUEUE_DESTINATION,
-  requeueIntakeStalledRepositoryKnowledgeJobs,
+  REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION,
+  requeueStalledRepositoryKnowledgeJobs,
   type RepositoryKnowledgeReviewSource,
   type RepositoryKnowledgeWorkerHost,
 } from "../src/repository-knowledge-worker.js";
@@ -200,7 +200,7 @@ it("fences changes made during semantic review and lifecycle inspection", async 
     const original = reviewer[phase];
     reviewer[phase] = async () => {
       await writeFile(resolve(job.root, "src/a.ts"), "export const a = 3;\n");
-      return (await original([])) as never;
+      return (await original([], undefined as never)) as never;
     };
     try {
       const [outcome] = await processRepositoryKnowledgeJobs({
@@ -612,13 +612,13 @@ it("re-queues a job rejected whole at intake exactly once", async () => {
       });
     });
     expect(
-      await requeueIntakeStalledRepositoryKnowledgeJobs({
+      await requeueStalledRepositoryKnowledgeJobs({
         repositoryRoot: job.root,
         events: job.events,
       }),
     ).toEqual({ requeued: 1, deferred: 0 });
     expect(
-      job.events.getOutbox(changeEventId, REPOSITORY_KNOWLEDGE_INTAKE_REQUEUE_DESTINATION),
+      job.events.getOutbox(changeEventId, REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION),
     ).toMatchObject({ status: "pending" });
     const [outcome] = await processRepositoryKnowledgeJobs({
       repositoryRoot: job.root,
@@ -638,7 +638,7 @@ it("re-queues a job rejected whole at intake exactly once", async () => {
     // The successor resolution closes the change; neither a cursor loss nor a rerun re-queues it.
     await rm(resolve(job.root, ".lervo/state"), { recursive: true, force: true });
     expect(
-      await requeueIntakeStalledRepositoryKnowledgeJobs({
+      await requeueStalledRepositoryKnowledgeJobs({
         repositoryRoot: job.root,
         events: job.events,
       }),
