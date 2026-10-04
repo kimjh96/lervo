@@ -8,6 +8,7 @@ import { acquireKnowledgeWorkerLock } from "./knowledge-worker-lock.js";
 import {
   inspectRepositoryKnowledgeCurrency,
   processRepositoryKnowledgeJobs,
+  requeueIntakeStalledRepositoryKnowledgeJobs,
   type RepositoryKnowledgeJobOutcome,
   type RepositoryKnowledgeReviewSource,
   type RepositoryKnowledgeWorkerHost,
@@ -100,6 +101,10 @@ export async function runRepositoryKnowledgeWorker(input: {
   const release = await acquireKnowledgeWorkerLock(input.repositoryRoot);
   if (release === null) return { status: "busy" };
   try {
+    await requeueIntakeStalledRepositoryKnowledgeJobs({
+      repositoryRoot: input.repositoryRoot,
+      events: input.events,
+    });
     const outcomes = await processRepositoryKnowledgeJobs({
       repositoryRoot: input.repositoryRoot,
       events: input.events,
