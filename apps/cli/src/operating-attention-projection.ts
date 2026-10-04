@@ -3,6 +3,7 @@ import type {
   KnowledgeLifecycleAttentionItemV1,
   OperatingAttentionItemV1,
   OperatingAttentionReportV1,
+  RepositoryReplicaDivergenceAttentionItemV1,
 } from "@lervo/application-contract";
 import {
   canonicalJson,
@@ -10,6 +11,7 @@ import {
   type CanonicalizationCandidateInspection,
 } from "@lervo/repository-knowledge";
 import type { WorkstreamSnapshot } from "@lervo/schemas";
+import type { RepositoryReplicaOpenDivergence } from "@lervo/sync";
 
 import type { TerminalLifecycleInspection } from "./terminal-hook-contract.js";
 
@@ -67,6 +69,30 @@ function lifecycleOwner(
   return { actionOwner: "agent", requiresUserAction: false };
 }
 
+function replicaDivergenceItem(
+  divergence: RepositoryReplicaOpenDivergence,
+): RepositoryReplicaDivergenceAttentionItemV1 {
+  return {
+    schemaVersion: 1,
+    kind: "repository_replica_divergence",
+    itemId: `repository_replica_divergence_${divergence.divergenceId.slice("sha256:".length, "sha256:".length + 24)}`,
+    state: "action_required",
+    replicaId: divergence.replicaId,
+    divergenceId: divergence.divergenceId,
+    reason: divergence.reason,
+    conflictPathCount: divergence.conflictPathCount,
+    conflictPaths: [...divergence.conflictPaths],
+    openedAt: divergence.openedAt,
+    actionOwner: "user",
+    requiresUserAction: true,
+    blocking: false,
+    instruction:
+      divergence.reason === "no_common_history"
+        ? `Replica ${divergence.replicaId} has no common history with its peer; choose which host's repository to keep and re-seed the other before replication resumes.`
+        : `Make both hosts agree on the conflicting paths, or on the coordinator host run lervo-node repository-replica reconcile --config <coordinator-config> --replica ${divergence.replicaId} --prefer local|peer; the reconciling cycle records repository.replica.reconciled.`,
+  };
+}
+
 function ordered(items: OperatingAttentionItemV1[]): OperatingAttentionItemV1[] {
   return items.sort((left, right) => {
     const user = Number(right.requiresUserAction) - Number(left.requiresUserAction);
@@ -89,6 +115,8 @@ export function createOperatingAttentionReport(input: {
     coverage: OperatingAttentionReportV1["coverage"]["knowledgeLifecycle"];
     issues: TerminalLifecycleInspection["issues"];
   };
+  /** The open divergence the local replica receipt projects, when replication is configured. */
+  repositoryReplicaDivergence?: RepositoryReplicaOpenDivergence | null;
   observedAt: Date;
 }): OperatingAttentionReportV1 {
   const workstreamItems: OperatingAttentionItemV1[] =
@@ -159,9 +187,16 @@ export function createOperatingAttentionReport(input: {
           blocking: issue.code === "turn_approval_pending",
           instruction: issue.command,
         }));
+  const replicaItems =
+    input.repositoryReplicaDivergence === undefined || input.repositoryReplicaDivergence === null
+      ? []
+      : [replicaDivergenceItem(input.repositoryReplicaDivergence)];
   const allItems = ordered([
     ...new Map(
-      [...workstreamItems, ...candidateItems, ...lifecycleItems].map((item) => [item.itemId, item]),
+      [...workstreamItems, ...candidateItems, ...lifecycleItems, ...replicaItems].map((item) => [
+        item.itemId,
+        item,
+      ]),
     ).values(),
   ]);
   const items = allItems.slice(0, MAXIMUM_ATTENTION_ITEMS);
