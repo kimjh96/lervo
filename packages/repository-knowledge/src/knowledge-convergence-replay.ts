@@ -73,6 +73,22 @@ export function replayKnowledgeConvergence(events: OutboxStore): KnowledgeConver
   return [...(lastCurrent === null ? [] : [lastCurrent]), ...active.values()];
 }
 
+/**
+ * One cycle-scoped replay per canonical event head. Appends change the head, so every later read
+ * after a durable effect replays again; an unchanged head returns the same projection.
+ */
+export function memoizedKnowledgeConvergenceReplay(
+  events: OutboxStore,
+): () => KnowledgeConvergenceProjection[] {
+  let cached: { head: string | null; rows: KnowledgeConvergenceProjection[] } | null = null;
+  return () => {
+    const head = events.latest()?.eventHash ?? null;
+    if (cached === null || cached.head !== head)
+      cached = { head, rows: replayKnowledgeConvergence(events) };
+    return cached.rows;
+  };
+}
+
 /** Capacity can delay an obligation, but its canonical source is always replayable. */
 export function reconcileKnowledgeConvergenceOutbox(
   events: OutboxStore,

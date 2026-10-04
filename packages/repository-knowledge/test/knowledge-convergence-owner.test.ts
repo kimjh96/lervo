@@ -281,3 +281,64 @@ it("links a changed baseline to a successor and never dispatches its old continu
     f.events.close();
   }
 });
+
+function observeCycleCost(f: Awaited<ReturnType<typeof fixture>>) {
+  const counts = { discover: 0, replay: 0 };
+  const discover = f.host.discover;
+  f.host.discover = async () => {
+    counts.discover++;
+    return discover();
+  };
+  const list = f.events.list.bind(f.events);
+  f.events.list = (options) => {
+    if ((options?.afterSeq ?? 0) === 0) counts.replay++;
+    return list(options);
+  };
+  return counts;
+}
+
+it("observes an idle current repository with one discovery and one canonical replay per cycle", async () => {
+  const f = await fixture();
+  try {
+    for (let stage = 0; stage < 7; stage++) await f.cycle();
+    await f.cycle();
+    const counts = observeCycleCost(f);
+    expect(await f.cycle()).toMatchObject({ state: "idle", outstanding: 0 });
+    expect(counts).toEqual({ discover: 1, replay: 1 });
+  } finally {
+    f.events.close();
+  }
+});
+
+it("observes a waiting dependency with one discovery and one canonical replay per cycle", async () => {
+  const f = await fixture();
+  f.host.runStage = async (_stage, input) => ({
+    state: "waiting_authority",
+    input,
+    assignmentId: null,
+    leaseGeneration: null,
+    failureCode: "knowledge_authority_unavailable",
+    dependencyHash: sha256("authority"),
+    nextStage: null,
+  });
+  try {
+    await f.cycle();
+    const counts = observeCycleCost(f);
+    expect(await f.cycle()).toMatchObject({ state: "waiting_authority", outstanding: 1 });
+    expect(counts).toEqual({ discover: 1, replay: 1 });
+  } finally {
+    f.events.close();
+  }
+});
+
+it("discovers again for the closing status after a stage settles", async () => {
+  const f = await fixture();
+  try {
+    const counts = observeCycleCost(f);
+    await f.cycle();
+    expect(f.calls).toEqual(["assessment"]);
+    expect(counts.discover).toBe(2);
+  } finally {
+    f.events.close();
+  }
+});
