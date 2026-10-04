@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fa412ee8f958db91754e1dbd"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Replace the v4 placeholder per-change knowledge reviewer with a governed provider review that is authorized, admitted, budgeted, and measured, and re-queue placeholder-reviewed jobs once."
