@@ -48,10 +48,43 @@ Privacy: the fields carry counts, fixed reason codes, and an event ID. They excl
 
 New failure code `review_sources_unreviewable` (`attention_required`): every changed path was oversize or binary, so nothing could support a currency claim. Retry cannot change it; a later change or baseline convergence must cover those paths.
 
+## The v4 per-change reviewer
+
+The v4 runtime no longer settles change jobs through a placeholder. `packages/repository-knowledge-runtime/src/change-review-host.ts` runs the shared no-capability review adapter from `@lervo/repository-knowledge-compiler` under v4 governance. The adapter owns the prompt, the response schema, the provider process, and usage normalization. The runtime owns authority, admission, budget, and measurement, and never sees provider-native output.
+
+Each sub-job review call goes through these steps:
+
+1. Authority: an active, unexpired convergence delegation for the project that lists the provider. Without one, the job settles `attention_required` with `knowledge_authority_unavailable` and no provider call is made.
+2. Admission: the shared host provider admission, at most two background calls per host with live work first. Busy capacity is transient and retried with the worker's bounded backoff.
+3. Budget: one call reservation in the convergence budget, scoped to the change event and its queue destination. A job may make at most the delegation's `maximumProviderCalls` calls across all sub-jobs and retries. One more settles `knowledge_review_budget_exhausted`. The reservation is released once the job's resolution event exists.
+4. Measurement: one `resource.usage.recorded` per call, including failed calls.
+5. Provider availability: a quota or authentication failure pauses the provider in admission and settles the job `knowledge_provider_paused`. Usage that is missing or invalid settles `knowledge_usage_unavailable`.
+
+Before claiming change jobs, a v4 worker run checks for live foreground work and for a paused provider. Either one leaves the jobs queued, so a quota window or an active session does not spend their attempts.
+
+### Usage attribution
+
+The usage event uses `scope: primary_provider`, `source: provider_reported`, and the adapter's `operation_delta` accounting descriptor, stored in CAS. It carries these ADR-0459 attribution fields. They are optional on the schema, so older events stay valid.
+
+| Field                | Value for a per-change review                            |
+| -------------------- | -------------------------------------------------------- |
+| `channel`            | `knowledge_worker`                                       |
+| `turnEventId`        | The `repository.change.completed` event ID               |
+| `conversationDigest` | null                                                     |
+| `stage`              | `repository_change_review`                               |
+| `workId`             | Deterministic from the change event, shared by its calls |
+
+The event ID is deterministic from the change event, the queue destination, and the call ordinal, so a replay cannot double count. Privacy: counts, identifiers, and hashes only, never prompts, source text, or provider output. Failure meaning: `status: unavailable` with `knowledge_provider_call_failed` or `knowledge_usage_unavailable` means the call was made but its spend is unproven. It is never reported as zero usage.
+
+New attention codes on `repository.knowledge.resolved`: `knowledge_authority_unavailable`, `knowledge_review_budget_exhausted`, `knowledge_provider_paused`, and `knowledge_usage_unavailable`. Each is non-retryable for that job. A later re-queue or a baseline convergence must cover the change.
+
 ## Re-queue of stalled jobs
 
-Every worker run, CLI or Node and legacy or v4, first calls `requeueIntakeStalledRepositoryKnowledgeJobs`. It re-queues once each change whose latest resolution is `attention_required` with `review_source_limit_exceeded`, `repository_change_path_limit_exceeded`, or `asset_verification_required`. The original change event is enqueued under the separate `knowledge:repository:intake-requeue` destination, which the worker drains after new jobs. Its resolution has a distinct deterministic event ID and `supersedesResolutionEventId`. A change with a superseding resolution is never re-queued again, and historical resolutions are never rewritten.
+Every worker run, CLI or Node and legacy or v4, first calls `requeueStalledRepositoryKnowledgeJobs`. It re-queues each change once when its latest resolution is `attention_required` and either of these holds:
 
-The scan position lives in `.lervo/state/knowledge/intake-requeue-cursor.json`, a rebuildable projection bound to an event sequence and hash. Losing the file, or renumbering the store, only repeats an idempotent scan. Re-queued and new jobs share the 1,024-job outstanding ceiling. A full queue defers the remainder and leaves the cursor in place.
+- The failure code is `review_source_limit_exceeded`, `repository_change_path_limit_exceeded`, or `asset_verification_required`, which whole-job intake rejection caused.
+- The failure code is `review_needs_attention` and the resolution predates ADR-0457, because it lacks `subJobCount`. The v4 placeholder reviewer produced these.
 
-Jobs settled as `review_needs_attention` by the v4 runtime's placeholder reviewer are not re-queued here. ADR-0457 re-queues them once, together with replacing that reviewer.
+The original change event is enqueued under the separate `knowledge:repository:requeue` destination, which the worker drains after new jobs. Its resolution has a distinct deterministic event ID and `supersedesResolutionEventId`, and its review budget starts fresh. A change with a superseding resolution is never re-queued again, and historical resolutions are never rewritten.
+
+The scan position lives in `.lervo/state/knowledge/requeue-cursor.json`, a rebuildable projection bound to an event sequence and hash. Losing the file, or renumbering the store, only repeats an idempotent scan. Re-queued and new jobs share the 1,024-job outstanding ceiling. A full queue defers the remainder and leaves the cursor in place.
