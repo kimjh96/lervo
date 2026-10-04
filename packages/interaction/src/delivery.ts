@@ -2,10 +2,17 @@ import {
   assertConversationAdapterDescriptor,
   assertConversationDeliveryReceipt,
 } from "@lervo/conversation-contract";
+import {
+  admitRetryAttempt,
+  decideRetryAfterFailure,
+  type RetryAttentionReason,
+  type RetryPolicy,
+} from "@lervo/execution-contract";
 
 import { InteractionError } from "./errors.js";
 import type {
   ConversationAdapter,
+  ConversationDeliveryAttention,
   ConversationDeliveryCycleResult,
   ConversationInteractionStore,
 } from "./types.js";
@@ -57,6 +64,12 @@ export async function runConversationDeliveryCycle(input: {
       "invalid_interaction_request",
       "The conversation delivery configuration is invalid.",
     );
+  // ADR-0424 behaviour expressed through the shared ADR-0452 contract: fixed delay, stop at the bound.
+  const retryPolicy: RetryPolicy = {
+    maximumAttempts: maximumDeliveryAttempts,
+    attentionAfter: maximumDeliveryAttempts,
+    backoff: { initialDelayMs: retryDelayMs, multiplier: 1, maximumDelayMs: retryDelayMs },
+  };
   const clock = input.clock ?? (() => new Date());
   const claimedAt = now(clock);
   let leases;
@@ -79,8 +92,39 @@ export async function runConversationDeliveryCycle(input: {
   }
   let deliveredCount = 0;
   let retryScheduledCount = 0;
-  let attentionRequiredCount = 0;
+  const attention: ConversationDeliveryAttention[] = [];
+  const requireAttention = async (
+    lease: (typeof leases)[number],
+    failure: { failureCode: string; reason: RetryAttentionReason; failedAt: string },
+  ): Promise<void> => {
+    await input.store.markOutboundAttentionRequired({
+      outboundId: lease.outbound.outboundId,
+      leaseId: lease.leaseId,
+      failedAt: failure.failedAt,
+      failureCode: failure.failureCode,
+    });
+    attention.push({
+      outboundId: lease.outbound.outboundId,
+      integrationId: input.adapter.descriptor.integrationId,
+      failureCode: failure.failureCode,
+      reason: failure.reason,
+      attemptCount: lease.attemptCount,
+      attentionAfter: retryPolicy.attentionAfter,
+      owner: "conversation_integration_operator",
+      recoveryCondition: "verified_receipt_reconciliation",
+    });
+  };
   for (const lease of leases) {
+    const admission = admitRetryAttempt(retryPolicy, lease.attemptCount);
+    if (admission.status === "attention_required") {
+      // An interrupted earlier attempt left the counter above the bound; never call the adapter again.
+      await requireAttention(lease, {
+        failureCode: `delivery_${admission.reason}`,
+        reason: admission.reason,
+        failedAt: now(clock),
+      });
+      continue;
+    }
     let failureCode: "adapter_delivery_failed" | "invalid_delivery_receipt" | null = null;
     let receipt: import("@lervo/schemas").ConversationDeliveryReceipt | null = null;
     try {
@@ -110,24 +154,24 @@ export async function runConversationDeliveryCycle(input: {
       continue;
     }
     const failedAt = now(clock);
-    if (
-      failureCode === "invalid_delivery_receipt" ||
-      lease.attemptCount >= maximumDeliveryAttempts
-    ) {
-      await input.store.markOutboundAttentionRequired({
-        outboundId: lease.outbound.outboundId,
-        leaseId: lease.leaseId,
+    const resolvedFailureCode = failureCode ?? "adapter_delivery_failed";
+    const decision = decideRetryAfterFailure(retryPolicy, {
+      attemptCount: lease.attemptCount,
+      retryable: resolvedFailureCode === "adapter_delivery_failed",
+    });
+    if (decision.status === "attention_required") {
+      await requireAttention(lease, {
+        failureCode: resolvedFailureCode,
+        reason: decision.reason,
         failedAt,
-        failureCode: failureCode ?? "adapter_delivery_failed",
       });
-      attentionRequiredCount += 1;
     } else {
       await input.store.rescheduleOutbound({
         outboundId: lease.outbound.outboundId,
         leaseId: lease.leaseId,
         failedAt,
-        availableAt: new Date(Date.parse(failedAt) + retryDelayMs).toISOString(),
-        failureCode: failureCode ?? "adapter_delivery_failed",
+        availableAt: new Date(Date.parse(failedAt) + decision.delayMs).toISOString(),
+        failureCode: resolvedFailureCode,
       });
       retryScheduledCount += 1;
     }
@@ -136,6 +180,7 @@ export async function runConversationDeliveryCycle(input: {
     status: leases.length === 0 ? "idle" : "processed",
     deliveredCount,
     retryScheduledCount,
-    attentionRequiredCount,
+    attentionRequiredCount: attention.length,
+    attention,
   };
 }

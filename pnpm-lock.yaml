@@ -1303,6 +1303,9 @@ importers:
       '@lervo/conversation-contract':
         specifier: workspace:*
         version: link:../conversation-contract
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../execution-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
