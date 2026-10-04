@@ -12,11 +12,13 @@ describe("code-quality workflow", () => {
     const workflow = parse(await readFile(workflowPath, "utf8"));
     const steps = workflow.jobs.quality.steps;
     const checkout = steps.find(({ name }) => name === "Check out repository");
+    const architecture = steps.find(({ name }) => name === "Check architecture boundaries");
     const pullRequest = steps.find(({ name }) => name === "Check pull-request release completion");
     const directMain = steps.find(({ name }) => name === "Check direct-main release completion");
 
     assert.equal(checkout.with["fetch-depth"], 0);
     assert.equal(checkout.with["persist-credentials"], false);
+    assert.equal(architecture.run, "pnpm architecture:check");
     assert.equal(pullRequest.if, "github.event_name == 'pull_request'");
     assert.match(pullRequest.run, /release:completion:check --base/u);
     assert.match(pullRequest.run, /github\.event\.pull_request\.base\.sha/u);

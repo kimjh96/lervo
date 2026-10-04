@@ -4,6 +4,8 @@ import eslintConfigPrettier from "eslint-config-prettier/flat";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
+import { errorCausePlugin } from "./scripts/quality/lib/eslint-error-cause-rule.mjs";
+
 export default defineConfig(
   globalIgnores(
     [
@@ -87,6 +89,14 @@ export default defineConfig(
         },
       ],
       "prefer-const": ["error", { destructuring: "all", ignoreReadBeforeAssign: true }],
+    },
+  },
+  {
+    name: "lervo/error-fidelity",
+    files: ["apps/*/src/**/*.ts", "packages/*/src/**/*.ts"],
+    plugins: { lervo: errorCausePlugin },
+    rules: {
+      "lervo/require-caught-error-cause": "error",
     },
   },
   {

@@ -378,6 +378,7 @@ describe("durable native chat interaction", () => {
       deliveredCount: 0,
       retryScheduledCount: 1,
       attentionRequiredCount: 0,
+      attention: [],
     });
     await expect(
       runConversationDeliveryCycle({
@@ -396,6 +397,7 @@ describe("durable native chat interaction", () => {
       deliveredCount: 1,
       retryScheduledCount: 0,
       attentionRequiredCount: 0,
+      attention: [],
     });
     expect(sent).toHaveBeenCalledTimes(2);
     expect(reopened.auditIntegrity()).toMatchObject({ outboxCount: 1 });
@@ -957,5 +959,101 @@ describe("durable native chat interaction", () => {
       status: "delivered",
     });
     migratedDatabase.close();
+  });
+
+  it("never delivers past attentionAfter when interrupted attempts keep re-claiming an outbound", async () => {
+    const path = await databasePath();
+    const send = vi.fn(async () => {
+      throw new Error("not reached");
+    });
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "native-instance",
+      delivery: { send },
+    });
+    const event = adapter.normalizeInbound({
+      sourceEventKey: "interrupted-outbound-attempts",
+      target: { projectId: "prj_project01", conversationId: "cnv_general01", threadId: null },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+      content: {
+        artifactId: "art_request01",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        byteCount: 10,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      occurredAt: "2026-08-20T00:00:00.000Z",
+    });
+    const store = await SQLiteConversationInteractionStore.open({ path });
+    await handleConversationEvent({
+      event,
+      policy: participationPolicy(),
+      workerId: "response-worker",
+      agentParticipantId: "ptc_agent001",
+      store,
+      responder: { respond: async () => responseCandidate() },
+      publicationVerifier: { verify: async () => undefined },
+      relevanceEvaluator: { evaluate: async () => "relevant" },
+      clock: () => new Date("2026-08-20T00:00:02.000Z"),
+    });
+    // Each claim whose lease expires without a recorded outcome models a crashed or hung attempt.
+    for (let interrupted = 1; interrupted <= 3; interrupted += 1) {
+      await expect(
+        store.claimOutbound({
+          integrationId: "itg_native001",
+          workerId: "interrupted-worker",
+          claimedAt: `2026-08-20T00:00:${String(interrupted * 10).padStart(2, "0")}.000Z`,
+          leaseDurationMs: 1_000,
+          limit: 1,
+        }),
+      ).resolves.toMatchObject([{ attemptCount: interrupted }]);
+    }
+    const first = await runConversationDeliveryCycle({
+      adapter,
+      store,
+      workerId: "delivery-worker",
+      leaseDurationMs: 1_000,
+      maximumDeliveryAttempts: 3,
+      clock: () => new Date("2026-08-20T00:01:00.000Z"),
+    });
+    expect(first).toMatchObject({
+      deliveredCount: 0,
+      retryScheduledCount: 0,
+      attentionRequiredCount: 1,
+      attention: [
+        {
+          integrationId: "itg_native001",
+          failureCode: "delivery_attempt_ceiling_exceeded",
+          reason: "attempt_ceiling_exceeded",
+          attemptCount: 4,
+          attentionAfter: 3,
+          owner: "conversation_integration_operator",
+          recoveryCondition: "verified_receipt_reconciliation",
+        },
+      ],
+    });
+    for (let cycle = 0; cycle < 20; cycle += 1) {
+      await expect(
+        runConversationDeliveryCycle({
+          adapter,
+          store,
+          workerId: "delivery-worker",
+          clock: () => new Date(Date.parse("2026-08-20T00:02:00.000Z") + cycle * 60_000),
+        }),
+      ).resolves.toMatchObject({ status: "idle", attentionRequiredCount: 0, attention: [] });
+    }
+    expect(send).not.toHaveBeenCalled();
+    await store.close();
+    const database = new DatabaseSync(path, { readOnly: true });
+    expect(
+      database
+        .prepare("SELECT status, attempt_count, last_failure_code FROM conversation_outbox")
+        .get(),
+    ).toEqual({
+      status: "attention_required",
+      attempt_count: 4,
+      last_failure_code: "delivery_attempt_ceiling_exceeded",
+    });
+    database.close();
   });
 });

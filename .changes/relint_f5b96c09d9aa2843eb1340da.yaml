@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f5b96c09d9aa2843eb1340da"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Stop conversation outbound delivery at the shared retry-policy bound, even after interrupted attempts, and report each outbound that requires attention."

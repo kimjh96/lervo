@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "platforms": {
+    "discord": {
+      "files": {
+        "apps/cli/src/agent-organization-deployment-binding.ts": { "lines": 1 },
+        "apps/cli/src/agent-organization-runtime-binding.ts": { "lines": 6 },
+        "apps/cli/src/organization-executive-command.ts": { "lines": 15 },
+        "apps/conversation/src/application.ts": { "lines": 16 },
+        "apps/conversation/src/built-in-integrations.ts": { "lines": 28 },
+        "apps/conversation/src/types.ts": { "lines": 18 },
+        "apps/node-runtime/src/bin.ts": { "lines": 3 },
+        "apps/node-runtime/src/config-preflight.ts": { "lines": 7 },
+        "apps/node-runtime/src/config-types.ts": { "lines": 3 },
+        "apps/node-runtime/src/config.ts": { "lines": 23 },
+        "apps/node-runtime/src/conversation-canonicalization-assignment.ts": { "lines": 1 },
+        "apps/node-runtime/src/conversation-deliberation-action-responder.ts": {
+          "lines": 4,
+          "imports": ["./discord-conversation-mode.js"]
+        },
+        "apps/node-runtime/src/conversation-deliberation-participant-router.ts": {
+          "lines": 4,
+          "imports": ["./discord-agent-participation.js"]
+        },
+        "apps/node-runtime/src/conversation-discussion-action-responder.ts": {
+          "lines": 4,
+          "imports": ["./discord-conversation-mode.js"]
+        },
+        "apps/node-runtime/src/conversation-discussion-availability.ts": {
+          "lines": 2,
+          "imports": ["./discord-conversation-composition.js"]
+        },
+        "apps/node-runtime/src/conversation-discussion-next-assignment.ts": {
+          "lines": 2,
+          "imports": ["./discord-conversation-composition.js"]
+        },
+        "apps/node-runtime/src/conversation-discussion-ownership.ts": {
+          "lines": 2,
+          "imports": ["./discord-conversation-composition.js"]
+        },
+        "apps/node-runtime/src/conversation-discussion-protocol.ts": {
+          "lines": 8,
+          "imports": ["./discord-conversation-composition.js"]
+        },
+        "apps/node-runtime/src/conversation-discussion-runtime.ts": {
+          "lines": 3,
+          "imports": ["./discord-conversation-composition.js"]
+        },
+        "apps/node-runtime/src/conversation-intent-resolver.ts": { "lines": 22 },
+        "apps/node-runtime/src/conversation-interaction-retry-loop.ts": { "lines": 1 },
+        "apps/node-runtime/src/conversation-peer-turn-router.ts": {
+          "lines": 4,
+          "imports": ["./discord-conversation-composition.js"]
+        },
+        "apps/node-runtime/src/conversation-platform-action-router.ts": {
+          "lines": 15,
+          "imports": ["./discord-conversation-mode.js"]
+        },
+        "apps/node-runtime/src/conversation-publication-writing-contract.ts": {
+          "lines": 2,
+          "imports": ["./discord-conversation-mode.js"]
+        },
+        "apps/node-runtime/src/conversation-read-policy.ts": { "lines": 3 },
+        "apps/node-runtime/src/conversation-read-responder.ts": { "lines": 3 },
+        "apps/node-runtime/src/conversation-repository-work-responder.ts": { "lines": 2 },
+        "apps/node-runtime/src/conversation-repository-work-writing.ts": { "lines": 5 },
+        "apps/node-runtime/src/conversation-requested-runtime-responder.ts": {
+          "lines": 4,
+          "imports": ["./discord-conversation-mode.js"]
+        },
+        "apps/node-runtime/src/conversation-result-evaluation.ts": { "lines": 2 },
+        "apps/node-runtime/src/conversation-result-publication.ts": { "lines": 3 },
+        "apps/node-runtime/src/conversation-task-delegate-responder.ts": {
+          "lines": 7,
+          "imports": ["./discord-conversation-composition.js", "./discord-conversation-mode.js"]
+        },
+        "apps/node-runtime/src/conversation-workforce-action-responder.ts": {
+          "lines": 8,
+          "imports": ["./discord-conversation-mode.js", "./discord-hired-agent-deployment.js"]
+        },
+        "apps/node-runtime/src/deployment-conversation.ts": { "lines": 34 },
+        "apps/node-runtime/src/deployment-supervision.ts": { "lines": 7 },
+        "apps/node-runtime/src/deployment.ts": { "lines": 6 },
+        "apps/node-runtime/src/index.ts": { "lines": 8 },
+        "apps/node-runtime/src/open-ports.ts": { "lines": 5 },
+        "apps/node-runtime/src/product-owner-supervision-policy.ts": { "lines": 4 },
+        "apps/node-runtime/src/repository-work-observation.ts": { "lines": 1 },
+        "apps/node-runtime/src/supervision-bound-request.ts": { "lines": 6 },
+        "apps/node-runtime/src/supervision-discord-request-provenance.ts": { "lines": 12 },
+        "apps/node-runtime/src/supervision-native-publication.ts": { "lines": 1 },
+        "apps/node-runtime/src/supervision-reasoning-context.ts": { "lines": 3 },
+        "apps/node-runtime/src/supervision-reasoning-run.ts": { "lines": 2 },
+        "apps/node-runtime/src/supervision-request-binding.ts": { "lines": 1 },
+        "packages/conversation-platform-sqlite/src/database.ts": { "lines": 1 },
+        "packages/conversation-platform/src/types.ts": { "lines": 1 },
+        "packages/interaction/src/runtime.ts": { "lines": 1 },
+        "packages/schemas/src/surface-observability-report.ts": { "lines": 1 }
+      }
+    },
+    "slack": {
+      "files": {
+        "apps/conversation/src/application.ts": { "lines": 5 },
+        "apps/conversation/src/built-in-integrations.ts": { "lines": 8 },
+        "apps/conversation/src/types.ts": { "lines": 4 },
+        "packages/conversation-platform/src/types.ts": { "lines": 1 }
+      }
+    }
+  }
+}
