@@ -5,6 +5,7 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import {
   processKnowledgeConvergence,
   processRepositoryKnowledgeJobs,
+  requeueIntakeStalledRepositoryKnowledgeJobs,
   inspectRepositoryKnowledgeCurrency,
   assertNoKnowledgeMaterializationTransaction,
   type KnowledgeConvergenceStatus,
@@ -58,6 +59,10 @@ export async function runAutonomousKnowledgeWorker(input: {
     }
     await compactConvergenceWorkspaces(input.storage, input.provider);
     await compactConvergenceWorkforce(input.storage);
+    await requeueIntakeStalledRepositoryKnowledgeJobs({
+      repositoryRoot: root,
+      events: input.storage.events,
+    });
     // Legacy work is adopted as explicit attention evidence. V4 semantic work belongs to scoped assignments.
     const outcomes = await processRepositoryKnowledgeJobs({
       repositoryRoot: root,
