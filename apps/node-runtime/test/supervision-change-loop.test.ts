@@ -134,4 +134,92 @@ describe("supervision event and deadline scheduling", () => {
     expect(cycle).toHaveBeenCalledTimes(2);
     await loop.stop();
   });
+
+  it("backs a lapsed progress deadline off to five minutes and resets on an event hint", async () => {
+    vi.useFakeTimers();
+    let notify = () => {};
+    const lapsed = report(new Date(Date.now() - 1_000).toISOString());
+    const starts: number[] = [];
+    const cycle = vi.fn(async () => {
+      starts.push(Date.now());
+      return { disposition: "idle" as const, report: lapsed };
+    });
+    const loop = createSupervisionChangeLoop({
+      runCycle: cycle,
+      subscribe: (callback) => {
+        notify = callback;
+        return () => {};
+      },
+      nextAuthorityCheckAt: () => null,
+      onFailure: vi.fn(),
+    });
+    loop.start();
+    await vi.advanceTimersByTimeAsync(0);
+    // The first evaluation records the source; later identical evaluations back off.
+    await vi.advanceTimersByTimeAsync(5_000 + 5_000 + 10_000 + 20_000 + 40_000 + 80_000);
+    await vi.advanceTimersByTimeAsync(160_000 + 300_000 + 300_000);
+    const gaps = starts.slice(1).map((start, index) => start - starts[index]!);
+    expect(gaps).toEqual([5_000, 5_000, 10_000, 20_000, 40_000, 80_000, 160_000, 300_000, 300_000]);
+    starts.length = 0;
+    notify();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(starts).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(starts).toHaveLength(2);
+    await loop.stop();
+  });
+
+  it("keeps the five-second retry while a lapsed deadline keeps changing the source", async () => {
+    vi.useFakeTimers();
+    let revision = 0;
+    const cycle = vi.fn(async () => {
+      revision += 1;
+      return {
+        disposition: "idle" as const,
+        report: {
+          ...report(new Date(Date.now() - 1_000).toISOString()),
+          sourceRevisionDigest: `sha256:${String(revision).padStart(64, "0")}`,
+        },
+      };
+    });
+    const loop = createSupervisionChangeLoop({
+      runCycle: cycle,
+      subscribe: () => () => {},
+      nextAuthorityCheckAt: () => null,
+      onFailure: vi.fn(),
+    });
+    loop.start();
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(25_000);
+    expect(cycle).toHaveBeenCalledTimes(6);
+    await loop.stop();
+  });
+
+  it("does not back off while the owner lease is busy or an effect changed the source", async () => {
+    vi.useFakeTimers();
+    const lapsed = report(new Date(Date.now() - 1_000).toISOString());
+    const cycle = vi
+      .fn()
+      .mockResolvedValueOnce({ disposition: "idle", report: lapsed })
+      .mockResolvedValueOnce({ disposition: "idle", report: lapsed })
+      .mockResolvedValueOnce({ disposition: "busy", report: null })
+      .mockResolvedValueOnce({ disposition: "effect_confirmed", report: lapsed })
+      .mockResolvedValue({ disposition: "idle", report: lapsed });
+    const loop = createSupervisionChangeLoop({
+      runCycle: cycle,
+      subscribe: () => () => {},
+      nextAuthorityCheckAt: () => null,
+      onFailure: vi.fn(),
+    });
+    loop.start();
+    await vi.advanceTimersByTimeAsync(0);
+    // idle (record) 5 s, idle (same) 5 s, busy 5 s, effect 5 s, idle (record) 5 s, idle 5 s, 10 s.
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(cycle).toHaveBeenCalledTimes(7);
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(cycle).toHaveBeenCalledTimes(7);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(cycle).toHaveBeenCalledTimes(8);
+    await loop.stop();
+  });
 });

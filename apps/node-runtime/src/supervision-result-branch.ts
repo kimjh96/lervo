@@ -5,9 +5,10 @@ import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { listAssignments, listWorkspaces } from "@lervo/agent-workforce";
-import { openProjectStorage } from "@lervo/project-storage";
+import type { EventStore } from "@lervo/storage-contract";
 
 import { ConversationChangeLoop } from "./conversation-change-loop.js";
+import { AcceptedSupervisionResults } from "./supervision-accepted-results.js";
 
 const run = promisify(execFile);
 const ABSENT = "0".repeat(40);
@@ -87,52 +88,6 @@ export async function publishSupervisionResultWorkspace(input: {
 }
 
 /**
- * `<assignment>:<artifact>` pairs the owner accepted. A completed assignment only means the worker
- * returned a result; the owner may still reject it, so publication needs an accepted review that
- * names that exact result artifact.
- */
-export function acceptedResultKeys(
-  events: readonly { type: string; payload: unknown }[],
-): Set<string> {
-  const accepted = new Set<string>();
-  for (const event of events) {
-    if (event.type !== "work.supervision.review.recorded") continue;
-    const payload = event.payload as {
-      verdict?: unknown;
-      assignmentIds?: unknown;
-      artifactHashes?: unknown;
-    };
-    if (
-      payload.verdict !== "accepted" ||
-      !Array.isArray(payload.assignmentIds) ||
-      !Array.isArray(payload.artifactHashes)
-    )
-      continue;
-    for (const assignmentId of payload.assignmentIds)
-      for (const artifact of payload.artifactHashes)
-        accepted.add(`${String(assignmentId)}:${String(artifact)}`);
-  }
-  return accepted;
-}
-
-async function acceptedResults(repositoryRoot: string): Promise<ReadonlySet<string>> {
-  const storage = await openProjectStorage(repositoryRoot);
-  try {
-    const accepted = new Set<string>();
-    let afterSeq = 0;
-    while (true) {
-      const events = storage.events.list({ afterSeq, limit: 1000 });
-      for (const key of acceptedResultKeys(events)) accepted.add(key);
-      afterSeq = events.at(-1)?.seq ?? afterSeq;
-      if (events.length < 1000) break;
-    }
-    return accepted;
-  } finally {
-    await storage.close();
-  }
-}
-
-/**
  * Publishes every owner-accepted worker assignment's checkout as `lervo/results/<assignment>`. The
  * user's checked-out branch and working tree are never touched: landing a result is a merge by a
  * later observed turn, which also queues its background knowledge review (ADR-0433).
@@ -140,7 +95,7 @@ async function acceptedResults(repositoryRoot: string): Promise<ReadonlySet<stri
 export async function publishCompletedSupervisionResults(input: {
   repositoryRoot: string;
   parentDirectory: string;
-  acceptedResults?: (repositoryRoot: string) => Promise<ReadonlySet<string>>;
+  acceptedResults: () => ReadonlySet<string>;
 }): Promise<PublishedSupervisionResult[]> {
   const assignments = new Map(
     (await listAssignments(input.repositoryRoot)).map((item) => [item.assignmentId, item]),
@@ -157,7 +112,7 @@ export async function publishCompletedSupervisionResults(input: {
       artifact === undefined
     )
       continue;
-    accepted ??= await (input.acceptedResults ?? acceptedResults)(input.repositoryRoot);
+    accepted ??= input.acceptedResults();
     if (!accepted.has(`${assignment.assignmentId}:${artifact}`)) continue;
     const path = resolve(input.parentDirectory, workspace.workspaceId);
     if (!(await stat(path).catch(() => null))?.isDirectory()) continue;
@@ -175,10 +130,13 @@ export async function publishCompletedSupervisionResults(input: {
 export function startSupervisionResultBranchLoop(input: {
   repositoryRoot: string;
   parentDirectory: string;
+  /** The Node's open project event store; reviews are read through a cursor, never reopened. */
+  events: Pick<EventStore, "get" | "latest" | "list">;
   subscribe(notify: () => void): () => void;
   onPublished(result: PublishedSupervisionResult): void;
   onFailure(error: unknown): void;
 }): () => Promise<void> {
+  const accepted = new AcceptedSupervisionResults(input.events);
   const loop = new ConversationChangeLoop({
     intervalMs: 60_000,
     continueOnFailure: true,
@@ -186,7 +144,11 @@ export function startSupervisionResultBranchLoop(input: {
     subscribe: input.subscribe,
     onFailure: input.onFailure,
     runCycle: async () => {
-      for (const result of await publishCompletedSupervisionResults(input))
+      for (const result of await publishCompletedSupervisionResults({
+        repositoryRoot: input.repositoryRoot,
+        parentDirectory: input.parentDirectory,
+        acceptedResults: () => accepted.read(),
+      }))
         input.onPublished(result);
     },
   });

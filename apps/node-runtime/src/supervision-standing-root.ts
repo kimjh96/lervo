@@ -21,7 +21,11 @@ export async function resolveStandingRoot(
   let latestHash: string | null = null;
   let afterSeq = 0;
   while (true) {
-    const events = storage.events.list({ afterSeq, limit: 1000 });
+    const events = storage.events.list({
+      afterSeq,
+      limit: 1000,
+      types: ["work.supervision.mandate.installed"],
+    });
     if (events.length === 0) break;
     for (const event of events) {
       afterSeq = event.seq;

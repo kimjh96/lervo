@@ -10,7 +10,7 @@ import {
 } from "./supervision-attention-health.js";
 import type { NodeRuntimeComponentHealth } from "./health-contract.js";
 import { openNodeOutcomeSupervisionRuntime } from "./outcome-supervision-runtime.js";
-import { openProjectStorage } from "@lervo/project-storage";
+import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import {
   resolveStandingSupervisionBinding,
@@ -150,27 +150,36 @@ export async function openNodeSupervisionService(input: {
     successorId(root.supervisionId, successorIndexOf(current.supervisionId) + 1);
   /** Event sequence already scanned for a lineage installation under the reviewed grant. */
   let scannedSeq = 0;
+  /**
+   * One project storage handle for every lineage scan. Opening project storage verifies the whole
+   * event chain, so reopening it after each owner cycle re-read and re-hashed the full history.
+   */
+  let lineageStorage: Promise<ProjectStorage> | null = null;
+  let closing = false;
+  const openLineageStorage = (): Promise<ProjectStorage> => {
+    lineageStorage ??= openProjectStorage(input.repositoryRoot).catch((error: unknown) => {
+      lineageStorage = null;
+      throw error;
+    });
+    return lineageStorage;
+  };
   const followLineage = async (): Promise<void> => {
-    if (!config.standing) return;
-    const storage = await openProjectStorage(input.repositoryRoot);
-    try {
-      const scan = scanForStandingLineageChange(
-        storage,
-        config.binding,
-        [nextSupervisionId(config.binding, binding), binding.supervisionId],
-        scannedSeq,
-      );
-      scannedSeq = scan.seq;
-      if (!scan.found) return;
-      const resolution = await resolveStandingSupervisionBinding(storage, config.binding, now);
-      if (
-        resolution.index > successorIndexOf(binding.supervisionId) ||
-        resolution.binding.mandateHash !== binding.mandateHash
-      )
-        void rebind(resolution.binding);
-    } finally {
-      await storage.close();
-    }
+    if (!config.standing || closing) return;
+    const storage = await openLineageStorage();
+    const scan = scanForStandingLineageChange(
+      storage,
+      config.binding,
+      [nextSupervisionId(config.binding, binding), binding.supervisionId],
+      scannedSeq,
+    );
+    scannedSeq = scan.seq;
+    if (!scan.found) return;
+    const resolution = await resolveStandingSupervisionBinding(storage, config.binding, now);
+    if (
+      resolution.index > successorIndexOf(binding.supervisionId) ||
+      resolution.binding.mandateHash !== binding.mandateHash
+    )
+      void rebind(resolution.binding);
   };
   const start = (target: typeof runtime) =>
     target.start({
@@ -247,8 +256,12 @@ export async function openNodeSupervisionService(input: {
       start(runtime);
     },
     close: async () => {
+      closing = true;
       await switching;
       await runtime.close();
+      const storage = await lineageStorage?.catch(() => null);
+      lineageStorage = null;
+      await storage?.close();
     },
     currentBinding: () => structuredClone(binding),
     rebind,

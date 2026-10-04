@@ -247,6 +247,7 @@ export async function openNodeRuntime(
             : startSupervisionResultBranchLoop({
                 repositoryRoot: paths.repositoryRoot,
                 parentDirectory: workerWorkspace.parentDirectory,
+                events: store!,
                 subscribe: (notify) => watchLocalEventChanges(store!, notify),
                 onPublished: (result) =>
                   process.stdout.write(

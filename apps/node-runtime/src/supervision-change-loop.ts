@@ -1,6 +1,9 @@
 import type { OutcomeSupervisionCycleResult } from "@lervo/orchestrator";
 import { ConversationChangeLoop } from "./conversation-change-loop.js";
 
+/** The settled source a lapsed deadline keeps re-evaluating: its digest and blocked state. */
+type SettledSource = { digest: string; blocked: boolean };
+
 /** Deadlines are reconstructed by the cycle from durable duties; this timer owns no task state. */
 export function createSupervisionChangeLoop(input: {
   runCycle(): Promise<OutcomeSupervisionCycleResult>;
@@ -10,7 +13,26 @@ export function createSupervisionChangeLoop(input: {
   onCycle?(result: OutcomeSupervisionCycleResult): void | Promise<void>;
 }) {
   let deadline: number | null = null;
-  return new ConversationChangeLoop({
+  let settled: SettledSource | null = null;
+  /**
+   * True when the cycle left the source the cycle cursors remember unchanged: an unchanged skip,
+   * or an idle or blocked evaluation of the same digest and blocked state as the previous one.
+   */
+  const leftSourceUnchanged = (result: OutcomeSupervisionCycleResult): boolean => {
+    if (result.disposition !== "idle" && result.disposition !== "blocked") {
+      settled = null;
+      return false;
+    }
+    if (result.report === null) return true;
+    const next = {
+      digest: result.report.sourceRevisionDigest,
+      blocked: result.disposition === "blocked",
+    };
+    const unchanged = settled?.digest === next.digest && settled.blocked === next.blocked;
+    settled = next;
+    return unchanged;
+  };
+  return new ConversationChangeLoop<boolean>({
     intervalMs: 5_000,
     continueOnFailure: true,
     failureRetryMs: (error) =>
@@ -19,12 +41,17 @@ export function createSupervisionChangeLoop(input: {
         : 5_000,
     subscribe: input.subscribe,
     onFailure: input.onFailure,
+    // A lapsed progress deadline re-evaluates an unchanged source; any event hint still wakes the
+    // owner at once, and every cycle re-reads authority and expiry before an effect can run.
+    idleBackoff: { baseMs: 5_000, ceilingMs: 300_000, unchanged: (unchanged) => unchanged },
     runCycle: async () => {
       const result = await input.runCycle();
       if (result.report !== null)
         deadline =
           result.report.nextCheckAt === null ? null : Date.parse(result.report.nextCheckAt);
+      const unchanged = leftSourceUnchanged(result);
       await input.onCycle?.(structuredClone(result));
+      return unchanged;
     },
     nextWakeupAt: () => {
       const candidates = [deadline, input.nextAuthorityCheckAt()].filter(

@@ -138,7 +138,63 @@ describe("incremental supervision authority history", () => {
     }
   });
 
-  it.each([60_000, -1])(
+  it("schedules a tail audit after each read and re-proves history only every 900 seconds", async () => {
+    const f = await fixture();
+    try {
+      await f.reader.read();
+      const first = f.reader.nextAuditAt()!;
+      const list = vi.spyOn(f.storage.events, "list");
+      for (let minute = 1; minute <= 14; minute += 1) {
+        f.advance(60_000);
+        await f.reader.read();
+        expect(f.reader.nextAuditAt()).toBe(first + minute * 60_000);
+      }
+      expect(list.mock.calls.some(([options]) => options?.afterSeq === 0)).toBe(false);
+      f.advance(60_000);
+      await f.reader.read();
+      expect(list.mock.calls.some(([options]) => options?.afterSeq === 0)).toBe(true);
+    } finally {
+      await f.storage.close();
+    }
+  });
+
+  it("observes an appended authority event on the tail audit without a full re-read", async () => {
+    const f = await fixture();
+    try {
+      let at = Date.now();
+      const reader = new SupervisionAuthorityHistory(
+        f.storage.events,
+        f.storage.paths.eventDatabase,
+        f.storage.manifest.projectId,
+        () => at,
+        "execution",
+      );
+      const before = await reader.read();
+      const head = f.storage.events.latest()!;
+      at += 60_000;
+      f.storage.events.append({
+        eventId: `evt_${"9".repeat(32)}`,
+        projectId: f.owner.projectId,
+        runId: "run_history_fixture",
+        sessionId: "ses_history_fixture",
+        schemaVersion: 1,
+        type: "run.requested",
+        occurredAt: new Date().toISOString(),
+        actor: { kind: "system" },
+        policyVersion: `sha256:${"a".repeat(64)}`,
+        payload: {},
+      });
+      const list = vi.spyOn(f.storage.events, "list");
+      const after = await reader.read();
+      expect(after).toHaveLength(before.length + 1);
+      expect(after.at(-1)!.eventId).toBe(`evt_${"9".repeat(32)}`);
+      expect(list.mock.calls).toEqual([[{ afterSeq: head.seq, limit: 1000 }]]);
+    } finally {
+      await f.storage.close();
+    }
+  });
+
+  it.each([900_000, -1])(
     "revalidates historical bytes on audit expiry or clock rollback (%s)",
     async (advance) => {
       const f = await fixture();

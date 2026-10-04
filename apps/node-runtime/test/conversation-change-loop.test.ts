@@ -98,3 +98,80 @@ it("uses a bounded classified failure retry without blocking an earlier change h
   expect(cycle).toHaveBeenCalledTimes(2);
   await loop.stop();
 });
+
+it("backs off a lapsed deadline while cycles change nothing and resets on a hint or change", async () => {
+  vi.useFakeTimers();
+  let notify = () => {};
+  let changed = false;
+  const starts: number[] = [];
+  const loop = new ConversationChangeLoop<boolean>({
+    runCycle: async () => {
+      starts.push(Date.now());
+      return changed;
+    },
+    onFailure: vi.fn(),
+    intervalMs: 5_000,
+    continueOnFailure: true,
+    subscribe: (callback) => {
+      notify = callback;
+      return () => {};
+    },
+    nextWakeupAt: () => 0,
+    idleBackoff: { baseMs: 5_000, ceilingMs: 300_000, unchanged: (result) => !result },
+  });
+  const gaps = () => starts.slice(1).map((start, index) => start - starts[index]!);
+  loop.start();
+  await vi.advanceTimersByTimeAsync(0);
+  await vi.advanceTimersByTimeAsync(5_000 + 10_000 + 20_000 + 40_000 + 80_000 + 160_000 + 600_000);
+  expect(gaps()).toEqual([5_000, 10_000, 20_000, 40_000, 80_000, 160_000, 300_000, 300_000]);
+
+  // A hint runs at once and restarts the sequence.
+  starts.length = 0;
+  notify();
+  await vi.advanceTimersByTimeAsync(0);
+  await vi.advanceTimersByTimeAsync(15_000);
+  expect(gaps()).toEqual([5_000, 10_000]);
+
+  // A cycle that changed something restarts the sequence too.
+  changed = true;
+  await vi.advanceTimersByTimeAsync(20_000);
+  changed = false;
+  starts.length = 0;
+  await vi.advanceTimersByTimeAsync(5_000 + 5_000 + 10_000);
+  expect(gaps()).toEqual([5_000, 10_000]);
+  await loop.stop();
+});
+
+it("keeps the fixed interval on a lapsed deadline without an idle backoff", async () => {
+  vi.useFakeTimers();
+  const cycle = vi.fn(async () => {});
+  const loop = new ConversationChangeLoop({
+    runCycle: cycle,
+    onFailure: vi.fn(),
+    intervalMs: 5_000,
+    subscribe: () => () => {},
+    nextWakeupAt: () => 0,
+  });
+  loop.start();
+  await vi.advanceTimersByTimeAsync(0);
+  await vi.advanceTimersByTimeAsync(50_000);
+  expect(cycle).toHaveBeenCalledTimes(11);
+  await loop.stop();
+});
+
+it("rejects an invalid idle backoff", () => {
+  for (const idleBackoff of [
+    { baseMs: 50, ceilingMs: 1_000 },
+    { baseMs: 5_000, ceilingMs: 1_000 },
+    { baseMs: 5_000, ceilingMs: 3_600_001 },
+  ])
+    expect(
+      () =>
+        new ConversationChangeLoop({
+          runCycle: async () => {},
+          onFailure: vi.fn(),
+          intervalMs: 5_000,
+          idleBackoff: { ...idleBackoff, unchanged: () => true },
+        }),
+    ).toThrow("idle backoff is invalid");
+});

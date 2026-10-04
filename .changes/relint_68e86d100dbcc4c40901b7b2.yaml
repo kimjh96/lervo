@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_68e86d100dbcc4c40901b7b2"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Read standing supervision event history through verified cursors, type-filtered pages and a lapsed-deadline backoff instead of repeated full scans."
