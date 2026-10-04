@@ -1,6 +1,6 @@
 import type { FromSchema } from "json-schema-to-ts";
 
-import { runIdSchema, sha256Schema } from "./common.js";
+import { eventIdSchema, runIdSchema, sha256Schema } from "./common.js";
 import { providerModelIdentitySchema } from "./provider-model-identity.js";
 
 export const workIdSchema = {
@@ -149,6 +149,21 @@ const resourceUsageRecordedProperties = {
   status: { type: "string", enum: ["observed", "partial", "unavailable", "invalid"] },
   usage: { anyOf: [resourceUsageSchema, { type: "null" }] },
   reasonCode: { anyOf: [reasonCodeSchema, { type: "null" }] },
+  /** ADR-0459 attribution; readers tolerate absence on events written before it. */
+  channel: {
+    type: "string",
+    enum: [
+      "terminal",
+      "managed_run",
+      "conversation",
+      "supervision",
+      "knowledge_worker",
+      "deliberation",
+    ],
+  },
+  turnEventId: eventIdSchema,
+  conversationDigest: { anyOf: [sha256Schema, { type: "null" }] },
+  stage: reasonCodeSchema,
 } as const;
 
 export const resourceUsageRecordedEventPayloadSchema = {
