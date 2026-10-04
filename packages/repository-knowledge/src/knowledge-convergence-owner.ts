@@ -4,7 +4,7 @@ import { normalizedConvergenceFailure } from "./knowledge-convergence-failure.js
 import type { KnowledgeConvergenceStage } from "@lervo/schemas";
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
-import { canonicalJson, sha256, stableId } from "./integrity.js";
+import { canonicalJson, sha256 } from "./integrity.js";
 import { assertRepositoryKnowledgeJobLease } from "./repository-knowledge-job-lease.js";
 import {
   KNOWLEDGE_CONVERGENCE_DESTINATION,
@@ -15,9 +15,11 @@ import {
   type KnowledgeConvergenceStatus,
 } from "./knowledge-convergence-contract.js";
 import {
-  replayKnowledgeConvergence,
+  memoizedKnowledgeConvergenceReplay,
   reconcileKnowledgeConvergenceOutbox,
+  type KnowledgeConvergenceProjection,
 } from "./knowledge-convergence-replay.js";
+import { discoverKnowledgeConvergenceObligation } from "./knowledge-convergence-discovery.js";
 import {
   convergenceEventId,
   queuedConvergenceStage,
@@ -50,113 +52,12 @@ async function loadInput(
   return value;
 }
 
-async function discover(input: OwnerInput, now: Date): Promise<void> {
-  const baseline = await input.host.discover();
-  const rows = replayKnowledgeConvergence(input.events);
-  const lastCurrent = rows.findLast((row) => row.outcome?.payload.terminalState === "current");
-  if (
-    lastCurrent?.outcome?.payload.snapshotHash === baseline.sourceSnapshotHash &&
-    lastCurrent.baseline.payload.policyHash === baseline.policyHash &&
-    lastCurrent.baseline.payload.delegationHash === baseline.delegationHash &&
-    Object.values(baseline.debtCounts).every((count) => count === 0)
-  )
-    return;
-  const existing = rows.find(
-    (row) =>
-      row.outcome === null &&
-      (row.latest?.payload.snapshotHash ?? row.baseline.payload.sourceSnapshotHash) ===
-        baseline.sourceSnapshotHash &&
-      row.baseline.payload.policyHash === baseline.policyHash &&
-      row.baseline.payload.delegationHash === baseline.delegationHash,
-  );
-  if (existing !== undefined) return;
-  if (rows.filter((row) => row.outcome === null).length >= MAXIMUM_CONVERGENCE_OBLIGATIONS) return;
-  const obligationId = stableId("kconv", {
-    projectId: baseline.projectId,
-    snapshot: baseline.sourceSnapshotHash,
-    policy: baseline.policyHash,
-    debt: baseline.debtDigest,
-    delegation: baseline.delegationHash,
-  });
-  const eventId = convergenceEventId([obligationId, "baseline"]);
-  if (input.events.get(eventId) !== null) return;
-  const state: KnowledgeConvergenceInput = {
-    schemaVersion: 1,
-    obligationId,
-    baseline,
-    snapshotHash: baseline.sourceSnapshotHash,
-    receipts: [],
-    stageData: {},
-  };
-  const artifact = await input.artifacts.put(canonicalJson(state));
-  await input.host.assertCurrent(state);
-  input.events.transact((transaction) => {
-    input.host.assertSettlement(state);
-    transaction.append({
-      eventId,
-      projectId: baseline.projectId,
-      runId: `run_${sha256(obligationId).slice(7, 39)}`,
-      sessionId: `ses_${sha256(`session:${obligationId}`).slice(7, 39)}`,
-      actor: { kind: "system" },
-      schemaVersion: 4,
-      policyVersion: baseline.policyHash,
-      type: "repository.knowledge.baseline.requested",
-      occurredAt: now.toISOString(),
-      payload: {
-        obligationId,
-        sourceSnapshotId: baseline.sourceSnapshotId,
-        sourceSnapshotHash: baseline.sourceSnapshotHash,
-        policyHash: baseline.policyHash,
-        debtDigest: baseline.debtDigest,
-        delegationHash: baseline.delegationHash,
-        debtCounts: baseline.debtCounts,
-        inputArtifactHash: artifact.contentHash,
-        requestedAt: now.toISOString(),
-      },
-    });
-    if (
-      transaction.outstandingCount(KNOWLEDGE_CONVERGENCE_DESTINATION) <
-      MAXIMUM_CONVERGENCE_OBLIGATIONS
-    )
-      transaction.enqueue({
-        eventId,
-        destinationId: KNOWLEDGE_CONVERGENCE_DESTINATION,
-        enqueuedAt: now.toISOString(),
-      });
-    for (const previous of rows.filter((row) => row.outcome === null)) {
-      transaction.append({
-        eventId: convergenceEventId([previous.baseline.payload.obligationId, "terminal"]),
-        projectId: baseline.projectId,
-        runId: previous.baseline.runId,
-        sessionId: previous.baseline.sessionId,
-        actor: { kind: "system" },
-        schemaVersion: 4,
-        policyVersion: baseline.policyHash,
-        type: "repository.knowledge.convergence.recorded",
-        occurredAt: now.toISOString(),
-        payload: {
-          obligationId: previous.baseline.payload.obligationId,
-          originalEventId: previous.baseline.eventId,
-          originalEventHash: previous.baseline.eventHash,
-          scope: "baseline",
-          terminalState: "superseded",
-          snapshotHash:
-            previous.latest?.payload.snapshotHash ?? previous.baseline.payload.sourceSnapshotHash,
-          canonicalDispositionDigest: sha256("superseded"),
-          normalizationCoverageDigest: sha256("superseded"),
-          lifecycleReceiptDigest: sha256("superseded"),
-          knowledgeSnapshotHash: null,
-          successorId: obligationId,
-          failureCode: "source_bytes_changed",
-          resolvedAt: now.toISOString(),
-        },
-      });
-    }
-  });
-}
-
-async function resumeDependencies(input: OwnerInput, now: Date): Promise<void> {
-  for (const row of replayKnowledgeConvergence(input.events)) {
+async function resumeDependencies(
+  input: OwnerInput,
+  now: Date,
+  replay: () => KnowledgeConvergenceProjection[],
+): Promise<void> {
+  for (const row of replay()) {
     if (
       row.outcome !== null ||
       row.latest === null ||
@@ -218,7 +119,10 @@ export async function processKnowledgeConvergence(
       now(),
       "reader_transition_required",
     );
-  await discover(input, now());
+  const replay = memoizedKnowledgeConvergenceReplay(input.events);
+  const baseline = await discoverKnowledgeConvergenceObligation(input, now(), replay);
+  const discoveredHead = input.events.latest()?.eventHash ?? null;
+  let deliveries = 0;
   // Canonical stage handoffs survive pruning their acknowledged scheduling projections.
   input.events.purgeAcknowledged({
     destinationId: KNOWLEDGE_CONVERGENCE_DESTINATION,
@@ -226,12 +130,8 @@ export async function processKnowledgeConvergence(
     keepMostRecent: 1_024,
     limit: 1_000,
   });
-  await resumeDependencies(input, now());
-  reconcileKnowledgeConvergenceOutbox(
-    input.events,
-    replayKnowledgeConvergence(input.events),
-    now().toISOString(),
-  );
+  await resumeDependencies(input, now(), replay);
+  reconcileKnowledgeConvergenceOutbox(input.events, replay(), now().toISOString());
   for (let index = 0; index < (input.maximumStages ?? 8); index++) {
     const [delivery] = input.events.claim({
       workerId: input.workerId,
@@ -241,7 +141,8 @@ export async function processKnowledgeConvergence(
       limit: 1,
     });
     if (delivery === undefined) break;
-    const row = replayKnowledgeConvergence(input.events).find(
+    deliveries++;
+    const row = replay().find(
       (item) => item.baseline.payload.obligationId === delivery.event.payload.obligationId,
     );
     const terminal = input.events.get(
@@ -375,7 +276,16 @@ export async function processKnowledgeConvergence(
       assertSettlement: () => input.host.assertSettlement(result.input),
     });
   }
-  return convergenceStatus(input, await input.host.discover(), now(), "ready");
+  // Without a delivery or a durable append, the opening observation still describes this cycle.
+  const unchanged =
+    deliveries === 0 && (input.events.latest()?.eventHash ?? null) === discoveredHead;
+  return convergenceStatus(
+    input,
+    unchanged ? baseline : await input.host.discover(),
+    now(),
+    "ready",
+    replay(),
+  );
 }
 
 /** Read-only status never creates a baseline, a provider call or document effect. */
