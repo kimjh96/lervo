@@ -46,9 +46,11 @@ export async function reserveConvergenceProviderCall(input: {
       .all()) {
       const id = String(row.obligation_id);
       const terminal = input.events.get(stableId("evt", [id, "terminal"], 32));
+      // A per-change review budget is scoped by the resolution event its job will record.
       if (
-        terminal?.type === "repository.knowledge.convergence.recorded" &&
-        terminal.payload.obligationId === id
+        (terminal?.type === "repository.knowledge.convergence.recorded" &&
+          terminal.payload.obligationId === id) ||
+        input.events.get(id)?.type === "repository.knowledge.resolved"
       )
         db.prepare("DELETE FROM budgets WHERE obligation_id=?").run(id);
     }

@@ -5,19 +5,19 @@ import { lstat, readlink } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
+import { LERVO_PROJECTION_PREFIXES } from "@lervo/repository-knowledge";
 import { MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS } from "@lervo/schemas";
 
 const execute = promisify(execFile);
 const MAXIMUM_CHANGED_PATHS = 1_024;
 /**
- * Lervo projections and state are not repository work. Verification evidence under
- * `.lervo/generated/` alone once exceeded the path bound and failed every Discord turn in axli.
+ * Lervo projections and state are not repository work; the shared knowledge intake policy owns
+ * the list. Verification evidence under `.lervo/generated/` alone once exceeded the path bound and
+ * failed every Discord turn in axli.
  */
-const LERVO_PROJECTION_PATHSPECS = [
-  ":(exclude).lervo/generated",
-  ":(exclude).lervo/state",
-  ":(exclude).lervo/data",
-];
+const LERVO_PROJECTION_PATHSPECS = LERVO_PROJECTION_PREFIXES.map(
+  (prefix) => `:(exclude)${prefix.slice(0, -1)}`,
+);
 
 export class RepositoryWorkObservationLimitError extends Error {
   readonly code = "repository_changed_path_limit_exceeded";

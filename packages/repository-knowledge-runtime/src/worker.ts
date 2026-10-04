@@ -5,17 +5,31 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import {
   processKnowledgeConvergence,
   processRepositoryKnowledgeJobs,
-  inspectRepositoryKnowledgeCurrency,
+  requeueStalledRepositoryKnowledgeJobs,
   assertNoKnowledgeMaterializationTransaction,
   type KnowledgeConvergenceStatus,
   type RepositoryKnowledgeJobOutcome,
 } from "@lervo/repository-knowledge";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
+import { createChangeReviewHost } from "./change-review-host.js";
 import { createConvergenceRuntimeHost, assertConvergenceSource } from "./host.js";
+import { knowledgeProviderAdmissionState } from "./provider-admission.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceRecoveryStatus } from "./recovery-status.js";
 import { compactConvergenceWorkforce } from "./workforce-retention.js";
 import { compactConvergenceWorkspaces } from "./workspace-retention.js";
+
+async function changeReviewDeferred(context: ConvergenceRuntimeContext): Promise<boolean> {
+  if (await context.liveWorkPending()) return true;
+  return (
+    await knowledgeProviderAdmissionState({
+      provider: context.provider,
+      ...(context.admissionDirectory === undefined
+        ? {}
+        : { directory: context.admissionDirectory }),
+    })
+  ).paused;
+}
 
 /** Startup, idle timer, event wakeups and detached CLI calls compose this same owner. */
 export async function runAutonomousKnowledgeWorker(input: {
@@ -58,18 +72,21 @@ export async function runAutonomousKnowledgeWorker(input: {
     }
     await compactConvergenceWorkspaces(input.storage, input.provider);
     await compactConvergenceWorkforce(input.storage);
-    // Legacy work is adopted as explicit attention evidence. V4 semantic work belongs to scoped assignments.
-    const outcomes = await processRepositoryKnowledgeJobs({
+    await requeueStalledRepositoryKnowledgeJobs({
       repositoryRoot: root,
       events: input.storage.events,
-      artifacts: input.storage.artifacts,
-      workerId: input.workerId,
-      maximumJobs: 8,
-      host: {
-        review: async () => ({ classification: "needs_review" }),
-        inspectKnowledge: () => inspectRepositoryKnowledgeCurrency(root),
-      },
     });
+    // Live work or a paused provider leaves change jobs queued instead of spending their attempts.
+    const outcomes = (await changeReviewDeferred(context))
+      ? []
+      : await processRepositoryKnowledgeJobs({
+          repositoryRoot: root,
+          events: input.storage.events,
+          artifacts: input.storage.artifacts,
+          workerId: input.workerId,
+          maximumJobs: 8,
+          host: createChangeReviewHost(context),
+        });
     const delegation = await loadConvergenceDelegation(root);
     const convergence = await processKnowledgeConvergence({
       events: input.storage.events,

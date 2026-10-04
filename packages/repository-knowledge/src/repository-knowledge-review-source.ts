@@ -1,142 +1,66 @@
 import { execFile } from "node:child_process";
-import { constants, closeSync, fstatSync, lstatSync, openSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { constants, closeSync, fstatSync, lstatSync, openSync, readSync } from "node:fs";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
-import type { ArtifactStore, OutboxDelivery } from "@lervo/storage-contract";
-
 import { sha256 } from "./integrity.js";
+import {
+  knowledgeIntakeDisposition,
+  type KnowledgeIntakePolicy,
+} from "./knowledge-intake-policy.js";
+import {
+  safeRepositoryPath,
+  type RepositoryKnowledgeSourceManifest,
+  type RepositoryKnowledgeSourceManifestEntry,
+} from "./repository-knowledge-source-manifest.js";
 import {
   TerminalOutcome,
   type RepositoryKnowledgeReviewSource,
 } from "./repository-knowledge-worker-contract.js";
 
-const run = promisify(execFile);
-const MAXIMUM_REVIEW_BYTES = 256 * 1024;
-const HASH = /^sha256:[a-f0-9]{64}$/u;
-const COMMIT = /^[a-f0-9]{40,64}$/u;
+export {
+  readManifest,
+  type RepositoryKnowledgeSourceManifest,
+} from "./repository-knowledge-source-manifest.js";
 
-export interface RepositoryKnowledgeSourceManifest {
-  paths: {
-    path: string;
-    before: string | null;
-    after: string | null;
-    beforeCommit?: string | null;
-  }[];
+const run = promisify(execFile);
+/** The per-file review ceiling over the before and after bytes together (ADR-0457). */
+export const MAXIMUM_REVIEW_FILE_BYTES = 256 * 1024;
+/** A sub-job never exceeds the published path bound or the provider review-input ceiling. */
+const MAXIMUM_SUB_JOB_PATHS = 64;
+const MAXIMUM_SUB_JOB_BYTES = 256 * 1024;
+const READ_CHUNK_BYTES = 1024 * 1024;
+
+export type RepositoryKnowledgeSkipDisposition =
+  "skipped_oversize" | "skipped_binary" | "skipped_generated";
+
+export interface RepositoryKnowledgeSkippedPath {
+  path: string;
+  fileDisposition: RepositoryKnowledgeSkipDisposition;
+}
+
+export interface RepositoryKnowledgeReviewCapture {
+  /** Exact reviewable sources in manifest order; each fits one sub-job alone. */
+  sources: { source: RepositoryKnowledgeReviewSource; byteCount: number }[];
+  skipped: RepositoryKnowledgeSkippedPath[];
 }
 
 function invalid(): never {
   throw new TerminalOutcome("attention_required", "knowledge_job_source_invalid");
 }
 
-function record(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function safePath(value: unknown): value is string {
+/** Version-4 manifests carry the planner's disposition; older ones are classified now. */
+function generated(entry: RepositoryKnowledgeSourceManifestEntry, intake: KnowledgeIntakePolicy) {
   return (
-    typeof value === "string" &&
-    value.length > 0 &&
-    value.length <= 500 &&
-    !value.includes("\\") &&
-    !value.includes("\0") &&
-    !value.includes(":") &&
-    !value.split("/").some((part) => part === "" || part === "." || part === "..")
+    entry.disposition === "generated" ||
+    knowledgeIntakeDisposition(entry.path, intake) === "generated"
   );
 }
 
-/** The manifest's private bytes must agree with every published coordinate before any path is read. */
-export async function readManifest(
-  artifacts: ArtifactStore,
-  delivery: OutboxDelivery,
-): Promise<RepositoryKnowledgeSourceManifest> {
-  const payload = delivery.event.payload as Record<string, unknown>;
-  const reference = payload.sourceManifest;
-  if (
-    !record(reference) ||
-    typeof reference.contentHash !== "string" ||
-    !HASH.test(reference.contentHash) ||
-    !Number.isInteger(reference.byteCount) ||
-    (reference.byteCount as number) < 1 ||
-    (reference.byteCount as number) > 1_048_576
-  )
-    invalid();
-  const uri = `lervo-cas://sha256/${reference.contentHash.slice(7)}`;
-  if (!(await artifacts.has(uri)))
-    throw new TerminalOutcome("attention_required", "knowledge_job_source_unavailable");
-  const bytes = await artifacts.get(uri);
-  if (bytes.byteLength !== reference.byteCount || sha256(bytes) !== reference.contentHash)
-    invalid();
-  let value: unknown;
-  try {
-    value = JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(bytes));
-  } catch {
-    invalid();
-  }
-  if (
-    !record(value) ||
-    ![1, 2, 3].includes(value.schemaVersion as number) ||
-    (value.schemaVersion === 3 && value.projectId !== delivery.event.projectId) ||
-    value.kind !== "repository.change.source_manifest" ||
-    value.sourceKind !== payload.sourceKind ||
-    value.sourceEventId !== payload.sourceEventId ||
-    value.repositoryRevisionBefore !== payload.repositoryRevisionBefore ||
-    value.repositoryRevisionAfter !== payload.repositoryRevisionAfter ||
-    !Array.isArray(value.paths) ||
-    value.paths.length !== payload.changedPathCount ||
-    value.paths.length === 0 ||
-    value.paths.length > 64 ||
-    Object.keys(value).sort().join() !==
-      [
-        ...(value.schemaVersion === 3 ? ["projectId"] : []),
-        "schemaVersion",
-        "kind",
-        "sourceKind",
-        "sourceEventId",
-        "repositoryRevisionBefore",
-        "repositoryRevisionAfter",
-        "paths",
-      ]
-        .sort()
-        .join()
-  )
-    invalid();
-  let preceding = "";
-  const paths: RepositoryKnowledgeSourceManifest["paths"] = [];
-  for (const entry of value.paths) {
-    if (
-      !record(entry) ||
-      !safePath(entry.path) ||
-      entry.path <= preceding ||
-      ![entry.before, entry.after].every(
-        (hash) => hash === null || (typeof hash === "string" && HASH.test(hash)),
-      ) ||
-      entry.before === entry.after ||
-      Object.keys(entry).sort().join() !==
-        (value.schemaVersion === 1
-          ? ["path", "before", "after"]
-          : ["path", "before", "after", "beforeCommit"]
-        )
-          .sort()
-          .join() ||
-      (value.schemaVersion !== 1 &&
-        !(
-          entry.beforeCommit === null ||
-          (typeof entry.beforeCommit === "string" && COMMIT.test(entry.beforeCommit))
-        ))
-    )
-      invalid();
-    preceding = entry.path;
-    paths.push(entry as unknown as RepositoryKnowledgeSourceManifest["paths"][number]);
-  }
-  if (JSON.stringify(paths.map((entry) => entry.path)) !== JSON.stringify(payload.changedPaths))
-    invalid();
-  return { paths };
-}
-
 /** Reject symlinks in every component, including a dangling parent of a missing path. */
-function currentBytes(root: string, path: string): Uint8Array | null {
-  if (!safePath(path)) invalid();
+function openCurrent(root: string, path: string): number | null {
+  if (!safeRepositoryPath(path)) invalid();
   let target = resolve(root);
   for (const part of path.split("/")) {
     target = resolve(target, part);
@@ -148,43 +72,86 @@ function currentBytes(root: string, path: string): Uint8Array | null {
     }
   }
   const descriptor = openSync(target, constants.O_RDONLY | constants.O_NOFOLLOW);
+  if (!fstatSync(descriptor).isFile()) {
+    closeSync(descriptor);
+    invalid();
+  }
+  return descriptor;
+}
+
+/**
+ * Reads the current bytes and their digest. Bytes above `retainLimit` are hashed in chunks and not
+ * retained, so an oversize file still proves its currency without entering memory whole.
+ */
+function readCurrent(
+  root: string,
+  path: string,
+  retainLimit: number,
+): { digest: string; bytes: Uint8Array | null; byteCount: number } | null {
+  const descriptor = openCurrent(root, path);
+  if (descriptor === null) return null;
   try {
-    const stat = fstatSync(descriptor);
-    if (!stat.isFile()) invalid();
-    if (stat.size > MAXIMUM_REVIEW_BYTES)
-      throw new TerminalOutcome("attention_required", "review_source_limit_exceeded");
-    return readFileSync(descriptor);
+    const size = fstatSync(descriptor).size;
+    const hash = createHash("sha256");
+    const retained: Buffer[] = [];
+    const chunk = Buffer.allocUnsafe(READ_CHUNK_BYTES);
+    let byteCount = 0;
+    for (;;) {
+      const read = readSync(descriptor, chunk, 0, chunk.byteLength, null);
+      if (read === 0) break;
+      hash.update(chunk.subarray(0, read));
+      if (size <= retainLimit) retained.push(Buffer.from(chunk.subarray(0, read)));
+      byteCount += read;
+    }
+    return {
+      digest: `sha256:${hash.digest("hex")}`,
+      bytes: size <= retainLimit && byteCount <= retainLimit ? Buffer.concat(retained) : null,
+      byteCount,
+    };
   } finally {
     closeSync(descriptor);
   }
 }
 
+/**
+ * The paths whose currency a reviewed claim depends on: every non-generated path, including the
+ * oversize and binary ones that were skipped, because their change is part of the same unit.
+ */
+export function reviewFenceEntries(
+  manifest: RepositoryKnowledgeSourceManifest,
+  intake: KnowledgeIntakePolicy,
+): RepositoryKnowledgeSourceManifestEntry[] {
+  return manifest.paths.filter((entry) => !generated(entry, intake));
+}
+
 /** Synchronous fence: no awaited work can run between this check and the event transaction. */
 export function assertReviewSourcesCurrent(
   root: string,
-  manifest: RepositoryKnowledgeSourceManifest,
+  entries: readonly RepositoryKnowledgeSourceManifestEntry[],
 ): void {
-  for (const entry of manifest.paths) {
-    const bytes = currentBytes(root, entry.path);
-    if ((bytes === null ? null : sha256(bytes)) !== entry.after)
+  for (const entry of entries)
+    if ((readCurrent(root, entry.path, 0)?.digest ?? null) !== entry.after)
       throw new TerminalOutcome("stale", "source_bytes_changed");
-  }
 }
+
+type FormerBytes = Uint8Array | "oversize" | null;
 
 async function beforeBytes(
   root: string,
-  entry: RepositoryKnowledgeSourceManifest["paths"][number],
-): Promise<Uint8Array | null> {
+  entry: RepositoryKnowledgeSourceManifestEntry,
+): Promise<FormerBytes> {
   if (entry.before === null || entry.beforeCommit == null) return null;
   try {
     const { stdout } = await run(
       "git",
       ["cat-file", "blob", `${entry.beforeCommit}:${entry.path}`],
-      { cwd: root, encoding: "buffer", maxBuffer: MAXIMUM_REVIEW_BYTES },
+      { cwd: root, encoding: "buffer", maxBuffer: MAXIMUM_REVIEW_FILE_BYTES },
     );
     return sha256(stdout) === entry.before ? stdout : null;
-  } catch {
-    return null;
+  } catch (error) {
+    return (error as { code?: unknown }).code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER"
+      ? "oversize"
+      : null;
   }
 }
 
@@ -197,39 +164,78 @@ function text(bytes: Uint8Array): string | null {
   }
 }
 
-export async function reviewSources(
+/**
+ * Reads every manifest path and degrades per file: a generated, oversize, or binary path is
+ * recorded as skipped and the remaining paths stay reviewable. Changed bytes remain `stale`.
+ */
+export async function captureReviewSources(
   root: string,
   manifest: RepositoryKnowledgeSourceManifest,
-): Promise<RepositoryKnowledgeReviewSource[]> {
-  let byteCount = 0;
-  const sources: RepositoryKnowledgeReviewSource[] = [];
+  intake: KnowledgeIntakePolicy,
+): Promise<RepositoryKnowledgeReviewCapture> {
+  const capture: RepositoryKnowledgeReviewCapture = { sources: [], skipped: [] };
+  const skip = (path: string, fileDisposition: RepositoryKnowledgeSkipDisposition) =>
+    capture.skipped.push({ path, fileDisposition });
   for (const entry of manifest.paths) {
-    const current = currentBytes(root, entry.path);
-    if ((current === null ? null : sha256(current)) !== entry.after)
+    if (generated(entry, intake)) {
+      skip(entry.path, "skipped_generated");
+      continue;
+    }
+    const current = readCurrent(root, entry.path, MAXIMUM_REVIEW_FILE_BYTES);
+    if ((current?.digest ?? null) !== entry.after)
       throw new TerminalOutcome("stale", "source_bytes_changed");
     const former = await beforeBytes(root, entry);
-    const afterText = current === null ? null : text(current);
-    const beforeText = former === null ? null : text(former);
-    byteCount += (current?.byteLength ?? 0) + (former?.byteLength ?? 0);
-    if (byteCount > MAXIMUM_REVIEW_BYTES)
-      throw new TerminalOutcome("attention_required", "review_source_limit_exceeded");
-    sources.push({
-      path: entry.path,
-      before:
-        entry.before === null
-          ? { kind: "missing" }
-          : former !== null && beforeText === null
-            ? { kind: "opaque", contentHash: entry.before }
+    const formerCount = former instanceof Uint8Array ? former.byteLength : 0;
+    if (
+      former === "oversize" ||
+      (current !== null && current.bytes === null) ||
+      (current?.byteCount ?? 0) + formerCount > MAXIMUM_REVIEW_FILE_BYTES
+    ) {
+      skip(entry.path, "skipped_oversize");
+      continue;
+    }
+    const afterText = current?.bytes == null ? null : text(current.bytes);
+    const beforeText = former instanceof Uint8Array ? text(former) : null;
+    if ((current !== null && afterText === null) || (former !== null && beforeText === null)) {
+      skip(entry.path, "skipped_binary");
+      continue;
+    }
+    capture.sources.push({
+      byteCount: (current?.byteCount ?? 0) + formerCount,
+      source: {
+        path: entry.path,
+        before:
+          entry.before === null
+            ? { kind: "missing" }
             : beforeText === null
               ? { kind: "unavailable" }
               : { kind: "text", text: beforeText },
-      after:
-        current !== null && afterText === null
-          ? { kind: "opaque", contentHash: entry.after! }
-          : afterText === null
-            ? { kind: "missing" }
-            : { kind: "text", text: afterText },
+        after: afterText === null ? { kind: "missing" } : { kind: "text", text: afterText },
+      },
     });
   }
-  return sources;
+  return capture;
+}
+
+/** Ordered sub-jobs bounded by path count and review bytes; one file always fits alone. */
+export function partitionReviewSubJobs(
+  sources: RepositoryKnowledgeReviewCapture["sources"],
+): RepositoryKnowledgeReviewSource[][] {
+  const subJobs: RepositoryKnowledgeReviewSource[][] = [];
+  let current: RepositoryKnowledgeReviewSource[] = [];
+  let bytes = 0;
+  for (const { source, byteCount } of sources) {
+    if (
+      current.length === MAXIMUM_SUB_JOB_PATHS ||
+      (current.length > 0 && bytes + byteCount > MAXIMUM_SUB_JOB_BYTES)
+    ) {
+      subJobs.push(current);
+      current = [];
+      bytes = 0;
+    }
+    current.push(source);
+    bytes += byteCount;
+  }
+  if (current.length > 0) subJobs.push(current);
+  return subJobs;
 }

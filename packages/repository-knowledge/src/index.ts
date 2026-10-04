@@ -55,6 +55,10 @@ export * from "./instruction-bridge.js";
 export * from "./instruction-routes.js";
 export * from "./integrity.js";
 export * from "./knowledge-currency.js";
+export {
+  LERVO_PROJECTION_PREFIXES,
+  repositoryPathMatchesPatterns,
+} from "./knowledge-intake-policy.js";
 export * from "./lint-query.js";
 export * from "./markdown-split.js";
 export * from "./policy.js";

@@ -4,6 +4,12 @@ import { createHash } from "node:crypto";
 import type { EventDraftV3 } from "@lervo/event-contract";
 import type { OutboxTransaction } from "@lervo/storage-contract";
 
+import {
+  knowledgeIntakeDisposition,
+  loadKnowledgeIntakePolicy,
+  type KnowledgeIntakeDisposition,
+} from "./knowledge-intake-policy.js";
+
 /** Durable knowledge jobs for every repository change unit (ADR-0433). */
 export const REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION = "knowledge:repository";
 export const MAXIMUM_REPOSITORY_CHANGE_PUBLISHED_PATHS = 64;
@@ -41,7 +47,21 @@ export class RepositoryChangeSourceError extends Error {
   }
 }
 
-/** Null for an unchanged unit; the manifest keeps every changed path and both digests. */
+function manifestSchemaVersion(input: {
+  projectId?: string;
+  before: RepositoryChangeSnapshot;
+  disposition?: unknown;
+}): 1 | 2 | 3 | 4 {
+  if (input.disposition !== undefined) return 4;
+  if (input.projectId !== undefined) return 3;
+  return input.before.commits === undefined ? 1 : 2;
+}
+
+/**
+ * Null for an unchanged unit, or for one whose every change is generated. The manifest keeps every
+ * changed path and both digests; schema version 4 records each path's intake disposition, so
+ * generated paths stay counted instead of silently dropped (ADR-0457).
+ */
 export function planRepositoryChange(input: {
   projectId?: string;
   sourceKind: RepositoryChangeSourceKind;
@@ -49,15 +69,20 @@ export function planRepositoryChange(input: {
   before: RepositoryChangeSnapshot;
   after: RepositoryChangeSnapshot;
   occurredAt: string;
+  disposition?: (path: string) => KnowledgeIntakeDisposition;
 }): PlannedRepositoryChange | null {
   const paths = [
     ...new Set([...Object.keys(input.before.files), ...Object.keys(input.after.files)]),
   ]
     .filter((path) => input.before.files[path] !== input.after.files[path])
     .sort();
-  if (paths.length === 0) return null;
+  const dispositions = new Map(
+    paths.map((path) => [path, input.disposition?.(path) ?? ("reviewable" as const)]),
+  );
+  if (![...dispositions.values()].includes("reviewable")) return null;
+  const schemaVersion = manifestSchemaVersion(input);
   const manifestContent = JSON.stringify({
-    schemaVersion: input.projectId !== undefined ? 3 : input.before.commits === undefined ? 1 : 2,
+    schemaVersion,
     ...(input.projectId === undefined ? {} : { projectId: input.projectId }),
     kind: "repository.change.source_manifest",
     sourceKind: input.sourceKind,
@@ -68,9 +93,8 @@ export function planRepositoryChange(input: {
       path,
       before: input.before.files[path] ?? null,
       after: input.after.files[path] ?? null,
-      ...(input.before.commits === undefined && input.projectId === undefined
-        ? {}
-        : { beforeCommit: input.before.commits?.[path] ?? null }),
+      ...(schemaVersion === 1 ? {} : { beforeCommit: input.before.commits?.[path] ?? null }),
+      ...(schemaVersion === 4 ? { disposition: dispositions.get(path) } : {}),
     })),
   });
   const byteCount = Buffer.byteLength(manifestContent);
@@ -148,35 +172,26 @@ function gitIgnoredPaths(root: string, paths: readonly string[]): Promise<Readon
   });
 }
 
-/** Lervo-generated projections and state; the review never treats them as knowledge sources. */
-const GENERATED_PREFIXES = [
-  ".lervo/generated/",
-  ".lervo/state/",
-  ".lervo/data/",
-  "docs/knowledge/",
-];
-
 /**
- * Plans a change unit after removing Git-ignored paths and Lervo-generated projections, which
- * carry no repository knowledge of their own.
+ * Plans a change unit after removing Git-ignored paths, which are untracked build outputs. Paths
+ * the shared intake policy marks as generated stay in the manifest as `disposition: generated`.
  */
 export async function planRepositoryChangeInRepository(
   input: Parameters<typeof planRepositoryChange>[0] & { repositoryRoot: string },
 ): Promise<PlannedRepositoryChange | null> {
   const { repositoryRoot, ...change } = input;
-  const ignored = await gitIgnoredPaths(repositoryRoot, [
-    ...new Set([...Object.keys(change.before.files), ...Object.keys(change.after.files)]),
+  const [ignored, intake] = await Promise.all([
+    gitIgnoredPaths(repositoryRoot, [
+      ...new Set([...Object.keys(change.before.files), ...Object.keys(change.after.files)]),
+    ]),
+    loadKnowledgeIntakePolicy(repositoryRoot),
   ]);
   const kept = (files: Readonly<Record<string, string>>) =>
-    Object.fromEntries(
-      Object.entries(files).filter(
-        ([path]) =>
-          !ignored.has(path) && !GENERATED_PREFIXES.some((prefix) => path.startsWith(prefix)),
-      ),
-    );
+    Object.fromEntries(Object.entries(files).filter(([path]) => !ignored.has(path)));
   return planRepositoryChange({
     ...change,
     before: { ...change.before, files: kept(change.before.files) },
     after: { ...change.after, files: kept(change.after.files) },
+    disposition: (path) => knowledgeIntakeDisposition(path, intake),
   });
 }

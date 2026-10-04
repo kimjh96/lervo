@@ -137,7 +137,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:beefbac4424a5b07b2487ef689faecbcf69b8a1e77e04e603a22bc1136482fe6",
+      "contentHash": "sha256:6989cae30bdfe4d11db51965089215207b68cc66e003b668742e6422bfb231e3",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. V4 convergence payload/provenance rules remain separate modules; the replica divergence allowlists, the archive coordinate, and the ADR-0459 and ADR-0460 attribution, receipt origin, and usage-verification allowlist fields only map hash-only payloads to their schemas and introduce no provider work, authority decision or persistence.",
       "disposition": "cohesive"
@@ -207,7 +207,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:469f2cb9f3b50827d1240068c5fff3e27ef474251e5c600424965d6b489728f9",
+      "contentHash": "sha256:7e63a8b860cb06fda7b904cb3d298a5f7780447e4e1dd968631a64156c6f7829",
       "responsibility": "Reviewed document normalization lifecycle",
       "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation orchestration, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation policy, explicit selection and workset/preflight contracts, shard-cache storage, and CLI parsing or rendering are separate modules.",
       "disposition": "cohesive"
@@ -284,9 +284,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:0b61a318d87f1041ade5f7c5dd39432338eedc73a27d7868aca97cb9b2a8f7cf",
+      "contentHash": "sha256:5675a47c0da3b92dcabbb4c5288b6651628dc0f7319c7bcfbf39e65e1557397b",
       "responsibility": "Bounded repository knowledge scanner",
-      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate. The shared cache-name decision remains outside this filesystem scanner; no independent transport or provider concern was added.",
+      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate. Inclusion matching and the cache-name decision live in the shared knowledge intake policy; no independent transport or provider concern was added.",
       "disposition": "cohesive"
     },
     {
