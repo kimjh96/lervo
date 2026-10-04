@@ -165,9 +165,9 @@
     },
     {
       "path": "packages/node-work-admission/src/store.ts",
-      "contentHash": "sha256:c0c94fbbafddffd0242adc66c94c6718c91913f5d19da0a0a9b8a639de6da864",
+      "contentHash": "sha256:3246677431a002f88ae5acd345d6c73d83b9977d2d98cf975fbc2c7a2d34873e",
       "responsibility": "SQLite Node work session, claim and upgrade freeze adapter",
-      "rationale": "One SQLite adapter owns the bounded session, claim, and freeze lifecycle. Its exact digest check and dead-session cleanup permit inactive recovery only when the service manager explicitly verifies that state. Configuration bytes, service status, rollback, and provider behavior remain outside the store.",
+      "rationale": "One SQLite adapter owns the bounded session, claim, and freeze lifecycle. Its exact digest check, dead-session cleanup, and retained scope participation record permit inactive recovery only when the service manager explicitly verifies that state. Configuration bytes, service status, rollback, and provider behavior remain outside the store.",
       "disposition": "cohesive"
     },
     {
@@ -396,9 +396,9 @@
     },
     {
       "path": "scripts/distribution/lib/runtime-service-management.mjs",
-      "contentHash": "sha256:edfd8766e5f9811886500cfa10bf5a80196c4194b5b29d66275edf7bed84e583",
+      "contentHash": "sha256:b254437b463e00ee729745ab1a1976b500e7546d2f4a9d94bfd68f11da9e341a",
       "responsibility": "Runtime service lifecycle manager",
-      "rationale": "One runtime service coordinator owns exact predecessor validation, stable manager observations, and transactional replacement. It verifies inactive recovery only after a missing-session freeze result while the supervision fence is held. CLI configuration policy and its journal remain in a separate adapter. Argument and source validation extraction remains the existing bounded roadmap follow-up.",
+      "rationale": "One runtime service coordinator owns exact predecessor validation, stable manager observations bounded by the canonical graceful stop, and transactional replacement. It verifies inactive recovery only after a missing-session freeze result while the supervision fence is held. CLI configuration policy and its journal remain in a separate adapter. Argument and source validation extraction remains the existing bounded roadmap follow-up.",
       "disposition": "cohesive"
     },
     {

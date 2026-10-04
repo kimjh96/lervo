@@ -15,7 +15,7 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 - Loose skills migrate before knowledge. Generated AGENTS routes include portable skills on first materialization.
 - Registered Node services compare content-addressed payload identity, not semantic version alone, and reuse existing owner-only configuration without exposing it.
 - Same-version rebuilt Node payloads upgrade transactionally. Fleet registry commit requires complete readiness or three fresh Hub-unavailable-only `offline_ready` observations.
-- An exact installed Node left inactive by a failed stop can resume a guarded upgrade from its prior matching work-admission scope only after stable inactivity and zero live claims. Unregistered Nodes remain blocked.
+- An exact installed Node left inactive by a failed stop can resume a guarded upgrade from its prior matching work-admission scope only after stable inactivity and zero live claims. A graceful stop keeps that scope, so re-applying after an interrupted launchd upgrade does not fail as `service_upgrade_fence_invalid`. Unregistered Nodes remain blocked.
 - Knowledge lint succeeds after every applied repository upgrade.
 - The local-only path works without a Hub. Absent Node registration is current, not an onboarding side effect.
 - A stale registered Node under a current sync-disabled project policy remains pending authority without blocking local generated-only migration.

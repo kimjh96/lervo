@@ -10,6 +10,7 @@
 - Parsed standing-coordinate compatibility amendment: 2026-09-27
 - Frozen CLI configuration replacement amendment: 2026-09-28
 - Shared Discord channel binding amendment: 2026-09-28
+- Asynchronous launchd stop and retained admission scope amendment: 2026-10-05
 
 ## Context
 
@@ -62,13 +63,15 @@ Installation exclusively creates a mode-0600 target, reloads, enables, starts, a
 
 New-target failure compensates by stopping and disabling, then deletes only after exact-byte recheck. Unverified application or compensation returns `service_apply_unknown` without retry, deletion, or success claim.
 
-Removal requires the target to equal the canonical source. It stops and disables, verifies inactivity and bytes, then deletes the exact definition. At most six observations are permitted, with three consecutive stopped observations required before deletion, preventing asynchronous manager teardown from being mistaken for failure or completion. Missing or differing definitions are never guessed.
+Removal requires the target to equal the canonical source. It stops and disables, verifies inactivity and bytes, then deletes the exact definition. Three consecutive stopped observations 500 milliseconds apart are required before deletion, within an observation bound that spans the canonical 120-second graceful stop, preventing asynchronous manager teardown from being mistaken for failure or completion. Missing or differing definitions are never guessed.
 
 ### Transactional upgrades and graceful stop
 
 Transactional upgrade binds exact predecessor and replacement definitions, accepts a stably operational predecessor or its exact inactive installed form, and restores the predecessor's prior disposition if replacement activation fails. Runtime material uses `SIGHUP` only where the runtime explicitly supports reload.
 
 The manager command deadline for stop, bootout, or stop-bearing disable exceeds canonical systemd `TimeoutStopSec=120s` by a bounded margin. Command-level stop failure does not prove continued activity: upgrade reobserves stable inactivity before changing definition bytes. Proven inactivity continues the exact predecessor-bound transaction; otherwise no replacement is published. A previously operational service must not remain down solely because a manager command timed out during normal graceful shutdown.
+
+`launchctl bootout` returns while the job still handles `SIGTERM`; until it exits, `print` succeeds and `bootstrap` fails with error 5. Upgrade therefore observes stop within the same 120-second bound.
 
 ### Supervision owner fencing
 
@@ -106,7 +109,7 @@ At startup, `admission_invalid` means owner-only path, scope, stored digest, sch
 
 During operation, `admission_claim_lost` means session or claim disappeared unexpectedly; the operation fails and cannot become a successful effect. A manager freeze holds at most 256 new operations in process-local retry waiters until release or shutdown. Excess work fails admission as saturated without starting effects; shutdown rejects waiters as admission closed.
 
-The database retains only current scope, session, claim, and freeze rows. Session cleanup removes an unfrozen empty scope; dead-owner recovery removes orphaned claims. No per-operation history is appended.
+The database retains only current scope, session, claim, and freeze rows. Session cleanup retains the scope row as the participation record, so a gracefully stopped Node stays eligible for verified-inactive recovery; dead-owner recovery removes orphaned claims. No per-operation history is appended.
 
 ### Failures, privacy, and evidence
 

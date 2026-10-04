@@ -22,7 +22,12 @@ import {
 const MAXIMUM_DEFINITION_BYTES = 131_072;
 const SERVICE_STABILITY_OBSERVATIONS = 3;
 const SERVICE_STABILITY_INTERVAL_MS = 500;
-const SERVICE_STOP_MAXIMUM_OBSERVATIONS = 6;
+// `launchctl bootout` returns before the job leaves the domain: the job stays printable
+// while its process handles SIGTERM, and `bootstrap` fails with EIO until it is gone.
+// Stop observation therefore spans the canonical graceful stop bound, not a fixed few probes.
+const SERVICE_STOP_MAXIMUM_OBSERVATIONS =
+  Math.ceil(runtimeServiceStopTimeoutMs / SERVICE_STABILITY_INTERVAL_MS) +
+  SERVICE_STABILITY_OBSERVATIONS;
 const SERVICE_STOP_COMMAND_TIMEOUT_MS = runtimeServiceStopTimeoutMs + 30_000;
 
 export class RuntimeServiceManagementError extends Error {
