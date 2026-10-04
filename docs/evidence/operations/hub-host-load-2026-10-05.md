@@ -135,3 +135,17 @@ each standing main < 5 % with under 10 MB/min read from `events.sqlite`; ≤ 1
 `repository-replica snapshot` per replica per 10 minutes while the Mac trees are unchanged;
 `% Processor Performance` ≤ 100 % averaged over five minutes; owner-recorded temperature and fan
 speed lower than this baseline (≥ 60 °C, ≥ 2,000 RPM).
+
+## Result after deploying `d78d6bf1`
+
+ADR-0461 steps 2 to 5 were deployed on 2026-10-05: six WSL Nodes on `runtime-d78d6bf1-r1`, Mac knowledge residents and the replica coordinator on `fleet-d78d6bf1`. Measurements use `/proc/stat` deltas and per-unit `CPUUsageNSec` deltas; Windows values are 60 s averages of `Get-Counter`.
+
+| Measurement                              | Before (`25d1abc9`, 60 s) | After, 60 s | After, 15 min average |
+| ---------------------------------------- | ------------------------- | ----------- | --------------------- |
+| WSL VM busy, cores used                  | 4.76                      | 1.36        | 0.70                  |
+| Lervo systemd units, % of one core       | 306                       | 63          | 51                    |
+| Busiest Node unit (lervo), % of one core | 139                       | 15          | 29                    |
+| Windows `% Processor Utility`            | 55 (Fable baseline)       | not sampled | 11.6                  |
+| `vmmemWSL`, % of one logical processor   | 547 (Fable baseline)      | not sampled | 79.1                  |
+
+`% Processor Performance` averaged 122, so turbo still engages on remaining bursts under the Balanced plan; disabling boost remains an owner decision. Fan speed and temperature were not readable over SSH and need owner confirmation. Argo workloads were observed only and not changed.
