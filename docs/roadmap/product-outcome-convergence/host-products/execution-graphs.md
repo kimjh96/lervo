@@ -2,7 +2,7 @@
 
 Outcome: execution graphs support bounded dynamic branches, joins, and reviewed topology changes.
 
-State: `implemented`.
+State: `wired`.
 
 The v2 graph contract is an additive projection over canonical assignments and events. Changes require:
 

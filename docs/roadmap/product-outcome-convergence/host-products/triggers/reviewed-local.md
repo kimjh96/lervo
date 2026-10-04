@@ -1,6 +1,6 @@
 # Reviewed local triggers
 
-State: `implemented`.
+State: `wired`.
 
 Reviewed local input safely triggers repeatable assignment and handoff work. One manual trigger materializes exact assignment routines. A separate reviewed-input direct-message adapter routes one content-addressed message into an existing handoff through exact plan/apply and source-event idempotency.
 

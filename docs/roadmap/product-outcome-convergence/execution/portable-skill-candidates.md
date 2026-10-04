@@ -1,6 +1,6 @@
 # Runtime portable-skill candidates
 
-State: `implemented`
+State: `wired`
 
 Independently verified repeated workflows become reviewable portable-skill candidates.
 

@@ -1,6 +1,6 @@
 # Root and recursive worker contracts
 
-State: `implemented`
+State: `wired`
 
 Outcome: root agents and recursive workers retain identity, ancestry, authority, path-conflict protection, and evidence.
 

@@ -30,6 +30,7 @@ Defines provider-neutral managed execution and evidence contracts. ADRs retain r
 - [Adverse-condition safety](execution/adverse-condition-safety.md): common effect inventory, exact completion/rollback/recovery projection, cancellation and backpressure bounds, telemetry field registry, threat model, capacity and retention profiles, and compatibility rehearsals.
 - [Hub and Node coordination](coordination/hub-and-node.md): remote coordination.
 - [Conflict-safe repository replica continuation](../decisions/coordination/sync/0396-conflict-safe-repository-replica-continuation.md): exact uncommitted Mac/WSL source handoff, bidirectional compare-and-swap, readiness receipts, and native-work completion enforcement.
+- [Open collaboration platform](../decisions/foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md): open-by-default edges over a hardened core, authority at consequential effects, core robustness mechanisms, the measurement contract (ADR-0459), and completion labels; delivery in [the platform roadmap](../roadmap/open-collaboration-platform.md).
 - [Product surfaces](execution/product-surfaces.md): Discord-visible installed acceptance, future first-party host parity, responsibility separation, unified search, canonicalization, observability, and compatibility.
 
 ## References

@@ -42,3 +42,5 @@ The [outcome supervision roadmap](../execution/outcome-supervision.md) additiona
 - [ADR-0393](../../../decisions/coordination/conversations/0393-named-agent-identity-and-installed-organization-effects.md)
 - [ADR-0412](../../../decisions/coordination/conversations/agent-organization/0412-expand-the-owner-proxy-ceo-through-installed-capabilities.md)
 - [Role-backed multi-party conversation](discord/multi-party-conversation.md)
+- [ADR-0453](../../../decisions/coordination/conversations/agent-organization/0453-act-for-the-owner-through-a-principal-mandate.md): principal mandate for the central agent.
+- [ADR-0454](../../../decisions/coordination/conversations/agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md): open rooms and natural staffing.

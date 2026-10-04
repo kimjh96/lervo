@@ -2,7 +2,7 @@
 
 Part of [Discord remote continuation](../discord.md).
 
-State: `implemented`.
+State: `delivery required`. Installed read turns run on the guild; post-deployment human-turn p95 acceptance remains open.
 
 ## Purpose
 

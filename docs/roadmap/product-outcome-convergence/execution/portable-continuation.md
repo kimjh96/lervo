@@ -1,6 +1,6 @@
 # Portable attach, detach, and resume
 
-State: `implemented`
+State: `wired`
 
 Long-running assignments attach, detach, and resume through repository-owned state without provider conversation memory. Repository-level continuation remains the portable contract.
 

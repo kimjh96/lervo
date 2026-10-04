@@ -1,6 +1,6 @@
 # Agent-profile candidates
 
-State: `implemented`
+State: `wired`
 
 Outcome: eligible runtime evidence becomes a reviewable agent-profile candidate.
 

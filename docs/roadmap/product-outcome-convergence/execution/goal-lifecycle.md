@@ -1,6 +1,6 @@
 # Durable repository goal lifecycle
 
-State: `implemented`
+State: `wired`
 
 Outcome: repository goals have a durable lifecycle instead of disconnected prose.
 

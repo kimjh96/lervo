@@ -2,7 +2,7 @@
 
 Outcome: Slack receives a governed assignment artifact.
 
-State: `implemented`.
+State: `wired`.
 
 A production outbound adapter keeps credentials and native destinations private, reserves durably before effect, and distinguishes delivered, rejected, and unknown.
 

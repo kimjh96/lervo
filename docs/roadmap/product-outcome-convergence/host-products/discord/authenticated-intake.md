@@ -2,7 +2,7 @@
 
 Part of [Discord remote continuation](../discord.md).
 
-State: `implemented`.
+State: `installed-proven` for guild `/goal` intake; result return remains `delivery required` (see [supervision status](../../execution/outcome-supervision/delivery/status.md)).
 
 A mapped human can mention an authorized Lervo role in Discord, bind the request to one active Hub workstream revision, queue one signed managed-provider command, and receive a publication-verified queue acknowledgement without exposing the request body.
 

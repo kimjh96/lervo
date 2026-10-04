@@ -2,7 +2,7 @@
 
 Outcome: a separately installed host composes Lervo without private workspace imports.
 
-State: `implemented`.
+State: `wired`.
 
 - Default protocol v1 retains 21 routes.
 - Explicit v2 adds operating attention and the composed repository goal, totaling 23 routes.
