@@ -7,8 +7,16 @@ On 2026-09-28 the user authorized remaining deployment and debt processing. Linu
 
 Artifact metadata and platform smoke passed before activation. Exact predecessor definitions/configurations remain private for guarded restoration.
 
-Hub activation was independently observed at the new executable with HTTP readers 1–4. The immediate HTTP diagnostic failed before bind; it remains retained alongside later process, exact-definition, and HTTP observations. Six initial Nodes completed guarded same-path CLI-only configuration upgrades and reported ready conversation/sync with readers 1–4. AXLI refused three attempts as `service_upgrade_supervision_busy` before stop. Initial writer-4 plans applied only to six compatible Linux projects and the Node-absent Mac Lervo clone. Arca-next initially deferred restart on the live supervision fence.
+## Activation evidence
+
+Hub activation was independently observed at the new executable with HTTP readers 1–4. The immediate HTTP diagnostic failed before bind; it remains retained alongside later process, exact-definition, and HTTP observations.
+
+Six initial Nodes completed guarded same-path CLI-only configuration upgrades and reported ready conversation/sync with readers 1–4. AXLI refused three attempts as `service_upgrade_supervision_busy` before stop. Initial writer-4 plans applied only to six compatible Linux projects and the Node-absent Mac Lervo clone. Arca-next initially deferred restart on the live supervision fence.
+
+## Configuration safeguards and validation
 
 Configuration transitions preserve all non-CLI fields, hold existing owner leases/work admission, require verified stop and frozen-digest CAS, and retain bounded exact predecessor bytes plus a private journal.
 
-Local 43 and Linux 27 tests passed for activation, exact restoration after activation failure, live-session rejection, authority expansion, source drift, unsafe permissions, and interrupted CAS. Quality, types, docs, packed-consumer smoke, and task-base release completion passed. These focused checks supplement the earlier full-suite coordinate. Migration `kplan_096a2e9bb6d520ad5cd7ef0b` applied; lint had zero errors and 107 existing normalization warnings.
+Local 43 and Linux 27 tests passed for activation, exact restoration after activation failure, live-session rejection, authority expansion, source drift, unsafe permissions, and interrupted CAS. Quality, types, docs, packed-consumer smoke, and task-base release completion passed. These focused checks supplement the earlier full-suite coordinate.
+
+Migration `kplan_096a2e9bb6d520ad5cd7ef0b` applied; lint had zero errors and 107 existing normalization warnings.

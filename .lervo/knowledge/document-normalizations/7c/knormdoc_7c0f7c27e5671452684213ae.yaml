@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_33d809433697bc7e17d023be
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_324641a3b66134853ab9536e
+outputLanguage: en
+outputs:
+  - byteCount: 949
+    contentHash: sha256:b98f49bb9b00251209aafc6ff9e8d1e1bcaf5f8e66f2cbd5b2dd79852c1543e1
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation.md
+    userRegionHash: sha256:b98f49bb9b00251209aafc6ff9e8d1e1bcaf5f8e66f2cbd5b2dd79852c1543e1
+profile: handoff_document
+recordId: knormdoc_7c0f7c27e5671452684213ae
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:30e73dca0b24ae61425a48a55d8416b45ced0b8e78b72bdbe3d1deceeb99e0fc
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation.md
+sourceUnitVersionIds:
+  - uv_7ef1c00981ade00033404d11

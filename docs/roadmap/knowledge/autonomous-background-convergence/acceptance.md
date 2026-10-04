@@ -1,6 +1,6 @@
 # Acceptance gates
 
-Checked gates have implementation evidence and focused tests. Shared provider contracts do not establish a successful native Claude journey. Unchecked compound gates retain unobserved portions: all installed producer surfaces, capacity/process-death handoff, complete asset policy coverage, concurrent live-writer and dirty-target journeys, all journal/integration crash windows, and installed response latency.
+Checked gates have implementation evidence and focused tests. Shared provider contracts do not establish a successful native Claude journey. Unchecked compound gates retain these unobserved portions: all installed producer surfaces, capacity/process-death handoff, complete asset policy coverage, concurrent live-writer and dirty-target journeys, all journal/integration crash windows, and installed response latency.
 
 ## Gate groups
 

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_821600443b8dfbf534479b1b
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_648fededb33efa755b6a11ec
+outputLanguage: en
+outputs:
+  - byteCount: 641
+    contentHash: sha256:0c4048ce8cc992d4a01ba994e227f6a9a60d29c6a46a9bff5a4566dbc27a8d04
+    path: docs/specifications/execution/capabilities/repository-migration/portable-skill-authorization.md
+    userRegionHash: sha256:0c4048ce8cc992d4a01ba994e227f6a9a60d29c6a46a9bff5a4566dbc27a8d04
+profile: specification_document
+recordId: knormdoc_760ebbe611ebb50918d32378
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:58890a53b13c9c91502c626fe53564de122449144e8fd07185855d73ecfdb367
+sourcePath: docs/specifications/execution/capabilities/repository-migration/portable-skill-authorization.md
+sourceUnitVersionIds:
+  - uv_dd9e22791735cf7233ec8ed8
