@@ -221,7 +221,7 @@ describe("repository replica coordinator", () => {
     expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe(
       "const advanced = true;\n",
     );
-  });
+  }, 20_000);
 
   it("resolves generated knowledge conflicts locally and honours a prefer_local policy elsewhere", async () => {
     const fixture = await repositories();

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_68b3656889ad0825b42f2622"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Repository replica failures report code, stage, Git exit code, and a redacted stderr digest; capture excludes host-local state explicitly; held divergences record diverged and reconciled events once per identity with attention and degraded health."
