@@ -10,10 +10,10 @@ import { calculateRepositoryReplicaDivergenceId } from "@lervo/sync";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  LocalRepositoryReplicaPeer,
   RepositoryReplicaCoordinator,
   type RepositoryReplicaCycleResult,
 } from "../src/repository-replica-coordinator.js";
+import { LocalRepositoryReplicaPeer } from "../src/repository-replica-local-peer.js";
 import { RepositoryReplicaCycleReporter } from "../src/repository-replica-cycle-report.js";
 import {
   ProjectRepositoryReplicaEvents,

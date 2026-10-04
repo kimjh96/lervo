@@ -6,6 +6,8 @@ export interface RepositoryReplicaCoordinatorConfig {
   schemaVersion: 1;
   stateFile: string;
   pollIntervalMs: number;
+  /** Ceiling the idle recovery sweep backs off to while every replica stays current. */
+  idleRecoveryCeilingMs?: number;
   maximumConcurrency?: number;
   peerWatch?: boolean;
   peer: {
@@ -25,6 +27,7 @@ export interface RepositoryReplicaCoordinatorConfig {
   }>;
 }
 
+export const DEFAULT_IDLE_RECOVERY_CEILING_MS = 600_000;
 const CONFLICT_POLICIES = ["hold", "prefer_local", "prefer_peer"];
 
 export async function readRepositoryReplicaCoordinatorConfig(
@@ -39,6 +42,10 @@ export async function readRepositoryReplicaCoordinatorConfig(
     !Number.isSafeInteger(value.pollIntervalMs) ||
     value.pollIntervalMs < 1_000 ||
     value.pollIntervalMs > 60_000 ||
+    (value.idleRecoveryCeilingMs !== undefined &&
+      (!Number.isSafeInteger(value.idleRecoveryCeilingMs) ||
+        value.idleRecoveryCeilingMs < 30_000 ||
+        value.idleRecoveryCeilingMs > 3_600_000)) ||
     (value.maximumConcurrency !== undefined &&
       (!Number.isSafeInteger(value.maximumConcurrency) ||
         value.maximumConcurrency < 1 ||
