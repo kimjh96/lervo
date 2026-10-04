@@ -95,15 +95,19 @@ export async function loadKnowledgeIntakePolicy(root: string): Promise<Knowledge
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
       "The repository knowledge policy cannot be read.",
+      undefined,
+      { cause: error },
     );
   }
   let value: unknown;
   try {
     value = parse(bytes);
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
       "The repository knowledge policy is not valid YAML.",
+      undefined,
+      { cause: error },
     );
   }
   return knowledgeIntakePolicy(validateRepositoryKnowledgePolicy(value));

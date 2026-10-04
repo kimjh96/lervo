@@ -1,6 +1,6 @@
 import type { FromSchema } from "json-schema-to-ts";
 
-import { eventIdSchema, runIdSchema, sha256Schema } from "./common.js";
+import { runIdSchema, sha256Schema } from "./common.js";
 import { providerModelIdentitySchema } from "./provider-model-identity.js";
 
 export const workIdSchema = {
