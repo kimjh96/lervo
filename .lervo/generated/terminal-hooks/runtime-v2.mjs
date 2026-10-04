@@ -31123,7 +31123,7 @@ var require_util2 = __commonJS({
       return path;
     });
     exports.normalize = normalize;
-    function join(aRoot, aPath) {
+    function join2(aRoot, aPath) {
       if (aRoot === "") {
         aRoot = ".";
       }
@@ -31155,7 +31155,7 @@ var require_util2 = __commonJS({
       }
       return joined;
     }
-    exports.join = join;
+    exports.join = join2;
     exports.isAbsolute = function(aPath) {
       return aPath.charAt(0) === "/" || urlRegexp.test(aPath);
     };
@@ -31369,7 +31369,7 @@ var require_util2 = __commonJS({
             parsed.path = parsed.path.substring(0, index2 + 1);
           }
         }
-        sourceURL = join(urlGenerate(parsed), sourceURL);
+        sourceURL = join2(urlGenerate(parsed), sourceURL);
       }
       return normalize(sourceURL);
     }
@@ -32810,7 +32810,7 @@ var require_previous_map = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/previous-map.js"(exports, module) {
     "use strict";
     var { existsSync: existsSync3, readFileSync: readFileSync6, realpathSync } = __require("fs");
-    var { dirname: dirname25, isAbsolute: isAbsolute6, join, relative: relative19, sep: sep17 } = __require("path");
+    var { dirname: dirname25, isAbsolute: isAbsolute6, join: join2, relative: relative19, sep: sep17 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     function realPath(path) {
       try {
@@ -32925,7 +32925,7 @@ var require_previous_map = __commonJS({
           return this.decodeInline(this.annotation);
         } else if (this.annotation) {
           let map = this.annotation;
-          if (file) map = join(dirname25(file), map);
+          if (file) map = join2(dirname25(file), map);
           let unknown = this.loadFile(map, file, false);
           if (unknown) {
             try {
@@ -59881,8 +59881,20 @@ var RepositoryKnowledgeError = class extends Error {
 var maximumDurableInstructionCandidateBytes = 16 * 1024;
 
 // packages/repository-knowledge/dist/filesystem-metadata.js
+import { lstat as lstat19 } from "node:fs/promises";
+import { join } from "node:path";
 function isIgnorableFilesystemMetadata(entry) {
   return entry.isFile() && !entry.isSymbolicLink() && (entry.name === ".DS_Store" || entry.name.startsWith("._"));
+}
+async function isNestedGitWorkingTree(directory) {
+  try {
+    await lstat19(join(directory, ".git"));
+    return true;
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return false;
+    throw error;
+  }
 }
 
 // packages/repository-knowledge/dist/workstream-snapshot.js
@@ -60264,7 +60276,7 @@ function summarizeRepositoryAgentArtifacts(scan) {
 
 // packages/skills/dist/package-reader.js
 import { constants as constants11 } from "node:fs";
-import { lstat as lstat19, open as open12, readdir as readdir9 } from "node:fs/promises";
+import { lstat as lstat20, open as open12, readdir as readdir9 } from "node:fs/promises";
 import { basename as basename6, relative as relative4, resolve as resolve24, sep as sep4 } from "node:path";
 
 // packages/skills/dist/content-hash.js
@@ -60331,7 +60343,7 @@ function assertWithin(root2, path) {
   }
 }
 async function regularFile(path, maximumBytes2 = MAX_PACKAGE_BYTES) {
-  const beforePath2 = await lstat19(path);
+  const beforePath2 = await lstat20(path);
   if (!beforePath2.isFile() || beforePath2.isSymbolicLink() || beforePath2.size > maximumBytes2) {
     throw new SkillResolutionError("unsafe_skill_package", "A skill package file must be a regular file within the size limit.");
   }
@@ -60339,13 +60351,13 @@ async function regularFile(path, maximumBytes2 = MAX_PACKAGE_BYTES) {
   try {
     handle = await open12(path, constants11.O_RDONLY | constants11.O_NOFOLLOW);
     const openedHandle = await handle.stat();
-    const afterOpenPath = await lstat19(path);
+    const afterOpenPath = await lstat20(path);
     if (!openedHandle.isFile() || openedHandle.size > maximumBytes2 || !afterOpenPath.isFile() || afterOpenPath.isSymbolicLink() || afterOpenPath.size > maximumBytes2 || !sameFileWithinStatSurface2(beforePath2, afterOpenPath) || !sameFileAcrossStatSurfaces2(afterOpenPath, openedHandle)) {
       throw new SkillResolutionError("unsafe_skill_package", "The skill package file path changed before it was read.");
     }
     const bytes2 = await handle.readFile();
     const afterReadHandle = await handle.stat();
-    const afterReadPath = await lstat19(path);
+    const afterReadPath = await lstat20(path);
     if (!afterReadHandle.isFile() || afterReadHandle.size > maximumBytes2 || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > maximumBytes2 || !sameFileWithinStatSurface2(openedHandle, afterReadHandle) || !sameFileWithinStatSurface2(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces2(afterReadPath, afterReadHandle)) {
       throw new SkillResolutionError("unsafe_skill_package", "The skill package file changed while it was being read.");
     }
@@ -60593,16 +60605,16 @@ function assertAgentProfilePattern(input) {
 }
 
 // packages/repository-knowledge/dist/apply.js
-import { lstat as lstat26, mkdir as mkdir10, mkdtemp as mkdtemp3, readFile as readFile15, rename as rename7, rm as rm9, rmdir as rmdir2, writeFile as writeFile2 } from "node:fs/promises";
+import { lstat as lstat27, mkdir as mkdir10, mkdtemp as mkdtemp3, readFile as readFile15, rename as rename7, rm as rm9, rmdir as rmdir2, writeFile as writeFile2 } from "node:fs/promises";
 import { dirname as dirname10, relative as relative10, resolve as resolve38, sep as sep10 } from "node:path";
 
 // packages/repository-knowledge/dist/compiler.js
-import { lstat as lstat25, readFile as readFile14 } from "node:fs/promises";
+import { lstat as lstat26, readFile as readFile14 } from "node:fs/promises";
 import { basename as basename10, extname as extname3, relative as relative9, resolve as resolve37, sep as sep9 } from "node:path";
 var import_yaml13 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/artifact-paths.js
-import { lstat as lstat20, readdir as readdir10 } from "node:fs/promises";
+import { lstat as lstat21, readdir as readdir10 } from "node:fs/promises";
 import { basename as basename7, resolve as resolve25 } from "node:path";
 var ARTIFACT_ID3 = /^[a-z][a-z0-9_-]*_([a-f0-9]{24,64})$/u;
 var SHARD = /^[a-f0-9]{2}$/u;
@@ -60620,7 +60632,7 @@ async function listKnowledgeArtifactPaths(input) {
   const absolute = resolve25(input.root, input.directory);
   let entries;
   try {
-    const stats = await lstat20(absolute);
+    const stats = await lstat21(absolute);
     if (!stats.isDirectory() || stats.isSymbolicLink())
       throw new Error("unsafe artifact directory");
     entries = await readdir10(absolute, { withFileTypes: true });
@@ -61040,7 +61052,7 @@ async function loadRepositoryKnowledgePolicy(root2) {
 
 // packages/repository-knowledge/dist/scanner.js
 import { constants as constants13 } from "node:fs";
-import { lstat as lstat21, open as open14, readdir as readdir11 } from "node:fs/promises";
+import { lstat as lstat22, open as open14, readdir as readdir11 } from "node:fs/promises";
 import { basename as basename8, extname as extname2, relative as relative6, resolve as resolve32, sep as sep6 } from "node:path";
 
 // packages/repository-knowledge/dist/knowledge-intake-policy.js
@@ -63643,7 +63655,8 @@ async function scanRepositoryKnowledge(input) {
         continue;
       }
       if (entry.isDirectory()) {
-        await walk(absolute);
+        if (!await isNestedGitWorkingTree(absolute))
+          await walk(absolute);
         continue;
       }
       if (!entry.isFile())
@@ -63652,7 +63665,7 @@ async function scanRepositoryKnowledge(input) {
       if (visitedFiles > input.policy.limits.maxFiles) {
         throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "The repository file count exceeds the policy limit.");
       }
-      const stats = await lstat21(absolute);
+      const stats = await lstat22(absolute);
       const id5 = sourceId2;
       if (input.generatedPaths?.has(path)) {
         continue;
@@ -64041,7 +64054,7 @@ function upsertRepositoryKnowledgeScanSource(input) {
 }
 
 // packages/repository-knowledge/dist/state-projections.js
-import { lstat as lstat22, readFile as readFile11 } from "node:fs/promises";
+import { lstat as lstat23, readFile as readFile11 } from "node:fs/promises";
 import { resolve as resolve33 } from "node:path";
 function compactJson(value) {
   return `${JSON.stringify(value)}
@@ -64080,7 +64093,7 @@ function currentKnowledgeProjectionOutputs(scan, impact) {
 }
 async function deleteOperation(root2, path) {
   const absolute = resolve33(root2, path);
-  const stats = await lstat22(absolute);
+  const stats = await lstat23(absolute);
   if (!stats.isFile() || stats.isSymbolicLink())
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", `Derived state is not a safe regular file: ${path}`);
   const currentHash2 = sha2565(await readFile11(absolute));
@@ -64106,7 +64119,7 @@ async function legacyKnowledgeProjectionDeleteOperations(root2) {
 
 // packages/repository-knowledge/dist/durable-apply.js
 import { constants as constants14 } from "node:fs";
-import { chmod as chmod4, lstat as lstat23, mkdir as mkdir9, mkdtemp as mkdtemp2, open as open15, readFile as readFile12, readdir as readdir12, rename as rename6, rm as rm8, rmdir, unlink as unlink2 } from "node:fs/promises";
+import { chmod as chmod4, lstat as lstat24, mkdir as mkdir9, mkdtemp as mkdtemp2, open as open15, readFile as readFile12, readdir as readdir12, rename as rename6, rm as rm8, rmdir, unlink as unlink2 } from "node:fs/promises";
 import { dirname as dirname9, relative as relative8, resolve as resolve35, sep as sep8 } from "node:path";
 
 // packages/documents/dist/hash.js
@@ -71926,7 +71939,7 @@ async function ensureSafeParent(root2, target) {
     const parent = current;
     current = resolve35(current, segment);
     try {
-      const stat = await lstat23(current);
+      const stat = await lstat24(current);
       if (!stat.isDirectory() || stat.isSymbolicLink())
         throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The knowledge output parent is not a safe physical directory.");
     } catch (error) {
@@ -71944,7 +71957,7 @@ async function pruneEmptyParents(root2, start) {
     if (child === ".." || child.startsWith(`..${sep8}`))
       return;
     try {
-      const stats = await lstat23(current);
+      const stats = await lstat24(current);
       if (!stats.isDirectory() || stats.isSymbolicLink())
         return;
       await rmdir(current);
@@ -71976,7 +71989,7 @@ async function replaceJournal(root2, journal) {
 }
 async function hashAt(path) {
   try {
-    const stat = await lstat23(path);
+    const stat = await lstat24(path);
     if (!stat.isFile() || stat.isSymbolicLink())
       throw new RepositoryKnowledgeError("knowledge_recovery_invalid", "The knowledge transaction target is not a safe regular file.");
     return sha2565(await readFile12(path));
@@ -72084,7 +72097,7 @@ function validJournal(value) {
 async function readJournal(root2) {
   const transaction = transactionRoot(root2);
   try {
-    const stat = await lstat23(transaction);
+    const stat = await lstat24(transaction);
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw new Error("unsafe transaction");
     const names = await readdir12(transaction);
@@ -72114,7 +72127,7 @@ async function readJournal(root2) {
 async function assertNoKnowledgeMaterializationTransaction(input) {
   const root2 = resolve35(input.repositoryRoot);
   try {
-    const stat = await lstat23(transactionRoot(root2));
+    const stat = await lstat24(transactionRoot(root2));
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw new RepositoryKnowledgeError("knowledge_recovery_invalid", "The knowledge materialization transaction marker is unsafe.");
   } catch (error) {
@@ -72208,7 +72221,7 @@ async function applyOperationsUnderGate(input) {
     await replaceJournal(preparing, journal);
     await syncDirectory(preparing);
     try {
-      await lstat23(transaction);
+      await lstat24(transaction);
       throw new RepositoryKnowledgeError("knowledge_recovery_required", "The previous knowledge materialization transaction must be recovered first.");
     } catch (error) {
       if (error.code !== "ENOENT")
@@ -72579,12 +72592,12 @@ function repositoryInstructionRouteBlock(_input) {
 }
 
 // packages/repository-knowledge/dist/incremental-reconciliation.js
-import { lstat as lstat24, readFile as readFile13 } from "node:fs/promises";
+import { lstat as lstat25, readFile as readFile13 } from "node:fs/promises";
 import { resolve as resolve36 } from "node:path";
 async function previousInventory(root2) {
   const path = resolve36(root2, lervoRelativePaths.knowledgeInventory);
   try {
-    const stats = await lstat24(path);
+    const stats = await lstat25(path);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 32 * 1024 * 1024)
       return null;
     const value = JSON.parse(await readFile13(path, "utf8"));
@@ -73173,7 +73186,7 @@ async function inspectOperation(input) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", `Output path escapes the repository: ${input.output.path}`);
   }
   try {
-    const stats = await lstat25(absolute);
+    const stats = await lstat26(absolute);
     if (!stats.isFile() || stats.isSymbolicLink()) {
       return {
         ...desired,
@@ -73230,7 +73243,7 @@ async function inspectDeleteOperation(input) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", `Delete path escapes the repository: ${input.path}`);
   }
   try {
-    const stats = await lstat25(absolute);
+    const stats = await lstat26(absolute);
     if (!stats.isFile() || stats.isSymbolicLink())
       return null;
     const currentHash2 = sha2565(await readFile14(absolute));
@@ -73424,7 +73437,7 @@ async function assertSafeParent(root2, target) {
   for (const part of relativeParent.split(sep10).filter(Boolean)) {
     cursor = resolve38(cursor, part);
     try {
-      const stats = await lstat26(cursor);
+      const stats = await lstat27(cursor);
       if (!stats.isDirectory() || stats.isSymbolicLink()) {
         throw new RepositoryKnowledgeError("knowledge_source_unsafe", `${cursor} is not a safe output directory.`);
       }
@@ -73450,7 +73463,7 @@ async function pruneEmptyParents2(root2, start) {
 }
 async function currentHash(path) {
   try {
-    const stats = await lstat26(path);
+    const stats = await lstat27(path);
     if (!stats.isFile() || stats.isSymbolicLink()) {
       throw new RepositoryKnowledgeError("knowledge_plan_stale", `${path} is not a regular file.`);
     }
@@ -73628,7 +73641,7 @@ function recommendedCanonicalRoot(responsibility) {
 }
 
 // packages/repository-knowledge/dist/canonicalization-candidate-record.js
-import { lstat as lstat27, mkdir as mkdir11, readFile as readFile16, readdir as readdir13, rename as rename8, rm as rm10, writeFile as writeFile3 } from "node:fs/promises";
+import { lstat as lstat28, mkdir as mkdir11, readFile as readFile16, readdir as readdir13, rename as rename8, rm as rm10, writeFile as writeFile3 } from "node:fs/promises";
 import { dirname as dirname11, resolve as resolve39 } from "node:path";
 
 // packages/repository-knowledge/dist/development-pattern-candidate.js
@@ -73865,7 +73878,7 @@ async function readCanonicalizationCandidate(root2, path) {
   let stale = false;
   for (const binding of record4.sourceBindings) {
     try {
-      const stats = await lstat27(resolve39(root2, binding.path));
+      const stats = await lstat28(resolve39(root2, binding.path));
       if (!stats.isFile() || stats.isSymbolicLink())
         throw new Error();
       if (sha2565(await readFile16(resolve39(root2, binding.path))) !== binding.afterHash)
@@ -74407,7 +74420,7 @@ function assertDocumentNormalizationPreflightReady(preflight2) {
 // packages/repository-knowledge/dist/document-normalization.js
 var import_yaml15 = __toESM(require_dist(), 1);
 import { constants as constants16 } from "node:fs";
-import { lstat as lstat28, mkdir as mkdir13, open as open17, readFile as readFile19 } from "node:fs/promises";
+import { lstat as lstat29, mkdir as mkdir13, open as open17, readFile as readFile19 } from "node:fs/promises";
 import { basename as basename11, dirname as dirname13, posix as posix8, resolve as resolve42 } from "node:path";
 import { performance as performance2 } from "node:perf_hooks";
 
@@ -75394,7 +75407,7 @@ async function projectedSkillManifestOperations(input) {
 }
 async function hashAt3(path) {
   try {
-    const stat = await lstat28(path);
+    const stat = await lstat29(path);
     if (!stat.isFile() || stat.isSymbolicLink())
       return null;
     return sha2565(await readFile19(path));
@@ -75406,7 +75419,7 @@ async function hashAt3(path) {
 }
 async function userRegionHashAt(path) {
   try {
-    const stat = await lstat28(path);
+    const stat = await lstat29(path);
     if (!stat.isFile() || stat.isSymbolicLink())
       return null;
     return userRegionHash(await readFile19(path, "utf8"));
@@ -76086,7 +76099,7 @@ function collectExecutionEventSourcePages(input) {
 var maximumWindowBytes = 16 * 1024 * 1024;
 
 // packages/repository-knowledge/dist/instruction-bootstrap.js
-import { lstat as lstat29 } from "node:fs/promises";
+import { lstat as lstat30 } from "node:fs/promises";
 import { resolve as resolve44 } from "node:path";
 var HASH17 = /^sha256:[a-f0-9]{64}$/;
 function includedSource(sources, path) {
@@ -76103,7 +76116,7 @@ function hasProviderImportOrManagedBlock(content3) {
 }
 async function safeFilePresent(path) {
   try {
-    const stats = await lstat29(path);
+    const stats = await lstat30(path);
     if (!stats.isFile() || stats.isSymbolicLink()) {
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonical instruction bootstrap target is not a safe regular file.");
     }
@@ -76273,7 +76286,7 @@ async function applyKnowledgeInstructionBootstrapPlan(input) {
 // packages/repository-knowledge/dist/instruction-bridge.js
 var import_yaml23 = __toESM(require_dist(), 1);
 import { constants as constants17 } from "node:fs";
-import { lstat as lstat30, open as open18 } from "node:fs/promises";
+import { lstat as lstat31, open as open18 } from "node:fs/promises";
 import { resolve as resolve45 } from "node:path";
 
 // packages/repository-knowledge/dist/instruction-bridge-target.js
@@ -76393,7 +76406,7 @@ async function safeOptionalFile(path, maximumBytes2) {
   let handle;
   try {
     try {
-      const stats = await lstat30(path);
+      const stats = await lstat31(path);
       if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes2)
         throw new Error("unsafe file");
     } catch (error) {
@@ -76713,12 +76726,12 @@ import { createHash as createHash28 } from "node:crypto";
 
 // packages/repository-knowledge/dist/repository-layout-migration.js
 import { constants as constants18 } from "node:fs";
-import { lstat as lstat32, open as open19, readFile as readFile21 } from "node:fs/promises";
+import { lstat as lstat33, open as open19, readFile as readFile21 } from "node:fs/promises";
 import { basename as basename12, posix as posix9, resolve as resolve47 } from "node:path";
 var import_yaml24 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/projection-ignore.js
-import { lstat as lstat31, readFile as readFile20 } from "node:fs/promises";
+import { lstat as lstat32, readFile as readFile20 } from "node:fs/promises";
 import { resolve as resolve46 } from "node:path";
 var BEGIN = "# lervo:begin rebuildable-knowledge schema=1";
 var END = "# lervo:end rebuildable-knowledge";
@@ -76747,7 +76760,7 @@ async function projectRebuildableKnowledgeIgnore(input) {
   const path = resolve46(input.repositoryRoot, ".gitignore");
   let beforeContent = null;
   try {
-    const stats = await lstat31(path);
+    const stats = await lstat32(path);
     if (!stats.isFile() || stats.isSymbolicLink())
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", ".gitignore is not a safe regular file.");
     beforeContent = await readFile20(path, "utf8");
@@ -76958,7 +76971,7 @@ async function normalizationOwnershipUpgradeOperations(root2) {
 }
 async function exists2(path) {
   try {
-    await lstat32(path);
+    await lstat33(path);
     return true;
   } catch (error) {
     if (error.code === "ENOENT")
@@ -77669,13 +77682,13 @@ async function applyRepositoryLayoutMigrationPlan(input) {
 }
 
 // packages/repository-knowledge/dist/lint-query.js
-import { lstat as lstat34, readFile as readFile23, readdir as readdir14 } from "node:fs/promises";
+import { lstat as lstat35, readFile as readFile23, readdir as readdir14 } from "node:fs/promises";
 import { relative as relative12, resolve as resolve49, sep as sep12 } from "node:path";
 var import_yaml25 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-publication-files.js
 import { constants as constants19 } from "node:fs";
-import { lstat as lstat33, open as open20, readFile as readFile22 } from "node:fs/promises";
+import { lstat as lstat34, open as open20, readFile as readFile22 } from "node:fs/promises";
 import { relative as relative11, resolve as resolve48, sep as sep11 } from "node:path";
 async function generatedKnowledgePaths(root2) {
   const result = /* @__PURE__ */ new Set();
@@ -77712,13 +77725,13 @@ async function readSafePublication(root2, path, maximumBytes2) {
     return null;
   let current = root2;
   try {
-    const rootStats = await lstat33(root2);
+    const rootStats = await lstat34(root2);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
       return null;
     const segments = relative11(root2, target).split(sep11);
     for (const [index2, segment] of segments.entries()) {
       current = resolve48(current, segment);
-      const stats = await lstat33(current);
+      const stats = await lstat34(current);
       if (stats.isSymbolicLink())
         return null;
       if (index2 === segments.length - 1 ? !stats.isFile() : !stats.isDirectory())
@@ -77777,7 +77790,7 @@ async function lintSemanticManifests(root2, issues) {
       try {
         if (target === null)
           throw new Error();
-        const stats = await lstat34(target);
+        const stats = await lstat35(target);
         if (!stats.isFile() || stats.isSymbolicLink() || sha2565(await readFile23(target)) !== output.contentHash)
           throw new Error();
       } catch {
@@ -77972,7 +77985,7 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
   let manifestFound = false;
   for (const path of [structuralManifestPath, legacyStructuralManifestPath]) {
     try {
-      const stats = await lstat34(resolve49(root2, path));
+      const stats = await lstat35(resolve49(root2, path));
       if (!stats.isFile() || stats.isSymbolicLink())
         throw new Error();
       manifestFound = true;
@@ -78065,7 +78078,7 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
         continue;
       }
       try {
-        const stats = await lstat34(target);
+        const stats = await lstat35(target);
         const bytes2 = await readFile23(target);
         if (!stats.isFile() || stats.isSymbolicLink() || sha2565(bytes2) !== output.contentHash)
           throw new Error();
@@ -78140,7 +78153,7 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
       continue;
     }
     try {
-      const stats = await lstat34(publication);
+      const stats = await lstat35(publication);
       if (!stats.isFile() || stats.isSymbolicLink())
         throw new Error();
     } catch {
@@ -79266,7 +79279,7 @@ var import_yaml27 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/terminal-integration.js
 import { constants as constants21 } from "node:fs";
-import { lstat as lstat35, open as open21 } from "node:fs/promises";
+import { lstat as lstat36, open as open21 } from "node:fs/promises";
 import { resolve as resolve53 } from "node:path";
 var MAXIMUM_CONFIG_BYTES = 256 * 1024;
 var MAXIMUM_RUNTIME_BYTES = 4 * 1024 * 1024;
@@ -79301,7 +79314,7 @@ async function safeOptionalText(path, maximumBytes2 = MAXIMUM_CONFIG_BYTES) {
   let handle;
   try {
     try {
-      const stats = await lstat35(path);
+      const stats = await lstat36(path);
       if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes2)
         throw new Error("unsafe");
     } catch (error) {
@@ -79643,7 +79656,7 @@ async function collectVerificationResultSources(input) {
 
 // packages/repository-knowledge/dist/workstream.js
 import { constants as constants22 } from "node:fs";
-import { lstat as lstat36, mkdir as mkdir15, open as open22, rename as rename10, rm as rm11 } from "node:fs/promises";
+import { lstat as lstat37, mkdir as mkdir15, open as open22, rename as rename10, rm as rm11 } from "node:fs/promises";
 import { basename as basename13, dirname as dirname15, posix as posix10, relative as relative13, resolve as resolve54, sep as sep13 } from "node:path";
 var CURRENT_WORKSTREAM_PATH = ".lervo/state/workstreams/current.json";
 var MAX_HANDOFF_BYTES = 128 * 1024;
@@ -79723,7 +79736,7 @@ async function restoreCurrentWorkstreamState(input) {
   }
   const directory = resolve54(root2, dirname15(CURRENT_WORKSTREAM_PATH));
   await mkdir15(directory, { recursive: true, mode: 448 });
-  const stats = await lstat36(directory);
+  const stats = await lstat37(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink()) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The workstream projection directory is unsafe.");
   }
@@ -80596,7 +80609,7 @@ async function executeVerificationCommand(input) {
 }
 
 // packages/verification/dist/validation.js
-import { lstat as lstat37, realpath as realpath3 } from "node:fs/promises";
+import { lstat as lstat38, realpath as realpath3 } from "node:fs/promises";
 import { relative as relative14, resolve as resolve55, sep as sep14 } from "node:path";
 function isWithin(root2, target) {
   const fromRoot = relative14(root2, target);
@@ -80606,7 +80619,7 @@ async function resolveVerificationWorkingDirectories(repositoryRoot, suite) {
   const root2 = resolve55(repositoryRoot);
   let realRoot;
   try {
-    const rootStats = await lstat37(root2);
+    const rootStats = await lstat38(root2);
     realRoot = await realpath3(root2);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) {
       throw new Error("unsafe root");
@@ -80619,7 +80632,7 @@ async function resolveVerificationWorkingDirectories(repositoryRoot, suite) {
     const target = resolve55(root2, command.cwd);
     const expectedRealTarget = resolve55(realRoot, command.cwd);
     try {
-      const stats = await lstat37(target);
+      const stats = await lstat38(target);
       const realTarget = await realpath3(target);
       if (!isWithin(root2, target) || !stats.isDirectory() || stats.isSymbolicLink() || realTarget !== expectedRealTarget) {
         throw new Error("unsafe cwd");
@@ -80755,12 +80768,12 @@ async function runVerificationSuite(input, options = {}) {
 
 // packages/verification/dist/suite-loader.js
 var import_yaml28 = __toESM(require_dist(), 1);
-import { lstat as lstat39, realpath as realpath4 } from "node:fs/promises";
+import { lstat as lstat40, realpath as realpath4 } from "node:fs/promises";
 import { resolve as resolve56 } from "node:path";
 
 // packages/verification/dist/suite-file-reader.js
 import { constants as constants23 } from "node:fs";
-import { lstat as lstat38, open as open23 } from "node:fs/promises";
+import { lstat as lstat39, open as open23 } from "node:fs/promises";
 function boundedRegularFile2(observation, maximumBytes2) {
   return observation.isFile() && !observation.isSymbolicLink() && observation.size <= maximumBytes2;
 }
@@ -80775,20 +80788,20 @@ function sameAcrossStatSurfaces(pathObservation, handleObservation) {
 }
 async function readVerificationSuiteFile(path, maximumBytes2) {
   const limit = BigInt(maximumBytes2);
-  const beforePath2 = await lstat38(path, { bigint: true });
+  const beforePath2 = await lstat39(path, { bigint: true });
   if (!boundedRegularFile2(beforePath2, limit)) {
     throw new VerificationError("verification_layout_invalid", "The verification suite file is not a safe regular file or exceeds the size limit.");
   }
   const handle = await open23(path, constants23.O_RDONLY | (constants23.O_NOFOLLOW ?? 0));
   try {
     const openedHandle = await handle.stat({ bigint: true });
-    const afterOpenPath = await lstat38(path, { bigint: true });
+    const afterOpenPath = await lstat39(path, { bigint: true });
     if (!boundedRegularFile2(openedHandle, limit) || !boundedRegularFile2(afterOpenPath, limit) || !sameObservation(beforePath2, afterOpenPath) || !sameAcrossStatSurfaces(afterOpenPath, openedHandle)) {
       throw new VerificationError("verification_layout_invalid", "The verification suite changed before it was read.");
     }
     const bytes2 = await handle.readFile();
     const afterReadHandle = await handle.stat({ bigint: true });
-    const afterReadPath = await lstat38(path, { bigint: true });
+    const afterReadPath = await lstat39(path, { bigint: true });
     if (!boundedRegularFile2(afterReadHandle, limit) || !boundedRegularFile2(afterReadPath, limit) || !sameObservation(openedHandle, afterReadHandle) || !sameObservation(afterOpenPath, afterReadPath) || !sameAcrossStatSurfaces(afterReadPath, afterReadHandle)) {
       throw new VerificationError("verification_layout_invalid", "The verification suite changed while it was being read.");
     }
@@ -80808,7 +80821,7 @@ async function loadVerificationSuite(repositoryRoot, suiteId) {
   const root2 = resolve56(repositoryRoot);
   const directory = resolve56(root2, ".lervo/verifications");
   try {
-    const stats = await lstat39(directory);
+    const stats = await lstat40(directory);
     const expectedDirectory = resolve56(await realpath4(root2), ".lervo/verifications");
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath4(directory) !== expectedDirectory) {
       throw new Error("unsafe directory");
@@ -81845,7 +81858,7 @@ var MAX_TOTAL_BYTES2 = 16 * 1024 * 1024;
 
 // packages/search-local/dist/observation-files.js
 import { constants as constants25 } from "node:fs";
-import { link as link2, lstat as lstat40, mkdir as mkdir16, open as open24, readdir as readdir15, realpath as realpath5, unlink as unlink3 } from "node:fs/promises";
+import { link as link2, lstat as lstat41, mkdir as mkdir16, open as open24, readdir as readdir15, realpath as realpath5, unlink as unlink3 } from "node:fs/promises";
 import { dirname as dirname16, resolve as resolve59 } from "node:path";
 
 // packages/search-local/dist/stable-file-observation.js
@@ -81875,7 +81888,7 @@ async function safeDirectory(path, create) {
     }
   }
   try {
-    const stats = await lstat40(path);
+    const stats = await lstat41(path);
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath5(path) !== path) {
       throw new SearchLocalError("observation_invalid", "The search observation path must be a real directory.");
     }
@@ -81901,7 +81914,7 @@ async function observationPaths(repositoryRoot) {
 async function existingObservationSubdirectory(repositoryRoot, name2) {
   const paths = await observationPaths(repositoryRoot);
   try {
-    await lstat40(paths.state);
+    await lstat41(paths.state);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -81909,7 +81922,7 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
   }
   await safeDirectory(paths.state, false);
   try {
-    await lstat40(paths.root);
+    await lstat41(paths.root);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -81920,7 +81933,7 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
   await safeDirectory(paths.root, false);
   const directory = resolve59(paths.root, name2);
   try {
-    await lstat40(directory);
+    await lstat41(directory);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -81934,20 +81947,20 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
 async function readObservation(path) {
   let handle;
   try {
-    const beforePath2 = await lstat40(path, { bigint: true });
+    const beforePath2 = await lstat41(path, { bigint: true });
     if (!beforePath2.isFile() || beforePath2.isSymbolicLink() || beforePath2.size > BigInt(MAX_FILE_BYTES)) {
       throw new SearchLocalError("observation_invalid", "The search observation source file is unsafe.");
     }
     handle = await open24(path, constants25.O_RDONLY | (constants25.O_NOFOLLOW ?? 0));
     const openedHandle = await handle.stat({ bigint: true });
-    const afterOpenPath = await lstat40(path, { bigint: true });
+    const afterOpenPath = await lstat41(path, { bigint: true });
     if (!openedHandle.isFile() || openedHandle.size > BigInt(MAX_FILE_BYTES) || !afterOpenPath.isFile() || afterOpenPath.isSymbolicLink() || afterOpenPath.size > BigInt(MAX_FILE_BYTES) || !sameFileWithinStatSurface3(beforePath2, afterOpenPath) || !sameFileAcrossStatSurfaces3(afterOpenPath, openedHandle)) {
       throw new SearchLocalError("observation_invalid", "The search observation source path changed before it was read.");
     }
     const buffer = Buffer.alloc(Number(openedHandle.size) + 1);
     const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
     const afterReadHandle = await handle.stat({ bigint: true });
-    const afterReadPath = await lstat40(path, { bigint: true });
+    const afterReadPath = await lstat41(path, { bigint: true });
     if (bytesRead !== Number(openedHandle.size) || !afterReadHandle.isFile() || afterReadHandle.size > BigInt(MAX_FILE_BYTES) || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > BigInt(MAX_FILE_BYTES) || !sameFileWithinStatSurface3(openedHandle, afterReadHandle) || !sameFileWithinStatSurface3(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces3(afterReadPath, afterReadHandle)) {
       throw new SearchLocalError("observation_invalid", "The search observation source changed while it was being read.");
     }
@@ -82000,7 +82013,7 @@ var MAX_CASE_BYTES = 64 * 1024;
 
 // packages/search-local/dist/policy-file-store.js
 import { constants as constants26 } from "node:fs";
-import { link as link3, lstat as lstat41, mkdir as mkdir17, open as open25, readdir as readdir16, realpath as realpath6, unlink as unlink4 } from "node:fs/promises";
+import { link as link3, lstat as lstat42, mkdir as mkdir17, open as open25, readdir as readdir16, realpath as realpath6, unlink as unlink4 } from "node:fs/promises";
 import { resolve as resolve60 } from "node:path";
 var import_yaml31 = __toESM(require_dist(), 1);
 var MAX_POLICY_BYTES = 64 * 1024;
@@ -82008,7 +82021,7 @@ async function policyDirectory(repositoryRoot, contract, create) {
   try {
     const root2 = await realpath6(repositoryRoot);
     const paths = resolveProjectPaths(root2);
-    const lervo = await lstat41(paths.lervoRoot);
+    const lervo = await lstat42(paths.lervoRoot);
     if (!lervo.isDirectory() || lervo.isSymbolicLink() || await realpath6(paths.lervoRoot) !== paths.lervoRoot) {
       throw new Error("unsafe lervo root");
     }
@@ -82020,14 +82033,14 @@ async function policyDirectory(repositoryRoot, contract, create) {
       });
     else {
       try {
-        await lstat41(directory);
+        await lstat42(directory);
       } catch (error) {
         if (error.code === "ENOENT")
           return null;
         throw error;
       }
     }
-    const stats = await lstat41(directory);
+    const stats = await lstat42(directory);
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath6(directory) !== directory) {
       throw new Error("unsafe policy directory");
     }
@@ -82041,19 +82054,19 @@ async function policyDirectory(repositoryRoot, contract, create) {
 async function readPolicy(path, contract) {
   let handle;
   try {
-    const beforePath2 = await lstat41(path, { bigint: true });
+    const beforePath2 = await lstat42(path, { bigint: true });
     if (!beforePath2.isFile() || beforePath2.isSymbolicLink() || beforePath2.size > BigInt(MAX_POLICY_BYTES)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} is not a safe regular file.`);
     }
     handle = await open25(path, constants26.O_RDONLY | (constants26.O_NOFOLLOW ?? 0));
     const openedHandle = await handle.stat({ bigint: true });
-    const afterOpenPath = await lstat41(path, { bigint: true });
+    const afterOpenPath = await lstat42(path, { bigint: true });
     if (!openedHandle.isFile() || openedHandle.size > BigInt(MAX_POLICY_BYTES) || !afterOpenPath.isFile() || afterOpenPath.isSymbolicLink() || afterOpenPath.size > BigInt(MAX_POLICY_BYTES) || !sameFileWithinStatSurface3(beforePath2, afterOpenPath) || !sameFileAcrossStatSurfaces3(afterOpenPath, openedHandle)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} changed before it was read.`);
     }
     const bytes2 = await handle.readFile();
     const afterReadHandle = await handle.stat({ bigint: true });
-    const afterReadPath = await lstat41(path, { bigint: true });
+    const afterReadPath = await lstat42(path, { bigint: true });
     if (!afterReadHandle.isFile() || afterReadHandle.size > BigInt(MAX_POLICY_BYTES) || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > BigInt(MAX_POLICY_BYTES) || !sameFileWithinStatSurface3(openedHandle, afterReadHandle) || !sameFileWithinStatSurface3(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces3(afterReadPath, afterReadHandle)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} changed while it was being read.`);
     }
@@ -83201,7 +83214,7 @@ function assertCanonicalReviewContextCurrent(root2, documents) {
 // packages/repository-knowledge-compiler/dist/knowledge-worker-lock.js
 import { randomUUID as randomUUID7 } from "node:crypto";
 import { constants as constants28, closeSync as closeSync4, fstatSync as fstatSync4, lstatSync as lstatSync4, openSync as openSync4, readFileSync as readFileSync3, rmSync, writeFileSync, fsyncSync, chmodSync } from "node:fs";
-import { mkdir as mkdir18, lstat as lstat42 } from "node:fs/promises";
+import { mkdir as mkdir18, lstat as lstat43 } from "node:fs/promises";
 import { resolve as resolve62 } from "node:path";
 function alive(pid) {
   try {
@@ -83255,7 +83268,7 @@ async function acquireKnowledgeWorkerLock(root2) {
       if (error.code !== "EEXIST")
         throw error;
     });
-    const stat = await lstat42(directory);
+    const stat = await lstat43(directory);
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw new Error("Unsafe knowledge worker state directory.");
   }
@@ -83471,7 +83484,7 @@ async function recordChangeReviewUsage(input) {
 }
 
 // packages/repository-knowledge-runtime/dist/provider-admission.js
-import { mkdir as mkdir19, lstat as lstat43, chmod as chmod5 } from "node:fs/promises";
+import { mkdir as mkdir19, lstat as lstat44, chmod as chmod5 } from "node:fs/promises";
 import { homedir as homedir2 } from "node:os";
 import { resolve as resolve63 } from "node:path";
 import { randomUUID as randomUUID8 } from "node:crypto";
@@ -83485,12 +83498,12 @@ function alive2(pid) {
 }
 async function database(directory) {
   await mkdir19(directory, { recursive: true, mode: 448 });
-  const parent = await lstat43(directory);
+  const parent = await lstat44(directory);
   if (!parent.isDirectory() || parent.isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   const path = resolve63(directory, "admission.sqlite");
   try {
-    const file = await lstat43(path);
+    const file = await lstat44(path);
     if (!file.isFile() || file.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   } catch (error) {
@@ -83637,14 +83650,14 @@ async function knowledgeProviderAdmissionState(input) {
 }
 
 // packages/repository-knowledge-runtime/dist/provider-budget.js
-import { mkdir as mkdir20, chmod as chmod6, lstat as lstat44 } from "node:fs/promises";
+import { mkdir as mkdir20, chmod as chmod6, lstat as lstat45 } from "node:fs/promises";
 import { resolve as resolve64 } from "node:path";
 async function reserveConvergenceProviderCall(input) {
   const directory = resolve64(input.repositoryRoot, ".lervo/state/knowledge");
   await mkdir20(directory, { recursive: true, mode: 448 });
   const path = resolve64(directory, "convergence-budgets.sqlite");
   try {
-    const file = await lstat44(path);
+    const file = await lstat45(path);
     if (!file.isFile() || file.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
   } catch (error) {
@@ -85463,7 +85476,7 @@ async function reviewCanonicalBaseline(context, state2, assertLease) {
 // packages/repository-knowledge-runtime/dist/canonical-workspace.js
 import { constants as constants31 } from "node:fs";
 import { execFile as execFile8 } from "node:child_process";
-import { mkdir as mkdir23, lstat as lstat48, open as open27 } from "node:fs/promises";
+import { mkdir as mkdir23, lstat as lstat49, open as open27 } from "node:fs/promises";
 import { dirname as dirname21, resolve as resolve71, relative as relative16 } from "node:path";
 import { promisify as promisify8 } from "node:util";
 
@@ -85927,7 +85940,7 @@ async function repositorySnapshotGitHead(root2) {
 
 // packages/orchestrator/dist/repository-snapshot.js
 import { createHash as createHash37 } from "node:crypto";
-import { lstat as lstat45, readdir as readdir17, readlink } from "node:fs/promises";
+import { lstat as lstat46, readdir as readdir17, readlink } from "node:fs/promises";
 import { relative as relative15, resolve as resolve68, sep as sep15 } from "node:path";
 var defaultRepositorySnapshotPolicy = Object.freeze({
   excludedDirectoryNames: Object.freeze([
@@ -86010,7 +86023,7 @@ async function captureRepositorySnapshotWithCache(input) {
   const previousEntries = input.previous?.cacheKey === cacheKey ? input.previous.entries : /* @__PURE__ */ new Map();
   const nextEntries = /* @__PURE__ */ new Map();
   try {
-    const rootStats = await lstat45(root2);
+    const rootStats = await lstat46(root2);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
       throw new Error("unsafe root");
   } catch {
@@ -86043,7 +86056,7 @@ async function captureRepositorySnapshotWithCache(input) {
         throw new RepositorySnapshotError("The repository snapshot file-count limit was exceeded.");
       }
       if (entry.isSymbolicLink()) {
-        const before = await lstat45(absolutePath, { bigint: true });
+        const before = await lstat46(absolutePath, { bigint: true });
         const identity2 = entryIdentity(before);
         const cached = previousEntries.get(path);
         let hash3;
@@ -86051,7 +86064,7 @@ async function captureRepositorySnapshotWithCache(input) {
           hash3 = cached.hash;
         } else {
           const target = await readlink(absolutePath);
-          if (identity2 !== entryIdentity(await lstat45(absolutePath, { bigint: true }))) {
+          if (identity2 !== entryIdentity(await lstat46(absolutePath, { bigint: true }))) {
             throw new RepositorySnapshotError("Could not snapshot the repository file safely.");
           }
           hash3 = sha2567(`symlink\0${target}`);
@@ -86065,7 +86078,7 @@ async function captureRepositorySnapshotWithCache(input) {
         continue;
       }
       try {
-        const before = await lstat45(absolutePath, { bigint: true });
+        const before = await lstat46(absolutePath, { bigint: true });
         const identity2 = entryIdentity(before);
         const cached = previousEntries.get(path);
         let hash3;
@@ -86075,7 +86088,7 @@ async function captureRepositorySnapshotWithCache(input) {
           contentByteLength = cached.byteLength;
         } else {
           const bytes2 = await input.readFile(root2, path);
-          const after = await lstat45(absolutePath, { bigint: true });
+          const after = await lstat46(absolutePath, { bigint: true });
           if (identity2 !== entryIdentity(after)) {
             throw new Error("changed while reading");
           }
@@ -87510,7 +87523,7 @@ async function verifyWorkspaceIntegrationCandidate(input) {
 import { execFile as execFile5 } from "node:child_process";
 import { createHash as createHash43 } from "node:crypto";
 import { constants as constants30 } from "node:fs";
-import { lstat as lstat46, open as open26, readFile as readFile26, realpath as realpath7 } from "node:fs/promises";
+import { lstat as lstat47, open as open26, readFile as readFile26, realpath as realpath7 } from "node:fs/promises";
 import { dirname as dirname20, isAbsolute as isAbsolute5, resolve as resolve69 } from "node:path";
 import { promisify as promisify5 } from "node:util";
 var execute3 = promisify5(execFile5);
@@ -87578,7 +87591,7 @@ async function gitOperationInProgress(gitDirectory) {
     "rebase-apply"
   ]) {
     try {
-      await lstat46(resolve69(gitDirectory, name2));
+      await lstat47(resolve69(gitDirectory, name2));
       return true;
     } catch (error) {
       if (error.code !== "ENOENT")
@@ -87602,7 +87615,7 @@ var GitWorkspaceEvidence = class {
   async markerMatches(gitDirectory, expected) {
     try {
       const path = resolve69(gitDirectory, MARKER_NAME);
-      const info = await lstat46(path);
+      const info = await lstat47(path);
       if (!info.isFile() || info.isSymbolicLink() || info.size > 16384)
         return false;
       return stableJson10(JSON.parse(await readFile26(path, "utf8"))) === stableJson10(expected);
@@ -87653,7 +87666,7 @@ var GitWorkspaceEvidence = class {
         nativeInstanceDigest: null
       };
     try {
-      const info = await lstat46(input.workspacePath);
+      const info = await lstat47(input.workspacePath);
       if (!info.isDirectory() || info.isSymbolicLink())
         return {
           status: "recovery_required",
@@ -87780,7 +87793,7 @@ var GitWorkspaceEvidence = class {
         return existing;
       fail17("host_effect_uncertain", "A different workspace occupies the provision coordinate.");
     }
-    const parentInfo = await lstat46(dirname20(request.workspacePath));
+    const parentInfo = await lstat47(dirname20(request.workspacePath));
     if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink())
       fail17("host_coordinate_invalid", "The workspace parent must be a real directory.");
     await beforeMutation?.();
@@ -88154,7 +88167,7 @@ function assertConvergenceVerificationPassed(status) {
 }
 
 // packages/repository-knowledge-runtime/dist/effect-checkpoint.js
-import { mkdir as mkdir22, lstat as lstat47, chmod as chmod7 } from "node:fs/promises";
+import { mkdir as mkdir22, lstat as lstat48, chmod as chmod7 } from "node:fs/promises";
 import { resolve as resolve70 } from "node:path";
 async function convergenceEffectCheckpoint(input) {
   const { storage, assignment } = input;
@@ -88162,12 +88175,12 @@ async function convergenceEffectCheckpoint(input) {
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   const directory = resolve70(storage.paths.repositoryRoot, ".lervo/state/knowledge");
   await mkdir22(directory, { recursive: true, mode: 448 });
-  const parent = await lstat47(directory);
+  const parent = await lstat48(directory);
   if (!parent.isDirectory() || parent.isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   const path = resolve70(directory, "convergence-effects.sqlite");
   try {
-    const file = await lstat47(path);
+    const file = await lstat48(path);
     if (!file.isFile() || file.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   } catch (error) {
@@ -88225,7 +88238,7 @@ async function convergenceEffectCheckpoint(input) {
 async function readConvergenceEffectCheckpoint(input) {
   const path = resolve70(input.storage.paths.repositoryRoot, ".lervo/state/knowledge/convergence-effects.sqlite");
   try {
-    const file = await lstat47(path);
+    const file = await lstat48(path);
     if (!file.isFile() || file.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   } catch (error) {
@@ -88322,7 +88335,7 @@ async function safeDirectory2(root2, directory) {
       if (error.code !== "EEXIST")
         throw error;
     });
-    const stat = await lstat48(current);
+    const stat = await lstat49(current);
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   }
@@ -90676,7 +90689,7 @@ async function runAutonomousKnowledgeWorker(input) {
 }
 
 // packages/repository-knowledge-runtime/dist/resident-health.js
-import { mkdir as mkdir24, lstat as lstat49, chmod as chmod8 } from "node:fs/promises";
+import { mkdir as mkdir24, lstat as lstat50, chmod as chmod8 } from "node:fs/promises";
 import { resolve as resolve75 } from "node:path";
 async function healthDatabase(root2, create) {
   let directory = root2;
@@ -90688,7 +90701,7 @@ async function healthDatabase(root2, create) {
           throw error;
       });
     try {
-      const stat = await lstat49(directory);
+      const stat = await lstat50(directory);
       if (!stat.isDirectory() || stat.isSymbolicLink())
         throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
     } catch (error) {
@@ -90699,7 +90712,7 @@ async function healthDatabase(root2, create) {
   }
   const path = resolve75(directory, "resident-health.sqlite");
   try {
-    const stat = await lstat49(path);
+    const stat = await lstat50(path);
     if (!stat.isFile() || stat.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   } catch (error) {
@@ -91626,13 +91639,13 @@ function formatTerminalBudgetReport(report) {
 var terminalUsage = "  lervo terminal status [--root <path>] [--json]\n  lervo terminal coverage [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--json]\n  lervo terminal budget [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--minimum-samples <1-100>] [--max-query-tokens <tokens>] [--unobserved <block|escalate>] [--exhausted <block|escalate>] [--json]\n  lervo terminal declare --provider <codex|claude> --observation <observation-id> --stdin [--root <path>] [--json]\n  lervo terminal hook --provider <codex|claude> --contract <1|2>";
 
 // apps/cli/src/terminal-repository-root.ts
-import { lstat as lstat50 } from "node:fs/promises";
+import { lstat as lstat51 } from "node:fs/promises";
 import { dirname as dirname22, resolve as resolve76 } from "node:path";
 async function resolveTerminalRepositoryRoot(start) {
   let current = resolve76(start);
   while (true) {
     try {
-      const manifest = await lstat50(resolve76(current, ".lervo/project.yaml"));
+      const manifest = await lstat51(resolve76(current, ".lervo/project.yaml"));
       if (manifest.isFile() && !manifest.isSymbolicLink()) return current;
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
@@ -91995,7 +92008,7 @@ function terminalEventDraft(input) {
 // apps/cli/src/terminal-knowledge-lifecycle-cache.ts
 import { constants as constants33 } from "node:fs";
 import { randomUUID as randomUUID14 } from "node:crypto";
-import { lstat as lstat51, mkdir as mkdir26, open as open29, readFile as readFile27, rename as rename13, rm as rm13 } from "node:fs/promises";
+import { lstat as lstat52, mkdir as mkdir26, open as open29, readFile as readFile27, rename as rename13, rm as rm13 } from "node:fs/promises";
 import { resolve as resolve80 } from "node:path";
 
 // apps/cli/src/version-command.ts
@@ -92074,7 +92087,7 @@ function validateCache(value) {
 async function readTerminalKnowledgeLifecycleCache(input) {
   try {
     const target = resolve80(input.root, CACHE_PATH);
-    const stats = await lstat51(target);
+    const stats = await lstat52(target);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_CACHE_BYTES) return null;
     const cache = validateCache(JSON.parse(await readFile27(target, "utf8")));
     if (cache === null) return null;
@@ -92097,7 +92110,7 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
     throw new Error("The terminal knowledge lifecycle cache coordinates are unavailable.");
   const directory = resolve80(input.root, ".lervo/state/terminal-integration");
   await mkdir26(directory, { recursive: true, mode: 448 });
-  const directoryStats = await lstat51(directory);
+  const directoryStats = await lstat52(directory);
   if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink())
     throw new Error("Unsafe terminal knowledge lifecycle cache directory.");
   const cache = {
@@ -92333,7 +92346,7 @@ async function inspectTerminalRepositoryKnowledgeLifecycle(input) {
 // apps/cli/src/terminal-prepared-snapshot.ts
 import { constants as constants34 } from "node:fs";
 import { randomUUID as randomUUID15 } from "node:crypto";
-import { lstat as lstat52, mkdir as mkdir27, open as open30, readFile as readFile28, readdir as readdir18, rename as rename14, rm as rm14 } from "node:fs/promises";
+import { lstat as lstat53, mkdir as mkdir27, open as open30, readFile as readFile28, readdir as readdir18, rename as rename14, rm as rm14 } from "node:fs/promises";
 import { resolve as resolve81 } from "node:path";
 var DIRECTORY = ".lervo/state/terminal-integration/prepared-snapshots";
 var MAXIMUM_SNAPSHOTS = 64;
@@ -92356,7 +92369,7 @@ function validate(value) {
 async function writePreparedRepositorySnapshot(root2, snapshot) {
   const directory = resolve81(root2, DIRECTORY);
   await mkdir27(directory, { recursive: true, mode: 448 });
-  const stats = await lstat52(directory);
+  const stats = await lstat53(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe prepared snapshot state directory.");
   const bytes2 = `${JSON.stringify(snapshot)}
@@ -92385,7 +92398,7 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
       (entry) => entry.isFile() && /^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}\.json$/u.test(entry.name)
     ).map(async (entry) => ({
       name: entry.name,
-      modifiedAt: (await lstat52(resolve81(directory, entry.name))).mtimeMs
+      modifiedAt: (await lstat53(resolve81(directory, entry.name))).mtimeMs
     }))
   );
   const currentName = `${snapshot.observationId}.json`;
@@ -92398,7 +92411,7 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
 async function readPreparedRepositorySnapshot(root2, observationId) {
   try {
     const path = snapshotPath(root2, observationId);
-    const stats = await lstat52(path);
+    const stats = await lstat53(path);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_BYTES2)
       throw new Error("The prepared repository snapshot is unsafe.");
     const snapshot = validate(JSON.parse(await readFile28(path, "utf8")));
@@ -93045,7 +93058,7 @@ import { parseArgs as parseArgs3 } from "node:util";
 // apps/cli/src/terminal-activation-state.ts
 import { constants as constants35 } from "node:fs";
 import { randomUUID as randomUUID16 } from "node:crypto";
-import { lstat as lstat53, mkdir as mkdir28, open as open31, readFile as readFile29, rename as rename15, rm as rm15 } from "node:fs/promises";
+import { lstat as lstat54, mkdir as mkdir28, open as open31, readFile as readFile29, rename as rename15, rm as rm15 } from "node:fs/promises";
 import { resolve as resolve83 } from "node:path";
 function activationPath(root2, provider, event) {
   return resolve83(
@@ -93061,7 +93074,7 @@ async function writeTerminalActivationReceipt(root2, receipt3) {
   } catch (error) {
     if (error.code !== "EEXIST") throw error;
   }
-  const stats = await lstat53(directory);
+  const stats = await lstat54(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe terminal activation state directory.");
   const target = activationPath(root2, receipt3.provider, receipt3.hookEvent);
@@ -93090,7 +93103,7 @@ async function readTerminalActivationReceipts(root2) {
     for (const event of ["UserPromptSubmit", "Stop"]) {
       try {
         const path = activationPath(root2, provider, event);
-        const stats = await lstat53(path);
+        const stats = await lstat54(path);
         if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
         const value = JSON.parse(await readFile29(path, "utf8"));
         if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v2" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string")
@@ -93183,12 +93196,12 @@ function parseTerminalHookInput(value) {
 }
 
 // apps/cli/src/terminal-lifecycle-inspection.ts
-import { lstat as lstat55 } from "node:fs/promises";
+import { lstat as lstat56 } from "node:fs/promises";
 import { resolve as resolve85 } from "node:path";
 
 // apps/cli/src/terminal-repository-replica-service-inspection.ts
 import { execFile as execFile11 } from "node:child_process";
-import { lstat as lstat54 } from "node:fs/promises";
+import { lstat as lstat55 } from "node:fs/promises";
 import { homedir as homedir3 } from "node:os";
 import { resolve as resolve84 } from "node:path";
 var serviceLabel = "dev.lervo.repository-replica";
@@ -93213,7 +93226,7 @@ async function inspectTerminalRepositoryReplicaService(input = {}) {
   );
   let metadata;
   try {
-    metadata = await lstat54(definition2);
+    metadata = await lstat55(definition2);
   } catch (error) {
     if (error.code === "ENOENT") return [];
     return [
@@ -93615,7 +93628,7 @@ async function inspectTerminalLifecycle(root2, expected) {
     }
   }
   try {
-    const handoff = await lstat55(resolve85(root2, "HANDOFF.md"));
+    const handoff = await lstat56(resolve85(root2, "HANDOFF.md"));
     if (handoff.isFile() && !handoff.isSymbolicLink())
       issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
     else
