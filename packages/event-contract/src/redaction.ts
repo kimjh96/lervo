@@ -79,6 +79,17 @@ export const eventPayloadAllowlists = {
     "canonicalizationCandidateId",
     "resolvedAt",
   ],
+  "repository.replica.diverged": [
+    "replicaId",
+    "divergenceId",
+    "localSnapshotHash",
+    "peerSnapshotHash",
+    "commonSnapshotHash",
+    "conflictPathCount",
+    "conflictPathDigests",
+    "occurredAt",
+  ],
+  "repository.replica.reconciled": ["divergenceId", "strategy", "resultSnapshotHash", "occurredAt"],
   "repository.change.completed": [
     "sourceKind",
     "sourceEventId",
@@ -1343,6 +1354,8 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "conversation.repository_knowledge.resolved":
     "conversationRepositoryKnowledgeResolvedEventPayload",
   "repository.change.completed": "repositoryChangeCompletedEventPayload",
+  "repository.replica.diverged": "repositoryReplicaDivergedEventPayload",
+  "repository.replica.reconciled": "repositoryReplicaReconciledEventPayload",
   "repository.knowledge.resolved": "repositoryKnowledgeResolvedEventPayload",
   "agent.context.promoted": "agentContextPromotedEventPayload",
   "agent.context.handoff.recorded": "agentContextHandoffRecordedEventPayload",

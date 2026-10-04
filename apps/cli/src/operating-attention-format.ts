@@ -10,6 +10,9 @@ function describe(item: OperatingAttentionItemV1): string {
   if (item.kind === "canonicalization_review") {
     return `${item.state} · sources ${item.sourcePaths.length} · outcome ${item.outcomeKind ?? "legacy_metadata_only"} · targets ${(item.proposedTargetPaths.length > 0 ? item.proposedTargetPaths : item.recommendedRoots).join(",")}`;
   }
+  if (item.kind === "repository_replica_divergence") {
+    return `replica ${item.replicaId} · ${item.reason} · paths ${item.conflictPathCount}${item.conflictPaths.length === 0 ? "" : ` (${item.conflictPaths.join(",")})`}`;
+  }
   return `${item.issueCode}${item.detail === null ? "" : ` · ${item.detail}`}`;
 }
 

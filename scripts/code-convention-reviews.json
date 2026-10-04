@@ -137,9 +137,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:fc4f7bacea1d93ebe47d9d0fdb937617cfcf5b3780e023bfe0658a1631c3e5b1",
+      "contentHash": "sha256:022d8000a717f9dbe20f08307eed626b66e62fa31279e7be1cfb43d771876a2b",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. V4 convergence payload/provenance rules remain separate modules; the added archive coordinate introduces no provider work, authority decision or persistence.",
+      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. V4 convergence payload/provenance rules remain separate modules; the replica divergence allowlists only map hash-only payloads to their schemas and introduce no provider work, authority decision or persistence.",
       "disposition": "cohesive"
     },
     {
@@ -361,9 +361,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:1b0278cc2d89720c2017ec1147140bbfe849443aac8dcde3b83757211168c68f",
+      "contentHash": "sha256:10697fb4fa7cf7ae50a9390f11afee8a06da8511f9506403c8fa0a700613a233",
       "responsibility": "Repository schema validator registry",
-      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence and archival schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry.",
+      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, and repository replica event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry.",
       "disposition": "cohesive"
     },
     {

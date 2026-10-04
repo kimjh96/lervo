@@ -82,6 +82,8 @@ const eventLabels = {
   "repository.knowledge.baseline.requested": "Knowledge baseline requested",
   "repository.knowledge.stage.recorded": "Knowledge stage recorded",
   "repository.knowledge.convergence.recorded": "Knowledge convergence recorded",
+  "repository.replica.diverged": "Repository replica diverged",
+  "repository.replica.reconciled": "Repository replica reconciled",
   "conversation.repository_knowledge.resolved": "Repository knowledge job resolved",
   "work.supervision.mandate.installed": "Operating mandate installed",
   "managed.execution.reserved": "Managed execution reserved",

@@ -16,12 +16,11 @@ import {
   applyTrees,
   captureRepositoryReplicaSnapshot,
   createExportCommit,
-  git,
   isAncestor,
   parseIncomingSnapshot,
-  text,
   verifyIncomingCommit,
 } from "./repository-replica-git.js";
+import { git, text } from "./repository-replica-git-command.js";
 
 const MERGE_AUTHOR_ENVIRONMENT = {
   GIT_AUTHOR_NAME: FIXED_GIT_ENVIRONMENT.GIT_AUTHOR_NAME,
@@ -34,7 +33,10 @@ const MAXIMUM_REPORTED_CONFLICT_PATHS = 16;
 /** How textual conflicts outside generated knowledge are resolved; `hold` writes nothing. */
 export type RepositoryReplicaConflictPolicy = "hold" | "prefer_local" | "prefer_peer";
 
-/** Rebuildable Lervo knowledge projections; a conflict confined to them resolves to the local side. */
+/**
+ * Rebuildable Lervo knowledge projections; a conflict confined to them resolves to the local side
+ * and the merge reports how many paths it resolved that way.
+ */
 const GENERATED_PATH_PREFIXES = [".lervo/knowledge/", ".lervo/generated/"];
 
 function generatedOnly(paths: readonly string[]): boolean {
@@ -42,7 +44,13 @@ function generatedOnly(paths: readonly string[]): boolean {
 }
 
 export type RepositoryReplicaMergeResult =
-  | { status: "merged"; snapshot: RepositoryReplicaSnapshot; mergeCommit: string | null }
+  | {
+      status: "merged";
+      snapshot: RepositoryReplicaSnapshot;
+      mergeCommit: string | null;
+      /** Conflicting generated paths resolved to the local side; reported, never silent. */
+      generatedResolutionCount: number;
+    }
   | {
       status: "conflict";
       reason: "no_common_history" | "conflicting_paths";
@@ -88,9 +96,11 @@ async function mergeTreesWithPolicy(
   ours: string,
   theirs: string,
   policy: RepositoryReplicaConflictPolicy,
-): Promise<{ tree: string } | { paths: string[]; pathCount: number }> {
+): Promise<
+  { tree: string; generatedResolutionCount: number } | { paths: string[]; pathCount: number }
+> {
   const first = await mergeTrees(repositoryRoot, ours, theirs);
-  if ("tree" in first) return first;
+  if ("tree" in first) return { ...first, generatedResolutionCount: 0 };
   const allPaths =
     first.pathCount === first.paths.length
       ? first.paths
@@ -105,14 +115,18 @@ async function mergeTreesWithPolicy(
           .split("\n")
           .filter((line) => line.length > 0)
           .slice(1);
+  const generated = generatedOnly(allPaths);
   const strategy =
-    generatedOnly(allPaths) || policy === "prefer_local"
+    generated || policy === "prefer_local"
       ? "ours"
       : policy === "prefer_peer"
         ? "theirs"
         : undefined;
   if (strategy === undefined) return first;
-  return mergeTrees(repositoryRoot, ours, theirs, strategy);
+  const resolved = await mergeTrees(repositoryRoot, ours, theirs, strategy);
+  return "tree" in resolved
+    ? { ...resolved, generatedResolutionCount: generated ? allPaths.length : 0 }
+    : resolved;
 }
 
 /**
@@ -154,6 +168,7 @@ export async function mergeRepositoryReplicaBundle(input: {
     let mergeCommit: string | null = null;
     let head = current.head;
     let committedTree: string;
+    let generatedResolutionCount = 0;
     if (await isAncestor(root, theirs.head, current.head)) {
       committedTree = text(await git(root, ["rev-parse", `${current.head}^{tree}`]));
     } else if (await isAncestor(root, current.head, theirs.head)) {
@@ -164,6 +179,7 @@ export async function mergeRepositoryReplicaBundle(input: {
       if ("paths" in committed)
         return { status: "conflict", reason: "conflicting_paths", ...committed };
       committedTree = committed.tree;
+      generatedResolutionCount = committed.generatedResolutionCount;
       mergeCommit = text(
         await git(root, ["commit-tree", committedTree, "-p", current.head, "-p", theirs.head], {
           input: "Merge repository replica peer history\n",
@@ -192,11 +208,19 @@ export async function mergeRepositoryReplicaBundle(input: {
     const applied = await captureRepositoryReplicaSnapshot(root);
     if (applied.snapshotHash !== desired.snapshotHash)
       throw new Error("The merged repository replica differs from the computed merge.");
-    return { status: "merged", snapshot: applied, mergeCommit };
+    return {
+      status: "merged",
+      snapshot: applied,
+      mergeCommit,
+      generatedResolutionCount: Math.max(
+        generatedResolutionCount,
+        worktree.generatedResolutionCount,
+      ),
+    };
   } catch (error) {
     if (error instanceof RepositoryReplicaGitError) throw error;
     throw new RepositoryReplicaGitError(
-      "repository_replica_apply_failed",
+      "repository_replica_merge_failed",
       "The repository replica merge could not be applied.",
       { cause: error },
     );

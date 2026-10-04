@@ -49,6 +49,10 @@ import {
   repositoryChangeCompletedEventPayloadSchema,
   repositoryKnowledgeResolvedEventPayloadSchema,
 } from "./repository-change-event.js";
+import {
+  repositoryReplicaDivergedEventPayloadSchema,
+  repositoryReplicaReconciledEventPayloadSchema,
+} from "./repository-replica-event.js";
 import { conversationInboundEventSchema } from "./conversation-event.js";
 import {
   conversationDeliveryReceiptSchema,
@@ -380,6 +384,10 @@ const validators = {
   repositoryChangeCompletedEventPayload: ajv.compile(repositoryChangeCompletedEventPayloadSchema),
   repositoryKnowledgeResolvedEventPayload: ajv.compile(
     repositoryKnowledgeResolvedEventPayloadSchema,
+  ),
+  repositoryReplicaDivergedEventPayload: ajv.compile(repositoryReplicaDivergedEventPayloadSchema),
+  repositoryReplicaReconciledEventPayload: ajv.compile(
+    repositoryReplicaReconciledEventPayloadSchema,
   ),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
   productActivityPage: ajv.compile(productActivityPageSchema),

@@ -1,12 +1,27 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-
 import {
   assertRepositoryReplicaSnapshot,
   reconcileRepositoryReplicas,
   type RepositoryReplicaSnapshot,
 } from "@lervo/sync";
 
+import {
+  REPOSITORY_REPLICA_ID,
+  RepositoryReplicaCoordinatorStateFile,
+} from "./repository-replica-coordinator-state.js";
+import {
+  RepositoryReplicaDivergenceLedger,
+  type RepositoryReplicaDivergenceObservation,
+  type RepositoryReplicaReconciliationObservation,
+} from "./repository-replica-divergence-ledger.js";
+import {
+  ProjectRepositoryReplicaEvents,
+  type RepositoryReplicaEventPort,
+} from "./repository-replica-events.js";
+import {
+  describeRepositoryReplicaFailure,
+  type RepositoryReplicaFailure,
+  type RepositoryReplicaStage,
+} from "./repository-replica-failure.js";
 import {
   applyRepositoryReplicaBundle,
   captureRepositoryReplicaSnapshot,
@@ -17,9 +32,13 @@ import {
   type RepositoryReplicaConflictPolicy,
   type RepositoryReplicaMergeResult,
 } from "./repository-replica-merge.js";
+import {
+  recordRepositoryReplicaAttention,
+  writeRepositoryReplicaReceipt,
+  type RepositoryReplicaReceipt,
+} from "./repository-replica-receipt.js";
 
-const REPLICA_ID = /^[a-z][a-z0-9_-]{1,63}$/u;
-const HASH = /^sha256:[a-f0-9]{64}$/u;
+export type { RepositoryReplicaReceipt } from "./repository-replica-receipt.js";
 
 export interface RepositoryReplicaPeerPort {
   snapshot(repositoryRoot: string): Promise<RepositoryReplicaSnapshot>;
@@ -40,27 +59,14 @@ export interface RepositoryReplicaPeerPort {
   }): Promise<RepositoryReplicaMergeResult>;
 }
 
-export interface RepositoryReplicaReceipt {
-  schemaVersion: 1;
-  replicaId: string;
-  repositoryRoot: string;
-  commonSnapshotHash: string;
-  localSnapshotHash: string;
-  peerSnapshotHash: string;
-  reconciledAt: string;
-  status: "current" | "pushed" | "pulled" | "merged";
-}
-
-interface RepositoryReplicaCoordinatorState {
-  schemaVersion: 1;
-  replicas: Record<string, { commonSnapshotHash: string; reconciledAt: string }>;
-}
-
 export type RepositoryReplicaCycleResult =
   | {
       replicaId: string;
       status: "current" | "pushed" | "pulled" | "merged";
       snapshotHash: string;
+      /** Generated-projection conflicts the merge resolved to the local side. */
+      generatedResolutionCount?: number;
+      reconciled?: RepositoryReplicaReconciliationObservation;
     }
   | {
       replicaId: string;
@@ -80,15 +86,12 @@ export type RepositoryReplicaCycleResult =
         paths: string[];
         pathCount: number;
       };
+      divergence: RepositoryReplicaDivergenceObservation;
     };
 
 export class RepositoryReplicaCoordinatorError extends Error {
   constructor(
-    readonly code:
-      | "repository_replica_config_invalid"
-      | "repository_replica_state_invalid"
-      | "repository_replica_divergent"
-      | "repository_replica_verification_failed",
+    readonly code: "repository_replica_config_invalid" | "repository_replica_verification_failed",
     message: string,
     options?: ErrorOptions,
   ) {
@@ -97,56 +100,20 @@ export class RepositoryReplicaCoordinatorError extends Error {
   }
 }
 
-function emptyState(): RepositoryReplicaCoordinatorState {
-  return { schemaVersion: 1, replicas: {} };
-}
+/** A failed cycle with its structured failure and whether the local receipt recorded it. */
+export class RepositoryReplicaCycleError extends Error {
+  readonly code: string;
 
-async function readState(path: string): Promise<RepositoryReplicaCoordinatorState> {
-  let value: unknown;
-  try {
-    value = JSON.parse(await readFile(path, "utf8"));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return emptyState();
-    throw new RepositoryReplicaCoordinatorError(
-      "repository_replica_state_invalid",
-      "The repository replica coordinator state could not be read.",
-      { cause: error },
-    );
-  }
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    (value as { schemaVersion?: unknown }).schemaVersion !== 1 ||
-    typeof (value as { replicas?: unknown }).replicas !== "object" ||
-    (value as { replicas?: unknown }).replicas === null
+  constructor(
+    readonly replicaId: string,
+    readonly failure: RepositoryReplicaFailure,
+    readonly receiptRecorded: boolean,
+    options: ErrorOptions,
   ) {
-    throw new RepositoryReplicaCoordinatorError(
-      "repository_replica_state_invalid",
-      "The repository replica coordinator state is invalid.",
-    );
+    super(`Repository replica ${replicaId} failed at ${failure.stage}.`, options);
+    this.name = "RepositoryReplicaCycleError";
+    this.code = failure.code;
   }
-  const state = value as RepositoryReplicaCoordinatorState;
-  if (
-    Object.entries(state.replicas).some(
-      ([replicaId, item]) =>
-        !REPLICA_ID.test(replicaId) ||
-        !HASH.test(item.commonSnapshotHash) ||
-        !Number.isFinite(Date.parse(item.reconciledAt)),
-    )
-  ) {
-    throw new RepositoryReplicaCoordinatorError(
-      "repository_replica_state_invalid",
-      "A repository replica coordinator state entry is invalid.",
-    );
-  }
-  return state;
-}
-
-async function writeState(path: string, state: RepositoryReplicaCoordinatorState): Promise<void> {
-  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
-  const temporary = `${path}.next`;
-  await writeFile(temporary, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
-  await rename(temporary, path);
 }
 
 export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
@@ -174,53 +141,90 @@ export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     return mergeRepositoryReplicaBundle(input);
   }
 
-  async recordReceipt(input: RepositoryReplicaReceipt): Promise<void> {
-    const path = resolve(input.repositoryRoot, ".lervo/state/repository-replica.json");
-    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
-    const temporary = `${path}.next`;
-    await writeFile(temporary, `${JSON.stringify(input, null, 2)}\n`, { mode: 0o600 });
-    await rename(temporary, path);
+  recordReceipt(input: RepositoryReplicaReceipt): Promise<void> {
+    return writeRepositoryReplicaReceipt(input);
   }
 }
 
+interface CycleInput {
+  replicaId: string;
+  localRoot: string;
+  peerRoot: string;
+  conflictPolicy: RepositoryReplicaConflictPolicy;
+}
+
 export class RepositoryReplicaCoordinator {
-  private stateUpdateTail = Promise.resolve();
+  private readonly state: RepositoryReplicaCoordinatorStateFile;
+  private readonly divergences: RepositoryReplicaDivergenceLedger;
+  private readonly now: () => Date;
 
   constructor(
     private readonly options: {
       stateFile: string;
       local: RepositoryReplicaPeerPort;
       peer: RepositoryReplicaPeerPort;
+      events?: RepositoryReplicaEventPort;
       now?: () => Date;
     },
-  ) {}
-
-  private async recordReconciliation(
-    replicaId: string,
-    entry: RepositoryReplicaCoordinatorState["replicas"][string],
-  ): Promise<void> {
-    const update = this.stateUpdateTail.then(async () => {
-      const state = await readState(this.options.stateFile);
-      state.replicas[replicaId] = entry;
-      await writeState(this.options.stateFile, state);
+  ) {
+    this.now = options.now ?? (() => new Date());
+    this.state = new RepositoryReplicaCoordinatorStateFile(options.stateFile);
+    this.divergences = new RepositoryReplicaDivergenceLedger({
+      state: this.state,
+      events: options.events ?? new ProjectRepositoryReplicaEvents(),
+      now: this.now,
     });
-    this.stateUpdateTail = update.catch(() => {});
-    await update;
   }
 
+  private async recordReconciliation(replicaId: string, commonSnapshotHash: string, at: string) {
+    await this.state.update((state) => {
+      state.replicas[replicaId] = { commonSnapshotHash, reconciledAt: at };
+    });
+  }
+
+  /**
+   * Runs one cycle. A failure is recorded on the local receipt and rethrown as a
+   * `RepositoryReplicaCycleError` that carries its code, stage, Git exit code, and stderr digest.
+   */
   async reconcile(input: {
     replicaId: string;
     localRoot: string;
     peerRoot: string;
     conflictPolicy?: RepositoryReplicaConflictPolicy;
   }): Promise<RepositoryReplicaCycleResult> {
-    if (!REPLICA_ID.test(input.replicaId)) {
+    if (!REPOSITORY_REPLICA_ID.test(input.replicaId)) {
       throw new RepositoryReplicaCoordinatorError(
         "repository_replica_config_invalid",
         "The repository replica ID is invalid.",
       );
     }
-    const state = await readState(this.options.stateFile);
+    const stage: { current: RepositoryReplicaStage } = { current: "snapshot" };
+    try {
+      return await this.cycle({ ...input, conflictPolicy: input.conflictPolicy ?? "hold" }, stage);
+    } catch (error) {
+      const failure = describeRepositoryReplicaFailure(error, stage.current);
+      let receiptRecorded = true;
+      try {
+        await recordRepositoryReplicaAttention({
+          repositoryRoot: input.localRoot,
+          replicaId: input.replicaId,
+          lastFailure: { ...failure, occurredAt: this.now().toISOString() },
+        });
+      } catch {
+        // The cycle failure stays authoritative; the caller reports the unrecorded receipt.
+        receiptRecorded = false;
+      }
+      throw new RepositoryReplicaCycleError(input.replicaId, failure, receiptRecorded, {
+        cause: error,
+      });
+    }
+  }
+
+  private async cycle(
+    input: CycleInput,
+    stage: { current: RepositoryReplicaStage },
+  ): Promise<RepositoryReplicaCycleResult> {
+    const state = await this.state.read();
     const [local, peer] = await Promise.all([
       this.options.local.snapshot(input.localRoot),
       this.options.peer.snapshot(input.peerRoot),
@@ -230,23 +234,57 @@ export class RepositoryReplicaCoordinator {
     const common = state.replicas[input.replicaId]?.commonSnapshotHash ?? null;
     let decision = reconcileRepositoryReplicas({ local, peer, commonSnapshotHash: common });
     let status: "current" | "pushed" | "pulled" | "merged" = "current";
+    let generatedResolutionCount: number | undefined;
     if (decision.status === "divergent") {
+      const divergent = decision;
+      const held = async (conflict?: {
+        reason: "no_common_history" | "conflicting_paths";
+        paths: string[];
+        pathCount: number;
+      }): Promise<RepositoryReplicaCycleResult> => ({
+        replicaId: input.replicaId,
+        ...divergent,
+        ...(conflict === undefined ? {} : { conflict }),
+        divergence: await this.divergences.observeDivergence({
+          replicaId: input.replicaId,
+          localRoot: input.localRoot,
+          conflictPolicy: input.conflictPolicy,
+          localSnapshotHash: divergent.localHash,
+          peerSnapshotHash: divergent.peerHash,
+          commonSnapshotHash: divergent.commonHash,
+          reason: conflict?.reason ?? "merge_unavailable",
+          conflictPaths: conflict?.paths ?? [],
+          conflictPathCount: conflict?.pathCount ?? 0,
+        }),
+      });
       // Both sides changed: merge the peer into the local side, then push the merged result.
-      if (this.options.local.merge === undefined)
-        return { replicaId: input.replicaId, ...decision };
+      if (this.options.local.merge === undefined) return held();
+      // The same snapshot pair under the same policy merges identically, so a held divergence
+      // is not re-merged on every cycle.
+      const open = await this.divergences.open({
+        replicaId: input.replicaId,
+        localSnapshotHash: divergent.localHash,
+        peerSnapshotHash: divergent.peerHash,
+        conflictPolicy: input.conflictPolicy,
+      });
+      if (open !== null && open.reason !== "merge_unavailable")
+        return held({
+          reason: open.reason,
+          paths: open.conflictPaths,
+          pathCount: open.conflictPathCount,
+        });
+      stage.current = "bundle";
+      const peerBundle = await this.options.peer.bundle(input.peerRoot, peer.snapshotHash);
+      stage.current = "merge";
       const merged = await this.options.local.merge({
         repositoryRoot: input.localRoot,
-        bundle: await this.options.peer.bundle(input.peerRoot, peer.snapshotHash),
+        bundle: peerBundle,
         expectedCurrentSnapshotHash: local.snapshotHash,
-        ...(input.conflictPolicy === undefined ? {} : { conflictPolicy: input.conflictPolicy }),
+        conflictPolicy: input.conflictPolicy,
       });
-      if (merged.status === "conflict") {
-        return {
-          replicaId: input.replicaId,
-          ...decision,
-          conflict: { reason: merged.reason, paths: merged.paths, pathCount: merged.pathCount },
-        };
-      }
+      if (merged.status === "conflict")
+        return held({ reason: merged.reason, paths: merged.paths, pathCount: merged.pathCount });
+      generatedResolutionCount = merged.generatedResolutionCount;
       decision = reconcileRepositoryReplicas({
         local: merged.snapshot,
         peer,
@@ -260,46 +298,41 @@ export class RepositoryReplicaCoordinator {
       status = "merged";
     }
     let transferredSnapshotHash: string | null = null;
-    if (decision.status === "push") {
-      const bundle = await this.options.local.bundle(input.localRoot, decision.source.snapshotHash);
-      const applied = await this.options.peer.apply({
-        repositoryRoot: input.peerRoot,
+    if (decision.status === "push" || decision.status === "pull") {
+      const push = decision.status === "push";
+      const [source, target] = push
+        ? [this.options.local, this.options.peer]
+        : [this.options.peer, this.options.local];
+      stage.current = "bundle";
+      const bundle = await source.bundle(
+        push ? input.localRoot : input.peerRoot,
+        decision.source.snapshotHash,
+      );
+      stage.current = push ? "transfer" : "apply";
+      const applied = await target.apply({
+        repositoryRoot: push ? input.peerRoot : input.localRoot,
         bundle,
-        expectedCurrentSnapshotHash: decision.expectedPeerHash,
+        expectedCurrentSnapshotHash:
+          decision.status === "push" ? decision.expectedPeerHash : decision.expectedLocalHash,
         allowHistoryReplacement: true,
       });
+      stage.current = "verify";
       if (applied.snapshotHash !== decision.source.snapshotHash)
         throw new RepositoryReplicaCoordinatorError(
           "repository_replica_verification_failed",
-          "The peer applied a different repository replica snapshot than requested.",
+          `The ${push ? "peer" : "local side"} applied a different repository replica snapshot than requested.`,
         );
       transferredSnapshotHash = applied.snapshotHash;
-      if (status !== "merged") status = "pushed";
-    } else if (decision.status === "pull") {
-      const bundle = await this.options.peer.bundle(input.peerRoot, decision.source.snapshotHash);
-      const applied = await this.options.local.apply({
-        repositoryRoot: input.localRoot,
-        bundle,
-        expectedCurrentSnapshotHash: decision.expectedLocalHash,
-        allowHistoryReplacement: true,
-      });
-      if (applied.snapshotHash !== decision.source.snapshotHash)
-        throw new RepositoryReplicaCoordinatorError(
-          "repository_replica_verification_failed",
-          "The local side applied a different repository replica snapshot than requested.",
-        );
-      transferredSnapshotHash = applied.snapshotHash;
-      status = "pulled";
+      if (!push) status = "pulled";
+      else if (status !== "merged") status = "pushed";
     }
-    const reconciledAt = (this.options.now ?? (() => new Date()))().toISOString();
+    stage.current = "verify";
+    const reconciledAt = this.now().toISOString();
     if (transferredSnapshotHash !== null) {
       // Persist the exact transferred base before recapturing the active source. If that source
       // advances concurrently, the next cycle remains a one-sided continuation instead of a
       // false dual divergence from the older common snapshot.
-      await this.recordReconciliation(input.replicaId, {
-        commonSnapshotHash: transferredSnapshotHash,
-        reconciledAt,
-      });
+      await this.recordReconciliation(input.replicaId, transferredSnapshotHash, reconciledAt);
     }
     const [verifiedLocal, verifiedPeer] = await Promise.all([
       this.options.local.snapshot(input.localRoot),
@@ -319,10 +352,7 @@ export class RepositoryReplicaCoordinator {
         "Repository replicas changed while current parity was being verified.",
       );
     }
-    await this.recordReconciliation(input.replicaId, {
-      commonSnapshotHash: verifiedLocal.snapshotHash,
-      reconciledAt,
-    });
+    await this.recordReconciliation(input.replicaId, verifiedLocal.snapshotHash, reconciledAt);
     const receipt = (repositoryRoot: string): RepositoryReplicaReceipt => ({
       schemaVersion: 1,
       replicaId: input.replicaId,
@@ -341,6 +371,21 @@ export class RepositoryReplicaCoordinator {
         status: status === "merged" ? "pushed" : status,
       }),
     ]);
-    return { replicaId: input.replicaId, status, snapshotHash: verifiedLocal.snapshotHash };
+    const reconciled = await this.divergences.observeParity({
+      replicaId: input.replicaId,
+      localRoot: input.localRoot,
+      conflictPolicy: input.conflictPolicy,
+      status,
+      snapshotHash: verifiedLocal.snapshotHash,
+    });
+    return {
+      replicaId: input.replicaId,
+      status,
+      snapshotHash: verifiedLocal.snapshotHash,
+      ...(generatedResolutionCount === undefined || generatedResolutionCount === 0
+        ? {}
+        : { generatedResolutionCount }),
+      ...(reconciled === null ? {} : { reconciled }),
+    };
   }
 }

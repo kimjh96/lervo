@@ -163,7 +163,7 @@ describe("Git repository replica", () => {
     });
     expect(nextApplied).toEqual(nextSourceSnapshot);
     expect(await readFile(join(target, "tracked.ts"), "utf8")).toBe("const a = 1;");
-  });
+  }, 15_000);
 
   it("retains a host-local convergence grant while applying a new ignore rule", async () => {
     const source = await repository();

@@ -3,6 +3,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { listCanonicalizationCandidates } from "@lervo/repository-knowledge";
 
 import { createOperatingAttentionReport } from "./operating-attention-projection.js";
+import { readRepositoryReplicaDivergence } from "./repository-replica-divergence-source.js";
 import { inspectTerminalLifecycle } from "./terminal-lifecycle-inspection.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
@@ -18,7 +19,7 @@ export type InspectOperatingAttention = (
 export const inspectOperatingAttention: InspectOperatingAttention = async (input) => {
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
-    const [workstream, canonicalization, lifecycle] = await Promise.all([
+    const [workstream, canonicalization, lifecycle, replica] = await Promise.all([
       verifiedCurrentWorkstream(storage),
       listCanonicalizationCandidates(input.repositoryRoot).then(
         (candidates) => ({ coverage: "complete" as const, candidates }),
@@ -28,12 +29,17 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
         (inspection) => ({ coverage: "complete" as const, issues: inspection.issues }),
         () => ({ coverage: "unavailable" as const, issues: [] }),
       ),
+      readRepositoryReplicaDivergence(input.repositoryRoot),
     ]);
     return createOperatingAttentionReport({
       projectId: storage.manifest.projectId,
       workstream,
       canonicalization,
-      knowledgeLifecycle: lifecycle,
+      knowledgeLifecycle:
+        replica.status === "invalid" && lifecycle.coverage !== "unavailable"
+          ? { ...lifecycle, issues: [...lifecycle.issues, replica.issue] }
+          : lifecycle,
+      repositoryReplicaDivergence: replica.status === "observed" ? replica.divergence : null,
       observedAt: input.observedAt ?? new Date(),
     });
   } finally {

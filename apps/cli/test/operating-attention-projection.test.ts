@@ -1,5 +1,6 @@
 import type { CanonicalizationCandidateInspection } from "@lervo/repository-knowledge";
 import type { WorkstreamSnapshot } from "@lervo/schemas";
+import { calculateRepositoryReplicaDivergenceId } from "@lervo/sync";
 import { describe, expect, it } from "vitest";
 
 import { createOperatingAttentionReport } from "../src/operating-attention-projection.js";
@@ -157,6 +158,42 @@ describe("operating attention projection", () => {
       },
       summary: { totalCount: 0 },
     });
+  });
+
+  it("projects one user-owned item for an open repository replica divergence", () => {
+    const localSnapshotHash = `sha256:${"a".repeat(64)}`;
+    const peerSnapshotHash = `sha256:${"b".repeat(64)}`;
+    const divergence = {
+      divergenceId: calculateRepositoryReplicaDivergenceId(localSnapshotHash, peerSnapshotHash),
+      replicaId: "project",
+      localSnapshotHash,
+      peerSnapshotHash,
+      commonSnapshotHash: null,
+      reason: "conflicting_paths" as const,
+      conflictPathCount: 1,
+      conflictPaths: ["source.ts"],
+      openedAt: "2026-10-05T00:00:00.000Z",
+    };
+    const report = createOperatingAttentionReport({
+      projectId: "prj_0123456789abcdef",
+      workstream: null,
+      canonicalization: { coverage: "complete", candidates: [] },
+      knowledgeLifecycle: { coverage: "cached", issues: [] },
+      repositoryReplicaDivergence: divergence,
+      observedAt: new Date("2026-10-05T00:01:00.000Z"),
+    });
+
+    expect(report.status).toBe("action_required");
+    expect(report.items).toEqual([
+      expect.objectContaining({
+        kind: "repository_replica_divergence",
+        divergenceId: divergence.divergenceId,
+        actionOwner: "user",
+        requiresUserAction: true,
+        conflictPaths: ["source.ts"],
+      }),
+    ]);
+    expect(report.items[0]!.instruction).toContain("--replica project --prefer local|peer");
   });
 
   it("projects draft availability and target coordinates without exposing proposed content", () => {
