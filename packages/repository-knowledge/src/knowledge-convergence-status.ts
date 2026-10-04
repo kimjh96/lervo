@@ -14,8 +14,8 @@ export function convergenceStatus(
   baseline: Awaited<ReturnType<KnowledgeConvergenceHost["discover"]>>,
   now: Date,
   transport: KnowledgeConvergenceStatus["transport"],
+  rows: readonly KnowledgeConvergenceProjection[] = replayKnowledgeConvergence(input.events),
 ): KnowledgeConvergenceStatus {
-  const rows = replayKnowledgeConvergence(input.events);
   const active = rows.filter((row) => row.outcome === null);
   const oldest = active[0];
   const latestCurrent = rows.findLast(

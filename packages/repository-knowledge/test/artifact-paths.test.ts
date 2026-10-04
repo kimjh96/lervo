@@ -71,4 +71,32 @@ describe("knowledge filesystem metadata", () => {
     expect(paths).not.toContain("._README.md");
     expect(paths).not.toContain(".DS_Store");
   });
+
+  it("does not descend into nested Git working trees", async () => {
+    const root = await temporaryRepository();
+    await writeFile(resolve(root, "README.md"), "# Repository\n");
+    await mkdir(resolve(root, ".claude/worktrees/agent/docs"), { recursive: true });
+    await writeFile(
+      resolve(root, ".claude/worktrees/agent/.git"),
+      "gitdir: ../../../.git/worktrees/agent\n",
+    );
+    await writeFile(resolve(root, ".claude/worktrees/agent/docs/copy.md"), "# Copy\n");
+    await mkdir(resolve(root, "vendor-clone/.git"), { recursive: true });
+    await writeFile(resolve(root, "vendor-clone/notes.md"), "# Notes\n");
+
+    const scan = await scanRepositoryKnowledge({
+      repositoryRoot: root,
+      projectId: "prj_metadatafixture",
+      policy: defaultRepositoryKnowledgePolicy,
+      observeRevision: async () => ({
+        status: "observed",
+        content: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+      }),
+    });
+
+    const paths = scan.sources.map((source) => source.path);
+    expect(paths).toContain("README.md");
+    expect(paths.some((path) => path.startsWith(".claude/worktrees/"))).toBe(false);
+    expect(paths.some((path) => path.startsWith("vendor-clone/"))).toBe(false);
+  });
 });

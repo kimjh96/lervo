@@ -46,7 +46,7 @@ export const repositoryChangeCompletedEventPayloadSchema = {
     "occurredAt",
   ],
   // Beyond the path bound only the count is published; the manifest keeps every path and the
-  // worker settles the unit as attention_required, never as a truncated success.
+  // worker reviews them in ordered sub-jobs that settle together, never as a truncated success.
   if: { properties: { changedPathCount: { type: "integer", maximum: 64 } } },
   then: { properties: { changedPaths: { type: "array", minItems: 1 } } },
   else: { properties: { changedPaths: { type: "array", maxItems: 0 } } },
@@ -88,6 +88,19 @@ export const repositoryKnowledgeResolvedEventPayloadSchema = {
     canonicalizationCandidateId: {
       anyOf: [{ type: "string", pattern: "^kcanon_[a-f0-9]{24}$" }, { type: "null" }],
     },
+    /** ADR-0457 per-file degradation: paths skipped instead of rejecting the whole job. */
+    skippedPathCount: { type: "integer", minimum: 0, maximum: 20_000 },
+    skippedReasons: {
+      type: "array",
+      items: { type: "string", enum: ["skipped_binary", "skipped_generated", "skipped_oversize"] },
+      maxItems: 3,
+      uniqueItems: true,
+    },
+    /** The ordered sub-job whose review decided a non-current outcome, when one did. */
+    subJobIndex: { anyOf: [{ type: "integer", minimum: 0, maximum: 20_000 }, { type: "null" }] },
+    subJobCount: { type: "integer", minimum: 0, maximum: 20_000 },
+    /** A once-only re-queued resolution names the original resolution it supersedes. */
+    supersedesResolutionEventId: eventIdSchema,
     resolvedAt: timestampSchema,
   },
   required: [

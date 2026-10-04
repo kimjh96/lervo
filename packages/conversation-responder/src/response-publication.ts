@@ -4,11 +4,27 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 import {
   evaluateWritingPublication,
   readPublishableWritingArtifact,
+  repairProviderClaimArtifact,
+  type ProviderClaimContext,
   type WritingArtifactCoordinate,
   type WritingSemanticEvaluator,
 } from "@lervo/writing";
 
 import { ManagedConversationResponseError } from "./types.js";
+
+/** The provider-claim context of one generated reply; only the producing provider is observed. */
+export function generatedReplyProviderClaim(input: {
+  provider: string;
+  verifiedDeliberation?: (deliberationId: string) => boolean | Promise<boolean>;
+}): ProviderClaimContext {
+  return {
+    observedProvider:
+      input.provider === "codex" || input.provider === "claude" ? input.provider : null,
+    ...(input.verifiedDeliberation === undefined
+      ? {}
+      : { isVerifiedDeliberation: input.verifiedDeliberation }),
+  };
+}
 
 export async function publishConversationResponse(input: {
   artifact: WritingArtifactCoordinate;
@@ -17,6 +33,8 @@ export async function publishConversationResponse(input: {
   semanticEvaluator?: WritingSemanticEvaluator;
   maximumResponseCharacters?: number;
   now?: () => Date;
+  /** ADR-0460: repairs an unproven multi-provider opinion claim before evaluation. */
+  providerClaim?: ProviderClaimContext;
 }): Promise<ConversationReplyCandidate> {
   if (input.artifact.byteCount > 65_536) {
     throw new ManagedConversationResponseError(
@@ -24,9 +42,19 @@ export async function publishConversationResponse(input: {
       "The conversation response exceeds the maximum publishable size.",
     );
   }
+  const artifact =
+    input.providerClaim === undefined
+      ? input.artifact
+      : (
+          await repairProviderClaimArtifact({
+            artifactStore: input.artifactStore,
+            artifact: input.artifact,
+            context: input.providerClaim,
+          })
+        ).artifact;
   const publication = await evaluateWritingPublication(
     {
-      artifact: input.artifact,
+      artifact,
       contract: input.writingContract,
       surface: "chat",
       artifactStore: input.artifactStore,
@@ -52,7 +80,7 @@ export async function publishConversationResponse(input: {
     );
   }
   const content = await readPublishableWritingArtifact({
-    artifact: input.artifact,
+    artifact,
     evaluation: publication.evaluation,
     evaluationArtifact: publication.evaluationArtifact,
     permit: publication.permit,
@@ -68,14 +96,14 @@ export async function publishConversationResponse(input: {
   }
   return {
     content: {
-      artifactId: input.artifact.artifactId,
-      contentHash: input.artifact.contentHash,
-      byteCount: input.artifact.byteCount,
-      mediaType: input.artifact.mediaType,
+      artifactId: artifact.artifactId,
+      contentHash: artifact.contentHash,
+      byteCount: artifact.byteCount,
+      mediaType: artifact.mediaType,
     },
     publicationPermit: publication.permit,
     publicationEvidence: {
-      artifact: input.artifact,
+      artifact,
       evaluation: publication.evaluation,
       evaluationArtifact: publication.evaluationArtifact,
     },

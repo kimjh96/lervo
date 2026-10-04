@@ -470,6 +470,9 @@ importers:
       '@lervo/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@lervo/deliberation-runtime':
+        specifier: workspace:*
+        version: link:../../packages/deliberation-runtime
       '@lervo/discord-gateway':
         specifier: workspace:*
         version: link:../../packages/discord-gateway
@@ -1303,6 +1306,9 @@ importers:
       '@lervo/conversation-contract':
         specifier: workspace:*
         version: link:../conversation-contract
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../execution-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -1769,6 +1775,9 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../execution-contract
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../orchestrator

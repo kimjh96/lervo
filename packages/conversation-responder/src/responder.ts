@@ -7,7 +7,10 @@ import {
   conversationResponseRequestDigest,
   validateConversationResponseRequest,
 } from "./request.js";
-import { publishConversationResponse } from "./response-publication.js";
+import {
+  generatedReplyProviderClaim,
+  publishConversationResponse,
+} from "./response-publication.js";
 import type {
   ManagedConversationResponsePlan,
   ManagedConversationResponseRequest,
@@ -69,6 +72,12 @@ export class ManagedConversationResponder implements ManagedConversationResponde
           ? {}
           : { maximumResponseCharacters: plan.maximumResponseCharacters }),
         ...(this.options.now === undefined ? {} : { now: this.options.now }),
+        providerClaim: generatedReplyProviderClaim({
+          provider: generated.modelIdentity.provider,
+          ...(this.options.verifiedDeliberation === undefined
+            ? {}
+            : { verifiedDeliberation: this.options.verifiedDeliberation }),
+        }),
       });
     } catch (error) {
       if (

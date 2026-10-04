@@ -1,5 +1,6 @@
+import { readResourceUsageEventPayload } from "@lervo/execution-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
-import type { DeliberationPolicy } from "@lervo/schemas";
+import type { DeliberationPolicy, ResourceUsageRecordedEventPayload } from "@lervo/schemas";
 
 import { ManagedDeliberationError } from "./managed-deliberation-errors.js";
 
@@ -9,15 +10,28 @@ export interface ManagedDeliberationBudgetUsage {
   startedAt: string;
 }
 
-function observedRunTokens(events: ReturnType<ProjectStorage["events"]["list"]>): number | null {
-  let observed: number | null = null;
+/**
+ * Only complete usage of the expected scope counts: a partial, unavailable, or invalid record,
+ * or usage from another scope in the same run, is not an exact observation of this provider call.
+ * Distinct observations are summed; a replayed observation of the same identity counts once.
+ */
+export function observedRunTokens(
+  events: ReturnType<ProjectStorage["events"]["list"]>,
+  scope: ResourceUsageRecordedEventPayload["scope"],
+): number | null {
+  const observations = new Map<string, number>();
   for (const event of events) {
-    if (event.type !== "resource.usage.recorded") continue;
-    const totalTokens = (event.payload as { usage?: { totalTokens?: unknown } }).usage?.totalTokens;
-    if (!Number.isSafeInteger(totalTokens) || Number(totalTokens) < 0) continue;
-    observed = Math.max(observed ?? 0, Number(totalTokens));
+    const payload = readResourceUsageEventPayload(event);
+    if (payload === null || payload.scope !== scope || payload.status !== "observed") continue;
+    if (payload.usage === null) continue;
+    const previous = observations.get(payload.resourceObservationId);
+    observations.set(
+      payload.resourceObservationId,
+      Math.max(previous ?? 0, payload.usage.totalTokens),
+    );
   }
-  return observed;
+  if (observations.size === 0) return null;
+  return [...observations.values()].reduce((total, tokens) => total + tokens, 0);
 }
 
 export class ManagedDeliberationBudgetController {
@@ -66,8 +80,11 @@ export class ManagedDeliberationBudgetController {
     return remainingElapsedMs - finalizationReserveMs;
   }
 
-  observeCompletedRun(runId: string): void {
-    const totalTokens = observedRunTokens(this.events.list({ runId }));
+  observeCompletedRun(
+    runId: string,
+    scope: ResourceUsageRecordedEventPayload["scope"] = "deliberation",
+  ): void {
+    const totalTokens = observedRunTokens(this.events.list({ runId }), scope);
     if (totalTokens === null) {
       throw new ManagedDeliberationError(
         "deliberation_budget_observation_unavailable",

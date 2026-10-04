@@ -1,6 +1,6 @@
 # Bounded autonomous continuation
 
-State: `implemented`
+State: `wired`
 
 Outcome: bounded autonomous continuation runs without repeated manual triggers.
 

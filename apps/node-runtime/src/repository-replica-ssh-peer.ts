@@ -1,14 +1,49 @@
 import { spawn } from "node:child_process";
 
+import { redactDiagnosticText } from "@lervo/event-contract";
 import { assertRepositoryReplicaSnapshot, type RepositoryReplicaSnapshot } from "@lervo/sync";
 
 import type {
   RepositoryReplicaPeerPort,
   RepositoryReplicaReceipt,
 } from "./repository-replica-coordinator.js";
+import {
+  RepositoryReplicaPeerError,
+  RepositoryReplicaStageError,
+  parseRepositoryReplicaPeerFailure,
+} from "./repository-replica-failure.js";
 
 const MAXIMUM_SSH_OUTPUT_BYTES = 512 * 1024 * 1024;
 const DEFAULT_COMMAND_TIMEOUT_MS = 60_000;
+
+/**
+ * Keeps the peer's structured failure when the remote command reported one; otherwise the SSH
+ * transport itself failed and only its redacted stderr digest is known.
+ */
+function peerCommandFailure(
+  action: string,
+  exitCode: number | null,
+  stderr: Buffer,
+): RepositoryReplicaPeerError {
+  const text = stderr.toString("utf8");
+  const reported = parseRepositoryReplicaPeerFailure(text);
+  if (reported !== null)
+    return new RepositoryReplicaPeerError(
+      reported,
+      `The peer repository replica ${action} failed with ${reported.code}.`,
+    );
+  const digest = redactDiagnosticText(text);
+  return new RepositoryReplicaPeerError(
+    {
+      code: "repository_replica_transfer_failed",
+      stage: "transfer",
+      gitExitCode: null,
+      stderrDigest: digest.length === 0 ? null : digest,
+      causeChain: [`SSH ${action} exited with ${exitCode ?? "a signal"}.`],
+    },
+    `Repository replica SSH ${action} failed (${exitCode ?? "signal"}).`,
+  );
+}
 
 export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
   constructor(
@@ -50,7 +85,13 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
         if (settled) return;
         settled = true;
         child.kill("SIGKILL");
-        reject(new Error("Repository replica SSH command exceeded its execution deadline."));
+        reject(
+          new RepositoryReplicaStageError(
+            "repository_replica_transfer_timeout",
+            "transfer",
+            "Repository replica SSH command exceeded its execution deadline.",
+          ),
+        );
       }, this.options.commandTimeoutMs ?? DEFAULT_COMMAND_TIMEOUT_MS);
       timeout.unref();
       const fail = (error: Error) => {
@@ -63,7 +104,13 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
         bytes += chunk.byteLength;
         if (bytes > MAXIMUM_SSH_OUTPUT_BYTES) {
           child.kill("SIGKILL");
-          fail(new Error("Repository replica SSH output exceeded its bound."));
+          fail(
+            new RepositoryReplicaStageError(
+              "repository_replica_transfer_failed",
+              "transfer",
+              "Repository replica SSH output exceeded its bound.",
+            ),
+          );
           return;
         }
         target.push(chunk);
@@ -79,11 +126,7 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
         settled = true;
         clearTimeout(timeout);
         if (code !== 0) {
-          reject(
-            new Error(
-              `Repository replica SSH command failed (${code ?? "signal"}): ${Buffer.concat(stderr).toString("utf8").trim()}`,
-            ),
-          );
+          reject(peerCommandFailure(args[0] ?? "command", code, Buffer.concat(stderr)));
           return;
         }
         resolve(new Uint8Array(Buffer.concat(stdout)));

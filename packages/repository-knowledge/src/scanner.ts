@@ -2,9 +2,8 @@ import { constants } from "node:fs";
 import { lstat, open, readdir } from "node:fs/promises";
 import { basename, extname, relative, resolve, sep } from "node:path";
 
-import { isTransientToolCachePath } from "@lervo/context";
-
-import { isIgnorableFilesystemMetadata } from "./filesystem-metadata.js";
+import { isIgnorableFilesystemMetadata, isNestedGitWorkingTree } from "./filesystem-metadata.js";
+import { knowledgeScannerExcludes } from "./knowledge-intake-policy.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { loadDocumentMoveLineages } from "./source-lineage.js";
 import type {
@@ -137,20 +136,6 @@ export function repositorySourceKindForPath(path: string): RepositorySourceKind 
   return "other";
 }
 
-function globExpression(pattern: string): RegExp {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(
-    `^${escaped.replaceAll("**", "\u0000").replaceAll("*", "[^/]*").replaceAll("\u0000", ".*")}$`,
-  );
-}
-
-function excluded(path: string, patterns: readonly string[]): boolean {
-  return patterns.some((pattern) => {
-    if (globExpression(pattern).test(path)) return true;
-    return pattern.endsWith("/**") && globExpression(pattern.slice(0, -3)).test(path);
-  });
-}
-
 function generatedEntrypoint(path: string, content: string): boolean {
   return (
     (path === "README.md" &&
@@ -160,17 +145,11 @@ function generatedEntrypoint(path: string, content: string): boolean {
   );
 }
 
-export function repositoryPathMatchesPatterns(path: string, patterns: readonly string[]): boolean {
-  return excluded(path, patterns);
-}
-
 export function repositoryPathCanRemainIncluded(
   path: string,
   policy: RepositoryKnowledgePolicy,
 ): boolean {
-  return (
-    !excluded(path, policy.exclude) && !isTransientToolCachePath(path) && !secretCandidatePath(path)
-  );
+  return !knowledgeScannerExcludes(path, policy) && !secretCandidatePath(path);
 }
 
 export function repositorySourceClassificationForPath(path: string): "ordinary" | "sensitive" {
@@ -558,7 +537,7 @@ export async function scanRepositoryKnowledge(input: {
           `${path} escapes the repository root.`,
         );
       }
-      if (excluded(path, input.policy.exclude) || isTransientToolCachePath(path)) {
+      if (knowledgeScannerExcludes(path, input.policy)) {
         if (entry.isFile() || entry.isSymbolicLink()) {
           sources.push({
             sourceId,
@@ -591,7 +570,7 @@ export async function scanRepositoryKnowledge(input: {
         continue;
       }
       if (entry.isDirectory()) {
-        await walk(absolute);
+        if (!(await isNestedGitWorkingTree(absolute))) await walk(absolute);
         continue;
       }
       if (!entry.isFile()) continue;

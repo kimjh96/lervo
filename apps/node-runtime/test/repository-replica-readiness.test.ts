@@ -6,9 +6,9 @@ import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { LocalRepositoryReplicaPeer } from "../src/repository-replica-coordinator.js";
 import { captureRepositoryReplicaSnapshot } from "../src/repository-replica-git.js";
 import { awaitRepositoryReplicaReadiness } from "../src/repository-replica-readiness.js";
+import { LocalRepositoryReplicaPeer } from "../src/repository-replica-local-peer.js";
 
 const execute = promisify(execFile);
 const roots: string[] = [];

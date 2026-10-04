@@ -1,6 +1,6 @@
 # Explicit durable-instruction intake
 
-State: `implemented`
+State: `wired`
 
 Outcome: an explicit eligible runtime instruction becomes a reviewable durable repository-instruction candidate through an installed intake route.
 

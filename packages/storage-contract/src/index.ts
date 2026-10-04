@@ -13,6 +13,11 @@ export interface ListEventsOptions {
   afterSeq?: number;
   limit?: number;
   runId?: string;
+  /**
+   * Restricts the page to these exact event types while keeping sequence order. Omitted means
+   * every type. A filtered page ends at the last matching event, not at the store head.
+   */
+  types?: readonly string[];
 }
 
 export interface EventChainReport {

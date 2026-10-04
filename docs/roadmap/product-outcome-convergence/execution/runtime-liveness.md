@@ -1,6 +1,6 @@
 # Runtime liveness through heartbeats
 
-State: `implemented`
+State: `wired`
 
 Evidence:
 

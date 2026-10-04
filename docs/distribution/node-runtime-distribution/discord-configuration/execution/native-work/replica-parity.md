@@ -18,6 +18,8 @@ Coordinator `peer.commandTimeoutMs` bounds each finite SSH operation and default
 
 Set coordinator `peerWatch` to `false` when the bridge cannot safely retain one SSH/WSL watch process per repository. Local changes remain event-driven; finite snapshot commands detect peer changes at `pollIntervalMs`. This avoids persistent bridge saturation without weakening exact snapshot or conflict verification.
 
+While every replica stays `current`, the recovery sweep backs off from its base interval to `idleRecoveryCeilingMs` (default 600 seconds; accepted 30–3,600 seconds). Any change hint or non-current cycle returns it to the base. Unchanged trees are observed through a fingerprint-keyed snapshot cache in each Git directory instead of re-hashing the worktree. A strict topology whose peer requires readiness must keep `peerWatch` enabled, because a backed-off sweep exceeds the maximum readiness staleness.
+
 ## Readiness and completion
 
 While a request waits, the Node rechecks the receipt at least once per second, even with a filesystem watcher. This covers coalesced or lost notifications without an idle full-history poller. Each recheck requires the exact current snapshot and a fresh receipt; a timeout never counts as parity.

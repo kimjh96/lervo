@@ -1,6 +1,6 @@
 # Bounded work graph
 
-State: `implemented`
+State: `wired`
 
 Outcome: bounded work forms a graph; verification, retry, resource, approval, and completion policy govern each attempt.
 

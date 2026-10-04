@@ -19,6 +19,8 @@ export function executionInstructions(input: {
   canonicalizationCandidates?: readonly CanonicalizationAssignment[];
   /** A host-generated normalization candidate this repository-changing turn must review. */
   normalizationReview?: NormalizationReview | null;
+  /** Pointers to the canonical documents Lervo selected for this request (ADR-0459). */
+  contextPointers?: string | null;
 }): string {
   const history = input.priorTurns
     .slice(-4)
@@ -66,6 +68,7 @@ export function executionInstructions(input: {
       input.worker === null ? "conversation-agent" : input.worker.roleId,
     ),
     normalizationAssignment(input.normalizationReview ?? null),
+    input.contextPointers ?? null,
     `Current request:\n${input.request}`,
   ]
     .filter((line): line is string => line !== null)

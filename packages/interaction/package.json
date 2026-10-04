@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lervo/conversation-contract": "workspace:*",
+    "@lervo/execution-contract": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/writing": "workspace:*"
   }

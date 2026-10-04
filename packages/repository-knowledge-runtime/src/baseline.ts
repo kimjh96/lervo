@@ -13,35 +13,44 @@ import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 import { loadConvergenceDelegation } from "./delegation.js";
 import { captureConvergenceChangedPaths, captureConvergenceSources } from "./source-capture.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { convergenceRepositoryDigest } from "./source-fingerprint.js";
 import { historicalObligations } from "./historical-obligations.js";
 import { settledCanonicalDispositions } from "./canonical-disposition-ledger.js";
 import { loadHistoricalAcceptance } from "./historical-acceptance.js";
+
+function repositoryFence(root: string): string {
+  try {
+    return convergenceRepositoryDigest(root);
+  } catch (error) {
+    if (error instanceof KnowledgeConvergenceRuntimeError) throw error;
+    throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_unavailable", {
+      cause: error,
+    });
+  }
+}
 
 export async function discoverConvergenceBaseline(
   root: string,
   events: OutboxStore,
   artifacts: ArtifactStore,
 ): Promise<KnowledgeConvergenceBaseline> {
+  const fence = repositoryFence(root);
   const { manifest, policy, scan } = await scanConfiguredRepositoryKnowledge(root);
   const delegation = await loadConvergenceDelegation(root);
   const policyHash = sha256(
     canonicalJson({ contract: "background-knowledge-convergence-v1", policy }),
   );
-  const before = captureConvergenceSources(root, policyHash);
-  const beforeChanged = captureConvergenceChangedPaths(root);
+  const after = captureConvergenceSources(root, policyHash);
+  const afterChanged = captureConvergenceChangedPaths(root);
   const [normalization, currency, candidates] = await Promise.all([
     inspectConfiguredDocumentNormalization({ repositoryRoot: root, preparedScan: scan }),
-    inspectRepositoryKnowledgeCurrency(root),
+    inspectRepositoryKnowledgeCurrency(root, { preparedScan: scan }),
     listCanonicalizationCandidates(root),
   ]);
   const acceptance = loadHistoricalAcceptance(root, manifest.projectId);
   const historical = await historicalObligations(events, artifacts, acceptance?.accepted);
-  const after = captureConvergenceSources(root, policyHash);
-  const afterChanged = captureConvergenceChangedPaths(root);
-  if (
-    before.snapshotHash !== after.snapshotHash ||
-    canonicalJson(beforeChanged) !== canonicalJson(afterChanged)
-  )
+  // One complete byte capture; the cheap repository fence proves nothing moved around it.
+  if (repositoryFence(root) !== fence)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   const historicalEvents = historical.events;
   const obligationPaths = new Set([
@@ -135,5 +144,29 @@ export async function discoverConvergenceBaseline(
     }),
     normalizationPaths: normalization.pendingDocuments,
     historicalEvents,
+  };
+}
+
+/**
+ * Cycle-scoped discovery: an unchanged repository digest and canonical event head reuse the last
+ * baseline, so dependency checks and the closing status do not repeat the complete capture.
+ */
+export function cycleScopedConvergenceDiscovery(
+  root: string,
+  events: OutboxStore,
+  artifacts: ArtifactStore,
+): () => Promise<KnowledgeConvergenceBaseline> {
+  let last: { key: string; baseline: KnowledgeConvergenceBaseline } | null = null;
+  return async () => {
+    let key: string | null;
+    try {
+      key = `${convergenceRepositoryDigest(root)}:${events.latest()?.eventHash ?? ""}`;
+    } catch {
+      key = null;
+    }
+    if (key !== null && last?.key === key) return last.baseline;
+    const baseline = await discoverConvergenceBaseline(root, events, artifacts);
+    last = key === null ? null : { key, baseline };
+    return baseline;
   };
 }

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f45f8a183ed3c782bcfbbcd2"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Degrade per-change knowledge review per file: generated, oversize, and binary paths are skipped and recorded, large changes split into ordered sub-jobs, and jobs stalled by whole-job intake rejection are re-queued once."

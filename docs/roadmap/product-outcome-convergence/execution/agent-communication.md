@@ -1,6 +1,6 @@
 # Direct agent communication
 
-State: `implemented`
+State: `wired`
 
 Outcome: agents communicate directly while preserving authority.
 

@@ -36,7 +36,7 @@ import {
   type DocumentNormalizationWorksetBinding,
 } from "./document-normalization-workset.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
-import { repositoryPathMatchesPatterns } from "./scanner.js";
+import { repositoryPathMatchesPatterns } from "./knowledge-intake-policy.js";
 import {
   RepositoryKnowledgeError,
   type KnowledgeFileOperation,

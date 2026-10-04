@@ -11,6 +11,7 @@ import {
 } from "@lervo/adapter-contract";
 
 import { readClaudeSessionFinal } from "./repository-work-session-final.js";
+import { claudeRepositoryWorkUsage } from "./repository-work-usage.js";
 
 const MAXIMUM_OUTPUT_BYTES = 64 * 1024 * 1024;
 
@@ -20,6 +21,8 @@ interface ClaudeJsonResult {
   result?: unknown;
   errors?: unknown;
   subtype?: unknown;
+  usage?: unknown;
+  modelUsage?: unknown;
 }
 
 export class ClaudeRepositoryWorkTurnExecutor implements RepositoryWorkTurnExecutor {
@@ -280,5 +283,6 @@ async function parseClaudeResult(
     providerSessionId: expectedSessionId,
     response,
     completedAt: new Date().toISOString(),
+    usage: claudeRepositoryWorkUsage(result),
   };
 }

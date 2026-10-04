@@ -145,6 +145,8 @@ export const eventTypesV4 = [
   "repository.knowledge.stage.recorded",
   "repository.knowledge.convergence.recorded",
   "assignment.convergence.archived",
+  "repository.replica.diverged",
+  "repository.replica.reconciled",
 ] as const;
 export const eventTypes = eventTypesV4;
 

@@ -2,7 +2,7 @@
 
 Part of [Discord remote continuation](../discord.md).
 
-State: `installed acceptance required`.
+State: `delivery required`.
 
 - [Participation contract](multi-party-conversation/participation.md): participant binding, channel composition, authority constraints, and provider selection.
 - [Installed scope](multi-party-conversation/installed-scope.md): deployment behavior, implemented capabilities, organization topology, and remaining work.
@@ -41,3 +41,4 @@ The same scenario must be replayable through a non-Discord test surface over sha
 - [ADR-0411](../../../../decisions/coordination/conversations/agent-organization/0411-governed-agent-memory-and-autonomous-participation.md)
 - [ADR-0420](../../../../decisions/coordination/conversations/agent-organization/0420-bound-agent-conversation-and-deliberation-routes.md)
 - [Cross-provider deliberation runtime](../../../../decisions/execution/providers/0029-cross-provider-deliberation-runtime.md)
+- [ADR-0454](../../../../decisions/coordination/conversations/agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md): relevance fan-out, live mentions, natural staffing, and discussions replacing the ceremony.

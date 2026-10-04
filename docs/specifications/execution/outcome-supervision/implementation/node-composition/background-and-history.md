@@ -2,6 +2,7 @@
 
 - [Background lifecycle and recovery](background-and-history/background-lifecycle.md): scheduling, shutdown, and durable recovery.
 - [Authority history](background-and-history/authority-history.md): incremental verification, audit deadlines, and invalidation.
+- [Event history cursors](background-and-history/event-history-cursors.md): incremental presence, lineage and review reads, and lapsed-deadline backoff.
 
 ## Delivery boundary
 

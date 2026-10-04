@@ -36,6 +36,7 @@ ESLint owns automatable code quality; Prettier owns formatting. For source or co
 7. Keep entrypoints short and move independent concerns into linked files.
 8. Generate English documentation through a versioned language boundary by default.
 9. Create feature directories only with their first artifact.
+10. Keep conversation, memory, learning, recall, and autonomy open by default; check authority at consequential effects (repository writes, deployment, external messages, spend above budget, credentials, hiring beyond headcount, irreversible deletion). Budgets and loop guards are backstops, not admission gates.
 
 ## Change contract
 

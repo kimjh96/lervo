@@ -2,7 +2,7 @@
 
 Status: `active`
 
-As of: 2026-09-16
+As of: 2026-10-04
 
 ## Outcome
 
@@ -10,14 +10,18 @@ Close the gap between Lervo's Paperclip-, Buzz-, Prime Agent-, and Hermes-derive
 
 A capability is complete only when its named user scenario runs through the installed boundary, preserves authority and evidence meanings, and has a regression test at that boundary.
 
-Each outcome has exactly one acceptance owner and one state:
+Each outcome has exactly one acceptance owner and one state. [ADR-0452](../decisions/foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md) replaced `implemented` with labels that name the evidence:
 
-- `implemented`: the exact scenario is evidenced.
+- `contract-only`: schema, type, or specification exists; no runtime behaviour.
+- `unwired`: runtime code exists but no CLI, Node, or surface path reaches it.
+- `wired`: reachable from a shipped path; evidence is unit tests, scripted or fixture providers, or packed temporary consumers.
+- `installed-proven`: the named scenario ran on an installed Node with real providers and, for conversational scenarios, a real guild; a regression test exists at that boundary.
+- `converged`: reserved for the true-Lervo journeys in the [open collaboration platform roadmap](open-collaboration-platform.md).
 - `delivery required`: Lervo owns the accepted outcome, but the exact installed scenario is incomplete. Lower-level primitives are evidence, not fractional acceptance.
 - `external dependency`: provider or platform support and evidence beyond Lervo's control are required. Lervo delivery becomes actionable only when that dependency exists.
 - `external product`: Lervo supplies primitives; a separate host owns the outcome outside Lervo's core delivery scope.
 
-Do not use intermediate states to imply that narrower slices satisfy incomplete outcomes. Split mixed outcomes into installed Lervo behavior, remaining Lervo-owned delivery, external dependencies, and external products.
+Every label links its evidence. Do not use intermediate states to imply that narrower slices satisfy incomplete outcomes. Split mixed outcomes into installed Lervo behavior, remaining Lervo-owned delivery, external dependencies, and external products.
 
 ## Acceptance baseline
 

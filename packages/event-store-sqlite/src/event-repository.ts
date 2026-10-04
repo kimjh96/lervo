@@ -20,6 +20,7 @@ import { EventStoreError } from "./errors.js";
 import { requireString, rowToEvent } from "./row-codec.js";
 
 const integrityPageSize = 1000;
+const maximumListedTypes = 64;
 
 export class SQLiteEventRepository {
   constructor(
@@ -150,15 +151,32 @@ export class SQLiteEventRepository {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
       throw new RangeError("limit must be a safe integer between 1 and 1000.");
     }
-    const rows = options.runId
-      ? this.database
-          .prepare(
-            "SELECT * FROM events WHERE project_id = ? AND run_id = ? AND seq > ? ORDER BY seq LIMIT ?",
-          )
-          .all(this.projectId, options.runId, afterSeq, limit)
-      : this.database
-          .prepare("SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?")
-          .all(this.projectId, afterSeq, limit);
+    const types = options.types === undefined ? undefined : [...new Set(options.types)];
+    if (
+      types !== undefined &&
+      (types.length < 1 ||
+        types.length > maximumListedTypes ||
+        types.some((type) => typeof type !== "string" || type.length === 0))
+    ) {
+      throw new RangeError(
+        `types must name between 1 and ${maximumListedTypes} non-empty event types.`,
+      );
+    }
+    const conditions = ["project_id = ?"];
+    const parameters: (string | number)[] = [this.projectId];
+    if (options.runId) {
+      conditions.push("run_id = ?");
+      parameters.push(options.runId);
+    }
+    if (types !== undefined) {
+      conditions.push(`type IN (${types.map(() => "?").join(", ")})`);
+      parameters.push(...types);
+    }
+    conditions.push("seq > ?");
+    parameters.push(afterSeq, limit);
+    const rows = this.database
+      .prepare(`SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY seq LIMIT ?`)
+      .all(...parameters);
     return rows.map(rowToEvent);
   }
 

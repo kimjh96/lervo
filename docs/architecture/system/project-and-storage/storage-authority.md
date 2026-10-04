@@ -7,3 +7,5 @@ The optional `.lervo/data/event-contract.json` is the versioned, Lervo-managed f
 Active continuation is `.lervo/state/workstreams/current.json`. CAS in `.lervo/data/cas` stores exact snapshots and optional legacy-source bytes. `workstream.snapshot.recorded` binds revision and content coordinates without event prose.
 
 Migration discovers candidates from bounded content structure without requiring names or locations. Before returning context, Lervo rebuilds a missing projection from the latest event and CAS bytes. Canonical Markdown retains long-term facts.
+
+Event pages may be filtered by exact event types; omitting the filter returns every type. The SQLite adapter serves filtered pages from the `(project_id, type, seq)` index. Opening a writable store creates it idempotently outside the versioned schema, so `user_version` and exact-version read-only readers are unchanged. A store without the index returns the same rows more slowly.

@@ -27,6 +27,7 @@ export type DeliberationRuntimeErrorCode =
 export type DeliberationRuntimeErrorReason =
   | "artifact_history_invalid"
   | "artifact_already_published"
+  | "deliberation_participant_unverified"
   | "handoff_already_published"
   | "event_redacted"
   | "event_store_failed"

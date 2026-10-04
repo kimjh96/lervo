@@ -52,7 +52,11 @@ async function canonicalDispositionLedger(
 ): Promise<Map<string, LedgerEntry>> {
   const ledger = ledgers.get(events) ?? { afterSeq: 0, entries: new Map<string, LedgerEntry>() };
   for (;;) {
-    const page = events.list({ afterSeq: ledger.afterSeq, limit: 1_000 });
+    const page = events.list({
+      afterSeq: ledger.afterSeq,
+      limit: 1_000,
+      types: ["repository.knowledge.stage.recorded"],
+    });
     if (!page.length) break;
     for (const event of page) {
       ledger.afterSeq = event.seq;

@@ -8,6 +8,7 @@ import { lintRepositoryKnowledge } from "./lint-query.js";
 import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
 import { assertNoKnowledgeMaterializationTransaction } from "./durable-apply.js";
 import { listCanonicalizationCandidates } from "./canonicalization-candidate-record.js";
+import type { RepositoryKnowledgePreparedScanOptions } from "./types.js";
 
 export type RepositoryKnowledgeCurrencyReason =
   | "instruction_bootstrap_pending"
@@ -23,13 +24,18 @@ export type RepositoryKnowledgeCurrencyReason =
  * Read-only: whether managed knowledge is current, and the snapshot it was checked against. It
  * never applies a migration, so a background owner cannot rewrite a user's working tree.
  */
-export async function inspectRepositoryKnowledgeCurrency(repositoryRoot: string): Promise<{
+export async function inspectRepositoryKnowledgeCurrency(
+  repositoryRoot: string,
+  options: RepositoryKnowledgePreparedScanOptions = {},
+): Promise<{
   current: boolean;
   snapshotHash: string;
   reasons: RepositoryKnowledgeCurrencyReason[];
 }> {
   await assertNoKnowledgeMaterializationTransaction({ repositoryRoot });
-  const { scan } = await scanConfiguredRepositoryKnowledge(repositoryRoot);
+  // A caller-prepared scan saves one repository walk; the closing rescan still fences it.
+  const scan =
+    options.preparedScan ?? (await scanConfiguredRepositoryKnowledge(repositoryRoot)).scan;
   const shared = { preparedScan: scan };
   const [bootstrap, layout, migration, bridge, normalization] = await Promise.all([
     createKnowledgeInstructionBootstrapPlan({ repositoryRoot, ...shared }),

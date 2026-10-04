@@ -226,11 +226,24 @@ export type HandleConversationEventResult =
       attemptCount: number;
     };
 
+/** One outbound that left automatic delivery; the store transition happens once per outbound. */
+export interface ConversationDeliveryAttention {
+  outboundId: string;
+  integrationId: string;
+  failureCode: string;
+  reason: import("@lervo/execution-contract").RetryAttentionReason;
+  attemptCount: number;
+  attentionAfter: number;
+  owner: "conversation_integration_operator";
+  recoveryCondition: "verified_receipt_reconciliation";
+}
+
 export interface ConversationDeliveryCycleResult {
   status: "idle" | "processed";
   deliveredCount: number;
   retryScheduledCount: number;
   attentionRequiredCount: number;
+  attention: ConversationDeliveryAttention[];
 }
 
 export type { ConversationAdapter };

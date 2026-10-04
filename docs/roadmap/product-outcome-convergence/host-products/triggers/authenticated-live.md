@@ -1,6 +1,6 @@
 # Authenticated live trigger adapters
 
-State: `implemented`.
+State: `wired`.
 
 Outcome: authenticated cron, webhook, API, approval-resolution, or assignment-wakeup sources trigger governed work through installed adapters.
 

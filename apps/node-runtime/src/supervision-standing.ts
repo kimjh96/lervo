@@ -39,6 +39,7 @@ export interface StandingSupervisionResolution {
 }
 
 const MAXIMUM_SUCCESSORS = 1024;
+const installationTypes = ["work.supervision.mandate.installed"];
 
 /**
  * Follows the root binding through the successor installations the owner recorded under its
@@ -64,7 +65,7 @@ export async function resolveStandingSupervisionBinding(
     let creationReviewHash: string | null = null;
     let afterSeq = 0;
     while (true) {
-      const events = storage.events.list({ afterSeq, limit: 1000 });
+      const events = storage.events.list({ afterSeq, limit: 1000, types: installationTypes });
       if (events.length === 0) break;
       for (const event of events) {
         afterSeq = event.seq;
@@ -128,12 +129,15 @@ export function scanForStandingLineageChange(
   watched: readonly string[],
   afterSeq: number,
 ): { found: boolean; seq: number } {
+  // Only installations are read, so the cursor advances to the head observed before reading;
+  // anything appended later is above that head and is read by the next scan.
+  const head = storage.events.latest()?.seq ?? 0;
   let seq = afterSeq;
   let found = false;
-  while (true) {
-    const events = storage.events.list({ afterSeq: seq, limit: 1000 });
-    if (events.length === 0) break;
+  while (seq < head) {
+    const events = storage.events.list({ afterSeq: seq, limit: 1000, types: installationTypes });
     for (const event of events) {
+      if (event.seq > head) break;
       seq = event.seq;
       if (
         event.type === "work.supervision.mandate.installed" &&
@@ -143,9 +147,9 @@ export function scanForStandingLineageChange(
       )
         found = true;
     }
-    if (events.length < 1000) break;
+    if (events.length < 1000 || events.at(-1)!.seq >= head) break;
   }
-  return { found, seq };
+  return { found, seq: Math.max(seq, head) };
 }
 
 function successorTitle(request: string): string {

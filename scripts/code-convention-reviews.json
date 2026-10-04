@@ -74,7 +74,7 @@
     },
     {
       "path": "apps/node-runtime/src/outcome-supervision-runtime.ts",
-      "contentHash": "sha256:6457eb098382ee2c518559832bed46654a530f01fd8235a7be7ed3cdf111ae5b",
+      "contentHash": "sha256:c9076a82b67339bf33dd2f26a0f4415657570551b254aa833b0adfdbf3cc1700",
       "responsibility": "Node outcome-supervision port composition",
       "rationale": "The module composes one provider-neutral supervision runtime from storage, admission, reasoning, execution, and evidence ports. Request-origin evaluation, resource policy, provider effects, supersession, leases, and snapshot projection remain in dedicated modules; this boundary only wires their ordered lifecycle and cleanup.",
       "disposition": "cohesive"
@@ -130,16 +130,16 @@
     },
     {
       "path": "packages/deliberation-runtime/src/runtime.ts",
-      "contentHash": "sha256:d8140bad329845eb5965cd477aa8bdd1f55132440383ce5831b68e3e183bd84c",
+      "contentHash": "sha256:c7239ed7b4ee0bba19ac8c4321fbb93568f2598d1a3ed85456d34ec7cd9d0714",
       "responsibility": "Stateful deliberation lifecycle coordinator",
-      "rationale": "The module owns one in-memory deliberation state machine; artifact publication failure recording, handoff materialization, snapshot restoration, and event recording remain in linked modules, while methods enforce shared history and event invariants. The optional policy-role name is validated once and recorded as provider-neutral event metadata without adding surface rendering or transport behavior.",
+      "rationale": "The module owns one in-memory deliberation state machine; publication failure recording, handoff materialization, snapshot restoration, event recording, and ADR-0460 usage verification decisions remain in linked modules. Methods enforce shared history and event invariants, record each artifact's verification state, and refuse convergence on an unverified artifact. Policy-role names stay provider-neutral metadata.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:fc4f7bacea1d93ebe47d9d0fdb937617cfcf5b3780e023bfe0658a1631c3e5b1",
+      "contentHash": "sha256:6989cae30bdfe4d11db51965089215207b68cc66e003b668742e6422bfb231e3",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. V4 convergence payload/provenance rules remain separate modules; the added archive coordinate introduces no provider work, authority decision or persistence.",
+      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. V4 convergence payload/provenance rules remain separate modules; the replica divergence allowlists, the archive coordinate, and the ADR-0459 and ADR-0460 attribution, receipt origin, and usage-verification allowlist fields only map hash-only payloads to their schemas and introduce no provider work, authority decision or persistence.",
       "disposition": "cohesive"
     },
     {
@@ -165,9 +165,9 @@
     },
     {
       "path": "packages/node-work-admission/src/store.ts",
-      "contentHash": "sha256:c0c94fbbafddffd0242adc66c94c6718c91913f5d19da0a0a9b8a639de6da864",
+      "contentHash": "sha256:3246677431a002f88ae5acd345d6c73d83b9977d2d98cf975fbc2c7a2d34873e",
       "responsibility": "SQLite Node work session, claim and upgrade freeze adapter",
-      "rationale": "One SQLite adapter owns the bounded session, claim, and freeze lifecycle. Its exact digest check and dead-session cleanup permit inactive recovery only when the service manager explicitly verifies that state. Configuration bytes, service status, rollback, and provider behavior remain outside the store.",
+      "rationale": "One SQLite adapter owns the bounded session, claim, and freeze lifecycle. Its exact digest check, dead-session cleanup, and retained scope participation record permit inactive recovery only when the service manager explicitly verifies that state. Configuration bytes, service status, rollback, and provider behavior remain outside the store.",
       "disposition": "cohesive"
     },
     {
@@ -207,7 +207,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:469f2cb9f3b50827d1240068c5fff3e27ef474251e5c600424965d6b489728f9",
+      "contentHash": "sha256:7e63a8b860cb06fda7b904cb3d298a5f7780447e4e1dd968631a64156c6f7829",
       "responsibility": "Reviewed document normalization lifecycle",
       "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation orchestration, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation policy, explicit selection and workset/preflight contracts, shard-cache storage, and CLI parsing or rendering are separate modules.",
       "disposition": "cohesive"
@@ -284,9 +284,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:0b61a318d87f1041ade5f7c5dd39432338eedc73a27d7868aca97cb9b2a8f7cf",
+      "contentHash": "sha256:223c782ff20154c5a620d041357df81747dbca7381a6402f3f4aefb8a776e867",
       "responsibility": "Bounded repository knowledge scanner",
-      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate. The shared cache-name decision remains outside this filesystem scanner; no independent transport or provider concern was added.",
+      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate. Inclusion matching and the cache-name decision live in the shared knowledge intake policy, and nested working-tree detection lives in the filesystem metadata module; no independent transport or provider concern was added.",
       "disposition": "cohesive"
     },
     {
@@ -361,9 +361,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:1b0278cc2d89720c2017ec1147140bbfe849443aac8dcde3b83757211168c68f",
+      "contentHash": "sha256:10697fb4fa7cf7ae50a9390f11afee8a06da8511f9506403c8fa0a700613a233",
       "responsibility": "Repository schema validator registry",
-      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence and archival schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry.",
+      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, and repository replica event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry.",
       "disposition": "cohesive"
     },
     {
@@ -396,9 +396,9 @@
     },
     {
       "path": "scripts/distribution/lib/runtime-service-management.mjs",
-      "contentHash": "sha256:edfd8766e5f9811886500cfa10bf5a80196c4194b5b29d66275edf7bed84e583",
+      "contentHash": "sha256:b254437b463e00ee729745ab1a1976b500e7546d2f4a9d94bfd68f11da9e341a",
       "responsibility": "Runtime service lifecycle manager",
-      "rationale": "One runtime service coordinator owns exact predecessor validation, stable manager observations, and transactional replacement. It verifies inactive recovery only after a missing-session freeze result while the supervision fence is held. CLI configuration policy and its journal remain in a separate adapter. Argument and source validation extraction remains the existing bounded roadmap follow-up.",
+      "rationale": "One runtime service coordinator owns exact predecessor validation, stable manager observations bounded by the canonical graceful stop, and transactional replacement. It verifies inactive recovery only after a missing-session freeze result while the supervision fence is held. CLI configuration policy and its journal remain in a separate adapter. Argument and source validation extraction remains the existing bounded roadmap follow-up.",
       "disposition": "cohesive"
     },
     {

@@ -9,3 +9,4 @@ docs/knowledge/
 apps/cli/release-artifact-manifest.json
 apps/cli/release-sbom.cdx.json
 pnpm-lock.yaml
+eslint-suppressions.json

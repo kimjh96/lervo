@@ -7,10 +7,10 @@ import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  LocalRepositoryReplicaPeer,
   RepositoryReplicaCoordinator,
   type RepositoryReplicaPeerPort,
 } from "../src/repository-replica-coordinator.js";
+import { LocalRepositoryReplicaPeer } from "../src/repository-replica-local-peer.js";
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -180,6 +180,56 @@ describe("repository replica coordinator", () => {
     await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "current" });
   }, 20_000);
 
+  it("skips only an identical peer receipt on recovery and never re-observes a current pair", async () => {
+    const fixture = await repositories();
+    const delegate = new LocalRepositoryReplicaPeer();
+    const calls = { snapshots: 0, receipts: [] as string[] };
+    const peer: RepositoryReplicaPeerPort = {
+      snapshot: (root) => {
+        calls.snapshots += 1;
+        return delegate.snapshot(root);
+      },
+      bundle: (root, expected) => delegate.bundle(root, expected),
+      apply: (input) => delegate.apply(input),
+      recordReceipt: async (receipt) => {
+        calls.receipts.push(receipt.status);
+        await delegate.recordReceipt(receipt);
+      },
+    };
+    let now = Date.parse("2026-10-05T00:00:00.000Z");
+    const coordinator = new RepositoryReplicaCoordinator({
+      stateFile: fixture.stateFile,
+      local: new LocalRepositoryReplicaPeer(),
+      peer,
+      now: () => new Date((now += 1_000)),
+    });
+    const coordinates = { replicaId: "project", localRoot: fixture.local, peerRoot: fixture.peer };
+    const localReceipt = join(fixture.local, ".lervo/state/repository-replica.json");
+    const reconciledAt = async () =>
+      (JSON.parse(await readFile(localReceipt, "utf8")) as { reconciledAt: string }).reconciledAt;
+
+    // The first recovery cycle in a process always writes the peer receipt.
+    await coordinator.reconcile({ ...coordinates, trigger: "recovery" });
+    expect(calls).toEqual({ snapshots: 1, receipts: ["current"] });
+    const firstLocal = await reconciledAt();
+
+    await coordinator.reconcile({ ...coordinates, trigger: "recovery" });
+    expect(calls).toEqual({ snapshots: 2, receipts: ["current"] });
+    expect(await reconciledAt()).not.toBe(firstLocal);
+
+    // A change hint always refreshes the peer receipt, so peer readiness can observe it.
+    await coordinator.reconcile({ ...coordinates, trigger: "change" });
+    expect(calls.receipts).toEqual(["current", "current"]);
+
+    await writeFile(join(fixture.local, "source.ts"), "const pushed = true;\n");
+    await coordinator.reconcile({ ...coordinates, trigger: "recovery" });
+    expect(calls.receipts).toEqual(["current", "current", "pushed"]);
+    // The pushed identity differs from the next current one, which is written once.
+    await coordinator.reconcile({ ...coordinates, trigger: "recovery" });
+    await coordinator.reconcile({ ...coordinates, trigger: "recovery" });
+    expect(calls.receipts).toEqual(["current", "current", "pushed", "current"]);
+  }, 20_000);
+
   it("continues from the transferred base when the source advances during verification", async () => {
     const fixture = await repositories();
     const local = new LocalRepositoryReplicaPeer();
@@ -221,7 +271,7 @@ describe("repository replica coordinator", () => {
     expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe(
       "const advanced = true;\n",
     );
-  });
+  }, 20_000);
 
   it("resolves generated knowledge conflicts locally and honours a prefer_local policy elsewhere", async () => {
     const fixture = await repositories();

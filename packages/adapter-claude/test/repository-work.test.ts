@@ -28,7 +28,7 @@ const resumed = args.indexOf("--resume");
 const created = args.indexOf("--session-id");
 const session = args[resumed >= 0 ? resumed + 1 : created + 1];
 const permissionMode = args[args.indexOf("--permission-mode") + 1];
-process.stdout.write(JSON.stringify({type:"result",is_error:false,session_id:session,result:permissionMode === "bypassPermissions"?"external":resumed >= 0?"resumed":"completed"})+"\\n");
+process.stdout.write(JSON.stringify({type:"result",is_error:false,session_id:session,result:permissionMode === "bypassPermissions"?"external":resumed >= 0?"resumed":"completed",...(resumed >= 0 ? {} : {modelUsage:{"claude-opus":{inputTokens:10,outputTokens:30,cacheReadInputTokens:500,cacheCreationInputTokens:40,contextWindow:200000}}})})+"\\n");
 process.stdout.write("Client.listTools() called after result.\\n");
 `,
     { mode: 0o700 },
@@ -146,6 +146,19 @@ describe("ClaudeRepositoryWorkTurnExecutor", () => {
       });
       expect(first.providerSessionId).toMatch(/^[0-9a-f-]{36}$/u);
       expect(first.response).toBe("completed");
+      expect(first.usage).toEqual({
+        adapterId: "claude/repository-work",
+        nativeCounterSemanticsId: "claude.stream-json.result.model-usage",
+        status: "observed",
+        usage: {
+          inputTokens: 550,
+          cachedInputTokens: 500,
+          outputTokens: 30,
+          reasoningOutputTokens: 0,
+          totalTokens: 580,
+          contextWindow: 200_000,
+        },
+      });
       await expect(
         executor.execute({
           repositoryRoot: root,
@@ -153,7 +166,10 @@ describe("ClaudeRepositoryWorkTurnExecutor", () => {
           providerSessionId: first.providerSessionId,
           timeoutMs: 5_000,
         }),
-      ).resolves.toMatchObject({ response: "resumed" });
+      ).resolves.toMatchObject({
+        response: "resumed",
+        usage: { status: "unavailable", reasonCode: "provider_usage_unreported" },
+      });
       await expect(
         executor.execute({
           repositoryRoot: root,

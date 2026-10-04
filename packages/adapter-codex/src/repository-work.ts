@@ -10,6 +10,8 @@ import {
   type RepositoryWorkTurnRequest,
 } from "@lervo/adapter-contract";
 
+import { codexRepositoryWorkUsage, codexTurnCompletedUsage } from "./repository-work-usage.js";
+
 const MAXIMUM_OUTPUT_BYTES = 64 * 1024 * 1024;
 const executeFile = promisify(execFile);
 
@@ -18,6 +20,7 @@ interface CodexJsonEvent {
   thread_id?: unknown;
   item?: { type?: unknown; text?: unknown };
   message?: unknown;
+  usage?: unknown;
 }
 
 export class CodexRepositoryWorkTurnExecutor implements RepositoryWorkTurnExecutor {
@@ -207,6 +210,7 @@ function runCodexProcess(input: {
 function parseCodexResult(output: string, previousSessionId: string | null) {
   let providerSessionId = previousSessionId;
   let response: string | null = null;
+  let usage: ReturnType<typeof codexTurnCompletedUsage> = null;
   for (const line of output.split("\n")) {
     if (line.trim().length === 0) continue;
     let event: CodexJsonEvent;
@@ -229,6 +233,7 @@ function parseCodexResult(output: string, previousSessionId: string | null) {
     ) {
       response = event.item.text;
     }
+    if (event.type === "turn.completed") usage = codexTurnCompletedUsage(event.usage);
     if (event.type === "error" && typeof event.message === "string") {
       throw new RepositoryWorkExecutionError("provider_turn_failed", event.message);
     }
@@ -244,5 +249,6 @@ function parseCodexResult(output: string, previousSessionId: string | null) {
     providerSessionId,
     response,
     completedAt: new Date().toISOString(),
+    usage: codexRepositoryWorkUsage(usage),
   };
 }

@@ -12,6 +12,7 @@ import {
   captureRepositoryReplicaSnapshot,
   createRepositoryReplicaBundle,
 } from "../src/repository-replica-git.js";
+import { observeRepositoryReplicaSnapshot } from "../src/repository-replica-snapshot-cache.js";
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -97,11 +98,31 @@ describe("Git repository replica", () => {
       const before = await watchedBytes();
       await captureRepositoryReplicaSnapshot(root);
       await captureRepositoryReplicaSnapshot(root);
+      // Cached observation reads status without optional locks and writes only its own cache.
+      const settled = { nowMilliseconds: () => Date.now() + 60_000 };
+      await observeRepositoryReplicaSnapshot(root, settled);
+      await observeRepositoryReplicaSnapshot(root, settled);
       expect(await watchedBytes()).toBe(before);
     } finally {
       stop();
     }
   }, 15_000);
+
+  it("re-hashes a same-size edit made in the timestamp second of the last index write", async () => {
+    const root = await repository();
+    // Commit and a same-size edit share one timestamp second, and capture runs in a later second.
+    // Where Git compares whole seconds, only its racy check against the index timestamp reveals
+    // the edit, so the observed index copy must not look newer than the user's index.
+    while (Date.now() % 1_000 > 200) await new Promise((resolve) => setTimeout(resolve, 10));
+    await writeFile(join(root, "tracked.ts"), "export const original = 1;\n");
+    await git(root, "commit", "-qam", "same second");
+    await writeFile(join(root, "tracked.ts"), "export const original = 2;\n");
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    const snapshot = await captureRepositoryReplicaSnapshot(root);
+    expect(await git(root, "rev-parse", `${snapshot.worktreeTree}:tracked.ts`)).toBe(
+      await git(root, "hash-object", "tracked.ts"),
+    );
+  });
 
   it("does not create export commits during observation and still bundles exact snapshots", async () => {
     const root = await repository();
@@ -163,7 +184,7 @@ describe("Git repository replica", () => {
     });
     expect(nextApplied).toEqual(nextSourceSnapshot);
     expect(await readFile(join(target, "tracked.ts"), "utf8")).toBe("const a = 1;");
-  });
+  }, 15_000);
 
   it("retains a host-local convergence grant while applying a new ignore rule", async () => {
     const source = await repository();

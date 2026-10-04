@@ -21,6 +21,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConversationRepositoryWorkResponder } from "../src/conversation-repository-work-responder.js";
 import { SQLiteConversationRepositoryWorkStore } from "../src/conversation-repository-work-store.js";
 import type { NormalizationCandidatePreparer } from "../src/conversation-normalization-candidate.js";
+import type {
+  ConversationRepositoryWorkMeasurement,
+  RepositoryWorkMeasurementRecord,
+} from "../src/conversation-repository-work-measurement.js";
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -28,6 +32,115 @@ const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
+
+function recordingMeasurement(failure?: Error): ConversationRepositoryWorkMeasurement & {
+  records: RepositoryWorkMeasurementRecord[];
+} {
+  const records: RepositoryWorkMeasurementRecord[] = [];
+  return {
+    records,
+    prepareContext: async ({ sourceRevision }) => ({
+      sourceRevision,
+      documents: [
+        {
+          documentId: "doc_path_000000000000000000000001",
+          path: "docs/roadmap/v0.md",
+          contentHash: `sha256:${"a".repeat(64)}`,
+          byteCount: 12,
+        },
+      ],
+    }),
+    record: async (record) => {
+      if (failure !== undefined) throw failure;
+      records.push(record);
+    },
+  };
+}
+
+async function repositoryFixture() {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-work-"));
+  roots.push(root);
+  await execute("git", ["init", "-b", "main"], { cwd: root });
+  await execute("git", ["config", "user.email", "lervo-test@example.invalid"], { cwd: root });
+  await execute("git", ["config", "user.name", "Lervo Test"], { cwd: root });
+  await writeFile(resolve(root, "README.md"), "before\n");
+  await execute("git", ["add", "README.md"], { cwd: root });
+  await execute("git", ["commit", "-m", "fixture"], { cwd: root });
+  const artifacts = await FileSystemCas.open(resolve(root, ".artifacts"));
+  const source = await artifacts.put("두 공급자 의견을 비교해 줘.");
+  const event = createConversationInboundEvent({
+    sourceEventKeyHash: hashConversationSourceEventKey("discord-work-measured"),
+    target: {
+      integrationId: "itg_discord01",
+      projectId: "prj_test0001",
+      conversationId: "cnv_test0001",
+      threadId: null,
+    },
+    kind: "message.created",
+    actor: { kind: "human", participantId: "ptc_owner0001", roleId: null },
+    content: {
+      artifactId: `art_${source.contentHash.slice(7)}`,
+      contentHash: source.contentHash,
+      byteCount: source.byteCount,
+      mediaType: "text/plain; charset=utf-8",
+    },
+    mentions: { participantIds: [], roleIds: [] },
+    replyToEventId: null,
+    signalCode: null,
+    automationDepth: 0,
+    occurredAt: "2026-09-10T00:00:00.000Z",
+  });
+  return { root, artifacts, event };
+}
+
+function measuredResponder(input: {
+  root: string;
+  artifacts: FileSystemCas;
+  measurement: ConversationRepositoryWorkMeasurement;
+  response: string;
+  verify: () => Promise<undefined>;
+}) {
+  const executeTurn = vi.fn(async () => ({
+    provider: "claude" as const,
+    providerSessionId: "33333333-3333-4333-8333-333333333333",
+    response: input.response,
+    completedAt: "2026-09-10T00:01:00.000Z",
+    usage: {
+      adapterId: "claude/repository-work",
+      nativeCounterSemanticsId: "claude.stream-json.result.model-usage",
+      status: "observed" as const,
+      usage: {
+        inputTokens: 550,
+        cachedInputTokens: 500,
+        outputTokens: 30,
+        reasoningOutputTokens: 0,
+        totalTokens: 580,
+        contextWindow: 200_000,
+      },
+    },
+  }));
+  const responder = new ConversationRepositoryWorkResponder({
+    repositoryRoot: input.root,
+    artifactStore: input.artifacts,
+    store: SQLiteConversationRepositoryWorkStore.open(resolve(input.root, "work.sqlite")),
+    parentAgentId: "agt_111111111111111111111111",
+    executors: { claude: { provider: "claude", execute: executeTurn } },
+    defaultProvider: "claude",
+    knowledgeMode: "pending_background",
+    measurement: input.measurement,
+    timeoutMs: 5_000,
+    completionLifecycle: {
+      capture: async () => ({
+        workstreamId: null,
+        workstreamRevision: null,
+        knowledgeCurrent: true,
+      }),
+      recover: async () => null,
+      verify: input.verify,
+    },
+  });
+  return { responder, executeTurn };
+}
 
 describe("ConversationRepositoryWorkResponder", () => {
   it.each([
@@ -173,6 +286,7 @@ describe("ConversationRepositoryWorkResponder", () => {
           },
         ],
         defaultProvider: "codex",
+        measurement: recordingMeasurement(),
         normalization: {
           review: reviewNormalization,
           close: async () => undefined,
@@ -326,4 +440,87 @@ describe("ConversationRepositoryWorkResponder", () => {
       responder.close();
     },
   );
+
+  it("records attributed usage and a context receipt before completing a turn", async () => {
+    const { root, artifacts, event } = await repositoryFixture();
+    const measurement = recordingMeasurement();
+    const verify = vi.fn(async () => undefined);
+    const { responder, executeTurn } = measuredResponder({
+      root,
+      artifacts,
+      measurement,
+      response: "Claude thinks the rollout is safe.",
+      verify,
+    });
+    try {
+      await responder.respond({ event } as never);
+    } finally {
+      responder.close();
+    }
+    expect(executeTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instructions: expect.stringContaining(`- docs/roadmap/v0.md (sha256:${"a".repeat(64)})`),
+      }),
+    );
+    expect(measurement.records).toEqual([
+      expect.objectContaining({
+        sourceConversationEventId: event.eventId,
+        conversationId: "cnv_test0001",
+        threadId: null,
+        workerAgentId: "agt_111111111111111111111111",
+        provider: "claude",
+        providerSessionId: "33333333-3333-4333-8333-333333333333",
+        usage: expect.objectContaining({ status: "observed" }),
+        receipt: expect.objectContaining({
+          documents: [expect.objectContaining({ path: "docs/roadmap/v0.md" })],
+        }),
+      }),
+    ]);
+    expect(verify).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails the completion gate with measurement_unavailable when usage cannot be recorded", async () => {
+    const { root, artifacts, event } = await repositoryFixture();
+    const verify = vi.fn(async () => undefined);
+    const { responder } = measuredResponder({
+      root,
+      artifacts,
+      measurement: recordingMeasurement(new Error("event store unavailable")),
+      response: "Claude thinks the rollout is safe.",
+      verify,
+    });
+    try {
+      await expect(responder.respond({ event } as never)).rejects.toMatchObject({
+        code: "measurement_unavailable",
+      });
+    } finally {
+      responder.close();
+    }
+    expect(verify).not.toHaveBeenCalled();
+  });
+
+  it("repairs a reply that claims two providers' opinions without a verified deliberation", async () => {
+    const { root, artifacts, event } = await repositoryFixture();
+    const { responder } = measuredResponder({
+      root,
+      artifacts,
+      measurement: recordingMeasurement(),
+      response:
+        "Sol 의견과 Opus 의견을 정리했습니다. 코덱스는 동기 방식을 선호합니다. 클로드는 비동기 방식을 제안합니다.",
+      verify: vi.fn(async () => undefined),
+    });
+    let reply;
+    try {
+      reply = await responder.respond({ event } as never);
+    } finally {
+      responder.close();
+    }
+    const content = new TextDecoder().decode(
+      await artifacts.get(`lervo-cas://sha256/${reply.content.contentHash.slice(7)}`),
+    );
+    expect(content).toContain("클로드는 비동기 방식을 제안합니다.");
+    expect(content).not.toContain("코덱스");
+    expect(content).not.toContain("Opus 의견");
+    expect(content).toContain("Claude 한 공급자의 관점만 반영합니다");
+  });
 });

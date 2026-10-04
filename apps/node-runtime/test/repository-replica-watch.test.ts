@@ -181,10 +181,16 @@ it("honors a reduced reconciliation concurrency for constrained peer transports"
   });
   try {
     await vi.waitFor(() => expect(reconcile).toHaveBeenCalledTimes(1));
-    expect(reconcile).toHaveBeenLastCalledWith(expect.objectContaining({ replicaId: "first" }));
+    expect(reconcile).toHaveBeenLastCalledWith(
+      expect.objectContaining({ replicaId: "first" }),
+      expect.objectContaining({ trigger: expect.any(String) }),
+    );
     releaseFirst();
     await vi.waitFor(() => expect(reconcile).toHaveBeenCalledTimes(2));
-    expect(reconcile).toHaveBeenLastCalledWith(expect.objectContaining({ replicaId: "second" }));
+    expect(reconcile).toHaveBeenLastCalledWith(
+      expect.objectContaining({ replicaId: "second" }),
+      expect.objectContaining({ trigger: expect.any(String) }),
+    );
   } finally {
     releaseFirst();
     abort.abort();
@@ -311,6 +317,67 @@ it("does not queue timer sweeps faster than a constrained bridge can finish them
     blocked = Promise.resolve();
   } finally {
     release();
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(0);
+    await running;
+  }
+});
+
+it("backs idle recovery off to its ceiling and returns to the base on a change", async () => {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const abort = new AbortController();
+  const started = Date.now();
+  const sweeps: Array<{ at: number; trigger: string }> = [];
+  const intervals: number[] = [];
+  let outcome: "current" | "not_current" = "current";
+  const running = watchReplicaReconciliation({
+    repositories: [{ replicaId: "fixture", localRoot: "/fixture", peerRoot: "/peer" }],
+    peer,
+    fallbackIntervalMs: 30_000,
+    idleRecoveryCeilingMs: 240_000,
+    watch: true,
+    peerWatch: false,
+    signal: abort.signal,
+    onRecoveryInterval: (intervalMs) => intervals.push(intervalMs),
+    reconcile: async (_repository, { trigger }) => {
+      sweeps.push({ at: Date.now() - started, trigger });
+      return outcome;
+    },
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(30_000 + 60_000 + 120_000 + 240_000 + 240_000);
+    expect(sweeps).toEqual([
+      { at: 0, trigger: "recovery" },
+      { at: 30_000, trigger: "recovery" },
+      { at: 90_000, trigger: "recovery" },
+      { at: 210_000, trigger: "recovery" },
+      { at: 450_000, trigger: "recovery" },
+      { at: 690_000, trigger: "recovery" },
+    ]);
+    expect(intervals).toEqual([30_000, 60_000, 120_000, 240_000, 240_000, 240_000]);
+
+    // A local change reconciles promptly and returns the next sweep to the base interval.
+    callbacks.local();
+    await vi.advanceTimersByTimeAsync(250);
+    expect(sweeps.at(-1)).toEqual({ at: 690_250, trigger: "change" });
+    expect(intervals.at(-1)).toBe(30_000);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(sweeps.at(-1)).toEqual({ at: 720_000, trigger: "recovery" });
+    expect(intervals.at(-1)).toBe(60_000);
+
+    // A non-current outcome returns the following sweeps to the base interval.
+    outcome = "not_current";
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(sweeps.slice(-3).map((sweep) => sweep.at)).toEqual([780_000, 810_000, 840_000]);
+  } finally {
     abort.abort();
     await vi.advanceTimersByTimeAsync(0);
     await running;

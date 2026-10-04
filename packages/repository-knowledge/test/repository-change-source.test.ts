@@ -1,11 +1,15 @@
 import { execFileSync } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { afterEach, expect, it } from "vitest";
 
 import { SQLiteEventStore } from "../../event-store-sqlite/src/index.js";
+import {
+  defaultRepositoryKnowledgePolicy,
+  serializeRepositoryKnowledgePolicy,
+} from "../src/policy.js";
 import {
   appendRepositoryChange,
   planRepositoryChange,
@@ -98,6 +102,60 @@ it("publishes only the count beyond the path bound while the manifest keeps ever
   }
 });
 
+it("keeps generated artifacts in the manifest with disposition generated", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-change-generated-"));
+  roots.push(root);
+  const input = {
+    repositoryRoot: root,
+    projectId: draft.projectId,
+    sourceKind: "terminal_turn" as const,
+    sourceEventId: "evt_fedcba9876543210fedcba9876543210",
+    before: { revision: hash("1"), files: { "src/a.ts": hash("2") } },
+    after: {
+      revision: hash("3"),
+      files: {
+        "src/a.ts": hash("4"),
+        ".changes/relint_a.yaml": hash("5"),
+        "apps/cli/release-sbom.cdx.json": hash("6"),
+        "apps/cli/release-artifact-manifest.json": hash("7"),
+        "pnpm-lock.yaml": hash("8"),
+      },
+    },
+    occurredAt: "2026-09-25T09:00:00.000Z",
+  };
+  const planned = (await planRepositoryChangeInRepository(input))!;
+  const manifest = JSON.parse(planned.manifestContent) as {
+    schemaVersion: number;
+    paths: { path: string; disposition: string }[];
+  };
+  expect(manifest.schemaVersion).toBe(4);
+  expect(manifest.paths.map(({ path, disposition }) => [path, disposition])).toEqual([
+    [".changes/relint_a.yaml", "generated"],
+    ["apps/cli/release-artifact-manifest.json", "generated"],
+    ["apps/cli/release-sbom.cdx.json", "generated"],
+    ["pnpm-lock.yaml", "generated"],
+    ["src/a.ts", "reviewable"],
+  ]);
+  expect(planned.payload.changedPathCount).toBe(5);
+  // A unit whose every change is generated carries no knowledge and creates no job.
+  expect(
+    await planRepositoryChangeInRepository({
+      ...input,
+      after: { ...input.after, files: { ...input.after.files, "src/a.ts": hash("2") } },
+    }),
+  ).toBeNull();
+  // Projects extend the generated set through the scanner policy.
+  await mkdir(resolve(root, ".lervo/knowledge"), { recursive: true });
+  await writeFile(
+    resolve(root, ".lervo/knowledge/policy.yaml"),
+    serializeRepositoryKnowledgePolicy({
+      ...defaultRepositoryKnowledgePolicy,
+      exclude: [...defaultRepositoryKnowledgePolicy.exclude, "src/**"],
+    }),
+  );
+  expect(await planRepositoryChangeInRepository(input)).toBeNull();
+});
+
 it("drops Lervo projections everywhere and Git-ignored build outputs inside Git", async () => {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-change-ignore-"));
   roots.push(root);
@@ -117,13 +175,21 @@ it("drops Lervo projections everywhere and Git-ignored build outputs inside Git"
     },
     occurredAt: "2026-09-25T09:00:00.000Z",
   };
-  expect((await planRepositoryChangeInRepository(input))?.payload.changedPaths).toEqual([
-    "pkg/tsconfig.tsbuildinfo",
-    "src/a.ts",
-  ]);
+  const reviewable = async () =>
+    (
+      JSON.parse((await planRepositoryChangeInRepository(input))!.manifestContent) as {
+        paths: { path: string; disposition: string }[];
+      }
+    ).paths
+      .filter((entry) => entry.disposition === "reviewable")
+      .map((entry) => entry.path);
+  expect(await reviewable()).toEqual(["pkg/tsconfig.tsbuildinfo", "src/a.ts"]);
   execFileSync("git", ["init", "-q"], { cwd: root });
   await writeFile(resolve(root, ".gitignore"), "*.tsbuildinfo\n");
   expect((await planRepositoryChangeInRepository(input))?.payload.changedPaths).toEqual([
+    ".lervo/generated/terminal-hooks/runtime-v2.mjs",
+    "docs/knowledge/index.md",
     "src/a.ts",
   ]);
+  expect(await reviewable()).toEqual(["src/a.ts"]);
 });

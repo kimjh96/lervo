@@ -8,11 +8,14 @@ import { acquireKnowledgeWorkerLock } from "./knowledge-worker-lock.js";
 import {
   inspectRepositoryKnowledgeCurrency,
   processRepositoryKnowledgeJobs,
+  requeueStalledRepositoryKnowledgeJobs,
   type RepositoryKnowledgeJobOutcome,
+  type RepositoryKnowledgeReviewJob,
   type RepositoryKnowledgeReviewSource,
   type RepositoryKnowledgeWorkerHost,
 } from "@lervo/repository-knowledge";
 
+import type { KnowledgeReviewCallGovernor } from "./knowledge-review-governance.js";
 import { createNoCapabilityProviderJsonRunner } from "./process-compiler.js";
 
 export type RepositoryKnowledgeWorkerProvider = "claude" | "codex";
@@ -40,17 +43,24 @@ const responseSchema = {
   required: ["classification"],
 } as const;
 
-/** The no-capability review host: a private process with no tools, fed only bounded text. */
+/**
+ * The no-capability review host: a private process with no tools, fed only bounded text. Without a
+ * governor the call runs directly, as the legacy CLI and Node owners do.
+ */
 export function createNoCapabilityKnowledgeReviewHost(
   root: string,
   provider: RepositoryKnowledgeWorkerProvider,
   executable?: string,
+  governor?: KnowledgeReviewCallGovernor,
 ): RepositoryKnowledgeWorkerHost {
   let context: SemanticReviewContextDocument[] = [];
   const assertReviewContextCurrent = () => assertCanonicalReviewContextCurrent(root, context);
   return {
     assertReviewContextCurrent,
-    review: async (sources: RepositoryKnowledgeReviewSource[]) => {
+    review: async (
+      sources: RepositoryKnowledgeReviewSource[],
+      job: RepositoryKnowledgeReviewJob,
+    ) => {
       context = await loadCanonicalReviewContext({
         repositoryRoot: root,
         sourcePaths: sources.map((source) => source.path),
@@ -61,12 +71,21 @@ export function createNoCapabilityKnowledgeReviewHost(
         systemPrompt,
         timeoutMs: REVIEW_TIMEOUT_MS,
       });
-      const value = (await runner.resolve({
+      const request = {
         schemaVersion: 1,
         task: "repository_change_knowledge_review",
         responseContract: { schemaVersion: 1, schema: responseSchema },
         untrustedSourceData: { context, sources },
-      })) as { classification?: unknown } | null;
+      };
+      const value = (
+        governor === undefined
+          ? await runner.resolve(request)
+          : await governor(job, async (signal) =>
+              runner.resolveObserved === undefined
+                ? { value: await runner.resolve(request, signal), usage: null }
+                : runner.resolveObserved(request, signal),
+            )
+      ) as { classification?: unknown } | null;
       const classification = value?.classification;
       if (
         classification !== "implementation_only" &&
@@ -100,6 +119,10 @@ export async function runRepositoryKnowledgeWorker(input: {
   const release = await acquireKnowledgeWorkerLock(input.repositoryRoot);
   if (release === null) return { status: "busy" };
   try {
+    await requeueStalledRepositoryKnowledgeJobs({
+      repositoryRoot: input.repositoryRoot,
+      events: input.events,
+    });
     const outcomes = await processRepositoryKnowledgeJobs({
       repositoryRoot: input.repositoryRoot,
       events: input.events,

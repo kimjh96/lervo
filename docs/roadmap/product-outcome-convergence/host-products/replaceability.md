@@ -2,7 +2,7 @@
 
 Outcome: models, providers, harnesses, retrieval methods, tools, skills, protocols, and UIs remain replaceable.
 
-State: `implemented`.
+State: `wired`.
 
 Core authority and evidence use provider-neutral contracts. Codex, Claude, search, connector, host, and execution-target behavior enter through adapters.
 

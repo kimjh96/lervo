@@ -1,4 +1,5 @@
 export * from "./canonical-json.js";
+export * from "./diagnostic-text-redaction.js";
 export * from "./event-chain.js";
 export * from "./event-reader.js";
 export * from "./event-reader-capabilities.js";
