@@ -64,7 +64,7 @@ export async function changeAgentDisplayName(input: {
       payload: {
         changeKind: "display_name",
         agentId: agent.agentId,
-        previousDisplayName: existing.displayName,
+        previousDisplayName: existing.displayName ?? null,
         displayName: agent.displayName,
         displayNameSource: agent.displayNameSource,
         revision: agent.revision,

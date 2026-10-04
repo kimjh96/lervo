@@ -42,7 +42,7 @@ export async function changeAgentRole(input: {
     capabilityPackageIds: existing.capabilityPackages?.map((item) => item.capabilityId) ?? [],
     generatedAt: now.toISOString(),
   });
-  const agent: WorkforceAgent = {
+  const agent: WorkforceAgent = withAgentDisplayIdentity({
     ...existing,
     roleId: contract.roleId,
     roleVersion: contract.version,
@@ -50,7 +50,7 @@ export async function changeAgentRole(input: {
     ...capabilityBinding,
     revision: existing.revision + 1,
     updatedAt: now.toISOString(),
-  };
+  });
   const agents = current.value.agents.map((candidate, candidateIndex) =>
     candidateIndex === index ? agent : candidate,
   );
@@ -69,7 +69,7 @@ export async function changeAgentRole(input: {
       payload: {
         changeKind: "role_binding",
         agentId: agent.agentId,
-        previousDisplayName: existing.displayName,
+        previousDisplayName: existing.displayName ?? null,
         displayName: agent.displayName,
         displayNameSource: agent.displayNameSource,
         previousRoleId: existing.roleId,

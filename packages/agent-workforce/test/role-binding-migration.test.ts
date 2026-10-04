@@ -183,6 +183,49 @@ describe("workforce role-binding migration", () => {
     ]);
   });
 
+  it("records a null previous display name when migrating a legacy agent", async () => {
+    const root = await repository();
+    const agent = await registerAgent({ repositoryRoot: root, roleId: "developer" });
+    const home = await resolveRepositoryCoordinationHome(root);
+    const registryPath = resolve(home.workforce, "agents.json");
+    const registry = JSON.parse(await readFile(registryPath, "utf8")) as {
+      agents: Array<Record<string, unknown>>;
+    };
+    // Agents registered before display identities have no stored display name.
+    delete registry.agents[0]!.displayName;
+    delete registry.agents[0]!.displayNameSource;
+    Object.assign(registry.agents[0]!, { roleContractHash: `sha256:${"1".repeat(64)}` });
+    await writeFile(registryPath, `${JSON.stringify(registry, null, 2)}\n`, { mode: 0o600 });
+    const plan = await createWorkforceRoleBindingMigrationPlan(root);
+    const events: WorkforceEvent[] = [];
+    const undefinedValue = (value: unknown): boolean =>
+      value === undefined ||
+      (value !== null &&
+        typeof value === "object" &&
+        Object.values(value as Record<string, unknown>).some(undefinedValue));
+    await applyWorkforceRoleBindingMigration({
+      repositoryRoot: root,
+      approval: plan.planId,
+      recordEvent: (event) => {
+        // Canonical event storage rejects undefined payload values.
+        if (undefinedValue(event.payload))
+          throw new Error(
+            `undefined event payload value: ${Object.entries(event.payload)
+              .filter(([, value]) => value === undefined)
+              .map(([key]) => key)
+              .join(",")}`,
+          );
+        events.push(event);
+      },
+    });
+    expect(events).toEqual([
+      expect.objectContaining({
+        type: "agent.identity.changed",
+        payload: expect.objectContaining({ agentId: agent.agentId, previousDisplayName: null }),
+      }),
+    ]);
+  });
+
   it("rejects an approval after the bound workforce state changes", async () => {
     const root = await repository();
     const plan = await createWorkforceRoleBindingMigrationPlan(root);

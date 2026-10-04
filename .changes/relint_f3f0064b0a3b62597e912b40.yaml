@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f3f0064b0a3b62597e912b40"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Record legacy agent display identity during role-binding migration so repository upgrades no longer fail."
