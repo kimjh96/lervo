@@ -17,13 +17,22 @@ export interface KnowledgeConvergenceProjection {
   outcome: (EventEnvelope & { payload: RepositoryKnowledgeConvergenceRecordedEventPayload }) | null;
 }
 
-/** Paged canonical replay needs no retained acknowledged queue row or mutable cursor. */
+const CONVERGENCE_EVENT_TYPES = [
+  "repository.knowledge.baseline.requested",
+  "repository.knowledge.stage.recorded",
+  "repository.knowledge.convergence.recorded",
+] as const;
+
+/**
+ * Paged canonical replay needs no retained acknowledged queue row or mutable cursor. The type
+ * filter only narrows the pages; a store that ignores it still yields the same projection.
+ */
 export function replayKnowledgeConvergence(events: OutboxStore): KnowledgeConvergenceProjection[] {
   const active = new Map<string, KnowledgeConvergenceProjection>();
   let lastCurrent: KnowledgeConvergenceProjection | null = null;
   let afterSeq = 0;
   for (;;) {
-    const page = events.list({ afterSeq, limit: 1_000 });
+    const page = events.list({ afterSeq, limit: 1_000, types: CONVERGENCE_EVENT_TYPES });
     if (page.length === 0) break;
     for (const event of page) {
       afterSeq = event.seq;
