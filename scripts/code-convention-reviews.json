@@ -137,7 +137,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:fc782bbba33c1b91d851e2755298cf68a958b9c96496b43408e817d26baef603",
+      "contentHash": "sha256:414a636e0354a3856b2e1cb88e25720ffbcb2d4dee6ac711f921f86703b1d2e8",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. V4 convergence payload/provenance rules remain separate modules; the added archive coordinate introduces no provider work, authority decision or persistence.",
       "disposition": "cohesive"

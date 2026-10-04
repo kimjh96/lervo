@@ -1060,6 +1060,10 @@ export const eventPayloadAllowlists = {
     "status",
     "usage",
     "reasonCode",
+    "channel",
+    "turnEventId",
+    "conversationDigest",
+    "stage",
   ],
   "execution.stages.observed": [
     "executionMode",
