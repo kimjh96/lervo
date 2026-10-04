@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { lstatSync } from "node:fs";
 
 import {
   canonicalJson,
@@ -11,7 +12,17 @@ import {
   convergenceSourceCaptureSettings,
   type ConvergenceSourceCaptureSettings,
 } from "./source-capture-settings.js";
-import { ordinaryConvergenceSourceBytes } from "./source-file.js";
+import {
+  MAXIMUM_ORDINARY_SOURCE_BYTES,
+  ordinaryConvergenceSourceBytes,
+  ordinaryConvergenceSourcePath,
+  readOrdinaryConvergenceSource,
+} from "./source-file.js";
+import {
+  openSourceHashCache,
+  type CachedSourceHash,
+  type SourceHashCache,
+} from "./source-hash-cache.js";
 import {
   symbolicConvergenceSourceBytes,
   assertSymbolicTargetsCaptured,
@@ -42,6 +53,42 @@ function git(root: string, args: string[]): string {
       cause: error,
     });
   }
+}
+
+function classifiedSource(bytes: Buffer): CachedSourceHash {
+  let kind: "text" | "opaque" = "opaque";
+  if (bytes.byteLength <= 256 * 1024) {
+    try {
+      if (!new TextDecoder("utf8", { fatal: true }).decode(bytes).includes("\0")) kind = "text";
+    } catch {
+      /* Opaque bytes stay out of text review. */
+    }
+  }
+  return { contentHash: sha256(bytes), kind };
+}
+
+/** Exact metadata may reuse a non-racy hash; every other source is read through the same checks. */
+function observeConvergenceSource(
+  root: string,
+  path: string,
+  settings: ConvergenceSourceCaptureSettings,
+  cache: SourceHashCache,
+): CachedSourceHash & { byteLength: number } {
+  const reference = settings.policy.symbolicReferences.find((item) => item.path === path);
+  if (reference) {
+    const bytes = symbolicConvergenceSourceBytes(root, reference);
+    return { ...classifiedSource(bytes), byteLength: bytes.byteLength };
+  }
+  const stat = lstatSync(ordinaryConvergenceSourcePath(root, path), { bigint: true });
+  if (stat.isFile() && stat.size <= BigInt(MAXIMUM_ORDINARY_SOURCE_BYTES)) {
+    const cached = cache.lookup(path, stat);
+    if (cached !== null) return { ...cached, byteLength: Number(stat.size) };
+  }
+  const hashedAtNs = BigInt(Date.now()) * 1_000_000n;
+  const { bytes, stat: read } = readOrdinaryConvergenceSource(root, path);
+  const observed = classifiedSource(bytes);
+  if (BigInt(bytes.byteLength) === read.size) cache.record(path, read, hashedAtNs, observed);
+  return { ...observed, byteLength: bytes.byteLength };
 }
 
 /** Current working-tree obligations; the complete capture still fences every repository source. */
@@ -81,26 +128,24 @@ export function captureConvergenceSources(
     throw new KnowledgeConvergenceRuntimeError("knowledge_source_limit_exceeded");
   const sources: KnowledgeConvergenceBaseline["sources"] = [];
   let totalBytes = 0;
-  for (const path of paths) {
-    let bytes: Buffer;
-    try {
-      bytes = convergenceSourceBytes(root, path, settings);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
-      throw error;
-    }
-    totalBytes += bytes.byteLength;
-    if (totalBytes > settings.policy.maximumRepositoryBytes)
-      throw new KnowledgeConvergenceRuntimeError("knowledge_source_limit_exceeded");
-    let kind: "text" | "opaque" = "opaque";
-    if (bytes.byteLength <= 256 * 1024) {
+  const cache = openSourceHashCache(root);
+  try {
+    for (const path of paths) {
+      let observed: CachedSourceHash & { byteLength: number };
       try {
-        if (!new TextDecoder("utf8", { fatal: true }).decode(bytes).includes("\0")) kind = "text";
-      } catch {
-        /* Opaque bytes stay out of text review. */
+        observed = observeConvergenceSource(root, path, settings, cache);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+        throw error;
       }
+      totalBytes += observed.byteLength;
+      if (totalBytes > settings.policy.maximumRepositoryBytes)
+        throw new KnowledgeConvergenceRuntimeError("knowledge_source_limit_exceeded");
+      sources.push({ path, contentHash: observed.contentHash, kind: observed.kind });
     }
-    sources.push({ path, contentHash: sha256(bytes), kind });
+    cache.commit(new Set(sources.map((source) => source.path)));
+  } finally {
+    cache.close();
   }
   assertSymbolicTargetsCaptured(
     settings.policy.symbolicReferences,

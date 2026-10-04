@@ -12,7 +12,7 @@ import {
   type KnowledgeConvergenceInput,
   type KnowledgeConvergenceStageResult,
 } from "@lervo/repository-knowledge";
-import { discoverConvergenceBaseline } from "./baseline.js";
+import { cycleScopedConvergenceDiscovery } from "./baseline.js";
 import { knowledgeProviderAdmissionState } from "./provider-admission.js";
 import { captureConvergenceSources } from "./source-capture.js";
 import { assertConvergenceDelegation, loadConvergenceDelegation } from "./delegation.js";
@@ -63,9 +63,13 @@ export function createConvergenceRuntimeHost(
 ): KnowledgeConvergenceHost {
   const root = context.storage.paths.repositoryRoot;
   const source = (state: KnowledgeConvergenceInput) => assertConvergenceSource(context, state);
+  const discover = cycleScopedConvergenceDiscovery(
+    root,
+    context.storage.events,
+    context.storage.artifacts,
+  );
   return {
-    discover: () =>
-      discoverConvergenceBaseline(root, context.storage.events, context.storage.artifacts),
+    discover,
     assertSettlement: (state) => {
       source(state);
       assertConvergenceSettlementAuthority(context, state);
@@ -96,11 +100,7 @@ export function createConvergenceRuntimeHost(
         evidenceHash?: string;
         retainedForNormalization?: boolean;
       };
-      const baseline = await discoverConvergenceBaseline(
-        root,
-        context.storage.events,
-        context.storage.artifacts,
-      );
+      const baseline = await discover();
       if (
         dependency.snapshotHash !== undefined &&
         dependency.snapshotHash !== baseline.sourceSnapshotHash

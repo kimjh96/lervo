@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_71589ba6358809f9737c4015"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Skip unchanged background knowledge cycles behind a change fence, back reconciliation off to 15 minutes, and cache source hashes."

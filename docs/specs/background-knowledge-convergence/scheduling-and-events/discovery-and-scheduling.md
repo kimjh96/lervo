@@ -2,7 +2,7 @@
 
 ## Discovery and durable continuation
 
-One owner per repository shares the Node/CLI worker lock and exact outbox leases. Startup and local event changes wake it; a 60-second timer inspects idle repositories. Without a Node, a detached bounded CLI worker advances available stages but cannot promise progress after exit. Status exposes the absence of a resident host. No Hub is required.
+One owner per repository shares the Node/CLI worker lock and exact outbox leases. Startup, local event changes and, under a Node resident, repository edits wake it; an adaptive timer that backs off from 60 seconds to 15 minutes behind a change fence inspects idle repositories ([resident cycle](../runtime/discovery-and-progress/resident-cycle.md)). Without a Node, a detached bounded CLI worker advances available stages but cannot promise progress after exit. Status exposes the absence of a resident host. No Hub is required.
 
 Discovery captures a complete, stable source scan, lifecycle reasons, current canonical candidates, pending normalization families, and writer/delegation coordinates. A baseline identity binds project, source snapshot, policy, and debt digest. The baseline event and first queue row are atomic and idempotent. Lease expiry or host restart replays canonical events rather than creating another task system.
 
