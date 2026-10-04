@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0e4028ebfa01a43e2a03241e
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ceac38d7c4f793e53c27865e
+outputLanguage: en
+outputs:
+  - byteCount: 2956
+    contentHash: sha256:072bc01416474454b3e74129a0622d3b4b511112997bd5ee9000e7c3ff94c1e7
+    path: docs/decisions/execution/orchestration/governed-work/request-intake/0428-bind-prior-conversation-evidence-to-supervision-goals.md
+    userRegionHash: sha256:072bc01416474454b3e74129a0622d3b4b511112997bd5ee9000e7c3ff94c1e7
+profile: decision_record
+recordId: knormdoc_22e10632d4b6533da12fa56b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f9d57a4d681e2ed7cf437e011771e9ba048a26896593f862086c0dfaae94b1fb
+sourcePath: docs/decisions/execution/orchestration/governed-work/request-intake/0428-bind-prior-conversation-evidence-to-supervision-goals.md
+sourceUnitVersionIds:
+  - uv_032bf8ef25c8e62cce3350aa
+  - uv_31f562583488a4c5dd71a287
+  - uv_5f9bda005c95c0ad94813ca8
+  - uv_69ebbc646e4f99dd6ba40cc6
+  - uv_dbca0c2b8d85cc556290aa3f

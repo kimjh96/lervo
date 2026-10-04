@@ -1,5 +1,6 @@
 import { rm } from "node:fs/promises";
 import { createAssignment } from "@lervo/agent-workforce";
+import * as workforce from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { supervisionFixture } from "./supervision.fixture.js";
@@ -71,6 +72,39 @@ describe("canonical supervision task source", () => {
       await expect(source.readSnapshot()).rejects.toThrow(
         /supervision observation changed while reading result evidence/u,
       );
+    } finally {
+      await storage.close();
+    }
+  });
+
+  it("keeps a bound task observation stable while unrelated background work is assigned", async () => {
+    const f = await supervisionFixture(roots);
+    const storage = await openProjectStorage(f.root);
+    try {
+      const originalList = workforce.listAssignments;
+      let injected = false;
+      vi.spyOn(workforce, "listAssignments").mockImplementation(async (root) => {
+        const assignments = await originalList(root);
+        if (!injected) {
+          injected = true;
+          await createAssignment({
+            repositoryRoot: f.root,
+            roleId: f.owner.roleId,
+            taskType: "knowledge.background.review",
+            expectedPaths: ["docs"],
+            acceptanceCriteria: ["Review unrelated repository knowledge."],
+            verificationSuiteIds: ["knowledge.review"],
+          });
+        }
+        return assignments;
+      });
+
+      const source = new SupervisionTaskSource(storage, f.binding, () => new Date().toISOString());
+      const observed = await source.read();
+      expect(injected).toBe(true);
+      expect(observed.workstreamAssignments).toEqual([]);
+      expect(observed.graph.nodes).toEqual([]);
+      expect(await originalList(f.root)).toHaveLength(1);
     } finally {
       await storage.close();
     }

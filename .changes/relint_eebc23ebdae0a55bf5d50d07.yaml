@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_eebc23ebdae0a55bf5d50d07"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep an unchanged blocked supervision source reported as blocked instead of healthy."

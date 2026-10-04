@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_16ae72c7910c68225044c2bb
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6c35a16c3d2a3796bc064159
+outputLanguage: en
+outputs:
+  - byteCount: 573
+    contentHash: sha256:a608c50e8b7d8021fcc539ff116fa070ec880d4f49a67788be3442b5903dacd3
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/complete-execution-evidence.md
+    userRegionHash: sha256:a608c50e8b7d8021fcc539ff116fa070ec880d4f49a67788be3442b5903dacd3
+  - byteCount: 646
+    contentHash: sha256:7adfde05ac8172d2b3a0439c66789a1e3e2c2649f8eedd9907b0ac11d472c53a
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/complete-execution-evidence/asset-authority-and-supervision.md
+    userRegionHash: sha256:7adfde05ac8172d2b3a0439c66789a1e3e2c2649f8eedd9907b0ac11d472c53a
+  - byteCount: 2323
+    contentHash: sha256:909bfe7f9a2ffba51d544fba4a36840dd66f94092336655ef07f5be9e02f3f2c
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/complete-execution-evidence/installed-validation-and-limits.md
+    userRegionHash: sha256:909bfe7f9a2ffba51d544fba4a36840dd66f94092336655ef07f5be9e02f3f2c
+  - byteCount: 1239
+    contentHash: sha256:58028c6ba8dab4802df1874c35ce9a7189d2239c038d1334917286f44c189681
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/complete-execution-evidence/pagination-and-source-policy.md
+    userRegionHash: sha256:58028c6ba8dab4802df1874c35ce9a7189d2239c038d1334917286f44c189681
+profile: repository_document
+recordId: knormdoc_d9f3575dd14e57b850bb4da1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3790a41943cc986d6e226e8e22141cb443da010718c483e3aa11cea55169bc46
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/complete-execution-evidence.md
+sourceUnitVersionIds:
+  - uv_1ea7701734f0b78b232a8724
+  - uv_27563fa0e5896824a4fdfc8f
+  - uv_a7838ec8f48dabb5804f47e8
+  - uv_d9c3f3b6dd04ed222a023a5c

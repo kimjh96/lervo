@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6cf5b3df8fe0d91499cb1055
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_abaa95d0374eca83276edd86
+outputLanguage: en
+outputs:
+  - byteCount: 4083
+    contentHash: sha256:467addad45eff899fdb6e153d5e7d8780b3688af920e3a259ab67d4c4104e14c
+    path: docs/decisions/execution/orchestration/governed-work/resource-accounting/0426-project-goal-budget-attention.md
+    userRegionHash: sha256:467addad45eff899fdb6e153d5e7d8780b3688af920e3a259ab67d4c4104e14c
+profile: decision_record
+recordId: knormdoc_43e0ba8d5ebd93dbda133ee9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:691da8ae6086290f2c10202c3220e66d847eb87ec17b07ad3ba618989af6938c
+sourcePath: docs/decisions/execution/orchestration/governed-work/resource-accounting/0426-project-goal-budget-attention.md
+sourceUnitVersionIds:
+  - uv_4b90f711275943e499b30173
+  - uv_55eab5458d025b106311e9c9
+  - uv_eed7c476184356e53782e2ce
+  - uv_f6f897e5ed06a4111e6aeaee

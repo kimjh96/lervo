@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c1f48f9016cacbe5294ee443"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Hide distributed discussion when a channel lacks two independently bound bot peers, preserving addressed delegation."

@@ -15,6 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@lervo/repository-knowledge": "workspace:*"
+    "@lervo/repository-knowledge": "workspace:*",
+    "@lervo/repository-context": "workspace:*"
   }
 }

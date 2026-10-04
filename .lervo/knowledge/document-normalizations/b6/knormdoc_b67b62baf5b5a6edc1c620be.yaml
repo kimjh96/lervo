@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_583bc04f44491e7c51f53c21
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_606957a83171af1bc2a6a6c0
+outputLanguage: en
+outputs:
+  - byteCount: 3939
+    contentHash: sha256:cae730e7921c9099ff42ad342ad63e70c0bcd4c0053e5edc6f29b263043835e5
+    path: docs/decisions/knowledge/repository/canonicalization/0450-keep-background-knowledge-out-of-developer-flow.md
+    userRegionHash: sha256:cae730e7921c9099ff42ad342ad63e70c0bcd4c0053e5edc6f29b263043835e5
+profile: decision_record
+recordId: knormdoc_b67b62baf5b5a6edc1c620be
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4541b1a913fbd2eaadc8373fc3559417eb816e390ece25e3c01d506300e1a272
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0450-keep-background-knowledge-out-of-developer-flow.md
+sourceUnitVersionIds:
+  - uv_7e409a64b3db925fd5a585ff
+  - uv_96e3ebd37788821b4ded10ad
+  - uv_a3fc3617a033018a55d35b72
+  - uv_d0b28601e2e941294b5796e2
+  - uv_d87a65f8c978bc293077a600

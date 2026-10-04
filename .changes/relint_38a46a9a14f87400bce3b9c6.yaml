@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_38a46a9a14f87400bce3b9c6"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reject repository work whose changed-path evidence exceeds the canonical completion bound."

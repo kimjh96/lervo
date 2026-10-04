@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9420d3339f16d48309290ec2"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep a superseded workspace generation proven unstarted while the current worker appends its own events."

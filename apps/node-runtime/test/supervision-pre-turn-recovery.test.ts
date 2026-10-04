@@ -76,7 +76,7 @@ it("settles a pre-turn interruption fenced by a completed host boot", async () =
     const action = plan as OperatingActionPlanV1;
     const identity = managedExecutionIdentity(action.projectId, operatingContractHash(action));
     const at = (offsetMs: number) => new Date(STARTED + offsetMs).toISOString();
-    type Draft = Parameters<typeof storage.events.append>[0];
+    type Draft = Extract<Parameters<typeof storage.events.append>[0], { schemaVersion: 3 }>;
     const append = (
       index: number,
       type: Draft["type"],

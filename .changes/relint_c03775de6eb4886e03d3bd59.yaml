@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c03775de6eb4886e03d3bd59"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Assign open canonicalization candidates to the next Discord repository-work turn."

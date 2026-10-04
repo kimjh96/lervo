@@ -1,0 +1,14 @@
+# Ownership and activation
+
+The runtime contract covers:
+
+- [Runtime ownership](ownership-and-activation/runtime-ownership.md): package responsibilities, child processes, repository leases, and recovery behavior.
+- [Delegation and activation](ownership-and-activation/delegation-and-activation.md): activation prerequisites and host-local authority.
+- [Asset manifest authority](ownership-and-activation/asset-manifest-authority.md): bounded asset declarations and reviewed delegation application.
+
+Governing decisions:
+
+- [ADR-0441: Resident knowledge isolation](../../../decisions/knowledge/repository/canonicalization/0441-isolate-resident-knowledge-from-node-conversations.md).
+- [ADR-0442: Conversation repository snapshot isolation](../../../decisions/knowledge/repository/canonicalization/0442-isolate-conversation-repository-snapshots.md).
+- [ADR-0444: Materialization serialization with managed runs](../../../decisions/knowledge/repository/canonicalization/0444-serialize-knowledge-materialization-with-managed-runs.md).
+- [ADR-0438: Delegation-bound asset manifests](../../../decisions/knowledge/repository/canonicalization/0438-bind-bounded-asset-manifests-to-delegation.md).

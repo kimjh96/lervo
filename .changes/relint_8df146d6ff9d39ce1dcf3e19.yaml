@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8df146d6ff9d39ce1dcf3e19"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reconcile a supervision decision whose attempt already ended uncertain, and let a rolled-back topology allocation be superseded."

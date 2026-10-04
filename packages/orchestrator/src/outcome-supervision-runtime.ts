@@ -64,6 +64,12 @@ export class OutcomeSupervisionRuntime {
 
   constructor(private readonly ports: OutcomeSupervisionPorts) {}
 
+  /** Schedules deferred startup evaluation even without another source notification. */
+  nextCheckAt(supervisionId: string): number | null {
+    const deadline = this.cursors.nextCheckAt(supervisionId);
+    return deadline !== null && deadline > Date.parse(this.ports.now()) ? deadline : null;
+  }
+
   async runCycle(supervisionId: string): Promise<OutcomeSupervisionCycleResult> {
     const result = await this.ports.withOwnerLease(supervisionId, async () => {
       const snapshot = await this.ports.readSnapshot(supervisionId);
@@ -85,7 +91,7 @@ export class OutcomeSupervisionRuntime {
         snapshot.workstreamStatus === "active" &&
         !hasDurableWorkerContinuation(snapshot)
       ) {
-        this.cursors.defer(supervisionId, snapshot.sourceRevisionDigest);
+        this.cursors.defer(supervisionId, snapshot.sourceRevisionDigest, now);
         return { disposition: "idle" as const, report: null };
       }
       const unchanged = this.cursors.unchanged(supervisionId, snapshot.sourceRevisionDigest, now);

@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9bbcc3e17cff46bf900e69ec
+outputLanguage: en
+outputs:
+  - byteCount: 3989
+    contentHash: sha256:7648cb002bd99a1793c1bfc08e34cbd1f01a1d5b376ff65744ed92b6f95f4b82
+    path: docs/distribution/node-runtime-distribution/installation-and-readiness/cli-binding-upgrades.md
+    userRegionHash: sha256:7648cb002bd99a1793c1bfc08e34cbd1f01a1d5b376ff65744ed92b6f95f4b82
+profile: repository_document
+recordId: knormdoc_87eeece9d223d02adb69322b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9615db79c377e20b8c025cb9483e76f5cff9988ec9e064e8655b9f0c1fbd4d5f
+sourcePath: docs/distribution/node-runtime-distribution/installation-and-readiness/cli-binding-upgrades.md
+sourceUnitVersionIds:
+  - uv_6804faa487301b5c78a3e3f8
+  - uv_6d86f5598c1bf713ebe80190
+  - uv_6dde8eb054ad779feee36ab1
+  - uv_e57fd42913ffc2e1968506f4

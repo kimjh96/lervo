@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5c0ccf8bf645f897295d16ef
+outputLanguage: en
+outputs:
+  - byteCount: 394
+    contentHash: sha256:1f10e7ce3272abc1ec6bee7de813935da71bfc1f3e60275f5e807dfdc1dd882b
+    path: docs/specifications/execution/product-host-protocol/contract.md
+    userRegionHash: sha256:1f10e7ce3272abc1ec6bee7de813935da71bfc1f3e60275f5e807dfdc1dd882b
+  - byteCount: 1088
+    contentHash: sha256:bba43613109ed68307c5f0634289a1da6bf9680fcba4558a3e9e368db28086a6
+    path: docs/specifications/execution/product-host-protocol/contract/authority.md
+    userRegionHash: sha256:bba43613109ed68307c5f0634289a1da6bf9680fcba4558a3e9e368db28086a6
+  - byteCount: 742
+    contentHash: sha256:dcfa37dd6f54cc0d82245716010bede19c5637bcf64b7170ed63b40800aeff64
+    path: docs/specifications/execution/product-host-protocol/contract/report.md
+    userRegionHash: sha256:dcfa37dd6f54cc0d82245716010bede19c5637bcf64b7170ed63b40800aeff64
+  - byteCount: 2988
+    contentHash: sha256:fdd271ea02edffde443e9881bc575cd33f2bd86d4fa839cd8a5360a412517559
+    path: docs/specifications/execution/product-host-protocol/contract/unsupported-capabilities.md
+    userRegionHash: sha256:fdd271ea02edffde443e9881bc575cd33f2bd86d4fa839cd8a5360a412517559
+profile: specification_document
+recordId: knormdoc_0f0d0f83d2bdc42ac6f9188d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:49608c2ad4157eec8a18b5369c8918e0eb0d89662ffd71696ccf18e4e351ef11
+sourcePath: docs/specifications/execution/product-host-protocol/contract.md
+sourceUnitVersionIds:
+  - uv_3991eef54267100b07c48f53
+  - uv_48f201a173cfd83c5b5ca8d1
+  - uv_5c66e683460f6d4f05163a5e
+  - uv_cfc334a2a1a089bb255d278f

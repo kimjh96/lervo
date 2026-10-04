@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6816ab80cebb8301d35718e9
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7e2acc05e0accbc34456c3b1
+outputLanguage: en
+outputs:
+  - byteCount: 1588
+    contentHash: sha256:a216d42581718d7dbc9e9ee4732597231029241f094e1fef52519e4383f2aee9
+    path: docs/specs/background-knowledge-convergence/authority-and-completion/authority-and-integration/scoped-writes-and-integration.md
+    userRegionHash: sha256:a216d42581718d7dbc9e9ee4732597231029241f094e1fef52519e4383f2aee9
+profile: specification_document
+recordId: knormdoc_71ba9e1b0601aa50cd62be81
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:65d6ca15418d306c5a2e980e3ff4c29ae24222466ce676dc1cdf65fc2da281d8
+sourcePath: docs/specs/background-knowledge-convergence/authority-and-completion/authority-and-integration/scoped-writes-and-integration.md
+sourceUnitVersionIds:
+  - uv_0caaec0146dd275c364c95d6

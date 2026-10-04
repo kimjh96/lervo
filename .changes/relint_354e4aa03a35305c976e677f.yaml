@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_354e4aa03a35305c976e677f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Treat a Claude turn that failed before any model answered, such as a contended OAuth refresh, as a retryable unavailable model."

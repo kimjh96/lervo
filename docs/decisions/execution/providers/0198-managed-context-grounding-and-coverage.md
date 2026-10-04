@@ -5,9 +5,9 @@
 
 ## Context
 
-Managed runs record policy selection as E1, exact loading as E2, and adapter-controlled delivery as E3. The write gate validates that chain, but traces could not reconstruct every selection ground or calculate version-based delivery coverage. The `referenced` state lacked a provider-bound E4 producer.
+Managed runs record policy selection as E1, exact loading as E2, and adapter-controlled delivery as E3. The write gate validates this chain, but traces could not reconstruct every selection ground or calculate version-based delivery coverage. The `referenced` state lacked a provider-bound E4 producer.
 
-Delivery does not prove understanding or use. A citation instruction is not evidence unless an observable, coordinate-bound provider result returns an exact identifier for the injected document version.
+Delivery does not prove understanding or use. A citation instruction is evidence only when an observable, coordinate-bound provider result returns an exact identifier for the injected document version.
 
 ## Decision
 
@@ -21,9 +21,18 @@ Each controlled adapter context includes:
 <!-- lervo-e4:<documentId>:<contentHash> -->
 ```
 
-The accompanying instruction asks the provider to append the exact token as a standalone Markdown HTML comment only when its final response explicitly relies on that document. The instruction is not evidence. After validating a structured `AdapterTurnResult`, the orchestrator atomically records one `adapter.result.captured` and zero or more `context.referenced` events. E4 requires an exact token matching a document in the E3 envelope for the same run, session, provider session, target turn, provider turn, adapter receipt, context generation, content hash, and scope.
+The accompanying instruction asks the provider to append the exact token as a standalone Markdown HTML comment only when its final response explicitly relies on that document. The instruction itself is not evidence.
 
-The validated adapter result remains the source for capture and E4. Before storing the human-facing artifact, parse CommonMark and remove the complete standalone HTML-comment line only for exact document versions in the current envelope. Empty HTML-comment residue outside code is also removed atomically. Marker-shaped text in fenced, indented, or inline code remains user-visible and establishes no reference. A known token in prose, an inline HTML comment, or another malformed placement fails the result contract instead of deleting only the token and leaving `<!-- -->` residue. Do not hide unknown or forged tokens. Writing evaluation, publication permits, `run.completed`, and CLI output bind to the derived artifact, preventing evidence metadata from affecting prose evaluation or displayed output. An empty projection fails artifact storage. The capture event retains the source result digest.
+After validating a structured `AdapterTurnResult`, the orchestrator atomically records one `adapter.result.captured` and zero or more `context.referenced` events. E4 requires an exact token matching a document in the E3 envelope for the same run, session, provider session, target turn, provider turn, adapter receipt, context generation, content hash, and scope.
+
+The validated adapter result remains the source for capture and E4. Before storing the human-facing artifact:
+
+- Parse CommonMark and remove the complete standalone HTML-comment line only for exact document versions in the current envelope. Atomically remove empty HTML-comment residue outside code as well.
+- Keep marker-shaped text in fenced, indented, or inline code visible; it establishes no reference.
+- Fail the result contract for a known token in prose, an inline HTML comment, or another malformed placement. Do not delete only the token and leave `<!-- -->` residue.
+- Do not hide unknown or forged tokens.
+
+Writing evaluation, publication permits, `run.completed`, and CLI output bind to the derived artifact so evidence metadata cannot affect prose evaluation or displayed output. An empty projection fails artifact storage. The capture event retains the source result digest.
 
 E4 `output_citation` proves only an observable exact citation in the structured result—not attention, understanding, semantic reliance, agreement, correctness, or internal use.
 
@@ -60,7 +69,7 @@ Full local trace rebuilds the report from canonical local events. The Hub SQLite
 
 Events may retain repository document IDs, relative evidence coordinates, content hashes, source revisions, provider session and turn coordinates, counts, media type, and the exact bounded token. They exclude prompts, document and result bodies, transcripts, credentials, absolute paths, unrestricted command output, and tool input.
 
-Schema, redaction, result binding, E3 binding, event transaction, and projection inconsistencies fail closed. Missing native telemetry lowers availability and never upgrades evidence. Provider parsing stays behind adapters; the projector and evidence contract are provider-neutral.
+Schema, redaction, result binding, E3 binding, event transaction, and projection inconsistencies fail closed. Missing native telemetry lowers availability and never upgrades evidence. Provider parsing stays behind adapters; the projector and evidence contract remain provider-neutral.
 
 ## Consequences
 

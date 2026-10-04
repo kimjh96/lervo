@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_152164bd89b7d7a0987926fa
+outputLanguage: en
+outputs:
+  - byteCount: 841
+    contentHash: sha256:71b4ec9bed5eaf06237f8e66ec23add73327af03dad5120d04b2334fc91646b2
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories/runtime-identity/earlier-transitions.md
+    userRegionHash: sha256:71b4ec9bed5eaf06237f8e66ec23add73327af03dad5120d04b2334fc91646b2
+profile: repository_document
+recordId: knormdoc_3a596893a978c643d4fcdde3
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:22875b2967291ccdbf89dd71fe40a54f94b97887a6c2052b6023f7412d4d5a97
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories/runtime-identity/earlier-transitions.md
+sourceUnitVersionIds:
+  - uv_721199fdbc715a511d7c9d06

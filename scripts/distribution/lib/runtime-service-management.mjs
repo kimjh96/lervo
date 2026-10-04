@@ -14,6 +14,10 @@ import {
 } from "./node-supervision-upgrade-fence.mjs";
 import { NodeWorkUpgradeFenceError, withNodeWorkUpgradeFence } from "./node-work-upgrade-fence.mjs";
 import { nodeUpgradePredecessorConfig } from "./node-upgrade-predecessor-config.mjs";
+import {
+  createNodeCliConfigurationTransition,
+  NodeCliConfigurationTransitionError,
+} from "./node-cli-configuration-transition.mjs";
 
 const MAXIMUM_DEFINITION_BYTES = 131_072;
 const SERVICE_STABILITY_OBSERVATIONS = 3;
@@ -65,6 +69,7 @@ function parse(args) {
     "--executable",
     "--node-executable",
     "--config",
+    "--configuration-source",
   ]);
   if ([...values.keys()].some((key) => !allowed.has(key))) {
     fail("invalid_arguments", "An unknown service management argument was provided.");
@@ -98,10 +103,14 @@ function parse(args) {
     return { action, manager, runtime, instance: instance ?? null };
   }
   const nodeExecutable = values.get("--node-executable");
+  const configurationSource = values.get("--configuration-source");
+  if (configurationSource !== undefined && (runtime !== "node" || action !== "upgrade"))
+    fail("invalid_arguments", "CLI configuration replacement requires a Node upgrade.");
   const expectedSize =
     (runtime === "node" ? 7 : 6) +
     (["upgrade", "rollback"].includes(action) ? 1 : 0) +
-    (nodeExecutable === undefined ? 0 : 1);
+    (nodeExecutable === undefined ? 0 : 1) +
+    (configurationSource === undefined ? 0 : 1);
   if (!write || values.size !== expectedSize) {
     fail("write_not_authorized", "Install and remove require canonical input and --write.");
   }
@@ -114,6 +123,7 @@ function parse(args) {
     executable,
     ...(nodeExecutable === undefined ? [] : [nodeExecutable]),
     config,
+    ...(configurationSource === undefined ? [] : [configurationSource]),
     ...(["upgrade", "rollback"].includes(action) ? [previousDefinition] : []),
   ]) {
     if (!isAbsolute(value) || value.includes("\0") || /[\r\n]/u.test(value)) {
@@ -130,6 +140,9 @@ function parse(args) {
     executable: resolve(executable),
     nodeExecutable: nodeExecutable === undefined ? null : resolve(nodeExecutable),
     config: resolve(config),
+    ...(configurationSource === undefined
+      ? {}
+      : { configurationSource: resolve(configurationSource) }),
   };
 }
 
@@ -591,12 +604,16 @@ async function upgrade(input, expected, previous, context) {
       );
     }
   }
+  await context.configurationTransition?.apply();
   await replaceTarget(context.target, expected);
   let activated = await activate(input, context);
   let after = await serviceStatus(input, context);
   if (activated && isOperationalServiceStatus(after))
     after = await stabilizedServiceStatus(input, context, after);
-  if (activated && isOperationalServiceStatus(after)) return { ...after, change: "upgraded" };
+  if (activated && isOperationalServiceStatus(after)) {
+    await context.configurationTransition?.complete();
+    return { ...after, change: "upgraded" };
+  }
   if (after.active) {
     await stopForUpgrade(input, context);
     const stopped = await stabilizedInactiveServiceStatus(
@@ -608,6 +625,7 @@ async function upgrade(input, expected, previous, context) {
       fail("service_upgrade_unknown", "The replacement service stop could not be verified.");
     }
   }
+  await context.configurationTransition?.restore();
   await replaceTarget(context.target, previous);
   if (wasOperational) activated = await activate(input, context);
   let restored = await serviceStatus(input, context);
@@ -628,6 +646,11 @@ async function upgrade(input, expected, previous, context) {
 
 export async function manageRuntimeService(args, options = {}) {
   const input = parse(args[0] === "--" ? args.slice(1) : args);
+  if (
+    options.prepareConfigurationTransition &&
+    (input.runtime !== "node" || input.action !== "upgrade")
+  )
+    fail("invalid_arguments", "Configuration replacement requires a guarded Node upgrade.");
   const platform = options.platform ?? process.platform;
   if (
     (input.manager === "systemd" && platform !== "linux") ||
@@ -677,13 +700,33 @@ export async function manageRuntimeService(args, options = {}) {
           withNodeWorkUpgradeFence(
             {
               ...input,
+              verifyInactivePredecessor: async () => {
+                const installed = await currentTarget(context.target);
+                const predecessor = input.action === "upgrade" ? previous : expected;
+                if (!installed?.equals(predecessor)) return false;
+                const state = await serviceStatus(input, context);
+                return (
+                  isInactiveServiceStatus(state) &&
+                  isInactiveServiceStatus(
+                    await stabilizedInactiveServiceStatus(input, context, state),
+                  )
+                );
+              },
               ...(supervisionCoordinates?.sourceDigest === undefined
                 ? {}
                 : { expectedSourceDigest: supervisionCoordinates.sourceDigest }),
               openAdmission: options.openNodeWorkAdmission,
             },
-            async () => {
-              if (input.action === "upgrade") return upgrade(input, expected, previous, context);
+            async (admission) => {
+              if (input.action === "upgrade") {
+                const configurationTransition = await (
+                  options.prepareConfigurationTransition ??
+                  (input.configurationSource === undefined
+                    ? undefined
+                    : createNodeCliConfigurationTransition)
+                )?.(input, admission);
+                return upgrade(input, expected, previous, { ...context, configurationTransition });
+              }
               const restored = await upgrade(input, previous, expected, context);
               return { ...restored, change: "rolled_back" };
             },
@@ -692,7 +735,8 @@ export async function manageRuntimeService(args, options = {}) {
     } catch (error) {
       if (
         error instanceof NodeSupervisionUpgradeFenceError ||
-        error instanceof NodeWorkUpgradeFenceError
+        error instanceof NodeWorkUpgradeFenceError ||
+        error instanceof NodeCliConfigurationTransitionError
       )
         throw new RuntimeServiceManagementError(error.code, error.message, { cause: error });
       throw error;

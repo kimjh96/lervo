@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ee50a075f96c4ce3d6f2c043
+outputLanguage: en
+outputs:
+  - byteCount: 13949
+    contentHash: sha256:396477f77f0df22606363c478a3cd1c49601b8500b18ec01ee7a5a8cc2d02f01
+    path: docs/decisions/knowledge/repository/canonicalization/0427-decouple-conversation-work-from-agent-owned-knowledge-convergence.md
+    userRegionHash: sha256:396477f77f0df22606363c478a3cd1c49601b8500b18ec01ee7a5a8cc2d02f01
+profile: decision_record
+recordId: knormdoc_c7b004fb399b9c6ef158bcc4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1e54614858eb1bb39a5aeef985fbd1e11c908350b31307b02046b4caeed5d3b9
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0427-decouple-conversation-work-from-agent-owned-knowledge-convergence.md
+sourceUnitVersionIds:
+  - uv_5dd72c2918af3fd092655883
+  - uv_7a71aeab41336f6d4c03b7f0
+  - uv_7b2be3f47617aae488c64a33
+  - uv_9847d84599e78681902f0a66
+  - uv_9f0e749861547a01b46abc76
+  - uv_a02fdf5edc30c82f7b2e07c5
+  - uv_d0e160f9e1ef5826824197e2
+  - uv_e113fa750e9ff75fe8e67bc8

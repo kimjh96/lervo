@@ -2,7 +2,7 @@
   "schemaVersion": 5,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.17.0",
+    "version": "0.18.0",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -79,6 +79,7 @@
       "@lervo/live-trigger-contract@0.1.0",
       "@lervo/live-trigger-sqlite@0.1.0",
       "@lervo/managed-provider-host@0.1.0",
+      "@lervo/node-work-admission@0.1.0",
       "@lervo/orchestrator@0.1.0",
       "@lervo/organization-credential-source-file@0.1.0",
       "@lervo/organization-deployment-contract@0.1.0",
@@ -95,6 +96,7 @@
       "@lervo/remote-command@0.1.0",
       "@lervo/repository-context@0.1.0",
       "@lervo/repository-knowledge-compiler@0.1.0",
+      "@lervo/repository-knowledge-runtime@0.1.0",
       "@lervo/repository-knowledge@0.1.0",
       "@lervo/repository-registry@0.1.0",
       "@lervo/request-grounding@0.1.0",
@@ -159,7 +161,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:75969ee44395a9b3f3841b7fb9d96f5ab2fc6654ad6483a8d3fd826dd9dc6817"
+    "bundleDigest": "sha256:917ff6459ab28480d42f77dec915457440771908f26535a11411e4a187426cbf"
   },
   "archive": {
     "rootFiles": [
@@ -168,27 +170,27 @@
     "files": [
       {
         "path": "README.md",
-        "size": 2119,
-        "sha256": "sha256:18d4bbb808f3a52369b0324dc527daa0a5d9016bae94072d4679c6aa03df6516"
+        "size": 585,
+        "sha256": "sha256:83937ae705e94ef14f624da3f70da715fad32ef3e453ff9e06f74129ced45642"
       },
       {
         "path": "dist/bin.js",
-        "size": 6705216,
-        "sha256": "sha256:eeea38396ba0e750719de65ad10d4ba55d69dd7676d6de73f08de451a867993f"
+        "size": 9376439,
+        "sha256": "sha256:f6473e699a4164ca4d252b51dddae226690b25690ad57f1c91f6594c76148e4a"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 5544302,
-        "sha256": "sha256:0d28e3f74da8588e1ab8f748161cfb1ab8881ed8703d70ac4412a638a237e26d"
+        "size": 6353827,
+        "sha256": "sha256:e3e1b7284a0761bed6f87c51acdf1430e1dd8e7f6756605b5fb1802304c9b055"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 2987478,
-        "sha256": "sha256:fb633723707bb7e8d3c75bc492cbe3ed5fbd3be777ccb0433098cde67f3697d6"
+        "size": 3672467,
+        "sha256": "sha256:dacc844a79feb99925648b32aa902a1f2434f77a3c0b0c665a7610c45da32c9e"
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:d4bd9eb01d610686a7dea7fd361d1972e793d9ff31b24cd650a928a72d510f64"
+    "contentDigest": "sha256:1089646c4622a896b21ac612ca8e7dc04f157165a5b9d160bf03eba64e9f4e5e"
   },
   "dependencies": {
     "portable": [
@@ -301,5 +303,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:71e0450294369f48a469b4e421cf4a9cf95ed524c6d46b5d41a61d588659bd61"
+  "artifactDigest": "sha256:26e6358d6900f3736a914a9884549389e8d57239cfddedb6f2c2bad5aceccc57"
 }

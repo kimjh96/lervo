@@ -14,6 +14,7 @@ export function executionInstructions(input: {
   worker: { displayName: string; roleId: string } | null;
   externalEffectsAuthorized: boolean;
   finalizationStartsAt: string;
+  knowledgeMode?: "synchronous" | "pending_background";
   /** Background knowledge review left these candidates; this write-capable turn owns them. */
   canonicalizationCandidates?: readonly CanonicalizationAssignment[];
   /** A host-generated normalization candidate this repository-changing turn must review. */
@@ -37,10 +38,14 @@ export function executionInstructions(input: {
     "Do not merely promise work, create a queue, or ask the user to repeat information already present below.",
     "If repository bytes change, create or advance a bounded active workstream checkpoint immediately after the first material edit; do not postpone the first checkpoint until all implementation and verification are finished.",
     `At ${input.finalizationStartsAt}, stop new implementation and optional checks. Use the remaining execution reserve to inspect the exact current state, advance the workstream again when later edits changed it, run the bounded required completion checks, and answer. If the full scope is not complete, preserve an accurate active checkpoint and report the bounded remainder instead of working until the provider is killed.`,
-    "Before replying, finish the provider-observable AGENTS.md lifecycle for the exact current state, including the workstream, knowledge, and verification checks required for the touched scope.",
+    input.knowledgeMode === "pending_background"
+      ? "Before replying, finish the provider-observable AGENTS.md workstream and verification checks for the exact touched scope. The host owns background knowledge convergence; do not run global knowledge assertion, migration, normalization, or refresh solely to settle this turn, and do not claim repository knowledge is current while it remains pending."
+      : "Before replying, finish the provider-observable AGENTS.md lifecycle for the exact current state, including the workstream, knowledge, and verification checks required for the touched scope.",
     "Do not create or require an unmanaged terminal declaration. Repository-replica freshness and the managed conversation-work completion event are host-owned post-exit gates; the Node verifies them after this process exits and refuses publication when they fail.",
     "Do not tell the user that final completion is withheld, pending, or unconfirmed because replica parity or a managed completion event is not yet visible inside this provider process. Report the requested work and provider-observed verification accurately; the host owns that final publication decision.",
-    "A changed worktree without its checkpoint, valid current-scope knowledge, and required provider-observable verification is a failed turn and must not be reported as complete. Pre-existing unrelated normalization debt is not a blocker when knowledge lint remains valid; do not misreport it as caused by this turn.",
+    input.knowledgeMode === "pending_background"
+      ? "A changed worktree without its checkpoint and required provider-observable verification is a failed turn and must not be reported as complete. Background knowledge completion is a separate host-owned outcome; report only the evidence observed in this turn."
+      : "A changed worktree without its checkpoint, valid current-scope knowledge, and required provider-observable verification is a failed turn and must not be reported as complete. Pre-existing unrelated normalization debt is not a blocker when knowledge lint remains valid; do not misreport it as caused by this turn.",
     input.externalEffectsAuthorized
       ? "The authenticated requester has configured external-effect request authority. Perform only a commit, repository-remote creation, push, or deployment explicitly requested in Current request. For deployment, identify the exact target, preserve a rollback, check current runtime state and authority, and verify the installed result. Do not widen risk limits, reset a kill switch, or alter credentials without a separate explicit request. Observe external state before execution, execute once, and verify it independently afterward. On an uncertain result, inspect the target instead of blindly retrying. Broad deletion, unrelated publication, and secret disclosure remain prohibited."
       : "Do not commit, push, publish, deploy, delete broad paths, or expose secrets.",

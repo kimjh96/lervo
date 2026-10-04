@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6d344bc277afe591a1fddb44
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9e9f61aaf8477d7f94eff368
+outputLanguage: en
+outputs:
+  - byteCount: 4784
+    contentHash: sha256:a8f1e07125f019686c75e3a4a4a7305857c3538e92ad400c1e49e09f27ab5b91
+    path: docs/decisions/coordination/sync/0415-bounded-replica-transport-and-service-completion.md
+    userRegionHash: sha256:a8f1e07125f019686c75e3a4a4a7305857c3538e92ad400c1e49e09f27ab5b91
+profile: decision_record
+recordId: knormdoc_a47b21227ee7be0abddcf47b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2f5becb40f0af3240213206dfbd8a004e7526444a6baccc669fc6b47e1cb0d12
+sourcePath: docs/decisions/coordination/sync/0415-bounded-replica-transport-and-service-completion.md
+sourceUnitVersionIds:
+  - uv_193f04b76db3791c6191ead0
+  - uv_703f45ad5a8f5a063e567d5c
+  - uv_9429ddd9d503d4d0cdeb81c0
+  - uv_cd47f7a84c389d607bb5438c
+  - uv_ec4fbb3eed5a8f3831c4193c

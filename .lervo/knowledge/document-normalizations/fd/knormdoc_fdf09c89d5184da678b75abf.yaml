@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c8dc529d45743b8cc3b99962
+outputLanguage: en
+outputs:
+  - byteCount: 3532
+    contentHash: sha256:494df8659547989bc734f727584c1ee42ada7b5f1072fef942ad51e5d517734d
+    path: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/results/reuse.md
+    userRegionHash: sha256:494df8659547989bc734f727584c1ee42ada7b5f1072fef942ad51e5d517734d
+profile: specification_document
+recordId: knormdoc_fdf09c89d5184da678b75abf
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4a5f24ab4725fd3a3d816f5b1b2bd63b28b9b1b0f686a91482eded2f9dbe15b5
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/results/reuse.md
+sourceUnitVersionIds:
+  - uv_2e91d13c0abac8eb3b40a2ae

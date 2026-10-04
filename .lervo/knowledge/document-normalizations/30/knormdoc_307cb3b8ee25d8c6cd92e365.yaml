@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_05cce54dd160cd308b9563ac
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_879ca5d254699ae1d46b4a73
+outputLanguage: en
+outputs:
+  - byteCount: 3532
+    contentHash: sha256:d6e710adfd772beb4e0a554020bee316a914ca8d3e4e84c4664add0928a7d73d
+    path: docs/decisions/knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md
+    userRegionHash: sha256:d6e710adfd772beb4e0a554020bee316a914ca8d3e4e84c4664add0928a7d73d
+profile: decision_record
+recordId: knormdoc_307cb3b8ee25d8c6cd92e365
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5b45894260107e16a5393f5e34630c2f05ec35a4b95b34871f6b5e49c08b3766
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md
+sourceUnitVersionIds:
+  - uv_0626f66088eb8eaf49fc2edc
+  - uv_0999c59375c6fcd159562867
+  - uv_3aeadd3d44080c1ccc68099a
+  - uv_e2edec90b4b80c39582e5865
+  - uv_ee360cd2a7ca2e6cef5524c3

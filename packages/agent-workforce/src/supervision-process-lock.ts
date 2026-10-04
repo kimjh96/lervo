@@ -83,12 +83,15 @@ export class SupervisionProcessLock {
 
   release(): void {
     const database = this.database;
-    this.database = null;
     if (database === null) return;
     try {
-      database.exec("ROLLBACK");
+      if (database.isOpen && database.isTransaction) database.exec("ROLLBACK");
     } finally {
-      database.close();
+      try {
+        if (database.isOpen) database.close();
+      } finally {
+        if (!database.isOpen) this.database = null;
+      }
     }
   }
 }

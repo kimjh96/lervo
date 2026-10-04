@@ -1,0 +1,42 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b7187a72fea433759faa967a
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_657bc3d8693157827abea485
+outputLanguage: en
+outputs:
+  - byteCount: 511
+    contentHash: sha256:5ae148dfa2c0c087d71c01dee6d836fb37af2ee74fe424f0bb109983700b1364
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/acceptance.md
+    userRegionHash: sha256:5ae148dfa2c0c087d71c01dee6d836fb37af2ee74fe424f0bb109983700b1364
+  - byteCount: 1880
+    contentHash: sha256:ed755f14f6fa34833921593d3c0a2aeafc60f2d4699cc469cec8ed55f7b35cb2
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/acceptance/boundaries.md
+    userRegionHash: sha256:ed755f14f6fa34833921593d3c0a2aeafc60f2d4699cc469cec8ed55f7b35cb2
+  - byteCount: 1808
+    contentHash: sha256:fa227b554f6a161cce2c22fbc00365d2d92d89ada18ed4202c59c884a6175900
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/acceptance/observations.md
+    userRegionHash: sha256:fa227b554f6a161cce2c22fbc00365d2d92d89ada18ed4202c59c884a6175900
+  - byteCount: 1277
+    contentHash: sha256:6ae0b9ad6bd29a4acc1c53037beab671a028a6722b85f04b73faba88b1ddbfb7
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/acceptance/operations.md
+    userRegionHash: sha256:6ae0b9ad6bd29a4acc1c53037beab671a028a6722b85f04b73faba88b1ddbfb7
+profile: roadmap_document
+recordId: knormdoc_e74995cb98a4635741e2d62d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7c0ab570bf290b80201d7bf0dd0ce7999333e6d9de96e401612cd99963d9e19a
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/acceptance.md
+sourceUnitVersionIds:
+  - uv_020367898c6fb61dff406138
+  - uv_1eded7f1c55d6ded1d66c7aa
+  - uv_b93523604ccc77b82c68567c
+  - uv_d5e4b22599920017649ec61e
+  - uv_f94891ecc38751641b6b24a9

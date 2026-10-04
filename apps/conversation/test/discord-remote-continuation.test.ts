@@ -84,10 +84,11 @@ class GatewayTransport implements DiscordGatewayTransport {
 }
 
 async function settled(until?: () => boolean): Promise<void> {
-  for (let index = 0; index < 100; index += 1) {
-    if (until?.()) return;
-    await new Promise<void>((resolve) => setTimeout(resolve, 1));
+  if (until === undefined) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
+    return;
   }
+  await vi.waitFor(() => expect(until()).toBe(true), { timeout: 8_000, interval: 20 });
 }
 
 describe("Discord remote continuation application journey", () => {

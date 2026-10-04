@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b77dd9bbc86562fca748ea56
+outputLanguage: en
+outputs:
+  - byteCount: 1220
+    contentHash: sha256:92794ee1579bb8221684d50547859ceb8bd81a642f91457059db094ef40ffe22
+    path: docs/distribution/node-runtime-distribution/installation-and-readiness/moving-hosts.md
+    userRegionHash: sha256:92794ee1579bb8221684d50547859ceb8bd81a642f91457059db094ef40ffe22
+profile: repository_document
+recordId: knormdoc_3497f043caf2f4bcf1dc146d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:38a212b4c6f752c70e42f96e9da73e9e40d9fcb3a49de7ce8da8fa846fce0ee1
+sourcePath: docs/distribution/node-runtime-distribution/installation-and-readiness/moving-hosts.md
+sourceUnitVersionIds:
+  - uv_bc6992eca73fb2733784d10f

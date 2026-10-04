@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c05c2153db3fdf3d4b35f399"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Review old canonical candidates with source-specific context before closing their evidence obligations."

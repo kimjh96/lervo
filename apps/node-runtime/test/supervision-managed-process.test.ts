@@ -516,6 +516,7 @@ it.each([
           const stale = structuredClone({
             assignments: accepted.assignments,
             unboundAssignmentIds: [] as string[],
+            replacedAssignmentIds: [] as string[],
           });
           if (defect === "review") stale.assignments[0]!.review!.eventId = `evt_${"0".repeat(32)}`;
           if (defect === "revision") staleSource.workstream.revision += 1;

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4a9ab791f4c332282e27538f
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_987f270d82d8863b155f8aa5
+outputLanguage: en
+outputs:
+  - byteCount: 972
+    contentHash: sha256:3f50a127ab77c32899d9d1517a4e4a6c7da88359e5b13d5835ad9f45c6fbfd39
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/run-evidence.md
+    userRegionHash: sha256:3f50a127ab77c32899d9d1517a4e4a6c7da88359e5b13d5835ad9f45c6fbfd39
+profile: specification_document
+recordId: knormdoc_d88200a0f75cb02c719ba317
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3f50a127ab77c32899d9d1517a4e4a6c7da88359e5b13d5835ad9f45c6fbfd39
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/run-evidence.md
+sourceUnitVersionIds:
+  - uv_89771e6db9e77171e0744d73

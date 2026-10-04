@@ -25,11 +25,18 @@ afterEach(async () => {
 const digest = (value: string) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const projectId = "prj_0123456789abcdef";
 
-async function queuedChange(options: { before?: string | null } = {}) {
+async function queuedChange(
+  options: {
+    before?: string | null;
+    path?: string;
+    mutateManifest?: (manifest: Record<string, unknown>) => void;
+  } = {},
+) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-knowledge-worker-"));
   roots.push(root);
-  await mkdir(resolve(root, "src"));
-  await writeFile(resolve(root, "src/a.ts"), "export const a = 2;\n");
+  const path = options.path ?? "src/a.ts";
+  await mkdir(resolve(root, path, ".."), { recursive: true });
+  await writeFile(resolve(root, path), "export const a = 2;\n");
   const events = await SQLiteEventStore.open({
     path: resolve(root, "events.sqlite"),
     projectId,
@@ -46,15 +53,25 @@ async function queuedChange(options: { before?: string | null } = {}) {
     },
   };
   const planned = planRepositoryChange({
+    projectId,
     sourceKind: "terminal_turn",
     sourceEventId: "evt_fedcba9876543210fedcba9876543210",
     before: {
       revision: digest("before"),
-      files: options.before === null ? {} : { "src/a.ts": options.before ?? digest("x") },
+      files: options.before === null ? {} : { [path]: options.before ?? digest("x") },
     },
-    after: { revision: digest("after"), files: { "src/a.ts": digest("export const a = 2;\n") } },
+    after: { revision: digest("after"), files: { [path]: digest("export const a = 2;\n") } },
     occurredAt: "2026-09-25T09:00:00.000Z",
   })!;
+  if (options.mutateManifest !== undefined) {
+    const manifest = JSON.parse(planned.manifestContent) as Record<string, unknown>;
+    options.mutateManifest(manifest);
+    planned.manifestContent = JSON.stringify(manifest);
+    planned.payload.sourceManifest = {
+      contentHash: digest(planned.manifestContent),
+      byteCount: Buffer.byteLength(planned.manifestContent),
+    };
+  }
   await artifacts.put(planned.manifestContent);
   events.transact((transaction) =>
     appendRepositoryChange(
@@ -113,6 +130,138 @@ it("settles a newly created implementation-only file as current with its knowled
       knowledgeSnapshotHash: digest("snapshot"),
     });
     expect(job.events.outstandingCount(REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION)).toBe(0);
+  } finally {
+    job.events.close();
+  }
+});
+
+it("fences changes made during semantic review and lifecycle inspection", async () => {
+  for (const phase of ["review", "inspectKnowledge"] as const) {
+    const job = await queuedChange({ before: null });
+    const reviewer = host("implementation_only");
+    const original = reviewer[phase];
+    reviewer[phase] = async () => {
+      await writeFile(resolve(job.root, "src/a.ts"), "export const a = 3;\n");
+      return (await original([])) as never;
+    };
+    try {
+      const [outcome] = await processRepositoryKnowledgeJobs({
+        repositoryRoot: job.root,
+        events: job.events,
+        artifacts: job.artifacts,
+        workerId: "worker-a",
+        host: reviewer,
+      });
+      expect(outcome).toMatchObject({
+        terminalState: "stale",
+        failureCode: "source_bytes_changed",
+      });
+      expect(resolved(job.events)[0]?.payload).toMatchObject({
+        terminalState: "stale",
+        knowledgeSnapshotHash: null,
+      });
+    } finally {
+      job.events.close();
+    }
+  }
+});
+
+it("never records pending review without a real canonicalization candidate", async () => {
+  const job = await queuedChange({ before: null, path: "docs/specs/demo.md" });
+  try {
+    const [outcome] = await processRepositoryKnowledgeJobs({
+      repositoryRoot: job.root,
+      events: job.events,
+      artifacts: job.artifacts,
+      workerId: "worker-a",
+      host: host("canonical_change_candidate"),
+    });
+    expect(outcome).toMatchObject({
+      terminalState: "attention_required",
+      failureCode: "canonicalization_candidate_unavailable",
+    });
+    expect(resolved(job.events)[0]?.payload).toMatchObject({ canonicalizationCandidateId: null });
+  } finally {
+    job.events.close();
+  }
+});
+
+it("rejects CAS manifests whose identity, count, digest, or paths disagree with the event", async () => {
+  const mutations = [
+    (manifest: Record<string, unknown>) => {
+      manifest.projectId = "prj_wrong_project";
+    },
+    (manifest: Record<string, unknown>) => {
+      manifest.sourceEventId = "evt_other";
+    },
+    (manifest: Record<string, unknown>) => {
+      manifest.paths = [];
+    },
+    (manifest: Record<string, unknown>) => {
+      (manifest.paths as { path: string }[])[0]!.path = "../outside.ts";
+    },
+    (manifest: Record<string, unknown>) => {
+      (manifest.paths as { after: string }[])[0]!.after = "invalid";
+    },
+  ];
+  for (const mutateManifest of mutations) {
+    const job = await queuedChange({ before: null, mutateManifest });
+    let calls = 0;
+    try {
+      const [outcome] = await processRepositoryKnowledgeJobs({
+        repositoryRoot: job.root,
+        events: job.events,
+        artifacts: job.artifacts,
+        workerId: "worker-a",
+        host: {
+          ...host("implementation_only"),
+          review: async () => {
+            calls++;
+            return { classification: "implementation_only" };
+          },
+        },
+      });
+      expect(outcome).toMatchObject({
+        terminalState: "attention_required",
+        failureCode: "knowledge_job_source_invalid",
+      });
+      expect(calls).toBe(0);
+    } finally {
+      job.events.close();
+    }
+  }
+});
+
+it("rolls back the resolution event when another owner takes the expired lease", async () => {
+  const job = await queuedChange({ before: null });
+  let clock = Date.parse("2026-09-25T10:00:00.000Z");
+  try {
+    await expect(
+      processRepositoryKnowledgeJobs({
+        repositoryRoot: job.root,
+        events: job.events,
+        artifacts: job.artifacts,
+        workerId: "worker-a",
+        leaseDurationMs: 1_000,
+        now: () => new Date(clock),
+        host: {
+          ...host("implementation_only"),
+          review: async () => {
+            clock += 2_000;
+            job.events.claim({
+              workerId: "worker-b",
+              claimedAt: new Date(clock).toISOString(),
+              leaseDurationMs: 60_000,
+              destinationId: REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION,
+              limit: 1,
+            });
+            return { classification: "implementation_only" };
+          },
+        },
+      }),
+    ).rejects.toThrow(/lease/iu);
+    expect(resolved(job.events)).toEqual([]);
+    expect(job.events.outstandingCount(REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION)).toBe(1);
   } finally {
     job.events.close();
   }

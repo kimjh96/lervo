@@ -1,3 +1,4 @@
+import { inspectEventWriterCoordinate } from "@lervo/project";
 import { readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -51,7 +52,10 @@ export class NormalizationCandidatePreparer {
     const pendingCount = await pendingDocuments(this.options.repositoryRoot);
     if (pendingCount === 0) return null;
     const current = await this.reviewableCandidate(pendingCount);
-    if (current === null) this.generate();
+    if (current === null) {
+      const writer = await inspectEventWriterCoordinate(this.options.repositoryRoot);
+      if (writer.coordinate.selectedEventSchemaVersion < 4) this.generate();
+    }
     return current;
   }
 

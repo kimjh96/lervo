@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7f302a51a5eb00a3c5016864
+outputLanguage: en
+outputs:
+  - byteCount: 1017
+    contentHash: sha256:5f39482ce2d22a66be3dd65432cc4840894fa047f01654b91e88d2f4890ce6ed
+    path: docs/specs/repository-knowledge-lifecycle-convergence/rewrite-ownership.md
+    userRegionHash: sha256:5f39482ce2d22a66be3dd65432cc4840894fa047f01654b91e88d2f4890ce6ed
+profile: specification_document
+recordId: knormdoc_17241e8abc3e9d16c59e6990
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9b39870072113794bb4fd4aa26143e1280784820a2c26573e7c531b61636f743
+sourcePath: docs/specs/repository-knowledge-lifecycle-convergence/rewrite-ownership.md
+sourceUnitVersionIds:
+  - uv_b56f8b9635d033e980eb1ae0

@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_736519bd8980826a9d2b6bec
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0d4775fb2f365b209d32bd2a
+outputLanguage: en
+outputs:
+  - byteCount: 363
+    contentHash: sha256:5090f394fda09f943768ccee29f196c76eeeeea289652d7093fa93ff68a8ff08
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/settlement-and-verification.md
+    userRegionHash: sha256:5090f394fda09f943768ccee29f196c76eeeeea289652d7093fa93ff68a8ff08
+  - byteCount: 1125
+    contentHash: sha256:de02f37cabe826dfd1e6cfe6aaade094aca5cfaa6a604dd7048bb8e07c9478b3
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/settlement-and-verification/candidate-verification.md
+    userRegionHash: sha256:de02f37cabe826dfd1e6cfe6aaade094aca5cfaa6a604dd7048bb8e07c9478b3
+  - byteCount: 763
+    contentHash: sha256:d0ddee0173143c97f97f1bc6e4d862c3b01a78742f40bd0e0d658314ac0783cb
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/settlement-and-verification/recovery-and-settlement.md
+    userRegionHash: sha256:d0ddee0173143c97f97f1bc6e4d862c3b01a78742f40bd0e0d658314ac0783cb
+profile: specification_document
+recordId: knormdoc_a6ca4c9dfbda0addff11d76c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ad88c02c56cbdc8e58c0483461acf26620bfa479b773994af9e4c3a826200cce
+sourcePath: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/settlement-and-verification.md
+sourceUnitVersionIds:
+  - uv_5a65867eb06e22769d7fb3d2
+  - uv_c7d2bfba5d23c3d4ad7dfea5
+  - uv_ea6da66bf1db0f226192ff39

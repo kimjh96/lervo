@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8883e43ceac9929c86a8dbc2
+outputLanguage: en
+outputs:
+  - byteCount: 2114
+    contentHash: sha256:791f6aa059cefc17a7eda5e83471e12b2ed9210853d72691a5446e7d1ccbacbc
+    path: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/payload-contracts/repository-work-completed.md
+    userRegionHash: sha256:791f6aa059cefc17a7eda5e83471e12b2ed9210853d72691a5446e7d1ccbacbc
+profile: specification_document
+recordId: knormdoc_011301b014a67d99e0c42eaf
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:10dd4c9e3afe604f3d1333569c5c4247ca89cb8d31f43da63335e1cdf941f311
+sourcePath: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/payload-contracts/repository-work-completed.md
+sourceUnitVersionIds:
+  - uv_1e35cf838e3e8e0513d25f15

@@ -108,6 +108,17 @@ export interface WorkforceAssignmentKnowledgeJobProvenance {
   agentId: string;
 }
 
+export interface WorkforceAssignmentConvergenceProvenance {
+  contractVersion: 1;
+  obligationId: string;
+  baselineEventId: string;
+  baselineEventHash: string;
+  stage: string;
+  inputArtifactHash: string;
+  delegationHash: string;
+  agentId: string;
+}
+
 export interface WorkforceAssignment {
   schemaVersion: 1;
   assignmentId: string;
@@ -120,6 +131,7 @@ export interface WorkforceAssignment {
   routine?: WorkforceAssignmentRoutineProvenance | null;
   topology?: WorkforceAssignmentTopologyProvenance | null;
   knowledgeJob?: WorkforceAssignmentKnowledgeJobProvenance | null;
+  convergence?: WorkforceAssignmentConvergenceProvenance | null;
   status: AssignmentStatus;
   priority: number;
   dependencyIds: string[];

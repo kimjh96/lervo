@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_170927798c202770334c4c61
+outputLanguage: en
+outputs:
+  - byteCount: 2218
+    contentHash: sha256:80e9c6f3a40b96f8db947620f9856eb52b4e19bdd34e0b3229cf18eab677cce4
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/request-intake.md
+    userRegionHash: sha256:80e9c6f3a40b96f8db947620f9856eb52b4e19bdd34e0b3229cf18eab677cce4
+profile: specification_document
+recordId: knormdoc_0b5ee0b941bfa928f648d6e6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7a6fef298e9a836bb41d3ec725f9d3ba0021039f9699847cf1bcd427e9e5367c
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/request-intake.md
+sourceUnitVersionIds:
+  - uv_8680e472b24067a4c29b5493

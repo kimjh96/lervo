@@ -77,7 +77,10 @@ export async function createIdentityMigrationPlan(
   let documentDisposition: IdentityMigrationPlan["documentDisposition"] = "create_empty";
   let documentArchiveSourceName: "documents" | "documents.yaml" | null = null;
   const missingCurrentDirectories: string[] = [];
-  const missingCurrentFiles: Array<{ path: ".lervo/.gitignore"; content: "data/\nstate/\n" }> = [];
+  const missingCurrentFiles: Array<{
+    path: ".lervo/.gitignore";
+    content: "data/\nstate/\nknowledge/convergence-delegation.json\n";
+  }> = [];
 
   if ((await entryKind(root)) !== "directory") {
     blocker(blockers, "repository_invalid", "The target must be a real repository directory.");
@@ -158,7 +161,10 @@ export async function createIdentityMigrationPlan(
     }
     const gitignoreKind = await entryKind(resolve(sourceRoot, ".gitignore"));
     if (gitignoreKind === "missing") {
-      missingCurrentFiles.push({ path: ".lervo/.gitignore", content: "data/\nstate/\n" });
+      missingCurrentFiles.push({
+        path: ".lervo/.gitignore",
+        content: "data/\nstate/\nknowledge/convergence-delegation.json\n",
+      });
     } else if (gitignoreKind !== "file") {
       blocker(
         blockers,

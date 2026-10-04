@@ -1,6 +1,6 @@
 # Knowledge and canonicalization
 
-Repository files, reviewed knowledge sidecars, approved skill definitions, repository state, verification results, and durable execution events retain their existing authority. Conversation, canvas, activity, search, memory, and model-generated summaries are candidates or projections unless an owning contract already defines them as durable records.
+Repository files, reviewed knowledge sidecars, approved skill definitions, repository state, verification results, and durable execution events retain their existing authority. Conversation, canvas, activity, search, memory, and model-generated summaries remain candidates or projections unless an owning contract defines them as durable records.
 
 Material learned through Discord or a future first-party surface follows this sequence:
 

@@ -134,11 +134,14 @@ export async function planWorkspaceCleanup(input: {
   const exactAttempt = attempts.find(
     (attempt) =>
       attempt.attemptId === integrationEvidenceId &&
-      attempt.sources.some(
-        (source) =>
-          source.workspaceId === workspace.workspaceId &&
-          source.generation === workspace.generation,
-      ),
+      ((workspace.executionKind === "integrator" &&
+        attempt.integratorWorkspaceId === workspace.workspaceId &&
+        attempt.integratorWorkspaceGeneration === workspace.generation) ||
+        attempt.sources.some(
+          (source) =>
+            source.workspaceId === workspace.workspaceId &&
+            source.generation === workspace.generation,
+        )),
   );
   const transactionAbsent =
     exactAttempt?.state === "integrated" &&

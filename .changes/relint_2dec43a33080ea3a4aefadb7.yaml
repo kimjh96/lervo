@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2dec43a33080ea3a4aefadb7"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Record the adapter error behind a failed managed turn, and read annotated failure diagnostics without failing supervision."

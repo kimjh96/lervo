@@ -2,11 +2,13 @@
 
 ## Observation boundary
 
-Every Node dispatch, retry, and owner-execution preflight independently inspects the control repository's configured knowledge sources, document normalization, and knowledge lint. A second inspection runs before final admission. Repository currency does not prove worker-workspace selection, loading, injection, use, or delivery; positive task-specific application evidence remains required.
+Every Node dispatch, retry, and owner-execution preflight independently inspects the control repository's configured knowledge sources, document normalization, and knowledge lint. A second inspection precedes final admission. Repository currency does not prove worker-workspace selection, loading, injection, use, or delivery; positive task-specific application evidence remains required.
 
 The Node adapter reuses repository-knowledge's read-only scanner, normalization inspector, lint, and materialization-transaction guard. It runs no compiler provider, migration, document rewrite, plan creation, or persistent cache. Existing scanner policy bounds remain authoritative. Foreground inspection is neither a production polling loop nor a constant-time readiness guarantee.
 
-Native dispatch completes the full knowledge inspection before preparing assignment, workspace, role, and policy evidence. Final native preflight then settles the repeated task admission and independent source/authority admission before loading and dating the exact task context. It rejects changed task admission facts; neither admission result is silently discarded on failure. Initial planning readiness instead confirms task admission after context loading. Both paths recheck role and policy after context loading. The context observation time is never moved forward without those source reads. A separate sixty-second validity window begins with the first knowledge scan and covers preparation and subsequent admission. This permits complete repository validation: an installed WSL observation of 3,977 sources and 59,000 units took about 23 seconds. The window does not extend the five-second bounds for runtime probes, permissions, leases, loaded context, or final admission.
+Native dispatch completes knowledge inspection before preparing assignment, workspace, role, and policy evidence. Final native preflight settles repeated task admission and independent source/authority admission before loading and dating the exact task context. Changed task admission facts reject preflight; neither admission result is silently discarded on failure. Initial planning readiness instead confirms task admission after context loading. Both paths recheck role and policy after loading. Context observation time never advances without those source reads.
+
+A separate sixty-second validity window starts with the first knowledge scan and covers preparation and subsequent admission. This permits complete repository validation: an installed WSL observation of 3,977 sources and 59,000 units took about 23 seconds. It does not extend the five-second bounds for runtime probes, permissions, leases, loaded context, or final admission.
 
 Context retrieval precedes its observation timestamp. The loader then:
 
@@ -18,13 +20,24 @@ Canonical readiness begins with these reads, not the earlier search request. Sup
 
 ### Shared readers and workspace proofs
 
-Each dispatch preflight opens one read-only event and artifact store before loading task context. Retained-workspace checks share that connection throughout the preflight, which closes it on success or failure. This avoids repeating the event-store integrity audit for every historical workspace and current-workspace recheck.
+Each dispatch preflight opens one read-only event and artifact store before loading task context. Retained-workspace checks share that connection throughout preflight; it closes on success or failure. This avoids repeating the event-store integrity audit for every historical workspace and current-workspace recheck.
 
-Every proof rereads its canonical artifacts, decision and absence evidence, current workspace record, and native checkout; proof results are never cached. Retained predecessor workspaces are checked in batches of at most four independent reads. Every started read settles before its batch returns or rejects; no later batch starts after failure. Every predecessor must pass before a current workspace is returned. Source order, complete coverage, per-proof event-head checks, and five-second limits remain unchanged. This adds no cache, persistent state, event authority, or execution authority. The shared reader must match the exact repository and project; individual proofs never close caller-owned readers.
+Every proof rereads its canonical artifacts, decision and absence evidence, current workspace record, and native checkout. Proof results are never cached. Retained predecessor workspaces are checked in batches of at most four independent reads. Every started read settles before its batch returns or rejects; no later batch starts after failure. Every predecessor must pass before a current workspace is returned. Source order, complete coverage, per-proof event-head checks, and five-second limits remain unchanged. Sharing adds no cache, persistent state, event authority, or execution authority. The shared reader must match the exact repository and project; individual proofs never close caller-owned readers.
 
-Responsibility claim admission and its effect adapter pass their existing verified store to every retained-workspace proof, preserving complete artifact and live-checkout rechecks without reopening the entire store for each predecessor. Canonical owner-reasoning facts supply their existing verified store to these proofs during planning and repeated admission. Native dispatch planning, canonical workspace preparation, ready-workspace receipt recovery, and worker-process admission likewise pass their verified store through each workspace proof. Connection sharing grants no authority or cached proof. All five-second readiness, lease, and final-admission checks remain unchanged.
+The following callers pass their existing verified store to every retained-workspace proof, preserving complete artifact and live-checkout rechecks without reopening the store for each predecessor:
 
-After canonical task context is bound, final verification, provider login and runtime, knowledge, and repository probes run concurrently. Login precedes runtime within its provider probe; each independent result supplies only its own checks, and a negative result cannot be replaced by another probe's earlier positive seed. The preceding task and source/authority admissions both settle before context loading, and all final probes settle before the shared reader closes or any effect begins, even if one fails. Supplied application readiness retains the concurrent final-probes-and-admission path. Execution then rechecks the current mandate and applies the unchanged five-second admission and readiness bounds. This ordering creates no cached observation or additional authority.
+- Responsibility claim admission and its effect adapter.
+- Canonical owner-reasoning facts during planning and repeated admission.
+- Native dispatch planning.
+- Canonical workspace preparation.
+- Ready-workspace receipt recovery.
+- Worker-process admission.
+
+Connection sharing grants no authority or cached proof. All five-second readiness, lease, and final-admission checks remain unchanged.
+
+After canonical task context is bound, final verification, provider login and runtime, knowledge, and repository probes run concurrently. Login precedes runtime within its provider probe. Each independent result supplies only its own checks; another probe's earlier positive seed cannot replace a negative result. Both preceding task and source/authority admissions settle before context loading. All final probes settle before the shared reader closes or any effect begins, even if one fails.
+
+Supplied application readiness retains the concurrent final-probes-and-admission path. Execution then rechecks the current mandate and applies unchanged five-second admission and readiness bounds. This ordering creates no cached observation or additional authority.
 
 ### Repository coordination
 
@@ -55,7 +68,7 @@ Any of these conditions changes a positive knowledge check to `unobserved` with 
 - An inspection exception.
 - Inspection or subsequent use outside zero to sixty seconds from the first scan.
 
-Failed, unobserved, not-required, missing, and missing-hash application checks are never promoted. Preserve the original readiness observation time: a fresh repository inspection cannot refresh stale task-context evidence.
+Failed, unobserved, not-required, missing, and missing-hash application checks are never promoted. Preserve the original readiness observation time: fresh repository inspection cannot refresh stale task-context evidence.
 
 Combined evidence hashes bind prior application evidence, project identity, source snapshot, policy, normalization report, lint result, and knowledge observation and expiration times. Combined readiness cannot expire after the knowledge inspection. Readiness exposes no raw repository paths, source bodies, document names, or unrestricted errors. Existing knowledge transaction and readiness contracts define failure meaning; this adapter adds no event fields, persistent state, or authority.
 

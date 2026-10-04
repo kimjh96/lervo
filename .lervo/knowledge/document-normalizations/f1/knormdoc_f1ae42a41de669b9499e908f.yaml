@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_33d809433697bc7e17d023be
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d30895d5d392d5c2b23f431d
+outputLanguage: en
+outputs:
+  - byteCount: 258
+    contentHash: sha256:4e7cdc35360896949b41a185dedc511dae8004b19eb51667d963f80530b517b7
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/debt-and-authority.md
+    userRegionHash: sha256:4e7cdc35360896949b41a185dedc511dae8004b19eb51667d963f80530b517b7
+  - byteCount: 443
+    contentHash: sha256:a11578ec4d01c315fb8d4ee1a2771c6f0dd283484db079d2c5cd5b66ce16a201
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/debt-and-authority/delegation.md
+    userRegionHash: sha256:a11578ec4d01c315fb8d4ee1a2771c6f0dd283484db079d2c5cd5b66ce16a201
+  - byteCount: 759
+    contentHash: sha256:54f03de39811edf758d3cebfa7bd1fdbb92de40eaf2ed050fb1703666c7806ee
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/debt-and-authority/initial-debt.md
+    userRegionHash: sha256:54f03de39811edf758d3cebfa7bd1fdbb92de40eaf2ed050fb1703666c7806ee
+  - byteCount: 1116
+    contentHash: sha256:f0793988bedd59615a011ebdc8fc1c414547cb2361cd41be8245396b9ecd458a
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/debt-and-authority/runtime-corrections.md
+    userRegionHash: sha256:f0793988bedd59615a011ebdc8fc1c414547cb2361cd41be8245396b9ecd458a
+profile: repository_document
+recordId: knormdoc_f1ae42a41de669b9499e908f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4b077d674e7e0deafa0f85c31e2452ea40845e77259010e2ebc1af418be60c8c
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/debt-and-authority.md
+sourceUnitVersionIds:
+  - uv_01cefe83ec268a3f6bc2fdff
+  - uv_356c6e35a3b4e3252cd83e26
+  - uv_f5cb91afc529cd66bd2f3655

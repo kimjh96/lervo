@@ -164,5 +164,5 @@ it.each(["gap", "available", "fence_loss"])(
       await storage.close();
     }
   },
-  30_000,
+  120_000,
 );

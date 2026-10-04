@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_feee74fa730ee5c80ec4c389"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Retry an unclassified supervision preflight failure once before blocking, and supersede unrecorded artifact reviews and goal completions."

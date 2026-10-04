@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_92d2e2c706e3c6d996797bc8
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4e89ef4a651a6062b61a244a
+outputLanguage: en
+outputs:
+  - byteCount: 2311
+    contentHash: sha256:1fe566b3880c09f042dcba6a749578870adadce5d7f2170ac473206c43e70e0f
+    path: docs/specs/background-knowledge-convergence/recovery-and-retention/assignment-failure-and-retry.md
+    userRegionHash: sha256:1fe566b3880c09f042dcba6a749578870adadce5d7f2170ac473206c43e70e0f
+profile: specification_document
+recordId: knormdoc_ef0d22bce47c294d0afdfe49
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:600fedb1ffc322e697b7af890e0a9941848171fe0a94cbd520845d0c17c952f8
+sourcePath: docs/specs/background-knowledge-convergence/recovery-and-retention/assignment-failure-and-retry.md
+sourceUnitVersionIds:
+  - uv_14826554101bc7dc0304825c
+  - uv_98c1fe22b8804ed89a3f6f2c
+  - uv_a85c5208803cdef45f6f0e05
+  - uv_cb0d587d3fd11d93e715afce

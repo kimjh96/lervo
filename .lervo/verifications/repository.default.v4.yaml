@@ -3,16 +3,18 @@ suiteId: repository.default.v4
 stopOnFailure: true
 commands:
   - commandId: repository-lint
-    executable: pnpm
+    executable: node
     arguments:
+      - --run
       - lint
     cwd: .
     timeoutMs: 300000
     maxOutputBytes: 1048576
     environmentVariableNames: []
   - commandId: repository-typecheck
-    executable: pnpm
+    executable: node
     arguments:
+      - --run
       - typecheck
     cwd: .
     timeoutMs: 900000

@@ -1,62 +1,54 @@
 # Asynchronous conversation knowledge lifecycle
 
-State: `implementation required`.
+Status: `in_progress`
+As of: 2026-09-27
 
-## Outcome
+## Outcome and current boundary
 
-Repository agents own source-bound canonicalization and knowledge convergence without adding global lifecycle work to a live conversation response. [ADR-0427](../../decisions/knowledge/repository/canonicalization/0427-decouple-conversation-work-from-agent-owned-knowledge-convergence.md) defines the evidence and authority boundary.
+Repository agents own source-bound canonicalization and knowledge convergence without adding global lifecycle work to live conversation responses. [ADR-0427](../../decisions/knowledge/repository/canonicalization/0427-decouple-conversation-work-from-agent-owned-knowledge-convergence.md) defines the evidence and authority boundary; [ADR-0433](../../decisions/knowledge/repository/canonicalization/0433-own-background-knowledge-for-every-repository-change.md) extends obligations to managed runs and terminal turns.
 
-## Delivery and completion criteria
+Installed version 3 provides durable change/outbox capture, bounded generic review, retry, and atomic resolution/acknowledgement. Local version 4 implements autonomous canonical integration and lifecycle convergence. A private installed Codex canary verified no-Hub operation, restart, and last-edit discovery. Fleet activation and busy installed conversation acceptance remain open.
 
-- [ ] Record an exact changed-path source-coordinate manifest in each eligible canonical conversation-work completion; rebuild one idempotent local job from bounded event pages after restart. Reject overflow rather than truncating path evidence.
-- [ ] Remove global knowledge preflight and postflight from the live provider path while retaining result CAS, workstream, replica, and truthful pending-state checks.
-- [ ] Run a bounded, restart-safe, provider-neutral background owner in an isolated assignment/workspace, without sharing the live turn's writer or provider session.
-- [ ] Have that agent assess durable outcomes, make authorized canonical edits through reviewed integration, or create an exact review candidate when user-owned content blocks automatic change. A structural refresh alone is not a semantic completion.
-- [ ] Run ordered migration, refresh, and lint after canonical review; record a distinct current or non-success knowledge outcome with no raw content in events.
-- [ ] Convert historical `baseline_valid` into explicit, inspectable debt without altering old completion events; clear existing AXLI and Arca-next debt with source-backed outcomes.
-- [ ] Bound queue capacity, retries, retention, provider resources, and attention escalation. Prove lost-response and restart idempotency.
-- [ ] Measure live response latency while the worker is busy; verify installed Discord result and subsequent knowledge convergence independently, including no-Hub operation and user-owned conflict safety.
+The [2026-09-27 installed audit](../../evidence/quality/background-knowledge-convergence-audit.md) observes 38 generic change jobs across AXLI and Arca-next, all resolved as attention or pending review, with no current outcome. Historical activation constraints remain acceptance requirements; they do not imply that the current Node lacks its version-3 background path.
 
-Until every criterion and installed evidence pass, `pending_background` must not be enabled on an installed Node and existing synchronous completion remains the runtime behavior.
+The [autonomous convergence roadmap](autonomous-background-convergence.md) owns implementation, remaining acceptance, baseline recovery, independent normalization review/apply, and installed completion gates. This document retains the conversation foundation and historical evidence.
 
-## Every entry point (ADR-0433)
+## Installed version-3 capture and hosts
 
-[ADR-0433](../../decisions/knowledge/repository/canonicalization/0433-own-background-knowledge-for-every-repository-change.md) extends this lifecycle from Discord conversations to managed `lervo run` executions and Claude Code or Codex terminal turns. When the repository writer is on event schema version 3, a changed managed run or terminal Stop now appends one `repository.change.completed` event and one `knowledge:repository` outbox job in the same transaction. The job carries a content-bound manifest with every changed path. Beyond 64 paths the event publishes only the count, and an unchanged unit records nothing. Writers below version 3 keep their previous behavior.
+For changed terminal Stop and managed run units, a version-3 writer appends `repository.change.completed` and its `knowledge:repository` job together. Conversation repository work selects `pending_background` from the writer coordinate and appends the generic change/job in its completion transaction. Replays create no second job; unchanged units create none. Older or unreadable writer coordinates retain synchronous completion.
 
-The core owner `processRepositoryKnowledgeJobs` claims these jobs and settles each one with `repository.knowledge.resolved` and its queue acknowledgement in one transaction:
+The manifest binds every changed path. Above 64 published paths, the event carries only the count and the generic worker records attention instead of reviewing a truncated subset. Untracked Git-ignored files and known Lervo projections are excluded. Python cache paths still reached review in the installed AXLI sample, so this exclusion does not fully demonstrate governed source selection.
 
-- It rechecks the manifest and current bytes (`stale` on drift) and recovers exact former bytes from recent commits.
-- A no-capability review classifies the change. Implementation-only work becomes `current` only when the read-only knowledge lifecycle check passes, which never applies a migration. A canonical candidate stays `pending_review`. Unavailable former bytes, lifecycle debt, or a `needs_review` verdict become `attention_required`.
-- Transient failures back off, and the sixteenth attempt settles as exhausted.
+`lervo knowledge worker --once --provider <claude|codex>` hosts the core owner under a repository process lock. Terminal Stop and managed run completion launch it detached. A Node configured with owner reasoning hosts the same owner in a bounded event-driven loop, using a 60-second wakeup and the configured provider executable. Hosts share operational ownership and job leases.
 
-`lervo knowledge worker --once --provider <claude|codex>` hosts the owner under a repository lock. A changed terminal Stop or managed run launches it detached from the verified hook runtime or CLI entry, so the turn never waits.
+The generic owner reviews source changes in a no-capability process. Implementation-only work becomes `current` only after read-only knowledge inspection passes; the host never applies migration or refresh. A canonical verdict attempts to register a typed candidate and settles `pending_review`. Missing before-bytes, lifecycle debt, or a needs-review verdict settle attention. Transient failures retry with bounded backoff and a 16-attempt ceiling.
 
-An installed Node with owner reasoning configured also hosts the owner in a bounded loop. The loop wakes on local event changes and at least every minute, using the configured absolute provider executable. It shares the CLI worker lock and per-job lease, so the two hosts never process the same job.
+Canonical candidates surface through terminal attention and Discord repository-work instructions. A later authorized agent changes the canonical target and promotes by exact hash or rejects the candidate. Resolution does not currently schedule separate convergence completion. Background normalization likewise stores candidates for later turn-owned review/application, rather than independently draining the full lifecycle.
 
-A Discord repository-work turn on a version-3 writer now selects `pending_background` per turn from the writer coordinate. Its changed completion appends `repository.change.completed` with `sourceKind: conversation` and the same outbox job in the completion transaction. A replay adds nothing. An older or unreadable writer coordinate keeps the synchronous knowledge check. A link, special file, or unreadable Git commit records no job rather than an unreviewable one.
+Owner-accepted supervised checkouts are exported to create-only `lervo/results/<assignment>` branches. A later observed merge queues its knowledge job. The seal/integration lifecycle is not composed into this automated background path; a result branch does not prove target-byte integration.
 
-A `pending_review` outcome now registers an exact-byte canonicalization candidate and names it in `canonicalizationCandidateId`. The candidate surfaces as a `canonicalization_review` attention item in the next terminal prompt context and in the operating attention report. That item is the narrow write assignment: the reviewing agent updates the canonical document and promotes the candidate with the target's exact hash. A later source change makes the candidate stale. A Discord repository-work turn receives the same open and stale candidates in its instructions, so repositories worked only through Discord also resolve them. A change that touches only canonical documents registers no candidate.
+## Historical installed evidence
 
-Supervised worker results on every Node now reach the repository as create-only `lervo/results/<assignment>` branches after the owner completes the assignment. Merging one through a terminal or Discord turn queues its knowledge job. The full ADR-0222 integrator lifecycle (seal, integration queue, verified target advance) remains unused.
+A Mac terminal Stop on the version-3 writer appended its change and job atomically. The detached worker settled `pending_review` 18 seconds later; the candidate was promoted after its canonical document was updated. Stop took 5.6 seconds versus 4.5 seconds on version 2. This proves one terminal capture/review/promotion journey, not autonomous repository-wide currency or installed latency under a busy converging worker.
 
-Installed evidence: a Mac terminal Stop on the v3 writer appended its change and job in one transaction. The detached worker settled it 18 s later as pending_review, and the resulting candidate was promoted after its canonical document was updated. The v3 Stop hook took 5.6 s, against 4.5 s on the v2 writer. A Discord turn on a v3 repository is still unobserved.
+The fleet audit now observes installed Discord generic jobs. An independently measured prompt-to-publication journey followed by canonical integration, normalization, and verified currency remains unobserved. A healthy Node or empty queue cannot substitute for this acceptance.
 
-## Reader-first foundation
+## Reusable richer foundation
 
-The shared reader now accepts the bounded version-3 knowledge-outcome payload; no producer emits it. A local event-chain reconciler can reconstruct eligible historical `baseline_valid` work into a capacity-bound outbox, detect conflicting outcome coordinates, and recover idempotently after reopening SQLite. A source-coordinate manifest builder binds observed Git trees and dirty-path digests without source bodies. Its read-only job reader verifies the exact local CAS artifact against the completion; a currency inspector rechecks current after-path bytes, Git objects, and unsafe parent resolution before semantic review. Old dirty before-path bytes that cannot be reconstructed remain `needs_review`, never a success claim. The conversation completion writer has a dormant, explicitly selected version-3 path: it stores and rechecks that manifest before a changed-source `pending_background` completion, emits `not_applicable` for unchanged work, and omits global knowledge preflight/postflight only in that mode. Production composition still selects the existing synchronous path; the background agent, reviewed integration, reader activation, and installed latency evidence remain required before changing that selection.
+Earlier conversation-specific modules provide bounded source-coordinate manifests, read-only queue reconciliation, safe source preflight, separate deterministic agent-assignment provenance, and read-only access modes that permit live writers.
 
-Workforce state now has a separate deterministic knowledge-job assignment provenance bound to the exact completion, manifest reference, workstream, and durable agent. It rejects changed replay and claims by a different agent. This is a foundation for the leased worker, not evidence that one is active or that canonicalization has occurred.
+They also provide exact leased capture of Git and dirty source into memory, a physically isolated no-capability review boundary, applicable instruction hierarchy, hash-verified canonical context, and non-success settlement fenced by both agent and queue leases. Missing manifests, invalid evidence, unavailable historical source, and legitimate retry exhaustion have bounded failure meanings.
 
-The event store now supports an exact read-only outbox lookup. A dormant worker preflight uses it to fence an expired or reclaimed claim before and after CAS/Git source inspection, distinguishes legacy source absence from current source evidence, and makes no completion claim. The active background owner, review assignment/workspace, canonical integration, retry settlement, and installed evidence remain outstanding.
+These are reusable contracts, not proof of composition in the active generic worker. The audit identifies weaker active behavior: four-commit before-byte search, root-only truncated instructions, no post-review source recheck, and possible null-candidate pending review. Repair and reuse must precede automated document writes.
 
-Knowledge-job assignments now record an explicit read-only access mode. Their source-path scopes do not acquire a write-path exclusion lease, while write-authority checks fail and legacy assignments still default to write. This removes a scheduler conflict with live writers but does not yet create the isolated read-only review workspace or execute a semantic review.
+## Remaining acceptance
 
-The leased review-source reader now captures exact committed before/after Git blobs and current dirty after-path bytes in memory under a combined 16 MiB limit. It rechecks source currency and the outbox lease after capture; drift, unavailable before bytes, unsupported kinds, and excess size cannot become a success claim. The bytes are not persisted or published.
+- [ ] Preserve exact source capture, job idempotency, capacity recovery, and restart across all entry points.
+- [ ] Prove prompt publication stays independent of lifecycle work, with truthful pending state and no knowledge-success wording.
+- [ ] Compose independent assigned review, scoped canonical integration, exact promotion, normalization review/apply, and ordered lifecycle verification.
+- [ ] Recover baseline debt and acknowledged unfinished jobs without changing historical resolutions or inventing former bytes.
+- [ ] Close source/context drift and null-candidate settlement gaps before verified current outcomes.
+- [ ] Prove provider/resource bounds, user-owned conflict safety, recovery during apply, and no-Hub execution.
+- [ ] Separately measure an installed Discord result and subsequent convergence, including idle completion without another human turn.
 
-The dormant reviewer now composes the read-only agent lease with the exact outbox lease and uses the existing Codex/Claude no-capability JSON runner. That runner creates a separate private temporary working directory and receives bounded source/context text through stdin without writing it to a Git workspace or CAS. The reviewer autonomously loads applicable `AGENTS.md` instructions and current repository-knowledge recommendations, verifying exact bytes before provider injection and rechecking authority and source currency after loading. Review output is validated as an in-memory candidate; source or instruction drift discards it.
-
-A dormant non-success outcome writer now revalidates the source, separate background-agent assignment, and exact outbox lease, then atomically records `stale` or `attention_required` and acknowledges the queue row. It rejects contradictory source states, a changed lease, and an early retry-exhaustion claim. A recovery claim after the sixteenth attempt can settle exhaustion without another semantic work attempt. This is not the success producer: production still has no active background owner, target-specific write assignment, reviewed integration, `current` knowledge resolution, or installed latency acceptance.
-
-If a content-bound source manifest is missing or hash-invalid, the non-success writer can now settle only the matching `knowledge_job_source_unavailable` or `knowledge_job_source_invalid` attention state, or a legitimately exhausted retry. It binds the assignment to the completion's recorded changed paths and manifest hash without claiming that unavailable bytes were reviewed. A valid manifest cannot be mislabeled as missing or invalid. This recovery path still does not activate the background owner or prove knowledge currency.
-
-The same exact-lease outcome boundary now accepts historical version-2 `baseline_valid` debt with a separate read-only agent assignment whose manifest hash is null. It can record only `attention_required/legacy_source_unavailable` (or an exhausted retry) with the `legacy_unavailable` marker; it cannot invent source bytes, claim staleness, or claim knowledge currency. This makes irreconstructable historical debt inspectable without rewriting the old completion. It does not clear AXLI or Arca-next debt, activate a worker, or replace source-backed canonical review.
+Detailed gates are in [autonomous background convergence](autonomous-background-convergence.md). Local verified gates are checked there; remaining installed gates retain their unobserved scope.

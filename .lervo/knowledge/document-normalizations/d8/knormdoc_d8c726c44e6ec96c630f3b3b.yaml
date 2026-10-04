@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4a63048d681f7afb9ab2191c
+outputLanguage: en
+outputs:
+  - byteCount: 7206
+    contentHash: sha256:69659ce268e7e63717358448b21b18aef14ad80259cee4e09b44fb513ede417e
+    path: docs/decisions/knowledge/repository/canonicalization/0440-page-complete-execution-evidence-for-canonicalization.md
+    userRegionHash: sha256:69659ce268e7e63717358448b21b18aef14ad80259cee4e09b44fb513ede417e
+profile: decision_record
+recordId: knormdoc_d8c726c44e6ec96c630f3b3b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2d8e95afdcb726521cae747dcffaedd368af1e1443b78619c8cf8548977de675
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0440-page-complete-execution-evidence-for-canonicalization.md
+sourceUnitVersionIds:
+  - uv_07e9741fd6bddf30c0b6a76f
+  - uv_3805a4cf7ec7c270dc51436d
+  - uv_7ec74d6e0b42c3c8c8eacb51
+  - uv_803ffc34a9173196b043220b
+  - uv_b3eb15a0b47fd2798d50a9ac
+  - uv_c603016f815908d681044b34
+  - uv_eec1ec74705f2b7e935e3dde

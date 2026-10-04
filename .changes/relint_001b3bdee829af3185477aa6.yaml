@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_001b3bdee829af3185477aa6"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Restore Node supervision health after a validated idle recovery cycle."

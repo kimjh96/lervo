@@ -1,3 +1,7 @@
+import {
+  runAutonomousKnowledgeWorker,
+  startAutonomousKnowledgeWorker,
+} from "@lervo/repository-knowledge-runtime";
 import { spawn } from "node:child_process";
 
 import { openProjectStorage } from "@lervo/project-storage";
@@ -21,6 +25,15 @@ export async function runKnowledgeWorker(input: {
 > {
   const storage = await (input.openStorage ?? openProjectStorage)(input.root);
   try {
+    if ((storage.writableEventSchemaVersion ?? 1) >= 4 && input.host === undefined)
+      return await runAutonomousKnowledgeWorker({
+        storage,
+        workerId: `cli-${process.pid}`,
+        provider: input.provider,
+        ...(input.maximumJobs === undefined
+          ? {}
+          : { maximumStages: Math.min(8, input.maximumJobs) }),
+      });
     return await runRepositoryKnowledgeWorker({
       repositoryRoot: storage.paths.repositoryRoot,
       events: storage.events,
@@ -41,11 +54,42 @@ export async function runKnowledgeWorkerCommand(
   io: { cwd: string; stdout(message: string): void; stderr(message: string): void },
 ): Promise<number> {
   const provider = args[args.indexOf("--provider") + 1];
-  if (!args.includes("--once") || (provider !== "claude" && provider !== "codex")) {
-    io.stderr("Usage: lervo knowledge worker --once --provider <claude|codex>\n");
+  if (
+    (!args.includes("--once") && !args.includes("--watch")) ||
+    (provider !== "claude" && provider !== "codex")
+  ) {
+    io.stderr("Usage: lervo knowledge worker <--once|--watch> --provider <claude|codex>\n");
     return 1;
   }
   try {
+    if (args.includes("--watch")) {
+      const storage = await openProjectStorage(io.cwd);
+      const stop = startAutonomousKnowledgeWorker({
+        storage,
+        workerId: `cli-${process.pid}`,
+        provider,
+        onCycle: (result) => io.stdout(`${JSON.stringify(result)}\n`),
+        onFailure: (error) =>
+          io.stderr(
+            `Knowledge convergence failed: ${(error as { code?: string })?.code ?? "knowledge_job_transient_failure"}\n`,
+          ),
+      });
+      try {
+        await new Promise<void>((resolve) => {
+          const stopped = () => {
+            process.removeListener("SIGINT", stopped);
+            process.removeListener("SIGTERM", stopped);
+            resolve();
+          };
+          process.once("SIGINT", stopped);
+          process.once("SIGTERM", stopped);
+        });
+      } finally {
+        await stop();
+        await storage.close();
+      }
+      return 0;
+    }
     io.stdout(`${JSON.stringify(await runKnowledgeWorker({ root: io.cwd, provider }))}\n`);
     return 0;
   } catch (error) {

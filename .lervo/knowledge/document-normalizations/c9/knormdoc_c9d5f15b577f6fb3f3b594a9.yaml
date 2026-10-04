@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c9404c7f29ad8358a85829c0
+outputLanguage: en
+outputs:
+  - byteCount: 2913
+    contentHash: sha256:da3e42ad6bf1943b7f2fcd786da88d3dc714b5f2b1ae66d91f92912c9e768cf3
+    path: docs/specifications/execution/events-and-privacy/workforce-events/knowledge-job-assignment-provenance.md
+    userRegionHash: sha256:da3e42ad6bf1943b7f2fcd786da88d3dc714b5f2b1ae66d91f92912c9e768cf3
+profile: specification_document
+recordId: knormdoc_c9d5f15b577f6fb3f3b594a9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:cef19a2542f6a1aaa5f4ae34ba1ef3aa57b5df04d8215996e00710ac61ae4030
+sourcePath: docs/specifications/execution/events-and-privacy/workforce-events/knowledge-job-assignment-provenance.md
+sourceUnitVersionIds:
+  - uv_1f5b43f22754b86819eadf15

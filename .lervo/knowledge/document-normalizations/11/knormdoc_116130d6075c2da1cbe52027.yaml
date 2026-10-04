@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_adffda866b3deaad621836b0
+compiler:
+  compilerBuildId: sha256:28fccadc6cd3a05adb5a1f1651934c86c8f9387a545eb9316b4b2b19eba8f059
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_86ccc791c5bcfcb808bfb5d8
+outputLanguage: en
+outputs:
+  - byteCount: 10707
+    contentHash: sha256:0132dd91d0b8d948093d5c4ad47ddd1e4720033431e172b59838f1039d24f1f4
+    path: docs/roadmap/natural-language-grounding-quality/evaluation-history/provider-shadow-managed-context-canaries.md
+    userRegionHash: sha256:0132dd91d0b8d948093d5c4ad47ddd1e4720033431e172b59838f1039d24f1f4
+profile: roadmap_document
+recordId: knormdoc_116130d6075c2da1cbe52027
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:921225bbc5415afc5d2cb22471bd0b2a9e502eb3b0c56dee2a4463d20dd90be9
+sourcePath: docs/roadmap/natural-language-grounding-quality/evaluation-history/provider-shadow-managed-context-canaries.md
+sourceUnitVersionIds:
+  - uv_362fe121d97b2a88ee4adfb3

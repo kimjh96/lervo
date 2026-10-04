@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_706d946a75d57d744bd482be
+outputLanguage: en
+outputs:
+  - byteCount: 920
+    contentHash: sha256:45b04415a9365e7301f5faebc6fa49109485d9af71e8352b58810ba3f36b7a9c
+    path: docs/distribution/node-runtime-distribution/discord-configuration/example/webhook-speaker.md
+    userRegionHash: sha256:45b04415a9365e7301f5faebc6fa49109485d9af71e8352b58810ba3f36b7a9c
+profile: repository_document
+recordId: knormdoc_201ec342dbe25bd847bea270
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:45b04415a9365e7301f5faebc6fa49109485d9af71e8352b58810ba3f36b7a9c
+sourcePath: docs/distribution/node-runtime-distribution/discord-configuration/example/webhook-speaker.md
+sourceUnitVersionIds:
+  - uv_5c538d3b1276ee63d8a28413

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8a4b93b25b561a13e7fd4c59
+compiler:
+  compilerBuildId: sha256:28fccadc6cd3a05adb5a1f1651934c86c8f9387a545eb9316b4b2b19eba8f059
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d68033653597414e47a81521
+outputLanguage: en
+outputs:
+  - byteCount: 837
+    contentHash: sha256:a44cfbbbae1d5d8e342b2d921c5d7cf40810fa61cc4df9ff6bd3b617b75574ce
+    path: docs/foundation/editor-configuration.md
+    userRegionHash: sha256:a44cfbbbae1d5d8e342b2d921c5d7cf40810fa61cc4df9ff6bd3b617b75574ce
+profile: repository_document
+recordId: knormdoc_250b6fa95ce5b84d80944eae
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0911227320ee4c37fadd57a2eff496e9650afd98e9f81d0a870f2d71eae785e8
+sourcePath: docs/foundation/editor-configuration.md
+sourceUnitVersionIds:
+  - uv_edd3057d3c2c6b834eeb3ac6

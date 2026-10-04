@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_48794e0e58920faa1cfb1421"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add source-bound asynchronous conversation knowledge completion evidence while retaining the installed synchronous default."

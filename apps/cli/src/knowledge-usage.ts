@@ -18,6 +18,10 @@ export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--rebu
   lervo knowledge merge-candidate --comparison <comparison-id> --codex <compilation-id> --claude <compilation-id> [--root <path>] [--json]
   lervo knowledge fuzzy-merge-candidate --comparison <comparison-id> --codex <compilation-id> --claude <compilation-id> [--root <path>] [--json]
   lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <1000..600000>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
+  lervo knowledge worker <--once|--watch> --provider <codex|claude>
+  lervo knowledge convergence <status|inspect> [--json]
+  lervo knowledge convergence delegation --from <reviewed-delegation.json> [--asset-manifest-from <reviewed-assets.json>] [--apply <plan-id>] [--json]
+  lervo knowledge convergence provider-probe --provider <codex|claude> [--json]
   lervo knowledge reconcile [--root <path>] [--json] <compilation-id>
   lervo knowledge review-policy --reviewer <id> [--policy-id <id>] [--allow-conflict-resolution] [--root <path>] [--write] [--json]
   lervo knowledge review --plan <plan-id> --policy <relative-path> --reviewer <id> (--accept-all-safe|--approve-item <disposition-id>=<output-hash>|--resolve-item <disposition-id>=<resolution-hash>|--reject) [--approve-item ...] [--resolve-item ...] [--root <path>] [--json] <compilation-id>

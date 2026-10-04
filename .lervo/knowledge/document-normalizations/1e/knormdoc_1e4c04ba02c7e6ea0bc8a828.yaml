@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f7102d07c798fb202249053c
+outputLanguage: en
+outputs:
+  - byteCount: 2218
+    contentHash: sha256:2a82de5c11291806d74688dd7b1d834df0bf3f9b35e5bc4b240335cb96b46e3a
+    path: docs/specifications/execution/events-and-privacy/workforce-events.md
+    userRegionHash: sha256:2a82de5c11291806d74688dd7b1d834df0bf3f9b35e5bc4b240335cb96b46e3a
+  - byteCount: 1033
+    contentHash: sha256:eae035a3b9a874f97e8e57db11a64b9cffc0b5b9131fbff056fc91da4451022c
+    path: docs/specifications/execution/events-and-privacy/workforce-events/repository-upgrade-role-bindings.md
+    userRegionHash: sha256:eae035a3b9a874f97e8e57db11a64b9cffc0b5b9131fbff056fc91da4451022c
+profile: specification_document
+recordId: knormdoc_1e4c04ba02c7e6ea0bc8a828
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:518e63dfb33affe680d0b1932ed41af97aa74f37c6c1d7180ff4d89230037e1f
+sourcePath: docs/specifications/execution/events-and-privacy/workforce-events.md
+sourceUnitVersionIds:
+  - uv_03cc8da956067ca68bb6fb1c
+  - uv_bc4b8931fbbf5b3539d83a34
+  - uv_d247d204c7210215338c77e6

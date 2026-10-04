@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_821600443b8dfbf534479b1b
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b932b3b08d4e49f6f7117b41
+outputLanguage: en
+outputs:
+  - byteCount: 2517
+    contentHash: sha256:a15dc747b017020432cd7e1e435bef6bfb9e0849e48fe44ab225cbe5ec234a29
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/wsl-2026-10-01-recovery.md
+    userRegionHash: sha256:a15dc747b017020432cd7e1e435bef6bfb9e0849e48fe44ab225cbe5ec234a29
+profile: repository_document
+recordId: knormdoc_cc8b814e5b031212aa5794c2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ab7142f392ef1bf968b19236ed5d57c1a3f8dbbef751ac17eaa227825369aa2a
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/wsl-2026-10-01-recovery.md
+sourceUnitVersionIds:
+  - uv_3e05c285978934c746af58b8
+  - uv_58c73d71960c887a0a018eaf
+  - uv_e0ceebc6eb54722ce8370575

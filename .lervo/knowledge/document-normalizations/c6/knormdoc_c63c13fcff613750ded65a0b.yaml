@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4378ccec3646fea650ee90cc
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e8e5fee418598387d5c0ed12
+outputLanguage: en
+outputs:
+  - byteCount: 5149
+    contentHash: sha256:4b3d7c61b58ca49443f61f1d7fb673fbc0b48b130ff06f516b4e15e0f6cad61c
+    path: docs/decisions/execution/verification/0357-prepare-isolated-candidate-verification-workspaces.md
+    userRegionHash: sha256:4b3d7c61b58ca49443f61f1d7fb673fbc0b48b130ff06f516b4e15e0f6cad61c
+profile: decision_record
+recordId: knormdoc_c63c13fcff613750ded65a0b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:027a2dc556f89dcdddebfe780a956e5685e390fc63c7d62e848f896f80972078
+sourcePath: docs/decisions/execution/verification/0357-prepare-isolated-candidate-verification-workspaces.md
+sourceUnitVersionIds:
+  - uv_0647ec6b37dcc4da7b8ff116
+  - uv_10ef770122d97b2e1158c58b
+  - uv_29944221228483aa205a858e
+  - uv_5b08de4f20c848fa1d15c437
+  - uv_6ce804d8b7e4d6a1b738e3cf
+  - uv_90c665c006596433dbde7c60
+  - uv_c0cc8f4b60939ad5db32f7bc
+  - uv_d9c0d008f189d14233e08db8
+  - uv_f320e5be1bae8b3b68034ad0

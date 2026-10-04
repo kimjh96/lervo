@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6554ac6494e49faa65408956
+outputLanguage: en
+outputs:
+  - byteCount: 6924
+    contentHash: sha256:5dfc2b73ddc96de90bf8375915bc445af651d01b035a96b5c41f9808589deebf
+    path: docs/roadmap/knowledge/asynchronous-conversation-lifecycle.md
+    userRegionHash: sha256:5dfc2b73ddc96de90bf8375915bc445af651d01b035a96b5c41f9808589deebf
+profile: roadmap_document
+recordId: knormdoc_9f6eac699eda87d985bfee2c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f30784e0dae2052a4ae4e1af3a15cb1ef1bc28123228b55c17117a2e2f4c968e
+sourcePath: docs/roadmap/knowledge/asynchronous-conversation-lifecycle.md
+sourceUnitVersionIds:
+  - uv_0434e8634daccd2592489fe9
+  - uv_17712e94bcd540798660a101
+  - uv_4aeb5a5fa83f8845fbe51e31
+  - uv_87fead61a3e695fbafbfab03
+  - uv_dfaf92d10a5d140bcb779275
+  - uv_e219fdd02f9c781009af3aec

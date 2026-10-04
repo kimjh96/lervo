@@ -32,6 +32,23 @@ describe("conversation repository work writing", () => {
     expect(fitDiscord("완료했습니다.")).toBe("완료했습니다.");
   });
 
+  it("keeps background knowledge work out of live provider instructions", () => {
+    const input = {
+      request: "README를 수정해 주세요.",
+      priorTurns: [],
+      durableResults: [],
+      worker: null,
+      externalEffectsAuthorized: false,
+      finalizationStartsAt: "2026-09-18T00:00:00.000Z",
+    };
+    const background = executionInstructions({ ...input, knowledgeMode: "pending_background" });
+    expect(background).toContain("The host owns background knowledge convergence");
+    expect(background).toContain("do not claim repository knowledge is current");
+    expect(background).not.toContain("valid current-scope knowledge");
+    const synchronous = executionInstructions({ ...input, knowledgeMode: "synchronous" });
+    expect(synchronous).toContain("valid current-scope knowledge");
+  });
+
   it("permits an explicitly requested deployment only for an authorized requester", () => {
     const input = {
       request: "검증된 수정본을 배포해 주세요.",

@@ -6,3 +6,4 @@ Version 1 mandates reject Hub-enabled installation. Version 2 permits a [reviewe
 
 - [Review and apply](installation/review-and-apply.md): commands, review bindings, source validation, and fenced installation.
 - [Evidence and recovery](installation/evidence-and-recovery.md): artifacts, journal recovery, replay, revocation, storage bounds, and tests.
+- [CLI adapter checks](installation/cli-adapter-checks.md): scope selection, planning, installation, inspection, revocation, and preflight resolution.

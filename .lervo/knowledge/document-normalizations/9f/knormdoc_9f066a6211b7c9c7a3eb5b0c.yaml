@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1f5743084060164394e28d9e
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3aa7940dcdb11f084270b07d
+outputLanguage: en
+outputs:
+  - byteCount: 820
+    contentHash: sha256:75bfc238296c1a24be54763c276d8f71bafefe556a47da0484d245cc66057717
+    path: docs/specifications/execution/capabilities/repository-migration/standard-agent-skills.md
+    userRegionHash: sha256:75bfc238296c1a24be54763c276d8f71bafefe556a47da0484d245cc66057717
+profile: specification_document
+recordId: knormdoc_9f066a6211b7c9c7a3eb5b0c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ac29dc688ace47eb5d33d2cc2705f3a6b75d548f49da4f6d88c4bfcdacab86db
+sourcePath: docs/specifications/execution/capabilities/repository-migration/standard-agent-skills.md
+sourceUnitVersionIds:
+  - uv_e0a02b3300e481b966909dd6

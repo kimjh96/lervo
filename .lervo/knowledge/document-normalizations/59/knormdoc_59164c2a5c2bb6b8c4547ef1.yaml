@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f7805e12f56266e42eae1509
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a10c57b9226884c3b30b568e
+outputLanguage: en
+outputs:
+  - byteCount: 579
+    contentHash: sha256:859f949cf9310a5bcb9e4c98373e59803393ed93afec04103e851f5f3dbedee6
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-reviews-and-authority.md
+    userRegionHash: sha256:859f949cf9310a5bcb9e4c98373e59803393ed93afec04103e851f5f3dbedee6
+  - byteCount: 867
+    contentHash: sha256:d2a429614757753710bba5afed5e2264362526352cb679d0eb2a426594ec1ab6
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-reviews-and-authority/four-shard-success.md
+    userRegionHash: sha256:d2a429614757753710bba5afed5e2264362526352cb679d0eb2a426594ec1ab6
+  - byteCount: 1919
+    contentHash: sha256:4da780cd36a0d424b6d055892d7813a5f07c4a0d21953fafe92ae3a2eb7a5cd9
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-reviews-and-authority/r160-and-context-typing.md
+    userRegionHash: sha256:4da780cd36a0d424b6d055892d7813a5f07c4a0d21953fafe92ae3a2eb7a5cd9
+  - byteCount: 698
+    contentHash: sha256:d13d0c4f061016c165db5590367466c5fcfca7df0a801cc2e94fb92015a39575
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-reviews-and-authority/shiflo-rejection.md
+    userRegionHash: sha256:d13d0c4f061016c165db5590367466c5fcfca7df0a801cc2e94fb92015a39575
+  - byteCount: 2135
+    contentHash: sha256:edcc12dcbfbc5eb67415afe0813cc9f0ab3825c6075ab05a03f65b0afc8585f0
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-reviews-and-authority/supervision-and-renewal.md
+    userRegionHash: sha256:edcc12dcbfbc5eb67415afe0813cc9f0ab3825c6075ab05a03f65b0afc8585f0
+profile: repository_document
+recordId: knormdoc_59164c2a5c2bb6b8c4547ef1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d6d195d8d84ac38fa7d413d6c4c3358d2af29d5e76acfe6f4d2b26320530576c
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/installed-reviews-and-authority.md
+sourceUnitVersionIds:
+  - uv_90c8499ae8c209fe7775b2de
+  - uv_9b6a17b5428c06a92cd34c71
+  - uv_e4875dd1a58694ffebaeefaf
+  - uv_f5a870453645abd4506ea5c8
+  - uv_fd8dbd2a7cbc8dfb27de5a5a

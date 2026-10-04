@@ -146,27 +146,37 @@ export async function observeNodeSupervisionRecoveryAuthority(
   now: () => string,
   authorityHistory?: SupervisionAuthorityHistory,
 ) {
-  const started = Date.parse(now());
-  const installation = await readInstalledNodeMandate(storage, binding, now);
-  const source = await observeMandateInstallationSource(
-    storage.paths.repositoryRoot,
-    storage,
-    installation.mandate,
-    "current",
-    authorityHistory,
-    undefined,
-    binding.workstreamId,
-  );
-  const confirmed = await readInstalledNodeMandate(storage, binding, now);
-  const observedAt = now();
-  const elapsed = Date.parse(observedAt) - started;
-  if (
-    !Number.isFinite(elapsed) ||
-    elapsed < 0 ||
-    elapsed > 5000 ||
-    source.workstreamId !== binding.workstreamId ||
-    confirmed.latestEventId !== installation.latestEventId
-  )
-    throw new NodeSupervisionError("supervision_authority_changed");
-  return { installation, source, observedAt };
+  // The full-chain audit can exceed the five-second observation window. The source read below
+  // still follows and validates events appended after this warm-up before authority is returned.
+  await authorityHistory?.read();
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const started = Date.parse(now());
+    const installation = await readInstalledNodeMandate(storage, binding, now);
+    const source = await observeMandateInstallationSource(
+      storage.paths.repositoryRoot,
+      storage,
+      installation.mandate,
+      "current",
+      authorityHistory,
+      undefined,
+      binding.workstreamId,
+    );
+    const confirmed = await readInstalledNodeMandate(storage, binding, now);
+    const observedAt = now();
+    const elapsed = Date.parse(observedAt) - started;
+    if (
+      !Number.isFinite(elapsed) ||
+      elapsed < 0 ||
+      source.workstreamId !== binding.workstreamId ||
+      confirmed.latestEventId !== installation.latestEventId
+    )
+      throw new NodeSupervisionError("supervision_authority_changed");
+    // A slow read grants no authority. Repeat the complete observation once with fresh bounds.
+    if (elapsed > 5000) {
+      if (attempt === 0) continue;
+      throw new NodeSupervisionError("supervision_authority_changed");
+    }
+    return { installation, source, observedAt };
+  }
+  throw new NodeSupervisionError("supervision_authority_changed");
 }

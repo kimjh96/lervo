@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c87b00f7d57876e46fec824a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Send the supervised owner a compact view of its context: recent workstream notes, live assignments and one workstream copy."

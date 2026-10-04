@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4f16f91ccbd833f5fa8ffdb9
+outputLanguage: en
+outputs:
+  - byteCount: 4138
+    contentHash: sha256:fbe82a0e72c4294102805d01e60f29a5f14468ec71a25c01f33b077890e0f5c2
+    path: docs/specs/document-content-normalization/worksets-and-preflight.md
+    userRegionHash: sha256:fbe82a0e72c4294102805d01e60f29a5f14468ec71a25c01f33b077890e0f5c2
+profile: specification_document
+recordId: knormdoc_95d42d0edd6ccce82cec2dab
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:33077f8e824f3db82e6350e2fadd3040abd168bf7dbeea1d5345444467220c09
+sourcePath: docs/specs/document-content-normalization/worksets-and-preflight.md
+sourceUnitVersionIds:
+  - uv_047001dac037910371d3e4bd
+  - uv_2c86cd812b3e95d737f79fa8
+  - uv_34ce4191bf6ca9ccaef708bb
+  - uv_5cc96c931558a9d3b664a8f2
+  - uv_a2f0593c661eac6eb44a77f2
+  - uv_ef16cacce52aead3374693c8

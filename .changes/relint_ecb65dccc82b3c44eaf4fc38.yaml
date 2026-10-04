@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ecb65dccc82b3c44eaf4fc38"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reject an overlong supervised owner task purpose with a named field instead of an unexplained contract failure."

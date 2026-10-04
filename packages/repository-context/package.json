@@ -23,6 +23,7 @@
     "@lervo/search-adapter-lexical-v2": "workspace:*",
     "@lervo/search-local": "workspace:*",
     "@lervo/schemas": "workspace:*",
-    "@lervo/verification": "workspace:*"
+    "@lervo/verification": "workspace:*",
+    "@lervo/project": "workspace:*"
   }
 }

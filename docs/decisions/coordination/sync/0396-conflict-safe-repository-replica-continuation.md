@@ -5,9 +5,9 @@
 
 ## Context
 
-Workstream replication aligned two Nodes' objectives but not their Git working trees. A Discord product owner could continue an older checkout despite newer uncommitted source on the Mac. Manual copying fixed one occurrence without preserving partially typed files, staging state, deletions, or subsequent work in the opposite direction.
+Workstream replication aligned two Nodes' objectives but not their Git working trees. A Discord product owner could continue an older checkout despite newer uncommitted source on the Mac. Manual copying fixed one occurrence without preserving partially typed files, staging state, deletions, or later work in the opposite direction.
 
-Native repository work also incorrectly required an unmanaged provider-terminal declaration for completion. Non-interactive Discord-owned provider processes do not execute that local hook, so the conversation runtime rejected changed work despite current workstream and repository knowledge.
+Native repository completion incorrectly required an unmanaged provider-terminal declaration. Non-interactive Discord-owned provider processes do not execute that local hook, so the conversation runtime rejected changed work despite current workstream and repository knowledge.
 
 ## Decision
 
@@ -15,7 +15,7 @@ Native repository work also incorrectly required an unmanaged provider-terminal 
 
 A replica has five exact coordinates: Git `HEAD`, symbolic branch or detached state, index tree, worktree tree, and a SHA-256 hash over those coordinates. A temporary Git index materializes the worktree tree from every tracked and non-ignored untracked path. Incomplete source such as `const a =` requires no commit, successful build, or provider acknowledgment before replication.
 
-The separate index tree preserves staged versus unstaged state. Deletions, executable modes, and symbolic-link modes remain Git tree facts. Git-ignored data is outside this contract: credentials, dependency caches, build outputs, `.lervo/data`, and `.lervo/state` retain their owners and are not copied as source.
+The separate index tree preserves staged versus unstaged state. Deletions, executable modes, and symbolic-link modes remain Git tree facts. Git-ignored data—including credentials, dependency caches, build outputs, `.lervo/data`, and `.lervo/state`—retains its owners and is not copied as source.
 
 The Git adapter creates deterministic hidden commits reaching the exact worktree and index trees without changing the user's branch, index, or worktree. A Git bundle transfers objects through a peer transport. Apply verifies that the target still equals the selected common snapshot, accepts only equal history or a same-branch fast-forward, restores `HEAD`, index, worktree, untracked files, deletions, and modes, then recaptures the snapshot. Failure attempts exact rollback; unprovable rollback is a distinct terminal failure.
 
@@ -34,13 +34,13 @@ The installed peer adapter uses authenticated SSH to the WSL host. The contract 
 
 Every successful cycle atomically writes a rebuildable `.lervo/state/repository-replica.json` receipt on both sides with replica ID, exact common/local/peer hashes, status, and time. A repository Node explicitly configured with required replica readiness waits for a fresh receipt matching its newly captured local snapshot before native work. After a changed turn, it waits for the new common snapshot before publishing success. Stale, missing, mismatched, or divergent state fails as `repository_replica_not_ready`; it never silently runs against a known stale checkout.
 
-Required parity is a strict deployment option, not the installed conversation default. An always-on conversation Node normally owns its WSL repository as the single execution writer and omits `repositoryReplica`; the external Mac coordinator may continue producing recovery replicas without gating message admission or result publication. The completion event then records `replicaDisposition: not_configured`. Operators enable required parity only for a topology with one effective writer, a continuously available coordinator, and an explicit divergence-resolution owner. A known divergent recovery replica remains intact for later review and never authorizes overwriting either side.
+Required parity is a strict deployment option, not the installed conversation default. An always-on conversation Node normally owns its WSL repository as the single execution writer and omits `repositoryReplica`. The external Mac coordinator may continue producing recovery replicas without gating message admission or result publication; the completion event records `replicaDisposition: not_configured`. Operators enable required parity only with one effective writer, a continuously available coordinator, and an explicit divergence-resolution owner. A known divergent recovery replica remains intact for later review and never authorizes overwriting either side.
 
 ### Native work completion and context
 
-A changed native conversation turn must advance the same current workstream and leave repository knowledge migration, normalization, instruction bridges, and lint current. When strict replica readiness is explicitly configured, it must also reach replica parity. The Node verifies the applicable conditions after provider exit rather than delegating completion to a provider prompt or unmanaged terminal hook.
+A changed native conversation turn must advance the same current workstream and leave repository knowledge migration, normalization, instruction bridges, and lint current. Explicitly configured strict replica readiness also requires replica parity. The Node verifies applicable conditions after provider exit; completion is not delegated to a provider prompt or unmanaged terminal hook.
 
-Replica freshness and the managed completion event are host-owned post-exit gates. Provider instructions therefore require provider-observable checkpoint, knowledge, and verification work but prohibit telling the user that final completion is pending merely because the in-process provider cannot yet observe those later gates. The host publishes the result only after the gates pass; otherwise the ordinary terminal-failure path reports failure. This removes repeated “replica confirmation unavailable, final completion withheld” caveats that gave the user no actionable choice despite a later successful host reconciliation.
+Replica freshness and the managed completion event are host-owned post-exit gates. Provider instructions require provider-observable checkpoint, knowledge, and verification work but prohibit telling the user that final completion is pending merely because the in-process provider cannot yet observe those later gates. The host publishes the result only after the gates pass; otherwise the ordinary terminal-failure path reports failure. This removes repeated “replica confirmation unavailable, final completion withheld” caveats that offered no actionable choice despite later successful host reconciliation.
 
 After verification, the Node appends a version 2 `conversation.repository_work.completed` event for every accepted native work turn, binding:
 
@@ -63,7 +63,7 @@ The per-worker provider session remains the richest conversational context. Up t
 
 ## Consequences
 
-Local-to-Discord and Discord-to-local continuation can share exact uncommitted source while the coordinator is healthy. Concurrent independent edits produce a bounded conflict rather than last-writer-wins data loss. Offline work can resume when the peer and coordinator return, but two offline writers require explicit reconciliation. Installed conversation availability does not depend on that reconciliation unless an operator deliberately enables the strict parity option.
+Local-to-Discord and Discord-to-local continuation can share exact uncommitted source while the coordinator is healthy. Concurrent independent edits produce a bounded conflict rather than last-writer-wins data loss. Offline work can resume when the peer and coordinator return, but two offline writers require explicit reconciliation. Installed conversation availability depends on that reconciliation only when an operator deliberately enables strict parity.
 
 Replica observation writes only Git tree objects; bundle creation and explicit recovery additionally write Lervo hidden refs. Coordinator state and readiness receipts are rebuildable projections. Git commits, canonical Markdown, workstream snapshots, managed conversation-work completion events, direct-terminal declarations, verification evidence, and agent-context review events retain their existing authority.
 

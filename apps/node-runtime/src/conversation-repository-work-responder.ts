@@ -154,14 +154,14 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
   }
 
   /**
-   * A v3 event writer settles knowledge through the ADR-0433 repository queue; an older writer
+   * An event writer supporting the repository queue settles knowledge in the background; an older writer
    * or an unreadable coordinate keeps the synchronous knowledge check. An explicit option wins.
    */
   private async knowledgeMode(): Promise<"synchronous" | "pending_background"> {
     if (this.options.knowledgeMode !== undefined) return this.options.knowledgeMode;
     try {
       const writer = await inspectEventWriterCoordinate(this.options.repositoryRoot);
-      if (writer.coordinate.selectedEventSchemaVersion === 3) return "pending_background";
+      if (writer.coordinate.selectedEventSchemaVersion >= 3) return "pending_background";
     } catch {
       // The stricter synchronous check needs no writer coordinate.
     }
@@ -294,7 +294,8 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           worker: delegate,
           externalEffectsAuthorized,
           finalizationStartsAt: finalizationStartsAt(this.options.timeoutMs),
-          ...(await readKnowledgeAssignments(this.options)),
+          knowledgeMode,
+          ...(knowledgeMode === "synchronous" ? await readKnowledgeAssignments(this.options) : {}),
         }),
         providerSessionId: turn.providerSessionId,
         ...(route.model === null ? {} : { model: route.model }),

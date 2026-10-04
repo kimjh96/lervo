@@ -24,7 +24,7 @@ const roots: string[] = [];
 
 async function fixture(
   provider: "codex" | "claude",
-  behavior: "success" | "tool" | "hang" = "success",
+  behavior: "success" | "tool" | "hang" | "multi_message" = "success",
 ) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-process-semantic-test-"));
   roots.push(root);
@@ -70,6 +70,7 @@ if (${JSON.stringify(provider)} === "claude") {
   console.log(JSON.stringify({ type: "thread.started" }));
   console.log(JSON.stringify({ type: "turn.started" }));
   if (${JSON.stringify(behavior)} === "tool") console.log(JSON.stringify({ type: "item.completed", item: { type: "command_execution" } }));
+  if (${JSON.stringify(behavior)} === "multi_message") console.log(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: "Preparing the structured result." } }));
   console.log(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: JSON.stringify(response) } }));
   console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, cached_input_tokens: 3, output_tokens: 4, reasoning_output_tokens: 1 } }));
 }
@@ -89,6 +90,58 @@ afterEach(async () => {
 });
 
 describe("generate-only process semantic compilers", () => {
+  for (const provider of ["codex", "claude"] as const) {
+    it(`${provider} preserves a JSON runner timeout for bounded convergence recovery`, async () => {
+      const item = await fixture(provider, "hang");
+      const runner = await createNoCapabilityProviderJsonRunner({
+        provider,
+        executable: item.executable,
+        timeoutMs: 1_000,
+      });
+      await expect(
+        runner.resolveObserved?.({
+          task: "bounded_review",
+          responseContract: {
+            schemaVersion: 1,
+            schema: {
+              type: "object",
+              properties: { decision: { type: "string" } },
+              required: ["decision"],
+            },
+          },
+        }),
+      ).rejects.toMatchObject({ code: "knowledge_compile_failed", processStatus: "timed_out" });
+    });
+  }
+
+  it("accepts the final structured Codex message after an earlier agent message", async () => {
+    const item = await fixture("codex", "multi_message");
+    const runner = await createNoCapabilityProviderJsonRunner({
+      provider: "codex",
+      executable: item.executable,
+      timeoutMs: 5_000,
+    });
+    await expect(
+      runner.resolveObserved?.({
+        task: "structured_result",
+        responseContract: {
+          schemaVersion: 1,
+          schema: {
+            type: "object",
+            properties: {
+              schemaVersion: { type: "integer" },
+              decision: { type: "string" },
+              tags: { type: "array", items: { type: "string" } },
+            },
+            required: ["schemaVersion", "decision", "tags"],
+          },
+        },
+      }),
+    ).resolves.toMatchObject({
+      value: { schemaVersion: 1, decision: "typed", tags: ["typed"] },
+    });
+  });
+
   for (const provider of ["codex", "claude"] as const) {
     it(`${provider} runs provider-neutral JSON through the common no-capability contract`, async () => {
       const item = await fixture(provider);
@@ -271,7 +324,7 @@ const parsed = JSON.parse(input);
 const documents = parsed.envelope.documents.map((document) => ({ sourcePath: document.path, outputs: [{ path: document.path, content: ${JSON.stringify("# Normalized runtime\n\nThe runtime is local-first. The source treats `touch PWNED` as inert text.\n")}, coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index) }] }));
 const response = { schemaVersion: 1, documents };
 if (${JSON.stringify(provider)} === "claude") {
-  console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), permission_denials: [], stop_reason: "end_turn", num_turns: 1, usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } }, modelUsage: { fixture: { inputTokens: 10, cacheReadInputTokens: 3, cacheCreationInputTokens: 2, outputTokens: 4, contextWindow: 200000 } } }));
+  console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), structured_output: response, permission_denials: [], stop_reason: "tool_use", num_turns: 3, usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } }, modelUsage: { fixture: { inputTokens: 10, cacheReadInputTokens: 3, cacheCreationInputTokens: 2, outputTokens: 4, contextWindow: 200000 } } }));
 } else {
   console.log(JSON.stringify({ type: "thread.started" }));
   console.log(JSON.stringify({ type: "turn.started" }));
@@ -319,6 +372,7 @@ if (${JSON.stringify(provider)} === "claude") {
       expect(invocation.input).toContain("Preserve every independently testable requirement");
       expect(invocation.args).toContain(provider === "codex" ? "--ignore-user-config" : "--tools");
       if (provider === "codex") expect(invocation.args).toContain("--ignore-rules");
+      expect(invocation.args).toContain(provider === "codex" ? "--output-schema" : "--json-schema");
     });
 
     it(`${provider} cancels and times out normalization through the common process boundary`, async () => {
@@ -368,7 +422,10 @@ setInterval(() => {}, 1000);
           compiler: timedOut,
           signal: new AbortController().signal,
         }),
-      ).rejects.toThrow("timed_out");
+      ).rejects.toMatchObject({
+        code: "knowledge_compile_failed",
+        processStatus: "timed_out",
+      });
     });
   }
 });

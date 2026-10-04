@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0865c15fc4ef59245f1fa87e
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9536d0ceb2ecbdef250423a3
+outputLanguage: en
+outputs:
+  - byteCount: 2569
+    contentHash: sha256:c8055976ff2981a474d501bf4915262c4f057d5696294090ce250478978f0895
+    path: docs/decisions/coordination/remote-control/0168-platform-bound-standalone-hub-distribution.md
+    userRegionHash: sha256:c8055976ff2981a474d501bf4915262c4f057d5696294090ce250478978f0895
+profile: decision_record
+recordId: knormdoc_ce9d6f5dad3a96339d5d9ee8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c047f82fba65311d70488d1080fa9db7a10ecaaa88919eba23e811e06eca831e
+sourcePath: docs/decisions/coordination/remote-control/0168-platform-bound-standalone-hub-distribution.md
+sourceUnitVersionIds:
+  - uv_0b87fcd885a757a914de8be5
+  - uv_5c2ea2fb67b5af6323f9effe
+  - uv_ce6f0c0debb29d42c6011ec1
+  - uv_ff4429f0c98ae523e13daae5

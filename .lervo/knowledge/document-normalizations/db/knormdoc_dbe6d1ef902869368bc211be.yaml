@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_17b7a0da239f56b09b053012
+outputLanguage: en
+outputs:
+  - byteCount: 2286
+    contentHash: sha256:df3e08c41a6fdd670e28b856de46c37ef89588352caffe18e2c5e82f2eca12da
+    path: docs/roadmap/product-outcome-convergence/delivery-status/discord-remote-continuation.md
+    userRegionHash: sha256:df3e08c41a6fdd670e28b856de46c37ef89588352caffe18e2c5e82f2eca12da
+profile: roadmap_document
+recordId: knormdoc_dbe6d1ef902869368bc211be
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:565fed82cb4e1c4cb280a66d7d73274974f79501cf49feec10137bb18572aae4
+sourcePath: docs/roadmap/product-outcome-convergence/delivery-status/discord-remote-continuation.md
+sourceUnitVersionIds:
+  - uv_067c2f12675b0a0a0fa809e3
+  - uv_2b5f5fb38a0e5a58e7ba1365
+  - uv_daafe68cb0b9f1e67881d029
+  - uv_dbecb192f948fddc311dfd64

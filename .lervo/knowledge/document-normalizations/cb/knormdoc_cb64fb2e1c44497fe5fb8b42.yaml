@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1f5743084060164394e28d9e
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7647da906efd55860ed9e1b3
+outputLanguage: en
+outputs:
+  - byteCount: 5854
+    contentHash: sha256:45411987a257499b9670019f397e3d573eba5aeb0bfd8cb6edab296acd46ebac
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/readiness-and-failure.md
+    userRegionHash: sha256:45411987a257499b9670019f397e3d573eba5aeb0bfd8cb6edab296acd46ebac
+profile: specification_document
+recordId: knormdoc_cb64fb2e1c44497fe5fb8b42
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:10ab110202e4a044f2fb2bea30ceb6b53a9d23669d8d9901d527fd2b58d758ac
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/readiness-and-failure.md
+sourceUnitVersionIds:
+  - uv_29afb14e3d68dee1ff1e5cb2
+  - uv_5a587ffb1122c8f174e3632e
+  - uv_6d1a15b513c4121e2b011560
+  - uv_7c2e0e0aa8b02dd1c7e275fb
+  - uv_d326891f2eca81926850c9fb

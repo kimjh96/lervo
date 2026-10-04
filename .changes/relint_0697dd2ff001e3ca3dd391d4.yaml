@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0697dd2ff001e3ca3dd391d4"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Refresh exact worker admission after slow readiness probes without weakening the freshness bound."

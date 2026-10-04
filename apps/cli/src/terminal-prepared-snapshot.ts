@@ -33,6 +33,16 @@ function validate(value: unknown): PreparedRepositorySnapshot {
     typeof snapshot.files !== "object" ||
     Array.isArray(snapshot.files) ||
     Object.keys(snapshot.files).length > 20_000 ||
+    (snapshot.commits !== undefined &&
+      (snapshot.commits === null ||
+        typeof snapshot.commits !== "object" ||
+        Array.isArray(snapshot.commits) ||
+        Object.entries(snapshot.commits).some(
+          ([path, commit]) =>
+            !(path in snapshot.files!) ||
+            typeof commit !== "string" ||
+            !/^[a-f0-9]{40,64}$/u.test(commit),
+        ))) ||
     !Object.entries(snapshot.files).every(
       ([path, hash]) =>
         path.length > 0 &&

@@ -71,7 +71,7 @@ export async function inspectEventWriterCoordinate(repositoryRoot: string) {
 export async function planEventWriterActivation(input: {
   repositoryRoot: string;
   evidence: unknown;
-  targetEventSchemaVersion?: 2 | 3;
+  targetEventSchemaVersion?: 2 | 3 | 4;
 }): Promise<EventWriterActivationPlan> {
   const manifest = await loadProjectManifest(input.repositoryRoot);
   const paths = resolveProjectPaths(input.repositoryRoot);

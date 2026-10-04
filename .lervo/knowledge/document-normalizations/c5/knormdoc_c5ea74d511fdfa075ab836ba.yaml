@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2f26c8a06813eb1b23338f1c
+outputLanguage: en
+outputs:
+  - byteCount: 5357
+    contentHash: sha256:e9906dbab239828aa93f9b39d393f7f889714ed85a435d4604872739a26e3f91
+    path: docs/decisions/operations/storage/0003-local-event-store-and-cas.md
+    userRegionHash: sha256:e9906dbab239828aa93f9b39d393f7f889714ed85a435d4604872739a26e3f91
+profile: decision_record
+recordId: knormdoc_c5ea74d511fdfa075ab836ba
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9c73f14e5b696d1da0eab514a5a855662290f27b9b3e1a3ff54f0b77b170699e
+sourcePath: docs/decisions/operations/storage/0003-local-event-store-and-cas.md
+sourceUnitVersionIds:
+  - uv_0516b04e4f3ff585fc40ee01
+  - uv_4e6dac9dee50b30fe1e86287
+  - uv_548fd38411075c7a56c4c0eb
+  - uv_719157365ef0866a2d9e7364
+  - uv_7792604f5f2fe8b48fe3a458
+  - uv_8de15f70c17fe8d8136e858c
+  - uv_bfd85030edaf4812239894cf
+  - uv_c12f9aaf35365b5b1b370d10
+  - uv_e5e5567dd443ad0b5ff2eef1

@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c97907068e222ccf6df65d8d
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_538eb96998dfc2918c3d79f7
+outputLanguage: en
+outputs:
+  - byteCount: 2972
+    contentHash: sha256:7f1d9ee3a88393a876fd52227405e1e6c0a7ce25b9cebd276f6d4cd8eb91721a
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/run-evidence/failure-diagnostics.md
+    userRegionHash: sha256:7f1d9ee3a88393a876fd52227405e1e6c0a7ce25b9cebd276f6d4cd8eb91721a
+profile: specification_document
+recordId: knormdoc_e5aa8e56907253e13cd745b5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:92a7fae1a86d6bbec4921b1d420b68be19d46eebcea6f69504207f7796790c2d
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/run-evidence/failure-diagnostics.md
+sourceUnitVersionIds:
+  - uv_ab649f3a089feb2bfefa763e
+  - uv_c85e8beb2fff75349b8c3184

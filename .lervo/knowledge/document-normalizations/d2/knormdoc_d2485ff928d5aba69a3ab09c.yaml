@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a7131815bdf11a62f8700b79
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c5f1fcdd4e4530342c19bc63
+outputLanguage: en
+outputs:
+  - byteCount: 6300
+    contentHash: sha256:efdfacc0334dc059d308ae3136701d0dd468569d897e19c453ed0f9611c558bd
+    path: docs/decisions/execution/providers/0198-managed-context-grounding-and-coverage.md
+    userRegionHash: sha256:efdfacc0334dc059d308ae3136701d0dd468569d897e19c453ed0f9611c558bd
+profile: decision_record
+recordId: knormdoc_d2485ff928d5aba69a3ab09c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4dbfe89373800fe22669bce71ebbb20a839c205e1af990fb06e471b05176dd65
+sourcePath: docs/decisions/execution/providers/0198-managed-context-grounding-and-coverage.md
+sourceUnitVersionIds:
+  - uv_343ca821e7ee0c4da59c0426
+  - uv_69e349037bed4404a8a09a41
+  - uv_6df0a85dac073c9a31467b48
+  - uv_93b9de7e9a60d9ff327a442c
+  - uv_a08a2fb7be66fc15ced595ed
+  - uv_af88d086c9a36e865c59aa8d
+  - uv_cc8aa6881c6cf4266ebdecad
+  - uv_d151e47969e8d301baa8d65b
+  - uv_dfd54969ada705cd332007cd
+  - uv_e1d7a191b16336b33a0d3be4
+  - uv_e7a67a0ada3ccdb9892eb7ca

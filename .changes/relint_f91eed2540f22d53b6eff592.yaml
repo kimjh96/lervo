@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f91eed2540f22d53b6eff592"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add reader-first contracts and bounded local reconciliation for asynchronous repository knowledge work."

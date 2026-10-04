@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a9cf2e0f2fb8016ea0bd5b1c
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_20d3051bd90c8c5ca18efd32
+outputLanguage: en
+outputs:
+  - byteCount: 418
+    contentHash: sha256:5da35f11b9eb36548451b5ab032dc46185b8072e2d0e7ddbbd5c8c8f1ce21f8c
+    path: docs/distribution/node-runtime-distribution/installation-and-readiness/installation-and-activation/installation-and-preflight.md
+    userRegionHash: sha256:5da35f11b9eb36548451b5ab032dc46185b8072e2d0e7ddbbd5c8c8f1ce21f8c
+profile: repository_document
+recordId: knormdoc_6897d40effb01de44084876a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5da35f11b9eb36548451b5ab032dc46185b8072e2d0e7ddbbd5c8c8f1ce21f8c
+sourcePath: docs/distribution/node-runtime-distribution/installation-and-readiness/installation-and-activation/installation-and-preflight.md
+sourceUnitVersionIds:
+  - uv_408d92ef6b38bf0fa7c107f5

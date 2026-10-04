@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_13b8193306d010e94903e65a
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4f0fd4c46fe333575a26386c
+outputLanguage: en
+outputs:
+  - byteCount: 5062
+    contentHash: sha256:623895fc06fc4c724db7e46ac23d608a35f2c668c04855752282f39a18cabee5
+    path: docs/decisions/coordination/conversations/delivery/0424-bound-delivery-uncertainty-and-reconciliation.md
+    userRegionHash: sha256:623895fc06fc4c724db7e46ac23d608a35f2c668c04855752282f39a18cabee5
+profile: decision_record
+recordId: knormdoc_a732698a387868b69a81d1df
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a9fc49665e04e5117bfff89b4428ae747279667ac98a12c8a988a760fd40df19
+sourcePath: docs/decisions/coordination/conversations/delivery/0424-bound-delivery-uncertainty-and-reconciliation.md
+sourceUnitVersionIds:
+  - uv_8ece7a8e5b8acf76a013d915
+  - uv_9bb54f108e02b6b8aa694477
+  - uv_9d049405b93f5322657f7497
+  - uv_f159d4a21943b4e2cf6e0fc7

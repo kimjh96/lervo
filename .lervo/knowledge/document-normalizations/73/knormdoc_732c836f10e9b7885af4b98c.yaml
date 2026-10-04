@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_13b8193306d010e94903e65a
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_204bc8bdb28f7ee3bf3242ac
+outputLanguage: en
+outputs:
+  - byteCount: 8295
+    contentHash: sha256:d977937ab6ccf7391b00a46887247f8a1dab1051f8f9e58538fcf9750c3ac3b4
+    path: docs/decisions/coordination/conversations/agent-organization/0420-bound-agent-conversation-and-deliberation-routes.md
+    userRegionHash: sha256:d977937ab6ccf7391b00a46887247f8a1dab1051f8f9e58538fcf9750c3ac3b4
+profile: decision_record
+recordId: knormdoc_732c836f10e9b7885af4b98c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6d70f478a5106be39576ed18db303c703a5390fbad90ffea887785b937f9b7f4
+sourcePath: docs/decisions/coordination/conversations/agent-organization/0420-bound-agent-conversation-and-deliberation-routes.md
+sourceUnitVersionIds:
+  - uv_174801e9016957efa425ae54
+  - uv_58889ea5106fc12fd2e7b296
+  - uv_5d201bec26c88eb02276fcb4
+  - uv_6d474320e612b32becda43f2
+  - uv_6f7cf04f464b65677bb0bd7c
+  - uv_88f779223be2753b4a9dbebb
+  - uv_a277a7058bb5f6b568031e29
+  - uv_e1bbb2e56aa3535557b64f57
+  - uv_e31c3b884897b21c4055ad5e
+  - uv_f7d2fd7c87810f3e2673e774

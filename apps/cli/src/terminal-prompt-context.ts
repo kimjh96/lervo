@@ -13,6 +13,7 @@ import { assembleTerminalHookContext } from "./terminal-context-assembly.js";
 import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
 import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
 import { formatTerminalAttentionContext } from "./operating-attention-format.js";
+import { prepareCompactTerminalPromptContext } from "./terminal-compact-context.js";
 import { createOperatingAttentionReport } from "./operating-attention-projection.js";
 import { readTerminalKnowledgeLifecycleCache } from "./terminal-knowledge-lifecycle-cache.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
@@ -42,6 +43,7 @@ export interface PreparedTerminalPromptContext {
   documents: PreparedTerminalDocument[];
   repositoryRevision: string;
   repositoryFiles: RepositorySnapshot["files"];
+  repositoryCommits?: RepositorySnapshot["commits"];
   workstream: {
     workstreamId: string;
     revision: number;
@@ -104,6 +106,11 @@ export async function prepareTerminalPromptContext(input: {
   services: Pick<CliServices, "projectSearchQueries">;
   timing: TerminalStageObservationPort;
 }): Promise<PreparedTerminalPromptContext> {
+  if (terminalPromptContextMode() === "compact")
+    return prepareCompactTerminalPromptContext({
+      ...input,
+      declarationInstruction: terminalDeclarationInstruction(input.provider, input.observationId),
+    });
   const {
     supplementalSources,
     instructionCatalog,
@@ -184,7 +191,7 @@ export async function prepareTerminalPromptContext(input: {
             "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
             "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes.",
           ].join("\n\n")
-        : `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${input.provider} --observation ${input.observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; canonicalizationOutcome as one exact v1 object; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. The outcome must bind every changed noncanonical source path exactly once: use kind=canonical_update with summary and targets[{path,contentHash,sourcePaths}] when canonical bytes changed; kind=no_durable_change with summary, reasonCode=implementation_only|verification_only|already_canonical|transient, and sourcePaths when review should reject durable promotion; kind=review_draft with summary and drafts[{targetPath,sourcePaths,proposedMarkdown,proposedContentHash}] when exact Markdown review is required; or kind=portable_skill_candidate with summary, sourcePaths, and a bounded development-pattern proposal only when at least two independent groups bind distinct current passed verification events plus exact source, skill, resource, input, output, tool, and permission contracts. Retrieval selection and provider agreement never satisfy that gate. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, verification, and deliberation evidence; proposal bodies remain local candidate state and are not event content or truth. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
+        : terminalDeclarationInstruction(input.provider, input.observationId);
     const workstreamInstruction =
       input.workspaceBinding?.executionKind === "worker"
         ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping."
@@ -266,6 +273,9 @@ export async function prepareTerminalPromptContext(input: {
     documents: assembled.documents,
     repositoryRevision: repositorySnapshot.revision,
     repositoryFiles: repositorySnapshot.files,
+    ...(repositorySnapshot.commits === undefined
+      ? {}
+      : { repositoryCommits: repositorySnapshot.commits }),
     workstream: assembled.workstream,
     attention,
     grounding: {
@@ -286,4 +296,13 @@ export async function prepareTerminalPromptContext(input: {
       selectedCount: selection.selected.length,
     },
   };
+}
+
+/** Prompt context stays compact unless a developer opts into per-prompt retrieval. */
+function terminalPromptContextMode(): "compact" | "retrieval" {
+  return process.env.LERVO_TERMINAL_CONTEXT === "retrieval" ? "retrieval" : "compact";
+}
+
+function terminalDeclarationInstruction(provider: string, observationId: string): string {
+  return `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; canonicalizationOutcome as one exact v1 object; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. The outcome must bind every changed noncanonical source path exactly once: use kind=canonical_update with summary and targets[{path,contentHash,sourcePaths}] when canonical bytes changed; kind=no_durable_change with summary, reasonCode=implementation_only|verification_only|already_canonical|transient, and sourcePaths when review should reject durable promotion; kind=review_draft with summary and drafts[{targetPath,sourcePaths,proposedMarkdown,proposedContentHash}] when exact Markdown review is required; or kind=portable_skill_candidate with summary, sourcePaths, and a bounded development-pattern proposal only when at least two independent groups bind distinct current passed verification events plus exact source, skill, resource, input, output, tool, and permission contracts. Retrieval selection and provider agreement never satisfy that gate. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, verification, and deliberation evidence; proposal bodies remain local candidate state and are not event content or truth. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
 }

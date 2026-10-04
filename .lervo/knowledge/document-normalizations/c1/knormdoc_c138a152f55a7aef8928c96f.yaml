@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f18e302755671af4107a3481
+outputLanguage: en
+outputs:
+  - byteCount: 679
+    contentHash: sha256:ce45d9e33e8be8164e6b41a7a8e283b2d1284f674bf046cbe0c01008a3f2a321
+    path: docs/roadmap/product-outcome-convergence/host-products/host-boundary/complete-interfaces.md
+    userRegionHash: sha256:ce45d9e33e8be8164e6b41a7a8e283b2d1284f674bf046cbe0c01008a3f2a321
+profile: roadmap_document
+recordId: knormdoc_c138a152f55a7aef8928c96f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:abd8f5dcb334eb5113cde22aee09cd56d21a9a946c8098e4c412d926c0cb8d0d
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/host-boundary/complete-interfaces.md
+sourceUnitVersionIds:
+  - uv_606d640e5d93a0eac9893806

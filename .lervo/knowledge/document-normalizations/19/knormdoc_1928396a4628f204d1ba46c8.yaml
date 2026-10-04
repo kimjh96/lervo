@@ -1,0 +1,42 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_68dc43be549d849ef877c9c5
+compiler:
+  compilerBuildId: sha256:a2216f7588fc16d305062a2962940204a12e8ef517c44d07d779270139a672bd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_dd4e98c616a5456aa6d76a70
+outputLanguage: en
+outputs:
+  - byteCount: 1340
+    contentHash: sha256:97772c11eb95a37877e4d26e67fcff788041cd8fb345dc9f4cc59613f7d09adf
+    path: docs/specifications/execution/outcome-supervision/contracts/events.md
+    userRegionHash: sha256:97772c11eb95a37877e4d26e67fcff788041cd8fb345dc9f4cc59613f7d09adf
+  - byteCount: 8075
+    contentHash: sha256:57dbc2fb58b7665e8cf226982f33401a4dc7982534d4fe8a8a66b00e586bb0a3
+    path: docs/specifications/execution/outcome-supervision/contracts/events/event-contract.md
+    userRegionHash: sha256:57dbc2fb58b7665e8cf226982f33401a4dc7982534d4fe8a8a66b00e586bb0a3
+  - byteCount: 5111
+    contentHash: sha256:94c96f5b20ab820eefde8a605ca99221bd6864317eba33015c41100e71bc34d9
+    path: docs/specifications/execution/outcome-supervision/contracts/events/idempotency-and-recovery.md
+    userRegionHash: sha256:94c96f5b20ab820eefde8a605ca99221bd6864317eba33015c41100e71bc34d9
+  - byteCount: 1465
+    contentHash: sha256:b10956016c100d6967a4cfbb6484a276ec5a6827a1728a26a4e782ed684008b2
+    path: docs/specifications/execution/outcome-supervision/contracts/events/reader-compatibility.md
+    userRegionHash: sha256:b10956016c100d6967a4cfbb6484a276ec5a6827a1728a26a4e782ed684008b2
+profile: specification_document
+recordId: knormdoc_1928396a4628f204d1ba46c8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8c3b9cfa7797b933c741a6a481ebce455fc1351094e2378dad3f13b2ae0fc046
+sourcePath: docs/specifications/execution/outcome-supervision/contracts/events.md
+sourceUnitVersionIds:
+  - uv_35fdebfc36f1f889a21356e2
+  - uv_3b648988d6e05edb0b2058c8
+  - uv_417e26cee93f4378a8eaa11d
+  - uv_66c363f929eef7ccf29d9a73
+  - uv_fbe6285f992cf3047a1280e9

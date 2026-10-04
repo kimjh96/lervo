@@ -6,11 +6,11 @@ As of: 2026-09-01
 
 ## Purpose and scope
 
-Synthesize lessons from Paperclip, Buzz, Prime Agent, and Hermes without widening Lervo into another general-purpose assistant, collaboration database, or provider-specific agent runtime. Clarify repository knowledge retrieval and durable improvement without claiming that a model learns by itself or determines that its learning is correct.
+Synthesize lessons from Paperclip, Buzz, Prime Agent, and Hermes without expanding Lervo into a general-purpose assistant, collaboration database, or provider-specific agent runtime. Clarify repository knowledge retrieval and durable improvement without claiming that a model learns by itself or determines whether its learning is correct.
 
-This research guides later refinement. It does not authorize new runtime behavior, change the completed v0 roadmap, or replace responsible product, execution, knowledge, and lifecycle specifications.
+This research guides later refinement. It does not authorize runtime behavior, change the completed v0 roadmap, or replace responsible product, execution, knowledge, and lifecycle specifications.
 
-[ADR-0417](../decisions/execution/applications/0417-own-discord-visible-reference-product.md) makes Discord the installed reference product surface and assigns Lervo a future first-party surface. Paperclip-like and Buzz-like products may remain separately installed, but the reference experience is no longer solely external product scope.
+[ADR-0417](../decisions/execution/applications/0417-own-discord-visible-reference-product.md) makes Discord the installed reference product surface and assigns Lervo a future first-party surface. Paperclip-like and Buzz-like products may remain separately installed; the reference experience is no longer solely external product scope.
 
 ## Positioning conclusion
 
@@ -33,7 +33,7 @@ The [agent-platform and evolution research](lervo-agent-platform-evolution.md) d
 
 ## Deferred refinement sequence
 
-This is research guidance; the [product outcome convergence roadmap](../roadmap/product-outcome-convergence.md) tracks remaining outcomes and evidence.
+This sequence is research guidance; the [product outcome convergence roadmap](../roadmap/product-outcome-convergence.md) tracks remaining outcomes and evidence.
 
 1. Converge existing contracts behind a stable headless application boundary.
 2. Define governed loops over workstreams, assignments, runs, and verification.

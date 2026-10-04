@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_cae3e43c075ca597f8ba5d37"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep a supervised worker running through slow authority reads during verification, and log the failure code of an uncertain effect."

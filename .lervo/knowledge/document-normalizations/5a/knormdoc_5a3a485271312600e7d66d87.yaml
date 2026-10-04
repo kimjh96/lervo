@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_33d809433697bc7e17d023be
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b15c2ac18481640b10abe509
+outputLanguage: en
+outputs:
+  - byteCount: 322
+    contentHash: sha256:d5c78511c3dfdbe6d87bd3462d55007fa8adeb7989808154d3334d14d01ea6c9
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/pauses-review-and-readers.md
+    userRegionHash: sha256:d5c78511c3dfdbe6d87bd3462d55007fa8adeb7989808154d3334d14d01ea6c9
+  - byteCount: 620
+    contentHash: sha256:146f7cb4938d81dc2318b4b82472b12a39e717f2b4b627570a5789b920399953
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/pauses-review-and-readers/activation-and-readers.md
+    userRegionHash: sha256:146f7cb4938d81dc2318b4b82472b12a39e717f2b4b627570a5789b920399953
+  - byteCount: 526
+    contentHash: sha256:cb578d57f76198c38c2769a962d3d5123841056cf423bb2e6569efa2bcbe64eb
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/pauses-review-and-readers/native-pauses.md
+    userRegionHash: sha256:cb578d57f76198c38c2769a962d3d5123841056cf423bb2e6569efa2bcbe64eb
+  - byteCount: 788
+    contentHash: sha256:ecde90a3e0a55bd095d7f5bfbc54a6fc45d55ef564c74ac90eda5cc902998b05
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/pauses-review-and-readers/rejected-review.md
+    userRegionHash: sha256:ecde90a3e0a55bd095d7f5bfbc54a6fc45d55ef564c74ac90eda5cc902998b05
+profile: repository_document
+recordId: knormdoc_5a3a485271312600e7d66d87
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b29ccaf49f522b43c6ee214d345627287e5f10f0cee0413a860997a52be25a5f
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/authorized-continuation/pauses-review-and-readers.md
+sourceUnitVersionIds:
+  - uv_000fb8f63b4221af261e9f8f
+  - uv_30a70e0b78c4db577b7cde03
+  - uv_7291bcd90501499ffd85bf84
+  - uv_80dc9b1659dce79ba7aa8b85

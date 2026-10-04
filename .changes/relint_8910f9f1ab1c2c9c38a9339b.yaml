@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8910f9f1ab1c2c9c38a9339b"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add read-only knowledge review assignments without blocking live repository writers."

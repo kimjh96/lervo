@@ -207,7 +207,7 @@ export async function revokeRepositoryMandate(input: {
 }) {
   const storage = await openProjectStorage(input.root);
   try {
-    if (storage.writableEventSchemaVersion !== 3)
+    if ((storage.writableEventSchemaVersion ?? 1) < 3)
       throw new Error("Mandate revocation requires event writer version 3.");
     const inspected = await journal(
       storage,
@@ -265,7 +265,7 @@ export async function resolveRepositoryPreflight(input: {
 }) {
   const storage = await openProjectStorage(input.root);
   try {
-    if (storage.writableEventSchemaVersion !== 3)
+    if ((storage.writableEventSchemaVersion ?? 1) < 3)
       throw new Error("Preflight resolution requires event writer version 3.");
     const inspected = await journal(
       storage,

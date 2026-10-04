@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_af15e4851a60352499048991"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Close owner-accepted historical knowledge obligations and skip reviewed Lervo outputs in background assessment."

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_be73ff16f29054f9a982ee23
+outputLanguage: en
+outputs:
+  - byteCount: 5015
+    contentHash: sha256:0263cc85ad16073f93abdaa85b9737452c71a0452a5f82bf328405572ab39265
+    path: docs/decisions/knowledge/repository/canonicalization/0441-isolate-resident-knowledge-from-node-conversations.md
+    userRegionHash: sha256:0263cc85ad16073f93abdaa85b9737452c71a0452a5f82bf328405572ab39265
+profile: decision_record
+recordId: knormdoc_2a6828ec33990895697021b7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a2a7d28396851e5a1af911d25e91c3c6b839726d844b7d130991b1c53fb112d0
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0441-isolate-resident-knowledge-from-node-conversations.md
+sourceUnitVersionIds:
+  - uv_04984e3168c52926af8896d5
+  - uv_0b1e554288e20f62263fd637
+  - uv_5ed50575f8270573ffbc0133
+  - uv_86e31d81e4bd323d42a9c6bc
+  - uv_9ca89c2e4acc3b068e0cbeb7
+  - uv_aadf4f61a7477e0d4059cee4

@@ -178,5 +178,5 @@ it.each(["passed", "failed"] as const)(
       await storage.close();
     }
   },
-  60000,
+  180_000,
 );

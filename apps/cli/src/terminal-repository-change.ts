@@ -1,4 +1,4 @@
-import { captureRepositorySnapshot } from "@lervo/orchestrator";
+import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   appendRepositoryChange,
@@ -21,13 +21,17 @@ import { readPreparedRepositorySnapshot } from "./terminal-prepared-snapshot.js"
  */
 export async function plannedTerminalRepositoryChange(input: {
   root: string;
-  storage: Pick<ProjectStorage, "writableEventSchemaVersion" | "artifacts">;
+  storage: Pick<ProjectStorage, "writableEventSchemaVersion" | "artifacts"> &
+    Partial<Pick<ProjectStorage, "manifest">>;
   contextPayload: Record<string, unknown>;
   lifecycle: TerminalLifecycleInspection;
   turnEventId: string;
   occurredAt: string;
 }): Promise<PlannedRepositoryChange | null> {
-  if (!input.lifecycle.repositoryChange.changed || input.storage.writableEventSchemaVersion !== 3)
+  if (
+    !input.lifecycle.repositoryChange.changed ||
+    (input.storage.writableEventSchemaVersion ?? 1) < 3
+  )
     return null;
   if (typeof input.contextPayload.observationId !== "string") return null;
   const before = await readPreparedRepositorySnapshot(
@@ -36,11 +40,14 @@ export async function plannedTerminalRepositoryChange(input: {
   );
   if (before === null || before.revision !== input.lifecycle.repositoryChange.beforeRevision)
     return null;
-  const after = await captureRepositorySnapshot(input.root);
+  const after = await captureTerminalRepositorySnapshot(input.root);
   // A change after lifecycle inspection belongs to the next observed turn.
   if (after.revision !== input.lifecycle.repositoryChange.afterRevision) return null;
   const planned = await planRepositoryChangeInRepository({
     repositoryRoot: input.root,
+    ...(input.storage.manifest === undefined
+      ? {}
+      : { projectId: input.storage.manifest.projectId }),
     sourceKind: "terminal_turn",
     sourceEventId: input.turnEventId,
     before,

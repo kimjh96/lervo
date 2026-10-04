@@ -1,0 +1,35 @@
+{
+  "name": "@lervo/repository-knowledge-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@lervo/agent-workforce": "workspace:*",
+    "@lervo/context": "workspace:*",
+    "@lervo/event-contract": "workspace:*",
+    "@lervo/orchestrator": "workspace:*",
+    "@lervo/project": "workspace:*",
+    "@lervo/project-storage": "workspace:*",
+    "@lervo/repository-context": "workspace:*",
+    "@lervo/repository-knowledge": "workspace:*",
+    "@lervo/repository-knowledge-compiler": "workspace:*",
+    "@lervo/roles": "workspace:*",
+    "@lervo/schemas": "workspace:*",
+    "@lervo/storage-contract": "workspace:*",
+    "@lervo/verification": "workspace:*",
+    "@lervo/work-controller": "workspace:*",
+    "@lervo/workspace-host-git": "workspace:*",
+    "@lervo/sync-contract": "workspace:*"
+  }
+}

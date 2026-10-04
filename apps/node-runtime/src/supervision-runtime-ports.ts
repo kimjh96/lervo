@@ -97,4 +97,6 @@ export interface NodeOutcomeSupervisionRuntimeInput {
   requireBoundRequest?: boolean;
   /** Old bound requests defer, except unfinished leased or dispatched worker duties. */
   deferInitialActionUntilChange?: boolean;
+  /** Report a bounded diagnostic when recovery evidence cannot be read. */
+  reportEvidenceReadFailure?: (error: unknown) => void;
 }

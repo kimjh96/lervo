@@ -20,6 +20,7 @@ export async function recordManagedRunRepositoryChange(input: {
   completion: {
     terminalEventId: string;
     beforeRevision: string;
+    beforeCommits?: Readonly<Record<string, string>>;
     afterRevision: string;
     managedChanges: readonly ManagedFileChangeEvidence[];
   };
@@ -28,7 +29,7 @@ export async function recordManagedRunRepositoryChange(input: {
   /** The provider for the detached knowledge worker; omitted, no worker is launched. */
   provider?: "claude" | "codex";
 }): Promise<{ eventId: string; enqueued: boolean } | null> {
-  if (input.storage.writableEventSchemaVersion !== 3) return null;
+  if ((input.storage.writableEventSchemaVersion ?? 1) < 3) return null;
   const files = (side: "beforeHash" | "afterHash") =>
     Object.fromEntries(
       input.completion.managedChanges.flatMap((change) =>
@@ -37,9 +38,16 @@ export async function recordManagedRunRepositoryChange(input: {
     );
   const planned = await planRepositoryChangeInRepository({
     repositoryRoot: input.storage.paths.repositoryRoot,
+    projectId: input.storage.manifest.projectId,
     sourceKind: "managed_run",
     sourceEventId: input.completion.terminalEventId,
-    before: { revision: input.completion.beforeRevision, files: files("beforeHash") },
+    before: {
+      revision: input.completion.beforeRevision,
+      files: files("beforeHash"),
+      ...(input.completion.beforeCommits === undefined
+        ? {}
+        : { commits: input.completion.beforeCommits }),
+    },
     after: { revision: input.completion.afterRevision, files: files("afterHash") },
     occurredAt: input.occurredAt,
   });

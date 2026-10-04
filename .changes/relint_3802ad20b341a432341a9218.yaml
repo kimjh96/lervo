@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3802ad20b341a432341a9218"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Allow ten minutes for bounded background document normalization calls on busy hosts."

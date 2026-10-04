@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_be7aa01f0027c22103e95b36
+outputLanguage: en
+outputs:
+  - byteCount: 2966
+    contentHash: sha256:15860bbe42fbce2e98401e7e650e890103dd51807bda1bc7bc0c86f9add0d7f6
+    path: docs/specifications/execution/events-and-privacy/event-envelope-compatibility.md
+    userRegionHash: sha256:15860bbe42fbce2e98401e7e650e890103dd51807bda1bc7bc0c86f9add0d7f6
+profile: specification_document
+recordId: knormdoc_2427494ac8b888c46346d6e6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c673ee602096f63df8fab5a2ba43bc8f333af7ebf8e03235c9f1ae4fc97142ae
+sourcePath: docs/specifications/execution/events-and-privacy/event-envelope-compatibility.md
+sourceUnitVersionIds:
+  - uv_eca98d191fd598e1c2b1c0b9

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_050a3552b3fc34e6ac893a5b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Preserve safe Discord webhook result publication and reject unsupported remote task coordination before send."

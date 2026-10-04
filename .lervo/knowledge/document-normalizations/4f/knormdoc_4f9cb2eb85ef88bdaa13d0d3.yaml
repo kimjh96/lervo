@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6cf5b3df8fe0d91499cb1055
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6cec32444ad5066f1b067b97
+outputLanguage: en
+outputs:
+  - byteCount: 2827
+    contentHash: sha256:46c06d67a9fb2edc23372d43366715bf2f27b7ab086dbcf2e40beed8fb5ed80f
+    path: docs/decisions/execution/orchestration/governed-work/resource-accounting/0422-preserve-supervision-budget-across-model-migration.md
+    userRegionHash: sha256:46c06d67a9fb2edc23372d43366715bf2f27b7ab086dbcf2e40beed8fb5ed80f
+profile: decision_record
+recordId: knormdoc_4f9cb2eb85ef88bdaa13d0d3
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b603ea415f1312a3370a692123833d0203d46e98ff0f4e565d30453856f19f40
+sourcePath: docs/decisions/execution/orchestration/governed-work/resource-accounting/0422-preserve-supervision-budget-across-model-migration.md
+sourceUnitVersionIds:
+  - uv_6500e2e301667668a2434ba4
+  - uv_7d2a01c31b1f7d32f0c8088b
+  - uv_864c7d56273293842f3a9ce5
+  - uv_b4e431a2f01fe3bf0dcb2220
+  - uv_c8c900c75369512086fbfe85

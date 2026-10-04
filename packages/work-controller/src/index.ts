@@ -1,6 +1,7 @@
 export * from "./supervised-assignment-amendment.js";
 export { repositoryPathWithinScope, repositoryPathScopesOverlap } from "./repository-path-scope.js";
 export * from "./attempt-projection.js";
+export { selectWorkstreamCausalRuns } from "./workstream-causal-scope.js";
 export * from "./assignment-attempt-decision.js";
 export * from "./assignment-communication-projection.js";
 export * from "./assignment-connector-plan.js";

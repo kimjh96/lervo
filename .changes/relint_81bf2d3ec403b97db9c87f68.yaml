@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_81bf2d3ec403b97db9c87f68"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Version edited loose Agent Skills as the next patch capability instead of failing repository upgrade with a capability conflict."

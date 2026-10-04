@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b70f809b344ea4fec063dbaf
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b72cef8cde57d6e7bce98988
+outputLanguage: en
+outputs:
+  - byteCount: 10692
+    contentHash: sha256:7a4f0d7c06bf2863a4e4b4adb652fddf269b6cc06ff7b3797d95f014aaa19c35
+    path: docs/decisions/coordination/conversations/0419-preserve-human-focus-and-real-agent-authorship.md
+    userRegionHash: sha256:7a4f0d7c06bf2863a4e4b4adb652fddf269b6cc06ff7b3797d95f014aaa19c35
+profile: decision_record
+recordId: knormdoc_ce986a35be046d1ac1f6e03e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:877cf6b90b66bd89716d46c476e6741a9541e56407aa493515ded87628efa4aa
+sourcePath: docs/decisions/coordination/conversations/0419-preserve-human-focus-and-real-agent-authorship.md
+sourceUnitVersionIds:
+  - uv_00e19573aae4dcdf060a7468
+  - uv_0654a7c235759b68abfdda93
+  - uv_283895f181aeca1800bc49ef
+  - uv_48f37e9d6c67bed0ca3a0dce
+  - uv_4f1f66a9dbceb84e8455dbe4
+  - uv_8771f74bbc67c173fb3dedcb
+  - uv_8af2c4449ad220a877b5591b
+  - uv_dd07184bff690194cbbacc5a
+  - uv_e4992934e82bba18cb601899
+  - uv_e999883956eb569b90f85f61
+  - uv_fb2177cd5509ffdddbf03fde

@@ -37,3 +37,5 @@ export * from "./supervision-identity.js";
 export { SupervisionArtifactReviewJournal } from "./supervision-artifact-review.js";
 export { topologyAssignmentObservation } from "./assignment-topology-observation.js";
 export { nextAssignmentLeaseGeneration } from "./assignment-lease-generation.js";
+export { createConvergenceAssignment } from "./assignment-convergence-creation.js";
+export { archiveConvergenceAssignment } from "./assignment-convergence-archive.js";

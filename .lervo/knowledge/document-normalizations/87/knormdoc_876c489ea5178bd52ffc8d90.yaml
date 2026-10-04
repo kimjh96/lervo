@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_604f37d66f1f082535a5dd49
+outputLanguage: en
+outputs:
+  - byteCount: 2825
+    contentHash: sha256:606083f35d5942a410c2b6c3f658a320641576378004045855cc977deff78e7e
+    path: docs/decisions/knowledge/repository/canonicalization/0444-serialize-knowledge-materialization-with-managed-runs.md
+    userRegionHash: sha256:606083f35d5942a410c2b6c3f658a320641576378004045855cc977deff78e7e
+profile: decision_record
+recordId: knormdoc_876c489ea5178bd52ffc8d90
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:807dd083c6ec052467b90c72e547ef9c2c44e47a2a1644a4d9a24f5955091b56
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0444-serialize-knowledge-materialization-with-managed-runs.md
+sourceUnitVersionIds:
+  - uv_0917cff90718c429e5ff6610
+  - uv_5365c22b21d50cba60bb372e
+  - uv_543e205f84316c3b7fa9adfe
+  - uv_81e7598819346c8a918e50db
+  - uv_c48c4f89a17bc5d54840b21a

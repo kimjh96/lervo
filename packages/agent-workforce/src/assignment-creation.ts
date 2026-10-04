@@ -1,152 +1,69 @@
+import type { CreateAssignmentInput } from "./assignment-creation-contract.js";
+import { validateAssignmentCreation } from "./assignment-creation-validation.js";
+import {
+  convergenceAssignmentId,
+  convergenceAssignmentMatches,
+  convergenceAssignmentEventCoordinates,
+} from "./assignment-convergence-state.js";
 import {
   type WorkforceAssignmentRoutineProvenance,
   type WorkforceAssignmentTopologyProvenance,
-  type WorkforceAssignmentKnowledgeJobProvenance,
   type WorkforceEventRecorder,
   type WorkforceAssignment,
-  type AssignmentAccessMode,
 } from "./types.js";
 import { resolveRoleContract } from "@lervo/roles";
-import { state, transition, retryConcurrent, acquireLock } from "./workforce-state-io.js";
-import { listAssignments, assignmentPath, readAssignmentState } from "./assignment-state.js";
-import {
-  fail,
-  boundedStrings,
-  ASSIGNMENT_ID,
-  safePath,
-  WORKSTREAM_ID,
-  HASH,
-  id,
-  validAssignment,
-  digest,
-  stableJson,
-} from "./workforce-state-validation.js";
+import { state, transition, retryConcurrent } from "./workforce-state-io.js";
+import { listAssignments, assignmentPath } from "./assignment-state.js";
+import { fail, id, validAssignment, digest, stableJson } from "./workforce-state-validation.js";
 import { workforceLimits } from "./limits.js";
 import {
-  validWorkforceRoutineProvenance,
   routineAssignmentId,
   routineAssignmentMatches,
   routineAssignmentEventCoordinates,
 } from "./assignment-routine-state.js";
 import {
-  validWorkforceTopologyProvenance,
   topologyAssignmentId,
   topologyAssignmentMatches,
   topologyAssignmentEventCoordinates,
 } from "./assignment-topology-state.js";
 import {
-  validKnowledgeJobProvenance,
   knowledgeJobAssignmentId,
   knowledgeJobAssignmentMatches,
   knowledgeJobAssignmentEventCoordinates,
 } from "./assignment-knowledge-job-state.js";
 import { randomUUID } from "node:crypto";
-import { resolve } from "node:path";
 
-export async function createAssignmentOnce(input: {
-  repositoryRoot: string;
-  taskType: string;
-  roleId: string;
-  priority?: number;
-  dependencyIds?: string[];
-  acceptanceCriteria: string[];
-  verificationSuiteIds: string[];
-  approvalRequirements?: string[];
-  expectedPaths: string[];
-  accessMode?: AssignmentAccessMode;
-  workstreamId?: string;
-  requiredCapabilityHash?: string | null;
-  routine?: WorkforceAssignmentRoutineProvenance | null;
-  topology?: WorkforceAssignmentTopologyProvenance | null;
-  knowledgeJob?: WorkforceAssignmentKnowledgeJobProvenance | null;
-  initialStatus?: "queued" | "blocked";
-  expectedRoleVersion?: string;
-  expectedRoleContractHash?: string;
-  now?: Date;
-  recordEvent?: WorkforceEventRecorder;
-}): Promise<WorkforceAssignment> {
+export async function createAssignmentOnce(
+  input: CreateAssignmentInput,
+): Promise<WorkforceAssignment> {
   const now = input.now ?? new Date();
   const contract = await resolveRoleContract(input.repositoryRoot, input.roleId);
   const current = await state(input.repositoryRoot);
   const assignments = await listAssignments(input.repositoryRoot);
-  if (
-    (input.expectedRoleVersion !== undefined && input.expectedRoleVersion !== contract.version) ||
-    (input.expectedRoleContractHash !== undefined &&
-      input.expectedRoleContractHash !== contract.contractHash)
-  )
-    fail("assignment_invalid", "The assignment role contract binding is stale.");
-  if (!/^[a-z][a-z0-9._-]{1,99}$/u.test(input.taskType))
-    fail("assignment_invalid", "The assignment task type is invalid.");
-  const dependencyIds = [...new Set(input.dependencyIds ?? [])].sort();
-  const expectedPaths = [...new Set(input.expectedPaths)].sort();
-  const verificationSuiteIds = [...new Set(input.verificationSuiteIds)].sort();
-  const approvalRequirements = [...new Set(input.approvalRequirements ?? [])].sort();
-  if (
-    !boundedStrings(dependencyIds, workforceLimits.maximumAssignmentDependencies, ASSIGNMENT_ID) ||
-    !boundedStrings(input.acceptanceCriteria, 32) ||
-    !boundedStrings(verificationSuiteIds, 32) ||
-    !boundedStrings(approvalRequirements, 32) ||
-    !boundedStrings(expectedPaths, 128) ||
-    !expectedPaths.every(safePath) ||
-    input.acceptanceCriteria.length === 0 ||
-    verificationSuiteIds.length === 0 ||
-    expectedPaths.length === 0 ||
-    (input.accessMode !== undefined && !["read_only", "write"].includes(input.accessMode)) ||
-    (input.accessMode === "read_only" && input.knowledgeJob == null) ||
-    (input.knowledgeJob != null && input.accessMode !== "read_only") ||
-    (input.workstreamId !== undefined && !WORKSTREAM_ID.test(input.workstreamId)) ||
-    (input.requiredCapabilityHash !== undefined &&
-      input.requiredCapabilityHash !== null &&
-      !HASH.test(input.requiredCapabilityHash)) ||
-    (input.routine !== undefined &&
-      input.routine !== null &&
-      !validWorkforceRoutineProvenance(input.routine)) ||
-    (input.routine !== undefined && input.routine !== null && input.workstreamId === undefined) ||
-    (input.topology !== undefined &&
-      input.topology !== null &&
-      (!validWorkforceTopologyProvenance(input.topology) || input.workstreamId === undefined)) ||
-    (input.knowledgeJob !== undefined &&
-      input.knowledgeJob !== null &&
-      (!validKnowledgeJobProvenance(input.knowledgeJob) || input.workstreamId === undefined)) ||
-    [input.routine, input.topology, input.knowledgeJob].filter((item) => item != null).length > 1 ||
-    (input.routine !== undefined &&
-      input.routine !== null &&
-      input.topology !== undefined &&
-      input.topology !== null) ||
-    (input.initialStatus === "blocked" && (input.topology === undefined || input.topology === null))
-  )
-    fail(
-      "assignment_invalid",
-      "Assignment dependencies, criteria, verification, approval, paths, or workstream are invalid.",
-    );
-  if (
-    dependencyIds.some(
-      (dependencyId) => !assignments.some((assignment) => assignment.assignmentId === dependencyId),
-    )
-  )
-    fail("assignment_invalid", "An assignment dependency does not exist.");
+  const { dependencyIds, expectedPaths, verificationSuiteIds, approvalRequirements } =
+    validateAssignmentCreation(input, contract, assignments);
   const createdAt = now.toISOString();
   const assignmentId =
-    input.knowledgeJob !== undefined && input.knowledgeJob !== null
-      ? knowledgeJobAssignmentId(current.manifest.projectId, input.knowledgeJob)
-      : input.topology !== undefined && input.topology !== null
-        ? topologyAssignmentId(current.manifest.projectId, input.topology)
-        : input.routine === undefined || input.routine === null
-          ? id("asn", { projectId: current.manifest.projectId, nonce: randomUUID() })
-          : routineAssignmentId(current.manifest.projectId, input.routine);
+    input.convergence != null
+      ? convergenceAssignmentId(current.manifest.projectId, input.convergence)
+      : input.knowledgeJob !== undefined && input.knowledgeJob !== null
+        ? knowledgeJobAssignmentId(current.manifest.projectId, input.knowledgeJob)
+        : input.topology !== undefined && input.topology !== null
+          ? topologyAssignmentId(current.manifest.projectId, input.topology)
+          : input.routine === undefined || input.routine === null
+            ? id("asn", { projectId: current.manifest.projectId, nonce: randomUUID() })
+            : routineAssignmentId(current.manifest.projectId, input.routine);
   const existing = assignments.find((item) => item.assignmentId === assignmentId);
   if (existing !== undefined) {
     const exact =
-      input.workstreamId !== undefined &&
-      input.knowledgeJob !== undefined &&
-      input.knowledgeJob !== null
-        ? knowledgeJobAssignmentMatches(existing, {
+      input.convergence != null
+        ? convergenceAssignmentMatches(existing, {
             taskType: input.taskType,
             roleId: input.roleId,
             roleVersion: contract.version,
             roleContractHash: contract.contractHash,
             requiredCapabilityHash: input.requiredCapabilityHash ?? null,
-            knowledgeJob: input.knowledgeJob,
+            convergence: input.convergence,
             priority: input.priority ?? 50,
             dependencyIds,
             acceptanceCriteria: input.acceptanceCriteria,
@@ -154,44 +71,63 @@ export async function createAssignmentOnce(input: {
             approvalRequirements,
             expectedPaths,
             accessMode: input.accessMode ?? "write",
-            workstreamId: input.workstreamId,
+            workstreamId: input.workstreamId ?? null,
           })
         : input.workstreamId !== undefined &&
-            input.topology !== undefined &&
-            input.topology !== null
-          ? topologyAssignmentMatches(existing, {
+            input.knowledgeJob !== undefined &&
+            input.knowledgeJob !== null
+          ? knowledgeJobAssignmentMatches(existing, {
               taskType: input.taskType,
               roleId: input.roleId,
               roleVersion: contract.version,
               roleContractHash: contract.contractHash,
               requiredCapabilityHash: input.requiredCapabilityHash ?? null,
-              topology: input.topology,
+              knowledgeJob: input.knowledgeJob,
               priority: input.priority ?? 50,
               dependencyIds,
               acceptanceCriteria: input.acceptanceCriteria,
               verificationSuiteIds,
               approvalRequirements,
               expectedPaths,
+              accessMode: input.accessMode ?? "write",
               workstreamId: input.workstreamId,
             })
-          : input.routine !== undefined &&
-            input.routine !== null &&
-            input.workstreamId !== undefined &&
-            routineAssignmentMatches(existing, {
-              taskType: input.taskType,
-              roleId: input.roleId,
-              roleVersion: contract.version,
-              roleContractHash: contract.contractHash,
-              requiredCapabilityHash: input.requiredCapabilityHash ?? null,
-              routine: input.routine,
-              priority: input.priority ?? 50,
-              dependencyIds,
-              acceptanceCriteria: input.acceptanceCriteria,
-              verificationSuiteIds,
-              approvalRequirements,
-              expectedPaths,
-              workstreamId: input.workstreamId,
-            });
+          : input.workstreamId !== undefined &&
+              input.topology !== undefined &&
+              input.topology !== null
+            ? topologyAssignmentMatches(existing, {
+                taskType: input.taskType,
+                roleId: input.roleId,
+                roleVersion: contract.version,
+                roleContractHash: contract.contractHash,
+                requiredCapabilityHash: input.requiredCapabilityHash ?? null,
+                topology: input.topology,
+                priority: input.priority ?? 50,
+                dependencyIds,
+                acceptanceCriteria: input.acceptanceCriteria,
+                verificationSuiteIds,
+                approvalRequirements,
+                expectedPaths,
+                workstreamId: input.workstreamId,
+              })
+            : input.routine !== undefined &&
+              input.routine !== null &&
+              input.workstreamId !== undefined &&
+              routineAssignmentMatches(existing, {
+                taskType: input.taskType,
+                roleId: input.roleId,
+                roleVersion: contract.version,
+                roleContractHash: contract.contractHash,
+                requiredCapabilityHash: input.requiredCapabilityHash ?? null,
+                routine: input.routine,
+                priority: input.priority ?? 50,
+                dependencyIds,
+                acceptanceCriteria: input.acceptanceCriteria,
+                verificationSuiteIds,
+                approvalRequirements,
+                expectedPaths,
+                workstreamId: input.workstreamId,
+              });
     if (!exact) fail("assignment_invalid", "The deterministic assignment ID is already in use.");
     return structuredClone(existing);
   }
@@ -209,6 +145,7 @@ export async function createAssignmentOnce(input: {
     routine: input.routine ?? null,
     topology: input.topology ?? null,
     knowledgeJob: input.knowledgeJob ?? null,
+    ...(input.convergence == null ? {} : { convergence: input.convergence }),
     status: input.initialStatus ?? "queued",
     priority: input.priority ?? 50,
     dependencyIds,
@@ -250,6 +187,7 @@ export async function createAssignmentOnce(input: {
         roleContractHash: assignment.roleContractHash,
         ...routineAssignmentEventCoordinates(assignment),
         ...knowledgeJobAssignmentEventCoordinates(assignment),
+        ...convergenceAssignmentEventCoordinates(assignment),
         ...(assignment.topology === null
           ? {}
           : {
@@ -341,55 +279,8 @@ export function createTopologyAssignment(input: {
   );
 }
 
-export function activateTopologyAssignment(input: {
-  repositoryRoot: string;
-  assignmentId: string;
-  changeId: string;
-  now?: Date;
-}): Promise<WorkforceAssignment> {
-  return retryConcurrent(async () => {
-    const now = input.now ?? new Date();
-    const target = await assignmentPath(input.repositoryRoot, input.assignmentId);
-    const current = await readAssignmentState(input.repositoryRoot, input.assignmentId);
-    if (current.value.topology?.changeId !== input.changeId)
-      fail("assignment_invalid", "The assignment topology change binding is stale.");
-    if (current.value.topology.policyReview !== undefined)
-      fail("assignment_invalid", "Automatic topology requires a fenced responsibility claim.");
-    if (current.value.status !== "blocked") return structuredClone(current.value);
-    const assignment: WorkforceAssignment = {
-      ...current.value,
-      status: "queued",
-      revision: current.value.revision + 1,
-      updatedAt: now.toISOString(),
-    };
-    return transition({
-      path: target.path,
-      lockPath: target.lockPath,
-      now,
-      content: `${JSON.stringify(assignment, null, 2)}\n`,
-      result: structuredClone(assignment),
-      expectedBefore: current.source,
-    });
-  });
-}
-
-export function withAssignmentRoutineLock<T>(input: {
-  repositoryRoot: string;
-  operation: () => Promise<T>;
-  now?: Date;
-}): Promise<T> {
-  return retryConcurrent(async () => {
-    const current = await state(input.repositoryRoot);
-    const release = await acquireLock(
-      resolve(current.base, "graph-materialization.lock"),
-      input.now ?? new Date(),
-    );
-    try {
-      return await input.operation();
-    } finally {
-      await release();
-    }
-  });
-}
-
-export const withAssignmentTopologyLock = withAssignmentRoutineLock;
+export { activateTopologyAssignment } from "./assignment-topology-activation.js";
+export {
+  withAssignmentRoutineLock,
+  withAssignmentTopologyLock,
+} from "./assignment-materialization-lock.js";

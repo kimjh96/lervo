@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_948d45e28a155cd4ced34610
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f919f0d9c0f76e7237206afd
+outputLanguage: en
+outputs:
+  - byteCount: 6272
+    contentHash: sha256:02bf89654f6cef4e07bc223f7b492b3e3dee2e883367c0baa34c9265b90dba9d
+    path: docs/decisions/execution/orchestration/0209-versioned-repository-role-contracts.md
+    userRegionHash: sha256:02bf89654f6cef4e07bc223f7b492b3e3dee2e883367c0baa34c9265b90dba9d
+profile: decision_record
+recordId: knormdoc_a2e59aa9027288db09988c4d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:054b055439a4b9c20eb6ff377740e701835f4c37abf07ef2d388b8021454328d
+sourcePath: docs/decisions/execution/orchestration/0209-versioned-repository-role-contracts.md
+sourceUnitVersionIds:
+  - uv_3bfcbee5000f6a23c8514ee6
+  - uv_4d0bffffc2d0318d44f52e6a
+  - uv_7357ec20ba6b3a5dd00c3fab
+  - uv_9b4742483a05faac751d3b65
+  - uv_9c661f8ce64979c4d8b4880b
+  - uv_ae4202815f3d7f8f82a43223
+  - uv_b0e3b47de131e2fa45320919
+  - uv_defcf19b61b2a902747f83d6

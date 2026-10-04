@@ -1,3 +1,9 @@
+import {
+  repositoryKnowledgeBaselineRequestedEventPayloadSchema,
+  repositoryKnowledgeStageRecordedEventPayloadSchema,
+  repositoryKnowledgeConvergenceRecordedEventPayloadSchema,
+} from "./knowledge-convergence-event.js";
+import { convergenceAssignmentArchivedEventPayloadSchema } from "./convergence-assignment-archive-event.js";
 import { assignmentAmendedEventPayloadSchema } from "./assignment-amendment-event.js";
 import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.js";
 import { assignmentReopenedEventPayloadSchema } from "./assignment-recovery-event.js";
@@ -358,6 +364,18 @@ const validators = {
   ),
   conversationRepositoryKnowledgeResolvedEventPayload: ajv.compile(
     conversationRepositoryKnowledgeResolvedEventPayloadSchema,
+  ),
+  convergenceAssignmentArchivedEventPayload: ajv.compile(
+    convergenceAssignmentArchivedEventPayloadSchema,
+  ),
+  repositoryKnowledgeBaselineRequestedEventPayload: ajv.compile(
+    repositoryKnowledgeBaselineRequestedEventPayloadSchema,
+  ),
+  repositoryKnowledgeStageRecordedEventPayload: ajv.compile(
+    repositoryKnowledgeStageRecordedEventPayloadSchema,
+  ),
+  repositoryKnowledgeConvergenceRecordedEventPayload: ajv.compile(
+    repositoryKnowledgeConvergenceRecordedEventPayloadSchema,
   ),
   repositoryChangeCompletedEventPayload: ajv.compile(repositoryChangeCompletedEventPayloadSchema),
   repositoryKnowledgeResolvedEventPayload: ajv.compile(

@@ -53,6 +53,56 @@ afterEach(async () => {
 });
 
 describe("SQLite transactional outbox", () => {
+  it("bounds one destination's recent acknowledgements while preserving live work and canonical history", async () => {
+    const store = await SQLiteEventStore.open({ path: await databasePath(), projectId });
+    try {
+      for (let index = 1; index <= 4; index++) {
+        const event = store.append(draft(index)).event;
+        store.enqueue(enqueueRequest(event.eventId, index));
+        store.enqueue({
+          ...enqueueRequest(event.eventId, index),
+          destinationId: "knowledge:convergence",
+        });
+      }
+      for (const target of [destinationId, "knowledge:convergence"]) {
+        const deliveries = store.claim({
+          destinationId: target,
+          workerId: "retention-worker",
+          claimedAt: "2026-08-18T00:02:00Z",
+          leaseDurationMs: 60_000,
+          limit: 3,
+        });
+        for (const [index, delivery] of deliveries.entries())
+          store.acknowledge({
+            eventId: delivery.event.eventId,
+            destinationId: target,
+            workerId: "retention-worker",
+            acknowledgedAt: `2026-08-18T00:02:0${index + 1}Z`,
+          });
+      }
+      expect(
+        store.purgeAcknowledged({
+          before: "2026-08-17T00:00:00Z",
+          destinationId: "knowledge:convergence",
+          keepMostRecent: 1,
+        }),
+      ).toEqual({ deleted: 2 });
+      expect(store.listOutbox({ destinationId, status: "acknowledged" })).toHaveLength(3);
+      expect(
+        store
+          .listOutbox({ destinationId: "knowledge:convergence", status: "acknowledged" })
+          .map((row) => row.event.eventId),
+      ).toEqual([draft(3).eventId]);
+      expect(store.listOutbox({ status: "pending" })).toHaveLength(2);
+      expect(store.list()).toHaveLength(4);
+      expect(() =>
+        store.purgeAcknowledged({ before: "2026-08-17T00:00:00Z", keepMostRecent: 1 }),
+      ).toThrowError(expect.objectContaining({ code: "invalid_outbox_request" }));
+    } finally {
+      store.close();
+    }
+  });
+
   it("commits an event and its destination in one transaction", async () => {
     const store = await SQLiteEventStore.open({ path: await databasePath(), projectId });
 

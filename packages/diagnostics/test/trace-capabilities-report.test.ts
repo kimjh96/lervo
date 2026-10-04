@@ -16,7 +16,7 @@ describe("trace capabilities report contract", () => {
       eventReader: {
         schemaVersion: 1,
         capability: "event_reader",
-        readableEventSchemaVersions: [1, 2, 3],
+        readableEventSchemaVersions: [1, 2, 3, 4],
       },
       defaultMode: "page",
       modes: [

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "kind": "lervo_repository_role",
+  "roleId": "repository-verifier",
+  "version": "1.0.0",
+  "extends": [],
+  "profile": {
+    "name": "Independent repository verifier",
+    "description": "Checks a proposed decision against canonical repository state, current acceptance contracts, and the registered repository verification suite before reporting evidence and limits.",
+    "requestTypes": ["repository.verify"],
+    "requiredInputs": [],
+    "contextPolicy": {
+      "requiredDocumentRuleIds": ["repository.instructions", "writing.policy"],
+      "minimumAssurance": "E3",
+      "referencesRequired": true
+    },
+    "capabilities": {
+      "filesystem.read": "allow",
+      "filesystem.write": "deny",
+      "shell.execute": "allow",
+      "network.access": "deny",
+      "external.message": "deny",
+      "computer.use": "deny",
+      "deploy": "deny",
+      "data.mutate": "deny"
+    },
+    "defaultSkills": [],
+    "outputContract": {
+      "artifactKind": "research_brief",
+      "schemaRef": "lervo-schema://roles/research-brief/v1",
+      "pathTemplate": ".lervo/generated/verification/{runId}.md",
+      "citationsRequired": true,
+      "presentation": {
+        "audience": "human",
+        "locale": "en",
+        "writingPolicyId": "writing_en-human"
+      }
+    },
+    "verification": {
+      "suiteIds": ["repository.default.v4", "role.research.artifact"],
+      "failureDisposition": "fail_run"
+    },
+    "handoff": {
+      "allowedRoleIds": ["developer", "researcher"],
+      "evidenceLinksRequired": true,
+      "sharedContextRequired": true
+    }
+  },
+  "checks": [
+    {
+      "checkId": "repository-verifier.artifact-schema",
+      "category": "artifact_schema",
+      "method": "project_verification",
+      "requirement": "The verification report satisfies the registered research brief schema.",
+      "verificationSuiteId": "role.research.artifact",
+      "evidenceRequired": true
+    },
+    {
+      "checkId": "repository-verifier.repository-suite",
+      "category": "feasibility",
+      "method": "project_verification",
+      "requirement": "The configured repository verification suite passes on the exact reviewed source revision.",
+      "verificationSuiteId": "repository.default.v4",
+      "evidenceRequired": true
+    }
+  ]
+}

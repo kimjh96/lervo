@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d50d904a12e15797242d3c41
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_73c47eb6ad47a3e2fc91509f
+outputLanguage: en
+outputs:
+  - byteCount: 3080
+    contentHash: sha256:3313d73a3957fafde9c01285b6fca400ecc87b4c480e7edb519093c3053dd86c
+    path: docs/decisions/execution/verification/0356-bound-test-deadlines-for-busy-host-shards.md
+    userRegionHash: sha256:3313d73a3957fafde9c01285b6fca400ecc87b4c480e7edb519093c3053dd86c
+profile: decision_record
+recordId: knormdoc_92a75c0f3297b2806b1ace2a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7a50d21efb87c3366fe2960a077b42f52e058eb186e1dfaec40b7ddd92b68136
+sourcePath: docs/decisions/execution/verification/0356-bound-test-deadlines-for-busy-host-shards.md
+sourceUnitVersionIds:
+  - uv_2f8a66a495dda38f09d320e7
+  - uv_722ed712697e14f7b6cd3808
+  - uv_77a7c74330d095dd4f15ff99
+  - uv_8de7213badae5c78c8b20fd7
+  - uv_a14d56ed1e20d7a93be0988b
+  - uv_aa441a63b3610b3d90cc4223

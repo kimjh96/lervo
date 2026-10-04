@@ -7,7 +7,7 @@
 
 The first installed Discord composition treated every accepted mention as write-capable remote continuation. Repository questions entered the signed managed-write path and correctly failed without a verified provider file change. A later `ask`/`continue` prefix draft preserved authority boundaries but violated the requirement for ordinary conversation with or without a bot mention.
 
-Lervo separates provider-neutral contracts for read-only managed answers, signed remote continuation, conversation participation, bounded automation depth, and cross-provider deliberation. Natural-language routing composes these without making Discord syntax a task authority.
+Lervo separates provider-neutral contracts for read-only managed answers, signed remote continuation, conversation participation, bounded automation depth, and cross-provider deliberation. Natural-language routing composes them without making Discord syntax a task authority.
 
 ## Decision
 
@@ -25,8 +25,8 @@ It returns exactly one transient intent (`answer`, `continue_work`, or `clarify`
 
 - `answer` delegates to `ManagedConversationResponder`.
 - Medium- or high-confidence human `continue_work` with `repository_work` delegates to the signed exact-workstream Hub command path.
-- When the responding durable agent is the installed supervision owner, medium- or high-confidence `continue_work` with `supervision_goal_request` enters the canonical goal-admission writer. The resolver uses this effect for a durable multi-step outcome; one bounded task or inspection stays on `repository_work`. Neither effect grants authority.
-- An explicitly allowlisted Discord platform effect delegates to its scoped adapter, never repository continuation. An effect that needs a conversational result returns a privacy-bounded completed-effect observation after execution; the same durable agent then composes the human-facing reply from the original message, prior turns, and that observation. The model neither supplies the command nor claims success before the adapter observes it.
+- When the responding durable agent is the installed supervision owner, medium- or high-confidence `continue_work` with `supervision_goal_request` enters the canonical goal-admission writer. The resolver selects this effect for a durable multi-step outcome; one bounded task or inspection stays on `repository_work`. Neither effect grants authority.
+- An explicitly allowlisted Discord platform effect delegates to its scoped adapter, never repository continuation. Effects needing a conversational result return a privacy-bounded completed-effect observation after execution. The same durable agent composes the human-facing reply from the original message, prior turns, and that observation. The model neither supplies the command nor claims success before the adapter observes it.
 - Agent-authored mutation requests stay with the read-only responder unless the exact configured agent participant, role, tenant, and mapped conversation separately opt in to effect requests. Admitted requests enter the same signed continuation or scoped platform-effect boundary. Routing grants no command role, effect kind, repository permission, or provider capability.
 - `clarify`, low confidence, and unavailable effects stay with the read-only responder.
 - Resolver failure for an owned human message enters the classified response-failure contract and produces a verified visible terminal response immediately or after only a proven transient retry. It cannot become a silent `relevance_unavailable` observation.
@@ -35,7 +35,7 @@ An immutable local intent-resolution record binds the source event and message h
 
 ### Execution roles and language
 
-The read-only execution role permits repository reads and denies filesystem writes, shell execution, network access, external messages, deployment, and data mutation. This is the classifier and answer boundary, not a statement that requested work cannot run. A managed turn that requires live inspection, verification, testing, building, networking, external-system access, or mutation selects the separate repository-work effect and must not expose the read-only classifier boundary as a user-facing limitation. Every response receives the exact current workstream as required governance context, avoiding provider-tool rediscovery for routine status answers. Participation identity remains distinct from execution role.
+The read-only execution role permits repository reads and denies filesystem writes, shell execution, network access, external messages, deployment, and data mutation. This classifier and answer boundary does not mean requested work cannot run. A managed turn requiring live inspection, verification, testing, building, networking, external-system access, or mutation selects the separate repository-work effect and must not expose the read-only classifier boundary as a user-facing limitation. Every response receives the exact current workstream as required governance context, avoiding provider-tool rediscovery for routine status answers. Participation identity remains distinct from execution role.
 
 Managed read, clarification, and conversational completed-effect replies use the versioned `writing_mul-realtime-conversation` contract unless an independent evaluation provider selects `writing_mul-conversation` for those modes. Both require the message language unless another language is requested; the realtime contract claims deterministic verification only. Repository-work, goal, fixed control, and fixed-status platform-action responders retain their own publication contracts and cannot inherit a read-response evaluator merely because it is configured. Repository documentation defaults to English.
 
@@ -72,7 +72,7 @@ The latency-oriented installed configuration uses:
 
 The realtime writing contract retains deterministic publication evidence without claiming independent semantic review. The user selected Codex for reading and Claude for changed execution; authenticated local CLI smoke calls established pinned response and mutation model compatibility.
 
-This deployment profile is not a core default; each hired-agent bot may replace it independently. Live round-trip evidence owns latency claims. Lease renewal, stable artifact reuse, and single-flight remove the observed duplicate provider work. The realtime profile has two sequential model stages for a repository answer. A fixed-status platform action uses one model stage plus its scoped adapter call; an action whose observed result must be explained naturally uses a second low-cost response stage after the adapter succeeds. A representative end-to-end latency budget remains open.
+This deployment profile is not a core default; each hired-agent bot may replace it independently. Live round-trip evidence owns latency claims. Lease renewal, stable artifact reuse, and single-flight remove the observed duplicate provider work. The realtime profile has two sequential model stages for a repository answer. A fixed-status platform action uses one model stage plus its scoped adapter call; an action whose observed result needs natural-language explanation uses a second low-cost response stage after the adapter succeeds. A representative end-to-end latency budget remains open.
 
 ### Data boundaries
 

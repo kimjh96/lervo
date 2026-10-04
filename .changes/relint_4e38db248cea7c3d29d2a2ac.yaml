@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4e38db248cea7c3d29d2a2ac"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Recover verified Discord repository-work completions after restart and keep repeated messages distinct."

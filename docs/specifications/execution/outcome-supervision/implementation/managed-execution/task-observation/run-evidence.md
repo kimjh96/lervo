@@ -6,14 +6,5 @@ The source digest includes associated run events. Actual startup and verificatio
 
 A failed run remains uncertain unless the narrow no-tool failure proof in [assignment recovery](../assignment-recovery.md) is satisfied. A missing or conflicting stop remains uncertain. Read-only sandbox configuration alone does not prove a no-tool session.
 
-## Failure diagnostics
-
-Failure diagnostics preserve the complete code, phase, and retryability ledger in CAS under `run.failed.diagnosticDigest`. The artifact excludes raw errors, prompts, paths, commands, results, and credentials, and is limited to 64 entries and 16 KiB. The writer reads back exact bytes before relying on storage.
-
-When a provider adapter supplies a bounded transport diagnostic, the same artifact additionally records provider, normalized operation (`session_initialize`, `session_start`, `context_inject`, `capability_status`, `turn_start`, `turn_interrupt`, `session_stop`, or `other`), failure kind (`server_rejected`, `response_timeout`, `process_exited`, `process_unavailable`, or `invalid_message`), and a signed 32-bit numeric server code or null. The field never records a server message or data object. Missing or malformed adapter diagnostics are omitted, not guessed. `run.failed.failureCode` still describes the managed-run failure and retryability remains unchanged; a server rejection code alone never authorizes retry or proves a model was unavailable.
-
-Storage failure remains a failed run with an unavailable diagnostic, not a safely retryable result. Older digest-only failures remain readable and uncertain. Owner context exposes exact available worker diagnostics; owner-reasoning failures do not change their own task basis.
-
-## Validation boundary
-
-Tests exercise the built CLI with a protocol fixture provider, real SQLite journals, and a Git worker workspace. They verify managed changes in the worker, unchanged control files, duplicate-decision suppression, canonical result/verification loading, and an outstanding artifact-review decision. This evidence does not constitute production provider or installed Discord acceptance.
+- [Failure diagnostics](run-evidence/failure-diagnostics.md): diagnostic storage, privacy, and failure semantics.
+- [Validation boundary](run-evidence/validation-boundary.md): tested behavior and acceptance limits.

@@ -49,6 +49,7 @@ export interface ManagedProviderRunResult {
   managedChanges: ManagedFileChangeEvidence[];
   contextGeneration: number;
   beforeRevision: string;
+  beforeCommits?: Readonly<Record<string, string>>;
   afterRevision: string;
   verificationStatus: "passed" | "failed" | "not_run";
   verifications: ManagedProjectVerification[];

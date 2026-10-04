@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e05ef93d24df4a9b7de41e1c"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Drop Lervo-generated projections from background knowledge change sources."

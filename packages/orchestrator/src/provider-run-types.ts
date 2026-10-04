@@ -103,6 +103,8 @@ export interface ManagedProviderRunOptions extends ManagedContextRunOptions {
 }
 
 export interface ManagedProviderRunInput {
+  /** Structured machine results project citations from decoded string values. */
+  resultFormat?: "markdown" | "json";
   /** Exact role inputs prepared by the host; binding proves neither context injection nor use. */
   roleInput?: { contractId: string; roleContractHash: string; inputArtifactHash: string };
   /** Narrows an otherwise write-capable role for an observation-only owner turn. */

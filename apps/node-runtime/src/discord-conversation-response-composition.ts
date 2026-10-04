@@ -27,6 +27,7 @@ import { NodeConversationResponseFailureClassifier } from "./conversation-respon
 import { ConversationEffectResultResponderBinding } from "./conversation-effect-result-responder.js";
 import { ConversationDiscussionActionResponder } from "./conversation-discussion-action-responder.js";
 import { ConversationDiscussionRuntime } from "./conversation-discussion-runtime.js";
+import { eligibleDiscussionConversationIds } from "./conversation-discussion-availability.js";
 import { createDiscordConversationEffects } from "./discord-conversation-effects.js";
 import { createDiscordConversationTurnOwnership } from "./discord-conversation-turn-ownership.js";
 import { discordUnaddressedPriorityKey } from "./discord-conversation-priorities.js";
@@ -138,6 +139,10 @@ export async function openDiscordConversationResponseComposition(input: {
     artifactStore: artifacts,
     discussion: discussionRuntime,
   });
+  const discussionEligibleConversationIds = eligibleDiscussionConversationIds(
+    config.conversations.map(({ conversationId }) => conversationId),
+    peerAgents,
+  );
   const { repositoryWork, workResponder, goalResponder } = openDiscordConversationWork({
     options,
     artifacts,
@@ -316,6 +321,7 @@ export async function openDiscordConversationResponseComposition(input: {
             },
           }),
       surfaceEffects,
+      discussionEligibleConversationIds,
       availableEffects: [
         ...platformAction.availableEffects,
         ...(goalResponder === null ? [] : (["supervision_goal_request"] as const)),

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d7f972906fa2b3ee99e69bcd"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Preserve protected Node service failure codes in repository apply diagnostics."

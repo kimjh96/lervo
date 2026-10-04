@@ -1,8 +1,9 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SQLiteSupervisionOwnerLeaseStore } from "../src/index.js";
+import { SupervisionProcessLock } from "../src/supervision-process-lock.js";
 
 const roots: string[] = [];
 const stores: SQLiteSupervisionOwnerLeaseStore[] = [];
@@ -88,5 +89,24 @@ describe("durable supervision owner fencing", () => {
     } finally {
       stop();
     }
+  });
+
+  it("retains durable ownership when the process lock cannot be released", async () => {
+    const { first, second } = await fixture();
+    const lease = first.acquire(input)!;
+    const release = vi
+      .spyOn(SupervisionProcessLock.prototype, "release")
+      .mockImplementationOnce(() => {
+        throw new Error("The process lock could not be closed.");
+      });
+    try {
+      expect(() => first.release(lease)).toThrow("The process lock could not be closed.");
+    } finally {
+      release.mockRestore();
+    }
+    expect(first.observeRenewed(lease, 1001)).toEqual(lease);
+    expect(second.acquire({ ...input, nowMs: 10000 })).toBeNull();
+    first.release(lease);
+    expect(second.acquire({ ...input, nowMs: 10000 })).not.toBeNull();
   });
 });

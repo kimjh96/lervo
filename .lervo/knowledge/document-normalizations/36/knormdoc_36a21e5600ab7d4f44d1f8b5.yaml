@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ffeccdb756f502fc70f0fe2e
+outputLanguage: en
+outputs:
+  - byteCount: 1876
+    contentHash: sha256:3077bca689bf2b809ac3e007e4ee77e23f65236977687cde024196482b20d18e
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories/runtime-identity/windows-forwarding-recovery.md
+    userRegionHash: sha256:3077bca689bf2b809ac3e007e4ee77e23f65236977687cde024196482b20d18e
+profile: repository_document
+recordId: knormdoc_36a21e5600ab7d4f44d1f8b5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1b77fca09020f3da545921ae1f4647d15da8212d1ef7c72dc80b6ddbbfaf2b0e
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories/runtime-identity/windows-forwarding-recovery.md
+sourceUnitVersionIds:
+  - uv_8c4f48afadb54c738f81b24a

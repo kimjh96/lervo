@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1f5743084060164394e28d9e
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bf84cdd8cd792aaae4dd18c2
+outputLanguage: en
+outputs:
+  - byteCount: 1021
+    contentHash: sha256:3ca5259d1613a7395a0abd3def8ab65ae287b87658e8f4797c59ab8324564a27
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/readiness-and-failure/bound-workstream-selection.md
+    userRegionHash: sha256:3ca5259d1613a7395a0abd3def8ab65ae287b87658e8f4797c59ab8324564a27
+profile: specification_document
+recordId: knormdoc_44785df88c61c73cb4713e9e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b3abb4b458b6bc7cc36faad38b889bb46e57b21e9e70f08f1d15779721577005
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/readiness-and-failure/bound-workstream-selection.md
+sourceUnitVersionIds:
+  - uv_09ceb9dfc2b0e2994f5e7a9b

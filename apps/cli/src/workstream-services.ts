@@ -10,7 +10,7 @@ function artifactUri(contentHash: string): string {
   return `lervo-cas://sha256/${contentHash.slice("sha256:".length)}`;
 }
 
-function latestWorkstreamEvent(storage: ProjectStorage) {
+function latestWorkstreamEvent(storage: ProjectStorage, workstreamId?: string) {
   let afterSeq = 0;
   let latest: ReturnType<ProjectStorage["events"]["list"]>[number] | null = null;
   while (true) {
@@ -18,7 +18,11 @@ function latestWorkstreamEvent(storage: ProjectStorage) {
     if (events.length === 0) break;
     for (const event of events) {
       afterSeq = event.seq;
-      if (event.type === "workstream.snapshot.recorded") latest = event;
+      if (
+        event.type === "workstream.snapshot.recorded" &&
+        (workstreamId === undefined || event.payload.workstreamId === workstreamId)
+      )
+        latest = event;
     }
     if (events.length < 1000) break;
   }
@@ -48,7 +52,7 @@ export async function verifiedCurrentWorkstream(
   storage: ProjectStorage,
 ): Promise<WorkstreamSnapshot | null> {
   let state = await readCurrentWorkstreamState(storage.paths.repositoryRoot);
-  const event = latestWorkstreamEvent(storage);
+  const event = latestWorkstreamEvent(storage, state?.snapshot.workstreamId);
   if (state === null) {
     if (event === null) return null;
     const payload = event.payload as Record<string, unknown>;

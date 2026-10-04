@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d50d904a12e15797242d3c41
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6cfa404eefc4c2c99a946a56
+outputLanguage: en
+outputs:
+  - byteCount: 2424
+    contentHash: sha256:b3fa93d060332054008e7c58fe20a6019a1085f0050e751cde358b4261da4e81
+    path: docs/decisions/execution/verification/0355-use-fork-backed-runtime-shards.md
+    userRegionHash: sha256:b3fa93d060332054008e7c58fe20a6019a1085f0050e751cde358b4261da4e81
+profile: decision_record
+recordId: knormdoc_f7a29f850a7a20d2dedb80e4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3bcc9043b8c12613c6f25cd8eb7d15717c131072bdbdc42450ecf83db3f8571b
+sourcePath: docs/decisions/execution/verification/0355-use-fork-backed-runtime-shards.md
+sourceUnitVersionIds:
+  - uv_13012dc46ceff8011463ccb1
+  - uv_5d48437219195bdbf0f7dbd8
+  - uv_613478d9373d558c47832a69
+  - uv_d24e15bb2a2b75a89e957d57
+  - uv_d5a10e53f32a511e983731e1
+  - uv_fd6b77a4fb82a6fa4fb05570

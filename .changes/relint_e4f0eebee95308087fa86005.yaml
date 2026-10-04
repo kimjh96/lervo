@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e4f0eebee95308087fa86005"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Clarify reviewed rejection of stale canonicalization candidates during background convergence."

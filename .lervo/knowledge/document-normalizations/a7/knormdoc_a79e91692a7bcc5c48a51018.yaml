@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f7805e12f56266e42eae1509
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_57c46cf57ac1a87d6ab3b5be
+outputLanguage: en
+outputs:
+  - byteCount: 514
+    contentHash: sha256:03f42813010cf40ecd4c11391cacf5145e506af435d687ab583bcf8a1b3c192b
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-r152-r157.md
+    userRegionHash: sha256:03f42813010cf40ecd4c11391cacf5145e506af435d687ab583bcf8a1b3c192b
+  - byteCount: 3647
+    contentHash: sha256:5bd0f3336aca7d6dd4f19714e84d99726a14e07025dfd3f1459bcf37b8f98efd
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-r152-r157/delegation-and-replica-cleanup.md
+    userRegionHash: sha256:5bd0f3336aca7d6dd4f19714e84d99726a14e07025dfd3f1459bcf37b8f98efd
+  - byteCount: 1911
+    contentHash: sha256:4606dddda7f94768d4cedf95e8813dcdefb177f52ad7b64a43d774a5ac02c96f
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-r152-r157/r152-verification.md
+    userRegionHash: sha256:4606dddda7f94768d4cedf95e8813dcdefb177f52ad7b64a43d774a5ac02c96f
+  - byteCount: 3416
+    contentHash: sha256:82f1c6c125bca1fc7fe0df43902e36158282e5f907c202689a8346311cbd307c
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-r152-r157/r153-r154-authorization.md
+    userRegionHash: sha256:82f1c6c125bca1fc7fe0df43902e36158282e5f907c202689a8346311cbd307c
+  - byteCount: 4594
+    contentHash: sha256:5ce14365cc1dd948ae2785d9a74aa8520e5fe2ae45f752616717f9decc230a0a
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-r152-r157/scope-and-r157-coordination.md
+    userRegionHash: sha256:5ce14365cc1dd948ae2785d9a74aa8520e5fe2ae45f752616717f9decc230a0a
+profile: repository_document
+recordId: knormdoc_a79e91692a7bcc5c48a51018
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:118137f59dd3e2b4c9768f88976ff2b394fd4c3145ed2d9255ac411a02ac917d
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/installed-r152-r157.md
+sourceUnitVersionIds:
+  - uv_380f9c0ff6e7ce53d56dc7c5
+  - uv_678dc268ee292c8668d77b35
+  - uv_69308f1d8b3b5df90a28cf06
+  - uv_79f8049318ac44bbee8f4bc1
+  - uv_cf73bd829be32b3d62ccde5c

@@ -5,30 +5,28 @@
 
 ## Context
 
-An always-on Hub must install independently of a source checkout and npm publication. Existing output imported private workspaces, while executable archives must not contain operational configuration or secrets.
+An always-on Hub must install independently of a source checkout and npm publication. Existing output imported private workspaces; executable archives must exclude operational configuration and secrets.
 
 ## Decision
 
-Bundle every private workspace and ordinary JavaScript dependency into one ESM `dist/bin.js` with no non-builtin external imports. The artifact records the actual build OS and architecture and, on Linux, `glibc` or `musl`; it makes no claim about an unexecuted platform.
+Bundle every private workspace and ordinary JavaScript dependency into one ESM `dist/bin.js` with no non-builtin external imports. Record the actual build OS and architecture and, on Linux, `glibc` or `musl`. Make no claim about an unexecuted platform.
 
 The payload contains:
 
-- the bundle;
-- the exact synchronously loaded web assets;
-- a minimal package manifest;
-- a short README;
-- an application-only CycloneDX 1.7 SBOM; and
+- The bundle.
+- The exact synchronously loaded web assets.
+- A minimal package manifest.
+- A short README.
+- An application-only CycloneDX 1.7 SBOM.
 - `lervo-hub-distribution.manifest.json`.
 
-It excludes `node_modules`, source, tests, and workspace packages.
+Exclude `node_modules`, source, tests, and workspace packages. Archives also exclude secrets, identities, certificates, storage, repository paths, and events.
 
-The embedded manifest binds the runtime version, Node `>=22.13`, entrypoint, platform, and every file or symlink's size, mode, and SHA-256, plus a canonical content digest. A sidecar binds the archive name, size, hash, and manifest hash. An independently trusted expected archive hash remains required.
+The embedded manifest binds the runtime version, Node `>=22.13`, entrypoint, platform, every file or symlink's size, mode, and SHA-256, and a canonical content digest. A sidecar binds the archive name, size, hash, and manifest hash. An independently trusted expected archive hash remains required.
 
-Build and install require `--write`, a safe absolute new output or target, and never overwrite. Verification and installation recheck the archive, manifest, SBOM, content, current platform, startup outside the checkout, and a real loopback listener using temporary owner-only config, keys, credentials, and state. Archive extraction restores recorded permissions without restoring archive ownership, so a caller's umask cannot reinterpret the content manifest.
+Build and install require `--write` and a safe absolute new output or target; neither may overwrite. Verification and installation recheck the archive, manifest, SBOM, content, current platform, startup outside the checkout, and a real loopback listener using temporary owner-only config, keys, credentials, and state. Extraction restores recorded permissions without restoring archive ownership, preventing the caller's umask from reinterpreting the content manifest.
 
-Installation places only the payload. It creates no config, secret, database, CAS, or service.
-
-Archives exclude secrets, identities, certificates, storage, repository paths, and events. Fixed failures distinguish self-containment, digest, archive, manifest, content, SBOM, platform, smoke, and target errors. Success alone proves no listener, storage, authentication, Node connection, service, or readiness.
+Installation places only the payload and creates no config, secret, database, CAS, or service. Fixed failures distinguish self-containment, digest, archive, manifest, content, SBOM, platform, smoke, and target errors. Success alone proves no listener, storage, authentication, Node connection, service, or readiness.
 
 ## Consequences
 

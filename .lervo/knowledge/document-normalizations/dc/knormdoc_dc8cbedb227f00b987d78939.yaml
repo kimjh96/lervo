@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c9902735ffa650b0a084a8a2
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e2aecc1b082a9ab2378f581e
+outputLanguage: en
+outputs:
+  - byteCount: 314
+    contentHash: sha256:0729b3c4c5c40ed1009b77771ca6355502d0d07dbbdea4877ab001c8d503c02e
+    path: docs/specs/repository-knowledge-compilation/structural-publication/sources.md
+    userRegionHash: sha256:0729b3c4c5c40ed1009b77771ca6355502d0d07dbbdea4877ab001c8d503c02e
+  - byteCount: 1739
+    contentHash: sha256:fb104bc0b7d6105b993f8cee32858c0e713e05e259f925e5d053c560b285da8c
+    path: docs/specs/repository-knowledge-compilation/structural-publication/sources/discovery-and-units.md
+    userRegionHash: sha256:fb104bc0b7d6105b993f8cee32858c0e713e05e259f925e5d053c560b285da8c
+  - byteCount: 1228
+    contentHash: sha256:c89d09ed81c0e950f81686ec2e6de416104ca5d1076acec58bef8f926d0261ac
+    path: docs/specs/repository-knowledge-compilation/structural-publication/sources/verification-results.md
+    userRegionHash: sha256:c89d09ed81c0e950f81686ec2e6de416104ca5d1076acec58bef8f926d0261ac
+profile: specification_document
+recordId: knormdoc_dc8cbedb227f00b987d78939
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e23357aa6cc0f0faa3f04ad6ba680bb3f152df3101a9ffb15cf34578d907b1af
+sourcePath: docs/specs/repository-knowledge-compilation/structural-publication/sources.md
+sourceUnitVersionIds:
+  - uv_03477f77daac2da2159836d8
+  - uv_1023e13346837a337bae299d
+  - uv_8743abcd4fc20a126b7fbc5e
+  - uv_d710c10a0bfe783dbd732929

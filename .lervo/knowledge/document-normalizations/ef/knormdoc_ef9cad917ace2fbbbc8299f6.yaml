@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a836ded2c8086df822fe5c3f
+outputLanguage: en
+outputs:
+  - byteCount: 589
+    contentHash: sha256:2eb3db914a77c2712e09386e808b4a0dab09158004d7df47040470e8a3af1020
+    path: docs/foundation/event-writer-rollout/activation.md
+    userRegionHash: sha256:2eb3db914a77c2712e09386e808b4a0dab09158004d7df47040470e8a3af1020
+  - byteCount: 1463
+    contentHash: sha256:6d6c02d2d931a16a2924dc7fda0aa3a38f5d1b5994c25d58c8dba24b7fa0ffee
+    path: docs/foundation/event-writer-rollout/activation/hub-enabled.md
+    userRegionHash: sha256:6d6c02d2d931a16a2924dc7fda0aa3a38f5d1b5994c25d58c8dba24b7fa0ffee
+  - byteCount: 1340
+    contentHash: sha256:e96a6ed90463e761676ca66dbe1a21caeeb60eaf14c72af9067e551ea05953b5
+    path: docs/foundation/event-writer-rollout/activation/local-only.md
+    userRegionHash: sha256:e96a6ed90463e761676ca66dbe1a21caeeb60eaf14c72af9067e551ea05953b5
+  - byteCount: 480
+    contentHash: sha256:6c55bc4759a40a2891b02fd152fcf748519197c53a6173b69072a697324eba6a
+    path: docs/foundation/event-writer-rollout/activation/node-absent.md
+    userRegionHash: sha256:6c55bc4759a40a2891b02fd152fcf748519197c53a6173b69072a697324eba6a
+profile: repository_document
+recordId: knormdoc_ef9cad917ace2fbbbc8299f6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3e35d913de0e70eaa5131ba667360e7ab077c01e9af1b3dd541075bcd0fc4f84
+sourcePath: docs/foundation/event-writer-rollout/activation.md
+sourceUnitVersionIds:
+  - uv_066a80d7e1bd369ab3ab3325
+  - uv_229451129e1c2540ce1462b5
+  - uv_4c6812c8b97a850781ffc931
+  - uv_53eb055a018c3889fde9469c

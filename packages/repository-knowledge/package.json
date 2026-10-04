@@ -24,6 +24,7 @@
     "@lervo/documents": "workspace:*",
     "@lervo/event-contract": "workspace:*",
     "@lervo/filesystem-durability": "workspace:*",
+    "@lervo/project-storage": "workspace:*",
     "@lervo/project": "workspace:*",
     "@lervo/roles": "workspace:*",
     "@lervo/schemas": "workspace:*",

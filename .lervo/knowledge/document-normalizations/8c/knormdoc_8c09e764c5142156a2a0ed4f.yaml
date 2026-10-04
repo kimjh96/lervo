@@ -1,0 +1,58 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_68dc43be549d849ef877c9c5
+compiler:
+  compilerBuildId: sha256:a2216f7588fc16d305062a2962940204a12e8ef517c44d07d779270139a672bd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3e18dd3b964a259d459c55af
+outputLanguage: en
+outputs:
+  - byteCount: 3656
+    contentHash: sha256:54781fa1b0ee1bef728538f5709cf8c5eec709cd414ddd7301a04ab5abfb51b0
+    path: docs/specifications/execution/agent-workspaces.md
+    userRegionHash: sha256:54781fa1b0ee1bef728538f5709cf8c5eec709cd414ddd7301a04ab5abfb51b0
+  - byteCount: 3461
+    contentHash: sha256:8f2205f43bf743d18cca80f4b392af98a822ac9b4946ac2d98d00ab8a67ef702
+    path: docs/specifications/execution/agent-workspaces/cleanup.md
+    userRegionHash: sha256:8f2205f43bf743d18cca80f4b392af98a822ac9b4946ac2d98d00ab8a67ef702
+  - byteCount: 5596
+    contentHash: sha256:195641fde562ff235bb4b6937723f641f2f1d492b16fbbf0a7590c28d990d3d0
+    path: docs/specifications/execution/agent-workspaces/coordination-and-verification.md
+    userRegionHash: sha256:195641fde562ff235bb4b6937723f641f2f1d492b16fbbf0a7590c28d990d3d0
+  - byteCount: 6506
+    contentHash: sha256:1a4a2751281e7a44f526cddca83a6dd77dbe9d86202db4e6ddc55136e86097ff
+    path: docs/specifications/execution/agent-workspaces/integration.md
+    userRegionHash: sha256:1a4a2751281e7a44f526cddca83a6dd77dbe9d86202db4e6ddc55136e86097ff
+  - byteCount: 9573
+    contentHash: sha256:0f4e61bc9bd1ae0998e5202054b9563b4c4c1084d554444eeb8c96c29b13592a
+    path: docs/specifications/execution/agent-workspaces/workspace-lifecycle.md
+    userRegionHash: sha256:0f4e61bc9bd1ae0998e5202054b9563b4c4c1084d554444eeb8c96c29b13592a
+profile: specification_document
+recordId: knormdoc_8c09e764c5142156a2a0ed4f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:09a15c77d0bcac8e51c57dbc5344d563b4defc14568fea5e0aa4442bad717108
+sourcePath: docs/specifications/execution/agent-workspaces.md
+sourceUnitVersionIds:
+  - uv_0316f87f0c78529f7e67acbc
+  - uv_0ddf38eff5d2e037ecc0ffc9
+  - uv_10385bf32e40a3f84c33f779
+  - uv_3c36e08e0d265d2ae5039dbd
+  - uv_485cb2fe84210e9ace4f4248
+  - uv_4e8638b7a9fa68fb244e53d2
+  - uv_4ed03c1e2eb327b0da5dedae
+  - uv_521e3149bd47bf2a3dd1e572
+  - uv_5ef7cd43b3a9ec70074b3740
+  - uv_600f55896325a44f8cd61b54
+  - uv_73f04757006c14cb337c4533
+  - uv_9a9a4c3112b353b147ef036f
+  - uv_bc02ea203172ea0c6f333091
+  - uv_ddef3f2be7d8733494d4afee
+  - uv_ddfe6292049ee9877a197c3d
+  - uv_f704ab062a6443e70be3f679
+  - uv_fa07c66ee8635f05caf9a4a4

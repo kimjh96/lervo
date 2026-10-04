@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -136,6 +136,7 @@ it("rejects a shared backup directory before changing a configuration", async ()
   const original = `${JSON.stringify(configuration(), null, 2)}\n`;
   await writeFile(config, original, { mode: 0o600 });
   await mkdir(backupDir, { mode: 0o755 });
+  await chmod(backupDir, 0o755);
   const script = resolve(import.meta.dirname, "../reconcile-po-model-configs.mjs");
   const attempt = spawnSync(
     process.execPath,

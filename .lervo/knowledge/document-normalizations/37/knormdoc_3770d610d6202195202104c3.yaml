@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c383d7b7d6824c1ff58ca9a6
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_69ffbc212f4264bc0113ba82
+outputLanguage: en
+outputs:
+  - byteCount: 416
+    contentHash: sha256:388a7737fc153736c085728d88ee391efbf99b8956e34962412570df265609e2
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/run-evidence/validation-boundary.md
+    userRegionHash: sha256:388a7737fc153736c085728d88ee391efbf99b8956e34962412570df265609e2
+profile: specification_document
+recordId: knormdoc_3770d610d6202195202104c3
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:388a7737fc153736c085728d88ee391efbf99b8956e34962412570df265609e2
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/run-evidence/validation-boundary.md
+sourceUnitVersionIds:
+  - uv_36b266fdc857224762923781

@@ -1,6 +1,7 @@
 import {
-  collectExecutionEventSources,
+  collectExecutionEventSourcePages,
   collectVerificationResultSources,
+  loadRepositoryKnowledgePolicy,
   type RepositorySupplementalSource,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
@@ -14,6 +15,7 @@ export async function collectLocalKnowledgeSources(
 ): Promise<RepositorySupplementalSource[]> {
   const storage = await openProjectStorage(repositoryRoot);
   try {
+    const policy = await loadRepositoryKnowledgePolicy(repositoryRoot);
     const verificationSources = await collectVerificationResultSources({
       events: storage.events,
       artifacts: storage.artifacts,
@@ -21,7 +23,7 @@ export async function collectLocalKnowledgeSources(
     });
     return [
       ...verificationSources,
-      ...collectExecutionEventSources({ events: storage.events }),
+      ...collectExecutionEventSourcePages({ events: storage.events, limits: policy.limits }).flat(),
     ].sort((left, right) => left.path.localeCompare(right.path));
   } finally {
     await storage.close();

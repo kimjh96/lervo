@@ -330,6 +330,7 @@ export class SQLiteNodeWorkAdmission {
     scope: string;
     configDigest: string;
     ownerPid?: number;
+    allowNoSession?: boolean;
   }): NodeUpgradeFreezeResult {
     assertScope(input.scope);
     assertScope(input.configDigest);
@@ -349,7 +350,7 @@ export class SQLiteNodeWorkAdmission {
       const sessions = this.database
         .prepare("SELECT token FROM node_work_session WHERE scope = ?")
         .all(input.scope) as Row[];
-      if (sessions.length !== 1) {
+      if (sessions.length !== 1 && !(sessions.length === 0 && input.allowNoSession === true)) {
         return {
           status: "busy",
           reason: sessions.length === 0 ? "session_missing" : "session_conflict",
@@ -366,6 +367,37 @@ export class SQLiteNodeWorkAdmission {
         .prepare("UPDATE node_work_scope SET freeze_token = ?, freeze_pid = ? WHERE scope = ?")
         .run(freeze.token, freeze.ownerPid, freeze.scope);
       return { status: "frozen", freeze };
+    });
+  }
+
+  replaceFrozenConfiguration(input: {
+    freeze: NodeUpgradeFreeze;
+    expectedConfigDigest: string;
+    configDigest: string;
+  }): boolean {
+    assertScope(input.freeze.scope);
+    assertScope(input.expectedConfigDigest);
+    assertScope(input.configDigest);
+    assertPid(input.freeze.ownerPid);
+    return this.transaction(() => {
+      if (!this.isAlive(input.freeze.ownerPid)) return false;
+      this.clearDeadSessions(input.freeze.scope);
+      const sessions = this.database
+        .prepare("SELECT COUNT(*) AS count FROM node_work_session WHERE scope = ?")
+        .get(input.freeze.scope) as Row;
+      if (Number(sessions.count) !== 0) return false;
+      const result = this.database
+        .prepare(
+          "UPDATE node_work_scope SET config_digest = ? WHERE scope = ? AND config_digest = ? AND freeze_token = ? AND freeze_pid = ?",
+        )
+        .run(
+          input.configDigest,
+          input.freeze.scope,
+          input.expectedConfigDigest,
+          input.freeze.token,
+          input.freeze.ownerPid,
+        );
+      return result.changes === 1;
     });
   }
 

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_66b6fc4b9bbc6368675cd335
+outputLanguage: en
+outputs:
+  - byteCount: 2730
+    contentHash: sha256:0731e8dc66e63e878623138a5231f863cd0ea6bb47656b61178a7db94c66c711
+    path: docs/specifications/execution/product-surfaces/application-projections/commands-and-subscriptions.md
+    userRegionHash: sha256:0731e8dc66e63e878623138a5231f863cd0ea6bb47656b61178a7db94c66c711
+profile: specification_document
+recordId: knormdoc_a6f17d2c6cca3eb325641ae6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9ff2b3d34fd50f702cd8af32100c5faeedf9ff4ba67bfb4726cf0a8e4200a581
+sourcePath: docs/specifications/execution/product-surfaces/application-projections/commands-and-subscriptions.md
+sourceUnitVersionIds:
+  - uv_9dea2a73ffebeb19d5682d86

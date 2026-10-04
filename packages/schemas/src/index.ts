@@ -96,3 +96,5 @@ export * from "./writing-publication.js";
 export * from "./workstream.js";
 export * from "./workstream-replication.js";
 export * from "./work-execution-report.js";
+export * from "./knowledge-convergence-event.js";
+export * from "./convergence-assignment-archive-event.js";

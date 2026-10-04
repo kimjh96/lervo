@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2d3489f544b269b9dbc0d19e
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0e8e379582a6f3bc96a44e1e
+outputLanguage: en
+outputs:
+  - byteCount: 514
+    contentHash: sha256:925f083fc65888f3a6d54a5fc209a859e46950a687dd1078bb8e80c2416d0577
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-2026-10-01/knowledge-worker.md
+    userRegionHash: sha256:925f083fc65888f3a6d54a5fc209a859e46950a687dd1078bb8e80c2416d0577
+  - byteCount: 2033
+    contentHash: sha256:57f592b306ba364b4915a2cc0ffba2f92fbd51d0c5c502b12039fa63c896cfe6
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-2026-10-01/knowledge-worker/linked-authority-correction.md
+    userRegionHash: sha256:57f592b306ba364b4915a2cc0ffba2f92fbd51d0c5c502b12039fa63c896cfe6
+  - byteCount: 580
+    contentHash: sha256:182446a05a0147192ba1e90a56b9eb6a0f857340d538851aabc965574e592617
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-2026-10-01/knowledge-worker/mac-resident-worker.md
+    userRegionHash: sha256:182446a05a0147192ba1e90a56b9eb6a0f857340d538851aabc965574e592617
+  - byteCount: 1246
+    contentHash: sha256:bd8031e8906a5fc0d52496d036043af832fd1352d85cbbd5c58712a6db9c2d4c
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-2026-10-01/knowledge-worker/wsl-authority.md
+    userRegionHash: sha256:bd8031e8906a5fc0d52496d036043af832fd1352d85cbbd5c58712a6db9c2d4c
+  - byteCount: 1085
+    contentHash: sha256:589b123e2a76bd2743b0dfe4d5b4ba3aec0d4714330477c1c37b6c1c2961a80b
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/installed-2026-10-01/knowledge-worker/wsl-node-activation.md
+    userRegionHash: sha256:589b123e2a76bd2743b0dfe4d5b4ba3aec0d4714330477c1c37b6c1c2961a80b
+profile: repository_document
+recordId: knormdoc_46c44ea8974b82456bc33acc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:334dd0665992e0d7875b7e219acab15d123ec560849b454a885987dc7ec94e67
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/installed-2026-10-01/knowledge-worker.md
+sourceUnitVersionIds:
+  - uv_12eecf147962df4a1d013c42
+  - uv_31be0d657423cf376f7b7c4d
+  - uv_8c65bfb70ac5dc3c6bf243e5
+  - uv_9e1ee822e23718e61bfda7c2
+  - uv_bfa5407fbe12725820ed8720

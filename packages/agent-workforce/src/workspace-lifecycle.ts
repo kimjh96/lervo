@@ -26,7 +26,7 @@ const transitions: Readonly<Record<WorkspaceState, readonly WorkspaceState[]>> =
   active: ["active", "paused", "sealing", "recovery_required"],
   paused: ["active", "sealing", "recovery_required"],
   sealing: ["sealed", "recovery_required"],
-  sealed: ["integration_pending", "recovery_required"],
+  sealed: ["integration_pending", "integrated", "recovery_required"],
   integration_pending: ["integrating", "integration_conflict", "recovery_required"],
   integrating: ["integrated", "integration_conflict", "recovery_required"],
   integration_conflict: ["integration_pending", "recovery_required"],
@@ -215,6 +215,11 @@ function validateTransitionEvidence(input: {
   }
   if (nextState === "integrating") requireEvidence(evidence, ["integrationLeaseHeld"]);
   if (nextState === "integrated") {
+    if (input.current.state === "sealed" && input.current.executionKind !== "integrator")
+      fail(
+        "workspace_transition_conflict",
+        "Only an integrator can close its already verified target directly.",
+      );
     requireEvidence(evidence, ["integrationVerified"]);
     if (!/^int_[a-f0-9]{24}$/u.test(input.integrationEvidenceId ?? ""))
       fail("workspace_transition_conflict", "Integration evidence is missing.");

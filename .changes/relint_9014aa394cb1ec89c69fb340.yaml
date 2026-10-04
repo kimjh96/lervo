@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9014aa394cb1ec89c69fb340"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Recover invalid supervised owner proposals and map authorized shell readiness without recurring cycle errors."

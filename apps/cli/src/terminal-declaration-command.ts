@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import { captureRepositorySnapshot } from "@lervo/orchestrator";
+import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { validateSchema, type TerminalTurnDeclaredEventPayload } from "@lervo/schemas";
 import {
@@ -142,7 +142,7 @@ export async function runTerminalDeclareCommand(args: string[], io: CliIo): Prom
     const contextRevision = context.payload.repositoryRevision;
     if (typeof contextRevision !== "string")
       throw new Error("The prepared terminal observation has no repository revision.");
-    const repository = await captureRepositorySnapshot(root);
+    const repository = await captureTerminalRepositorySnapshot(root);
     const repositoryChanged = contextRevision !== repository.revision;
     if (repositoryChanged && draft.taskMode === "inquiry")
       throw new Error("An inquiry declaration cannot bind changed repository bytes.");

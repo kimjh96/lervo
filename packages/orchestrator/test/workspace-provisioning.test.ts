@@ -174,7 +174,7 @@ describe("workspace provisioning orchestration", () => {
     await expect(lstat(current.workspacePath)).resolves.toBeDefined();
   });
   it.each(["before_host", "receipt"])(
-    "preserves recovery state when %s authority fails",
+    "preserves the independently observed host state when %s authority fails",
     async (phase) => {
       const current = await fixture();
       const host = new GitWorkspaceHostAdapter(
@@ -208,7 +208,9 @@ describe("workspace provisioning orchestration", () => {
         }),
       ).rejects.toThrow("authority_lost");
       expect(await listWorkspaces(current.root)).toMatchObject([
-        { state: "recovery_required", recoveryReason: "host_effect_uncertain" },
+        phase === "before_host"
+          ? { state: "recovery_required", recoveryReason: "host_effect_uncertain" }
+          : { state: "ready", recoveryReason: null, revision: 2 },
       ]);
       if (phase === "before_host") await expect(lstat(current.workspacePath)).rejects.toThrow();
       else expect((await lstat(current.workspacePath)).isDirectory()).toBe(true);

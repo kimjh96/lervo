@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9c0fc857effdd8df32448b77
+outputLanguage: en
+outputs:
+  - byteCount: 1979
+    contentHash: sha256:e73a30ce7211be597c7b2a2d7f3045c1989944053bcccf40d4c9817113b086f8
+    path: docs/specifications/execution/outcome-supervision/implementation/scoped-handoffs/attention.md
+    userRegionHash: sha256:e73a30ce7211be597c7b2a2d7f3045c1989944053bcccf40d4c9817113b086f8
+profile: specification_document
+recordId: knormdoc_1fed410dac3cae6b0ba79aa3
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:10829e6d9aad2ace181db64d822b88702dcbfd2317b76735b431078510c7aa61
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/scoped-handoffs/attention.md
+sourceUnitVersionIds:
+  - uv_6a86ccf30927aca6b25dfc78

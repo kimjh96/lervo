@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f6a1f4404d0bbd5e6c13aac1"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Default terminal hooks to compact context with cached snapshots so Claude Code and Codex prompts and turn ends stay fast."

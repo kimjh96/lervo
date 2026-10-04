@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { collectChangedRepositoryPaths } from "./changed-verification/git-changes.mjs";
 import { createChangedRuntimeVerificationPlan } from "./changed-verification/verification-plan.mjs";
@@ -20,11 +21,15 @@ process.stdout.write(
 );
 
 const exitCode = await new Promise((resolveExit, reject) => {
-  const child = spawn(plan.executable, plan.arguments, {
-    cwd: repositoryRoot,
-    env: { ...process.env, CI: "1" },
-    stdio: "inherit",
-  });
+  const child = spawn(
+    process.execPath,
+    [fileURLToPath(import.meta.resolve("vitest/vitest.mjs")), ...plan.arguments],
+    {
+      cwd: repositoryRoot,
+      env: { ...process.env, CI: "1" },
+      stdio: "inherit",
+    },
+  );
   child.once("error", reject);
   child.once("exit", (code, signal) => {
     if (code !== null) resolveExit(code);

@@ -247,8 +247,9 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
       const change =
         input.knowledgeMode === "pending_background" &&
         input.sourceManifest !== undefined &&
-        storage.writableEventSchemaVersion === 3
+        (storage.writableEventSchemaVersion ?? 1) >= 3
           ? await planConversationRepositoryChange({
+              projectId: storage.manifest.projectId,
               repositoryRoot: input.repositoryRoot,
               artifacts: storage.artifacts,
               sourceManifest: input.sourceManifest,

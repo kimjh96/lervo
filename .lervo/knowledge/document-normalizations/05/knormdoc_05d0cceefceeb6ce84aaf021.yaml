@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_08addb157145bf0b58170a60
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b78ac8949ad69926efc06408
+outputLanguage: en
+outputs:
+  - byteCount: 7449
+    contentHash: sha256:19fa0f6b8562d04d7f871fbee66295838e49f4b2a4f56c07247e07f5f0a1102b
+    path: docs/decisions/knowledge/repository/canonicalization/0443-load-linked-child-contracts-for-canonical-review.md
+    userRegionHash: sha256:19fa0f6b8562d04d7f871fbee66295838e49f4b2a4f56c07247e07f5f0a1102b
+profile: decision_record
+recordId: knormdoc_05d0cceefceeb6ce84aaf021
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:505aa606aef999c3fa766659f31f2dff41d7afe6388f9ba6c884806744959e5a
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0443-load-linked-child-contracts-for-canonical-review.md
+sourceUnitVersionIds:
+  - uv_1e7206433b9e783cdfa3d4cf
+  - uv_467c936d66f16339276e60f6
+  - uv_4fb0221997aaff7b248ad306
+  - uv_54ddfe0ee48c6105a2239d85
+  - uv_6fd9c2f256fdde18c69cb843
+  - uv_933ef6f944dfb5489285c9c6
+  - uv_ac1beb3c0f968782ff37d62e
+  - uv_f56c27958b2bab1a9327206c
+  - uv_f7c8d23d45a4a7a9213ce7af

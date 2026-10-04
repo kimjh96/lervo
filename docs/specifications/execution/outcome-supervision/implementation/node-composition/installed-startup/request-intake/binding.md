@@ -1,22 +1,28 @@
 # Request binding contract
 
-Local stdin and the configured Discord speaker use the same Node intake under the exclusive owner lease to bind one request to the active installed owner's current workstream.
+Local stdin and the configured Discord speaker share Node intake under the exclusive owner lease, binding one request to the active installed owner's current workstream.
 
 ## Admission and artifacts
 
 Before appending `work.supervision.bound`, the writer checks the current mandate, workstream revision, assignment graph and latest event hash. The event records supervision, owner, mandate, workstream revision, graph hash, snapshot cause, request artifact hash and acceptance artifact hash. It excludes request text, external message IDs and participant IDs.
 
-The request artifact stores bounded text, source kind, source and requester digests, content hash and, for Discord, an exact result origin. Both writer and reader verify the text digest; the reader also verifies the Discord source digest against the bound source event.
+The request artifact stores bounded text, source kind, source and requester digests, content hash and, for Discord, an exact result origin. Writer and reader verify the text digest; the reader also verifies the Discord source digest against the bound source event.
 
-New Discord bindings use version-two request artifacts. They additionally snapshot at most twelve prior conversation turns from the exact target and thread: the last eight eligible turns plus up to four earlier human anchors. An inbound turn must be completed by intake and have an earlier platform event time; an outbound reply must have been delivered before the new ingress time. Each source record and CAS excerpt has an exact hash. Owner reasoning verifies those source rows and bytes on every read; text and participant identity remain private in local CAS, never in the binding event. Legacy version-one artifacts remain readable without invented history. Local stdin bindings remain version one.
+New Discord bindings use version-two request artifacts with a snapshot of at most twelve prior conversation turns from the exact target and thread: the last eight eligible turns plus up to four earlier human anchors. Eligible inbound turns must be completed by intake and have an earlier platform event time; outbound replies must have been delivered before the new ingress time. Each source record and CAS excerpt has an exact hash. Owner reasoning verifies those source rows and bytes on every read. Text and participant identity remain private in local CAS and never enter the binding event. Legacy version-one artifacts remain readable without invented history; local stdin bindings remain version one.
 
-The version-two artifact requires `conversationContext`. Each turn requires `role`, bounded `text`, `speaker` (`kind`, `participantId`, nullable `agentId` and `roleId`), and `source` (`kind`, `id`, `roleId`, `recordHash`, `contentHash`, `observedAtMs`). `source.kind` is `inbound` for user turns and `outbound` for assistant turns. Malformed or over-bound context is `request_invalid` before binding. A missing or conflicting persisted source fails owner reasoning closed without an effect or publication; it is not silently converted to an empty history or repaired from later conversation state.
+Version two requires `conversationContext`. Each turn requires:
 
-The acceptance artifact pins the workstream objective, snapshot and assignment IDs at admission. The reader reconstructs assignments from creation events before the binding sequence, independent of wall-clock timestamp ties. Both artifacts use local CAS.
+- `role` and bounded `text`.
+- `speaker`: `kind`, `participantId`, nullable `agentId` and `roleId`.
+- `source`: `kind`, `id`, `roleId`, `recordHash`, `contentHash`, `observedAtMs`.
+
+`source.kind` is `inbound` for user turns and `outbound` for assistant turns. Malformed or over-bound context returns `request_invalid` before binding. Missing or conflicting persisted sources fail owner reasoning closed without an effect or publication; they must not become empty history or be repaired from later conversation state.
+
+The acceptance artifact pins the workstream objective, snapshot and assignment IDs at admission. The reader reconstructs assignments from creation events before the binding sequence, independently of wall-clock timestamp ties. Both artifacts use local CAS.
 
 An exact replay of the same source and content returns the existing event. A changed source or second origin for that goal fails closed. A failed or unobserved commit does not authorize replaying a provider effect.
 
-Replay compares the authenticated request and origin, not a newly computed conversation window. The first successful binding's context snapshot is immutable, so a delayed retry cannot change earlier meaning or introduce later turns.
+Replay compares the authenticated request and origin, not a recomputed conversation window. The first successful binding's context snapshot is immutable: delayed retries cannot change earlier meaning or introduce later turns.
 
 ## Refusals and uncertainty
 
@@ -32,7 +38,7 @@ An approved successor mandate retains the original request and result origin. Th
 
 Binding an unrelated request to an existing objective is not a goal amendment. A new objective, revised acceptance criteria or additional recipient requires a separate workstream and authority transition.
 
-Once the original workstream is settled and completed, a successor may start with a new ID and exact predecessor hash. This preserves the prior local or Discord source binding while giving a later request a distinct goal identity. The successor requires its own reviewed mandate and installed owner binding; succession alone grants no execution or publication authority.
+After the original workstream is settled and completed, a successor may start with a new ID and exact predecessor hash. This preserves the prior local or Discord source binding while giving a later request a distinct goal identity. The successor requires its own reviewed mandate and installed owner binding; succession alone grants no execution or publication authority.
 
 ## Results and acceptance
 

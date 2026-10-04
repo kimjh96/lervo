@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6881e5a323c1dd13b7dc8612
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_644a887170e05e978d69e5bc
+outputLanguage: en
+outputs:
+  - byteCount: 909
+    contentHash: sha256:461b8b48559eb2d588cbe3ee193dfd59d7966e6a332d6dd5c0e85c740a1708d5
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/verification-v9-r160.md
+    userRegionHash: sha256:461b8b48559eb2d588cbe3ee193dfd59d7966e6a332d6dd5c0e85c740a1708d5
+  - byteCount: 2787
+    contentHash: sha256:56996e091ca944dcfc0d9a7de9711ddb894e8662ced44b8cef22b11b49317530
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/verification-v9-r160/contracts-and-leases.md
+    userRegionHash: sha256:56996e091ca944dcfc0d9a7de9711ddb894e8662ced44b8cef22b11b49317530
+  - byteCount: 2749
+    contentHash: sha256:54d847dbe30309a61f0ba9a62b9c25c7279b7a214ae34244281896af32a50d9c
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/verification-v9-r160/installed-acceptance.md
+    userRegionHash: sha256:54d847dbe30309a61f0ba9a62b9c25c7279b7a214ae34244281896af32a50d9c
+  - byteCount: 2327
+    contentHash: sha256:506bb1f864c569a45de0fdf85c4953e900f7bf4be7c7de5b974b6fbfb0f82a4d
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/verification-v9-r160/preparation.md
+    userRegionHash: sha256:506bb1f864c569a45de0fdf85c4953e900f7bf4be7c7de5b974b6fbfb0f82a4d
+  - byteCount: 2183
+    contentHash: sha256:54980df26959f084b3229b6cc8c6b513bcf7868bee503eb3eadfdc6c6f7af4d4
+    path: docs/evidence/quality/background-knowledge-convergence-implementation/verification-v9-r160/r159.md
+    userRegionHash: sha256:54980df26959f084b3229b6cc8c6b513bcf7868bee503eb3eadfdc6c6f7af4d4
+profile: repository_document
+recordId: knormdoc_41e643627c6b78bf72ec0b1e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6f8f91ef8d4abb8e3fb24638a7bdd256a6d4a75d0716cf70666ef7118db5c799
+sourcePath: docs/evidence/quality/background-knowledge-convergence-implementation/verification-v9-r160.md
+sourceUnitVersionIds:
+  - uv_22b072db9716c0e7400cb705
+  - uv_24ae9c8135cda3289968cf3f
+  - uv_36325b39447e2e50998cc2e1
+  - uv_45279912ae95f469ea57856a
+  - uv_5574ab10a96b76ddfa643a6e

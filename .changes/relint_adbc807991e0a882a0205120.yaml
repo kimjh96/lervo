@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_adbc807991e0a882a0205120"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Bound admission waiters during Node service upgrades without accepting unstarted work."

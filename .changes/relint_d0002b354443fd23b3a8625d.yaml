@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d0002b354443fd23b3a8625d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Accept a standing supervision configuration pinned to a later root mandate revision so upgraded Nodes keep starting."

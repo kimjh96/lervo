@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_72a4d222806394ccb51dd8d9
+outputLanguage: en
+outputs:
+  - byteCount: 748
+    contentHash: sha256:131ec46e864e76cd2c54361b6c8bc22eab5116b3fc2f99fbcae73183dd9fb0db
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/execution-boundaries.md
+    userRegionHash: sha256:131ec46e864e76cd2c54361b6c8bc22eab5116b3fc2f99fbcae73183dd9fb0db
+profile: repository_document
+recordId: knormdoc_b2312b2aa2aec3d60a34838a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a1daa90b2be97f96bca4dc16a6bf600c338bf1af223221038148fd6cfca0e7b7
+sourcePath: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/execution-boundaries.md
+sourceUnitVersionIds:
+  - uv_a866d39f18837bb95075359d

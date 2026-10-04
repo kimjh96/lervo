@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6e34c3796f7ccd2858a7bb44
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c0166bd22871d5549bdf45e8
+outputLanguage: en
+outputs:
+  - byteCount: 5239
+    contentHash: sha256:c71806e2fee655b2911a5fa7c512ab7a64306a04c8794b1ac6b4f5a1aa984a0c
+    path: docs/decisions/knowledge/repository/canonicalization/0445-scope-baseline-assessment-to-observed-obligations.md
+    userRegionHash: sha256:c71806e2fee655b2911a5fa7c512ab7a64306a04c8794b1ac6b4f5a1aa984a0c
+profile: decision_record
+recordId: knormdoc_6c1ca0a0d7db2d01e56a091c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1cd7a56f2b4adac9e99c85db24940ef87fc76dda8fb99c4881d1fffd086bb211
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0445-scope-baseline-assessment-to-observed-obligations.md
+sourceUnitVersionIds:
+  - uv_03ae90dc1f4aef14ae30d4a3
+  - uv_3ed52fa036f288fcab824d1c
+  - uv_4ac1ad7b9cfe27c6808820d5
+  - uv_9cfd3a3d4afd39674a634876
+  - uv_fdcf9f26da447097bfcc4d22

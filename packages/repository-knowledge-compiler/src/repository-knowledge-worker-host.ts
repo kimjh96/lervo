@@ -1,6 +1,9 @@
-import { constants } from "node:fs";
-import { open, readFile, rm } from "node:fs/promises";
-import { resolve } from "node:path";
+import {
+  loadCanonicalReviewContext,
+  assertCanonicalReviewContextCurrent,
+  type SemanticReviewContextDocument,
+} from "@lervo/repository-context";
+import { acquireKnowledgeWorkerLock } from "./knowledge-worker-lock.js";
 
 import {
   inspectRepositoryKnowledgeCurrency,
@@ -14,7 +17,6 @@ import { createNoCapabilityProviderJsonRunner } from "./process-compiler.js";
 
 export type RepositoryKnowledgeWorkerProvider = "claude" | "codex";
 
-const LOCK_PATH = ".lervo/state/knowledge-worker.lock";
 const REVIEW_TIMEOUT_MS = 300_000;
 
 const systemPrompt = [
@@ -38,22 +40,21 @@ const responseSchema = {
   required: ["classification"],
 } as const;
 
-async function instructions(root: string): Promise<string | null> {
-  try {
-    return (await readFile(resolve(root, "AGENTS.md"), "utf8")).slice(0, 64 * 1024);
-  } catch {
-    return null;
-  }
-}
-
 /** The no-capability review host: a private process with no tools, fed only bounded text. */
 export function createNoCapabilityKnowledgeReviewHost(
   root: string,
   provider: RepositoryKnowledgeWorkerProvider,
   executable?: string,
 ): RepositoryKnowledgeWorkerHost {
+  let context: SemanticReviewContextDocument[] = [];
+  const assertReviewContextCurrent = () => assertCanonicalReviewContextCurrent(root, context);
   return {
+    assertReviewContextCurrent,
     review: async (sources: RepositoryKnowledgeReviewSource[]) => {
+      context = await loadCanonicalReviewContext({
+        repositoryRoot: root,
+        sourcePaths: sources.map((source) => source.path),
+      });
       const runner = await createNoCapabilityProviderJsonRunner({
         provider,
         ...(executable === undefined ? {} : { executable }),
@@ -64,7 +65,7 @@ export function createNoCapabilityKnowledgeReviewHost(
         schemaVersion: 1,
         task: "repository_change_knowledge_review",
         responseContract: { schemaVersion: 1, schema: responseSchema },
-        untrustedSourceData: { instructions: await instructions(root), sources },
+        untrustedSourceData: { context, sources },
       })) as { classification?: unknown } | null;
       const classification = value?.classification;
       if (
@@ -77,36 +78,6 @@ export function createNoCapabilityKnowledgeReviewHost(
     },
     inspectKnowledge: () => inspectRepositoryKnowledgeCurrency(root),
   };
-}
-
-/** One worker per repository: a stale lock whose process has exited is reclaimed. */
-async function acquireLock(root: string): Promise<(() => Promise<void>) | null> {
-  const path = resolve(root, LOCK_PATH);
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const handle = await open(
-        path,
-        constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY,
-        0o600,
-      );
-      await handle.writeFile(`${process.pid}\n`);
-      await handle.close();
-      return () => rm(path, { force: true });
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-      const owner = Number.parseInt(await readFile(path, "utf8").catch(() => ""), 10);
-      try {
-        if (Number.isSafeInteger(owner) && owner > 0) {
-          process.kill(owner, 0);
-          return null;
-        }
-      } catch {
-        // The recorded owner has exited.
-      }
-      await rm(path, { force: true });
-    }
-  }
-  return null;
 }
 
 /**
@@ -126,7 +97,7 @@ export async function runRepositoryKnowledgeWorker(input: {
 }): Promise<
   { status: "processed"; outcomes: RepositoryKnowledgeJobOutcome[] } | { status: "busy" }
 > {
-  const release = await acquireLock(input.repositoryRoot);
+  const release = await acquireKnowledgeWorkerLock(input.repositoryRoot);
   if (release === null) return { status: "busy" };
   try {
     const outcomes = await processRepositoryKnowledgeJobs({
@@ -144,6 +115,20 @@ export async function runRepositoryKnowledgeWorker(input: {
       ...(input.maximumJobs === undefined ? {} : { maximumJobs: input.maximumJobs }),
     });
     return { status: "processed", outcomes };
+  } finally {
+    await release();
+  }
+}
+
+/** CLI and resident convergence owners share the legacy worker's exclusive repository ownership. */
+export async function withRepositoryKnowledgeWorkerLock<T>(
+  root: string,
+  run: () => Promise<T>,
+): Promise<{ status: "processed"; result: T } | { status: "busy" }> {
+  const release = await acquireKnowledgeWorkerLock(root);
+  if (release === null) return { status: "busy" };
+  try {
+    return { status: "processed", result: await run() };
   } finally {
     await release();
   }

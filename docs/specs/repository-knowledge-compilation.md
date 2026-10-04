@@ -7,7 +7,7 @@ As of: 2026-08-26
 
 Lervo compiles bounded repository evidence with or without `docs/`. Portable Markdown and sidecars remain inspectable without a hosted index.
 
-The compilation contract is divided into:
+The compilation contract comprises:
 
 - [Sources, policy, and structural publication](repository-knowledge-compilation/structural-publication.md).
 - [Semantic compilation, review, and materialization](repository-knowledge-compilation/semantic-review.md).
@@ -23,7 +23,9 @@ The compilation contract is divided into:
 
 [Development-pattern lifecycle](repository-development-pattern-lifecycle.md) owns proposal evidence, state transitions, exact review and promotion, agent routing, and stale-source behavior. Repository-changing completion also follows the typed [canonicalization assessment](repository-knowledge-lifecycle-convergence.md#canonicalization-assessment). Neither workflow derives authority from request keywords or automatically promotes user-owned content.
 
-[Background knowledge for every repository change](../decisions/knowledge/repository/canonicalization/0433-own-background-knowledge-for-every-repository-change.md) queues one review job per changed terminal turn, managed run, or Discord repository-work turn. Change sources exclude Git-ignored untracked paths and Lervo projections (`.lervo/generated/`, `.lervo/state/`, `.lervo/data/`, `docs/knowledge/`). A canonical candidate is assigned to the next write-capable terminal or Discord turn, which updates the canonical document and promotes the candidate by exact hash; background work never writes user-owned documents itself.
+[Background knowledge for every repository change](../decisions/knowledge/repository/canonicalization/0433-own-background-knowledge-for-every-repository-change.md) queues one review job per changed terminal turn, managed run, or Discord repository-work turn. Change sources exclude Git-ignored untracked paths and Lervo projections (`.lervo/generated/`, `.lervo/state/`, `.lervo/data/`, `docs/knowledge/`). A canonical candidate is assigned to the next write-capable terminal or Discord turn, which updates the canonical document and promotes the candidate by exact hash. The legacy version-3 background path never writes user-owned documents itself.
+
+[Autonomous background convergence](background-knowledge-convergence/runtime.md) implements the version-4 successor: continuous baseline discovery, separately authorized review/integration, normalization, and ordered lifecycle verification. The [installed audit](../evidence/quality/background-knowledge-convergence-audit.md) distinguishes current queue settlement from unresolved repository debt. Private installed Codex acceptance verifies this implementation. Production background document writes still require reviewed reader/writer activation and exact per-project delegation.
 
 [Repository knowledge query](repository-knowledge-query.md) owns concept, claim, relation, impact, ranking, relevance-floor, reviewed one-hop projection, and query evidence semantics. User-authored Markdown and reviewed semantic sidecars remain canonical; structural records and query indexes are rebuildable. A recommendation never proves selection, loading, injection, reference, or use.
 

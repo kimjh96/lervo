@@ -12,7 +12,7 @@ import {
   type RepositoryKnowledgeScan,
   type RepositorySupplementalSource,
 } from "@lervo/repository-knowledge";
-import { captureRepositorySnapshot } from "@lervo/orchestrator";
+import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 
 import type { TerminalLifecycleInspection } from "./terminal-hook-contract.js";
 import {
@@ -252,7 +252,7 @@ export async function inspectTerminalRepositoryKnowledgeLifecycle(input: {
     preparedScan !== undefined &&
     !issues.some((issue) => TRANSIENT_INSPECTION_FAILURES.has(issue.code))
   ) {
-    const confirmedRevision = await captureRepositorySnapshot(input.root)
+    const confirmedRevision = await captureTerminalRepositorySnapshot(input.root)
       .then((snapshot) => snapshot.revision)
       .catch(() => null);
     if (confirmedRevision === input.repositoryRevision) {

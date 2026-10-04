@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_59944084134b76ecef28dc3d"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Charge cached input re-reads at their cost against supervision token budgets."

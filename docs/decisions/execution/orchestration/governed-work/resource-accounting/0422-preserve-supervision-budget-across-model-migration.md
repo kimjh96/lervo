@@ -5,19 +5,25 @@
 
 ## Context
 
-An installed AXLI supervision workstream recorded 942,313 provider-reported Astra tokens and 64,942 provider-reported Sol tokens after its reviewed model-policy migration. Both observations use the same Codex adapter version, primary-provider scope, cumulative-turn counter, normalization, native-counter semantics, and service tier; their exact accounting descriptors differ only in the explicitly requested model. ADR-0400 proves only a default-versus-explicit descriptor pair for one observed model. After the mandate ceiling was reviewed from 1,000,000 to 2,000,000, the old proof therefore returned `usage_unobserved` and blocked work even though all 1,007,255 tokens were observed.
+After a reviewed model-policy migration, an installed AXLI supervision workstream recorded 942,313 provider-reported Astra tokens and 64,942 provider-reported Sol tokens. Both observations share the Codex adapter version, primary-provider scope, cumulative-turn counter, normalization, native-counter semantics, and service tier; their exact accounting descriptors differ only in the explicitly requested model.
+
+ADR-0400 proves only a default-versus-explicit descriptor pair for one observed model. After review raised the mandate ceiling from 1,000,000 to 2,000,000, that proof returned `usage_unobserved` and blocked work despite all 1,007,255 tokens being observed.
 
 ## Decision
 
-Keep exact resource groups and descriptor-bound governed limits unchanged. For the separate supervision mandate's aggregate-token admission, derive a total from two or more complete, provider-reported, primary-provider groups when all descriptor bytes validate against their hashes and differ only in explicitly requested model. Every final observation must cover one distinct causal run, report a nonnegative safe-integer total, and prove one actual answer model equal to its explicit request with supported provider evidence. Group totals must equal their constituent observations, all causal runs must be covered exactly once, and the combined sum must remain a safe integer.
+Keep exact resource groups and descriptor-bound governed limits unchanged. For the separate supervision mandate's aggregate-token admission, derive a total from two or more complete, provider-reported, primary-provider groups only when:
 
-The existing ADR-0400 default-versus-explicit path remains limited to exactly two groups and one identical observed model. A mixed default and multi-model population is not inferred comparable. Different providers, scopes, adapter versions, accounting modes, normalization, native-counter semantics, service tiers, unavailable or partial observations, aliases, missing runs, and duplicate observations remain unavailable.
+- All descriptor bytes validate against their hashes and differ only in explicitly requested model.
+- Every final observation covers one distinct causal run, reports a nonnegative safe-integer total, and proves one actual answer model equal to its explicit request using supported provider evidence.
+- Group totals equal their constituent observations, every causal run is covered exactly once, and the combined sum remains a safe integer.
+
+The ADR-0400 default-versus-explicit path remains limited to exactly two groups and one identical observed model. Do not infer comparability for a mixed default and multi-model population. Different providers, scopes, adapter versions, accounting modes, normalization, native-counter semantics, service tiers, unavailable or partial observations, aliases, missing runs, and duplicate observations remain unavailable.
 
 ## Consequences and verification
 
-This is a derived admission calculation, not a new event, persisted state, normalization of provider costs, or claim that different models have the same price or tokenizer. All historical usage and unsettled reservations remain charged; mandate succession does not reset them. Failure remains `usage_unobserved`. No request body, credential, or prompt enters the proof.
+This is a derived admission calculation, not a new event, persisted state, normalization of provider costs, or claim that models share a price or tokenizer. All historical usage and unsettled reservations remain charged; mandate succession does not reset them. Failure remains `usage_unobserved`. No request body, credential, or prompt enters the proof.
 
-Pure tests cover two- and three-model migration, exact totals, unchanged input groups, and existing negative evidence cases. The installed AXLI observation must show the historical and new groups charged together under the reviewed 2,000,000-token ceiling before supervision can report ready.
+Pure tests cover two- and three-model migration, exact totals, unchanged input groups, and existing negative evidence cases. Before supervision can report ready, the installed AXLI observation must show historical and new groups charged together under the reviewed 2,000,000-token ceiling.
 
 ## References
 

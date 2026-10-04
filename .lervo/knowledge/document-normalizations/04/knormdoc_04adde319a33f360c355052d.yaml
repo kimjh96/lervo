@@ -1,0 +1,70 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_68dc43be549d849ef877c9c5
+compiler:
+  compilerBuildId: sha256:a2216f7588fc16d305062a2962940204a12e8ef517c44d07d779270139a672bd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e220fc600767fdea8c33dc14
+outputLanguage: en
+outputs:
+  - byteCount: 2049
+    contentHash: sha256:65c2255cd59f4b9e9cc55421148ca3155133e83eb2d3008c8ab6a511351803be
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-bound-canary.md
+    userRegionHash: sha256:65c2255cd59f4b9e9cc55421148ca3155133e83eb2d3008c8ab6a511351803be
+  - byteCount: 5561
+    contentHash: sha256:a10cea52cab89ebd6d117e832b054b67d5beb4ee705417b41593f90f3bf9b0a9
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-bound-canary/bound-workstream.md
+    userRegionHash: sha256:a10cea52cab89ebd6d117e832b054b67d5beb4ee705417b41593f90f3bf9b0a9
+  - byteCount: 7621
+    contentHash: sha256:73395f6ace657371a09c7212962ecd69a1476af794cbc0385c7c738035b7cffb
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-bound-canary/delivery-recovery.md
+    userRegionHash: sha256:73395f6ace657371a09c7212962ecd69a1476af794cbc0385c7c738035b7cffb
+  - byteCount: 7320
+    contentHash: sha256:a201ad601ca597da1efa28fcf8065b7e39105b39789d6446c2c1732c4fe46cb0
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-bound-canary/human-acceptance.md
+    userRegionHash: sha256:a201ad601ca597da1efa28fcf8065b7e39105b39789d6446c2c1732c4fe46cb0
+  - byteCount: 2500
+    contentHash: sha256:17188879bbbad207ed684a27ec51c04eab7661dce551cc00619a7f90d83a3272
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-bound-canary/kael-admission.md
+    userRegionHash: sha256:17188879bbbad207ed684a27ec51c04eab7661dce551cc00619a7f90d83a3272
+  - byteCount: 3575
+    contentHash: sha256:6ec16beea9bc85e2a9ad61112545ab51593d273148f89aa123d8d794e48d02f6
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-bound-canary/product-owner-rollout.md
+    userRegionHash: sha256:6ec16beea9bc85e2a9ad61112545ab51593d273148f89aa123d8d794e48d02f6
+  - byteCount: 3183
+    contentHash: sha256:fd8382c302454791f0f33a49e3d6ae6c82c5d480ac824783591ec89fe066a207
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-bound-canary/repository-context.md
+    userRegionHash: sha256:fd8382c302454791f0f33a49e3d6ae6c82c5d480ac824783591ec89fe066a207
+  - byteCount: 3473
+    contentHash: sha256:ce4fd1436213d79b172d904065e884893d2b644052d64728a29e40b3afce46fa
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-bound-canary/vero-deadlines.md
+    userRegionHash: sha256:ce4fd1436213d79b172d904065e884893d2b644052d64728a29e40b3afce46fa
+  - byteCount: 5141
+    contentHash: sha256:fd91f924d82a291cac61db7703c3b3c868b2826f765fa75426439c910b0ce1be
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-bound-canary/vero-environment.md
+    userRegionHash: sha256:fd91f924d82a291cac61db7703c3b3c868b2826f765fa75426439c910b0ce1be
+profile: roadmap_document
+recordId: knormdoc_04adde319a33f360c355052d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1f17b82f5845164e7f7c9c006dce8b102cc6cd9b3acf8fb011dcffe7d83670cb
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-bound-canary.md
+sourceUnitVersionIds:
+  - uv_01cacafb66044d59701ea14f
+  - uv_126fd958ca1bac8346b6ef05
+  - uv_2076062182a0cba410ff09c3
+  - uv_23516fee4ae45cecc7a99f24
+  - uv_5e23b514a6231b64045b0234
+  - uv_7b529acb180d32229f530e2a
+  - uv_84107af0705c12ade5662a53
+  - uv_84411e025f37b10407966f76
+  - uv_87efaec0a27f18be6c06daa4
+  - uv_8c972f080bd8661d26f87445
+  - uv_afcc4276b722ccb1b648c816
+  - uv_c44c68cfdde694bda25ce870
+  - uv_d4cdb20d0c0ef74bd2c5939e

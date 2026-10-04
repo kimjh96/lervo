@@ -55,6 +55,7 @@ describe("canonical repository readiness probes", () => {
         await runtime.close();
       }
     },
+    30_000,
   );
   it("reobserves the actual workspace after the first successful preflight", async () => {
     const f = await dispatchFixture(roots);

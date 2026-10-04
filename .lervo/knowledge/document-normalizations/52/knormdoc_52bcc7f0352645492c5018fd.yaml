@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_40031d2d446ac262a6320908
+outputLanguage: en
+outputs:
+  - byteCount: 2937
+    contentHash: sha256:933a18db8d204ab89f6a380c5b2d6ba0686d85a5499e6e7056655c1dceb1c939
+    path: docs/decisions/execution/verification/0359-renew-assignment-leases-during-long-verification.md
+    userRegionHash: sha256:933a18db8d204ab89f6a380c5b2d6ba0686d85a5499e6e7056655c1dceb1c939
+profile: decision_record
+recordId: knormdoc_52bcc7f0352645492c5018fd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:dcfc3f8f3975b6058f90fd1ad05a5b7a446ce995603c8ad252dd08d666728432
+sourcePath: docs/decisions/execution/verification/0359-renew-assignment-leases-during-long-verification.md
+sourceUnitVersionIds:
+  - uv_0f21ff383b72fa548fbd62a8
+  - uv_179962600a334f2a7b10083d
+  - uv_221e96e5ce24b7665c5bde38
+  - uv_455059f88932c293d386bd4d
+  - uv_bba10488d37cec84bc8a291d
+  - uv_d8094118cdc81c84e317f6ea

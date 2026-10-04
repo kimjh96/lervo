@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_dce5af66b1e32b1a80ba068d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Distinguish stale supervision admission from changed mandate, task, and plan sources."

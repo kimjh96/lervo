@@ -194,6 +194,9 @@ importers:
       '@lervo/repository-knowledge-compiler':
         specifier: workspace:*
         version: link:../../packages/repository-knowledge-compiler
+      '@lervo/repository-knowledge-runtime':
+        specifier: workspace:*
+        version: link:../../packages/repository-knowledge-runtime
       '@lervo/repository-registry':
         specifier: workspace:*
         version: link:../../packages/repository-registry
@@ -530,6 +533,9 @@ importers:
       '@lervo/repository-knowledge-compiler':
         specifier: workspace:*
         version: link:../../packages/repository-knowledge-compiler
+      '@lervo/repository-knowledge-runtime':
+        specifier: workspace:*
+        version: link:../../packages/repository-knowledge-runtime
       '@lervo/roles':
         specifier: workspace:*
         version: link:../../packages/roles
@@ -727,6 +733,9 @@ importers:
       '@lervo/roles':
         specifier: workspace:*
         version: link:../roles
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
@@ -1661,6 +1670,9 @@ importers:
       '@lervo/context':
         specifier: workspace:*
         version: link:../context
+      '@lervo/project':
+        specifier: workspace:*
+        version: link:../project
       '@lervo/project-storage':
         specifier: workspace:*
         version: link:../project-storage
@@ -1706,6 +1718,9 @@ importers:
       '@lervo/project':
         specifier: workspace:*
         version: link:../project
+      '@lervo/project-storage':
+        specifier: workspace:*
+        version: link:../project-storage
       '@lervo/roles':
         specifier: workspace:*
         version: link:../roles
@@ -1736,9 +1751,63 @@ importers:
 
   packages/repository-knowledge-compiler:
     dependencies:
+      '@lervo/repository-context':
+        specifier: workspace:*
+        version: link:../repository-context
       '@lervo/repository-knowledge':
         specifier: workspace:*
         version: link:../repository-knowledge
+
+  packages/repository-knowledge-runtime:
+    dependencies:
+      '@lervo/agent-workforce':
+        specifier: workspace:*
+        version: link:../agent-workforce
+      '@lervo/context':
+        specifier: workspace:*
+        version: link:../context
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/orchestrator':
+        specifier: workspace:*
+        version: link:../orchestrator
+      '@lervo/project':
+        specifier: workspace:*
+        version: link:../project
+      '@lervo/project-storage':
+        specifier: workspace:*
+        version: link:../project-storage
+      '@lervo/repository-context':
+        specifier: workspace:*
+        version: link:../repository-context
+      '@lervo/repository-knowledge':
+        specifier: workspace:*
+        version: link:../repository-knowledge
+      '@lervo/repository-knowledge-compiler':
+        specifier: workspace:*
+        version: link:../repository-knowledge-compiler
+      '@lervo/roles':
+        specifier: workspace:*
+        version: link:../roles
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+      '@lervo/sync-contract':
+        specifier: workspace:*
+        version: link:../sync-contract
+      '@lervo/verification':
+        specifier: workspace:*
+        version: link:../verification
+      '@lervo/work-controller':
+        specifier: workspace:*
+        version: link:../work-controller
+      '@lervo/workspace-host-git':
+        specifier: workspace:*
+        version: link:../workspace-host-git
 
   packages/repository-registry:
     dependencies:

@@ -19,7 +19,7 @@ interface CharacterRange {
 }
 
 export class ManagedContextReferenceError extends Error {
-  readonly code: "commonmark_parse_failed" | "reference_not_standalone";
+  readonly code: "commonmark_parse_failed" | "json_parse_failed" | "reference_not_standalone";
 
   constructor(code: ManagedContextReferenceError["code"], message: string) {
     super(message);

@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9fefa6a90d98e292e3b4b721
+outputLanguage: en
+outputs:
+  - byteCount: 785
+    contentHash: sha256:fc45c6a097d71699560d663f0a056ba8a46f679556d5f4a063064e654cc715e1
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/dispatch-and-completion.md
+    userRegionHash: sha256:fc45c6a097d71699560d663f0a056ba8a46f679556d5f4a063064e654cc715e1
+  - byteCount: 2314
+    contentHash: sha256:16f09df6138f129e37bfe80050dd666335f6b6eb0a73e37964a0574d61702992
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/dispatch-and-completion/managed-dispatch.md
+    userRegionHash: sha256:16f09df6138f129e37bfe80050dd666335f6b6eb0a73e37964a0574d61702992
+  - byteCount: 1591
+    contentHash: sha256:bb63453ccfe49deeca7848fd9dcdbcdcdae4f3215e0235cf55fd3c5c33622ff0
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/dispatch-and-completion/native-execution.md
+    userRegionHash: sha256:bb63453ccfe49deeca7848fd9dcdbcdcdae4f3215e0235cf55fd3c5c33622ff0
+  - byteCount: 2958
+    contentHash: sha256:6c7379c1c5652745c13f7c054fc4104e644d25173bfd567832d62620f5bbf2c9
+    path: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/dispatch-and-completion/startup.md
+    userRegionHash: sha256:6c7379c1c5652745c13f7c054fc4104e644d25173bfd567832d62620f5bbf2c9
+profile: roadmap_document
+recordId: knormdoc_089dd2b474e84d07cc1d15fc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:eaf1f1d1665b1c226487043807b3c52826b41ccd6be7a8aac2953dd2cd6293de
+sourcePath: docs/roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/status/dispatch-and-completion.md
+sourceUnitVersionIds:
+  - uv_541599b5ac0f0e7782877cf7
+  - uv_a5155ded0ba4c2a59199db8e
+  - uv_e4d98c1b5b276ad19ac91aeb
+  - uv_f386b453b9312e4f15ce64fb

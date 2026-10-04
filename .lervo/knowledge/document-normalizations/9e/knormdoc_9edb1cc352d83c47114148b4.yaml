@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ee16157990aafab32666ff18
+outputLanguage: en
+outputs:
+  - byteCount: 1172
+    contentHash: sha256:cd89cc1a93e6f0007d58c05943d76917d66443c79a80ab2deab2223666e6d4ac
+    path: docs/specifications/execution/product-surfaces/architecture-and-ownership/module-boundaries.md
+    userRegionHash: sha256:cd89cc1a93e6f0007d58c05943d76917d66443c79a80ab2deab2223666e6d4ac
+profile: specification_document
+recordId: knormdoc_9edb1cc352d83c47114148b4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:cd89cc1a93e6f0007d58c05943d76917d66443c79a80ab2deab2223666e6d4ac
+sourcePath: docs/specifications/execution/product-surfaces/architecture-and-ownership/module-boundaries.md
+sourceUnitVersionIds:
+  - uv_783297f3ca6c7aa6a8708250

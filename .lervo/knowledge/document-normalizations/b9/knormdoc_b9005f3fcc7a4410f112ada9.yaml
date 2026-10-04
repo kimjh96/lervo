@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_821600443b8dfbf534479b1b
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_db5722de7223bcfd61a23fcd
+outputLanguage: en
+outputs:
+  - byteCount: 1583
+    contentHash: sha256:636f83e2c5b9b1f9ad424490e8175d52a5e5197d0d927a36a4538ade8cd5b7fc
+    path: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/execution-evidence.md
+    userRegionHash: sha256:636f83e2c5b9b1f9ad424490e8175d52a5e5197d0d927a36a4538ade8cd5b7fc
+profile: roadmap_document
+recordId: knormdoc_b9005f3fcc7a4410f112ada9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5bf39c44be9aa03adb2e9a4025873efcf0c0e7305ba9a50e3e7d30c23745c7d0
+sourcePath: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/execution-evidence.md
+sourceUnitVersionIds:
+  - uv_b70f478c664a93877feb193c

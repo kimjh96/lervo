@@ -7,7 +7,7 @@
 
 ## Context
 
-The first natural-language Discord deployment delivered messages but did not behave like a persistent colleague. A bot guild-nickname change request entered the repository continuation queue and exposed delivery, workstream, provider, and role identifiers in an English receipt. Seven observed turns took 28 to 102 seconds. A 30-second inbox lease expired during provider work, allowing concurrent retry of the same response. The retry's new participation decision ID missed the response artifact cache, duplicated provider work, and interrupted typing.
+The first natural-language Discord deployment delivered messages but did not behave like a persistent colleague. A bot guild-nickname change request entered the repository continuation queue and exposed delivery, workstream, provider, and role identifiers in an English receipt. Seven observed turns took 28–102 seconds. A 30-second inbox lease expired during provider work, allowing concurrent retry of the same response. The retry's new participation decision ID missed the response artifact cache, duplicated provider work, and interrupted typing.
 
 Conversation transport, repository execution, and platform administration are distinct effects. Routing every mutation through repository continuation cannot provide a correct conversational surface or bounded external authority.
 
@@ -15,35 +15,35 @@ Conversation transport, repository execution, and platform administration are di
 
 ### Conversational publication
 
-Primary Discord prose describes human-visible state and results. Queue acknowledgements and execution-result messages exclude delivery, run, workstream, assignment, agent, and content-hash coordinates; durable internal records retain them for inspection. Repository continuation acknowledgements confirm receipt and promise a later verified result without claiming that queueing changed the repository.
+Primary Discord prose describes human-visible state and results. Queue acknowledgements and execution-result messages exclude delivery, run, workstream, assignment, agent, and content-hash coordinates; durable internal records retain them for inspection. Repository continuation acknowledgements confirm receipt and promise a later verified result without claiming queueing changed the repository.
 
-A queued execution origin retains only the coarse response language `en` or `ko` for fixed failure and completion framing in the request language. It contains no message body.
+A queued execution origin retains only coarse response language `en` or `ko` for fixed failure and completion framing in the request language. It contains no message body.
 
 ### Effect routing and authority
 
 Intent resolution returns `answer`, `continue_work`, or `clarify` and binds one structured effect:
 
-| Effect                                | Required fields | Authority and meaning                                                    |
-| ------------------------------------- | --------------- | ------------------------------------------------------------------------ |
-| `none`                                | kind            | No mutation may occur                                                    |
-| `repository_work`                     | kind            | Use the signed exact-workstream Hub continuation path                    |
-| `discord_current_member_nickname_set` | kind, nickname  | Change only this authenticated bot member's nickname in the mapped guild |
-| `discord_guild_text_channel_create`   | kind, name      | Create one bounded text channel in the mapped guild                      |
-| `discord_public_thread_create`        | kind, name      | Create one bounded public thread under the mapped current channel        |
+| Effect | Required fields | Authority and meaning |
+| --- | --- | --- |
+| `none` | kind | No mutation may occur. |
+| `repository_work` | kind | Use the signed exact-workstream Hub continuation path. |
+| `discord_current_member_nickname_set` | kind, nickname | Change only this authenticated bot member's nickname in the mapped guild. |
+| `discord_guild_text_channel_create` | kind, name | Create one bounded text channel in the mapped guild. |
+| `discord_public_thread_create` | kind, name | Create one bounded public thread under the mapped current channel. |
 
-The resolver receives available effect kinds. An unavailable effect becomes clarification and never falls through to repository work. The immutable intent record binds effect JSON alongside event, message hash, provider, model, confidence, digest, and time. The nickname is a bounded 1 to 32 character platform argument and may repeat that small source value; the full message remains only in CAS.
+The resolver receives available effect kinds. An unavailable effect becomes clarification and never falls through to repository work. The immutable intent record binds effect JSON alongside event, message hash, provider, model, confidence, digest, and time. The nickname is a bounded 1–32 character platform argument and may repeat that small source value; the full message remains only in CAS.
 
-`discordConversation.administration.allowedActions` grants explicit platform authority. Natural conversation exposes nickname, guild text-channel creation, and current-channel public-thread creation only when their exact actions are allowlisted. The Discord adapter accepts only configured guild and channel IDs, validates bounded names, verifies returned scope and object identity, and never accepts an arbitrary user ID or thread parent. A mapped human or an explicitly `mayRequestEffects` agent may request the action; agent authority remains bound to its participant, role, and conversation. API rejection or response mismatch is a response failure and cannot be reported as success.
+`discordConversation.administration.allowedActions` grants explicit platform authority. Natural conversation exposes nickname changes, guild text-channel creation, and current-channel public-thread creation only when their exact actions are allowlisted. The Discord adapter accepts only configured guild and channel IDs, validates bounded names, verifies returned scope and object identity, and never accepts an arbitrary user ID or thread parent. A mapped human or explicitly `mayRequestEffects` agent may request an action; agent authority remains bound to its participant, role, and conversation. API rejection or response mismatch is a response failure and cannot be reported as success.
 
 Discord application creation, bot-token issuance, and guild installation are owner or OAuth provisioning transitions, not Discord Bot API capabilities. A CEO agent may manage bounded channel and thread creation and a pre-provisioned webhook pool only through separately allowlisted actions and receipts.
 
 ### Interaction ownership and retry
 
-The durable inbox lease renews during active response work. The installed managed-provider deployment also uses the bounded five-minute lease maximum so ordinary provider latency cannot let a second worker reclaim the turn before the first renewal. After a process crash, reclaim remains possible after the final lease expiry.
+The durable inbox lease renews during active response work. The installed managed-provider deployment also uses the bounded five-minute lease maximum so ordinary provider latency cannot let a second worker reclaim the turn before the first renewal. After a process crash, reclaim remains possible after the final lease expires.
 
 The response request digest binds stable event, policy, semantic participation outcome, role, message hash, response limit, and prior turns. It excludes the per-attempt decision ID. One process-local single-flight registry shares generation and publication for concurrent identical requests; the durable artifact mapping preserves restart reuse.
 
-Typing belongs to the conversation response lifecycle. One activity lease begins when the selected response starts, persists across a scheduled retry, and stops on completion, terminal failure, abort, or a five-minute safety limit. Typing is best-effort, not durable evidence.
+Typing belongs to the conversation response lifecycle. One activity lease starts with the selected response, persists across a scheduled retry, and stops on completion, terminal failure, abort, or a five-minute safety limit. Typing is best-effort, not durable evidence.
 
 The remote-command policy loop is an independent control plane. A typed policy verification failure produces `policy_rejected` with the bounded `failureCode`, skips command leasing, reports remote control as degraded, and retries after the configured delay. Conversation ingress and synchronization continue. Unknown programming failures still terminate the Node. The state excludes policy bytes, target coordinates, signatures, and unrestricted error text. `policy_rejected` means repository commands are fail-closed while unrelated conversation service remains available.
 
@@ -51,7 +51,9 @@ The remote-command policy loop is an independent control plane. A typed policy v
 
 Managed read responses retain the provider-neutral run coordinator, selected and injected repository context, CAS artifacts, run events, provider session binding, deterministic writing checks, and provider token and cache telemetry. Without `routing.evaluation`, `writing_mul-realtime-conversation` removes the second synchronous model call and makes no semantic-review claim. With `routing.evaluation`, `writing_mul-conversation` retains the independent fail-closed semantic pass for managed read and clarification replies only.
 
-The read-response evaluator is not an organization-wide review default. Repository-work, goal, and conversational completed-effect replies use their responder-owned realtime contract, while fixed continuation, control, and fixed-status platform-action replies use the fixed-status contract. `routing.resultEvaluation` separately selects the evaluator for publishing a completed execution result and its privacy checks, with backward-compatible fallback to `routing.evaluation` and then the command provider. Consequential execution, design decisions, external publication, and explicit challenge use this result boundary or their workflow-specific verification, deliberation, or review boundaries instead of adding a synchronous model call to every conversation reply. Publication verification must select the same mode- and effect-result-owned contract that created the candidate and its permit.
+The read-response evaluator is not an organization-wide review default. Repository-work, goal, and conversational completed-effect replies use their responder-owned realtime contract. Fixed continuation, control, and fixed-status platform-action replies use the fixed-status contract.
+
+`routing.resultEvaluation` separately selects the evaluator for completed execution-result publication and its privacy checks, with backward-compatible fallback to `routing.evaluation` and then the command provider. Consequential execution, design decisions, external publication, and explicit challenge use this result boundary or workflow-specific verification, deliberation, or review boundaries instead of adding a synchronous model call to every conversation reply. Publication verification must select the same mode- and effect-result-owned contract that created the candidate and its permit.
 
 Repository mutation retains the configured command provider and managed remote host. Changed continuations must advance the exact workstream and leave knowledge migration, normalization, and lint current. Discord platform actions invoke neither repository hooks nor workstream finalization because they do not mutate repository state.
 

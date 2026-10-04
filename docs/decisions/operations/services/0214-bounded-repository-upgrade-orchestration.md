@@ -5,7 +5,7 @@ Date: 2026-08-25
 
 ## Context
 
-Installed Lervo releases could initialize or migrate individual subsystems, but agents had to discover and compose capability migration, repeated knowledge stages, lint, terminal-runtime reconciliation, and repository Node replacement. This made upgrades slow and error-prone. Semantic versions cannot identify rebuilt runtimes: two payloads may share a pre-1.0 version but contain different verified bytes.
+Installed releases could initialize or migrate individual subsystems, but agents had to discover and compose capability migration, repeated knowledge stages, lint, terminal-runtime reconciliation, and repository Node replacement, making upgrades slow and error-prone. Semantic versions cannot identify rebuilt runtimes: two payloads may share a pre-1.0 version while containing different verified bytes.
 
 ## Decision
 
@@ -18,16 +18,16 @@ Installed Lervo releases could initialize or migrate individual subsystems, but 
 - Exact capability and knowledge observations.
 - Any registered repository Node plan.
 
-`--apply --approval <plan-id>` first recreates that exact plan. It may then refresh content-bound stale built-in workforce role bindings and execute at most sixteen newly revalidated, generated-only knowledge stages under the approved orchestration policy, followed by knowledge lint. A displayed repository-role operation may additionally be authorized with repeated `--approve-role-binding <operation-id>=<approval-hash>` values; the outer plan binds those exact approval coordinates. Every inner stage retains its exact current plan and durable apply contract.
+`--apply --approval <plan-id>` first recreates that exact plan. It may then refresh content-bound stale built-in workforce role bindings and execute at most sixteen newly revalidated, generated-only knowledge stages under the approved orchestration policy, followed by knowledge lint. Repeated `--approve-role-binding <operation-id>=<approval-hash>` values may additionally authorize a displayed repository-role operation; the outer plan binds those exact approval coordinates. Every inner stage retains its exact current plan and durable apply contract.
 
 The command automatically:
 
 - Copies byte-preserved loose skills into immutable project capability packages.
-- Refreshes stale generated agent and assignment bindings for shipped built-in roles, plus only the repository-role groups carrying exact approvals from the current outer plan, with one canonical event per atomic record transition.
+- Refreshes stale generated agent and assignment bindings for shipped built-in roles and only repository-role groups carrying exact approvals from the current outer plan, with one canonical event per atomic record transition.
 - Refreshes Lervo-generated knowledge and hook runtime bytes.
 - Transactionally reconciles a registered repository Node.
 
-It never automatically rewrites user-owned documents, rebinds a repository-defined role without its displayed exact approval, changes provider-owned configuration, grants Codex hook trust, chooses a normalization provider, transitions a legacy singleton, issues credentials, or publishes to a Hub. Those stages remain `pending_authority` or blocked with their existing exact approval surface.
+It never automatically rewrites user-owned documents, rebinds a repository-defined role without its displayed exact approval, changes provider-owned configuration, grants Codex hook trust, chooses a normalization provider, transitions a legacy singleton, issues credentials, or publishes to a Hub. These stages remain `pending_authority` or blocked with their existing exact approval surface.
 
 ### Repository Node
 
@@ -37,7 +37,7 @@ For a registered Node, the planner reads only the owner-only canonical service d
 
 ### CLI acquisition
 
-The running CLI coordinates repository migration. Acquiring or globally installing it remains outside the repository plan: the installation environment owns the package manager, release channel, and host write authority. A natural-language agent upgrade therefore updates the CLI from the user's configured installation source, runs the read-only plan, applies the exact plan, and repeats only after a separately authorized boundary is resolved.
+The running CLI coordinates repository migration. Acquisition or global installation remains outside the repository plan: the installation environment owns the package manager, release channel, and host write authority. A natural-language agent upgrade updates the CLI from the user's configured installation source, runs the read-only plan, applies the exact plan, and repeats only after a separately authorized boundary is resolved.
 
 ## Privacy and evidence
 

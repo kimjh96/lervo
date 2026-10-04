@@ -9,6 +9,7 @@ import type { ConversationAgentBinding, ConversationInboundEvent } from "@lervo/
 import { afterEach, describe, expect, it } from "vitest";
 
 import { ConversationDiscussionRuntime } from "../src/conversation-discussion-runtime.js";
+import { eligibleDiscussionConversationIds } from "../src/conversation-discussion-availability.js";
 import type { DiscordPeerAgentBinding } from "../src/discord-conversation-composition.js";
 import { removeTemporaryRoots, temporaryRoot } from "./fixture.js";
 
@@ -107,6 +108,19 @@ async function event(input: {
 afterEach(removeTemporaryRoots);
 
 describe("cross-Node conversation discussion runtime", () => {
+  it("offers discussion only with two independently bound bot peers in the channel", () => {
+    const webhookPeer = {
+      ...secondPeer,
+      participantKeys: ["webhook:723456789012345678"],
+    };
+    expect(eligibleDiscussionConversationIds([conversationId], [firstPeer, webhookPeer])).toEqual(
+      [],
+    );
+    expect(eligibleDiscussionConversationIds([conversationId], [firstPeer, secondPeer])).toEqual([
+      conversationId,
+    ]);
+  });
+
   it("selects real peers, resumes accepted turns, and converges only after both contributions", async () => {
     const root = await temporaryRoot();
     const artifacts = await FileSystemCas.open(resolve(root, "artifacts"));

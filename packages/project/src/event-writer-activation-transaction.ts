@@ -31,7 +31,7 @@ export interface EventWriterActivationReceipt {
   receiptKind: "event_writer_activation_applied" | "event_writer_rollback_applied";
   planId: string;
   projectId: string;
-  selectedEventSchemaVersion: 1 | 2 | 3;
+  selectedEventSchemaVersion: 1 | 2 | 3 | 4;
   coordinateHash: string;
   activationId: string | null;
 }
@@ -74,7 +74,7 @@ export async function applyEventWriterActivationPlan(input: {
   const plannedEvidence = input.plan.activationEvidence;
   if (
     plannedEvidence?.schemaVersion === 2 ||
-    input.plan.desiredCoordinate.selectedEventSchemaVersion === 3
+    input.plan.desiredCoordinate.selectedEventSchemaVersion >= 3
   ) {
     if (input.currentEvidence === undefined) {
       throw new EventWriterActivationError(

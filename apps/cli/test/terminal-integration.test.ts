@@ -42,9 +42,13 @@ import {
 import { createSearchQueryProjection, searchQueryProjectorBuildId } from "@lervo/search";
 import { runVerificationSuite } from "@lervo/verification";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { runCli as runCliBase } from "../src/main.js";
+import { terminalTurnDeclarationRequired } from "../src/terminal-lifecycle-inspection.js";
+import { terminalKnowledgeSnapshotId } from "../src/terminal-compact-context.js";
+import { captureTerminalRepositorySnapshot } from "../src/terminal-repository-snapshot.js";
+import { recordKnowledgeResidentHealth } from "@lervo/repository-knowledge-runtime";
 import type { ProjectProductionSearchQueries } from "../src/provider-query-projector.js";
 
 const testProjector = {
@@ -235,6 +239,16 @@ async function managedWorkerRepository() {
 
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+// These cases pin the opt-in per-prompt retrieval contract; compact defaults are covered separately.
+const previousContextMode = process.env.LERVO_TERMINAL_CONTEXT;
+beforeAll(() => {
+  process.env.LERVO_TERMINAL_CONTEXT = "retrieval";
+});
+afterAll(() => {
+  if (previousContextMode === undefined) delete process.env.LERVO_TERMINAL_CONTEXT;
+  else process.env.LERVO_TERMINAL_CONTEXT = previousContextMode;
 });
 
 describe("terminal integration CLI", () => {
@@ -2087,4 +2101,120 @@ describe("terminal integration CLI", () => {
       }),
     ).toBe(0);
   }, 15_000);
+});
+
+describe("compact terminal prompt context", () => {
+  beforeAll(() => {
+    process.env.LERVO_TERMINAL_CONTEXT = "compact";
+  });
+  afterAll(() => {
+    process.env.LERVO_TERMINAL_CONTEXT = "retrieval";
+  });
+
+  it("injects only the continuation headline without provider query projection", async () => {
+    const root = await initializedRepository();
+    await writeFile(
+      resolve(root, "HANDOFF.md"),
+      "# Active launch handoff\n\n## Current objective\n\nFinish the cobalt launch gate.\n\n## Next actions\n\n- Verify the device build.\n",
+    );
+    const migrationOutput: string[] = [];
+    const quiet = { cwd: root, stdout: () => undefined, stderr: () => undefined };
+    expect(
+      await runCli(["migrate", "knowledge", "--json"], {
+        ...quiet,
+        stdout: (message) => migrationOutput.push(message),
+      }),
+    ).toBe(0);
+    const migration = JSON.parse(migrationOutput.join("")) as {
+      planId: string;
+      operationId: string;
+      approvalHash: string;
+    };
+    expect(
+      await runCli(
+        [
+          "migrate",
+          "knowledge",
+          "--apply",
+          migration.planId,
+          "--approve-item",
+          `${migration.operationId}=${migration.approvalHash}`,
+        ],
+        quiet,
+      ),
+    ).toBe(0);
+    const messages: string[] = [];
+    expect(
+      await runCli(
+        ["terminal", "hook", "--provider", "claude", "--contract", "2"],
+        {
+          ...quiet,
+          stdout: (message) => messages.push(message),
+          stdin: async () =>
+            JSON.stringify({
+              hook_event_name: "UserPromptSubmit",
+              session_id: "compact-session",
+              turn_id: "turn-compact",
+              prompt: "What is the immutable blue envelope atlas cache?",
+            }),
+        },
+        {
+          projectSearchQueries: async () => {
+            throw new Error("Compact prompts must not invoke a provider query projector.");
+          },
+        },
+      ),
+    ).toBe(0);
+    const context = JSON.parse(messages.join("")).hookSpecificOutput.additionalContext as string;
+    expect(context).toContain("Lervo compact terminal context");
+    expect(context).toContain("Verify the device build.");
+    expect(context).not.toContain("## Lervo current workstream");
+    expect(context).not.toContain("immutable blue envelopes");
+    expect(Buffer.byteLength(context)).toBeLessThan(6 * 1024);
+    const activation = JSON.parse(
+      await readFile(
+        resolve(root, ".lervo/state/terminal-integration/claude-user-prompt-submit.json"),
+        "utf8",
+      ),
+    );
+    const recorded = await openProjectStorage(root);
+    try {
+      expect(recorded.events.get(activation.observationEventId)?.payload).toMatchObject({
+        workstreamScope: "prefix",
+      });
+    } finally {
+      await recorded.close();
+    }
+  });
+
+  it("caches the knowledge snapshot identity by exact repository revision", async () => {
+    const root = await initializedRepository();
+    const first = await captureTerminalRepositorySnapshot(root);
+    const identity = await terminalKnowledgeSnapshotId(root, first.revision);
+    expect(identity).toMatch(/^ksnap_[a-f0-9]{24}$/u);
+    expect(
+      JSON.parse(
+        await readFile(
+          resolve(root, ".lervo/state/cache/terminal-knowledge-snapshot.json"),
+          "utf8",
+        ),
+      ),
+    ).toMatchObject({ repositoryRevision: first.revision, sourceSnapshotId: identity });
+    expect(await terminalKnowledgeSnapshotId(root, first.revision)).toBe(identity);
+    await writeFile(resolve(root, "README.md"), "# Terminal fixture\n\nA changed fact.\n");
+    const second = await captureTerminalRepositorySnapshot(root);
+    expect(second.revision).not.toBe(first.revision);
+    expect(await terminalKnowledgeSnapshotId(root, second.revision)).not.toBe(identity);
+  });
+
+  it("requires a turn declaration only while no background knowledge owner is healthy", async () => {
+    const root = await initializedRepository();
+    expect(await terminalTurnDeclarationRequired(root)).toBe(true);
+    await recordKnowledgeResidentHealth({
+      repositoryRoot: root,
+      workerId: "compact-test-worker",
+      state: "idle",
+    });
+    expect(await terminalTurnDeclarationRequired(root)).toBe(false);
+  });
 });

@@ -1,0 +1,45 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8e703839190b2dc37717a673
+outputLanguage: en
+outputs:
+  - byteCount: 456
+    contentHash: sha256:69044096904ded0938e047626fd0bbba6b3b3339e88418ccbbc517a70ce80866
+    path: docs/research/lervo-product-positioning-and-verified-improvement/product-lessons.md
+    userRegionHash: sha256:69044096904ded0938e047626fd0bbba6b3b3339e88418ccbbc517a70ce80866
+  - byteCount: 1703
+    contentHash: sha256:f35c6739eb0e0dbc611afda9e5dc075d3903d8ef7df17f4ec84270877912b0dd
+    path: docs/research/lervo-product-positioning-and-verified-improvement/product-lessons/adaptable-ideas.md
+    userRegionHash: sha256:f35c6739eb0e0dbc611afda9e5dc075d3903d8ef7df17f4ec84270877912b0dd
+  - byteCount: 1011
+    contentHash: sha256:0cfe7e1e22f77b1fa2191ea55f1e01b69c17663d7e5504751dffdc30daf11e68
+    path: docs/research/lervo-product-positioning-and-verified-improvement/product-lessons/hermes-differentiation.md
+    userRegionHash: sha256:0cfe7e1e22f77b1fa2191ea55f1e01b69c17663d7e5504751dffdc30daf11e68
+  - byteCount: 1837
+    contentHash: sha256:30ffc6797adc8d72c904c6b35a66d519baf3adebc662d90da6d570c76536d75e
+    path: docs/research/lervo-product-positioning-and-verified-improvement/product-lessons/product-boundaries.md
+    userRegionHash: sha256:30ffc6797adc8d72c904c6b35a66d519baf3adebc662d90da6d570c76536d75e
+profile: repository_document
+recordId: knormdoc_966e3227f41563b3aa2dcfc0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:cee401853938c5cfb627a3798b5b54a12222579a523c7cf9c2a5427905bf6446
+sourcePath: docs/research/lervo-product-positioning-and-verified-improvement/product-lessons.md
+sourceUnitVersionIds:
+  - uv_0c620e1f20659c9b1475a47c
+  - uv_3eaf9bbcdf20201d81ec1167
+  - uv_4e9e93c9e65f95f7b24ef068
+  - uv_8b5acc89d1e8d8075752b564
+  - uv_97c524cef300e29ae7b79d59
+  - uv_98028d2b7df5147fef7b790a
+  - uv_aac867622e9abee93670fa72
+  - uv_d0a78fc4fba679241affa273

@@ -1,4 +1,9 @@
 import {
+  convergenceAssignmentPayloadFields,
+  validateConvergenceAssignmentPayload,
+} from "./convergence-assignment-payload.js";
+import { knowledgeConvergencePayloadAllowlists } from "./knowledge-convergence-payload.js";
+import {
   validateSchema,
   type AgentContextHandoffRecordedEventPayload,
   type AgentContextPromotedEventPayload,
@@ -28,6 +33,7 @@ export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 export const eventPayloadAllowlists = {
+  ...knowledgeConvergencePayloadAllowlists,
   "managed.execution.reserved": ["executionKey", "requestHash"],
   "role.input.bound": roleInputPayloadFields,
   ...supervisionPayloadAllowlists,
@@ -238,6 +244,7 @@ export const eventPayloadAllowlists = {
     "provesWorkProgress",
   ],
   "assignment.created": [
+    ...convergenceAssignmentPayloadFields,
     "assignmentId",
     "taskType",
     "roleId",
@@ -1229,6 +1236,7 @@ export function sanitizeEventPayload(
     validateTopologyPolicyPayload(type, sanitized);
     validateKnowledgeJobAssignmentPayload(type, sanitized);
     validateAssignmentAccessModePayload(type, sanitized);
+    validateConvergenceAssignmentPayload(type, sanitized);
   } catch {
     throw new RedactionError("invalid_payload", "$", "The event payload coordinates are invalid.");
   }
@@ -1327,6 +1335,10 @@ export function sanitizeEventPayload(
 }
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
+  "assignment.convergence.archived": "convergenceAssignmentArchivedEventPayload",
+  "repository.knowledge.baseline.requested": "repositoryKnowledgeBaselineRequestedEventPayload",
+  "repository.knowledge.stage.recorded": "repositoryKnowledgeStageRecordedEventPayload",
+  "repository.knowledge.convergence.recorded": "repositoryKnowledgeConvergenceRecordedEventPayload",
   "conversation.repository_work.completed": "conversationRepositoryWorkCompletedEventPayload",
   "conversation.repository_knowledge.resolved":
     "conversationRepositoryKnowledgeResolvedEventPayload",

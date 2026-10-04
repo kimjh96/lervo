@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_23298fe1158059e1ed207347
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f3e7d6cb74a635b98da2b1b0
+outputLanguage: en
+outputs:
+  - byteCount: 3680
+    contentHash: sha256:d3ceffde12e4af6268d0da2571913ee26f41eb0c505d1083276919cd34a45340
+    path: docs/decisions/knowledge/repository/canonicalization/0447-close-historical-backlog-by-owner-acceptance.md
+    userRegionHash: sha256:d3ceffde12e4af6268d0da2571913ee26f41eb0c505d1083276919cd34a45340
+profile: decision_record
+recordId: knormdoc_01882b76027044f376946b9a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:62ae8e9234e5568ea1f09ada2091efdb4122d36545ca9a18bf2151aa9b7c6224
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0447-close-historical-backlog-by-owner-acceptance.md
+sourceUnitVersionIds:
+  - uv_028e8121a922413cbc6ba146
+  - uv_065bcd69ae15862744ea14c2
+  - uv_36c1d3a1f1374f98f1eb0072
+  - uv_4299fed8600dee5988bb8a21
+  - uv_c834d374977db0416c9e28fe

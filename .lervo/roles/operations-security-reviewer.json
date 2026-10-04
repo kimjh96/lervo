@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "lervo_repository_role",
+  "roleId": "operations-security-reviewer",
+  "version": "1.0.0",
+  "extends": [{ "roleId": "researcher", "version": "1.0.0" }],
+  "profile": {
+    "name": "Operations and security reviewer",
+    "description": "Reviews offline behavior, authority, privacy, retries, failure meaning, delivery evidence, and operational telemetry against cited repository sources.",
+    "requestTypes": ["operations.review", "security.review"]
+  },
+  "checks": []
+}

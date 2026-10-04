@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_05f53b8682b1d60a6ba7481e
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a78bbdbe1776c299090c3772
+outputLanguage: en
+outputs:
+  - byteCount: 653
+    contentHash: sha256:9f243cc35445b69ba2ff4591c4060272bd1d3e7b851d35449b884d6e8b7de5a8
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/recovery-2026-09-21-22.md
+    userRegionHash: sha256:9f243cc35445b69ba2ff4591c4060272bd1d3e7b851d35449b884d6e8b7de5a8
+  - byteCount: 1013
+    contentHash: sha256:214f01eb2f9c88043778601a068d87ba56b209d7769c6f71509ae30633daea64
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/recovery-2026-09-21-22/hub-compatibility.md
+    userRegionHash: sha256:214f01eb2f9c88043778601a068d87ba56b209d7769c6f71509ae30633daea64
+  - byteCount: 1234
+    contentHash: sha256:248d26736b9f904eb0c9aded3468cbb9a67eb1c2c1d38fe2265910433b0fa755
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/recovery-2026-09-21-22/r45-acknowledgment.md
+    userRegionHash: sha256:248d26736b9f904eb0c9aded3468cbb9a67eb1c2c1d38fe2265910433b0fa755
+  - byteCount: 1869
+    contentHash: sha256:8ec662826c736078d2ce306f688aaf347724f1db18fcaaa6b117fb5a7500cd91
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/recovery-2026-09-21-22/r46-recovery.md
+    userRegionHash: sha256:8ec662826c736078d2ce306f688aaf347724f1db18fcaaa6b117fb5a7500cd91
+  - byteCount: 1582
+    contentHash: sha256:ef29a04eb1d86996a2e97552ff72e6b62b147aabdb659843cc2ea5fb0987a77b
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/recovery-2026-09-21-22/r47-admission.md
+    userRegionHash: sha256:ef29a04eb1d86996a2e97552ff72e6b62b147aabdb659843cc2ea5fb0987a77b
+profile: roadmap_document
+recordId: knormdoc_890f41119c361e0ec8c3a6cb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d9d3e46fdf6bc1a2941c79df096d3302ce1c341c2b95f97ff72a59eac543ea49
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/recovery-2026-09-21-22.md
+sourceUnitVersionIds:
+  - uv_7a7ec3adb90c7c52bd3bf8c0
+  - uv_a02d7a16026a176c4a2df67b
+  - uv_b8d05ccca4ce32e4e656edb6
+  - uv_cba0cdc70fd0811645ab3b6c
+  - uv_e80ef24fb7410b6354649572

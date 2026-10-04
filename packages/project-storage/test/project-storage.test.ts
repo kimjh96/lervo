@@ -251,6 +251,28 @@ describe("project storage bootstrap", () => {
     await expect(lstat(lock)).rejects.toMatchObject({ code: "ENOENT" });
   });
 
+  it("waits for a live peer to finish a multi-second coordination initialization", async () => {
+    const root = await initializedRepository();
+    const home = await resolveRepositoryCoordinationHome(root);
+    const lock = resolve(home.root, ".initializing.lock");
+    await writeFile(
+      lock,
+      `${JSON.stringify({ schemaVersion: 1, processId: process.pid, createdAt: new Date().toISOString() })}\n`,
+      { mode: 0o600 },
+    );
+
+    const release = new Promise<void>((resolveRelease, rejectRelease) => {
+      setTimeout(() => {
+        rm(lock, { force: true }).then(resolveRelease, rejectRelease);
+      }, 2_300);
+    });
+    const reopened = expect(resolveRepositoryCoordinationHome(root)).resolves.toMatchObject({
+      root: home.root,
+      repositoryInstanceId: home.repositoryInstanceId,
+    });
+    await Promise.all([release, reopened]);
+  }, 15_000);
+
   it("fails closed for an invalid initialization lock", async () => {
     const root = await initializedRepository();
     const home = await resolveRepositoryCoordinationHome(root);

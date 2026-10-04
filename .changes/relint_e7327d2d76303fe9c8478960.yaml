@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e7327d2d76303fe9c8478960"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Prevent supervised Node upgrades from interrupting active owner work."

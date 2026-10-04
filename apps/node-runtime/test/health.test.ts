@@ -88,7 +88,7 @@ describe("Node runtime readiness snapshot", () => {
       eventReader: {
         schemaVersion: 1,
         capability: "event_reader",
-        readableEventSchemaVersions: [1, 2, 3],
+        readableEventSchemaVersions: [1, 2, 3, 4],
       },
       sync: { status: "pending" },
       workstreamReplication: { status: "pending" },
@@ -236,6 +236,11 @@ it("reports an unrelated current workstream as dormant without hiding supervisio
     supervision: { status: "dormant", reasonCode: "workstream_inactive" },
   });
   const dormant = await snapshot(publisher.path);
+  await publisher.observeSupervision({ status: "dormant", reasonCode: "local_result_canonical" });
+  expect(readNodeRuntimeHealthSnapshot(await snapshot(publisher.path))).toMatchObject({
+    status: "ready",
+    supervision: { status: "dormant", reasonCode: "local_result_canonical" },
+  });
   expect(() =>
     readNodeRuntimeHealthSnapshot({
       ...dormant,

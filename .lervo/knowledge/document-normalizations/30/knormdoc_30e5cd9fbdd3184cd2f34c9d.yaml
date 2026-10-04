@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f9731409d8f6330efe3e2d9f
+outputLanguage: en
+outputs:
+  - byteCount: 1759
+    contentHash: sha256:7e8a7dc102330caa310bebe98bc78778cf5f28f60fbdc5920bcc5c6244d74d04
+    path: docs/distribution/node-runtime-distribution/discord-configuration/example/peer-agents.md
+    userRegionHash: sha256:7e8a7dc102330caa310bebe98bc78778cf5f28f60fbdc5920bcc5c6244d74d04
+profile: repository_document
+recordId: knormdoc_30e5cd9fbdd3184cd2f34c9d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:88b66ec2d3eedd091700d39c3440f18a6458170438451f13f2e88112b4d0ad41
+sourcePath: docs/distribution/node-runtime-distribution/discord-configuration/example/peer-agents.md
+sourceUnitVersionIds:
+  - uv_c8aafb339e5ee865b5994535

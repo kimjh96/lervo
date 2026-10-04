@@ -1,3 +1,4 @@
+import { repositorySnapshotGitHead } from "./repository-snapshot-git.js";
 import { createHash } from "node:crypto";
 import type { BigIntStats } from "node:fs";
 import { lstat, readdir, readlink } from "node:fs/promises";
@@ -9,6 +10,7 @@ import type { ManagedFileChangeEvidence } from "./types.js";
 export interface RepositorySnapshot {
   revision: string;
   files: Readonly<Record<string, string>>;
+  commits?: Readonly<Record<string, string>>;
 }
 
 export type CaptureRepositorySnapshot = (
@@ -58,7 +60,7 @@ export class RepositorySnapshotError extends Error {
   }
 }
 
-interface CachedSnapshotEntry {
+export interface CachedSnapshotEntry {
   kind: "file" | "symlink";
   identity: string;
   hash: string;
@@ -148,6 +150,7 @@ async function captureRepositorySnapshotWithCache(input: {
   previous: SnapshotCaptureState | undefined;
   readFile: RepositorySnapshotFileReader;
 }): Promise<{ snapshot: RepositorySnapshot; state: SnapshotCaptureState }> {
+  const head = await repositorySnapshotGitHead(input.repositoryRoot);
   const resolvedPolicy = resolveRepositorySnapshotPolicy(input.policy);
   const excludedDirectories = new Set(resolvedPolicy.excludedDirectoryNames);
   const excludedPaths = new Set(resolvedPolicy.excludedPaths);
@@ -249,6 +252,8 @@ async function captureRepositorySnapshotWithCache(input: {
   }
 
   await visit(root);
+  if (head !== (await repositorySnapshotGitHead(input.repositoryRoot)))
+    throw new RepositorySnapshotError("The Git coordinate changed during snapshot capture.");
   const canonicalEntries = Object.keys(files)
     .sort()
     .map((path) => [path, files[path]]);
@@ -256,8 +261,42 @@ async function captureRepositorySnapshotWithCache(input: {
     snapshot: {
       revision: sha256(JSON.stringify(canonicalEntries)),
       files,
+      ...(head === undefined
+        ? {}
+        : { commits: Object.fromEntries(Object.keys(files).map((path) => [path, head])) }),
     },
     state: { cacheKey, entries: nextEntries },
+  };
+}
+
+/** Serializable stat-identity cache, so short-lived processes reuse unchanged file hashes. */
+export interface RepositorySnapshotCacheState {
+  schemaVersion: 1;
+  cacheKey: string;
+  entries: [string, CachedSnapshotEntry][];
+}
+
+export async function captureRepositorySnapshotIncrementally(input: {
+  repositoryRoot: string;
+  previous?: RepositorySnapshotCacheState;
+  policy?: RepositorySnapshotPolicy;
+}): Promise<{ snapshot: RepositorySnapshot; cache: RepositorySnapshotCacheState }> {
+  const result = await captureRepositorySnapshotWithCache({
+    repositoryRoot: input.repositoryRoot,
+    policy: input.policy ?? defaultRepositorySnapshotPolicy,
+    previous:
+      input.previous === undefined
+        ? undefined
+        : { cacheKey: input.previous.cacheKey, entries: new Map(input.previous.entries) },
+    readFile: readRepositoryFile,
+  });
+  return {
+    snapshot: result.snapshot,
+    cache: {
+      schemaVersion: 1,
+      cacheKey: result.state.cacheKey,
+      entries: [...result.state.entries],
+    },
   };
 }
 

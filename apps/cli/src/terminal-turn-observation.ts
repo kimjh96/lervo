@@ -96,6 +96,9 @@ export async function recordPreparedTerminalContext(input: {
     observationId: input.observationId,
     revision: input.context.repositoryRevision,
     files: input.context.repositoryFiles,
+    ...(input.context.repositoryCommits === undefined
+      ? {}
+      : { commits: input.context.repositoryCommits }),
   });
   const payload = {
     observationId: input.observationId,

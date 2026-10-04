@@ -6,13 +6,15 @@ export async function readSupervisionUpgradeCoordinates(configPath) {
   const config = source.config;
   if (config.outcomeSupervision === undefined) return null;
   const supervision = config.outcomeSupervision;
+  // Startup also accepts its parsed standing form, with the root retained under binding.
+  const parsed = supervision?.standing === true && supervision?.binding !== undefined;
   const standing = supervision?.standing !== undefined;
-  const binding = supervision?.standing ?? supervision?.binding;
+  const binding = parsed ? supervision.binding : (supervision?.standing ?? supervision?.binding);
   if (
     supervision === null ||
     typeof supervision !== "object" ||
     Array.isArray(supervision) ||
-    (supervision.standing === undefined) === (supervision.binding === undefined) ||
+    (!parsed && (supervision.standing === undefined) === (supervision.binding === undefined)) ||
     binding === null ||
     typeof binding !== "object" ||
     Array.isArray(binding) ||

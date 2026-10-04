@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_78afaf7d3b54a422d7a7f043"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Accept verified sparse Hub workstream checkpoints during bound supervision without weakening local ancestry checks."

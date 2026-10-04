@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import { FileSystemCas } from "@lervo/cas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
+import { acquireRepositorySourceWrite } from "@lervo/project-storage";
 import {
   managedContextReferenceComment,
   managedContextReferenceToken,
@@ -36,6 +37,49 @@ import { FakeManagedAdapter } from "./provider-run-fake-adapter.js";
 afterEach(cleanupManagedFixtures);
 
 describe("managed provider run lifecycle", () => {
+  it("does not start a provider while knowledge materialization owns repository sources", async () => {
+    const data = await createManagedFixture();
+    const lease = await acquireRepositorySourceWrite(data.root);
+    const adapter = new FakeManagedAdapter("codex");
+    try {
+      await expect(
+        coordinator(adapter, data.root, data.store).run({
+          ...providerRunInput(),
+          repositoryRoot: data.root,
+        }),
+      ).rejects.toMatchObject({ code: "repository_snapshot_failed" });
+      expect(adapter.calls).toEqual([]);
+    } finally {
+      lease.release();
+      data.store.close();
+    }
+  });
+
+  it("holds its repository reader through the provider turn", async () => {
+    const data = await createManagedFixture();
+    let writerExcluded = false;
+    const adapter = new FakeManagedAdapter("codex", {
+      mutate: async () => {
+        await expect(acquireRepositorySourceWrite(data.root)).rejects.toMatchObject({
+          code: "repository_source_busy",
+        });
+        writerExcluded = true;
+      },
+    });
+    try {
+      const result = await coordinator(adapter, data.root, data.store).run({
+        ...providerRunInput(),
+        repositoryRoot: data.root,
+      });
+      expect(result.status).toBe("completed");
+      expect(writerExcluded).toBe(true);
+      const writer = await acquireRepositorySourceWrite(data.root);
+      writer.release();
+    } finally {
+      data.store.close();
+    }
+  });
+
   it("rejects a second launch of one canonical run before starting its provider", async () => {
     const data = await createManagedFixture();
     try {
@@ -422,17 +466,26 @@ describe("managed provider run lifecycle", () => {
     data.store.close();
   });
 
-  it.each(["codex", "claude"] as const)(
-    "records exact managed E4 output citations for %s without retaining the result body",
-    async (provider) => {
+  it.each([
+    ["codex", "markdown"],
+    ["claude", "markdown"],
+    ["codex", "json"],
+    ["claude", "json"],
+  ] as const)(
+    "records exact managed E4 output citations for %s %s without retaining the result body",
+    async (provider, resultFormat) => {
       const data = await createManagedFixture();
       await writeFile(resolve(data.root, "task-evidence.md"), "Direct task evidence.\n");
       const artifactStore = new MemoryArtifactStore();
       const adapter = new FakeManagedAdapter(provider, {
-        resultContent: (envelope) =>
-          `Applied repository guidance.\n\n${managedContextReferenceComment(
+        resultContent: (envelope) => {
+          const rationale = `Applied repository guidance.\n\n${managedContextReferenceComment(
             envelope.documents.find((document) => document.referenceEligible)!,
-          )}`,
+          )}`;
+          return resultFormat === "json"
+            ? JSON.stringify({ rationale, details: { accepted: true } })
+            : rationale;
+        },
       });
       const input = providerRunInput();
       input.context.registry.documents.doc_task_evidence1 = {
@@ -454,6 +507,7 @@ describe("managed provider run lifecycle", () => {
       ).run({
         ...input,
         repositoryRoot: data.root,
+        resultFormat,
       });
       const referenced = result.contextEvidence.filter((item) => item.state === "referenced");
       expect(referenced).toHaveLength(1);
@@ -467,9 +521,17 @@ describe("managed provider run lifecycle", () => {
       expect(events.filter((event) => event.type === "adapter.result.captured")).toHaveLength(1);
       expect(events.filter((event) => event.type === "context.referenced")).toHaveLength(1);
       expect(JSON.stringify(events)).not.toContain("Applied repository guidance");
-      expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8")).toBe(
-        "Applied repository guidance.\n\n",
+      const publication = Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString(
+        "utf8",
       );
+      if (resultFormat === "json") {
+        expect(JSON.parse(publication)).toEqual({
+          rationale: "Applied repository guidance.\n\n",
+          details: { accepted: true },
+        });
+      } else {
+        expect(publication).toBe("Applied repository guidance.\n\n");
+      }
       expect(result.resultArtifact.contentHash).not.toBe(
         events.find((event) => event.type === "adapter.result.captured")?.payload.resultDigest,
       );

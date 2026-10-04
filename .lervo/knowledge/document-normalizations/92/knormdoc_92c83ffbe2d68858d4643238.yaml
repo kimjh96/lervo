@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_621f6c2a321e2759524e5dd8
+outputLanguage: en
+outputs:
+  - byteCount: 626
+    contentHash: sha256:f504279026b10ae4a255ab0c76ab1e30c1b3d6355051aaf91e105280b4769e9e
+    path: docs/research/lervo-agent-platform-evolution/platform-contracts.md
+    userRegionHash: sha256:f504279026b10ae4a255ab0c76ab1e30c1b3d6355051aaf91e105280b4769e9e
+  - byteCount: 968
+    contentHash: sha256:667d9bdfa5e268ee68f55e83966569caae4f4714cb6354ae4a3599a737df69d5
+    path: docs/research/lervo-agent-platform-evolution/platform-contracts/governed-loops.md
+    userRegionHash: sha256:667d9bdfa5e268ee68f55e83966569caae4f4714cb6354ae4a3599a737df69d5
+  - byteCount: 793
+    contentHash: sha256:4f9967d3a18e329e0666ca6f48d11189ac668021ac3e016e806554d330e60e04
+    path: docs/research/lervo-agent-platform-evolution/platform-contracts/graph-foundations.md
+    userRegionHash: sha256:4f9967d3a18e329e0666ca6f48d11189ac668021ac3e016e806554d330e60e04
+  - byteCount: 843
+    contentHash: sha256:a7bc0d06118b900d8eaf803341af6b5b93a89a724d5c6e55c7661fa81020f819
+    path: docs/research/lervo-agent-platform-evolution/platform-contracts/headless-application.md
+    userRegionHash: sha256:a7bc0d06118b900d8eaf803341af6b5b93a89a724d5c6e55c7661fa81020f819
+  - byteCount: 1839
+    contentHash: sha256:5b10d30300b18bc1eec442a9032b5ec5e5b41758087ae6ddbed838e7d19f21cc
+    path: docs/research/lervo-agent-platform-evolution/platform-contracts/product-construction.md
+    userRegionHash: sha256:5b10d30300b18bc1eec442a9032b5ec5e5b41758087ae6ddbed838e7d19f21cc
+profile: repository_document
+recordId: knormdoc_92c83ffbe2d68858d4643238
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:aac1b20d5c5d3fbd989cf6b67e57007d196f6b21795af74d39291c01f7d4896c
+sourcePath: docs/research/lervo-agent-platform-evolution/platform-contracts.md
+sourceUnitVersionIds:
+  - uv_2d78cc25a67daabef84de523
+  - uv_4ee44bac0f057bd461dd7315
+  - uv_7b5281c5799828e2592cf013
+  - uv_bb4bbfd7995ce2bfaabca0a9
+  - uv_cef077d8b188e2979de76142

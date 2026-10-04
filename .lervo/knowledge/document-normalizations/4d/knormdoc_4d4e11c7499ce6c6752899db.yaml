@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_12c6c96f9ec17225e0aafdc9
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b68cf9cc6ba2f353ed1c78d7
+outputLanguage: en
+outputs:
+  - byteCount: 3608
+    contentHash: sha256:01ec7054f834f0c472399bb0ca038fafd02bf62277df732ba5f8e1e319d834aa
+    path: docs/distribution/event-contract-command.md
+    userRegionHash: sha256:01ec7054f834f0c472399bb0ca038fafd02bf62277df732ba5f8e1e319d834aa
+profile: repository_document
+recordId: knormdoc_4d4e11c7499ce6c6752899db
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8736a698330b9b10b1d05a16829fec169426e3b245575377a86634df27e1b776
+sourcePath: docs/distribution/event-contract-command.md
+sourceUnitVersionIds:
+  - uv_1c1306447c3cae0c468e0426
+  - uv_31c60ec4cac21a96cffbc207
+  - uv_f181c43beb9f5b826f19242f
+  - uv_f185d6c8334e095b97fa9e07

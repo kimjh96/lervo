@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_adffda866b3deaad621836b0
+compiler:
+  compilerBuildId: sha256:28fccadc6cd3a05adb5a1f1651934c86c8f9387a545eb9316b4b2b19eba8f059
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_124ea1fa4ae59b94f0709643
+outputLanguage: en
+outputs:
+  - byteCount: 5607
+    contentHash: sha256:18430745af41979960eae74ff2482323592f78eb2dfd7a1f8f95d928cde480db
+    path: docs/roadmap/natural-language-grounding-quality/evaluation-history/assisted-retrieval-iterations.md
+    userRegionHash: sha256:18430745af41979960eae74ff2482323592f78eb2dfd7a1f8f95d928cde480db
+profile: roadmap_document
+recordId: knormdoc_a7aca7c2627fd2bdf6187be9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:86dc15a4353f3b69d6ee6d9ab428f6b89edbf3430b6c7e1c492a19dcfeaa6a71
+sourcePath: docs/roadmap/natural-language-grounding-quality/evaluation-history/assisted-retrieval-iterations.md
+sourceUnitVersionIds:
+  - uv_4b994109eed996fc2717d58c

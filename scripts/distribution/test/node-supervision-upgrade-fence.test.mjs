@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -9,7 +9,7 @@ import { withNodeSupervisionUpgradeFence } from "../lib/node-supervision-upgrade
 const roots = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true }))));
 
-async function config(standing = false) {
+async function config(standing = false, parsed = false) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-node-upgrade-fence-"));
   roots.push(root);
   const path = resolve(root, "node.json");
@@ -18,7 +18,8 @@ async function config(standing = false) {
     JSON.stringify({
       repositoryRoot: "repository",
       outcomeSupervision: {
-        [standing ? "standing" : "binding"]: {
+        ...(parsed ? { standing: true } : {}),
+        [standing && !parsed ? "standing" : "binding"]: {
           supervisionId: "supervision.test",
           ownerAgentId: `agt_${"a".repeat(24)}`,
           workstreamId: `wks_${"b".repeat(24)}`,
@@ -31,10 +32,14 @@ async function config(standing = false) {
   return { root, path };
 }
 
-it.each([true, false])(
-  "holds the exact supervision owner lease across upgrade (%s)",
-  async (standing) => {
-    const fixture = await config(standing);
+it.each([
+  [true, false],
+  [false, false],
+  [true, true],
+])(
+  "holds the exact supervision owner lease across upgrade (standing: %s, parsed: %s)",
+  async (standing, parsed) => {
+    const fixture = await config(standing, parsed);
     const lease = { token: "lease" };
     const sequence = [];
     const currentId = standing ? "supervision.test.s1" : "supervision.test";
@@ -115,6 +120,23 @@ it("refuses a busy owner without touching the service", async () => {
   ).rejects.toMatchObject({ code: "service_upgrade_supervision_busy" });
   expect(touched).toBe(false);
   expect(closed).toBe(true);
+});
+
+it.each([false, null, {}])("rejects conflicting standing coordinates (%s)", async (standing) => {
+  const fixture = await config(true, true);
+  const source = JSON.parse(await readFile(fixture.path, "utf8"));
+  source.outcomeSupervision.standing = standing;
+  await writeFile(fixture.path, JSON.stringify(source), { mode: 0o600 });
+  let touched = false;
+  await expect(
+    withNodeSupervisionUpgradeFence(
+      { runtime: "node", action: "upgrade", config: fixture.path },
+      async () => {
+        touched = true;
+      },
+    ),
+  ).rejects.toMatchObject({ code: "service_upgrade_fence_invalid" });
+  expect(touched).toBe(false);
 });
 
 it("releases the next-successor fence when the current successor is busy", async () => {

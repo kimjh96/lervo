@@ -20,7 +20,7 @@ Each Discord conversation deployment selects one strategy:
 
 Optional `speaker` state contains `kind`. Webhook state also requires `webhooks[]` entries containing `channelId`, `webhookId`, and owner-only `tokenFile`, plus optional `avatarUrl`. Every configured guild conversation has exactly one entry. IDs and paths are deployment configuration; tokens exist only in referenced files and process memory. Missing coverage, duplicate IDs or paths, direct-message scope, an unhired speaker, unsafe avatar URLs, or conflicting credentials for a shared application cause `invalid_config` before ingress.
 
-Webhook deployments may share the exact Gateway application and owner-only bot-token file. Each current runtime owns its authenticated Gateway connection. Deployments retain distinct integration, worker, participant, hired-agent, provider, storage, response ownership, webhook IDs, and owner-only webhook-token files. Reusing webhook IDs or credential files across agents fails closed. Sharing an application with a different bot-token file also fails closed.
+Webhook deployments may share the exact Gateway application and owner-only bot-token file. Each current runtime owns its authenticated Gateway connection. Deployments retain distinct integration, worker, participant, hired-agent, provider, storage, response ownership, webhook IDs, and owner-only webhook-token files. Reusing webhook IDs or credential files across agents fails closed, as does sharing an application with a different bot-token file.
 
 ### Ingress and peer identity
 
@@ -36,7 +36,15 @@ That participant may separately opt in as an effect requester. Before an agent-a
 
 The Discord executive adapter implements `agent.deployment.prepare` by creating an incoming webhook only in an allowlisted channel and storing its returned token in a configured owner-only credential directory. The receipt contains only the webhook ID and hashes, never credential bytes. Creation uses the existing replay-safe executive boundary. Uncertain API or storage outcomes are not automatically retried.
 
-An installed product-owner deployment allowing both `workforce.agent.hire` and `incoming_webhook.create` automatically composes those separate transitions. After a successful workforce hire, the Node reserves an owner-only preparation record, creates one webhook for the current project conversation, stores its token in a deterministic owner-only file, records verified non-secret deployment coordinates, and atomically converts or extends runtime configuration with a child deployment. An existing exact child deployment is idempotent. A pending record without verified coordinates means the platform result is uncertain and blocks automatic retry.
+An installed product-owner deployment allowing both `workforce.agent.hire` and `incoming_webhook.create` automatically composes those separate transitions. After a successful workforce hire, the Node:
+
+1. Reserves an owner-only preparation record.
+2. Creates one webhook for the current project conversation.
+3. Stores its token in a deterministic owner-only file.
+4. Records verified non-secret deployment coordinates.
+5. Atomically converts or extends runtime configuration with a child deployment.
+
+An existing exact child deployment is idempotent. A pending record without verified coordinates means the platform result is uncertain and blocks automatic retry.
 
 Before replacing runtime configuration, clearing the preparation record, or requesting a restart, the same organization mutation boundary binds the child's active team membership, immutable external deployment, and conversation channel membership as canonical events. Existing deployments undergo the same idempotent binding during reconciliation. A missing or conflicting repository team leaves the prior runtime configuration active and fails hire preparation before the success response can claim an activatable child.
 
@@ -56,9 +64,15 @@ Platform addresses keep `threadKey` separate from `replyToMessageKey`. For Disco
 - Webhook delivery projects the thread key only as Discord's `thread_id` query.
 - Source inbound event correlation independently resolves the available reply-message ID.
 
-A managed response records the surface-neutral `deliveryRelation` as `standalone` or `reply`. Ordinary sequential turns default to `standalone`. A managed turn may select `reply` only when the native relationship materially disambiguates the target or preserves an explicit reply. A human-authored Discord reply to a configured bot or webhook also projects the referenced speaker as an addressed participant, so every observing runtime selects the same interlocutor. Agent-authored replies retain correlation but require an explicit address to continue an ordinary automated exchange; the reply reference alone cannot turn an acknowledgement into another response. The bounded exceptions are authenticated `discussion.contribution` and `task.result` coordination: their versioned nonce and referenced exact bot jointly return the result to the coordinator. Bot delivery projects this selection. Webhook delivery retains canonical evidence without claiming unsupported native reply projection. Legacy outbound records without the additive field are standalone. The value contains no message content or platform identifier. Invalid values fail outbound validation before delivery.
+A managed response records the surface-neutral `deliveryRelation` as `standalone` or `reply`. Ordinary sequential turns default to `standalone`. A managed turn may select `reply` only when the native relationship materially disambiguates the target or preserves an explicit reply.
 
-A mismatched guild, parent, channel type, delivery response, or unconfigured parent fails closed. Native Discord member presence, typing indicators, and `@user` mentionability require a separate installed bot application per agent. Webhook identities are not guild members and cannot emit typing. For webhook identities, an exact leading `@DisplayName` is normalized to the configured participant key before identity and turn-ownership resolution. This is Lervo addressing rather than a native Discord mention. Ambiguous aliases and unbound principals fail configuration or identity mapping instead of falling back to an unrelated responder.
+A human-authored Discord reply to a configured bot or webhook also projects the referenced speaker as an addressed participant, so every observing runtime selects the same interlocutor. Agent-authored replies retain correlation but require an explicit address to continue an ordinary automated exchange; the reply reference alone cannot turn an acknowledgement into another response. The bounded exceptions are authenticated `discussion.contribution` and `task.result` coordination: their versioned nonce and referenced exact bot jointly return the result to the coordinator.
+
+Bot delivery projects the selected delivery relation. Webhook delivery retains canonical evidence without claiming unsupported native reply projection. Legacy outbound records without the additive field are standalone. The value contains no message content or platform identifier. Invalid values fail outbound validation before delivery.
+
+A mismatched guild, parent, channel type, delivery response, or unconfigured parent fails closed. Native Discord member presence, typing indicators, and `@user` mentionability require a separate installed bot application per agent. Webhook identities are not guild members and cannot emit typing.
+
+For webhook identities, an exact leading `@DisplayName` is normalized to the configured participant key before identity and turn-ownership resolution. This is Lervo addressing rather than a native Discord mention. Ambiguous aliases and unbound principals fail configuration or identity mapping instead of falling back to an unrelated responder.
 
 ### Existing contracts
 

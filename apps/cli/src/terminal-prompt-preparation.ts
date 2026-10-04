@@ -1,4 +1,4 @@
-import { captureRepositorySnapshot, type RepositorySnapshot } from "@lervo/orchestrator";
+import type { RepositorySnapshot } from "@lervo/orchestrator";
 import { openProjectStorage } from "@lervo/project-storage";
 import type { SearchQueryProjection } from "@lervo/search";
 import {
@@ -16,6 +16,7 @@ import { inspectInstructionCatalog } from "./instruction-catalog.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import type { CliServices } from "./types.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
+import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 
 type CurrentWorkstream = Awaited<ReturnType<typeof verifiedCurrentWorkstream>>;
 type PreparedKnowledge = Awaited<ReturnType<typeof scanConfiguredRepositoryKnowledge>>;
@@ -121,6 +122,8 @@ export async function prepareTerminalPromptInputs(input: {
         }
       }),
     captureSnapshot: () =>
-      input.timing.measure("repository_snapshot", () => captureRepositorySnapshot(input.root)),
+      input.timing.measure("repository_snapshot", () =>
+        captureTerminalRepositorySnapshot(input.root),
+      ),
   });
 }

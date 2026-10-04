@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c5ceb5cd36e39205725ba21c"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Retain supervised preflight barriers across standing successor goals"

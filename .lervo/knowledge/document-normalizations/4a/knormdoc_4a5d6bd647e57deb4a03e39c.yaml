@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0641940d8ed80944ffae2b54
+outputLanguage: en
+outputs:
+  - byteCount: 6721
+    contentHash: sha256:459621ac63b0c4f736326983d78ee12ec623da1d18d788a647ab59218d75425b
+    path: docs/specifications/execution/product-surfaces/observability.md
+    userRegionHash: sha256:459621ac63b0c4f736326983d78ee12ec623da1d18d788a647ab59218d75425b
+profile: specification_document
+recordId: knormdoc_4a5d6bd647e57deb4a03e39c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:37bc5f2d7c0e70ec5fcc5b080bf1931c618c51c3dd40eb840fa7dceb8153b00c
+sourcePath: docs/specifications/execution/product-surfaces/observability.md
+sourceUnitVersionIds:
+  - uv_25f9b52dcc0038dc6e47808c
+  - uv_45538a051a8d163984e50d14
+  - uv_4f3c47bb2065c06ade4fc9c3
+  - uv_6b9ff0b6eaa9941f1f8f6b05
+  - uv_9c899bd1c2f5f6da153a721b
+  - uv_b758a07c5e04f08ed8de9073
+  - uv_ec62f4fc7583f46a08c79456
+  - uv_ed8b9a1259852e8ca58db35f

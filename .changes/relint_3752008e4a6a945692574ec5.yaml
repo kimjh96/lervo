@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3752008e4a6a945692574ec5"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Correct Discord work recovery and runtime status reporting."

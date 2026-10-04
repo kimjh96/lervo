@@ -10,7 +10,7 @@ Behavioral obligations belong in canonical instruction documents. Product, archi
 
 Terminal preparation records a bounded repository path/hash snapshot in ignored local state. Final declaration compares it with current bytes, classifies changed paths through typed responsibility rules, and automatically records a bounded candidate when implementation or provider-surface evidence lacks a matching changed canonical target. Candidate records contain hashes and typed coordinates, never prompt text or phrase mappings.
 
-The repository snapshot bounds assessment input to 20,000 entries. A large refactor may change more than 256 paths when matching canonical responsibilities change in the same turn: assessment stores no per-path evidence for a current result. A candidate is limited to 256 unmatched source bindings and fails closed before writing if that evidence bound is exceeded.
+The repository snapshot limits assessment input to 20,000 entries. A large refactor may change more than 256 paths when matching canonical responsibilities change in the same turn; assessment stores no per-path evidence for a current result. A candidate is limited to 256 unmatched source bindings and fails closed before writing if that bound is exceeded.
 
 ## Review states and promotion
 

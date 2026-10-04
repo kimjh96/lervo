@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_87f527a255ff7ae61091f828
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f1cdac2b699f2b4780cbd613
+outputLanguage: en
+outputs:
+  - byteCount: 3359
+    contentHash: sha256:c6d186cf1521aa9bff36134d75f8f5389dc1159ba906d5f8789b132a7c155a72
+    path: docs/foundation/pull-request-contract.md
+    userRegionHash: sha256:c6d186cf1521aa9bff36134d75f8f5389dc1159ba906d5f8789b132a7c155a72
+profile: repository_document
+recordId: knormdoc_ae3cf547505c41fd662899bc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9e6fabf48809d51ca4c12ba1c15487aa5c21607c7afca2d4f354bd6ca8b30c1a
+sourcePath: docs/foundation/pull-request-contract.md
+sourceUnitVersionIds:
+  - uv_8bda8e9c60fab89ee782b736
+  - uv_ce74f4906033bd6a18f29ffd
+  - uv_e11d98c07e8bee9dbcfb8b94

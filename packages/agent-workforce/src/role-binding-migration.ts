@@ -4,6 +4,7 @@ import { resolveRoleContract, roleProfileHash } from "@lervo/roles";
 import { inspectRepositoryCoordinationHome } from "@lervo/project-storage";
 
 import { resolveAgentCapabilityBinding } from "./agent-capability-binding.js";
+import { withAgentDisplayIdentity } from "./agent-display-identity.js";
 import { readAgentRegistryState } from "./agent-registry.js";
 import { listRawAssignmentStates } from "./assignment-state.js";
 import type { WorkforceAgent, WorkforceAssignment, WorkforceEventRecorder } from "./types.js";
@@ -363,12 +364,13 @@ export async function applyWorkforceRoleBindingMigration(input: {
     const existing = current.value.agents[index];
     if (existing === undefined || stableJson(existing) !== stableJson(migration.before))
       fail("agent_state_conflict", "The agent role binding changed before migration apply.");
-    const agent: WorkforceAgent = {
+    // Legacy agents gain the same derived display identity that listings already present.
+    const agent: WorkforceAgent = withAgentDisplayIdentity({
       ...existing,
       ...migration.target,
       revision: existing.revision + 1,
       updatedAt: now.toISOString(),
-    };
+    });
     const agents = current.value.agents.map((candidate, candidateIndex) =>
       candidateIndex === index ? agent : candidate,
     );
@@ -387,7 +389,7 @@ export async function applyWorkforceRoleBindingMigration(input: {
         payload: {
           changeKind: "role_binding",
           agentId: agent.agentId,
-          previousDisplayName: existing.displayName,
+          previousDisplayName: existing.displayName ?? null,
           displayName: agent.displayName,
           displayNameSource: agent.displayNameSource,
           previousRoleId: existing.roleId,

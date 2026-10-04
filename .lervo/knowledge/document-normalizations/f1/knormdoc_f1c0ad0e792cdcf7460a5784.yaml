@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b0026c1138056ade46c49ef5
+outputLanguage: en
+outputs:
+  - byteCount: 5307
+    contentHash: sha256:9e41a5fa6a2939ba5dd25d44e4f17263dec83b8a1f8a6a2066e01047c608013a
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/artifact-review.md
+    userRegionHash: sha256:9e41a5fa6a2939ba5dd25d44e4f17263dec83b8a1f8a6a2066e01047c608013a
+profile: specification_document
+recordId: knormdoc_f1c0ad0e792cdcf7460a5784
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a7c0119be95bf967825f7dfa137b5af3202c5e974bb3b586182c26e056a25d60
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/artifact-review.md
+sourceUnitVersionIds:
+  - uv_1e718f70eac0ced6ca198539
+  - uv_4234de776dc0e08e38974d6a
+  - uv_76f280c404091bd780014946
+  - uv_87e169d963400103c3576cf5

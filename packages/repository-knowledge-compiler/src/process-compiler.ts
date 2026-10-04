@@ -1,3 +1,4 @@
+import { assertKnowledgeProviderAvailable } from "./provider-availability.js";
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -54,6 +55,7 @@ interface ProcessResult {
 }
 
 const ADAPTER_VERSION = "1";
+const NORMALIZATION_ADAPTER_VERSION = "2";
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 180_000;
 const LOCAL_KEY = "^[a-z][a-z0-9_-]{0,63}$";
@@ -219,7 +221,8 @@ const documentNormalizationInstruction = [
   "Do not add unsupported facts, inferred commands, fake verification, generic filler, migration commentary, or Lervo branding unrelated to the source.",
   "Do not introduce trailing spaces or tabs, including Markdown two-space hard breaks. Preserve an exact trailing-whitespace line only when it already exists in the source and is required by a protected fragment. End every output with exactly one newline, never a trailing blank line.",
   "Follow each document constraints.headingPolicy. require_h1 outputs contain one H1. forbid_h1 outputs contain no H1 and start rendered sections at H2 because the host renders the title separately. Every output stays below both maximumOutputBytes and maximumOutputLines. Keep entrypoints short. Always emit requiredEntrypointPath. Split a multi-topic source when its concerns are independently useful or either output bound would be exceeded and allowSiblingTopicSplit is true: retain requiredEntrypointPath as a short index and put each independent topic below the exact allowedSplitPrefix string. Do not invent another directory.",
-  "Copy every supplied protectedFragments value byte-for-byte into at least one output. These are instruction frontmatter, lifecycle metadata, managed blocks, fenced code, inline code or commands, link targets, and provider imports whose omission fails validation.",
+  "Copy every supplied protectedFragments value byte-for-byte into at least one output, except a relative link_target moved to a sibling output must be rebased for that output's directory. Protected fragments include instruction frontmatter, lifecycle metadata, managed blocks, fenced code, inline code or commands, link targets, and provider imports.",
+  "For each protected link_target, keep a Markdown link to the same resolved repository target. When splitting an entrypoint into a child directory, add the necessary ../ segments to relative link destinations; copying the old relative spelling into the child file points elsewhere and fails validation. Preserve URL fragments and query strings. Check every link_target against your final output paths before returning JSON.",
   "Map every supplied sourceUnits index to at least one output coveredUnitIndexes list. Copy integer indexes exactly; do not return unitVersionId values. Coverage asserts preservation mapping, not truth.",
   "Return exactly one result for every source path and only source-backed output matching the supplied JSON schema.",
   "Return one raw JSON object only, with no Markdown fence, preamble, commentary, or trailing text.",
@@ -546,9 +549,8 @@ function parseCodexOutput<
         );
       }
       if (event.type === "item.completed" && itemType === "agent_message") {
-        if (typeof event.item?.text !== "string" || finalText !== null) {
-          throw compileFailure("The Codex final response event is not a single JSON message.");
-        }
+        if (typeof event.item?.text !== "string")
+          throw compileFailure("The Codex final response event is not a JSON message.");
         finalText = event.item.text;
       }
       continue;
@@ -838,6 +840,7 @@ export async function createProcessSemanticCompiler(
           ...(signal === undefined ? {} : { signal }),
           timeoutMs,
         });
+        assertKnowledgeProviderAvailable({ provider: options.provider, ...result });
         if (result.status === "cancelled")
           throw signal.reason ?? compileFailure("Semantic compilation was cancelled.");
         if (result.status !== "completed")
@@ -966,8 +969,12 @@ export async function createNoCapabilityProviderJsonRunner(
         timeoutMs,
         maxOutputBytes: MAX_OUTPUT_BYTES,
       });
+      assertKnowledgeProviderAvailable({ provider: options.provider, ...result });
       if (result.status !== "completed") {
-        throw compileFailure(`The provider JSON runner did not complete (${result.status}).`);
+        throw Object.assign(
+          compileFailure(`The provider JSON runner did not complete (${result.status}).`),
+          { processStatus: result.status },
+        );
       }
       const observed =
         options.provider === "claude"
@@ -1016,7 +1023,7 @@ export async function createProcessDocumentNormalizationCompiler(
     await rm(probeDirectory, { recursive: true, force: true });
   }
   const invocationContract = {
-    adapter: `lervo-process-document-normalizer@${ADAPTER_VERSION}`,
+    adapter: `lervo-process-document-normalizer@${NORMALIZATION_ADAPTER_VERSION}`,
     provider: options.provider,
     providerCliVersion: version,
     model: options.model ?? "provider-default",
@@ -1029,7 +1036,7 @@ export async function createProcessDocumentNormalizationCompiler(
   };
   const descriptor = {
     compilerId: `lervo.${options.provider}.document-normalizer`,
-    compilerVersion: `${ADAPTER_VERSION}+${version}`,
+    compilerVersion: `${NORMALIZATION_ADAPTER_VERSION}+${version}`,
     compilerBuildId: sha256(canonicalJson(invocationContract)),
     provider: options.provider,
     isolation: "external_no_capabilities" as const,
@@ -1044,6 +1051,16 @@ export async function createProcessDocumentNormalizationCompiler(
         responseSchema: documentNormalizationResponseSchema,
         envelope,
       });
+      const responseSchemaJson = canonicalJson(
+        providerNativeResponseSchema(documentNormalizationResponseSchema),
+      );
+      const codexResponseSchemaPath = resolve(directory, "response-schema.json");
+      if (options.provider === "codex")
+        await writeFile(codexResponseSchemaPath, `${responseSchemaJson}\n`, {
+          encoding: "utf8",
+          mode: 0o600,
+          flag: "wx",
+        });
       const arguments_ =
         options.provider === "claude"
           ? [
@@ -1065,6 +1082,8 @@ export async function createProcessDocumentNormalizationCompiler(
               "--no-chrome",
               "--permission-mode",
               "dontAsk",
+              "--json-schema",
+              responseSchemaJson,
               "--system-prompt",
               documentNormalizationInstruction,
               ...(options.model === undefined ? [] : ["--model", options.model]),
@@ -1081,6 +1100,8 @@ export async function createProcessDocumentNormalizationCompiler(
               "--json",
               "-c",
               "mcp_servers={}",
+              "--output-schema",
+              codexResponseSchemaPath,
               ...codexNoCapabilityFeatureArguments(),
               ...(options.model === undefined ? [] : ["--model", options.model]),
               "-",
@@ -1094,15 +1115,19 @@ export async function createProcessDocumentNormalizationCompiler(
         timeoutMs,
         maxOutputBytes: MAX_OUTPUT_BYTES,
       });
+      assertKnowledgeProviderAvailable({ provider: options.provider, ...result });
       if (result.status === "cancelled")
         throw signal.reason ?? compileFailure("Document normalization was cancelled.");
       if (result.status !== "completed")
-        throw compileFailure(
-          `The document normalizer process did not complete (${result.status}).`,
+        throw Object.assign(
+          compileFailure(`The document normalizer process did not complete (${result.status}).`),
+          { processStatus: result.status },
         );
       const response =
         options.provider === "claude"
-          ? parseClaudeOutput<DocumentNormalizationResponse>(result.stdout)
+          ? parseClaudeOutput<DocumentNormalizationResponse>(result.stdout, {
+              structuredOutputRequired: true,
+            })
           : parseCodexOutput<DocumentNormalizationResponse>(result.stdout);
       const usage =
         options.provider === "claude"

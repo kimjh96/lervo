@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e2413c445b3368f705da6b86
+outputLanguage: en
+outputs:
+  - byteCount: 4026
+    contentHash: sha256:7b8630fcb020f9922bbabdb8b3685496108078978deef3e9819b46f4ff49f58a
+    path: docs/research/lervo-agent-platform-evolution/evolution.md
+    userRegionHash: sha256:7b8630fcb020f9922bbabdb8b3685496108078978deef3e9819b46f4ff49f58a
+profile: repository_document
+recordId: knormdoc_3958e8703411804f60873907
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b1a00500cb10cfa8822d59df629a85dab4a833b316f6d65ef1c0a57b4264c846
+sourcePath: docs/research/lervo-agent-platform-evolution/evolution.md
+sourceUnitVersionIds:
+  - uv_581ba5beb1eba8eac91fcfca
+  - uv_5aa6b85cd5762664ebbd2ccd
+  - uv_6923a5fc8acab8244c8e03fe
+  - uv_9b9482ee152fd93406ef0282

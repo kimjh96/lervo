@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7634117247c3686a701cdb53
+outputLanguage: en
+outputs:
+  - byteCount: 6597
+    contentHash: sha256:6c921e76c5a1e636b3003e9700d36bf4ff1f5b260c0b8534f188e6df7220905d
+    path: docs/decisions/operations/services/0214-bounded-repository-upgrade-orchestration.md
+    userRegionHash: sha256:6c921e76c5a1e636b3003e9700d36bf4ff1f5b260c0b8534f188e6df7220905d
+profile: decision_record
+recordId: knormdoc_e6149d44a85b8ac308245b57
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:fad8697ff2dd707251c0ba958182b71250e8497fb5e7f4e8cd6fa13dbf7538b0
+sourcePath: docs/decisions/operations/services/0214-bounded-repository-upgrade-orchestration.md
+sourceUnitVersionIds:
+  - uv_356864a7bb07cc40e9ba9b87
+  - uv_3e418fa41ab3a42c38d60c0f
+  - uv_8b7a3be27eed0169960d2ec4
+  - uv_92993622deaddc1e0dc359cf
+  - uv_a1c4ffc91032831efa64a123
+  - uv_a381f5e4315c96f7293cae8a
+  - uv_a561dc06a13bf856c691c8fe
+  - uv_b16166a2ad0a0f8aae287f30
+  - uv_d1adafe7b5046d82ae28f037
+  - uv_eb68a197e58a1a1426acfbea
+  - uv_f2008725c9b06eb20a00d470

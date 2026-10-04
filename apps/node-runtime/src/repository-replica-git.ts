@@ -11,6 +11,7 @@ import {
 } from "@lervo/sync";
 
 const MAXIMUM_GIT_OUTPUT_BYTES = 512 * 1024 * 1024;
+const HOST_LOCAL_CONVERGENCE_DELEGATION = ".lervo/knowledge/convergence-delegation.json";
 export const EXPORT_REF = "refs/lervo/replica/export";
 export const INCOMING_REF = "refs/lervo/replica/incoming";
 export const FIXED_GIT_ENVIRONMENT = {
@@ -251,7 +252,9 @@ export async function applyTrees(
     }
   }
   await git(repositoryRoot, ["reset", "--hard", desired.head]);
-  await git(repositoryRoot, ["clean", "-fd"]);
+  // HEAD may precede the worktree's ignore rule. Keep this reviewed host grant
+  // local even while the reset temporarily restores an older .lervo/.gitignore.
+  await git(repositoryRoot, ["clean", "-fd", "-e", HOST_LOCAL_CONVERGENCE_DELEGATION]);
   await git(repositoryRoot, ["read-tree", desired.indexTree]);
   await git(repositoryRoot, ["checkout-index", "--all", "--force"]);
   const patch = (

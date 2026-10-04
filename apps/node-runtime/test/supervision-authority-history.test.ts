@@ -2,6 +2,7 @@ import { rename, rm, writeFile } from "node:fs/promises";
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SupervisionAuthorityHistory } from "../src/supervision-authority-history.js";
+import { observeNodeSupervisionRecoveryAuthority } from "../src/supervision-authority.js";
 import { supervisionFixture } from "./supervision.fixture.js";
 
 const roots: string[] = [];
@@ -31,6 +32,83 @@ async function fixture() {
 }
 
 describe("incremental supervision authority history", () => {
+  it("audits a slow historical chain before the bounded recovery observation", async () => {
+    const f = await fixture();
+    try {
+      let elapsed = 0;
+      const base = Date.now();
+      const read = f.reader.read.bind(f.reader);
+      let calls = 0;
+      vi.spyOn(f.reader, "read").mockImplementation(async () => {
+        calls += 1;
+        if (calls === 1) elapsed += 6_000;
+        return read();
+      });
+      const observed = await observeNodeSupervisionRecoveryAuthority(
+        f.storage,
+        f.binding,
+        () => new Date(base + elapsed).toISOString(),
+        f.reader,
+      );
+      expect(observed.source.workstreamId).toBe(f.binding.workstreamId);
+      expect(calls).toBeGreaterThanOrEqual(2);
+    } finally {
+      await f.storage.close();
+    }
+  });
+
+  it("retries one slow authority observation with a fresh five-second window", async () => {
+    const f = await fixture();
+    try {
+      let elapsed = 0;
+      const base = Date.now();
+      const read = f.reader.read.bind(f.reader);
+      let calls = 0;
+      vi.spyOn(f.reader, "read").mockImplementation(async () => {
+        calls += 1;
+        if (calls === 2) elapsed += 6_000;
+        return read();
+      });
+      const observed = await observeNodeSupervisionRecoveryAuthority(
+        f.storage,
+        f.binding,
+        () => new Date(base + elapsed).toISOString(),
+        f.reader,
+      );
+      expect(observed.source.workstreamId).toBe(f.binding.workstreamId);
+      expect(observed.observedAt).toBe(new Date(base + 6_000).toISOString());
+      expect(calls).toBeGreaterThanOrEqual(3);
+    } finally {
+      await f.storage.close();
+    }
+  });
+
+  it("rejects authority when both bounded observations exceed five seconds", async () => {
+    const f = await fixture();
+    try {
+      let elapsed = 0;
+      const base = Date.now();
+      const read = f.reader.read.bind(f.reader);
+      let calls = 0;
+      vi.spyOn(f.reader, "read").mockImplementation(async () => {
+        calls += 1;
+        if (calls === 2 || calls === 3) elapsed += 6_000;
+        return read();
+      });
+      await expect(
+        observeNodeSupervisionRecoveryAuthority(
+          f.storage,
+          f.binding,
+          () => new Date(base + elapsed).toISOString(),
+          f.reader,
+        ),
+      ).rejects.toMatchObject({ code: "supervision_authority_changed" });
+      expect(calls).toBeGreaterThanOrEqual(3);
+    } finally {
+      await f.storage.close();
+    }
+  });
+
   it("reuses detached verified authority rows and reads only the appended chain", async () => {
     const f = await fixture();
     try {

@@ -1,0 +1,18 @@
+destinationHash: sha256:921225bbc5415afc5d2cb22471bd0b2a9e502eb3b0c56dee2a4463d20dd90be9
+destinationPath: docs/roadmap/natural-language-grounding-quality/evaluation-history/provider-shadow-managed-context-canaries.md
+extractedRange:
+  endByte: 23742
+  startByte: 13229
+identityPath: docs/roadmap/natural-language-grounding-quality/evaluation-history/provider-shadow-delivery.md
+kind: document_split
+lineageId: klineage_5d619b71453ad9962702c899
+operationId: kdocop_a963880780bd836ba04372ab
+schemaVersion: 1
+selectedHeadingLocator: heading:Provider-shadow and managed-canary delivery > Managed-context canaries
+sourceAfterHash: sha256:85fb46d88ce5af07c782b1a3bbbac3be3d4d7a594a8bfa71502fcde66aa8169a
+sourceBeforeByteCount: 23742
+sourceBeforeHash: sha256:4409724c700228feae4df56efe89684a8ff9d59b98aefc41cb37a44c41d73b01
+sourceId: src_ee1b30e05f7462e0dd8d08ba
+sourcePath: docs/roadmap/natural-language-grounding-quality/evaluation-history/provider-shadow-delivery.md
+sourceUnitBindingDigest: sha256:83f442bf4a100b83ec2a1bc68a5877dcb24ab42903368e0df7badfd431267fc1
+sourceUnitCount: 6

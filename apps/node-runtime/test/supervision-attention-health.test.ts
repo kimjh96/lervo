@@ -4,6 +4,7 @@ import {
   supervisionAttentionHealth,
   supervisionAttentionReasonCodes,
   supervisionCycleHealth,
+  supervisionEvidenceReadFailureLine,
   supervisionEffectFailureLine,
 } from "../src/supervision-attention-health.js";
 import { NodeSupervisionError } from "../src/supervision-authority.js";
@@ -40,10 +41,10 @@ it("reports a goal budget stop as bounded attention without degrading the Node",
   });
 });
 
-it("reports a completed goal with nothing to publish as a canonical local result", () => {
+it("preserves unavailable publication diagnostics without inferring a local origin", () => {
   expect(
     supervisionAttentionReasonCodes({ nextAction: "publish_result" }, ["owner_plan_unavailable"]),
-  ).toEqual(["local_result_canonical"]);
+  ).toEqual(["owner_plan_unavailable"]);
   expect(
     supervisionAttentionReasonCodes({ nextAction: "dispatch" }, ["owner_plan_unavailable"]),
   ).toEqual(["owner_plan_unavailable"]);
@@ -98,6 +99,24 @@ it("names a failed cycle with one bounded code and a journal line without newlin
   const line = supervisionCycleFailureLine(new TypeError("bad\nvalue"));
   expect(line).toBe("Lervo supervision cycle failed (type): TypeError: bad value");
   expect(supervisionCycleFailureLine(new Error("x".repeat(400))).length).toBeLessThan(280);
+});
+
+it("records a bundle coordinate without exposing its host path", async () => {
+  const { supervisionCycleFailureLine } = await import("../src/supervision-attention-health.js");
+  const failure = new NodeSupervisionError("supervision_authority_changed");
+  failure.stack = `${failure.name}: ${failure.message}\n    at observeAuthority (/private/host/dist/bin.js:123:45)`;
+  const line = supervisionCycleFailureLine(failure);
+  expect(line).toContain("origin=bin.js:123:45");
+  expect(line).not.toContain("/private/host");
+});
+
+it("records bounded recovery evidence diagnostics without changing the failure state", () => {
+  const error = Object.assign(new Error("unavailable\nsource"), {
+    code: "supervision_authority_changed",
+  });
+  expect(supervisionEvidenceReadFailureLine(error)).toBe(
+    "Lervo supervision evidence unavailable (supervision_authority_changed): Error: unavailable source [supervision_authority_changed]",
+  );
 });
 
 it("names the wrapped cause of an uncertain effect", () => {

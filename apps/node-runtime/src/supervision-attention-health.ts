@@ -8,21 +8,13 @@ import { boundedHealthReasonCodes } from "./health-contract.js";
 import type { NodeRuntimeComponentHealth } from "./health-contract.js";
 import { NodeSupervisionError } from "./supervision-authority.js";
 
-/**
- * Health reason codes for one recorded owner attention. A goal that completed without a
- * publication origin has nothing to publish, so its unavailable plan is reported as the local
- * result staying canonical rather than as a missing owner plan.
- */
+/** A missing publication proposal cannot prove that the goal was locally bound. */
 export function supervisionAttentionReasonCodes(
-  report: Pick<OutcomeSupervisionReportV1, "nextAction">,
+  _report: Pick<OutcomeSupervisionReportV1, "nextAction">,
   reasonCodes: readonly string[],
 ): string[] {
   if (!boundedHealthReasonCodes(reasonCodes)) return ["reason_codes_unbounded"];
-  return reasonCodes.map((code) =>
-    code === "owner_plan_unavailable" && report.nextAction === "publish_result"
-      ? "local_result_canonical"
-      : code,
-  );
+  return [...reasonCodes];
 }
 
 /** A goal-scoped budget stop needs user attention but does not make the Node service unavailable. */
@@ -70,9 +62,21 @@ export function supervisionCycleHealth(error: unknown): NodeRuntimeComponentHeal
       };
 }
 
-/** Journal line for a failed cycle: bounded code, error name, and the message's first 200 characters. */
+/** Journal line for a failed cycle: bounded reason and bundle coordinate without a local path. */
 export function supervisionCycleFailureLine(error: unknown): string {
-  return `Lervo supervision cycle failed (${supervisionCycleFailureCode(error)}): ${boundedError(error, 200)}`;
+  const origin =
+    error instanceof Error
+      ? /\b(bin\.js:[1-9][0-9]{0,7}:[1-9][0-9]{0,7})\)?$/u.exec(
+          error.stack?.split("\n")[1] ?? "",
+        )?.[1]
+      : undefined;
+  const detail = boundedError(error, 200);
+  return `Lervo supervision cycle failed (${supervisionCycleFailureCode(error)}): ${detail}${origin === undefined ? "" : ` origin=${origin}`}`;
+}
+
+/** Journal line for recovery evidence failure; the returned snapshot still fails closed. */
+export function supervisionEvidenceReadFailureLine(error: unknown): string {
+  return `Lervo supervision evidence unavailable (${supervisionCycleFailureCode(error)}): ${boundedError(error, 200)}`;
 }
 
 /** Journal line for an effect whose outcome became uncertain; canonical attention keeps only codes. */

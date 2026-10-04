@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1d42ee41fbaadfa8f834c93b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Let a managed run with several expected paths create a target turn per path instead of failing validation."

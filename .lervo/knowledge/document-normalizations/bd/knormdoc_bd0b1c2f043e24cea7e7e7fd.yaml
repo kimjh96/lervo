@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b4fd4ff46d011bcf074c2686
+compiler:
+  compilerBuildId: sha256:65a4a161da52ab805e88c3c575a068b4138f016bd2e5b2a20161846b0c3140d0
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_da98fca109911fbba8717633
+outputLanguage: en
+outputs:
+  - byteCount: 1602
+    contentHash: sha256:92b383cbe124f9c12d38d27e45ffc331226e70b08b1313b2fd5dee22395c61b7
+    path: docs/distribution/scheduler-change-wakeups.md
+    userRegionHash: sha256:92b383cbe124f9c12d38d27e45ffc331226e70b08b1313b2fd5dee22395c61b7
+profile: repository_document
+recordId: knormdoc_bd0b1c2f043e24cea7e7e7fd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f5c8dadd13a64b5cde462c241951f86976b0936e0c751d053481016b57333caa
+sourcePath: docs/distribution/scheduler-change-wakeups.md
+sourceUnitVersionIds:
+  - uv_1cf1fc729696f5fa5a7e6444
+  - uv_25810ff15999a990ad6be0da
+  - uv_ede89186e685519e0e533b4a

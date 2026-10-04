@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5c63fe13781fcfe5f28088b0"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Preserve privacy-bounded provider transport failure diagnostics for managed runs."

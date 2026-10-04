@@ -18,7 +18,8 @@ export class SupervisionAuthorityHistory {
     private readonly databasePath: string,
     private readonly projectId: string,
     private readonly now: () => number = Date.now,
-    private readonly retention: "authority" | "execution" = "authority",
+    private readonly retention:
+      "authority" | "execution" | ((event: EventEnvelope) => boolean) = "authority",
   ) {}
 
   async read(): Promise<EventEnvelope[]> {
@@ -56,10 +57,12 @@ export class SupervisionAuthorityHistory {
         )
           throw new Error("The supervision authority event chain is invalid.");
         if (
-          this.retention === "execution" ||
-          event.type === "work.supervision.mandate.installed" ||
-          event.type.startsWith("organization.") ||
-          event.type === "workstream.snapshot.recorded"
+          typeof this.retention === "function"
+            ? this.retention(event)
+            : this.retention === "execution" ||
+              event.type === "work.supervision.mandate.installed" ||
+              event.type.startsWith("organization.") ||
+              event.type === "workstream.snapshot.recorded"
         ) {
           const copy = structuredClone(event);
           this.bytes += Buffer.byteLength(JSON.stringify(copy));

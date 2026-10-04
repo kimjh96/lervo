@@ -85,6 +85,10 @@ export default defineConfig({
         "./packages/repository-knowledge/src/workstream.ts",
       ),
       "@lervo/repository-knowledge": fromRoot("./packages/repository-knowledge/src/index.ts"),
+      "@lervo/repository-context": fromRoot("./packages/repository-context/src/index.ts"),
+      "@lervo/repository-knowledge-runtime": fromRoot(
+        "./packages/repository-knowledge-runtime/src/index.ts",
+      ),
       "@lervo/repository-knowledge-compiler": fromRoot(
         "./packages/repository-knowledge-compiler/src/index.ts",
       ),

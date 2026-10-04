@@ -1885,6 +1885,8 @@ export interface DocumentNormalizationLifecycleInspection {
     recordId: string | null;
     status: "current" | "stale" | "invalid";
     outputPaths: string[];
+    /** Outputs whose current exact bytes are a reviewed rewrite of different source bytes. */
+    reviewedRewritePaths: string[];
   }>;
 }
 
@@ -1934,6 +1936,7 @@ export async function inspectConfiguredDocumentNormalization(input: {
             : null,
         status: "invalid",
         outputPaths: [],
+        reviewedRewritePaths: [],
       });
       continue;
     }
@@ -1963,6 +1966,14 @@ export async function inspectConfiguredDocumentNormalization(input: {
       recordId: record.recordId,
       status,
       outputPaths: record.outputs.map((output) => output.path),
+      reviewedRewritePaths: record.outputs
+        .filter(
+          (output, index) =>
+            hashes[index] === output.contentHash &&
+            (output.path !== record!.sourcePath ||
+              output.contentHash !== record!.sourceContentHash),
+        )
+        .map((output) => output.path),
     });
   }
   const eligible = eligibleDocuments(

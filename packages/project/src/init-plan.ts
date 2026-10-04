@@ -289,7 +289,7 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
     await planManagedFile({
       root,
       path: lervoRelativePaths.gitignore,
-      desiredContent: "data/\nstate/\n",
+      desiredContent: "data/\nstate/\nknowledge/convergence-delegation.json\n",
     }),
   );
 

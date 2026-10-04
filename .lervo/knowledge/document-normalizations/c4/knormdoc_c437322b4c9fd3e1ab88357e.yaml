@@ -1,0 +1,51 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_37b6f9143f4b3efa5d967fd1
+compiler:
+  compilerBuildId: sha256:4921469018da98f751a61e2394a9e506fc3c069b131b8bcdaeeee798734b5725
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.159.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_cb358df03ff17211176652e2
+outputLanguage: en
+outputs:
+  - byteCount: 600
+    contentHash: sha256:00871486b952cf247db6a3726beffeb3423f73cf22c2e568317c848fcace964f
+    path: docs/roadmap/v0/completed-follow-up.md
+    userRegionHash: sha256:00871486b952cf247db6a3726beffeb3423f73cf22c2e568317c848fcace964f
+  - byteCount: 853
+    contentHash: sha256:3a21a686613a30abe8e2ded1b9601232397ccf20304c8cd568aa987eb7de35bd
+    path: docs/roadmap/v0/completed-follow-up/capability-lifecycle.md
+    userRegionHash: sha256:3a21a686613a30abe8e2ded1b9601232397ccf20304c8cd568aa987eb7de35bd
+  - byteCount: 993
+    contentHash: sha256:b51d0f1d22a3a0b84da945665b8faa4e93d8fbb1ccf6547860e78c02ebe03002
+    path: docs/roadmap/v0/completed-follow-up/conventions-and-release.md
+    userRegionHash: sha256:b51d0f1d22a3a0b84da945665b8faa4e93d8fbb1ccf6547860e78c02ebe03002
+  - byteCount: 1014
+    contentHash: sha256:473ed4958fa78a750735da164e3296c3e86509f250fee4234664b3defad2c8b2
+    path: docs/roadmap/v0/completed-follow-up/grounding-and-retrieval.md
+    userRegionHash: sha256:473ed4958fa78a750735da164e3296c3e86509f250fee4234664b3defad2c8b2
+  - byteCount: 1192
+    contentHash: sha256:89be82dfebcdd7cf0ca20264f5cf9257e1247bdb5918029747abb8526734bef3
+    path: docs/roadmap/v0/completed-follow-up/knowledge-and-state.md
+    userRegionHash: sha256:89be82dfebcdd7cf0ca20264f5cf9257e1247bdb5918029747abb8526734bef3
+  - byteCount: 1412
+    contentHash: sha256:6435b07e03a9373d494c374608d1afa1e4e9cd527b2f572b2f0f8dfb100ac763
+    path: docs/roadmap/v0/completed-follow-up/terminal-workforce-deployment.md
+    userRegionHash: sha256:6435b07e03a9373d494c374608d1afa1e4e9cd527b2f572b2f0f8dfb100ac763
+profile: roadmap_document
+recordId: knormdoc_c437322b4c9fd3e1ab88357e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:272c5c3500a20769352bc3f3ee1be5ff767aafbe337fb1e99ad26c4a2aae0738
+sourcePath: docs/roadmap/v0/completed-follow-up.md
+sourceUnitVersionIds:
+  - uv_0441b0ca0405076075849984
+  - uv_398ced409c454785e7b1c9ee
+  - uv_790df617ebb63df641183f64
+  - uv_a6d84cdacea599f22f558f89
+  - uv_b166c969a2a147a717a36775
+  - uv_cb959dda83fdc30957d24654

@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_23298fe1158059e1ed207347
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d51c602bc95fa852b2c76c37
+outputLanguage: en
+outputs:
+  - byteCount: 3683
+    contentHash: sha256:428c0f7d9b255068690e72a685325875174e916b7cabe2c3c33881c431f5d279
+    path: docs/specs/background-knowledge-convergence/authority-and-completion/authority-and-integration/source-and-assessment/assessment-outcomes.md
+    userRegionHash: sha256:428c0f7d9b255068690e72a685325875174e916b7cabe2c3c33881c431f5d279
+profile: specification_document
+recordId: knormdoc_9d92b56e16bfaf37b0afba67
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:832577049635ef9b17175a08dadfc3b878e24766eca36287440269070cdafd78
+sourcePath: docs/specs/background-knowledge-convergence/authority-and-completion/authority-and-integration/source-and-assessment/assessment-outcomes.md
+sourceUnitVersionIds:
+  - uv_1ca1e6df0b5be46c3b38377b
+  - uv_99d79dc72539c7eda29977db
+  - uv_ca7dd0e6d3b9aa9ee360a4c6
+  - uv_da2680ecd61d575a2160579c

@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_05f53b8682b1d60a6ba7481e
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_46a976283d5dc2fb4378aa2d
+outputLanguage: en
+outputs:
+  - byteCount: 678
+    contentHash: sha256:d71acda325726accad99ac23ce8dcf754cc5b02e060222ca8a3a963b255677ce
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/discussion-mediation.md
+    userRegionHash: sha256:d71acda325726accad99ac23ce8dcf754cc5b02e060222ca8a3a963b255677ce
+  - byteCount: 5200
+    contentHash: sha256:21cd41bfbae47ff40364c9565af822184c2d1a0ebca32f10f031c8415111ab4c
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/discussion-mediation/addressed-mediation.md
+    userRegionHash: sha256:21cd41bfbae47ff40364c9565af822184c2d1a0ebca32f10f031c8415111ab4c
+  - byteCount: 1947
+    contentHash: sha256:abfd0ba44ddf5e732eb8bb1ebb9b292cfbc31fbcd1ebb5deab739019821e08d7
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/discussion-mediation/natural-discussion.md
+    userRegionHash: sha256:abfd0ba44ddf5e732eb8bb1ebb9b292cfbc31fbcd1ebb5deab739019821e08d7
+profile: roadmap_document
+recordId: knormdoc_8baf32549e730cab4caee3e7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:997eb84e65fe6e59bd6051e77e00faa5894bdcc089ce46c75c3e9f0df140c1cc
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation/installed-scope/discussion-mediation.md
+sourceUnitVersionIds:
+  - uv_0cc67ee4c872eac9486e90ce
+  - uv_106b016ae5435331d334a64c
+  - uv_13b6cb3a3890da2bd04d3903
+  - uv_74f19cb61e99e6167030dca0
+  - uv_777a72c519c56cacceeaa058

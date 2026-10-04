@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e82e6cce5128efc75db93e7b
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0456a82d6258484d7ab42d08
+outputLanguage: en
+outputs:
+  - byteCount: 22658
+    contentHash: sha256:90c36457e2826eb4ef578a80a873efd5d1c6c304fff153113f69dad3ba40745e
+    path: docs/roadmap/natural-language-grounding-quality.md
+    userRegionHash: sha256:90c36457e2826eb4ef578a80a873efd5d1c6c304fff153113f69dad3ba40745e
+profile: roadmap_document
+recordId: knormdoc_75f64d17ac4de897710c64b7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e909ed3457a1ecfab8f2623905cd182fec1bdcbecf20995ae603c6ce8370fbd9
+sourcePath: docs/roadmap/natural-language-grounding-quality.md
+sourceUnitVersionIds:
+  - uv_0e0098c9f136a6c1e737c41b
+  - uv_2c1889cdd469b5be0993dcef
+  - uv_38ba99bde53d73b187c70e5b
+  - uv_8b7a6427f0fc3d05674f2374
+  - uv_baec8cc028acbda40704fb6a
+  - uv_c151af3f6278fa8bb1c33b4a
+  - uv_c24da95c829859b3c1910421
+  - uv_d8720b2ae2d463a4707ff03e

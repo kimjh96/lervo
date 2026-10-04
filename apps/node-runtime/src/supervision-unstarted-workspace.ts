@@ -23,6 +23,7 @@ import {
   readHistoricalManagedDecision,
 } from "./supervision-control-decision.js";
 import { readSupervisionJsonArtifact as readJson } from "./supervision-artifact-json.js";
+import { readPreparedWorkspaceState } from "./supervision-workspace-prepared-state.js";
 
 /** Retains a never-used checkout; this observation grants no authority to write or remove it. */
 export async function observeUnstartedSupervisionWorkspace(input: {
@@ -39,10 +40,12 @@ export async function observeUnstartedSupervisionWorkspace(input: {
   if (
     workspace.assignmentId !== assignment.assignmentId ||
     workspace.projectId !== assignment.projectId ||
-    workspace.state !== "ready" ||
-    workspace.revision !== 2 ||
+    !["ready", "recovery_required"].includes(workspace.state) ||
+    (workspace.state === "ready" ? workspace.revision !== 2 : workspace.revision !== 3) ||
     workspace.writerSession !== null ||
-    workspace.recoveryReason !== null ||
+    (workspace.state === "ready"
+      ? workspace.recoveryReason !== null
+      : workspace.recoveryReason !== "host_effect_uncertain") ||
     workspace.ownerWorkspacePath === undefined ||
     workspace.host.kind !== "git" ||
     workspace.host.nativeInstanceDigest === null ||
@@ -73,13 +76,6 @@ export async function observeUnstartedSupervisionWorkspace(input: {
     );
     if (prepared.length !== 1) return null;
     const receipt = prepared[0]!;
-    if (
-      receipt.payload.workspaceArtifactHash !== operatingContractHash(workspace) ||
-      operatingContractHash(
-        await readJson(storage.artifacts, String(receipt.payload.workspaceArtifactHash)),
-      ) !== operatingContractHash(workspace)
-    )
-      return null;
     const plan = (await readJson(
       storage.artifacts,
       String(receipt.payload.planHash),
@@ -95,6 +91,16 @@ export async function observeUnstartedSupervisionWorkspace(input: {
       effect.provisionPlanHash,
     )) as WorkspaceProvisionPlan;
     const { contentHash, ...provisionContent } = provision;
+    const preparedState = await readPreparedWorkspaceState(storage, provision);
+    if (
+      preparedState === null ||
+      operatingContractHash(preparedState.stored.workspace) !== operatingContractHash(workspace) ||
+      receipt.payload.workspaceArtifactHash !== operatingContractHash(preparedState.workspace) ||
+      operatingContractHash(
+        await readJson(storage.artifacts, String(receipt.payload.workspaceArtifactHash)),
+      ) !== operatingContractHash(preparedState.workspace)
+    )
+      return null;
     if (
       plan.supervisionId !== binding.supervisionId ||
       plan.workstreamId !== binding.workstreamId ||

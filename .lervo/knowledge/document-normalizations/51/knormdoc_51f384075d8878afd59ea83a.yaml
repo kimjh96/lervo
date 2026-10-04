@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81553bd2a3b0467df965f9ce
+compiler:
+  compilerBuildId: sha256:28fccadc6cd3a05adb5a1f1651934c86c8f9387a545eb9316b4b2b19eba8f059
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.160.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9d418136c8c957209db3d7da
+outputLanguage: en
+outputs:
+  - byteCount: 1657
+    contentHash: sha256:31dfcb58134ee1ce50bad5670d3ce01ca60ebe4babcd9aacdf42cb281644f56b
+    path: docs/specs/background-knowledge-convergence/authority-and-completion/authority-and-integration/source-and-assessment/source-validation.md
+    userRegionHash: sha256:31dfcb58134ee1ce50bad5670d3ce01ca60ebe4babcd9aacdf42cb281644f56b
+profile: specification_document
+recordId: knormdoc_51f384075d8878afd59ea83a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:17ee87db02aa57bc102e29025f5742dda74c82118ad0991657f663393555a745
+sourcePath: docs/specs/background-knowledge-convergence/authority-and-completion/authority-and-integration/source-and-assessment/source-validation.md
+sourceUnitVersionIds:
+  - uv_fdbbc813cb045dbb0d9cc6b8

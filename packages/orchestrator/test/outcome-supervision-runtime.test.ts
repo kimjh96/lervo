@@ -1,4 +1,7 @@
-import type { OutcomeSupervisionSnapshotV1 } from "@lervo/application-contract";
+import type {
+  OperatingActionPlanV1,
+  OutcomeSupervisionSnapshotV1,
+} from "@lervo/application-contract";
 import { operatingContractHash, operatingEffectAdmissionHash } from "@lervo/work-controller";
 import { describe, expect, it, vi } from "vitest";
 import type {
@@ -64,7 +67,7 @@ function fixture() {
   const plans = new Map<string, ReturnType<typeof plan>>();
   let leased = false;
   const execute = vi.fn(async () => ({ eventIds: [`evt_${"b".repeat(32)}`] }));
-  const propose = vi.fn(async () => proposal);
+  const propose = vi.fn(async (): Promise<OperatingActionPlanV1 | null> => proposal);
   const attention = vi.fn(async () => undefined);
   const ports: OutcomeSupervisionPorts = {
     now: () => now,
@@ -113,6 +116,27 @@ function fixture() {
 }
 
 describe("serialized causal owner decisions", () => {
+  it("evaluates an unchanged bound goal after the startup grace period exactly once", async () => {
+    const f = fixture();
+    let clock = now;
+    f.ports.now = () => clock;
+    f.propose.mockResolvedValue(null);
+    const runtime = new OutcomeSupervisionRuntime({
+      ...f.ports,
+      deferInitialActionUntilChange: true,
+    });
+    expect((await runtime.runCycle(f.state.supervisionId)).disposition).toBe("idle");
+    expect(runtime.nextCheckAt(f.state.supervisionId)).toBe(Date.parse(now) + 60_000);
+    clock = new Date(Date.parse(now) + 59_999).toISOString();
+    expect((await runtime.runCycle(f.state.supervisionId)).report).toBeNull();
+    expect(f.propose).not.toHaveBeenCalled();
+    clock = new Date(Date.parse(now) + 60_000).toISOString();
+    expect((await runtime.runCycle(f.state.supervisionId)).disposition).toBe("blocked");
+    expect(f.propose).toHaveBeenCalledOnce();
+    expect((await runtime.runCycle(f.state.supervisionId)).report).toBeNull();
+    expect(f.propose).toHaveBeenCalledOnce();
+    expect(f.execute).not.toHaveBeenCalled();
+  });
   it("observes pre-existing bound work at startup without treating it as a fresh trigger", async () => {
     const f = fixture();
     f.propose.mockImplementation(async () => ({

@@ -2,7 +2,7 @@ import { supervisionReasoningDecisionSchema } from "./supervision-reasoning-oper
 import { inspectCodexLogin, inspectCodexRuntime } from "@lervo/adapter-codex";
 import { inspectClaudeLogin, inspectClaudeRuntime } from "@lervo/adapter-claude";
 import type { OperatingActionPlanV1 } from "@lervo/application-contract";
-import { SupervisionPreflightError } from "@lervo/orchestrator";
+import { SupervisionPreflightError, ManagedProviderRunError } from "@lervo/orchestrator";
 import { openProjectStorage } from "@lervo/project-storage";
 import { collectRunEventsBounded } from "@lervo/storage-contract";
 import {
@@ -28,6 +28,7 @@ import { supersedeUnstartedOwnerReasoning } from "./supervision-reasoning-supers
 import { readOwnerSpendAdmission } from "./supervision-owner-spend-source.js";
 import { NodeSupervisionError } from "./supervision-authority.js";
 import { OWNER_REASONING_WINDOW_MS } from "./supervision-native-owner.js";
+import { readInvalidReasoningResult } from "./supervision-invalid-reasoning-result.js";
 
 export interface NodeOwnerReasoningConfiguration {
   provider: "codex" | "claude";
@@ -291,6 +292,13 @@ export class SupervisionOwnerReasoningEffects {
           )
             throw new Error("The owner reasoning budget source changed before provider startup.");
         },
+      }).catch(async (error: unknown) => {
+        if (
+          !(error instanceof ManagedProviderRunError) ||
+          error.code !== "contract_validation_failed" ||
+          (await readInvalidReasoningResult(storage, identity.runId)) === null
+        )
+          throw error;
       });
       const result = await inspectOwnerReasoning(storage, plan);
       if (result.status !== "confirmed")

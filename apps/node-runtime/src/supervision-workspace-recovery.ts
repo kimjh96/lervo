@@ -1,7 +1,7 @@
 import type { OperatingActionPlanV1 } from "@lervo/application-contract";
 import { readWorkspace } from "@lervo/agent-workforce";
 import type { ProjectStorage } from "@lervo/project-storage";
-import { operatingContractHash, operatingDecisionId } from "@lervo/work-controller";
+import { operatingDecisionId } from "@lervo/work-controller";
 import type { NodeSupervisionEffectSession } from "./supervision-runtime-ports.js";
 import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
 import {
@@ -9,17 +9,17 @@ import {
   type NodeSupervisionBinding,
 } from "./supervision-authority.js";
 import { SupervisionTaskSource } from "./supervision-task-source.js";
-import {
-  assertSupervisionWorkspaceLocation,
-  readCanonicalWorkspacePreparation,
-} from "./supervision-workspace-plan.js";
+import { assertSupervisionWorkspaceLocation } from "./supervision-workspace-plan.js";
 import {
   recordSupervisionWorkspaceReceipt,
   supervisionWorkspaceReceiptBasis,
 } from "./supervision-workspace-receipt.js";
-import { readSupervisionWorkspaceSource } from "./supervision-workspace-source.js";
+import { readPreparedWorkspaceState } from "./supervision-workspace-prepared-state.js";
+import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
+import { resolveRepositoryCoordinationHome } from "@lervo/project-storage";
+import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 
-/** Repairs only a missing receipt for an exact ready workspace; it never provisions or cleans up. */
+/** Settles historical preparation under the current owner fence without reviving its old lease. */
 export async function recoverPreparedWorkspace(input: {
   storage: ProjectStorage;
   binding: NodeSupervisionBinding;
@@ -30,44 +30,64 @@ export async function recoverPreparedWorkspace(input: {
 }) {
   const { storage, plan } = input;
   const receipt = await supervisionWorkspaceReceiptBasis(storage, plan);
-  const stored = await readWorkspace(
-    storage.paths.repositoryRoot,
-    receipt.provision.workspace.workspaceId,
-  );
-  if (
-    stored?.workspace.state !== "ready" ||
-    stored.workspace.revision !== 2 ||
-    storage.events.get(receipt.eventId) !== null
-  )
+  const prepared = await readPreparedWorkspaceState(storage, receipt.provision);
+  if (prepared === null || storage.events.get(receipt.eventId) !== null)
     return { status: "uncertain" as const };
   const tasks = new SupervisionTaskSource(storage, input.binding, input.now);
   const source = await tasks.read(operatingDecisionId(plan));
-  const basis = await readCanonicalWorkspacePreparation({ ...input, source });
+  // A dispatch for this responsibility makes this a worker recovery, not a preparation receipt.
+  for (const event of source.events.filter(
+    (event) =>
+      event.type === "work.supervision.decision.recorded" &&
+      event.payload.workstreamId === plan.workstreamId,
+  )) {
+    const candidate = (await readSupervisionJsonArtifact(
+      storage.artifacts,
+      String(event.payload.planHash),
+    )) as OperatingActionPlanV1;
+    if (
+      ["work.managed_execution.v1", "work.managed_execution.v2"].includes(
+        candidate.effectContract,
+      ) &&
+      candidate.responsibilityArtifactHash === plan.responsibilityArtifactHash
+    )
+      return { status: "uncertain" as const };
+  }
   await assertSupervisionWorkspaceLocation(
     storage.paths.repositoryRoot,
-    basis.provision,
+    receipt.provision,
     input.configuration,
   );
-  await readSupervisionWorkspaceSource(
-    storage.paths.repositoryRoot,
-    basis.assignment,
-    input.binding,
-    storage,
-  );
+  const home = await resolveRepositoryCoordinationHome(storage.paths.repositoryRoot);
+  const inspectedAt = Date.parse(input.now());
+  const observed = await new GitWorkspaceHostAdapter().inspectResult({
+    repositoryRoot: storage.paths.repositoryRoot,
+    workspacePath: receipt.provision.workspacePath,
+    baseCommit: receipt.provision.baseCommit,
+    marker: receipt.provision.marker,
+  });
+  if (
+    home.repositoryInstanceId !== prepared.workspace.repositoryInstanceId ||
+    observed.status !== "present" ||
+    !observed.markerMatched ||
+    observed.headCommit !== receipt.provision.baseCommit ||
+    observed.nativeInstanceDigest !== prepared.workspace.host.nativeInstanceDigest ||
+    observed.gitOperationInProgress !== false ||
+    observed.changedPaths?.length !== 0
+  )
+    return { status: "uncertain" as const };
   const authority = await observeNodeSupervisionAuthority(storage, input.binding, input.now);
   const refreshed = await tasks.read(operatingDecisionId(plan));
+  const current = await readWorkspace(storage.paths.repositoryRoot, prepared.workspace.workspaceId);
   if (
     authority.installation.revoked ||
     !authority.source.eligible ||
-    operatingContractHash({
-      authorityDigest: authority.source.sourceRevisionDigest,
-      taskDigest: refreshed.sourceRevisionDigest,
-    }) !== plan.sourceRevisionDigest ||
     refreshed.sourceRevisionDigest !== source.sourceRevisionDigest ||
-    Date.parse(input.now()) >=
-      Math.min(Date.parse(plan.deadline), Date.parse(authority.installation.mandate.expiresAt))
+    current?.contentHash !== prepared.stored.contentHash ||
+    Date.parse(input.now()) - inspectedAt > 5_000 ||
+    Date.parse(input.now()) >= Date.parse(authority.installation.mandate.expiresAt)
   )
-    throw new Error("The ready workspace no longer has its exact preparation authority.");
+    throw new Error("The historical workspace receipt lost its current reconciliation authority.");
   const result = await recordSupervisionWorkspaceReceipt({
     storage,
     plan,

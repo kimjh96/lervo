@@ -7,8 +7,9 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { ModuleKind, ScriptTarget, transpileModule } from "typescript";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SQLiteSupervisionOwnerLeaseStore, type SupervisionOwnerLease } from "../src/index.js";
+import { SupervisionProcessLock } from "../src/supervision-process-lock.js";
 
 const roots: string[] = [];
 const stores: SQLiteSupervisionOwnerLeaseStore[] = [];
@@ -101,6 +102,24 @@ afterEach(async () => {
 });
 
 describe("supervision owner process recovery", () => {
+  it("retains a native lock handle when close fails so release can be retried", async () => {
+    const { path } = await fixture();
+    const lock = new SupervisionProcessLock(path, input.supervisionId);
+    expect(lock.acquire()).not.toBeNull();
+    const database = (lock as unknown as { database: DatabaseSync }).database;
+    const close = vi.spyOn(database, "close").mockImplementationOnce(() => {
+      throw new Error("Native close failed.");
+    });
+    try {
+      expect(() => lock.release()).toThrow("Native close failed.");
+    } finally {
+      close.mockRestore();
+    }
+    expect((lock as unknown as { database: DatabaseSync | null }).database).toBe(database);
+    expect(() => lock.release()).not.toThrow();
+    expect((lock as unknown as { database: DatabaseSync | null }).database).toBeNull();
+  });
+
   it("recovers a killed owner before expiry, fences its token, and preserves unresolved evidence", async () => {
     const { root, path } = await fixture();
     const evidencePath = resolve(root, "pending-effect.json");

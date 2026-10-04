@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -79,6 +79,7 @@ export async function createWorkflowActivationFixture() {
     writeFile(paths.cliPackageManifestPath, cliPackageContents),
     writeFile(paths.workflowPath, workflowContents, { mode: 0o640 }),
   ]);
+  await chmod(paths.workflowPath, 0o640);
   const candidateInput = {
     packageManifest: JSON.parse(rootPackageContents.toString("utf8")),
     workflow: parse(workflowContents.toString("utf8")),

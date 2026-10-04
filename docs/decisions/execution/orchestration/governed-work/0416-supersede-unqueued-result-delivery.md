@@ -5,16 +5,16 @@
 
 ## Context
 
-The standing Lervo goal completed and recorded an admitted `publish_result` decision, but the Node stopped before writing `work.supervision.delivery.queued`. A subsequent repository-knowledge migration changed the supervision source digest. Recovery proved that the immutable outbound had never entered the delivery queue, yet the generic runtime could not supersede this effect kind and reported `pending_decision_requires_reconciliation` indefinitely.
+The standing Lervo goal completed and recorded an admitted `publish_result` decision, but the Node stopped before writing `work.supervision.delivery.queued`. A later repository-knowledge migration changed the supervision source digest. Recovery proved the immutable outbound had never entered the delivery queue, but the generic runtime could not supersede this effect kind and indefinitely reported `pending_decision_requires_reconciliation`.
 
 Re-executing the old decision would violate its source binding. Treating it as delivered would fabricate transport evidence. Editing the event journal would bypass the owner fence and canonical recovery contract.
 
 ## Decision
 
-- Permit `work.result_delivery.v1` and `work.result_delivery.v2` decisions to be superseded only when their exact deterministic queue event is absent and either their source changed or their deadline elapsed.
-- Record a version-8 `work.effect_absence` artifact containing the exact decision, plan, effect, replacement source, queue event, event head, observation time, and invalidation reason. It contains no result bytes, target, external message identifier, credential, or transport error.
-- Recheck the source digest, event head, active mandate, observation age, and queue-event absence under the owner lease before appending the existing `work.supervision.decision.superseded` event.
-- Validate both the absence artifact and continued queue-event absence when the decision journal replays after restart. A queued or observed delivery is never eligible for this path and retains the existing idempotent retry and replay rules.
+- Allow `work.result_delivery.v1` and `work.result_delivery.v2` decisions to be superseded only when their exact deterministic queue event is absent and either their source changed or their deadline elapsed.
+- Record a version-8 `work.effect_absence` artifact containing the exact decision, plan, effect, replacement source, queue event, event head, observation time, and invalidation reason. Exclude result bytes, target, external message identifier, credential, and transport error.
+- Under the owner lease, recheck the source digest, event head, active mandate, observation age, and queue-event absence before appending the existing `work.supervision.decision.superseded` event.
+- When the decision journal replays after restart, validate both the absence artifact and continued queue-event absence. Queued or observed delivery is never eligible and retains existing idempotent retry and replay rules.
 
 ## Consequences
 
@@ -23,7 +23,7 @@ An administrative repository event can no longer pin a completed goal between pu
 ## Verification
 
 - `result-delivery-absence` contract tests reject stale, malformed, differently bound, or extra-field evidence.
-- `supervision-result-delivery-supersession` records an admitted unqueued publication, changes the task source, proves queue absence under the owner fence, replays the journal as settled, and confirms that no queue event or transport call occurred.
+- `supervision-result-delivery-supersession` records an admitted unqueued publication, changes the task source, proves queue absence under the owner fence, replays the journal as settled, and confirms no queue event or transport call occurred.
 - Installed WSL verification resumes the previously blocked standing Lervo publication and returns Node supervision health to ready.
 
 ## References

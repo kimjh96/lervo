@@ -1,39 +1,8 @@
 # Responsibility claim supersession
 
-A `revise_responsibility` decision remains pending when its `work.responsibility_claim.v1` effect fails before any write. Exact acquisition is fenced and atomic, so failure before the transaction proves binding absence: no `work.responsibility.bound` event exists for the claim's deterministic binding identity, and the assignment record still matches the claim's expected hash.
+An unbound responsibility claim can be superseded when its source changes or its effective deadline expires, subject to fenced evidence validation.
 
-The Node supersedes such a claim only when its source changed or it expired. A claim expires at the earlier of its plan deadline and its responsibility `startDeadline`, because it can never bind at or after the start deadline. The plan deadline is the later completion deadline. The runtime reads the start deadline through the optional `readEffectStartDeadline` port and treats the pending decision as expired from that instant. Supersession requires the current owner fence, installed authority, and an unchanged event head at the fenced transition.
-
-Waiting for the plan deadline alone left a gap. After the start deadline, admission rejected the claim as stale on every cycle, while supersession still refused it for up to the whole completion window. Kael hit this on 2026-09-24 and failed a cycle every ten seconds for almost an hour.
-
-The version-7 `work.effect_absence` inspection contains exactly:
-
-- `schemaVersion`
-- `kind`
-- `effectContract`
-- `decisionId`
-- `planHash`
-- `effectHash`
-- `sourceRevisionDigest`
-- `assignmentId`
-- `assignmentSourceHash`
-- `bindingEventAbsent`
-- `eventHeadHash`
-- `observedAt`
-- `invalidatedBy`: `source_changed` or `deadline_expired`. `deadline_expired` is valid once `observedAt` reaches the earlier of the plan deadline and the start deadline of the exact claim effect.
-
-Supersession records the existing envelope-version-3 `work.supervision.decision.superseded` event; it introduces no new event type, prose, path, or credential. The decision journal validates the inspection using the same rules before treating the decision as superseded.
-
-Without this path, an unbound claim kept every later cycle in `pending_decision_requires_reconciliation` although nothing had happened. Supersession proves only that the claim never bound. It does not release a lease, prove a worker did not start, or admit a later claim.
-
-After supersession, the owner decides again over the current source. A successor responsibility whose completion window can no longer hold a bounded lease yields no automatic claim; the owner must propose a new responsibility or escalate.
-
-When an effect ends `uncertain`, the Node journal also receives the line `Lervo supervision effect uncertain (<actionKind> <effectContract>): <error name>: <first 400 characters of the message>`. For a managed dispatch without canonical dispatch evidence, the message ends with the worker CLI's own bounded failure reason and message, read from its last standard-error line. Canonical attention keeps only bounded reason codes. The line is host diagnostics, not evidence: it proves neither non-start nor the cause of a later supersession.
-
-The runtime skips a cycle whose source is unchanged since the last settled cycle until its next check. A skipped cycle repeats the settled disposition. A source that was `blocked`, for example by `owner_plan_unavailable`, stays `blocked` and keeps its attention health. Previously it read as `idle`, and Node health reported `ready` while the owner could not act. On 2026-09-24 this hid Kael's exhausted owner-spend epoch.
-
-On 2026-09-24 that journal line named the next Kael blocker: `contract_validation_failed`, because the CLI's managed run never supplied `createTargetTurnId`. Every managed request with more than one expected path was rejected before any provider turn, since each additional path needs its own target turn.
-
-The first real Claude worker run then failed with `provider_result_failed` for a different reason. With the default Opus model, the Claude SDK result keys `modelUsage` by the context-window variant `claude-opus-5-5[1m]`, while assistant messages carry `claude-opus-5-5`. The bracketed ID violates the provider model-identity pattern, so every Opus managed Claude turn result failed schema validation. The Claude adapter now reads such a usage key as its base model ID.
-
-On 2026-09-25, Kael's owner turn failed readiness with "The owner reasoning native runtime or login is not ready." The Claude OAuth access token lasts about eight hours, and Claude Code refreshes it only on a real request. Its `auth status` probe gave no usable answer once the stored access token lapsed, so an idle owner could never make the request that refreshes it. Claude login inspection now treats an unanswered status probe as present when the stored login has a refresh token valid for more than ten minutes. It reads only that token's presence and expiry. An explicit logout or a missing executable still blocks.
+- [Claim contract and absence evidence](claim-supersession/claim-contract.md)
+- [Uncertain-effect diagnostics](claim-supersession/uncertain-effect-diagnostics.md)
+- [Settled-cycle disposition](claim-supersession/settled-cycle-disposition.md)
+- [Managed worker and Claude recovery facts](claim-supersession/managed-worker-and-claude-recovery.md)

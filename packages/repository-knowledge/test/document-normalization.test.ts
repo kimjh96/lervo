@@ -651,6 +651,17 @@ describe("document content normalization", () => {
     await expect(
       access(resolve(root, ".lervo/knowledge/document-normalizations")),
     ).resolves.toBeUndefined();
+    const rewritten = (
+      await inspectConfiguredDocumentNormalization({ repositoryRoot: root })
+    ).records
+      .flatMap((record) => record.reviewedRewritePaths)
+      .sort();
+    expect(rewritten).toEqual(
+      expect.arrayContaining([
+        "docs/operations/runtime-guide.md",
+        "docs/operations/runtime-guide/start.md",
+      ]),
+    );
 
     calls.length = 0;
     const current = await compileConfiguredDocumentNormalizationCandidate({
@@ -661,6 +672,17 @@ describe("document content normalization", () => {
     expect(current.items).toEqual([]);
     expect(current.coverage.eligibleDocuments).toBe(0);
     expect(calls).toHaveLength(0);
+
+    // A later edit leaves the reviewed rewrite, so those bytes need fresh semantic assessment.
+    await writeFile(
+      resolve(root, "docs/operations/runtime-guide/start.md"),
+      "# Start\n\nEdited.\n",
+    );
+    expect(
+      (await inspectConfiguredDocumentNormalization({ repositoryRoot: root })).records.flatMap(
+        (record) => record.reviewedRewritePaths,
+      ),
+    ).not.toContain("docs/operations/runtime-guide/start.md");
   });
 
   it("rejects a skill rewrite that changes the portable skill identity", async () => {

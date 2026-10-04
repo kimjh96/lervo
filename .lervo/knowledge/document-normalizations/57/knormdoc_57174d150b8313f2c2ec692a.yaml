@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0865c15fc4ef59245f1fa87e
+compiler:
+  compilerBuildId: sha256:6282624d825e42bd8118c6b68e6e711d89c0a1579a5176427acd96a27817ab88
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e28a1298120cf3a0419f90da
+outputLanguage: en
+outputs:
+  - byteCount: 3310
+    contentHash: sha256:36740387f5304473e53ad3b570a2b9a2f5cd0d4256b9f1b6828a37aa968ddd47
+    path: docs/decisions/coordination/conversations/delivery/0425-separate-webhook-publication-from-task-control.md
+    userRegionHash: sha256:36740387f5304473e53ad3b570a2b9a2f5cd0d4256b9f1b6828a37aa968ddd47
+profile: decision_record
+recordId: knormdoc_57174d150b8313f2c2ec692a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:92ced1b8b82b4e690c986ca198a919f46f6bad1811f6a34efa19125947f44d37
+sourcePath: docs/decisions/coordination/conversations/delivery/0425-separate-webhook-publication-from-task-control.md
+sourceUnitVersionIds:
+  - uv_3145b2460e8f8c8f51b51d9a
+  - uv_92068b1331ac642cad06f75e
+  - uv_e561b775e82b5281424d6609
+  - uv_f450932e97c8f4e2baff4e5c
