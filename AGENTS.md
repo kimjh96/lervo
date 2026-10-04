@@ -57,7 +57,6 @@ Do not infer current validity from old conversations or observations. Ask only w
 If a fresh clone has no local or Hub-imported current workstream, recover the next bounded scope from `docs/roadmap/v0.md` and its linked active or planned roadmap. Do not ask the user for a bookkeeping command or assume no prior work. Create the recovered checkpoint before changing repository bytes.
 
 <!-- lervo:begin block=repository_instruction_routes schema=2 -->
-
 ## Repository instruction bootstrap
 
 - Read the verified current state with `lervo workstream current --context` before continuing repository work.
@@ -66,5 +65,4 @@ If a fresh clone has no local or Hub-imported current workstream, recover the ne
 - Translate explicit natural-language requests to hire, assign, inspect, resolve, hand off, or retire repository agents into `lervo agent`, `lervo assignment`, and workstream operations yourself; when authority or scope is ambiguous, record one bounded pending decision instead of guessing or asking for a bookkeeping command.
 - Resolve roles with `lervo role list|show|validate`; treat the six built-ins as templates, author a lazy `.lervo/roles/<role-id>.json` source when a requested repository role does not exist, and never bypass version, hash, capability, verification, or ancestry validation.
 - Register every subagent with its parent and apply the same durable identity, scoped lease, path-conflict, evidence, verification, and finalization contracts used for root agents.
-
 <!-- lervo:end block=repository_instruction_routes -->
