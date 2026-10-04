@@ -56,6 +56,8 @@ export const deliberationArtifactRecordedEventPayloadSchema = {
     contentHash: sha256Schema,
     writingPermitId: writingPublicationPermitIdSchema,
     artifact: deliberationArtifactSchema,
+    /** ADR-0460: absent on historical events, which readers treat as unverified. */
+    usageVerification: { type: "string", enum: ["verified", "unverified"] },
   },
   required: [
     "deliberationId",
@@ -146,6 +148,8 @@ const completedCommon = {
     maxItems: 100,
     uniqueItems: true,
   },
+  /** ADR-0460: participant roles whose every artifact has verified deliberation usage. */
+  verifiedParticipantCount: { type: "integer", minimum: 0, maximum: 32 },
 } as const;
 
 const completedRequired = [

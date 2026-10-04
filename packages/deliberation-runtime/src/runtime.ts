@@ -22,6 +22,11 @@ import { recordPublicationFailure } from "./publication-failure.js";
 import { restoreDeliberationRuntimeSnapshot } from "./runtime-snapshot.js";
 import { deliberationRootCausality } from "./causal-work.js";
 import {
+  deliberationArtifactUsageVerification,
+  verifiedDeliberationParticipantCount,
+  type DeliberationUsageVerification,
+} from "./usage-verification.js";
+import {
   DeliberationRuntimeError,
   type DeliberationRuntimeOptions,
   type DeliberationRuntimeResult,
@@ -42,6 +47,7 @@ export class DeliberationRuntime {
   private readonly artifacts: DeliberationArtifact[] = [];
   private readonly verificationEvidence: DeliberationVerificationEvidence[] = [];
   private readonly recordedEvents = new Map<string, string>();
+  private readonly usageVerification = new Map<string, DeliberationUsageVerification>();
   private readonly providerSessionRoles = new Map<string, string>();
   private readonly publishedArtifacts = new Map<
     string,
@@ -241,6 +247,11 @@ export class DeliberationRuntime {
       }
       throw error;
     }
+    const usageVerification = deliberationArtifactUsageVerification({
+      runId: run.session.runId,
+      provider: run.session.provider,
+      runEvents,
+    });
     const recordedEvent = this.recorder.append({
       type: "deliberation.artifact.recorded",
       coordinates: {
@@ -265,10 +276,12 @@ export class DeliberationRuntime {
         contentHash: published.artifact.content.contentHash,
         writingPermitId: published.artifact.writingPublicationPermit.permitId,
         artifact: published.artifact,
+        usageVerification,
       },
     });
     this.artifacts.push(clone(published.artifact));
     this.recordedEvents.set(published.artifact.deliberationArtifactId, recordedEvent.eventId);
+    this.usageVerification.set(published.artifact.deliberationArtifactId, usageVerification);
     this.providerSessionRoles.set(run.session.providerSessionId, run.session.roleId);
     if (evidence !== undefined) this.verificationEvidence.push(clone(evidence));
     return { ...published, recordedEvent };
@@ -318,6 +331,18 @@ export class DeliberationRuntime {
       verificationEvidence: this.verificationEvidence,
       outcome,
     });
+    if (
+      outcome.status === "converged" &&
+      this.artifacts.some(
+        (artifact) => this.usageVerification.get(artifact.deliberationArtifactId) !== "verified",
+      )
+    ) {
+      throw new DeliberationRuntimeError(
+        "runtime_state_invalid",
+        "deliberation_participant_unverified",
+        "A deliberation cannot converge on an artifact without verified deliberation usage.",
+      );
+    }
     const completedEvent = this.recorder.append({
       type: "deliberation.completed",
       coordinates: this.options.coordinates,
@@ -332,6 +357,10 @@ export class DeliberationRuntime {
         unresolvedBlockingObjectionIds: outcome.unresolvedBlockingObjectionIds,
         failurePhase: outcome.status === "failed" ? outcome.failure.phase : null,
         failureCode: outcome.status === "failed" ? outcome.failure.code : null,
+        verifiedParticipantCount: verifiedDeliberationParticipantCount(
+          this.artifacts,
+          this.usageVerification,
+        ),
       },
     });
     this.completed = true;
@@ -379,6 +408,11 @@ export class DeliberationRuntime {
     this.verificationEvidence.push(...restored.verificationEvidence);
     for (const [artifactId, eventId] of restored.recordedEvents) {
       this.recordedEvents.set(artifactId, eventId);
+      const recorded = this.options.events.get(eventId);
+      this.usageVerification.set(
+        artifactId,
+        recorded?.payload.usageVerification === "verified" ? "verified" : "unverified",
+      );
     }
     for (const [providerSessionId, roleId] of restored.providerSessionRoles) {
       this.providerSessionRoles.set(providerSessionId, roleId);

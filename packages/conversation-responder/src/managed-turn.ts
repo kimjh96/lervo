@@ -11,7 +11,10 @@ import {
   storeManagedConversationReply,
 } from "./managed-turn-artifact.js";
 import { readConversationMessage } from "./message-artifact.js";
-import { publishConversationResponse } from "./response-publication.js";
+import {
+  generatedReplyProviderClaim,
+  publishConversationResponse,
+} from "./response-publication.js";
 import { validateConversationResponsePlan } from "./request.js";
 import type {
   ManagedConversationResponsePlan,
@@ -84,6 +87,12 @@ export class ManagedConversationTurnResolver implements ManagedConversationTurnR
               ? {}
               : { maximumResponseCharacters: plan.maximumResponseCharacters }),
             ...(this.options.now === undefined ? {} : { now: this.options.now }),
+            providerClaim: generatedReplyProviderClaim({
+              provider: generated.modelIdentity.provider,
+              ...(this.options.verifiedDeliberation === undefined
+                ? {}
+                : { verifiedDeliberation: this.options.verifiedDeliberation }),
+            }),
           });
     if (replyCandidate !== null) replyCandidate.deliveryRelation = body.deliveryRelation;
     return {

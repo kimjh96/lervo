@@ -45,7 +45,7 @@ export interface ResourceGroupObservationV1 {
   schemaVersion: 1;
   provider: "codex" | "claude" | "lervo";
   scope: GovernedResourceScopeV1;
-  source: "provider_reported" | "lervo_measured";
+  source: "provider_reported" | "lervo_measured" | "estimated";
   accountingMode: "turn_cumulative" | "session_cumulative" | "operation_delta";
   accountingDescriptorHash: string;
   completeness: "complete" | "partial" | "unavailable" | "invalid";

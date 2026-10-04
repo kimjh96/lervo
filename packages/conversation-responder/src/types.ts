@@ -142,6 +142,8 @@ export interface ManagedConversationTurnResolution {
 export interface ManagedConversationTurnResolverOptions extends ManagedConversationArtifactRunnerOptions {
   semanticEvaluator?: WritingSemanticEvaluator;
   responseArtifacts?: ManagedConversationResponseArtifactPort;
+  /** Proves that a cited deliberation verified several providers' usage (ADR-0460). */
+  verifiedDeliberation?: (deliberationId: string) => boolean | Promise<boolean>;
   resolvePlan(
     input: ManagedConversationTurnRequest,
   ): Promise<ManagedConversationResponsePlan> | ManagedConversationResponsePlan;
@@ -167,6 +169,8 @@ export interface ManagedConversationResponderOptions {
   responseArtifacts?: ManagedConversationResponseArtifactPort;
   deadlines?: Partial<ManagedProviderRunDeadlines>;
   captureSnapshot?: CaptureRepositorySnapshot;
+  /** Proves that a cited deliberation verified several providers' usage (ADR-0460). */
+  verifiedDeliberation?: (deliberationId: string) => boolean | Promise<boolean>;
 }
 
 export interface ManagedConversationArtifactRunnerOptions {

@@ -88,7 +88,10 @@ export const workExecutionReportSchema = {
                   "improvement_evaluation",
                 ],
               },
-              source: { type: "string", enum: ["provider_reported", "lervo_measured"] },
+              source: {
+                type: "string",
+                enum: ["provider_reported", "lervo_measured", "estimated"],
+              },
               accountingMode: resourceAccountingModeSchema,
               accountingDescriptorHash: sha256Schema,
               completeness: completenessSchema,

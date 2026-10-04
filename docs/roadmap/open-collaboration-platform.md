@@ -25,6 +25,8 @@ Slices are ordered by dependency and by how quickly they stop ongoing damage. Ea
 | Measurement attribution and the two missing channels          | ADR-0459           | Discord repository-work turns and knowledge workers emit receipts and usage; `measurement_unavailable` never fires in a week                                      | `installed-proven`                         |
 | Deliberation usage verification and `provider_claim_unproven` | ADR-0460           | An artifact without complete `deliberation`-scope usage is `unverified`; a reply claiming two providers' opinions without a verified `dlb_` reference is repaired | `installed-proven`                         |
 
+Current labels: measurement attribution and the two missing channels is `wired`. Discord repository-work turns and knowledge workers now record an attributed `resource.usage.recorded` event and a selected-and-loaded context receipt, and `measurement_unavailable` fails the turn's completion gate; the evidence is unit and contract tests with fixture providers. Deliberation usage verification and `provider_claim_unproven` are `wired`: artifacts record `usageVerification`, convergence requires verified usage, the budget counts only complete usage of the expected scope, and unproven multi-provider replies are repaired. Both rows earn `installed-proven` only after their installed verification passes.
+
 ### Slice 1: core seams the open features land on
 
 | Item                                                                                                                                                           | Design   | Verification                                                                                             | Depends on                                               |

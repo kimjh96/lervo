@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import type { ProviderAdapter } from "@lervo/adapter-contract";
+import { resourceScopeForRelationship } from "@lervo/execution-contract";
 import {
   createCachedRepositorySnapshotCapture,
   ManagedProviderRunError,
@@ -292,7 +293,12 @@ export class ManagedDeliberationRunner {
     } finally {
       clearTimeout(timer);
     }
-    this.budget.observeCompletedRun(runId);
+    this.budget.observeCompletedRun(
+      runId,
+      resourceScopeForRelationship(
+        this.causalParent === undefined ? "root" : (input.workRelationship ?? "deliberation"),
+      ),
+    );
     const bytes = await this.storage.artifacts.get(run.resultArtifact.uri);
     const content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     if (

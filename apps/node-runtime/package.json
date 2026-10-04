@@ -28,6 +28,7 @@
     "@lervo/conversation-responder": "workspace:*",
     "@lervo/context": "workspace:*",
     "@lervo/core": "workspace:*",
+    "@lervo/deliberation-runtime": "workspace:*",
     "@lervo/discord-gateway": "workspace:*",
     "@lervo/adapter-claude": "workspace:*",
     "@lervo/adapter-codex": "workspace:*",

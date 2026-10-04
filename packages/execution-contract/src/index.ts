@@ -4,6 +4,7 @@ export * from "./limits.js";
 export * from "./resource-accounting.js";
 export * from "./resource-observation-reading.js";
 export * from "./stage-timing.js";
+export * from "./turn-measurement.js";
 export * from "./execution-environment.js";
 export * from "./types.js";
 export * from "./work-causality.js";

@@ -5,9 +5,12 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { FileSystemCas } from "@lervo/cas";
-import { adaptiveConversationWritingContract } from "@lervo/core";
+import {
+  adaptiveConversationWritingContract,
+  realtimeConversationWritingContract,
+} from "@lervo/core";
 
-import { publishConversationResponse } from "../src/index.js";
+import { generatedReplyProviderClaim, publishConversationResponse } from "../src/index.js";
 
 const roots: string[] = [];
 
@@ -55,5 +58,33 @@ describe("conversation response publication failures", () => {
         },
       }),
     ).rejects.toMatchObject({ code: "writing_publication_blocked" });
+  });
+
+  it("publishes a repaired single-provider reply when a two-provider claim is unproven", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-claim-"));
+    roots.push(root);
+    const artifacts = await FileSystemCas.open(root);
+    const stored = await artifacts.put(
+      Buffer.from("Sol thinks the rollout is safe. Opus disagrees about the timing.", "utf8"),
+    );
+    const candidate = await publishConversationResponse({
+      artifact: {
+        artifactId: `art_${stored.contentHash.slice("sha256:".length)}`,
+        uri: stored.uri,
+        mediaType: "text/markdown; charset=utf-8",
+        contentHash: stored.contentHash,
+        byteCount: stored.byteCount,
+      },
+      writingContract: realtimeConversationWritingContract,
+      artifactStore: artifacts,
+      providerClaim: generatedReplyProviderClaim({ provider: "claude" }),
+    });
+    expect(candidate.content.contentHash).not.toBe(stored.contentHash);
+    const published = new TextDecoder().decode(
+      await artifacts.get(`lervo-cas://sha256/${candidate.content.contentHash.slice(7)}`),
+    );
+    expect(published).toContain("Opus disagrees about the timing.");
+    expect(published).not.toContain("Sol");
+    expect(published).toContain("reflects the Claude provider's view only");
   });
 });
