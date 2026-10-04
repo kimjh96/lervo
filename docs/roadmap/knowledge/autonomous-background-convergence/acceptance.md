@@ -13,7 +13,7 @@ Checked gates have implementation evidence and focused tests. Shared provider co
 ## References
 
 - [ADR-0440: Complete execution evidence](../../../decisions/knowledge/repository/canonicalization/0440-page-complete-execution-evidence-for-canonicalization.md)
-- [Installed execution evidence](../../../evidence/quality/background-knowledge-convergence-implementation.md#complete-installed-execution-evidence)
+- [Installed execution evidence](../../../evidence/quality/background-knowledge-convergence-implementation/complete-execution-evidence.md)
 - [ADR-0437: Recent execution evidence](../../../decisions/knowledge/repository/0437-stream-validated-recent-execution-evidence.md)
 - [ADR-0443: Linked canonical contracts](../../../decisions/knowledge/repository/canonicalization/0443-load-linked-child-contracts-for-canonical-review.md)
 - [ADR-0359: Verification lease renewal](../../../decisions/execution/verification/0359-renew-assignment-leases-during-long-verification.md)
@@ -26,7 +26,7 @@ Checked gates have implementation evidence and focused tests. Shared provider co
 The source records these exact targets; the links above resolve them from this document:
 
 - `../../decisions/knowledge/repository/canonicalization/0440-page-complete-execution-evidence-for-canonicalization.md`
-- `../../evidence/quality/background-knowledge-convergence-implementation.md#complete-installed-execution-evidence`
+- `../../evidence/quality/background-knowledge-convergence-implementation/complete-execution-evidence.md`
 - `../../decisions/knowledge/repository/0437-stream-validated-recent-execution-evidence.md`
 - `../../decisions/knowledge/repository/canonicalization/0443-load-linked-child-contracts-for-canonical-review.md`
 - `../../decisions/execution/verification/0359-renew-assignment-leases-during-long-verification.md`
