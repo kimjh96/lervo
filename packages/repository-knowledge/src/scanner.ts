@@ -2,7 +2,7 @@ import { constants } from "node:fs";
 import { lstat, open, readdir } from "node:fs/promises";
 import { basename, extname, relative, resolve, sep } from "node:path";
 
-import { isIgnorableFilesystemMetadata } from "./filesystem-metadata.js";
+import { isIgnorableFilesystemMetadata, isNestedGitWorkingTree } from "./filesystem-metadata.js";
 import { knowledgeScannerExcludes } from "./knowledge-intake-policy.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { loadDocumentMoveLineages } from "./source-lineage.js";
@@ -570,7 +570,7 @@ export async function scanRepositoryKnowledge(input: {
         continue;
       }
       if (entry.isDirectory()) {
-        await walk(absolute);
+        if (!(await isNestedGitWorkingTree(absolute))) await walk(absolute);
         continue;
       }
       if (!entry.isFile()) continue;

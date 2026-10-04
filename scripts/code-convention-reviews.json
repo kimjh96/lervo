@@ -284,9 +284,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:5675a47c0da3b92dcabbb4c5288b6651628dc0f7319c7bcfbf39e65e1557397b",
+      "contentHash": "sha256:223c782ff20154c5a620d041357df81747dbca7381a6402f3f4aefb8a776e867",
       "responsibility": "Bounded repository knowledge scanner",
-      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate. Inclusion matching and the cache-name decision live in the shared knowledge intake policy; no independent transport or provider concern was added.",
+      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate. Inclusion matching and the cache-name decision live in the shared knowledge intake policy, and nested working-tree detection lives in the filesystem metadata module; no independent transport or provider concern was added.",
       "disposition": "cohesive"
     },
     {
