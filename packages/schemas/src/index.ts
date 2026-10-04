@@ -18,6 +18,7 @@ export * from "./conversation-participation.js";
 export * from "./conversation-repository-work-event.js";
 export * from "./conversation-repository-knowledge-event.js";
 export * from "./repository-change-event.js";
+export * from "./repository-replica-event.js";
 export * from "./deliberation-artifact.js";
 export * from "./deliberation-event.js";
 export * from "./deliberation-outcome.js";

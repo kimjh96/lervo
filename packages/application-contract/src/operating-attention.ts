@@ -61,12 +61,25 @@ export interface KnowledgeLifecycleAttentionItemV1 extends OperatingAttentionIte
   detail: string | null;
 }
 
+/** One open repository replica divergence identity (ADR-0456); at most one per replica. */
+export interface RepositoryReplicaDivergenceAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "repository_replica_divergence";
+  state: "action_required";
+  replicaId: string;
+  divergenceId: string;
+  reason: "no_common_history" | "conflicting_paths" | "merge_unavailable";
+  conflictPathCount: number;
+  conflictPaths: string[];
+  openedAt: string;
+}
+
 export type OperatingAttentionItemV1 =
   | WorkstreamDecisionAttentionItemV1
   | WorkstreamApprovalAttentionItemV1
   | WorkstreamBlockerAttentionItemV1
   | CanonicalizationAttentionItemV1
-  | KnowledgeLifecycleAttentionItemV1;
+  | KnowledgeLifecycleAttentionItemV1
+  | RepositoryReplicaDivergenceAttentionItemV1;
 
 export interface OperatingAttentionReportV1 {
   schemaVersion: 1;
