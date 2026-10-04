@@ -62,8 +62,10 @@ async function promotedSkillPackage(
   return value;
 }
 
+/** `version` applies only to a generated manifest; an authored manifest keeps its own version. */
 export async function readMigratedSkillPackage(
   directoryPath: string,
+  version = "1.0.0",
 ): Promise<VerifiedCapabilityPackage | null> {
   const promoted = await promotedSkillPackage(directoryPath);
   if (promoted !== null) return promoted;
@@ -79,7 +81,7 @@ export async function readMigratedSkillPackage(
     skill = {
       schemaVersion: 1,
       skillId: skillName(text, directoryPath),
-      version: "1.0.0",
+      version,
       contentHash,
       source: {
         kind: "project",

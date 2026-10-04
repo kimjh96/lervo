@@ -64,31 +64,90 @@ async function sourceDirectories(root: string): Promise<string[]> {
   }
 }
 
+function packagePath(root: string, capabilityId: string, version: string): string {
+  return resolve(capabilityRoot(root, "project"), `${encodeURIComponent(capabilityId)}@${version}`);
+}
+
+async function installedPackage(path: string): Promise<VerifiedCapabilityPackage | null> {
+  try {
+    return await readCapabilityPackage(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+/** Installed project versions of one capability, in ascending semantic-version order. */
+async function installedVersions(root: string, capabilityId: string): Promise<string[]> {
+  const prefix = `${encodeURIComponent(capabilityId)}@`;
+  let names: string[];
+  try {
+    names = await readdir(capabilityRoot(root, "project"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  return names
+    .filter((name) => name.startsWith(prefix) && /^\d+\.\d+\.\d+$/u.test(name.slice(prefix.length)))
+    .map((name) => name.slice(prefix.length))
+    .sort((left, right) => {
+      const [a, b] = [left, right].map((value) => value.split(".").map(Number));
+      return a![0]! - b![0]! || a![1]! - b![1]! || a![2]! - b![2]!;
+    });
+}
+
+/**
+ * A loose skill without an authored manifest is versioned by Lervo. Editing it after migration
+ * creates the next patch version instead of conflicting forever with its immutable predecessor;
+ * bytes equal to an installed version reuse that version. Authored versions still conflict.
+ */
+async function migratedSkillPackage(
+  root: string,
+  directory: string,
+): Promise<{ value: VerifiedCapabilityPackage; action: CapabilityMigrationItem["action"] } | null> {
+  const authored = await readMigratedSkillPackage(directory);
+  if (authored === null) return null;
+  const generated =
+    !(await exists(resolve(directory, "lervo-skill.json"))) &&
+    !(await exists(resolve(directory, "lervo-capability.json")));
+  const versions = generated
+    ? await installedVersions(root, authored.manifest.capabilityId)
+    : [authored.manifest.version];
+  for (const version of versions) {
+    const value = generated ? await readMigratedSkillPackage(directory, version) : authored;
+    const current = await installedPackage(
+      packagePath(root, authored.manifest.capabilityId, version),
+    );
+    if (value === null || current === null) continue;
+    if (hashCapabilityPackageFiles(current.files) === hashCapabilityPackageFiles(value.files))
+      return { value, action: "unchanged" };
+    if (!generated)
+      throw new CapabilityPackageError(
+        "capability_conflict",
+        `Capability '${authored.manifest.capabilityId}' already has different bytes at ${version}.`,
+      );
+  }
+  const latest = versions.at(-1);
+  const next =
+    !generated || latest === undefined
+      ? authored.manifest.version
+      : latest.replace(/\d+$/u, (patch) => String(Number(patch) + 1));
+  const value = generated ? await readMigratedSkillPackage(directory, next) : authored;
+  return value === null ? null : { value, action: "create" };
+}
+
 export async function createCapabilityMigrationPlan(
   repositoryRoot: string,
 ): Promise<CapabilityMigrationPlan> {
   const root = resolve(repositoryRoot);
   const packages = (
-    await Promise.all((await sourceDirectories(root)).map(readMigratedSkillPackage))
-  ).filter((item): item is VerifiedCapabilityPackage => item !== null);
+    await Promise.all(
+      (await sourceDirectories(root)).map((directory) => migratedSkillPackage(root, directory)),
+    )
+  ).filter((item) => item !== null);
   const items: CapabilityMigrationItem[] = [];
-  for (const value of packages) {
-    const targetPath = resolve(
-      capabilityRoot(root, "project"),
-      `${encodeURIComponent(value.manifest.capabilityId)}@${value.manifest.version}`,
-    );
-    let action: CapabilityMigrationItem["action"] = "create";
-    try {
-      const current = await readCapabilityPackage(targetPath);
-      if (hashCapabilityPackageFiles(current.files) !== hashCapabilityPackageFiles(value.files))
-        throw new CapabilityPackageError(
-          "capability_conflict",
-          `Capability '${value.manifest.capabilityId}' already has different bytes at ${value.manifest.version}.`,
-        );
-      action = "unchanged";
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    }
+  for (const { value, action } of packages) {
+    const targetPath = packagePath(root, value.manifest.capabilityId, value.manifest.version);
     items.push({
       sourcePath: `.agents/skills/${basename(value.directoryPath)}`,
       targetPath: `.lervo/capabilities/packages/${basename(targetPath)}`,
@@ -143,6 +202,7 @@ export async function applyCapabilityMigration(
   for (const item of current.items.filter((value) => value.action === "create")) {
     const packageValue = await readMigratedSkillPackage(
       resolve(current.repositoryRoot, item.sourcePath),
+      item.version,
     );
     if (
       packageValue === null ||

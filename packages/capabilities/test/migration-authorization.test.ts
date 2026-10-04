@@ -177,3 +177,32 @@ it("treats manifest-only changes as immutable package conflicts", async () => {
     }),
   ).rejects.toMatchObject({ code: "capability_conflict" });
 });
+
+it("versions an edited loose skill instead of conflicting with its migrated predecessor", async () => {
+  const repositoryRoot = await mkdtemp(resolve(tmpdir(), "lervo-loose-migration-"));
+  roots.push(repositoryRoot);
+  const skillRoot = resolve(repositoryRoot, ".agents/skills/table-check");
+  await mkdir(skillRoot, { recursive: true });
+  const write = (body: string) =>
+    writeFile(
+      resolve(skillRoot, "SKILL.md"),
+      `---\nname: table-check\ndescription: Check tables.\n---\n${body}`,
+    );
+  await write("| a | b |\n");
+  const first = await createCapabilityMigrationPlan(repositoryRoot);
+  expect(first.items.map((item) => [item.version, item.action])).toEqual([["1.0.0", "create"]]);
+  await applyCapabilityMigration(first);
+  await write("| a  | b  |\n");
+  const edited = await createCapabilityMigrationPlan(repositoryRoot);
+  expect(edited.items.map((item) => [item.version, item.action])).toEqual([["1.0.1", "create"]]);
+  await applyCapabilityMigration(edited);
+  expect((await createCapabilityMigrationPlan(repositoryRoot)).status).toBe("current");
+  await readCapabilityPackage(
+    resolve(capabilityRoot(repositoryRoot, "project"), "table-check@1.0.1"),
+  );
+  await write("| a | b |\n");
+  const reverted = await createCapabilityMigrationPlan(repositoryRoot);
+  expect(reverted.items.map((item) => [item.version, item.action])).toEqual([
+    ["1.0.0", "unchanged"],
+  ]);
+});
