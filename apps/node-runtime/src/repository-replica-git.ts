@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdtemp, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -109,12 +109,20 @@ export async function captureRepositoryReplicaSnapshot(
     );
     try {
       await copyFile(indexPath, temporaryIndex);
+      // Git re-hashes entries modified at or after the index timestamp (racy entries). The copy
+      // must never look newer than the original, or a same-size edit made in the timestamp tick
+      // of the last index write would be trusted by stale stat data. Earlier is always safe.
+      const racyBefore = Math.floor((await stat(indexPath)).mtimeMs / 1_000) - 1;
+      await utimes(temporaryIndex, racyBefore, racyBefore);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       await git(repositoryRoot, ["read-tree", "--empty"], { environment });
     }
     const indexTree = text(await git(repositoryRoot, ["write-tree"], { environment }));
-    await git(repositoryRoot, ["read-tree", "HEAD"], { environment });
+    // A reset keeps the copied index's stat data for entries that already match HEAD, so staging
+    // re-hashes only files whose metadata changed instead of the whole worktree. Plain
+    // `read-tree HEAD` produces the same entries but discards every stat entry.
+    await git(repositoryRoot, ["read-tree", "--reset", "HEAD"], { environment });
     await git(repositoryRoot, ["add", "-A", "--", "."], { environment });
     // Host-local paths keep exactly their HEAD entries, whatever the ignore rules say.
     await git(repositoryRoot, ["reset", "-q", "HEAD", "--", ...HOST_LOCAL_PATHSPECS], {

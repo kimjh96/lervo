@@ -22,19 +22,12 @@ import {
   type RepositoryReplicaFailure,
   type RepositoryReplicaStage,
 } from "./repository-replica-failure.js";
-import {
-  applyRepositoryReplicaBundle,
-  captureRepositoryReplicaSnapshot,
-  createRepositoryReplicaBundle,
-} from "./repository-replica-git.js";
-import {
-  mergeRepositoryReplicaBundle,
-  type RepositoryReplicaConflictPolicy,
-  type RepositoryReplicaMergeResult,
+import type {
+  RepositoryReplicaConflictPolicy,
+  RepositoryReplicaMergeResult,
 } from "./repository-replica-merge.js";
 import {
   recordRepositoryReplicaAttention,
-  writeRepositoryReplicaReceipt,
   type RepositoryReplicaReceipt,
 } from "./repository-replica-receipt.js";
 
@@ -116,47 +109,32 @@ export class RepositoryReplicaCycleError extends Error {
   }
 }
 
-export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
-  snapshot(repositoryRoot: string) {
-    return captureRepositoryReplicaSnapshot(repositoryRoot);
-  }
-
-  bundle(repositoryRoot: string, expectedSnapshotHash: string) {
-    return createRepositoryReplicaBundle(repositoryRoot, expectedSnapshotHash);
-  }
-
-  apply(input: {
-    repositoryRoot: string;
-    bundle: Uint8Array;
-    expectedCurrentSnapshotHash: string;
-  }) {
-    return applyRepositoryReplicaBundle(input);
-  }
-
-  merge(input: {
-    repositoryRoot: string;
-    bundle: Uint8Array;
-    expectedCurrentSnapshotHash: string;
-  }) {
-    return mergeRepositoryReplicaBundle(input);
-  }
-
-  recordReceipt(input: RepositoryReplicaReceipt): Promise<void> {
-    return writeRepositoryReplicaReceipt(input);
-  }
-}
+/**
+ * Why a cycle runs. A `recovery` cycle comes from the reconciliation timer with no observed
+ * change; only such a cycle may skip rewriting an identical peer receipt.
+ */
+export type RepositoryReplicaCycleTrigger = "change" | "recovery";
 
 interface CycleInput {
   replicaId: string;
   localRoot: string;
   peerRoot: string;
   conflictPolicy: RepositoryReplicaConflictPolicy;
+  trigger: RepositoryReplicaCycleTrigger;
+}
+
+/** Receipt identity without its timestamp; equal identities prove the same parity. */
+function receiptIdentity(receipt: RepositoryReplicaReceipt): string {
+  const { reconciledAt: _reconciledAt, ...identity } = receipt;
+  return JSON.stringify(identity);
 }
 
 export class RepositoryReplicaCoordinator {
   private readonly state: RepositoryReplicaCoordinatorStateFile;
   private readonly divergences: RepositoryReplicaDivergenceLedger;
   private readonly now: () => Date;
+  /** The last peer receipt identity this process wrote, per replica. */
+  private readonly peerReceipts = new Map<string, string>();
 
   constructor(
     private readonly options: {
@@ -191,6 +169,7 @@ export class RepositoryReplicaCoordinator {
     localRoot: string;
     peerRoot: string;
     conflictPolicy?: RepositoryReplicaConflictPolicy;
+    trigger?: RepositoryReplicaCycleTrigger;
   }): Promise<RepositoryReplicaCycleResult> {
     if (!REPOSITORY_REPLICA_ID.test(input.replicaId)) {
       throw new RepositoryReplicaCoordinatorError(
@@ -200,7 +179,14 @@ export class RepositoryReplicaCoordinator {
     }
     const stage: { current: RepositoryReplicaStage } = { current: "snapshot" };
     try {
-      return await this.cycle({ ...input, conflictPolicy: input.conflictPolicy ?? "hold" }, stage);
+      return await this.cycle(
+        {
+          ...input,
+          conflictPolicy: input.conflictPolicy ?? "hold",
+          trigger: input.trigger ?? "change",
+        },
+        stage,
+      );
     } catch (error) {
       const failure = describeRepositoryReplicaFailure(error, stage.current);
       let receiptRecorded = true;
@@ -334,10 +320,15 @@ export class RepositoryReplicaCoordinator {
       // false dual divergence from the older common snapshot.
       await this.recordReconciliation(input.replicaId, transferredSnapshotHash, reconciledAt);
     }
-    const [verifiedLocal, verifiedPeer] = await Promise.all([
-      this.options.local.snapshot(input.localRoot),
-      this.options.peer.snapshot(input.peerRoot),
-    ]);
+    // Without a transfer both sides were just observed equal; observing them again proves nothing
+    // more, and a later change reaches the next cycle through its hint or recovery sweep.
+    const [verifiedLocal, verifiedPeer] =
+      transferredSnapshotHash === null
+        ? [local, peer]
+        : await Promise.all([
+            this.options.local.snapshot(input.localRoot),
+            this.options.peer.snapshot(input.peerRoot),
+          ]);
     if (verifiedLocal.snapshotHash !== verifiedPeer.snapshotHash) {
       if (transferredSnapshotHash !== null)
         return {
@@ -363,13 +354,23 @@ export class RepositoryReplicaCoordinator {
       reconciledAt,
       status,
     });
+    // The peer imported the merged result, so its receipt keeps the established push status.
+    const peerReceipt: RepositoryReplicaReceipt = {
+      ...receipt(input.peerRoot),
+      status: status === "merged" ? "pushed" : status,
+    };
+    const peerIdentity = receiptIdentity(peerReceipt);
+    const peerReceiptUnchanged =
+      input.trigger === "recovery" &&
+      status === "current" &&
+      this.peerReceipts.get(input.replicaId) === peerIdentity;
     await Promise.all([
       this.options.local.recordReceipt(receipt(input.localRoot)),
-      // The peer imported the merged result, so its receipt keeps the established push status.
-      this.options.peer.recordReceipt({
-        ...receipt(input.peerRoot),
-        status: status === "merged" ? "pushed" : status,
-      }),
+      peerReceiptUnchanged
+        ? Promise.resolve()
+        : this.options.peer.recordReceipt(peerReceipt).then(() => {
+            this.peerReceipts.set(input.replicaId, peerIdentity);
+          }),
     ]);
     const reconciled = await this.divergences.observeParity({
       replicaId: input.replicaId,

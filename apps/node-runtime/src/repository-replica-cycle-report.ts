@@ -21,6 +21,8 @@ export interface RepositoryReplicaHealthSnapshot {
   schemaVersion: 1;
   status: "ready" | "degraded";
   updatedAt: string;
+  /** Current idle recovery sweep interval in watch mode; informational only. */
+  recoveryIntervalMs?: number;
   replicas: Record<string, RepositoryReplicaHealthEntry>;
 }
 
@@ -145,7 +147,7 @@ export class RepositoryReplicaCycleReporter {
     };
   }
 
-  snapshot(now: Date): RepositoryReplicaHealthSnapshot {
+  snapshot(now: Date, recoveryIntervalMs?: number): RepositoryReplicaHealthSnapshot {
     const replicas = Object.fromEntries(
       [...this.health.entries()].sort(([left], [right]) => left.localeCompare(right)),
     );
@@ -157,6 +159,7 @@ export class RepositoryReplicaCycleReporter {
         ? "degraded"
         : "ready",
       updatedAt: now.toISOString(),
+      ...(recoveryIntervalMs === undefined ? {} : { recoveryIntervalMs }),
       replicas,
     };
   }

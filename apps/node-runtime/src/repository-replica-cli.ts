@@ -3,10 +3,8 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { readRepositoryReplicaCoordinatorConfig } from "./repository-replica-config.js";
-import {
-  LocalRepositoryReplicaPeer,
-  type RepositoryReplicaReceipt,
-} from "./repository-replica-coordinator.js";
+import { type RepositoryReplicaReceipt } from "./repository-replica-coordinator.js";
+import { LocalRepositoryReplicaPeer } from "./repository-replica-local-peer.js";
 import { runRepositoryReplicaCoordinator } from "./repository-replica-coordinator-run.js";
 import {
   describeRepositoryReplicaFailure,
@@ -15,9 +13,9 @@ import {
 } from "./repository-replica-failure.js";
 import {
   applyRepositoryReplicaBundle,
-  captureRepositoryReplicaSnapshot,
   createRepositoryReplicaBundle,
 } from "./repository-replica-git.js";
+import { observeRepositoryReplicaSnapshot } from "./repository-replica-snapshot-cache.js";
 import { publishRepositoryChangeHints } from "./repository-replica-watch.js";
 
 export interface RepositoryReplicaCliPorts {
@@ -77,7 +75,7 @@ async function runPeerAction(
 ): Promise<void> {
   const root = resolve(ports.cwd, oneOption(args, "--root"));
   if (action === "snapshot") {
-    ports.stdout(`${JSON.stringify(await captureRepositoryReplicaSnapshot(root))}\n`);
+    ports.stdout(`${JSON.stringify(await observeRepositoryReplicaSnapshot(root))}\n`);
     return;
   }
   if (action === "bundle") {

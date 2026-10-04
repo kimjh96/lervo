@@ -1,6 +1,11 @@
 import { ChangeWakeup } from "./change-wakeup.js";
 import { RepositoryReconciliationPool } from "./repository-reconciliation-pool.js";
 import { watchRepositoryChanges } from "./repository-change-watch.js";
+import type { RepositoryReplicaCycleTrigger } from "./repository-replica-coordinator.js";
+import {
+  ReplicaRecoveryBackoff,
+  type ReplicaReconcileOutcome,
+} from "./repository-replica-recovery-backoff.js";
 import type { SshRepositoryReplicaPeer } from "./repository-replica-ssh-peer.js";
 
 type WatchedRepository = {
@@ -14,27 +19,54 @@ export async function watchReplicaReconciliation(input: {
   repositories: WatchedRepository[];
   peer: SshRepositoryReplicaPeer;
   fallbackIntervalMs: number;
+  /** Idle recovery back-off ceiling; omitted keeps a fixed recovery interval. */
+  idleRecoveryCeilingMs?: number;
   maximumConcurrency?: number;
   watch: boolean;
   peerWatch?: boolean;
   signal?: AbortSignal;
-  reconcile(repository: WatchedRepository): Promise<void>;
+  onRecoveryInterval?(recoveryIntervalMs: number): void;
+  reconcile(
+    repository: WatchedRepository,
+    context: { trigger: RepositoryReplicaCycleTrigger },
+  ): Promise<ReplicaReconcileOutcome | void>;
 }): Promise<void> {
   const wakeup = new ChangeWakeup();
+  const baseRecoveryIntervalMs = input.peerWatch === false ? input.fallbackIntervalMs : 60_000;
+  const backoff = new ReplicaRecoveryBackoff(
+    input.repositories.map((repository) => repository.replicaId),
+    baseRecoveryIntervalMs,
+    input.idleRecoveryCeilingMs ?? baseRecoveryIntervalMs,
+  );
+  // Only a watching coordinator runs recovery sweeps, so only it reports their interval.
+  const reportInterval = (intervalMs: number) => {
+    if (input.watch) input.onRecoveryInterval?.(intervalMs);
+  };
+  reportInterval(backoff.recoveryIntervalMs);
+  const hinted = new Set<string>();
+  let reconcileBy = Date.now() + baseRecoveryIntervalMs;
+  const recoverAtBase = () => {
+    reconcileBy = Math.min(reconcileBy, Date.now() + backoff.recoveryIntervalMs);
+    reportInterval(backoff.recoveryIntervalMs);
+  };
   const pool = new RepositoryReconciliationPool(input.repositories, {
     concurrency: input.maximumConcurrency ?? 4,
     coalesceMs: 250,
-    reconcile: input.reconcile,
+    reconcile: async (repository) => {
+      const trigger = hinted.delete(repository.replicaId) ? "change" : "recovery";
+      const outcome = (await input.reconcile(repository, { trigger })) ?? "not_current";
+      if (backoff.observe(repository.replicaId, outcome)) recoverAtBase();
+    },
     notify: () => wakeup.notify(),
   });
   const localStops: Array<() => void> = [];
   const remote = new Map<string, { stop: () => void; ready: boolean; retryAt: number }>();
   let localAvailable = true;
-  const recoveryIntervalMs = input.peerWatch === false ? input.fallbackIntervalMs : 60_000;
-  let reconcileBy = Date.now() + recoveryIntervalMs;
   let fallbackBy: number | null = null;
   let startup = true;
   const changed = (id: string) => {
+    hinted.add(id);
+    if (backoff.reset()) recoverAtBase();
     pool.notify(id);
   };
   try {
@@ -58,8 +90,13 @@ export async function watchReplicaReconciliation(input: {
     }
     while (!input.signal?.aborted) {
       if (Date.now() >= reconcileBy) {
-        if (pool.idle()) pool.notifyAll();
-        reconcileBy = Date.now() + recoveryIntervalMs;
+        let delay = backoff.recoveryIntervalMs;
+        if (pool.idle()) {
+          pool.notifyAll();
+          delay = backoff.sweep();
+          reportInterval(delay);
+        }
+        reconcileBy = Date.now() + delay;
       }
       if (fallbackBy !== null && Date.now() >= fallbackBy) {
         if (pool.idle()) pool.notifyAll();
