@@ -115,6 +115,45 @@ it("freezes a previously registered stopped Node only with exact inactive author
   }
 });
 
+it("keeps a gracefully stopped Node eligible for exact inactive recovery", async () => {
+  const { first, second, scope, configDigest } = await fixture();
+  try {
+    const session = first.registerSession({ scope, configDigest, ownerPid: 1001 });
+    const frozen = second.tryFreeze({ scope, configDigest, ownerPid: 2001 });
+    if (frozen.status !== "frozen") throw new Error("The idle Node was not frozen.");
+    expect(second.unfreeze(frozen.freeze)).toBe(true);
+    // An interrupted upgrade can release its freeze before the old process finishes stopping.
+    first.unregisterSession(session);
+
+    expect(second.tryFreeze({ scope, configDigest, ownerPid: 2001 })).toEqual({
+      status: "busy",
+      reason: "session_missing",
+    });
+    expect(
+      second.tryFreeze({
+        scope,
+        configDigest: `sha256:${"b".repeat(64)}`,
+        ownerPid: 2001,
+        allowNoSession: true,
+      }),
+    ).toEqual({ status: "busy", reason: "session_conflict" });
+    const recovered = second.tryFreeze({
+      scope,
+      configDigest,
+      ownerPid: 2001,
+      allowNoSession: true,
+    });
+    if (recovered.status !== "frozen") throw new Error("The stopped Node was not recoverable.");
+    const replacement = first.registerSession({ scope, configDigest, ownerPid: 3001 });
+    expect(first.tryAcquireWork(replacement)).toBeNull();
+    expect(second.unfreeze(recovered.freeze)).toBe(true);
+    first.unregisterSession(replacement);
+  } finally {
+    first.close();
+    second.close();
+  }
+});
+
 it("recovers only dead owners and never discards a live work claim", async () => {
   const { first, second, scope, configDigest, live } = await fixture();
   try {

@@ -278,16 +278,15 @@ export class SQLiteNodeWorkAdmission {
     });
   }
 
+  /**
+   * Ends one live session but retains its scope row: the row is the participation record
+   * that lets a verified-inactive upgrade recover after a graceful stop, exactly as after a crash.
+   */
   unregisterSession(session: NodeWorkSession): void {
     this.transaction(() => {
       this.database
         .prepare("DELETE FROM node_work_session WHERE token = ? AND scope = ? AND owner_pid = ?")
         .run(session.token, session.scope, session.ownerPid);
-      this.database
-        .prepare(
-          "DELETE FROM node_work_scope WHERE scope = ? AND freeze_token IS NULL AND NOT EXISTS (SELECT 1 FROM node_work_session WHERE scope = ?)",
-        )
-        .run(session.scope, session.scope);
     });
   }
 
