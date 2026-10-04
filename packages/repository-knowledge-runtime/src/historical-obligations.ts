@@ -65,6 +65,12 @@ async function changedPathsForEvent(
   return paths as string[];
 }
 
+const HISTORICAL_EVENT_TYPES = [
+  "repository.change.completed",
+  "repository.knowledge.resolved",
+  "repository.knowledge.convergence.recorded",
+] as const;
+
 /** Old attention outcomes and dropped queue admissions stay visible until a later baseline covers them. */
 export async function historicalObligations(
   events: OutboxStore,
@@ -77,7 +83,7 @@ export async function historicalObligations(
   >();
   let afterSeq = 0;
   for (;;) {
-    const page = events.list({ afterSeq, limit: 1_000 });
+    const page = events.list({ afterSeq, limit: 1_000, types: HISTORICAL_EVENT_TYPES });
     if (page.length === 0) break;
     for (const event of page) {
       afterSeq = event.seq;
