@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8904281924bfb4556e6476cc
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3d38d62d7e744e21eab83d53
+outputLanguage: en
+outputs:
+  - byteCount: 478
+    contentHash: sha256:0d715bf14d58e521efb3ec5289a38e8dcd2893709df070fea78f059a4522c010
+    path: docs/roadmap/product-outcome-convergence/execution/bounded-work-graph.md
+    userRegionHash: sha256:0d715bf14d58e521efb3ec5289a38e8dcd2893709df070fea78f059a4522c010
+profile: roadmap_document
+recordId: knormdoc_cb6b2b4c1bcaa96f2eb0497a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c7e3733f68aa5f9f41bfc692388b75b7f76af5905bf9beee3a618d4b08cc000a
+sourcePath: docs/roadmap/product-outcome-convergence/execution/bounded-work-graph.md
+sourceUnitVersionIds:
+  - uv_5fc56ee96065424a4869d1f7

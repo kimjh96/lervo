@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b2a933815fbf78364d9a9d68
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6d54d3c3e4dce0fb7a16f39f
+outputLanguage: en
+outputs:
+  - byteCount: 510
+    contentHash: sha256:cc68662a8fffa192762734637116c1347f7400e5196be3fc131d59efd5d6ab65
+    path: docs/roadmap/product-outcome-convergence/execution/portable-continuation.md
+    userRegionHash: sha256:cc68662a8fffa192762734637116c1347f7400e5196be3fc131d59efd5d6ab65
+profile: roadmap_document
+recordId: knormdoc_3f5b7f6b3fcde1745801c92f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:cc68662a8fffa192762734637116c1347f7400e5196be3fc131d59efd5d6ab65
+sourcePath: docs/roadmap/product-outcome-convergence/execution/portable-continuation.md
+sourceUnitVersionIds:
+  - uv_5d7097c09ff629a1f0d3208b

@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d025fe170c4d36d1ca95d754
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_325ca5214c5f8115ea102ac9
+outputLanguage: en
+outputs:
+  - byteCount: 405
+    contentHash: sha256:179265d9d71784cc71587a2cf3c58866895a65e11d37fa885445cc29db763b13
+    path: docs/specifications/coordination/hub-and-node/event-streams.md
+    userRegionHash: sha256:179265d9d71784cc71587a2cf3c58866895a65e11d37fa885445cc29db763b13
+  - byteCount: 421
+    contentHash: sha256:b4a990d3cec5c47f927f3e8984e6e06b30eaa11a562869101db875ba95c30a7a
+    path: docs/specifications/coordination/hub-and-node/event-streams/destination-chains.md
+    userRegionHash: sha256:b4a990d3cec5c47f927f3e8984e6e06b30eaa11a562869101db875ba95c30a7a
+  - byteCount: 728
+    contentHash: sha256:efa0d1b7921940a38ee32cc7a45c0382e2feecc19bd49be9547d913faea71d2e
+    path: docs/specifications/coordination/hub-and-node/event-streams/reader-compatibility.md
+    userRegionHash: sha256:efa0d1b7921940a38ee32cc7a45c0382e2feecc19bd49be9547d913faea71d2e
+  - byteCount: 626
+    contentHash: sha256:8ee5a0eb742f14b69db3ce5a4c5827f529f20df98b32c47c3b6d2d1e2c6f0c73
+    path: docs/specifications/coordination/hub-and-node/event-streams/writer-activation.md
+    userRegionHash: sha256:8ee5a0eb742f14b69db3ce5a4c5827f529f20df98b32c47c3b6d2d1e2c6f0c73
+profile: specification_document
+recordId: knormdoc_39aff28cdcb95049f2cf1b85
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7eb126d4b18cb1669597f0722a0fb83899a97b9b1b0cdd23d67b6456f86c83bd
+sourcePath: docs/specifications/coordination/hub-and-node/event-streams.md
+sourceUnitVersionIds:
+  - uv_1a06b9237170cce085642b92
+  - uv_3a65ab16964e0044dd718be4
+  - uv_5f8a71cf5baffe3eba73ba55
+  - uv_719f0e6e747c67fc6ad5d69a

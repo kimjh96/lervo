@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9af0d57ff24c7740d43de660
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a286a7cb5dbd97c2dd28614e
+outputLanguage: en
+outputs:
+  - byteCount: 1240
+    contentHash: sha256:32296cdfe134e89c6f2f47f23eaa9d5bf19ef1431c729bb1dee81c8e46d97fe7
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/background-and-history/background-lifecycle.md
+    userRegionHash: sha256:32296cdfe134e89c6f2f47f23eaa9d5bf19ef1431c729bb1dee81c8e46d97fe7
+profile: specification_document
+recordId: knormdoc_0239712b55b0f7f4e924930e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:822512a22c12651ceddcb44a34f67a83e5427f362c2c53841fd2c95edb735227
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/background-and-history/background-lifecycle.md
+sourceUnitVersionIds:
+  - uv_00ff4d877e5e5ecd22c7c691

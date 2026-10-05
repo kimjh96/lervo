@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9af0d57ff24c7740d43de660
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7569438c09e653a0a477df0e
+outputLanguage: en
+outputs:
+  - byteCount: 617
+    contentHash: sha256:5adadaa9cbe1df8d53f372ad46406982bb31dc1d1bd1703af4ded93578471b81
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/background-and-history/event-history-cursors.md
+    userRegionHash: sha256:5adadaa9cbe1df8d53f372ad46406982bb31dc1d1bd1703af4ded93578471b81
+  - byteCount: 1152
+    contentHash: sha256:5a3ed610a58f6eb83da03c4558646298bd526bc62631114c329f263c1c11bbce
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/background-and-history/event-history-cursors/lapsed-deadline-backoff.md
+    userRegionHash: sha256:5a3ed610a58f6eb83da03c4558646298bd526bc62631114c329f263c1c11bbce
+  - byteCount: 2647
+    contentHash: sha256:711b4a83358051399e404b3c6604f0611550b1975e3708cf22990c3910079908
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/background-and-history/event-history-cursors/verified-event-tail.md
+    userRegionHash: sha256:711b4a83358051399e404b3c6604f0611550b1975e3708cf22990c3910079908
+profile: specification_document
+recordId: knormdoc_27fbd66f443d7fd90012086a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:76d372ad9d9fb35acd1e902c65c3e676d319dd3b3577fff764bb4399c0bd25e8
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/background-and-history/event-history-cursors.md
+sourceUnitVersionIds:
+  - uv_34ea7c75f1d3e63d1ab5358b
+  - uv_499d946ed3e096aa1058d424
+  - uv_c0134229d72d8aa9ddbe0625
+  - uv_fc2e3d4d8990ea80bd8bc6e9

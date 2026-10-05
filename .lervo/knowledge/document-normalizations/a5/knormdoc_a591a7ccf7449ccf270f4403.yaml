@@ -1,0 +1,48 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_32b35d94529f5de49e2076b7
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e934b5f71bf1b8a0cc027e5e
+outputLanguage: en
+outputs:
+  - byteCount: 767
+    contentHash: sha256:55e3f202cc96cdfabb51a16352d1a0f1b7bc301afb415c56858b191d404cd558
+    path: docs/roadmap/v0.md
+    userRegionHash: sha256:55e3f202cc96cdfabb51a16352d1a0f1b7bc301afb415c56858b191d404cd558
+  - byteCount: 2240
+    contentHash: sha256:430f5ff26da4e0b1fc08ea392b38ffccd3976af6a06b239a5a8c43030c1fdbef
+    path: docs/roadmap/v0/active-and-future-scope.md
+    userRegionHash: sha256:430f5ff26da4e0b1fc08ea392b38ffccd3976af6a06b239a5a8c43030c1fdbef
+  - byteCount: 2402
+    contentHash: sha256:beff3b331ac11aa171d61218effeb0fcb7ef2c28fe0b9d5f68715d6d5f1cf850
+    path: docs/roadmap/v0/completion.md
+    userRegionHash: sha256:beff3b331ac11aa171d61218effeb0fcb7ef2c28fe0b9d5f68715d6d5f1cf850
+  - byteCount: 3056
+    contentHash: sha256:73878e0e90d7d023ff49a2405029c51b31285a6c1e3b825c2a00ca831e0211ea
+    path: docs/roadmap/v0/follow-up.md
+    userRegionHash: sha256:73878e0e90d7d023ff49a2405029c51b31285a6c1e3b825c2a00ca831e0211ea
+profile: roadmap_document
+recordId: knormdoc_a591a7ccf7449ccf270f4403
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ba25d09b4b5b8f09697f16bd43f2ecaeff733660c9a91349a4b0b8a52a47f68c
+sourcePath: docs/roadmap/v0.md
+sourceUnitVersionIds:
+  - uv_0f1d092fb4de11e610631bed
+  - uv_33c3af639b3419a884216a9e
+  - uv_5d026e49ddb32163792197be
+  - uv_6d9f4e4b0c640815b53e8dde
+  - uv_73d6722b364b9b40bd22a26d
+  - uv_766d4ffe133bb3c5f494c5a8
+  - uv_b43359a416b723731d180a17
+  - uv_ba20da6995c2048d91d48c64
+  - uv_cf18c684712da30fdc470b95
+  - uv_fa00f821b0f76a1981059929
+  - uv_fda018eec5900316ec00a5dd

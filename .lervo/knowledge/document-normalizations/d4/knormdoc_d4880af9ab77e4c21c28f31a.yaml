@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0fa0687d8fd4e3ace801a350
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f7dc5852cc3b95aa9e91b819
+outputLanguage: en
+outputs:
+  - byteCount: 953
+    contentHash: sha256:e04379d9a3775692c396613c62184bacd2ffe2b01641a09f8cc272393506aeee
+    path: docs/roadmap/product-outcome-convergence/host-products/triggers/authenticated-live.md
+    userRegionHash: sha256:e04379d9a3775692c396613c62184bacd2ffe2b01641a09f8cc272393506aeee
+profile: roadmap_document
+recordId: knormdoc_d4880af9ab77e4c21c28f31a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e04379d9a3775692c396613c62184bacd2ffe2b01641a09f8cc272393506aeee
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/triggers/authenticated-live.md
+sourceUnitVersionIds:
+  - uv_5aaae45160beb5a803997ae5
