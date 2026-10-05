@@ -51,6 +51,8 @@ export async function commitSettledOutputsAtBoundary(
     nextStage: stage,
     stageData: {},
     committedHead: output.head,
+    // Formatting the committed outputs is this stage's own approved byte change.
+    approvedEffects: output.formatEffects ?? [],
     proof: { status: "settled_outputs_committed", head: output.head, paths: output.committed },
   });
 }
