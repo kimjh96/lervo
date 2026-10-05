@@ -1058,7 +1058,11 @@ describe("repository knowledge migration", () => {
           content: `${String(++observation).padStart(40, "0")}\n`,
         }),
       }),
-    ).rejects.toMatchObject({ code: "knowledge_source_unsafe" });
+      // A commit during the scan is a concurrent edit that a later scan resolves, not unsafe input.
+    ).rejects.toMatchObject({
+      code: "source_bytes_changed",
+      message: "The repository revision changed during the scan.",
+    });
   });
 
   it("fails closed on YAML ambiguity without exposing source text", async () => {

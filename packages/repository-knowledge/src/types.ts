@@ -428,6 +428,7 @@ export class RepositoryKnowledgeError extends Error {
   constructor(
     readonly code:
       | "knowledge_source_unsafe"
+      | "source_bytes_changed"
       | "knowledge_source_limit_exceeded"
       | "knowledge_evidence_source_invalid"
       | "knowledge_unit_extraction_failed"
