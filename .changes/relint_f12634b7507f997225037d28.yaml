@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f12634b7507f997225037d28"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reuse exact independently approved canonical worksets after repository source changes."

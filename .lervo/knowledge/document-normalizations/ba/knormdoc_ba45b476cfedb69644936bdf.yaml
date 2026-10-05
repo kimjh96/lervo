@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1a8a130bec94af5c70463de9
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f5d499c40fa4c130a8645b4c
+outputLanguage: en
+outputs:
+  - byteCount: 5270
+    contentHash: sha256:9d12cef72178d788dd449603070fbe62db3923ecdd1ccfcc0f7d12417ac31aa7
+    path: docs/distribution/release-preparation-workflow-evidence.md
+    userRegionHash: sha256:9d12cef72178d788dd449603070fbe62db3923ecdd1ccfcc0f7d12417ac31aa7
+profile: repository_document
+recordId: knormdoc_ba45b476cfedb69644936bdf
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6284d5d0cb805fd44c36d8342502141885f9e74dfbe3cb4bcf2bec805aa1034e
+sourcePath: docs/distribution/release-preparation-workflow-evidence.md
+sourceUnitVersionIds:
+  - uv_073efe48ddcfd954541d5198
+  - uv_345a8659adb35a29d5f1da0e
+  - uv_4923d024d6f2a55728f22e92
+  - uv_5f0ebfd1e71ce071057c7309
+  - uv_e00addfb322066f11f95e5d2
+  - uv_e9efc2e8bab745b0fc23390b

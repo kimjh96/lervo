@@ -5,9 +5,9 @@
 
 ## Context
 
-Lervo previously exempted root `HANDOFF.md` from semantic routing and used it as a short continuation entrypoint. Reviewed normalization could move history into `docs/repository/handoffs/`, but the mutable root file mixed objectives, actions, deployment facts, references, and durable documentation. Its line limit provided no workstream identity, revision transitions, event binding, automatic provider context, reliable cross-device coordinates, or lifecycle.
+Lervo previously exempted root `HANDOFF.md` from semantic routing and used it as a short continuation entrypoint. Reviewed normalization could move history into `docs/repository/handoffs/`, but the mutable root file mixed objectives, actions, deployment facts, references, and durable documentation. Its line limit supplied no workstream identity, revision transitions, event binding, automatic provider context, reliable cross-device coordinates, or lifecycle.
 
-`HANDOFF.md` is not a standard Codex or Claude discovery surface or a portable repository contract. Existing projects may keep active state in session notes, status pages, work logs, issue documents, or arbitrary Markdown; new projects may have none.
+`HANDOFF.md` is neither a standard Codex or Claude discovery surface nor a portable repository contract. Existing projects may store active state in session notes, status pages, work logs, issue documents, or arbitrary Markdown; new projects may have none.
 
 ## Decision
 
@@ -15,30 +15,30 @@ Lervo previously exempted root `HANDOFF.md` from semantic routing and used it as
 
 Active continuation state uses the provider-neutral `lervo.workstream.v1` snapshot contract. Its local projection is written lazily to `.lervo/state/workstreams/current.json`; no workstream directory exists before the first snapshot. Each snapshot contains:
 
-- A stable workstream ID and monotonic revision.
+- Stable workstream ID and monotonic revision.
 - Status: `active`, `blocked`, `completed`, or `cancelled`. Cancellation records a stop request; [supervision cancellation reconciliation](../../../specifications/execution/outcome-supervision/implementation/recovery/cancellation.md) separately proves scoped effects are reconciled and requires upgraded transport readers.
 - Bounded title, objective, next actions, blockers, current facts, unresolved decisions, and approvals.
 - Repository-relative references, immutable origin coordinates, and update time.
 
-Unresolved decisions and approvals retain choices or exact binding coordinates needed by the next agent, without resolved history. The working agent resolves natural-language user responses. Resolved items leave current state; durable outcomes move to canonical documentation.
+Unresolved decisions and approvals retain choices or exact binding coordinates needed by the next agent, excluding resolved history. The working agent resolves natural-language user responses. Resolved items leave current state; durable outcomes move to canonical documentation.
 
 Every committed snapshot is stored byte-for-byte in local CAS and emits `workstream.snapshot.recorded`. The event contains workstream ID, revision, status, change kind, current and previous snapshot hashes, content-addressed artifact coordinates, optional legacy-source artifact coordinates, and time. It excludes objective, action, blocker, note, reference text, absolute path, provider text, prompt, credential, and source body. Missing events, mismatched projections, or missing or invalid current snapshot artifacts invalidate workstream context and fail terminal completion closed. Legacy HANDOFF migration retains the source artifact locally.
 
 ### Commands and successors
 
-`lervo workstream current` reads verified current state; `--context` returns bounded agent context, and `--json` returns the structured snapshot.
+`lervo workstream current` reads verified current state; `--context` returns bounded agent context and `--json` returns the structured snapshot.
 
-`lervo workstream start` accepts bounded semantic fields, derives system identity and created origin, and uses reproducible plan/apply. It supports recovery and inspection. Provider integration instructs the working agent, rather than the user, to invoke it.
+`lervo workstream start` accepts bounded semantic fields, derives system identity and created origin, and uses reproducible plan/apply. It supports recovery and inspection. Provider integration instructs the working agent to invoke it, rather than the user.
 
-`lervo workstream update` accepts a complete v1 JSON snapshot, creates a read-only plan, requires its exact plan ID for apply, preserves workstream identity and origin, and requires the revision to increase by exactly one. [ADR-0462](../../execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md) moves revision, update time, and observed HEAD to the service, adds JSON merge patches and one-call `--apply-now`, and rolls notes with a recorded dropped count.
+`lervo workstream update` accepts a complete v1 JSON snapshot, creates a read-only plan, requires its exact plan ID for apply, preserves workstream identity and origin, and requires revision to increase by exactly one. [ADR-0462](../../execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md) moves revision, update time, and observed HEAD to the service, adds JSON merge patches and one-call `--apply-now`, and rolls notes with a recorded dropped count.
 
-After a settled `completed` or `cancelled` head with no blockers or pending decisions or approvals, `lervo workstream start` may create a new workstream ID at revision 1 in the same repository. Its `successor` origin records only the predecessor workstream ID and exact snapshot hash; its `workstream.snapshot.recorded` event links that hash as `previousSnapshotContentHash`. The current projection is atomically replaced while the predecessor event and CAS artifact remain intact. An active, blocked, cancelled, or unsettled head cannot be replaced. The start plan binds the exact predecessor hash; a changed head requires replanning. A successor creates a new goal and request-binding scope, not a revision or amendment of the completed goal.
+After a settled `completed` or `cancelled` head with no blockers, pending decisions, or approvals, `lervo workstream start` may create a new workstream ID at revision 1 in the same repository. Its `successor` origin records only the predecessor workstream ID and exact snapshot hash; its `workstream.snapshot.recorded` event links that hash as `previousSnapshotContentHash`. The current projection is atomically replaced, retaining the predecessor event and CAS artifact. An active, blocked, cancelled, or unsettled head cannot be replaced. The start plan binds the exact predecessor hash; a changed head requires replanning. A successor creates a new goal and request-binding scope, not a revision or amendment of the completed goal.
 
 ### Provider context and completion
 
 Managed runs add a present current workstream as a required `repository.workstream` context candidate with ordinary E1 selection, E2 exact-byte loading, and provider-adapter E3 delivery.
 
-Direct Codex and Claude hooks prepend at most 8 KiB of verified workstream context and record workstream ID, revision, exact snapshot hash, delivered byte count, full or prefix scope, and repository revision prepared for the turn. An unchanged turn creates no artificial continuation history. When repository-authored bytes change, Stop requires a first snapshot if none existed at prompt preparation, or a revision greater than the prepared revision. Before completion, the working agent records `agent_start` or `agent_update` with its provider coordinate. Unmanaged preparation proves neither provider acceptance nor use.
+Direct Codex and Claude hooks prepend at most 8 KiB of verified workstream context. They record workstream ID, revision, exact snapshot hash, delivered byte count, full or prefix scope, and repository revision prepared for the turn. Unchanged turns create no artificial continuation history. When repository-authored bytes change, Stop requires a first snapshot if none existed at prompt preparation, or a revision greater than the prepared revision. Before completion, the working agent records `agent_start` or `agent_update` with its provider coordinate. Unmanaged preparation proves neither provider acceptance nor use.
 
 ### Migration and durable knowledge
 
@@ -46,7 +46,7 @@ Before layout work, `lervo migrate knowledge` safely scans included Markdown thr
 
 Exact-approved apply preserves source bytes in CAS, creates the current projection, and updates resolvable Markdown references to `lervo workstream current`. Only the dedicated root legacy `HANDOFF.md` is deleted, together with its source-owned normalization records. Arbitrary sources may mix active and durable knowledge, so their user bytes remain for reviewed normalization and splitting. One content-bound approval covers every state and user-byte change. Event or validation failure restores every changed file.
 
-With no candidate, the first working agent creates the snapshot during its turn. Structural refresh and reviewed normalization use the same content-aware continuation profile for lasting history documents regardless of name or location.
+With no candidate, the first working agent creates the snapshot during its turn. Structural refresh and reviewed normalization use the same content-aware continuation profile for lasting history documents, regardless of name or location.
 
 Durable architecture, product, operational, and decision facts must move to appropriate canonical Markdown. Completed handoff publications may remain under semantically grouped documentation only when durably valuable; they are not active continuation state.
 
@@ -59,7 +59,7 @@ Hub event synchronization does not transfer workstream bodies. The separately au
 - Verification of an existing selected projection binds the latest committed snapshot for that exact workstream ID. A cancellation or update for another independently bound goal cannot replace, resume, or invalidate the selected workstream. A newer conflicting snapshot for the selected ID still blocks verification. Recovery without a selected projection uses the latest recorded snapshot and its exact CAS artifact.
 - Invalid or conflicting current state blocks import or update; Lervo does not replace a different active workstream.
 - A successor whose origin does not exactly identify a settled completed or cancelled predecessor fails validation or replication. Distinct unlinked roots remain divergent rather than silently replacing a completed goal.
-- A stale plan means the source, reference, lifecycle record, current state, or desired snapshot changed and requires replanning.
+- A stale plan means the source, reference, lifecycle record, current state, or desired snapshot changed; replanning is required.
 - Missing exact approval leaves the selected continuation source and every reference untouched.
 - Multiple credible sources remain separate and block automatic migration; Lervo does not infer a merge.
 - A repository-changing direct terminal turn cannot complete without creating or advancing its verified checkpoint; an unchanged turn does not advance it.

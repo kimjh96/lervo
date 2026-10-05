@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7727e75ad1d73c6b7d771d31"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep canonical review context available while planned documents are absent."

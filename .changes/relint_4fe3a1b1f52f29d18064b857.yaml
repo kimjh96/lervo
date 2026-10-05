@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4fe3a1b1f52f29d18064b857"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Allow protected Node upgrades to refresh the supervised CLI bundle."

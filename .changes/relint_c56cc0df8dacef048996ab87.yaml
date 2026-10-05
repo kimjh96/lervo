@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c56cc0df8dacef048996ab87"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Record attributed usage and context receipts for Discord repository work and knowledge workers, verify deliberation usage before convergence, and repair unproven multi-provider replies."

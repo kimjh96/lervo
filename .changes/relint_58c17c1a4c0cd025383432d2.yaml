@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_58c17c1a4c0cd025383432d2"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Wait for launchd to finish booting out a Node before upgrading it, and keep a gracefully stopped Node eligible for verified-inactive upgrade recovery."

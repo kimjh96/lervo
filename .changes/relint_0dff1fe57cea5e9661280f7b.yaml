@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0dff1fe57cea5e9661280f7b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Retain integrated canonical dispositions across background baseline supersession."

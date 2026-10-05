@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8af30735c365a1d55e015b96"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Restore Node supervision health after transient evidence unavailability clears on a validated authority read."

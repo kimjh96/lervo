@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_90017c815f2b0fe338d939f7"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Commit settled background knowledge outputs on hosts without a configured Git identity."

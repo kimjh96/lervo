@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d7b9a9e5338dfc28adf4b7ef"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Commit settled background knowledge outputs before lifecycle planning so developers keep a clean working tree."

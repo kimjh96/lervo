@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_99c9c40d35b5f8c3597a46aa"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Back replica coordinator recovery off while replicas stay current and serve unchanged trees from a fingerprint-keyed snapshot cache."

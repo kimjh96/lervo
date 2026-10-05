@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_63562b473f5eeb999c865e0f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reclaim background provider slots held by exited workers before their timeout."

@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4239f3c7c719cffc26eb133d
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_cc165a4e6dfb35fa02bb4da4
+outputLanguage: en
+outputs:
+  - byteCount: 15187
+    contentHash: sha256:57326f730dabe5b9eb926a7bf5b9113dcfc720e3ad7ab86cdadc2cd23cd5d7a8
+    path: docs/decisions/foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md
+    userRegionHash: sha256:57326f730dabe5b9eb926a7bf5b9113dcfc720e3ad7ab86cdadc2cd23cd5d7a8
+profile: decision_record
+recordId: knormdoc_a10594e0199398525bb429cf
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5192d9efa6561f1ed03a9652e5f0529d4076eeb483fefe97ecc7d2843780849b
+sourcePath: docs/decisions/foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md
+sourceUnitVersionIds:
+  - uv_0a63a981aa8f98410bc6d86f
+  - uv_0be70237c107da66c891c130
+  - uv_19d464da2b710b11418faab5
+  - uv_1c7b75614ea2f548cc7a3597
+  - uv_1e9d17a2267273de7a4dccad
+  - uv_3ed76d27872bae563cdd9dbe
+  - uv_421944a4a5abf3e86e64c0d8
+  - uv_793d1039cfca80c8aa4efe79
+  - uv_945e3d15faec4a6cff6d147f
+  - uv_9707ec25baa5fefdf7770401
+  - uv_a149c893fafc231d66a1b10b
+  - uv_a196025117551590a26d5eb5
+  - uv_b5361ae517924da9bb2a20ff
+  - uv_f4c6c9f6ccf642b8602bcf1c
+  - uv_fa3adce81d67521c6bd4e882

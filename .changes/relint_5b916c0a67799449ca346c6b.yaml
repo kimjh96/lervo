@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5b916c0a67799449ca346c6b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Include source-linked authorities in bounded repository review context."
