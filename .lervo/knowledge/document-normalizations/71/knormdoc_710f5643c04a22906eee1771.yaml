@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69f474e1db0504468a3658a8
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c8badf7c096075eb61da4007
+outputLanguage: en
+outputs:
+  - byteCount: 1473
+    contentHash: sha256:0b9763d2fa0366849e2583340ac565f272f5260dad67d9ac3aa88dc42d44fa48
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/authenticated-intake.md
+    userRegionHash: sha256:0b9763d2fa0366849e2583340ac565f272f5260dad67d9ac3aa88dc42d44fa48
+profile: roadmap_document
+recordId: knormdoc_710f5643c04a22906eee1771
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0b9763d2fa0366849e2583340ac565f272f5260dad67d9ac3aa88dc42d44fa48
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/authenticated-intake.md
+sourceUnitVersionIds:
+  - uv_924c60b1818ffc9ff9b1abf3
