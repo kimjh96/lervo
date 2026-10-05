@@ -137,21 +137,21 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:0bfedf41c244aa41b9e37ce401eb6452394a4f482d9a7b5faa830150fb9e9f2d",
+      "contentHash": "sha256:e578632d9f874d52da9d1dd7722adade73219b9eb7208637cb4cd77c4c5967be",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, ADR-0459 and ADR-0460 attribution, and ADR-0463 document freshness allowlists only map hash-only payloads to their schemas; the convergence and freshness lists live in their own modules, and none adds provider work, authority decisions or persistence.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/hub-sync-sqlite/src/migrations.ts",
-      "contentHash": "sha256:7fece5b9e49d238b740e1bb90c9b4e3a1e96a5664fb7904f6a5f5a57518ce4aa",
+      "contentHash": "sha256:7c269db41bb64b7f472b4c994c2c4a87e2b2ae2812ad4baab785db2b1e4f5692",
       "responsibility": "Hub synchronization SQLite schema migration",
       "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:3fc63b700267152371eb564d5a907f61f67c6efddc68eb1e7266163df93baf24",
+      "contentHash": "sha256:b6d7cb50b7bc3f346e7a03c6be6d31ffac9cecfedc116aa469a2dd8fb8b5e542",
       "responsibility": "Hub synchronization SQLite store",
       "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store.",
       "disposition": "cohesive"
@@ -361,7 +361,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:83c9127393fc2240915f951667c11d65796e047290e19e19dc7b71435b567126",
+      "contentHash": "sha256:d6cae9a759c3b25a8f1bd2d7e668ab612f6d46445bc9b5c9c3b403b9222ec5de",
       "responsibility": "Repository schema validator registry",
       "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, and repository replica event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry. The ADR-0463 document freshness event payload validators are compiled from their own schema module.",
       "disposition": "cohesive"

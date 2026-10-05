@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+import { CONVERGENCE_HOST_TRAILER, knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
 import {
   KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
   knowledgeOutputCommitSafe,
@@ -42,22 +43,19 @@ export async function commitFreshnessPaths(input: {
 }): Promise<string | null> {
   const root = input.repositoryRoot;
   if (input.paths.length === 0 || !(await knowledgeOutputCommitSafe(root))) return null;
+  // ADR-0466: a host that does not own convergence never commits knowledge outputs.
+  const grant = await knowledgeOutputCommitGrant(root);
+  if (!grant.allowed) return null;
+  const trailers = [
+    `${input.trailer.key}: ${input.trailer.candidateId}`,
+    ...(grant.hostHash === null ? [] : [`${CONVERGENCE_HOST_TRAILER}: ${grant.hostHash}`]),
+  ].join("\n");
   try {
     const before = (await git(root, ["rev-parse", "HEAD"])).trim();
     await git(root, ["add", "-A", "--", ...input.paths]);
     await git(
       root,
-      [
-        "commit",
-        "--only",
-        "--quiet",
-        "-m",
-        input.subject,
-        "-m",
-        `${input.trailer.key}: ${input.trailer.candidateId}`,
-        "--",
-        ...input.paths,
-      ],
+      ["commit", "--only", "--quiet", "-m", input.subject, "-m", trailers, "--", ...input.paths],
       KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
     );
     const after = (await git(root, ["rev-parse", "HEAD"])).trim();

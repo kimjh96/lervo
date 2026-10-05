@@ -728,6 +728,17 @@ const migrations = [
       BEFORE DELETE ON hub_workstream_revisions
       BEGIN SELECT RAISE(ABORT, 'hub workstream revisions are append-only'); END;
   `,
+  `
+    CREATE TABLE IF NOT EXISTS hub_knowledge_convergence_owner_leases (
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      repository_identity_hash TEXT NOT NULL,
+      lease_json TEXT NOT NULL,
+      revision INTEGER NOT NULL CHECK (revision >= 1),
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (destination_id, project_id, repository_identity_hash)
+    ) STRICT;
+  `,
 ] as const;
 
 export const hubSyncSchemaVersion = migrations.length;

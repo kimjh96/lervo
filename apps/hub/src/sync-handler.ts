@@ -8,10 +8,14 @@ import {
   handleWorkspaceCoordinationMutation,
   handleWorkspaceSummaryPublish,
   handleWorkspaceSummaryRead,
+  handleKnowledgeConvergenceOwnerMutation,
+  handleKnowledgeConvergenceOwnerRead,
+  HubKnowledgeConvergenceOwnerError,
   isHubWorkspaceCoordinationMutation,
   isHubWorkspaceSummary,
   type HubSyncCommandStore,
   type HubWorkspaceCoordinationStore,
+  type HubKnowledgeConvergenceOwnerStore,
   type HubWorkspaceSummary,
   type HubWorkstreamReplicationStore,
   HubWorkstreamReplicationError,
@@ -40,7 +44,10 @@ const MAX_MAX_REQUEST_BYTES = 16_777_216;
 
 export interface HubSyncHttpHandlerOptions {
   authenticator: HubRequestAuthenticator;
-  store: HubSyncCommandStore & HubWorkstreamReplicationStore & HubWorkspaceCoordinationStore;
+  store: HubSyncCommandStore &
+    HubWorkstreamReplicationStore &
+    HubWorkspaceCoordinationStore &
+    HubKnowledgeConvergenceOwnerStore;
   hubIdentityHash: string;
   now?: () => Date;
   maxRequestBytes?: number;
@@ -142,7 +149,11 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         sendHubError(response, 404, "not_found", maxResponseBytes, identityHeaders);
         return;
       }
-      const supportsRead = ["workstreams", "workspace-summaries"].includes(route.kind);
+      const supportsRead = [
+        "workstreams",
+        "workspace-summaries",
+        "knowledge-convergence-owner",
+      ].includes(route.kind);
       const acceptedMethod = supportsRead
         ? request.method === "GET" || request.method === "POST"
         : request.method === "POST";
@@ -168,15 +179,17 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         (project) =>
           project.destinationId === query.destinationId && project.projectId === route.projectId,
       );
-      const requiredPermission = route.kind.startsWith("workspace-")
-        ? request.method === "GET"
-          ? "workspace.read"
-          : "workspace.coordinate"
-        : route.kind === "workstreams"
+      // The convergence owner lease coordinates repository work across hosts, like reservations.
+      const requiredPermission =
+        route.kind.startsWith("workspace-") || route.kind === "knowledge-convergence-owner"
           ? request.method === "GET"
-            ? "workstream.read"
-            : "workstream.write"
-          : "sync.write";
+            ? "workspace.read"
+            : "workspace.coordinate"
+          : route.kind === "workstreams"
+            ? request.method === "GET"
+              ? "workstream.read"
+              : "workstream.write"
+            : "sync.write";
       if (!inScope || !principal.permissions.includes(requiredPermission)) {
         sendHubError(response, 403, "forbidden", maxResponseBytes, identityHeaders);
         return;
@@ -208,7 +221,40 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         sendHubJson(response, 200, { summaries: result }, maxResponseBytes, identityHeaders);
         return;
       }
+      if (route.kind === "knowledge-convergence-owner" && request.method === "GET") {
+        const result = await handleKnowledgeConvergenceOwnerRead({
+          store: options.store,
+          coordinate: {
+            destinationId: query.destinationId,
+            projectId: route.projectId,
+            repositoryIdentityHash: query.projectIdentityHash,
+          },
+          acceptedAt,
+        });
+        sendHubJson(response, 200, result, maxResponseBytes, identityHeaders);
+        return;
+      }
       const body = await readBoundedJsonBody(request, maxRequestBytes);
+      if (route.kind === "knowledge-convergence-owner") {
+        const result = await handleKnowledgeConvergenceOwnerMutation({
+          store: options.store,
+          destinationId: query.destinationId,
+          coordinate: {
+            projectId: route.projectId,
+            repositoryIdentityHash: query.projectIdentityHash,
+          },
+          mutation: body,
+          acceptedAt,
+        });
+        sendHubJson(
+          response,
+          result.status === "granted" ? 201 : 200,
+          result,
+          maxResponseBytes,
+          identityHeaders,
+        );
+        return;
+      }
       if (route.kind === "registration") {
         if (!validateSchema("projectRegistrationRequest", body).valid) {
           throw new InvalidHubHttpRequestError();
@@ -333,6 +379,8 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         syncError(response, error, maxResponseBytes, identityHeaders);
       } else if (error instanceof HubWorkstreamReplicationError) {
         workstreamError(response, error, maxResponseBytes, identityHeaders);
+      } else if (error instanceof HubKnowledgeConvergenceOwnerError) {
+        sendHubError(response, 400, "invalid_request", maxResponseBytes, identityHeaders);
       } else if (error instanceof HubWorkspaceCoordinationError) {
         workspaceCoordinationError(response, error, maxResponseBytes, identityHeaders);
       } else {

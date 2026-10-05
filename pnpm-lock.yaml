@@ -1927,6 +1927,9 @@ importers:
       '@lervo/hub-sync':
         specifier: workspace:*
         version: link:../hub-sync
+      '@lervo/runtime-security':
+        specifier: workspace:*
+        version: link:../runtime-security
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas

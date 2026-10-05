@@ -1,22 +1,28 @@
 import type { ProjectStorage } from "@lervo/project-storage";
-import { inspectKnowledgeConvergenceStatus } from "@lervo/repository-knowledge";
+import {
+  assertNoKnowledgeMaterializationTransaction,
+  inspectKnowledgeConvergenceStatus,
+  type KnowledgeConvergenceStatus,
+} from "@lervo/repository-knowledge";
 import { discoverConvergenceBaseline } from "./baseline.js";
+import { readConvergenceOwnerFence } from "./convergence-owner-fence.js";
 import { inspectKnowledgeResidentHealth } from "./resident-health.js";
 import { convergenceRecoveryStatus } from "./recovery-status.js";
-import { assertNoKnowledgeMaterializationTransaction } from "@lervo/repository-knowledge";
 
-export async function inspectAutonomousKnowledgeStatus(storage: ProjectStorage) {
+/**
+ * Read-only debt detection: currency, normalization, and candidate inspection without a baseline
+ * event, provider call, document write, or commit. Non-owner hosts run only this.
+ */
+export async function inspectConvergenceDebt(
+  storage: ProjectStorage,
+): Promise<{ status: KnowledgeConvergenceStatus; baselineCurrent: boolean }> {
   try {
     await assertNoKnowledgeMaterializationTransaction({
       repositoryRoot: storage.paths.repositoryRoot,
     });
   } catch (error) {
     if ((error as { code?: string }).code !== "knowledge_recovery_required") throw error;
-    return {
-      ...convergenceRecoveryStatus(storage),
-      worker: await inspectKnowledgeResidentHealth(storage.paths.repositoryRoot),
-      baselineCurrent: false,
-    };
+    return { status: convergenceRecoveryStatus(storage), baselineCurrent: false };
   }
   const baseline = await discoverConvergenceBaseline(
     storage.paths.repositoryRoot,
@@ -29,10 +35,20 @@ export async function inspectAutonomousKnowledgeStatus(storage: ProjectStorage) 
     writableEventSchemaVersion: storage.writableEventSchemaVersion ?? 1,
   });
   return {
-    ...status,
-    worker: await inspectKnowledgeResidentHealth(storage.paths.repositoryRoot),
+    status,
     baselineCurrent:
       status.lastVerifiedCurrency?.snapshotHash === baseline.sourceSnapshotHash &&
       Object.values(baseline.debtCounts).every((count) => count === 0),
+  };
+}
+
+export async function inspectAutonomousKnowledgeStatus(storage: ProjectStorage) {
+  const root = storage.paths.repositoryRoot;
+  const { status, baselineCurrent } = await inspectConvergenceDebt(storage);
+  return {
+    ...status,
+    worker: await inspectKnowledgeResidentHealth(root),
+    owner: (await readConvergenceOwnerFence(root))?.verdict ?? null,
+    baselineCurrent,
   };
 }

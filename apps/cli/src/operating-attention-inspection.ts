@@ -8,6 +8,7 @@ import {
 } from "@lervo/repository-knowledge";
 
 import { readDocumentFreshnessAttention } from "./document-freshness-attention.js";
+import { readKnowledgeConvergenceAttention } from "./knowledge-convergence-attention.js";
 import { createOperatingAttentionReport } from "./operating-attention-projection.js";
 import { readRepositoryReplicaDivergence } from "./repository-replica-divergence-source.js";
 import { inspectTerminalLifecycle } from "./terminal-lifecycle-inspection.js";
@@ -27,8 +28,8 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
     const observedAt = input.observedAt ?? new Date();
-    const [workstream, canonicalization, lifecycle, replica, documentFreshness] = await Promise.all(
-      [
+    const [workstream, canonicalization, lifecycle, replica, documentFreshness, convergence] =
+      await Promise.all([
         verifiedCurrentWorkstream(storage),
         listCanonicalizationCandidates(input.repositoryRoot).then(
           (candidates) => ({ coverage: "complete" as const, candidates }),
@@ -43,8 +44,8 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
         ),
         readRepositoryReplicaDivergence(input.repositoryRoot),
         readDocumentFreshnessAttention(input.repositoryRoot, observedAt),
-      ],
-    );
+        readKnowledgeConvergenceAttention(input.repositoryRoot).catch(() => null),
+      ]);
     const workstreamFreshness =
       workstream === null
         ? null
@@ -68,6 +69,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
           : lifecycle,
       repositoryReplicaDivergence: replica.status === "observed" ? replica.divergence : null,
       documentFreshness,
+      knowledgeConvergence: convergence,
       observedAt,
     });
   } finally {

@@ -11,6 +11,10 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 import { ConversationChangeLoop } from "./conversation-change-loop.js";
 import { watchLocalEventChanges } from "./local-event-wakeup.js";
 import { startKnowledgeWorkerProcess } from "./knowledge-worker-process.js";
+import {
+  createKnowledgeConvergenceOwnership,
+  createKnowledgePublisher,
+} from "./knowledge-convergence-ownership.js";
 
 /**
  * The Node host of the core repository knowledge owner (ADR-0433). It shares the CLI worker's
@@ -46,6 +50,8 @@ export function startRepositoryKnowledgeLoop(input: {
       storage: input.storage!,
       workerId: `node-${process.pid}`,
       provider: input.provider,
+      ownership: createKnowledgeConvergenceOwnership(input.storage!, input.provider),
+      publish: createKnowledgePublisher(input.repositoryRoot),
       ...(input.executable === undefined ? {} : { executable: input.executable }),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
       subscribe: (notify) => watchLocalEventChanges(input.store, notify),

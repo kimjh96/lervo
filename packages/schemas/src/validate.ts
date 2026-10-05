@@ -61,6 +61,7 @@ import {
   documentFreshnessCandidateVerifiedEventPayloadSchema,
   documentFreshnessCycleCompletedEventPayloadSchema,
 } from "./document-freshness-event.js";
+import { knowledgeConvergenceOwnerChangedEventPayloadSchema } from "./knowledge-convergence-owner-event.js";
 import { conversationInboundEventSchema } from "./conversation-event.js";
 import {
   conversationDeliveryReceiptSchema,
@@ -414,6 +415,9 @@ const validators = {
   ),
   documentFreshnessCycleCompletedEventPayload: ajv.compile(
     documentFreshnessCycleCompletedEventPayloadSchema,
+  ),
+  knowledgeConvergenceOwnerChangedEventPayload: ajv.compile(
+    knowledgeConvergenceOwnerChangedEventPayloadSchema,
   ),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
   productActivityPage: ajv.compile(productActivityPageSchema),

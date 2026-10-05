@@ -149,6 +149,7 @@ export const eventTypesV4 = [
   "repository.replica.diverged",
   "repository.replica.reconciled",
   ...documentFreshnessEventTypes,
+  "knowledge.convergence.owner.changed",
 ] as const;
 export const eventTypes = eventTypesV4;
 

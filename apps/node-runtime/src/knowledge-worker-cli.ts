@@ -3,6 +3,10 @@ import { isAbsolute } from "node:path";
 import { openProjectStorage } from "@lervo/project-storage";
 import { startAutonomousKnowledgeWorker } from "@lervo/repository-knowledge-runtime";
 
+import {
+  createKnowledgeConvergenceOwnership,
+  createKnowledgePublisher,
+} from "./knowledge-convergence-ownership.js";
 import { subscribeKnowledgeWakeups } from "./knowledge-worker-wakeups.js";
 
 function request(args: readonly string[]): {
@@ -64,6 +68,8 @@ export async function runKnowledgeWorkerCli(args: readonly string[]): Promise<nu
       subscribe: (notify) => subscribeKnowledgeWakeups(opened, notify),
       workerId: `node-${process.ppid}-${process.pid}`,
       provider: parsed.provider,
+      ownership: createKnowledgeConvergenceOwnership(opened, parsed.provider),
+      publish: createKnowledgePublisher(parsed.root),
       ...(parsed.executable === undefined ? {} : { executable: parsed.executable }),
       signal: controller.signal,
       onFailure: (error) => {

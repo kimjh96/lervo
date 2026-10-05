@@ -37,6 +37,8 @@ On terminal `Stop`, deterministic grounding in `terminal-request-grounding.ts` r
 
 Knowledge convergence runs only on the repository writer-lease holder (ADR-0456), or, without a lease, the host named by new `hostIdentityHash` in the delegation grant. Other hosts perform read-only inspection and send candidates through handoff or the Hub. `knowledge.convergence.owner.changed` records holder changes. A non-owner finding debt records `convergence_owner_elsewhere` and does not commit.
 
+Amended by [ADR-0466](../../coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md): the owner is the holder of a Hub-hosted, expiring convergence owner lease, not the ADR-0456 writer lease, and host identity lives in host-local state, not in the delegation grant. ADR-0466 also redefines the `knowledge.convergence.owner.changed` fields.
+
 ### Consolidation normalization
 
 Normalization adds `merge`, `flatten`, `retire_to_projection`, and `dedupe_trees` beside `split`. Operations are generated as reviewed candidates and applied through ADR-0434 delegated review:
