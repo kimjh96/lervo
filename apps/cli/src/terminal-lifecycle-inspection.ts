@@ -16,7 +16,7 @@ import type {
   PreparedTerminalTurnExpectation,
   TerminalLifecycleInspection,
 } from "./terminal-hook-contract.js";
-import { inspectTerminalRepositoryKnowledgeLifecycle } from "./terminal-knowledge-lifecycle-inspection.js";
+import { inspectTerminalRepositoryKnowledge } from "./terminal-knowledge-lifecycle-inspection.js";
 import { inspectTerminalRepositoryReplicaService } from "./terminal-repository-replica-service-inspection.js";
 import {
   latestTerminalTurnDeclaration,
@@ -180,14 +180,15 @@ export async function inspectTerminalLifecycle(
           : "terminal_integration_stale",
       command: "lervo migrate knowledge",
     });
+  let knowledgeAdvisories: TerminalLifecycleInspection["issues"] = [];
   if ((expected === undefined || issues.length === 0) && repositoryKnowledgeInspectionRequired) {
-    issues.push(
-      ...(await inspectTerminalRepositoryKnowledgeLifecycle({
-        root,
-        repositoryRevision: currentRepository.revision,
-        supplementalSources: await collectLocalKnowledgeSources(root),
-      })),
-    );
+    const knowledge = await inspectTerminalRepositoryKnowledge({
+      root,
+      repositoryRevision: currentRepository.revision,
+      supplementalSources: await collectLocalKnowledgeSources(root),
+    });
+    issues.push(...knowledge.issues);
+    knowledgeAdvisories = knowledge.advisories;
   }
   const activation = await readTerminalActivationReceipts(root);
   const runtimeActivation = await inspectTerminalRuntimeActivation(root, activation);
@@ -196,6 +197,7 @@ export async function inspectTerminalLifecycle(
     status: issues.length === 0 ? "current" : "action_required",
     repositoryRoot: root,
     issues,
+    knowledgeAdvisories,
     activation,
     runtimeActivation,
     activationReadiness: terminalActivationReadiness(runtimeActivation),

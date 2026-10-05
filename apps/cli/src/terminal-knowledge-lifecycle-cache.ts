@@ -22,6 +22,13 @@ interface TerminalKnowledgeLifecycleCache {
   supplementalSourcesDigest: string;
   knowledgeProjectionDigest: string;
   issues: LifecycleIssue[];
+  /** Agent-owned document drift attention (ADR-0464); never gates lifecycle status. */
+  advisories?: LifecycleIssue[];
+}
+
+export interface TerminalKnowledgeLifecycleCacheEntry {
+  issues: LifecycleIssue[];
+  advisories: LifecycleIssue[];
 }
 
 const CACHE_PATH = ".lervo/state/terminal-integration/knowledge-lifecycle-cache.json";
@@ -117,7 +124,11 @@ function validateCache(value: unknown): TerminalKnowledgeLifecycleCache | null {
     !HASH.test(cache.knowledgeProjectionDigest) ||
     !Array.isArray(cache.issues) ||
     cache.issues.length > 128 ||
-    !cache.issues.every(validIssue)
+    !cache.issues.every(validIssue) ||
+    (cache.advisories !== undefined &&
+      (!Array.isArray(cache.advisories) ||
+        cache.advisories.length > 32 ||
+        !cache.advisories.every(validIssue)))
   ) {
     return null;
   }
@@ -129,6 +140,14 @@ export async function readTerminalKnowledgeLifecycleCache(input: {
   repositoryRevision: string;
   supplementalSources: RepositorySupplementalSource[];
 }): Promise<LifecycleIssue[] | null> {
+  return (await readTerminalKnowledgeLifecycleCacheEntry(input))?.issues ?? null;
+}
+
+export async function readTerminalKnowledgeLifecycleCacheEntry(input: {
+  root: string;
+  repositoryRevision: string;
+  supplementalSources: RepositorySupplementalSource[];
+}): Promise<TerminalKnowledgeLifecycleCacheEntry | null> {
   try {
     const target = resolve(input.root, CACHE_PATH);
     const stats = await lstat(target);
@@ -145,7 +164,7 @@ export async function readTerminalKnowledgeLifecycleCache(input: {
     ) {
       return null;
     }
-    return cache.issues;
+    return { issues: cache.issues, advisories: cache.advisories ?? [] };
   } catch {
     return null;
   }
@@ -156,11 +175,15 @@ export async function writeTerminalKnowledgeLifecycleCache(input: {
   repositoryRevision: string;
   supplementalSources: RepositorySupplementalSource[];
   issues: LifecycleIssue[];
+  advisories?: LifecycleIssue[];
 }): Promise<void> {
+  const advisories = input.advisories ?? [];
   if (
     !HASH.test(input.repositoryRevision) ||
     input.issues.length > 128 ||
-    !input.issues.every(validIssue)
+    !input.issues.every(validIssue) ||
+    advisories.length > 32 ||
+    !advisories.every(validIssue)
   ) {
     throw new Error("The terminal knowledge lifecycle cache input is invalid.");
   }
@@ -176,6 +199,7 @@ export async function writeTerminalKnowledgeLifecycleCache(input: {
     schemaVersion: 2,
     ...coordinates,
     issues: input.issues,
+    ...(advisories.length === 0 ? {} : { advisories }),
   };
   const bytes = `${JSON.stringify(cache)}\n`;
   if (Buffer.byteLength(bytes) > MAXIMUM_CACHE_BYTES)

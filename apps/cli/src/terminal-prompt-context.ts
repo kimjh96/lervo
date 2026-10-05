@@ -16,7 +16,7 @@ import { selectTerminalContextCandidates } from "./terminal-context-selection.js
 import { formatTerminalAttentionContext } from "./operating-attention-format.js";
 import { prepareCompactTerminalPromptContext } from "./terminal-compact-context.js";
 import { createOperatingAttentionReport } from "./operating-attention-projection.js";
-import { readTerminalKnowledgeLifecycleCache } from "./terminal-knowledge-lifecycle-cache.js";
+import { readTerminalKnowledgeLifecycleCacheEntry } from "./terminal-knowledge-lifecycle-cache.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import { prepareTerminalPromptInputs } from "./terminal-prompt-preparation.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
@@ -139,7 +139,7 @@ export async function prepareTerminalPromptContext(input: {
     targetPath: null,
     reasonIds: ["unmanaged_terminal_retrieval_only"],
   };
-  const cachedLifecycleIssues = await readTerminalKnowledgeLifecycleCache({
+  const cachedLifecycle = await readTerminalKnowledgeLifecycleCacheEntry({
     root: input.root,
     repositoryRevision: repositorySnapshot.revision,
     supplementalSources,
@@ -160,9 +160,12 @@ export async function prepareTerminalPromptContext(input: {
     workstreamFreshness,
     canonicalization,
     knowledgeLifecycle:
-      cachedLifecycleIssues === null
+      cachedLifecycle === null
         ? { coverage: "unavailable", issues: [] }
-        : { coverage: "cached", issues: cachedLifecycleIssues },
+        : {
+            coverage: "cached",
+            issues: [...cachedLifecycle.issues, ...cachedLifecycle.advisories],
+          },
     observedAt,
   });
   const selection = await input.timing.measure("search", () =>
