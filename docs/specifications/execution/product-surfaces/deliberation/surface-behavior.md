@@ -70,10 +70,10 @@ For a bound origin, advancement follows exactly one durable interaction outbound
 
 Settlement and reconciliation atomically create a durable notification obligation:
 
-| State | Meaning |
-| --- | --- |
-| `pending` | Host-ready |
-| `leased` | Held by one bounded worker |
+| State      | Meaning                                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------------------- |
+| `pending`  | Host-ready                                                                                              |
+| `leased`   | Held by one bounded worker                                                                              |
 | `accepted` | The normalized event and exactly one writing-gated outbound were committed to the interaction lifecycle |
 
 Project ID, deliberation ID, terminal summary, and settlement time are required and immutable. A lease adds worker, attempt, and expiry fields; acceptance adds a Lervo conversation-event ID and time. The obligation stores no topic, message body, principal, native Discord identifier, credential, provider payload, or delivery receipt.
