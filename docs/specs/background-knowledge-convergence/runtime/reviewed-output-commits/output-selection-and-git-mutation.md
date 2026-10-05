@@ -9,7 +9,7 @@ The commit helper requires a symbolic branch and refuses observed merge, cherry-
 
 Selection is sorted. Rename and copy parsing consumes the original-path status field without independently adding that original path. The selector relies on normalization inspection to establish current reviewed outputs.
 
-The helper stages selected paths with `git add -A --`, then uses `git commit --only` with subject `docs: apply reviewed background knowledge`, an obligation-ID body, and author `Lervo Knowledge <knowledge@lervo.invalid>`. It does not override committer identity. Other paths are omitted from the commit pathspec.
+The helper stages selected paths with `git add -A --`, then uses `git commit --only` with subject `docs: apply reviewed background knowledge`, an obligation-ID body, and `Lervo Knowledge <knowledge@lervo.invalid>` as both author and committer. The commit therefore does not depend on a developer or runner Git identity. Without an explicit committer, Git refuses the commit on hosts with no configured or derivable identity, such as CI runners. Other paths are omitted from the commit pathspec.
 
 After success, the helper reads HEAD and its first parent. It returns committed paths and before/after coordinates only when that parent equals its observed pre-commit HEAD.
 

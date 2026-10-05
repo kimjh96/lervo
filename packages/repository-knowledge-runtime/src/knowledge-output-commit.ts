@@ -17,6 +17,14 @@ export const KNOWLEDGE_OUTPUT_COMMIT_AUTHOR = {
   name: "Lervo Knowledge",
   email: "knowledge@lervo.invalid",
 };
+// Lervo both authors and commits its own outputs, so the commit never depends on a developer or
+// runner identity; without one, `git commit` fails before writing anything.
+const KNOWLEDGE_OUTPUT_COMMIT_IDENTITY = {
+  GIT_AUTHOR_NAME: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name,
+  GIT_AUTHOR_EMAIL: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email,
+  GIT_COMMITTER_NAME: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name,
+  GIT_COMMITTER_EMAIL: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email,
+};
 
 const sha256 = (bytes: Buffer | string) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -199,10 +207,7 @@ export async function commitSettledKnowledgeOutputs(input: {
         "--",
         ...paths,
       ],
-      {
-        GIT_AUTHOR_NAME: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name,
-        GIT_AUTHOR_EMAIL: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email,
-      },
+      KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
     );
   } catch {
     // A concurrent developer Git operation wins; the next idle cycle retries from current bytes.

@@ -57,6 +57,10 @@ it("records a history-preserving merge with HEAD when every ref-only change was 
     git(root, "rev-parse", "HEAD"),
   ]);
   expect(git(root, "show", `${after}:later.md`)).toContain("Later working-branch document");
+  // The repository's own identity is not borrowed for Lervo's merge.
+  expect(git(root, "log", "-1", "--format=%an <%ae>%n%cn <%ce>", after)).toBe(
+    "Lervo Knowledge Worker <knowledge@lervo.invalid>\nLervo Knowledge Worker <knowledge@lervo.invalid>",
+  );
 });
 
 it("leaves the ref untouched when it holds bytes that never settled integration", async () => {
