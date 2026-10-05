@@ -41,9 +41,11 @@ function detail(issue: KnowledgeLintIssue): string {
  */
 export function documentDriftAttentionIssues(
   lint: Pick<KnowledgeLintResult, "issues">,
+  maximumItems = MAXIMUM_DOCUMENT_DRIFT_ATTENTION_ITEMS,
 ): DocumentDriftAttentionIssue[] {
+  const bound = Math.max(1, Math.min(maximumItems, MAXIMUM_DOCUMENT_DRIFT_ATTENTION_ITEMS));
   const relevant = lint.issues.filter((issue) => attentionCodes.has(issue.code));
-  const items = relevant.slice(0, MAXIMUM_DOCUMENT_DRIFT_ATTENTION_ITEMS).map((issue) => ({
+  const items = relevant.slice(0, bound).map((issue) => ({
     code: issue.code,
     command: "lervo knowledge lint --json",
     detail: detail(issue),
