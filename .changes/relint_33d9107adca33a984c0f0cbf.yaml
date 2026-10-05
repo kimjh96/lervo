@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_33d9107adca33a984c0f0cbf"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Knowledge publication pushes unchanged content once, merges only after every check succeeds, records gh failure causes, and formats knowledge outputs before committing and publishing."
