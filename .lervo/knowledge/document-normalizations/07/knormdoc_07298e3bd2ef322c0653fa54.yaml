@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9ecfc2e89e2f024a0a4bcf03
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_96bf27416ee5fabc1df4f830
+outputLanguage: en
+outputs:
+  - byteCount: 4237
+    contentHash: sha256:88187b277a11299538813bb9e4834597357206bbcf1bfc6904c8690989a07a32
+    path: docs/foundation/code-quality-and-commit-ci.md
+    userRegionHash: sha256:88187b277a11299538813bb9e4834597357206bbcf1bfc6904c8690989a07a32
+profile: repository_document
+recordId: knormdoc_07298e3bd2ef322c0653fa54
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0b8d1e81a844aa397589c5b22fd43562c86a7537a05e92019aa188a43b0136e2
+sourcePath: docs/foundation/code-quality-and-commit-ci.md
+sourceUnitVersionIds:
+  - uv_08d21bc4e0be2b1f9317309a
+  - uv_777417081f272a8b314f878b
+  - uv_914ef40aa01a1f068bb874f5
+  - uv_bdc864948523ef4da990f98b
+  - uv_cd4df1fa57fb8f920ffa7b74
+  - uv_d852616f37dbcc390b0c85d0
