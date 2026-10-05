@@ -22,6 +22,8 @@ const execute = promisify(execFile);
 export class FakeConvergenceOwnerHub {
   lease: KnowledgeConvergenceOwnerLease | null = null;
   available = true;
+  /** The cause a failing request carries, as the Hub client attaches it. */
+  failure: { failureCode: string; httpStatus: number | null } | null = null;
   requests = 0;
 
   constructor(private readonly clock: () => number) {}
@@ -30,6 +32,7 @@ export class FakeConvergenceOwnerHub {
     return {
       mutate: async (mutation) => {
         this.requests++;
+        if (this.failure !== null) throw Object.assign(new Error("hub refused"), this.failure);
         if (!this.available) throw new Error("hub unavailable");
         const { next, decision } = decideKnowledgeConvergenceOwnerMutation({
           current: this.lease,
