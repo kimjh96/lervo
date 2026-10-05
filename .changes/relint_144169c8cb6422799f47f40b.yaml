@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_144169c8cb6422799f47f40b"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Capture owner rules automatically: terminal and conversation owner turns are queued, the knowledge resident assesses them semantically into exact-review instruction candidates, and instruction intake no longer times out or hides why grounding failed."

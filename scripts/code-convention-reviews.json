@@ -67,9 +67,9 @@
     },
     {
       "path": "apps/node-runtime/src/discord-conversation-mode.ts",
-      "contentHash": "sha256:10c96d6352421ecc918e750ca4f4a1d491976078763c5ef1d626739e746c0673",
+      "contentHash": "sha256:0614a54a052f6720a92b214ac7b5f2b5e44a78b3d9ad3790d8123a2dfe6842ff",
       "responsibility": "Natural-language Discord conversation mode routing",
-      "rationale": "The class resolves one conversation event to a mode and dispatches its response through injected ports. Discussion eligibility, effect admission, intent conversion, and discussion response policy remain in dedicated modules; this boundary only selects the current event's available effects, caches its resolution, and routes the admitted result.",
+      "rationale": "The class resolves one conversation event to a mode and dispatches its response through injected ports. Discussion eligibility, effect admission, intent conversion, and discussion response policy remain in dedicated modules; this boundary only selects the current event's available effects, caches its resolution, and routes the admitted result. ADR-0466 owner-turn capture is an injected port that only queues the turn; classification stays in the knowledge resident.",
       "disposition": "cohesive"
     },
     {
@@ -137,9 +137,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:0bfedf41c244aa41b9e37ce401eb6452394a4f482d9a7b5faa830150fb9e9f2d",
+      "contentHash": "sha256:2532bce50d74679f74f7a52cfb590efcae0895f9b07b369a0e10847fb5a50eff",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, ADR-0459 and ADR-0460 attribution, and ADR-0463 document freshness allowlists only map hash-only payloads to their schemas; the convergence and freshness lists live in their own modules, and none adds provider work, authority decisions or persistence.",
+      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, ADR-0459 and ADR-0460 attribution, ADR-0463 document freshness, and ADR-0466 instruction capture allowlists only map hash-only payloads to their schemas; the convergence, freshness, and capture lists live in their own modules, and none adds provider work, authority decisions or persistence.",
       "disposition": "cohesive"
     },
     {
@@ -193,9 +193,9 @@
     },
     {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:e175990083e54951e0d94108ae815908e75ed19b2847ff8ad564a2d4f0cc2d6a",
+      "contentHash": "sha256:65091ecda32ac3720fd14a962af7b5e04341b3dbe841e461dc871b6faa37922a",
       "responsibility": "Isolated no-capability provider process adapter",
-      "rationale": "The module implements one isolated no-capability process boundary for both existing providers, including native structured JSON output. Native availability failure translation is extracted and shared by the three JSON workflows; host admission, persistent budgets, source policy and document effects remain outside this adapter. Common tests cover schema delivery, exact structured response extraction, no tools, usage, cancellation and timeout.",
+      "rationale": "One isolated no-capability process boundary for both providers, including native structured JSON output. Shared availability translation serves the three JSON workflows, and Codex failure events become typed provider failures without provider text; host admission, budgets, source policy and document effects stay outside. Common tests cover schema delivery, structured extraction, no tools, usage, cancellation and timeout.",
       "disposition": "cohesive"
     },
     {
@@ -361,9 +361,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:83c9127393fc2240915f951667c11d65796e047290e19e19dc7b71435b567126",
+      "contentHash": "sha256:b13865aa4be0044bf88abcff2550a2486f41ef195fa67c5aa27e835ace344251",
       "responsibility": "Repository schema validator registry",
-      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, and repository replica event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry. The ADR-0463 document freshness event payload validators are compiled from their own schema module.",
+      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, and repository replica event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry. The ADR-0463 document freshness and ADR-0466 instruction capture event payload validators are compiled from their own schema modules.",
       "disposition": "cohesive"
     },
     {
