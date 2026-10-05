@@ -18,6 +18,12 @@ import {
   type DurableInstructionPlan,
 } from "@lervo/repository-knowledge";
 
+import {
+  commitAppliedInstructionCandidate,
+  instructionCandidateApplyAuthority,
+  recordInstructionCandidateResolution,
+} from "@lervo/repository-knowledge-runtime";
+
 import { groundDurableInstructionRequest } from "./durable-instruction-grounding.js";
 import { inspectInstructionCatalog } from "./instruction-catalog.js";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
@@ -109,6 +115,29 @@ export async function intakeDurableInstruction(input: {
   }
 }
 
+function plainCandidate(candidate: DurableInstructionCandidateInspection) {
+  const { candidateHash: _hash, artifactPath: _path, ...plain } = candidate;
+  return plain;
+}
+
+/**
+ * ADR-0467: on a Hub-coordinated host only the ADR-0466 convergence owner applies, because it is
+ * the host that commits knowledge outputs; review on another host names the owner instead.
+ */
+export class InstructionApplyOwnerElsewhereError extends Error {
+  readonly code = "convergence_owner_elsewhere";
+
+  constructor(
+    readonly reason: string,
+    readonly holderLabel: string | null,
+  ) {
+    super(
+      `This host does not own knowledge convergence (${reason}). Apply this candidate on the convergence owner host${holderLabel === null ? "" : ` (${holderLabel})`}; it already holds the candidate through the Hub exchange.`,
+    );
+    this.name = "InstructionApplyOwnerElsewhereError";
+  }
+}
+
 function assertReview(input: {
   candidate: DurableInstructionCandidateInspection;
   candidateHash: string;
@@ -127,6 +156,12 @@ export async function rejectDurableInstructionCandidate(input: {
 }): Promise<{ schemaVersion: 1; status: "rejected"; candidateId: string; reviewDigest: string }> {
   const candidate = await loadDurableInstructionCandidate(input);
   assertReview({ candidate, candidateHash: input.candidateHash, reviewerId: input.reviewerId });
+  await recordInstructionCandidateResolution({
+    repositoryRoot: input.repositoryRoot,
+    candidate: plainCandidate(candidate),
+    resolution: "rejected",
+    resolvedAt: new Date(),
+  });
   await removeDurableInstructionCandidate({
     repositoryRoot: input.repositoryRoot,
     candidateId: input.candidateId,
@@ -156,6 +191,9 @@ export async function applyReviewedDurableInstruction(input: {
 }) {
   const candidate = await loadDurableInstructionCandidate(input);
   assertReview({ candidate, candidateHash: input.candidateHash, reviewerId: input.reviewerId });
+  const authority = await instructionCandidateApplyAuthority(input.repositoryRoot);
+  if (authority.status === "owner_elsewhere")
+    throw new InstructionApplyOwnerElsewhereError(authority.reason, authority.holderLabel);
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
     if (storage.manifest.projectId !== candidate.projectId)
@@ -198,6 +236,7 @@ export async function applyReviewedDurableInstruction(input: {
         targetPath: candidate.targetPath,
         approvalDigest: reviewDigest,
         appliedAt: appliedEvent.occurredAt,
+        commitHash: null,
       };
     }
     const supplementalSources = await collectLocalKnowledgeSources(input.repositoryRoot);
@@ -298,12 +337,27 @@ export async function applyReviewedDurableInstruction(input: {
         });
       },
     });
+    await recordInstructionCandidateResolution({
+      repositoryRoot: input.repositoryRoot,
+      candidate: plainCandidate(candidate),
+      resolution: "applied",
+      resolvedAt: input.now,
+    });
+    // A Hub-coordinated owner commits the rule so publication and the replica reach every host.
+    const commitHash =
+      authority.status === "owner"
+        ? await commitAppliedInstructionCandidate({
+            repositoryRoot: input.repositoryRoot,
+            targetPath: candidate.targetPath,
+            candidateId: candidate.candidateId,
+          })
+        : null;
     await removeDurableInstructionCandidate({
       repositoryRoot: input.repositoryRoot,
       candidateId: candidate.candidateId,
       expectedCandidateHash: candidate.candidateHash,
     });
-    return receipt;
+    return { ...receipt, commitHash };
   } finally {
     await storage.close();
   }

@@ -364,46 +364,48 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
     ).toBe(false);
   });
 
-  it("tells the agent that owner turns wait on a host that does not own convergence", async () => {
+  it("surfaces one attention item when this host may not assess its owner turns", async () => {
     const root = await repository();
-    await writeFile(
-      resolve(root, ".lervo/state/knowledge/convergence-owner.json"),
-      JSON.stringify({
-        schemaVersion: 1,
-        recordedHolderKey: null,
-        verdict: {
-          role: "waiting_owner",
-          reason: "convergence_owner_elsewhere",
-          mode: "hub",
-          hostHash: `sha256:${"1".repeat(64)}`,
-          hostLabel: "mac",
-          holder: null,
-          validUntil: null,
-          wakeAt: null,
-          grantedAt: null,
-          yieldUntil: null,
-          observedAt: new Date().toISOString(),
-        },
-      }),
-    );
     await queueTerminalOwnerTurn({
       root,
       provider: "claude",
-      providerSessionId: "non-owner-session",
+      providerSessionId: "undelegated-session",
       prompt: ownerRule,
       workspaceBinding: null,
       now: new Date(),
     });
+    await mkdir(resolve(root, ".lervo/state/knowledge/instruction-capture"), { recursive: true });
+    await writeFile(
+      resolve(root, ".lervo/state/knowledge/instruction-capture/state.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        budget: { day: "", hour: "", assessmentsToday: 0, assessmentsThisHour: 0, tokensToday: 0 },
+        assessed: [],
+        held: [],
+        lastCycleAt: new Date().toISOString(),
+        authorityBlocked: { since: new Date().toISOString(), queuedCount: 1 },
+      }),
+    );
     const context = promptContext(
       await hook(root, "codex", {
         hook_event_name: "UserPromptSubmit",
-        session_id: "non-owner-codex",
+        session_id: "undelegated-codex",
         prompt: "Continue.",
       }),
     );
     expect(context).toContain(
-      "1 owner turn waits on this host until it owns knowledge convergence",
+      "1 owner turn cannot be assessed on this host because it has no knowledge convergence delegation",
     );
+    const attention: string[] = [];
+    await runCli(["application", "attention", "--json"], {
+      ...quiet(root),
+      stdout: (message) => attention.push(message),
+    });
+    expect(
+      (JSON.parse(attention.join("")).items as Array<{ kind: string }>).filter(
+        (item) => item.kind === "instruction_capture_blocked",
+      ),
+    ).toHaveLength(1);
     const status: string[] = [];
     expect(
       await runCli(["knowledge", "instruction", "capture", "--json"], {
@@ -412,7 +414,8 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
       }),
     ).toBe(0);
     expect(JSON.parse(status.join(""))).toMatchObject({
-      convergenceOwnerRole: "waiting_owner",
+      applyAuthority: { status: "single_host" },
+      authorityBlocked: { queuedCount: 1 },
     });
     expect(status.join("")).not.toContain(ownerRule);
   });

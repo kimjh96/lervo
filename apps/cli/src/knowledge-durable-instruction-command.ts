@@ -153,7 +153,7 @@ export async function runKnowledgeDurableInstruction(
       io.stdout(
         parsed.values.json
           ? `${JSON.stringify(result, null, 2)}\n`
-          : `Applied the reviewed durable repository instruction.\nplan: ${result.planId}\ntarget: ${result.targetPath}\nRun the repository knowledge migration and lint lifecycle before completion.\n`,
+          : `Applied the reviewed durable repository instruction.\nplan: ${result.planId}\ntarget: ${result.targetPath}\n${result.commitHash === null ? "" : `commit: ${result.commitHash} (published to every host by the convergence owner)\n`}Run the repository knowledge migration and lint lifecycle before completion.\n`,
       );
       return 0;
     }

@@ -4,7 +4,8 @@ import { parseArgs } from "node:util";
 import {
   dismissHeldCapture,
   listQueuedInstructionCaptures,
-  readConvergenceOwnerFence,
+  instructionCandidateApplyAuthority,
+  readInstructionCandidateExchangeState,
   readInstructionCaptureState,
 } from "@lervo/repository-knowledge-runtime";
 
@@ -37,17 +38,23 @@ export async function runKnowledgeInstructionCapture(args: string[], io: CliIo):
     );
     return dismissed ? 0 : 1;
   }
-  const [queue, state, fence] = await Promise.all([
+  const [queue, state, authority, exchange] = await Promise.all([
     listQueuedInstructionCaptures(repositoryRoot),
     readInstructionCaptureState(repositoryRoot),
-    readConvergenceOwnerFence(repositoryRoot),
+    instructionCandidateApplyAuthority(repositoryRoot),
+    readInstructionCandidateExchangeState(repositoryRoot),
   ]);
-  // ADR-0466: only the convergence owner assesses; null means a single-host repository.
-  const ownerRole = fence?.verdict.role ?? null;
+  // ADR-0467: every host assesses its own turns; only applying a candidate needs the owner.
   const report = {
     schemaVersion: 1 as const,
     queuedCount: queue.length,
-    convergenceOwnerRole: ownerRole,
+    applyAuthority: authority,
+    authorityBlocked: state.authorityBlocked ?? null,
+    exchange: {
+      knownCount: exchange.known.length,
+      resolvedCount: exchange.resolved.length,
+      pendingResolutionCount: exchange.pendingResolutions.length,
+    },
     queued: queue.map((capture) => ({
       captureId: capture.captureId,
       source: capture.source,
@@ -64,10 +71,15 @@ export async function runKnowledgeInstructionCapture(args: string[], io: CliIo):
       ? `${JSON.stringify(report, null, 2)}\n`
       : [
           `Owner-turn capture: ${queue.length} queued for assessment; last cycle ${state.lastCycleAt ?? "never"}.`,
-          ...(ownerRole === null || ownerRole === "owner"
+          ...(authority.status === "owner_elsewhere"
+            ? [
+                `Candidates are applied on the convergence owner host${authority.holderLabel === null ? "" : ` (${authority.holderLabel})`}; this host assesses its own turns and shares candidates through the Hub.`,
+              ]
+            : []),
+          ...(state.authorityBlocked === undefined || state.authorityBlocked === null
             ? []
             : [
-                `This host does not own knowledge convergence (${ownerRole}); queued turns are held here until it does, for at most seven days.`,
+                `Assessment is blocked: this host has no knowledge convergence delegation (${state.authorityBlocked.queuedCount} queued since ${state.authorityBlocked.since}).`,
               ]),
           `budget: ${state.budget.assessmentsThisHour} this hour, ${state.budget.assessmentsToday} today, ${state.budget.tokensToday} tokens today`,
           ...(state.held.length === 0
