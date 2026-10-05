@@ -186,7 +186,7 @@
     },
     {
       "path": "packages/policy-sqlite/src/store.ts",
-      "contentHash": "sha256:5e6e9a01e5084ea11e73a380f74136518597242ddf6b34dd7efc9479a2434d3c",
+      "contentHash": "sha256:b8f56aeaba8429889095ff0c6837535974032a9243ba9c8aa5a149e2172d3973",
       "responsibility": "Policy state SQLite adapter",
       "rationale": "The class owns one SQLite policy persistence boundary and its approval, verification, transaction, and query operations.",
       "disposition": "cohesive"
