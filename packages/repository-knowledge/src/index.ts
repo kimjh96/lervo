@@ -73,6 +73,54 @@ export {
   documentStalenessStatePath,
   readRecordedDocumentStalenessReport,
 } from "./document-staleness-state.js";
+export * from "./document-freshness-contract.js";
+export * from "./document-freshness-policy.js";
+export {
+  documentFreshnessFinding,
+  documentFreshnessFindingActionable,
+  documentFreshnessFindingsDigest,
+} from "./document-freshness-finding.js";
+export {
+  documentFreshnessReferences,
+  type DocumentFreshnessTreeOracle,
+} from "./document-freshness-references.js";
+export {
+  activeDocumentFreshnessHold,
+  admitDocumentFreshnessFindings,
+  documentFreshnessPriorityClass,
+  orderDocumentFreshnessFindings,
+  type PrioritizedDocumentFreshnessFinding,
+} from "./document-freshness-priority.js";
+export {
+  documentFreshnessDocumentOwnership,
+  documentFreshnessRangeOwnership,
+} from "./document-freshness-classification.js";
+export {
+  applyDocumentFreshnessHunks,
+  documentFreshnessOutsideBytesUnchanged,
+} from "./document-freshness-hunks.js";
+export { applyDocumentFreshnessArchive } from "./document-freshness-archive.js";
+export { documentFreshnessWritingContract } from "./document-freshness-checks.js";
+export { documentFreshnessSelectedOutput } from "./document-freshness-output.js";
+export {
+  documentFreshnessGenerationInstruction,
+  documentFreshnessResponseSchema,
+  parseDocumentFreshnessProposal,
+  type DocumentFreshnessProposal,
+} from "./document-freshness-response.js";
+export {
+  buildDocumentFreshnessCandidate,
+  documentFreshnessAutoApplicableHunks,
+  reviewIntervalOnlyFreshnessCandidate,
+  type DocumentFreshnessEvidenceItem,
+} from "./document-freshness-candidate.js";
+export {
+  documentFreshnessOwnershipResolver,
+  observeDocumentFreshnessFindings,
+  type DocumentFreshnessObservation,
+} from "./document-freshness-observation.js";
+export { filesystemDocumentFreshnessOracle } from "./document-freshness-filesystem-oracle.js";
+export * from "./document-freshness-surfaces.js";
 export * from "./markdown-split.js";
 export * from "./policy.js";
 export * from "./projection-ignore.js";

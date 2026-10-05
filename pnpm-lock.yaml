@@ -1712,6 +1712,9 @@ importers:
       '@lervo/context':
         specifier: workspace:*
         version: link:../context
+      '@lervo/core':
+        specifier: workspace:*
+        version: link:../core
       '@lervo/documents':
         specifier: workspace:*
         version: link:../documents
