@@ -26,6 +26,7 @@ import {
   requireOutboxPositiveInteger,
   requireOutboxTimestamp,
 } from "./outbox-validation.js";
+import { iterateSqliteRows, sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export class SQLiteOutboxRepository {
   constructor(private readonly database: DatabaseSync) {}
@@ -44,11 +45,15 @@ export class SQLiteOutboxRepository {
         "availableAt cannot be earlier than enqueuedAt.",
       );
     }
-    const existing = this.database
-      .prepare("SELECT 1 FROM outbox WHERE event_id = ? AND destination_id = ?")
-      .get(eventId, destinationId);
+    const existing = sqliteRow(
+      this.database
+        .prepare("SELECT 1 FROM outbox WHERE event_id = ? AND destination_id = ?")
+        .get(eventId, destinationId),
+    );
     if (existing) return { inserted: false };
-    const event = this.database.prepare("SELECT 1 FROM events WHERE event_id = ?").get(eventId);
+    const event = sqliteRow(
+      this.database.prepare("SELECT 1 FROM events WHERE event_id = ?").get(eventId),
+    );
     if (!event) {
       throw new EventStoreError(
         "outbox_not_found",
@@ -69,11 +74,13 @@ export class SQLiteOutboxRepository {
 
   outstandingCount(destinationId: string): number {
     const destination = requireOutboxIdentifier(destinationId, "destinationId");
-    const row = this.database
-      .prepare(
-        "SELECT COUNT(*) AS count FROM outbox WHERE destination_id = ? AND acknowledged_at IS NULL",
-      )
-      .get(destination);
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          "SELECT COUNT(*) AS count FROM outbox WHERE destination_id = ? AND acknowledged_at IS NULL",
+        )
+        .get(destination),
+    );
     if (typeof row?.count !== "number") {
       throw new EventStoreError("integrity_failed", "The outstanding outbox count is invalid.");
     }
@@ -83,9 +90,11 @@ export class SQLiteOutboxRepository {
   get(eventId: string, destinationId: string): OutboxDelivery | null {
     const event = requireOutboxIdentifier(eventId, "eventId");
     const destination = requireOutboxIdentifier(destinationId, "destinationId");
-    const row = this.database
-      .prepare(`${outboxDeliverySelection} WHERE o.event_id = ? AND o.destination_id = ?`)
-      .get(event, destination);
+    const row = sqliteRow(
+      this.database
+        .prepare(`${outboxDeliverySelection} WHERE o.event_id = ? AND o.destination_id = ?`)
+        .get(event, destination),
+    );
     return row === undefined ? null : rowToOutboxDelivery(row);
   }
 
@@ -104,9 +113,10 @@ export class SQLiteOutboxRepository {
         : requireOutboxIdentifier(request.destinationId, "destinationId");
     const leaseExpiresAt = new Date(Date.parse(claimedAt) + leaseDurationMs).toISOString();
     const candidates = destinationId
-      ? this.database
-          .prepare(
-            `
+      ? sqliteRows(
+          this.database
+            .prepare(
+              `
             SELECT event_id, destination_id
             FROM outbox
             WHERE acknowledged_at IS NULL
@@ -116,11 +126,13 @@ export class SQLiteOutboxRepository {
             ORDER BY available_at, enqueued_at, event_id, destination_id
             LIMIT ?
           `,
-          )
-          .all(claimedAt, claimedAt, destinationId, limit)
-      : this.database
-          .prepare(
-            `
+            )
+            .all(claimedAt, claimedAt, destinationId, limit),
+        )
+      : sqliteRows(
+          this.database
+            .prepare(
+              `
             SELECT event_id, destination_id
             FROM outbox
             WHERE acknowledged_at IS NULL
@@ -129,8 +141,9 @@ export class SQLiteOutboxRepository {
             ORDER BY available_at, enqueued_at, event_id, destination_id
             LIMIT ?
           `,
-          )
-          .all(claimedAt, claimedAt, limit);
+            )
+            .all(claimedAt, claimedAt, limit),
+        );
 
     const deliveries: OutboxDelivery[] = [];
     const lease = this.database.prepare(`
@@ -158,7 +171,7 @@ export class SQLiteOutboxRepository {
         claimedAt,
       );
       if (result.changes !== 1) continue;
-      const row = read.get(eventId, selectedDestination);
+      const row = sqliteRow(read.get(eventId, selectedDestination));
       if (!row) {
         throw new EventStoreError("integrity_failed", "The leased outbox item cannot be read.");
       }
@@ -172,9 +185,11 @@ export class SQLiteOutboxRepository {
     const destinationId = requireOutboxIdentifier(request.destinationId, "destinationId");
     const workerId = requireOutboxIdentifier(request.workerId, "workerId");
     const acknowledgedAt = requireOutboxTimestamp(request.acknowledgedAt, "acknowledgedAt");
-    const row = this.database
-      .prepare("SELECT * FROM outbox WHERE event_id = ? AND destination_id = ?")
-      .get(eventId, destinationId);
+    const row = sqliteRow(
+      this.database
+        .prepare("SELECT * FROM outbox WHERE event_id = ? AND destination_id = ?")
+        .get(eventId, destinationId),
+    );
     if (!row)
       throw new EventStoreError("outbox_not_found", "The outbox item to acknowledge is missing.");
     if (row.acknowledged_at !== null) return { acknowledged: false };
@@ -220,9 +235,11 @@ export class SQLiteOutboxRepository {
         "availableAt cannot be earlier than failedAt.",
       );
     }
-    const row = this.database
-      .prepare("SELECT * FROM outbox WHERE event_id = ? AND destination_id = ?")
-      .get(eventId, destinationId);
+    const row = sqliteRow(
+      this.database
+        .prepare("SELECT * FROM outbox WHERE event_id = ? AND destination_id = ?")
+        .get(eventId, destinationId),
+    );
     if (!row) throw new EventStoreError("outbox_not_found", "The outbox item to retry is missing.");
     if (
       row.acknowledged_at !== null ||
@@ -310,19 +327,23 @@ export class SQLiteOutboxRepository {
       throw new EventStoreError("invalid_outbox_request", "The outbox status is unsupported.");
     }
     const where = clauses.length === 0 ? "" : `WHERE ${clauses.join(" AND ")}`;
-    const rows = this.database
-      .prepare(
-        `${outboxDeliverySelection} ${where} ORDER BY o.enqueued_at, o.event_id, o.destination_id LIMIT ?`,
-      )
-      .all(...parameters, limit);
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `${outboxDeliverySelection} ${where} ORDER BY o.enqueued_at, o.event_id, o.destination_id LIMIT ?`,
+        )
+        .all(...parameters, limit),
+    );
     return rows.map(rowToOutboxDelivery);
   }
 
   verifyIntegrity(): number {
     let count = 0;
-    const rows = this.database
-      .prepare(`${outboxDeliverySelection} ORDER BY o.enqueued_at, o.event_id, o.destination_id`)
-      .iterate();
+    const rows = iterateSqliteRows(
+      this.database
+        .prepare(`${outboxDeliverySelection} ORDER BY o.enqueued_at, o.event_id, o.destination_id`)
+        .iterate(),
+    );
     for (const row of rows) {
       rowToOutboxDelivery(row);
       count += 1;

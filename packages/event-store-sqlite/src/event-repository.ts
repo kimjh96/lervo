@@ -18,6 +18,7 @@ import {
 
 import { EventStoreError } from "./errors.js";
 import { requireString, rowToEvent } from "./row-codec.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 const integrityPageSize = 1000;
 const maximumListedTypes = 64;
@@ -48,9 +49,9 @@ export class SQLiteEventRepository {
         ? ({ ...draft, schemaVersion: 2 } as EventDraft)
         : draft;
     const effectiveIdentity = eventIdentity(effectiveDraft, sanitized.payload);
-    const existingRow = this.database
-      .prepare("SELECT * FROM events WHERE event_id = ?")
-      .get(draft.eventId);
+    const existingRow = sqliteRow(
+      this.database.prepare("SELECT * FROM events WHERE event_id = ?").get(draft.eventId),
+    );
     if (existingRow) {
       const existing = rowToEvent(existingRow);
       const existingIdentity = eventIdentity(existing, existing.payload);
@@ -69,9 +70,13 @@ export class SQLiteEventRepository {
       );
     }
 
-    const tailRow = this.database
-      .prepare("SELECT seq, event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1")
-      .get(this.projectId);
+    const tailRow = sqliteRow(
+      this.database
+        .prepare(
+          "SELECT seq, event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1",
+        )
+        .get(this.projectId),
+    );
     const seqValue = tailRow?.seq;
     if (
       seqValue !== undefined &&
@@ -131,14 +136,18 @@ export class SQLiteEventRepository {
   }
 
   get(eventId: string): EventEnvelope | null {
-    const row = this.database.prepare("SELECT * FROM events WHERE event_id = ?").get(eventId);
+    const row = sqliteRow(
+      this.database.prepare("SELECT * FROM events WHERE event_id = ?").get(eventId),
+    );
     return row ? rowToEvent(row) : null;
   }
 
   latest(): EventEnvelope | null {
-    const row = this.database
-      .prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1")
-      .get(this.projectId);
+    const row = sqliteRow(
+      this.database
+        .prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1")
+        .get(this.projectId),
+    );
     return row ? rowToEvent(row) : null;
   }
 
@@ -174,9 +183,11 @@ export class SQLiteEventRepository {
     }
     conditions.push("seq > ?");
     parameters.push(afterSeq, limit);
-    const rows = this.database
-      .prepare(`SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY seq LIMIT ?`)
-      .all(...parameters);
+    const rows = sqliteRows(
+      this.database
+        .prepare(`SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY seq LIMIT ?`)
+        .all(...parameters),
+    );
     return rows.map(rowToEvent);
   }
 
@@ -187,7 +198,7 @@ export class SQLiteEventRepository {
       "SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?",
     );
     while (true) {
-      const rows = page.all(this.projectId, eventCount, integrityPageSize);
+      const rows = sqliteRows(page.all(this.projectId, eventCount, integrityPageSize));
       if (rows.length === 0) break;
       for (const row of rows) {
         const event = rowToEvent(row);

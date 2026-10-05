@@ -13,6 +13,7 @@ import {
   type EventDraftV1,
   SQLiteEventStore,
 } from "../src/index.js";
+import { sqliteRow } from "../src/sqlite-row.js";
 
 const projectId = "prj_01234567";
 const policyVersion = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -315,7 +316,7 @@ describe("SQLite append-only event store", () => {
     const store = await SQLiteEventStore.open({ path, projectId });
     store.close();
     const raw = new DatabaseSync(path);
-    expect(raw.prepare("PRAGMA user_version;").get()?.user_version).toBe(3);
+    expect(sqliteRow(raw.prepare("PRAGMA user_version;").get())?.user_version).toBe(3);
     raw.close();
   });
 

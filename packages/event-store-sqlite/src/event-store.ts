@@ -27,6 +27,7 @@ import { SQLiteEventRepository } from "./event-repository.js";
 import { configureDatabase, migrateDatabase } from "./migrations.js";
 import { SQLiteOutboxRepository } from "./outbox.js";
 import { openReadOnlyEventDatabase } from "./read-only-database.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 export interface OpenEventStoreOptions {
   path: string;
@@ -212,7 +213,7 @@ export class SQLiteEventStore implements OutboxStore {
 
   journalMode(): string {
     this.assertOpen();
-    const mode = this.database.prepare("PRAGMA journal_mode;").get()?.journal_mode;
+    const mode = sqliteRow(this.database.prepare("PRAGMA journal_mode;").get())?.journal_mode;
     if (typeof mode !== "string") {
       throw new EventStoreError("integrity_failed", "The SQLite journal mode cannot be inspected.");
     }
@@ -221,14 +222,14 @@ export class SQLiteEventStore implements OutboxStore {
 
   verifyIntegrity(): EventChainReport {
     this.assertOpen();
-    const quickCheck = this.database.prepare("PRAGMA quick_check;").get()?.quick_check;
+    const quickCheck = sqliteRow(this.database.prepare("PRAGMA quick_check;").get())?.quick_check;
     if (quickCheck !== "ok") {
       throw new EventStoreError(
         "integrity_failed",
         `SQLite quick_check failed: ${String(quickCheck)}`,
       );
     }
-    const foreignKeyViolation = this.database.prepare("PRAGMA foreign_key_check;").get();
+    const foreignKeyViolation = sqliteRow(this.database.prepare("PRAGMA foreign_key_check;").get());
     if (foreignKeyViolation !== undefined) {
       throw new EventStoreError("integrity_failed", "The SQLite foreign-key check failed.");
     }

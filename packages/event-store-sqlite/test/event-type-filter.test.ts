@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { EventEnvelope } from "@lervo/schemas";
 
 import { type EventDraft, SQLiteEventStore } from "../src/index.js";
+import { sqliteRow, sqliteRows } from "../src/sqlite-row.js";
 
 const projectId = "prj_01234567";
 const policyVersion = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -191,7 +192,7 @@ describe("SQLite type-filtered event pages", () => {
     // An existing store written before the index existed.
     const legacy = new DatabaseSync(path);
     legacy.exec("DROP INDEX events_type_seq;");
-    const versionBefore = legacy.prepare("PRAGMA user_version;").get()?.user_version;
+    const versionBefore = sqliteRow(legacy.prepare("PRAGMA user_version;").get())?.user_version;
     legacy.close();
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -200,18 +201,21 @@ describe("SQLite type-filtered event pages", () => {
       reopened.close();
     }
     const raw = new DatabaseSync(path);
-    expect(raw.prepare("PRAGMA user_version;").get()?.user_version).toBe(versionBefore);
+    expect(sqliteRow(raw.prepare("PRAGMA user_version;").get())?.user_version).toBe(versionBefore);
     expect(
-      raw
-        .prepare("SELECT count(*) AS count FROM sqlite_master WHERE type = 'index' AND name = ?")
-        .get("events_type_seq")?.count,
+      sqliteRow(
+        raw
+          .prepare("SELECT count(*) AS count FROM sqlite_master WHERE type = 'index' AND name = ?")
+          .get("events_type_seq"),
+      )?.count,
     ).toBe(1);
-    const plan = raw
-      .prepare(
-        "EXPLAIN QUERY PLAN SELECT * FROM events WHERE project_id = ? AND type IN (?) AND seq > ? ORDER BY seq LIMIT ?",
-      )
-      .all(projectId, "run.requested", 0, 1000)
-      .map((row) => String(row.detail));
+    const plan = sqliteRows(
+      raw
+        .prepare(
+          "EXPLAIN QUERY PLAN SELECT * FROM events WHERE project_id = ? AND type IN (?) AND seq > ? ORDER BY seq LIMIT ?",
+        )
+        .all(projectId, "run.requested", 0, 1000),
+    ).map((row) => String(row.detail));
     expect(plan.some((detail) => detail.includes("events_type_seq"))).toBe(true);
     raw.close();
 

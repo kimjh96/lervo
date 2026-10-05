@@ -1,11 +1,8 @@
-import { type SQLOutputValue } from "node:sqlite";
-
 import { assertReadableEventEnvelope, EventContractError } from "@lervo/event-contract";
 import { type EventEnvelope } from "@lervo/schemas";
 
 import { EventStoreError } from "./errors.js";
-
-export type SqliteRow = Record<string, SQLOutputValue>;
+import { type SqliteRow } from "./sqlite-row.js";
 
 export function requireString(row: SqliteRow, key: string): string {
   const value = row[key];
