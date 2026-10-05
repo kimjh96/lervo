@@ -71,6 +71,23 @@ A deploy restart does not release the lease. The restarted process on the same h
 
 The owner's commits reach the other checkout through the replica coordinator. Fast-forwards pull or push them, and non-overlapping concurrent work merges under ADR-0404. Owner identity, fence, and delegation live under excluded paths and never cross. The Lervo repository can rejoin replica coordination once both hosts run Hub-mode ownership. The [cross-host ownership specification](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/cross-host-ownership.md) gives the procedure.
 
+### Publication to the shared remote
+
+Replication moves owner commits between the two checkouts, but nothing moved them to GitHub. Before this decision, batch-boundary commits from ADR-0465 piled up on the Mac's local `main`, and a person opened pull requests by hand to publish them. Local `main` then diverged from `origin/main` whenever anything else merged.
+
+After every resident cycle, the owner publishes its settled commits. Only the host whose fence grants `owner` publishes, and only when its host configuration has a `publication` block:
+
+1. Fetch the base branch and the publication branch from the configured remote with the host's own Git credentials.
+2. Select the unpublished knowledge commits in `remote/base..HEAD`: non-merge commits whose author and committer are both `Lervo Knowledge`, and whose patch is not already upstream according to `git cherry`. Every other commit counts as other work and is never published.
+3. Refuse the whole publication if any selected commit changes a path outside the allowed roots (default `docs/` and `.lervo/knowledge/`).
+4. Choose the publication tip. If `base..HEAD` holds only the selected commits, the tip is `HEAD`. Otherwise the selected commits are replayed onto the remote base in a temporary worktree, and a replay conflict refuses.
+5. Push the tip to one rolling branch (default `lervo/knowledge-outputs`) with `--force-with-lease` on the observed branch head. The base branch is never pushed.
+6. Open or update one pull request through the host's authenticated `gh` CLI. Its title is `docs: publish reviewed background knowledge`, and its body follows `.github/PULL_REQUEST_TEMPLATE.md` section by section, starting at H2. The body checks only the items the publisher verified itself and states why each other item stays unchecked.
+7. With `merge: when_checks_pass`, merge with a merge commit through `--match-head-commit` once every reported check on that exact head succeeded. With `merge: never`, stop at the open pull request. GitHub auto-merge is disabled for this repository and no rule forbids an automated merge, so the publisher checks CI itself.
+8. After a merge, bring local `main` up to the remote base only when no work can be lost. If `HEAD` is an ancestor of the base, fast-forward. If every local-only commit is a non-merge patch already upstream, use `reset --keep`, which also preserves uncommitted edits. In any other case, leave local `main` alone and record `local_diverged`.
+
+Authority for these writes is the host's reviewed delegation plus the live owner lease. The delegation authorizes convergence commits; the publication block is the host operator's opt-in for pushing and merging them. Developer work never enters the branch, so invariant 5 holds.
+
 ## Events, states, and failure meaning
 
 `knowledge.convergence.owner.changed` (event schema 4) is appended to the observing host's own event store whenever the holder it observes changes, and when it ends its own holding.
@@ -87,14 +104,35 @@ The owner's commits reach the other checkout through the replica coordinator. Fa
 
 Resident failure codes and reasons: `convergence_owner_elsewhere`, `convergence_owner_unverifiable`, `convergence_owner_host_invalid`, `convergence_owner_transport_missing`, `convergence_owner_contended`, and `convergence_owner_released`. The Hub client reports every transport, status, identity, or body failure as `convergence_owner_hub_unavailable`, which means "not proven", never "held elsewhere".
 
+Publication keeps private state in `.lervo/state/knowledge/knowledge-publication.json`. The file is bounded, written with mode `0600`, and rebuildable from Git and GitHub. Its `status` is one of:
+
+- `idle`: nothing is unpublished.
+- `awaiting_checks`: the pull request is open and its checks have not all finished. The resident looks again within two minutes.
+- `open`: the pull request is open and merging is disabled.
+- `merged`: the pull request merged and local `main` caught up.
+- `local_diverged`: the pull request merged, but local `main` also holds other unpublished work, so it was left alone.
+- `failed`: the last attempt failed.
+
+A failure carries one of these codes:
+
+- `knowledge_publication_fetch_failed`
+- `knowledge_publication_scope_violation`
+- `knowledge_publication_conflict`
+- `knowledge_publication_push_failed`
+- `knowledge_publication_pull_request_failed`
+- `knowledge_publication_checks_failed`
+- `knowledge_publication_merge_failed`
+
+Each failure also records a path-free detail, its first and last observation, and an occurrence count. Repeats of one code update a single record. `lervo operating attention` projects that record as one `knowledge_publication` item. It also projects an `unverifiable` or `contended` ownership verdict as one `knowledge_convergence_owner` item. A failure never undoes a push or a merge; the next cycle retries from current Git state. Publication adds no canonical event, because Git history and the pull request are the durable record.
+
 ## Consequences
 
 - Mac and WSL can both host the Lervo resident. Exactly one converges and commits at a time, and either takes over without a person.
 - A Hub-mode host without Hub access stays read-only after its lease ends and reports attention. It never double-owns silently.
+- Settled knowledge reaches `origin/main` through one rolling pull request from whichever host owns convergence, and the owner's local `main` follows it after the merge.
 - Conversation knowledge candidates queued on a non-owner wait. Forwarding them to the owner through the Hub remains ADR-0457 follow-up work.
 
 ## Deferred
 
 - Binding the owner lease to the ADR-0456 writer lease once that lease is implemented.
 - Peer-to-peer lease exchange over the replica SSH transport for Hub-less multi-host operation.
-- An operating-attention item kind for ownership. Until then, attention is surfaced through resident health `degraded`, `lervo knowledge convergence owner status`, and the convergence status `owner` field.

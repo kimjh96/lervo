@@ -19,12 +19,20 @@
       "destinationId": "hub:primary",
       "hubIdentityHash": "sha256:<64 hex>"
     }
+  },
+  "publication": {
+    "remote": "origin",
+    "baseBranch": "main",
+    "branch": "lervo/knowledge-outputs",
+    "merge": "when_checks_pass",
+    "allowedRoots": ["docs/", ".lervo/knowledge/"]
   }
 }
 ```
 
 - `hostLabel` matches `^[a-z0-9][a-z0-9-]{0,31}$`. It names the host to operators only.
 - `coordination` is either `{ "mode": "standalone" }` or the Hub form above. The Hub principal behind the token needs `workspace.read` and `workspace.coordinate` for the project at `destinationId`. Every host of one repository must use the same Hub and `destinationId`.
+- `publication` is optional; without it the owner never pushes. `merge` is `when_checks_pass` or `never`. `allowedRoots` holds 1 to 16 repository-relative prefixes ending in `/`, and defaults to `docs/` and `.lervo/knowledge/`. The publication branch must differ from the base branch.
 - A missing file is created as `standalone` with label `local` and a random `hostId` on the first observation. An invalid file yields `unverifiable / convergence_owner_host_invalid`; it never falls back to standalone.
 
 The CLI worker (`lervo knowledge worker --watch|--once`) and the Node resident child both compose the owner with the Hub HTTP client from `@lervo/sync`. Library callers that pass no owner keep the legacy single-host behavior.
@@ -63,6 +71,21 @@ The ownership role, holder, and generation are folded into the ADR-0461 fingerpr
 | `contended`     | `attention`  | `convergence_owner_contended`                                                                                |
 
 A non-owner cycle returns `{ status: "waiting_owner", owner, convergence }`. `convergence` is the read-only debt status. `lervo knowledge convergence status` adds the fence verdict as `owner`. `lervo knowledge convergence owner status` prints the host hash, label, mode, and verdict without contacting the Hub, and never prints Hub coordinates. `lervo knowledge convergence owner release` releases a held Hub lease and yields.
+
+## Publication
+
+The owner's resident runs one publication after each cycle, as [ADR-0466](../../../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md#publication-to-the-shared-remote) defines. `lervo knowledge convergence owner publish [--json]` runs the same step once. The step makes no network call when no unpublished knowledge commit exists and no pull request is open or failed.
+
+| Effect         | Command on the owner host                                                                        | Guard                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Fetch          | `git fetch <remote> +refs/heads/<base>:refs/remotes/<remote>/<base>` and the same for the branch | Host's own Git credential; `GIT_TERMINAL_PROMPT=0`                                          |
+| Replay         | `git worktree add --detach` on the remote base, then `git cherry-pick`                           | Only when other local commits exist; a conflict refuses                                     |
+| Push           | `git push --force-with-lease=refs/heads/<branch>:<observed> <remote> <tip>:refs/heads/<branch>`  | Never the base branch                                                                       |
+| Pull request   | `gh pr list`, `gh pr create --body-file -`, `gh pr edit --body-file -`                           | Host's own `gh` login; `GH_PROMPT_DISABLED=1`                                               |
+| Merge          | `gh pr merge --merge --match-head-commit <tip>`                                                  | `merge: when_checks_pass`, at least one check, all finished as success, neutral, or skipped |
+| Local catch-up | `git merge --ff-only` or `git reset --keep`                                                      | On the base branch only; only when no local-only work is lost                               |
+
+The publication state file, its statuses, and its failure codes are defined in the ADR. A state that cannot be read is rebuilt from Git and GitHub at the next publication. `lervo knowledge convergence owner status` prints the publication settings and state. `lervo operating attention` shows at most one `knowledge_publication` item, plus at most one `knowledge_convergence_owner` item for an `unverifiable` or `contended` verdict.
 
 ## Replica coordination
 
