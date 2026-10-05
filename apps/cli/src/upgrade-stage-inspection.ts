@@ -199,6 +199,7 @@ export async function inspectKnowledge(root: string): Promise<KnowledgeStage> {
     status,
     reason:
       (typeof envelope?.code === "string" ? envelope.code : null) ??
+      blockers[0]?.code ??
       (result.error || status || `knowledge_plan_failed_${result.code}`),
     blockers,
   };
