@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4239f3c7c719cffc26eb133d
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d347a133fa2f1ad8e037f161
+outputLanguage: en
+outputs:
+  - byteCount: 9547
+    contentHash: sha256:69fefa8cddf537dc18ef1fae11dc91f1100cb2e7d791886ea235a7daf78ff463
+    path: docs/decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md
+    userRegionHash: sha256:69fefa8cddf537dc18ef1fae11dc91f1100cb2e7d791886ea235a7daf78ff463
+profile: decision_record
+recordId: knormdoc_7eeb92d0c8bb5ddce7b3bf09
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6c7bba1e40ba11d4ed59e6142c3971ebebcccd7b651daca8dab368f1be44cea4
+sourcePath: docs/decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md
+sourceUnitVersionIds:
+  - uv_1b1f833024715c6e0f38f49a
+  - uv_3bf7a6682fdc0eec58a5ebe8
+  - uv_44a9a825c7732df029f30d75
+  - uv_4700bd143131eb663d65edbf
+  - uv_8ea21d0aa9db7dfd694069ca
+  - uv_9de2b47c4ee188ba7f2c6664
+  - uv_a5ce10389dae93964b63d225
+  - uv_a676b06e8561fbffce80240b
+  - uv_c33f84d4ab0fb97ae2b7b47c
+  - uv_cf35601f693ac8570ca079e1
