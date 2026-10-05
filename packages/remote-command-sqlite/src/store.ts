@@ -25,6 +25,7 @@ import {
   decodeReplayRow,
   REMOTE_COMMAND_HASH_PATTERN,
 } from "./row-codec.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore {
   readonly path: string;
@@ -80,12 +81,16 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
     }
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const projectId = this.database
-        .prepare("SELECT value FROM remote_command_meta WHERE key = 'project_id'")
-        .get()?.value;
-      const identityHash = this.database
-        .prepare("SELECT value FROM remote_command_meta WHERE key = 'project_identity_hash'")
-        .get()?.value;
+      const projectId = sqliteRow(
+        this.database
+          .prepare("SELECT value FROM remote_command_meta WHERE key = 'project_id'")
+          .get(),
+      )?.value;
+      const identityHash = sqliteRow(
+        this.database
+          .prepare("SELECT value FROM remote_command_meta WHERE key = 'project_identity_hash'")
+          .get(),
+      )?.value;
       if (projectId === undefined && identityHash === undefined) {
         const insert = this.database.prepare(
           "INSERT INTO remote_command_meta (key, value) VALUES (?, ?)",
@@ -113,14 +118,16 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
 
   private inspectCurrent(coordinate: RemoteCommandReplayCoordinate): RemoteCommandReplayDecision {
     assertReplayCoordinate(coordinate);
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT idempotency_key, command_hash, nonce, reservation_id, receipt_json
       FROM remote_command_replay WHERE idempotency_key = ?
     `,
-      )
-      .get(coordinate.idempotencyKey);
+        )
+        .get(coordinate.idempotencyKey),
+    );
     if (row !== undefined) {
       const decoded = decodeReplayRow(row);
       if (decoded.command_hash !== coordinate.commandHash || decoded.nonce !== coordinate.nonce) {
@@ -129,13 +136,15 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
       const receipt = decodeReplayReceipt(decoded);
       return receipt === null ? { status: "in_progress" } : { status: "duplicate", receipt };
     }
-    const nonce = this.database
-      .prepare(
-        `
+    const nonce = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT idempotency_key FROM remote_command_replay WHERE nonce = ?
     `,
-      )
-      .get(coordinate.nonce);
+        )
+        .get(coordinate.nonce),
+    );
     if (nonce !== undefined) return { status: "nonce_replay" };
     return { status: "available" };
   }
@@ -156,9 +165,9 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
         this.database.exec("COMMIT;");
         return decision;
       }
-      const count = this.database
-        .prepare("SELECT COUNT(*) AS count FROM remote_command_replay")
-        .get()?.count;
+      const count = sqliteRow(
+        this.database.prepare("SELECT COUNT(*) AS count FROM remote_command_replay").get(),
+      )?.count;
       if (typeof count !== "number" || !Number.isSafeInteger(count)) {
         throw new RemoteCommandSQLiteError(
           "integrity_failed",
@@ -247,7 +256,7 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
 
   checkIntegrity(): void {
     this.assertOpen();
-    if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+    if (sqliteRow(this.database.prepare("PRAGMA quick_check;").get())?.quick_check !== "ok") {
       throw new RemoteCommandSQLiteError(
         "integrity_failed",
         "The remote command SQLite quick_check failed.",
@@ -257,9 +266,9 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
       "remote_command_replay_no_delete",
       "remote_command_replay_coordinate_immutable",
     ]);
-    for (const row of this.database
-      .prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'")
-      .all()) {
+    for (const row of sqliteRows(
+      this.database.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'").all(),
+    )) {
       if (typeof row.name === "string") requiredTriggers.delete(row.name);
     }
     if (requiredTriggers.size !== 0) {
@@ -268,9 +277,9 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
         "A remote command replay trigger is missing.",
       );
     }
-    const metadata = this.database
-      .prepare("SELECT key, value FROM remote_command_meta ORDER BY key ASC")
-      .all();
+    const metadata = sqliteRows(
+      this.database.prepare("SELECT key, value FROM remote_command_meta ORDER BY key ASC").all(),
+    );
     if (
       metadata.length !== 2 ||
       metadata[0]?.key !== "project_id" ||
@@ -283,14 +292,16 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
         "The remote command replay project metadata is invalid.",
       );
     }
-    const rows = this.database
-      .prepare(
-        `
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT idempotency_key, command_hash, nonce, reservation_id, receipt_json
       FROM remote_command_replay
     `,
-      )
-      .all();
+        )
+        .all(),
+    );
     if (rows.length > this.maxRecords) {
       throw new RemoteCommandSQLiteError(
         "capacity_exceeded",
