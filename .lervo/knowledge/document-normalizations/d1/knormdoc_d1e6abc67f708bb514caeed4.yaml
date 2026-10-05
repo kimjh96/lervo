@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5d035dd5cc0c827706fff68c
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3577842ba4b694367d070d72
+outputLanguage: en
+outputs:
+  - byteCount: 2825
+    contentHash: sha256:969207edfba745c1a4ed827768c3ca4e789b7339a3969c9784e7c081f4e28b0a
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/read-only-conversation/recovery.md
+    userRegionHash: sha256:969207edfba745c1a4ed827768c3ca4e789b7339a3969c9784e7c081f4e28b0a
+profile: roadmap_document
+recordId: knormdoc_d1e6abc67f708bb514caeed4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b1efa6f777b5585c939ae6abd817ccb9a73bb2c0147a9de17dd9bf8f6a973f3b
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/read-only-conversation/recovery.md
+sourceUnitVersionIds:
+  - uv_3d727a113aefdf98f1465429
+  - uv_59a9fb5b44559578c49d09c7
+  - uv_b2589e392a8d467bf6c1e882
+  - uv_b872f8c3ec74fa63afdba358

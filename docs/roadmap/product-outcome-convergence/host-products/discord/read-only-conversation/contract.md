@@ -12,14 +12,14 @@ Participant bindings support humans and agents. Agent responses are opt-in and r
 
 The response path injects the exact current workstream and selected repository context so routine status questions need no provider-tool rediscovery. The combined turn, optional independent publication evaluation, and repository command execution have separate provider/model settings.
 
-Bounded reasoning effort and a fail-closed timeout are configurable for the managed turn. Legacy `routing.intent` remains accepted only for custom responder composition. `administration.allowedActions` independently grants bounded Discord effects.
+Managed-turn reasoning effort is bounded and configurable, as is a fail-closed timeout. Legacy `routing.intent` remains accepted only for custom responder composition. `administration.allowedActions` independently grants bounded Discord effects.
 
 ## Validation
 
 Focused tests prove:
 
-- Ordinary messages with and without mentions enter the same semantic router.
-- Intent, per-agent participation, effect, and read reply are produced by one managed provider run.
+- Ordinary messages, with or without mentions, enter the same semantic router.
+- One managed provider run produces intent, per-agent participation, effect, and read reply.
 - CLI and conversation execution share qualified search and repository-context preparation.
 - Bounded prior turns are supplied.
 - Read and continuation delegates remain separate.
@@ -30,4 +30,4 @@ Focused tests prove:
 - A natural-language nickname request uses the explicitly allowlisted current-member Discord action rather than repository continuation.
 - Queue and completion prose hides internal execution coordinates while retaining them in durable evidence.
 
-Gateway control traffic remains responsive during long provider work. Subsequent messages retain order. Response-only typing starts before semantic evaluation for a human turn and remains bounded, best-effort, and continuous across a scheduled retry.
+Gateway control traffic remains responsive during long provider work, and subsequent messages retain order. Response-only typing starts before semantic evaluation for a human turn and remains bounded, best-effort, and continuous across a scheduled retry.

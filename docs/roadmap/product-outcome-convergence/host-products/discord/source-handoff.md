@@ -17,4 +17,4 @@ Completion requires:
 
 The handoff must not silently push, discard, merge, or overwrite user-owned changes.
 
-[ADR-0456](../../../../decisions/coordination/sync/0456-hand-off-repositories-atomically-with-a-writer-lease.md) designs the handoff primitive, writer lease, divergence surfacing, and version handshake that complete this outcome; journey J2 of the [open collaboration platform](../../../open-collaboration-platform.md) is its acceptance gate.
+[ADR-0456](../../../../decisions/coordination/sync/0456-hand-off-repositories-atomically-with-a-writer-lease.md) designs the handoff primitive, writer lease, divergence surfacing, and version handshake that complete this outcome. Journey J2 of the [open collaboration platform](../../../open-collaboration-platform.md) is its acceptance gate.
