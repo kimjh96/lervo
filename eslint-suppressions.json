@@ -44,11 +44,6 @@
       "count": 1
     }
   },
-  "apps/cli/src/workstream-command.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 5
-    }
-  },
   "apps/hub/src/body.ts": {
     "lervo/require-caught-error-cause": {
       "count": 1

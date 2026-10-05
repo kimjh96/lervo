@@ -3,6 +3,8 @@ import type {
   OperatingAttentionReportV1,
 } from "@lervo/application-contract";
 
+import { capContextBytes, MAXIMUM_TERMINAL_ATTENTION_BYTES } from "./terminal-context-budget.js";
+
 function describe(item: OperatingAttentionItemV1): string {
   if (item.kind === "workstream_decision") return item.question;
   if (item.kind === "workstream_approval") return item.summary;
@@ -31,20 +33,58 @@ export function formatOperatingAttention(report: OperatingAttentionReportV1): st
   ].join("\n");
 }
 
+const WORKSTREAM_KINDS: ReadonlySet<OperatingAttentionItemV1["kind"]> = new Set([
+  "workstream_decision",
+  "workstream_approval",
+  "workstream_blocker",
+]);
+
+export function isStaleWorkstreamItem(item: OperatingAttentionItemV1): boolean {
+  return WORKSTREAM_KINDS.has(item.kind) && item.state === "stale";
+}
+
+export function staleWorkstreamCountLine(count: number): string[] {
+  return count === 0
+    ? []
+    : [`${count} stale workstream items need re-verification: \`lervo workstream current\`.`];
+}
+
+/**
+ * Retrieval-mode attention context. Stale workstream items are excluded and only counted; the
+ * same-turn presentation directive appears only when a listed item is current, user-owned,
+ * blocking, and requires user action. The whole section is capped at a fixed byte budget.
+ */
 export function formatTerminalAttentionContext(report: OperatingAttentionReportV1): string {
   const maximumItems = 12;
-  const selected = report.items.slice(0, maximumItems);
-  return [
-    `Repository attention: ${report.status}; digest: ${report.reportDigest}; items: ${report.summary.totalCount}; omitted: ${report.summary.truncatedCount}; blocking: ${report.summary.blockingCount}; requiresUserAction: ${report.summary.userActionCount}; stale: ${report.summary.staleCount}; canonicalizationCoverage: ${report.coverage.canonicalization}; lifecycleCoverage: ${report.coverage.knowledgeLifecycle}.`,
-    ...selected.map(
-      (item) =>
-        `- ${item.kind}:${item.itemId}; owner=${item.actionOwner}; requiresUserAction=${item.requiresUserAction}; blocking=${item.blocking}; ${describe(item)}`,
-    ),
-    ...(report.items.length > maximumItems
-      ? [
-          `- ${report.items.length - maximumItems} additional items remain in \`lervo application attention --json\`.`,
-        ]
-      : []),
-    "Before claiming completion, resolve current agent-owned items that fall within this task. If a current blocking item requires user action, present its bounded question or approval in this turn instead of waiting to encounter it incidentally. Do not infer approval, do not ask the user to run Lervo bookkeeping, and do not treat this prepared projection as receipt or acknowledgment.",
-  ].join("\n");
+  const current = report.items.filter((item) => !isStaleWorkstreamItem(item));
+  const staleWorkstreamCount = report.items.length - current.length;
+  const selected = current.slice(0, maximumItems);
+  const userOwnedBlocking = selected.some(
+    (item) => item.actionOwner === "user" && item.requiresUserAction && item.blocking,
+  );
+  return capContextBytes(
+    [
+      `Repository attention: ${report.status}; digest: ${report.reportDigest}; items: ${report.summary.totalCount}; omitted: ${report.summary.truncatedCount}; blocking: ${report.summary.blockingCount}; requiresUserAction: ${report.summary.userActionCount}; stale: ${report.summary.staleCount}; canonicalizationCoverage: ${report.coverage.canonicalization}; lifecycleCoverage: ${report.coverage.knowledgeLifecycle}.`,
+      ...selected.map(
+        (item) =>
+          `- ${item.kind}:${item.itemId}; owner=${item.actionOwner}; requiresUserAction=${item.requiresUserAction}; blocking=${item.blocking}; ${describe(item)}`,
+      ),
+      ...(current.length > maximumItems
+        ? [
+            `- ${current.length - maximumItems} additional items remain in \`lervo application attention --json\`.`,
+          ]
+        : []),
+      ...staleWorkstreamCountLine(staleWorkstreamCount),
+      [
+        "Before claiming completion, resolve current agent-owned items that fall within this task.",
+        ...(userOwnedBlocking
+          ? [
+              "For a listed current blocking item with owner=user, present its bounded question or approval in this turn instead of waiting to encounter it incidentally.",
+            ]
+          : []),
+        "Do not infer approval, do not ask the user to run Lervo bookkeeping, and do not treat this prepared projection as receipt or acknowledgment.",
+      ].join(" "),
+    ].join("\n"),
+    MAXIMUM_TERMINAL_ATTENTION_BYTES,
+  );
 }
