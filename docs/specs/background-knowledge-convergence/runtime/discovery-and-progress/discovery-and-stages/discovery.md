@@ -4,4 +4,6 @@ Startup, canonical event changes, repository edits observed by the Node resident
 
 Only one repository cycle runs at a time. A pending wakeup survives an active cycle.
 
+A file or `HEAD` change during the complete capture is `source_bytes_changed`, not an unsafe source; the scanner names the repository-relative path. Discovery retries such a capture up to three times before the cycle fails, so a commit during discovery does not abort the stages that would follow ([ADR-0465](../../../../../decisions/knowledge/documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md)).
+
 The seven stages are `assessment`, `canonical_review`, `canonical_integration`, `normalization_generation`, `normalization_review`, `normalization_apply`, and `lifecycle_verification`.

@@ -1,6 +1,6 @@
 # Watch output and cleanup limits
 
-Watch opens storage and starts the autonomous worker. Cycle callbacks print JSON. Failure callbacks interpolate `error.code`, falling back to `knowledge_job_transient_failure` when the code is nullish. Unlike inspection, these callbacks validate neither the code's type nor its length or syntax and do not guarantee bounded failure codes.
+Watch opens storage and starts the autonomous worker. Cycle callbacks print JSON. Failure callbacks write one line through `knowledgeWorkerFailureLine`. The code must match `^[a-z][a-z0-9_]{0,63}$`; otherwise it becomes `knowledge_job_transient_failure`. A `RepositoryKnowledgeError` or `KnowledgeConvergenceRuntimeError` adds its message in parentheses: at most 300 characters, on one line, with the repository root replaced by `.`. Native and provider errors stay code-only. The line goes to the owner-only worker log and may name a repository-relative path, such as the source that changed during a scan ([ADR-0465](../../../../decisions/knowledge/documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md)).
 
 After startup, the wrapper waits for SIGINT or SIGTERM. The signal handler removes both registered listeners and resolves the wait. The intended cleanup sequence in finally is to await `stop()` and then await `storage.close()`.
 
