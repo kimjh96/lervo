@@ -1,6 +1,7 @@
 export {
   createDurableInstructionCandidate,
   type DurableInstructionCandidate,
+  type DurableInstructionCaptureSource,
   type DurableInstructionCandidateInspection,
 } from "./durable-instruction-candidate.js";
 export {
@@ -44,6 +45,9 @@ export * from "./document-structure-move.js";
 export * from "./document-structure-split.js";
 export * from "./durable-apply.js";
 export * from "./durable-instruction.js";
+export * from "./durable-instruction-catalog.js";
+export * from "./generated-durable-instructions.js";
+export * from "./instruction-capture-contract.js";
 export * from "./execution-event-source.js";
 export { collectExecutionEventSourcePages } from "./paged-execution-event-source.js";
 export { collectRecentExecutionEventSources } from "./recent-execution-event-source.js";
