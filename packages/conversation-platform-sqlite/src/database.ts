@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 
 import { ConversationPlatformSQLiteError } from "./errors.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 export const conversationPlatformSQLiteSchemaVersion = 4;
 
@@ -229,7 +230,7 @@ function migrateConversationPlatformVersionOne(database: DatabaseSync): void {
 export function migrateConversationPlatformDatabase(database: DatabaseSync): void {
   database.exec("BEGIN IMMEDIATE;");
   try {
-    const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version;
     if (
       version !== 0 &&
       version !== 1 &&
@@ -354,8 +355,8 @@ export function migrateConversationPlatformDatabase(database: DatabaseSync): voi
 }
 
 export function assertConversationPlatformDatabaseIntegrity(database: DatabaseSync): void {
-  const quick = database.prepare("PRAGMA quick_check;").get()?.quick_check;
-  const foreignKeyViolation = database.prepare("PRAGMA foreign_key_check;").get();
+  const quick = sqliteRow(database.prepare("PRAGMA quick_check;").get())?.quick_check;
+  const foreignKeyViolation = sqliteRow(database.prepare("PRAGMA foreign_key_check;").get());
   if (quick !== "ok" || foreignKeyViolation !== undefined) {
     throw new ConversationPlatformSQLiteError(
       "integrity_failed",

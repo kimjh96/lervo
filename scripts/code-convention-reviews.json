@@ -123,7 +123,7 @@
     },
     {
       "path": "packages/conversation-platform-sqlite/src/binding-repository.ts",
-      "contentHash": "sha256:ef7383fc7a8fda697a78075660d603c1d3f54169449015dc5daf644f940b8ecc",
+      "contentHash": "sha256:2ab45ffc7e3be382fb4143ce66c8ff78117db03989ecf88059c429945cc2da0f",
       "responsibility": "Conversation-platform binding persistence",
       "rationale": "The repository class owns one SQLite persistence boundary for platform bindings, including validation, reads, writes, and transaction-safe state changes. Inbound depth and the optional ordered active-target projection use only identities resolved at that same mapping boundary; participation, discussion scheduling, and turn ownership policy remain outside the adapter.",
       "disposition": "cohesive"

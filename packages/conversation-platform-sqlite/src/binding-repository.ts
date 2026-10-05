@@ -15,6 +15,7 @@ import type {
   ConversationPlatformThreadBinding,
 } from "./types.js";
 import { assertExternal, assertIdentifier, assertPlatform } from "./validation.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 interface ConversationRow {
   project_id: string;
@@ -259,9 +260,11 @@ export class ConversationPlatformBindingRepository {
     const keyValues = input.keyColumns.map(
       (column) => input.values[input.columns.indexOf(column)]!,
     );
-    const existing = this.database
-      .prepare(`SELECT ${input.columns.join(", ")} FROM ${input.table} WHERE ${conditions}`)
-      .get(...keyValues);
+    const existing = sqliteRow(
+      this.database
+        .prepare(`SELECT ${input.columns.join(", ")} FROM ${input.table} WHERE ${conditions}`)
+        .get(...keyValues),
+    );
     const expected = Object.fromEntries(
       input.columns.map((column, index) => [column, input.values[index]]),
     );
