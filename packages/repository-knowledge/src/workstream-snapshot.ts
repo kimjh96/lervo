@@ -1,6 +1,12 @@
 import { validateSchema, type WorkstreamSnapshot } from "@lervo/schemas";
 
 import { stableId } from "./integrity.js";
+import {
+  retainRecentNotes,
+  stampWorkstreamBookkeeping,
+  withoutStampedFields,
+  type WorkstreamBookkeeping,
+} from "./workstream-bookkeeping.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -20,12 +26,65 @@ export function pendingCoordinatesValid(snapshot: WorkstreamSnapshot): boolean {
   });
 }
 
+function normalizedStartDraft(value: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...value,
+    pendingDecisions: value.pendingDecisions ?? [],
+    pendingApprovals: value.pendingApprovals ?? [],
+  };
+}
+
+function snapshotIdentity(
+  projectId: string,
+  draft: Record<string, unknown>,
+  predecessor: { workstreamId: string; contentHash: string } | null,
+): { workstreamId: string } {
+  const normalizedDraft = normalizedStartDraft(draft);
+  return {
+    workstreamId: stableId(
+      "wks",
+      predecessor === null
+        ? { projectId, draft: normalizedDraft }
+        : { projectId, draft: normalizedDraft, predecessor },
+    ),
+  };
+}
+
+/**
+ * Without bookkeeping the draft is exact, including its caller-supplied `updatedAt`, which then
+ * participates in identity. With bookkeeping the service stamps update time and HEAD, retains the
+ * newest notes, and derives identity from the semantic draft alone so plan and apply agree.
+ */
 export function snapshotFromStartDraft(
   projectId: string,
   value: unknown,
   predecessor: { workstreamId: string; contentHash: string } | null,
+  bookkeeping: WorkstreamBookkeeping | null = null,
 ): WorkstreamSnapshot | null {
   if (!isRecord(value)) return null;
+  if (bookkeeping !== null) {
+    const { droppedNoteCount: _callerDroppedCount, ...supplied } = withoutStampedFields(value);
+    const retained = retainRecentNotes(supplied.notes, 0);
+    const semantic = { ...supplied, notes: retained.notes };
+    const exact = snapshotFromStartDraft(
+      projectId,
+      { ...semantic, updatedAt: bookkeeping.recordedAt },
+      predecessor,
+    );
+    if (exact === null) return null;
+    const { workstreamId } = snapshotIdentity(projectId, semantic, predecessor);
+    const stamped = stampWorkstreamBookkeeping(
+      {
+        ...exact,
+        workstreamId,
+        ...(retained.droppedNoteCount > 0 ? { droppedNoteCount: retained.droppedNoteCount } : {}),
+      },
+      bookkeeping,
+    );
+    return validateSchema("workstreamSnapshot", stamped).valid
+      ? (stamped as WorkstreamSnapshot)
+      : null;
+  }
   const allowed = new Set([
     "schemaVersion",
     "status",
@@ -40,19 +99,10 @@ export function snapshotFromStartDraft(
     "updatedAt",
   ]);
   if (Object.keys(value).some((key) => !allowed.has(key))) return null;
-  const normalizedDraft = {
-    ...value,
-    pendingDecisions: value.pendingDecisions ?? [],
-    pendingApprovals: value.pendingApprovals ?? [],
-  };
+  const normalizedDraft = normalizedStartDraft(value);
   const snapshot = {
     ...normalizedDraft,
-    workstreamId: stableId(
-      "wks",
-      predecessor === null
-        ? { projectId, draft: normalizedDraft }
-        : { projectId, draft: normalizedDraft, predecessor },
-    ),
+    ...snapshotIdentity(projectId, value, predecessor),
     revision: 1,
     origin: {
       kind: predecessor === null ? ("created" as const) : ("successor" as const),

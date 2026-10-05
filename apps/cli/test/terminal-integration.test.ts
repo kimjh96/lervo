@@ -998,8 +998,10 @@ describe("terminal integration CLI", () => {
     expect(updateContext).toContain("Repository attention: action_required");
     expect(updateContext).toContain("canonicalization_review:kcanon_");
     expect(updateContext).toContain(
-      "If a current blocking item requires user action, present its bounded question or approval in this turn",
+      "Before claiming completion, resolve current agent-owned items that fall within this task.",
     );
+    // No listed item is a current, user-owned blocking item, so no same-turn directive appears.
+    expect(updateContext).not.toContain("present its bounded question or approval");
     await writeFile(resolve(root, "src/feature.ts"), "export const secondCheckpoint = true;\n");
     expect(await stop("turn-update")).toEqual({});
     const currentOutput: string[] = [];

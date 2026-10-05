@@ -136,6 +136,18 @@ export const workstreamSnapshotSchema = {
       },
     },
     updatedAt: timestampSchema,
+    /** Server-observed repository HEAD at write time; absent on snapshots that predate it. */
+    repositoryHead: {
+      type: "object",
+      properties: {
+        commit: { type: "string", pattern: "^[a-f0-9]{40,64}$" },
+        observedAt: timestampSchema,
+      },
+      required: ["commit", "observedAt"],
+      additionalProperties: false,
+    },
+    /** Cumulative count of oldest notes dropped by rolling note retention. */
+    droppedNoteCount: { type: "integer", minimum: 0 },
   },
   required: [
     "schemaVersion",

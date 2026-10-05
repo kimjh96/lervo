@@ -53,8 +53,10 @@ it(
     expect(await inspectAutonomousKnowledgeStatus(f.storage)).toMatchObject({
       baselineCurrent: true,
     });
-    expect(git(f.root, "log", "-1", "--format=%an <%ae>%n%s")).toBe(
-      `${KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name} <${KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email}>\ndocs: apply reviewed background knowledge`,
+    const identity = `${KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name} <${KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email}>`;
+    // The committer is explicit too, so the commit never depends on an ambient Git identity.
+    expect(git(f.root, "log", "-1", "--format=%an <%ae>%n%cn <%ce>%n%s")).toBe(
+      `${identity}\n${identity}\ndocs: apply reviewed background knowledge`,
     );
     const committed = git(f.root, "show", "--name-only", "--format=", commit).split("\n");
     // The developer's uncommitted source change stays in the working tree.

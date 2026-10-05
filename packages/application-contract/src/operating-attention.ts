@@ -9,9 +9,22 @@ interface OperatingAttentionItemBaseV1 {
   instruction: string;
 }
 
+/**
+ * Consequence class of a workstream approval or decision. Every class is consequential; a decision
+ * has no structured class and is `unclassified`. Free text is never classified.
+ */
+export type WorkstreamItemConsequenceV1 =
+  "repository_write" | "deployment" | "external_effect" | "unclassified";
+
+/**
+ * Workstream items become `stale` when the snapshot is older than the configured age or its
+ * recorded repository HEAD is too far behind. A stale item is never blocking, never requires user
+ * action, and instructs re-verification instead of presentation as current.
+ */
 export interface WorkstreamDecisionAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "workstream_decision";
-  state: "pending";
+  state: "pending" | "stale";
+  consequence: WorkstreamItemConsequenceV1;
   decisionId: string;
   question: string;
   choices: Array<{ choiceId: string; label: string; consequence: string }>;
@@ -20,7 +33,8 @@ export interface WorkstreamDecisionAttentionItemV1 extends OperatingAttentionIte
 
 export interface WorkstreamApprovalAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "workstream_approval";
-  state: "pending";
+  state: "pending" | "stale";
+  consequence: WorkstreamItemConsequenceV1;
   approvalId: string;
   approvalKind: "repository_bytes" | "managed_write" | "external_action" | "deployment";
   summary: string;
@@ -29,7 +43,7 @@ export interface WorkstreamApprovalAttentionItemV1 extends OperatingAttentionIte
 
 export interface WorkstreamBlockerAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "workstream_blocker";
-  state: "blocked";
+  state: "blocked" | "stale";
   blockerIndex: number;
   summary: string;
 }

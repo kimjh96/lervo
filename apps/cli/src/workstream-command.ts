@@ -1,30 +1,83 @@
-import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { randomUUID } from "node:crypto";
 
 import { openProjectStorage } from "@lervo/project-storage";
 import {
   applyWorkstreamStartPlan,
   applyWorkstreamUpdatePlan,
+  createWorkstreamRevisionPlan,
   createWorkstreamStartPlan,
-  createWorkstreamUpdatePlan,
+  defaultWorkstreamFreshnessPolicy,
   formatWorkstreamContext,
-  RepositoryKnowledgeError,
+  loadRepositoryKnowledgePolicy,
+  workstreamFreshnessPolicy,
+  type WorkstreamBookkeeping,
 } from "@lervo/repository-knowledge";
 
 import type { CliIo } from "./types.js";
+import {
+  parseWorkstreamActor,
+  parseWorkstreamApplyMode,
+  readWorkstreamChange,
+  readWorkstreamDocument,
+  workstreamWriteOptionSpec,
+  type WorkstreamApplyMode,
+} from "./workstream-command-input.js";
+import { workstreamSnapshotRecorder } from "./workstream-recording.js";
+import { observeRepositoryHead, observeWorkstreamFreshness } from "./workstream-repository-head.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
-export const workstreamUsage = `  lervo workstream current [--root <path>] [--context|--json]
-  lervo workstream start (--from <json-path>|--stdin) [--actor <user|agent>] [--provider <codex|claude>] [--root <path>] [--apply <plan-id>] [--json]
-  lervo workstream update (--from <json-path>|--stdin) [--actor <user|agent>] [--provider <codex|claude>] [--root <path>] [--apply <plan-id>] [--json]`;
+const currentUsage = "  lervo workstream current [--root <path>] [--context|--json]";
+const startUsage =
+  "  lervo workstream start (--from <json-path>|--stdin) [--actor <user|agent>] [--provider <codex|claude>] [--root <path>] [--apply <plan-id>|--apply-now] [--json]";
+const updateUsage =
+  "  lervo workstream update (--patch <json>|--stdin-patch|--from <json-path>|--stdin) [--actor <user|agent>] [--provider <codex|claude>] [--root <path>] [--apply <plan-id>|--apply-now] [--json]";
 
-async function boundedInput(path: string): Promise<string> {
-  const content = await readFile(path, "utf8");
-  if (Buffer.byteLength(content) > 64 * 1024)
-    throw new Error("The workstream input exceeds 64 KiB.");
-  return content;
+export const workstreamUsage = [currentUsage, startUsage, updateUsage].join("\n");
+
+const writeDetails = `
+The service sets revision (current + 1), updatedAt, and the observed repository HEAD, and carries
+schemaVersion, workstreamId, and origin. Caller values for updatedAt and repositoryHead are ignored;
+a supplied revision must equal current + 1. Notes keep the newest 32; droppedNoteCount records the rest.
+Without --apply or --apply-now the command only plans and changes nothing. --apply <plan-id> applies
+the exact plan the same input reproduces; --apply-now plans and applies that plan in one call.`;
+
+const subcommandHelp = {
+  current: `Usage:\n${currentUsage}\n`,
+  start: `Usage:\n${startUsage}\n${writeDetails}\n`,
+  update: `Usage:\n${updateUsage}\n${writeDetails}
+--patch and --stdin-patch take an RFC 7386 JSON merge patch over the current snapshot: objects
+merge, arrays replace, and null deletes. A top-level "appendNotes" string array appends notes.\n`,
+} as const;
+
+function wantsHelp(args: string[]): boolean {
+  return args.includes("--help") || args.includes("-h");
+}
+
+async function bookkeepingNow(root: string): Promise<WorkstreamBookkeeping> {
+  const now = new Date();
+  return { recordedAt: now.toISOString(), repositoryHead: await observeRepositoryHead(root, now) };
+}
+
+function printablePlan<T extends { operations: Array<{ content?: unknown }> }>(plan: T) {
+  return {
+    ...plan,
+    operations: plan.operations.map(({ content: _content, ...operation }) => operation),
+  };
+}
+
+function blockedText(
+  operation: string,
+  blockers: Array<{ code: string; message: string }>,
+): string {
+  return `Workstream ${operation} is blocked.\n${blockers.map((item) => `  [${item.code}] ${item.message}`).join("\n")}\n`;
+}
+
+function requireMatchingPlan(mode: WorkstreamApplyMode, planId: string, operation: string): void {
+  if (mode.kind === "apply" && mode.planId !== planId)
+    throw new Error(
+      `The requested plan ID does not match the current workstream ${operation} plan.`,
+    );
 }
 
 async function runCurrent(args: string[], io: CliIo): Promise<number> {
@@ -52,32 +105,21 @@ async function runCurrent(args: string[], io: CliIo): Promise<number> {
     );
     return 0;
   }
-  if (parsed.values.json) {
-    io.stdout(
-      `${JSON.stringify({ schemaVersion: 1, status: "current", repositoryRoot: root, workstream: snapshot }, null, 2)}\n`,
-    );
-  } else {
-    io.stdout(`${formatWorkstreamContext(snapshot)}\n`);
-  }
+  const freshness = await observeWorkstreamFreshness({
+    root,
+    snapshot,
+    policy: await loadRepositoryKnowledgePolicy(root).then(
+      workstreamFreshnessPolicy,
+      () => defaultWorkstreamFreshnessPolicy,
+    ),
+    observedAt: new Date(),
+  });
+  io.stdout(
+    parsed.values.json
+      ? `${JSON.stringify({ schemaVersion: 1, status: "current", repositoryRoot: root, workstream: snapshot, freshness }, null, 2)}\n`
+      : `${formatWorkstreamContext(snapshot, freshness)}\n`,
+  );
   return 0;
-}
-
-async function readJsonInput(
-  values: { from?: string; stdin?: boolean },
-  io: CliIo,
-): Promise<unknown> {
-  if ((values.from === undefined) === !values.stdin)
-    throw new Error("Choose exactly one of --from or --stdin.");
-  const input = values.stdin
-    ? await io.stdin?.()
-    : await boundedInput(resolve(io.cwd, values.from!));
-  if (input === undefined) throw new Error("Workstream JSON input is unavailable.");
-  if (Buffer.byteLength(input) > 64 * 1024) throw new Error("The workstream input exceeds 64 KiB.");
-  try {
-    return JSON.parse(input);
-  } catch {
-    throw new Error("The workstream input must be valid JSON.");
-  }
 }
 
 async function runStart(args: string[], io: CliIo): Promise<number> {
@@ -85,32 +127,11 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
     args,
     strict: true,
     allowPositionals: false,
-    options: {
-      root: { type: "string" },
-      from: { type: "string" },
-      stdin: { type: "boolean" },
-      actor: { type: "string" },
-      provider: { type: "string" },
-      apply: { type: "string" },
-      json: { type: "boolean" },
-    },
+    options: workstreamWriteOptionSpec,
   });
-  if (
-    parsed.values.actor !== undefined &&
-    parsed.values.actor !== "user" &&
-    parsed.values.actor !== "agent"
-  )
-    throw new Error("--actor must be user or agent.");
-  const actor = parsed.values.actor === "agent" ? ("agent" as const) : ("user" as const);
-  if (
-    actor === "agent" &&
-    parsed.values.provider !== "codex" &&
-    parsed.values.provider !== "claude"
-  )
-    throw new Error("--provider must be codex or claude when --actor agent is used.");
-  if (actor === "user" && parsed.values.provider !== undefined)
-    throw new Error("--provider is only valid with --actor agent.");
-  const draft = await readJsonInput(parsed.values, io);
+  const actor = parseWorkstreamActor(parsed.values);
+  const mode = parseWorkstreamApplyMode(parsed.values);
+  const draft = await readWorkstreamDocument(parsed.values, io);
   const root = resolve(io.cwd, parsed.values.root ?? ".");
   const storage = await openProjectStorage(root);
   try {
@@ -119,82 +140,29 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
       repositoryRoot: root,
       projectId: storage.manifest.projectId,
       draft,
+      bookkeeping: await bookkeepingNow(root),
     });
-    if (parsed.values.apply === undefined) {
-      const printable = {
-        ...plan,
-        operations: plan.operations.map(({ content: _content, ...operation }) => operation),
-      };
+    if (mode.kind === "plan_only" || plan.status === "blocked") {
       io.stdout(
         parsed.values.json
-          ? `${JSON.stringify(printable, null, 2)}\n`
+          ? `${JSON.stringify(printablePlan(plan), null, 2)}\n`
           : plan.status === "blocked"
-            ? `Workstream start is blocked.\n${plan.blockers.map((item) => `  [${item.code}] ${item.message}`).join("\n")}\n`
-            : `Workstream start plan created.\nplan: ${plan.planId}\nworkstream: ${plan.snapshot?.workstreamId}\nrevision: 1\nNo state or event has been changed.\n`,
+            ? blockedText("start", plan.blockers)
+            : `Workstream start plan created.\nplan: ${plan.planId}\nworkstream: ${plan.snapshot?.workstreamId}\nrevision: 1\nNo state or event has been changed. Apply with --apply ${plan.planId}, or plan and apply in one call with --apply-now.\n`,
       );
       return plan.status === "ready" ? 0 : 1;
     }
-    if (parsed.values.apply !== plan.planId)
-      throw new Error("The requested plan ID does not match the current workstream start plan.");
-    const identity = randomUUID().replaceAll("-", "");
+    requireMatchingPlan(mode, plan.planId, "start");
     const receipt = await applyWorkstreamStartPlan({
       plan,
       now: new Date(),
-      actor,
-      recordApplied: async (applied, snapshotContent) => {
-        let artifact;
-        try {
-          artifact = await storage.artifacts.put(snapshotContent);
-        } catch {
-          throw new RepositoryKnowledgeError(
-            "knowledge_apply_failed",
-            "The workstream start snapshot artifact could not be persisted.",
-          );
-        }
-        if (artifact.contentHash !== applied.snapshotContentHash)
-          throw new RepositoryKnowledgeError(
-            "knowledge_apply_failed",
-            "The persisted workstream snapshot differs from the start binding.",
-          );
-        try {
-          storage.events.append({
-            eventId: `evt_${identity}`,
-            projectId: applied.projectId,
-            runId: `run_${identity}`,
-            sessionId: `ses_${identity}`,
-            type: "workstream.snapshot.recorded",
-            occurredAt: applied.appliedAt,
-            actor:
-              actor === "agent"
-                ? { kind: actor, provider: parsed.values.provider as "codex" | "claude" }
-                : { kind: actor },
-            schemaVersion: 1,
-            policyVersion: applied.snapshotContentHash,
-            payload: {
-              workstreamId: applied.workstreamId,
-              revision: applied.revision,
-              status: applied.status,
-              changeKind: applied.operation,
-              snapshotArtifactId: `art_${applied.snapshotContentHash.slice("sha256:".length)}`,
-              snapshotContentHash: applied.snapshotContentHash,
-              previousSnapshotContentHash: applied.previousSnapshotContentHash,
-              sourceArtifactId: null,
-              sourceContentHash: null,
-              recordedAt: applied.appliedAt,
-            },
-          });
-        } catch (error) {
-          throw new RepositoryKnowledgeError(
-            "knowledge_apply_failed",
-            `The workstream start event could not be recorded: ${error instanceof Error ? error.message : "unknown event-store failure"}`,
-          );
-        }
-      },
+      actor: actor.kind,
+      recordApplied: workstreamSnapshotRecorder({ storage, actor, operation: "start" }),
     });
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify(receipt, null, 2)}\n`
-        : `Workstream started.\nworkstream: ${receipt.workstreamId}\nrevision: 1\nstatus: ${receipt.status}\n`,
+        : `Workstream started.\nplan: ${receipt.planId}\nworkstream: ${receipt.workstreamId}\nrevision: 1\nstatus: ${receipt.status}\n`,
     );
     return 0;
   } finally {
@@ -208,115 +176,45 @@ async function runUpdate(args: string[], io: CliIo): Promise<number> {
     strict: true,
     allowPositionals: false,
     options: {
-      root: { type: "string" },
-      from: { type: "string" },
-      stdin: { type: "boolean" },
-      actor: { type: "string" },
-      provider: { type: "string" },
-      apply: { type: "string" },
-      json: { type: "boolean" },
+      ...workstreamWriteOptionSpec,
+      patch: { type: "string" },
+      "stdin-patch": { type: "boolean" },
     },
   });
-  if (
-    parsed.values.actor !== undefined &&
-    parsed.values.actor !== "user" &&
-    parsed.values.actor !== "agent"
-  )
-    throw new Error("--actor must be user or agent.");
-  const actor = parsed.values.actor === "agent" ? ("agent" as const) : ("user" as const);
-  if (
-    actor === "agent" &&
-    parsed.values.provider !== "codex" &&
-    parsed.values.provider !== "claude"
-  )
-    throw new Error("--provider must be codex or claude when --actor agent is used.");
-  if (actor === "user" && parsed.values.provider !== undefined)
-    throw new Error("--provider is only valid with --actor agent.");
-  const snapshot = await readJsonInput(parsed.values, io);
+  const actor = parseWorkstreamActor(parsed.values);
+  const mode = parseWorkstreamApplyMode(parsed.values);
+  const change = await readWorkstreamChange(parsed.values, io);
   const root = resolve(io.cwd, parsed.values.root ?? ".");
   const storage = await openProjectStorage(root);
   try {
-    const plan = await createWorkstreamUpdatePlan({
+    await verifiedCurrentWorkstream(storage);
+    const plan = await createWorkstreamRevisionPlan({
       repositoryRoot: root,
       projectId: storage.manifest.projectId,
-      snapshot,
+      change,
+      bookkeeping: await bookkeepingNow(root),
     });
-    if (parsed.values.apply === undefined) {
-      const printable = {
-        ...plan,
-        operations: plan.operations.map(({ content: _content, ...operation }) => operation),
-      };
+    if (mode.kind === "plan_only" || plan.status === "blocked") {
       io.stdout(
         parsed.values.json
-          ? `${JSON.stringify(printable, null, 2)}\n`
+          ? `${JSON.stringify(printablePlan(plan), null, 2)}\n`
           : plan.status === "blocked"
-            ? `Workstream update is blocked.\n${plan.blockers.map((item) => `  [${item.code}] ${item.message}`).join("\n")}\n`
-            : `Workstream update plan created.\nplan: ${plan.planId}\nworkstream: ${plan.snapshot?.workstreamId}\nrevision: ${plan.snapshot?.revision}\nNo state or event has been changed.\n`,
+            ? blockedText("update", plan.blockers)
+            : `Workstream update plan created.\nplan: ${plan.planId}\nworkstream: ${plan.snapshot?.workstreamId}\nrevision: ${plan.snapshot?.revision}\n${plan.droppedNotesThisRevision === 0 ? "" : `notes dropped by retention: ${plan.droppedNotesThisRevision}\n`}No state or event has been changed. Apply with --apply ${plan.planId}, or plan and apply in one call with --apply-now.\n`,
       );
       return plan.status === "ready" ? 0 : 1;
     }
-    if (parsed.values.apply !== plan.planId)
-      throw new Error("The requested plan ID does not match the current workstream update plan.");
-    const identity = randomUUID().replaceAll("-", "");
+    requireMatchingPlan(mode, plan.planId, "update");
     const receipt = await applyWorkstreamUpdatePlan({
       plan,
       now: new Date(),
-      actor,
-      recordApplied: async (applied, snapshotContent) => {
-        let artifact;
-        try {
-          artifact = await storage.artifacts.put(snapshotContent);
-        } catch {
-          throw new RepositoryKnowledgeError(
-            "knowledge_apply_failed",
-            "The workstream update snapshot artifact could not be persisted.",
-          );
-        }
-        if (artifact.contentHash !== applied.snapshotContentHash) {
-          throw new RepositoryKnowledgeError(
-            "knowledge_apply_failed",
-            "The persisted workstream snapshot differs from the update binding.",
-          );
-        }
-        try {
-          storage.events.append({
-            eventId: `evt_${identity}`,
-            projectId: applied.projectId,
-            runId: `run_${identity}`,
-            sessionId: `ses_${identity}`,
-            type: "workstream.snapshot.recorded",
-            occurredAt: applied.appliedAt,
-            actor:
-              actor === "agent"
-                ? { kind: actor, provider: parsed.values.provider as "codex" | "claude" }
-                : { kind: actor },
-            schemaVersion: 1,
-            policyVersion: applied.snapshotContentHash,
-            payload: {
-              workstreamId: applied.workstreamId,
-              revision: applied.revision,
-              status: applied.status,
-              changeKind: applied.operation,
-              snapshotArtifactId: `art_${applied.snapshotContentHash.slice("sha256:".length)}`,
-              snapshotContentHash: applied.snapshotContentHash,
-              previousSnapshotContentHash: applied.previousSnapshotContentHash,
-              sourceArtifactId: null,
-              sourceContentHash: null,
-              recordedAt: applied.appliedAt,
-            },
-          });
-        } catch (error) {
-          throw new RepositoryKnowledgeError(
-            "knowledge_apply_failed",
-            `The workstream update event could not be recorded: ${error instanceof Error ? error.message : "unknown event-store failure"}`,
-          );
-        }
-      },
+      actor: actor.kind,
+      recordApplied: workstreamSnapshotRecorder({ storage, actor, operation: "update" }),
     });
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify(receipt, null, 2)}\n`
-        : `Workstream updated.\nworkstream: ${receipt.workstreamId}\nrevision: ${receipt.revision}\nstatus: ${receipt.status}\n`,
+        : `Workstream updated.\nplan: ${receipt.planId}\nworkstream: ${receipt.workstreamId}\nrevision: ${receipt.revision}\nstatus: ${receipt.status}\n${plan.droppedNotesThisRevision === 0 ? "" : `notes dropped by retention: ${plan.droppedNotesThisRevision}\n`}`,
     );
     return 0;
   } finally {
@@ -325,10 +223,22 @@ async function runUpdate(args: string[], io: CliIo): Promise<number> {
 }
 
 export async function runWorkstreamCommand(args: string[], io: CliIo): Promise<number> {
+  const subcommand = args[0];
+  if (subcommand === undefined || subcommand === "--help" || subcommand === "-h") {
+    io.stdout(`Usage:\n${workstreamUsage}\n`);
+    return subcommand === undefined ? 1 : 0;
+  }
   try {
-    if (args[0] === "current") return await runCurrent(args.slice(1), io);
-    if (args[0] === "start") return await runStart(args.slice(1), io);
-    if (args[0] === "update") return await runUpdate(args.slice(1), io);
+    if (
+      (subcommand === "current" || subcommand === "start" || subcommand === "update") &&
+      wantsHelp(args.slice(1))
+    ) {
+      io.stdout(subcommandHelp[subcommand]);
+      return 0;
+    }
+    if (subcommand === "current") return await runCurrent(args.slice(1), io);
+    if (subcommand === "start") return await runStart(args.slice(1), io);
+    if (subcommand === "update") return await runUpdate(args.slice(1), io);
     throw new Error("Specify a supported workstream subcommand.");
   } catch (error) {
     io.stderr(`${error instanceof Error ? error.message : String(error)}\n${workstreamUsage}\n`);

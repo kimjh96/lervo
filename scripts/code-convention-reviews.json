@@ -319,16 +319,16 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:992d3846609a65b79bc52eb2373cb354e5f9d48cf5a831e68fa7d4ef23cc454d",
+      "contentHash": "sha256:e88daf2e2db7102c8a91579d1fc46a648f126b13327aa8d791defac9ed1d545f",
       "responsibility": "Repository knowledge public contract types",
-      "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
+      "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, policy, and typed domain failures without owning their implementations. The optional workstream freshness policy field references its owning freshness module rather than redefining it.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/workstream.ts",
-      "contentHash": "sha256:77037209b48407ea774ab1011dbbf0c3974b80ce42483ea3cb2d4db67556e072",
+      "contentHash": "sha256:4b8391394bd0a79e6b6de7173b5426b04608320c7f0be2981ffa14e064759c4c",
       "responsibility": "Revisioned workstream snapshot lifecycle",
-      "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, and durable apply protocol. Pure snapshot construction and pending-coordinate validation now live in workstream-snapshot.ts, so this module retains durable lifecycle orchestration rather than growing another policy concern.",
+      "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, intent-bound plan identity, and durable apply protocol. Snapshot construction, bookkeeping, revision derivation, freshness, and context rendering live in sibling modules, so this module keeps durable lifecycle orchestration only.",
       "disposition": "cohesive"
     },
     {
