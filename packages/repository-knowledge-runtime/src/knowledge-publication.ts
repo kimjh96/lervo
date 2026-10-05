@@ -11,21 +11,33 @@ import {
   inventoryKnowledgePublication,
   KnowledgePublicationGitError,
   knowledgePublicationScopeViolations,
+  type KnowledgePublicationInventory,
   pushKnowledgePublicationTip,
   remoteTrackingHead,
   syncLocalBaseAfterPublication,
 } from "./knowledge-publication-git.js";
 import type { KnowledgePublicationSettings } from "./knowledge-publication-settings.js";
 import {
+  MAXIMUM_SUPERSEDED_COMMITS,
   nextKnowledgePublicationFailure,
   readKnowledgePublicationState,
   writeKnowledgePublicationState,
   type KnowledgePublicationFailureCode,
   type KnowledgePublicationState,
 } from "./knowledge-publication-state.js";
+import { supersedeStaleKnowledgeCommits } from "./knowledge-publication-supersession.js";
 
 /** While checks run, the resident looks again after this delay instead of its idle backoff. */
 export const KNOWLEDGE_PUBLICATION_CHECK_INTERVAL_MS = 2 * 60_000;
+/**
+ * After superseded commits left the local base branch, the resident runs its next cycle this soon:
+ * the moved head changes the source fingerprint, so convergence regenerates the outputs against
+ * the current base instead of waiting out its idle backoff.
+ */
+export const KNOWLEDGE_PUBLICATION_REQUEUE_DELAY_MS = 5_000;
+
+const SUPERSEDED_COMMENT =
+  "Closed by the Lervo knowledge publisher: these knowledge commits were computed against an older base and conflict with the current base, so they will not be published. Convergence regenerates the affected outputs against the current base, and the next publication opens a new pull request.";
 
 export type KnowledgePublicationOutcome =
   | { status: "disabled" | "not_owner" | "unchanged" }
@@ -77,8 +89,9 @@ export async function publishKnowledgeOutputs(input: {
   if (!(await knowledgeOutputCommitGrant(root, now().getTime())).allowed)
     return { status: "not_owner" };
   const previous = await readKnowledgePublicationState(root);
+  const superseded = new Set(previous?.supersededCommits ?? []);
   // Without new local commits or an open pull request there is nothing to ask the remote.
-  const local = await inventoryKnowledgePublication(root, settings).catch(() => null);
+  const local = await inventoryKnowledgePublication(root, settings, superseded).catch(() => null);
   if (
     local !== null &&
     local.knowledge.length === 0 &&
@@ -96,9 +109,10 @@ export async function publishKnowledgeOutputs(input: {
     commitCount: previous?.commitCount ?? 0,
     updatedAt: now().toISOString(),
     failure: null,
+    supersededCommits: previous?.supersededCommits ?? [],
   };
   // The latest durable progress, so a failure after the pull request opened keeps its coordinates.
-  const progress = { current: base };
+  const progress = { current: base, requeue: false };
   let state: KnowledgePublicationState;
   try {
     state = await publish({
@@ -128,9 +142,20 @@ export async function publishKnowledgeOutputs(input: {
     status: "published",
     state,
     retryAfterMs:
-      state.status === "awaiting_checks" ? KNOWLEDGE_PUBLICATION_CHECK_INTERVAL_MS : null,
+      state.status === "awaiting_checks"
+        ? KNOWLEDGE_PUBLICATION_CHECK_INTERVAL_MS
+        : progress.requeue
+          ? KNOWLEDGE_PUBLICATION_REQUEUE_DELAY_MS
+          : null,
   };
 }
+
+const withoutPullRequest = (state: KnowledgePublicationState): KnowledgePublicationState => ({
+  ...state,
+  pullRequestNumber: null,
+  pullRequestUrl: null,
+  publishedHead: null,
+});
 
 async function publish(input: {
   root: string;
@@ -139,14 +164,18 @@ async function publish(input: {
   host: { hostHash: string; hostLabel: string };
   previous: KnowledgePublicationState | null;
   base: KnowledgePublicationState;
-  progress: { current: KnowledgePublicationState };
+  progress: { current: KnowledgePublicationState; requeue: boolean };
 }): Promise<KnowledgePublicationState> {
   const { root, settings, forge, base } = input;
   await step("knowledge_publication_fetch_failed", () =>
     fetchKnowledgePublicationRefs(root, settings),
   );
   const inventory = await step("knowledge_publication_fetch_failed", async () => {
-    const value = await inventoryKnowledgePublication(root, settings);
+    const value = await inventoryKnowledgePublication(
+      root,
+      settings,
+      new Set(base.supersededCommits ?? []),
+    );
     if (value === null)
       throw new PublicationFailure("knowledge_publication_fetch_failed", "base branch absent");
     return value;
@@ -155,11 +184,23 @@ async function publish(input: {
     const number = input.previous?.pullRequestNumber ?? null;
     if (number === null || !PULL_REQUEST_OPEN.has(input.previous?.status ?? "idle"))
       return { ...base, status: "idle" };
-    const pullRequest = await step("knowledge_publication_pull_request_failed", () =>
-      forge.viewPullRequest(number),
-    );
-    if (pullRequest.state !== "merged")
-      return { ...base, status: pullRequest.state === "open" ? input.previous!.status : "idle" };
+    // A pull request closed or removed outside the publisher leaves nothing to wait for.
+    const pullRequest = await forge
+      .viewPullRequest(number)
+      .catch(() =>
+        step("knowledge_publication_pull_request_failed", () =>
+          forge.findPullRequest({ head: settings.branch, base: settings.baseBranch }),
+        ),
+      );
+    if (pullRequest === null || pullRequest.state === "closed")
+      return { ...withoutPullRequest(base), status: "idle" };
+    if (pullRequest.state === "open")
+      return {
+        ...base,
+        status: input.previous!.status,
+        pullRequestNumber: pullRequest.number,
+        pullRequestUrl: pullRequest.url,
+      };
     return afterMerge(root, settings, base);
   }
   const violations = knowledgePublicationScopeViolations(
@@ -171,12 +212,12 @@ async function publish(input: {
       "knowledge_publication_scope_violation",
       `${violations.length} path(s) outside the allowed roots`,
     );
-  const tip = await step("knowledge_publication_conflict", async () => {
-    const value = await buildKnowledgePublicationTip(root, inventory);
-    if (value === null)
-      throw new PublicationFailure("knowledge_publication_conflict", "replay conflict");
-    return value;
-  });
+  const built = await step("knowledge_publication_conflict", () =>
+    buildKnowledgePublicationTip(root, inventory),
+  );
+  if (built.status === "conflict")
+    return supersede({ ...input, inventory, conflictPathCount: built.conflictPathCount });
+  const { tip } = built;
   await step("knowledge_publication_push_failed", async () =>
     pushKnowledgePublicationTip(
       root,
@@ -237,6 +278,59 @@ async function publish(input: {
     fetchKnowledgePublicationRefs(root, settings),
   );
   return afterMerge(root, settings, opened);
+}
+
+/**
+ * A replay conflict means the commits were computed against stale source bytes. They are never
+ * published: an open publication pull request, which carries only them, is closed first, then the
+ * local branch is backed up and moved to the remote base when no work can be lost, which requeues
+ * convergence there. One `knowledge_publication_superseded` failure records the outcome.
+ */
+async function supersede(input: {
+  root: string;
+  settings: KnowledgePublicationSettings;
+  forge: KnowledgePublicationForge;
+  previous: KnowledgePublicationState | null;
+  base: KnowledgePublicationState;
+  progress: { current: KnowledgePublicationState; requeue: boolean };
+  inventory: KnowledgePublicationInventory;
+  conflictPathCount: number;
+}): Promise<KnowledgePublicationState> {
+  const { root, settings, forge, base, inventory } = input;
+  const open = await step("knowledge_publication_pull_request_failed", () =>
+    forge.findPullRequest({ head: settings.branch, base: settings.baseBranch }),
+  );
+  if (open !== null)
+    await step("knowledge_publication_pull_request_failed", () =>
+      forge.closePullRequest({ number: open.number, comment: SUPERSEDED_COMMENT }),
+    );
+  input.progress.current = withoutPullRequest(base);
+  const { backupRef, localReset } = await step("knowledge_publication_conflict", () =>
+    supersedeStaleKnowledgeCommits(root, settings, inventory),
+  );
+  input.progress.requeue = localReset;
+  const detail = `${input.conflictPathCount} conflicting path(s) in ${inventory.knowledge.length} commit(s); ${
+    localReset
+      ? "local base reset to the remote base and convergence requeued"
+      : "local base kept because it holds other work or moved"
+  }; backup ${backupRef}`;
+  return {
+    ...withoutPullRequest(base),
+    status: "superseded",
+    commitCount: inventory.knowledge.length,
+    failure: nextKnowledgePublicationFailure(
+      input.previous?.failure ?? null,
+      "knowledge_publication_superseded",
+      detail,
+      base.updatedAt,
+    ),
+    supersededCommits: localReset
+      ? []
+      : [
+          ...(base.supersededCommits ?? []),
+          ...inventory.knowledge.map((commit) => commit.sha),
+        ].slice(-MAXIMUM_SUPERSEDED_COMMITS),
+  };
 }
 
 async function afterMerge(

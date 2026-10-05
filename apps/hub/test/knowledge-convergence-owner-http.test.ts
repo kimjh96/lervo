@@ -143,12 +143,21 @@ it("refuses principals without coordination permission and unverified Hub identi
   cleanups.push(() => rm(root, { recursive: true, force: true }));
   const running = await hub(resolve(root, "hub.sqlite"), { now: Date.now() });
   cleanups.push(() => running.close());
+  // Each refusal carries the cause an unverifiable verdict reports, never only "unavailable".
   await expect(
     client(running.baseUrl, traceOnlyToken).mutate(claim(mac, "mac")),
-  ).rejects.toBeInstanceOf(HubKnowledgeConvergenceOwnerUnavailableError);
+  ).rejects.toMatchObject({ failureCode: "hub_forbidden", httpStatus: 403 });
+  await expect(
+    client(running.baseUrl, "hub-convergence-unknown-token-ccccccccccccccccccc").mutate(
+      claim(mac, "mac"),
+    ),
+  ).rejects.toMatchObject({ failureCode: "hub_unauthorized", httpStatus: 401 });
   await expect(
     client(running.baseUrl, coordinateToken, `sha256:${"8".repeat(64)}`).mutate(claim(mac, "mac")),
   ).rejects.toBeInstanceOf(HubKnowledgeConvergenceOwnerUnavailableError);
+  await expect(
+    client(running.baseUrl, coordinateToken, `sha256:${"8".repeat(64)}`).mutate(claim(mac, "mac")),
+  ).rejects.toMatchObject({ failureCode: "hub_identity_mismatch", httpStatus: null });
 
   const url = new URL(
     `v1/sync/projects/${project.projectId}/knowledge-convergence-owner`,

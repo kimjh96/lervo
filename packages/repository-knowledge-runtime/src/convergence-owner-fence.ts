@@ -2,6 +2,11 @@ import { randomUUID } from "node:crypto";
 import { chmod, lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import {
+  isKnowledgeConvergenceOwnerHttpStatus,
+  KNOWLEDGE_CONVERGENCE_OWNER_FAILURE_CODES,
+} from "@lervo/sync-contract";
+
 import { readConvergenceOwnerHost } from "./convergence-owner-host.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 
@@ -46,7 +51,14 @@ function validFence(value: unknown): value is ConvergenceOwnerFence {
     timestampOrNull(verdict.wakeAt) &&
     timestampOrNull(verdict.grantedAt) &&
     timestampOrNull(verdict.yieldUntil) &&
-    typeof verdict.observedAt === "string"
+    typeof verdict.observedAt === "string" &&
+    // Fences written before ADR-0466 failure causes existed omit both fields.
+    (verdict.failureCode === undefined ||
+      verdict.failureCode === null ||
+      KNOWLEDGE_CONVERGENCE_OWNER_FAILURE_CODES.has(verdict.failureCode)) &&
+    (verdict.httpStatus === undefined ||
+      verdict.httpStatus === null ||
+      isKnowledgeConvergenceOwnerHttpStatus(verdict.httpStatus))
   );
 }
 

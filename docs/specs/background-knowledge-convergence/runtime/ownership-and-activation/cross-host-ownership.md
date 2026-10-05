@@ -52,11 +52,28 @@ A resident observes ownership once per cycle (full or skipped) and in the owner 
 
 ## Private fence
 
-`.lervo/state/knowledge/convergence-owner.json` holds `{ schemaVersion: 1, verdict, recordedHolderKey }`. The verdict records `role`, `reason`, `mode`, `hostHash`, `hostLabel`, `holder` (`hostHash`, `label`, `generation`, `expiresAt`), `validUntil`, `wakeAt`, `grantedAt`, `yieldUntil`, and `observedAt`. It is written atomically with mode `0600` before an observation returns.
+`.lervo/state/knowledge/convergence-owner.json` holds `{ schemaVersion: 1, verdict, recordedHolderKey }`. The verdict records `role`, `reason`, `mode`, `hostHash`, `hostLabel`, `holder` (`hostHash`, `label`, `generation`, `expiresAt`), `validUntil`, `wakeAt`, `grantedAt`, `yieldUntil`, and `observedAt`. A verdict built from a failed Hub request also records `failureCode` and `httpStatus`, such as `hub_forbidden` and `403`. Older fences without these fields stay valid. The fence is written atomically with mode `0600` before an observation returns.
 
 - Commit authority: knowledge-output and freshness commits proceed only when the fence says `owner` and `validUntil` is in the future. A checkout with neither the host file nor the fence keeps legacy behavior. A host file without a fence refuses.
 - Privacy: the fence holds hashes, labels, and timestamps; no Hub address or token path.
 - Failure meaning: a missing or invalid fence on a configured host refuses commits until the next observation rewrites it.
+
+## Hub failure causes
+
+The Hub client attaches one cause to every failed lease request. The fence keeps only the code and the HTTP status; no error message, URL, token, or token path. `owner status` and the `knowledge_convergence_owner` attention item show both, with this remediation:
+
+| `failureCode`               | Meaning                                                    | Remediation                                                                                                                                              |
+| --------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hub_unauthorized`          | 401: the Hub did not accept the token                      | Replace the token in `bearerTokenFile` with a current credential for the project                                                                         |
+| `hub_forbidden`             | 403: the principal lacks the project scope or a permission | Grant `workspace.read` and `workspace.coordinate` for the project ID at `destinationId` to the token's principal; the client cannot see the principal ID |
+| `hub_unreachable`           | No answer, a timeout, or a 5xx status                      | Check that `baseUrl` is reachable and the Hub is running                                                                                                 |
+| `hub_identity_mismatch`     | The answer lacked the configured Hub identity              | Compare `hubIdentityHash` with the Hub's identity                                                                                                        |
+| `hub_response_invalid`      | An unexpected status, content type, or body                | Check that the Hub runs a version with the owner lease                                                                                                   |
+| `hub_configuration_invalid` | The coordinates or token cannot form a request             | Fix `baseUrl`, `destinationId`, `hubIdentityHash`, or the token                                                                                          |
+| `token_file_unreadable`     | The token file could not be read safely                    | Make `bearerTokenFile` an owner-only (`0600`) regular file                                                                                               |
+| `hub_request_failed`        | A failure the client did not classify                      | Inspect the Hub configuration and reachability                                                                                                           |
+
+A verdict built from a Hub answer, or from a held lease that needed no request, records no cause. A fence written before these fields existed reads as "no recorded cause".
 
 ## Resident behavior
 
@@ -70,7 +87,7 @@ The ownership role, holder, and generation are folded into the ADR-0461 fingerpr
 | `unverifiable`  | `attention`  | `convergence_owner_unverifiable`, `convergence_owner_host_invalid`, or `convergence_owner_transport_missing` |
 | `contended`     | `attention`  | `convergence_owner_contended`                                                                                |
 
-A non-owner cycle returns `{ status: "waiting_owner", owner, convergence }`. `convergence` is the read-only debt status. `lervo knowledge convergence status` adds the fence verdict as `owner`. `lervo knowledge convergence owner status` prints the host hash, label, mode, and verdict without contacting the Hub, and never prints Hub coordinates. `lervo knowledge convergence owner release` releases a held Hub lease and yields.
+A non-owner cycle returns `{ status: "waiting_owner", owner, convergence }`. `convergence` is the read-only debt status. `lervo knowledge convergence status` adds the fence verdict as `owner`. `lervo knowledge convergence owner status` prints the host hash, label, mode, and verdict without contacting the Hub, and never prints the Hub address or token path. For an `unverifiable` or `contended` verdict it adds `remediation`, the exact next step for the recorded cause. For `hub_forbidden`, it names `workspace.read`, `workspace.coordinate`, the project ID, and the Hub destination to grant to the token's principal. The client cannot see the principal ID, so the instruction names the token instead. `lervo knowledge convergence owner release` releases a held Hub lease and yields.
 
 ## Publication
 
@@ -79,13 +96,22 @@ The owner's resident runs one publication after each cycle, as [ADR-0466](../../
 | Effect         | Command on the owner host                                                                        | Guard                                                                                       |
 | -------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
 | Fetch          | `git fetch <remote> +refs/heads/<base>:refs/remotes/<remote>/<base>` and the same for the branch | Host's own Git credential; `GIT_TERMINAL_PROMPT=0`                                          |
-| Replay         | `git worktree add --detach` on the remote base, then `git cherry-pick`                           | Only when other local commits exist; a conflict refuses                                     |
+| Replay         | `git worktree add --detach` on the remote base, then `git cherry-pick`                           | Unless `HEAD` already descends from the remote base with only knowledge commits             |
+| Supersede      | `gh pr close`, `git update-ref refs/lervo/knowledge-superseded/<prefix>`, `git reset --keep`     | Only after a replay conflict; reset only on the base branch without developer work          |
 | Push           | `git push --force-with-lease=refs/heads/<branch>:<observed> <remote> <tip>:refs/heads/<branch>`  | Never the base branch                                                                       |
 | Pull request   | `gh pr list`, `gh pr create --body-file -`, `gh pr edit --body-file -`                           | Host's own `gh` login; `GH_PROMPT_DISABLED=1`                                               |
 | Merge          | `gh pr merge --merge --match-head-commit <tip>`                                                  | `merge: when_checks_pass`, at least one check, all finished as success, neutral, or skipped |
 | Local catch-up | `git merge --ff-only` or `git reset --keep`                                                      | On the base branch only; only when no local-only work is lost                               |
 
-The publication state file, its statuses, and its failure codes are defined in the ADR. A state that cannot be read is rebuilt from Git and GitHub at the next publication. `lervo knowledge convergence owner status` prints the publication settings and state. `lervo operating attention` shows at most one `knowledge_publication` item, plus at most one `knowledge_convergence_owner` item for an `unverifiable` or `contended` verdict.
+The publication state file, its statuses, and its failure codes are defined in the ADR. A replay conflict supersedes the selected commits:
+
+- The open publication pull request is closed with a comment, because it carries only those commits. Its branch stays for the next push.
+- `refs/lervo/knowledge-superseded/<first 12 hex of HEAD>` keeps the local head reachable. Only the eight newest backup refs are kept.
+- When the base branch is checked out, still at the observed head, and holds no developer work, `git reset --keep` moves it to the remote base. The resident then runs its next cycle within five seconds. The moved head changes the source fingerprint, so convergence opens a new obligation and regenerates the outputs against the current base.
+- Otherwise the branch is left for its owner to rebase, and the superseded commits are listed in `supersededCommits` (at most 64) so no later publication selects them again.
+- The state becomes `superseded` with one `knowledge_publication_superseded` failure. Its path-free detail gives the conflicting path count, the commit count, whether the local base was reset, and the backup ref.
+
+A state that cannot be read is rebuilt from Git and GitHub at the next publication. `lervo knowledge convergence owner status` prints the publication settings and state. `lervo operating attention` shows at most one `knowledge_publication` item, plus at most one `knowledge_convergence_owner` item for an `unverifiable` or `contended` verdict.
 
 ## Replica coordination
 

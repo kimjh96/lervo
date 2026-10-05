@@ -166,6 +166,10 @@ export interface KnowledgeConvergenceOwnerAttentionItemV1 extends OperatingAtten
   state: "action_required";
   role: "unverifiable" | "contended";
   reason: string;
+  /** The recorded Hub failure cause of an `unverifiable` verdict, such as `hub_forbidden`. */
+  failureCode: string | null;
+  /** The Hub's HTTP status for `failureCode`, when it answered with one. */
+  httpStatus: number | null;
   holderLabel: string | null;
   observedAt: string;
 }

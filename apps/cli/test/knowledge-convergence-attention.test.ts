@@ -80,3 +80,103 @@ it("projects one ownership item and one publication item, and nothing for a heal
     "knowledge_publication_checks_failed · 1 of 3 checks failed · occurrences 2",
   );
 });
+
+it("names the recorded Hub failure cause and its exact remediation", () => {
+  const forbidden = {
+    ...verdict("unverifiable"),
+    holder: null,
+    failureCode: "hub_forbidden" as const,
+    httpStatus: 403,
+  };
+  const [item] = knowledgeConvergenceAttentionItems({
+    owner: { schemaVersion: 1, recordedHolderKey: null, verdict: forbidden },
+    publication: null,
+    hubScope: { projectId: "prj_attention_fixture", destinationId: "hub:wsl" },
+  });
+  expect(item).toMatchObject({
+    kind: "knowledge_convergence_owner",
+    reason: "convergence_owner_unverifiable",
+    failureCode: "hub_forbidden",
+    httpStatus: 403,
+  });
+  expect(item!.instruction).toBe(
+    "The Hub refused this host's convergence owner token (HTTP 403). Grant workspace.read and workspace.coordinate for project prj_attention_fixture at Hub destination hub:wsl to the Hub principal that owns the token in this host's bearerTokenFile, then run lervo knowledge convergence owner status.",
+  );
+  const report = createOperatingAttentionReport({
+    projectId: "prj_attention_fixture",
+    workstream: null,
+    workstreamFreshness: null,
+    canonicalization: { coverage: "complete", candidates: [] },
+    knowledgeLifecycle: { coverage: "complete", issues: [] },
+    knowledgeConvergence: {
+      owner: { schemaVersion: 1, recordedHolderKey: null, verdict: forbidden },
+      publication: null,
+    },
+    observedAt: new Date("2026-10-05T00:11:00.000Z"),
+  });
+  expect(formatOperatingAttention(report)).toContain(
+    "unverifiable · convergence_owner_unverifiable · hub_forbidden HTTP 403",
+  );
+
+  const instructions = new Map<string, string>();
+  for (const failureCode of [
+    "hub_unauthorized",
+    "hub_unreachable",
+    "hub_identity_mismatch",
+    "hub_response_invalid",
+    "hub_configuration_invalid",
+    "token_file_unreadable",
+    "hub_request_failed",
+  ] as const) {
+    const [projected] = knowledgeConvergenceAttentionItems({
+      owner: {
+        schemaVersion: 1,
+        recordedHolderKey: null,
+        verdict: { ...forbidden, failureCode, httpStatus: null },
+      },
+      publication: null,
+    });
+    expect(projected).toMatchObject({ failureCode, httpStatus: null });
+    instructions.set(failureCode, projected!.instruction);
+  }
+  expect(new Set(instructions.values()).size).toBe(instructions.size);
+  expect(instructions.get("hub_unauthorized")).toContain("Replace the token");
+  expect(instructions.get("token_file_unreadable")).toContain("mode 0600");
+
+  // A fence written before failure causes existed projects no cause and the generic step.
+  const [legacy] = knowledgeConvergenceAttentionItems({
+    owner: { schemaVersion: 1, recordedHolderKey: null, verdict: verdict("unverifiable") },
+    publication: null,
+  });
+  expect(legacy).toMatchObject({ failureCode: null, httpStatus: null });
+  expect(legacy!.instruction).toBe(instructions.get("hub_request_failed"));
+});
+
+it("projects a superseded publication as one attention item with its conflict count", () => {
+  const items = knowledgeConvergenceAttentionItems({
+    owner: null,
+    publication: {
+      ...failedPublication,
+      status: "superseded",
+      pullRequestNumber: null,
+      pullRequestUrl: null,
+      failure: {
+        code: "knowledge_publication_superseded",
+        detail:
+          "3 conflicting path(s) in 8 commit(s); local base reset to the remote base and convergence requeued; backup refs/lervo/knowledge-superseded/9f01e8e8aaaa",
+        firstObservedAt: "2026-10-05T00:05:00.000Z",
+        lastObservedAt: "2026-10-05T00:05:00.000Z",
+        occurrences: 1,
+      },
+    },
+  });
+  expect(items).toMatchObject([
+    {
+      kind: "knowledge_publication",
+      failureCode: "knowledge_publication_superseded",
+      detail: expect.stringContaining("3 conflicting path(s)"),
+      pullRequestUrl: null,
+    },
+  ]);
+  expect(items[0]!.instruction).toContain("convergence regenerates the outputs");
+});

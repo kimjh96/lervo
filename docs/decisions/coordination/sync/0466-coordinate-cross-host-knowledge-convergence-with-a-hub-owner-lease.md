@@ -43,7 +43,7 @@ Each resident cycle and each CLI worker run first resolves one verdict:
 
 - `owner`: may converge and commit until its local validity ends.
 - `waiting_owner`: another host holds a live lease. Health state `waiting`, reason `waiting_owner:<holder label>`.
-- `unverifiable`: ownership cannot be proven. Causes are a Hub outage without a live local lease, an invalid host configuration, or a missing transport. Health state `attention`.
+- `unverifiable`: ownership cannot be proven. Causes are a Hub outage without a live local lease, an invalid host configuration, or a missing transport. Health state `attention`. When a Hub request failed, the verdict also names its cause in `failureCode` and `httpStatus`, defined below.
 - `contended`: a standalone host found another host's knowledge commit from the last 30 minutes. Health state `attention`.
 - `ineligible`: a Hub-mode host without an active, unexpired delegation for its provider. It does not contend and releases a lease it held.
 - `yielding`: an operator released this host's lease. The host does not reclaim for 30 minutes.
@@ -80,11 +80,12 @@ After every resident cycle, the owner publishes its settled commits. Only the ho
 1. Fetch the base branch and the publication branch from the configured remote with the host's own Git credentials.
 2. Select the unpublished knowledge commits in `remote/base..HEAD`: non-merge commits whose author and committer are both `Lervo Knowledge`, and whose patch is not already upstream according to `git cherry`. Every other commit counts as other work and is never published.
 3. Refuse the whole publication if any selected commit changes a path outside the allowed roots (default `docs/` and `.lervo/knowledge/`).
-4. Choose the publication tip. If `base..HEAD` holds only the selected commits, the tip is `HEAD`. Otherwise the selected commits are replayed onto the remote base in a temporary worktree, and a replay conflict refuses.
-5. Push the tip to one rolling branch (default `lervo/knowledge-outputs`) with `--force-with-lease` on the observed branch head. The base branch is never pushed.
-6. Open or update one pull request through the host's authenticated `gh` CLI. Its title is `docs: publish reviewed background knowledge`, and its body follows `.github/PULL_REQUEST_TEMPLATE.md` section by section, starting at H2. The body checks only the items the publisher verified itself and states why each other item stays unchecked.
-7. With `merge: when_checks_pass`, merge with a merge commit through `--match-head-commit` once every reported check on that exact head succeeded. With `merge: never`, stop at the open pull request. GitHub auto-merge is disabled for this repository and no rule forbids an automated merge, so the publisher checks CI itself.
-8. After a merge, bring local `main` up to the remote base only when no work can be lost. If `HEAD` is an ancestor of the base, fast-forward. If every local-only commit is a non-merge patch already upstream, use `reset --keep`, which also preserves uncommitted edits. In any other case, leave local `main` alone and record `local_diverged`.
+4. Choose the publication tip, always on top of the current remote base. If `HEAD` already descends from the remote base and `base..HEAD` holds only the selected commits, the tip is `HEAD`. Otherwise the selected commits are replayed onto the remote base in a temporary worktree. This includes a local branch that holds only knowledge commits but still sits on an older base.
+5. A replay conflict means the outputs were computed against stale source bytes, so those commits are never published. The publisher closes the open publication pull request and keeps the local head under a backup ref. If the local base branch is checked out and holds no developer work, `reset --keep` moves it to the remote base, and the next cycle regenerates the outputs there. Otherwise the superseded commits are recorded and never selected again. The publisher records status `superseded`, with the conflicting path count.
+6. Push the tip to one rolling branch (default `lervo/knowledge-outputs`) with `--force-with-lease` on the observed branch head. The base branch is never pushed.
+7. Open or update one pull request through the host's authenticated `gh` CLI. A pull request closed outside the publisher is never reused; the next publication opens a new one. Its title is `docs: publish reviewed background knowledge`, and its body follows `.github/PULL_REQUEST_TEMPLATE.md` section by section, starting at H2. The body checks only the items the publisher verified itself and states why each other item stays unchecked.
+8. With `merge: when_checks_pass`, merge with a merge commit through `--match-head-commit` once every reported check on that exact head succeeded. With `merge: never`, stop at the open pull request. GitHub auto-merge is disabled for this repository and no rule forbids an automated merge, so the publisher checks CI itself.
+9. After a merge, bring local `main` up to the remote base only when no work can be lost. If `HEAD` is an ancestor of the base, fast-forward. If every local-only commit is a non-merge patch already upstream, use `reset --keep`, which also preserves uncommitted edits. In any other case, leave local `main` alone and record `local_diverged`.
 
 Authority for these writes is the host's reviewed delegation plus the live owner lease. The delegation authorizes convergence commits; the publication block is the host operator's opt-in for pushing and merging them. Developer work never enters the branch, so invariant 5 holds.
 
@@ -104,26 +105,30 @@ Authority for these writes is the host's reviewed delegation plus the live owner
 
 Resident failure codes and reasons: `convergence_owner_elsewhere`, `convergence_owner_unverifiable`, `convergence_owner_host_invalid`, `convergence_owner_transport_missing`, `convergence_owner_contended`, and `convergence_owner_released`. The Hub client reports every transport, status, identity, or body failure as `convergence_owner_hub_unavailable`, which means "not proven", never "held elsewhere".
 
-Publication keeps private state in `.lervo/state/knowledge/knowledge-publication.json`. The file is bounded, written with mode `0600`, and rebuildable from Git and GitHub. Its `status` is one of:
+Each Hub client failure also carries one closed cause code, such as `hub_forbidden` for a 403 answer, and the HTTP status where one exists. A verdict built from a failed request records them in the optional fence fields `failureCode` and `httpStatus`. Older fences without them stay readable. Only the code and status are kept; no message, URL, token, or token path. The [cross-host ownership specification](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/cross-host-ownership.md#hub-failure-causes) lists the codes and their remediations.
+
+Publication keeps private state in `.lervo/state/knowledge/knowledge-publication.json`. The file is bounded, written with mode `0600`, and rebuildable from Git and GitHub. The optional `supersededCommits` lists at most 64 commits that a conflict superseded while the local branch kept them. Its `status` is one of:
 
 - `idle`: nothing is unpublished.
 - `awaiting_checks`: the pull request is open and its checks have not all finished. The resident looks again within two minutes.
 - `open`: the pull request is open and merging is disabled.
 - `merged`: the pull request merged and local `main` caught up.
 - `local_diverged`: the pull request merged, but local `main` also holds other unpublished work, so it was left alone.
+- `superseded`: the selected commits conflicted with the current remote base and were not published (step 5).
 - `failed`: the last attempt failed.
 
 A failure carries one of these codes:
 
 - `knowledge_publication_fetch_failed`
 - `knowledge_publication_scope_violation`
-- `knowledge_publication_conflict`
+- `knowledge_publication_conflict`: replaying failed for a reason other than a content conflict.
 - `knowledge_publication_push_failed`
 - `knowledge_publication_pull_request_failed`
 - `knowledge_publication_checks_failed`
 - `knowledge_publication_merge_failed`
+- `knowledge_publication_superseded`: recorded with status `superseded`.
 
-Each failure also records a path-free detail, its first and last observation, and an occurrence count. Repeats of one code update a single record. `lervo operating attention` projects that record as one `knowledge_publication` item. It also projects an `unverifiable` or `contended` ownership verdict as one `knowledge_convergence_owner` item. A failure never undoes a push or a merge; the next cycle retries from current Git state. Publication adds no canonical event, because Git history and the pull request are the durable record.
+Each failure also records a path-free detail, its first and last observation, and an occurrence count. Repeats of one code update a single record. `lervo operating attention` projects that record as one `knowledge_publication` item. It also projects an `unverifiable` or `contended` ownership verdict as one `knowledge_convergence_owner` item, which carries the verdict's `failureCode` and `httpStatus`. Its instruction names the remediation for that cause. A `superseded` publication is projected like a failure. A failure never undoes a push or a merge; the next cycle retries from current Git state. Publication adds no canonical event, because Git history and the pull request are the durable record.
 
 ## Consequences
 

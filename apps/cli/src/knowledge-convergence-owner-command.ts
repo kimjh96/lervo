@@ -1,3 +1,4 @@
+import { loadProjectManifest } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
   readConvergenceOwnerFence,
@@ -5,6 +6,7 @@ import {
   readKnowledgePublicationState,
 } from "@lervo/repository-knowledge-runtime";
 
+import { convergenceOwnerRemediation } from "./knowledge-convergence-owner-remediation.js";
 import {
   createKnowledgeConvergenceOwnership,
   createKnowledgePublisher,
@@ -36,6 +38,11 @@ export async function runKnowledgeConvergenceOwnerCommand(
   try {
     if (action === "status") {
       const host = await readConvergenceOwnerHost(io.cwd);
+      const verdict = (await readConvergenceOwnerFence(io.cwd))?.verdict ?? null;
+      const projectId = await loadProjectManifest(io.cwd).then(
+        (manifest) => manifest.projectId,
+        () => null,
+      );
       print({
         host:
           host === null
@@ -46,7 +53,16 @@ export async function runKnowledgeConvergenceOwnerCommand(
                 mode: host.config.coordination.mode,
                 publication: host.config.publication ?? null,
               },
-        verdict: (await readConvergenceOwnerFence(io.cwd))?.verdict ?? null,
+        verdict,
+        remediation:
+          verdict === null
+            ? null
+            : convergenceOwnerRemediation(
+                verdict,
+                host?.config.coordination.mode === "hub" && projectId !== null
+                  ? { projectId, destinationId: host.config.coordination.hub.destinationId }
+                  : null,
+              ),
         publication: await readKnowledgePublicationState(io.cwd),
       });
       return 0;

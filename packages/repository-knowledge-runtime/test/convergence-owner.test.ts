@@ -7,7 +7,10 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { ConvergenceOwnership } from "../src/convergence-owner.js";
-import { knowledgeOutputCommitGrant } from "../src/convergence-owner-fence.js";
+import {
+  knowledgeOutputCommitGrant,
+  readConvergenceOwnerFence,
+} from "../src/convergence-owner-fence.js";
 import { CONVERGENCE_OWNER_LEASE_TTL_MS } from "../src/convergence-owner-verdict.js";
 import { commitFreshnessPaths } from "../src/freshness-commit.js";
 import { fixture } from "./fixture.js";
@@ -341,6 +344,76 @@ describe("cross-host convergence ownership", () => {
       });
     },
   );
+
+  it(
+    "names the Hub failure cause on unverifiable verdicts and clears it once a lease is proven",
+    { timeout: 120_000 },
+    async () => {
+      const { hub, mac, wsl, advance } = await twoHosts();
+      hub.failure = { failureCode: "hub_forbidden", httpStatus: 403 };
+      const forbidden = await wsl.ownership().observe();
+      expect(forbidden).toMatchObject({
+        role: "unverifiable",
+        reason: "convergence_owner_unverifiable",
+        failureCode: "hub_forbidden",
+        httpStatus: 403,
+      });
+      expect((await readConvergenceOwnerFence(wsl.root))?.verdict).toEqual(forbidden);
+
+      const unreadable = await new ConvergenceOwnership({
+        storage: wsl.storage,
+        provider: "claude",
+        transport: async () => {
+          throw Object.assign(new Error("token"), { failureCode: "token_file_unreadable" });
+        },
+        now: () => Date.now(),
+      }).observe();
+      expect(unreadable).toMatchObject({
+        role: "unverifiable",
+        reason: "convergence_owner_transport_missing",
+        failureCode: "token_file_unreadable",
+        httpStatus: null,
+      });
+
+      hub.failure = null;
+      const macOwnership = mac.ownership();
+      expect(await macOwnership.observe()).toMatchObject({ role: "owner" });
+      hub.failure = { failureCode: "hub_unreachable", httpStatus: 503 };
+      advance(CONVERGENCE_OWNER_LEASE_TTL_MS / 2);
+      expect(await macOwnership.observe()).toMatchObject({
+        role: "owner",
+        reason: "hub_unavailable_within_lease",
+        failureCode: "hub_unreachable",
+        httpStatus: 503,
+      });
+      hub.failure = null;
+      const renewed = await macOwnership.observe();
+      expect(renewed).toMatchObject({ role: "owner", reason: "lease_renewed" });
+      expect(renewed).not.toHaveProperty("failureCode");
+      const held = await macOwnership.observe();
+      expect(held).toMatchObject({ reason: "lease_held" });
+      expect(held).not.toHaveProperty("failureCode");
+    },
+  );
+
+  it("reads fences written before failure causes existed and rejects unknown causes", async () => {
+    const { mac } = await twoHosts();
+    const verdict = await mac.ownership().observe();
+    const path = resolve(mac.root, ".lervo/state/knowledge/convergence-owner.json");
+    const legacy = { schemaVersion: 1, recordedHolderKey: null, verdict };
+    await writeFile(path, JSON.stringify(legacy));
+    expect(await readConvergenceOwnerFence(mac.root)).toEqual(legacy);
+    await writeFile(
+      path,
+      JSON.stringify({ ...legacy, verdict: { ...verdict, failureCode: "made_up" } }),
+    );
+    expect(await readConvergenceOwnerFence(mac.root)).toBeNull();
+    await writeFile(
+      path,
+      JSON.stringify({ ...legacy, verdict: { ...verdict, failureCode: null, httpStatus: 42 } }),
+    );
+    expect(await readConvergenceOwnerFence(mac.root)).toBeNull();
+  });
 
   it("fails closed on an invalid host configuration", { timeout: 120_000 }, async () => {
     const { mac } = await twoHosts();

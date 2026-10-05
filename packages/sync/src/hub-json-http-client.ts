@@ -50,6 +50,14 @@ function credentialHeaders(mode: HubJsonCredentialMode, bearerToken: string | un
   }
 }
 
+/** A Hub answer whose status the request did not accept; callers may classify `status`. */
+export class HubJsonHttpStatusError extends Error {
+  constructor(readonly status: number) {
+    super("The Hub synchronization response status is invalid.");
+    this.name = "HubJsonHttpStatusError";
+  }
+}
+
 export class HubJsonHttpClient {
   private readonly bearerToken: string | undefined;
   private readonly expectedHubIdentityHash: string;
@@ -120,7 +128,7 @@ export class HubJsonHttpClient {
       });
       if (!request.acceptedStatuses.includes(response.status)) {
         await response.body?.cancel();
-        throw new Error("The Hub synchronization response status is invalid.");
+        throw new HubJsonHttpStatusError(response.status);
       }
       if (response.headers.get("x-lervo-hub-identity") !== this.expectedHubIdentityHash) {
         await response.body?.cancel();

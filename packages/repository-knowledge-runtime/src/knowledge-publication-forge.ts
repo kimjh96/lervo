@@ -34,6 +34,8 @@ export interface KnowledgePublicationForge {
   }): Promise<KnowledgePublicationPullRequest>;
   updatePullRequest(input: { number: number; title: string; body: string }): Promise<void>;
   viewPullRequest(number: number): Promise<KnowledgePublicationPullRequest>;
+  /** Closes an open pull request with an explanatory comment; the branch stays for the next push. */
+  closePullRequest(input: { number: number; comment: string }): Promise<void>;
   checks(input: { number: number; headSha: string }): Promise<KnowledgePublicationChecks>;
   /** Merges with a merge commit only if the head is still exactly `headSha`. */
   merge(input: { number: number; headSha: string }): Promise<void>;

@@ -5,3 +5,4 @@ export * from "./receiver-state.js";
 export * from "./registration.js";
 export * from "./knowledge-convergence-owner-lease.js";
 export * from "./knowledge-instruction-candidate-exchange.js";
+export * from "./knowledge-convergence-owner-failure.js";
