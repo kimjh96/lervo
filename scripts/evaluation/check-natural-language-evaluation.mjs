@@ -33,6 +33,7 @@ import { validateLinkedEvidenceReconciliationV8Suite } from "../natural-language
 import { validateLinkedEvidenceReconciliationConfirmationV9Suite } from "../natural-language-evaluation/linked-evidence-reconciliation-confirmation-v9-contract.mjs";
 import { validateLexicalV2ProviderSuite } from "../natural-language-evaluation/lexical-v2-provider-comparison-contract.mjs";
 import { validateLexicalV2RealUseReview } from "../natural-language-evaluation/lexical-v2-real-use-review-contract.mjs";
+import { validateInstructionCaptureSuite } from "../natural-language-evaluation/instruction-capture-contract.mjs";
 
 function loadJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
@@ -59,6 +60,7 @@ export {
   validateLinkedEvidenceReconciliationConfirmationV9Suite,
   validateLexicalV2ProviderSuite,
   validateLexicalV2RealUseReview,
+  validateInstructionCaptureSuite,
 };
 
 export function checkNaturalLanguageEvaluation(repositoryRoot) {
@@ -198,8 +200,12 @@ export function checkNaturalLanguageEvaluation(repositoryRoot) {
     loadJson(lexicalV2RealUseReviewPath),
     repositoryRoot,
   );
+  const instructionCapture = validateInstructionCaptureSuite(
+    loadJson(resolve(repositoryRoot, "benchmarks/grounding/instruction-capture-v1.json")),
+  );
   assertGroundingEvaluationPassed(groundingReport);
   return {
+    ...instructionCapture,
     ...paired,
     ...grounding,
     ...preReview,
@@ -225,6 +231,6 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const result = checkNaturalLanguageEvaluation(repositoryRoot);
   console.log(
-    `Natural-language evaluation check passed (${result.pairCount} retrieval pairs, ${result.caseCount} grounding cases across ${result.categoryCount} categories, ${result.lexicalFailureCandidateCount} lexical failure candidates across ${result.lexicalFailureTaskTypeCount} task types, ${result.lexicalDiscoveryProbeCount} discovery probes, ${result.delegatedRetrievalCaseCount} delegated retrieval cases, ${result.boundedFallbackCaseCount} bounded fallback cases, ${result.lexicalAssistedV2CaseCount} lexical-assisted v2 cases, ${result.catalogAssistedV3CaseCount} catalog-assisted v3 cases, ${result.coreTermAssistedV4CaseCount} core-term-assisted v4 cases, ${result.referenceMarkerAssistedV5CaseCount} reference-marker-assisted v5 cases, ${result.markerDerivedPathsV6CaseCount} marker-derived v6 cases, ${result.stagedEvidenceV7CaseCount} staged-evidence v7 cases, ${result.linkedEvidenceReconciliationV8CaseCount} linked-evidence v8 cases, ${result.linkedEvidenceReconciliationConfirmationV9CaseCount} linked-evidence confirmation v9 cases, ${result.lexicalV2ProviderCaseCount} lexical-v2 provider cases, ${result.lexicalV2RealUseReviewCaseCount} approved lexical-v2 real-use cases, ${result.preReviewAttentionCount} pre-review attention items, report ${result.groundingReportId})`,
+    `Natural-language evaluation check passed (${result.pairCount} retrieval pairs, ${result.caseCount} grounding cases across ${result.categoryCount} categories, ${result.lexicalFailureCandidateCount} lexical failure candidates across ${result.lexicalFailureTaskTypeCount} task types, ${result.lexicalDiscoveryProbeCount} discovery probes, ${result.delegatedRetrievalCaseCount} delegated retrieval cases, ${result.boundedFallbackCaseCount} bounded fallback cases, ${result.lexicalAssistedV2CaseCount} lexical-assisted v2 cases, ${result.catalogAssistedV3CaseCount} catalog-assisted v3 cases, ${result.coreTermAssistedV4CaseCount} core-term-assisted v4 cases, ${result.referenceMarkerAssistedV5CaseCount} reference-marker-assisted v5 cases, ${result.markerDerivedPathsV6CaseCount} marker-derived v6 cases, ${result.stagedEvidenceV7CaseCount} staged-evidence v7 cases, ${result.linkedEvidenceReconciliationV8CaseCount} linked-evidence v8 cases, ${result.linkedEvidenceReconciliationConfirmationV9CaseCount} linked-evidence confirmation v9 cases, ${result.lexicalV2ProviderCaseCount} lexical-v2 provider cases, ${result.lexicalV2RealUseReviewCaseCount} approved lexical-v2 real-use cases, ${result.instructionCaptureCaseCount} owner-turn capture cases at ${result.instructionCaptureClassAgreement.toFixed(3)} class agreement, ${result.preReviewAttentionCount} pre-review attention items, report ${result.groundingReportId})`,
   );
 }

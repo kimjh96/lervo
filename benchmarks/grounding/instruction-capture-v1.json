@@ -1,0 +1,408 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "ngsuite_instruction_capture.v1",
+  "publicPrompts": true,
+  "provenance": "verification_authored",
+  "reviewStatus": "pending_human_review",
+  "cases": [
+    {
+      "caseId": "capture.en.explicit.01",
+      "language": "en",
+      "form": "explicit",
+      "surface": "terminal_prompt",
+      "ownerTurn": "From now on, never resolve Mac and WSL conflicts by restricting work to one host.",
+      "precedingAgentTurn": null,
+      "expectedClass": "durable_instruction"
+    },
+    {
+      "caseId": "capture.en.explicit.02",
+      "language": "en",
+      "form": "explicit",
+      "surface": "conversation",
+      "ownerTurn": "Always run pnpm quality:check before you open a pull request in this repository.",
+      "precedingAgentTurn": null,
+      "expectedClass": "durable_instruction"
+    },
+    {
+      "caseId": "capture.en.paraphrased.01",
+      "language": "en",
+      "form": "paraphrased",
+      "surface": "terminal_prompt",
+      "ownerTurn": "When the two machines disagree, the fix belongs in the sync mechanism itself, not in parking one of them. That is how we handle it here.",
+      "precedingAgentTurn": null,
+      "expectedClass": "durable_instruction"
+    },
+    {
+      "caseId": "capture.en.paraphrased.02",
+      "language": "en",
+      "form": "paraphrased",
+      "surface": "conversation",
+      "ownerTurn": "Commit messages in this repo follow the conventional format with the package name as the scope. Keep it that way going forward.",
+      "precedingAgentTurn": null,
+      "expectedClass": "durable_instruction"
+    },
+    {
+      "caseId": "capture.en.implicit_correction.01",
+      "language": "en",
+      "form": "implicit_correction",
+      "surface": "terminal_prompt",
+      "ownerTurn": "No, that is exactly what I don't want. Don't take that shortcut again.",
+      "precedingAgentTurn": "I resolved the conflict by disabling the WSL worker so only the Mac writes knowledge.",
+      "expectedClass": "correction_of_agent_behavior"
+    },
+    {
+      "caseId": "capture.en.implicit_correction.02",
+      "language": "en",
+      "form": "implicit_correction",
+      "surface": "terminal_prompt",
+      "ownerTurn": "Not there. Things like that belong in the repository where every agent can see them.",
+      "precedingAgentTurn": "I saved your rule about host conflicts to my private memory file so I remember it next time.",
+      "expectedClass": "correction_of_agent_behavior"
+    },
+    {
+      "caseId": "capture.en.decision.01",
+      "language": "en",
+      "form": "decision",
+      "surface": "conversation",
+      "ownerTurn": "Let's go with SQLite for the event store and drop the Postgres option entirely.",
+      "precedingAgentTurn": "We can keep SQLite for the event store or add a Postgres option. Which should we pursue?",
+      "expectedClass": "decision"
+    },
+    {
+      "caseId": "capture.en.decision.02",
+      "language": "en",
+      "form": "decision",
+      "surface": "conversation",
+      "ownerTurn": "We'll ship the Discord intake first. Slack waits until next quarter.",
+      "precedingAgentTurn": "Both the Discord and Slack intake paths are ready to schedule. Which one ships first?",
+      "expectedClass": "decision"
+    },
+    {
+      "caseId": "capture.en.personal.01",
+      "language": "en",
+      "form": "personal",
+      "surface": "conversation",
+      "ownerTurn": "Personally I like to review things on my phone in the evening; that's just how I work.",
+      "precedingAgentTurn": null,
+      "expectedClass": "preference_personal"
+    },
+    {
+      "caseId": "capture.en.negative.01",
+      "language": "en",
+      "form": "negative",
+      "surface": "terminal_prompt",
+      "ownerTurn": "Should we always squash merge, or is that a bad idea?",
+      "precedingAgentTurn": null,
+      "expectedClass": "none"
+    },
+    {
+      "caseId": "capture.en.negative.02",
+      "language": "en",
+      "form": "negative",
+      "surface": "terminal_prompt",
+      "ownerTurn": "Use the staging database for this test run only.",
+      "precedingAgentTurn": null,
+      "expectedClass": "none"
+    },
+    {
+      "caseId": "capture.en.negative.03",
+      "language": "en",
+      "form": "negative",
+      "surface": "terminal_prompt",
+      "ownerTurn": "The README says 'never commit generated files'. Can you check whether that is still true?",
+      "precedingAgentTurn": null,
+      "expectedClass": "none"
+    },
+    {
+      "caseId": "capture.en.negative.04",
+      "language": "en",
+      "form": "negative",
+      "surface": "conversation",
+      "ownerTurn": "If we ever moved to Postgres, would the event store need a migration?",
+      "precedingAgentTurn": null,
+      "expectedClass": "none"
+    },
+    {
+      "caseId": "capture.en.negative.05",
+      "language": "en",
+      "form": "negative",
+      "surface": "terminal_prompt",
+      "ownerTurn": "Thanks, that looks good. Go ahead and push the branch.",
+      "precedingAgentTurn": "The tests pass and the branch is ready to push.",
+      "expectedClass": "none"
+    },
+    {
+      "caseId": "capture.ko.explicit.01",
+      "language": "ko",
+      "form": "explicit",
+      "surface": "terminal_prompt",
+      "ownerTurn": "앞으로 Mac과 WSL 충돌을 한쪽 호스트로 작업을 제한하는 방식으로 해결하지 마. 충돌 메커니즘 자체를 고쳐.",
+      "precedingAgentTurn": null,
+      "expectedClass": "durable_instruction"
+    },
+    {
+      "caseId": "capture.ko.explicit.02",
+      "language": "ko",
+      "form": "explicit",
+      "surface": "conversation",
+      "ownerTurn": "이 저장소에서는 PR을 열기 전에 항상 pnpm quality:check를 돌려.",
+      "precedingAgentTurn": null,
+      "expectedClass": "durable_instruction"
+    },
+    {
+      "caseId": "capture.ko.paraphrased.01",
+      "language": "ko",
+      "form": "paraphrased",
+      "surface": "terminal_prompt",
+      "ownerTurn": "두 기기가 서로 어긋나면 한쪽을 멈추는 게 아니라 동기화 방식 자체를 손봐야 해. 그게 여기서 우리가 일하는 방식이야.",
+      "precedingAgentTurn": null,
+      "expectedClass": "durable_instruction"
+    },
+    {
+      "caseId": "capture.ko.paraphrased.02",
+      "language": "ko",
+      "form": "paraphrased",
+      "surface": "conversation",
+      "ownerTurn": "이 저장소 커밋 메시지는 패키지 이름을 스코프로 쓰는 컨벤셔널 형식으로 계속 맞춰 줘.",
+      "precedingAgentTurn": null,
+      "expectedClass": "durable_instruction"
+    },
+    {
+      "caseId": "capture.ko.implicit_correction.01",
+      "language": "ko",
+      "form": "implicit_correction",
+      "surface": "terminal_prompt",
+      "ownerTurn": "그게 바로 내가 싫다고 한 거야. 그런 식으로 쉽게 넘어가지 마.",
+      "precedingAgentTurn": "WSL 워커를 꺼서 Mac만 지식을 쓰도록 충돌을 해결했습니다.",
+      "expectedClass": "correction_of_agent_behavior"
+    },
+    {
+      "caseId": "capture.ko.implicit_correction.02",
+      "language": "ko",
+      "form": "implicit_correction",
+      "surface": "terminal_prompt",
+      "ownerTurn": "거기 말고. 그런 건 모든 에이전트가 볼 수 있게 저장소에 남겨야지.",
+      "precedingAgentTurn": "말씀하신 호스트 충돌 규칙을 제 개인 메모리 파일에 저장해 두었습니다.",
+      "expectedClass": "correction_of_agent_behavior"
+    },
+    {
+      "caseId": "capture.ko.decision.01",
+      "language": "ko",
+      "form": "decision",
+      "surface": "conversation",
+      "ownerTurn": "이벤트 저장소는 SQLite로 가고 Postgres 옵션은 아예 빼자.",
+      "precedingAgentTurn": "이벤트 저장소를 SQLite로 유지할지 Postgres 옵션을 추가할지 정해야 합니다.",
+      "expectedClass": "decision"
+    },
+    {
+      "caseId": "capture.ko.decision.02",
+      "language": "ko",
+      "form": "decision",
+      "surface": "conversation",
+      "ownerTurn": "Discord 연동을 먼저 내보내고 Slack은 다음 분기로 미루자.",
+      "precedingAgentTurn": "Discord와 Slack 연동 모두 일정에 올릴 수 있습니다. 어느 쪽을 먼저 낼까요?",
+      "expectedClass": "decision"
+    },
+    {
+      "caseId": "capture.ko.personal.01",
+      "language": "ko",
+      "form": "personal",
+      "surface": "conversation",
+      "ownerTurn": "나는 개인적으로 저녁에 휴대폰으로 검토하는 걸 좋아해. 그냥 내 습관이야.",
+      "precedingAgentTurn": null,
+      "expectedClass": "preference_personal"
+    },
+    {
+      "caseId": "capture.ko.negative.01",
+      "language": "ko",
+      "form": "negative",
+      "surface": "terminal_prompt",
+      "ownerTurn": "항상 스쿼시 머지를 하는 게 좋을까, 아니면 별로일까?",
+      "precedingAgentTurn": null,
+      "expectedClass": "none"
+    },
+    {
+      "caseId": "capture.ko.negative.02",
+      "language": "ko",
+      "form": "negative",
+      "surface": "terminal_prompt",
+      "ownerTurn": "이번 테스트 실행에서만 스테이징 DB를 써.",
+      "precedingAgentTurn": null,
+      "expectedClass": "none"
+    },
+    {
+      "caseId": "capture.ko.negative.03",
+      "language": "ko",
+      "form": "negative",
+      "surface": "terminal_prompt",
+      "ownerTurn": "README에 '생성 파일은 절대 커밋하지 마'라고 되어 있는데 아직도 맞는지 확인해 줄래?",
+      "precedingAgentTurn": null,
+      "expectedClass": "none"
+    },
+    {
+      "caseId": "capture.ko.negative.04",
+      "language": "ko",
+      "form": "negative",
+      "surface": "conversation",
+      "ownerTurn": "만약 Postgres로 옮긴다면 이벤트 저장소 마이그레이션이 필요할까?",
+      "precedingAgentTurn": null,
+      "expectedClass": "none"
+    },
+    {
+      "caseId": "capture.ko.negative.05",
+      "language": "ko",
+      "form": "negative",
+      "surface": "terminal_prompt",
+      "ownerTurn": "좋아, 잘 됐네. 브랜치 푸시해.",
+      "precedingAgentTurn": "테스트가 통과했고 브랜치를 푸시할 준비가 되었습니다.",
+      "expectedClass": "none"
+    }
+  ],
+  "observation": {
+    "provider": "claude",
+    "adapterId": "claude/no-capability-json",
+    "observedAt": "2026-10-05T07:54:43.267Z",
+    "results": [
+      {
+        "caseId": "capture.en.explicit.01",
+        "observedClass": "durable_instruction",
+        "durableDisposition": "canonical"
+      },
+      {
+        "caseId": "capture.en.explicit.02",
+        "observedClass": "durable_instruction",
+        "durableDisposition": "canonical"
+      },
+      {
+        "caseId": "capture.en.paraphrased.01",
+        "observedClass": "durable_instruction",
+        "durableDisposition": "canonical"
+      },
+      {
+        "caseId": "capture.en.paraphrased.02",
+        "observedClass": "durable_instruction",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.en.implicit_correction.01",
+        "observedClass": "correction_of_agent_behavior",
+        "durableDisposition": "pending"
+      },
+      {
+        "caseId": "capture.en.implicit_correction.02",
+        "observedClass": "correction_of_agent_behavior",
+        "durableDisposition": "canonical"
+      },
+      {
+        "caseId": "capture.en.decision.01",
+        "observedClass": "decision",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.en.decision.02",
+        "observedClass": "decision",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.en.personal.01",
+        "observedClass": "preference_personal",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.en.negative.01",
+        "observedClass": "none",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.en.negative.02",
+        "observedClass": "none",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.en.negative.03",
+        "observedClass": "none",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.en.negative.04",
+        "observedClass": "none",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.en.negative.05",
+        "observedClass": "none",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.ko.explicit.01",
+        "observedClass": "durable_instruction",
+        "durableDisposition": "canonical"
+      },
+      {
+        "caseId": "capture.ko.explicit.02",
+        "observedClass": "durable_instruction",
+        "durableDisposition": "canonical"
+      },
+      {
+        "caseId": "capture.ko.paraphrased.01",
+        "observedClass": "durable_instruction",
+        "durableDisposition": "canonical"
+      },
+      {
+        "caseId": "capture.ko.paraphrased.02",
+        "observedClass": "durable_instruction",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.ko.implicit_correction.01",
+        "observedClass": "correction_of_agent_behavior",
+        "durableDisposition": "pending"
+      },
+      {
+        "caseId": "capture.ko.implicit_correction.02",
+        "observedClass": "correction_of_agent_behavior",
+        "durableDisposition": "canonical"
+      },
+      {
+        "caseId": "capture.ko.decision.01",
+        "observedClass": "decision",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.ko.decision.02",
+        "observedClass": "decision",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.ko.personal.01",
+        "observedClass": "preference_personal",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.ko.negative.01",
+        "observedClass": "none",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.ko.negative.02",
+        "observedClass": "none",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.ko.negative.03",
+        "observedClass": "none",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.ko.negative.04",
+        "observedClass": "none",
+        "durableDisposition": "none"
+      },
+      {
+        "caseId": "capture.ko.negative.05",
+        "observedClass": "none",
+        "durableDisposition": "none"
+      }
+    ]
+  }
+}
