@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_207ba6212da708d8bc87f9b7
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_605730fa07d27546c8249c25
+outputLanguage: en
+outputs:
+  - byteCount: 2628
+    contentHash: sha256:651ee13b1299827d5ca790d69b346ccba52d1af37a34f79af5edf8a45d48a508
+    path: docs/specifications/execution/stage-observation-and-performance/terminal-preparation-and-snapshots.md
+    userRegionHash: sha256:651ee13b1299827d5ca790d69b346ccba52d1af37a34f79af5edf8a45d48a508
+profile: specification_document
+recordId: knormdoc_8a0223e21778f39d8bcbc80c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:01fcbbc336a1af0f98f65d228b1ccaeb77e988deb0e2c1715cabe482366983e2
+sourcePath: docs/specifications/execution/stage-observation-and-performance/terminal-preparation-and-snapshots.md
+sourceUnitVersionIds:
+  - uv_cb90527ea4f4f74857033ebc

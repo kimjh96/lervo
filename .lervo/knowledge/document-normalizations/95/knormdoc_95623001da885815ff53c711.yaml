@@ -1,0 +1,42 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_207ba6212da708d8bc87f9b7
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b229c236e04aa57838ced6c9
+outputLanguage: en
+outputs:
+  - byteCount: 991
+    contentHash: sha256:b26c28e7851c974875aeb9ac26f2e97de0372a72d876dd95130ad9a4c5246df1
+    path: docs/specifications/managed-deliberation-budget-and-runner.md
+    userRegionHash: sha256:b26c28e7851c974875aeb9ac26f2e97de0372a72d876dd95130ad9a4c5246df1
+  - byteCount: 2314
+    contentHash: sha256:95527e09d65de9e10d6f01f046b2fb5af19e37d5020856500e07a1a3fb44e7f2
+    path: docs/specifications/managed-deliberation-budget-and-runner/accounting-and-budget.md
+    userRegionHash: sha256:95527e09d65de9e10d6f01f046b2fb5af19e37d5020856500e07a1a3fb44e7f2
+  - byteCount: 1177
+    contentHash: sha256:8b97f4c0078287d723eb287111c1e2b8067af4dd80958a7085bb29b60e0baa21
+    path: docs/specifications/managed-deliberation-budget-and-runner/runner.md
+    userRegionHash: sha256:8b97f4c0078287d723eb287111c1e2b8067af4dd80958a7085bb29b60e0baa21
+  - byteCount: 758
+    contentHash: sha256:25ac839ce602a2cc81d63d760ac70cbc7ed4cfb2b148c826cfa6f0477cbf1a3f
+    path: docs/specifications/managed-deliberation-budget-and-runner/semantic-evaluation.md
+    userRegionHash: sha256:25ac839ce602a2cc81d63d760ac70cbc7ed4cfb2b148c826cfa6f0477cbf1a3f
+profile: specification_document
+recordId: knormdoc_95623001da885815ff53c711
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7956412e1a7fb2d7f2e65427d463341f99a291f5de73519038d2345b06c6335d
+sourcePath: docs/specifications/managed-deliberation-budget-and-runner.md
+sourceUnitVersionIds:
+  - uv_05c67159d6c1824c7d9890fc
+  - uv_71a2a5f07c80b61070668761
+  - uv_c5be14eb2783d9fff23a5ce1
+  - uv_d735bc7f60d6a7737d8fbac8
+  - uv_e024e76a625de3a60a95d140

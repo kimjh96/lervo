@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_207ba6212da708d8bc87f9b7
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_457b90bec7caafcf8f07914d
+outputLanguage: en
+outputs:
+  - byteCount: 1185
+    contentHash: sha256:0d40ed7cbded2f4c944c568ab6b8b8b4ca353f2dfed6ceea5c94ab009c93ec76
+    path: docs/specifications/knowledge/instruction-capture.md
+    userRegionHash: sha256:0d40ed7cbded2f4c944c568ab6b8b8b4ca353f2dfed6ceea5c94ab009c93ec76
+  - byteCount: 2829
+    contentHash: sha256:ab79d2ad32785bb21390bd8be24c40e0d0b151324cacd1cae5ad513c419dd80a
+    path: docs/specifications/knowledge/instruction-capture/host-convergence.md
+    userRegionHash: sha256:ab79d2ad32785bb21390bd8be24c40e0d0b151324cacd1cae5ad513c419dd80a
+  - byteCount: 1784
+    contentHash: sha256:bc02975ea2ba09897c2cd42a338468a13ccfacca17ac4a46af8b3aa9dea3a268
+    path: docs/specifications/knowledge/instruction-capture/review-and-evaluation.md
+    userRegionHash: sha256:bc02975ea2ba09897c2cd42a338468a13ccfacca17ac4a46af8b3aa9dea3a268
+  - byteCount: 4410
+    contentHash: sha256:0c342f7476c73e46c53fa1f1de36da39e6e3a7de361b89384c1085435a76ddca
+    path: docs/specifications/knowledge/instruction-capture/runtime.md
+    userRegionHash: sha256:0c342f7476c73e46c53fa1f1de36da39e6e3a7de361b89384c1085435a76ddca
+profile: specification_document
+recordId: knormdoc_3935b890bf1b5fbbeb11a91d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:787e1dcec51ebaf4007b9bcdddfc33202514017958480100e4b1467ee6605f07
+sourcePath: docs/specifications/knowledge/instruction-capture.md
+sourceUnitVersionIds:
+  - uv_181be57c52c8c455aa364f3b
+  - uv_18fe8cc09dd60a1831be0fec
+  - uv_259cfb918e70d79eeedc7c5f
+  - uv_56227706be50b53d941e28ae
+  - uv_5c6c8e5632ac0e3bba332d90
+  - uv_62230bd7c1995ae1fb717925
+  - uv_675e4ed1c91dbf2d7996a9b6
+  - uv_afc9e0545c15da2037977557
+  - uv_e09810c647308ecdc2559edc

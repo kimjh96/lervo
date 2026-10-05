@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_207ba6212da708d8bc87f9b7
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_df17cbee733884a3e53b3401
+outputLanguage: en
+outputs:
+  - byteCount: 2067
+    contentHash: sha256:3c6ee3ff2003d65476d55a1f311911881d30cb5d51af5645bc02e5b795fd8efb
+    path: docs/specifications/execution/stage-observation-and-performance/prompt-assembly.md
+    userRegionHash: sha256:3c6ee3ff2003d65476d55a1f311911881d30cb5d51af5645bc02e5b795fd8efb
+  - byteCount: 3253
+    contentHash: sha256:a00b88c7a5878267453c71968ede468c2523a586339bd863381190e94fb1145d
+    path: docs/specifications/execution/stage-observation-and-performance/prompt-assembly/instructions.md
+    userRegionHash: sha256:a00b88c7a5878267453c71968ede468c2523a586339bd863381190e94fb1145d
+  - byteCount: 1172
+    contentHash: sha256:6a8d739e15d4a9eb0da8a0304093e7d41d0e03138ce17529ddd0fce09a3c7147
+    path: docs/specifications/execution/stage-observation-and-performance/prompt-assembly/retrieval.md
+    userRegionHash: sha256:6a8d739e15d4a9eb0da8a0304093e7d41d0e03138ce17529ddd0fce09a3c7147
+profile: specification_document
+recordId: knormdoc_8c41661f0c5f8427c1fef5c4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:683f9fe787f24d8f975f856e844c918774c7592b79ae55adb4fd24e6efd3de64
+sourcePath: docs/specifications/execution/stage-observation-and-performance/prompt-assembly.md
+sourceUnitVersionIds:
+  - uv_3de5ade44db7361f1d1ba215
+  - uv_5c0f1699ec1df71ac9736603
+  - uv_5dff8a19ef688a91abec007b
+  - uv_bdfd970591a329b5cbb156f7
+  - uv_c4a82227714babc8005ac629
+  - uv_c541cd4078667f4f41c53d10
+  - uv_ea8ac3265c406b0bd498a5e6
