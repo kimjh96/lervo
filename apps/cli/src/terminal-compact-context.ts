@@ -26,6 +26,10 @@ import {
   staleWorkstreamEntryCount,
 } from "./terminal-compact-format.js";
 import type { PreparedTerminalPromptContext } from "./terminal-prompt-context.js";
+import {
+  instructionCaptureCompactLines,
+  readInstructionCaptureAttention,
+} from "./instruction-capture-attention.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
@@ -127,57 +131,61 @@ export async function prepareCompactTerminalPromptContext(input: {
   const repositorySnapshot = await input.timing.measure("repository_snapshot", () =>
     captureTerminalRepositorySnapshot(input.root),
   );
-  const [sourceSnapshotId, query, canonicalization, health, documentFreshnessLine] =
-    await Promise.all([
-      input.timing.measure("corpus_preparation", () =>
-        terminalKnowledgeSnapshotId(input.root, repositorySnapshot.revision),
-      ),
-      input.timing.measure("query_projection", async () => {
-        const storage = await openProjectStorage(input.root);
-        try {
-          const [policy, currentWorkstream] = await Promise.all([
-            loadRepositoryKnowledgePolicy(input.root),
-            verifiedCurrentWorkstream(storage),
-          ]);
-          const workstreamFreshness =
-            currentWorkstream === null
-              ? null
-              : await observeWorkstreamFreshness({
-                  root: input.root,
-                  snapshot: currentWorkstream,
-                  policy: workstreamFreshnessPolicy(policy),
-                  observedAt,
-                });
-          const queryProjection = createSearchQueryProjection({
-            projector: compactQueryProjector,
-            requestDigest,
-            contextDigest: sha256(canonicalJson({ contextRequirement: "none" })),
-            projectorResultDigest: sha256("lervo.terminal-compact.no-queries"),
-            requestedLanguage: policy.publication.language,
-            queries: [],
-            durationMs: 0,
-            status: "empty",
-          });
-          return {
-            queryProjection,
-            currentWorkstream,
-            workstreamFreshness,
-            projectId: storage.manifest.projectId,
-          };
-        } finally {
-          await storage.close();
-        }
-      }),
-      listCanonicalizationCandidates(input.root).then(
-        (candidates) => ({ coverage: "complete" as const, candidates }),
-        () => ({ coverage: "unavailable" as const, candidates: [] }),
-      ),
-      inspectKnowledgeResidentHealth(input.root),
-      documentFreshnessSummary(input.root, observedAt).then(
-        documentFreshnessCompactLine,
-        () => null,
-      ),
-    ]);
+  const [
+    sourceSnapshotId,
+    query,
+    canonicalization,
+    health,
+    documentFreshnessLine,
+    instructionCaptureLines,
+  ] = await Promise.all([
+    input.timing.measure("corpus_preparation", () =>
+      terminalKnowledgeSnapshotId(input.root, repositorySnapshot.revision),
+    ),
+    input.timing.measure("query_projection", async () => {
+      const storage = await openProjectStorage(input.root);
+      try {
+        const [policy, currentWorkstream] = await Promise.all([
+          loadRepositoryKnowledgePolicy(input.root),
+          verifiedCurrentWorkstream(storage),
+        ]);
+        const workstreamFreshness =
+          currentWorkstream === null
+            ? null
+            : await observeWorkstreamFreshness({
+                root: input.root,
+                snapshot: currentWorkstream,
+                policy: workstreamFreshnessPolicy(policy),
+                observedAt,
+              });
+        const queryProjection = createSearchQueryProjection({
+          projector: compactQueryProjector,
+          requestDigest,
+          contextDigest: sha256(canonicalJson({ contextRequirement: "none" })),
+          projectorResultDigest: sha256("lervo.terminal-compact.no-queries"),
+          requestedLanguage: policy.publication.language,
+          queries: [],
+          durationMs: 0,
+          status: "empty",
+        });
+        return {
+          queryProjection,
+          currentWorkstream,
+          workstreamFreshness,
+          projectId: storage.manifest.projectId,
+        };
+      } finally {
+        await storage.close();
+      }
+    }),
+    listCanonicalizationCandidates(input.root).then(
+      (candidates) => ({ coverage: "complete" as const, candidates }),
+      () => ({ coverage: "unavailable" as const, candidates: [] }),
+    ),
+    inspectKnowledgeResidentHealth(input.root),
+    documentFreshnessSummary(input.root, observedAt).then(documentFreshnessCompactLine, () => null),
+    readInstructionCaptureAttention(input.root).then(instructionCaptureCompactLines, () => []),
+  ]);
   const attention = createOperatingAttentionReport({
     projectId: query.projectId,
     workstream: query.currentWorkstream,
@@ -198,6 +206,7 @@ export async function prepareCompactTerminalPromptContext(input: {
       query.workstreamFreshness,
     ),
     documentFreshnessLine,
+    instructionCaptureLines,
   });
   const { additionalContext, workstream } = assembleCompactTerminalContext(
     preamble,

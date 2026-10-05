@@ -21,6 +21,10 @@ function describe(item: OperatingAttentionItemV1): string {
     return `${item.state} · ${item.documentPath} · ${item.approvalSource}${item.commitHash === null ? "" : ` · commit ${item.commitHash.slice(0, 12)}`}`;
   if (item.kind === "document_freshness_blocked")
     return `${item.reasonCode} · attempts ${item.attempts}`;
+  if (item.kind === "durable_instruction_candidate")
+    return `${item.captureSource} · ${item.title} · ${item.targetPath}`;
+  if (item.kind === "captured_decision")
+    return `${item.captureSource} · ${item.title} · captured ${item.capturedAt}`;
   return `${item.issueCode}${item.detail === null ? "" : ` · ${item.detail}`}`;
 }
 

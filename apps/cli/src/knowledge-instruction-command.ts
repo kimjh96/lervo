@@ -17,6 +17,7 @@ import {
   validateKnowledgeStage,
 } from "./knowledge-stage-lint.js";
 import { runKnowledgeDurableInstruction } from "./knowledge-durable-instruction-command.js";
+import { runKnowledgeInstructionCapture } from "./knowledge-instruction-capture-command.js";
 
 export async function runKnowledgeInstruction(
   args: string[],
@@ -26,6 +27,7 @@ export async function runKnowledgeInstruction(
   try {
     if (["intake", "status", "review"].includes(args[0] ?? ""))
       return await runKnowledgeDurableInstruction(args, io, services);
+    if (args[0] === "capture") return await runKnowledgeInstructionCapture(args.slice(1), io);
     if (args[0] !== "bridge") throw new Error("The instruction command currently supports bridge.");
     const parsed = parseArgs({
       args: args.slice(1),

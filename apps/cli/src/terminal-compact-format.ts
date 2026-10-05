@@ -76,6 +76,8 @@ export function formatCompactTerminalPreamble(input: {
   staleWorkstreamEntryCount: number;
   /** The ADR-0463 freshness line, at most 200 bytes, or null when every count is zero. */
   documentFreshnessLine?: string | null;
+  /** ADR-0466 capture and applied-owner-rule lines, each at most 600 bytes. */
+  instructionCaptureLines?: readonly string[];
 }): string {
   const blocking = input.attention.items
     .filter((item) => item.blocking && !isStaleWorkstreamItem(item))
@@ -91,6 +93,7 @@ export function formatCompactTerminalPreamble(input: {
     ...(input.documentFreshnessLine === undefined || input.documentFreshnessLine === null
       ? []
       : [input.documentFreshnessLine]),
+    ...(input.instructionCaptureLines ?? []),
     ...(input.backgroundKnowledgeActive
       ? [
           "Background knowledge convergence is active and owns canonicalization, normalization, and knowledge refresh; this turn needs no knowledge refresh or turn declaration.",

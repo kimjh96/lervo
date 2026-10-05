@@ -46,6 +46,7 @@ function formatCandidate(candidate: Awaited<ReturnType<typeof loadDurableInstruc
     `candidate: ${candidate.candidateId}`,
     `candidate hash: ${candidate.candidateHash}`,
     `rule: ${candidate.ruleId}`,
+    `source: ${candidate.captureSource ?? "explicit_intake"}`,
     `target: ${candidate.targetPath}`,
     `proposed content hash: ${candidate.proposedContentHash}`,
     "",
@@ -164,5 +165,5 @@ export async function runKnowledgeDurableInstruction(
     );
     return 0;
   }
-  throw new Error("The instruction command supports intake, status, review, and bridge.");
+  throw new Error("The instruction command supports intake, status, review, capture, and bridge.");
 }
