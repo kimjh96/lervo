@@ -144,16 +144,16 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/migrations.ts",
-      "contentHash": "sha256:7c269db41bb64b7f472b4c994c2c4a87e2b2ae2812ad4baab785db2b1e4f5692",
+      "contentHash": "sha256:c2cd7b885b94e4f64e6a81e0ea2a073877760e175d5e312e15094cd2b6a0376d",
       "responsibility": "Hub synchronization SQLite schema migration",
-      "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy.",
+      "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy. The ADR-0466 owner lease and ADR-0467 instruction candidate tables are additive migrations.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:b6d7cb50b7bc3f346e7a03c6be6d31ffac9cecfedc116aa469a2dd8fb8b5e542",
+      "contentHash": "sha256:59f64c4cccd38c495c49f39fe2eafdee82c5f99ca5f251c943d60afd7e571b38",
       "responsibility": "Hub synchronization SQLite store",
-      "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store.",
+      "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store. Owner-lease and instruction-candidate methods only open a transaction around their own repositories.",
       "disposition": "cohesive"
     },
     {
@@ -361,7 +361,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:00a53424012e8bbcc17a1ce797dc336a5f181eafec1da546462fc66b7c2e12c0",
+      "contentHash": "sha256:58b3e5699bff540a0f96011eb31e787a293afae92e91cb9346d6b1d8e001a6db",
       "responsibility": "Repository schema validator registry",
       "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, repository replica, and convergence-owner event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry. The ADR-0463 document freshness and ADR-0467 instruction capture event payload validators are compiled from their own schema modules.",
       "disposition": "cohesive"
