@@ -54,7 +54,7 @@ export function documentDriftAttentionIssues(
   );
   const selected: KnowledgeLintIssue[] = [];
   for (let round = 0; selected.length < bound; round += 1) {
-    const layer = queues.flatMap((queue) => (queue[round] === undefined ? [] : [queue[round]]));
+    const layer = queues.flatMap((queue) => queue.slice(round, round + 1));
     if (layer.length === 0) break;
     selected.push(...layer.slice(0, bound - selected.length));
   }

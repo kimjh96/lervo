@@ -1,7 +1,7 @@
 import { lstat, readFile } from "node:fs/promises";
 import { basename, extname, relative, resolve, sep } from "node:path";
 
-import { loadDecisionTaxonomy, loadProjectManifest } from "@lervo/project";
+import { loadProjectManifest } from "@lervo/project";
 import { stringify } from "yaml";
 
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
@@ -39,7 +39,7 @@ import { repositoryInstructionPaths } from "./document-layout.js";
 import { archiveScopes, historicalDocumentMarker } from "./historical-documents.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
 import { summarizeIncrementalReconciliation } from "./incremental-reconciliation.js";
-import { inspectDocumentLayoutContract } from "./document-layout-contract.js";
+import { loadDocumentLayoutContract } from "./document-layout-contract.js";
 import {
   isRebuildableStructuralProjectionPath,
   legacyStructuralBundleDirectory,
@@ -986,13 +986,14 @@ async function buildKnowledgeMigrationPlan(input: {
   reconciliationMode: KnowledgeMigrationPlan["reconciliation"]["strategy"];
 }): Promise<KnowledgeMigrationPlan> {
   const { root, manifest, policy, scan, previous } = input;
+  const layout = await loadDocumentLayoutContract(root);
   const compilation = desiredOutputs({
     scan,
     projectName: manifest.name,
     generatedPaths: previous.structuralPaths,
     publicationRoot: policy.publicationRoot,
     publication: policy.publication,
-    archiveScopes: archiveScopes(await loadDecisionTaxonomy(root).catch(() => null)),
+    archiveScopes: archiveScopes(layout.taxonomy),
   });
   const impact = await analyzeRepositoryKnowledgeImpact({ repositoryRoot: root, scan });
   const reconciliation = await summarizeIncrementalReconciliation({
@@ -1046,7 +1047,7 @@ async function buildKnowledgeMigrationPlan(input: {
     )
   ).filter((operation): operation is KnowledgeFileOperation => operation !== null);
   const derivedStateOperations = await legacyKnowledgeProjectionDeleteOperations(root);
-  const blockers = await inspectDocumentLayoutContract(root);
+  const blockers = layout.blockers;
   const operations = [
     ...(await Promise.all(
       allOutputs.map((output) =>

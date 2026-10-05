@@ -200,7 +200,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:502a36761d9fe7e9457758557de38eb3743b65279cf7f8140530a1d74bd5589b",
+      "contentHash": "sha256:879000beea2dd947b20f123387e0c52cb07d27d11d2382869a2e39860536e5d5",
       "responsibility": "Deterministic structural knowledge compiler",
       "rationale": "Publication rendering, historical-document grouping, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract; historical marker detection lives in its own module.",
       "disposition": "cohesive"
