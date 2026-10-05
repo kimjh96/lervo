@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81e8a6154ffbec4bbc79117d
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_658df2e73f524d2ca6ea8efc
+outputLanguage: en
+outputs:
+  - byteCount: 437
+    contentHash: sha256:19041477ab06c77d86baecbdda1edfdad425455814b15543f8356de83e9d09be
+    path: docs/roadmap/open-collaboration-platform/strengths-matrix.md
+    userRegionHash: sha256:19041477ab06c77d86baecbdda1edfdad425455814b15543f8356de83e9d09be
+  - byteCount: 1982
+    contentHash: sha256:82819219d8b2b3cd12d1fb345cb23b0eec5bd6bf3077ab1967ccb652f0c54d28
+    path: docs/roadmap/open-collaboration-platform/strengths-matrix/paperclip-audit.md
+    userRegionHash: sha256:82819219d8b2b3cd12d1fb345cb23b0eec5bd6bf3077ab1967ccb652f0c54d28
+  - byteCount: 1259
+    contentHash: sha256:d720bfc15e6e45cb85833ef0b42e9778fc99f074ace969d9ca51a35cf9550014
+    path: docs/roadmap/open-collaboration-platform/strengths-matrix/rejected-behaviours.md
+    userRegionHash: sha256:d720bfc15e6e45cb85833ef0b42e9778fc99f074ace969d9ca51a35cf9550014
+  - byteCount: 7255
+    contentHash: sha256:008905e1ed554878843d9c930d0ae8cab025f62da2090e1cbe1ab7a26e870fe2
+    path: docs/roadmap/open-collaboration-platform/strengths-matrix/strengths.md
+    userRegionHash: sha256:008905e1ed554878843d9c930d0ae8cab025f62da2090e1cbe1ab7a26e870fe2
+profile: roadmap_document
+recordId: knormdoc_ed31202e097841b94cc21ffa
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:878edf9870118dbd0fb56fc7e89d2956af9eefc11295097c0c577e68c309fe8e
+sourcePath: docs/roadmap/open-collaboration-platform/strengths-matrix.md
+sourceUnitVersionIds:
+  - uv_15143a9ad78dac094fd3dc5f
+  - uv_1b849627f1c623e89ffe564f
+  - uv_33b2cf4ad9b118cc007e8224
+  - uv_e8e3fe65d189bad70868defb

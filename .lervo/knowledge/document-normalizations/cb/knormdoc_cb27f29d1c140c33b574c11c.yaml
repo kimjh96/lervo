@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81e8a6154ffbec4bbc79117d
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_75ef871d56e2d9fb1d613b4b
+outputLanguage: en
+outputs:
+  - byteCount: 2621
+    contentHash: sha256:9da8104a2564d3d6bf465db8578365e095c71f971f097899e5ec35b74ff7ce41
+    path: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/integration.md
+    userRegionHash: sha256:9da8104a2564d3d6bf465db8578365e095c71f971f097899e5ec35b74ff7ce41
+profile: roadmap_document
+recordId: knormdoc_cb27f29d1c140c33b574c11c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0220bf22d9317aae660b46e9c9fa02f74c44c7209380de1a36d5ceed1eff1970
+sourcePath: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/integration.md
+sourceUnitVersionIds:
+  - uv_83054c1f71c1f3fc6b7cd010

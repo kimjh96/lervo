@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81e8a6154ffbec4bbc79117d
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0eceea8ba1945375240c0ef2
+outputLanguage: en
+outputs:
+  - byteCount: 9374
+    contentHash: sha256:ed38ebad761cee32cf0d715bd7415ad8537badb71805deb997fa38be47ab316e
+    path: docs/decisions/knowledge/documents/0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md
+    userRegionHash: sha256:ed38ebad761cee32cf0d715bd7415ad8537badb71805deb997fa38be47ab316e
+profile: decision_record
+recordId: knormdoc_51a72e2a6039efff74ee059e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:74a7913ce4596a85a29c7a6e01c58c2118852fe803d2304f9bac47fd68f097bc
+sourcePath: docs/decisions/knowledge/documents/0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md
+sourceUnitVersionIds:
+  - uv_2a785a46b4b90b564c50d7f2
+  - uv_4e22692972327727ba14c50e
+  - uv_5fd966b4c1436eceaea73dea
+  - uv_685d7ab645293e7dcca11ccf
+  - uv_86e9d14d89b0a4d62d03ce9a
+  - uv_90fb38f1fb585b8c6f0aba66
+  - uv_9a8b8d2605a16fb9be610f3d
+  - uv_a6faa7b8e6b94784b0a10047
+  - uv_aec669315d11ff7854e63268
+  - uv_dca6df8d7be676e0f9963e01
+  - uv_e24fc75f3fa4ef049a2da925
+  - uv_e9ca2dda3285cc954a501063
+  - uv_fe6e5d2a7481ff20494b2041
