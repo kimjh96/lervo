@@ -16,9 +16,19 @@ function fileIdentity(path: string): string {
   return `${info.dev}:${info.ino}`;
 }
 
-/** SQLite releases this supervision identity's lock when its owning process dies. */
+function isAlreadyClosed(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException | null)?.code === "ERR_INVALID_STATE";
+}
+
+/**
+ * SQLite releases this supervision identity's lock when its owning process dies.
+ *
+ * Handle and transaction state are tracked here instead of read from `DatabaseSync.isOpen` and
+ * `isTransaction`, which the supported Node 22.13 baseline does not provide.
+ */
 export class SupervisionProcessLock {
   private database: DatabaseSync | null = null;
+  private transactionOpen = false;
   private readonly directory: string;
   private readonly path: string;
 
@@ -68,6 +78,7 @@ export class SupervisionProcessLock {
       database.exec("PRAGMA busy_timeout = 0; BEGIN IMMEDIATE;");
       if (this.identity() !== identity) throw new Error("The supervision process lock changed.");
       this.database = database;
+      this.transactionOpen = true;
       return identity;
     } catch (error) {
       database.close();
@@ -85,13 +96,23 @@ export class SupervisionProcessLock {
     const database = this.database;
     if (database === null) return;
     try {
-      if (database.isOpen && database.isTransaction) database.exec("ROLLBACK");
-    } finally {
-      try {
-        if (database.isOpen) database.close();
-      } finally {
-        if (!database.isOpen) this.database = null;
+      if (this.transactionOpen) {
+        database.exec("ROLLBACK");
+        this.transactionOpen = false;
       }
+    } finally {
+      this.close(database);
     }
+  }
+
+  /** Retains the handle when a native close fails so a later release can retry it. */
+  private close(database: DatabaseSync): void {
+    try {
+      database.close();
+    } catch (error) {
+      if (!isAlreadyClosed(error)) throw error;
+    }
+    this.database = null;
+    this.transactionOpen = false;
   }
 }
