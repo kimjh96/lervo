@@ -8,3 +8,4 @@ export * from "./workspace-coordination.js";
 export * from "./workspace-coordination-handler.js";
 export * from "./runtime-changes.js";
 export * from "./knowledge-convergence-owner.js";
+export * from "./knowledge-instruction-candidates.js";
