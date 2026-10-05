@@ -200,7 +200,12 @@ export function createGitHubKnowledgePublicationForge(input: {
       }),
     updatePullRequest: ({ number, title, body }) =>
       guarded("update", async () => {
-        await run(["pr", "edit", String(number), "--title", title, "--body-file", "-"], body);
+        // The REST endpoint avoids `gh pr edit`, which fails on older gh releases while it reads the
+        // retired Projects (classic) field before editing.
+        await run(
+          ["api", "--method", "PATCH", `repos/{owner}/{repo}/pulls/${number}`, "--input", "-"],
+          JSON.stringify({ title, body }),
+        );
       }),
     viewPullRequest: (number) => guarded("view", () => view(number)),
     closePullRequest: ({ number, comment }) =>

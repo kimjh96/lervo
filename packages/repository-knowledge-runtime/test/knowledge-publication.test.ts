@@ -110,7 +110,9 @@ class FakeForge implements KnowledgePublicationForge {
     this.pullRequests.push(created);
     return created;
   }
+  updateError: Error | null = null;
   async updatePullRequest(input: { number: number; title: string; body: string }) {
+    if (this.updateError !== null) throw this.updateError;
     const found = this.pullRequests.find((pr) => pr.number === input.number)!;
     found.title = input.title;
     found.body = input.body;
@@ -272,6 +274,9 @@ describe("knowledge output publication", () => {
       expect(forge.merges).toBe(0);
 
       forge.checkState = "passed";
+      // A description update that gh refuses must not block merging the checked head.
+      forge.pullRequests[0]!.body = "stale description";
+      forge.updateError = new KnowledgePublicationForgeError("update", 1, "unknown");
       expect(await publish()).toMatchObject({ state: { status: "merged" } });
       expect(forge.merges).toBe(1);
       // The merge commit has the local commits as its second parent, so local main fast-forwards.
@@ -857,6 +862,11 @@ describe("GitHub CLI publication adapter", () => {
         body: "b",
       }),
     ).toMatchObject({ number: 12, state: "open", headSha: "b".repeat(40) });
+    await forge.updatePullRequest({ number: 12, title: "t2", body: "b2" });
+    expect(calls.at(-1)).toEqual({
+      args: ["api", "--method", "PATCH", "repos/{owner}/{repo}/pulls/12", "--input", "-"],
+      input: JSON.stringify({ title: "t2", body: "b2" }),
+    });
     await forge.closePullRequest({ number: 12, comment: "superseded" });
     expect(calls.at(-1)!.args).toEqual(["pr", "close", "12", "--comment", "superseded"]);
     await forge.merge({ number: 12, headSha: "b".repeat(40) });
