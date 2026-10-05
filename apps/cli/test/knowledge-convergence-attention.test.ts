@@ -218,3 +218,39 @@ it("shows the gh step, exit code, and failure class with a class-specific remedi
   });
   expect(unclassified!.instruction).toContain("Check that gh is installed and authenticated");
 });
+
+it("projects superseded knowledge commits a checkout could not drop as one attention item", () => {
+  const supersession = {
+    schemaVersion: 1 as const,
+    entries: [],
+    held: {
+      reason: "under_other_work" as const,
+      commitCount: 2,
+      observedAt: "2026-10-05T00:20:00.000Z",
+    },
+    lastDrop: null,
+  };
+  const [item, ...rest] = knowledgeConvergenceAttentionItems({
+    owner: null,
+    publication: null,
+    supersession,
+  });
+  expect(rest).toEqual([]);
+  expect(item).toMatchObject({
+    kind: "knowledge_publication",
+    itemId: "knowledge_publication_knowledge_supersession_held",
+    failureCode: "knowledge_supersession_held",
+    detail: "2 superseded commit(s) held: under_other_work",
+    firstObservedAt: "2026-10-05T00:20:00.000Z",
+    occurrences: 1,
+    requiresUserAction: true,
+  });
+  expect((item as { instruction: string }).instruction).toContain("Rebase the branch");
+  expect(
+    knowledgeConvergenceAttentionItems({
+      owner: null,
+      publication: null,
+      supersession: { ...supersession, held: null },
+    }),
+  ).toEqual([]);
+});
