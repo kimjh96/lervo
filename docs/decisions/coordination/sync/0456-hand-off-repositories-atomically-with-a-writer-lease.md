@@ -8,17 +8,17 @@ Amended by: [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-c
 
 ## Context
 
-Code moves between Mac and WSL through a Mac LaunchAgent-driven replica coordinator: `apps/node-runtime/src/repository-replica-coordinator.ts`, `-git.ts`, `-merge.ts`, `-cli.ts`, `-ssh-peer.ts`, `-watch.ts`, and `packages/sync/src/repository-replication.ts`. Workstream checkpoints move only through Nodes via the Hub (`packages/sync/src/workstream-replication.ts:111-234`, called solely from `sync-cycle-observer.ts`). The CLI offers `workstream current|start|update`, without publish or import. The transports share no transaction, owner, or failure surface.
+Code moves between Mac and WSL through a Mac LaunchAgent-driven replica coordinator: `apps/node-runtime/src/repository-replica-coordinator.ts`, `-git.ts`, `-merge.ts`, `-cli.ts`, `-ssh-peer.ts`, `-watch.ts`, and `packages/sync/src/repository-replication.ts`. Workstream checkpoints move only through Nodes via the Hub (`packages/sync/src/workstream-replication.ts:111-234`, called solely from `sync-cycle-observer.ts`). The CLI offers `workstream current|start|update`, without publish or import. These transports share no transaction, owner, or failure surface.
 
 Verified defects:
 
-- **Error fidelity:** `repository-replica-merge.ts:196-202` rewraps every non-Git error as "The repository replica merge could not be applied.", retaining the cause only in `{ cause }`; `repository-replica-cli.ts:186-190` prints only `error.message`. Snapshot, bundle, and apply failures similarly lose Git stderr (`-git.ts:160-164,189-193,373-384`). The current workstream records plen, flemo, and digimon replica merge failures since 2026-09-30 without causes.
-- **Silent divergence:** The default `hold` policy returns a conflict, mapped to `divergent` by the coordinator. Watch mode prints only a stderr line each cycle and exits with code 0. `repository_replica_divergent` is declared (`-coordinator.ts:90`) but never thrown. No event, health signal, attention item, or resolution command exists.
-- **No version handshake:** Compatibility relies on implicit strings: snapshot `schemaVersion`, the `lervo-repository-replica-worktree-v1` envelope, and the watch frame. Runtime builds are not compared, and running coordinators do not detect configuration changes.
-- **Host-local files:** `.lervo/.gitignore` excludes `knowledge/convergence-delegation.json`, normally respected by `git add -A`; the brief's claim that the grant is swept in is mostly incorrect. The actual gap is that capture runs `read-tree HEAD` before `add -A` without explicit pathspec exclusions. It can therefore capture the grant when `HEAD` predates the ignore rule or `.lervo/.gitignore` lacks it. Separately, `-merge.ts:38` silently resolves `.lervo/knowledge/` and `.lervo/generated/` conflicts to the Mac side.
+- **Error fidelity:** `repository-replica-merge.ts:196-202` rewraps every non-Git error as "The repository replica merge could not be applied.", retaining the cause only in `{ cause }`; `repository-replica-cli.ts:186-190` prints only `error.message`. Snapshot, bundle, and apply failures also lose Git stderr (`-git.ts:160-164,189-193,373-384`). The current workstream records plen, flemo, and digimon replica merge failures since 2026-09-30 without causes.
+- **Silent divergence:** Default `hold` returns a conflict, mapped to `divergent` by the coordinator. Watch mode prints a stderr line each cycle and exits with code 0. `repository_replica_divergent` is declared (`-coordinator.ts:90`) but never thrown. No event, health signal, attention item, or resolution command exists.
+- **No version handshake:** Compatibility relies on implicit snapshot `schemaVersion`, `lervo-repository-replica-worktree-v1` envelope, and watch-frame strings. Runtime builds are not compared; running coordinators do not detect configuration changes.
+- **Host-local files:** `.lervo/.gitignore` excludes `knowledge/convergence-delegation.json`, normally respected by `git add -A`; the brief's claim that the grant is swept in is mostly incorrect. Capture runs `read-tree HEAD` before `add -A` without explicit pathspec exclusions, so it can capture the grant when `HEAD` predates the ignore rule or `.lervo/.gitignore` lacks it. Separately, `-merge.ts:38` silently resolves `.lervo/knowledge/` and `.lervo/generated/` conflicts to the Mac side.
 - **Checkpoint conflicts:** `apps/node-runtime/src/workstream-replication.ts:41` throws generic "import is blocked", dropping `createReplicatedWorkstreamImportPlan` blocker codes; the cycle rewraps it as `local_state_invalid`. ADR-0201 deferred reconciliation, which was never designed.
-- **Opt-in parity:** Readiness gates apply only with `repositoryReplica.required`, which installed deployments removed. The coordinator always passes `allowHistoryReplacement: true`, so every push or pull runs `adopt`, contradicting the roadmap requirement that handoff "must not silently push, discard, merge, or overwrite".
-- **No canonical replica events:** The subsystem's only trace is `replicaDisposition` on `conversation.repository_work.completed`.
+- **Opt-in parity:** Readiness gates apply only with `repositoryReplica.required`, which installed deployments removed. The coordinator always passes `allowHistoryReplacement: true`, making every push or pull run `adopt`, contrary to the roadmap requirement that handoff "must not silently push, discard, merge, or overwrite".
+- **No canonical replica events:** The only subsystem trace is `replicaDisposition` on `conversation.repository_work.completed`.
 
 ## Decision
 
@@ -26,7 +26,7 @@ Verified defects:
 
 `repository.handoff` moves three things in one receipt: the exact source snapshot (ADR-0396's five coordinates and bundle), the current workstream head (ADR-0201's canonical snapshot JSON), and the writer lease.
 
-Direction is symmetric: `lervo repository handoff --to <peer>` and `lervo repository handback` run from either host. `lervo repository handoff status` shows the lease, parity, and last failure. The CLI gains the workstream publish and import steps needed by the primitive; these are not separate user commands.
+`lervo repository handoff --to <peer>` and `lervo repository handback` run symmetrically from either host. `lervo repository handoff status` shows the lease, parity, and last failure. The CLI gains workstream publish and import steps for this primitive, without separate user commands.
 
 The receiver applies source, checkpoint, then lease within one coordinator transaction:
 
@@ -36,11 +36,11 @@ The receiver applies source, checkpoint, then lease within one coordinator trans
 
 ### Writer lease
 
-Each repository has at most one writer host. Both hosts store the lease in `.lervo/state/repository-writer-lease.json`. It is mirrored to the Hub when configured; otherwise it is exchanged over the existing SSH peer transport, preserving local operation without a Hub.
+Each repository has at most one writer host. Both hosts store the lease in `.lervo/state/repository-writer-lease.json`. It is mirrored to the Hub when configured; otherwise, the existing SSH peer transport exchanges it, preserving local operation without a Hub.
 
-A lease contains `holderHostHash`, `grantedAt`, and optional `staleAfter`. It never expires silently. After `staleAfter`, the Node reports `lease_stale` as an attention item and refuses writes until a human or the principal proxy resolves it under ADR-0453 and within the proxy's mandate.
+A lease contains `holderHostHash`, `grantedAt`, and optional `staleAfter`. It never expires silently. After `staleAfter`, the Node reports `lease_stale` as an attention item and refuses writes until a human or principal proxy resolves it under ADR-0453 and within the proxy's mandate.
 
-**Parity before work:** A Node whose lease is held elsewhere refuses mutating work with `repository_writer_lease_held_elsewhere`, replies with the holder and a one-line handoff command, and continues read-only work. A Node holding the lease requires replica readiness for mutating turns. The lease replaces the opt-in `repositoryReplica.required` flag. Repositories without a lease retain legacy behavior and record `leaseDisposition: not_configured`.
+**Parity before work:** A Node whose lease is held elsewhere refuses mutating work with `repository_writer_lease_held_elsewhere`, replies with the holder and a one-line handoff command, and continues read-only work. A lease-holding Node requires replica readiness for mutating turns. The lease replaces the opt-in `repositoryReplica.required` flag. Repositories without a lease retain legacy behavior and record `leaseDisposition: not_configured`.
 
 ### Divergence surfacing
 
@@ -54,7 +54,7 @@ Every cycle starts with `repository-replica protocol` on both sides, exchanging 
 
 - A `protocolVersion` mismatch fails the cycle closed with `repository_replica_protocol_mismatch`.
 - A build mismatch is recorded in the receipt and shown in `handoff status`.
-- A changed `configHash` relative to the running coordinator's view produces `repository_replica_config_stale` and an attention item instructing a restart. The coordinator never continues with configuration it did not load.
+- A `configHash` change relative to the running coordinator's view produces `repository_replica_config_stale` and an attention item instructing a restart. The coordinator never continues with configuration it did not load.
 
 ### Host-local exclusion and generated conflicts
 
@@ -74,15 +74,15 @@ The CLI prints the cause chain; the receipt stores the last failure. Watch mode 
 
 ### Superseded knowledge commits
 
-[ADR-0466](0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) lets the convergence owner supersede `Lervo Knowledge` commits that lost a replay. A replica must not bring them back from the other checkout. Every cycle therefore exchanges both checkouts' supersession ledgers before any history moves, and each side drops superseded commits at its branch tip. If the dropped commits changed a snapshot, the cycle observes both sides again. A merge whose result equals the peer's state counts as `pulled`, so a fast-forward after a drop pushes nothing.
+[ADR-0466](0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) lets the convergence owner supersede `Lervo Knowledge` commits that lost a replay. Replicas must not restore them from the other checkout. Before moving any history, every cycle exchanges both checkouts' supersession ledgers, and each side drops superseded commits at its branch tip. If drops change a snapshot, the cycle observes both sides again. A merge whose result equals the peer's state counts as `pulled`, so a fast-forward after a drop pushes nothing.
 
-When one side still holds superseded commits the other side lacks, the cycle stops at stage `supersession` with `repository_replica_superseded_knowledge_held` and moves no history. The peer command `repository-replica knowledge-supersession --root <root>` reads the other side's entries on stdin and prints its reconciliation. A malformed report fails with `repository_replica_supersession_invalid`. Both hosts must run a build that has this command, so the coordinator and the WSL Node deploy together. [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md) defines the ledger and the drop rule.
+If one side still holds superseded commits the other lacks, the cycle stops at stage `supersession` with `repository_replica_superseded_knowledge_held` and moves no history. The peer command `repository-replica knowledge-supersession --root <root>` reads the other side's entries on stdin and prints its reconciliation. A malformed report fails with `repository_replica_supersession_invalid`. Both hosts must run a build containing this command, so the coordinator and WSL Node deploy together. [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md) defines the ledger and drop rule.
 
 ### Checkpoint reconciliation
 
 Workstream import surfaces exact blocker codes in health and attention: `invalid_snapshot | identity_changed | origin_changed | non_advancing_revision | divergent_heads`.
 
-`lervo workstream reconcile --keep local|hub` creates a successor whose `origin` names both predecessor heads. ADR-0201's successor rule is extended to allow a reconciliation successor to replace two heads. No head is ever merged automatically.
+`lervo workstream reconcile --keep local|hub` creates a successor whose `origin` names both predecessor heads. ADR-0201's successor rule extends to allow a reconciliation successor to replace two heads. No head is ever merged automatically.
 
 ## Events, states, and failure meaning
 
@@ -92,7 +92,8 @@ Workstream import surfaces exact blocker codes in health and attention: `invalid
 - `repository.replica.diverged`: `replicaId`, `divergenceId`, `localSnapshotHash`, `peerSnapshotHash`, `commonSnapshotHash`, `conflictPathCount`, up to 16 `conflictPathDigests`, `occurredAt`.
 - `repository.replica.reconciled`: `divergenceId`, `strategy`, `resultSnapshotHash`, `occurredAt`.
 - New failure codes: `repository_replica_protocol_mismatch`, `repository_replica_config_stale`, `repository_writer_lease_held_elsewhere`, `repository_handoff_partial`, `lease_stale`.
-- `repository_replica_superseded_knowledge_held` (stage `supersession`): one checkout keeps superseded knowledge commits the other lacks. No history moved; the local receipt records it as `lastFailure`. `repository_replica_supersession_invalid`: the peer's supersession report failed validation.
+- `repository_replica_superseded_knowledge_held` (stage `supersession`): one checkout retains superseded knowledge commits the other lacks. No history moved; the local receipt records it as `lastFailure`.
+- `repository_replica_supersession_invalid`: the peer's supersession report failed validation.
 
 Privacy: events contain hashes of hosts, snapshots, and paths, never paths, credentials, SSH destinations, or diff content. Redacted `stderrDigest` stays in local logs and receipts, never canonical events.
 
