@@ -26,11 +26,11 @@ Rendered service definitions required manual installation. Activation can start 
 
 ### Runtime and provider commands
 
-Standalone JavaScript runtimes may bind `--node-executable <absolute-path>`. With this option, the canonical service command is the exact Node executable followed by the runtime entry point and configuration argument. Node must be a real executable regular file; the JavaScript entry point must be a real regular file but need not be executable. Omitting the option preserves the direct-executable contract.
+Standalone JavaScript runtimes may bind `--node-executable <absolute-path>`. This makes the canonical service command the exact Node executable followed by the runtime entry point and configuration argument. Node must be a real executable regular file; the JavaScript entry point must be a real regular file but need not be executable. Omitting the option preserves the direct-executable contract.
 
 Repository Node service inspection reads direct-execution and explicit Node-plus-entry-point definitions for systemd and launchd. It retains interpreter and runtime as separate coordinates, binds the complete definition hash, and rejects relative paths, additional arguments, duplicate invocation declarations, unsafe file permissions, and changed source bytes. Reading coordinates grants no execution or writer authority.
 
-This avoids ambient `PATH` and shebang resolution without embedding Node in the standalone distribution or adding a runtime-specific wrapper lifecycle. The renderer composes the command and a deterministic service `PATH`: bound Node executable directory, runtime directory, then only standard system executable directories. The manager validates and applies only exact rendered bytes. Explicitly configured JavaScript provider launchers can therefore resolve the same bound Node runtime without an interactive-shell path.
+This avoids ambient `PATH` and shebang resolution without embedding Node in the standalone distribution or adding a runtime-specific wrapper lifecycle. The renderer composes the command and a deterministic service `PATH`: bound Node executable directory, runtime directory, then only standard system executable directories. The manager validates and applies only exact rendered bytes. Explicitly configured JavaScript provider launchers can resolve the same bound Node runtime without an interactive-shell path.
 
 Provider adapters preserve the host environment and prepend the currently running Node executable's directory to each child process path. Independently of service rendering, a configured Codex or Claude entrypoint using `#!/usr/bin/env node` must start identically from an interactive shell, systemd, or launchd. The adapter neither guesses another runtime nor rewrites the configured provider executable or publishes environment values.
 
@@ -63,7 +63,7 @@ Installation exclusively creates a mode-0600 target, reloads, enables, starts, a
 
 New-target failure compensates by stopping and disabling, then deletes only after exact-byte recheck. Unverified application or compensation returns `service_apply_unknown` without retry, deletion, or success claim.
 
-Removal requires the target to equal the canonical source. It stops and disables, verifies inactivity and bytes, then deletes the exact definition. Three consecutive stopped observations 500 milliseconds apart are required before deletion, within an observation bound that spans the canonical 120-second graceful stop, preventing asynchronous manager teardown from being mistaken for failure or completion. Missing or differing definitions are never guessed.
+Removal requires the target to equal the canonical source. It stops and disables, verifies inactivity and bytes, then deletes the exact definition. Deletion requires three consecutive stopped observations 500 milliseconds apart, within an observation bound spanning the canonical 120-second graceful stop. This prevents asynchronous manager teardown from being mistaken for failure or completion. Missing or differing definitions are never guessed.
 
 ### Transactional upgrades and graceful stop
 

@@ -5,7 +5,7 @@ Date: 2026-08-25
 
 ## Context
 
-Installed releases could initialize or migrate individual subsystems, but agents had to discover and compose capability migration, repeated knowledge stages, lint, terminal-runtime reconciliation, and repository Node replacement, making upgrades slow and error-prone. Semantic versions cannot identify rebuilt runtimes: two payloads may share a pre-1.0 version while containing different verified bytes.
+Installed releases could initialize or migrate individual subsystems, but agents had to compose capability migration, repeated knowledge stages, lint, terminal-runtime reconciliation, and repository Node replacement. This made upgrades slow and error-prone. Semantic versions cannot identify rebuilt runtimes: two payloads can share a pre-1.0 version but contain different verified bytes.
 
 ## Decision
 
@@ -18,12 +18,12 @@ Installed releases could initialize or migrate individual subsystems, but agents
 - Exact capability, terminal integration, and knowledge observations.
 - Any registered repository Node plan.
 
-`--apply --approval <plan-id>` first recreates that exact plan. It may then refresh content-bound stale built-in workforce role bindings and execute at most sixteen newly revalidated, generated-only knowledge stages under the approved orchestration policy, followed by knowledge lint. Repeated `--approve-role-binding <operation-id>=<approval-hash>` values may additionally authorize a displayed repository-role operation; the outer plan binds those exact approval coordinates. Every inner stage retains its exact current plan and durable apply contract.
+`--apply --approval <plan-id>` first recreates that exact plan. It may then refresh content-bound stale built-in workforce role bindings and execute at most sixteen newly revalidated, generated-only knowledge stages under the approved orchestration policy, followed by knowledge lint. Repeated `--approve-role-binding <operation-id>=<approval-hash>` values may additionally authorize a displayed repository-role operation; the outer plan binds those exact approval coordinates. Each inner stage retains its exact current plan and durable apply contract.
 
 The command automatically:
 
 - Copies byte-preserved loose skills into immutable project capability packages.
-- Refreshes stale generated agent and assignment bindings for shipped built-in roles and only repository-role groups carrying exact approvals from the current outer plan, with one canonical event per atomic record transition.
+- Refreshes stale generated agent and assignment bindings for shipped built-in roles and repository-role groups carrying exact approvals from the current outer plan, with one canonical event per atomic record transition.
 - Refreshes Lervo-generated knowledge and hook runtime bytes.
 - Transactionally reconciles a registered repository Node.
 
@@ -31,7 +31,7 @@ It never automatically rewrites user-owned documents, rebinds a repository-defin
 
 ### Stage dependencies
 
-The plan publishes its stage dependency rules as `policy.stageDependencies`, and apply follows them in order: capabilities, workforce, terminal integration, knowledge, then Node.
+The plan publishes `policy.stageDependencies`; apply follows this order: capabilities, workforce, terminal integration, knowledge, then Node.
 
 | Stage | Requires |
 | --- | --- |
@@ -41,19 +41,19 @@ The plan publishes its stage dependency rules as `policy.stageDependencies`, and
 | `knowledge` | Capabilities applied first |
 | `node` | Knowledge not blocked, then knowledge lint |
 
-A blocked stage defers only its dependents. Independent stages still plan and apply under the same exact approval. For example, a generated-only hook runtime refresh applies while knowledge is blocked by unclassified documents. The plan lists those stages in `applicableStages`, and its status stays `blocked` until the blocker clears. The blocked stage reports its exact blockers: layout blockers, conflicts, contract issues, or the inner command's error envelope. The receipt records the stages it skipped and why. Apply refuses a blocked plan only when `applicableStages` is empty.
+A blocked stage defers only its dependents. Independent stages still plan and apply under the same exact approval: for example, generated-only hook runtime refresh can apply while unclassified documents block knowledge. The plan lists these stages in `applicableStages` and stays `blocked` until the blocker clears. Blocked stages report exact layout blockers, conflicts, contract issues, or the inner command's error envelope. The receipt records skipped stages and reasons. Apply refuses a blocked plan only when `applicableStages` is empty.
 
-Terminal integration is its own stage. Only a `ready` plan (generated runtime bytes, no provider-owned hook change) applies automatically. A provider hook change stays `pending_authority` with its exact approval. When the knowledge sub-plan chain reaches terminal integration, the knowledge stages before it are current, and the separate stage reports the terminal work.
+Terminal integration is a separate stage. Only a `ready` plan—generated runtime bytes with no provider-owned hook change—applies automatically. A provider hook change remains `pending_authority` with its exact approval. When the knowledge sub-plan chain reaches terminal integration, preceding knowledge stages are current and the separate stage reports terminal work.
 
 ### Repository Node
 
 A historical fleet registration whose current project policy disables Hub synchronization does not block generated-only repository migration. The Node stage reports `pending_authority` with `node_sync_policy_disabled`, makes no service or policy mutation, and allows capability, knowledge, terminal-runtime, and lint stages to converge locally. Re-enabling synchronization or retiring the registration remains a separate owner decision.
 
-For a registered Node, the planner reads only the owner-only canonical service definition, extracts absolute executable and config coordinates, and exposes only the config-path digest. SHA-256 and the content-addressed launcher path identify the desired Node payload, so changed builds are replaced even when their semantic version is unchanged. An exact active deployment is current even while its optional Hub is unavailable; the stage reason preserves that observation without claiming runtime readiness. Apply revalidates the service-target hash and config through the existing Node contract, observes three complete or narrowly bounded `offline_ready` snapshots, and commits fleet registration last.
+For a registered Node, the planner reads only the owner-only canonical service definition, extracts absolute executable and config coordinates, and exposes only the config-path digest. SHA-256 and the content-addressed launcher path identify the desired payload, so changed builds are replaced even when their semantic version is unchanged. An exact active deployment is current even when its optional Hub is unavailable; the stage reason preserves that observation without claiming runtime readiness. Apply revalidates the service-target hash and config through the existing Node contract, observes three complete or narrowly bounded `offline_ready` snapshots, and commits fleet registration last.
 
 ### CLI acquisition
 
-The running CLI coordinates repository migration. Acquisition or global installation remains outside the repository plan: the installation environment owns the package manager, release channel, and host write authority. A natural-language agent upgrade updates the CLI from the user's configured installation source, runs the read-only plan, applies the exact plan, and repeats only after a separately authorized boundary is resolved.
+The running CLI coordinates repository migration. Acquisition and global installation remain outside the repository plan: the installation environment owns the package manager, release channel, and host write authority. A natural-language agent upgrade updates the CLI from the user's configured installation source, runs the read-only plan, applies the exact plan, and repeats only after a separately authorized boundary is resolved.
 
 ## Privacy and evidence
 
@@ -66,17 +66,17 @@ No new durable wrapper event is emitted. Capability, knowledge, terminal, and No
 - A stale upgrade plan means no stage is applied.
 - A generated-only stage that does not converge within sixteen iterations fails without crossing a user-owned boundary.
 - `pending_authority` means safe automatic work is complete, but a distinct owner must approve or perform the named action.
-- A Node failure retains ADR-0207's transactional rollback and unknown-effect meanings. `offline_ready` is allowed only for fresh `hub_unavailable` observations and is not synchronization evidence.
-- A lint failure prevents successful upgrade completion.
+- Node failure retains ADR-0207's transactional rollback and unknown-effect meanings. `offline_ready` is allowed only for fresh `hub_unavailable` observations and is not synchronization evidence.
+- Lint failure prevents successful upgrade completion.
 - A `blocked` result after apply means independent stages may have applied, but the repository is not current. Node reconciliation and knowledge lint are skipped with reason `knowledge_stage_blocked`.
 
 ## Consequences
 
-Agents can handle ordinary repository upgrades through one idempotent product command instead of composing subsystem commands. Fresh repositories still start with `lervo init`; release acquisition remains installation-specific. During their first structural materialization, generated AGENTS entrypoints include deterministic instruction and skill routes so loose skills cannot deadlock onboarding before a canonical agent entrypoint exists.
+Agents can perform ordinary repository upgrades through one idempotent product command. Fresh repositories still start with `lervo init`; release acquisition remains installation-specific. During first structural materialization, generated AGENTS entrypoints include deterministic instruction and skill routes so loose skills cannot deadlock onboarding before a canonical agent entrypoint exists.
 
 ## Verification
 
-CLI tests cover read-only planning, stale approval, exact repository-role approval, source preservation, bounded generated-stage apply, loose-skill migration, lint, pending authority, terminal runtime refresh while knowledge is blocked by unclassified documents, the stage dependency policy, and the uninitialized-repository boundary. Repository-layout and onboarding regressions cover generated AGENTS routing. Service tests retain coverage of same-version content-addressed upgrade, inactive-predecessor recovery, rollback, complete readiness, and bounded offline upgrade readiness.
+CLI tests cover read-only planning, stale approval, exact repository-role approval, source preservation, bounded generated-stage apply, loose-skill migration, lint, pending authority, terminal runtime refresh while unclassified documents block knowledge, stage dependency policy, and the uninitialized-repository boundary. Repository-layout and onboarding regressions cover generated AGENTS routing. Service tests retain coverage of same-version content-addressed upgrade, inactive-predecessor recovery, rollback, complete readiness, and bounded offline upgrade readiness.
 
 ## References
 

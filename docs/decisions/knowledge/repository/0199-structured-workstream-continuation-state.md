@@ -5,9 +5,9 @@
 
 ## Context
 
-Lervo previously exempted root `HANDOFF.md` from semantic routing and used it as a short continuation entrypoint. Reviewed normalization could move history into `docs/repository/handoffs/`, but the mutable root file mixed objectives, actions, deployment facts, references, and durable documentation. Its line limit provided no workstream identity, revision transitions, event binding, automatic provider context, reliable cross-device coordinates, or lifecycle.
+Lervo previously exempted root `HANDOFF.md` from semantic routing and used it as a short continuation entrypoint. Reviewed normalization could move history into `docs/repository/handoffs/`, but the mutable root file mixed objectives, actions, deployment facts, references, and durable documentation. Its line limit supplied no workstream identity, revision transitions, event binding, automatic provider context, reliable cross-device coordinates, or lifecycle.
 
-`HANDOFF.md` is not a standard Codex or Claude discovery surface or a portable repository contract. Existing projects may keep active state in session notes, status pages, work logs, issue documents, or arbitrary Markdown; new projects may have none.
+`HANDOFF.md` is neither a standard Codex or Claude discovery surface nor a portable repository contract. Existing projects may keep active state in session notes, status pages, work logs, issue documents, or arbitrary Markdown; new projects may have none.
 
 ## Decision
 
@@ -15,7 +15,7 @@ Lervo previously exempted root `HANDOFF.md` from semantic routing and used it as
 
 Active continuation state uses the provider-neutral `lervo.workstream.v1` snapshot contract. Its local projection is written lazily to `.lervo/state/workstreams/current.json`; no workstream directory exists before the first snapshot. Each snapshot contains:
 
-- A stable workstream ID and monotonic revision.
+- Stable workstream ID and monotonic revision.
 - Status: `active`, `blocked`, `completed`, or `cancelled`. Cancellation records a stop request; [supervision cancellation reconciliation](../../../specifications/execution/outcome-supervision/implementation/recovery/cancellation.md) separately proves scoped effects are reconciled and requires upgraded transport readers.
 - Bounded title, objective, next actions, blockers, current facts, unresolved decisions, and approvals.
 - Repository-relative references, immutable origin coordinates, and update time.
@@ -28,7 +28,7 @@ Every committed snapshot is stored byte-for-byte in local CAS and emits `workstr
 
 `lervo workstream current` reads verified current state; `--context` returns bounded agent context, and `--json` returns the structured snapshot.
 
-`lervo workstream start` accepts bounded semantic fields, derives system identity and created origin, and uses reproducible plan/apply. It supports recovery and inspection. Provider integration instructs the working agent, rather than the user, to invoke it.
+`lervo workstream start` accepts bounded semantic fields, derives system identity and created origin, uses reproducible plan/apply, and supports recovery and inspection. Provider integration instructs the working agent, rather than the user, to invoke it.
 
 `lervo workstream update` accepts a complete v1 JSON snapshot, creates a read-only plan, requires its exact plan ID for apply, preserves workstream identity and origin, and requires the revision to increase by exactly one. [ADR-0462](../../execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md) moves revision, update time, and observed HEAD to the service, adds JSON merge patches and one-call `--apply-now`, and rolls notes with a recorded dropped count.
 

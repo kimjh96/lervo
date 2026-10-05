@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_14fa6cb0831b62f25820986c
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_21936c29e392e8180a30c3c9
+outputLanguage: en
+outputs:
+  - byteCount: 16439
+    contentHash: sha256:342405b43134b2311b6fd6ac7cba8d46831f434140d9f3ef7f62d4f1123a5671
+    path: docs/decisions/operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md
+    userRegionHash: sha256:342405b43134b2311b6fd6ac7cba8d46831f434140d9f3ef7f62d4f1123a5671
+profile: decision_record
+recordId: knormdoc_bcf7192f6da475ba32ad8789
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:49d6854fbe9ef6d06bceacb0cdbb49d512413b50d3915c438b154e4433cd3520
+sourcePath: docs/decisions/operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md
+sourceUnitVersionIds:
+  - uv_03ab1664c0d53d14cf74a19e
+  - uv_14c4162529bc48eb7d1d9800
+  - uv_27c3be049bb5f18c09674385
+  - uv_37ba79ed73f7af4dac3dffbc
+  - uv_389d7defe8eb8e815ca5dc80
+  - uv_45f2d736f9d1c15056ea9415
+  - uv_5e2245c7af5bfcb079f78a45
+  - uv_6cd464cc908f5d7f553da085
+  - uv_b111d9e51e2d139498b97dfa
+  - uv_bdd2388fb4a0010047448670
+  - uv_c37d7ad4eae396140bf1d13e
+  - uv_dd82136141cf7feeef87aaa2
+  - uv_f41659498ec5c3a944ef41dc

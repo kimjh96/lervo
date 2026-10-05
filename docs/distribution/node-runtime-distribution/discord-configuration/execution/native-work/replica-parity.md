@@ -2,15 +2,15 @@
 
 ## Default and strict topology
 
-Omit top-level `repositoryReplica` for the installed default. The always-on Node's repository is the native-work execution source, completion records `replicaDisposition: not_configured`, and an external recovery replica cannot block conversation availability. The coordinator may still run asynchronously and must preserve divergence for explicit reconciliation.
+Omit top-level `repositoryReplica` for the installed default. The always-on Node's repository is the native-work execution source; completion records `replicaDisposition: not_configured`. An external recovery replica cannot block conversation availability. The coordinator may still run asynchronously and must preserve divergence for explicit reconciliation.
 
-Set top-level `repositoryReplica.required` to `true` only for a deliberately strict single-writer topology. This requires exact peer parity before native work and after changed work:
+Set top-level `repositoryReplica.required` to `true` only for a deliberately strict single-writer topology. It requires exact peer parity before native work and after changed work:
 
 - `maximumStalenessMs` bounds readiness receipt staleness.
 - `waitTimeoutMs` bounds the total wait.
 - `pollIntervalMs` bounds the recheck interval.
 
-Install the external replica coordinator separately with owner-only peer configuration and keep its user service loaded. macOS terminal completion reports an installed but inactive coordinator as action required. A divergent pair fails closed until an operator resolves authority. This is not an availability-safe default for independently edited Mac and WSL worktrees.
+Install the external replica coordinator separately with owner-only peer configuration and keep its user service loaded. macOS terminal completion reports an installed but inactive coordinator as action required. A divergent pair fails closed until an operator resolves authority. This topology is not an availability-safe default for independently edited Mac and WSL worktrees.
 
 ## Coordinator bounds and watches
 
@@ -18,7 +18,7 @@ Coordinator `peer.commandTimeoutMs` bounds each finite SSH operation and default
 
 Set coordinator `peerWatch` to `false` when the bridge cannot safely retain one SSH/WSL watch process per repository. Local changes remain event-driven; finite snapshot commands detect peer changes at `pollIntervalMs`. This avoids persistent bridge saturation without weakening exact snapshot or conflict verification.
 
-While every replica stays `current`, the recovery sweep backs off from its base interval to `idleRecoveryCeilingMs` (default 600 seconds; accepted 30–3,600 seconds). Any change hint or non-current cycle returns it to the base. Unchanged trees are observed through a fingerprint-keyed snapshot cache in each Git directory instead of re-hashing the worktree. A strict topology whose peer requires readiness must keep `peerWatch` enabled, because a backed-off sweep exceeds the maximum readiness staleness.
+While every replica stays `current`, the recovery sweep backs off from its base interval to `idleRecoveryCeilingMs` (default 600 seconds; accepted 30–3,600 seconds). Any change hint or non-current cycle restores the base interval. Unchanged trees use a fingerprint-keyed snapshot cache in each Git directory instead of re-hashing the worktree. A strict topology whose peer requires readiness must keep `peerWatch` enabled: a backed-off sweep exceeds maximum readiness staleness.
 
 ## Readiness and completion
 

@@ -1,0 +1,39 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_14fa6cb0831b62f25820986c
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_244e01610a465645c75ba079
+outputLanguage: en
+outputs:
+  - byteCount: 16154
+    contentHash: sha256:f4f0d1fd2f74bc4f4b28659c77d21bf3802577473c08918a03b66913239ebdc5
+    path: docs/decisions/operations/services/0164-user-runtime-service-management-boundary.md
+    userRegionHash: sha256:f4f0d1fd2f74bc4f4b28659c77d21bf3802577473c08918a03b66913239ebdc5
+profile: decision_record
+recordId: knormdoc_e1bb017709687998ec5479dc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ac9da29a45d6ead9f005c8050edd0ee1e9c555c4a9d77a50b239f685ea1f0f74
+sourcePath: docs/decisions/operations/services/0164-user-runtime-service-management-boundary.md
+sourceUnitVersionIds:
+  - uv_03b23fc86b227c11cb3a9b82
+  - uv_35c429e51b9c630a7ca47248
+  - uv_3b22fa9163a9b26529bb5129
+  - uv_889267ebf35978d9ecb6e7d4
+  - uv_9d69422c8bc6dc91a98c9a92
+  - uv_9f1bef570fb976dc55ca8e3a
+  - uv_a308dc067c7d8bb06da3509c
+  - uv_a5e6f254660a6f8befa9da73
+  - uv_bd66be19caa02b7a27184840
+  - uv_c33f9959b806ee1e7ed9db54
+  - uv_dbf86a427050078214bc4322
+  - uv_e49351003c0ab91a0fc3cb7e
+  - uv_e9c51c9bb4fb3ffaf79bd093
+  - uv_fbe92bf5b94a7f0cbaf36831
