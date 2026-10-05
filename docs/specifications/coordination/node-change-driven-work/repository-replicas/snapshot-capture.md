@@ -1,21 +1,39 @@
 # Snapshot capture
 
-Snapshot capture creates Git tree objects through a temporary index. Index-tree observation uses an isolated copy of the user's index, including split-index staging, so Git cache updates cannot notify the coordinator of its own observation. Ordinary observation creates no export commit or ref; bundle creation and explicit history-replacement recovery create needed commits. No cache can authorize apply or native work without a fresh snapshot.
+Snapshot capture creates Git tree objects through a temporary index. Index-tree observation uses an isolated copy of the user's index, including split-index staging, so Git cache updates cannot notify the coordinator of its own observation. Ordinary observation creates no export commit or ref; bundle creation and explicit history-replacement recovery create needed commits. No cache authorizes apply or native work without a fresh snapshot.
 
-Capture resets the copied index to `HEAD` with `read-tree --reset`. This yields the same entries as a plain read but keeps the stat data of entries that already match `HEAD`, so staging re-hashes only files whose metadata changed instead of the whole worktree ([ADR-0461](../../../../decisions/operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md)). The copy's timestamp is set at least one second before the user's index, so Git's racy-entry check still re-hashes any file modified in the timestamp tick of the last index write.
+Capture resets the copied index to `HEAD` with `read-tree --reset`. This produces the same entries as a plain read while retaining stat data for entries already matching `HEAD`, so staging re-hashes only files whose metadata changed ([ADR-0461](../../../../decisions/operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md)). The copy's timestamp is at least one second before the user's index, ensuring Git's racy-entry check re-hashes files modified in the timestamp tick of the last index write.
 
-The worktree bytes of host-local paths never enter a replica snapshot: `.lervo/knowledge/convergence-delegation.json`, `.lervo/state`, and `.lervo/data`. Capture excludes them explicitly, independent of `.gitignore` and of the ignore rules recorded in `HEAD`: after staging the worktree into the temporary index, it restores those paths to their exact `HEAD` entries. Git rejects exclusion pathspecs beneath an ignored directory, so the restore replaces a pathspec exclusion. Replica apply preserves the same paths while cleaning source files, even when resetting to an older `HEAD` temporarily removes the worktree's newer ignore rule. The delegation grant remains local authority and requires separate review on each host.
+## Host-local paths
 
-A bundle request binds the exact snapshot hash selected by reconciliation. If the source advances before bundle creation, newer bytes cannot replace the older decision's bytes. After an exact target apply, the coordinator persists the transferred snapshot as the new common base before recapturing the active source. If the source advanced concurrently, the cycle remains pending; its successor proceeds as a one-sided change rather than manufacturing dual divergence from the older base. A readiness receipt is written only after both observed sides are equal; after a transfer, both sides are recaptured first. Readiness admission still compares the receipt with a fresh capture.
+Worktree bytes from these host-local paths never enter a replica snapshot:
+
+- `.lervo/knowledge/convergence-delegation.json`
+- `.lervo/state`
+- `.lervo/data`
+
+Capture excludes them independently of `.gitignore` and ignore rules in `HEAD`: after staging the worktree into the temporary index, it restores their exact `HEAD` entries. This restore replaces a pathspec exclusion because Git rejects exclusion pathspecs beneath ignored directories.
+
+Replica apply preserves the same paths while cleaning source files, including when resetting to an older `HEAD` temporarily removes the worktree's newer ignore rule. The delegation grant remains local authority and requires separate review on each host.
+
+## Transfer and readiness
+
+A bundle request binds the exact snapshot hash selected by reconciliation. Source advancement before bundle creation cannot substitute newer bytes for that decision's bytes.
+
+After an exact target apply, the coordinator persists the transferred snapshot as the new common base before recapturing the active source. If the source advanced concurrently, the cycle remains pending; its successor proceeds as a one-sided change rather than manufacturing dual divergence from the older base.
+
+A readiness receipt is written only after both observed sides are equal. After a transfer, both sides must first be recaptured. Readiness admission compares the receipt with a fresh capture.
 
 ## Observation cache
 
-Coordinator observation, meaning the local snapshot and the peer `repository-replica snapshot` command, may serve a cached snapshot. Bundle, apply, merge, post-transfer verification, and readiness admission always capture freshly.
+Coordinator observation—the local snapshot and peer `repository-replica snapshot` command—may serve a cached snapshot. Bundle, apply, merge, post-transfer verification, and readiness admission always capture freshly.
 
-- **Name and location:** `<git-dir>/lervo-replica/snapshot-cache.json`, owner-only, inside the per-worktree Git directory and never tracked.
+- **Location:** `<git-dir>/lervo-replica/snapshot-cache.json`, owner-only, inside the per-worktree Git directory and never tracked.
 - **Fields:** `schemaVersion: 1`, `fingerprint` (a `sha256:` digest), and `snapshot` (the exact snapshot record).
-- **Fingerprint:** SHA-256 over a capture-version tag, the host-local path list, the repository root, the digest of `git status --porcelain=v2 -z --branch --untracked-files=all`, and the `lstat` mode, inode, size, and nanosecond modification and change times of the index file, the repository `config` and `info/attributes`, and every path the status lists. Status runs with `GIT_OPTIONAL_LOCKS=0`, so it never writes the user's index or wakes the watcher. Git's stat and racy checks keep clean tracked files out of the status. Listed paths carry their metadata because a second edit of a dirty or untracked file leaves its status line unchanged.
-- **Hit:** the stored fingerprint equals the current one, the record's snapshot hash recomputes, and its `head` and `branch` equal the status branch coordinates.
-- **Write:** only when the fingerprint is equal before and after the capture and is cacheable. A fingerprint is not cacheable while any observed timestamp lies within two seconds of the observation, while a submodule is listed, while `HEAD` is unborn, or above 20,000 listed paths.
+- **Fingerprint:** SHA-256 over a capture-version tag, the host-local path list, the repository root, the digest of `git status --porcelain=v2 -z --branch --untracked-files=all`, and the `lstat` mode, inode, size, and nanosecond modification and change times of the index file, repository `config` and `info/attributes`, and every status-listed path. Status runs with `GIT_OPTIONAL_LOCKS=0`, so it never writes the user's index or wakes the watcher. Git's stat and racy checks keep clean tracked files out of status. Listed paths include metadata because a second edit of a dirty or untracked file leaves its status line unchanged.
+- **Hit:** the stored fingerprint equals the current fingerprint, the record's snapshot hash recomputes, and its `head` and `branch` equal the status branch coordinates.
+- **Write:** only when the fingerprint is equal before and after capture and is cacheable. It is not cacheable while any observed timestamp lies within two seconds of observation, while a submodule is listed, while `HEAD` is unborn, or above 20,000 listed paths.
 - **Privacy:** object IDs, digests, and the branch name only; no file contents or paths.
-- **Failure meaning:** a missing, unreadable, invalid, or mismatching record means a full capture. A failed fingerprint falls back to a full capture, whose failure keeps its structured snapshot stage and Git evidence. A failed cache write leaves the captured snapshot authoritative. The cache proves only that observation inputs are unchanged; it never claims replica currency or authorizes mutation.
+- **Failures:** a missing, unreadable, invalid, or mismatching record requires full capture. A failed fingerprint falls back to full capture; if that capture fails, its structured snapshot stage and Git evidence are retained. A failed cache write leaves the captured snapshot authoritative.
+
+The cache proves only that observation inputs are unchanged. It never claims replica currency or authorizes mutation.

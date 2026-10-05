@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_054c67f5536dec2c2bbadf15
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_750742f41abaa07a9746d47b
+outputLanguage: en
+outputs:
+  - byteCount: 3111
+    contentHash: sha256:38e3b65eeb73ed9edfae49f3020ec1a65ec7adcb47a4c4cb323c89df8488d1e6
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/durable-instruction-intake.md
+    userRegionHash: sha256:38e3b65eeb73ed9edfae49f3020ec1a65ec7adcb47a4c4cb323c89df8488d1e6
+profile: specification_document
+recordId: knormdoc_052ac10c5dd2ce67a359e12a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:679ee214b62fb119035f1b1a2fe6ef2839441eba1a720b10e910dcfd5ab56924
+sourcePath: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/durable-instruction-intake.md
+sourceUnitVersionIds:
+  - uv_e5762e92b8c5e65bde4d3d41
