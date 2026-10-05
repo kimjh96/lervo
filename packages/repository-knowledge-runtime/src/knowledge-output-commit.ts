@@ -10,6 +10,7 @@ import {
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
 import { canonicalDraftKey, integratedCanonicalDrafts } from "./canonical-disposition-ledger.js";
+import { CONVERGENCE_HOST_TRAILER, knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
 
 const execute = promisify(execFile);
 const RECORD_ROOT = ".lervo/knowledge/document-normalizations/";
@@ -201,6 +202,9 @@ export async function commitSettledKnowledgeOutputs(input: {
 }): Promise<{ committed: string[]; head: { before: string; after: string } | null }> {
   const root = input.repositoryRoot;
   if (!(await knowledgeOutputCommitSafe(root))) return { committed: [], head: null };
+  // ADR-0466: only the convergence owner commits; a non-owner leaves the bytes for the owner.
+  const grant = await knowledgeOutputCommitGrant(root);
+  if (!grant.allowed) return { committed: [], head: null };
   const paths = await settledKnowledgeOutputPaths(input);
   if (!paths.length) return { committed: [], head: null };
   const before = (await git(root, ["rev-parse", "HEAD"])).trim();
@@ -216,6 +220,9 @@ export async function commitSettledKnowledgeOutputs(input: {
         "docs: apply reviewed background knowledge",
         "-m",
         `Lervo convergence ${input.obligationId} settled these reviewed outputs.`,
+        ...(grant.hostHash === null
+          ? []
+          : ["-m", `${CONVERGENCE_HOST_TRAILER}: ${grant.hostHash}`]),
         "--",
         ...paths,
       ],

@@ -14,11 +14,19 @@ import {
   residentReconcileDelay,
   runResidentCycle,
 } from "./resident-cycle.js";
+import type { ConvergenceOwnership } from "./convergence-owner.js";
+import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
+import {
+  nonOwnerHealth,
+  ownershipFingerprint,
+  RESIDENT_OWNER_HEARTBEAT_MILLISECONDS,
+} from "./resident-ownership.js";
 
 type WorkerResult = Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>>;
 
 function healthOf(result: WorkerResult): KnowledgeResidentState {
   if (result.status === "busy") return "busy";
+  if (result.status === "waiting_owner") return nonOwnerHealth(result.owner).state;
   switch (result.convergence.state) {
     case "waiting_authority":
       return "waiting";
@@ -46,6 +54,9 @@ export function startAutonomousKnowledgeWorker(input: {
   onFailure: (error: unknown) => void;
   intervalMilliseconds?: number;
   reconcileCeilingMilliseconds?: number;
+  /** ADR-0466 cross-host owner; absent keeps the legacy single-host resident. */
+  ownership?: ConvergenceOwnership;
+  ownerHeartbeatMilliseconds?: number;
 }): () => Promise<void> {
   const base = input.intervalMilliseconds ?? RESIDENT_RECONCILE_BASE_MILLISECONDS;
   if (!Number.isSafeInteger(base) || base < 100 || base > RESIDENT_RECONCILE_BASE_MILLISECONDS)
@@ -74,6 +85,9 @@ export function startAutonomousKnowledgeWorker(input: {
   let healthState: KnowledgeResidentState = "idle";
   let healthReason: string | null = null;
   let healthWrite = Promise.resolve();
+  let verdict: ConvergenceOwnerVerdict | null = null;
+  // Aborts an in-flight full cycle when a heartbeat proves this host no longer owns convergence.
+  let ownedCycle: AbortController | null = null;
   const heartbeat = () => {
     healthWrite = healthWrite
       .then(() =>
@@ -91,18 +105,33 @@ export function startAutonomousKnowledgeWorker(input: {
     healthReason = reason;
     heartbeat();
   };
+  const observeOwnership = async () => {
+    if (input.ownership === undefined) return null;
+    verdict = await input.ownership.observe(signal);
+    if (verdict.role !== "owner") ownedCycle?.abort();
+    return verdict;
+  };
   const runFull = async () => {
     report("running", null);
+    const observed = verdict;
+    const owned = new AbortController();
+    ownedCycle = owned;
+    const cycleSignal = AbortSignal.any([signal, owned.signal]);
     const admission = await acquireFullCycleAdmission({
       repositoryRoot: root,
-      signal,
+      signal: cycleSignal,
       ...(input.admissionDirectory === undefined ? {} : { directory: input.admissionDirectory }),
       onWait: () => report("busy", "knowledge_cycle_admission_wait"),
     });
     try {
       if (healthState !== "running") report("running", null);
-      return await runAutonomousKnowledgeWorker({ ...input, signal });
+      return await runAutonomousKnowledgeWorker({
+        ...input,
+        signal: cycleSignal,
+        ...(observed === null ? {} : { owner: async () => observed }),
+      });
     } finally {
+      ownedCycle = null;
       await admission.release();
     }
   };
@@ -110,12 +139,16 @@ export function startAutonomousKnowledgeWorker(input: {
     previous ??= await readResidentCycleState(root);
     if (woken && previous !== null) previous = { ...previous, idleStreak: 0 };
     woken = false;
+    const observedOwner = await observeOwnership();
     const cycle = await runResidentCycle({
       previous,
       now: Date.now,
       ceilingMilliseconds: ceiling,
       observe: () =>
-        convergenceSourceFingerprint({ repositoryRoot: root, events: input.storage.events }),
+        ownershipFingerprint(
+          convergenceSourceFingerprint({ repositoryRoot: root, events: input.storage.events }),
+          observedOwner,
+        ),
       runFull,
     });
     if (cycle.outcome.kind === "skipped") {
@@ -133,7 +166,14 @@ export function startAutonomousKnowledgeWorker(input: {
       );
     } else if (cycle.outcome.kind === "completed") {
       const { result } = cycle.outcome;
-      report(healthOf(result), result.status === "processed" ? result.convergence.reason : null);
+      report(
+        healthOf(result),
+        result.status === "processed"
+          ? result.convergence.reason
+          : result.status === "waiting_owner"
+            ? nonOwnerHealth(result.owner).reason
+            : null,
+      );
       input.onCycle?.(result);
     } else {
       report("attention", "knowledge_resident_cycle_failed");
@@ -199,11 +239,19 @@ export function startAutonomousKnowledgeWorker(input: {
         schedule,
       );
   const healthTimer = setInterval(heartbeat, 15_000);
+  const ownerHeartbeat =
+    input.ownership === undefined
+      ? null
+      : setInterval(() => {
+          // Renewal only; a lost lease aborts the running cycle and the next cycle reports it.
+          if (verdict?.role === "owner") observeOwnership().catch(input.onFailure);
+        }, input.ownerHeartbeatMilliseconds ?? RESIDENT_OWNER_HEARTBEAT_MILLISECONDS);
   cycle();
   return async () => {
     controller.abort();
     if (reconcile !== null) clearTimeout(reconcile);
     clearInterval(healthTimer);
+    if (ownerHeartbeat !== null) clearInterval(ownerHeartbeat);
     if (debounce !== null) clearTimeout(debounce);
     unsubscribe?.();
     await running;

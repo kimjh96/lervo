@@ -18,6 +18,8 @@ import { convergenceRecoveryStatus } from "./recovery-status.js";
 import { runDocumentFreshnessCycle, type DocumentFreshnessCycleResult } from "./freshness-stage.js";
 import { documentFreshnessMayRun } from "./freshness-convergence-gate.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
+import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
+import { inspectConvergenceDebt } from "./status.js";
 
 /** A live materialization owns the repository; the cycle yields like a held worker lock. */
 const MATERIALIZATION_BUSY = Symbol("materialization_busy");
@@ -46,8 +48,18 @@ export async function runAutonomousKnowledgeWorker(input: {
   maximumStages?: number;
   admissionDirectory?: string;
   liveWorkPending?: () => Promise<boolean>;
+  /**
+   * ADR-0466 cross-host owner gate. When present, a non-owner runs only read-only debt detection;
+   * when absent, the legacy single-host behavior applies.
+   */
+  owner?: () => Promise<ConvergenceOwnerVerdict>;
 }): Promise<
   | { status: "busy" }
+  | {
+      status: "waiting_owner";
+      owner: ConvergenceOwnerVerdict;
+      convergence: KnowledgeConvergenceStatus;
+    }
   | {
       status: "processed";
       outcomes: RepositoryKnowledgeJobOutcome[];
@@ -56,6 +68,13 @@ export async function runAutonomousKnowledgeWorker(input: {
     }
 > {
   const root = input.storage.paths.repositoryRoot;
+  const owner = input.owner === undefined ? null : await input.owner();
+  if (owner !== null && owner.role !== "owner")
+    return {
+      status: "waiting_owner",
+      owner,
+      convergence: (await inspectConvergenceDebt(input.storage)).status,
+    };
   const context: ConvergenceRuntimeContext = {
     storage: input.storage,
     provider: input.provider,

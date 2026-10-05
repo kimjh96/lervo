@@ -15,6 +15,10 @@ export type ResidentCycleOutcome =
   | { kind: "failed"; error: unknown };
 
 export function classifyResidentCycle(result: WorkerResult): ResidentCycleResult {
+  if (result.status === "waiting_owner")
+    return ["waiting_owner", "ineligible", "yielding"].includes(result.owner.role)
+      ? "waiting"
+      : "attention";
   if (result.status === "busy" || result.outcomes.length > 0) return "processed";
   switch (result.convergence.state) {
     case "idle":
