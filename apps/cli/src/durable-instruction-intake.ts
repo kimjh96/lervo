@@ -8,6 +8,7 @@ import {
   canonicalJson,
   createDurableInstructionCandidate,
   createDurableInstructionPlan,
+  durableInstructionCatalogDigest,
   loadDurableInstructionCandidate,
   loadRepositoryKnowledgePolicy,
   removeDurableInstructionCandidate,
@@ -26,17 +27,7 @@ import { verifiedCurrentWorkstream } from "./workstream-services.js";
 const REVIEWER_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/u;
 
 function catalogDigest(catalog: Awaited<ReturnType<typeof inspectInstructionCatalog>>): string {
-  return instructionEntriesDigest(catalog.semanticCatalog.canonicalInstructions.entries);
-}
-
-function instructionEntriesDigest(entries: Array<{ path: string; contentHash: string }>): string {
-  return sha256(
-    canonicalJson({
-      entries: entries
-        .map((entry) => ({ path: entry.path, contentHash: entry.contentHash }))
-        .sort((left, right) => left.path.localeCompare(right.path)),
-    }),
-  );
+  return durableInstructionCatalogDigest(catalog.semanticCatalog.canonicalInstructions.entries);
 }
 
 export interface DurableInstructionIntakeResult {
@@ -103,6 +94,7 @@ export async function intakeDurableInstruction(input: {
         sourceSnapshotId: catalog.sourceSnapshotId,
         instruction: grounding.durableInstruction,
         now: input.now,
+        instructionCatalogDigest: catalogDigest(catalog),
       }),
     });
     return {
@@ -213,10 +205,16 @@ export async function applyReviewedDurableInstruction(input: {
       repositoryRoot: input.repositoryRoot,
       supplementalSources,
     });
+    // A captured candidate is reviewed later, after unrelated sources and events have changed the
+    // snapshot; it binds to the instruction catalog it was judged against instead.
+    const catalogUnchanged =
+      catalog.sourceSnapshotId === candidate.sourceSnapshotId ||
+      (candidate.instructionCatalogDigest !== undefined &&
+        catalogDigest(catalog) === candidate.instructionCatalogDigest);
     if (
       !catalog.complete ||
       catalog.semanticCatalog.canonicalInstructions.entries.length >= 32 ||
-      catalog.sourceSnapshotId !== candidate.sourceSnapshotId
+      !catalogUnchanged
     )
       throw new Error("The canonical instruction catalog changed after candidate review began.");
     const plan = await createDurableInstructionPlan({
@@ -258,7 +256,7 @@ export async function applyReviewedDurableInstruction(input: {
       plan,
       receipt,
       recordApplied: (applied) => {
-        const afterRegistryDigest = instructionEntriesDigest([
+        const afterRegistryDigest = durableInstructionCatalogDigest([
           ...catalog.semanticCatalog.canonicalInstructions.entries,
           { path: candidate.targetPath, contentHash: candidate.proposedContentHash },
         ]);

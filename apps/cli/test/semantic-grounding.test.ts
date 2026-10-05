@@ -4,6 +4,7 @@ import type { NoCapabilityProviderJsonRunner } from "@lervo/repository-knowledge
 
 import {
   createProcessGroundingResolver,
+  GroundProductionRequestError,
   groundProductionRequest,
 } from "../src/semantic-grounding.js";
 
@@ -152,5 +153,29 @@ describe("production semantic grounding adapter", () => {
       code: "semantic_resolution_failed",
       message: "The current provider did not return a valid semantic grounding proposal.",
     });
+  });
+
+  it("names the failing stage without exposing provider output", () => {
+    const stage = (cause: unknown) => new GroundProductionRequestError(cause).reasonIds;
+    expect(stage(Object.assign(new Error("x"), { processStatus: "timed_out" }))).toEqual([
+      "semantic_resolution_failed",
+      "semantic_resolution_provider_timed_out",
+    ]);
+    expect(stage(Object.assign(new Error("x"), { processStatus: "spawn_failed" }))[1]).toBe(
+      "semantic_resolution_provider_process_failed",
+    );
+    expect(stage(Object.assign(new Error("x"), { code: "knowledge_provider_paused" }))[1]).toBe(
+      "semantic_resolution_provider_unavailable",
+    );
+    expect(stage(Object.assign(new Error("x"), { providerReportedFailure: true }))[1]).toBe(
+      "semantic_resolution_provider_unavailable",
+    );
+    expect(stage(new TypeError("invalid nested reference"))[1]).toBe(
+      "semantic_resolution_proposal_invalid",
+    );
+    expect(stage(new Error("other"))[1]).toBe("semantic_resolution_resolver_failed");
+    expect(
+      new GroundProductionRequestError(new Error("secret provider output")).message,
+    ).not.toContain("secret");
   });
 });

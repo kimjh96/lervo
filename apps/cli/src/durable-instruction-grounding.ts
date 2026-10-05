@@ -20,6 +20,13 @@ const instructionIntakeWorkflows: GroundingWorkflowDescriptor[] = [
   },
 ];
 
+/**
+ * Explicit intake runs outside any hook, so its bound covers measured provider latency: Claude
+ * and Codex took 8 to 20 seconds for one durable-instruction proposal, and the former 10-second
+ * bound turned most real requests into `semantic_resolution_failed`.
+ */
+export const DURABLE_INSTRUCTION_GROUNDING_TIMEOUT_MS = 120_000;
+
 const failedInstruction: DurableInstructionIntent = {
   disposition: "none",
   speechAct: "other",
@@ -60,7 +67,7 @@ export async function groundDurableInstructionRequest(input: {
       grantedAuthorities: ["read", "repository_write"],
       workflows: instructionIntakeWorkflows,
       semanticCatalog: input.semanticCatalog,
-      timeoutMs: 10_000,
+      timeoutMs: DURABLE_INSTRUCTION_GROUNDING_TIMEOUT_MS,
     });
     return {
       ...grounded.decision,
@@ -72,9 +79,9 @@ export async function groundDurableInstructionRequest(input: {
     if (!(error instanceof GroundProductionRequestError)) throw error;
     return {
       ...semanticResolutionFailureDecision(),
-      ambiguityReasons: ["semantic_resolution_failed"],
+      ambiguityReasons: error.reasonIds,
       resolverResultDigest: `sha256:${"0".repeat(64)}`,
-      durableInstruction: failedInstruction,
+      durableInstruction: { ...failedInstruction, reasonIds: error.reasonIds },
     };
   }
 }
