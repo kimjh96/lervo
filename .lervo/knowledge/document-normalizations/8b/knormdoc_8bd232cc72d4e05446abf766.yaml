@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_372ae87869d25e9e5178fe90
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8d8c193a80a415dd5a02f89c
+outputLanguage: en
+outputs:
+  - byteCount: 4756
+    contentHash: sha256:7bc3cb562336d1eee52efe531d329fe5c8310024424b429d7479f0094d1107d3
+    path: docs/specifications/execution/operating-attention/replica-receipts.md
+    userRegionHash: sha256:7bc3cb562336d1eee52efe531d329fe5c8310024424b429d7479f0094d1107d3
+profile: specification_document
+recordId: knormdoc_8bd232cc72d4e05446abf766
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1b410d710c7d33ed1bdc0c65fa06d94191633e7c653ece44545c7a26bbdd35d5
+sourcePath: docs/specifications/execution/operating-attention/replica-receipts.md
+sourceUnitVersionIds:
+  - uv_471afb069532b276aa83f376
+  - uv_864019cdcd2c35b8f2458f26
+  - uv_8c885ddc9d569e7443dd68bb
+  - uv_b1d41aa8c7f0880e73cec991
+  - uv_df25201c0250d08de6103c42

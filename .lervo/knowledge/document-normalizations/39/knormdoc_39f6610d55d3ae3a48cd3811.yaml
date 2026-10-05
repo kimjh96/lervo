@@ -1,26 +1,26 @@
 byteOwnership:
   owner: reviewer
   rewritePolicy: reviewed_exact
-candidateId: knorm_8205338e66986f9591fdd64c
+candidateId: knorm_372ae87869d25e9e5178fe90
 compiler:
-  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
   compilerId: lervo.codex.document-normalizer
-  compilerVersion: 1+codex-cli 0.154.0
+  compilerVersion: 2+codex-cli 0.156.1
   isolation: external_no_capabilities
   provider: codex
 formatVersion: lervo.document.v1
-operationId: knormop_d8d2834f52fef37f5a2fbf9b
+operationId: knormop_6a26137b6bcaaa1b7fad4453
 outputLanguage: en
 outputs:
-  - byteCount: 1061
-    contentHash: sha256:fece83717ef950090baafedf552020017a0d7129b8e8432bfa7abf20d4d710ab
+  - byteCount: 1240
+    contentHash: sha256:32296cdfe134e89c6f2f47f23eaa9d5bf19ef1431c729bb1dee81c8e46d97fe7
     path: docs/specifications/execution/outcome-supervision/implementation/node-composition/background-and-history/background-lifecycle.md
-    userRegionHash: sha256:fece83717ef950090baafedf552020017a0d7129b8e8432bfa7abf20d4d710ab
+    userRegionHash: sha256:32296cdfe134e89c6f2f47f23eaa9d5bf19ef1431c729bb1dee81c8e46d97fe7
 profile: specification_document
-recordId: knormdoc_8502312b10c3762e03461d47
+recordId: knormdoc_39f6610d55d3ae3a48cd3811
 resourceBindings: []
 schemaVersion: 2
-sourceContentHash: sha256:11135c1c1ddc969672f2af41a4c334093f2ae6b46eb628acf16cb7712f7b9d05
+sourceContentHash: sha256:822512a22c12651ceddcb44a34f67a83e5427f362c2c53841fd2c95edb735227
 sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/background-and-history/background-lifecycle.md
 sourceUnitVersionIds:
-  - uv_537bd8aa8603428b19ecd786
+  - uv_00ff4d877e5e5ecd22c7c691
