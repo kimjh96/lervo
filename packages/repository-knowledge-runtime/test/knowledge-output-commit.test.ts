@@ -54,11 +54,15 @@ it(
       baselineCurrent: true,
     });
     const identity = `${KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name} <${KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email}>`;
-    // The committer is explicit too, so the commit never depends on an ambient Git identity.
-    expect(git(f.root, "log", "-1", "--format=%an <%ae>%n%cn <%ce>%n%s")).toBe(
-      `${identity}\n${identity}\ndocs: apply reviewed background knowledge`,
-    );
-    const committed = git(f.root, "show", "--name-only", "--format=", commit).split("\n");
+    // Outputs land at successive batch boundaries, so one cycle may produce several commits.
+    // The committer is explicit too, so no commit depends on an ambient Git identity.
+    const commits = git(f.root, "log", "--format=%an <%ae>|%cn <%ce>|%s", `${before}..HEAD`);
+    expect(commits.split("\n").length).toBeGreaterThanOrEqual(1);
+    for (const line of commits.split("\n"))
+      expect(line).toBe(`${identity}|${identity}|docs: apply reviewed background knowledge`);
+    const committed = git(f.root, "log", "--name-only", "--format=", `${before}..HEAD`)
+      .split("\n")
+      .filter(Boolean);
     // The developer's uncommitted source change stays in the working tree.
     expect(committed).not.toContain("src/runtime.ts");
     expect(git(f.root, "status", "--porcelain")).toContain(" M src/runtime.ts");
@@ -88,6 +92,53 @@ it(
     expect(git(f.root, "rev-parse", "HEAD")).toBe(commit);
     expect(git(f.root, "status", "--porcelain")).toContain("A  notes.md");
     expect(git(f.root, "status", "--porcelain")).toContain(" M src/runtime.ts");
+  },
+);
+
+it(
+  "commits integrated outputs at the next batch boundary without waiting for lifecycle verification",
+  { timeout: 300_000 },
+  async () => {
+    const f = await fixture(true, true);
+    fixtures.push(f);
+    await writeFile(
+      resolve(f.root, "src/runtime.ts"),
+      "export const maximumBackgroundCalls = 3;\n",
+    );
+    const before = git(f.root, "rev-parse", "HEAD");
+    // One stage per cycle, stopping as soon as the commit lands, as a busy repository would.
+    for (let i = 0; i < 16 && git(f.root, "rev-parse", "HEAD") === before; i++)
+      await runAutonomousKnowledgeWorker({
+        storage: f.storage,
+        workerId: `boundary-${i}`,
+        provider: "claude",
+        executable: f.executable,
+        maximumStages: 1,
+        admissionDirectory: f.admissionDirectory,
+      });
+    expect(git(f.root, "rev-parse", "HEAD")).not.toBe(before);
+    expect(git(f.root, "log", "-1", "--format=%s")).toBe(
+      "docs: apply reviewed background knowledge",
+    );
+    expect(git(f.root, "show", "--name-only", "--format=", "HEAD").split("\n")).toContain(
+      "docs/specs/runtime.md",
+    );
+    const stages = f.events
+      .list({ limit: 1_000, types: ["repository.knowledge.stage.recorded"] })
+      .map((event) => event.payload as { stage: string; state: string });
+    expect(stages.some((stage) => stage.stage === "canonical_integration")).toBe(true);
+    expect(stages.some((stage) => stage.stage === "lifecycle_verification")).toBe(false);
+    // The commit is the boundary stage's own fenced effect: it re-queues that stage on the
+    // post-commit snapshot rather than superseding the obligation.
+    const boundary = stages.at(-2)!;
+    expect(["assessment", "normalization_generation"]).toContain(boundary.stage);
+    expect(boundary.state).toBe("current");
+    expect(stages.at(-1)).toMatchObject({ stage: boundary.stage, state: "queued" });
+    // The boundary directly follows the integration whose draft it committed.
+    expect(stages.at(-4)).toMatchObject({ stage: "canonical_integration", state: "current" });
+    expect(
+      f.events.list({ limit: 1_000, types: ["repository.knowledge.convergence.recorded"] }),
+    ).toEqual([]);
   },
 );
 

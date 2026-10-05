@@ -30,6 +30,10 @@ import { convergenceGit } from "./canonical-workspace.js";
 import { inspectRetainedCanonicalIntegration } from "./canonical-integration-recovery.js";
 import type { CanonicalBatch } from "./canonical-review.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
+import {
+  commitSettledOutputsAtBoundary,
+  settledOutputBoundary,
+} from "./settled-output-boundary.js";
 
 export function assertConvergenceSource(
   context: ConvergenceRuntimeContext,
@@ -212,6 +216,10 @@ export function createConvergenceRuntimeHost(
       if (transaction === "recovery_required")
         throw new KnowledgeConvergenceRuntimeError("knowledge_recovery_required");
       try {
+        if (settledOutputBoundary(stage)) {
+          const committed = await commitSettledOutputsAtBoundary(context, state, stage);
+          if (committed !== null) return committed;
+        }
         switch (stage) {
           case "assessment":
             return (
