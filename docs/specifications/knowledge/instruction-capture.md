@@ -50,9 +50,27 @@ A candidate carries `captureSource`, `captureId`, and the instruction-catalog di
 
 Budget: 4 assessments per cycle, 12 per hour, 60 per day, 200,000 tokens per day. Spend needs the reviewed convergence delegation, host admission, and an unpaused provider; otherwise the cycle reports `deferred` with `knowledge_authority_unavailable`, `knowledge_capacity_unavailable`, or `knowledge_provider_paused`, and the turns stay queued. A failed call or invalid assessment counts one attempt; the third failure drops the turn. Each call records ADR-0459 usage with `channel: knowledge_worker` and `stage: instruction_capture`.
 
-## Ownership across hosts
+## Parity across hosts
 
-Only the [ADR-0466](../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) convergence owner assesses and spends. `runAutonomousKnowledgeWorker` resolves the owner verdict before any stage. A non-owner returns `waiting_owner` with `heldCaptureCount` after `holdInstructionCaptureQueue` moves each queued turn's expiry to 24 hours later, capped at seven days after queueing. Hooks and the conversation runtime keep queueing on every host. The queue never leaves its host, so a turn is assessed at most once, by its own host, once that host owns convergence. A host without owner configuration keeps single-host behavior and assesses its own queue. The compact prompt shows `Instruction capture: N owner turns wait on this host until it owns knowledge convergence` while a non-owner fence and queued turns exist. Forwarding held turns to the owner is deferred.
+Capture behaves the same on every host and does not depend on who holds the [ADR-0466](../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) convergence owner lease.
+
+| Step                | Where it runs                                                                         | Gate                                                            |
+| ------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Queue an owner turn | the host whose hook or conversation runtime observed it                               | none                                                            |
+| Assess the turn     | the same host, in `runOwnerTurnCaptureWork` on every resident cycle, owner or not     | that host's delegation, provider admission, and per-host budget |
+| Exchange candidates | every Hub-coordinated host, after assessment                                          | the Hub coordinates in `convergence-owner-host.json`            |
+| Apply a candidate   | the convergence owner (`knowledgeOutputCommitGrant`), committing as `Lervo Knowledge` | the ADR-0466 owner fence                                        |
+| Reject a candidate  | any host                                                                              | none                                                            |
+
+`exchangeInstructionCandidates` (`packages/repository-knowledge-runtime/src/instruction-candidate-exchange.ts`) runs in this order:
+
+1. Publish this host's pending resolutions (`applied` or `rejected`), recorded by `lervo knowledge instruction review` before it removes the local candidate.
+2. Read the Hub list. A resolved record removes the matching local candidate and is remembered so it is never imported again. An open record that this host does not hold is validated with `validateDurableInstructionCandidate` and stored, unless the generated rule already exists with the same bytes.
+3. Publish this host's own open candidates that the Hub has not listed yet.
+
+Host-local bookkeeping lives in `.lervo/state/knowledge/instruction-capture/exchange.json`: at most 128 known and 128 resolved hashes and 16 pending resolutions. A Hub failure keeps the bookkeeping and retries every step next cycle. A host without delegation sets `authorityBlocked` in `state.json`, which projects one `instruction_capture_blocked` attention item and the compact line `Instruction capture: N owner turns cannot be assessed on this host because it has no knowledge convergence delegation`. On a Hub-coordinated host that does not own convergence, the candidate line reads `… await review on the convergence owner host (<label>)`. Without Hub coordination, the exchange reports `standalone`, and review applies locally without committing.
+
+The Hub route is `GET|POST /v1/sync/projects/{projectId}/knowledge-instruction-candidates?destinationId=…&projectIdentityHash=…` with `workspace.read` and `workspace.coordinate`. The Hub stores one row per repository and proposed Markdown hash in `hub_knowledge_instruction_candidates`, keeps at most 64 per repository, and merges with `mergeKnowledgeInstructionCandidateRecord`: the first record is kept, a resolution replaces an open record once, and an open publish never reopens a resolved rule.
 
 ## Events
 
@@ -60,6 +78,7 @@ Events carry identifiers, digests, classes, and counts. Turn text, provider outp
 
 - `knowledge.instruction_candidate.captured`: `candidateId`, `captureId`, `source`, `captureClass`, `turnDigest`, `occurredAt`.
 - `conversation.knowledge_candidate.recorded`: `conversationEventId`, `agentId`, `kind`, `subjectKeyDigest`, `summaryHash`, `candidateId`, `occurredAt`; recorded for conversation captures only.
+- `knowledge.instruction_candidate.exchanged`: `candidateId`, `proposedContentHash`, `ruleId`, `direction` (`published | imported | resolved`), `resolution`, `sourceHostHash`, `occurredAt`.
 - `knowledge.instruction_capture.cycle.completed`: `cycleId` and the counts `assessedCount`, `instructionCandidateCount`, `decisionCount`, `ignoredCount`, `personalPreferenceCount`, `coveredCount`, `failedCount`, `expiredCount`, `skippedForBudget`, `usageObserved`, plus `occurredAt`.
 
 ## Review and visibility
