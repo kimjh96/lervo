@@ -90,6 +90,7 @@ const eventLabels = {
   "document.freshness.candidate.rejected": "Document freshness candidate rejected",
   "document.freshness.candidate.reverted": "Document freshness candidate reverted",
   "document.freshness.cycle.completed": "Document freshness cycle completed",
+  "knowledge.convergence.owner.changed": "Knowledge convergence owner changed",
   "conversation.repository_knowledge.resolved": "Repository knowledge job resolved",
   "work.supervision.mandate.installed": "Operating mandate installed",
   "managed.execution.reserved": "Managed execution reserved",
