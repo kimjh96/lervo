@@ -1,0 +1,47 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_32b35d94529f5de49e2076b7
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8d9ea04fb57d48f250294b90
+outputLanguage: en
+outputs:
+  - byteCount: 645
+    contentHash: sha256:4bc50cd8cd83b76df5bc40673b11cf4c1018df04f82659bcb6ff4fd0facf3984
+    path: docs/specifications/coordination/conversation-runtime-composition.md
+    userRegionHash: sha256:4bc50cd8cd83b76df5bc40673b11cf4c1018df04f82659bcb6ff4fd0facf3984
+  - byteCount: 1421
+    contentHash: sha256:ce3ff94fda787a022d3091cbb8c73fa7908de003dfa7399783627591e1b89b68
+    path: docs/specifications/coordination/conversation-runtime-composition/change-loop.md
+    userRegionHash: sha256:ce3ff94fda787a022d3091cbb8c73fa7908de003dfa7399783627591e1b89b68
+  - byteCount: 1278
+    contentHash: sha256:512560f20e8db02d5c19d04334dddcd099d17db47020e8515b86fa7a13f2c816
+    path: docs/specifications/coordination/conversation-runtime-composition/managed-reads.md
+    userRegionHash: sha256:512560f20e8db02d5c19d04334dddcd099d17db47020e8515b86fa7a13f2c816
+  - byteCount: 1283
+    contentHash: sha256:dc2767d721f2b118a6bec6886c96bef9705f4f0061c229991127d07c5cdc8396
+    path: docs/specifications/coordination/conversation-runtime-composition/provider-instructions.md
+    userRegionHash: sha256:dc2767d721f2b118a6bec6886c96bef9705f4f0061c229991127d07c5cdc8396
+  - byteCount: 2984
+    contentHash: sha256:f4c7b09ee930673f26b2464567ebb5bc4953aab2e6d98e3146eeed2702329882
+    path: docs/specifications/coordination/conversation-runtime-composition/repository-work.md
+    userRegionHash: sha256:f4c7b09ee930673f26b2464567ebb5bc4953aab2e6d98e3146eeed2702329882
+profile: specification_document
+recordId: knormdoc_305a0b0ae85562c37157446c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b72e68140be37277632e753d85af091dd0459b7f8b3e94c235a40c2cc26a1f60
+sourcePath: docs/specifications/coordination/conversation-runtime-composition.md
+sourceUnitVersionIds:
+  - uv_0ce13c02ed2e4d533e3afac2
+  - uv_203a23b934b2151a52969826
+  - uv_6e29b338b7125d7cf7fd86ac
+  - uv_876d5f1cca437b04694f6a62
+  - uv_8a5bfed0580411c58d265d72
+  - uv_df62b55ae69daf4d48d9189b

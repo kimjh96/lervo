@@ -2,9 +2,9 @@
 
 ## Mode and authority
 
-Agent workspace coordination is a separate optional Hub surface. Local execution defaults to `local_first`, using the repository-instance scheduler without Hub access. A repository may explicitly select `hub_coordinated` for assignments spanning multiple Nodes; connectivity never changes the mode implicitly.
+Agent workspace coordination is a separate, optional Hub surface. Local execution defaults to `local_first`, using the repository-instance scheduler without Hub access. A repository may explicitly select `hub_coordinated` for assignments spanning multiple Nodes. Connectivity never changes the mode implicitly.
 
-Separate `workspace.read` and `workspace.coordinate` permissions govern this surface. Hub storage and audit exclude local paths, branch names, source or patch bodies, prompts, provider output, credentials, approval grants, and cleanup commands. A reservation is scheduler evidence only; it grants no repository write, merge, provider, approval, deployment, or cleanup authority.
+Separate `workspace.read` and `workspace.coordinate` permissions govern this surface. Hub storage and audit exclude local paths, branch names, source or patch bodies, prompts, provider output, credentials, approval grants, and cleanup commands. Reservations are scheduler evidence only: they grant no repository write, merge, provider, approval, deployment, or cleanup authority.
 
 ## Reservations
 

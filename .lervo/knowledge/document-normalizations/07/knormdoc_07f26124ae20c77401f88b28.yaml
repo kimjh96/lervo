@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_32b35d94529f5de49e2076b7
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c3d3192d7a29035ec66c7d34
+outputLanguage: en
+outputs:
+  - byteCount: 420
+    contentHash: sha256:e1bdee09b563311485a97e5cd072be954295557fe7fe147b853138ea389ec779
+    path: docs/specifications/coordination/hub-and-node/authentication.md
+    userRegionHash: sha256:e1bdee09b563311485a97e5cd072be954295557fe7fe147b853138ea389ec779
+  - byteCount: 634
+    contentHash: sha256:f0d345ae33ecf5d4860e4ff49743ac150b2fcfc1d7ceff52d1afc3b3c5188e80
+    path: docs/specifications/coordination/hub-and-node/authentication/installed-node-activation.md
+    userRegionHash: sha256:f0d345ae33ecf5d4860e4ff49743ac150b2fcfc1d7ceff52d1afc3b3c5188e80
+  - byteCount: 951
+    contentHash: sha256:a7f0c605347dbaaf93a69e893f81617ccc7d1640c5004dd5393fe00d7b3dfa0c
+    path: docs/specifications/coordination/hub-and-node/authentication/organization-credentials.md
+    userRegionHash: sha256:a7f0c605347dbaaf93a69e893f81617ccc7d1640c5004dd5393fe00d7b3dfa0c
+  - byteCount: 441
+    contentHash: sha256:801133503780059f129b512a801586a40f46f1f3fe2a0a63656966c2c8227cfd
+    path: docs/specifications/coordination/hub-and-node/authentication/owner-only-file-source.md
+    userRegionHash: sha256:801133503780059f129b512a801586a40f46f1f3fe2a0a63656966c2c8227cfd
+  - byteCount: 401
+    contentHash: sha256:f81485a47bfab8510e70b57d23851a39c3e5d45fe4688f40d3a10b4040c00ae7
+    path: docs/specifications/coordination/hub-and-node/authentication/remote-execution.md
+    userRegionHash: sha256:f81485a47bfab8510e70b57d23851a39c3e5d45fe4688f40d3a10b4040c00ae7
+profile: specification_document
+recordId: knormdoc_07f26124ae20c77401f88b28
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0dab86d7b526953bff964f15938813096f46f7b180488e64f01ced8b19eb7b93
+sourcePath: docs/specifications/coordination/hub-and-node/authentication.md
+sourceUnitVersionIds:
+  - uv_6a0be3d9c265b976569edf9f
+  - uv_86520a239b511fcca74c9010
+  - uv_8aaee31f9ce8f927fdf7fe45
+  - uv_bfd3718ef656656ce721651a
+  - uv_f64d56aa6342c59d78907a0f
