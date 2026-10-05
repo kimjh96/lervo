@@ -14,4 +14,4 @@ The v2 graph contract is an additive projection over canonical assignments and e
 
 Arbitrary rewiring, deletion, cycles, and a second graph database remain unsupported.
 
-Evidence: the installed CLI plans and applies one reviewed four-node branch-and-join change and replays its topology history. The bounded scheduler executes all nodes in dependency order. Source acceptance also interrupts materialization after one blocked node and proves exact same-reviewer recovery. See [installed bounded dynamic execution graph v2](../../../evidence/foundation/installed-bounded-dynamic-execution-graph-v2.md).
+Evidence: the installed CLI plans and applies one reviewed four-node branch-and-join change and replays its topology history. The bounded scheduler executes all nodes in dependency order. Source acceptance interrupts materialization after one blocked node and proves exact same-reviewer recovery. See [installed bounded dynamic execution graph v2](../../../evidence/foundation/installed-bounded-dynamic-execution-graph-v2.md).

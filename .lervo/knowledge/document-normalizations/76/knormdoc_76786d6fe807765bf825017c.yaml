@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_fc631634f3935ed4bd7a571c
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c42271e9fb2265cae184b3bd
+outputLanguage: en
+outputs:
+  - byteCount: 3920
+    contentHash: sha256:88e687bbcece70e541e4c3846e4872ddab032cc1e07808a809b301243d33b485
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation.md
+    userRegionHash: sha256:88e687bbcece70e541e4c3846e4872ddab032cc1e07808a809b301243d33b485
+profile: roadmap_document
+recordId: knormdoc_76786d6fe807765bf825017c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:88e687bbcece70e541e4c3846e4872ddab032cc1e07808a809b301243d33b485
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/multi-party-conversation.md
+sourceUnitVersionIds:
+  - uv_4813e24b72fc9648b7a7d10d
+  - uv_80913b4d9b3d1150d8628dc0
+  - uv_e863da8ab66818c5afbb8dbd
