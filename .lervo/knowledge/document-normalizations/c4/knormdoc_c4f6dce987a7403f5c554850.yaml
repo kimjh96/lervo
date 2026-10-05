@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_45813f103862c214898033b3
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_373576b4a4a9a688e0a583af
+outputLanguage: en
+outputs:
+  - byteCount: 10103
+    contentHash: sha256:ea9c0fa028eb25c52763b71f325306b07687ca18fd9556874ed98822580c3430
+    path: docs/decisions/execution/applications/0455-ratchet-the-platform-adapter-boundary-on-neutral-seams.md
+    userRegionHash: sha256:ea9c0fa028eb25c52763b71f325306b07687ca18fd9556874ed98822580c3430
+profile: decision_record
+recordId: knormdoc_c4f6dce987a7403f5c554850
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e629b961f1945b2e4206a7372f1ae6d3c5fa751706c826e269c1906f830b5a96
+sourcePath: docs/decisions/execution/applications/0455-ratchet-the-platform-adapter-boundary-on-neutral-seams.md
+sourceUnitVersionIds:
+  - uv_126c0a0b293fa1ee5f0e8af7
+  - uv_449477371d94ec5b4314814f
+  - uv_4c1f9153e887c723f55b59ca
+  - uv_70d0c711db2df618f1b2617f
+  - uv_7c380b00a19216a4d56236df
+  - uv_8e276337f5682afd29ada3c6
+  - uv_957b0eb9efa9a0afcae1f80b
+  - uv_a6b8bb3a48423fd7a5c26a2d
+  - uv_e6c62f0984b4c4ebecca5981
+  - uv_e8f4f34129f702ccb528c3c1
+  - uv_ea713a757778b5704bc5fbbf
+  - uv_f03da14b1f0aebe43a72e19e

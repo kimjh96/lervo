@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_45813f103862c214898033b3
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a05630a29c0ad4b6f9b0d3bd
+outputLanguage: en
+outputs:
+  - byteCount: 9717
+    contentHash: sha256:70048be129e7e4ce4092e42083da3fc4afd38fef7c73a3ec3bca5c863d1e37ef
+    path: docs/decisions/execution/orchestration/improvement/0459-measure-context-hits-and-usage-on-every-channel.md
+    userRegionHash: sha256:70048be129e7e4ce4092e42083da3fc4afd38fef7c73a3ec3bca5c863d1e37ef
+profile: decision_record
+recordId: knormdoc_74726c3fd0b78962e459a0cd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7d4c7b5299d340781b5c51b5fd645705ddcc3d662ce1aa46a9425db2f7dcbcc5
+sourcePath: docs/decisions/execution/orchestration/improvement/0459-measure-context-hits-and-usage-on-every-channel.md
+sourceUnitVersionIds:
+  - uv_01001809b1fcf23aa84bc48f
+  - uv_0c8adbf81109bf2d1b0ce526
+  - uv_2d42c023cff099a06187e6b4
+  - uv_42b6a0b07e631dff8df9661c
+  - uv_56cd05a81999b21724e19aa2
+  - uv_5ce0bad5d3babcb5ea61875b
+  - uv_694a43aed81b6297b560c04d
+  - uv_7483bec4b6cfc93ada405a95
+  - uv_832a65b7a81409087199a38f
+  - uv_9ae1ba64bd51ca2d99ef30d8
+  - uv_ceb5c8069ed72a9d1f197db3
+  - uv_d19accd307bf14d169752e8f
+  - uv_e5e23bf0fa824de4232a9dc3

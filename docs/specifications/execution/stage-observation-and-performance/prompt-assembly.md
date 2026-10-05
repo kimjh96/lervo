@@ -32,3 +32,13 @@ Root instructions request checkpoint creation or advancement by the agent; worke
 ## Version compatibility limit
 
 The assembler selects worker or root instructions from the workspace binding. It has no event-writer-version or installed-background-owner switch and emits synchronous root knowledge-finalization wording. ADR-0433 preserves synchronous declarations until the core owner is verified and retains separate installed activation evidence requirements. The supplied assembler cannot establish that callers select compatible wording for every installed version or that background convergence has completed. Its emitted instructions must not serve as evidence of those guarantees.
+
+## Current mode selection and scope qualification
+
+The retrieval assembly and workspace-based instruction selection described above apply only when `LERVO_TERMINAL_CONTEXT` is exactly `retrieval`. An absent variable or any other value selects compact mode. At entry, compact mode returns `prepareCompactTerminalPromptContext` with the original input and the string produced by `terminalDeclarationInstruction(provider, observationId)`. This return precedes retrieval input preparation, attention assembly, selection, document loading, and the worker-specific instruction branch in this module.
+
+The compact helper receives the workspace binding through the original input. Its implementation must be inspected to establish how it handles that binding or renders the supplied declaration string. This assembler alone does not establish compact worker instruction parity or a health-dependent declaration policy.
+
+The supplied `apps/cli/test/terminal-integration.test.ts` explicitly sets retrieval mode for its broad integration cases. Its separate compact fixtures assert a continuation headline without provider query projection or loaded README text, context below 6 KiB in that fixture, and a prefix workstream observation. Additional fixtures assert that knowledge snapshot identity is reused for an exact repository revision and changes after a README revision, and that `terminalTurnDeclarationRequired` changes from true to false after recording an idle knowledge resident health record. These are test definitions, not observed passes, installed activation evidence, a universal compact byte limit, or proof of completed background convergence.
+
+[Terminal preparation and snapshot delegation](terminal-preparation-and-snapshots.md) records the preparation and cache call boundaries. Historical retrieval latency cohorts do not establish compact-mode or current-build performance.

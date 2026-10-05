@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c85a47ecbf43a3eaa1d708a8
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_066363decbd1ae988bf01252
+outputLanguage: en
+outputs:
+  - byteCount: 639
+    contentHash: sha256:747cbad84f854d188c29d21ee05dbb316fe4d33ef0c07e1e0689ea3534663d54
+    path: docs/architecture/system/project-and-storage/workforce-and-workspaces.md
+    userRegionHash: sha256:747cbad84f854d188c29d21ee05dbb316fe4d33ef0c07e1e0689ea3534663d54
+profile: architecture_document
+recordId: knormdoc_7a2a89bba48d5ea213ecb948
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:747cbad84f854d188c29d21ee05dbb316fe4d33ef0c07e1e0689ea3534663d54
+sourcePath: docs/architecture/system/project-and-storage/workforce-and-workspaces.md
+sourceUnitVersionIds:
+  - uv_96e932c70a237c77922715ad

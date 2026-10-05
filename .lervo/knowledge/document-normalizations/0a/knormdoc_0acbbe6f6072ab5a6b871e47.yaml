@@ -1,0 +1,39 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_45813f103862c214898033b3
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2d3e2929f848bb320b5bc63b
+outputLanguage: en
+outputs:
+  - byteCount: 13326
+    contentHash: sha256:76841408f4cd9a80e6281adf3be3b77772441dd3b40e763bad0ae075ecc3b65b
+    path: docs/decisions/coordination/deliberation/0460-trigger-tiered-deliberation-at-decision-points.md
+    userRegionHash: sha256:76841408f4cd9a80e6281adf3be3b77772441dd3b40e763bad0ae075ecc3b65b
+profile: decision_record
+recordId: knormdoc_0acbbe6f6072ab5a6b871e47
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c2ed6db15d499009b8caeeadce9a7ab7ce80796631aa786b3c6065c7c3ec269f
+sourcePath: docs/decisions/coordination/deliberation/0460-trigger-tiered-deliberation-at-decision-points.md
+sourceUnitVersionIds:
+  - uv_21a74e0565661b8f4d4a016b
+  - uv_54e0dd339f0cde1e9b4364c0
+  - uv_6e53dce56994e55975b27df9
+  - uv_70c743faf88d801e4b263462
+  - uv_934cb9d8f909460d6dbc5b79
+  - uv_9680ac10ed2e6416dcc43c14
+  - uv_97258e362427ec09d80e4c3a
+  - uv_a7bc33cacd1ae9eb7329bcf3
+  - uv_c849a4b9850e3680c8cc5a61
+  - uv_cc46cc64197a792ee92e43ef
+  - uv_d5dfa4bc8420e2958e14a749
+  - uv_dfd5fbf8ca2a45efd5fd60d4
+  - uv_f6a726fce6da3dfd1734952b
+  - uv_fd46ca483ef8f38242290c14

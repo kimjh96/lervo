@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_45813f103862c214898033b3
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fdd9dd6029fd9793e76d15be
+outputLanguage: en
+outputs:
+  - byteCount: 7579
+    contentHash: sha256:d65919ad6a95c58f18172e11187752095992a789ba97779d1716ff61ecf8ea26
+    path: docs/decisions/execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md
+    userRegionHash: sha256:d65919ad6a95c58f18172e11187752095992a789ba97779d1716ff61ecf8ea26
+profile: decision_record
+recordId: knormdoc_f0c08d8a41eba89496cc7484
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ab708c1cf5e18aae0eefffa3a6bc0e4560d0399a5253a55fb9c9f2901691be29
+sourcePath: docs/decisions/execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md
+sourceUnitVersionIds:
+  - uv_110a369bd9beb93c3cc860a2
+  - uv_2660425580d377cdd5bc297b
+  - uv_5ccb053f9216d7e7271d6422
+  - uv_75d282df568c6c81ffc4915c
+  - uv_8735034f6e397dee254c3c11
+  - uv_8ad28c9a02c7baf6d76779bf
+  - uv_8c3369882b8208260fd24b10
+  - uv_e81f1ab043a507c982216d3b
+  - uv_eb52df7990346b3f84f4695d
