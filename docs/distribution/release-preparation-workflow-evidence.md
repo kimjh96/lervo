@@ -4,7 +4,7 @@
 
 ## Execution and authority
 
-The workflow accepts main-branch pushes and manual dispatch. The `cli-release-preparation` concurrency group serializes runs without cancelling an in-progress run. Its Ubuntu reconciliation job has a 60-minute timeout and actions, contents, and pull-request write permissions.
+The workflow accepts main-branch pushes and manual dispatch. The `cli-release-preparation` concurrency group serializes runs without cancelling an in-progress run. Its Ubuntu reconciliation job has a 120-minute timeout and actions, contents, and pull-request write permissions. The timeout covers `pnpm check`, whose full Vitest suite alone took about 46 minutes on the hosted runner in October 2026, so the earlier 60-minute limit could not cover a complete run.
 
 Checkout fetches full history and persists credentials. Setup actions are pinned to full commit SHAs. Node is fixed at 22.13.0, package-manager caching is disabled, and dependencies use the frozen lockfile. The YAML invokes pnpm setup without an explicit pnpm version. Push events run release completion against `github.event.before`; manual dispatch skips that push-only step. Checkout has no explicit main ref override, so its label does not establish that a manual dispatch selected main.
 
