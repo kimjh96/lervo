@@ -51,7 +51,12 @@ export async function synchronizeIntegrationTarget(input: {
     if (hash === null || !input.integrated(path, hash)) return "unchanged";
   }
   const tree = await convergenceGit(root, ["rev-parse", "HEAD^{tree}"]);
+  // The merge carries Lervo's own identity, so it never depends on a configured developer identity.
   const merge = await convergenceGit(root, [
+    "-c",
+    "user.name=Lervo Knowledge Worker",
+    "-c",
+    "user.email=knowledge@lervo.invalid",
     "commit-tree",
     tree,
     "-p",
