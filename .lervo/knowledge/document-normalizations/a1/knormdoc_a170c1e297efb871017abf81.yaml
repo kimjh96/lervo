@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_23f756adc0fa5a626eeea073
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2e624baa81b5e510034f8f7f
+outputLanguage: en
+outputs:
+  - byteCount: 1054
+    contentHash: sha256:9fc3f3bcef79966e2c7bb878d15a0c1c0015ba69e8f89ff5bdfb96c70f6a1ca8
+    path: docs/specifications/execution/stage-observation-and-performance/compact-terminal-context.md
+    userRegionHash: sha256:9fc3f3bcef79966e2c7bb878d15a0c1c0015ba69e8f89ff5bdfb96c70f6a1ca8
+  - byteCount: 2167
+    contentHash: sha256:83c3024b74c028976759dfb7b17d7328870d00de5e87435778189f0cccfb3588
+    path: docs/specifications/execution/stage-observation-and-performance/compact-terminal-context/compact-assembly.md
+    userRegionHash: sha256:83c3024b74c028976759dfb7b17d7328870d00de5e87435778189f0cccfb3588
+  - byteCount: 1388
+    contentHash: sha256:0edc63cc1023abac43501b747f6dd8e1dfe2816ce2e0ba6e2a7b248a90a23f22
+    path: docs/specifications/execution/stage-observation-and-performance/compact-terminal-context/knowledge-snapshot-cache.md
+    userRegionHash: sha256:0edc63cc1023abac43501b747f6dd8e1dfe2816ce2e0ba6e2a7b248a90a23f22
+  - byteCount: 1454
+    contentHash: sha256:407cc302a4cbbb8697126fb2e2962885e692286baeea01fab43c7d4f9d13e52a
+    path: docs/specifications/execution/stage-observation-and-performance/compact-terminal-context/runtime-dispatch.md
+    userRegionHash: sha256:407cc302a4cbbb8697126fb2e2962885e692286baeea01fab43c7d4f9d13e52a
+profile: specification_document
+recordId: knormdoc_a170c1e297efb871017abf81
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:784487ccc3c3cc0d026fd3eac3386c8ee7efe991cf91429be9898602d7f713f0
+sourcePath: docs/specifications/execution/stage-observation-and-performance/compact-terminal-context.md
+sourceUnitVersionIds:
+  - uv_1e6542ed3419f50d332fef1c
+  - uv_382ef9997bdca8c6b4c33532
+  - uv_7718d7c43f62e59e1911e4c8
+  - uv_c10434d14c1a138a4ce1684b
