@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0fa0687d8fd4e3ace801a350
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d09e9aeea6cd99ef250f84dc
+outputLanguage: en
+outputs:
+  - byteCount: 461
+    contentHash: sha256:88f6c7db997e72b44fdfa0144be983ebf68e16555c767f42032bf49c86b593d4
+    path: docs/roadmap/product-outcome-convergence/host-products/replaceability.md
+    userRegionHash: sha256:88f6c7db997e72b44fdfa0144be983ebf68e16555c767f42032bf49c86b593d4
+profile: roadmap_document
+recordId: knormdoc_a0761a354dceee9778c792b6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:88f6c7db997e72b44fdfa0144be983ebf68e16555c767f42032bf49c86b593d4
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/replaceability.md
+sourceUnitVersionIds:
+  - uv_571d41473ee8f3cbaa76aade
