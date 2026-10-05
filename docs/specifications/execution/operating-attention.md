@@ -69,8 +69,9 @@ On a Hub-coordinated host that does not own convergence, the candidate instructi
 
 - `knowledge_convergence_owner` appears when this host's ownership verdict is `unverifiable` or `contended`. It carries the role, reason, Hub failure code and HTTP status when recorded, holder label, and observation time. Its instruction names the remediation for that failure code.
 - `knowledge_publication` appears when the last publication of the owner's knowledge commits failed or was superseded by a conflict with the current base. It carries the failure code, path-free detail, pull request URL, occurrence count, and first observation. For a `gh` failure the detail is `gh <step> exit <code> <class>`, and the instruction names the remediation for the `auth`, `network`, `not_installed`, `not_mergeable`, or `not_found` class.
+- A second `knowledge_publication` item, with failure code `knowledge_supersession_held`, appears when this checkout keeps superseded knowledge commits it could not drop ([ADR-0468](../../decisions/coordination/sync/0468-propagate-knowledge-supersession-across-replicated-checkouts.md)). Its detail gives the commit count and reason, and its instruction names the remediation for that reason.
 
-Both are user-owned, require user action, and are never blocking. Each yields at most one item: the projection reads only the private fence and publication state, and an unreadable file contributes no item.
+All are user-owned, require user action, and are never blocking. Each yields at most one item: the projection reads only the private fence, publication state, and supersession ledger, and an unreadable file contributes no item.
 
 ### Coverage
 

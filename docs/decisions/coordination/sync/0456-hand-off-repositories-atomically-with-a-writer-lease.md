@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-04
 Amends: [ADR-0396](0396-conflict-safe-repository-replica-continuation.md), [ADR-0201](0201-repository-scoped-workstream-replication.md), [ADR-0404](0404-merge-divergent-repository-replicas.md)
 Part of: [ADR-0452 open collaboration platform](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
+Amended by: [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md) (supersession stage)
 
 ## Context
 
@@ -67,9 +68,15 @@ Merge no longer resolves `.lervo/knowledge/` or `.lervo/generated/` conflicts to
 
 ### Error fidelity
 
-Every replica and handoff error carries `code`, `stage` (`protocol | snapshot | bundle | transfer | verify | apply | merge | checkpoint | lease | rollback`), `gitExitCode` when applicable, and `stderrDigest` of at most 512 characters, passed through event-contract redaction.
+Every replica and handoff error carries `code`, `stage` (`protocol | snapshot | bundle | transfer | verify | apply | merge | checkpoint | supersession | lease | rollback`), `gitExitCode` when applicable, and `stderrDigest` of at most 512 characters, passed through event-contract redaction.
 
 The CLI prints the cause chain; the receipt stores the last failure. Watch mode logs each distinct failure once, then reports a counter.
+
+### Superseded knowledge commits
+
+[ADR-0466](0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) lets the convergence owner supersede `Lervo Knowledge` commits that lost a replay. A replica must not bring them back from the other checkout. Every cycle therefore exchanges both checkouts' supersession ledgers before any history moves, and each side drops superseded commits at its branch tip. If the dropped commits changed a snapshot, the cycle observes both sides again. A merge whose result equals the peer's state counts as `pulled`, so a fast-forward after a drop pushes nothing.
+
+When one side still holds superseded commits the other side lacks, the cycle stops at stage `supersession` with `repository_replica_superseded_knowledge_held` and moves no history. The peer command `repository-replica knowledge-supersession --root <root>` reads the other side's entries on stdin and prints its reconciliation. A malformed report fails with `repository_replica_supersession_invalid`. Both hosts must run a build that has this command, so the coordinator and the WSL Node deploy together. [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md) defines the ledger and the drop rule.
 
 ### Checkpoint reconciliation
 
@@ -85,6 +92,7 @@ Workstream import surfaces exact blocker codes in health and attention: `invalid
 - `repository.replica.diverged`: `replicaId`, `divergenceId`, `localSnapshotHash`, `peerSnapshotHash`, `commonSnapshotHash`, `conflictPathCount`, up to 16 `conflictPathDigests`, `occurredAt`.
 - `repository.replica.reconciled`: `divergenceId`, `strategy`, `resultSnapshotHash`, `occurredAt`.
 - New failure codes: `repository_replica_protocol_mismatch`, `repository_replica_config_stale`, `repository_writer_lease_held_elsewhere`, `repository_handoff_partial`, `lease_stale`.
+- `repository_replica_superseded_knowledge_held` (stage `supersession`): one checkout keeps superseded knowledge commits the other lacks. No history moved; the local receipt records it as `lastFailure`. `repository_replica_supersession_invalid`: the peer's supersession report failed validation.
 
 Privacy: events contain hashes of hosts, snapshots, and paths, never paths, credentials, SSH destinations, or diff content. Redacted `stderrDigest` stays in local logs and receipts, never canonical events.
 
