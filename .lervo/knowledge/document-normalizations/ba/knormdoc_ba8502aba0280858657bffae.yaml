@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_18718557866f3c9eaf778b90
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_49d57e9211f98c027d2f90ac
+outputLanguage: en
+outputs:
+  - byteCount: 688
+    contentHash: sha256:e4b5681142c4234429e097f6434cff8c0412c86911807eb25ea44a6676e93061
+    path: docs/roadmap/product-outcome-convergence/execution/goal-lifecycle.md
+    userRegionHash: sha256:e4b5681142c4234429e097f6434cff8c0412c86911807eb25ea44a6676e93061
+profile: roadmap_document
+recordId: knormdoc_ba8502aba0280858657bffae
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ff5a5de7e6f08e14d10144f940c037b1053673c7de4c3fa91b4dcf295228f13f
+sourcePath: docs/roadmap/product-outcome-convergence/execution/goal-lifecycle.md
+sourceUnitVersionIds:
+  - uv_acef06d5b1d247fa0cf00f45
