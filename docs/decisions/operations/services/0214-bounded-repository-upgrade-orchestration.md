@@ -5,7 +5,7 @@ Date: 2026-08-25
 
 ## Context
 
-Installed releases could initialize or migrate individual subsystems, but agents had to discover and compose capability migration, repeated knowledge stages, lint, terminal-runtime reconciliation, and repository Node replacement, making upgrades slow and error-prone. Semantic versions cannot identify rebuilt runtimes: two payloads may share a pre-1.0 version while containing different verified bytes.
+Installed releases could initialize or migrate individual subsystems, but agents had to discover and compose capability migration, repeated knowledge stages, lint, terminal-runtime reconciliation, and repository Node replacement. This made upgrades slow and error-prone. Semantic versions cannot identify rebuilt runtimes: two payloads may share a pre-1.0 version but contain different verified bytes.
 
 ## Decision
 
@@ -31,7 +31,7 @@ It never automatically rewrites user-owned documents, rebinds a repository-defin
 
 ### Stage dependencies
 
-The plan publishes its stage dependency rules as `policy.stageDependencies`, and apply follows them in order: capabilities, workforce, terminal integration, knowledge, then Node.
+The plan publishes `policy.stageDependencies`. Apply follows this order: capabilities, workforce, terminal integration, knowledge, then Node.
 
 | Stage | Requires |
 | --- | --- |
@@ -41,9 +41,9 @@ The plan publishes its stage dependency rules as `policy.stageDependencies`, and
 | `knowledge` | Capabilities applied first |
 | `node` | Knowledge not blocked, then knowledge lint |
 
-A blocked stage defers only its dependents. Independent stages still plan and apply under the same exact approval. For example, a generated-only hook runtime refresh applies while knowledge is blocked by unclassified documents. The plan lists those stages in `applicableStages`, and its status stays `blocked` until the blocker clears. The blocked stage reports its exact blockers: layout blockers, conflicts, contract issues, or the inner command's error envelope. The receipt records the stages it skipped and why. Apply refuses a blocked plan only when `applicableStages` is empty.
+A blocked stage defers only its dependents. Independent stages still plan and apply under the same exact approval; for example, a generated-only hook runtime refresh applies while unclassified documents block knowledge. The plan lists those stages in `applicableStages` and stays `blocked` until the blocker clears. The blocked stage reports its exact blockers: layout blockers, conflicts, contract issues, or the inner command's error envelope. The receipt records skipped stages and their reasons. Apply refuses a blocked plan only when `applicableStages` is empty.
 
-Terminal integration is its own stage. Only a `ready` plan (generated runtime bytes, no provider-owned hook change) applies automatically. A provider hook change stays `pending_authority` with its exact approval. When the knowledge sub-plan chain reaches terminal integration, the knowledge stages before it are current, and the separate stage reports the terminal work.
+Terminal integration is a separate stage. Only a `ready` plan (generated runtime bytes, no provider-owned hook change) applies automatically. A provider hook change stays `pending_authority` with its exact approval. When the knowledge sub-plan chain reaches terminal integration, the preceding knowledge stages are current, and the separate stage reports the terminal work.
 
 ### Repository Node
 

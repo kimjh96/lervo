@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1a8a130bec94af5c70463de9
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3cd2a315a08e841ce895790d
+outputLanguage: en
+outputs:
+  - byteCount: 707
+    contentHash: sha256:702bbac35594516a6c6ab55c9d7922cc32287641e64a0dbae75c0d317d7b5935
+    path: docs/distribution/knowledge-cli-command-surface.md
+    userRegionHash: sha256:702bbac35594516a6c6ab55c9d7922cc32287641e64a0dbae75c0d317d7b5935
+  - byteCount: 2594
+    contentHash: sha256:91429688501828c979aab80be8f3ce9a847efa86603ecf721f220103f634dda5
+    path: docs/distribution/knowledge-cli-command-surface/advertised-commands.md
+    userRegionHash: sha256:91429688501828c979aab80be8f3ce9a847efa86603ecf721f220103f634dda5
+  - byteCount: 2941
+    contentHash: sha256:828d40237bd1ab6a114bafb20c6a9973f2a29f9011b550290a7791501f29f3d7
+    path: docs/distribution/knowledge-cli-command-surface/dispatch.md
+    userRegionHash: sha256:828d40237bd1ab6a114bafb20c6a9973f2a29f9011b550290a7791501f29f3d7
+profile: repository_document
+recordId: knormdoc_ff3c4d46db2e0ebe09170c91
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2852c41f569ea4c609cfb29331439d719e454cd92f3d1b76f2e2064b6af4dd49
+sourcePath: docs/distribution/knowledge-cli-command-surface.md
+sourceUnitVersionIds:
+  - uv_178234bc1a448f62dc56521b
+  - uv_430631398469eebb16b40a90
+  - uv_71310ed0aa14e0179846fbd4
