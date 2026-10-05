@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_7980e97820c4c3a46769e743
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9d707616e9df1adcdf8849db
+outputLanguage: en
+outputs:
+  - byteCount: 3332
+    contentHash: sha256:4d7f740f250691503252ed989ff603b4c1b227ef215b077672809a56d791f7b4
+    path: docs/specs/background-knowledge-convergence/scheduling-and-events/events-and-recovery.md
+    userRegionHash: sha256:4d7f740f250691503252ed989ff603b4c1b227ef215b077672809a56d791f7b4
+profile: specification_document
+recordId: knormdoc_694d29563914c3c150dea642
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d9871a78be6d91bdfed89db8481c8888076a81f135ff0e674cc6333d7db92bc5
+sourcePath: docs/specs/background-knowledge-convergence/scheduling-and-events/events-and-recovery.md
+sourceUnitVersionIds:
+  - uv_505c0fd0b71bfa716f2d1147
+  - uv_7122b26ca3558a340bb42f04
+  - uv_a4b3d8c14287cf59d012664e
+  - uv_c5f12ebe7a148720b6bff52f

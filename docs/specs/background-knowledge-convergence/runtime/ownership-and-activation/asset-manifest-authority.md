@@ -1,8 +1,8 @@
 # Asset manifest authority
 
-[ADR-0438](../../../../decisions/knowledge/repository/canonicalization/0438-bind-bounded-asset-manifests-to-delegation.md) permits optional `assetDispositionManifestHash` binding the exact raw UTF-8 bytes of the fixed `.lervo/knowledge/convergence-asset-dispositions.json` sidecar. Its closed version-one contract contains `schemaVersion` and `dispositions`, with the same per-asset fields and suite pins as inline declarations.
+[ADR-0438](../../../../decisions/knowledge/repository/canonicalization/0438-bind-bounded-asset-manifests-to-delegation.md) permits optional `assetDispositionManifestHash`, binding the exact raw UTF-8 bytes of the fixed `.lervo/knowledge/convergence-asset-dispositions.json` sidecar. Its closed version-one contract contains `schemaVersion` and `dispositions`, with the same per-asset fields and suite pins as inline declarations.
 
-The sidecar is at most 1 MiB. Inline and sidecar declarations together contain at most 1,024 unique safe paths; inline declarations remain limited to 256 and delegation to 64 KiB. Runtime authority and synchronous settlement recheck ordinary no-follow bytes. A sidecar alone grants neither permission nor semantic acceptance.
+The sidecar is limited to 1 MiB. Inline and sidecar declarations together may contain at most 1,024 unique safe paths; inline declarations remain limited to 256 and delegation to 64 KiB. Runtime authority and synchronous settlement recheck ordinary no-follow bytes. A sidecar alone grants neither permission nor semantic acceptance.
 
 ## Commands and application
 

@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3bef8d38c0e8e8eb1f6d23be
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_270c8f8b1d55c14c7814179b
+outputLanguage: en
+outputs:
+  - byteCount: 4118
+    contentHash: sha256:d01f217e9902b87174a380fc920fe0366dca54adbbf95d8fc6c3167502f9af8c
+    path: docs/specs/background-knowledge-convergence/runtime/reviewed-output-commits/output-selection-and-git-mutation.md
+    userRegionHash: sha256:d01f217e9902b87174a380fc920fe0366dca54adbbf95d8fc6c3167502f9af8c
+profile: specification_document
+recordId: knormdoc_5f32384931e3fa5f0c655a9c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c368ca22258f73f1655377affd124645c27d789ceb66765127fcd7375bc9f7a2
+sourcePath: docs/specs/background-knowledge-convergence/runtime/reviewed-output-commits/output-selection-and-git-mutation.md
+sourceUnitVersionIds:
+  - uv_991633addb65cd026b954045
+  - uv_a7a8a30ebffac4c760622535
+  - uv_f3168477df41a6c214951776
+  - uv_f3d3c2c0f9692625cb117a73

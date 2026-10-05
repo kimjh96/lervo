@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_23f756adc0fa5a626eeea073
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_afc57409603fe321170ebf8b
+outputLanguage: en
+outputs:
+  - byteCount: 1968
+    contentHash: sha256:e984bc38a63aa8c2c74dad06f2df293ecc6b7283fbe8aecee39e55819737dfba
+    path: docs/specifications/execution/operating-attention.md
+    userRegionHash: sha256:e984bc38a63aa8c2c74dad06f2df293ecc6b7283fbe8aecee39e55819737dfba
+  - byteCount: 1227
+    contentHash: sha256:f663428b20e764bceb1ea240f2f5b6f1a071c6043e6343992e5ce0372f953c0b
+    path: docs/specifications/execution/operating-attention/direct-terminal-context.md
+    userRegionHash: sha256:f663428b20e764bceb1ea240f2f5b6f1a071c6043e6343992e5ce0372f953c0b
+  - byteCount: 6903
+    contentHash: sha256:64426ecf85b0526642bc68a4cd7709817eef629310c5ab5ea49cae771b60a839
+    path: docs/specifications/execution/operating-attention/report-contract.md
+    userRegionHash: sha256:64426ecf85b0526642bc68a4cd7709817eef629310c5ab5ea49cae771b60a839
+profile: specification_document
+recordId: knormdoc_92ff6843c1236faa3d1585fd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:57947fe429d4e73b6e369e7472260f38f711edc3db3d334302098aad894c9c9f
+sourcePath: docs/specifications/execution/operating-attention.md
+sourceUnitVersionIds:
+  - uv_275e065028b2b011d8100ac2
+  - uv_2c675a7862b9bc9ae03cbefb
+  - uv_2fe38743aeaaf999e19f6e4d
+  - uv_3185e9b51c253d695b4d6905
+  - uv_38d5ee4f48528b832d0f9884
+  - uv_43e4d2bd2a16393c9c4515af
+  - uv_577cc5c762631f440e2ceb56
+  - uv_6897108a40d43107feb94127
+  - uv_7a10cec974d579e8a4205200
+  - uv_94a33b86d2ccf40a31d57562
+  - uv_9cc1608a3d52847dfcc6861e
+  - uv_a1b00ce053c1b1e8419924f8
+  - uv_a45c1155b32e491d0000aee2

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_570cb2fdb60af9de21c13771
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4b680c0b18f9fe6d60dfb191
+outputLanguage: en
+outputs:
+  - byteCount: 1355
+    contentHash: sha256:cb60f046dfd8103799160fd57de86a85cd6fef32a6a6771f1199b521d0b64784
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/watch-and-cleanup.md
+    userRegionHash: sha256:cb60f046dfd8103799160fd57de86a85cd6fef32a6a6771f1199b521d0b64784
+profile: specification_document
+recordId: knormdoc_9c0cf79187d38d9ef2d61d5f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4aeb7dacdaebbd43544307344bfa8f57f99a7c31b6b8cadabc830ae408d935a9
+sourcePath: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/watch-and-cleanup.md
+sourceUnitVersionIds:
+  - uv_0b1b112d9665a7c9b9bec021

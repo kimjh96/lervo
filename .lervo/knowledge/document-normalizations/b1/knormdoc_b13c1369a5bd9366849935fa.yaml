@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_23f756adc0fa5a626eeea073
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4896a70ce902f6874f748141
+outputLanguage: en
+outputs:
+  - byteCount: 2355
+    contentHash: sha256:0a55716699fe51204d6b02e01d01df50d475c3df67785de370749aa65970748a
+    path: docs/specifications/execution/stage-observation-and-performance/prepared-terminal-snapshot-storage.md
+    userRegionHash: sha256:0a55716699fe51204d6b02e01d01df50d475c3df67785de370749aa65970748a
+profile: specification_document
+recordId: knormdoc_b13c1369a5bd9366849935fa
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ba82ae29420f56866177a7cab7c7bec5a7508ecc1415039a0450a5c2a9895d62
+sourcePath: docs/specifications/execution/stage-observation-and-performance/prepared-terminal-snapshot-storage.md
+sourceUnitVersionIds:
+  - uv_c5d2bdeffb03fc3648f7651e
+  - uv_c7782c445f47ee478fcbde1b
+  - uv_d077d3b0811a5f396a38cb94
+  - uv_dd28a78928c6d5791738932b

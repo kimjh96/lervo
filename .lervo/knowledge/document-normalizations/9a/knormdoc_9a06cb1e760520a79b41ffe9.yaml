@@ -1,0 +1,59 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_23f756adc0fa5a626eeea073
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ef0db2aede2943bfa2911da7
+outputLanguage: en
+outputs:
+  - byteCount: 630
+    contentHash: sha256:17b4f053b614830f21f77fbbefe64061905403676016dec4c2275069cfa6cc07
+    path: docs/specifications/execution/product-surfaces/deliberation/surface-behavior.md
+    userRegionHash: sha256:17b4f053b614830f21f77fbbefe64061905403676016dec4c2275069cfa6cc07
+  - byteCount: 2150
+    contentHash: sha256:e22e1db3045e5637726f9399c36320d65fc30d206eb089f2c4baf0814506d5e4
+    path: docs/specifications/execution/product-surfaces/deliberation/surface-behavior/artifact-projection.md
+    userRegionHash: sha256:e22e1db3045e5637726f9399c36320d65fc30d206eb089f2c4baf0814506d5e4
+  - byteCount: 3286
+    contentHash: sha256:321df4a3aaf94adf902bca4776df4ae0d6cbce1ca238bfafd67f08695032e39c
+    path: docs/specifications/execution/product-surfaces/deliberation/surface-behavior/origin-and-delivery.md
+    userRegionHash: sha256:321df4a3aaf94adf902bca4776df4ae0d6cbce1ca238bfafd67f08695032e39c
+  - byteCount: 4942
+    contentHash: sha256:94db56ac1b169fe4c488398822f41c6005a55e46da45ae0e8393d6fa99f00e38
+    path: docs/specifications/execution/product-surfaces/deliberation/surface-behavior/presentation-and-repair.md
+    userRegionHash: sha256:94db56ac1b169fe4c488398822f41c6005a55e46da45ae0e8393d6fa99f00e38
+  - byteCount: 1189
+    contentHash: sha256:d583d519b2a621e01044ca7f94642851611afa8f128041427af8287ce1ac7ddb
+    path: docs/specifications/execution/product-surfaces/deliberation/surface-behavior/process-and-surfaces.md
+    userRegionHash: sha256:d583d519b2a621e01044ca7f94642851611afa8f128041427af8287ce1ac7ddb
+  - byteCount: 863
+    contentHash: sha256:4d77fda1424465e166526b59576bfd633bf08567cf7af4b6a34b274d6e1bb15e
+    path: docs/specifications/execution/product-surfaces/deliberation/surface-behavior/topic-and-context.md
+    userRegionHash: sha256:4d77fda1424465e166526b59576bfd633bf08567cf7af4b6a34b274d6e1bb15e
+  - byteCount: 733
+    contentHash: sha256:31f2e34b1d2580ccd9a278913cd385e5fbc57b2e177048e962e5f4b78688691d
+    path: docs/specifications/execution/product-surfaces/deliberation/surface-behavior/uncertain-execution.md
+    userRegionHash: sha256:31f2e34b1d2580ccd9a278913cd385e5fbc57b2e177048e962e5f4b78688691d
+profile: specification_document
+recordId: knormdoc_9a06cb1e760520a79b41ffe9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:32f0cf6f500650fa06e3489934f27266465395af77cb0aea65292636541b1578
+sourcePath: docs/specifications/execution/product-surfaces/deliberation/surface-behavior.md
+sourceUnitVersionIds:
+  - uv_1c7529cd601a729ca052b054
+  - uv_27b7d1775a2dd53fba0b4b96
+  - uv_35a9c1b495c036c46f2320c3
+  - uv_537a70907def5d82c9d91c99
+  - uv_78438f3fd023a2ce0d2e87c9
+  - uv_8e69c2712f4a5fff823fcbe5
+  - uv_a0326dbed0658399bc656e7f
+  - uv_ca26782575c5dbddb9ff6bd9
+  - uv_e512c36e744ae9df5f6f6e04
+  - uv_e8a4628d07e9209d45af37b2

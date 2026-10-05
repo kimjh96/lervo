@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3c4d3714430071a4bf015cd5
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9819efda9b30d2250c5ef46b
+outputLanguage: en
+outputs:
+  - byteCount: 5954
+    contentHash: sha256:b9c37b16d1b4b554f85e142f6843b13af4819ffb23900fa6a6ea84b99047f128
+    path: docs/decisions/coordination/sync/0468-propagate-knowledge-supersession-across-replicated-checkouts.md
+    userRegionHash: sha256:b9c37b16d1b4b554f85e142f6843b13af4819ffb23900fa6a6ea84b99047f128
+profile: decision_record
+recordId: knormdoc_03ef0b0681b4870e004045fe
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2031202ed2a75d5b488e9edd4291afb8af39d7c6556fb710b4a8dc91a015ecc9
+sourcePath: docs/decisions/coordination/sync/0468-propagate-knowledge-supersession-across-replicated-checkouts.md
+sourceUnitVersionIds:
+  - uv_28578065adb92d0c27c562e1
+  - uv_33c3a477902d7c8a3961219a
+  - uv_565b693f152d8b84e9544a23
+  - uv_78218697444d73c0c9a8ee0a
+  - uv_82f46569abd6a9cf16c6fe16
+  - uv_c90e9884623d516e065ba34e
+  - uv_d6a8f5dc89b2de6fbc80a5d3
+  - uv_ec9a1dde85980405c5fe1e6f
+  - uv_f169687c2e2b2708f38076f2

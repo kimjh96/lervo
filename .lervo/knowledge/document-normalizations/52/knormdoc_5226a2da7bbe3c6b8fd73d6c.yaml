@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_570cb2fdb60af9de21c13771
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c488bcb76cd717263534811b
+outputLanguage: en
+outputs:
+  - byteCount: 669
+    contentHash: sha256:313b451c0368ec317d8cefd6e69a2c1e3b4234cdc9b7d938ece35c684ef6d583
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/worker-selection.md
+    userRegionHash: sha256:313b451c0368ec317d8cefd6e69a2c1e3b4234cdc9b7d938ece35c684ef6d583
+profile: specification_document
+recordId: knormdoc_5226a2da7bbe3c6b8fd73d6c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e0755d0675a76a98e119b70c643bd10b15be84ca7883dd465101e1334887a5e8
+sourcePath: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/worker-selection.md
+sourceUnitVersionIds:
+  - uv_126483e76dd42a4545dcfd04

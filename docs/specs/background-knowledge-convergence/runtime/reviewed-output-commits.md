@@ -1,6 +1,6 @@
 # Reviewed background output commits
 
-This specification records implementation boundaries in `packages/repository-knowledge-runtime/src/canonical-disposition-ledger.ts`, `canonical-target-preflight.ts`, `effect-source-fence.ts`, `knowledge-output-commit.ts`, `settled-output-boundary.ts`, and `lifecycle-final.ts`. [ADR-0450](../../../decisions/knowledge/repository/canonicalization/0450-keep-background-knowledge-out-of-developer-flow.md) records the decision, and [ADR-0465](../../../decisions/knowledge/documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md) moves the commit to batch boundaries. Source inspection is neither an execution receipt nor installed acceptance.
+This specification records implementation boundaries in `packages/repository-knowledge-runtime/src/canonical-disposition-ledger.ts`, `canonical-target-preflight.ts`, `effect-source-fence.ts`, `knowledge-output-commit.ts`, `settled-output-boundary.ts`, and `lifecycle-final.ts`. [ADR-0450](../../../decisions/knowledge/repository/canonicalization/0450-keep-background-knowledge-out-of-developer-flow.md) records the decision; [ADR-0465](../../../decisions/knowledge/documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md) moves commits to batch boundaries. Source inspection is neither an execution receipt nor installed acceptance.
 
 ## Implementation boundaries
 
@@ -12,4 +12,13 @@ This specification records implementation boundaries in `packages/repository-kno
 
 ## Verification boundary
 
-The supplied files contain implementation, not test execution or installed receipts. Acceptance must separately establish safe selection over committed preimages, preservation of unrelated staged and unstaged work, failure recovery after staging, concurrent-edit behavior, correct post-commit snapshot advancement, and eventual current settlement. Shared build archive restoration and retention are outside these five modules and are not verified here.
+The supplied files contain implementation, not test execution or installed receipts. Acceptance must separately establish:
+
+- Safe selection over committed preimages.
+- Preservation of unrelated staged and unstaged work.
+- Failure recovery after staging.
+- Concurrent-edit behavior.
+- Correct post-commit snapshot advancement.
+- Eventual current settlement.
+
+Shared build archive restoration and retention are outside these five modules and are not verified here.

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_aa1b69945352bdf862d8cff9
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_eb225d8f6688cf914e1a88ab
+outputLanguage: en
+outputs:
+  - byteCount: 2426
+    contentHash: sha256:cec0806c1b37336b51d97910f091a54b6b91ee3dbbde3db8b5421436383a8cce
+    path: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/runtime-ownership.md
+    userRegionHash: sha256:cec0806c1b37336b51d97910f091a54b6b91ee3dbbde3db8b5421436383a8cce
+profile: specification_document
+recordId: knormdoc_6b76bcd5d813ac441dcead2e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:cec0806c1b37336b51d97910f091a54b6b91ee3dbbde3db8b5421436383a8cce
+sourcePath: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/runtime-ownership.md
+sourceUnitVersionIds:
+  - uv_c44ea04bfe5f80ed86334520

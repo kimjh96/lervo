@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d22f8f96a9aec78ae2356302
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ede0104edbe896a86cb57138
+outputLanguage: en
+outputs:
+  - byteCount: 2358
+    contentHash: sha256:ab3fbdc74984c1a5695630113ac959b8e859db2649827f0fca20658be4bfe14c
+    path: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/asset-manifest-authority.md
+    userRegionHash: sha256:ab3fbdc74984c1a5695630113ac959b8e859db2649827f0fca20658be4bfe14c
+profile: specification_document
+recordId: knormdoc_03ae4dc8cc743191f57784dd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4113faa6d34ee9e123a3bb05017d956c2bb528eb19b9e34edc35b2cf1ee0807d
+sourcePath: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/asset-manifest-authority.md
+sourceUnitVersionIds:
+  - uv_c179fd42b4a4c26cb5c874ca
+  - uv_cd914af4ed1c85e23c1f62e8

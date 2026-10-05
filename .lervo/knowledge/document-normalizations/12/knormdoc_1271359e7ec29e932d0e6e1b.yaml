@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3bef8d38c0e8e8eb1f6d23be
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_713f1d85bacca978abf110f8
+outputLanguage: en
+outputs:
+  - byteCount: 857
+    contentHash: sha256:9f449a8ebd317ca4e845f764dcc6606daa5b30b79f6e0a907ccb8d7f37aba052
+    path: docs/specs/background-knowledge-convergence/runtime/reviewed-output-commits/snapshot-advancement.md
+    userRegionHash: sha256:9f449a8ebd317ca4e845f764dcc6606daa5b30b79f6e0a907ccb8d7f37aba052
+profile: specification_document
+recordId: knormdoc_1271359e7ec29e932d0e6e1b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ecd4edba29a11f76813c22527ba3ea39840a2eaa07d7a69a6174d3aca22b7d34
+sourcePath: docs/specs/background-knowledge-convergence/runtime/reviewed-output-commits/snapshot-advancement.md
+sourceUnitVersionIds:
+  - uv_2511d8f525958ff0a66c6cb7

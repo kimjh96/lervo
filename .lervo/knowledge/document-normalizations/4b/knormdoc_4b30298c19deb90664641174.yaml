@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3bef8d38c0e8e8eb1f6d23be
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_69d6496ac892b9d55651fc51
+outputLanguage: en
+outputs:
+  - byteCount: 1007
+    contentHash: sha256:7f486bbbdf96fc471d1287def4359ff965393d27512c8765c2b518694ae1b7f3
+    path: docs/specs/background-knowledge-convergence/runtime/reviewed-output-commits/integration-preflight.md
+    userRegionHash: sha256:7f486bbbdf96fc471d1287def4359ff965393d27512c8765c2b518694ae1b7f3
+profile: specification_document
+recordId: knormdoc_4b30298c19deb90664641174
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d4f1fcbc28072f7b2785f8633737e29aaddfacabf8c59c4c70e9bd45989675a0
+sourcePath: docs/specs/background-knowledge-convergence/runtime/reviewed-output-commits/integration-preflight.md
+sourceUnitVersionIds:
+  - uv_0dc828594daed9e435568abf

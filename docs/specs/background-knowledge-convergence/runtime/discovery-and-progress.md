@@ -6,7 +6,7 @@ The runtime discovers repository debt, advances seven verified stages, and bound
 - [Settlement, recovery, and verification](discovery-and-progress/settlement-and-verification.md): stage settlement, baseline completion, candidate verification, and cancellation.
 - [Execution bounds and admission](discovery-and-progress/execution-and-admission.md): budgets, call reservations, and foreground/background scheduling.
 - [Complete source capture](discovery-and-progress/source-capture.md): inventory limits, reviewed extensions, links, and asset dispositions.
-- [Resident cycle and change fence](discovery-and-progress/resident-cycle.md): the change fingerprint, adaptive reconciliation, host-wide full-cycle admission, and private cycle state.
+- [Resident cycle and change fence](discovery-and-progress/resident-cycle.md): change fingerprint, adaptive reconciliation, host-wide full-cycle admission, and private cycle state.
 
 Related contracts:
 

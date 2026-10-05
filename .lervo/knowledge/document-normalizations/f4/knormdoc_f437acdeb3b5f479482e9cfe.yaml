@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3bef8d38c0e8e8eb1f6d23be
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b6ccfcf93aad49abf8706943
+outputLanguage: en
+outputs:
+  - byteCount: 2159
+    contentHash: sha256:74c1aca326d8f8b2da1c01eb198798c812a0d81b472c781b4cb745d1298c326d
+    path: docs/specs/background-knowledge-convergence/runtime/reviewed-output-commits/lifecycle-ordering-and-settlement.md
+    userRegionHash: sha256:74c1aca326d8f8b2da1c01eb198798c812a0d81b472c781b4cb745d1298c326d
+profile: specification_document
+recordId: knormdoc_f437acdeb3b5f479482e9cfe
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c759a69ceccea0185da4ec8d523c7c779bcb6f05959dfe20336f83a09f900407
+sourcePath: docs/specs/background-knowledge-convergence/runtime/reviewed-output-commits/lifecycle-ordering-and-settlement.md
+sourceUnitVersionIds:
+  - uv_4088c21cdba0894a1255dc3f
+  - uv_65c4b0a360fae8b01831e9af
+  - uv_7805947cd9afd7cbb098216a
