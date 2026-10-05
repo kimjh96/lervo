@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_51dc77f516662a929106ff1a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Typecheck against Node 22.13 type definitions and reject malformed SQLite rows with coded integrity errors."
