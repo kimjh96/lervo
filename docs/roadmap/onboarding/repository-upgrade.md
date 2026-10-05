@@ -17,6 +17,7 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 - Same-version rebuilt Node payloads upgrade transactionally. Fleet registry commit requires complete readiness or three fresh Hub-unavailable-only `offline_ready` observations.
 - An exact installed Node left inactive by a failed stop can resume a guarded upgrade from its prior matching work-admission scope only after stable inactivity and zero live claims. A graceful stop keeps that scope, so re-applying after an interrupted launchd upgrade does not fail as `service_upgrade_fence_invalid`. Unregistered Nodes remain blocked.
 - Knowledge lint succeeds after every applied repository upgrade.
+- A blocked stage defers only stages that depend on it under the published `policy.stageDependencies`. Independent stages, including generated-only terminal runtime refresh, still apply, and the plan stays `blocked` with the stage's exact blockers.
 - The local-only path works without a Hub. Absent Node registration is current, not an onboarding side effect.
 - A stale registered Node under a current sync-disabled project policy remains pending authority without blocking local generated-only migration.
 - CLI acquisition remains an explicit installation-environment responsibility and is never reported as repository-upgrade evidence.
@@ -26,6 +27,8 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 - [ADR-0214](../../decisions/operations/services/0214-bounded-repository-upgrade-orchestration.md)
 - `apps/cli/test/upgrade-command.test.ts`
 - `apps/cli/test/upgrade-node.test.ts`
+- `apps/cli/test/upgrade-independent-stages.test.ts`
+- `apps/cli/test/upgrade-stage-policy.test.ts`
 - `apps/cli/test/repository-command.test.ts`
 - `packages/repository-knowledge/test/repository-layout-migration.test.ts`
 - `scripts/distribution/test/runtime-service-management.test.mjs`

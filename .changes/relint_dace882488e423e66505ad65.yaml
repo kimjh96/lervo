@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_dace882488e423e66505ad65"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Report document-layout contract violations by field, regenerate edited generated publication pages, and apply independent upgrade stages while another stage is blocked."

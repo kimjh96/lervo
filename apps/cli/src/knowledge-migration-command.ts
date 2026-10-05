@@ -5,13 +5,11 @@ import { lstat, readFile } from "node:fs/promises";
 import {
   applyKnowledgeMigrationPlan,
   applyRepositoryLayoutMigrationPlan,
-  applyTerminalIntegrationPlan,
   applyContinuationWorkstreamMigrationPlan,
   canonicalJson,
   createKnowledgeInstructionBridgePlan,
   createKnowledgeMigrationPlan,
   createRepositoryLayoutMigrationPlan,
-  createTerminalIntegrationPlan,
   createContinuationWorkstreamMigrationPlan,
   lintRepositoryKnowledge,
   matchesRecordedStructuralGeneration,
@@ -26,17 +24,27 @@ import {
 import { openProjectStorage } from "@lervo/project-storage";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
-import { loadTerminalHookRuntime } from "./terminal-runtime.js";
+import {
+  applyTerminalIntegrationStage,
+  planTerminalIntegrationStage,
+} from "./terminal-integration-stage.js";
+import { CommandFailure, writeCommandError } from "./command-error-output.js";
 import { runInstructionBootstrapStage } from "./instruction-bootstrap-command.js";
 import type { CliIo } from "./types.js";
 import { runKnowledgeInstruction } from "./knowledge-instruction-command.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import {
+  formatKnowledgeMigrationBlockers,
   formatKnowledgeMigrationPlan,
   formatRepositoryLayoutMigrationPlan,
   parseLayoutApprovals,
   printableKnowledgeMigrationPlan,
 } from "./knowledge-migration-format.js";
+import {
+  formatTerminalIntegrationPlan,
+  formatTerminalIntegrationReceipt,
+  terminalActivation,
+} from "./terminal-integration-format.js";
 import {
   repositoryLayoutKnowledgeLintCodes,
   structuralKnowledgeLintCodes,
@@ -55,22 +63,6 @@ function expectedInstructionBridgeTransitions(
       ? ["instruction_bridge_binding_stale"]
       : [],
   );
-}
-
-function latestTerminalIntegrationApplicationEventId(
-  storage: Awaited<ReturnType<typeof openProjectStorage>>,
-): string | null {
-  let afterSeq = 0;
-  let latest: string | null = null;
-  while (true) {
-    const events = storage.events.list({ afterSeq, limit: 1000 });
-    if (events.length === 0) return latest;
-    for (const event of events) {
-      afterSeq = event.seq;
-      if (event.type === "terminal.integration.applied") latest = event.eventId;
-    }
-    if (events.length < 1000) return latest;
-  }
 }
 
 export async function runKnowledgeMigration(input: {
@@ -447,19 +439,8 @@ export async function runKnowledgeMigration(input: {
       }
     }
     if (input.mode === "migrate" && structuralCurrent) {
-      const runtimeContent = await loadTerminalHookRuntime();
-      const historyStorage = await openProjectStorage(repositoryRoot);
-      let priorApplicationEventId: string | null;
-      try {
-        priorApplicationEventId = latestTerminalIntegrationApplicationEventId(historyStorage);
-      } finally {
-        await historyStorage.close();
-      }
-      const terminal = await createTerminalIntegrationPlan(
-        repositoryRoot,
-        runtimeContent,
-        priorApplicationEventId,
-      );
+      const prepared = await planTerminalIntegrationStage(repositoryRoot);
+      const terminal = prepared.plan;
       if (terminal.status !== "current") {
         if (values.apply === undefined) {
           if ((values["approve-item"]?.length ?? 0) > 0)
@@ -467,9 +448,7 @@ export async function runKnowledgeMigration(input: {
           input.io.stdout(
             values.json
               ? `${JSON.stringify(serializableTerminalIntegrationPlan(terminal), null, 2)}\n`
-              : terminal.status === "blocked"
-                ? `Terminal integration migration is blocked.\n${terminal.blockers.map((item) => `  ${item.provider} [${item.code}] ${item.path}`).join("\n")}\nExisting provider settings and hooks were not changed.\n`
-                : `${terminal.status === "ready" ? "Terminal runtime reconciliation plan created." : "Terminal integration review plan created."}\nplan: ${terminal.planId}\ncontract: ${terminal.contractId}\nruntime: ${terminal.runtime.action} ${terminal.runtime.path}\ntargets:\n${terminal.targets.map((item) => `  ${item.provider}: ${item.action} ${item.path} · ${item.beforeHash ?? "absent"} → ${item.afterHash ?? "blocked"}`).join("\n")}${terminal.approvalHash === null ? "\nNo user-owned hook bytes require approval." : `\napproval: ${terminal.operationId}=${terminal.approvalHash}`}\nExisting provider settings and hooks have not been changed.\n`,
+              : formatTerminalIntegrationPlan(terminal),
           );
           return terminal.status === "blocked" ? 1 : 0;
         }
@@ -494,76 +473,18 @@ export async function runKnowledgeMigration(input: {
             : null;
         if (terminal.status === "review_required" && approval === null)
           throw new Error("--approve-item must use <operation-id>=<sha256-approval-hash>.");
-        const storage = await openProjectStorage(repositoryRoot);
-        try {
-          if (
-            latestTerminalIntegrationApplicationEventId(storage) !==
-            terminal.priorApplicationEventId
-          )
-            throw new Error("Terminal integration application history changed after planning.");
-          if (
-            storage.events
-              .list()
-              .some(
-                (event) =>
-                  event.type === "terminal.integration.applied" &&
-                  event.payload.planId === terminal.planId,
-              )
-          )
-            throw new Error("The same terminal integration plan was already applied.");
-          const identity = randomUUID().replaceAll("-", "");
-          const receipt = await applyTerminalIntegrationPlan({
-            plan: terminal,
-            runtimeContent,
-            ...(approval === null
-              ? {}
-              : { approvedOperationId: approval[1]!, approvedHash: approval[2]! }),
-            now: new Date(),
-            recordApplied: (applied) => {
-              storage.events.append({
-                eventId: `evt_${identity}`,
-                projectId: terminal.projectId,
-                runId: `run_${identity}`,
-                sessionId: `ses_${identity}`,
-                type: "terminal.integration.applied",
-                occurredAt: applied.appliedAt,
-                actor:
-                  terminal.status === "review_required" ? { kind: "user" } : { kind: "system" },
-                schemaVersion: 1,
-                policyVersion: terminal.approvalHash ?? terminal.runtime.afterHash,
-                payload: {
-                  operation: applied.operation,
-                  planId: applied.planId,
-                  contractId: applied.contractId,
-                  providers: terminal.providers,
-                  targetPathDigests: applied.targetDigests.map((item) => item.pathDigest),
-                  targetAfterHashes: applied.targetDigests.map((item) => item.afterHash),
-                  runtimePathDigest: applied.runtimePathDigest,
-                  runtimeAfterHash: applied.runtimeAfterHash,
-                  approvalHash: applied.approvalHash,
-                  appliedAt: applied.appliedAt,
-                },
-              });
-            },
-          });
-          const activation = {
-            status: "action_required" as const,
-            requiredOnce: {
-              provider: "codex" as const,
-              instruction:
-                "Open Codex in this repository, run /hooks, then review and trust the Lervo UserPromptSubmit and Stop command hooks. Codex skips untrusted project hooks.",
-            },
-            verification:
-              "Run lervo terminal status after one prompt and one completed turn in each installed provider.",
-          };
-          input.io.stdout(
-            values.json
-              ? `${JSON.stringify({ ...receipt, activation }, null, 2)}\n`
-              : `Applied the Codex and Claude terminal integration without replacing existing provider hooks.\nplan: ${receipt.planId}\ncontract: ${receipt.contractId}\nACTION REQUIRED ONCE FOR CODEX: ${activation.requiredOnce.instruction}\nVERIFY: ${activation.verification}\n`,
-          );
-        } finally {
-          await storage.close();
-        }
+        const receipt = await applyTerminalIntegrationStage({
+          repositoryRoot,
+          prepared,
+          approval:
+            approval === null ? null : { operationId: approval[1]!, approvalHash: approval[2]! },
+          now: new Date(),
+        });
+        input.io.stdout(
+          values.json
+            ? `${JSON.stringify({ ...receipt, activation: terminalActivation }, null, 2)}\n`
+            : formatTerminalIntegrationReceipt(receipt),
+        );
         return 0;
       }
     }
@@ -622,12 +543,23 @@ export async function runKnowledgeMigration(input: {
       );
       return plan.status === "ready" ? 0 : 1;
     }
-    if (values.apply !== plan.planId) {
-      input.io.stderr(
-        "The requested plan ID does not match the current read-only plan. A source or target may have changed; review the plan again.\n",
+    if (values.apply !== plan.planId)
+      throw new CommandFailure(
+        "knowledge_plan_stale",
+        "The requested plan ID does not match the current read-only plan. A source or target may have changed; review the plan again.",
       );
-      return 1;
-    }
+    if (plan.status === "blocked")
+      throw new CommandFailure(
+        "knowledge_plan_blocked",
+        `The repository knowledge ${plan.mode} plan is blocked and was not applied.\n${formatKnowledgeMigrationBlockers(plan).join("\n")}`,
+        {
+          planId: plan.planId,
+          blockers: plan.blockers,
+          conflicts: plan.operations
+            .filter((operation) => operation.action === "conflict")
+            .map(({ path, reason }) => ({ path, reason })),
+        },
+      );
     const baselineValidation = await lintRepositoryKnowledge(plan.repositoryRoot, {
       supplementalSources,
     });
@@ -752,7 +684,7 @@ export async function runKnowledgeMigration(input: {
     );
     return 0;
   } catch (error) {
-    input.io.stderr(`${error instanceof Error ? error.message : String(error)}\n`);
+    writeCommandError(input.io, error, { json: values.json === true });
     return 1;
   }
 }

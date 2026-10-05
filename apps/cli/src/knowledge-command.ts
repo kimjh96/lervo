@@ -25,6 +25,7 @@ import { runKnowledgeSemanticMaterialize } from "./knowledge-materialization-com
 import { runKnowledgeOkfExchange } from "./knowledge-okf-command.js";
 import { runKnowledgeReview, runKnowledgeReviewPolicy } from "./knowledge-review-command.js";
 import { runKnowledgeStructure } from "./knowledge-structure-command.js";
+import { writeCommandError } from "./command-error-output.js";
 import { runKnowledgeMigration } from "./knowledge-migration-command.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import { runKnowledgeCanonicalization } from "./knowledge-canonicalization-command.js";
@@ -174,6 +175,7 @@ export async function runKnowledgeCommand(
     }
   }
   if (subcommand === "lint") {
+    let json = false;
     try {
       const parsed = parseArgs({
         args: args.slice(1),
@@ -181,6 +183,7 @@ export async function runKnowledgeCommand(
         allowPositionals: false,
         options: { root: { type: "string" }, json: { type: "boolean" } },
       });
+      json = parsed.values.json === true;
       const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
       const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
       const result = await lintRepositoryKnowledge(repositoryRoot, { supplementalSources });
@@ -191,7 +194,9 @@ export async function runKnowledgeCommand(
       );
       return result.valid ? 0 : 1;
     } catch (error) {
-      io.stderr(`${error instanceof Error ? error.message : String(error)}\n${knowledgeUsage}\n`);
+      if (json) writeCommandError(io, error, { json });
+      else
+        io.stderr(`${error instanceof Error ? error.message : String(error)}\n${knowledgeUsage}\n`);
       return 1;
     }
   }

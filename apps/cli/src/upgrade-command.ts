@@ -5,51 +5,42 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 import { applyCapabilityMigration, createCapabilityMigrationPlan } from "@lervo/capabilities";
-import {
-  applyWorkforceRoleBindingMigration,
-  createWorkforceRoleBindingMigrationPlan,
-} from "@lervo/agent-workforce";
+import { applyWorkforceRoleBindingMigration } from "@lervo/agent-workforce";
 import { loadProjectManifest } from "@lervo/project";
-import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
+import { writeCommandError } from "./command-error-output.js";
+import { applyTerminalIntegrationStage } from "./terminal-integration-stage.js";
 import type { CliIo } from "./types.js";
+import { formatUpgradePlan, formatUpgradeReceipt, type UpgradeReceipt } from "./upgrade-format.js";
 import {
   applyRegisteredNodeUpgrade,
   inspectRegisteredNodeUpgrade,
   type NodeUpgradeStage,
 } from "./upgrade-node.js";
+import {
+  applyKnowledgeStage,
+  inspectKnowledge,
+  inspectTerminalIntegration,
+  inspectWorkforce,
+  lintKnowledge,
+  type KnowledgeStage,
+  type TerminalIntegrationStage,
+  type UpgradeStageBlocker,
+  type WorkforceStage,
+} from "./upgrade-stage-inspection.js";
+import {
+  applicableUpgradeStages,
+  deferralReason,
+  deferringPrerequisite,
+  overallUpgradeStatus,
+  upgradeStageDependencies,
+  type StageDisposition,
+  type UpgradeStageName,
+} from "./upgrade-stage-policy.js";
 import { readCliPackageVersion } from "./version-command.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 
 export const upgradeUsage =
   "  lervo upgrade [--root <path>] [--apply --approval <plan-id> [--approve-role-binding <operation-id>=<sha256> ...]] [--json]";
-
-type StageDisposition = "current" | "safe_apply" | "deferred" | "pending_authority" | "blocked";
-
-interface KnowledgeStage {
-  disposition: StageDisposition;
-  planKind: string;
-  planId: string | null;
-  status: string;
-  reason: string;
-}
-
-interface WorkforceStage {
-  disposition: StageDisposition;
-  planId: string | null;
-  staleAgentCount: number;
-  staleAssignmentCount: number;
-  status: string;
-  reason: string;
-  requiredApprovals: Array<{
-    operationId: string;
-    approvalHash: string;
-    roleId: string;
-    roleVersion: string;
-    roleContractHash: string;
-    staleAgentCount: number;
-    staleAssignmentCount: number;
-  }>;
-}
 
 export interface RepositoryUpgradePlan {
   schemaVersion: 1;
@@ -58,6 +49,8 @@ export interface RepositoryUpgradePlan {
   repositoryRoot: string;
   projectId: string;
   status: "ready" | "current" | "pending_authority" | "blocked";
+  /** Stages an exact apply of this plan changes, even when another stage is blocked. */
+  applicableStages: UpgradeStageName[];
   cli: { version: string; buildHash: string; acquisition: "outside_repository_upgrade" };
   policy: {
     generatedOnlyAutomaticApply: true;
@@ -65,6 +58,7 @@ export interface RepositoryUpgradePlan {
     userOwnedBytes: "exact_approval_required";
     providerConfiguration: "exact_approval_required";
     nodeService: "registered_instance_transactional_reconciliation";
+    stageDependencies: typeof upgradeStageDependencies;
   };
   stages: {
     capabilities: {
@@ -74,8 +68,9 @@ export interface RepositoryUpgradePlan {
       observedProviderSurfaceCount: number;
     };
     workforce: WorkforceStage;
+    terminalIntegration: TerminalIntegrationStage;
     knowledge: KnowledgeStage;
-    node: NodeUpgradeStage;
+    node: Omit<NodeUpgradeStage, "disposition"> & { disposition: StageDisposition };
   };
   privacy: {
     scope: "local_plan_and_receipt";
@@ -84,16 +79,6 @@ export interface RepositoryUpgradePlan {
     absolutePaths: "repository_root_only";
   };
   failureMeaning: string;
-}
-
-interface InternalUpgradePlan {
-  publicPlan: RepositoryUpgradePlan;
-}
-
-interface CapturedCommand {
-  code: number;
-  value: Record<string, unknown> | null;
-  error: string;
 }
 
 function sha256(value: string | Uint8Array): string {
@@ -108,159 +93,69 @@ async function cliBuildHash(): Promise<string> {
   return sha256(await readFile(fileURLToPath(import.meta.url)));
 }
 
-async function capture(run: (io: CliIo) => Promise<number>, cwd: string): Promise<CapturedCommand> {
-  const stdout: string[] = [];
-  const stderr: string[] = [];
-  const code = await run({
-    cwd,
-    stdout: (message) => stdout.push(message),
-    stderr: (message) => stderr.push(message),
-  });
-  const text = stdout.join("").trim();
-  let value: Record<string, unknown> | null = null;
-  if (text !== "") {
-    try {
-      value = JSON.parse(text) as Record<string, unknown>;
-    } catch {
-      return {
-        code: 1,
-        value: null,
-        error: stderr.join("").trim() || "The command returned invalid JSON.",
-      };
-    }
-  }
-  return { code, value, error: stderr.join("").trim() };
-}
-
-async function inspectKnowledge(root: string): Promise<KnowledgeStage> {
-  const result = await capture(
-    (io) =>
-      runKnowledgeMigration({
-        args: ["--root", root, "--integration-head", "--json"],
-        io,
-        mode: "migrate",
-      }),
-    root,
-  );
-  if (result.value === null) {
-    return {
-      disposition: "blocked",
-      planKind: "knowledge_migration",
-      planId: null,
-      status: "failed",
-      reason: result.error || "knowledge_plan_unavailable",
-    };
-  }
-  const status = typeof result.value.status === "string" ? result.value.status : "unknown";
-  const planKind =
-    typeof result.value.planKind === "string" ? result.value.planKind : "knowledge_materialization";
-  const planId = typeof result.value.planId === "string" ? result.value.planId : null;
-  const operations = Array.isArray(result.value.operations)
-    ? (result.value.operations as Array<{ action?: unknown }>)
-    : null;
-  if (
-    status === "current" ||
-    (operations !== null && operations.every((item) => item.action === "unchanged"))
-  ) {
-    return {
-      disposition: "current",
-      planKind,
-      planId,
-      status,
-      reason: "canonical_sources_current",
-    };
-  }
-  if (status === "ready" && planId !== null) {
-    return {
-      disposition: "safe_apply",
-      planKind,
-      planId,
-      status,
-      reason: "generated_only_exact_plan",
-    };
-  }
-  if (["review_required", "provider_required", "action_required"].includes(status)) {
-    return { disposition: "pending_authority", planKind, planId, status, reason: status };
-  }
+function deferredWorkforce(reason: string): WorkforceStage {
   return {
-    disposition: "blocked",
-    planKind,
-    planId,
-    status,
-    reason: result.error || status || `knowledge_plan_failed_${result.code}`,
+    disposition: "deferred",
+    planId: null,
+    staleAgentCount: 0,
+    staleAssignmentCount: 0,
+    status: "deferred",
+    reason,
+    requiredApprovals: [],
   };
 }
 
-async function inspectWorkforce(root: string): Promise<WorkforceStage> {
-  const plan = await createWorkforceRoleBindingMigrationPlan(root);
+function deferredKnowledge(reason: string): KnowledgeStage {
   return {
-    disposition:
-      plan.status === "ready"
-        ? "safe_apply"
-        : plan.status === "review_required"
-          ? "pending_authority"
-          : plan.status === "blocked"
-            ? "blocked"
-            : "current",
-    planId: plan.planId,
-    staleAgentCount: plan.staleAgentCount,
-    staleAssignmentCount: plan.staleAssignmentCount,
-    status: plan.status,
-    reason: plan.reason,
-    requiredApprovals: plan.requiredApprovals,
+    disposition: "deferred",
+    planKind: "knowledge_migration",
+    planId: null,
+    status: "deferred",
+    reason,
+    blockers: [],
   };
 }
 
-async function createInternalUpgradePlan(root: string): Promise<InternalUpgradePlan> {
+export async function createRepositoryUpgradePlan(root: string): Promise<RepositoryUpgradePlan> {
   const repositoryRoot = await realpath(resolve(root));
   const project = await loadProjectManifest(repositoryRoot);
   const version = readCliPackageVersion();
   const capabilities = await createCapabilityMigrationPlan(repositoryRoot);
   const capabilityDisposition: StageDisposition =
     capabilities.status === "ready" ? "safe_apply" : "current";
-  const [buildHash, workforce, knowledge, node] = await Promise.all([
+  const capabilityGate = { capabilities: capabilityDisposition };
+  const workforceDeferral = deferringPrerequisite("workforce", capabilityGate);
+  const knowledgeDeferral = deferringPrerequisite("knowledge", capabilityGate);
+  const [buildHash, workforce, terminal, knowledge, node] = await Promise.all([
     cliBuildHash(),
-    capabilityDisposition === "safe_apply"
-      ? Promise.resolve({
-          disposition: "deferred" as const,
-          planId: null,
-          staleAgentCount: 0,
-          staleAssignmentCount: 0,
-          status: "deferred",
-          reason: "capability_migration_must_apply_first",
-          requiredApprovals: [],
-        })
-      : inspectWorkforce(repositoryRoot),
-    capabilityDisposition === "safe_apply"
-      ? Promise.resolve({
-          disposition: "deferred" as const,
-          planKind: "knowledge_migration",
-          planId: null,
-          status: "deferred",
-          reason: "capability_migration_must_apply_first",
-        })
-      : inspectKnowledge(repositoryRoot),
+    workforceDeferral === null
+      ? inspectWorkforce(repositoryRoot)
+      : Promise.resolve(deferredWorkforce(deferralReason(workforceDeferral))),
+    inspectTerminalIntegration(repositoryRoot),
+    knowledgeDeferral === null
+      ? inspectKnowledge(repositoryRoot)
+      : Promise.resolve(deferredKnowledge(deferralReason(knowledgeDeferral))),
     inspectRegisteredNodeUpgrade(repositoryRoot, project.projectId, version),
   ]);
-  const dispositions = [
-    capabilityDisposition,
-    workforce.disposition,
-    knowledge.disposition,
-    node.stage.disposition,
-  ];
-  const status: RepositoryUpgradePlan["status"] = dispositions.includes("blocked")
-    ? "blocked"
-    : dispositions.includes("safe_apply")
-      ? "ready"
-      : dispositions.includes("pending_authority")
-        ? "pending_authority"
-        : "current";
+  const nodeDeferral = deferringPrerequisite("node", { knowledge: knowledge.disposition });
+  const nodeStage: RepositoryUpgradePlan["stages"]["node"] =
+    nodeDeferral === null || node.stage.disposition !== "safe_apply"
+      ? node.stage
+      : { ...node.stage, disposition: "deferred", reason: deferralReason(nodeDeferral) };
+  const dispositions: Record<UpgradeStageName, StageDisposition> = {
+    capabilities: capabilityDisposition,
+    workforce: workforce.disposition,
+    terminal_integration: terminal.stage.disposition,
+    knowledge: knowledge.disposition,
+    node: nodeStage.disposition,
+  };
   const body = {
     schemaVersion: 1 as const,
     planKind: "repository_upgrade" as const,
     repositoryRoot,
     projectId: project.projectId,
-    status,
+    status: overallUpgradeStatus(Object.values(dispositions)),
+    applicableStages: applicableUpgradeStages(dispositions, workforce.requiredApprovals.length > 0),
     cli: { version, buildHash, acquisition: "outside_repository_upgrade" as const },
     policy: {
       generatedOnlyAutomaticApply: true as const,
@@ -268,6 +163,7 @@ async function createInternalUpgradePlan(root: string): Promise<InternalUpgradeP
       userOwnedBytes: "exact_approval_required" as const,
       providerConfiguration: "exact_approval_required" as const,
       nodeService: "registered_instance_transactional_reconciliation" as const,
+      stageDependencies: upgradeStageDependencies,
     },
     stages: {
       capabilities: {
@@ -277,8 +173,9 @@ async function createInternalUpgradePlan(root: string): Promise<InternalUpgradeP
         observedProviderSurfaceCount: capabilities.observedProviderSurfaces.length,
       },
       workforce,
+      terminalIntegration: terminal.stage,
       knowledge,
-      node: node.stage,
+      node: nodeStage,
     },
     privacy: {
       scope: "local_plan_and_receipt" as const,
@@ -287,13 +184,9 @@ async function createInternalUpgradePlan(root: string): Promise<InternalUpgradeP
       absolutePaths: "repository_root_only" as const,
     },
     failureMeaning:
-      "A non-current stage is not proof of migration, provider activation, Node readiness, or CLI acquisition.",
+      "A non-current stage is not proof of migration, provider activation, Node readiness, or CLI acquisition. A blocked stage does not prevent applying independent generated-only stages.",
   };
-  return { publicPlan: { ...body, planId: planIdentifier(body) } };
-}
-
-export async function createRepositoryUpgradePlan(root: string): Promise<RepositoryUpgradePlan> {
-  return (await createInternalUpgradePlan(root)).publicPlan;
+  return { ...body, planId: planIdentifier(body) };
 }
 
 function parseRoleBindingApprovals(
@@ -307,32 +200,120 @@ function parseRoleBindingApprovals(
   });
 }
 
-async function applyKnowledgeStage(root: string, stage: KnowledgeStage): Promise<void> {
-  if (stage.planId === null)
-    throw new Error("A generated-only knowledge stage has no exact plan ID.");
-  const result = await capture(
-    (io) =>
-      runKnowledgeMigration({
-        args: ["--root", root, "--integration-head", "--apply", stage.planId!, "--json"],
-        io,
-        mode: "migrate",
-      }),
-    root,
-  );
-  if (result.code !== 0)
-    throw new Error(result.error || "The exact knowledge migration stage failed.");
+function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pending"] {
+  const stages: Array<{
+    stage: UpgradeStageName;
+    disposition: StageDisposition;
+    reason: string;
+    blockers?: UpgradeStageBlocker[];
+  }> = [
+    {
+      stage: "capabilities",
+      disposition: plan.stages.capabilities.disposition,
+      reason: "capability_migration_pending",
+    },
+    { stage: "workforce", ...plan.stages.workforce },
+    { stage: "terminal_integration", ...plan.stages.terminalIntegration },
+    { stage: "knowledge", ...plan.stages.knowledge },
+    { stage: "node", ...plan.stages.node },
+  ];
+  return stages
+    .filter((stage) => stage.disposition === "pending_authority" || stage.disposition === "blocked")
+    .map((stage) => ({
+      stage: stage.stage,
+      disposition: stage.disposition,
+      reason: stage.reason,
+      blockers: stage.blockers ?? [],
+    }));
 }
 
-async function lintKnowledge(root: string): Promise<{ valid: boolean; issueCount: number }> {
-  const result = await capture(
-    (io) => runKnowledgeCommand(["lint", "--root", root, "--json"], io),
-    root,
-  );
-  const valid = result.code === 0 && result.value?.valid === true;
-  const issues = Array.isArray(result.value?.issues) ? result.value.issues.length : valid ? 0 : 1;
-  if (!valid)
-    throw new Error(result.error || `Repository knowledge lint failed with ${issues} issue(s).`);
-  return { valid, issueCount: issues };
+async function applyRepositoryUpgrade(
+  approved: RepositoryUpgradePlan,
+  roleBindingApprovals: Array<{ operationId: string; approvalHash: string }>,
+): Promise<UpgradeReceipt> {
+  const root = approved.repositoryRoot;
+  const appliedStages: string[] = [];
+  const skippedStages: UpgradeReceipt["skippedStages"] = [];
+
+  if (approved.stages.capabilities.disposition === "safe_apply") {
+    const capabilityPlan = await createCapabilityMigrationPlan(root);
+    if (capabilityPlan.planId !== approved.stages.capabilities.planId)
+      throw new Error("The capability migration plan changed before apply.");
+    await applyCapabilityMigration(capabilityPlan);
+    appliedStages.push("capabilities");
+  }
+
+  const workforce = await inspectWorkforce(root);
+  if (workforce.disposition === "blocked")
+    skippedStages.push({ stage: "workforce", reason: workforce.reason });
+  else if (
+    workforce.disposition === "safe_apply" ||
+    workforce.disposition === "pending_authority"
+  ) {
+    const migrated = await mutateWorkforceState(root, (recordEvent) =>
+      applyWorkforceRoleBindingMigration({
+        repositoryRoot: root,
+        approval: workforce.planId!,
+        approvedRoleBindings: roleBindingApprovals,
+        recordEvent,
+      }),
+    );
+    if (migrated.migratedAgentCount + migrated.migratedAssignmentCount > 0)
+      appliedStages.push("workforce_role_bindings");
+  }
+
+  if (approved.stages.terminalIntegration.disposition === "safe_apply") {
+    const terminal = await inspectTerminalIntegration(root);
+    if (terminal.stage.planId !== approved.stages.terminalIntegration.planId)
+      throw new Error("The terminal integration plan changed before apply.");
+    await applyTerminalIntegrationStage({
+      repositoryRoot: root,
+      prepared: terminal.prepared,
+      approval: null,
+      now: new Date(),
+    });
+    appliedStages.push("terminal_integration");
+  }
+
+  for (let index = 0; index < approved.policy.maximumKnowledgeStages; index += 1) {
+    const stage = await inspectKnowledge(root);
+    if (stage.disposition !== "safe_apply") break;
+    await applyKnowledgeStage(root, stage);
+    appliedStages.push(stage.planKind);
+    if (index === approved.policy.maximumKnowledgeStages - 1)
+      throw new Error(
+        "The bounded knowledge upgrade did not converge within 16 generated-only stages.",
+      );
+  }
+
+  const postKnowledge = await inspectKnowledge(root);
+  let lint: UpgradeReceipt["knowledgeLint"] = null;
+  const nodeDeferral = deferringPrerequisite("node", { knowledge: postKnowledge.disposition });
+  if (nodeDeferral !== null) {
+    skippedStages.push({ stage: "knowledge_lint", reason: deferralReason(nodeDeferral) });
+    skippedStages.push({ stage: "node", reason: deferralReason(nodeDeferral) });
+  } else {
+    lint = await lintKnowledge(root);
+    const node = await inspectRegisteredNodeUpgrade(root, approved.projectId, approved.cli.version);
+    if (node.stage.disposition === "safe_apply") {
+      await applyRegisteredNodeUpgrade(node);
+      appliedStages.push("repository_node");
+    }
+  }
+
+  const final = await createRepositoryUpgradePlan(root);
+  return {
+    schemaVersion: 1,
+    operation: "repository_upgrade",
+    approvedPlanId: approved.planId,
+    status: final.status,
+    appliedStages,
+    skippedStages,
+    knowledgeLint: lint,
+    nextPlanId: final.status === "current" ? null : final.planId,
+    pending: pendingStages(final),
+    cliAcquisition: "outside_repository_upgrade",
+  };
 }
 
 export async function runUpgradeCommand(args: string[], io: CliIo): Promise<number> {
@@ -377,22 +358,20 @@ export async function runUpgradeCommand(args: string[], io: CliIo): Promise<numb
   const root = resolve(io.cwd, values.root ?? ".");
   try {
     const roleBindingApprovals = parseRoleBindingApprovals(values["approve-role-binding"]);
-    const initial = await createInternalUpgradePlan(root);
+    const initial = await createRepositoryUpgradePlan(root);
     if (!values.apply) {
-      io.stdout(
-        values.json
-          ? `${JSON.stringify(initial.publicPlan, null, 2)}\n`
-          : formatUpgradePlan(initial.publicPlan),
-      );
-      return initial.publicPlan.status === "blocked" ? 1 : 0;
+      io.stdout(values.json ? `${JSON.stringify(initial, null, 2)}\n` : formatUpgradePlan(initial));
+      return initial.status === "blocked" ? 1 : 0;
     }
-    if (values.approval !== initial.publicPlan.planId)
+    if (values.approval !== initial.planId)
       throw new Error("--approval must equal the exact current repository upgrade plan ID.");
-    if (initial.publicPlan.status === "blocked")
-      throw new Error("The current repository upgrade plan is blocked and cannot be applied.");
+    if (initial.status === "blocked" && initial.applicableStages.length === 0)
+      throw new Error(
+        "The current repository upgrade plan is blocked and has no independent stage to apply.",
+      );
     for (const approval of roleBindingApprovals) {
       if (
-        !initial.publicPlan.stages.workforce.requiredApprovals.some(
+        !initial.stages.workforce.requiredApprovals.some(
           (required) =>
             required.operationId === approval.operationId &&
             required.approvalHash === approval.approvalHash,
@@ -400,139 +379,23 @@ export async function runUpgradeCommand(args: string[], io: CliIo): Promise<numb
       )
         throw new Error("A workforce role-binding approval is not in the approved upgrade plan.");
     }
-
-    const appliedStages: string[] = [];
-    if (initial.publicPlan.stages.capabilities.disposition === "safe_apply") {
-      const capabilityPlan = await createCapabilityMigrationPlan(initial.publicPlan.repositoryRoot);
-      if (capabilityPlan.planId !== initial.publicPlan.stages.capabilities.planId)
-        throw new Error("The capability migration plan changed before apply.");
-      await applyCapabilityMigration(capabilityPlan);
-      appliedStages.push("capabilities");
-    }
-
-    const workforce = await inspectWorkforce(initial.publicPlan.repositoryRoot);
-    if (workforce.disposition === "blocked")
-      throw new Error(`Workforce role-binding migration is blocked (${workforce.reason}).`);
-    if (workforce.disposition === "safe_apply" || workforce.disposition === "pending_authority") {
-      const migrated = await mutateWorkforceState(
-        initial.publicPlan.repositoryRoot,
-        (recordEvent) =>
-          applyWorkforceRoleBindingMigration({
-            repositoryRoot: initial.publicPlan.repositoryRoot,
-            approval: workforce.planId!,
-            approvedRoleBindings: roleBindingApprovals,
-            recordEvent,
-          }),
-      );
-      if (migrated.migratedAgentCount + migrated.migratedAssignmentCount > 0)
-        appliedStages.push("workforce_role_bindings");
-    }
-
-    for (let index = 0; index < initial.publicPlan.policy.maximumKnowledgeStages; index += 1) {
-      const stage = await inspectKnowledge(initial.publicPlan.repositoryRoot);
-      if (stage.disposition !== "safe_apply") break;
-      await applyKnowledgeStage(initial.publicPlan.repositoryRoot, stage);
-      appliedStages.push(stage.planKind);
-      if (index === initial.publicPlan.policy.maximumKnowledgeStages - 1)
-        throw new Error(
-          "The bounded knowledge upgrade did not converge within 16 generated-only stages.",
-        );
-    }
-
-    const postKnowledge = await inspectKnowledge(initial.publicPlan.repositoryRoot);
-    if (postKnowledge.disposition === "blocked")
-      throw new Error(`Repository knowledge upgrade is blocked (${postKnowledge.reason}).`);
-    const lint = await lintKnowledge(initial.publicPlan.repositoryRoot);
-    const node = await inspectRegisteredNodeUpgrade(
-      initial.publicPlan.repositoryRoot,
-      initial.publicPlan.projectId,
-      initial.publicPlan.cli.version,
-    );
-    if (node.stage.disposition === "safe_apply") {
-      await applyRegisteredNodeUpgrade(node);
-      appliedStages.push("repository_node");
-    }
-
-    const final = await createInternalUpgradePlan(initial.publicPlan.repositoryRoot);
-    const receipt = {
-      schemaVersion: 1,
-      operation: "repository_upgrade",
-      approvedPlanId: initial.publicPlan.planId,
-      status: final.publicPlan.status,
-      appliedStages,
-      knowledgeLint: lint,
-      nextPlanId: final.publicPlan.status === "current" ? null : final.publicPlan.planId,
-      pending: [
-        final.publicPlan.stages.capabilities,
-        final.publicPlan.stages.workforce,
-        final.publicPlan.stages.knowledge,
-        final.publicPlan.stages.node,
-      ]
-        .filter(
-          (stage) => stage.disposition === "pending_authority" || stage.disposition === "blocked",
-        )
-        .map((stage) => ({
-          disposition: stage.disposition,
-          reason: "reason" in stage ? stage.reason : "capability_migration_pending",
-        })),
-      cliAcquisition: "outside_repository_upgrade",
-    };
+    const receipt = await applyRepositoryUpgrade(initial, roleBindingApprovals);
     io.stdout(
       values.json ? `${JSON.stringify(receipt, null, 2)}\n` : formatUpgradeReceipt(receipt),
     );
-    return final.publicPlan.status === "blocked" ? 1 : 0;
+    return receipt.status === "blocked" ? 1 : 0;
   } catch (error) {
-    const code =
-      error !== null &&
-      typeof error === "object" &&
-      "code" in error &&
-      typeof error.code === "string"
-        ? ` (${error.code})`
-        : "";
-    io.stderr(
-      `Repository upgrade failed${code}: ${error instanceof Error ? error.message : String(error)}\n`,
-    );
+    writeCommandError(io, error, {
+      json: values.json === true,
+      prefix: `Repository upgrade failed${
+        error !== null &&
+        typeof error === "object" &&
+        "code" in error &&
+        typeof error.code === "string"
+          ? ` (${error.code})`
+          : ""
+      }: `,
+    });
     return 1;
   }
-}
-
-export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
-  const lines = [
-    `Repository upgrade: ${plan.status}`,
-    `plan: ${plan.planId}`,
-    `CLI: ${plan.cli.version} · ${plan.cli.buildHash}`,
-    `capabilities: ${plan.stages.capabilities.disposition}`,
-    `workforce role bindings: ${plan.stages.workforce.disposition} (${plan.stages.workforce.reason})`,
-    `knowledge: ${plan.stages.knowledge.disposition} (${plan.stages.knowledge.reason})`,
-    `repository Node: ${plan.stages.node.disposition} (${plan.stages.node.reason})`,
-  ];
-  for (const approval of plan.stages.workforce.requiredApprovals)
-    lines.push(
-      `  role approval: ${approval.roleId}@${approval.roleVersion} · ${approval.operationId}=${approval.approvalHash}`,
-    );
-  if (plan.status === "ready" && plan.stages.workforce.requiredApprovals.length === 0)
-    lines.push(`Re-run with --apply --approval ${plan.planId}.`);
-  if (plan.stages.workforce.requiredApprovals.length > 0)
-    lines.push(
-      `Apply the displayed role decision with --apply --approval ${plan.planId} ${plan.stages.workforce.requiredApprovals
-        .map(
-          (approval) => `--approve-role-binding ${approval.operationId}=${approval.approvalHash}`,
-        )
-        .join(" ")}.`,
-    );
-  if (plan.status === "pending_authority")
-    lines.push(
-      "A user-owned or provider-owned boundary requires its separately displayed exact approval before the upgrade can become current.",
-    );
-  lines.push("CLI package acquisition is outside this repository-upgrade plan.");
-  return `${lines.join("\n")}\n`;
-}
-
-function formatUpgradeReceipt(receipt: {
-  status: string;
-  appliedStages: string[];
-  nextPlanId: string | null;
-  pending: Array<{ reason: string }>;
-}): string {
-  return `Repository upgrade: ${receipt.status}\napplied: ${receipt.appliedStages.length === 0 ? "none" : receipt.appliedStages.join(", ")}\n${receipt.nextPlanId === null ? "" : `next plan: ${receipt.nextPlanId}\n`}${receipt.pending.map((item) => `pending: ${item.reason}`).join("\n")}${receipt.pending.length === 0 ? "" : "\n"}`;
 }
