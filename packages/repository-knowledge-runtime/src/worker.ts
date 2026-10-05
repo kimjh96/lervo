@@ -17,6 +17,10 @@ import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceRecoveryStatus } from "./recovery-status.js";
 import { runDocumentFreshnessCycle, type DocumentFreshnessCycleResult } from "./freshness-stage.js";
 import { documentFreshnessMayRun } from "./freshness-convergence-gate.js";
+import {
+  runInstructionCaptureCycle,
+  type InstructionCaptureCycleResult,
+} from "./instruction-capture-stage.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
 
 /** A live materialization owns the repository; the cycle yields like a held worker lock. */
@@ -53,6 +57,7 @@ export async function runAutonomousKnowledgeWorker(input: {
       outcomes: RepositoryKnowledgeJobOutcome[];
       convergence: KnowledgeConvergenceStatus;
       freshness?: DocumentFreshnessCycleResult;
+      instructionCapture?: InstructionCaptureCycleResult;
     }
 > {
   const root = input.storage.paths.repositoryRoot;
@@ -80,6 +85,19 @@ export async function runAutonomousKnowledgeWorker(input: {
       repositoryRoot: root,
       events: input.storage.events,
     });
+    // Owner-turn capture (ADR-0466) runs first: it is small, bounded per cycle, and its result is
+    // what the next prompt shows. Its failure leaves the queue for a later cycle and blocks nothing.
+    const instructionCapture: InstructionCaptureCycleResult = await runInstructionCaptureCycle({
+      storage: input.storage,
+      provider: input.provider,
+      ...(input.executable === undefined ? {} : { executable: input.executable }),
+      ...(input.admissionDirectory === undefined
+        ? {}
+        : { admissionDirectory: input.admissionDirectory }),
+      signal: context.signal,
+      liveWorkPending: context.liveWorkPending,
+      now: () => new Date(),
+    }).catch((): InstructionCaptureCycleResult => ({ status: "unavailable" }));
     // Live work or a paused provider leaves change jobs queued instead of spending their attempts.
     const outcomes = (await changeReviewDeferred(context))
       ? []
@@ -109,7 +127,11 @@ export async function runAutonomousKnowledgeWorker(input: {
       // Another process's transaction can begin while discovery reads knowledge currency.
       if ((error as { code?: unknown } | null)?.code !== "knowledge_recovery_required") throw error;
       if ((await materializationTransactionState(root)) === "recovery_required")
-        return { outcomes, convergence: convergenceRecoveryStatus(input.storage) };
+        return {
+          outcomes,
+          convergence: convergenceRecoveryStatus(input.storage),
+          instructionCapture,
+        };
       return MATERIALIZATION_BUSY;
     }
     // Freshness runs after intake and convergence (ADR-0463) and only while convergence is parked,
@@ -129,7 +151,7 @@ export async function runAutonomousKnowledgeWorker(input: {
           },
         }).catch((): DocumentFreshnessCycleResult => ({ status: "unavailable" }))
       : { status: "yielded" };
-    return { outcomes, convergence, freshness };
+    return { outcomes, convergence, freshness, instructionCapture };
   });
   if (result.status === "busy" || result.result === MATERIALIZATION_BUSY) return { status: "busy" };
   return { status: "processed", ...result.result };

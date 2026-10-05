@@ -122,6 +122,19 @@ function freshnessObservation(root: string): unknown {
   return { findingsDigest, holds: entries };
 }
 
+/** ADR-0466: a newly queued owner turn wakes the resident; names only, never the turn text. */
+function instructionCaptureQueueNames(root: string): string[] {
+  try {
+    return readdirSync(resolve(root, KNOWLEDGE_STATE, "instruction-capture", "queue"))
+      .filter((name) => name.endsWith(".json"))
+      .sort()
+      .slice(0, 1_024);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+}
+
 /**
  * The cheap change fence of ADR-0461. Any read failure propagates so the caller runs a full cycle;
  * equality proves only that the observed inputs did not change, never document currency.
@@ -146,6 +159,7 @@ export function convergenceRepositoryDigest(root: string): string {
       candidates: sha256(canonicalJson(candidateMetadata(root))),
       materialization: metadata(resolve(root, KNOWLEDGE_STATE, "materialization-transaction")),
       freshness: freshnessObservation(root),
+      instructionCapture: instructionCaptureQueueNames(root),
     }),
   );
 }

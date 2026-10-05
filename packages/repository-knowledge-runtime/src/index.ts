@@ -35,3 +35,20 @@ export {
   type DocumentFreshnessStatusReport,
 } from "./freshness-review.js";
 export { assertFreshnessEventsWritable } from "./freshness-events.js";
+export {
+  enqueueInstructionCapture,
+  readPrecedingAgentTurn,
+  recordPrecedingAgentTurn,
+  listQueuedInstructionCaptures,
+  type InstructionCaptureEnqueueResult,
+} from "./instruction-capture-queue.js";
+export {
+  dismissHeldCapture,
+  readInstructionCaptureState,
+  type HeldCapture,
+  type InstructionCaptureState,
+} from "./instruction-capture-state.js";
+export {
+  runInstructionCaptureCycle,
+  type InstructionCaptureCycleResult,
+} from "./instruction-capture-stage.js";
