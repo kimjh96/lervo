@@ -16,6 +16,7 @@ import { createConvergenceRuntimeHost, assertConvergenceSource } from "./host.js
 import { knowledgeProviderAdmissionState } from "./provider-admission.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceRecoveryStatus } from "./recovery-status.js";
+import { runDocumentFreshnessCycle, type DocumentFreshnessCycleResult } from "./freshness-stage.js";
 import { compactConvergenceWorkforce } from "./workforce-retention.js";
 import { compactConvergenceWorkspaces } from "./workspace-retention.js";
 
@@ -47,6 +48,7 @@ export async function runAutonomousKnowledgeWorker(input: {
       status: "processed";
       outcomes: RepositoryKnowledgeJobOutcome[];
       convergence: KnowledgeConvergenceStatus;
+      freshness?: DocumentFreshnessCycleResult;
     }
 > {
   const root = input.storage.paths.repositoryRoot;
@@ -99,7 +101,21 @@ export async function runAutonomousKnowledgeWorker(input: {
         delegation?.delegation.resourceCeilings.maximumStages ?? 8,
       ),
     });
-    return { outcomes, convergence };
+    // Freshness is the stage after intake and convergence (ADR-0463); its failure never blocks them.
+    const freshness = await runDocumentFreshnessCycle({
+      context: {
+        storage: input.storage,
+        provider: input.provider,
+        ...(input.executable === undefined ? {} : { executable: input.executable }),
+        ...(input.admissionDirectory === undefined
+          ? {}
+          : { admissionDirectory: input.admissionDirectory }),
+        signal: context.signal,
+        liveWorkPending: context.liveWorkPending,
+        now: () => new Date(),
+      },
+    }).catch((): DocumentFreshnessCycleResult => ({ status: "unavailable" }));
+    return { outcomes, convergence, freshness };
   });
   return result.status === "busy" ? result : { status: "processed", ...result.result };
 }

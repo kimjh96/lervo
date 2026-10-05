@@ -18,3 +18,20 @@ export {
   applyConvergenceDelegationPlan,
   type ConvergenceDelegationPlan,
 } from "./delegation-plan.js";
+export { runDocumentFreshnessCycle, type DocumentFreshnessCycleResult } from "./freshness-stage.js";
+export { applyFreshnessCandidateByOwner } from "./freshness-apply.js";
+export { DocumentFreshnessOperationError } from "./freshness-document-io.js";
+export { revertFreshnessCandidate } from "./freshness-revert.js";
+export {
+  acknowledgeFreshnessCandidate,
+  documentFreshnessAttentionSources,
+  documentFreshnessSummary,
+  inspectDocumentFreshnessStatus,
+  listDocumentFreshnessReview,
+  rejectFreshnessCandidate,
+  renderDocumentFreshnessDiff,
+  requireFreshnessCandidate,
+  withDocumentFreshnessOwnerLock,
+  type DocumentFreshnessStatusReport,
+} from "./freshness-review.js";
+export { assertFreshnessEventsWritable } from "./freshness-events.js";

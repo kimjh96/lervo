@@ -19,7 +19,7 @@ export const KNOWLEDGE_OUTPUT_COMMIT_AUTHOR = {
 };
 // Lervo both authors and commits its own outputs, so the commit never depends on a developer or
 // runner identity; without one, `git commit` fails before writing anything.
-const KNOWLEDGE_OUTPUT_COMMIT_IDENTITY = {
+export const KNOWLEDGE_OUTPUT_COMMIT_IDENTITY = {
   GIT_AUTHOR_NAME: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name,
   GIT_AUTHOR_EMAIL: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email,
   GIT_COMMITTER_NAME: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name,
@@ -50,7 +50,7 @@ async function headBlob(root: string, path: string): Promise<Buffer | null> {
 }
 
 /** Commit only on a normal branch with no Git operation or concurrent index writer. */
-async function commitSafe(root: string): Promise<boolean> {
+export async function knowledgeOutputCommitSafe(root: string): Promise<boolean> {
   try {
     await git(root, ["symbolic-ref", "-q", "HEAD"]);
   } catch {
@@ -188,7 +188,7 @@ export async function commitSettledKnowledgeOutputs(input: {
   obligationId: string;
 }): Promise<{ committed: string[]; head: { before: string; after: string } | null }> {
   const root = input.repositoryRoot;
-  if (!(await commitSafe(root))) return { committed: [], head: null };
+  if (!(await knowledgeOutputCommitSafe(root))) return { committed: [], head: null };
   const paths = await settledKnowledgeOutputPaths(input);
   if (!paths.length) return { committed: [], head: null };
   const before = (await git(root, ["rev-parse", "HEAD"])).trim();
