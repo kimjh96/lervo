@@ -429,3 +429,39 @@ setInterval(() => {}, 1000);
     });
   }
 });
+
+describe("Codex provider failure events", () => {
+  it("reports a capacity failure as a provider failure, not a capability violation", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-codex-provider-failure-"));
+    roots.push(root);
+    const executable = resolve(root, "codex-capacity-fixture.mjs");
+    await writeFile(
+      executable,
+      `#!/usr/bin/env node
+const args = process.argv.slice(2);
+if (args.includes("--version")) { console.log("codex-capacity-fixture 1.0.0"); process.exit(0); }
+if (args[0] === "debug") { console.log("[]"); process.exit(0); }
+for await (const _chunk of process.stdin) {}
+console.log(JSON.stringify({ type: "thread.started" }));
+console.log(JSON.stringify({ type: "turn.started" }));
+console.log(JSON.stringify({ type: "error", message: "PRIVATE_PROVIDER_TEXT model is at capacity" }));
+console.log(JSON.stringify({ type: "turn.failed", error: { message: "PRIVATE_PROVIDER_TEXT" } }));
+`,
+      { mode: 0o700 },
+    );
+    await chmod(executable, 0o700);
+    const runner = await createNoCapabilityProviderJsonRunner({
+      provider: "codex",
+      executable,
+      timeoutMs: 5_000,
+    });
+    const failure = await runner
+      .resolve({ responseContract: { schemaVersion: 1, schema: { type: "object" } } })
+      .catch((error: unknown) => error);
+    expect(failure).toMatchObject({
+      code: "knowledge_compile_failed",
+      providerReportedFailure: true,
+    });
+    expect(String(failure)).not.toContain("PRIVATE_PROVIDER_TEXT");
+  });
+});

@@ -13,6 +13,7 @@ import {
 } from "./terminal-event-coordinates.js";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
 import { parseTerminalHookInput } from "./terminal-hook-input.js";
+import { queueTerminalOwnerTurn, settleTerminalAgentTurn } from "./terminal-instruction-capture.js";
 import { inspectTerminalLifecycle } from "./terminal-lifecycle-inspection.js";
 import { prepareTerminalPromptContext } from "./terminal-prompt-context.js";
 import { resolveTerminalRepositoryRoot } from "./terminal-repository-root.js";
@@ -148,6 +149,18 @@ export async function runTerminalHookCommand(
               observationEventId,
             });
           });
+          // ADR-0467: queue the owner's turn for background semantic capture. A queue failure
+          // loses only this capture; it never blocks or delays the prompt.
+          await timing.measure("event_commit", () =>
+            queueTerminalOwnerTurn({
+              root,
+              provider,
+              providerSessionId: input.providerSessionId,
+              prompt: input.prompt!,
+              workspaceBinding,
+              now: new Date(occurredAt),
+            }).catch(() => false),
+          );
           await recordTerminalStageObservation({
             root,
             coordinates,
@@ -220,8 +233,18 @@ export async function runTerminalHookCommand(
           occurredAt,
         }),
       );
+      const capture = await timing.measure("event_commit", () =>
+        settleTerminalAgentTurn({
+          root,
+          provider,
+          providerSessionId: input.providerSessionId,
+          lastAssistantMessage: input.lastAssistantMessage,
+          workspaceBinding: expectation.workspaceBinding,
+          now: new Date(occurredAt),
+        }).catch(() => ({ capturePending: false })),
+      );
       const hookRuntime = process.env.LERVO_TERMINAL_HOOK_RUNTIME;
-      if (observation.knowledgeJobQueued && hookRuntime !== undefined)
+      if ((observation.knowledgeJobQueued || capture.capturePending) && hookRuntime !== undefined)
         launchDetachedKnowledgeWorker({
           root,
           entry: hookRuntime,

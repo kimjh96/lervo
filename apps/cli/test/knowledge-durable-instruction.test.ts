@@ -12,7 +12,9 @@ import {
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { DURABLE_INSTRUCTION_GROUNDING_TIMEOUT_MS } from "../src/durable-instruction-grounding.js";
 import { runCli } from "../src/main.js";
+import { GroundProductionRequestError } from "../src/semantic-grounding.js";
 
 const roots: string[] = [];
 
@@ -297,5 +299,78 @@ describe("explicit durable-instruction intake", () => {
       code: "ENOENT",
     });
     expect(await listDurableInstructionCandidates(root)).toHaveLength(1);
+  });
+
+  it("applies a candidate after unrelated sources change, bound to its instruction catalog", async () => {
+    const root = await repository();
+    const created = await intake(root, "Always use Conventional Commits in this repository.");
+    const candidate = (
+      JSON.parse(created.stdout) as {
+        candidate: {
+          candidateId: string;
+          candidateHash: string;
+          targetPath: string;
+          instructionCatalogDigest?: string;
+        };
+      }
+    ).candidate;
+    expect(candidate.instructionCatalogDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    await writeFile(resolve(root, "README.md"), "# A later, unrelated change\n");
+    const errors: string[] = [];
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "instruction",
+          "review",
+          candidate.candidateId,
+          "--decision",
+          "apply",
+          "--reviewer",
+          "repository-owner",
+          "--approval",
+          candidate.candidateHash,
+        ],
+        { cwd: root, stdout: () => undefined, stderr: (message) => errors.push(message) },
+      ),
+      errors.join(""),
+    ).toBe(0);
+    await expect(access(resolve(root, candidate.targetPath))).resolves.toBeUndefined();
+  });
+
+  it("reports why semantic resolution failed instead of a bare failure", async () => {
+    const root = await repository();
+    let observedTimeout: number | undefined;
+    const stdout: string[] = [];
+    expect(
+      await runCli(
+        ["knowledge", "instruction", "intake", "--provider", "claude", "--stdin", "--json"],
+        {
+          cwd: root,
+          stdout: (message) => stdout.push(message),
+          stderr: () => undefined,
+          stdin: async () =>
+            JSON.stringify({ schemaVersion: 1, request: "Never restrict work to one host." }),
+        },
+        {
+          groundProductionRequest: async (input) => {
+            observedTimeout = input.timeoutMs;
+            throw new GroundProductionRequestError(
+              Object.assign(new Error("The provider JSON runner did not complete (timed_out)."), {
+                code: "knowledge_compile_failed",
+                processStatus: "timed_out",
+              }),
+            );
+          },
+        },
+      ),
+    ).toBe(1);
+    expect(observedTimeout).toBe(DURABLE_INSTRUCTION_GROUNDING_TIMEOUT_MS);
+    expect(DURABLE_INSTRUCTION_GROUNDING_TIMEOUT_MS).toBeGreaterThanOrEqual(60_000);
+    expect(JSON.parse(stdout.join(""))).toMatchObject({
+      status: "ignored",
+      reasonIds: ["semantic_resolution_failed", "semantic_resolution_provider_timed_out"],
+      candidate: null,
+    });
   });
 });

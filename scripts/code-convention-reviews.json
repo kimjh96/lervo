@@ -67,9 +67,9 @@
     },
     {
       "path": "apps/node-runtime/src/discord-conversation-mode.ts",
-      "contentHash": "sha256:10c96d6352421ecc918e750ca4f4a1d491976078763c5ef1d626739e746c0673",
+      "contentHash": "sha256:0614a54a052f6720a92b214ac7b5f2b5e44a78b3d9ad3790d8123a2dfe6842ff",
       "responsibility": "Natural-language Discord conversation mode routing",
-      "rationale": "The class resolves one conversation event to a mode and dispatches its response through injected ports. Discussion eligibility, effect admission, intent conversion, and discussion response policy remain in dedicated modules; this boundary only selects the current event's available effects, caches its resolution, and routes the admitted result.",
+      "rationale": "The class resolves one conversation event to a mode and dispatches its response through injected ports. Discussion eligibility, effect admission, intent conversion, and discussion response policy remain in dedicated modules; this boundary only selects the current event's available effects, caches its resolution, and routes the admitted result. ADR-0467 owner-turn capture is an injected port that only queues the turn.",
       "disposition": "cohesive"
     },
     {
@@ -137,23 +137,23 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:e578632d9f874d52da9d1dd7722adade73219b9eb7208637cb4cd77c4c5967be",
+      "contentHash": "sha256:5dc1c5765760aaeb0642936fdddde9212e01486f3ec87b9cdc08c272dd14fd45",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, ADR-0459 and ADR-0460 attribution, and ADR-0463 document freshness allowlists only map hash-only payloads to their schemas; the convergence and freshness lists live in their own modules, and none adds provider work, authority decisions or persistence.",
+      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, owner-lease, ADR-0459 and ADR-0460 attribution, ADR-0463 freshness, and ADR-0467 capture allowlists only map hash-only payloads to their schemas; the convergence, freshness, and capture lists live in their own modules, and none adds provider work, authority decisions or persistence.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/hub-sync-sqlite/src/migrations.ts",
-      "contentHash": "sha256:7c269db41bb64b7f472b4c994c2c4a87e2b2ae2812ad4baab785db2b1e4f5692",
+      "contentHash": "sha256:c2cd7b885b94e4f64e6a81e0ea2a073877760e175d5e312e15094cd2b6a0376d",
       "responsibility": "Hub synchronization SQLite schema migration",
-      "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy.",
+      "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy. The ADR-0466 owner lease and ADR-0467 instruction candidate tables are additive migrations.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:b6d7cb50b7bc3f346e7a03c6be6d31ffac9cecfedc116aa469a2dd8fb8b5e542",
+      "contentHash": "sha256:59f64c4cccd38c495c49f39fe2eafdee82c5f99ca5f251c943d60afd7e571b38",
       "responsibility": "Hub synchronization SQLite store",
-      "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store.",
+      "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store. Owner-lease and instruction-candidate methods only open a transaction around their own repositories.",
       "disposition": "cohesive"
     },
     {
@@ -193,9 +193,9 @@
     },
     {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:e175990083e54951e0d94108ae815908e75ed19b2847ff8ad564a2d4f0cc2d6a",
+      "contentHash": "sha256:65091ecda32ac3720fd14a962af7b5e04341b3dbe841e461dc871b6faa37922a",
       "responsibility": "Isolated no-capability provider process adapter",
-      "rationale": "The module implements one isolated no-capability process boundary for both existing providers, including native structured JSON output. Native availability failure translation is extracted and shared by the three JSON workflows; host admission, persistent budgets, source policy and document effects remain outside this adapter. Common tests cover schema delivery, exact structured response extraction, no tools, usage, cancellation and timeout.",
+      "rationale": "One isolated no-capability process boundary for both providers, including native structured JSON output. Shared availability translation serves the three JSON workflows, and Codex failure events become typed provider failures without provider text; host admission, budgets, source policy and document effects stay outside. Common tests cover schema delivery, structured extraction, no tools, usage, cancellation and timeout.",
       "disposition": "cohesive"
     },
     {
@@ -361,9 +361,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:d6cae9a759c3b25a8f1bd2d7e668ab612f6d46445bc9b5c9c3b403b9222ec5de",
+      "contentHash": "sha256:58b3e5699bff540a0f96011eb31e787a293afae92e91cb9346d6b1d8e001a6db",
       "responsibility": "Repository schema validator registry",
-      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, and repository replica event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry. The ADR-0463 document freshness event payload validators are compiled from their own schema module.",
+      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, repository replica, and convergence-owner event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry. The ADR-0463 document freshness and ADR-0467 instruction capture event payload validators are compiled from their own schema modules.",
       "disposition": "cohesive"
     },
     {

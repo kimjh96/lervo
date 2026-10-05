@@ -1,4 +1,8 @@
-import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
+import {
+  canonicalJson,
+  groundedDurableInstructionSchema,
+  sha256,
+} from "@lervo/repository-knowledge";
 import {
   createNoCapabilityProviderJsonRunner,
   type NoCapabilityProviderJsonRunner,
@@ -135,67 +139,7 @@ const groundingResponseSchema = {
     },
     disposition: { type: "string", enum: groundingDispositions },
     ambiguityReasons: identifierArray(16),
-    durableInstruction: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        disposition: { type: "string", enum: ["none", "workstream", "canonical", "pending"] },
-        speechAct: {
-          type: "string",
-          enum: [
-            "directive",
-            "example",
-            "quotation",
-            "hypothetical",
-            "complaint",
-            "question",
-            "other",
-          ],
-        },
-        authority: { type: "string", enum: ["explicit_user", "inferred"] },
-        durability: { type: "string", enum: ["turn", "workstream", "repository", "unspecified"] },
-        operation: { type: "string", enum: ["none", "add", "replace", "remove"] },
-        scope: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            kind: { type: "string", enum: ["repository", "paths", "unspecified"] },
-            paths: {
-              type: "array",
-              maxItems: 16,
-              items: { type: "string", minLength: 1, maxLength: 500 },
-            },
-          },
-          required: ["kind", "paths"],
-        },
-        title: { type: ["string", "null"], maxLength: 160 },
-        statement: { type: ["string", "null"], maxLength: 2000 },
-        exceptions: {
-          type: "array",
-          maxItems: 16,
-          items: { type: "string", minLength: 1, maxLength: 512 },
-        },
-        risk: { type: "string", enum: ["low", "high", "unknown"] },
-        conflict: { type: "string", enum: ["none", "covered", "possible", "unknown"] },
-        confidence: { type: "string", enum: ["high", "medium", "low"] },
-        reasonIds: identifierArray(8),
-      },
-      required: [
-        "disposition",
-        "speechAct",
-        "authority",
-        "durability",
-        "operation",
-        "scope",
-        "title",
-        "statement",
-        "exceptions",
-        "risk",
-        "conflict",
-        "confidence",
-        "reasonIds",
-      ],
-    },
+    durableInstruction: groundedDurableInstructionSchema,
   },
   required: bodyKeys,
 } as const;
@@ -219,6 +163,7 @@ const groundingInstruction = [
   "Classify durableInstruction semantically in the same pass. Use canonical only for one explicit user-authored directive that clearly establishes a low-risk repository-long rule, adds rather than replaces or removes behavior, has unambiguous repository or path scope, has no conflict with the supplied canonical-instruction catalog, and has high confidence.",
   "Examples, quotations, hypotheticals, questions, complaints, descriptive reports, current-task commands, inferred preferences, ambiguous scope, possible conflicts, high-risk policy, replacements, and removals must never be canonical. Route temporary directives to workstream, risky or ambiguous durable proposals to pending, and non-rules to none.",
   "Normalize only the durable rule itself into title, statement, scope, and exceptions. Do not copy conversation prose or include prompt text. Repetition or provider agreement never creates user authority.",
+  "A directive the user states while working in this repository that governs how agents work here, without naming narrower paths, has repository scope. Use unspecified scope only when the user leaves open which repository or which part of the repository the rule governs. Judge scope from meaning in any language, not from particular words.",
   "If the supplied canonical-instruction catalog is incomplete, or if its entries cover or may conflict with the proposed rule, use pending or none rather than canonical.",
   "Use current_provider_only unless one deliberation workflow explicitly permits cross-provider routing and the request authorizes it. Never silently switch providers.",
   "Return exactly one raw JSON object with the response fields and no Markdown or commentary.",
@@ -292,12 +237,49 @@ export async function createProcessGroundingResolver(
   };
 }
 
+/**
+ * Why semantic resolution failed, without request text, provider output, or raw errors:
+ * `provider_timed_out` (the provider process exceeded its bound), `provider_unavailable`
+ * (quota, authentication, capacity, or another provider-reported failure), `provider_process_failed` (spawn, exit, cancellation, or
+ * output limit), `proposal_invalid` (the response failed the contract or request binding), and
+ * `resolver_failed` (any other adapter failure).
+ */
+export type SemanticResolutionFailureStage =
+  | "provider_timed_out"
+  | "provider_unavailable"
+  | "provider_process_failed"
+  | "proposal_invalid"
+  | "resolver_failed";
+
+function failureStage(cause: unknown): SemanticResolutionFailureStage {
+  if (cause instanceof TypeError) return "proposal_invalid";
+  if (typeof cause !== "object" || cause === null) return "resolver_failed";
+  const failure = cause as {
+    code?: unknown;
+    processStatus?: unknown;
+    providerReportedFailure?: unknown;
+  };
+  if (failure.code === "knowledge_provider_paused" || failure.providerReportedFailure === true)
+    return "provider_unavailable";
+  if (failure.processStatus === "timed_out") return "provider_timed_out";
+  if (typeof failure.processStatus === "string") return "provider_process_failed";
+  if (failure.code === "knowledge_compile_failed") return "proposal_invalid";
+  return "resolver_failed";
+}
+
 export class GroundProductionRequestError extends Error {
   readonly code = "semantic_resolution_failed";
+  readonly failureStage: SemanticResolutionFailureStage;
 
   constructor(cause: unknown) {
     super("The current provider did not return a valid semantic grounding proposal.", { cause });
     this.name = "GroundProductionRequestError";
+    this.failureStage = failureStage(cause);
+  }
+
+  /** Bounded reason IDs: the stable adapter failure plus the stage that produced it. */
+  get reasonIds(): string[] {
+    return ["semantic_resolution_failed", `semantic_resolution_${this.failureStage}`];
   }
 }
 

@@ -555,6 +555,13 @@ function parseCodexOutput<
       }
       continue;
     }
+    // Codex reports capacity, quota, and model failures as `error` and `turn.failed` events. They
+    // are provider failures, not capability violations; the provider's message is not retained.
+    if (event.type === "error" || event.type === "turn.failed") {
+      throw Object.assign(compileFailure("The Codex run reported a provider failure."), {
+        providerReportedFailure: true,
+      });
+    }
     if (!["thread.started", "turn.started", "turn.completed"].includes(String(event.type))) {
       throw policyFailure("An event outside the contract was observed during the Codex run.");
     }

@@ -15,6 +15,7 @@ import {
   runResidentCycle,
 } from "./resident-cycle.js";
 import type { ConvergenceOwnership } from "./convergence-owner.js";
+import type { InstructionCandidateExchangeTransport } from "./instruction-candidate-exchange.js";
 import type { KnowledgePublicationOutcome } from "./knowledge-publication.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import {
@@ -60,6 +61,8 @@ export function startAutonomousKnowledgeWorker(input: {
   ownerHeartbeatMilliseconds?: number;
   /** Publishes the owner's settled commits after each cycle; absent disables publication. */
   publish?: () => Promise<KnowledgePublicationOutcome>;
+  /** ADR-0467 Hub adapter for owner-rule candidates; absent keeps them host-local. */
+  instructionCandidateTransport?: InstructionCandidateExchangeTransport;
 }): () => Promise<void> {
   const base = input.intervalMilliseconds ?? RESIDENT_RECONCILE_BASE_MILLISECONDS;
   if (!Number.isSafeInteger(base) || base < 100 || base > RESIDENT_RECONCILE_BASE_MILLISECONDS)

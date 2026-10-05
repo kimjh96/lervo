@@ -10,6 +10,7 @@ import {
   timestampSchema,
 } from "./common.js";
 import { documentFreshnessEventTypes } from "./document-freshness-event.js";
+import { instructionCaptureEventTypes } from "./instruction-capture-event.js";
 
 export const eventTypesV1 = [
   "run.requested",
@@ -149,6 +150,7 @@ export const eventTypesV4 = [
   "repository.replica.diverged",
   "repository.replica.reconciled",
   ...documentFreshnessEventTypes,
+  ...instructionCaptureEventTypes,
   "knowledge.convergence.owner.changed",
 ] as const;
 export const eventTypes = eventTypesV4;

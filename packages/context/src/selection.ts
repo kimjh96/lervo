@@ -5,7 +5,7 @@ import type { SharedContextPublication } from "@lervo/schemas";
 
 import { ContextSelectionAccumulator } from "./accumulator.js";
 import { assertUniqueHandoffs, indexPublications } from "./collections.js";
-import { candidatesFromRegistry } from "./discovery.js";
+import { candidatesFromRegistry, isGeneratedInstructionPath } from "./discovery.js";
 import { ContextEvidenceCollector, defaultReceiptId } from "./evidence.js";
 import { normalizeRepositoryPath } from "./paths.js";
 import { applyGraphRecommendations } from "./graph-recommendations.js";
@@ -42,7 +42,9 @@ function instructionRuleDocuments(
   instructionDocuments: readonly ContextDocumentCandidate[],
 ): readonly ContextDocumentCandidate[] | undefined {
   if (ruleId === "repository.instructions") {
-    return instructionDocuments.filter((document) => document.path === "AGENTS.md");
+    return instructionDocuments.filter(
+      (document) => document.path === "AGENTS.md" || isGeneratedInstructionPath(document.path),
+    );
   }
   if (ruleId === "path.instructions") {
     return instructionDocuments;

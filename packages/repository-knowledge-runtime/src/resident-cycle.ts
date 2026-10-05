@@ -20,6 +20,11 @@ export function classifyResidentCycle(result: WorkerResult): ResidentCycleResult
       ? "waiting"
       : "attention";
   if (result.status === "busy" || result.outcomes.length > 0) return "processed";
+  if (
+    result.ownerTurns?.instructionCapture.status === "completed" &&
+    result.ownerTurns.instructionCapture.assessedCount > 0
+  )
+    return "processed";
   switch (result.convergence.state) {
     case "idle":
       return "idle";

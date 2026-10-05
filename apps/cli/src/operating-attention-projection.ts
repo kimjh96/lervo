@@ -21,6 +21,10 @@ import {
   type DocumentFreshnessAttentionInput,
 } from "./document-freshness-attention.js";
 import {
+  instructionCaptureAttentionItems,
+  type InstructionCaptureAttentionInput,
+} from "./instruction-capture-attention.js";
+import {
   knowledgeConvergenceAttentionItems,
   type KnowledgeConvergenceAttentionInput,
 } from "./knowledge-convergence-attention.js";
@@ -194,6 +198,8 @@ export function createOperatingAttentionReport(input: {
   repositoryReplicaDivergence?: RepositoryReplicaOpenDivergence | null;
   /** ADR-0463 freshness candidates, applies, and the blocked window; null when unreadable. */
   documentFreshness?: DocumentFreshnessAttentionInput | null;
+  /** ADR-0467 instruction candidates and held owner decisions; null when unreadable. */
+  instructionCapture?: InstructionCaptureAttentionInput | null;
   /** ADR-0466 ownership and publication state; null when unreadable. */
   knowledgeConvergence?: KnowledgeConvergenceAttentionInput | null;
   observedAt: Date;
@@ -234,6 +240,9 @@ export function createOperatingAttentionReport(input: {
         ...(input.documentFreshness === undefined || input.documentFreshness === null
           ? []
           : documentFreshnessAttentionItems(input.documentFreshness)),
+        ...(input.instructionCapture === undefined || input.instructionCapture === null
+          ? []
+          : instructionCaptureAttentionItems(input.instructionCapture)),
         ...(input.knowledgeConvergence === undefined || input.knowledgeConvergence === null
           ? []
           : knowledgeConvergenceAttentionItems(input.knowledgeConvergence)),

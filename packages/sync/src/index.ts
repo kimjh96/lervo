@@ -12,3 +12,4 @@ export * from "./types.js";
 export * from "./worker.js";
 export * from "./workstream-replication.js";
 export * from "./knowledge-convergence-owner-client.js";
+export * from "./knowledge-instruction-candidate-client.js";

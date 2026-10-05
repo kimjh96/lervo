@@ -8,6 +8,7 @@ import { spawn } from "node:child_process";
 import {
   createKnowledgeConvergenceOwnership,
   createKnowledgePublisher,
+  instructionCandidateTransport,
 } from "./knowledge-convergence-ownership.js";
 import { knowledgeWorkerFailureLine } from "./knowledge-worker-failure.js";
 
@@ -39,6 +40,7 @@ export async function runKnowledgeWorker(input: {
       return await runAutonomousKnowledgeWorker({
         storage,
         owner: () => ownership.observe(),
+        instructionCandidateTransport,
         workerId: `cli-${process.pid}`,
         provider: input.provider,
         ...(input.maximumJobs === undefined
@@ -81,6 +83,7 @@ export async function runKnowledgeWorkerCommand(
         workerId: `cli-${process.pid}`,
         provider,
         ownership: createKnowledgeConvergenceOwnership(storage, provider),
+        instructionCandidateTransport,
         publish: createKnowledgePublisher(storage.paths.repositoryRoot),
         onCycle: (result) => io.stdout(`${JSON.stringify(result)}\n`),
         onFailure: (error) =>

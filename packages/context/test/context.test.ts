@@ -878,3 +878,39 @@ describe("context preparation", () => {
     await expect(readRepositoryFile(root, "bounded.md", 5)).resolves.toEqual(Buffer.from("12345"));
   });
 });
+
+describe("applied owner rules (ADR-0467)", () => {
+  it("delivers generated owner rules with repository instructions to every role", async () => {
+    const fixture = await fixtureRepository();
+    const rulePath = `docs/instructions/generated/rule_${"a".repeat(24)}.md`;
+    await mkdir(resolve(fixture.root, "docs/instructions/generated"), { recursive: true });
+    await writeFile(
+      resolve(fixture.root, rulePath),
+      "# Keep both hosts available\n\nNever restrict work to one host.\n",
+    );
+    await writeFile(
+      resolve(fixture.root, "docs/instructions/generated/notes.md"),
+      "# Not a rule\n",
+    );
+    const instructions = await discoverInstructionDocuments({
+      repositoryRoot: fixture.root,
+      registry: fixture.registry,
+      expectedPaths: ["packages/api/src/handler.ts"],
+    });
+    expect(instructions.map((document) => document.path)).toContain(rulePath);
+    expect(instructions.map((document) => document.path)).not.toContain(
+      "docs/instructions/generated/notes.md",
+    );
+    const plan = createContextPlan({
+      ...planInput(fixture),
+      role: fixture.researcher,
+      instructionDocuments: instructions,
+    });
+    expect(plan.documents.map((document) => document.path)).toEqual(
+      expect.arrayContaining(["AGENTS.md", rulePath]),
+    );
+    expect(plan.documents.find((document) => document.path === rulePath)?.documentRole).toBe(
+      "governance_context",
+    );
+  });
+});

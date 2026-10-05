@@ -46,6 +46,7 @@ function formatCandidate(candidate: Awaited<ReturnType<typeof loadDurableInstruc
     `candidate: ${candidate.candidateId}`,
     `candidate hash: ${candidate.candidateHash}`,
     `rule: ${candidate.ruleId}`,
+    `source: ${candidate.captureSource ?? "explicit_intake"}`,
     `target: ${candidate.targetPath}`,
     `proposed content hash: ${candidate.proposedContentHash}`,
     "",
@@ -152,7 +153,7 @@ export async function runKnowledgeDurableInstruction(
       io.stdout(
         parsed.values.json
           ? `${JSON.stringify(result, null, 2)}\n`
-          : `Applied the reviewed durable repository instruction.\nplan: ${result.planId}\ntarget: ${result.targetPath}\nRun the repository knowledge migration and lint lifecycle before completion.\n`,
+          : `Applied the reviewed durable repository instruction.\nplan: ${result.planId}\ntarget: ${result.targetPath}\n${result.commitHash === null ? "" : `commit: ${result.commitHash} (published to every host by the convergence owner)\n`}Run the repository knowledge migration and lint lifecycle before completion.\n`,
       );
       return 0;
     }
@@ -164,5 +165,5 @@ export async function runKnowledgeDurableInstruction(
     );
     return 0;
   }
-  throw new Error("The instruction command supports intake, status, review, and bridge.");
+  throw new Error("The instruction command supports intake, status, review, capture, and bridge.");
 }

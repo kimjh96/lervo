@@ -61,6 +61,12 @@ import {
   documentFreshnessCandidateVerifiedEventPayloadSchema,
   documentFreshnessCycleCompletedEventPayloadSchema,
 } from "./document-freshness-event.js";
+import {
+  conversationKnowledgeCandidateRecordedEventPayloadSchema,
+  knowledgeInstructionCandidateCapturedEventPayloadSchema,
+  knowledgeInstructionCandidateExchangedEventPayloadSchema,
+  knowledgeInstructionCaptureCycleCompletedEventPayloadSchema,
+} from "./instruction-capture-event.js";
 import { knowledgeConvergenceOwnerChangedEventPayloadSchema } from "./knowledge-convergence-owner-event.js";
 import { conversationInboundEventSchema } from "./conversation-event.js";
 import {
@@ -415,6 +421,18 @@ const validators = {
   ),
   documentFreshnessCycleCompletedEventPayload: ajv.compile(
     documentFreshnessCycleCompletedEventPayloadSchema,
+  ),
+  knowledgeInstructionCandidateCapturedEventPayload: ajv.compile(
+    knowledgeInstructionCandidateCapturedEventPayloadSchema,
+  ),
+  conversationKnowledgeCandidateRecordedEventPayload: ajv.compile(
+    conversationKnowledgeCandidateRecordedEventPayloadSchema,
+  ),
+  knowledgeInstructionCaptureCycleCompletedEventPayload: ajv.compile(
+    knowledgeInstructionCaptureCycleCompletedEventPayloadSchema,
+  ),
+  knowledgeInstructionCandidateExchangedEventPayload: ajv.compile(
+    knowledgeInstructionCandidateExchangedEventPayloadSchema,
   ),
   knowledgeConvergenceOwnerChangedEventPayload: ajv.compile(
     knowledgeConvergenceOwnerChangedEventPayloadSchema,

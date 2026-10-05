@@ -122,6 +122,42 @@ export interface DocumentFreshnessBlockedAttentionItemV1 extends OperatingAttent
 }
 
 /**
+ * An owner rule or correction captured from a terminal prompt or managed conversation (ADR-0467).
+ * It waits for exact-hash review; `title` is the normalized rule title, never the owner's words.
+ */
+export interface DurableInstructionCandidateAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "durable_instruction_candidate";
+  state: "waiting_authority";
+  candidateId: string;
+  candidateHash: string;
+  captureSource: "terminal_prompt" | "conversation" | "explicit_intake";
+  title: string;
+  targetPath: string;
+}
+
+/** A decision the owner stated, held until it is documented or dismissed (ADR-0467). */
+export interface CapturedDecisionAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "captured_decision";
+  state: "action_required";
+  captureId: string;
+  captureSource: "terminal_prompt" | "conversation";
+  title: string;
+  capturedAt: string;
+}
+
+/**
+ * ADR-0467: owner turns are queued on this host, but it has no background-work authority (no
+ * active delegation for its provider), so it cannot assess them. One item per host.
+ */
+export interface InstructionCaptureBlockedAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "instruction_capture_blocked";
+  state: "action_required";
+  reasonCode: "knowledge_authority_unavailable";
+  queuedCount: number;
+  since: string;
+}
+
+/**
  * ADR-0466: this host cannot prove it owns knowledge convergence, or a standalone host saw
  * another host's fresh knowledge commit. Convergence stays read-only until it is resolved.
  */
@@ -159,6 +195,9 @@ export type OperatingAttentionItemV1 =
   | DocumentFreshnessCandidateAttentionItemV1
   | DocumentFreshnessAppliedAttentionItemV1
   | DocumentFreshnessBlockedAttentionItemV1
+  | DurableInstructionCandidateAttentionItemV1
+  | CapturedDecisionAttentionItemV1
+  | InstructionCaptureBlockedAttentionItemV1
   | KnowledgeConvergenceOwnerAttentionItemV1
   | KnowledgePublicationAttentionItemV1;
 

@@ -2,6 +2,10 @@ import type { GroundedDurableInstruction, DurableInstructionPlan } from "./durab
 import { sha256, stableId } from "./integrity.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
+/** Where an owner rule entered intake: the explicit command, a terminal prompt, or a conversation. */
+export type DurableInstructionCaptureSource =
+  "explicit_intake" | "terminal_prompt" | "conversation";
+
 export interface DurableInstructionCandidate {
   schemaVersion: 1;
   candidateId: string;
@@ -18,6 +22,11 @@ export interface DurableInstructionCandidate {
   instruction: GroundedDurableInstruction;
   reasonIds: string[];
   createdAt: string;
+  /** Instruction-catalog digest at creation; review binds to it instead of the whole snapshot. */
+  instructionCatalogDigest?: string;
+  captureSource?: DurableInstructionCaptureSource;
+  /** The ADR-0467 capture record that produced this candidate, when it was captured. */
+  captureId?: string;
 }
 
 export interface DurableInstructionCandidateInspection extends DurableInstructionCandidate {
@@ -33,9 +42,33 @@ const RULE_ID = /^rule_[a-f0-9]{24}$/u;
 const PLAN_ID = /^kinstructionplan_[a-f0-9]{24}$/u;
 const REASON_ID = /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u;
 
-function exactKeys(value: object, expected: readonly string[]): boolean {
+const CAPTURE_ID = /^kcap_[a-f0-9]{24}$/u;
+const optionalCandidateKeys = ["instructionCatalogDigest", "captureSource", "captureId"] as const;
+
+function exactKeys(
+  value: object,
+  expected: readonly string[],
+  optional: readonly string[] = [],
+): boolean {
   const keys = Object.keys(value);
-  return keys.length === expected.length && keys.every((key) => expected.includes(key));
+  return (
+    expected.every((key) => keys.includes(key)) &&
+    keys.every((key) => expected.includes(key) || optional.includes(key))
+  );
+}
+
+function validOptionalCandidateFields(candidate: DurableInstructionCandidate): boolean {
+  return (
+    (candidate.instructionCatalogDigest === undefined ||
+      HASH.test(candidate.instructionCatalogDigest)) &&
+    (candidate.captureSource === undefined ||
+      ["explicit_intake", "terminal_prompt", "conversation"].includes(candidate.captureSource)) &&
+    (candidate.captureId === undefined ||
+      (typeof candidate.captureId === "string" &&
+        CAPTURE_ID.test(candidate.captureId) &&
+        candidate.captureSource !== undefined &&
+        candidate.captureSource !== "explicit_intake"))
+  );
 }
 
 function safeScopePath(path: unknown): path is string {
@@ -107,23 +140,28 @@ export function validateDurableInstructionCandidate(value: unknown): DurableInst
   if (
     candidate === null ||
     typeof candidate !== "object" ||
-    !exactKeys(candidate, [
-      "schemaVersion",
-      "candidateId",
-      "projectId",
-      "provider",
-      "sourceSnapshotId",
-      "requestDigest",
-      "resolverResultDigest",
-      "planId",
-      "ruleId",
-      "targetPath",
-      "proposedContentHash",
-      "proposedMarkdown",
-      "instruction",
-      "reasonIds",
-      "createdAt",
-    ]) ||
+    !exactKeys(
+      candidate,
+      [
+        "schemaVersion",
+        "candidateId",
+        "projectId",
+        "provider",
+        "sourceSnapshotId",
+        "requestDigest",
+        "resolverResultDigest",
+        "planId",
+        "ruleId",
+        "targetPath",
+        "proposedContentHash",
+        "proposedMarkdown",
+        "instruction",
+        "reasonIds",
+        "createdAt",
+      ],
+      optionalCandidateKeys,
+    ) ||
+    !validOptionalCandidateFields(candidate) ||
     candidate.schemaVersion !== 1 ||
     !durableInstructionCandidateId.test(candidate.candidateId) ||
     !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(candidate.projectId) ||
@@ -165,6 +203,8 @@ export function createDurableInstructionCandidate(input: {
   sourceSnapshotId: string;
   instruction: GroundedDurableInstruction;
   now: Date;
+  instructionCatalogDigest?: string;
+  capture?: { source: "terminal_prompt" | "conversation"; captureId: string };
 }): DurableInstructionCandidate {
   const operation = input.plan.operations[0];
   if (
@@ -203,5 +243,11 @@ export function createDurableInstructionCandidate(input: {
     instruction: input.instruction,
     reasonIds: [...input.plan.reasonIds],
     createdAt: input.now.toISOString(),
+    ...(input.instructionCatalogDigest === undefined
+      ? {}
+      : { instructionCatalogDigest: input.instructionCatalogDigest }),
+    ...(input.capture === undefined
+      ? {}
+      : { captureSource: input.capture.source, captureId: input.capture.captureId }),
   };
 }

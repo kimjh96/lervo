@@ -25,6 +25,12 @@ function describe(item: OperatingAttentionItemV1): string {
     return `${item.failureCode}${item.detail === null ? "" : ` · ${item.detail}`} · occurrences ${item.occurrences}${item.pullRequestUrl === null ? "" : ` · ${item.pullRequestUrl}`}`;
   if (item.kind === "document_freshness_blocked")
     return `${item.reasonCode} · attempts ${item.attempts}`;
+  if (item.kind === "durable_instruction_candidate")
+    return `${item.captureSource} · ${item.title} · ${item.targetPath}`;
+  if (item.kind === "captured_decision")
+    return `${item.captureSource} · ${item.title} · captured ${item.capturedAt}`;
+  if (item.kind === "instruction_capture_blocked")
+    return `${item.reasonCode} · queued ${item.queuedCount} · since ${item.since}`;
   return `${item.issueCode}${item.detail === null ? "" : ` · ${item.detail}`}`;
 }
 

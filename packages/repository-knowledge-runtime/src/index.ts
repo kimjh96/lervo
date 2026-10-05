@@ -36,6 +36,23 @@ export {
 } from "./freshness-review.js";
 export { assertFreshnessEventsWritable } from "./freshness-events.js";
 export {
+  enqueueInstructionCapture,
+  readPrecedingAgentTurn,
+  recordPrecedingAgentTurn,
+  listQueuedInstructionCaptures,
+  type InstructionCaptureEnqueueResult,
+} from "./instruction-capture-queue.js";
+export {
+  dismissHeldCapture,
+  readInstructionCaptureState,
+  type HeldCapture,
+  type InstructionCaptureState,
+} from "./instruction-capture-state.js";
+export {
+  runInstructionCaptureCycle,
+  type InstructionCaptureCycleResult,
+} from "./instruction-capture-stage.js";
+export {
   ConvergenceOwnership,
   type ConvergenceOwnerLeasePort,
   type ConvergenceOwnerLeaseTransport,
@@ -50,3 +67,19 @@ export {
 export { createGitHubKnowledgePublicationForge } from "./knowledge-publication-github.js";
 export type { KnowledgePublicationForge } from "./knowledge-publication-forge.js";
 export { readKnowledgePublicationState } from "./knowledge-publication-state.js";
+export {
+  exchangeInstructionCandidates,
+  type InstructionCandidateExchangePort,
+  type InstructionCandidateExchangeResult,
+  type InstructionCandidateExchangeTransport,
+} from "./instruction-candidate-exchange.js";
+export {
+  readInstructionCandidateExchangeState,
+  recordInstructionCandidateResolution,
+} from "./instruction-candidate-exchange-state.js";
+export {
+  commitAppliedInstructionCandidate,
+  instructionCandidateApplyAuthority,
+  type InstructionCandidateApplyAuthority,
+} from "./instruction-candidate-apply-authority.js";
+export type { OwnerTurnCaptureWorkResult } from "./owner-turn-capture-work.js";

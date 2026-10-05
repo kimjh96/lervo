@@ -8,6 +8,7 @@ import {
   canonicalJson,
   createDurableInstructionCandidate,
   createDurableInstructionPlan,
+  durableInstructionCatalogDigest,
   loadDurableInstructionCandidate,
   loadRepositoryKnowledgePolicy,
   removeDurableInstructionCandidate,
@@ -16,6 +17,12 @@ import {
   type DurableInstructionCandidateInspection,
   type DurableInstructionPlan,
 } from "@lervo/repository-knowledge";
+
+import {
+  commitAppliedInstructionCandidate,
+  instructionCandidateApplyAuthority,
+  recordInstructionCandidateResolution,
+} from "@lervo/repository-knowledge-runtime";
 
 import { groundDurableInstructionRequest } from "./durable-instruction-grounding.js";
 import { inspectInstructionCatalog } from "./instruction-catalog.js";
@@ -26,17 +33,7 @@ import { verifiedCurrentWorkstream } from "./workstream-services.js";
 const REVIEWER_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/u;
 
 function catalogDigest(catalog: Awaited<ReturnType<typeof inspectInstructionCatalog>>): string {
-  return instructionEntriesDigest(catalog.semanticCatalog.canonicalInstructions.entries);
-}
-
-function instructionEntriesDigest(entries: Array<{ path: string; contentHash: string }>): string {
-  return sha256(
-    canonicalJson({
-      entries: entries
-        .map((entry) => ({ path: entry.path, contentHash: entry.contentHash }))
-        .sort((left, right) => left.path.localeCompare(right.path)),
-    }),
-  );
+  return durableInstructionCatalogDigest(catalog.semanticCatalog.canonicalInstructions.entries);
 }
 
 export interface DurableInstructionIntakeResult {
@@ -103,6 +100,7 @@ export async function intakeDurableInstruction(input: {
         sourceSnapshotId: catalog.sourceSnapshotId,
         instruction: grounding.durableInstruction,
         now: input.now,
+        instructionCatalogDigest: catalogDigest(catalog),
       }),
     });
     return {
@@ -114,6 +112,29 @@ export async function intakeDurableInstruction(input: {
     };
   } finally {
     await storage.close();
+  }
+}
+
+function plainCandidate(candidate: DurableInstructionCandidateInspection) {
+  const { candidateHash: _hash, artifactPath: _path, ...plain } = candidate;
+  return plain;
+}
+
+/**
+ * ADR-0467: on a Hub-coordinated host only the ADR-0466 convergence owner applies, because it is
+ * the host that commits knowledge outputs; review on another host names the owner instead.
+ */
+export class InstructionApplyOwnerElsewhereError extends Error {
+  readonly code = "convergence_owner_elsewhere";
+
+  constructor(
+    readonly reason: string,
+    readonly holderLabel: string | null,
+  ) {
+    super(
+      `This host does not own knowledge convergence (${reason}). Apply this candidate on the convergence owner host${holderLabel === null ? "" : ` (${holderLabel})`}; it already holds the candidate through the Hub exchange.`,
+    );
+    this.name = "InstructionApplyOwnerElsewhereError";
   }
 }
 
@@ -135,6 +156,12 @@ export async function rejectDurableInstructionCandidate(input: {
 }): Promise<{ schemaVersion: 1; status: "rejected"; candidateId: string; reviewDigest: string }> {
   const candidate = await loadDurableInstructionCandidate(input);
   assertReview({ candidate, candidateHash: input.candidateHash, reviewerId: input.reviewerId });
+  await recordInstructionCandidateResolution({
+    repositoryRoot: input.repositoryRoot,
+    candidate: plainCandidate(candidate),
+    resolution: "rejected",
+    resolvedAt: new Date(),
+  });
   await removeDurableInstructionCandidate({
     repositoryRoot: input.repositoryRoot,
     candidateId: input.candidateId,
@@ -164,6 +191,9 @@ export async function applyReviewedDurableInstruction(input: {
 }) {
   const candidate = await loadDurableInstructionCandidate(input);
   assertReview({ candidate, candidateHash: input.candidateHash, reviewerId: input.reviewerId });
+  const authority = await instructionCandidateApplyAuthority(input.repositoryRoot);
+  if (authority.status === "owner_elsewhere")
+    throw new InstructionApplyOwnerElsewhereError(authority.reason, authority.holderLabel);
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
     if (storage.manifest.projectId !== candidate.projectId)
@@ -206,6 +236,7 @@ export async function applyReviewedDurableInstruction(input: {
         targetPath: candidate.targetPath,
         approvalDigest: reviewDigest,
         appliedAt: appliedEvent.occurredAt,
+        commitHash: null,
       };
     }
     const supplementalSources = await collectLocalKnowledgeSources(input.repositoryRoot);
@@ -213,10 +244,16 @@ export async function applyReviewedDurableInstruction(input: {
       repositoryRoot: input.repositoryRoot,
       supplementalSources,
     });
+    // A captured candidate is reviewed later, after unrelated sources and events have changed the
+    // snapshot; it binds to the instruction catalog it was judged against instead.
+    const catalogUnchanged =
+      catalog.sourceSnapshotId === candidate.sourceSnapshotId ||
+      (candidate.instructionCatalogDigest !== undefined &&
+        catalogDigest(catalog) === candidate.instructionCatalogDigest);
     if (
       !catalog.complete ||
       catalog.semanticCatalog.canonicalInstructions.entries.length >= 32 ||
-      catalog.sourceSnapshotId !== candidate.sourceSnapshotId
+      !catalogUnchanged
     )
       throw new Error("The canonical instruction catalog changed after candidate review began.");
     const plan = await createDurableInstructionPlan({
@@ -258,7 +295,7 @@ export async function applyReviewedDurableInstruction(input: {
       plan,
       receipt,
       recordApplied: (applied) => {
-        const afterRegistryDigest = instructionEntriesDigest([
+        const afterRegistryDigest = durableInstructionCatalogDigest([
           ...catalog.semanticCatalog.canonicalInstructions.entries,
           { path: candidate.targetPath, contentHash: candidate.proposedContentHash },
         ]);
@@ -300,12 +337,27 @@ export async function applyReviewedDurableInstruction(input: {
         });
       },
     });
+    await recordInstructionCandidateResolution({
+      repositoryRoot: input.repositoryRoot,
+      candidate: plainCandidate(candidate),
+      resolution: "applied",
+      resolvedAt: input.now,
+    });
+    // A Hub-coordinated owner commits the rule so publication and the replica reach every host.
+    const commitHash =
+      authority.status === "owner"
+        ? await commitAppliedInstructionCandidate({
+            repositoryRoot: input.repositoryRoot,
+            targetPath: candidate.targetPath,
+            candidateId: candidate.candidateId,
+          })
+        : null;
     await removeDurableInstructionCandidate({
       repositoryRoot: input.repositoryRoot,
       candidateId: candidate.candidateId,
       expectedCandidateHash: candidate.candidateHash,
     });
-    return receipt;
+    return { ...receipt, commitHash };
   } finally {
     await storage.close();
   }

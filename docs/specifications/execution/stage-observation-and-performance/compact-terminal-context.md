@@ -22,9 +22,11 @@ Workstream text includes a title bounded to 200 bytes, the first next action bou
 
 The preamble includes at most five blocking attention items, an on-demand knowledge-query instruction, and workstream start/update instructions. It uses background-owned wording when the resident is healthy or the workspace binding identifies a worker; otherwise it includes the supplied declaration instruction. This module applies item bounds but contains no final aggregate context-size check. ADR-0451's size targets require separate verification.
 
+The preamble also carries the owner-turn capture lines of [ADR-0467](../../../decisions/knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md): pending instruction candidates and held items, and the titles of applied rules under `docs/instructions/generated/`. Both are read from local files with no provider call. Separately, the hook queues the owner's prompt for background capture under the `event_commit` stage; assignment-workspace sessions are excluded.
+
 ## Detached prefetch and runtime dispatch
 
-After recording a matched Stop observation, `terminal-hook-command.ts` requests a detached `prefetch-context` invocation when `LERVO_TERMINAL_HOOK_RUNTIME` is present and `LERVO_TERMINAL_CONTEXT` is not `retrieval`. This is independent of the queued-knowledge-job condition and occurs before the worker completion-blocking branch. Unmatched and re-entrant Stop return earlier and do not reach this request.
+After recording a matched Stop observation, `terminal-hook-command.ts` requests a detached `prefetch-context` invocation when `LERVO_TERMINAL_HOOK_RUNTIME` is present and `LERVO_TERMINAL_CONTEXT` is not `retrieval`. This is independent of the queued-knowledge-job condition and occurs before the worker completion-blocking branch. The detached `knowledge-worker` request runs when a knowledge job was queued or owner turns wait for capture. Unmatched and re-entrant Stop return earlier and do not reach this request.
 
 The prefetch function captures a fresh repository snapshot and obtains its knowledge snapshot ID, allowing conditional cache publication for the next prompt. A launch request does not prove child execution, completion, or a subsequent cache hit.
 

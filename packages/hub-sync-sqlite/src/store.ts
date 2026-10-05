@@ -27,6 +27,8 @@ import {
   type HubSyncLifecycle,
   type HubKnowledgeConvergenceOwnerCoordinate,
   type HubKnowledgeConvergenceOwnerStore,
+  type HubKnowledgeInstructionCandidateCoordinate,
+  type HubKnowledgeInstructionCandidateStore,
   type HubWorkstreamReplicationStore,
   type HubWorkspaceCoordinationStore,
   type HubWorkspaceReservation,
@@ -74,6 +76,8 @@ import {
 } from "@lervo/schemas";
 
 import {
+  type KnowledgeInstructionCandidatePublishStatus,
+  type KnowledgeInstructionCandidateRecord,
   type KnowledgeConvergenceOwnerDecision,
   type KnowledgeConvergenceOwnerMutation,
   type KnowledgeConvergenceOwnerReading,
@@ -96,6 +100,7 @@ import { HubTraceSQLiteRepository } from "./trace-repository.js";
 import { KnowledgeGraphIndexSQLiteWriter } from "./knowledge-graph-index-writer.js";
 import { HubKnowledgeGraphSQLiteRepository } from "./knowledge-graph-repository.js";
 import { HubKnowledgeConvergenceOwnerSQLiteRepository } from "./knowledge-convergence-owner-repository.js";
+import { HubKnowledgeInstructionCandidateSQLiteRepository } from "./knowledge-instruction-candidate-repository.js";
 import { SQLiteTransactionRunner } from "./transaction-runner.js";
 import { HubWorkstreamSQLiteRepository } from "./workstream-repository.js";
 import { HubWorkspaceCoordinationSQLiteRepository } from "./workspace-coordination-repository.js";
@@ -109,6 +114,7 @@ export class HubSyncSQLiteStore
     HubWorkstreamReplicationStore,
     HubWorkspaceCoordinationStore,
     HubKnowledgeConvergenceOwnerStore,
+    HubKnowledgeInstructionCandidateStore,
     HubRemoteCommandQueueStore,
     HubRemoteCommandQueueInspectionStore,
     HubTraceSource,
@@ -147,6 +153,7 @@ export class HubSyncSQLiteStore
   private readonly workstreamRepository: HubWorkstreamSQLiteRepository;
   private readonly workspaceCoordinationRepository: HubWorkspaceCoordinationSQLiteRepository;
   private readonly knowledgeConvergenceOwnerRepository: HubKnowledgeConvergenceOwnerSQLiteRepository;
+  private readonly knowledgeInstructionCandidateRepository: HubKnowledgeInstructionCandidateSQLiteRepository;
 
   private constructor(
     path: string,
@@ -173,6 +180,8 @@ export class HubSyncSQLiteStore
     this.knowledgeConvergenceOwnerRepository = new HubKnowledgeConvergenceOwnerSQLiteRepository(
       database,
     );
+    this.knowledgeInstructionCandidateRepository =
+      new HubKnowledgeInstructionCandidateSQLiteRepository(database);
   }
 
   static async open(options: { path: string }): Promise<HubSyncSQLiteStore> {
@@ -277,6 +286,29 @@ export class HubSyncSQLiteStore
     this.assertOpen();
     return this.transactionRunner.write(() =>
       this.knowledgeConvergenceOwnerRepository.mutate(input),
+    );
+  }
+
+  async publishKnowledgeInstructionCandidate(input: {
+    destinationId: string;
+    record: KnowledgeInstructionCandidateRecord;
+    acceptedAt: string;
+  }): Promise<{
+    status: KnowledgeInstructionCandidatePublishStatus;
+    record: KnowledgeInstructionCandidateRecord;
+  }> {
+    this.assertOpen();
+    return this.transactionRunner.write(() =>
+      this.knowledgeInstructionCandidateRepository.publish(input),
+    );
+  }
+
+  async listKnowledgeInstructionCandidates(
+    input: HubKnowledgeInstructionCandidateCoordinate,
+  ): Promise<KnowledgeInstructionCandidateRecord[]> {
+    this.assertOpen();
+    return this.transactionRunner.read(() =>
+      this.knowledgeInstructionCandidateRepository.list(input),
     );
   }
 
