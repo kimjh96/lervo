@@ -1,0 +1,43 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_aecb0b9ffb714fd94e8cc95b
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_84fc5ec78b659ff92b50ceaf
+outputLanguage: en
+outputs:
+  - byteCount: 1336
+    contentHash: sha256:545c5db9d8cd0c88bc19a97d2769114218fc7c9ac5697b30817cf3f27714c92c
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/readiness-and-failure.md
+    userRegionHash: sha256:545c5db9d8cd0c88bc19a97d2769114218fc7c9ac5697b30817cf3f27714c92c
+  - byteCount: 5396
+    contentHash: sha256:a5a7337f495903296d6eecccb0f4ff68c1d501e83470bf82488c8744cdef69ac
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/readiness-and-failure/health-observations.md
+    userRegionHash: sha256:a5a7337f495903296d6eecccb0f4ff68c1d501e83470bf82488c8744cdef69ac
+  - byteCount: 3219
+    contentHash: sha256:46dd6db1d32102b175e6a2496d5aa59b4410cc901abecc752ac97dcb50c15fe1
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/readiness-and-failure/service-diagnostics.md
+    userRegionHash: sha256:46dd6db1d32102b175e6a2496d5aa59b4410cc901abecc752ac97dcb50c15fe1
+  - byteCount: 1022
+    contentHash: sha256:5c4ebc7599fdd2bb8daa0d6d3230b802fbeeafb7801d107d221d4a0705159dad
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/readiness-and-failure/validation.md
+    userRegionHash: sha256:5c4ebc7599fdd2bb8daa0d6d3230b802fbeeafb7801d107d221d4a0705159dad
+profile: specification_document
+recordId: knormdoc_66959387d5ae8c8934182730
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8737bf54dca72b3152b3a3373b58dc48b63fff66296c42ba447765e5e1d0b490
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/readiness-and-failure.md
+sourceUnitVersionIds:
+  - uv_318f73bce228b5098f6c1475
+  - uv_5f4aa2e92222ab33dd21af41
+  - uv_89eb8f8edf42e840b370c9e4
+  - uv_c0fcce9b0411bdd0a0adea85
+  - uv_c3ac9aec68083e5a83b130d8
+  - uv_dcf525ade08a109eb7be557b

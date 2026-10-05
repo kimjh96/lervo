@@ -1,0 +1,49 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_aecb0b9ffb714fd94e8cc95b
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ad88cfd39ab42d65ce211e4e
+outputLanguage: en
+outputs:
+  - byteCount: 885
+    contentHash: sha256:3a8aabad7ed805e404b9d2279eefde76b3eb99130e90a03e0231ef8746438731
+    path: docs/specifications/execution/product-surfaces/deliberation/bounds-and-resources.md
+    userRegionHash: sha256:3a8aabad7ed805e404b9d2279eefde76b3eb99130e90a03e0231ef8746438731
+  - byteCount: 2016
+    contentHash: sha256:38dadab6d0557920a9ca126e7901d1dc7f381d067df60372a9f81740e4b9ba2a
+    path: docs/specifications/execution/product-surfaces/deliberation/bounds-and-resources/evidence-and-capabilities.md
+    userRegionHash: sha256:38dadab6d0557920a9ca126e7901d1dc7f381d067df60372a9f81740e4b9ba2a
+  - byteCount: 3674
+    contentHash: sha256:f4ac2c1d743045acfca4a7b2034d93f42afe5f7c829424977f2c09e33a850df0
+    path: docs/specifications/execution/product-surfaces/deliberation/bounds-and-resources/limits-and-accounting.md
+    userRegionHash: sha256:f4ac2c1d743045acfca4a7b2034d93f42afe5f7c829424977f2c09e33a850df0
+  - byteCount: 1407
+    contentHash: sha256:c99a61173febdfb82c97d8c9534a614c6f17bd281e7a91d98ba6741b1b0fc751
+    path: docs/specifications/execution/product-surfaces/deliberation/bounds-and-resources/participation.md
+    userRegionHash: sha256:c99a61173febdfb82c97d8c9534a614c6f17bd281e7a91d98ba6741b1b0fc751
+  - byteCount: 1254
+    contentHash: sha256:ad313e78789c2ab93c45438461f5d6748f1a48ace0b92b887301e976684bd8df
+    path: docs/specifications/execution/product-surfaces/deliberation/bounds-and-resources/recovery.md
+    userRegionHash: sha256:ad313e78789c2ab93c45438461f5d6748f1a48ace0b92b887301e976684bd8df
+profile: specification_document
+recordId: knormdoc_5d3db3e8791d3c45ce70c664
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:751da9fec908561b7b3a8335a2a617df322b0cd68ce05ab27309e53329fc8ff5
+sourcePath: docs/specifications/execution/product-surfaces/deliberation/bounds-and-resources.md
+sourceUnitVersionIds:
+  - uv_0f1117f90006bc9f12cb228d
+  - uv_1035be0b795f8a089c6855cb
+  - uv_122b87b71d42b87f37a05934
+  - uv_2b1a776745a0220c9d564103
+  - uv_455e5d518723da62cb8445ca
+  - uv_8ca5f2dfb85b11347117fdda
+  - uv_b2cfacc27a8401638fc48bf1
+  - uv_db1aec51560727a777d432fc
