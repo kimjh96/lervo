@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1a8a130bec94af5c70463de9
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b54fc4b38d1ca4546392c264
+outputLanguage: en
+outputs:
+  - byteCount: 510
+    contentHash: sha256:d5b7662043abc6b10843d841376bf86d59f4ab8545a23445fdcaed9b00ddff7e
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/replica-parity.md
+    userRegionHash: sha256:d5b7662043abc6b10843d841376bf86d59f4ab8545a23445fdcaed9b00ddff7e
+  - byteCount: 533
+    contentHash: sha256:e6ff0a38cbcfb83d49d8ea69ecc5390ae54e4d99cf485bbf71e425403e7d9862
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/replica-parity/completion.md
+    userRegionHash: sha256:e6ff0a38cbcfb83d49d8ea69ecc5390ae54e4d99cf485bbf71e425403e7d9862
+  - byteCount: 1262
+    contentHash: sha256:1f15acaa5b8fd2cfb1a71e5c47f511ab8f3e389e824db800c5d9ee148580a2e3
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/replica-parity/coordinator.md
+    userRegionHash: sha256:1f15acaa5b8fd2cfb1a71e5c47f511ab8f3e389e824db800c5d9ee148580a2e3
+  - byteCount: 1085
+    contentHash: sha256:fcef4bdad818bdda489aa0d290029a70251bbcdc20df0e5e176c1fd6c8d1c675
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/replica-parity/topology.md
+    userRegionHash: sha256:fcef4bdad818bdda489aa0d290029a70251bbcdc20df0e5e176c1fd6c8d1c675
+profile: repository_document
+recordId: knormdoc_0eb5412776b4e60e51ea4142
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:310303b95c157bcda1371934d9a1adb62022aa2361520c8cfbe8c0477d893ab7
+sourcePath: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/replica-parity.md
+sourceUnitVersionIds:
+  - uv_00987ea073461492af9279fb
+  - uv_4f5bd717e2e155f51f564d6d
+  - uv_6791ff33aaee58496ecb456e
+  - uv_da75072b7f9f835f3b5a6310
