@@ -17,21 +17,25 @@ export interface HubAuthenticatedPrincipal {
   permissions: HubPermission[];
 }
 
-export type HubPermission =
-  | "trace.read"
-  | "sync.write"
-  | "workstream.read"
-  | "workstream.write"
-  | "workspace.read"
-  | "workspace.coordinate"
-  | "policy.read"
-  | "policy.write"
-  | "command.read"
-  | "command.write"
-  | "command.delivery"
-  | "approval.write"
-  | "capability.read"
-  | "capability.publish";
+/** Every permission a Hub credential may hold; the runtime config validator accepts exactly these. */
+export const HUB_PERMISSIONS = [
+  "trace.read",
+  "sync.write",
+  "workstream.read",
+  "workstream.write",
+  "workspace.read",
+  "workspace.coordinate",
+  "policy.read",
+  "policy.write",
+  "command.read",
+  "command.write",
+  "command.delivery",
+  "approval.write",
+  "capability.read",
+  "capability.publish",
+] as const;
+
+export type HubPermission = (typeof HUB_PERMISSIONS)[number];
 
 export interface HubRequestAuthenticator {
   authenticate(authorization: string | undefined): Promise<HubAuthenticatedPrincipal | null>;

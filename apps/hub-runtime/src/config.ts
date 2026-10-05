@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import {
   ConfiguredBearerAuthenticator,
   type HubBearerCredential,
+  HUB_PERMISSIONS,
   type HubPermission,
 } from "@lervo/hub";
 
@@ -19,20 +20,7 @@ export const MAX_CREDENTIALS_FILE_BYTES = 1_048_576;
 const HUB_IDENTITY_HASH = /^sha256:[a-f0-9]{64}$/u;
 const KEY_ID = /^key_[A-Za-z0-9][A-Za-z0-9._-]{7,63}$/u;
 const WORKER_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
-const PERMISSIONS = new Set<HubPermission>([
-  "trace.read",
-  "sync.write",
-  "workstream.read",
-  "workstream.write",
-  "policy.read",
-  "policy.write",
-  "command.read",
-  "command.write",
-  "command.delivery",
-  "approval.write",
-  "capability.read",
-  "capability.publish",
-]);
+const PERMISSIONS = new Set<HubPermission>(HUB_PERMISSIONS);
 
 function record(value: unknown, label: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
