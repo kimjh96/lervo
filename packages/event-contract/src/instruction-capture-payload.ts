@@ -31,6 +31,15 @@ export const instructionCapturePayloadAllowlists = {
     "usageObserved",
     "occurredAt",
   ],
+  "knowledge.instruction_candidate.exchanged": [
+    "candidateId",
+    "proposedContentHash",
+    "ruleId",
+    "direction",
+    "resolution",
+    "sourceHostHash",
+    "occurredAt",
+  ],
 } as const;
 
 export const instructionCapturePayloadSchemas = {
@@ -38,4 +47,5 @@ export const instructionCapturePayloadSchemas = {
   "conversation.knowledge_candidate.recorded": "conversationKnowledgeCandidateRecordedEventPayload",
   "knowledge.instruction_capture.cycle.completed":
     "knowledgeInstructionCaptureCycleCompletedEventPayload",
+  "knowledge.instruction_candidate.exchanged": "knowledgeInstructionCandidateExchangedEventPayload",
 } as const;
