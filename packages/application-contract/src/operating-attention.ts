@@ -146,6 +146,18 @@ export interface CapturedDecisionAttentionItemV1 extends OperatingAttentionItemB
 }
 
 /**
+ * ADR-0467: owner turns are queued on this host, but it has no background-work authority (no
+ * active delegation for its provider), so it cannot assess them. One item per host.
+ */
+export interface InstructionCaptureBlockedAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "instruction_capture_blocked";
+  state: "action_required";
+  reasonCode: "knowledge_authority_unavailable";
+  queuedCount: number;
+  since: string;
+}
+
+/**
  * ADR-0466: this host cannot prove it owns knowledge convergence, or a standalone host saw
  * another host's fresh knowledge commit. Convergence stays read-only until it is resolved.
  */
@@ -181,6 +193,7 @@ export type OperatingAttentionItemV1 =
   | DocumentFreshnessBlockedAttentionItemV1
   | DurableInstructionCandidateAttentionItemV1
   | CapturedDecisionAttentionItemV1
+  | InstructionCaptureBlockedAttentionItemV1
   | KnowledgeConvergenceOwnerAttentionItemV1
   | KnowledgePublicationAttentionItemV1;
 
