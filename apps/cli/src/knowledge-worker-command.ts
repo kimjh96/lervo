@@ -5,7 +5,10 @@ import {
 } from "@lervo/repository-knowledge-runtime";
 import { spawn } from "node:child_process";
 
-import { createKnowledgeConvergenceOwnership } from "./knowledge-convergence-ownership.js";
+import {
+  createKnowledgeConvergenceOwnership,
+  createKnowledgePublisher,
+} from "./knowledge-convergence-ownership.js";
 import { knowledgeWorkerFailureLine } from "./knowledge-worker-failure.js";
 
 import { openProjectStorage } from "@lervo/project-storage";
@@ -78,6 +81,7 @@ export async function runKnowledgeWorkerCommand(
         workerId: `cli-${process.pid}`,
         provider,
         ownership: createKnowledgeConvergenceOwnership(storage, provider),
+        publish: createKnowledgePublisher(storage.paths.repositoryRoot),
         onCycle: (result) => io.stdout(`${JSON.stringify(result)}\n`),
         onFailure: (error) =>
           io.stderr(knowledgeWorkerFailureLine(error, storage.paths.repositoryRoot)),

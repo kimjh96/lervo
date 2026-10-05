@@ -2,16 +2,22 @@ import { openProjectStorage } from "@lervo/project-storage";
 import {
   readConvergenceOwnerFence,
   readConvergenceOwnerHost,
+  readKnowledgePublicationState,
 } from "@lervo/repository-knowledge-runtime";
 
-import { createKnowledgeConvergenceOwnership } from "./knowledge-convergence-ownership.js";
+import {
+  createKnowledgeConvergenceOwnership,
+  createKnowledgePublisher,
+} from "./knowledge-convergence-ownership.js";
 import type { CliIo } from "./types.js";
 
-const usage = "Usage: lervo knowledge convergence owner <status|release> [--json]\n";
+const usage = "Usage: lervo knowledge convergence owner <status|release|publish> [--json]\n";
 
 /**
- * `status` reports this host's identity and latest ownership verdict without contacting the Hub.
- * `release` hands a held Hub lease to a peer: this host yields for one lease lifetime.
+ * `status` reports this host's identity, latest ownership verdict, and publication state without
+ * contacting the Hub or GitHub. `release` hands a held Hub lease to a peer: this host yields for
+ * one lease lifetime. `publish` runs one knowledge publication now, as the owner's resident does
+ * after each cycle.
  */
 export async function runKnowledgeConvergenceOwnerCommand(
   args: readonly string[],
@@ -19,40 +25,40 @@ export async function runKnowledgeConvergenceOwnerCommand(
 ): Promise<number> {
   const action = args[0];
   if (
-    (action !== "status" && action !== "release") ||
+    (action !== "status" && action !== "release" && action !== "publish") ||
     args.slice(1).some((arg) => arg !== "--json")
   ) {
     io.stderr(usage);
     return 1;
   }
   const indent = args.includes("--json") ? 2 : undefined;
+  const print = (value: unknown) => io.stdout(`${JSON.stringify(value, null, indent)}\n`);
   try {
     if (action === "status") {
       const host = await readConvergenceOwnerHost(io.cwd);
-      const fence = await readConvergenceOwnerFence(io.cwd);
-      io.stdout(
-        `${JSON.stringify(
-          {
-            host:
-              host === null
-                ? null
-                : {
-                    hostHash: host.hostHash,
-                    hostLabel: host.config.hostLabel,
-                    mode: host.config.coordination.mode,
-                  },
-            verdict: fence?.verdict ?? null,
-          },
-          null,
-          indent,
-        )}\n`,
-      );
+      print({
+        host:
+          host === null
+            ? null
+            : {
+                hostHash: host.hostHash,
+                hostLabel: host.config.hostLabel,
+                mode: host.config.coordination.mode,
+                publication: host.config.publication ?? null,
+              },
+        verdict: (await readConvergenceOwnerFence(io.cwd))?.verdict ?? null,
+        publication: await readKnowledgePublicationState(io.cwd),
+      });
+      return 0;
+    }
+    if (action === "publish") {
+      print(await createKnowledgePublisher(io.cwd)());
       return 0;
     }
     const storage = await openProjectStorage(io.cwd);
     try {
       const { verdict, hubReleased } = await createKnowledgeConvergenceOwnership(storage).release();
-      io.stdout(`${JSON.stringify({ status: "yielding", hubReleased, verdict }, null, indent)}\n`);
+      print({ status: "yielding", hubReleased, verdict });
       return 0;
     } finally {
       await storage.close();

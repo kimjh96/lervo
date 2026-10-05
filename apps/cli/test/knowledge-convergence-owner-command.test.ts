@@ -27,7 +27,7 @@ it("reports host identity and verdict without exposing Hub coordinates", async (
   roots.push(root);
   expect(await run(root, ["owner", "status", "--json"])).toMatchObject({
     code: 0,
-    stdout: `${JSON.stringify({ host: null, verdict: null }, null, 2)}\n`,
+    stdout: `${JSON.stringify({ host: null, verdict: null, publication: null }, null, 2)}\n`,
   });
   await mkdir(resolve(root, ".lervo/state/knowledge"), { recursive: true });
   await writeFile(

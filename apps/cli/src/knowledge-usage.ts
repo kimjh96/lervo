@@ -20,7 +20,7 @@ export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--rebu
   lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <1000..600000>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
   lervo knowledge worker <--once|--watch> --provider <codex|claude>
   lervo knowledge convergence <status|inspect> [--json]
-  lervo knowledge convergence owner <status|release> [--json]
+  lervo knowledge convergence owner <status|release|publish> [--json]
   lervo knowledge convergence delegation --from <reviewed-delegation.json> [--asset-manifest-from <reviewed-assets.json>] [--apply <plan-id>] [--json]
   lervo knowledge convergence provider-probe --provider <codex|claude> [--json]
   lervo knowledge reconcile [--root <path>] [--json] <compilation-id>
