@@ -126,6 +126,9 @@ export function createGitHubKnowledgePublicationForge(input: {
       await run(["pr", "edit", String(number), "--title", title, "--body-file", "-"], body);
     },
     viewPullRequest: view,
+    async closePullRequest({ number, comment }) {
+      await run(["pr", "close", String(number), "--comment", comment]);
+    },
     async checks({ number, headSha }) {
       const value = JSON.parse(
         await run(["pr", "view", String(number), "--json", "headRefOid,statusCheckRollup"]),

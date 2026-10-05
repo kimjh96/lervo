@@ -15,7 +15,7 @@ const MAXIMUM_PUBLISHED_COMMITS = 64;
 
 export class KnowledgePublicationGitError extends Error {
   constructor(
-    readonly stage: "fetch" | "inspect" | "rebuild" | "push" | "sync",
+    readonly stage: "fetch" | "inspect" | "rebuild" | "push" | "sync" | "supersede",
     readonly exitCode: number | null,
     options?: ErrorOptions,
   ) {
@@ -24,7 +24,7 @@ export class KnowledgePublicationGitError extends Error {
   }
 }
 
-async function git(
+export async function git(
   root: string,
   args: string[],
   stage: KnowledgePublicationGitError["stage"],
@@ -45,7 +45,7 @@ async function git(
   }
 }
 
-const tracking = (settings: KnowledgePublicationSettings, branch: string) =>
+export const tracking = (settings: KnowledgePublicationSettings, branch: string) =>
   `refs/remotes/${settings.remote}/${branch}`;
 
 /** Fetches the base and publication branches into their remote-tracking refs. */
@@ -105,17 +105,21 @@ export interface KnowledgePublicationInventory {
   base: string;
   /** Unpublished knowledge commits, oldest first, excluding patches already in the base. */
   knowledge: KnowledgePublicationCommit[];
-  /** Commits in `base..HEAD` that are not unpublished knowledge commits: developer work, merges, or patches already upstream. */
+  /** Commits in `base..HEAD` that are not unpublished knowledge commits: developer work, merges, superseded or deferred knowledge commits, or patches already upstream. */
   otherCount: number;
+  /** The part of `otherCount` that a reset would lose: developer work and merges not upstream. */
+  developerCount: number;
 }
 
 /**
  * Lists `base..HEAD`. A knowledge commit is a non-merge commit whose author and committer are
- * both the `Lervo Knowledge` identity; nothing else is ever published.
+ * both the `Lervo Knowledge` identity; nothing else is ever published. Superseded commits, which
+ * an earlier replay conflict excluded, stay local and are never selected again.
  */
 export async function inventoryKnowledgePublication(
   root: string,
   settings: KnowledgePublicationSettings,
+  superseded: ReadonlySet<string> = new Set(),
 ): Promise<KnowledgePublicationInventory | null> {
   const base = await remoteTrackingHead(root, settings, settings.baseBranch);
   if (base === null) return null;
@@ -134,16 +138,17 @@ export async function inventoryKnowledgePublication(
   );
   const knowledge: KnowledgePublicationCommit[] = [];
   let otherCount = 0;
+  let developerCount = 0;
   for (const record of log.split("\x1e")) {
     const [sha, parents, author, committer, subject, body] = record.replace(/^\n/u, "").split("\0");
     if (sha === undefined || sha.trim() === "") continue;
-    const knowledgeCommit =
+    const knowledgeIdentity =
       parents!.trim().split(" ").length === 1 &&
       author === KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email &&
-      committer === KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email &&
-      !upstream.has(sha);
-    if (!knowledgeCommit) {
+      committer === KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email;
+    if (!knowledgeIdentity || upstream.has(sha) || superseded.has(sha)) {
       otherCount++;
+      if (!knowledgeIdentity && !upstream.has(sha)) developerCount++;
       continue;
     }
     const paths = (
@@ -157,7 +162,7 @@ export async function inventoryKnowledgePublication(
   // commits count as other work, so the tip is then replayed instead of being `HEAD`.
   if (knowledge.length > MAXIMUM_PUBLISHED_COMMITS)
     otherCount += knowledge.splice(MAXIMUM_PUBLISHED_COMMITS).length;
-  return { head, base, knowledge, otherCount };
+  return { head, base, knowledge, otherCount, developerCount };
 }
 
 /** Paths outside the allowed roots, across every commit; empty means publishable. */
@@ -174,17 +179,31 @@ export function knowledgePublicationScopeViolations(
   ].sort();
 }
 
+export type KnowledgePublicationTip =
+  { status: "built"; tip: string } | { status: "conflict"; conflictPathCount: number };
+
 /**
- * The publication tip. When `base..HEAD` holds only the knowledge commits, the tip is `HEAD`
- * itself, so a merge commit later lets the local branch fast-forward. Otherwise the knowledge
- * commits are replayed onto the base in a temporary worktree; developer work never enters the
- * tip. A replay conflict returns null and leaves no worktree behind.
+ * The publication tip, always on top of the current remote base. When `HEAD` already descends
+ * from that base and `base..HEAD` holds only the knowledge commits, the tip is `HEAD` itself, so a
+ * merge commit later lets the local branch fast-forward. Otherwise, including when the local
+ * branch still sits on an older base, the knowledge commits are replayed onto the base in a
+ * temporary worktree; developer work never enters the tip. A replay conflict means the outputs
+ * were computed against stale source bytes: it reports the conflicting path count and leaves no
+ * worktree behind.
  */
 export async function buildKnowledgePublicationTip(
   root: string,
   inventory: KnowledgePublicationInventory,
-): Promise<string | null> {
-  if (inventory.otherCount === 0) return inventory.head;
+): Promise<KnowledgePublicationTip> {
+  const onBase = await git(
+    root,
+    ["merge-base", "--is-ancestor", inventory.base, inventory.head],
+    "inspect",
+  ).then(
+    () => true,
+    () => false,
+  );
+  if (inventory.otherCount === 0 && onBase) return { status: "built", tip: inventory.head };
   const directory = await mkdtemp(resolve(tmpdir(), "lervo-knowledge-publication-"));
   const worktree = resolve(directory, "tree");
   try {
@@ -206,11 +225,20 @@ export async function buildKnowledgePublicationTip(
         KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
       );
     } catch (error) {
+      const conflicted =
+        error instanceof KnowledgePublicationGitError && error.exitCode === 1
+          ? await git(worktree, ["diff", "--name-only", "--diff-filter=U", "-z"], "rebuild").catch(
+              () => "",
+            )
+          : null;
       await git(worktree, ["cherry-pick", "--abort"], "rebuild").catch(() => "");
-      if (error instanceof KnowledgePublicationGitError && error.exitCode === 1) return null;
-      throw error;
+      if (conflicted === null) throw error;
+      return {
+        status: "conflict",
+        conflictPathCount: conflicted.split("\0").filter((path) => path !== "").length,
+      };
     }
-    return (await git(worktree, ["rev-parse", "HEAD"], "rebuild")).trim();
+    return { status: "built", tip: (await git(worktree, ["rev-parse", "HEAD"], "rebuild")).trim() };
   } finally {
     await git(root, ["worktree", "remove", "--force", worktree], "rebuild").catch(() => "");
     await rm(directory, { recursive: true, force: true });
