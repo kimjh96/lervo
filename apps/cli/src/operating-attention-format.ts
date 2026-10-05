@@ -20,7 +20,7 @@ function describe(item: OperatingAttentionItemV1): string {
   if (item.kind === "document_freshness_applied")
     return `${item.state} · ${item.documentPath} · ${item.approvalSource}${item.commitHash === null ? "" : ` · commit ${item.commitHash.slice(0, 12)}`}`;
   if (item.kind === "knowledge_convergence_owner")
-    return `${item.role} · ${item.reason}${item.holderLabel === null ? "" : ` · holder ${item.holderLabel}`}`;
+    return `${item.role} · ${item.reason}${item.failureCode === null ? "" : ` · ${item.failureCode}${item.httpStatus === null ? "" : ` HTTP ${item.httpStatus}`}`}${item.holderLabel === null ? "" : ` · holder ${item.holderLabel}`}`;
   if (item.kind === "knowledge_publication")
     return `${item.failureCode}${item.detail === null ? "" : ` · ${item.detail}`} · occurrences ${item.occurrences}${item.pullRequestUrl === null ? "" : ` · ${item.pullRequestUrl}`}`;
   if (item.kind === "document_freshness_blocked")
