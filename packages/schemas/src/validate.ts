@@ -64,6 +64,7 @@ import {
 import {
   conversationKnowledgeCandidateRecordedEventPayloadSchema,
   knowledgeInstructionCandidateCapturedEventPayloadSchema,
+  knowledgeInstructionCandidateExchangedEventPayloadSchema,
   knowledgeInstructionCaptureCycleCompletedEventPayloadSchema,
 } from "./instruction-capture-event.js";
 import { knowledgeConvergenceOwnerChangedEventPayloadSchema } from "./knowledge-convergence-owner-event.js";
@@ -429,6 +430,9 @@ const validators = {
   ),
   knowledgeInstructionCaptureCycleCompletedEventPayload: ajv.compile(
     knowledgeInstructionCaptureCycleCompletedEventPayloadSchema,
+  ),
+  knowledgeInstructionCandidateExchangedEventPayload: ajv.compile(
+    knowledgeInstructionCandidateExchangedEventPayloadSchema,
   ),
   knowledgeConvergenceOwnerChangedEventPayload: ajv.compile(
     knowledgeConvergenceOwnerChangedEventPayloadSchema,

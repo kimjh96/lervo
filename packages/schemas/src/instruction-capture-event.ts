@@ -99,6 +99,34 @@ export const knowledgeInstructionCaptureCycleCompletedEventPayloadSchema = {
   additionalProperties: false,
 } as const;
 
+export const knowledgeInstructionCandidateExchangedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/knowledge-instruction-candidate-exchanged-event-payload.schema.json",
+  type: "object",
+  properties: {
+    candidateId: instructionCandidateIdSchema,
+    proposedContentHash: sha256Schema,
+    ruleId: { type: "string", pattern: "^rule_[a-f0-9]{24}$" },
+    direction: { type: "string", enum: ["published", "imported", "resolved"] },
+    resolution: { type: "string", enum: ["open", "applied", "rejected"] },
+    sourceHostHash: sha256Schema,
+    occurredAt: timestampSchema,
+  },
+  required: [
+    "candidateId",
+    "proposedContentHash",
+    "ruleId",
+    "direction",
+    "resolution",
+    "sourceHostHash",
+    "occurredAt",
+  ],
+  additionalProperties: false,
+} as const;
+
+export type KnowledgeInstructionCandidateExchangedEventPayload = FromSchema<
+  typeof knowledgeInstructionCandidateExchangedEventPayloadSchema
+>;
 export type KnowledgeInstructionCandidateCapturedEventPayload = FromSchema<
   typeof knowledgeInstructionCandidateCapturedEventPayloadSchema
 >;
@@ -113,4 +141,5 @@ export const instructionCaptureEventTypes = [
   "knowledge.instruction_candidate.captured",
   "conversation.knowledge_candidate.recorded",
   "knowledge.instruction_capture.cycle.completed",
+  "knowledge.instruction_candidate.exchanged",
 ] as const;
