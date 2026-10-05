@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_842618d23b297e2c802a1914
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e823fd3dc2a70f3fbbb982bb
+outputLanguage: en
+outputs:
+  - byteCount: 596
+    contentHash: sha256:0b9bd08d868b46e8ea8e1effdfa0790b06e38f5fca82eab9d8350e5f305b2a37
+    path: docs/roadmap/product-outcome-convergence/execution/agent-communication.md
+    userRegionHash: sha256:0b9bd08d868b46e8ea8e1effdfa0790b06e38f5fca82eab9d8350e5f305b2a37
+profile: roadmap_document
+recordId: knormdoc_3be856d05c0ea17d10271044
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0b9bd08d868b46e8ea8e1effdfa0790b06e38f5fca82eab9d8350e5f305b2a37
+sourcePath: docs/roadmap/product-outcome-convergence/execution/agent-communication.md
+sourceUnitVersionIds:
+  - uv_139e7a7c60261d4e541b7e66
