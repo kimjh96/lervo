@@ -3,9 +3,13 @@ import {
   ConvergenceOwnership,
   createGitHubKnowledgePublicationForge,
   publishKnowledgeOutputs,
+  type InstructionCandidateExchangeTransport,
   type KnowledgePublicationOutcome,
 } from "@lervo/repository-knowledge-runtime";
-import { createHubKnowledgeConvergenceOwnerClient } from "@lervo/sync";
+import {
+  createHubKnowledgeConvergenceOwnerClient,
+  createHubKnowledgeInstructionCandidateClient,
+} from "@lervo/sync";
 
 /** Composes the ADR-0466 owner with the Hub lease adapter for Node-hosted knowledge residents. */
 export function createKnowledgeConvergenceOwnership(
@@ -26,3 +30,7 @@ export function createKnowledgePublisher(
   const forge = createGitHubKnowledgePublicationForge({ repositoryRoot });
   return () => publishKnowledgeOutputs({ repositoryRoot, forge });
 }
+
+/** ADR-0467: exchanges owner-rule candidates through the same Hub as the owner lease. */
+export const instructionCandidateTransport: InstructionCandidateExchangeTransport = (target) =>
+  createHubKnowledgeInstructionCandidateClient(target);

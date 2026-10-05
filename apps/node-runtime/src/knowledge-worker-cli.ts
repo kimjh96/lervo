@@ -5,6 +5,7 @@ import { startAutonomousKnowledgeWorker } from "@lervo/repository-knowledge-runt
 
 import {
   createKnowledgeConvergenceOwnership,
+  instructionCandidateTransport,
   createKnowledgePublisher,
 } from "./knowledge-convergence-ownership.js";
 import { subscribeKnowledgeWakeups } from "./knowledge-worker-wakeups.js";
@@ -69,6 +70,7 @@ export async function runKnowledgeWorkerCli(args: readonly string[]): Promise<nu
       workerId: `node-${process.ppid}-${process.pid}`,
       provider: parsed.provider,
       ownership: createKnowledgeConvergenceOwnership(opened, parsed.provider),
+      instructionCandidateTransport,
       publish: createKnowledgePublisher(parsed.root),
       ...(parsed.executable === undefined ? {} : { executable: parsed.executable }),
       signal: controller.signal,

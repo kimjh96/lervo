@@ -13,6 +13,7 @@ import { watchLocalEventChanges } from "./local-event-wakeup.js";
 import { startKnowledgeWorkerProcess } from "./knowledge-worker-process.js";
 import {
   createKnowledgeConvergenceOwnership,
+  instructionCandidateTransport,
   createKnowledgePublisher,
 } from "./knowledge-convergence-ownership.js";
 
@@ -51,6 +52,7 @@ export function startRepositoryKnowledgeLoop(input: {
       workerId: `node-${process.pid}`,
       provider: input.provider,
       ownership: createKnowledgeConvergenceOwnership(input.storage!, input.provider),
+      instructionCandidateTransport,
       publish: createKnowledgePublisher(input.repositoryRoot),
       ...(input.executable === undefined ? {} : { executable: input.executable }),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
