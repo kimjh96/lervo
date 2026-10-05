@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_03da67fc442cdfad41f84791"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Retry timed-out document normalization calls within the existing bounded batch."

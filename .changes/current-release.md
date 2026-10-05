@@ -1,132 +1,62 @@
-<!-- lervo-release package="@lervo/cli" version="0.18.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.19.0" schema="1" -->
 
 ## What's changed
 
-- Accept a standing supervision configuration pinned to a later root mandate revision so upgraded Nodes keep starting.
-- Accept reviewed preflight repair evidence in v3 event readers
-- Accept the canonical parsed standing-owner form in guarded Node service upgrades while retaining exact configuration and work-admission fences.
-- Accept the owner attention absence proof when reading superseded supervision decisions.
-- Accept verified sparse Hub workstream checkpoints during bound supervision without weakening local ancestry checks.
-- Add a durable supervision preflight barrier and reviewed post-revocation owner spend allowance.
-- Add an exact-lease background knowledge failure outcome with restart-safe retry exhaustion.
-- Add delegated background canonicalization and independently reviewed document normalization with durable recovery, bounded provider admission, and explicit knowledge convergence status.
-- Add isolated no-tool semantic review for leased conversation knowledge jobs.
-- Add read-only knowledge review assignments without blocking live repository writers.
-- Add reader-first contracts and bounded local reconciliation for asynchronous repository knowledge work.
-- Add source-bound agent assignment provenance for asynchronous conversation knowledge work.
-- Add source-bound asynchronous conversation knowledge completion evidence while retaining the installed synchronous default.
-- Add the core repository knowledge worker that settles each queued repository change as current, pending review, stale or attention required.
-- Align supervised worker budget readiness with the reviewed per-attempt mandate policy.
-- Allow a new owner spend epoch only at an explicit mandate revocation
-- Allow cancelling a leased assignment whose lease has already expired.
-- Allow exact interrupted owner reconciliation to confirm its decision without claiming successful work.
-- Allow guarded Node upgrades to replace reviewed CLI bindings after verified stop while preserving work admission and restoring exact predecessor configuration on failure.
-- Assign open canonicalization candidates to the next Discord repository-work turn.
-- Assign pending document normalization to every repository-changing agent turn instead of a reviewer queue.
-- Bind complete bounded asset declarations to reviewed delegation and apply both authority files in one exact durable transaction.
-- Bound admission waiters during Node service upgrades without accepting unstarted work.
-- Bound supervision artifacts and the owner reasoning context at 1 MiB so long goals keep reasoning.
-- Bound the Claude login status probe so a hung probe still falls back to the stored login within the readiness window.
-- Capture exact leased conversation source bytes for background knowledge review.
-- Charge a completed supervised owner turn its provider-reported usage against the owner spend epoch instead of its full reservation.
-- Charge a terminated owner turn without usage its reservation instead of blocking the owner spend epoch.
-- Charge cached input re-reads at their cost against supervision token budgets.
-- Charge nothing for a superseded owner decision whose provider never started against the owner spend epoch.
-- Compile complete execution evidence through verified bounded pages while preserving original event identities and repository source policy.
-- Correct Discord work recovery and runtime status reporting.
-- Date supervised admission after final source validation to avoid false stale failures under slow repository reads.
-- Distinguish stale supervision admission from changed mandate, task, and plan sources.
-- Drain document normalization debt in bounded batches that skip a document whose normalized output was rejected.
-- Drop Git-ignored build outputs from background knowledge change sources.
-- Drop Lervo-generated projections from background knowledge change sources.
-- Exclude Lervo projections and state from Discord repository-work observation so generated evidence cannot exceed its path bound.
-- Exclude Playwright test-results and playwright-report output from repository knowledge scans and change evidence.
-- Fence asynchronous conversation knowledge work with exact outbox lease and source preflight.
-- Fix multi-suite knowledge integration and keep host-bound grants local.
-- Follow events a worker appends during an authority observation instead of killing the worker.
-- Follow reviewed standing root mandate revisions without changing the configured ancestry pin.
-- Generate document normalization candidates on the Node outside the provider sandbox, and have repository-work turns review and apply the stored candidate.
-- Give owner reasoning a five-minute invocation window so a turn that reads sources is not cut off.
-- Honor reviewed canonical workset limits and capture explicitly reviewed repository references and asset inventories.
-- Host the repository knowledge owner in the Node alongside the CLI worker, sharing one repository lock.
-- Include linked review contracts, renew long verification leases, and isolate compiler caches.
-- Inspect retained supervision workspaces in bounded parallel during owner reasoning
-- Install an existing replacement for an exhausted rework instead of escalating again.
-- Isolate the bundled Node resident knowledge owner in its own managed process while preserving authority and graceful shutdown.
-- Keep a refreshable stored Claude login ready when the status probe cannot answer after the access token lapses.
-- Keep a superseded workspace generation proven unstarted while the current worker appends its own events.
-- Keep a supervised worker running through slow authority reads during verification, and log the failure code of an uncertain effect.
-- Keep admitted conversation work alive until Node shutdown finishes draining.
-- Keep an unchanged blocked supervision source reported as blocked instead of healthy.
-- Keep earlier verification results valid after their suite definition changes, so a suite edit no longer stops the Node.
-- Keep final worker readiness and admission witnesses inside one bounded window after context preparation.
-- Keep interactive startup available with streaming validated recent execution evidence while preserving complete-history limits.
-- Keep supervised worker readiness current through task context and final checks.
-- Let a Hub-enabled repository with no registered Node on its host activate a newer event writer from its local reader alone.
-- Let a managed run with several expected paths create a target turn per path instead of failing validation.
-- Let a replacement under the same acceptance contract supersede an exhausted rework, and stop counting cancelled assignments as unbound work.
-- Let a responsibility claim bind over an assignment whose earlier checkout was retired.
-- Let a supervision owner act after a restart whose first cycle reconciled a pending decision.
-- Let a supervision owner replace an exhausted rework with a fresh assignment instead of only escalating.
-- Let the supervision owner allocate remaining goal scope after every current assignment is accepted.
-- Load exact canonical context automatically for bounded asynchronous conversation knowledge review.
-- Move managed conversation repository snapshots into owned Node subprocesses to keep Discord replies responsive.
-- Name the fields of a supervised owner completion verdict that cannot be materialized instead of failing every cycle.
-- Name the missing or invalid allocation fields when a supervised owner proposal is rejected, so the next owner turn can correct them.
-- Name the wrapped cause when a supervision effect becomes uncertain.
-- Permit exact non-start dispatch reconciliation after supervision revocation.
-- Preserve privacy-bounded provider transport failure diagnostics for managed runs.
-- Preserve retired agent history and distinct background knowledge ownership during reconciliation.
-- Preserve safe Discord webhook result publication and reject unsupported remote task coordination before send.
-- Preserve service upgrades when graceful shutdown outlasts a short manager command timeout.
-- Preserve unavailable pre-start usage and revalidate owner budgets against reconciled sources.
-- Preserve verified prior conversation context in new supervised Discord goal bindings.
-- Prevent Node service upgrades from interrupting admitted conversation and remote command work.
-- Prevent product-owner services from replaying supervised work during installation or restart.
-- Prevent supervised Node upgrades from interrupting active owner work.
-- Project managed owner evidence comments from decoded JSON strings, version the repaired reference contract without resetting spend limits, and preserve truthful publication blockers.
-- Publish every completed supervision worker result as a create-only lervo/results branch.
-- Queue Discord repository-work completions for background knowledge and register a canonicalization candidate for every pending review.
-- Read bounded supervision preflight non-start events without activating a writer.
-- Read Claude context-window usage keys such as claude-opus-5-5[1m] as their base model so managed Claude results are accepted.
-- Reconcile a supervision decision whose attempt already ended uncertain, and let a rolled-back topology allocation be superseded.
-- Reconcile interrupted read-only owner turns without inventing token usage or replaying work.
-- Reconcile terminal owner start failures with exact host proof and unknown usage.
-- Record a durable background knowledge job for every changed managed run and terminal turn on a version-3 event writer.
-- Record historical conversation knowledge debt with exact agent authority and no invented source evidence.
-- Record terminal hook stage timings for repositories on the version-3 event writer.
-- Record the adapter error behind a failed managed turn, and read annotated failure diagnostics without failing supervision.
-- Recover a supervised write run that died during verification after its provider stopped.
-- Recover exact prepared workspace receipts, bound supervision startup deferral, and preserve local completion without forced publication.
-- Recover invalid supervised owner proposals and map authorized shell readiness without recurring cycle errors.
-- Recover verified Discord repository-work completions after restart and keep repeated messages distinct.
-- Refresh exact worker admission after slow readiness probes without weakening the freshness bound.
-- Reject an overlong supervised owner task purpose with a named field instead of an unexplained contract failure.
-- Reject repository work whose changed-path evidence exceeds the canonical completion bound.
-- Reopen supervision escalation capacity after each reviewed mandate installation.
-- Report pending supervision health until a restarted owner evaluates its goal, and keep the adapter's turn failure code in run diagnostics.
-- Report the worker CLI's bounded failure reason when a supervised dispatch leaves no canonical evidence.
-- Require matching supervision authority for Discord goal intake and write bounded outcomes through managed conversation prose.
-- Reserve the reviewed per-attempt token budget for a supervised worker dispatch instead of the owner reasoning reservation.
-- Resolve spend-exhausted supervision preflight blocks through an approved authority review
-- Resolve the current standing supervision binding in the abandoned-turn and pre-turn repair commands.
-- Restore bounded supervisor history by retaining complete causal workstream execution and validating all original canonical events.
-- Resume unfinished supervised worker duties after a Node restart.
-- Retain supervised preflight barriers across standing successor goals
-- Retire never-used supervised worker checkouts under the owner lease
-- Retry a stale supervision admission or readiness observation once before blocking the owner.
-- Retry an unclassified supervision preflight failure once before blocking, and supersede unrecorded artifact reviews and goal completions.
-- Return an owner's revision of an unrevisable assignment as proposal feedback instead of failing every supervision cycle.
-- Run the repository knowledge worker from the CLI and launch it detached after a changed terminal turn or managed run.
-- Send the supervised owner a compact view of its context: recent workstream notes, live assignments and one workstream copy.
-- Settle a dead writable supervised worker turn as effects-uncertain so it stops holding worker concurrency.
-- Settle a rework-rejected assignment once a later assignment replaces it, across routing, completion and publication.
-- Settle missing or corrupt background knowledge sources as exact attention outcomes without claiming currency.
-- Stop a supervised managed provider turn once its tokens pass the attempt's reserved budget.
-- Stop owner reasoning retries after a provider usage limit and before unspendable reservations
-- Stop repeated owner supervision failures from malformed escalation details.
-- Supersede a never-bound responsibility claim once its start deadline passes, and log the cause of uncertain supervision effects.
-- Supersede an owner escalation that a preflight blocked before it was recorded, so the owner can decide again.
-- Tell the supervision owner that managed workers have no shell, so command checks must be verification suites the host runs.
-- Treat a Claude turn that failed before any model answered, such as a contended OAuth refresh, as a retryable unavailable model.
-- Verify conversation knowledge job artifacts and repository source bytes before agent review.
+- Accept the final structured Codex response after intermediate messages during background knowledge compilation.
+- Allow protected Node upgrades to refresh the supervised CLI bundle.
+- Allow ten minutes for bounded background document normalization calls on busy hosts.
+- Back replica coordinator recovery off while replicas stay current and serve unchanged trees from a fingerprint-keyed snapshot cache.
+- Bound autonomous knowledge assessment inputs and recover provider timeouts.
+- Clarify reviewed rejection of stale canonicalization candidates during background convergence.
+- Close owner-accepted historical knowledge obligations and skip reviewed Lervo outputs in background assessment.
+- Commit settled background knowledge at batch boundaries, shrink timed-out normalization reviews, and treat concurrent scan edits and live materialization owners as retryable.
+- Commit settled background knowledge outputs before lifecycle planning so developers keep a clean working tree.
+- Commit settled background knowledge outputs on hosts without a configured Git identity.
+- Default terminal hooks to compact context with cached snapshots so Claude Code and Codex prompts and turn ends stay fast.
+- Degrade per-change knowledge review per file: generated, oversize, and binary paths are skipped and recorded, large changes split into ordered sub-jobs, and jobs stalled by whole-job intake rejection are re-queued once.
+- Hide distributed discussion when a channel lacks two independently bound bot peers, preserving addressed delegation.
+- Include a bounded bundle coordinate in Node supervision failure logs for installed recovery diagnosis.
+- Include bounded linked instruction contracts in canonical review context.
+- Include source-linked authorities in bounded repository review context.
+- Keep background document normalization batches within reviewed provider-call ceilings.
+- Keep background knowledge review out of live Discord repository work.
+- Keep canonical review context available while planned documents are absent.
+- Keep convergence delegation plans read-only while validating agent bindings.
+- Limit background canonical assessment to observed repository source obligations.
+- Load exact release review policies and CLI bundle facts for canonical assessments.
+- Preserve protected Node service failure codes in repository apply diagnostics.
+- Read standing supervision event history through verified cursors, type-filtered pages and a lapsed-deadline backoff instead of repeated full scans.
+- Reclaim background provider slots held by exited workers before their timeout.
+- Record attributed usage and context receipts for Discord repository work and knowledge workers, verify deliberation usage before convergence, and repair unproven multi-provider replies.
+- Record legacy agent display identity during role-binding migration so repository upgrades no longer fail.
+- Record supervision lease release only after its process lock closes.
+- Recover a previously registered inactive Node during guarded service upgrade.
+- Refresh stale documents from evidence: the knowledge resident applies verified Lervo-managed reference updates with a revertible commit, and user-owned updates wait in lervo knowledge freshness review.
+- Reject canonical drafts with stale or missing existing-target hashes before independent review.
+- Release supervision process locks on Node 22.13, which lacks the SQLite open and transaction accessors.
+- Replace the v4 placeholder per-change knowledge reviewer with a governed provider review that is authorized, admitted, budgeted, and measured, and re-queue placeholder-reviewed jobs once.
+- Report bounded supervision recovery evidence failures in the installed Node journal.
+- Report document-layout contract violations by field, regenerate edited generated publication pages, and apply independent upgrade stages while another stage is blocked.
+- Report missing document roles, broken links, stale entrypoint references, and stale documents in knowledge lint, and keep historical documents out of current navigation and retrieval.
+- Repository replica failures report code, stage, Git exit code, and a redacted stderr digest; capture excludes host-local state explicitly; held divergences record diverged and reconciled events once per identity with attention and degraded health.
+- Restore Node supervision health after a validated idle recovery cycle.
+- Restore Node supervision health after transient evidence unavailability clears on a validated authority read.
+- Retain integrated canonical dispositions across background baseline supersession.
+- Retrieve source-specific canonical review evidence in ranked order.
+- Retry invalid independent normalization review within the approved provider call budget.
+- Retry one invalid background canonical assessment within its reviewed call budget.
+- Retry slow supervision authority observations within fresh bounded windows.
+- Retry timed-out document normalization calls within the existing bounded batch.
+- Reuse exact independently approved canonical worksets after repository source changes.
+- Review old canonical candidates with source-specific context before closing their evidence obligations.
+- Settle unread sensitive sources by their baseline disposition in background knowledge currency.
+- Skip nested Git working trees when scanning repository knowledge sources.
+- Skip unchanged background knowledge cycles behind a change fence, back reconciliation off to 15 minutes, and cache source hashes.
+- Stamp workstream revision, update time, and HEAD on the server, add merge-patch and one-call apply updates, and keep stale workstream items out of prompt directives.
+- Stop conversation outbound delivery at the shared retry-policy bound, even after interrupted attempts, and report each outbound that requires attention.
+- Synchronize the knowledge integration target before every canonical integration so drafts verify on current code.
+- Synchronize the knowledge integration target with the working branch when ref-only changes were already integrated.
+- Typecheck against Node 22.13 type definitions and reject malformed SQLite rows with coded integrity errors.
+- Use reviewed eight-document canonical worksets while preserving exact approval replay for prior batches.
+- Version edited loose Agent Skills as the next patch capability instead of failing repository upgrade with a capability conflict.
+- Wait for launchd to finish booting out a Node before upgrading it, and keep a gracefully stopped Node eligible for verified-inactive upgrade recovery.

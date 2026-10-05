@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_fb7baba9476ef9bd55825360"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Use reviewed eight-document canonical worksets while preserving exact approval replay for prior batches."

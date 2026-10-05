@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_cd1df3e28dba2a93b35dd088"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Load exact release review policies and CLI bundle facts for canonical assessments."

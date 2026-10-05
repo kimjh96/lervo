@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f6bc0c3c9f22298924b206a8"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Limit background canonical assessment to observed repository source obligations."

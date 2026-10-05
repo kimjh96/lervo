@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4f3cd7e790edd47b13fb7999"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep background knowledge review out of live Discord repository work."

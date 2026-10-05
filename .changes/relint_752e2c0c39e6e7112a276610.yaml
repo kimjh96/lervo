@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_752e2c0c39e6e7112a276610"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Synchronize the knowledge integration target with the working branch when ref-only changes were already integrated."
