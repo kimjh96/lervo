@@ -15,6 +15,12 @@ function describe(item: OperatingAttentionItemV1): string {
   if (item.kind === "repository_replica_divergence") {
     return `replica ${item.replicaId} · ${item.reason} · paths ${item.conflictPathCount}${item.conflictPaths.length === 0 ? "" : ` (${item.conflictPaths.join(",")})`}`;
   }
+  if (item.kind === "document_freshness_candidate")
+    return `${item.state} · ${item.documentPath} · ${item.priorityClass} · ${item.changeClasses.join(",")} · hunks ${item.hunkCount}`;
+  if (item.kind === "document_freshness_applied")
+    return `${item.state} · ${item.documentPath} · ${item.approvalSource}${item.commitHash === null ? "" : ` · commit ${item.commitHash.slice(0, 12)}`}`;
+  if (item.kind === "document_freshness_blocked")
+    return `${item.reasonCode} · attempts ${item.attempts}`;
   return `${item.issueCode}${item.detail === null ? "" : ` · ${item.detail}`}`;
 }
 

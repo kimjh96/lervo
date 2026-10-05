@@ -15,6 +15,7 @@ import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
 import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
 import { formatTerminalAttentionContext } from "./operating-attention-format.js";
 import { prepareCompactTerminalPromptContext } from "./terminal-compact-context.js";
+import { readDocumentFreshnessAttention } from "./document-freshness-attention.js";
 import { createOperatingAttentionReport } from "./operating-attention-projection.js";
 import { readTerminalKnowledgeLifecycleCacheEntry } from "./terminal-knowledge-lifecycle-cache.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
@@ -166,6 +167,7 @@ export async function prepareTerminalPromptContext(input: {
             coverage: "cached",
             issues: [...cachedLifecycle.issues, ...cachedLifecycle.advisories],
           },
+    documentFreshness: await readDocumentFreshnessAttention(input.root, observedAt),
     observedAt,
   });
   const selection = await input.timing.measure("search", () =>
