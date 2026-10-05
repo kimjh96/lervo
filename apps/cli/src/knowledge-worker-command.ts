@@ -1,9 +1,11 @@
 import {
   runAutonomousKnowledgeWorker,
   startAutonomousKnowledgeWorker,
+  type ConvergenceOwnerVerdict,
 } from "@lervo/repository-knowledge-runtime";
 import { spawn } from "node:child_process";
 
+import { createKnowledgeConvergenceOwnership } from "./knowledge-convergence-ownership.js";
 import { knowledgeWorkerFailureLine } from "./knowledge-worker-failure.js";
 
 import { openProjectStorage } from "@lervo/project-storage";
@@ -23,19 +25,24 @@ export async function runKnowledgeWorker(input: {
   openStorage?: typeof openProjectStorage;
   host?: RepositoryKnowledgeWorkerHost;
 }): Promise<
-  { status: "processed"; outcomes: RepositoryKnowledgeJobOutcome[] } | { status: "busy" }
+  | { status: "processed"; outcomes: RepositoryKnowledgeJobOutcome[] }
+  | { status: "busy" }
+  | { status: "waiting_owner"; owner: ConvergenceOwnerVerdict }
 > {
   const storage = await (input.openStorage ?? openProjectStorage)(input.root);
   try {
-    if ((storage.writableEventSchemaVersion ?? 1) >= 4 && input.host === undefined)
+    if ((storage.writableEventSchemaVersion ?? 1) >= 4 && input.host === undefined) {
+      const ownership = createKnowledgeConvergenceOwnership(storage, input.provider);
       return await runAutonomousKnowledgeWorker({
         storage,
+        owner: () => ownership.observe(),
         workerId: `cli-${process.pid}`,
         provider: input.provider,
         ...(input.maximumJobs === undefined
           ? {}
           : { maximumStages: Math.min(8, input.maximumJobs) }),
       });
+    }
     return await runRepositoryKnowledgeWorker({
       repositoryRoot: storage.paths.repositoryRoot,
       events: storage.events,
@@ -70,6 +77,7 @@ export async function runKnowledgeWorkerCommand(
         storage,
         workerId: `cli-${process.pid}`,
         provider,
+        ownership: createKnowledgeConvergenceOwnership(storage, provider),
         onCycle: (result) => io.stdout(`${JSON.stringify(result)}\n`),
         onFailure: (error) =>
           io.stderr(knowledgeWorkerFailureLine(error, storage.paths.repositoryRoot)),
