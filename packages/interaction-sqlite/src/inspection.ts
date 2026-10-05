@@ -8,6 +8,7 @@ import { validateSchema } from "@lervo/schemas";
 import { decision, inbound, integer, outbound, text } from "./codec.js";
 import { interactionSQLiteSchemaVersion } from "./database.js";
 import { InteractionSQLiteError } from "./errors.js";
+import { iterateSqliteRows, sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export interface ConversationOutboundDeliveryRecord {
   status: "pending" | "leased" | "delivered" | "attention_required";
@@ -54,9 +55,9 @@ function assertProtectiveSchema(database: DatabaseSync): void {
     "conversation_outbox_lifecycle_guard",
     "conversation_outbox_no_delete",
   ]);
-  for (const row of database
-    .prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'")
-    .iterate()) {
+  for (const row of iterateSqliteRows(
+    database.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'").iterate(),
+  )) {
     if (typeof row.name === "string") required.delete(row.name);
   }
   if (required.size > 0) {
@@ -94,13 +95,15 @@ export async function inspectConversationOutboundDeliveries(input: {
   try {
     database.exec("PRAGMA query_only = ON;");
     if (
-      database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok" ||
-      database.prepare("PRAGMA foreign_key_check;").get() !== undefined ||
-      database.prepare("PRAGMA user_version;").get()?.user_version !==
+      sqliteRow(database.prepare("PRAGMA quick_check;").get())?.quick_check !== "ok" ||
+      sqliteRow(database.prepare("PRAGMA foreign_key_check;").get()) !== undefined ||
+      sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version !==
         interactionSQLiteSchemaVersion ||
-      database
-        .prepare("SELECT value FROM interaction_meta WHERE key = 'storage_schema_version'")
-        .get()?.value !== String(interactionSQLiteSchemaVersion)
+      sqliteRow(
+        database
+          .prepare("SELECT value FROM interaction_meta WHERE key = 'storage_schema_version'")
+          .get(),
+      )?.value !== String(interactionSQLiteSchemaVersion)
     ) {
       throw new InteractionSQLiteError(
         "integrity_failed",
@@ -108,47 +111,48 @@ export async function inspectConversationOutboundDeliveries(input: {
       );
     }
     assertProtectiveSchema(database);
-    return database
-      .prepare(
-        "SELECT * FROM conversation_outbox WHERE source_event_id = ? ORDER BY role_id, outbound_id",
-      )
-      .all(input.sourceEventId)
-      .map((row) => {
-        const eventRow = database
+    return sqliteRows(
+      database
+        .prepare(
+          "SELECT * FROM conversation_outbox WHERE source_event_id = ? ORDER BY role_id, outbound_id",
+        )
+        .all(input.sourceEventId),
+    ).map((row) => {
+      const eventRow = sqliteRow(
+        database
           .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
-          .get(input.sourceEventId, text(row, "role_id"));
-        const decisionRow = database
+          .get(input.sourceEventId, text(row, "role_id")),
+      );
+      const decisionRow = sqliteRow(
+        database
           .prepare(
             "SELECT * FROM conversation_participation_decisions WHERE event_id = ? AND role_id = ?",
           )
-          .get(input.sourceEventId, text(row, "role_id"));
-        if (
-          eventRow === undefined ||
-          decisionRow === undefined ||
-          eventRow.status !== "completed"
-        ) {
-          throw new InteractionSQLiteError(
-            "integrity_failed",
-            "The inspected conversation outbound has no completed interaction source.",
-          );
-        }
-        const event = inbound(eventRow);
-        const message = outbound(row, event);
-        if (decision(decisionRow, event).action !== "respond") {
-          throw new InteractionSQLiteError(
-            "integrity_failed",
-            "The inspected conversation outbound has no responding decision.",
-          );
-        }
-        const status = text(row, "status") as ConversationOutboundDeliveryRecord["status"];
-        if (!new Set(["pending", "leased", "delivered", "attention_required"]).has(status)) {
-          throw new InteractionSQLiteError(
-            "integrity_failed",
-            "The inspected conversation outbound status is invalid.",
-          );
-        }
-        return { status, outbound: message, receipt: receipt(row, message) };
-      });
+          .get(input.sourceEventId, text(row, "role_id")),
+      );
+      if (eventRow === undefined || decisionRow === undefined || eventRow.status !== "completed") {
+        throw new InteractionSQLiteError(
+          "integrity_failed",
+          "The inspected conversation outbound has no completed interaction source.",
+        );
+      }
+      const event = inbound(eventRow);
+      const message = outbound(row, event);
+      if (decision(decisionRow, event).action !== "respond") {
+        throw new InteractionSQLiteError(
+          "integrity_failed",
+          "The inspected conversation outbound has no responding decision.",
+        );
+      }
+      const status = text(row, "status") as ConversationOutboundDeliveryRecord["status"];
+      if (!new Set(["pending", "leased", "delivered", "attention_required"]).has(status)) {
+        throw new InteractionSQLiteError(
+          "integrity_failed",
+          "The inspected conversation outbound status is invalid.",
+        );
+      }
+      return { status, outbound: message, receipt: receipt(row, message) };
+    });
   } finally {
     database.close();
   }

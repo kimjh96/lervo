@@ -7,6 +7,7 @@ import { type ProjectSyncState } from "@lervo/sync-contract";
 import { HubSyncStoreError } from "./errors.js";
 import { PROJECT_COLUMNS } from "./project-head.js";
 import { decodeProjectState, integerField, stringField } from "./row-codec.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export class HubAuditSQLiteRepository {
   constructor(private readonly database: DatabaseSync) {}
@@ -29,9 +30,9 @@ export class HubAuditSQLiteRepository {
   }
 
   private metaCount(key: "project_count" | "event_count"): number {
-    const value = this.database
-      .prepare("SELECT value FROM hub_sync_meta WHERE key = ?")
-      .get(key)?.value;
+    const value = sqliteRow(
+      this.database.prepare("SELECT value FROM hub_sync_meta WHERE key = ?").get(key),
+    )?.value;
     const count = typeof value === "string" ? Number(value) : Number.NaN;
     if (!Number.isSafeInteger(count) || count < 0) {
       throw new HubSyncStoreError("integrity_failed", "The Hub count metadata is invalid.");
@@ -40,42 +41,47 @@ export class HubAuditSQLiteRepository {
   }
 
   listProjectCoordinates(): HubProjectCoordinate[] {
-    return this.database
-      .prepare(
-        `
+    return sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT destination_id, project_id
       FROM hub_projects
       ORDER BY destination_id ASC, project_id ASC
     `,
-      )
-      .all()
-      .map((row) => ({
-        destinationId: stringField(row, "destination_id"),
-        projectId: stringField(row, "project_id"),
-      }));
+        )
+        .all(),
+    ).map((row) => ({
+      destinationId: stringField(row, "destination_id"),
+      projectId: stringField(row, "project_id"),
+    }));
   }
 
   loadProject(coordinate: HubProjectCoordinate): ProjectSyncState | null {
-    const projectRow = this.database
-      .prepare(
-        `
+    const projectRow = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT ${PROJECT_COLUMNS}, stored_event_count, run_count
       FROM hub_projects
       WHERE destination_id = ? AND project_id = ?
     `,
-      )
-      .get(coordinate.destinationId, coordinate.projectId);
+        )
+        .get(coordinate.destinationId, coordinate.projectId),
+    );
     if (projectRow === undefined) return null;
-    const eventRows = this.database
-      .prepare(
-        `
+    const eventRows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT seq, event_id, event_hash, previous_hash, event_json
       FROM hub_events
       WHERE destination_id = ? AND project_id = ?
       ORDER BY seq ASC
     `,
-      )
-      .all(coordinate.destinationId, coordinate.projectId);
+        )
+        .all(coordinate.destinationId, coordinate.projectId),
+    );
     const state = decodeProjectState(projectRow, eventRows);
     this.assertDerivedIndexes(coordinate, projectRow, state);
     return state;
@@ -123,23 +129,24 @@ export class HubAuditSQLiteRepository {
         "The derived Hub project count differs from the source events.",
       );
     }
-    const storedRuns = this.database
-      .prepare(
-        `
+    const storedRuns = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT run_id, first_seq, last_seq, event_count, continuous_event_count
       FROM hub_runs
       WHERE destination_id = ? AND project_id = ?
       ORDER BY run_id ASC
     `,
-      )
-      .all(coordinate.destinationId, coordinate.projectId)
-      .map((row) => ({
-        runId: stringField(row, "run_id"),
-        firstSeq: integerField(row, "first_seq"),
-        lastSeq: integerField(row, "last_seq"),
-        eventCount: integerField(row, "event_count"),
-        continuousEventCount: integerField(row, "continuous_event_count"),
-      }));
+        )
+        .all(coordinate.destinationId, coordinate.projectId),
+    ).map((row) => ({
+      runId: stringField(row, "run_id"),
+      firstSeq: integerField(row, "first_seq"),
+      lastSeq: integerField(row, "last_seq"),
+      eventCount: integerField(row, "event_count"),
+      continuousEventCount: integerField(row, "continuous_event_count"),
+    }));
     const expectedRunRows = [...expectedRuns.entries()]
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([runId, run]) => ({
@@ -155,21 +162,22 @@ export class HubAuditSQLiteRepository {
         "The derived Hub run index differs from the source events.",
       );
     }
-    const storedSessions = this.database
-      .prepare(
-        `
+    const storedSessions = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT run_id, session_id, first_seq
       FROM hub_run_sessions
       WHERE destination_id = ? AND project_id = ?
       ORDER BY run_id ASC, session_id ASC
     `,
-      )
-      .all(coordinate.destinationId, coordinate.projectId)
-      .map((row) => ({
-        runId: stringField(row, "run_id"),
-        sessionId: stringField(row, "session_id"),
-        firstSeq: integerField(row, "first_seq"),
-      }));
+        )
+        .all(coordinate.destinationId, coordinate.projectId),
+    ).map((row) => ({
+      runId: stringField(row, "run_id"),
+      sessionId: stringField(row, "session_id"),
+      firstSeq: integerField(row, "first_seq"),
+    }));
     const expectedSessions = [...expectedRuns.entries()]
       .flatMap(([runId, run]) =>
         [...run.sessions.entries()].map(([sessionId, firstSeq]) => ({

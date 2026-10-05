@@ -10,6 +10,7 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SQLiteConversationDeliberationJobStore } from "../src/index.js";
+import { sqliteRow, sqliteRows } from "../src/sqlite-row.js";
 
 const roots: string[] = [];
 const sourceEventId = `cve_${"a".repeat(64)}`;
@@ -241,19 +242,20 @@ describe("conversation deliberation reconciliation storage", () => {
     });
     store.close();
     const migrated = new DatabaseSync(path);
-    expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(4);
+    expect(sqliteRow(migrated.prepare("PRAGMA user_version").get())?.user_version).toBe(4);
     expect(
-      migrated
-        .prepare(
-          "SELECT state, occurred_at FROM conversation_deliberation_notifications WHERE deliberation_id = ?",
-        )
-        .get("dlb_legacyqueue0001"),
+      sqliteRow(
+        migrated
+          .prepare(
+            "SELECT state, occurred_at FROM conversation_deliberation_notifications WHERE deliberation_id = ?",
+          )
+          .get("dlb_legacyqueue0001"),
+      ),
     ).toEqual({ state: "pending", occurred_at: "2026-08-22T00:02:00.000Z" });
     expect(
-      migrated
-        .prepare("PRAGMA table_info(conversation_deliberation_jobs)")
-        .all()
-        .some((column) => column.name === "reconciliation_json"),
+      sqliteRows(migrated.prepare("PRAGMA table_info(conversation_deliberation_jobs)").all()).some(
+        (column) => column.name === "reconciliation_json",
+      ),
     ).toBe(true);
     migrated.close();
   });

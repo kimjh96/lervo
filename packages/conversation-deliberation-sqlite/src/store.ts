@@ -33,6 +33,7 @@ import {
   resolveConversationDeliberationMaximumRecords,
   rollbackConversationDeliberationQueueTransaction,
 } from "./store-core.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 const leaseConfiguration: LeaseStoreConfiguration<
   ReturnType<typeof decodeConversationDeliberationJob>,
@@ -59,11 +60,13 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
 
   nextWakeupAt(): number | null {
     this.assertOpen();
-    const work = this.database
-      .prepare(
-        "SELECT MIN(CASE WHEN state = 'queued' THEN requested_at_ms ELSE lease_expires_at_ms END) AS next_at FROM conversation_deliberation_jobs WHERE state IN ('queued', 'leased')",
-      )
-      .get()?.next_at;
+    const work = sqliteRow(
+      this.database
+        .prepare(
+          "SELECT MIN(CASE WHEN state = 'queued' THEN requested_at_ms ELSE lease_expires_at_ms END) AS next_at FROM conversation_deliberation_jobs WHERE state IN ('queued', 'leased')",
+        )
+        .get(),
+    )?.next_at;
     const notification = nextConversationDeliberationNotificationWakeupAt(this.database);
     const values = [work, notification].filter(
       (value): value is number => typeof value === "number",
@@ -126,14 +129,16 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
     });
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const row = this.database
-        .prepare(
-          `
+      const row = sqliteRow(
+        this.database
+          .prepare(
+            `
         SELECT * FROM conversation_deliberation_jobs
         WHERE project_id = ? AND source_event_id = ?
       `,
-        )
-        .get(input.projectId, input.sourceEventId);
+          )
+          .get(input.projectId, input.sourceEventId),
+      );
       if (row !== undefined) {
         const existing = decodeConversationDeliberationJob(row);
         if (
@@ -148,9 +153,9 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
         this.database.exec("COMMIT;");
         return existing;
       }
-      const count = this.database
-        .prepare("SELECT COUNT(*) AS count FROM conversation_deliberation_jobs")
-        .get()?.count;
+      const count = sqliteRow(
+        this.database.prepare("SELECT COUNT(*) AS count FROM conversation_deliberation_jobs").get(),
+      )?.count;
       if (typeof count !== "number" || !Number.isSafeInteger(count)) {
         throw new ConversationDeliberationSQLiteError(
           "integrity_failed",
@@ -202,14 +207,16 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
   async inspect(input: Parameters<ConversationDeliberationJobStore["inspect"]>[0]) {
     this.assertOpen();
     assertConversationDeliberationLookup(input);
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT * FROM conversation_deliberation_jobs
       WHERE project_id = ? AND deliberation_id = ?
     `,
-      )
-      .get(input.projectId, input.deliberationId);
+        )
+        .get(input.projectId, input.deliberationId),
+    );
     return row === undefined ? null : decodeConversationDeliberationJob(row);
   }
 
@@ -226,22 +233,23 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
         "The uncertain deliberation query is invalid.",
       );
     }
-    return this.database
-      .prepare(
-        "SELECT * FROM conversation_deliberation_jobs WHERE project_id = ? AND state = 'uncertain' ORDER BY terminal_at, deliberation_id LIMIT ?",
-      )
-      .all(input.projectId, input.limit)
-      .map((row) => {
-        const job = decodeConversationDeliberationJob(row);
-        const uncertainAt = row.terminal_at;
-        if (typeof uncertainAt !== "string") {
-          throw new ConversationDeliberationSQLiteError(
-            "integrity_failed",
-            "The uncertain deliberation has no terminal time.",
-          );
-        }
-        return { deliberationId: job.deliberationId, uncertainAt };
-      });
+    return sqliteRows(
+      this.database
+        .prepare(
+          "SELECT * FROM conversation_deliberation_jobs WHERE project_id = ? AND state = 'uncertain' ORDER BY terminal_at, deliberation_id LIMIT ?",
+        )
+        .all(input.projectId, input.limit),
+    ).map((row) => {
+      const job = decodeConversationDeliberationJob(row);
+      const uncertainAt = row.terminal_at;
+      if (typeof uncertainAt !== "string") {
+        throw new ConversationDeliberationSQLiteError(
+          "integrity_failed",
+          "The uncertain deliberation has no terminal time.",
+        );
+      }
+      return { deliberationId: job.deliberationId, uncertainAt };
+    });
   }
 
   async claim(input: Parameters<ConversationDeliberationJobStore["claim"]>[0]) {

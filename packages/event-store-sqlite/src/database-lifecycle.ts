@@ -4,6 +4,7 @@ import { type DatabaseSync } from "node:sqlite";
 
 import { EventStoreError } from "./errors.js";
 import { storageSchemaVersion } from "./migrations.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 export async function ensureDatabasePath(path: string): Promise<string> {
   const absolutePath = resolve(path);
@@ -26,8 +27,8 @@ export function bindDatabaseMetadata(database: DatabaseSync, projectId: string):
   database.exec("BEGIN IMMEDIATE;");
   try {
     const getMeta = database.prepare("SELECT value FROM store_meta WHERE key = ?");
-    const storedVersion = getMeta.get("storage_schema_version")?.value;
-    const storedProjectId = getMeta.get("project_id")?.value;
+    const storedVersion = sqliteRow(getMeta.get("storage_schema_version"))?.value;
+    const storedProjectId = sqliteRow(getMeta.get("project_id"))?.value;
     const insertMeta = database.prepare("INSERT INTO store_meta (key, value) VALUES (?, ?)");
     if (storedVersion === undefined) {
       insertMeta.run("storage_schema_version", String(storageSchemaVersion));

@@ -6,6 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { type EventDraftV1, SQLiteEventStore } from "../src/index.js";
+import { sqliteRow } from "../src/sqlite-row.js";
 
 const projectId = "prj_01234567";
 const destinationId = "hub:primary";
@@ -530,8 +531,10 @@ describe("SQLite transactional outbox", () => {
     expect(migrated.listOutbox()).toEqual([]);
     migrated.close();
     const raw = new DatabaseSync(path);
-    expect(raw.prepare("PRAGMA user_version;").get()?.user_version).toBe(3);
-    expect(raw.prepare("SELECT name FROM sqlite_master WHERE name = 'outbox'").get()).toBeDefined();
+    expect(sqliteRow(raw.prepare("PRAGMA user_version;").get())?.user_version).toBe(3);
+    expect(
+      sqliteRow(raw.prepare("SELECT name FROM sqlite_master WHERE name = 'outbox'").get()),
+    ).toBeDefined();
     raw.close();
   });
 

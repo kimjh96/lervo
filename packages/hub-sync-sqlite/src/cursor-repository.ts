@@ -6,20 +6,23 @@ import { SyncContractError, type ProjectSyncState } from "@lervo/sync-contract";
 
 import { HubSyncStoreError } from "./errors.js";
 import { decodeStoredEvent, integerField } from "./row-codec.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 export class HubCursorSQLiteRepository {
   constructor(private readonly database: DatabaseSync) {}
 
   eventAt(coordinate: HubProjectCoordinate, seq: number): EventEnvelope | undefined {
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT seq, event_id, event_hash, previous_hash, event_json
       FROM hub_events
       WHERE destination_id = ? AND project_id = ? AND seq = ?
     `,
-      )
-      .get(coordinate.destinationId, coordinate.projectId, seq);
+        )
+        .get(coordinate.destinationId, coordinate.projectId, seq),
+    );
     return row === undefined ? undefined : decodeStoredEvent(row);
   }
 
@@ -35,9 +38,10 @@ export class HubCursorSQLiteRepository {
         "The event after the Hub cursor does not connect to the current hash chain.",
       );
     }
-    const firstAfterGap = this.database
-      .prepare(
-        `
+    const firstAfterGap = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT MIN(event.seq) AS first_after_gap
       FROM hub_events AS event
       LEFT JOIN hub_events AS previous
@@ -47,8 +51,9 @@ export class HubCursorSQLiteRepository {
       WHERE event.destination_id = ? AND event.project_id = ?
         AND event.seq > ? AND previous.seq IS NULL
     `,
-      )
-      .get(coordinate.destinationId, coordinate.projectId, current.seq + 1)?.first_after_gap;
+        )
+        .get(coordinate.destinationId, coordinate.projectId, current.seq + 1),
+    )?.first_after_gap;
     const lastSeq = this.lastContinuousSeq(coordinate, current.seq, firstAfterGap);
     const last = this.eventAt(coordinate, lastSeq);
     if (last === undefined) {
@@ -61,15 +66,17 @@ export class HubCursorSQLiteRepository {
   }
 
   countEventsAfter(coordinate: HubProjectCoordinate, seq: number): number {
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT COUNT(*) AS event_count
       FROM hub_events
       WHERE destination_id = ? AND project_id = ? AND seq > ?
     `,
-      )
-      .get(coordinate.destinationId, coordinate.projectId, seq);
+        )
+        .get(coordinate.destinationId, coordinate.projectId, seq),
+    );
     if (row === undefined) {
       throw new HubSyncStoreError(
         "integrity_failed",
@@ -93,15 +100,17 @@ export class HubCursorSQLiteRepository {
         "The Hub sync SQLite gap coordinates are invalid.",
       );
     }
-    const maximum = this.database
-      .prepare(
-        `
+    const maximum = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT MAX(seq) AS maximum_seq
       FROM hub_events
       WHERE destination_id = ? AND project_id = ?
     `,
-      )
-      .get(coordinate.destinationId, coordinate.projectId);
+        )
+        .get(coordinate.destinationId, coordinate.projectId),
+    );
     return maximum === undefined ? currentSeq : integerField(maximum, "maximum_seq");
   }
 }

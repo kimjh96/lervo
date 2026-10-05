@@ -20,6 +20,7 @@ import { eventTypes, type EventType } from "@lervo/schemas";
 
 import { HubSyncStoreError } from "./errors.js";
 import { integerField, stringField, type SQLiteRow } from "./row-codec.js";
+import { sqliteRows } from "./sqlite-row.js";
 
 function enumField<T extends string>(row: SQLiteRow, name: string, values: readonly T[]): T {
   const value = stringField(row, name);
@@ -94,9 +95,10 @@ export class HubKnowledgeGraphSQLiteRepository {
     query: ResolvedHubKnowledgeGraphQuery,
     project: HubProjectTraceSummary,
   ): HubProjectKnowledgeGraph {
-    const rows = this.database
-      .prepare(
-        `
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT relation.relation_id, relation.relation_type,
         relation.from_kind, relation.from_id, relation.to_kind, relation.to_id,
         relation.evidence_event_id, relation.evidence_event_type,
@@ -116,17 +118,18 @@ export class HubKnowledgeGraphSQLiteRepository {
       ORDER BY relation.relation_id ASC
       LIMIT ?
     `,
-      )
-      .all(
-        query.destinationId,
-        query.projectId,
-        query.focus.kind,
-        query.focus.id,
-        query.focus.kind,
-        query.focus.id,
-        query.after?.relationId ?? "",
-        query.limit + 1,
-      );
+        )
+        .all(
+          query.destinationId,
+          query.projectId,
+          query.focus.kind,
+          query.focus.id,
+          query.focus.kind,
+          query.focus.id,
+          query.after?.relationId ?? "",
+          query.limit + 1,
+        ),
+    );
     return {
       project,
       focus: structuredClone(query.focus),

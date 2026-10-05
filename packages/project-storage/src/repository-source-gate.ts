@@ -20,6 +20,17 @@ export class RepositorySourceGateError extends Error {
   }
 }
 
+/** Narrows a `node:sqlite` row, which the Node 22.13 type definitions expose as `unknown`. */
+function sourceGateRow(value: unknown): Readonly<Record<string, unknown>> | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    throw new RepositorySourceGateError(
+      "repository_source_gate_invalid",
+      "The repository source gate row is not an object.",
+    );
+  return value as Readonly<Record<string, unknown>>;
+}
+
 export interface RepositorySourceLease {
   release(): void;
 }
@@ -75,15 +86,19 @@ async function databasePath(repositoryRoot: string): Promise<string> {
 
 function initialize(database: DatabaseSync): void {
   database.exec("PRAGMA busy_timeout = 100;");
-  if (database.prepare("PRAGMA journal_mode").get()?.journal_mode !== "delete")
+  if (sourceGateRow(database.prepare("PRAGMA journal_mode").get())?.journal_mode !== "delete")
     throw new RepositorySourceGateError(
       "repository_source_gate_invalid",
       "The repository source gate requires rollback journaling.",
     );
-  const version = Number(database.prepare("PRAGMA user_version").get()?.user_version);
+  const version = Number(
+    sourceGateRow(database.prepare("PRAGMA user_version").get())?.user_version,
+  );
   if (version === 1) {
     if (
-      database.prepare("SELECT marker FROM repository_source_gate WHERE id = 1").get()?.marker !== 1
+      sourceGateRow(
+        database.prepare("SELECT marker FROM repository_source_gate WHERE id = 1").get(),
+      )?.marker !== 1
     )
       throw new RepositorySourceGateError(
         "repository_source_gate_invalid",
@@ -141,7 +156,9 @@ async function acquire(
     initialize(database);
     database.exec(mode === "read" ? "BEGIN" : "BEGIN EXCLUSIVE");
     if (
-      database.prepare("SELECT marker FROM repository_source_gate WHERE id = 1").get()?.marker !== 1
+      sourceGateRow(
+        database.prepare("SELECT marker FROM repository_source_gate WHERE id = 1").get(),
+      )?.marker !== 1
     )
       throw new Error("The repository source gate marker changed.");
     if (mode === "read") await assertNoInterruptedMaterialization(repositoryRoot);

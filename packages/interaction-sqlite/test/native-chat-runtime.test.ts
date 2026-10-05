@@ -16,6 +16,7 @@ import type { WritingPublicationPermit } from "@lervo/schemas";
 import { calculateWritingPublicationPermitId } from "@lervo/writing-contract";
 
 import { SQLiteConversationInteractionStore } from "../src/index.js";
+import { sqliteRow } from "../src/sqlite-row.js";
 
 const roots: string[] = [];
 
@@ -754,11 +755,13 @@ describe("durable native chat interaction", () => {
 
     const database = new DatabaseSync(path, { readOnly: true });
     expect(
-      database
-        .prepare(
-          "SELECT status, attempt_count, last_failure_code FROM conversation_inbox WHERE event_id = ?",
-        )
-        .get(event.eventId),
+      sqliteRow(
+        database
+          .prepare(
+            "SELECT status, attempt_count, last_failure_code FROM conversation_inbox WHERE event_id = ?",
+          )
+          .get(event.eventId),
+      ),
     ).toEqual({
       status: "completed",
       attempt_count: 2,
@@ -901,11 +904,13 @@ describe("durable native chat interaction", () => {
     expect(send).toHaveBeenCalledTimes(3);
 
     const database = new DatabaseSync(path, { readOnly: true });
-    const attention = database
-      .prepare(
-        "SELECT outbound_id, status, attempt_count, last_failure_code, lease_id, receipt_json FROM conversation_outbox",
-      )
-      .get();
+    const attention = sqliteRow(
+      database
+        .prepare(
+          "SELECT outbound_id, status, attempt_count, last_failure_code, lease_id, receipt_json FROM conversation_outbox",
+        )
+        .get(),
+    );
     expect(attention).toMatchObject({
       status: "attention_required",
       attempt_count: 3,
@@ -913,7 +918,7 @@ describe("durable native chat interaction", () => {
       lease_id: null,
       receipt_json: null,
     });
-    expect(database.prepare("PRAGMA user_version").get()).toEqual({ user_version: 2 });
+    expect(sqliteRow(database.prepare("PRAGMA user_version").get())).toEqual({ user_version: 2 });
     database.close();
 
     const receipt = {
@@ -954,8 +959,12 @@ describe("durable native chat interaction", () => {
     expect(migrated.auditIntegrity()).toMatchObject({ outboxCount: 1 });
     await migrated.close();
     const migratedDatabase = new DatabaseSync(path, { readOnly: true });
-    expect(migratedDatabase.prepare("PRAGMA user_version").get()).toEqual({ user_version: 2 });
-    expect(migratedDatabase.prepare("SELECT status FROM conversation_outbox").get()).toEqual({
+    expect(sqliteRow(migratedDatabase.prepare("PRAGMA user_version").get())).toEqual({
+      user_version: 2,
+    });
+    expect(
+      sqliteRow(migratedDatabase.prepare("SELECT status FROM conversation_outbox").get()),
+    ).toEqual({
       status: "delivered",
     });
     migratedDatabase.close();
@@ -1046,9 +1055,11 @@ describe("durable native chat interaction", () => {
     await store.close();
     const database = new DatabaseSync(path, { readOnly: true });
     expect(
-      database
-        .prepare("SELECT status, attempt_count, last_failure_code FROM conversation_outbox")
-        .get(),
+      sqliteRow(
+        database
+          .prepare("SELECT status, attempt_count, last_failure_code FROM conversation_outbox")
+          .get(),
+      ),
     ).toEqual({
       status: "attention_required",
       attempt_count: 4,

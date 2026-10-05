@@ -5,6 +5,7 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import type { WorkforceAssignment } from "@lervo/agent-workforce";
 import { canonicalJson, sha256, stableId } from "@lervo/repository-knowledge";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 /** Private exact effect coordinates, retained until their canonical obligation is terminal. */
 export async function convergenceEffectCheckpoint<T>(input: {
@@ -34,10 +35,9 @@ export async function convergenceEffectCheckpoint<T>(input: {
   db.exec(
     "PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS checkpoints (coordinate_hash TEXT PRIMARY KEY, obligation_id TEXT NOT NULL, artifact_hash TEXT NOT NULL, assignment_id TEXT, input_hash TEXT, effect TEXT, lease_generation INTEGER)",
   );
-  const columns = db
-    .prepare("PRAGMA table_info(checkpoints)")
-    .all()
-    .map((row) => row.name);
+  const columns = sqliteRows(db.prepare("PRAGMA table_info(checkpoints)").all()).map(
+    (row) => row.name,
+  );
   for (const [name, type] of [
     ["assignment_id", "TEXT"],
     ["input_hash", "TEXT"],
@@ -54,9 +54,9 @@ export async function convergenceEffectCheckpoint<T>(input: {
     ]),
   );
   try {
-    const prior = db
-      .prepare("SELECT artifact_hash FROM checkpoints WHERE coordinate_hash=?")
-      .get(coordinate);
+    const prior = sqliteRow(
+      db.prepare("SELECT artifact_hash FROM checkpoints WHERE coordinate_hash=?").get(coordinate),
+    );
     if (prior) {
       const hash = String(prior.artifact_hash);
       if (!/^sha256:[a-f0-9]{64}$/u.test(hash))
@@ -69,9 +69,9 @@ export async function convergenceEffectCheckpoint<T>(input: {
         throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
       return stored.value as T;
     }
-    for (const row of db
-      .prepare("SELECT DISTINCT obligation_id FROM checkpoints LIMIT 8192")
-      .all()) {
+    for (const row of sqliteRows(
+      db.prepare("SELECT DISTINCT obligation_id FROM checkpoints LIMIT 8192").all(),
+    )) {
       const id = String(row.obligation_id);
       const terminal = storage.events.get(stableId("evt", [id, "terminal"], 32));
       if (
@@ -80,7 +80,10 @@ export async function convergenceEffectCheckpoint<T>(input: {
       )
         db.prepare("DELETE FROM checkpoints WHERE obligation_id=?").run(id);
     }
-    if (Number(db.prepare("SELECT count(*) AS count FROM checkpoints").get()!.count) >= 8192)
+    if (
+      Number(sqliteRow(db.prepare("SELECT count(*) AS count FROM checkpoints").get())!.count) >=
+      8192
+    )
       throw new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
     const value = await input.prepare();
     const proof = await storage.artifacts.put(
@@ -125,17 +128,18 @@ export async function readConvergenceEffectCheckpoint<T>(input: {
   const db = new DatabaseSync(path, { readOnly: true });
   try {
     if (
-      !db
-        .prepare("PRAGMA table_info(checkpoints)")
-        .all()
-        .some((row) => row.name === "assignment_id")
+      !sqliteRows(db.prepare("PRAGMA table_info(checkpoints)").all()).some(
+        (row) => row.name === "assignment_id",
+      )
     )
       return null;
-    const row = db
-      .prepare(
-        "SELECT coordinate_hash,artifact_hash FROM checkpoints WHERE assignment_id=? AND input_hash=? AND effect=? ORDER BY lease_generation DESC LIMIT 1",
-      )
-      .get(input.assignmentId, input.inputArtifactHash, input.effect);
+    const row = sqliteRow(
+      db
+        .prepare(
+          "SELECT coordinate_hash,artifact_hash FROM checkpoints WHERE assignment_id=? AND input_hash=? AND effect=? ORDER BY lease_generation DESC LIMIT 1",
+        )
+        .get(input.assignmentId, input.inputArtifactHash, input.effect),
+    );
     if (!row) return null;
     const hash = String(row.artifact_hash);
     const bytes = await input.storage.artifacts.get(`lervo-cas://sha256/${hash.slice(7)}`);

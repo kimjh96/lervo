@@ -123,7 +123,7 @@
     },
     {
       "path": "packages/conversation-platform-sqlite/src/binding-repository.ts",
-      "contentHash": "sha256:ef7383fc7a8fda697a78075660d603c1d3f54169449015dc5daf644f940b8ecc",
+      "contentHash": "sha256:2ab45ffc7e3be382fb4143ce66c8ff78117db03989ecf88059c429945cc2da0f",
       "responsibility": "Conversation-platform binding persistence",
       "rationale": "The repository class owns one SQLite persistence boundary for platform bindings, including validation, reads, writes, and transaction-safe state changes. Inbound depth and the optional ordered active-target projection use only identities resolved at that same mapping boundary; participation, discussion scheduling, and turn ownership policy remain outside the adapter.",
       "disposition": "cohesive"
@@ -144,14 +144,14 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/migrations.ts",
-      "contentHash": "sha256:4423552a0e2117bc55067ff1ed5863121e10bf484da2984fc92c7a6933b2a74f",
+      "contentHash": "sha256:7fece5b9e49d238b740e1bb90c9b4e3a1e96a5664fb7904f6a5f5a57518ce4aa",
       "responsibility": "Hub synchronization SQLite schema migration",
       "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:54d1b3720cf42fa09f571d496b017315b962b5f55ded904c7382c70ef6e10ee1",
+      "contentHash": "sha256:3fc63b700267152371eb564d5a907f61f67c6efddc68eb1e7266163df93baf24",
       "responsibility": "Hub synchronization SQLite store",
       "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store.",
       "disposition": "cohesive"
@@ -165,7 +165,7 @@
     },
     {
       "path": "packages/node-work-admission/src/store.ts",
-      "contentHash": "sha256:3246677431a002f88ae5acd345d6c73d83b9977d2d98cf975fbc2c7a2d34873e",
+      "contentHash": "sha256:c0e42e3f880e68975d56b28bd46e10ece76f0830594fe40bcd6efacd32540cfb",
       "responsibility": "SQLite Node work session, claim and upgrade freeze adapter",
       "rationale": "One SQLite adapter owns the bounded session, claim, and freeze lifecycle. Its exact digest check, dead-session cleanup, and retained scope participation record permit inactive recovery only when the service manager explicitly verifies that state. Configuration bytes, service status, rollback, and provider behavior remain outside the store.",
       "disposition": "cohesive"
@@ -179,14 +179,14 @@
     },
     {
       "path": "packages/organization-deployment-sqlite/src/rollback-store.ts",
-      "contentHash": "sha256:6ec6c6de41520cb70e6f5799c24e2ad4f10455e84251433bbddca08c4abbc807",
+      "contentHash": "sha256:aebf88cc4a65a6c2e01ac6060e3b33788788d2ccae0ed0dd50a683df887e8da4",
       "responsibility": "Organization rollback replay SQLite persistence",
       "rationale": "Reservation, completion, recovery projection, target binding, and integrity checks all operate on one immutable rollback replay table and transaction lifecycle; authorization and rollback policy remain outside the adapter.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/policy-sqlite/src/store.ts",
-      "contentHash": "sha256:5e6e9a01e5084ea11e73a380f74136518597242ddf6b34dd7efc9479a2434d3c",
+      "contentHash": "sha256:b8f56aeaba8429889095ff0c6837535974032a9243ba9c8aa5a149e2172d3973",
       "responsibility": "Policy state SQLite adapter",
       "rationale": "The class owns one SQLite policy persistence boundary and its approval, verification, transaction, and query operations.",
       "disposition": "cohesive"

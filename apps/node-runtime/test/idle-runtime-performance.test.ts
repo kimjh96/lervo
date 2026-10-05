@@ -6,6 +6,7 @@ import type { EventEnvelope } from "@lervo/schemas";
 import { expect, it, vi } from "vitest";
 import { NodeWorkstreamReplicationLocalPort } from "../src/workstream-replication.js";
 import { NodeWorkstreamReplicationLocalPort as Baseline } from "./workstream-baseline.fixture.js";
+import { sqliteRow, sqliteRows } from "../src/sqlite-row.js";
 
 const root = process.env.LERVO_RUNTIME_BENCHMARK_ROOT;
 
@@ -39,16 +40,18 @@ it.skipIf(root === undefined)(
     const events = {
       path,
       list: ({ afterSeq = 0, limit = 100 } = {}) => {
-        const rows = database
-          .prepare("SELECT * FROM events WHERE seq > ? ORDER BY seq LIMIT ?")
-          .all(afterSeq, limit);
+        const rows = sqliteRows(
+          database
+            .prepare("SELECT * FROM events WHERE seq > ? ORDER BY seq LIMIT ?")
+            .all(afterSeq, limit),
+        );
         eventRows += rows.length;
         return rows.map((row) => decode(row)!);
       },
       latest: () =>
-        decode(database.prepare("SELECT * FROM events ORDER BY seq DESC LIMIT 1").get()),
+        decode(sqliteRow(database.prepare("SELECT * FROM events ORDER BY seq DESC LIMIT 1").get())),
       get: (id: string) =>
-        decode(database.prepare("SELECT * FROM events WHERE event_id = ?").get(id)),
+        decode(sqliteRow(database.prepare("SELECT * FROM events WHERE event_id = ?").get(id))),
     } as unknown as SQLiteEventStore;
     const cas = await FileSystemCas.open(resolve(root!, ".lervo/data/cas"));
     const measured = cas as unknown as { verifyObject(hash: string): Promise<Uint8Array> };

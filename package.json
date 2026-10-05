@@ -140,7 +140,7 @@
     "@commitlint/cli": "21.2.2",
     "@commitlint/config-conventional": "21.2.2",
     "@eslint/js": "10.0.1",
-    "@types/node": "^24.0.0",
+    "@types/node": "~22.13.17",
     "eslint": "10.8.0",
     "eslint-config-prettier": "10.1.8",
     "globals": "17.11.0",

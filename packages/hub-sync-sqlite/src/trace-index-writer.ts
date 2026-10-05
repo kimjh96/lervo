@@ -4,6 +4,7 @@ import { type HubProjectCoordinate } from "@lervo/hub-sync";
 import { type EventEnvelope } from "@lervo/schemas";
 
 import { integerField, stringField } from "./row-codec.js";
+import { sqliteRows } from "./sqlite-row.js";
 
 export class HubTraceIndexSQLiteWriter {
   constructor(private readonly database: DatabaseSync) {}
@@ -78,16 +79,18 @@ export class HubTraceIndexSQLiteWriter {
     nextCursorSeq: number,
   ): void {
     if (nextCursorSeq <= previousCursorSeq) return;
-    const rows = this.database
-      .prepare(
-        `
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT json_extract(event_json, '$.runId') AS run_id, COUNT(*) AS added_count
       FROM hub_events
       WHERE destination_id = ? AND project_id = ? AND seq > ? AND seq <= ?
       GROUP BY json_extract(event_json, '$.runId')
     `,
-      )
-      .all(coordinate.destinationId, coordinate.projectId, previousCursorSeq, nextCursorSeq);
+        )
+        .all(coordinate.destinationId, coordinate.projectId, previousCursorSeq, nextCursorSeq),
+    );
     const update = this.database.prepare(`
       UPDATE hub_runs
       SET continuous_event_count = continuous_event_count + ?

@@ -90,6 +90,7 @@ import { HubKnowledgeGraphSQLiteRepository } from "./knowledge-graph-repository.
 import { SQLiteTransactionRunner } from "./transaction-runner.js";
 import { HubWorkstreamSQLiteRepository } from "./workstream-repository.js";
 import { HubWorkspaceCoordinationSQLiteRepository } from "./workspace-coordination-repository.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export class HubSyncSQLiteStore
   implements
@@ -589,7 +590,7 @@ export class HubSyncSQLiteStore
   }
 
   private verifyDatabaseStructure(): void {
-    if (this.database.prepare("PRAGMA foreign_keys;").get()?.foreign_keys !== 1) {
+    if (sqliteRow(this.database.prepare("PRAGMA foreign_keys;").get())?.foreign_keys !== 1) {
       throw new HubSyncStoreError(
         "integrity_failed",
         "Hub sync SQLite foreign-key enforcement is disabled.",
@@ -619,9 +620,9 @@ export class HubSyncSQLiteStore
       "hub_workstream_revisions_identity_immutable",
       "hub_workstream_revisions_no_delete",
     ]);
-    for (const row of this.database
-      .prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'")
-      .all()) {
+    for (const row of sqliteRows(
+      this.database.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'").all(),
+    )) {
       if (typeof row.name === "string") requiredTriggers.delete(row.name);
     }
     if (requiredTriggers.size !== 0) {
@@ -633,10 +634,10 @@ export class HubSyncSQLiteStore
   }
 
   private verifyFullDatabaseIntegrity(): void {
-    if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+    if (sqliteRow(this.database.prepare("PRAGMA quick_check;").get())?.quick_check !== "ok") {
       throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite quick_check failed.");
     }
-    if (this.database.prepare("PRAGMA foreign_key_check;").get() !== undefined) {
+    if (sqliteRow(this.database.prepare("PRAGMA foreign_key_check;").get()) !== undefined) {
       throw new HubSyncStoreError(
         "integrity_failed",
         "The Hub sync SQLite foreign-key check failed.",
@@ -646,7 +647,7 @@ export class HubSyncSQLiteStore
 
   async journalMode(): Promise<string> {
     this.assertOpen();
-    const mode = this.database.prepare("PRAGMA journal_mode;").get()?.journal_mode;
+    const mode = sqliteRow(this.database.prepare("PRAGMA journal_mode;").get())?.journal_mode;
     if (typeof mode !== "string") {
       throw new HubSyncStoreError(
         "integrity_failed",

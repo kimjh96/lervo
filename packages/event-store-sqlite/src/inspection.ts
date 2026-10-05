@@ -8,6 +8,7 @@ import { computeEventHash, eventWithoutHash } from "@lervo/event-contract";
 import { EventStoreError } from "./errors.js";
 import { rowToEvent } from "./row-codec.js";
 import { storageSchemaVersion } from "./migrations.js";
+import { iterateSqliteRows, sqliteRow } from "./sqlite-row.js";
 
 export interface ExistingEventStoreInspection {
   readonly eventCount: number;
@@ -51,14 +52,14 @@ export async function inspectExistingEventStore(input: {
   try {
     await copyFile(path, inspectionPath);
     database = new DatabaseSync(inspectionPath, { readOnly: true, allowExtension: false });
-    const quickCheck = database.prepare("PRAGMA quick_check;").get()?.quick_check;
+    const quickCheck = sqliteRow(database.prepare("PRAGMA quick_check;").get())?.quick_check;
     if (quickCheck !== "ok") {
       throw new EventStoreError("integrity_failed", "SQLite quick_check failed.");
     }
-    if (database.prepare("PRAGMA foreign_key_check;").get() !== undefined) {
+    if (sqliteRow(database.prepare("PRAGMA foreign_key_check;").get()) !== undefined) {
       throw new EventStoreError("integrity_failed", "The SQLite foreign-key check failed.");
     }
-    const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version;
     if (
       typeof version !== "number" ||
       !Number.isSafeInteger(version) ||
@@ -70,9 +71,9 @@ export async function inspectExistingEventStore(input: {
         `Unsupported event store schema: ${String(version)}`,
       );
     }
-    const projectId = database
-      .prepare("SELECT value FROM store_meta WHERE key = 'project_id'")
-      .get()?.value;
+    const projectId = sqliteRow(
+      database.prepare("SELECT value FROM store_meta WHERE key = 'project_id'").get(),
+    )?.value;
     if (projectId !== input.projectId) {
       throw new EventStoreError(
         "project_mismatch",
@@ -82,9 +83,11 @@ export async function inspectExistingEventStore(input: {
 
     let eventCount = 0;
     let previousHash: string | null = null;
-    const rows = database
-      .prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq")
-      .iterate(input.projectId);
+    const rows = iterateSqliteRows(
+      database
+        .prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq")
+        .iterate(input.projectId),
+    );
     for (const row of rows) {
       const event = rowToEvent(row);
       eventCount += 1;
@@ -100,9 +103,11 @@ export async function inspectExistingEventStore(input: {
       }
       previousHash = event.eventHash;
     }
-    const foreignProject = database
-      .prepare("SELECT project_id FROM events WHERE project_id <> ? LIMIT 1")
-      .get(input.projectId);
+    const foreignProject = sqliteRow(
+      database
+        .prepare("SELECT project_id FROM events WHERE project_id <> ? LIMIT 1")
+        .get(input.projectId),
+    );
     if (foreignProject !== undefined) {
       throw new EventStoreError(
         "project_mismatch",

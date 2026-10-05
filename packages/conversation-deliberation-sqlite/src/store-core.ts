@@ -6,6 +6,7 @@ import {
   restrictConversationDeliberationDatabase,
 } from "./database.js";
 import { ConversationDeliberationSQLiteError } from "./errors.js";
+import { iterateSqliteRows, sqliteRow } from "./sqlite-row.js";
 
 export type ConversationDeliberationQueueTable =
   "conversation_deliberation_jobs" | "conversation_deliberation_resume_jobs";
@@ -52,16 +53,18 @@ export function checkConversationDeliberationQueueIntegrity(input: {
   label: string;
   decode(row: Record<string, unknown>): unknown;
 }): void {
-  if (input.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+  if (sqliteRow(input.database.prepare("PRAGMA quick_check;").get())?.quick_check !== "ok") {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
       `${input.label} quick_check failed.`,
     );
   }
   const required = new Set(input.requiredSchema);
-  for (const row of input.database
-    .prepare("SELECT name FROM sqlite_schema WHERE type IN ('trigger', 'index')")
-    .iterate()) {
+  for (const row of iterateSqliteRows(
+    input.database
+      .prepare("SELECT name FROM sqlite_schema WHERE type IN ('trigger', 'index')")
+      .iterate(),
+  )) {
     if (typeof row.name === "string") required.delete(row.name);
   }
   if (required.size > 0) {
@@ -71,7 +74,9 @@ export function checkConversationDeliberationQueueIntegrity(input: {
     );
   }
   let count = 0;
-  for (const row of input.database.prepare(`SELECT * FROM ${input.table}`).iterate()) {
+  for (const row of iterateSqliteRows(
+    input.database.prepare(`SELECT * FROM ${input.table}`).iterate(),
+  )) {
     count += 1;
     if (count > input.maximumRecords) {
       throw new ConversationDeliberationSQLiteError(

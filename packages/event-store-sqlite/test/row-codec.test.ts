@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { rowToEvent, type SqliteRow } from "../src/row-codec.js";
+import { rowToEvent } from "../src/row-codec.js";
+import { type SqliteRow } from "../src/sqlite-row.js";
 
 function row(schemaVersion: number): SqliteRow {
   return {

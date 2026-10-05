@@ -25,20 +25,23 @@ import {
 } from "./policy-codec.js";
 import { parseStoredRemoteCommandEnvelope } from "./remote-command-row.js";
 import { integerField, stringField } from "./row-codec.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export class HubPolicySQLiteSourceReader {
   constructor(private readonly database: DatabaseSync) {}
 
   currentSnapshot(destinationId: string, target: RemoteCommandTarget): SignedPolicySnapshot | null {
     assertRegisteredPolicyProject(this.database, destinationId, target);
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT sequence, snapshot_id, envelope_json FROM hub_policy_snapshots
       WHERE destination_id = ? AND project_id = ? ORDER BY sequence DESC LIMIT 1
     `,
-      )
-      .get(destinationId, target.projectId);
+        )
+        .get(destinationId, target.projectId),
+    );
     if (row === undefined) return null;
     const envelope = parsePolicySnapshot(row);
     assertPolicySnapshotTarget(envelope, target);
@@ -51,14 +54,16 @@ export class HubPolicySQLiteSourceReader {
     commandId: string,
   ): HubPolicyCommandBinding | null {
     assertRegisteredPolicyProject(this.database, destinationId, target);
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT command_id, command_hash, envelope_json FROM hub_remote_commands
       WHERE destination_id = ? AND project_id = ? AND command_id = ?
     `,
-      )
-      .get(destinationId, target.projectId, commandId);
+        )
+        .get(destinationId, target.projectId, commandId),
+    );
     if (row === undefined) return null;
     const envelope = parseStoredRemoteCommandEnvelope(row);
     if (
@@ -82,9 +87,10 @@ export class HubPolicySQLiteSourceReader {
     approvalId: string,
   ): SignedPolicyApproval | null {
     assertRegisteredPolicyProject(this.database, destinationId, target);
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT approval.approval_id, approval.snapshot_id, approval.command_id,
         approval.envelope_json, snapshot.sequence,
         snapshot.snapshot_id AS stored_snapshot_id,
@@ -97,8 +103,9 @@ export class HubPolicySQLiteSourceReader {
       WHERE approval.destination_id = ? AND approval.project_id = ?
         AND approval.approval_id = ?
     `,
-      )
-      .get(destinationId, target.projectId, approvalId);
+        )
+        .get(destinationId, target.projectId, approvalId),
+    );
     if (row === undefined) return null;
     const snapshot = parsePolicySnapshot({
       sequence: row.sequence,
@@ -115,25 +122,29 @@ export class HubPolicySQLiteSourceReader {
     currentSnapshotId: string | null;
   }): HubPolicyBundle | null {
     assertRegisteredPolicyProject(this.database, input.destinationId, input.target);
-    const head = this.database
-      .prepare(
-        `
+    const head = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT sequence, snapshot_id, envelope_json FROM hub_policy_snapshots
       WHERE destination_id = ? AND project_id = ? ORDER BY sequence DESC LIMIT 1
     `,
-      )
-      .get(input.destinationId, input.target.projectId);
+        )
+        .get(input.destinationId, input.target.projectId),
+    );
     if (head === undefined) return null;
     let selected = head;
     if (input.currentSnapshotId !== null) {
-      const current = this.database
-        .prepare(
-          `
+      const current = sqliteRow(
+        this.database
+          .prepare(
+            `
         SELECT sequence, snapshot_id, envelope_json FROM hub_policy_snapshots
         WHERE destination_id = ? AND project_id = ? AND snapshot_id = ?
       `,
-        )
-        .get(input.destinationId, input.target.projectId, input.currentSnapshotId);
+          )
+          .get(input.destinationId, input.target.projectId, input.currentSnapshotId),
+      );
       if (current === undefined) {
         throw new HubPolicyError(
           "policy_snapshot_conflict",
@@ -141,33 +152,41 @@ export class HubPolicySQLiteSourceReader {
         );
       }
       if (integerField(current, "sequence") < integerField(head, "sequence")) {
-        selected = this.database
-          .prepare(
-            `
+        selected = sqliteRow(
+          this.database
+            .prepare(
+              `
           SELECT sequence, snapshot_id, envelope_json FROM hub_policy_snapshots
           WHERE destination_id = ? AND project_id = ? AND sequence = ?
         `,
-          )
-          .get(input.destinationId, input.target.projectId, integerField(current, "sequence") + 1)!;
+            )
+            .get(
+              input.destinationId,
+              input.target.projectId,
+              integerField(current, "sequence") + 1,
+            ),
+        )!;
       }
     }
     const snapshot = parsePolicySnapshot(selected);
     assertPolicySnapshotTarget(snapshot, input.target);
-    const approvalRows = this.database
-      .prepare(
-        `
+    const approvalRows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT approval_id, snapshot_id, command_id, envelope_json
       FROM hub_policy_approvals
       WHERE destination_id = ? AND project_id = ? AND snapshot_id = ?
       ORDER BY approval_id ASC LIMIT ?
     `,
-      )
-      .all(
-        input.destinationId,
-        input.target.projectId,
-        snapshot.snapshot.snapshotId,
-        MAX_POLICY_APPROVALS + 1,
-      );
+        )
+        .all(
+          input.destinationId,
+          input.target.projectId,
+          snapshot.snapshot.snapshotId,
+          MAX_POLICY_APPROVALS + 1,
+        ),
+    );
     if (approvalRows.length > MAX_POLICY_APPROVALS) {
       throw new HubSyncStoreError(
         "integrity_failed",
@@ -178,9 +197,10 @@ export class HubPolicySQLiteSourceReader {
     const approvalById = new Map(
       approvals.map((approval) => [approval.approval.approvalId, approval]),
     );
-    const revocationRows = this.database
-      .prepare(
-        `
+    const revocationRows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT revocation.revocation_id, revocation.approval_id, revocation.envelope_json
       FROM hub_policy_revocations AS revocation
       JOIN hub_policy_approvals AS approval
@@ -191,13 +211,14 @@ export class HubPolicySQLiteSourceReader {
         AND approval.snapshot_id = ?
       ORDER BY revocation.revocation_id ASC LIMIT ?
     `,
-      )
-      .all(
-        input.destinationId,
-        input.target.projectId,
-        snapshot.snapshot.snapshotId,
-        MAX_POLICY_REVOCATIONS + 1,
-      );
+        )
+        .all(
+          input.destinationId,
+          input.target.projectId,
+          snapshot.snapshot.snapshotId,
+          MAX_POLICY_REVOCATIONS + 1,
+        ),
+    );
     if (revocationRows.length > MAX_POLICY_REVOCATIONS) {
       throw new HubSyncStoreError(
         "integrity_failed",
@@ -218,9 +239,10 @@ export class HubPolicySQLiteSourceReader {
   }
 
   auditAll(): void {
-    const projects = this.database
-      .prepare(
-        `
+    const projects = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT destination_id, project_id, identity_hash FROM hub_projects
       WHERE EXISTS (
         SELECT 1 FROM hub_policy_snapshots AS snapshot
@@ -228,22 +250,25 @@ export class HubPolicySQLiteSourceReader {
           AND snapshot.project_id = hub_projects.project_id
       )
     `,
-      )
-      .all();
+        )
+        .all(),
+    );
     for (const row of projects) {
       const destinationId = stringField(row, "destination_id");
       const target = {
         projectId: stringField(row, "project_id"),
         projectIdentityHash: stringField(row, "identity_hash"),
       };
-      const snapshots = this.database
-        .prepare(
-          `
+      const snapshots = sqliteRows(
+        this.database
+          .prepare(
+            `
         SELECT sequence, snapshot_id, envelope_json FROM hub_policy_snapshots
         WHERE destination_id = ? AND project_id = ? ORDER BY sequence ASC
       `,
-        )
-        .all(destinationId, target.projectId);
+          )
+          .all(destinationId, target.projectId),
+      );
       let previousId: string | null = null;
       for (const [index, snapshotRow] of snapshots.entries()) {
         const envelope = parsePolicySnapshot(snapshotRow);
@@ -268,16 +293,23 @@ export class HubPolicySQLiteSourceReader {
     target: RemoteCommandTarget,
     snapshot: SignedPolicySnapshot,
   ): void {
-    const approvalRows = this.database
-      .prepare(
-        `
+    const approvalRows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT approval_id, snapshot_id, command_id, envelope_json
       FROM hub_policy_approvals
       WHERE destination_id = ? AND project_id = ? AND snapshot_id = ?
       ORDER BY approval_id ASC LIMIT ?
     `,
-      )
-      .all(destinationId, target.projectId, snapshot.snapshot.snapshotId, MAX_POLICY_APPROVALS + 1);
+        )
+        .all(
+          destinationId,
+          target.projectId,
+          snapshot.snapshot.snapshotId,
+          MAX_POLICY_APPROVALS + 1,
+        ),
+    );
     if (approvalRows.length > MAX_POLICY_APPROVALS) {
       throw new HubSyncStoreError(
         "integrity_failed",
@@ -312,9 +344,10 @@ export class HubPolicySQLiteSourceReader {
     const approvalById = new Map(
       approvals.map((approval) => [approval.approval.approvalId, approval]),
     );
-    const revocationRows = this.database
-      .prepare(
-        `
+    const revocationRows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT revocation.revocation_id, revocation.approval_id, revocation.envelope_json
       FROM hub_policy_revocations AS revocation
       JOIN hub_policy_approvals AS approval
@@ -325,13 +358,14 @@ export class HubPolicySQLiteSourceReader {
         AND approval.snapshot_id = ?
       ORDER BY revocation.revocation_id ASC LIMIT ?
     `,
-      )
-      .all(
-        destinationId,
-        target.projectId,
-        snapshot.snapshot.snapshotId,
-        MAX_POLICY_REVOCATIONS + 1,
-      );
+        )
+        .all(
+          destinationId,
+          target.projectId,
+          snapshot.snapshot.snapshotId,
+          MAX_POLICY_REVOCATIONS + 1,
+        ),
+    );
     if (revocationRows.length > MAX_POLICY_REVOCATIONS) {
       throw new HubSyncStoreError(
         "integrity_failed",

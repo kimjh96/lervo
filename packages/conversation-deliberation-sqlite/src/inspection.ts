@@ -22,6 +22,7 @@ import {
   decodeConversationDeliberationJob,
 } from "./row-codec.js";
 import { checkConversationDeliberationQueueIntegrity } from "./store-core.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 const maximumInspectionRecords = 100_000;
 
@@ -56,7 +57,7 @@ async function openExisting(path: string): Promise<DatabaseSync | null> {
 }
 
 function assertVersion(database: DatabaseSync, expected: number, label: string): void {
-  if (database.prepare("PRAGMA user_version;").get()?.user_version !== expected) {
+  if (sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version !== expected) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
       `The ${label} requires an owner-managed schema migration.`,
@@ -70,11 +71,13 @@ function notification(
   projectId: string,
   deliberationId: string,
 ): ConversationDeliberationNotification | null {
-  const row = database
-    .prepare(
-      "SELECT * FROM conversation_deliberation_notifications WHERE project_id = ? AND deliberation_id = ?",
-    )
-    .get(projectId, deliberationId);
+  const row = sqliteRow(
+    database
+      .prepare(
+        "SELECT * FROM conversation_deliberation_notifications WHERE project_id = ? AND deliberation_id = ?",
+      )
+      .get(projectId, deliberationId),
+  );
   return row === undefined ? null : decodeConversationDeliberationNotification(row, operation);
 }
 
@@ -102,11 +105,13 @@ async function inspectStart(input: { path: string; projectId: string; deliberati
       operation: "start",
       maximumRecords: maximumInspectionRecords,
     });
-    const row = database
-      .prepare(
-        "SELECT * FROM conversation_deliberation_jobs WHERE project_id = ? AND deliberation_id = ?",
-      )
-      .get(input.projectId, input.deliberationId);
+    const row = sqliteRow(
+      database
+        .prepare(
+          "SELECT * FROM conversation_deliberation_jobs WHERE project_id = ? AND deliberation_id = ?",
+        )
+        .get(input.projectId, input.deliberationId),
+    );
     return {
       job: row === undefined ? null : decodeConversationDeliberationJob(row),
       notification: notification(database, "start", input.projectId, input.deliberationId),
@@ -144,11 +149,13 @@ async function inspectResume(input: { path: string; projectId: string; deliberat
       operation: "resume",
       maximumRecords: maximumInspectionRecords,
     });
-    const row = database
-      .prepare(
-        "SELECT * FROM conversation_deliberation_resume_jobs WHERE project_id = ? AND deliberation_id = ?",
-      )
-      .get(input.projectId, input.deliberationId);
+    const row = sqliteRow(
+      database
+        .prepare(
+          "SELECT * FROM conversation_deliberation_resume_jobs WHERE project_id = ? AND deliberation_id = ?",
+        )
+        .get(input.projectId, input.deliberationId),
+    );
     return {
       job: row === undefined ? null : decodeConversationDeliberationResumeJob(row),
       notification: notification(database, "resume", input.projectId, input.deliberationId),

@@ -4,6 +4,7 @@ import { HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT, HubCommandError } from "@lervo/
 
 import { integerField, nullableStringField, stringField } from "./row-codec.js";
 import { remoteCommandTimestamp } from "./remote-command-row.js";
+import { sqliteRows } from "./sqlite-row.js";
 
 const WORKER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 const CURSOR_PATTERN = /^lervo-cas:\/\/sha256\/[a-f0-9]{64}$/u;
@@ -20,7 +21,9 @@ function indexedTimestamp(row: Record<string, unknown>, field: string): number {
 }
 
 export function auditCommandArtifactCleanupRuntime(database: DatabaseSync): void {
-  const rows = database.prepare("SELECT * FROM hub_remote_command_artifact_cleanup_runtime").all();
+  const rows = sqliteRows(
+    database.prepare("SELECT * FROM hub_remote_command_artifact_cleanup_runtime").all(),
+  );
   if (rows.length !== 1) {
     throw new HubCommandError(
       "artifact_integrity_failed",

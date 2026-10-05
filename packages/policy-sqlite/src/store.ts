@@ -24,6 +24,7 @@ import {
   migratePolicyDatabase,
 } from "./database.js";
 import { PolicySQLiteError } from "./errors.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 const SNAPSHOT_COLUMNS = `snapshot_id, sequence, previous_snapshot_id, snapshot_hash,
   issued_at_ms, expires_at_ms, envelope_json`;
@@ -97,12 +98,14 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
       );
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const projectId = this.database
-        .prepare("SELECT value FROM policy_meta WHERE key = 'project_id'")
-        .get()?.value;
-      const identityHash = this.database
-        .prepare("SELECT value FROM policy_meta WHERE key = 'project_identity_hash'")
-        .get()?.value;
+      const projectId = sqliteRow(
+        this.database.prepare("SELECT value FROM policy_meta WHERE key = 'project_id'").get(),
+      )?.value;
+      const identityHash = sqliteRow(
+        this.database
+          .prepare("SELECT value FROM policy_meta WHERE key = 'project_identity_hash'")
+          .get(),
+      )?.value;
       if (projectId === undefined && identityHash === undefined) {
         const insert = this.database.prepare("INSERT INTO policy_meta (key, value) VALUES (?, ?)");
         insert.run("project_id", target.projectId);
@@ -122,21 +125,27 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
 
   async getCurrentSnapshot(): Promise<SignedPolicySnapshot | null> {
     this.assertOpen();
-    const row = this.database
-      .prepare(`SELECT ${SNAPSHOT_COLUMNS} FROM policy_snapshots ORDER BY sequence DESC LIMIT 1`)
-      .get();
+    const row = sqliteRow(
+      this.database
+        .prepare(`SELECT ${SNAPSHOT_COLUMNS} FROM policy_snapshots ORDER BY sequence DESC LIMIT 1`)
+        .get(),
+    );
     return row === undefined ? null : decodeSnapshotRow(row);
   }
 
   async getApproval(approvalId: string): Promise<PolicyApprovalState | null> {
     this.assertOpen();
-    const row = this.database
-      .prepare(`SELECT ${APPROVAL_COLUMNS} FROM policy_approvals WHERE approval_id = ?`)
-      .get(approvalId);
+    const row = sqliteRow(
+      this.database
+        .prepare(`SELECT ${APPROVAL_COLUMNS} FROM policy_approvals WHERE approval_id = ?`)
+        .get(approvalId),
+    );
     if (row === undefined) return null;
-    const revocation = this.database
-      .prepare(`SELECT ${REVOCATION_COLUMNS} FROM policy_revocations WHERE approval_id = ?`)
-      .get(approvalId);
+    const revocation = sqliteRow(
+      this.database
+        .prepare(`SELECT ${REVOCATION_COLUMNS} FROM policy_revocations WHERE approval_id = ?`)
+        .get(approvalId),
+    );
     return {
       approval: decodeApprovalRow(row),
       revocation: revocation === undefined ? null : decodeRevocationRow(revocation),
@@ -150,22 +159,26 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
     capability: PolicyApproval["capability"];
   }): Promise<PolicyApprovalState[]> {
     this.assertOpen();
-    const rows = this.database
-      .prepare(
-        `
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT ${APPROVAL_COLUMNS} FROM policy_approvals
       WHERE snapshot_id = ? AND command_id = ?
         AND command_signer_key_id = ? AND capability = ?
       ORDER BY granted_at_ms DESC, approval_id ASC LIMIT 64
     `,
-      )
-      .all(input.snapshotId, input.commandId, input.commandSignerKeyId, input.capability);
+        )
+        .all(input.snapshotId, input.commandId, input.commandSignerKeyId, input.capability),
+    );
     const result: PolicyApprovalState[] = [];
     for (const row of rows) {
       const approval = decodeApprovalRow(row);
-      const revocation = this.database
-        .prepare(`SELECT ${REVOCATION_COLUMNS} FROM policy_revocations WHERE approval_id = ?`)
-        .get(approval.approval.approvalId);
+      const revocation = sqliteRow(
+        this.database
+          .prepare(`SELECT ${REVOCATION_COLUMNS} FROM policy_revocations WHERE approval_id = ?`)
+          .get(approval.approval.approvalId),
+      );
       result.push({
         approval,
         revocation: revocation === undefined ? null : decodeRevocationRow(revocation),
@@ -179,9 +192,13 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
     assertSignedPolicySnapshot(bundle.snapshot);
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const currentRow = this.database
-        .prepare(`SELECT ${SNAPSHOT_COLUMNS} FROM policy_snapshots ORDER BY sequence DESC LIMIT 1`)
-        .get();
+      const currentRow = sqliteRow(
+        this.database
+          .prepare(
+            `SELECT ${SNAPSHOT_COLUMNS} FROM policy_snapshots ORDER BY sequence DESC LIMIT 1`,
+          )
+          .get(),
+      );
       const current = currentRow === undefined ? null : decodeSnapshotRow(currentRow);
       const snapshot = bundle.snapshot.snapshot;
       const duplicateSnapshot = current?.snapshot.snapshotId === snapshot.snapshotId;
@@ -196,9 +213,9 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
           "The policy snapshot is not the next revision in the current continuous history.",
         );
       if (!duplicateSnapshot) {
-        const count = this.database
-          .prepare("SELECT COUNT(*) AS count FROM policy_snapshots")
-          .get()?.count;
+        const count = sqliteRow(
+          this.database.prepare("SELECT COUNT(*) AS count FROM policy_snapshots").get(),
+        )?.count;
         if (typeof count !== "number" || count >= this.maxSnapshots) {
           throw new PolicySQLiteError(
             "capacity_exceeded",
@@ -225,9 +242,9 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
         );
       }
 
-      const approvalCount = this.database
-        .prepare("SELECT COUNT(*) AS count FROM policy_approvals")
-        .get()?.count;
+      const approvalCount = sqliteRow(
+        this.database.prepare("SELECT COUNT(*) AS count FROM policy_approvals").get(),
+      )?.count;
       if (typeof approvalCount !== "number") {
         throw new PolicySQLiteError(
           "capacity_exceeded",
@@ -239,9 +256,11 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
       for (const envelope of bundle.approvals) {
         const approval = envelope.approval;
         assertPolicyApproval({ approval, snapshot });
-        const existing = this.database
-          .prepare(`SELECT ${APPROVAL_COLUMNS} FROM policy_approvals WHERE approval_id = ?`)
-          .get(approval.approvalId);
+        const existing = sqliteRow(
+          this.database
+            .prepare(`SELECT ${APPROVAL_COLUMNS} FROM policy_approvals WHERE approval_id = ?`)
+            .get(approval.approvalId),
+        );
         if (existing !== undefined) {
           if (JSON.stringify(decodeApprovalRow(existing)) !== JSON.stringify(envelope)) {
             throw new PolicySQLiteError(
@@ -336,13 +355,17 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
   }
 
   private getApprovalWithinTransaction(approvalId: string): PolicyApprovalState | null {
-    const row = this.database
-      .prepare(`SELECT ${APPROVAL_COLUMNS} FROM policy_approvals WHERE approval_id = ?`)
-      .get(approvalId);
+    const row = sqliteRow(
+      this.database
+        .prepare(`SELECT ${APPROVAL_COLUMNS} FROM policy_approvals WHERE approval_id = ?`)
+        .get(approvalId),
+    );
     if (row === undefined) return null;
-    const revocation = this.database
-      .prepare(`SELECT ${REVOCATION_COLUMNS} FROM policy_revocations WHERE approval_id = ?`)
-      .get(approvalId);
+    const revocation = sqliteRow(
+      this.database
+        .prepare(`SELECT ${REVOCATION_COLUMNS} FROM policy_revocations WHERE approval_id = ?`)
+        .get(approvalId),
+    );
     return {
       approval: decodeApprovalRow(row),
       revocation: revocation === undefined ? null : decodeRevocationRow(revocation),
@@ -351,7 +374,7 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
 
   checkStructure(): void {
     this.assertOpen();
-    if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+    if (sqliteRow(this.database.prepare("PRAGMA quick_check;").get())?.quick_check !== "ok") {
       throw new PolicySQLiteError("integrity_failed", "The policy SQLite quick_check failed.");
     }
     const required = new Set([
@@ -362,9 +385,9 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
       "policy_revocations_immutable",
       "policy_revocations_no_delete",
     ]);
-    for (const row of this.database
-      .prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'")
-      .all()) {
+    for (const row of sqliteRows(
+      this.database.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'").all(),
+    )) {
       if (typeof row.name === "string") required.delete(row.name);
     }
     if (required.size !== 0)
@@ -372,7 +395,9 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
         "integrity_failed",
         "A policy SQLite immutability trigger is missing.",
       );
-    const meta = this.database.prepare("SELECT key, value FROM policy_meta ORDER BY key").all();
+    const meta = sqliteRows(
+      this.database.prepare("SELECT key, value FROM policy_meta ORDER BY key").all(),
+    );
     if (
       meta.length !== 2 ||
       meta[0]?.key !== "project_id" ||
@@ -383,12 +408,12 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
         "The policy SQLite project metadata is invalid.",
       );
     }
-    const snapshots = this.database
-      .prepare("SELECT COUNT(*) AS count FROM policy_snapshots")
-      .get()?.count;
-    const approvals = this.database
-      .prepare("SELECT COUNT(*) AS count FROM policy_approvals")
-      .get()?.count;
+    const snapshots = sqliteRow(
+      this.database.prepare("SELECT COUNT(*) AS count FROM policy_snapshots").get(),
+    )?.count;
+    const approvals = sqliteRow(
+      this.database.prepare("SELECT COUNT(*) AS count FROM policy_approvals").get(),
+    )?.count;
     if (
       typeof snapshots !== "number" ||
       snapshots > this.maxSnapshots ||

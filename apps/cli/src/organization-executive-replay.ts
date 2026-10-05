@@ -53,9 +53,11 @@ export class SQLiteOrganizationExecutiveEffectReplay implements OrganizationExec
       const current = this.row(input.effectId);
       if (current === null) {
         const count = Number(
-          this.database
-            .prepare("SELECT COUNT(*) AS count FROM organization_executive_effect_replay")
-            .get()?.count,
+          (
+            this.database
+              .prepare("SELECT COUNT(*) AS count FROM organization_executive_effect_replay")
+              .get() as { count?: unknown } | undefined
+          )?.count,
         );
         if (!Number.isSafeInteger(count) || count >= 10_000) {
           throw new Error("The organization executive effect replay capacity was reached.");

@@ -20,6 +20,7 @@ import {
   decodeCompletion,
   decodeReservationRow,
 } from "./row-codec.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export class SQLiteLiveTriggerReservationStore implements LiveTriggerReservationStoreV1 {
   readonly path: string;
@@ -67,12 +68,14 @@ export class SQLiteLiveTriggerReservationStore implements LiveTriggerReservation
     assertReservationPlan(plan);
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const rawExisting = this.database
-        .prepare(
-          `SELECT reservation_id, invocation_fingerprint_hash, plan_id, status,
+      const rawExisting = sqliteRow(
+        this.database
+          .prepare(
+            `SELECT reservation_id, invocation_fingerprint_hash, plan_id, status,
           completion_json FROM live_trigger_reservation WHERE source_event_key_hash = ?`,
-        )
-        .get(plan.sourceEventKeyHash);
+          )
+          .get(plan.sourceEventKeyHash),
+      );
       const existing = rawExisting === undefined ? undefined : decodeReservationRow(rawExisting);
       if (existing !== undefined) {
         if (
@@ -101,11 +104,13 @@ export class SQLiteLiveTriggerReservationStore implements LiveTriggerReservation
         return decision;
       }
       const authorizationCount =
-        this.database
-          .prepare(
-            "SELECT accepted_count FROM live_trigger_authorization_usage WHERE authorization_hash = ?",
-          )
-          .get(plan.authorizationHash)?.accepted_count ?? 0;
+        sqliteRow(
+          this.database
+            .prepare(
+              "SELECT accepted_count FROM live_trigger_authorization_usage WHERE authorization_hash = ?",
+            )
+            .get(plan.authorizationHash),
+        )?.accepted_count ?? 0;
       if (typeof authorizationCount !== "number" || !Number.isSafeInteger(authorizationCount)) {
         throw new LiveTriggerSQLiteError("integrity_failed", "Invalid authorization count.");
       }
@@ -114,9 +119,11 @@ export class SQLiteLiveTriggerReservationStore implements LiveTriggerReservation
         return { status: "budget_exhausted" };
       }
       if (authorizationCount === 0) {
-        const authorizationTotal = this.database
-          .prepare("SELECT COUNT(*) AS count FROM live_trigger_authorization_usage")
-          .get()?.count;
+        const authorizationTotal = sqliteRow(
+          this.database
+            .prepare("SELECT COUNT(*) AS count FROM live_trigger_authorization_usage")
+            .get(),
+        )?.count;
         if (typeof authorizationTotal !== "number" || !Number.isSafeInteger(authorizationTotal)) {
           throw new LiveTriggerSQLiteError("integrity_failed", "Invalid authorization total.");
         }
@@ -125,9 +132,9 @@ export class SQLiteLiveTriggerReservationStore implements LiveTriggerReservation
           return { status: "capacity_exhausted" };
         }
       }
-      const total = this.database
-        .prepare("SELECT COUNT(*) AS count FROM live_trigger_reservation")
-        .get()?.count;
+      const total = sqliteRow(
+        this.database.prepare("SELECT COUNT(*) AS count FROM live_trigger_reservation").get(),
+      )?.count;
       if (typeof total !== "number" || !Number.isSafeInteger(total)) {
         throw new LiveTriggerSQLiteError("integrity_failed", "Invalid reservation count.");
       }
@@ -184,12 +191,14 @@ export class SQLiteLiveTriggerReservationStore implements LiveTriggerReservation
     assertCompletion(input.completion);
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const rawRow = this.database
-        .prepare(
-          `SELECT reservation_id, invocation_fingerprint_hash, plan_id, status,
+      const rawRow = sqliteRow(
+        this.database
+          .prepare(
+            `SELECT reservation_id, invocation_fingerprint_hash, plan_id, status,
           completion_json FROM live_trigger_reservation WHERE reservation_id = ?`,
-        )
-        .get(input.reservationId);
+          )
+          .get(input.reservationId),
+      );
       const row = rawRow === undefined ? undefined : decodeReservationRow(rawRow);
       if (row === undefined || row.plan_id !== input.completion.planId) {
         throw new LiveTriggerSQLiteError("write_failed", "Completion does not match reservation.");
@@ -229,11 +238,13 @@ export class SQLiteLiveTriggerReservationStore implements LiveTriggerReservation
       )
       .run(input.failedAt, input.reservationId);
     if (result.changes !== 1) {
-      const completed = this.database
-        .prepare(
-          "SELECT 1 AS found FROM live_trigger_reservation WHERE reservation_id = ? AND status = 'completed'",
-        )
-        .get(input.reservationId);
+      const completed = sqliteRow(
+        this.database
+          .prepare(
+            "SELECT 1 AS found FROM live_trigger_reservation WHERE reservation_id = ? AND status = 'completed'",
+          )
+          .get(input.reservationId),
+      );
       if (completed === undefined) {
         throw new LiveTriggerSQLiteError("write_failed", "Recovery reservation was not found.");
       }
@@ -285,7 +296,7 @@ export class SQLiteLiveTriggerReservationStore implements LiveTriggerReservation
 
   checkIntegrity(): void {
     this.assertOpen();
-    if (this.database.prepare("PRAGMA quick_check").get()?.quick_check !== "ok") {
+    if (sqliteRow(this.database.prepare("PRAGMA quick_check").get())?.quick_check !== "ok") {
       throw new LiveTriggerSQLiteError("integrity_failed", "Live-trigger quick_check failed.");
     }
     const requiredTriggers = new Set([
@@ -294,21 +305,23 @@ export class SQLiteLiveTriggerReservationStore implements LiveTriggerReservation
       "live_trigger_coordinates_immutable",
       "live_trigger_status_forward",
     ]);
-    for (const row of this.database
-      .prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'")
-      .all()) {
+    for (const row of sqliteRows(
+      this.database.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'").all(),
+    )) {
       if (typeof row.name === "string") requiredTriggers.delete(row.name);
     }
-    const undercount = this.database
-      .prepare(
-        `SELECT 1 AS found
+    const undercount = sqliteRow(
+      this.database
+        .prepare(
+          `SELECT 1 AS found
       FROM live_trigger_authorization_usage usage
       WHERE usage.accepted_count < (
         SELECT COUNT(*) FROM live_trigger_reservation reservation
         WHERE reservation.authorization_hash = usage.authorization_hash
       ) LIMIT 1`,
-      )
-      .get();
+        )
+        .get(),
+    );
     if (requiredTriggers.size !== 0 || undercount !== undefined) {
       throw new LiveTriggerSQLiteError(
         "integrity_failed",

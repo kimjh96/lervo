@@ -6,6 +6,7 @@
     "incremental": true,
     "tsBuildInfoFile": "node_modules/.cache/lervo/typecheck.tsbuildinfo",
     "paths": {
+      "@lervo/agent-organization": ["packages/agent-organization/src/index.ts"],
       "@lervo/agent-workforce": ["packages/agent-workforce/src/index.ts"],
       "@lervo/application-contract": ["packages/application-contract/src/index.ts"],
       "@lervo/assignment-connector-conformance": [
@@ -16,6 +17,8 @@
       "@lervo/adapter-claude": ["packages/adapter-claude/src/index.ts"],
       "@lervo/adapter-codex": ["packages/adapter-codex/src/index.ts"],
       "@lervo/adapter-discord": ["packages/adapter-discord/src/index.ts"],
+      "@lervo/discord-gateway": ["packages/discord-gateway/src/index.ts"],
+      "@lervo/provider-writing-evaluator": ["packages/provider-writing-evaluator/src/index.ts"],
       "@lervo/adapter-native-chat": ["packages/adapter-native-chat/src/index.ts"],
       "@lervo/adapter-slack": ["packages/adapter-slack/src/index.ts"],
       "@lervo/adapter-webhook": ["packages/adapter-webhook/src/index.ts"],

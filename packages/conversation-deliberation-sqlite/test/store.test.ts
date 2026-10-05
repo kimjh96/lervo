@@ -12,6 +12,7 @@ import {
   ConversationDeliberationSQLiteError,
   SQLiteConversationDeliberationJobStore,
 } from "../src/index.js";
+import { sqliteRow } from "../src/sqlite-row.js";
 
 const roots: string[] = [];
 const databaseName = "deliberations.sqlite";
@@ -173,16 +174,18 @@ describe("durable conversation deliberation queue", () => {
     current.close();
 
     const database = new DatabaseSync(path);
-    const row = database
-      .prepare(
-        `
+    const row = sqliteRow(
+      database
+        .prepare(
+          `
       SELECT principal_hash, topic, origin_conversation_id, origin_thread_id,
         origin_requester_participant_id, origin_binding_digest
       FROM conversation_deliberation_jobs
       WHERE deliberation_id = ?
     `,
-      )
-      .get(first.deliberationId);
+        )
+        .get(first.deliberationId),
+    );
     expect(row?.principal_hash).not.toBe("operator:reviewer");
     expect(row?.topic).toBe("Review the deployment structure.");
     expect(row).toMatchObject({

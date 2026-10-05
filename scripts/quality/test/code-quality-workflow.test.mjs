@@ -5,7 +5,8 @@ import { resolve } from "node:path";
 import { describe, it } from "vitest";
 import { parse } from "yaml";
 
-const workflowPath = resolve(import.meta.dirname, "../../../.github/workflows/code-quality.yml");
+const repositoryRoot = resolve(import.meta.dirname, "../../..");
+const workflowPath = resolve(repositoryRoot, ".github/workflows/code-quality.yml");
 
 describe("code-quality workflow", () => {
   it("checks pull requests and direct main pushes against their exact base", async () => {
@@ -25,5 +26,27 @@ describe("code-quality workflow", () => {
     assert.equal(directMain.if, "github.event_name == 'push'");
     assert.match(directMain.run, /release:completion:check --base/u);
     assert.match(directMain.run, /github\.event\.before/u);
+  });
+
+  it("typechecks against Node type definitions that track the engines minimum", async () => {
+    const workflow = parse(await readFile(workflowPath, "utf8"));
+    const manifest = JSON.parse(await readFile(resolve(repositoryRoot, "package.json"), "utf8"));
+    const steps = workflow.jobs.quality.steps;
+    const setupNode = steps.find(({ name }) => name === "Set up Node");
+    const install = steps.findIndex(({ name }) => name === "Install dependencies");
+    const typecheck = steps.findIndex(
+      ({ name }) => name === "Check types against the supported Node minimum",
+    );
+    const minimum = /^>=(\d+\.\d+)$/u.exec(manifest.engines.node)?.[1];
+
+    assert.ok(minimum, "engines.node must declare one >=major.minor minimum");
+    assert.equal(setupNode.with["node-version"], `${minimum}.0`);
+    const [major, minor] = minimum.split(".");
+    assert.match(
+      manifest.devDependencies["@types/node"],
+      new RegExp(`^~${major}\\.${minor}\\.\\d+$`, "u"),
+    );
+    assert.ok(typecheck > install, "typecheck must run after dependency installation");
+    assert.equal(steps[typecheck].run, "pnpm typecheck");
   });
 });

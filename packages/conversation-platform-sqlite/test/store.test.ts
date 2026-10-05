@@ -9,6 +9,7 @@ import {
   SQLiteConversationPlatformStore,
   type SQLiteConversationPlatformStoreOptions,
 } from "../src/index.js";
+import { sqliteRow } from "../src/sqlite-row.js";
 
 const roots: string[] = [];
 const integrationId = "itg_platform01";
@@ -182,21 +183,24 @@ describe("SQLite conversation platform state", () => {
     });
     store.close();
     const migrated = new DatabaseSync(path, { readOnly: true });
-    expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(4);
+    expect(sqliteRow(migrated.prepare("PRAGMA user_version").get())?.user_version).toBe(4);
     expect(
-      migrated.prepare("SELECT COUNT(*) AS count FROM conversation_bindings").get()?.count,
+      sqliteRow(migrated.prepare("SELECT COUNT(*) AS count FROM conversation_bindings").get())
+        ?.count,
     ).toBe(1);
     expect(
-      migrated.prepare("SELECT COUNT(*) AS count FROM participant_bindings").get()?.count,
-    ).toBe(2);
-    expect(migrated.prepare("SELECT thread_id FROM thread_bindings").get()?.thread_id).toBe(
-      "thd_legacy_thread_01",
-    );
-    expect(
-      migrated.prepare("SELECT automation_depth FROM message_correlations").get()?.automation_depth,
+      sqliteRow(migrated.prepare("SELECT COUNT(*) AS count FROM participant_bindings").get())
+        ?.count,
     ).toBe(2);
     expect(
-      migrated.prepare("SELECT status, external_message_key FROM delivery_replay").get(),
+      sqliteRow(migrated.prepare("SELECT thread_id FROM thread_bindings").get())?.thread_id,
+    ).toBe("thd_legacy_thread_01");
+    expect(
+      sqliteRow(migrated.prepare("SELECT automation_depth FROM message_correlations").get())
+        ?.automation_depth,
+    ).toBe(2);
+    expect(
+      sqliteRow(migrated.prepare("SELECT status, external_message_key FROM delivery_replay").get()),
     ).toEqual({ status: "delivered", external_message_key: "legacy-delivery-1" });
     migrated.close();
   });

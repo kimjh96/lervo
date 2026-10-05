@@ -9,7 +9,8 @@ export type NodeRuntimeErrorCode =
   | "token_reload_failed"
   | "organization_credential_delivery_failed"
   | "runtime_material_reload_failed"
-  | "shutdown_failed";
+  | "shutdown_failed"
+  | "sqlite_row_invalid";
 
 export class NodeRuntimeError extends Error {
   constructor(

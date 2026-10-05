@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { type DatabaseSync } from "node:sqlite";
 
 import { PolicySQLiteError } from "./errors.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 export async function ensurePolicyDatabasePath(path: string): Promise<string> {
   const absolute = resolve(path);
@@ -35,7 +36,7 @@ export function configurePolicyDatabase(database: DatabaseSync): void {
 export function migratePolicyDatabase(database: DatabaseSync): void {
   database.exec("BEGIN IMMEDIATE;");
   try {
-    const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version;
     if (version !== 0 && version !== 1) {
       throw new PolicySQLiteError("integrity_failed", "The policy SQLite schema is unsupported.");
     }

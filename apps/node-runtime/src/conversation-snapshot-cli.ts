@@ -46,7 +46,7 @@ export async function runConversationSnapshotCli(args: readonly string[]): Promi
         "policy" in value ? (value.policy as RepositorySnapshotPolicy | undefined) : undefined;
       void captureRepositorySnapshot(root, policy)
         .then((snapshot) => {
-          process.send?.({ type: "snapshot_result", snapshot }, (error) => {
+          process.send?.({ type: "snapshot_result", snapshot }, (error: Error | null) => {
             finish(error === null ? 0 : 1);
           });
         })

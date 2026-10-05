@@ -24,6 +24,7 @@ import {
 } from "./database.js";
 import { OrganizationDeploymentSQLiteError } from "./errors.js";
 import { assertReplayCoordinate } from "./replay-record.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 interface RollbackReplayRow {
   idempotencyKey: string;
@@ -172,9 +173,11 @@ export class SQLiteOrganizationNodeRollbackReplayStore implements OrganizationNo
     ]);
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const rows = this.database
-        .prepare("SELECT key, value FROM organization_rollout_meta ORDER BY key")
-        .all();
+      const rows = sqliteRows(
+        this.database
+          .prepare("SELECT key, value FROM organization_rollout_meta ORDER BY key")
+          .all(),
+      );
       if (rows.length === 0) {
         const insert = this.database.prepare(
           "INSERT INTO organization_rollout_meta (key, value) VALUES (?, ?)",
@@ -211,9 +214,11 @@ export class SQLiteOrganizationNodeRollbackReplayStore implements OrganizationNo
     nonce: string;
   }): OrganizationNodeRollbackDeliveryReplayDecision {
     assertReplayCoordinate(coordinate);
-    const candidate = this.database
-      .prepare(`${SELECT_ROW} WHERE idempotency_key = ?`)
-      .get(coordinate.idempotencyKey);
+    const candidate = sqliteRow(
+      this.database
+        .prepare(`${SELECT_ROW} WHERE idempotency_key = ?`)
+        .get(coordinate.idempotencyKey),
+    );
     if (candidate !== undefined) {
       const row = decodeRow(candidate);
       if (row.deliveryHash !== coordinate.deliveryHash || row.nonce !== coordinate.nonce) {
@@ -223,9 +228,11 @@ export class SQLiteOrganizationNodeRollbackReplayStore implements OrganizationNo
         ? { status: "in_progress" }
         : { status: "duplicate", receipt: row.receipt };
     }
-    const nonce = this.database
-      .prepare("SELECT idempotency_key FROM organization_rollback_replay WHERE nonce = ?")
-      .get(coordinate.nonce);
+    const nonce = sqliteRow(
+      this.database
+        .prepare("SELECT idempotency_key FROM organization_rollback_replay WHERE nonce = ?")
+        .get(coordinate.nonce),
+    );
     return nonce === undefined ? { status: "available" } : { status: "nonce_replay" };
   }
 
@@ -248,9 +255,9 @@ export class SQLiteOrganizationNodeRollbackReplayStore implements OrganizationNo
         this.database.exec("COMMIT;");
         return decision;
       }
-      const count = this.database
-        .prepare("SELECT COUNT(*) AS count FROM organization_rollback_replay")
-        .get()?.count;
+      const count = sqliteRow(
+        this.database.prepare("SELECT COUNT(*) AS count FROM organization_rollback_replay").get(),
+      )?.count;
       if (typeof count !== "number" || !Number.isSafeInteger(count)) {
         throw new OrganizationDeploymentSQLiteError("integrity_failed", "Invalid replay count.");
       }
@@ -317,9 +324,11 @@ export class SQLiteOrganizationNodeRollbackReplayStore implements OrganizationNo
   ): Promise<OrganizationNodeRollbackRecoveryStateDecision> {
     this.assertOpen();
     assertReplayCoordinate(coordinate);
-    const candidate = this.database
-      .prepare(`${SELECT_ROW} WHERE idempotency_key = ?`)
-      .get(coordinate.idempotencyKey);
+    const candidate = sqliteRow(
+      this.database
+        .prepare(`${SELECT_ROW} WHERE idempotency_key = ?`)
+        .get(coordinate.idempotencyKey),
+    );
     if (candidate === undefined) {
       const decision = this.inspectCurrent(coordinate);
       return decision.status === "in_progress" ? { status: "baseline_unavailable" } : decision;
@@ -345,9 +354,9 @@ export class SQLiteOrganizationNodeRollbackReplayStore implements OrganizationNo
     assertOrganizationNodeRollbackRecoveryReceipt(input.receipt);
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const candidate = this.database
-        .prepare(`${SELECT_ROW} WHERE reservation_id = ?`)
-        .get(input.reservationId);
+      const candidate = sqliteRow(
+        this.database.prepare(`${SELECT_ROW} WHERE reservation_id = ?`).get(input.reservationId),
+      );
       if (candidate === undefined) {
         throw new OrganizationDeploymentSQLiteError("write_failed", "Reservation is missing.");
       }
@@ -388,10 +397,10 @@ export class SQLiteOrganizationNodeRollbackReplayStore implements OrganizationNo
 
   checkIntegrity(): void {
     this.assertOpen();
-    if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+    if (sqliteRow(this.database.prepare("PRAGMA quick_check;").get())?.quick_check !== "ok") {
       throw new OrganizationDeploymentSQLiteError("integrity_failed", "Integrity check failed.");
     }
-    const rows = this.database.prepare(SELECT_ROW).all();
+    const rows = sqliteRows(this.database.prepare(SELECT_ROW).all());
     if (rows.length > this.maximumRecords) {
       throw new OrganizationDeploymentSQLiteError(
         "capacity_exceeded",

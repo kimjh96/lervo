@@ -30,6 +30,7 @@ import {
 } from "./policy-codec.js";
 import { HubPolicySQLiteSourceReader } from "./policy-source-reader.js";
 import { integerField, stringField } from "./row-codec.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export class HubPolicySQLiteRepository {
   private readonly source: HubPolicySQLiteSourceReader;
@@ -82,16 +83,18 @@ export class HubPolicySQLiteRepository {
         "The policy snapshot target differs from the request.",
       );
     }
-    const existing = this.database
-      .prepare(
-        `
+    const existing = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT sequence, snapshot_id, envelope_json, published_at
       FROM hub_policy_snapshots
       WHERE destination_id = ? AND project_id = ?
         AND (snapshot_id = ? OR sequence = ?)
     `,
-      )
-      .all(input.destinationId, input.target.projectId, snapshot.snapshotId, snapshot.sequence);
+        )
+        .all(input.destinationId, input.target.projectId, snapshot.snapshotId, snapshot.sequence),
+    );
     if (existing.length !== 0) {
       if (
         existing.length !== 1 ||
@@ -157,15 +160,17 @@ export class HubPolicySQLiteRepository {
     assertPolicyPublishedAt(input.publishedAt);
     assertSignedPolicyApproval(input.envelope);
     const approval = input.envelope.approval;
-    const existing = this.database
-      .prepare(
-        `
+    const existing = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT approval_id, snapshot_id, envelope_json, published_at
       FROM hub_policy_approvals
       WHERE destination_id = ? AND project_id = ? AND approval_id = ?
     `,
-      )
-      .get(input.destinationId, input.target.projectId, approval.approvalId);
+        )
+        .get(input.destinationId, input.target.projectId, approval.approvalId),
+    );
     if (existing !== undefined) {
       if (stringField(existing, "envelope_json") !== canonicalJson(input.envelope)) {
         throw new HubPolicyError(
@@ -196,14 +201,16 @@ export class HubPolicySQLiteRepository {
     }
     this.assertApprovalBinding(input.envelope, snapshot, binding);
     const count = integerField(
-      this.database
-        .prepare(
-          `
+      sqliteRow(
+        this.database
+          .prepare(
+            `
       SELECT COUNT(*) AS count FROM hub_policy_approvals
       WHERE destination_id = ? AND project_id = ? AND snapshot_id = ?
     `,
-        )
-        .get(input.destinationId, input.target.projectId, approval.snapshotId)!,
+          )
+          .get(input.destinationId, input.target.projectId, approval.snapshotId),
+      )!,
       "count",
     );
     if (count >= MAX_POLICY_APPROVALS) {
@@ -271,21 +278,23 @@ export class HubPolicySQLiteRepository {
     assertPolicyPublishedAt(input.publishedAt);
     assertSignedPolicyApprovalRevocation(input.envelope);
     const revocation = input.envelope.revocation;
-    const existing = this.database
-      .prepare(
-        `
+    const existing = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT revocation_id, approval_id, envelope_json, published_at
       FROM hub_policy_revocations
       WHERE destination_id = ? AND project_id = ?
         AND (revocation_id = ? OR approval_id = ?)
     `,
-      )
-      .all(
-        input.destinationId,
-        input.target.projectId,
-        revocation.revocationId,
-        revocation.approvalId,
-      );
+        )
+        .all(
+          input.destinationId,
+          input.target.projectId,
+          revocation.revocationId,
+          revocation.approvalId,
+        ),
+    );
     if (existing.length !== 0) {
       if (
         existing.length !== 1 ||
@@ -328,9 +337,10 @@ export class HubPolicySQLiteRepository {
       );
     }
     const count = integerField(
-      this.database
-        .prepare(
-          `
+      sqliteRow(
+        this.database
+          .prepare(
+            `
       SELECT COUNT(*) AS count FROM hub_policy_revocations AS revocation
       JOIN hub_policy_approvals AS approval
         ON approval.destination_id = revocation.destination_id
@@ -339,8 +349,9 @@ export class HubPolicySQLiteRepository {
       WHERE approval.destination_id = ? AND approval.project_id = ?
         AND approval.snapshot_id = ?
     `,
-        )
-        .get(input.destinationId, input.target.projectId, approval.approval.snapshotId)!,
+          )
+          .get(input.destinationId, input.target.projectId, approval.approval.snapshotId),
+      )!,
       "count",
     );
     if (count >= MAX_POLICY_REVOCATIONS) {

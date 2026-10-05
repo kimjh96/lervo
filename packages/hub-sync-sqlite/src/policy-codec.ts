@@ -17,6 +17,7 @@ import type {
 
 import { HubSyncStoreError } from "./errors.js";
 import { integerField, parseJson, stringField, type SQLiteRow } from "./row-codec.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 export const MAX_POLICY_APPROVALS = 64;
 export const MAX_POLICY_REVOCATIONS = 64;
@@ -32,13 +33,15 @@ export function assertRegisteredPolicyProject(
   destinationId: string,
   target: RemoteCommandTarget,
 ): void {
-  const row = database
-    .prepare(
-      `
+  const row = sqliteRow(
+    database
+      .prepare(
+        `
     SELECT identity_hash FROM hub_projects WHERE destination_id = ? AND project_id = ?
   `,
-    )
-    .get(destinationId, target.projectId);
+      )
+      .get(destinationId, target.projectId),
+  );
   if (row === undefined) {
     throw new HubPolicyError(
       "policy_registration_required",

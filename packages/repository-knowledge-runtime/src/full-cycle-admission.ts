@@ -7,6 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { sha256 } from "@lervo/repository-knowledge";
 
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 const LEASE_MILLISECONDS = 10 * 60_000;
 const RENEW_MILLISECONDS = 60_000;
@@ -57,7 +58,7 @@ async function tryAcquire(input: {
   try {
     db.exec("BEGIN IMMEDIATE");
     try {
-      const holder = db.prepare("SELECT * FROM holder WHERE slot=1").get();
+      const holder = sqliteRow(db.prepare("SELECT * FROM holder WHERE slot=1").get());
       const held =
         holder !== undefined &&
         Number(holder.expires_at) > input.now &&

@@ -3,6 +3,7 @@ import { type DatabaseSync } from "node:sqlite";
 import { prepareOwnerOnlyDatabasePath } from "@lervo/runtime-security";
 
 import { LiveTriggerSQLiteError } from "./errors.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 export async function ensureLiveTriggerDatabasePath(path: string): Promise<string> {
   return prepareOwnerOnlyDatabasePath(path);
@@ -22,7 +23,7 @@ export function configureLiveTriggerDatabase(database: DatabaseSync): void {
 export function migrateLiveTriggerDatabase(database: DatabaseSync): void {
   database.exec("BEGIN IMMEDIATE;");
   try {
-    const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version;
     if (version !== 0 && version !== 1) {
       throw new LiveTriggerSQLiteError("integrity_failed", "Unsupported live-trigger schema.");
     }

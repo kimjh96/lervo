@@ -1,6 +1,7 @@
 import { type DatabaseSync } from "node:sqlite";
 
 import { EventStoreError } from "./errors.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 const migrations = [
   `
@@ -91,7 +92,7 @@ export function configureDatabase(database: DatabaseSync): void {
 export function migrateDatabase(database: DatabaseSync): void {
   database.exec("BEGIN IMMEDIATE;");
   try {
-    const row = database.prepare("PRAGMA user_version;").get();
+    const row = sqliteRow(database.prepare("PRAGMA user_version;").get());
     const version = row?.user_version;
     if (typeof version !== "number" || !Number.isSafeInteger(version)) {
       throw new EventStoreError("integrity_failed", "The SQLite schema version cannot be read.");

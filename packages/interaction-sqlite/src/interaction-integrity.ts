@@ -5,6 +5,7 @@ import type { ConversationDecisionSQLiteRepository } from "./decision-repository
 import { InteractionSQLiteError } from "./errors.js";
 import type { ConversationInboxSQLiteRepository } from "./inbox-repository.js";
 import type { ConversationOutboxSQLiteRepository } from "./outbox-repository.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export interface InteractionSQLiteIntegrityReport {
   valid: true;
@@ -22,15 +23,17 @@ export class ConversationInteractionSQLiteIntegrity {
   ) {}
 
   check(): InteractionSQLiteIntegrityReport {
-    if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+    if (sqliteRow(this.database.prepare("PRAGMA quick_check;").get())?.quick_check !== "ok") {
       throw new InteractionSQLiteError(
         "integrity_failed",
         "The Interaction SQLite quick_check failed.",
       );
     }
-    const version = this.database
-      .prepare("SELECT value FROM interaction_meta WHERE key = 'storage_schema_version'")
-      .get()?.value;
+    const version = sqliteRow(
+      this.database
+        .prepare("SELECT value FROM interaction_meta WHERE key = 'storage_schema_version'")
+        .get(),
+    )?.value;
     if (version !== String(interactionSQLiteSchemaVersion)) {
       throw new InteractionSQLiteError(
         "integrity_failed",
@@ -47,9 +50,9 @@ export class ConversationInteractionSQLiteIntegrity {
       "conversation_outbox_lifecycle_guard",
       "conversation_outbox_no_delete",
     ]);
-    for (const row of this.database
-      .prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'")
-      .all()) {
+    for (const row of sqliteRows(
+      this.database.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'").all(),
+    )) {
       if (typeof row.name === "string") requiredTriggers.delete(row.name);
     }
     if (requiredTriggers.size !== 0) {
@@ -63,7 +66,7 @@ export class ConversationInteractionSQLiteIntegrity {
 
   audit(): InteractionSQLiteIntegrityReport {
     this.check();
-    if (this.database.prepare("PRAGMA foreign_key_check;").all().length !== 0) {
+    if (sqliteRows(this.database.prepare("PRAGMA foreign_key_check;").all()).length !== 0) {
       throw new InteractionSQLiteError(
         "integrity_failed",
         "An Interaction foreign key is corrupted.",
@@ -90,7 +93,9 @@ export class ConversationInteractionSQLiteIntegrity {
 
   private counts(): InteractionSQLiteIntegrityReport {
     const count = (table: string): number => {
-      const value = this.database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get()?.count;
+      const value = sqliteRow(
+        this.database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get(),
+      )?.count;
       if (typeof value !== "number" || !Number.isSafeInteger(value)) {
         throw new InteractionSQLiteError(
           "integrity_failed",

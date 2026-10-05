@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { type DatabaseSync } from "node:sqlite";
 
 import { RemoteCommandSQLiteError } from "./errors.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 export async function ensureRemoteCommandDatabasePath(path: string): Promise<string> {
   const absolutePath = resolve(path);
@@ -37,7 +38,7 @@ export function configureRemoteCommandDatabase(database: DatabaseSync): void {
 export function migrateRemoteCommandDatabase(database: DatabaseSync): void {
   database.exec("BEGIN IMMEDIATE;");
   try {
-    const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version;
     if (version !== 0 && version !== 1) {
       throw new RemoteCommandSQLiteError(
         "integrity_failed",

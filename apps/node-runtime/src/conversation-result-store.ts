@@ -20,6 +20,7 @@ import type {
   ConversationResultTerminal,
 } from "./conversation-result-types.js";
 import { NodeRuntimeError } from "./errors.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 interface ResultRow {
   delivery_id: string;
@@ -106,7 +107,7 @@ export class SQLiteConversationResultStore implements ConversationResultStore {
           BEGIN SELECT RAISE(ABORT, 'conversation result cannot be deleted'); END;
       `);
       await chmod(absolute, 0o600);
-      if (database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+      if (sqliteRow(database.prepare("PRAGMA quick_check;").get())?.quick_check !== "ok") {
         throw new Error("quick check failed");
       }
       return new SQLiteConversationResultStore(database, maxRecords);
@@ -131,9 +132,9 @@ export class SQLiteConversationResultStore implements ConversationResultStore {
       }
       return "duplicate";
     }
-    const count = this.database
-      .prepare("SELECT COUNT(*) AS count FROM conversation_execution_results")
-      .get()?.count;
+    const count = sqliteRow(
+      this.database.prepare("SELECT COUNT(*) AS count FROM conversation_execution_results").get(),
+    )?.count;
     if (typeof count !== "number" || !Number.isSafeInteger(count) || count >= this.maxRecords) {
       throw new NodeRuntimeError("startup_failed", "Conversation result capacity was exceeded.");
     }

@@ -8,6 +8,7 @@ import {
   isConversationRequestedEffect,
   type ConversationIntentResolution,
 } from "./conversation-intent-resolver.js";
+import { sqliteRows } from "./sqlite-row.js";
 
 const MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 
@@ -95,10 +96,9 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
           BEGIN SELECT RAISE(ABORT, 'conversation intent resolution cannot be deleted'); END;
       `);
       const columns = new Set(
-        database
-          .prepare("PRAGMA table_info(conversation_intent_resolutions)")
-          .all()
-          .map((column) => column.name),
+        sqliteRows(
+          database.prepare("PRAGMA table_info(conversation_intent_resolutions)").all(),
+        ).map((column) => column.name),
       );
       if (!columns.has("effect_json")) {
         database.exec("ALTER TABLE conversation_intent_resolutions ADD COLUMN effect_json TEXT;");

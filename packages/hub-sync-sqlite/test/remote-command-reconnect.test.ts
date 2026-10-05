@@ -32,6 +32,7 @@ import {
   registration,
   removeTemporaryRoots,
 } from "./fixture.js";
+import { sqliteRow, sqliteRows } from "../src/sqlite-row.js";
 
 const peerIdentityHash = `sha256:${"c".repeat(64)}`;
 const nodeId = "node_remote_fixture";
@@ -288,20 +289,21 @@ describe("durable remote command offline queue and reconnect", () => {
     await hub.close();
 
     const hubDatabase = new DatabaseSync(hubPath);
-    const hubOriginals = hubDatabase
-      .prepare(
-        `
+    const hubOriginals = sqliteRow(
+      hubDatabase
+        .prepare(
+          `
       SELECT envelope_json, acknowledgement_json FROM hub_remote_commands
     `,
-      )
-      .get();
+        )
+        .get(),
+    );
     expect(JSON.stringify(hubOriginals)).not.toContain(requestText);
     hubDatabase.close();
     const replayDatabase = new DatabaseSync(replayPath);
-    const replayColumns = replayDatabase
-      .prepare("PRAGMA table_info(remote_command_replay)")
-      .all()
-      .map((row) => row.name);
+    const replayColumns = sqliteRows(
+      replayDatabase.prepare("PRAGMA table_info(remote_command_replay)").all(),
+    ).map((row) => row.name);
     expect(replayColumns).toEqual([
       "idempotency_key",
       "command_hash",
@@ -310,7 +312,9 @@ describe("durable remote command offline queue and reconnect", () => {
       "receipt_json",
     ]);
     expect(
-      JSON.stringify(replayDatabase.prepare("SELECT * FROM remote_command_replay").all()),
+      JSON.stringify(
+        sqliteRows(replayDatabase.prepare("SELECT * FROM remote_command_replay").all()),
+      ),
     ).not.toContain(requestText);
     replayDatabase.close();
   });

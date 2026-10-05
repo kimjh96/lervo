@@ -12,6 +12,7 @@ import type {
 import type { DatabaseSync } from "node:sqlite";
 
 import { OrganizationDeploymentSQLiteError } from "./errors.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const IDEMPOTENCY_PATTERN = /^idk_[A-Za-z0-9][A-Za-z0-9_-]{15,63}$/u;
@@ -151,19 +152,21 @@ export function decodeDeliveryReceipt(
 }
 
 export function assertReplayStoreIntegrity(database: DatabaseSync, maximumRecords: number): void {
-  if (database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+  if (sqliteRow(database.prepare("PRAGMA quick_check;").get())?.quick_check !== "ok") {
     throw new OrganizationDeploymentSQLiteError(
       "integrity_failed",
       "The organization rollout replay database failed its integrity check.",
     );
   }
-  const rows = database
-    .prepare(
-      `SELECT idempotency_key, delivery_hash, nonce, reservation_id, receipt_json,
+  const rows = sqliteRows(
+    database
+      .prepare(
+        `SELECT idempotency_key, delivery_hash, nonce, reservation_id, receipt_json,
               baseline_json, recovery_json
        FROM organization_rollout_replay`,
-    )
-    .all();
+      )
+      .all(),
+  );
   if (rows.length > maximumRecords) {
     throw new OrganizationDeploymentSQLiteError(
       "capacity_exceeded",

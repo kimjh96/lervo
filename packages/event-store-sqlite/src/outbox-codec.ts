@@ -1,5 +1,3 @@
-import { type SQLOutputValue } from "node:sqlite";
-
 import { type OutboxDelivery, type OutboxStatus } from "@lervo/storage-contract";
 
 import { EventStoreError } from "./errors.js";
@@ -9,8 +7,7 @@ import {
   requireStoredOutboxTimestamp,
 } from "./outbox-validation.js";
 import { rowToEvent } from "./row-codec.js";
-
-type SqliteRow = Record<string, SQLOutputValue>;
+import { type SqliteRow } from "./sqlite-row.js";
 
 export function requireOutboxRowString(row: SqliteRow, field: string): string {
   const value = row[field];

@@ -14,6 +14,7 @@ import {
 import { decision, inbound, outbound, text } from "./codec.js";
 import { InteractionSQLiteError } from "./errors.js";
 import { auditConversationOutbox } from "./outbox-audit.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 function milliseconds(value: string, label: string): number {
   const result = Date.parse(value);
@@ -36,13 +37,15 @@ export class ConversationOutboxSQLiteRepository {
     event: ConversationInboundEvent,
     roleId: string,
   ): ConversationOutboundMessage | null {
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT * FROM conversation_outbox WHERE source_event_id = ? AND role_id = ?
     `,
-      )
-      .get(event.eventId, roleId);
+        )
+        .get(event.eventId, roleId),
+    );
     return row === undefined ? null : outbound(row, event);
   }
 
@@ -104,9 +107,10 @@ export class ConversationOutboxSQLiteRepository {
         "The conversation outbox lease configuration is invalid.",
       );
     const claimedAtMs = milliseconds(input.claimedAt, "Conversation outbox claim");
-    const rows = this.database
-      .prepare(
-        `
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT * FROM conversation_outbox
       WHERE integration_id = ? AND (
         (status = 'pending' AND available_at_ms <= ?)
@@ -114,12 +118,15 @@ export class ConversationOutboxSQLiteRepository {
       )
       ORDER BY available_at_ms ASC, outbound_id ASC LIMIT ?
     `,
-      )
-      .all(input.integrationId, claimedAtMs, claimedAtMs, input.limit);
+        )
+        .all(input.integrationId, claimedAtMs, claimedAtMs, input.limit),
+    );
     return rows.map((row) => {
-      const eventRow = this.database
-        .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
-        .get(text(row, "source_event_id"), text(row, "role_id"));
+      const eventRow = sqliteRow(
+        this.database
+          .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
+          .get(text(row, "source_event_id"), text(row, "role_id")),
+      );
       if (eventRow === undefined) {
         throw new InteractionSQLiteError(
           "integrity_failed",
@@ -127,11 +134,13 @@ export class ConversationOutboxSQLiteRepository {
         );
       }
       const message = outbound(row, inbound(eventRow));
-      const decisionRow = this.database
-        .prepare(
-          "SELECT * FROM conversation_participation_decisions WHERE event_id = ? AND role_id = ?",
-        )
-        .get(text(row, "source_event_id"), text(row, "role_id"));
+      const decisionRow = sqliteRow(
+        this.database
+          .prepare(
+            "SELECT * FROM conversation_participation_decisions WHERE event_id = ? AND role_id = ?",
+          )
+          .get(text(row, "source_event_id"), text(row, "role_id")),
+      );
       if (
         eventRow.status !== "completed" ||
         decisionRow === undefined ||
@@ -159,9 +168,11 @@ export class ConversationOutboxSQLiteRepository {
           "Could not acquire the conversation outbox lease.",
         );
       }
-      const attemptCount = this.database
-        .prepare("SELECT attempt_count FROM conversation_outbox WHERE outbound_id = ?")
-        .get(message.outboundId)?.attempt_count;
+      const attemptCount = sqliteRow(
+        this.database
+          .prepare("SELECT attempt_count FROM conversation_outbox WHERE outbound_id = ?")
+          .get(message.outboundId),
+      )?.attempt_count;
       if (typeof attemptCount !== "number" || !Number.isSafeInteger(attemptCount)) {
         throw new InteractionSQLiteError(
           "integrity_failed",
@@ -177,9 +188,11 @@ export class ConversationOutboxSQLiteRepository {
     leaseId: string;
     receipt: ConversationDeliveryReceipt;
   }): void {
-    const row = this.database
-      .prepare("SELECT * FROM conversation_outbox WHERE outbound_id = ?")
-      .get(input.outboundId);
+    const row = sqliteRow(
+      this.database
+        .prepare("SELECT * FROM conversation_outbox WHERE outbound_id = ?")
+        .get(input.outboundId),
+    );
     if (row === undefined || row.status !== "leased" || row.lease_id !== input.leaseId) {
       throw new InteractionSQLiteError(
         "lease_mismatch",
@@ -215,9 +228,11 @@ export class ConversationOutboxSQLiteRepository {
     if (!Number.isSafeInteger(input.expectedAttemptCount) || input.expectedAttemptCount < 1) {
       throw new InteractionSQLiteError("integrity_failed", "The outbox attempt is invalid.");
     }
-    const row = this.database
-      .prepare("SELECT * FROM conversation_outbox WHERE outbound_id = ?")
-      .get(input.outboundId);
+    const row = sqliteRow(
+      this.database
+        .prepare("SELECT * FROM conversation_outbox WHERE outbound_id = ?")
+        .get(input.outboundId),
+    );
     if (row === undefined) {
       throw new InteractionSQLiteError("lease_mismatch", "The reconciled outbox is missing.");
     }
@@ -260,9 +275,11 @@ export class ConversationOutboxSQLiteRepository {
         "The conversation delivery receipt is invalid.",
       );
     }
-    const eventRow = this.database
-      .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
-      .get(text(row, "source_event_id"), text(row, "role_id"));
+    const eventRow = sqliteRow(
+      this.database
+        .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
+        .get(text(row, "source_event_id"), text(row, "role_id")),
+    );
     if (eventRow === undefined) {
       throw new InteractionSQLiteError(
         "integrity_failed",
