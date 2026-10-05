@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_97572c1369ea2fd328c002cc
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_10640625662b9460c75e76c3
+outputLanguage: en
+outputs:
+  - byteCount: 2206
+    contentHash: sha256:d603b4465892a47f250b339f21597cde5edeff9e5c834e8585b5120df6b1a51d
+    path: docs/roadmap/product-outcome-convergence/host-products/discord.md
+    userRegionHash: sha256:d603b4465892a47f250b339f21597cde5edeff9e5c834e8585b5120df6b1a51d
+profile: roadmap_document
+recordId: knormdoc_eae681cc33c4ed886ab57d43
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d603b4465892a47f250b339f21597cde5edeff9e5c834e8585b5120df6b1a51d
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord.md
+sourceUnitVersionIds:
+  - uv_0b13c064ac9c10191bf845d3
+  - uv_6df5fc035d5c4d0409b0152e
