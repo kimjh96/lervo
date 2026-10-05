@@ -15,6 +15,9 @@ import {
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 
 import { DocumentFreshnessOperationError } from "./freshness-document-io.js";
+import { materializationTransactionState } from "./materialization-transaction.js";
+
+const MATERIALIZATION_HELD = Symbol("materialization_held");
 import { recordFreshnessRejection } from "./freshness-events.js";
 import {
   listFreshnessCandidates,
@@ -309,11 +312,19 @@ export async function withDocumentFreshnessOwnerLock<T>(
   root: string,
   run: () => Promise<T>,
 ): Promise<T> {
-  const result = await withRepositoryKnowledgeWorkerLock(root, run);
+  const result = await withRepositoryKnowledgeWorkerLock(root, async () =>
+    // A materialization journal, live or interrupted, owns repository bytes (ADR-0444, ADR-0465).
+    (await materializationTransactionState(root)) === "clear" ? run() : MATERIALIZATION_HELD,
+  );
+  if (result.status === "processed" && result.result === MATERIALIZATION_HELD)
+    throw new DocumentFreshnessOperationError(
+      "owner_lock_busy",
+      "A knowledge materialization transaction owns the repository; retry after it finishes or recover it.",
+    );
   if (result.status === "busy")
     throw new DocumentFreshnessOperationError(
       "owner_lock_busy",
       "The knowledge worker holds the repository lock; retry after its cycle finishes.",
     );
-  return result.result;
+  return result.result as T;
 }

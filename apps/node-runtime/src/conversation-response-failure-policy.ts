@@ -22,6 +22,7 @@ const contextFailures = new Set([
   "context_preparation_failed",
   "repository_snapshot_failed",
   "repository_observation_failed",
+  "source_bytes_changed",
 ]);
 
 const providerFailures = new Set([
@@ -67,7 +68,8 @@ export class NodeConversationResponseFailureClassifier implements ConversationRe
     if (code !== null && (code.startsWith("knowledge_") || contextFailures.has(code))) {
       return {
         failureCode: "response_context_unavailable",
-        retryable: code === "repository_snapshot_failed",
+        // A concurrent repository edit resolves on the next snapshot; other context failures do not.
+        retryable: code === "repository_snapshot_failed" || code === "source_bytes_changed",
       };
     }
     if (code === "provider_capacity_unavailable") {

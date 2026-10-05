@@ -235,9 +235,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/durable-apply.ts",
-      "contentHash": "sha256:f8e5ef1c6d9baec6957353408e5b86aba327eb0424ddbbcd537e19e8ada28d9f",
+      "contentHash": "sha256:2f682b49222dc13fd7bc08aaef59e11130947c1034e7dafc6a7504cb5cd321c5",
       "responsibility": "Durable knowledge filesystem transaction",
-      "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, and cleanup implement one atomic filesystem transaction protocol. Apply and recovery take the same external source gate through a small wrapper; SQLite mechanics and background retry policy remain in separate modules.",
+      "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, read-only owner inspection, and cleanup implement one atomic filesystem transaction protocol. Apply and recovery take the same external source gate through a small wrapper; SQLite mechanics and background retry policy remain in separate modules, and the worker's busy-versus-recovery decision lives in the convergence runtime.",
       "disposition": "cohesive"
     },
     {
@@ -284,9 +284,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:223c782ff20154c5a620d041357df81747dbca7381a6402f3f4aefb8a776e867",
+      "contentHash": "sha256:7c4feaf9baa0cc218763fc95ae6538402d0f80f55b6a2fbfdb82f499b714d85b",
       "responsibility": "Bounded repository knowledge scanner",
-      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate. Inclusion matching and the cache-name decision live in the shared knowledge intake policy, and nested working-tree detection lives in the filesystem metadata module; no independent transport or provider concern was added.",
+      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms own the canonical scanned-source aggregate; safe reads type a source or revision moving under the scan as source_bytes_changed. Inclusion matching and cache naming live in the intake policy, and nested working-tree detection in the filesystem metadata module; no transport or provider concern was added.",
       "disposition": "cohesive"
     },
     {
@@ -319,7 +319,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:f9b766d18ae63500d3772eadee4e7f04775a89000377a482d7f5873cbd07c106",
+      "contentHash": "sha256:e0d34ed9aa63c9bdbaaf791a599576a9440664a2e0de30454bbb02caee394232",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, policy, and typed domain failures without owning their implementations. The optional workstream freshness policy field references its owning freshness module rather than redefining it. The optional document freshness policy section references its owning freshness policy module rather than redefining it.",
       "disposition": "cohesive"

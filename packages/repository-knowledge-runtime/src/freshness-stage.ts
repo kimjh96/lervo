@@ -43,7 +43,8 @@ const RECENT_APPLY_MILLISECONDS = 24 * 3_600_000;
 const MAXIMUM_FIRST_SEEN = 512;
 
 export type DocumentFreshnessCycleResult =
-  | { status: "disabled" | "unavailable" | "unchanged" }
+  /** `yielded`: convergence had a stage in flight, so the stage waited for the next cycle. */
+  | { status: "disabled" | "unavailable" | "unchanged" | "yielded" }
   | {
       status: "completed";
       cycleId: string;

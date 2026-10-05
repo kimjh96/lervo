@@ -1,6 +1,6 @@
 bridgeId: kbridge_bc2e59e079f08bfeb795806b
 canonical:
-  contentHash: sha256:48817648aa9b3da1226ebe2d2c8fcc5e57a8fdf6d358558b93456e13743b02ef
+  contentHash: sha256:a260af62e81ee147a80ba63501908b7117bc2e8b981830848a4eb562f84ee25a
   path: AGENTS.md
 profile:
   discoveryContract: claude-code-memory-import

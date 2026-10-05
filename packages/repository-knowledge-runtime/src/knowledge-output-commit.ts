@@ -154,6 +154,18 @@ export async function settledKnowledgeOutputPaths(input: {
     await git(root, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]),
   );
   if (!dirty.size) return [];
+  const current = (path: string) => sha256(readFileSync(resolve(root, path)));
+  const drafts = await integratedCanonicalDrafts(input.events, input.artifacts);
+  // Every reviewed output is either an integrated draft or travels with a dirty normalization
+  // record, so a tree with neither skips the full normalization inspection at stage boundaries.
+  if (
+    ![...dirty].some(
+      ([path, state]) =>
+        path.startsWith(RECORD_ROOT) ||
+        (state === "present" && drafts.has(canonicalDraftKey(path, current(path)))),
+    )
+  )
+    return [];
   const normalization = await inspectConfiguredDocumentNormalization({ repositoryRoot: root });
   return selectSettledKnowledgeOutputs({
     dirty,
@@ -161,8 +173,8 @@ export async function settledKnowledgeOutputPaths(input: {
       const committed = await headBlob(root, path);
       return committed === null ? null : sha256(committed);
     },
-    current: (path) => sha256(readFileSync(resolve(root, path))),
-    drafts: await integratedCanonicalDrafts(input.events, input.artifacts),
+    current,
+    drafts,
     records: normalization.records.flatMap((record) => {
       if (record.status !== "current") return [];
       const source = documentNormalizationRecordSource(

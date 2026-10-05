@@ -4,6 +4,8 @@ import {
 } from "@lervo/repository-knowledge-runtime";
 import { spawn } from "node:child_process";
 
+import { knowledgeWorkerFailureLine } from "./knowledge-worker-failure.js";
+
 import { openProjectStorage } from "@lervo/project-storage";
 import type {
   RepositoryKnowledgeJobOutcome,
@@ -70,9 +72,7 @@ export async function runKnowledgeWorkerCommand(
         provider,
         onCycle: (result) => io.stdout(`${JSON.stringify(result)}\n`),
         onFailure: (error) =>
-          io.stderr(
-            `Knowledge convergence failed: ${(error as { code?: string })?.code ?? "knowledge_job_transient_failure"}\n`,
-          ),
+          io.stderr(knowledgeWorkerFailureLine(error, storage.paths.repositoryRoot)),
       });
       try {
         await new Promise<void>((resolve) => {

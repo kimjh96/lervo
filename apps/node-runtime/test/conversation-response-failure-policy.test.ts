@@ -13,6 +13,7 @@ describe("Node conversation response failure policy", () => {
     ["knowledge_source_unsafe", "response_context_unavailable", false],
     ["context_preparation_failed", "response_context_unavailable", false],
     ["repository_snapshot_failed", "response_context_unavailable", true],
+    ["source_bytes_changed", "response_context_unavailable", true],
     ["provider_start_failed", "response_provider_unavailable", true],
     ["provider_turn_failed", "response_provider_unavailable", true],
     ["provider_capacity_unavailable", "response_provider_capacity", true],
