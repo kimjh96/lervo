@@ -14,6 +14,7 @@ import {
   SQLiteConversationDeliberationJobStore,
   SQLiteConversationDeliberationResumeJobStore,
 } from "../src/index.js";
+import { sqliteRow } from "../src/sqlite-row.js";
 
 const roots: string[] = [];
 const projectId = "prj_deliberation01";
@@ -144,14 +145,16 @@ describe("durable conversation deliberation resume queue", () => {
     state.starts.close();
 
     const database = new DatabaseSync(state.resumePath);
-    const row = database
-      .prepare(
-        `
+    const row = sqliteRow(
+      database
+        .prepare(
+          `
       SELECT principal_hash FROM conversation_deliberation_resume_jobs
       WHERE deliberation_id = ?
     `,
-      )
-      .get(first.deliberationId);
+        )
+        .get(first.deliberationId),
+    );
     expect(row?.principal_hash).not.toBe("operator:reviewer");
     expect(() =>
       database

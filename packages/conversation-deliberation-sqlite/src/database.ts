@@ -4,6 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { ConversationDeliberationSQLiteError } from "./errors.js";
 import { createConversationDeliberationNotificationSchema } from "./notification-database.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 export const conversationDeliberationSQLiteSchemaVersion = 4;
 
@@ -42,7 +43,7 @@ export function configureConversationDeliberationDatabase(database: DatabaseSync
 export function migrateConversationDeliberationDatabase(database: DatabaseSync): void {
   database.exec("BEGIN IMMEDIATE;");
   try {
-    const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version;
     if (
       version !== 0 &&
       version !== 1 &&

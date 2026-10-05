@@ -12,6 +12,7 @@ import {
   conversationDeliberationMilliseconds,
   decodeConversationDeliberationSummary,
 } from "./row-codec.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 type QueueTable = "conversation_deliberation_jobs" | "conversation_deliberation_resume_jobs";
 
@@ -110,15 +111,17 @@ export function claimConversationDeliberationJob<
     `,
       )
       .run(configuration.expiredFailureCode, input.claimedAt, claimedAtMs);
-    const row = database
-      .prepare(
-        `
+    const row = sqliteRow(
+      database
+        .prepare(
+          `
       SELECT * FROM ${configuration.table}
       WHERE state = 'queued' AND requested_at_ms <= ?
       ORDER BY requested_at_ms ASC, deliberation_id ASC LIMIT 1
     `,
-      )
-      .get(claimedAtMs);
+        )
+        .get(claimedAtMs),
+    );
     if (row === undefined) {
       database.exec("COMMIT;");
       return null;
@@ -148,14 +151,16 @@ export function claimConversationDeliberationJob<
         "lease_mismatch",
         `Could not acquire the ${configuration.label} lease.`,
       );
-    const leased = database
-      .prepare(
-        `
+    const leased = sqliteRow(
+      database
+        .prepare(
+          `
       SELECT * FROM ${configuration.table}
       WHERE project_id = ? AND deliberation_id = ?
     `,
-      )
-      .get(job.projectId, job.deliberationId);
+        )
+        .get(job.projectId, job.deliberationId),
+    );
     database.exec("COMMIT;");
     return { leaseId, job: configuration.decode(leased!) };
   } catch (error) {

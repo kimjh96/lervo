@@ -15,6 +15,7 @@ import {
   decodeConversationDeliberationJob,
   decodeConversationDeliberationSummary,
 } from "./row-codec.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 type ReconciliationInput = Parameters<ConversationDeliberationJobStore["reconcile"]>[0];
 type ReconciliationDatabaseJob = ConversationDeliberationReconciliationTarget & {
@@ -86,14 +87,16 @@ export function reconcileConversationDeliberationRecord(
 
   database.exec("BEGIN IMMEDIATE;");
   try {
-    const row = database
-      .prepare(
-        `
+    const row = sqliteRow(
+      database
+        .prepare(
+          `
       SELECT * FROM ${options.table}
       WHERE project_id = ? AND deliberation_id = ? AND request_hash = ?
     `,
-      )
-      .get(input.projectId, input.deliberationId, input.requestHash);
+        )
+        .get(input.projectId, input.deliberationId, input.requestHash),
+    );
     if (row === undefined) {
       throw new ConversationDeliberationSQLiteError(
         "lease_mismatch",

@@ -13,6 +13,7 @@ import {
   conversationDeliberationMilliseconds,
   decodeConversationDeliberationSummary,
 } from "./row-codec.js";
+import { iterateSqliteRows, sqliteRow } from "./sqlite-row.js";
 
 const table = "conversation_deliberation_notifications";
 
@@ -129,11 +130,13 @@ function rollback(database: DatabaseSync, error: unknown): never {
 export function nextConversationDeliberationNotificationWakeupAt(
   database: DatabaseSync,
 ): number | null {
-  const value = database
-    .prepare(
-      `SELECT MIN(CASE WHEN state = 'pending' THEN occurred_at_ms ELSE lease_expires_at_ms END) AS next_at FROM ${table} WHERE state IN ('pending', 'leased')`,
-    )
-    .get()?.next_at;
+  const value = sqliteRow(
+    database
+      .prepare(
+        `SELECT MIN(CASE WHEN state = 'pending' THEN occurred_at_ms ELSE lease_expires_at_ms END) AS next_at FROM ${table} WHERE state IN ('pending', 'leased')`,
+      )
+      .get(),
+  )?.next_at;
   return typeof value === "number" ? value : null;
 }
 
@@ -143,7 +146,7 @@ export function checkConversationDeliberationNotificationIntegrity(input: {
   maximumRecords: number;
 }): void {
   let count = 0;
-  for (const row of input.database.prepare(`SELECT * FROM ${table}`).iterate()) {
+  for (const row of iterateSqliteRows(input.database.prepare(`SELECT * FROM ${table}`).iterate())) {
     count += 1;
     if (count > input.maximumRecords) {
       throw new ConversationDeliberationSQLiteError(
@@ -179,11 +182,13 @@ export function claimConversationDeliberationNotification(input: {
   );
   input.database.exec("BEGIN IMMEDIATE;");
   try {
-    const row = input.database
-      .prepare(
-        `SELECT * FROM ${table} WHERE state = 'pending' OR (state = 'leased' AND lease_expires_at_ms <= ?) ORDER BY occurred_at_ms, deliberation_id LIMIT 1`,
-      )
-      .get(claimedAtMs);
+    const row = sqliteRow(
+      input.database
+        .prepare(
+          `SELECT * FROM ${table} WHERE state = 'pending' OR (state = 'leased' AND lease_expires_at_ms <= ?) ORDER BY occurred_at_ms, deliberation_id LIMIT 1`,
+        )
+        .get(claimedAtMs),
+    );
     if (row === undefined) {
       input.database.exec("COMMIT;");
       return null;
@@ -209,9 +214,11 @@ export function claimConversationDeliberationNotification(input: {
         "Could not acquire the deliberation notification lease.",
       );
     }
-    const leased = input.database
-      .prepare(`SELECT * FROM ${table} WHERE project_id = ? AND deliberation_id = ?`)
-      .get(notification.projectId, notification.deliberationId);
+    const leased = sqliteRow(
+      input.database
+        .prepare(`SELECT * FROM ${table} WHERE project_id = ? AND deliberation_id = ?`)
+        .get(notification.projectId, notification.deliberationId),
+    );
     input.database.exec("COMMIT;");
     return {
       leaseId,
