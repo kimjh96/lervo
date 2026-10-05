@@ -5,6 +5,7 @@ import {
   canonicalJson,
   formatWorkstreamContext,
   sha256,
+  workstreamFreshnessPolicy,
   type KnowledgeQueryHit,
   type TerminalIntegrationProvider,
 } from "@lervo/repository-knowledge";
@@ -20,6 +21,7 @@ import type { TerminalStageObservationPort } from "./terminal-stage-observation.
 import { prepareTerminalPromptInputs } from "./terminal-prompt-preparation.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
 import type { CliServices } from "./types.js";
+import { observeWorkstreamFreshness } from "./workstream-repository-head.js";
 
 const MAXIMUM_CONTEXT_BYTES = 28 * 1024;
 const MAXIMUM_DOCUMENT_CONTEXT_BYTES = 12 * 1024;
@@ -142,15 +144,26 @@ export async function prepareTerminalPromptContext(input: {
     repositoryRevision: repositorySnapshot.revision,
     supplementalSources,
   });
+  const observedAt = new Date();
+  const workstreamFreshness =
+    currentWorkstream === null
+      ? null
+      : await observeWorkstreamFreshness({
+          root: input.root,
+          snapshot: currentWorkstream,
+          policy: workstreamFreshnessPolicy(preparedKnowledge.policy),
+          observedAt,
+        });
   const attention = createOperatingAttentionReport({
     projectId,
     workstream: currentWorkstream,
+    workstreamFreshness,
     canonicalization,
     knowledgeLifecycle:
       cachedLifecycleIssues === null
         ? { coverage: "unavailable", issues: [] }
         : { coverage: "cached", issues: cachedLifecycleIssues },
-    observedAt: new Date(),
+    observedAt,
   });
   const selection = await input.timing.measure("search", () =>
     selectTerminalContextCandidates({
@@ -169,7 +182,7 @@ export async function prepareTerminalPromptContext(input: {
       currentWorkstream === null
         ? null
         : (() => {
-            const full = formatWorkstreamContext(currentWorkstream);
+            const full = formatWorkstreamContext(currentWorkstream, workstreamFreshness);
             const noticeBytes = Buffer.byteLength(TRUNCATION_NOTICE);
             const context =
               Buffer.byteLength(full) <= MAXIMUM_WORKSTREAM_CONTEXT_BYTES
@@ -196,8 +209,8 @@ export async function prepareTerminalPromptContext(input: {
       input.workspaceBinding?.executionKind === "worker"
         ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping."
         : workstream === null
-          ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint through the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow before completion. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands."
-          : "If this turn changes repository-authored bytes, the agent must record the next bounded revision through the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow before completion. Preserve identity and origin, replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
+          ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint before completion with `lervo workstream start --actor agent --provider <current-provider> --stdin --apply-now`. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands."
+          : "If this turn changes repository-authored bytes, the agent must record the next bounded revision before completion with `lervo workstream update --actor agent --provider <current-provider> --patch <json> --apply-now`; the service sets revision, update time, and HEAD and preserves identity and origin. Replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
     const preamble = [
       "Lervo terminal integration v2 used a provider-neutral query projection only for read-only candidate retrieval in the current repository. It did not resolve effects, authority, execution, external systems, or cross-repository routing.",
       `effectGroundingStatus: ${grounding.status}; workflowId: none; reasons: ${grounding.reasons.join(",")}`,

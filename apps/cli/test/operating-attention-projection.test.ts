@@ -1,4 +1,7 @@
-import type { CanonicalizationCandidateInspection } from "@lervo/repository-knowledge";
+import {
+  assessWorkstreamFreshness,
+  type CanonicalizationCandidateInspection,
+} from "@lervo/repository-knowledge";
 import type { WorkstreamSnapshot } from "@lervo/schemas";
 import { calculateRepositoryReplicaDivergenceId } from "@lervo/sync";
 import { describe, expect, it } from "vitest";
@@ -46,6 +49,12 @@ const workstream: WorkstreamSnapshot = {
   updatedAt: "2026-09-04T00:00:00.000Z",
 };
 
+const currentFreshness = assessWorkstreamFreshness({
+  snapshot: workstream,
+  headDistance: { status: "not_recorded" },
+  observedAt: new Date("2026-09-04T00:01:00.000Z"),
+});
+
 function candidate(
   observedState: CanonicalizationCandidateInspection["observedState"],
 ): CanonicalizationCandidateInspection {
@@ -77,6 +86,7 @@ describe("operating attention projection", () => {
     const report = createOperatingAttentionReport({
       projectId: "prj_0123456789abcdef",
       workstream,
+      workstreamFreshness: currentFreshness,
       canonicalization: { coverage: "complete", candidates: [candidate("stale")] },
       knowledgeLifecycle: {
         coverage: "cached",
@@ -120,6 +130,7 @@ describe("operating attention projection", () => {
     const first = createOperatingAttentionReport({
       projectId: "prj_0123456789abcdef",
       workstream: null,
+      workstreamFreshness: null,
       canonicalization: { coverage: "complete", candidates: [candidate("promoted")] },
       knowledgeLifecycle: { coverage: "cached", issues: [] },
       observedAt: new Date("2026-09-04T00:01:00.000Z"),
@@ -127,6 +138,7 @@ describe("operating attention projection", () => {
     const second = createOperatingAttentionReport({
       projectId: "prj_0123456789abcdef",
       workstream: null,
+      workstreamFreshness: null,
       canonicalization: { coverage: "complete", candidates: [candidate("promoted")] },
       knowledgeLifecycle: { coverage: "cached", issues: [] },
       observedAt: new Date("2026-09-04T00:02:00.000Z"),
@@ -144,6 +156,7 @@ describe("operating attention projection", () => {
     const report = createOperatingAttentionReport({
       projectId: "prj_0123456789abcdef",
       workstream: null,
+      workstreamFreshness: null,
       canonicalization: { coverage: "unavailable", candidates: [] },
       knowledgeLifecycle: { coverage: "unavailable", issues: [] },
       observedAt: new Date("2026-09-04T00:01:00.000Z"),
@@ -177,6 +190,7 @@ describe("operating attention projection", () => {
     const report = createOperatingAttentionReport({
       projectId: "prj_0123456789abcdef",
       workstream: null,
+      workstreamFreshness: null,
       canonicalization: { coverage: "complete", candidates: [] },
       knowledgeLifecycle: { coverage: "cached", issues: [] },
       repositoryReplicaDivergence: divergence,
@@ -214,6 +228,7 @@ describe("operating attention projection", () => {
     const report = createOperatingAttentionReport({
       projectId: "prj_0123456789abcdef",
       workstream: null,
+      workstreamFreshness: null,
       canonicalization: { coverage: "complete", candidates: [withDraft] },
       knowledgeLifecycle: { coverage: "cached", issues: [] },
       observedAt: new Date("2026-09-04T00:01:00.000Z"),

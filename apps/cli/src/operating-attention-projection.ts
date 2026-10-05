@@ -8,7 +8,10 @@ import type {
 import {
   canonicalJson,
   sha256,
+  STALE_WORKSTREAM_INSTRUCTION,
+  workstreamApprovalConsequence,
   type CanonicalizationCandidateInspection,
+  type WorkstreamFreshness,
 } from "@lervo/repository-knowledge";
 import type { WorkstreamSnapshot } from "@lervo/schemas";
 import type { RepositoryReplicaOpenDivergence } from "@lervo/sync";
@@ -93,6 +96,68 @@ function replicaDivergenceItem(
   };
 }
 
+const STALE_INSTRUCTION = `${STALE_WORKSTREAM_INSTRUCTION} Inspect it with lervo workstream current.`;
+
+/**
+ * Current workstream items carry the snapshot's authority framing. Stale items are owned by the
+ * agent for re-verification: never blocking, never requiring user action, never a directive.
+ */
+function workstreamAttentionItems(
+  workstream: WorkstreamSnapshot,
+  stale: boolean,
+): OperatingAttentionItemV1[] {
+  return [
+    ...(workstream.pendingDecisions ?? []).map((decision): OperatingAttentionItemV1 => ({
+      schemaVersion: 1,
+      kind: "workstream_decision",
+      itemId: decision.decisionId,
+      state: stale ? "stale" : "pending",
+      consequence: "unclassified",
+      decisionId: decision.decisionId,
+      question: decision.question,
+      choices: decision.choices.map((choice) => ({ ...choice })),
+      recommendedChoiceId: decision.recommendedChoiceId,
+      actionOwner: stale ? "agent" : "user",
+      requiresUserAction: !stale,
+      blocking: !stale && decision.blocking,
+      instruction: stale
+        ? STALE_INSTRUCTION
+        : `Resolve workstream decision ${decision.decisionId} through an authorized workstream update.`,
+    })),
+    ...(workstream.pendingApprovals ?? []).map((approval): OperatingAttentionItemV1 => ({
+      schemaVersion: 1,
+      kind: "workstream_approval",
+      itemId: approval.approvalId,
+      state: stale ? "stale" : "pending",
+      consequence: workstreamApprovalConsequence(approval.kind),
+      approvalId: approval.approvalId,
+      approvalKind: approval.kind,
+      summary: approval.summary,
+      bindingHash: approval.bindingHash,
+      actionOwner: stale ? "agent" : "user",
+      requiresUserAction: !stale,
+      blocking: !stale && approval.blocking,
+      instruction: stale
+        ? STALE_INSTRUCTION
+        : `Resolve workstream approval ${approval.approvalId} only against its exact binding hash.`,
+    })),
+    ...workstream.blockers.map((summary, blockerIndex): OperatingAttentionItemV1 => ({
+      schemaVersion: 1,
+      kind: "workstream_blocker",
+      itemId: `workstream_blocker_${sha256(summary).slice("sha256:".length, "sha256:".length + 24)}`,
+      state: stale ? "stale" : "blocked",
+      blockerIndex,
+      summary,
+      actionOwner: stale ? "agent" : "unassigned",
+      requiresUserAction: false,
+      blocking: !stale,
+      instruction: stale
+        ? STALE_INSTRUCTION
+        : "Inspect the blocker against current repository evidence before assigning an action owner.",
+    })),
+  ];
+}
+
 function ordered(items: OperatingAttentionItemV1[]): OperatingAttentionItemV1[] {
   return items.sort((left, right) => {
     const user = Number(right.requiresUserAction) - Number(left.requiresUserAction);
@@ -107,6 +172,8 @@ function ordered(items: OperatingAttentionItemV1[]): OperatingAttentionItemV1[] 
 export function createOperatingAttentionReport(input: {
   projectId: string;
   workstream: WorkstreamSnapshot | null;
+  /** Freshness of the current workstream; null only when no workstream exists. */
+  workstreamFreshness: WorkstreamFreshness | null;
   canonicalization: {
     coverage: OperatingAttentionReportV1["coverage"]["canonicalization"];
     candidates: CanonicalizationCandidateInspection[];
@@ -119,56 +186,10 @@ export function createOperatingAttentionReport(input: {
   repositoryReplicaDivergence?: RepositoryReplicaOpenDivergence | null;
   observedAt: Date;
 }): OperatingAttentionReportV1 {
-  const workstreamItems: OperatingAttentionItemV1[] =
+  const workstreamItems =
     input.workstream === null
       ? []
-      : [
-          ...(input.workstream.pendingDecisions ?? []).map(
-            (decision): OperatingAttentionItemV1 => ({
-              schemaVersion: 1,
-              kind: "workstream_decision",
-              itemId: decision.decisionId,
-              state: "pending",
-              decisionId: decision.decisionId,
-              question: decision.question,
-              choices: decision.choices.map((choice) => ({ ...choice })),
-              recommendedChoiceId: decision.recommendedChoiceId,
-              actionOwner: "user",
-              requiresUserAction: true,
-              blocking: decision.blocking,
-              instruction: `Resolve workstream decision ${decision.decisionId} through an authorized workstream update.`,
-            }),
-          ),
-          ...(input.workstream.pendingApprovals ?? []).map(
-            (approval): OperatingAttentionItemV1 => ({
-              schemaVersion: 1,
-              kind: "workstream_approval",
-              itemId: approval.approvalId,
-              state: "pending",
-              approvalId: approval.approvalId,
-              approvalKind: approval.kind,
-              summary: approval.summary,
-              bindingHash: approval.bindingHash,
-              actionOwner: "user",
-              requiresUserAction: true,
-              blocking: approval.blocking,
-              instruction: `Resolve workstream approval ${approval.approvalId} only against its exact binding hash.`,
-            }),
-          ),
-          ...input.workstream.blockers.map((summary, blockerIndex): OperatingAttentionItemV1 => ({
-            schemaVersion: 1,
-            kind: "workstream_blocker",
-            itemId: `workstream_blocker_${sha256(summary).slice("sha256:".length, "sha256:".length + 24)}`,
-            state: "blocked",
-            blockerIndex,
-            summary,
-            actionOwner: "unassigned",
-            requiresUserAction: false,
-            blocking: true,
-            instruction:
-              "Inspect the blocker against current repository evidence before assigning an action owner.",
-          })),
-        ];
+      : workstreamAttentionItems(input.workstream, input.workstreamFreshness?.status === "stale");
   const candidateItems = input.canonicalization.candidates.flatMap((candidate) => {
     const item = canonicalizationItem(candidate);
     return item === null ? [] : [item];
