@@ -179,7 +179,7 @@
     },
     {
       "path": "packages/organization-deployment-sqlite/src/rollback-store.ts",
-      "contentHash": "sha256:6ec6c6de41520cb70e6f5799c24e2ad4f10455e84251433bbddca08c4abbc807",
+      "contentHash": "sha256:aebf88cc4a65a6c2e01ac6060e3b33788788d2ccae0ed0dd50a683df887e8da4",
       "responsibility": "Organization rollback replay SQLite persistence",
       "rationale": "Reservation, completion, recovery projection, target binding, and integrity checks all operate on one immutable rollback replay table and transaction lifecycle; authorization and rollback policy remain outside the adapter.",
       "disposition": "cohesive"

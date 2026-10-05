@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 
 import { OrganizationDeploymentSQLiteError } from "./errors.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 export async function ensureOrganizationRolloutDatabasePath(path: string): Promise<string> {
   const absolute = resolve(path);
@@ -35,7 +36,7 @@ export function configureOrganizationRolloutDatabase(database: DatabaseSync): vo
 export function migrateOrganizationRolloutDatabase(database: DatabaseSync): void {
   database.exec("BEGIN IMMEDIATE;");
   try {
-    const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version;
     if (version !== 0 && version !== 1 && version !== 2 && version !== 3) {
       throw new OrganizationDeploymentSQLiteError(
         "integrity_failed",

@@ -32,6 +32,7 @@ import {
   type ReplayCoordinate,
   type ReplayReservation,
 } from "./replay-record.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export class SQLiteOrganizationNodeRolloutReplayStore implements OrganizationNodeRolloutDeliveryReplayStore {
   readonly path: string;
@@ -101,9 +102,11 @@ export class SQLiteOrganizationNodeRolloutReplayStore implements OrganizationNod
     ]);
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const rows = this.database
-        .prepare("SELECT key, value FROM organization_rollout_meta ORDER BY key")
-        .all();
+      const rows = sqliteRows(
+        this.database
+          .prepare("SELECT key, value FROM organization_rollout_meta ORDER BY key")
+          .all(),
+      );
       if (rows.length === 0) {
         const insert = this.database.prepare(
           "INSERT INTO organization_rollout_meta (key, value) VALUES (?, ?)",
@@ -143,13 +146,15 @@ export class SQLiteOrganizationNodeRolloutReplayStore implements OrganizationNod
     coordinate: ReplayCoordinate,
   ): OrganizationNodeRolloutDeliveryReplayDecision {
     assertReplayCoordinate(coordinate);
-    const row = this.database
-      .prepare(
-        `SELECT idempotency_key, delivery_hash, nonce, reservation_id, receipt_json,
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `SELECT idempotency_key, delivery_hash, nonce, reservation_id, receipt_json,
                 baseline_json, recovery_json
          FROM organization_rollout_replay WHERE idempotency_key = ?`,
-      )
-      .get(coordinate.idempotencyKey);
+        )
+        .get(coordinate.idempotencyKey),
+    );
     if (row !== undefined) {
       const decoded = decodeReplayRow(row);
       if (decoded.delivery_hash !== coordinate.deliveryHash || decoded.nonce !== coordinate.nonce) {
@@ -158,9 +163,11 @@ export class SQLiteOrganizationNodeRolloutReplayStore implements OrganizationNod
       const receipt = decodeDeliveryReceipt(decoded);
       return receipt === null ? { status: "in_progress" } : { status: "duplicate", receipt };
     }
-    const nonce = this.database
-      .prepare("SELECT idempotency_key FROM organization_rollout_replay WHERE nonce = ?")
-      .get(coordinate.nonce);
+    const nonce = sqliteRow(
+      this.database
+        .prepare("SELECT idempotency_key FROM organization_rollout_replay WHERE nonce = ?")
+        .get(coordinate.nonce),
+    );
     return nonce === undefined ? { status: "available" } : { status: "nonce_replay" };
   }
 
@@ -183,9 +190,9 @@ export class SQLiteOrganizationNodeRolloutReplayStore implements OrganizationNod
         this.database.exec("COMMIT;");
         return decision;
       }
-      const count = this.database
-        .prepare("SELECT COUNT(*) AS count FROM organization_rollout_replay")
-        .get()?.count;
+      const count = sqliteRow(
+        this.database.prepare("SELECT COUNT(*) AS count FROM organization_rollout_replay").get(),
+      )?.count;
       if (typeof count !== "number" || !Number.isSafeInteger(count)) {
         throw new OrganizationDeploymentSQLiteError(
           "integrity_failed",
@@ -239,13 +246,15 @@ export class SQLiteOrganizationNodeRolloutReplayStore implements OrganizationNod
   ): Promise<OrganizationNodeRolloutRecoveryStateDecision> {
     this.assertOpen();
     assertReplayCoordinate(coordinate);
-    const candidate = this.database
-      .prepare(
-        `SELECT idempotency_key, delivery_hash, nonce, reservation_id, receipt_json,
+    const candidate = sqliteRow(
+      this.database
+        .prepare(
+          `SELECT idempotency_key, delivery_hash, nonce, reservation_id, receipt_json,
                 baseline_json, recovery_json
          FROM organization_rollout_replay WHERE idempotency_key = ?`,
-      )
-      .get(coordinate.idempotencyKey);
+        )
+        .get(coordinate.idempotencyKey),
+    );
     if (candidate === undefined) {
       const replay = this.inspectCurrent(coordinate);
       return replay.status === "in_progress" ? { status: "baseline_unavailable" } : replay;
@@ -274,13 +283,15 @@ export class SQLiteOrganizationNodeRolloutReplayStore implements OrganizationNod
     assertOrganizationNodeRolloutRecoveryReceipt(input.receipt);
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const candidate = this.database
-        .prepare(
-          `SELECT idempotency_key, delivery_hash, nonce, reservation_id, receipt_json,
+      const candidate = sqliteRow(
+        this.database
+          .prepare(
+            `SELECT idempotency_key, delivery_hash, nonce, reservation_id, receipt_json,
                   baseline_json, recovery_json
            FROM organization_rollout_replay WHERE reservation_id = ?`,
-        )
-        .get(input.reservationId);
+          )
+          .get(input.reservationId),
+      );
       if (candidate === undefined) {
         throw new OrganizationDeploymentSQLiteError(
           "write_failed",
