@@ -26,6 +26,8 @@ When the current workstream is stale under [ADR-0462](../../decisions/execution/
 
 Document drift warnings from `lervo knowledge lint` appear as knowledge-lifecycle items, as defined in [ADR-0464](../../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md). There are at most four, plus one overflow item. Each is agent-owned, non-blocking, and does not require user action. Their detail holds only relative paths and reason names. They are kept separate from lifecycle gates, so they never change terminal lifecycle status.
 
+Document freshness adds three item kinds, as defined in [ADR-0463](../../decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md). `document_freshness_candidate` is a verified candidate that waits for the owner; it is user-owned, requires user action, and is never blocking. `document_freshness_applied` is an informational, agent-owned notice of an apply that names the revert command and resolves on acknowledgement or after 24 hours. `document_freshness_blocked` reports five attempts with no verified candidate in one day. The items carry candidate identifiers, relative paths, classes, and counts, never hunk text. The projection reads them from the rebuildable freshness state in `lervo application attention` and on the cached retrieval prompt path; an unreadable state contributes no item. The compact prompt shows one freshness line of at most 200 bytes instead of the items.
+
 `unavailable` coverage is not an empty success and keeps aggregate status at `action_required`, even when no item could be read. A missing workstream is reported as missing but does not invent a blocker, because a repository may legitimately have no current continuation.
 
 ## Direct terminal context
@@ -54,6 +56,7 @@ Acceptance requires:
 - [ADR-0361](../../decisions/execution/applications/0361-project-operating-attention-without-new-authority.md)
 - [ADR-0462](../../decisions/execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md)
 - [ADR-0464](../../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md)
+- [ADR-0463](../../decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md)
 - [Product-host protocol](product-host-protocol.md)
 - [Repository knowledge lifecycle convergence](../../specs/repository-knowledge-lifecycle-convergence.md)
 - [Product outcome convergence](../../roadmap/product-outcome-convergence.md)
