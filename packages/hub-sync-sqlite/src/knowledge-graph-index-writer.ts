@@ -10,6 +10,7 @@ import type { EventEnvelope } from "@lervo/schemas";
 
 import { HubSyncStoreError } from "./errors.js";
 import { decodeStoredEvent, integerField, stringField, type SQLiteRow } from "./row-codec.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 const KNOWLEDGE_GRAPH_INDEX_VERSION = 1;
 
@@ -17,9 +18,11 @@ export class KnowledgeGraphIndexSQLiteWriter {
   constructor(private readonly database: DatabaseSync) {}
 
   rebuildIfRequired(): void {
-    const row = this.database
-      .prepare("SELECT value FROM hub_sync_meta WHERE key = ?")
-      .get("knowledge_graph_index_version");
+    const row = sqliteRow(
+      this.database
+        .prepare("SELECT value FROM hub_sync_meta WHERE key = ?")
+        .get("knowledge_graph_index_version"),
+    );
     if (row === undefined) {
       throw new HubSyncStoreError(
         "integrity_failed",
@@ -91,16 +94,18 @@ export class KnowledgeGraphIndexSQLiteWriter {
         }
       }
     }
-    const rows = this.database
-      .prepare(
-        `
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT relation_id, relation_type, from_kind, from_id, to_kind, to_id,
         evidence_event_id, evidence_event_type, evidence_run_id, evidence_seq
       FROM hub_knowledge_graph_relations
       WHERE destination_id = ? AND project_id = ?
     `,
-      )
-      .all(coordinate.destinationId, coordinate.projectId);
+        )
+        .all(coordinate.destinationId, coordinate.projectId),
+    );
     if (rows.length !== expected.size) {
       throw new HubSyncStoreError(
         "integrity_failed",
@@ -154,15 +159,17 @@ export class KnowledgeGraphIndexSQLiteWriter {
         relation.evidence.runId,
         relation.evidence.seq,
       );
-    const stored = this.database
-      .prepare(
-        `
+    const stored = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT relation_type, from_kind, from_id, to_kind, to_id, evidence_seq
       FROM hub_knowledge_graph_relations
       WHERE destination_id = ? AND project_id = ? AND relation_id = ?
     `,
-      )
-      .get(coordinate.destinationId, coordinate.projectId, relation.relationId);
+        )
+        .get(coordinate.destinationId, coordinate.projectId, relation.relationId),
+    );
     if (
       stored === undefined ||
       stringField(stored, "relation_type") !== relation.type ||

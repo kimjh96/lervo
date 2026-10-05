@@ -1,6 +1,7 @@
 import { type DatabaseSync } from "node:sqlite";
 
 import { HubSyncStoreError } from "./errors.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 const migrations = [
   `
@@ -747,7 +748,7 @@ export function configureDatabase(database: DatabaseSync): void {
 export function migrateDatabase(database: DatabaseSync): void {
   database.exec("BEGIN IMMEDIATE;");
   try {
-    const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version;
     if (typeof version !== "number" || !Number.isSafeInteger(version)) {
       throw new HubSyncStoreError(
         "integrity_failed",
@@ -764,9 +765,11 @@ export function migrateDatabase(database: DatabaseSync): void {
       database.exec(migrations[index] as string);
       database.exec(`PRAGMA user_version = ${index + 1};`);
     }
-    const storedVersion = database
-      .prepare("SELECT value FROM hub_sync_meta WHERE key = ?")
-      .get("storage_schema_version")?.value;
+    const storedVersion = sqliteRow(
+      database
+        .prepare("SELECT value FROM hub_sync_meta WHERE key = ?")
+        .get("storage_schema_version"),
+    )?.value;
     if (storedVersion === undefined) {
       database
         .prepare("INSERT INTO hub_sync_meta (key, value) VALUES (?, ?)")

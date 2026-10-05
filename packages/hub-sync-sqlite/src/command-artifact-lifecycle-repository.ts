@@ -10,6 +10,7 @@ import {
 
 import { integerField, stringField, type SQLiteRow } from "./row-codec.js";
 import { remoteCommandTimestamp } from "./remote-command-row.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 const WORKER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 const URI_PATTERN = /^lervo-cas:\/\/sha256\/[a-f0-9]{64}$/u;
@@ -56,9 +57,10 @@ function parseKind(value: string): HubCommandArtifactPurgeKind {
 }
 
 function boundedDeliveryIds(database: DatabaseSync, artifactUri: string): string[] {
-  return database
-    .prepare(
-      `
+  return sqliteRows(
+    database
+      .prepare(
+        `
     SELECT authorship.delivery_id
     FROM hub_remote_command_authorships AS authorship
     LEFT JOIN hub_remote_command_artifact_purges AS purge
@@ -67,16 +69,17 @@ function boundedDeliveryIds(database: DatabaseSync, artifactUri: string): string
     ORDER BY authorship.delivery_id
     LIMIT ?
   `,
-    )
-    .all(artifactUri, HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT + 1)
-    .map((row) => stringField(row, "delivery_id"));
+      )
+      .all(artifactUri, HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT + 1),
+  ).map((row) => stringField(row, "delivery_id"));
 }
 
 function hasUnpurgedReference(database: DatabaseSync, artifactUri: string): boolean {
   return (
-    database
-      .prepare(
-        `
+    sqliteRow(
+      database
+        .prepare(
+          `
     SELECT 1
     FROM hub_remote_command_authorships AS authorship
     LEFT JOIN hub_remote_command_artifact_purges AS purge
@@ -84,8 +87,9 @@ function hasUnpurgedReference(database: DatabaseSync, artifactUri: string): bool
     WHERE authorship.artifact_uri = ? AND purge.delivery_id IS NULL
     LIMIT 1
   `,
-      )
-      .get(artifactUri) !== undefined
+        )
+        .get(artifactUri),
+    ) !== undefined
   );
 }
 
@@ -114,9 +118,10 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
     this.database
       .prepare("DELETE FROM hub_remote_command_artifact_gc_claims WHERE lease_expires_at_ms <= ?")
       .run(window.claimedAtMs);
-    const candidates = this.database
-      .prepare(
-        `
+    const candidates = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT authorship.artifact_uri
       FROM hub_remote_command_authorships AS authorship
       JOIN hub_remote_commands AS command ON command.delivery_id = authorship.delivery_id
@@ -132,8 +137,9 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
       ORDER BY MAX(retention.retain_until_ms), authorship.artifact_uri
       LIMIT ?
     `,
-      )
-      .all(window.claimedAtMs, window.claimedAtMs, input.limit);
+        )
+        .all(window.claimedAtMs, window.claimedAtMs, input.limit),
+    );
     const claims: HubCommandArtifactPurgeClaim[] = [];
     for (const candidate of candidates) {
       const artifactUri = stringField(candidate, "artifact_uri");
@@ -192,13 +198,15 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
     `,
       )
       .run(input.artifactUri, window.claimedAtMs);
-    const active = this.database
-      .prepare(
-        `
+    const active = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT claim_id FROM hub_remote_command_artifact_gc_claims WHERE artifact_uri = ?
     `,
-      )
-      .get(input.artifactUri);
+        )
+        .get(input.artifactUri),
+    );
     if (active !== undefined || hasUnpurgedReference(this.database, input.artifactUri)) return null;
     const id = claimId();
     this.database
@@ -240,14 +248,16 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
   } {
     validateWorker(input.workerId);
     const completedAtMs = remoteCommandTimestamp(input.completedAt, "artifact completedAt");
-    const prior = this.database
-      .prepare(
-        `
+    const prior = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT kind, completion_status, purged_delivery_count
       FROM hub_remote_command_artifact_gc_completions WHERE claim_id = ? AND worker_id = ?
     `,
-      )
-      .get(input.claimId, input.workerId);
+        )
+        .get(input.claimId, input.workerId),
+    );
     if (prior !== undefined)
       return {
         status: "duplicate",
@@ -255,15 +265,17 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
         purgedDeliveryCount: integerField(prior, "purged_delivery_count"),
         continuationRecommended: stringField(prior, "completion_status") === "partial",
       };
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT * FROM hub_remote_command_artifact_gc_claims
       WHERE claim_id = ? AND worker_id = ?
         AND claimed_at_ms <= ? AND lease_expires_at_ms >= ?
     `,
-      )
-      .get(input.claimId, input.workerId, completedAtMs, completedAtMs);
+        )
+        .get(input.claimId, input.workerId, completedAtMs, completedAtMs),
+    );
     if (row === undefined) {
       throw new HubCommandError(
         "artifact_cleanup_conflict",
@@ -275,9 +287,10 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
     let completionStatus: "completed" | "partial" = "completed";
     let purgedIds = ids;
     if (claim.kind === "expired") {
-      const blocked = this.database
-        .prepare(
-          `
+      const blocked = sqliteRow(
+        this.database
+          .prepare(
+            `
         SELECT COUNT(*) AS count
         FROM hub_remote_command_authorships AS authorship
         JOIN hub_remote_commands AS command ON command.delivery_id = authorship.delivery_id
@@ -288,8 +301,9 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
         WHERE authorship.artifact_uri = ? AND purge.delivery_id IS NULL
           AND (retention.retain_until_ms > ? OR command.expires_at_ms > ?)
       `,
-        )
-        .get(claim.artifactUri, completedAtMs, completedAtMs);
+          )
+          .get(claim.artifactUri, completedAtMs, completedAtMs),
+      );
       if (integerField(blocked!, "count") !== 0 || ids.length === 0) {
         throw new HubCommandError(
           "artifact_cleanup_conflict",
@@ -300,9 +314,10 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
         completionStatus = "partial";
         purgedIds = ids.slice(0, HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT);
       }
-      const pendingSince = this.database
-        .prepare(
-          `
+      const pendingSince = sqliteRow(
+        this.database
+          .prepare(
+            `
         SELECT MAX(partial.completed_at_ms) AS pending_since
         FROM hub_remote_command_artifact_gc_completions AS partial
         WHERE partial.artifact_uri = ? AND partial.completion_status = 'partial'
@@ -313,8 +328,9 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
               AND completed.completed_at_ms >= partial.completed_at_ms
           )
       `,
-        )
-        .get(claim.artifactUri)?.pending_since;
+          )
+          .get(claim.artifactUri),
+      )?.pending_since;
       if (
         completionStatus === "completed" &&
         typeof pendingSince === "number" &&

@@ -19,6 +19,7 @@ import { loadProjectHead } from "./project-head.js";
 import { decodeStoredEvent } from "./row-codec.js";
 import { HubTraceIndexSQLiteWriter } from "./trace-index-writer.js";
 import { KnowledgeGraphIndexSQLiteWriter } from "./knowledge-graph-index-writer.js";
+import { sqliteRows } from "./sqlite-row.js";
 
 function sameEvent(left: EventEnvelope, right: EventEnvelope): boolean {
   return canonicalJson(left) === canonicalJson(right);
@@ -94,16 +95,17 @@ export class HubEventInboxSQLiteRepository {
   }
 
   private matchingEvents(coordinate: HubProjectCoordinate, event: EventEnvelope): EventEnvelope[] {
-    return this.database
-      .prepare(
-        `
+    return sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT seq, event_id, event_hash, previous_hash, event_json
       FROM hub_events
       WHERE destination_id = ? AND project_id = ? AND (seq = ? OR event_id = ?)
     `,
-      )
-      .all(coordinate.destinationId, coordinate.projectId, event.seq, event.eventId)
-      .map(decodeStoredEvent);
+        )
+        .all(coordinate.destinationId, coordinate.projectId, event.seq, event.eventId),
+    ).map(decodeStoredEvent);
   }
 
   private assertStoredNeighbors(coordinate: HubProjectCoordinate, event: EventEnvelope): void {

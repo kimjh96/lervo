@@ -12,6 +12,7 @@ import {
   registerStore,
   removeTemporaryRoots,
 } from "./fixture.js";
+import { sqliteRow } from "../src/sqlite-row.js";
 
 afterEach(removeTemporaryRoots);
 
@@ -26,7 +27,7 @@ describe("Hub sync SQLite integrity lifecycle", () => {
 
     const tampered = new DatabaseSync(path);
     tampered.exec("DROP TRIGGER hub_events_no_update;");
-    const row = tampered.prepare("SELECT event_json FROM hub_events LIMIT 1").get();
+    const row = sqliteRow(tampered.prepare("SELECT event_json FROM hub_events LIMIT 1").get());
     const event = JSON.parse(String(row?.event_json)) as Record<string, unknown>;
     event.eventId = "evt_tampered_audit_01";
     tampered.prepare("UPDATE hub_events SET event_json = ?").run(JSON.stringify(event));
@@ -136,13 +137,15 @@ describe("Hub sync SQLite integrity lifecycle", () => {
     const migrated = await HubSyncSQLiteStore.open({ path });
     const inspection = new DatabaseSync(path, { readOnly: true });
     expect(
-      inspection
-        .prepare(
-          `
+      sqliteRow(
+        inspection
+          .prepare(
+            `
       SELECT completion_status FROM hub_remote_command_artifact_gc_completions
     `,
-        )
-        .get(),
+          )
+          .get(),
+      ),
     ).toEqual({ completion_status: "completed" });
     inspection.close();
     await expect(migrated.auditIntegrity()).resolves.toMatchObject({ valid: true });

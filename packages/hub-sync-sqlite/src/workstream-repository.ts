@@ -13,6 +13,8 @@ import {
   type WorkstreamSnapshot,
 } from "@lervo/schemas";
 
+import { sqliteRow } from "./sqlite-row.js";
+
 interface RevisionRow {
   snapshot_content_hash: string;
   previous_snapshot_content_hash: string | null;
@@ -376,14 +378,16 @@ export class HubWorkstreamSQLiteRepository {
   }
 
   private countRevisions(projectId: string, identityHash: string): number {
-    const value = this.database
-      .prepare(
-        `
+    const value = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT COUNT(*) AS count FROM hub_workstream_revisions
       WHERE project_id = ? AND repository_identity_hash = ?
     `,
-      )
-      .get(projectId, identityHash)?.count;
+        )
+        .get(projectId, identityHash),
+    )?.count;
     if (typeof value !== "number") {
       throw new HubWorkstreamReplicationError(
         "workstream_conflict",

@@ -4,14 +4,16 @@ import { HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT, HubCommandError } from "@lervo/
 
 import { integerField, stringField } from "./row-codec.js";
 import { remoteCommandTimestamp } from "./remote-command-row.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 const WORKER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 const URI_PATTERN = /^lervo-cas:\/\/sha256\/[a-f0-9]{64}$/u;
 
 export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
-  const invalidRetention = database
-    .prepare(
-      `
+  const invalidRetention = sqliteRow(
+    database
+      .prepare(
+        `
     SELECT 1
     FROM hub_remote_command_authorships AS authorship
     JOIN hub_remote_commands AS command ON command.delivery_id = authorship.delivery_id
@@ -26,17 +28,19 @@ export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
       ) >= 1000
     LIMIT 1
   `,
-    )
-    .get();
+      )
+      .get(),
+  );
   if (invalidRetention !== undefined) {
     throw new HubCommandError(
       "artifact_integrity_failed",
       "The artifact lifecycle index differs from the source.",
     );
   }
-  const invalidPurge = database
-    .prepare(
-      `
+  const invalidPurge = sqliteRow(
+    database
+      .prepare(
+        `
     SELECT 1
     FROM hub_remote_command_artifact_purges AS purge
     JOIN hub_remote_command_authorships AS authorship
@@ -48,11 +52,13 @@ export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
       OR completion.artifact_uri <> purge.artifact_uri
     LIMIT 1
   `,
-    )
-    .get();
-  const invalidCompletion = database
-    .prepare(
-      `
+      )
+      .get(),
+  );
+  const invalidCompletion = sqliteRow(
+    database
+      .prepare(
+        `
     SELECT 1
     FROM hub_remote_command_artifact_gc_completions AS completion
     LEFT JOIN hub_remote_command_artifact_purges AS purge
@@ -72,35 +78,40 @@ export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
       ))
     LIMIT 1
   `,
-    )
-    .get();
-  const completedClaim = database
-    .prepare(
-      `
+      )
+      .get(),
+  );
+  const completedClaim = sqliteRow(
+    database
+      .prepare(
+        `
     SELECT 1
     FROM hub_remote_command_artifact_gc_claims AS claim
     JOIN hub_remote_command_artifact_gc_completions AS completion
       ON completion.claim_id = claim.claim_id
     LIMIT 1
   `,
-    )
-    .get();
+      )
+      .get(),
+  );
   if (invalidPurge !== undefined || invalidCompletion !== undefined || completedClaim !== undefined)
     throw new HubCommandError(
       "artifact_integrity_failed",
       "The artifact cleanup source relation is invalid.",
     );
 
-  for (const row of database
-    .prepare(
-      `
+  for (const row of sqliteRows(
+    database
+      .prepare(
+        `
     SELECT artifact_uri, claim_id, kind, worker_id, claimed_at, claimed_at_ms,
       lease_expires_at, lease_expires_at_ms, observed_modified_at,
       observed_modified_at_ms
     FROM hub_remote_command_artifact_gc_claims
   `,
-    )
-    .all()) {
+      )
+      .all(),
+  )) {
     const kind = stringField(row, "kind");
     const observedAt = row.observed_modified_at;
     const observedAtMs = row.observed_modified_at_ms;
@@ -124,9 +135,10 @@ export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
       );
   }
 
-  for (const row of database
-    .prepare(
-      `
+  for (const row of sqliteRows(
+    database
+      .prepare(
+        `
     SELECT claim_id, artifact_uri, worker_id, completed_at, completed_at_ms,
       completion_status
     FROM hub_remote_command_artifact_gc_completions
@@ -135,8 +147,9 @@ export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
       purged_at_ms AS completed_at_ms, 'completed' AS completion_status
     FROM hub_remote_command_artifact_purges
   `,
-    )
-    .all()) {
+      )
+      .all(),
+  )) {
     const workerId = stringField(row, "worker_id");
     const completionStatus = stringField(row, "completion_status");
     if (

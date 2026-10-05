@@ -26,6 +26,7 @@ import {
   type SQLiteRow,
   stringField,
 } from "./row-codec.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 const PROJECT_COLUMNS = `
   project.destination_id, project.project_id, project.registration_id,
@@ -100,9 +101,10 @@ export class HubTraceSQLiteRepository {
   ): HubTracePage<HubProjectTraceSummary, { destinationId: string; projectId: string }> {
     const after = query.after;
     const scope = projectScopeSql(query.scope);
-    const rows = this.database
-      .prepare(
-        `
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT ${PROJECT_COLUMNS},
         project.stored_event_count, project.run_count
       FROM hub_projects AS project
@@ -112,15 +114,16 @@ export class HubTraceSQLiteRepository {
       ORDER BY project.destination_id ASC, project.project_id ASC
       LIMIT ?
     `,
-      )
-      .all(
-        ...scope.parameters,
-        after?.destinationId ?? null,
-        after?.destinationId ?? null,
-        after?.destinationId ?? null,
-        after?.projectId ?? null,
-        query.limit + 1,
-      );
+        )
+        .all(
+          ...scope.parameters,
+          after?.destinationId ?? null,
+          after?.destinationId ?? null,
+          after?.destinationId ?? null,
+          after?.projectId ?? null,
+          query.limit + 1,
+        ),
+    );
     return page(rows.map(projectSummary), query.limit, (item) => ({
       destinationId: item.destinationId,
       projectId: item.projectId,
@@ -132,9 +135,10 @@ export class HubTraceSQLiteRepository {
     if (project === null) return null;
     const afterFirstSeq = query.after?.firstSeq ?? null;
     const afterRunId = query.after?.runId ?? null;
-    const rows = this.database
-      .prepare(
-        `
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT run_id, first_seq, last_seq, event_count, continuous_event_count
       FROM hub_runs
       WHERE destination_id = ? AND project_id = ?
@@ -142,16 +146,17 @@ export class HubTraceSQLiteRepository {
       ORDER BY first_seq ASC, run_id ASC
       LIMIT ?
     `,
-      )
-      .all(
-        query.destinationId,
-        query.projectId,
-        afterFirstSeq,
-        afterFirstSeq,
-        afterFirstSeq,
-        afterRunId,
-        query.limit + 1,
-      );
+        )
+        .all(
+          query.destinationId,
+          query.projectId,
+          afterFirstSeq,
+          afterFirstSeq,
+          afterFirstSeq,
+          afterRunId,
+          query.limit + 1,
+        ),
+    );
     const summaries = rows.map((row) => this.runSummary(query.destinationId, query.projectId, row));
     return {
       project,
@@ -165,21 +170,24 @@ export class HubTraceSQLiteRepository {
   getRun(query: ResolvedHubRunEventQuery): HubRunTrace | null {
     const project = this.getProjectSummary(query.scope, query.destinationId, query.projectId);
     if (project === null) return null;
-    const aggregate = this.database
-      .prepare(
-        `
+    const aggregate = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT run_id, first_seq, last_seq, event_count, continuous_event_count
       FROM hub_runs
       WHERE destination_id = ? AND project_id = ?
         AND run_id = ?
     `,
-      )
-      .get(query.destinationId, query.projectId, query.runId);
+        )
+        .get(query.destinationId, query.projectId, query.runId),
+    );
     if (aggregate === undefined) return null;
     const run = this.runSummary(query.destinationId, query.projectId, aggregate);
-    const rows = this.database
-      .prepare(
-        `
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT seq, event_id, event_hash, previous_hash, event_json
       FROM hub_events
       WHERE destination_id = ? AND project_id = ?
@@ -187,14 +195,15 @@ export class HubTraceSQLiteRepository {
       ORDER BY seq ASC
       LIMIT ?
     `,
-      )
-      .all(
-        query.destinationId,
-        query.projectId,
-        query.runId,
-        query.after?.seq ?? 0,
-        query.limit + 1,
-      );
+        )
+        .all(
+          query.destinationId,
+          query.projectId,
+          query.runId,
+          query.after?.seq ?? 0,
+          query.limit + 1,
+        ),
+    );
     const events: HubRunTraceEvent[] = rows.map((row) => {
       const event = decodeStoredEvent(row);
       return {
@@ -202,17 +211,19 @@ export class HubTraceSQLiteRepository {
         event,
       };
     });
-    const coverageRows = this.database
-      .prepare(
-        `
+    const coverageRows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT seq, event_id, event_hash, previous_hash, event_json
       FROM hub_events
       WHERE destination_id = ? AND project_id = ?
         AND json_extract(event_json, '$.runId') = ?
       ORDER BY seq ASC
     `,
-      )
-      .all(query.destinationId, query.projectId, query.runId);
+        )
+        .all(query.destinationId, query.projectId, query.runId),
+    );
     if (coverageRows.length !== run.eventCount) {
       throw new HubSyncStoreError(
         "integrity_failed",
@@ -233,9 +244,10 @@ export class HubTraceSQLiteRepository {
   getWork(query: ResolvedHubWorkTraceQuery): HubWorkTraceSource | null {
     const project = this.getProjectSummary(query.scope, query.destinationId, query.projectId);
     if (project === null) return null;
-    const rows = this.database
-      .prepare(
-        `
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT seq, event_id, event_hash, previous_hash, event_json
       FROM hub_events
       WHERE destination_id = ? AND project_id = ?
@@ -249,15 +261,16 @@ export class HubTraceSQLiteRepository {
       ORDER BY seq ASC
       LIMIT ?
     `,
-      )
-      .all(
-        query.destinationId,
-        query.projectId,
-        query.destinationId,
-        query.projectId,
-        query.workId,
-        HUB_TRACE_MAX_WORK_EVENTS + 1,
-      );
+        )
+        .all(
+          query.destinationId,
+          query.projectId,
+          query.destinationId,
+          query.projectId,
+          query.workId,
+          HUB_TRACE_MAX_WORK_EVENTS + 1,
+        ),
+    );
     return { project, events: rows.map(decodeStoredEvent) };
   }
 
@@ -267,17 +280,19 @@ export class HubTraceSQLiteRepository {
     projectId: string,
   ): HubProjectTraceSummary | null {
     const resolvedScope = projectScopeSql(scope);
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT ${PROJECT_COLUMNS},
         project.stored_event_count, project.run_count
       FROM hub_projects AS project
       WHERE project.destination_id = ? AND project.project_id = ?
         AND (${resolvedScope.clause})
     `,
-      )
-      .get(destinationId, projectId, ...resolvedScope.parameters);
+        )
+        .get(destinationId, projectId, ...resolvedScope.parameters),
+    );
     return row === undefined ? null : projectSummary(row);
   }
 
@@ -287,17 +302,18 @@ export class HubTraceSQLiteRepository {
     const lastSeq = integerField(row, "last_seq");
     const eventCount = integerField(row, "event_count");
     const continuousEventCount = integerField(row, "continuous_event_count");
-    const boundaryRows = this.database
-      .prepare(
-        `
+    const boundaryRows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT seq, event_id, event_hash, previous_hash, event_json
       FROM hub_events
       WHERE destination_id = ? AND project_id = ? AND seq IN (?, ?)
       ORDER BY seq ASC
     `,
-      )
-      .all(destinationId, projectId, firstSeq, lastSeq)
-      .map(decodeStoredEvent);
+        )
+        .all(destinationId, projectId, firstSeq, lastSeq),
+    ).map(decodeStoredEvent);
     const first = boundaryRows[0];
     const last = boundaryRows.at(-1);
     if (
@@ -311,9 +327,10 @@ export class HubTraceSQLiteRepository {
         "The Hub trace run boundary differs from the source events.",
       );
     }
-    const sessionRows = this.database
-      .prepare(
-        `
+    const sessionRows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT session_id, first_seq
       FROM hub_run_sessions
       WHERE destination_id = ? AND project_id = ?
@@ -321,19 +338,22 @@ export class HubTraceSQLiteRepository {
       ORDER BY first_seq ASC, session_id ASC
       LIMIT ?
     `,
-      )
-      .all(destinationId, projectId, runId, MAX_SUMMARY_SESSION_IDS);
+        )
+        .all(destinationId, projectId, runId, MAX_SUMMARY_SESSION_IDS),
+    );
     const sessionIds = sessionRows.map((session) => stringField(session, "session_id"));
-    const sessionCountRow = this.database
-      .prepare(
-        `
+    const sessionCountRow = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT COUNT(*) AS session_count
       FROM hub_run_sessions
       WHERE destination_id = ? AND project_id = ?
         AND run_id = ?
     `,
-      )
-      .get(destinationId, projectId, runId);
+        )
+        .get(destinationId, projectId, runId),
+    );
     if (sessionCountRow === undefined) {
       throw new HubSyncStoreError(
         "integrity_failed",

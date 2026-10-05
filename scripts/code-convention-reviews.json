@@ -144,14 +144,14 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/migrations.ts",
-      "contentHash": "sha256:4423552a0e2117bc55067ff1ed5863121e10bf484da2984fc92c7a6933b2a74f",
+      "contentHash": "sha256:7fece5b9e49d238b740e1bb90c9b4e3a1e96a5664fb7904f6a5f5a57518ce4aa",
       "responsibility": "Hub synchronization SQLite schema migration",
       "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:54d1b3720cf42fa09f571d496b017315b962b5f55ded904c7382c70ef6e10ee1",
+      "contentHash": "sha256:3fc63b700267152371eb564d5a907f61f67c6efddc68eb1e7266163df93baf24",
       "responsibility": "Hub synchronization SQLite store",
       "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store.",
       "disposition": "cohesive"

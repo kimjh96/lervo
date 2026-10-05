@@ -15,6 +15,7 @@ import type { RemoteCommandPayloadReference, RemoteCommandTarget } from "@lervo/
 import { integerField, stringField, type SQLiteRow } from "./row-codec.js";
 import { HubRemoteCommandSQLiteRepository } from "./remote-command-repository.js";
 import { remoteCommandTimestamp } from "./remote-command-row.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 const UNRESOLVED_PARTIAL_CLEANUP_SQL = `EXISTS (
   SELECT 1 FROM hub_remote_command_artifact_gc_completions AS partial
@@ -116,9 +117,10 @@ export class HubCommandAuthorshipSQLiteRepository {
     target: RemoteCommandTarget;
     idempotencyKey: string;
   }): HubCommandAuthorshipRecord | null {
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT authorship.*, command.envelope_json, command.queued_at, retention.retain_until,
         CASE
           WHEN purge.delivery_id IS NOT NULL THEN 'purged'
@@ -137,8 +139,9 @@ export class HubCommandAuthorshipSQLiteRepository {
       WHERE authorship.destination_id = ? AND authorship.project_id = ?
         AND authorship.idempotency_key = ?
     `,
-      )
-      .get(input.destinationId, input.target.projectId, input.idempotencyKey);
+        )
+        .get(input.destinationId, input.target.projectId, input.idempotencyKey),
+    );
     if (row === undefined) return null;
     const record = parseRecord(row);
     if (record.target.projectIdentityHash !== input.target.projectIdentityHash) {
@@ -181,9 +184,10 @@ export class HubCommandAuthorshipSQLiteRepository {
       )
       .run(input.artifactUri, queuedAtMs);
     if (
-      this.database
-        .prepare(
-          `
+      sqliteRow(
+        this.database
+          .prepare(
+            `
       SELECT 1 FROM hub_remote_command_artifact_gc_claims
       WHERE artifact_uri = ? AND lease_expires_at_ms > ?
       UNION ALL
@@ -197,8 +201,9 @@ export class HubCommandAuthorshipSQLiteRepository {
         )
       LIMIT 1
     `,
-        )
-        .get(input.artifactUri, queuedAtMs, input.artifactUri) !== undefined
+          )
+          .get(input.artifactUri, queuedAtMs, input.artifactUri),
+      ) !== undefined
     ) {
       throw new HubCommandError(
         "artifact_cleanup_conflict",
@@ -260,9 +265,10 @@ export class HubCommandAuthorshipSQLiteRepository {
     requestedAt: string;
   }): { uri: string; reference: RemoteCommandPayloadReference } | null {
     const requestedAtMs = remoteCommandTimestamp(input.requestedAt, "artifact requestedAt");
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT authorship.artifact_uri, authorship.artifact_id,
         authorship.content_hash, authorship.byte_count, authorship.media_type,
         project.identity_hash
@@ -279,14 +285,15 @@ export class HubCommandAuthorshipSQLiteRepository {
           WHERE purge.delivery_id = authorship.delivery_id
         )
     `,
-      )
-      .get(
-        input.destinationId,
-        input.target.projectId,
-        input.artifactId,
-        input.nodeId,
-        requestedAtMs,
-      );
+        )
+        .get(
+          input.destinationId,
+          input.target.projectId,
+          input.artifactId,
+          input.nodeId,
+          requestedAtMs,
+        ),
+    );
     if (
       row === undefined ||
       stringField(row, "identity_hash") !== input.target.projectIdentityHash
@@ -305,9 +312,10 @@ export class HubCommandAuthorshipSQLiteRepository {
   }
 
   auditAll(): void {
-    for (const row of this.database
-      .prepare(
-        `
+    for (const row of sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT authorship.*, command.envelope_json, command.queued_at, retention.retain_until,
         CASE
           WHEN purge.delivery_id IS NOT NULL THEN 'purged'
@@ -325,8 +333,9 @@ export class HubCommandAuthorshipSQLiteRepository {
         ON claim.artifact_uri = authorship.artifact_uri
       ORDER BY authorship.destination_id, authorship.project_id, authorship.idempotency_key
     `,
-      )
-      .all()) {
+        )
+        .all(),
+    )) {
       const record = parseRecord(row);
       const reference = record.envelope.command.action.request;
       if (

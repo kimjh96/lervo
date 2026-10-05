@@ -32,6 +32,7 @@ import {
   parseStoredRemoteCommandEnvelope,
   remoteCommandTimestamp,
 } from "./remote-command-row.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export class HubRemoteCommandSQLiteRepository {
   private readonly query: HubRemoteCommandQuerySQLiteRepository;
@@ -47,14 +48,16 @@ export class HubRemoteCommandSQLiteRepository {
   }): HubRemoteCommandEnqueueResult {
     assertSignedRemoteCommand(input.envelope);
     const command = input.envelope.command;
-    const registration = this.database
-      .prepare(
-        `
+    const registration = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT identity_hash FROM hub_projects
       WHERE destination_id = ? AND project_id = ?
     `,
-      )
-      .get(input.destinationId, command.target.projectId);
+        )
+        .get(input.destinationId, command.target.projectId),
+    );
     if (registration === undefined) {
       throw new HubRemoteCommandStoreError(
         "remote_command_registration_required",
@@ -81,17 +84,19 @@ export class HubRemoteCommandSQLiteRepository {
       destinationId: input.destinationId,
       envelope: input.envelope,
     });
-    const existing = this.database
-      .prepare(
-        `
+    const existing = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT delivery_id, envelope_json, status, queued_at
       FROM hub_remote_commands
       WHERE delivery_id = ? OR (
         destination_id = ? AND project_id = ? AND command_id = ?
       )
     `,
-      )
-      .all(deliveryId, input.destinationId, command.target.projectId, command.commandId);
+        )
+        .all(deliveryId, input.destinationId, command.target.projectId, command.commandId),
+    );
     if (existing.length !== 0) {
       if (
         existing.length !== 1 ||
@@ -154,14 +159,16 @@ export class HubRemoteCommandSQLiteRepository {
     limit: number;
   }): RemoteCommandLease[] {
     const leasedAtMs = remoteCommandTimestamp(input.leasedAt, "leasedAt");
-    const registration = this.database
-      .prepare(
-        `
+    const registration = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT identity_hash FROM hub_projects
       WHERE destination_id = ? AND project_id = ?
     `,
-      )
-      .get(input.destinationId, input.target.projectId);
+        )
+        .get(input.destinationId, input.target.projectId),
+    );
     if (registration === undefined) {
       throw new HubRemoteCommandStoreError(
         "remote_command_registration_required",
@@ -197,9 +204,10 @@ export class HubRemoteCommandSQLiteRepository {
       )
       .run(input.leasedAt, input.destinationId, input.target.projectId, leasedAtMs);
 
-    const rows = this.database
-      .prepare(
-        `
+    const rows = sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT delivery_id, command_id, command_hash, envelope_json, expires_at
       FROM hub_remote_commands
       WHERE destination_id = ? AND project_id = ? AND status = 'pending'
@@ -207,8 +215,9 @@ export class HubRemoteCommandSQLiteRepository {
       ORDER BY queued_at_ms ASC, delivery_id ASC
       LIMIT ?
     `,
-      )
-      .all(input.destinationId, input.target.projectId, leasedAtMs, input.limit);
+        )
+        .all(input.destinationId, input.target.projectId, leasedAtMs, input.limit),
+    );
     return rows.map((row) => {
       const envelope = parseStoredRemoteCommandEnvelope(row);
       const leaseId = `rcl_${randomBytes(32).toString("base64url")}`;
@@ -260,9 +269,10 @@ export class HubRemoteCommandSQLiteRepository {
     confirmedAt: string;
   }): RemoteCommandDeliveryConfirmation {
     const acknowledgementHash = calculateRemoteCommandAcknowledgementHash(input.acknowledgement);
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT command.delivery_id, command.destination_id, command.project_id,
         command.command_id, command.command_hash, command.envelope_json,
         command.status, command.lease_id, command.lease_owner, command.leased_at,
@@ -274,8 +284,9 @@ export class HubRemoteCommandSQLiteRepository {
         AND project.project_id = command.project_id
       WHERE command.delivery_id = ?
     `,
-      )
-      .get(input.acknowledgement.deliveryId);
+        )
+        .get(input.acknowledgement.deliveryId),
+    );
     if (row === undefined) {
       throw new HubRemoteCommandStoreError(
         "remote_command_ack_invalid",
