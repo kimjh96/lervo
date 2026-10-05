@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d025fe170c4d36d1ca95d754
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ba96df25aab09282a3832445
+outputLanguage: en
+outputs:
+  - byteCount: 1064
+    contentHash: sha256:ad5a645fd55ef91b68c56801a32e05f9e2de8cde9362f819d956df056e9738ac
+    path: docs/specifications/coordination/hub-and-node/capability-packages.md
+    userRegionHash: sha256:ad5a645fd55ef91b68c56801a32e05f9e2de8cde9362f819d956df056e9738ac
+profile: specification_document
+recordId: knormdoc_91926651a2db054b2b78be2e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f1493d815c7832797801e3cc1e642f01d43287f0e6b804b0047336576563edba
+sourcePath: docs/specifications/coordination/hub-and-node/capability-packages.md
+sourceUnitVersionIds:
+  - uv_08ef87868a37688c07a25c4b
+  - uv_3a0f1e56c6188da5c02ffa61
+  - uv_c9e4ed566c808913431b01fd

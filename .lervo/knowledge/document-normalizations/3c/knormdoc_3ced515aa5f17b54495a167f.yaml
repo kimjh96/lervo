@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d025fe170c4d36d1ca95d754
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4b9de62a62bc134d6835c02d
+outputLanguage: en
+outputs:
+  - byteCount: 3709
+    contentHash: sha256:9cb099b63f10ed3dce1ec06352f70ce27a280dcd61fcd38846aa3441193f48f2
+    path: docs/specifications/coordination/node-change-driven-work/repository-replicas/divergence-and-merge.md
+    userRegionHash: sha256:9cb099b63f10ed3dce1ec06352f70ce27a280dcd61fcd38846aa3441193f48f2
+profile: specification_document
+recordId: knormdoc_3ced515aa5f17b54495a167f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5925d04cede750f5ddcac08cddeb28b9b7c0d37ee5d2d81d24e8014045b0bfc5
+sourcePath: docs/specifications/coordination/node-change-driven-work/repository-replicas/divergence-and-merge.md
+sourceUnitVersionIds:
+  - uv_31923e9b535955b9fc7ddb94
+  - uv_7dba7cbaed4610726547a6c0
+  - uv_c31789ded18b7c963e8446bc
