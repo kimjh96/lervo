@@ -4,14 +4,14 @@ Formal deliberation is a bounded decision workflow, not a synonym for multi-agen
 
 ## Applicability and responsibility
 
-| Situation                                                                                                                                                    | Default path                                                                                                                                                                                                      |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Ordinary question, progress update, or role-relevant discussion                                                                                              | Multi-party conversation                                                                                                                                                                                          |
-| Routine code or document verification                                                                                                                        | Owning work and verification contracts                                                                                                                                                                            |
-| Independent implementation acceptance                                                                                                                        | Outcome supervision or assigned review                                                                                                                                                                            |
-| Explicit independent challenge, competing designs, consensus, or high-assurance decision                                                                     | Formal deliberation                                                                                                                                                                                               |
-| Ambiguous language or agent suggestion to debate                                                                                                             | Recommend or clarify; do not start                                                                                                                                                                                |
-| Decision point detected by policy (ADR authoring, core change, design fork, agent disagreement, repeated verification failure, consequential proxy decision) | Tiered deliberation under [ADR-0460](../../../decisions/coordination/deliberation/0460-trigger-tiered-deliberation-at-decision-points.md) (proposed): Tier 0 cross-check by default, escalating by value for cost |
+| Situation | Default path |
+| --- | --- |
+| Ordinary question, progress update, or role-relevant discussion | Multi-party conversation |
+| Routine code or document verification | Owning work and verification contracts |
+| Independent implementation acceptance | Outcome supervision or assigned review |
+| Explicit independent challenge, competing designs, consensus, or high-assurance decision | Formal deliberation |
+| Ambiguous language or agent suggestion to debate | Recommend or clarify; do not start |
+| Policy-detected decision point: ADR authoring, core change, design fork, agent disagreement, repeated verification failure, or consequential proxy decision | Tiered deliberation under [ADR-0460](../../../decisions/coordination/deliberation/0460-trigger-tiered-deliberation-at-decision-points.md) (proposed): Tier 0 cross-check by default, escalating by value for cost |
 
 The application composes existing deliberation control, queue, runtime, artifact, verification, and event contracts. It owns origin correlation and product queries, but cannot decide convergence, weaken policy, or promote a decision.
 

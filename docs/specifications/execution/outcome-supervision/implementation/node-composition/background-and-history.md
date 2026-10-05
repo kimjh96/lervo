@@ -6,7 +6,7 @@
 
 ## Delivery boundary
 
-The application can use the concrete [automatic topology materializer](../automatic-topology.md) and [workforce and task sources](../workforce-planning.md). The following remain separate delivery work:
+The application can use the concrete [automatic topology materializer](../automatic-topology.md) and [workforce and task sources](../workforce-planning.md). Separate delivery work remains:
 
 - Production startup.
 - Complete task-derived readiness and planning.
