@@ -18,7 +18,11 @@ jobs:
   reconcile:
     name: Reconcile release PR or exact tag
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # `pnpm check` runs the full Vitest suite, which alone took 46.5 minutes in run 37199673882
+    # and was still running after 49 minutes in run 37243985571 on the hosted runner. Install,
+    # quality, typecheck, and build steps take about ten more minutes before it, and the smoke
+    # checks and knowledge lint run after it, so 60 minutes cannot cover a passing run.
+    timeout-minutes: 120
     steps:
       - name: Check out exact main revision
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

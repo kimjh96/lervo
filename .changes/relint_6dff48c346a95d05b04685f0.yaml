@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6dff48c346a95d05b04685f0"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Release supervision process locks on Node 22.13, which lacks the SQLite open and transaction accessors."
