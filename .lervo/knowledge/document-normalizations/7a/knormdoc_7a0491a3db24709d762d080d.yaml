@@ -1,0 +1,47 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d22f8f96a9aec78ae2356302
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1f815127a00e4d7868459822
+outputLanguage: en
+outputs:
+  - byteCount: 1296
+    contentHash: sha256:683fa1d5925e45b33b627c46bb6166847c7d7c2b319603ff0d6517a0a894d0d5
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/resident-cycle.md
+    userRegionHash: sha256:683fa1d5925e45b33b627c46bb6166847c7d7c2b319603ff0d6517a0a894d0d5
+  - byteCount: 724
+    contentHash: sha256:0bf8b0671bffadfb5fe8ba3a376edbde184b5b6e9fce59a3cf1e08fc51081b34
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/resident-cycle/admission.md
+    userRegionHash: sha256:0bf8b0671bffadfb5fe8ba3a376edbde184b5b6e9fce59a3cf1e08fc51081b34
+  - byteCount: 4415
+    contentHash: sha256:7963fbbe6cd80a365ef2d9c8ea6efd72f9e2a496316da3c94689e339b46f4f98
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/resident-cycle/fence-and-scheduling.md
+    userRegionHash: sha256:7963fbbe6cd80a365ef2d9c8ea6efd72f9e2a496316da3c94689e339b46f4f98
+  - byteCount: 1945
+    contentHash: sha256:52dfe228a91d74792152b710515c1e4bea04a3693f1772b067ea69785c5d3f69
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/resident-cycle/observation-and-cache.md
+    userRegionHash: sha256:52dfe228a91d74792152b710515c1e4bea04a3693f1772b067ea69785c5d3f69
+profile: specification_document
+recordId: knormdoc_7a0491a3db24709d762d080d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:307176779b5a7ecd73a7da514e11e35915549dd61b995f4de70b1e7bfcfd2271
+sourcePath: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/resident-cycle.md
+sourceUnitVersionIds:
+  - uv_0b85e3773cdb2c5b8774fcbe
+  - uv_43b7a0959bc2fcc083d3ed9e
+  - uv_43f88ef7025e4449ce50a396
+  - uv_5cc70c13b7813694049675cd
+  - uv_671ad91d5555a1b153078020
+  - uv_8a361d4391376dd9188d4377
+  - uv_a3f1dfb25719d502ba32621e
+  - uv_e16f19f770a96aa221408fd1
+  - uv_f01874e3e695eb44c58ed894
+  - uv_f1df41dcc1a81cabb1c1e690

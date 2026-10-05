@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d22f8f96a9aec78ae2356302
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e4f4af6798429301558a6d9c
+outputLanguage: en
+outputs:
+  - byteCount: 2184
+    contentHash: sha256:27b6804c0dc48fb7b6b71c20d648144f60e67cf4665fed69e20b131cf18961a1
+    path: docs/specs/background-knowledge-convergence/runtime/events-and-status/canonical-events.md
+    userRegionHash: sha256:27b6804c0dc48fb7b6b71c20d648144f60e67cf4665fed69e20b131cf18961a1
+profile: specification_document
+recordId: knormdoc_597de7ff4723bc8ec320668e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:fed7331df2dfc4a8f8a16c8052b9757b90094688854422647b8430fab6b31c31
+sourcePath: docs/specs/background-knowledge-convergence/runtime/events-and-status/canonical-events.md
+sourceUnitVersionIds:
+  - uv_62d3a0b0ac0f94fa02f2651e
+  - uv_873748fe5633fb18e2ab5686
+  - uv_a6fe4a70d0a1316ca2d14646
+  - uv_cbe4a77a91ef208b491ee364
+  - uv_d418b19e23a858e095c259ba
+  - uv_eb5a37c5c39f956f98d39287

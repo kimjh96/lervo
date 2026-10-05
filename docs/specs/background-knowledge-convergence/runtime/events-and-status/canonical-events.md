@@ -1,6 +1,6 @@
 # Canonical events
 
-Version 4 adds three events using the existing canonical envelope. Required nullable fields must appear as `null`; never omit them.
+Version 4 adds three events using the existing canonical envelope. Required nullable fields must appear as `null`, never be omitted.
 
 ## `repository.knowledge.baseline.requested`
 
@@ -24,7 +24,7 @@ Records verified `current` or explicit `superseded` with a successor. Neither re
 
 Required payload: `repositoryIdentityHash`, `holderHostHash`, `previousHolderHostHash`, `observerHostHash`, `generation`, `mode`, `reason`, `occurredAt`.
 
-Records, in the observing host's own store, a change of the convergence owner it observes or the end of its own holding ([ADR-0466](../../../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md)). Hosts appear only as hashes. It grants no commit authority; the private ownership fence does.
+Records, in the observing host's own store, a change of its observed convergence owner or the end of its own holding ([ADR-0466](../../../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md)). Hosts appear only as hashes. The event grants no commit authority; the private ownership fence does.
 
 ## Assignment provenance
 
