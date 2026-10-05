@@ -61,6 +61,11 @@ import {
   documentFreshnessCandidateVerifiedEventPayloadSchema,
   documentFreshnessCycleCompletedEventPayloadSchema,
 } from "./document-freshness-event.js";
+import {
+  conversationKnowledgeCandidateRecordedEventPayloadSchema,
+  knowledgeInstructionCandidateCapturedEventPayloadSchema,
+  knowledgeInstructionCaptureCycleCompletedEventPayloadSchema,
+} from "./instruction-capture-event.js";
 import { conversationInboundEventSchema } from "./conversation-event.js";
 import {
   conversationDeliveryReceiptSchema,
@@ -414,6 +419,15 @@ const validators = {
   ),
   documentFreshnessCycleCompletedEventPayload: ajv.compile(
     documentFreshnessCycleCompletedEventPayloadSchema,
+  ),
+  knowledgeInstructionCandidateCapturedEventPayload: ajv.compile(
+    knowledgeInstructionCandidateCapturedEventPayloadSchema,
+  ),
+  conversationKnowledgeCandidateRecordedEventPayload: ajv.compile(
+    conversationKnowledgeCandidateRecordedEventPayloadSchema,
+  ),
+  knowledgeInstructionCaptureCycleCompletedEventPayload: ajv.compile(
+    knowledgeInstructionCaptureCycleCompletedEventPayloadSchema,
   ),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
   productActivityPage: ajv.compile(productActivityPageSchema),

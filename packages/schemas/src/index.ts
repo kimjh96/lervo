@@ -20,6 +20,7 @@ export * from "./conversation-repository-knowledge-event.js";
 export * from "./repository-change-event.js";
 export * from "./repository-replica-event.js";
 export * from "./document-freshness-event.js";
+export * from "./instruction-capture-event.js";
 export * from "./deliberation-artifact.js";
 export * from "./deliberation-event.js";
 export * from "./deliberation-outcome.js";
