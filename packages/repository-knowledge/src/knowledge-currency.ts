@@ -47,6 +47,8 @@ export async function inspectRepositoryKnowledgeCurrency(
   const lint = await lintRepositoryKnowledge(repositoryRoot, {
     ...shared,
     preparedNormalization: normalization,
+    // The background knowledge pass owns the rebuildable document staleness projection.
+    documentStaleness: "evaluate_and_record",
   });
   const reasons: RepositoryKnowledgeCurrencyReason[] = [];
   if (bootstrap.status !== "not_applicable") reasons.push("instruction_bootstrap_pending");

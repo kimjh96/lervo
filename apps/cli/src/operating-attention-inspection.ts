@@ -32,7 +32,10 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
         () => ({ coverage: "unavailable" as const, candidates: [] }),
       ),
       inspectTerminalLifecycle(input.repositoryRoot).then(
-        (inspection) => ({ coverage: "complete" as const, issues: inspection.issues }),
+        (inspection) => ({
+          coverage: "complete" as const,
+          issues: [...inspection.issues, ...(inspection.knowledgeAdvisories ?? [])],
+        }),
         () => ({ coverage: "unavailable" as const, issues: [] }),
       ),
       readRepositoryReplicaDivergence(input.repositoryRoot),

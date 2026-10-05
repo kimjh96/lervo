@@ -9,7 +9,8 @@ export type RepositoryPublicationGroup =
   | "architecture"
   | "specifications"
   | "decisions"
-  | "documentation";
+  | "documentation"
+  | "historical";
 
 export interface RepositoryPublicationMessages {
   repositoryKnowledge: string;
@@ -41,6 +42,7 @@ export interface RepositoryPublicationMessages {
   }): string;
   itemCount(count: number, singular: string, plural?: string): string;
   groups: Record<RepositoryPublicationGroup, string>;
+  historicalLabel: string;
 }
 
 const english: RepositoryPublicationMessages = {
@@ -97,7 +99,9 @@ const english: RepositoryPublicationMessages = {
     specifications: "Specifications and reference",
     decisions: "Decisions",
     documentation: "Documentation",
+    historical: "Historical documents (not current design)",
   },
+  historicalLabel: "historical, not current design",
 };
 
 export function repositoryPublicationMessages(language: string): RepositoryPublicationMessages {

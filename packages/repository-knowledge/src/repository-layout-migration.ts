@@ -5,9 +5,8 @@ import { basename, posix, resolve } from "node:path";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { parse, stringify } from "yaml";
 import {
-  decisionTaxonomyRequiresUpgrade,
+  conditionalDefaultDocumentRolePath,
   loadDecisionTaxonomy,
-  serializeDecisionTaxonomy,
   type DecisionTaxonomy,
 } from "@lervo/project";
 
@@ -16,6 +15,7 @@ import {
   recordedGeneratedKnowledgePaths,
   scanConfiguredRepositoryKnowledge,
 } from "./compiler.js";
+import { planDecisionTaxonomyRefresh } from "./decision-taxonomy-refresh.js";
 import { createKnowledgeInstructionBridgePlan } from "./instruction-bridge.js";
 import {
   applyDurableKnowledgeOperations,
@@ -235,8 +235,10 @@ function classifiedRootDestination(
     !/\.md$/iu.test(path)
   )
     return null;
+  // An unseeded template still places a recognized document; the plan then binds its role.
   const rolePath = (roleId: string): string | null =>
-    taxonomy.documentPolicy.roles.find((role) => role.roleId === roleId)?.path ?? null;
+    taxonomy.documentPolicy.roles.find((role) => role.roleId === roleId)?.path ??
+    conditionalDefaultDocumentRolePath(roleId);
   const stem = basename(path, ".md").toUpperCase();
   const heading = /^#\s+(.+)$/mu.exec(content)?.[1]?.trim().toLowerCase() ?? "";
   const visionPath = rolePath("product_vision");
@@ -1130,22 +1132,13 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     : [];
   const userUpdates = [...referenceUserUpdates, ...publicationIgnoreUserUpdates];
   const normalizationOwnershipOperations = await normalizationOwnershipUpgradeOperations(root);
-  const taxonomyUpgradeOperation: KnowledgeFileOperation[] = decisionTaxonomyRequiresUpgrade(
-    parse(taxonomySource),
-  )
-    ? [
-        {
-          path: ".lervo/knowledge/document-layout.yaml",
-          action: "update",
-          ownership: "lervo_generated",
-          mediaType: "application/yaml",
-          content: serializeDecisionTaxonomy(taxonomy),
-          expectedCurrentHash: sha256(taxonomySource),
-          desiredHash: sha256(serializeDecisionTaxonomy(taxonomy)),
-          reason: "upgrade_document_policy",
-        },
-      ]
-    : [];
+  const scannedPaths = new Set(scan.sources.map((source) => source.path));
+  const taxonomyUpgradeOperation = planDecisionTaxonomyRefresh({
+    taxonomySource,
+    taxonomy,
+    pathExists: (path) => scannedPaths.has(path),
+    placedPaths: new Set(moves.map((move) => move.toPath)),
+  });
   const structural =
     publicationIgnoreOperations.length > 0 ||
     (moves.length === 0 &&

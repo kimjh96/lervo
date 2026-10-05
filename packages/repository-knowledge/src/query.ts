@@ -1,7 +1,12 @@
 import { resolve } from "node:path";
 
-import { loadProjectManifest } from "@lervo/project";
+import { loadDecisionTaxonomy, loadProjectManifest } from "@lervo/project";
 import type { DocumentRegistry } from "@lervo/schemas";
+import {
+  archiveScopes,
+  historicalDocumentMarker,
+  queryTargetsHistory,
+} from "./historical-documents.js";
 import { analyzeRepositoryKnowledgeImpact } from "./impact.js";
 import { assertNoKnowledgeMaterializationTransaction } from "./durable-apply.js";
 import { sha256 } from "./integrity.js";
@@ -49,6 +54,7 @@ interface PreparedKnowledgeEntry {
   pathTerms: ReadonlySet<string>;
   bodyTerms: ReadonlySet<string>;
   searchText: string;
+  historical: boolean;
 }
 
 interface PreparedKnowledgeQueryData {
@@ -103,6 +109,7 @@ export class RepositoryKnowledgeQueryIndex {
       values.push(stored.value);
       claimsByConcept.set(stored.value.conceptId, values);
     }
+    const archiveScopePaths = archiveScopes(await loadDecisionTaxonomy(root).catch(() => null));
     const storedConcepts = await loadStoredConcepts(root);
     const storedRelations = await loadStoredRelations(root);
     const entries: PreparedKnowledgeEntry[] = [];
@@ -158,6 +165,13 @@ export class RepositoryKnowledgeQueryIndex {
         pathTerms: textTerms(concept.path),
         bodyTerms: textTerms(searchText),
         searchText,
+        historical:
+          concept.ownership === "user" &&
+          historicalDocumentMarker({
+            path: concept.path,
+            content,
+            archiveScopes: archiveScopePaths,
+          }) !== null,
       });
     }
     const conceptSidecarSetHash = sha256(
@@ -186,7 +200,12 @@ export class RepositoryKnowledgeQueryIndex {
         title: entry.hit.title,
         path: entry.hit.path,
         contentHash: entry.hit.contentHash,
-        labels: [entry.hit.ownership, entry.hit.assurance, entry.hit.freshness],
+        labels: [
+          entry.hit.ownership,
+          entry.hit.assurance,
+          entry.hit.freshness,
+          ...(entry.historical ? ["historical"] : []),
+        ],
         text: entry.searchText,
       })),
     );
@@ -209,8 +228,15 @@ export class RepositoryKnowledgeQueryIndex {
   }): KnowledgeQueryResult {
     const rankedHits: KnowledgeQueryHit[] = [];
     const queryTerms = terms(input.query);
+    // Historical documents are excluded from default retrieval and labelled when history is asked.
+    const includeHistorical = queryTargetsHistory(input.query);
+    const eligible = (entry: PreparedKnowledgeEntry): boolean =>
+      includeHistorical || !entry.historical;
+    const historicalLabel = (entry: PreparedKnowledgeEntry) =>
+      entry.historical ? { historical: true as const } : {};
     const toHit = (entry: PreparedKnowledgeEntry, score: number): KnowledgeQueryHit => ({
       ...entry.hit,
+      ...historicalLabel(entry),
       score,
       matchedTerms: queryTerms.filter(
         (term) =>
@@ -221,9 +247,10 @@ export class RepositoryKnowledgeQueryIndex {
     });
     if (this.data.ranker !== undefined) {
       const byConcept = new Map(this.data.entries.map((entry) => [entry.hit.conceptId, entry]));
+      const withheld = this.data.entries.filter((entry) => !eligible(entry)).length;
       const ranked = this.data.ranker.rank({
         query: input.query,
-        limit: input.limit ?? 20,
+        limit: (input.limit ?? 20) + withheld,
       });
       const observed = new Set<string>();
       for (const item of ranked) {
@@ -237,10 +264,12 @@ export class RepositoryKnowledgeQueryIndex {
           throw new TypeError("The repository knowledge ranker returned an invalid result.");
         }
         observed.add(item.conceptId);
-        rankedHits.push(toHit(entry, item.score));
+        if (eligible(entry) && rankedHits.length < (input.limit ?? 20))
+          rankedHits.push(toHit(entry, item.score));
       }
     } else {
       for (const entry of this.data.entries) {
+        if (!eligible(entry)) continue;
         const matchedTerms = queryTerms.filter(
           (term) =>
             hasLexicalTerm(entry.titleTerms, term) ||
@@ -256,7 +285,7 @@ export class RepositoryKnowledgeQueryIndex {
             (hasLexicalTerm(entry.bodyTerms, term) ? 1 : 0),
           0,
         );
-        rankedHits.push({ ...entry.hit, score, matchedTerms });
+        rankedHits.push({ ...entry.hit, ...historicalLabel(entry), score, matchedTerms });
       }
     }
     const selectedHits =

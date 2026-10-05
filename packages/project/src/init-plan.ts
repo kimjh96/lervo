@@ -4,10 +4,19 @@ import type { ProjectManifest } from "@lervo/schemas";
 import { parse } from "yaml";
 
 import { createDefaultManifest, parseAndValidateYaml, serializeYaml } from "./config.js";
-import { serializeDecisionTaxonomy, validateDecisionTaxonomy } from "./decision-taxonomy.js";
+import {
+  defaultDecisionTaxonomy,
+  type DecisionTaxonomy,
+  serializeDecisionTaxonomy,
+  validateDecisionTaxonomy,
+} from "./decision-taxonomy.js";
 import { planDocumentStorage } from "./document-init-plan.js";
 import { contentHash, readEntry } from "./filesystem.js";
 import { lervoRelativePaths, previousBrandRelativePaths } from "./layout.js";
+import {
+  documentRoleCandidatePaths,
+  seedRepositoryDocumentRoles,
+} from "./repository-document-role-seeding.js";
 import {
   type CreateInitPlanOptions,
   type InitFileOperation,
@@ -77,6 +86,22 @@ function validateDecisionTaxonomyContent(content: string): void {
     );
   }
   validateDecisionTaxonomy(value);
+}
+
+/** Seeds Lervo's product-document role templates only where the repository already has them. */
+async function seededDecisionTaxonomy(root: string): Promise<DecisionTaxonomy> {
+  const policy = defaultDecisionTaxonomy.documentPolicy;
+  const present = new Set<string>();
+  for (const path of policy.roles.flatMap(documentRoleCandidatePaths)) {
+    if ((await readEntry(resolve(root, path))).kind === "file") present.add(path);
+  }
+  return {
+    ...defaultDecisionTaxonomy,
+    documentPolicy: {
+      ...policy,
+      roles: seedRepositoryDocumentRoles(policy.roles, (path) => present.has(path)),
+    },
+  };
 }
 
 async function planDirectory(root: string, path: string): Promise<InitOperation> {
@@ -282,7 +307,7 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
     await planManagedFile({
       root,
       path: lervoRelativePaths.knowledgeDocumentLayout,
-      desiredContent: serializeDecisionTaxonomy(),
+      desiredContent: serializeDecisionTaxonomy(await seededDecisionTaxonomy(root)),
       validateExisting: validateDecisionTaxonomyContent,
     }),
     ...(await planDocumentStorage(root)),

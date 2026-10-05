@@ -1,7 +1,7 @@
 # Repository Knowledge Compilation Specification
 
 Status: `active`
-As of: 2026-08-26
+As of: 2026-10-05
 
 ## Purpose and contract
 
@@ -12,6 +12,7 @@ The compilation contract comprises:
 - [Sources, policy, and structural publication](repository-knowledge-compilation/structural-publication.md).
 - [Semantic compilation, review, and materialization](repository-knowledge-compilation/semantic-review.md).
 - [Exchange, failures, and acceptance](repository-knowledge-compilation/validation-and-exchange.md).
+- [Document drift and historical documents](repository-knowledge-compilation/document-drift.md).
 
 ## Related specifications
 

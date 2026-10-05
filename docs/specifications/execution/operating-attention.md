@@ -24,6 +24,8 @@ The projection includes pending workstream decisions and approvals, workstream b
 
 When the current workstream is stale under [ADR-0462](../../decisions/execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md), every workstream item has `state: "stale"`, `blocking: false`, `requiresUserAction: false`, owner `agent`, and an instruction to re-verify against the repository instead of presenting the item as current. A snapshot is stale when its update time is older than 48 hours, its recorded HEAD is more than 20 commits behind or not an ancestor of the current HEAD, or its update time is in the future. The optional `workstream` section of `.lervo/knowledge/policy.yaml` configures both thresholds. Candidate items expose outcome kind, proposed target paths, and whether proposed content exists, but never the summary or proposed Markdown body. Promoted and rejected candidates are terminal and excluded. Items are deduplicated by stable item ID, ordered with user-authority and blocking items first, and limited to 256 returned records. Explicit total and omitted counts prevent failure or an implication of complete coverage.
 
+Document drift warnings from `lervo knowledge lint` appear as knowledge-lifecycle items, as defined in [ADR-0464](../../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md). There are at most four, plus one overflow item. Each is agent-owned, non-blocking, and does not require user action. Their detail holds only relative paths and reason names. They are kept separate from lifecycle gates, so they never change terminal lifecycle status.
+
 `unavailable` coverage is not an empty success and keeps aggregate status at `action_required`, even when no item could be read. A missing workstream is reported as missing but does not invent a blocker, because a repository may legitimately have no current continuation.
 
 ## Direct terminal context
@@ -51,6 +53,7 @@ Acceptance requires:
 
 - [ADR-0361](../../decisions/execution/applications/0361-project-operating-attention-without-new-authority.md)
 - [ADR-0462](../../decisions/execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md)
+- [ADR-0464](../../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md)
 - [Product-host protocol](product-host-protocol.md)
 - [Repository knowledge lifecycle convergence](../../specs/repository-knowledge-lifecycle-convergence.md)
 - [Product outcome convergence](../../roadmap/product-outcome-convergence.md)

@@ -1,7 +1,7 @@
 # Repository knowledge query
 
 Status: `active`
-As of: 2026-09-16
+As of: 2026-10-05
 
 ## Scope
 
@@ -22,6 +22,8 @@ The compatibility exact-term floor uses no language-specific keyword, alias, syn
 Interactive repository-context preparation, CLI knowledge query, and product search admit the newest 4,096 privacy-valid execution events plus the independently bounded verification corpus. They validate the complete event chain before projecting that window. Older events remain canonical in the event store and available to full lifecycle compilation; execution-history growth alone must not make interactive queries exceed the repository file-count budget.
 
 Ranked results expose the applied `{ id, version }` engine and `adapterBuildId`. This metadata contains no query text, source bytes, credential, provider identity, or personal data. Missing metadata means a compatibility caller omitted the ranker. Invalid, duplicate, unknown, non-positive, or unsafe-score results fail closed. A fuzzy engine hit may have no legacy literal `matchedTerms`; that list reports literal overlap only and does not explain the engine's ranking.
+
+Historical documents, as defined in [ADR-0464](../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md), are left out of default results on both the compatibility and ranker paths. The ranker receives a `historical` label and is asked for extra candidates so the result limit still holds. A query that names history as a whole word (`archive`, `archived`, `historical`, `history`, `legacy`, `superseded`, `obsolete`, or `deprecated`) includes those documents, and each such hit carries `historical: true`.
 
 Query results are `recommended`. Ranking and cache evidence do not prove selection, loading, injection, reference, or use.
 

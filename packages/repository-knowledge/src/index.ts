@@ -60,6 +60,19 @@ export {
   repositoryPathMatchesPatterns,
 } from "./knowledge-intake-policy.js";
 export * from "./lint-query.js";
+export {
+  documentDriftAttentionCodes,
+  documentDriftAttentionIssues,
+  type DocumentDriftAttentionIssue,
+} from "./document-drift-attention.js";
+export type {
+  DocumentStalenessFinding,
+  DocumentStalenessReport,
+} from "./document-staleness-evaluation.js";
+export {
+  documentStalenessStatePath,
+  readRecordedDocumentStalenessReport,
+} from "./document-staleness-state.js";
 export * from "./markdown-split.js";
 export * from "./policy.js";
 export * from "./projection-ignore.js";

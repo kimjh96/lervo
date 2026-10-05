@@ -429,16 +429,6 @@ documentPolicy:
       legacyAliases:
         - EXECUTION_SPEC.md
         - EXECUTION_SPECIFICATION.md
-    - roleId: delivery_roadmap
-      scopePath: .
-      path: docs/roadmap/index.md
-      cardinality: one
-      lifecycleOwner: user
-      relocation: reviewed_move
-      rewritePolicy: reviewed_exact
-      required: false
-      legacyAliases:
-        - ROADMAP.md
     - roleId: continuation_source
       scopePath: .
       path: .lervo/state/workstreams/current.json

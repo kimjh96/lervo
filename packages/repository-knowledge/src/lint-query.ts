@@ -10,6 +10,7 @@ import { analyzeRepositoryKnowledgeImpact } from "./impact.js";
 import { assertNoKnowledgeMaterializationTransaction } from "./durable-apply.js";
 import { evaluateCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { inspectRepositoryDocumentRewriters } from "./document-rewriter-adapters.js";
+import { lintDocumentDrift, type DocumentStalenessLintMode } from "./document-drift-lint.js";
 import { loadRepositoryKnowledgePolicy } from "./policy.js";
 import { repositoryKnowledgePublicationSnapshotId } from "./publication-snapshot.js";
 import {
@@ -317,6 +318,8 @@ export async function lintRepositoryKnowledge(
   options: {
     allowTransactionPlanId?: string;
     preparedNormalization?: DocumentNormalizationLifecycleInspection;
+    /** Background passes record the staleness projection; foreground lint only reads it. */
+    documentStaleness?: DocumentStalenessLintMode;
   } & RepositoryKnowledgeScanOptions &
     RepositoryKnowledgePreparedScanOptions = {},
 ): Promise<KnowledgeLintResult> {
@@ -513,6 +516,20 @@ export async function lintRepositoryKnowledge(
       }
     }
   }
+  const drift = await lintDocumentDrift({
+    root,
+    scan,
+    policy,
+    generatedPaths: generated,
+    taxonomy: await loadDecisionTaxonomy(root).catch(() => null),
+    normalizationRecords: normalization.records,
+    // Transaction-bound stage checks compare errors only; staleness reads committed history.
+    staleness:
+      options.allowTransactionPlanId !== undefined
+        ? "skip"
+        : (options.documentStaleness ?? "evaluate"),
+  });
+  issues.push(...drift.issues);
   const currentUnitVersions = new Set(scan.units.map((unit) => unit.unitVersionId));
   const concepts = await loadStoredConcepts(root);
   const claims = await loadStoredClaims(root);
@@ -652,5 +669,8 @@ export async function lintRepositoryKnowledge(
     valid: issues.every((issue) => issue.severity !== "error"),
     checkedConcepts: concepts.filter((item) => item.value !== null).length,
     issues,
+    ...(drift.documentStaleness === undefined
+      ? {}
+      : { documentStaleness: drift.documentStaleness }),
   };
 }

@@ -78,6 +78,8 @@ export interface TerminalLifecycleInspection {
   status: "current" | "action_required";
   repositoryRoot: string;
   issues: Array<{ code: string; command: string; detail?: string }>;
+  /** Agent-owned document drift attention (ADR-0464); excluded from `status`. */
+  knowledgeAdvisories?: Array<{ code: string; command: string; detail?: string }>;
   activation: TerminalActivationReceipt[];
   runtimeActivation: TerminalRuntimeActivation;
   activationReadiness: TerminalActivationReadiness;

@@ -1,4 +1,7 @@
-import { documentNormalizationProcedure } from "@lervo/repository-knowledge";
+import {
+  documentDriftAttentionIssues,
+  documentNormalizationProcedure,
+} from "@lervo/repository-knowledge";
 import {
   createKnowledgeInstructionBootstrapPlan,
   createKnowledgeInstructionBridgePlan,
@@ -16,11 +19,15 @@ import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapsho
 
 import type { TerminalLifecycleInspection } from "./terminal-hook-contract.js";
 import {
-  readTerminalKnowledgeLifecycleCache,
+  readTerminalKnowledgeLifecycleCacheEntry,
   writeTerminalKnowledgeLifecycleCache,
+  type TerminalKnowledgeLifecycleCacheEntry,
 } from "./terminal-knowledge-lifecycle-cache.js";
 
 type LifecycleIssue = TerminalLifecycleInspection["issues"][number];
+
+/** Few enough that drift never crowds lifecycle gates out of the twelve-item prompt context. */
+const TERMINAL_DRIFT_ATTENTION_ITEMS = 4;
 
 const TRANSIENT_INSPECTION_FAILURES = new Set([
   "instruction_canonical_bootstrap_failed",
@@ -165,8 +172,9 @@ async function inspectValidationLifecycle(input: {
   root: string;
   supplementalSources: RepositorySupplementalSource[];
   preparedScan: RepositoryKnowledgeScan | undefined;
-}): Promise<LifecycleIssue[]> {
+}): Promise<TerminalKnowledgeLifecycleCacheEntry> {
   const lintIssues: LifecycleIssue[] = [];
+  let advisories: LifecycleIssue[] = [];
   let normalization: Awaited<ReturnType<typeof inspectConfiguredDocumentNormalization>> | undefined;
   let normalizationError: unknown;
   try {
@@ -185,6 +193,8 @@ async function inspectValidationLifecycle(input: {
       ...sharedScan(input.preparedScan),
       ...(normalization === undefined ? {} : { preparedNormalization: normalization }),
     });
+    // Drift warnings are agent-owned attention, never lifecycle gates (ADR-0464).
+    advisories = documentDriftAttentionIssues(lint, TERMINAL_DRIFT_ATTENTION_ITEMS);
     if (!lint.valid) {
       lintIssues.push({
         code: "repository_knowledge_lint_failed",
@@ -219,16 +229,26 @@ async function inspectValidationLifecycle(input: {
       }),
     );
   }
-  return lintIssues;
+  return { issues: lintIssues, advisories };
 }
 
+/** Lifecycle gates only; drift advisories never block a turn, declaration, or checkpoint. */
 export async function inspectTerminalRepositoryKnowledgeLifecycle(input: {
   root: string;
   repositoryRevision: string;
   supplementalSources: RepositorySupplementalSource[];
 }): Promise<LifecycleIssue[]> {
+  return (await inspectTerminalRepositoryKnowledge(input)).issues;
+}
+
+/** Lifecycle gates plus bounded, agent-owned document drift advisories for attention. */
+export async function inspectTerminalRepositoryKnowledge(input: {
+  root: string;
+  repositoryRevision: string;
+  supplementalSources: RepositorySupplementalSource[];
+}): Promise<TerminalKnowledgeLifecycleCacheEntry> {
   await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: input.root });
-  const cached = await readTerminalKnowledgeLifecycleCache(input);
+  const cached = await readTerminalKnowledgeLifecycleCacheEntry(input);
   if (cached !== null) return cached;
   const preparedScan = await scanConfiguredRepositoryKnowledge(input.root, {
     supplementalSources: input.supplementalSources,
@@ -247,7 +267,8 @@ export async function inspectTerminalRepositoryKnowledgeLifecycle(input: {
       preparedScan,
     }),
   ]);
-  const issues = [...structuralIssues, ...validationIssues];
+  const issues = [...structuralIssues, ...validationIssues.issues];
+  const advisories = validationIssues.advisories;
   if (
     preparedScan !== undefined &&
     !issues.some((issue) => TRANSIENT_INSPECTION_FAILURES.has(issue.code))
@@ -256,8 +277,10 @@ export async function inspectTerminalRepositoryKnowledgeLifecycle(input: {
       .then((snapshot) => snapshot.revision)
       .catch(() => null);
     if (confirmedRevision === input.repositoryRevision) {
-      await writeTerminalKnowledgeLifecycleCache({ ...input, issues }).catch(() => undefined);
+      await writeTerminalKnowledgeLifecycleCache({ ...input, issues, advisories }).catch(
+        () => undefined,
+      );
     }
   }
-  return issues;
+  return { issues, advisories };
 }
