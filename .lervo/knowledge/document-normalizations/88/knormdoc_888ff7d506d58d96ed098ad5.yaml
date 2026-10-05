@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3f7553879637d59ddfe4a661
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_968738636541c38aef706eac
+outputLanguage: en
+outputs:
+  - byteCount: 1083
+    contentHash: sha256:8f0e7329b6c46060940248de2f07b47e932ecc6e4d9aa1123351e92c32ba84b1
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy/publication-and-source-policy.md
+    userRegionHash: sha256:8f0e7329b6c46060940248de2f07b47e932ecc6e4d9aa1123351e92c32ba84b1
+profile: specification_document
+recordId: knormdoc_888ff7d506d58d96ed098ad5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:80c570e1962dcf904cc9583e0c5908e887085de02643a7dac9f358c1bbcd2e1e
+sourcePath: docs/specs/repository-knowledge-compilation/structural-publication/policy/publication-and-source-policy.md
+sourceUnitVersionIds:
+  - uv_0efc2c949b5de5a46b3cb328

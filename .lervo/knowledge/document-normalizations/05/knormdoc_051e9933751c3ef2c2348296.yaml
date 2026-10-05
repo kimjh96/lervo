@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3f7553879637d59ddfe4a661
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_47190f1a27b25ea3aa80afcb
+outputLanguage: en
+outputs:
+  - byteCount: 1764
+    contentHash: sha256:74083697c14851116a9c032738417b676ce35e9dcbdebeb13879dbab5ec23f3e
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy/layout-and-routing.md
+    userRegionHash: sha256:74083697c14851116a9c032738417b676ce35e9dcbdebeb13879dbab5ec23f3e
+profile: specification_document
+recordId: knormdoc_051e9933751c3ef2c2348296
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0b30baa557bcd21e74314a1e2812b3947cddd3aa119091c5859437f12f0e2b4c
+sourcePath: docs/specs/repository-knowledge-compilation/structural-publication/policy/layout-and-routing.md
+sourceUnitVersionIds:
+  - uv_ab4ea703d685614e231d7999
+  - uv_ca107ca05dab200fab95f03d

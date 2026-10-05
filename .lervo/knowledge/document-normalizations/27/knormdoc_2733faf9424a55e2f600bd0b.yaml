@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3f7553879637d59ddfe4a661
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a18dcec5b72f9407d67f6777
+outputLanguage: en
+outputs:
+  - byteCount: 496
+    contentHash: sha256:15da1388aceb12b1a776b3444d542d0f8b4e4fd660b8bbe5d188897eebc14cfe
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy/preservation-boundaries.md
+    userRegionHash: sha256:15da1388aceb12b1a776b3444d542d0f8b4e4fd660b8bbe5d188897eebc14cfe
+profile: specification_document
+recordId: knormdoc_2733faf9424a55e2f600bd0b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4227bd18fb8dbcaeb2fa4d15eaa00ea0cc3e3b0fc283754da4e5f1147da356bc
+sourcePath: docs/specs/repository-knowledge-compilation/structural-publication/policy/preservation-boundaries.md
+sourceUnitVersionIds:
+  - uv_2b8af95f016e1aa526e4ddec
