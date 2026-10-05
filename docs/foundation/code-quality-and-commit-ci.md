@@ -16,12 +16,18 @@ Node is pinned to 22.13.0, package-manager caching is disabled, and dependencies
 
 ## Quality and release completion
 
-The `quality` job, displayed as `ESLint and Prettier`, first runs `pnpm quality:check`. Subsequent event-specific steps invoke release completion:
+The `quality` job, displayed as `ESLint and Prettier`, first runs `pnpm quality:check` and then `pnpm typecheck`. Typecheck resolves workspace packages from source through `tsconfig.json` path aliases, so it needs no prior build. It then runs `pnpm architecture:check`. Subsequent event-specific steps invoke release completion:
 
 - Pull requests: `pnpm release:completion:check --base "${{ github.event.pull_request.base.sha }}"`.
 - Pushes: `pnpm release:completion:check --base "${{ github.event.before }}"`.
 
 These bases are explicitly event-bound. The workflow declares no fallback base or continue-on-error behavior. The YAML establishes invocation and sequencing, not successful completion or the checker's internal handling of unavailable Git objects.
+
+## Node API baseline
+
+The root `engines.node` field declares the oldest supported Node release, and every repository workflow runs that release. The `@types/node` development dependency uses a tilde range on the same major and minor version, so typecheck rejects Node APIs that the minimum's type definitions do not declare. Newer type definitions accept APIs that fail at runtime on the minimum. That mismatch once let code that read `DatabaseSync.isOpen`, which Node 22.13 lacks, pass typecheck and then fail release preparation.
+
+Code that needs a newer Node API must raise `engines.node`, the workflow Node versions, and the `@types/node` range together. Raising the minimum drops support for existing installations, so it requires reviewed `minor` or `major` release intent under [CLI version and release management](../distribution/cli-version-management.md). `scripts/quality/test/code-quality-workflow.test.mjs` verifies that the three values stay aligned.
 
 ## Commit ranges and fallback
 
