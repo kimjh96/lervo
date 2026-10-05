@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_67495454fcf6570e90fba964"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reject canonical drafts with stale or missing existing-target hashes before independent review."

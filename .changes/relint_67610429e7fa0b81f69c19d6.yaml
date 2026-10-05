@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_67610429e7fa0b81f69c19d6"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Stamp workstream revision, update time, and HEAD on the server, add merge-patch and one-call apply updates, and keep stale workstream items out of prompt directives."

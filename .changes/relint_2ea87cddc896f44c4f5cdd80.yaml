@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2ea87cddc896f44c4f5cdd80"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Report missing document roles, broken links, stale entrypoint references, and stale documents in knowledge lint, and keep historical documents out of current navigation and retrieval."

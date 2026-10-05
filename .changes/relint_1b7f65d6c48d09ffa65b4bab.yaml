@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1b7f65d6c48d09ffa65b4bab"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Include a bounded bundle coordinate in Node supervision failure logs for installed recovery diagnosis."

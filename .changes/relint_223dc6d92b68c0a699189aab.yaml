@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_223dc6d92b68c0a699189aab"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Synchronize the knowledge integration target before every canonical integration so drafts verify on current code."

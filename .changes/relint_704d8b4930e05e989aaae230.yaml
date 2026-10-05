@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_704d8b4930e05e989aaae230"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Skip nested Git working trees when scanning repository knowledge sources."

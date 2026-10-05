@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_eb7d841c483229a86585133c"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Refresh stale documents from evidence: the knowledge resident applies verified Lervo-managed reference updates with a revertible commit, and user-owned updates wait in lervo knowledge freshness review."
