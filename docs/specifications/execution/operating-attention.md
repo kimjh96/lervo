@@ -2,7 +2,7 @@
 
 Status: `active`
 
-As of: 2026-09-04
+As of: 2026-10-05
 
 ## Purpose
 
@@ -20,15 +20,17 @@ The projection is not another source of truth. It reads the current workstream, 
 - bounded, typed items with action owner, user-authority requirement, blocking state, and next instruction; and
 - counts for all, omitted, blocking, user-action, and stale items.
 
-The projection includes pending workstream decisions and approvals, workstream blockers, nonterminal canonicalization candidates, and current knowledge-lifecycle issues. Candidate items expose outcome kind, proposed target paths, and whether proposed content exists, but never the summary or proposed Markdown body. Promoted and rejected candidates are terminal and excluded. Items are deduplicated by stable item ID, ordered with user-authority and blocking items first, and limited to 256 returned records. Explicit total and omitted counts prevent failure or an implication of complete coverage.
+The projection includes pending workstream decisions and approvals, workstream blockers, nonterminal canonicalization candidates, and current knowledge-lifecycle issues. Workstream approvals and decisions carry a consequence class: `repository_write`, `deployment`, `external_effect`, or `unclassified` for decisions. Every class is consequential.
+
+When the current workstream is stale under [ADR-0462](../../decisions/execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md), every workstream item has `state: "stale"`, `blocking: false`, `requiresUserAction: false`, owner `agent`, and an instruction to re-verify against the repository instead of presenting the item as current. A snapshot is stale when its update time is older than 48 hours, its recorded HEAD is more than 20 commits behind or not an ancestor of the current HEAD, or its update time is in the future. The optional `workstream` section of `.lervo/knowledge/policy.yaml` configures both thresholds. Candidate items expose outcome kind, proposed target paths, and whether proposed content exists, but never the summary or proposed Markdown body. Promoted and rejected candidates are terminal and excluded. Items are deduplicated by stable item ID, ordered with user-authority and blocking items first, and limited to 256 returned records. Explicit total and omitted counts prevent failure or an implication of complete coverage.
 
 `unavailable` coverage is not an empty success and keeps aggregate status at `action_required`, even when no item could be read. A missing workstream is reported as missing but does not invent a blocker, because a repository may legitimately have no current continuation.
 
 ## Direct terminal context
 
-Unmanaged Codex and Claude prompt preparation includes the report digest, counts, coverage, and at most twelve current items. It uses only the already verified current workstream, bounded canonicalization registry, and exact repository-lifecycle cache. It performs neither another model call nor a full lifecycle rescan on the prompt path.
+Unmanaged Codex and Claude prompt preparation includes the report digest, counts, coverage, and at most twelve current items. Stale workstream items are excluded and reported only as a count with the `lervo workstream current` inspection command. Retrieval mode caps this section at 4 KiB, and the whole compact context has a hard 4 KiB budget. Truncation appends a deterministic marker. Preparation uses only the already verified current workstream, its HEAD distance, the bounded canonicalization registry, and the exact repository-lifecycle cache. It performs neither another model call nor a full lifecycle rescan on the prompt path.
 
-The context directs the working agent to resolve in-scope, agent-owned maintenance and present a current blocking user question or approval in the same turn. It does not authorize approval, review, repository writes, or external effects. Repeating the current projection on later prompts proves preparation only; it does not prove delivery, acknowledgment, or user receipt.
+The context directs the working agent to resolve in-scope, agent-owned maintenance. Only when a listed item is current, user-owned, blocking, and requires user action does it ask the agent to present that question or approval in the same turn. A stale approval or decision is never a directive, and hook renderings withhold its text. The context does not authorize approval, review, repository writes, or external effects. Repeating the current projection on later prompts proves preparation only; it does not prove delivery, acknowledgment, or user receipt.
 
 ## Privacy and failure meaning
 
@@ -40,7 +42,7 @@ Invalid or unsafe canonicalization state makes canonicalization coverage unavail
 
 Acceptance requires:
 
-1. deterministic projection tests covering authority ordering, terminal-state exclusion, stable digests, and unavailable-source behavior;
+1. deterministic projection tests covering authority ordering, terminal-state exclusion, stable digests, unavailable-source behavior, stale workstream items, and context byte caps;
 2. direct-terminal integration proving that a newly created candidate appears on the next preparation;
 3. application command tests for the JSON result; and
 4. a packed external consumer that discovers protocol v2 and invokes the route without private workspace imports.
@@ -48,6 +50,7 @@ Acceptance requires:
 ## References
 
 - [ADR-0361](../../decisions/execution/applications/0361-project-operating-attention-without-new-authority.md)
+- [ADR-0462](../../decisions/execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md)
 - [Product-host protocol](product-host-protocol.md)
 - [Repository knowledge lifecycle convergence](../../specs/repository-knowledge-lifecycle-convergence.md)
 - [Product outcome convergence](../../roadmap/product-outcome-convergence.md)
