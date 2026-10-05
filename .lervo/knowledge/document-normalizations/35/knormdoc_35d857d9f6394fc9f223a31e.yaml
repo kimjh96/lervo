@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_45813f103862c214898033b3
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_963e75988a879fd0ae31bc2c
+outputLanguage: en
+outputs:
+  - byteCount: 11484
+    contentHash: sha256:446ff90bbc0e4345c512cfc180d52872f9e6a476f58c2c4b93a0fcbfd34acccc
+    path: docs/decisions/coordination/sync/0456-hand-off-repositories-atomically-with-a-writer-lease.md
+    userRegionHash: sha256:446ff90bbc0e4345c512cfc180d52872f9e6a476f58c2c4b93a0fcbfd34acccc
+profile: decision_record
+recordId: knormdoc_35d857d9f6394fc9f223a31e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:11d2bb28c09ee3055f8b8f1908eff807e433402a8cb8acd9a28becccf122e0e8
+sourcePath: docs/decisions/coordination/sync/0456-hand-off-repositories-atomically-with-a-writer-lease.md
+sourceUnitVersionIds:
+  - uv_00fe699ae134769d4c2c3870
+  - uv_076c13441691a901f46548ee
+  - uv_19213ad30654fbecf6505d92
+  - uv_2518b4d29a97455b0adbe91d
+  - uv_63726222515c33282af26f28
+  - uv_6746939c22905e901f7043ad
+  - uv_6caaca0b9f127699d32cd1e7
+  - uv_6d24b7df3ab5db07091dd358
+  - uv_7d4f2543fb0300984fbd9c0e
+  - uv_91a72db235ce7c54ab614bff
+  - uv_a7a5b65b79acfe26c154f3b9
+  - uv_f03ba1bb98582019c7465639
+  - uv_f21910d41e467cbd57e7db30
+  - uv_f64e04165ee8f4ff50914700
+  - uv_ff24d6091c76730ae73d1eae

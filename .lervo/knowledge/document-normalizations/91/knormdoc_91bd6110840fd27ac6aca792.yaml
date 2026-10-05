@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c85a47ecbf43a3eaa1d708a8
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_20f4674154ffdfbfe3f6b94e
+outputLanguage: en
+outputs:
+  - byteCount: 10894
+    contentHash: sha256:dffbc6bcf69cc2a69e890129777a1ad0c5683477647240f16552a26d9464d8c5
+    path: docs/decisions/coordination/conversations/agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md
+    userRegionHash: sha256:dffbc6bcf69cc2a69e890129777a1ad0c5683477647240f16552a26d9464d8c5
+profile: decision_record
+recordId: knormdoc_91bd6110840fd27ac6aca792
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6f030c70d65e382911cb3560bee4a2cf3e06a2d0ebe3d948e33d4377730e9847
+sourcePath: docs/decisions/coordination/conversations/agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md
+sourceUnitVersionIds:
+  - uv_159038ee3f4811e371f79845
+  - uv_236438c4cca03f19b7f2620f
+  - uv_396588fcf3052cfd14b36aa4
+  - uv_5d0d3737eb72739ceca61697
+  - uv_6fde8c6a75b9bc875ecff5b0
+  - uv_7333bb19ca9e23308eafd4e4
+  - uv_78fc8c079a8e4f9490bef604
+  - uv_856411c50d89926c4166b3b6
+  - uv_984345f30b75ac02a052c34e
+  - uv_99f28685db03388e22fd57e3
+  - uv_9ad34929e4f7a76e09adf21f
+  - uv_adad3c4b1792061fd19fe59c
+  - uv_bc4eece70144ed794fdf55a9
+  - uv_dd7ee9f57e34c66dcd459747
+  - uv_e4e7844557fde9d736a2cbea
+  - uv_eeb2bd29653a8b14e7ad13d0

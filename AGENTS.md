@@ -2,7 +2,7 @@
 
 ## Before changing anything
 
-Read only relevant entrypoints and linked ADRs:
+Read only relevant entrypoints and linked ADRs; do not load the entire ADR history by default:
 
 - Product scope or terminology: `README.md`, `docs/product/vision.md`
 - Components or data flow: `docs/architecture/system.md`
@@ -11,37 +11,35 @@ Read only relevant entrypoints and linked ADRs:
 - Repository knowledge, migration, claims, relations, or OKF exchange: `docs/specs/repository-knowledge-compilation.md`
 - Release impact, version preparation, tags, or publication: `docs/distribution/cli-version-management.md`, `docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md`
 
-Do not load the entire ADR history by default.
-
-Before committing, follow [the repository commit convention](docs/foundation/commit-convention.md). An optional scope must exactly match the workspace package name without `@lervo/`; omit it for repository-wide changes.
+Before committing, follow [the repository commit convention](docs/foundation/commit-convention.md). Optional scopes must exactly match the workspace package name without `@lervo/`; omit scopes for repository-wide changes.
 
 For implementation changes, run `pnpm release:completion:check --base <task-base-revision>` before claiming completion. Add reviewed release intent for CLI or bundled-private behavior. Neither `pnpm check`, a current workstream, nor a successful terminal Stop independently proves release readiness.
 
-Before opening or updating a pull request, read [the repository pull-request template](.github/PULL_REQUEST_TEMPLATE.md) and apply the existing [`writing_en-human` policy](packages/core/src/writing-contract.ts) to its title and body. Start the body at H2 because GitHub renders the title separately; never duplicate it with an H1. Preserve every section, replace guidance with exact evidence, and use `N/A: <reason>` where needed. Evaluate each checklist item directly; check it only after observing and recording supporting evidence, and record blockers for unchecked items. Never submit prose-only summaries or pre-checked boilerplate.
+Before opening or updating a pull request, read [the repository pull-request template](.github/PULL_REQUEST_TEMPLATE.md) and apply the existing [`writing_en-human` policy](packages/core/src/writing-contract.ts) to its title and body. Start the body at H2; GitHub renders the title separately, so never duplicate it with an H1. Preserve every section, replace guidance with exact evidence, and use `N/A: <reason>` where needed. Evaluate each checklist item directly: check it only after observing and recording supporting evidence; record blockers for unchecked items. Never submit prose-only summaries or pre-checked boilerplate.
 
-Follow [the repository code convention](docs/foundation/code-convention.md) as the completion contract. Before editing source, identify its responsibility and dependency boundary. Apply its module-split signals and review checklist to every touched source file, resolving structural violations before completion; lint and formatting are insufficient.
+Follow [the repository code convention](docs/foundation/code-convention.md) as the completion contract. Before editing source, identify its responsibility and dependency boundary. Apply module-split signals and the review checklist to every touched source file; resolve structural violations before completion. Lint and formatting are insufficient.
 
-If a required split materially increases delivery risk, record one bounded follow-up with the exact responsibility and verification. Repeat the structural review before refreshing a long-module review hash; the registry records cohesive modules, not unresolved exceptions.
+If a required split materially increases delivery risk, record one bounded follow-up with the exact responsibility and verification. Repeat structural review before refreshing a long-module review hash; the registry records cohesive modules, not unresolved exceptions.
 
 ESLint owns automatable code quality; Prettier owns formatting. For source or configuration changes, run `pnpm quality:check` and keep broad automatic-fix diffs within scope.
 
 ## Invariants
 
 1. Local execution works without a Hub.
-2. Provider behavior stays behind adapters; core execution and evidence contracts do not depend on Codex or Claude.
+2. Keep provider behavior behind adapters; core execution and evidence contracts must not depend on Codex or Claude.
 3. Keep `selected`, `loaded`, `injected`, and `used` distinct; claim only what telemetry proves.
 4. Markdown, repository state, skill definitions, verification results, and execution events are canonical. Graphs, search indexes, and embeddings are rebuildable projections.
-5. Keep Lervo-managed and user-owned blocks separate; never overwrite user-owned content automatically.
+5. Separate Lervo-managed and user-owned blocks; never automatically overwrite user-owned content.
 6. Mark unobservable direct provider work as `unmanaged`.
-7. Keep entrypoints short and move independent concerns into linked files.
+7. Keep entrypoints short; move independent concerns into linked files.
 8. Generate English documentation through a versioned language boundary by default.
 9. Create feature directories only with their first artifact.
-10. Keep conversation, memory, learning, recall, and autonomy open by default; check authority at consequential effects (repository writes, deployment, external messages, spend above budget, credentials, hiring beyond headcount, irreversible deletion). Budgets and loop guards are backstops, not admission gates.
+10. Keep conversation, memory, learning, recall, and autonomy open by default. Check authority at consequential effects: repository writes, deployment, external messages, spend above budget, credentials, hiring beyond headcount, and irreversible deletion. Budgets and loop guards are backstops, not admission gates.
 
 ## Change contract
 
-- Update affected documentation and roadmap completion criteria when a design decision changes.
-- For every new event or state, define its name, required fields, privacy handling, and failure meaning.
+- When a design decision changes, update affected documentation and roadmap completion criteria.
+- Define each new event or state's name, required fields, privacy handling, and failure meaning.
 - Run common contract tests for provider adapters.
 - Run relevant tests and document lifecycle checks before finishing implementation.
 - For repository-wide knowledge lifecycle changes, run `lervo migrate knowledge`, then `lervo knowledge lint`.

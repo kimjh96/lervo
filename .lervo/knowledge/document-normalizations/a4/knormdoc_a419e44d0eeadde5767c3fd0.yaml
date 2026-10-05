@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_45813f103862c214898033b3
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_59b5994b167b7d52f838eae5
+outputLanguage: en
+outputs:
+  - byteCount: 9962
+    contentHash: sha256:0acb148b23c61219e9222312840bf51fe683fc2d42738af1b7645f98ac29c74c
+    path: docs/decisions/execution/orchestration/improvement/0458-learn-from-single-observations-and-run-standing-autonomy.md
+    userRegionHash: sha256:0acb148b23c61219e9222312840bf51fe683fc2d42738af1b7645f98ac29c74c
+profile: decision_record
+recordId: knormdoc_a419e44d0eeadde5767c3fd0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c032e210845f35be453638de05a0f83f04aa29ce1d7ea56910b2e58a466ed0b6
+sourcePath: docs/decisions/execution/orchestration/improvement/0458-learn-from-single-observations-and-run-standing-autonomy.md
+sourceUnitVersionIds:
+  - uv_026d3a2acb9fc371b90e6d96
+  - uv_1f491bcca43bf651bf0532e5
+  - uv_2cbeea65fe7a869f7f7c1f48
+  - uv_2f3d8bb2d4c8b31ddac3323a
+  - uv_302ddc9fb49090c7fbec93bf
+  - uv_418fcd023f2815d4fdeb4c78
+  - uv_4212613b6652901538f96669
+  - uv_49b5aa92d4973fc40ea84eb9
+  - uv_56311c8101111c47d0dbf5d9
+  - uv_5a336b2097231e188ca3d792
+  - uv_5fdefbfc013935d8665053fb
+  - uv_981a7a3275c850a739bf7a2d
+  - uv_996bebcfeecd343d10c79e22
+  - uv_c7b7787baead741fa0c4c23c
+  - uv_d89c245d5f09c31e5fe90ea8

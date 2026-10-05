@@ -7,64 +7,68 @@ Part of: [ADR-0452 open collaboration platform](../../../foundation/0452-open-co
 
 ## Context
 
-The Hermes and Prime Agent lessons were adopted as contracts and CLI routes, then gated until almost nothing learns or runs on its own. Verified status (details in the [strengths matrix](../../../../roadmap/open-collaboration-platform/strengths-matrix.md)):
+Hermes and Prime Agent lessons became contracts and CLI routes, then were gated until almost nothing learns or runs independently. Verified status (details in the [strengths matrix](../../../../roadmap/open-collaboration-platform/strengths-matrix.md)):
 
-- Attach, detach, and resume are terminal-hook behaviours (`apps/cli/src/terminal-workspace-attachment.ts`), proven with a temporary consumer and Codex and Claude stream fixtures. Goals are the read-only `lervo loop goal`; Discord `/goal` intake exists and is installed-proven, but result supervision remains `delivery required`.
-- Heartbeat is `lervo agent heartbeat --write`; `apps/node-runtime/src` contains no heartbeat. Bounded autonomy is one foreground `lervo loop schedule` run with a fixture provider; no daemon exists. Direct agent messages are the file-based `lervo assignment trigger|acknowledge` with no live platform.
-- Instruction and profile candidates are CLI-only (`knowledge instruction intake|review`, `role candidate ...`); `apps/node-runtime/src` has zero references. Progressive capability disclosure runs only on the managed-run path (`apps/cli/src/run-capabilities.ts`); terminal hooks and Discord never call it; zero skills are installed in this repository.
-- Pattern promotion requires at least two independently grouped verified source units (ADR-0220; `development-pattern-candidate.ts:141,157`) plus an end-of-turn self-declaration. Two `repository_instruction` patterns have ever been promoted; zero portable skills.
+- Attach, detach, and resume are terminal-hook behaviours (`apps/cli/src/terminal-workspace-attachment.ts`), proven with a temporary consumer and Codex and Claude stream fixtures. Goals are the read-only `lervo loop goal`. Discord `/goal` intake exists and is installed-proven, but result supervision remains `delivery required`.
+- Heartbeat is `lervo agent heartbeat --write`; `apps/node-runtime/src` has no heartbeat. Bounded autonomy is one foreground `lervo loop schedule` run with a fixture provider; no daemon exists. Direct agent messages use file-based `lervo assignment trigger|acknowledge`, with no live platform.
+- Instruction and profile candidates are CLI-only (`knowledge instruction intake|review`, `role candidate ...`); `apps/node-runtime/src` has zero references. Progressive capability disclosure runs only on the managed-run path (`apps/cli/src/run-capabilities.ts`); terminal hooks and Discord never call it. Zero skills are installed in this repository.
+- Pattern promotion requires at least two independently grouped verified source units (ADR-0220; `development-pattern-candidate.ts:141,157`) plus an end-of-turn self-declaration. Only two `repository_instruction` patterns and zero portable skills have been promoted.
 - Agent memory is `work_outcome` after repository work, injected only in read-only replies. Search source kinds are `document | skill | verified_knowledge`; no conversation or session corpus exists.
-- Roadmap entries for all of the above say `implemented` on fixture or temporary-consumer evidence.
+- Roadmap entries for all these capabilities say `implemented` on fixture or temporary-consumer evidence.
 
-Hermes adapts fast because it remembers immediately; Prime Agent keeps working because it has a long-running harness. Lervo diluted both into near-zero learning and one authorized loop run. The differentiators that justify a slower path, exact provenance, verification-bound promotion, and post-promotion measurement, do not require two independent groups before a candidate may exist.
+Hermes adapts quickly by remembering immediately; Prime Agent keeps working through a long-running harness. Lervo reduced these to near-zero learning and one authorized loop run. Exact provenance, verification-bound promotion, and post-promotion measurement justify a slower path, but do not require two independent groups before a candidate can exist.
 
 ## Decision
 
 ### Single observation to candidate to used-in-practice promotion
 
-Learning becomes a three-stage path with lowered entry and unchanged canonical rigour:
+Lower learning entry requirements while retaining canonical rigour through three stages:
 
-1. **Observe (open).** Any surface may record a `learning.observation.recorded` from one verified turn: a repeated command sequence, a correction the user made, an instruction phrased durably, a role activation that passed verification, or a skill-shaped workflow. Observations are agent-scoped projections, not knowledge.
-2. **Candidate (open, reviewable).** One observation with a verified outcome creates a candidate of kind `repository_instruction`, `portable_skill`, `agent_profile`, or `working_preference`, with status `candidate_from_single_observation`. Candidates are offered in context on the next relevant turn through progressive disclosure, marked as unreviewed. ADR-0220's two-group rule is retired as an entry condition.
-3. **Promote (exact review).** Promotion requires either the existing exact review, or **used-in-practice** evidence: the candidate was selected, loaded, injected, and referenced (ADR-0459 receipt) in at least three later turns whose outcomes passed verification, with no correction event. Used-in-practice promotion still runs the exact-hash review step; the evidence replaces the two-group precondition, not the review. Canonical materialization keeps ADR-0457's lifecycle.
+1. **Observe (open).** Any surface may record `learning.observation.recorded` from one verified turn: a repeated command sequence, user correction, durably phrased instruction, role activation that passed verification, or skill-shaped workflow. Observations are agent-scoped projections, not knowledge.
+2. **Candidate (open, reviewable).** One observation with a verified outcome creates a `repository_instruction`, `portable_skill`, `agent_profile`, or `working_preference` candidate with status `candidate_from_single_observation`. Progressive disclosure offers it in context on the next relevant turn, marked unreviewed. Retire ADR-0220's two-group rule as an entry condition.
+3. **Promote (exact review).** Promotion requires either the existing exact review or **used-in-practice** evidence: the candidate was selected, loaded, injected, and referenced (ADR-0459 receipt) in at least three later turns with verified passing outcomes and no correction event. Used-in-practice promotion still runs exact-hash review; its evidence replaces the two-group precondition, not review. Canonical materialization retains ADR-0457's lifecycle.
 
 ### Progressive disclosure on every channel
 
-Capability recommendation (`run-capabilities.ts`) moves into `packages/repository-context` as `prepareCapabilityDisclosure` and is called by the managed turn, the compact terminal prompt (bounded to a two-line pointer naming at most three candidates, no provider call), and Discord turns. Disclosure records `selected` in the receipt; activation stays provider-confirmed.
+Move capability recommendation (`run-capabilities.ts`) into `packages/repository-context` as `prepareCapabilityDisclosure`. Call it from the managed turn, compact terminal prompt, and Discord turns. The compact prompt is limited to a two-line pointer naming at most three candidates, with no provider call. Disclosure records `selected` in the receipt; activation remains provider-confirmed.
 
 ### Standing autonomy daemon
 
-A platform-neutral `standing-autonomy-loop` in the Node composition owns heartbeat and continuation: it renews `agent.liveness.observed` for every active agent on an interval, wakes standing goals (ADR-0398) whose next action is due, and runs bounded continuation cycles under the operating mandate's token and attempt ceilings with the ADR-0459 in-flight cap. It composes with the principal-proxy loop (ADR-0453): a blocked cycle that needs a decision hands it to the proxy instead of stopping. `lervo loop schedule` becomes a foreground view of the same loop. The daemon has a kill switch, an error budget (ADR-0452 section 2), and never starts a provider turn without an admitted mandate.
+A platform-neutral `standing-autonomy-loop` in the Node composition owns heartbeat and continuation. It renews `agent.liveness.observed` for every active agent on an interval, wakes standing goals (ADR-0398) whose next action is due, and runs bounded continuation cycles under the operating mandate's token and attempt ceilings and ADR-0459's in-flight cap.
+
+The loop composes with the principal-proxy loop (ADR-0453): a blocked cycle needing a decision hands it to the proxy instead of stopping. `lervo loop schedule` becomes a foreground view of the same loop. The daemon has a kill switch and an error budget (ADR-0452 section 2), and never starts a provider turn without an admitted mandate.
 
 ### Discord wiring of the self-improvement loop
 
-Instruction intake, role-candidate proposal and review, and portable-skill candidate review become typed application commands reachable from Discord through natural language: "make that a rule", "promote that", "review the skill candidate". The same commands serve the CLI. Review stays exact; the surface only carries the request.
+Instruction intake, role-candidate proposal and review, and portable-skill candidate review become typed application commands reachable from Discord through natural language: "make that a rule", "promote that", and "review the skill candidate". The CLI uses the same commands. Review remains exact; the surface only carries the request.
 
 ### Recall over conversations
 
-A `conversation` corpus joins unified search beside repository knowledge: each agent's own inbound and outbound messages, `conversation_note` and `decision_rationale` memories, and discussion summaries, indexed by Lexical v2 under the same revision-bound reuse rule as ADR-0413 (the conversation revision is the outbox head). Recall is agent-scoped by default; a human query over a channel sees that channel's messages. Recall results are selection evidence, never canonical, and carry the ADR-0459 receipt.
+Add a `conversation` corpus to unified search beside repository knowledge: each agent's own inbound and outbound messages, `conversation_note` and `decision_rationale` memories, and discussion summaries. Lexical v2 indexes it under ADR-0413's revision-bound reuse rule; the conversation revision is the outbox head.
+
+Recall is agent-scoped by default; a human query over a channel sees that channel's messages. Results are selection evidence, never canonical, and carry the ADR-0459 receipt.
 
 ### Relabeling
 
-The roadmap entries for portable continuation, goal lifecycle, runtime liveness, autonomous continuation, agent communication, portable-skill candidates, durable-instruction intake, agent-profile candidates, bounded work graph, worker contracts, retrieval and capability discovery, reusable patterns, continuation, triggers, Slack, execution graphs, and separately installed hosts are relabelled `wired` under ADR-0452 section 5, each keeping its evidence link.
+Relabel the following roadmap entries `wired` under ADR-0452 section 5, retaining each evidence link: portable continuation, goal lifecycle, runtime liveness, autonomous continuation, agent communication, portable-skill candidates, durable-instruction intake, agent-profile candidates, bounded work graph, worker contracts, retrieval and capability discovery, reusable patterns, continuation, triggers, Slack, execution graphs, and separately installed hosts.
 
 ## Events, states, and failure meaning
 
 - `learning.observation.recorded`: `observationId`, `agentId`, `surface` (`terminal | managed_run | conversation | supervision`), `kind`, `sourceEventId`, `verificationStatus`, `occurredAt`. No prompt or output text.
-- Candidate events gain `origin: single_observation | grouped_evidence` and status `candidate_from_single_observation`; `learning.candidate.used_in_practice` records `candidateId`, `turnEventId`, `receiptId`, `verificationStatus`, `occurredAt`. Promotion events gain `promotionBasis: exact_review | used_in_practice`.
+- Candidate events gain `origin: single_observation | grouped_evidence` and status `candidate_from_single_observation`. `learning.candidate.used_in_practice` records `candidateId`, `turnEventId`, `receiptId`, `verificationStatus`, `occurredAt`. Promotion events gain `promotionBasis: exact_review | used_in_practice`.
 - `agent.liveness.observed` gains `source: daemon | manual | terminal_hook`.
 - `autonomy.cycle.completed`: `cycleId`, `goalId`, `mandateHash`, `attemptCount`, `tokensObserved`, `outcome` (`progressed | blocked | handed_to_proxy | budget_exhausted`), `occurredAt`.
-- Failure codes: `candidate_correction_observed` (a later correction resets used-in-practice counting), `autonomy_mandate_missing`, `recall_corpus_stale`.
+- Failure codes: `candidate_correction_observed` (a later correction resets used-in-practice counting), `autonomy_mandate_missing`, and `recall_corpus_stale`.
 
-Privacy: conversation corpus indexes live in `.lervo/state` as rebuildable projections, scoped per agent and channel; events carry identifiers and counts only.
+Conversation corpus indexes live in `.lervo/state` as rebuildable projections scoped per agent and channel. Events carry identifiers and counts only.
 
 ## Safety backstops
 
-Candidates are unreviewed and labelled as such wherever they are disclosed; they cannot change user-owned content. Used-in-practice promotion needs three verified turns and no correction. The daemon is bounded by mandate ceilings, in-flight token caps, attempt limits, and its error budget. Recall never grants authority or leaves the agent's scope.
+Candidates remain unreviewed and labelled wherever disclosed; they cannot change user-owned content. Used-in-practice promotion requires three verified turns and no correction. Mandate ceilings, in-flight token caps, attempt limits, and the error budget bound the daemon. Recall never grants authority or leaves the agent's scope.
 
 ## Migration
 
-1. Add observation and single-observation candidates alongside the existing grouped path; both produce the same candidate types.
+1. Add observations and single-observation candidates alongside the grouped path; both produce the same candidate types.
 2. Ship disclosure to the compact prompt and Discord; measure selected and referenced rates for four weeks before changing defaults.
 3. Start the daemon with liveness only, then standing goals on one repository.
 4. Relabel the roadmap in the same change as this decision.
@@ -74,7 +78,7 @@ Candidates are unreviewed and labelled as such wherever they are disclosed; they
 - A user correction in Claude Code produces a candidate; three later verified turns reference it; promotion records `used_in_practice`; the next prompt's receipt shows the hit.
 - A Discord "make that a rule" produces an instruction candidate reviewed from Discord and visible in the Mac CLI.
 - The daemon keeps a standing goal progressing for 24 hours with liveness events, at least one proxy handoff, and no budget breach.
-- An agent recalls its own earlier commitment from a prior channel conversation and the receipt records `referenced`.
+- An agent recalls its own earlier commitment from a prior channel conversation, and the receipt records `referenced`.
 - At least one portable skill is promoted and activated in a real repository.
 
 ## Deferred

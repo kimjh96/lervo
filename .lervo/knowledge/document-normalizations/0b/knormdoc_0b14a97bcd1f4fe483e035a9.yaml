@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c85a47ecbf43a3eaa1d708a8
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5d32572e71a1724d4fa6ffe2
+outputLanguage: en
+outputs:
+  - byteCount: 11136
+    contentHash: sha256:377a29142739150771b06ea76da5d19adef69eabf754f225ec5b2e0741f5abba
+    path: docs/decisions/coordination/conversations/agent-organization/0453-act-for-the-owner-through-a-principal-mandate.md
+    userRegionHash: sha256:377a29142739150771b06ea76da5d19adef69eabf754f225ec5b2e0741f5abba
+profile: decision_record
+recordId: knormdoc_0b14a97bcd1f4fe483e035a9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:714917b599a7674ce36aa3eab8ceac77c61fd776e122e56b7f3c09e88375cd44
+sourcePath: docs/decisions/coordination/conversations/agent-organization/0453-act-for-the-owner-through-a-principal-mandate.md
+sourceUnitVersionIds:
+  - uv_0053e097c62c1ad3b0a00e6a
+  - uv_054e556ccbad2ddd10c41ef6
+  - uv_059650fd1a331414cbf7881e
+  - uv_14cec440020549fd9e6c83af
+  - uv_2d760ed8102e210e20cd63bd
+  - uv_646def5dce3774d7c9ac91e6
+  - uv_88c065c7dfd3c303ac5a4e4c
+  - uv_9c75686c5d24d7e2307c6dae
+  - uv_b3a21f21d890f540714025d9
+  - uv_beb466dbdb5215fc908b0db8
+  - uv_bfdea5fd0417443e6e71a44f
+  - uv_cb6ba69e40be3006f4bfbc5c
+  - uv_d171e68f9435d8e9006d85f7
+  - uv_d188d2877cb6d990cd8b4377
+  - uv_f015d7f4f62fb33d918cd808

@@ -16,9 +16,7 @@ user or platform
   -> optional outbox -> Hub -> other authorized nodes
 ```
 
-The local project is the execution authority. The Hub coordinates but cannot weaken project policy or replace repository source truth.
-
-Direct provider terminals use a narrower native-hook path with separate evidence limits; see [managed execution](system/managed-execution.md).
+The local project is the execution authority. The Hub coordinates but cannot weaken project policy or replace repository source truth. Direct provider terminals use a narrower native-hook path with separate evidence limits; see [managed execution](system/managed-execution.md).
 
 ## Major boundaries
 
@@ -38,9 +36,9 @@ Direct provider terminals use a narrower native-hook path with separate evidence
 
 Contracts and schemas do not depend on provider adapters or applications. Domain packages depend on contracts; storage and provider packages implement ports; applications compose them. `scripts/quality/check-package-boundaries.mjs` enforces this graph.
 
-The application contract is a contract package, not an application implementation. The work controller may depend on provider-neutral contracts and workforce snapshots; it cannot import CLI, storage adapters, or provider adapters. Product applications depend inward on that boundary.
+The application contract is a contract package, not an application implementation. The work controller may depend on provider-neutral contracts and workforce snapshots, but cannot import CLI, storage adapters, or provider adapters. Product applications depend inward on that boundary.
 
-Discord and future first-party presentation remain adapters outside domain authority; [ADR-0455](../decisions/execution/applications/0455-ratchet-the-platform-adapter-boundary-on-neutral-seams.md) adds a ratchet guard and neutral seams for platform actions, provenance, speaker provisioning, and limits. Activity, operating, observability, and search views are rebuildable projections. Surface actions enter typed application commands; no surface owns a parallel task, chat, workflow, memory, or truth store.
+Discord and future first-party presentation remain adapters outside domain authority. [ADR-0455](../decisions/execution/applications/0455-ratchet-the-platform-adapter-boundary-on-neutral-seams.md) adds a ratchet guard and neutral seams for platform actions, provenance, speaker provisioning, and limits. Activity, operating, observability, and search views are rebuildable projections. Surface actions enter typed application commands; no surface owns a parallel task, chat, workflow, memory, or truth store.
 
 ## References
 
