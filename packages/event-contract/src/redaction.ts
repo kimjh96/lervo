@@ -8,6 +8,10 @@ import {
   documentFreshnessPayloadSchemas,
 } from "./document-freshness-payload.js";
 import {
+  instructionCapturePayloadAllowlists,
+  instructionCapturePayloadSchemas,
+} from "./instruction-capture-payload.js";
+import {
   validateSchema,
   type AgentContextHandoffRecordedEventPayload,
   type AgentContextPromotedEventPayload,
@@ -39,6 +43,7 @@ export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue
 export const eventPayloadAllowlists = {
   ...knowledgeConvergencePayloadAllowlists,
   ...documentFreshnessPayloadAllowlists,
+  ...instructionCapturePayloadAllowlists,
   "managed.execution.reserved": ["executionKey", "requestHash"],
   "role.input.bound": roleInputPayloadFields,
   ...supervisionPayloadAllowlists,
@@ -1365,6 +1370,7 @@ export function sanitizeEventPayload(
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   ...documentFreshnessPayloadSchemas,
+  ...instructionCapturePayloadSchemas,
   "assignment.convergence.archived": "convergenceAssignmentArchivedEventPayload",
   "repository.knowledge.baseline.requested": "repositoryKnowledgeBaselineRequestedEventPayload",
   "repository.knowledge.stage.recorded": "repositoryKnowledgeStageRecordedEventPayload",
