@@ -430,6 +430,34 @@ export async function assertNoKnowledgeMaterializationTransaction(input: {
   );
 }
 
+/**
+ * Classify the materialization marker without changing it. A journal owned by another running
+ * process is `live` and settles on its own; any other marker is `interrupted` and keeps requiring
+ * explicit `lervo knowledge materialize --recover`.
+ */
+export async function inspectKnowledgeMaterializationOwner(input: {
+  repositoryRoot: string;
+}): Promise<"none" | "live" | "interrupted"> {
+  const root = resolve(input.repositoryRoot);
+  try {
+    await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
+    return "none";
+  } catch (error) {
+    if (
+      !(error instanceof RepositoryKnowledgeError) ||
+      error.code !== "knowledge_recovery_required"
+    )
+      throw error;
+  }
+  try {
+    return ownerAlive((await readJournal(root)).ownerPid) ? "live" : "interrupted";
+  } catch (error) {
+    if (error instanceof RepositoryKnowledgeError && error.code === "knowledge_recovery_not_found")
+      return "none";
+    return "interrupted";
+  }
+}
+
 type RecoveryInput = {
   repositoryRoot: string;
   eventRecorded: (planId: string) => boolean;

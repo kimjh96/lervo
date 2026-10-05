@@ -27,6 +27,22 @@ export interface NormalizationBatch {
   maximumCalls: number;
 }
 
+/**
+ * A batch whose independent review timed out is regenerated with half as many documents, down to
+ * one. The limit lives in the obligation's stage data, so a later baseline starts from the
+ * delegated ceiling again.
+ */
+export function halvedNormalizationDocumentLimit(documents: number): number {
+  return Math.max(1, Math.floor(documents / 2));
+}
+
+function normalizationDocumentLimit(state: KnowledgeConvergenceInput, ceiling: number): number {
+  const limit = state.stageData.normalizationDocumentLimit;
+  return typeof limit === "number" && Number.isSafeInteger(limit) && limit >= 1
+    ? Math.min(ceiling, limit)
+    : ceiling;
+}
+
 export async function generateNormalizationBatch(
   context: ConvergenceRuntimeContext,
   state: KnowledgeConvergenceInput,
@@ -88,7 +104,11 @@ export async function generateNormalizationBatch(
     pathWithinConvergenceRoots(path, delegation.normalizationRoots),
   );
   let sourceBytes = 0;
-  const selected = scoped.slice(0, delegation.resourceCeilings.maximumDocuments).filter((path) => {
+  const documentLimit = normalizationDocumentLimit(
+    state,
+    delegation.resourceCeilings.maximumDocuments,
+  );
+  const selected = scoped.slice(0, documentLimit).filter((path) => {
     sourceBytes += convergenceSourceBytes(root, path).byteLength;
     return sourceBytes <= delegation.resourceCeilings.maximumSourceBytes;
   });

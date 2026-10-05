@@ -29,6 +29,11 @@ import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceGit } from "./canonical-workspace.js";
 import { inspectRetainedCanonicalIntegration } from "./canonical-integration-recovery.js";
 import type { CanonicalBatch } from "./canonical-review.js";
+import { materializationTransactionState } from "./materialization-transaction.js";
+import {
+  commitSettledOutputsAtBoundary,
+  settledOutputBoundary,
+} from "./settled-output-boundary.js";
 
 export function assertConvergenceSource(
   context: ConvergenceRuntimeContext,
@@ -204,8 +209,17 @@ export function createConvergenceRuntimeHost(
       });
       assertLease();
       source(state);
-      await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
+      const transaction = await materializationTransactionState(root);
+      // A live owner settles on its own, so the stage retries instead of recording recovery.
+      if (transaction === "busy")
+        throw new KnowledgeConvergenceRuntimeError("knowledge_materialization_busy");
+      if (transaction === "recovery_required")
+        throw new KnowledgeConvergenceRuntimeError("knowledge_recovery_required");
       try {
+        if (settledOutputBoundary(stage)) {
+          const committed = await commitSettledOutputsAtBoundary(context, state, stage);
+          if (committed !== null) return committed;
+        }
         switch (stage) {
           case "assessment":
             return (

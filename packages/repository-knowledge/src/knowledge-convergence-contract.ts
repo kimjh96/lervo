@@ -91,5 +91,7 @@ export interface KnowledgeConvergenceStatus {
   activeStage: KnowledgeConvergenceStage | null;
   state: KnowledgeConvergenceState | "idle";
   reason: string | null;
+  /** Present only for `recovery_required`: the owner command that resolves the blocked transaction. */
+  recoveryCommand?: string;
   lastVerifiedCurrency: { obligationId: string; snapshotHash: string; resolvedAt: string } | null;
 }

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e220fc28b17ca57073c139f7"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Commit settled background knowledge at batch boundaries, shrink timed-out normalization reviews, and treat concurrent scan edits and live materialization owners as retryable."

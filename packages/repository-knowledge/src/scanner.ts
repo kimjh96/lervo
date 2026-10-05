@@ -175,17 +175,21 @@ function opaqueSkillResourceFields(
   return { agentArtifact: { ...agentArtifact, contentHandling: "opaque_resource" } };
 }
 
-async function safeReadFile(path: string, expectedSize: number): Promise<Uint8Array> {
+/** A source that moves under the scan is a concurrent edit, not an unsafe source. */
+function concurrentSourceChange(path: string): RepositoryKnowledgeError {
+  return new RepositoryKnowledgeError("source_bytes_changed", `${path} changed during the scan.`);
+}
+
+async function safeReadFile(
+  absolute: string,
+  path: string,
+  expectedSize: number,
+): Promise<Uint8Array> {
   let handle;
   try {
-    handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+    handle = await open(absolute, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
-    if (!before.isFile() || before.size !== expectedSize) {
-      throw new RepositoryKnowledgeError(
-        "knowledge_source_unsafe",
-        `${path} changed during the scan.`,
-      );
-    }
+    if (!before.isFile() || before.size !== expectedSize) throw concurrentSourceChange(path);
     const bytes = await handle.readFile();
     const after = await handle.stat();
     if (
@@ -193,13 +197,12 @@ async function safeReadFile(path: string, expectedSize: number): Promise<Uint8Ar
       after.ino !== before.ino ||
       after.size !== before.size ||
       after.mtimeMs !== before.mtimeMs
-    ) {
-      throw new RepositoryKnowledgeError(
-        "knowledge_source_unsafe",
-        `${path} changed during the scan.`,
-      );
-    }
+    )
+      throw concurrentSourceChange(path);
     return bytes;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") throw concurrentSourceChange(path);
+    throw error;
   } finally {
     await handle?.close();
   }
@@ -581,7 +584,9 @@ export async function scanRepositoryKnowledge(input: {
           "The repository file count exceeds the policy limit.",
         );
       }
-      const stats = await lstat(absolute);
+      const stats = await lstat(absolute).catch((error: NodeJS.ErrnoException) => {
+        throw error.code === "ENOENT" ? concurrentSourceChange(path) : error;
+      });
       const id = sourceId;
       if (input.generatedPaths?.has(path)) {
         continue;
@@ -618,7 +623,7 @@ export async function scanRepositoryKnowledge(input: {
         });
         continue;
       }
-      const bytes = await safeReadFile(absolute, stats.size);
+      const bytes = await safeReadFile(absolute, path, stats.size);
       const includeOpaqueSkillResource = (): boolean => {
         const opaqueFields = opaqueSkillResourceFields(path);
         if (!("agentArtifact" in opaqueFields)) return false;
@@ -720,7 +725,7 @@ export async function scanRepositoryKnowledge(input: {
   const revisionAfter = await observeRevision(root);
   if (JSON.stringify(revisionAfter) !== JSON.stringify(revisionBefore)) {
     throw new RepositoryKnowledgeError(
-      "knowledge_source_unsafe",
+      "source_bytes_changed",
       "The repository revision changed during the scan.",
     );
   }
