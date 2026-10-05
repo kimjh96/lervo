@@ -87,13 +87,50 @@ export interface RepositoryReplicaDivergenceAttentionItemV1 extends OperatingAtt
   openedAt: string;
 }
 
+/**
+ * A verified document freshness candidate that needs the owner (ADR-0463): user-owned bytes, a
+ * safety or policy line, an archive, or a hunk held until the Tier 0 cross-check exists.
+ */
+export interface DocumentFreshnessCandidateAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "document_freshness_candidate";
+  state: "waiting_authority" | "verified_pending_cross_check" | "partially_applied";
+  candidateId: string;
+  documentPath: string;
+  priorityClass: "safety" | "entrypoint" | "canonical" | "other";
+  changeClasses: Array<"factual_reference" | "statement" | "safety_or_policy" | "archive">;
+  hunkCount: number;
+}
+
+/** Informational notice of an apply; it resolves on acknowledgement or after 24 hours. */
+export interface DocumentFreshnessAppliedAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "document_freshness_applied";
+  state: "applied" | "partially_applied";
+  candidateId: string;
+  documentPath: string;
+  approvalSource: "lervo_managed" | "principal_mandate" | "owner";
+  commitHash: string | null;
+  revertInstruction: string;
+}
+
+/** The freshness loop cannot make progress: zero verified candidates from five attempts today. */
+export interface DocumentFreshnessBlockedAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "document_freshness_blocked";
+  state: "action_required";
+  reasonCode: "zero_success_window";
+  documentPath: string | null;
+  attempts: number;
+}
+
 export type OperatingAttentionItemV1 =
   | WorkstreamDecisionAttentionItemV1
   | WorkstreamApprovalAttentionItemV1
   | WorkstreamBlockerAttentionItemV1
   | CanonicalizationAttentionItemV1
   | KnowledgeLifecycleAttentionItemV1
-  | RepositoryReplicaDivergenceAttentionItemV1;
+  | RepositoryReplicaDivergenceAttentionItemV1
+  | DocumentFreshnessCandidateAttentionItemV1
+  | DocumentFreshnessAppliedAttentionItemV1
+  | DocumentFreshnessBlockedAttentionItemV1;
 
 export interface OperatingAttentionReportV1 {
   schemaVersion: 1;
