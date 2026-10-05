@@ -200,9 +200,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:74cc7ace9c424d9f430969fa924482b06bfa314588a02903c38122e81f3fc1c3",
+      "contentHash": "sha256:f659e24119feb5f4c270e65f7a10985ac03a221b3193c76752c0d38d70d59009",
       "responsibility": "Deterministic structural knowledge compiler",
-      "rationale": "Publication rendering, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract.",
+      "rationale": "Publication rendering, historical-document grouping, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract; historical marker detection lives in its own module.",
       "disposition": "cohesive"
     },
     {
@@ -249,9 +249,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
-      "contentHash": "sha256:0ec9fb6041809f5d266e6131c0626db60097047ef572d0f62bdaa9f58c71b467",
+      "contentHash": "sha256:872a3fe46e20050986262cc46e2eccb63e0b68d8c5bc43b37c80f11857a1cc46",
       "responsibility": "Repository knowledge lifecycle lint",
-      "rationale": "Query behavior and safe publication access were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars.",
+      "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars and compose the extracted drift lint.",
       "disposition": "cohesive"
     },
     {
@@ -277,9 +277,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:616822c6b570c028ef31d8a28101d1290936bd8dbd8b91abe9bd4bb8c996b47c",
+      "contentHash": "sha256:65f19d0725a89f1f8cbd12a52d5431e86951329911bdfcff71e3743a195bb3bc",
       "responsibility": "Repository document-layout migration",
-      "rationale": "Classification, link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction; tool-specific formatter configuration is outside this boundary.",
+      "rationale": "Classification, link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction; taxonomy role-template refresh and tool-specific formatter configuration are outside this boundary.",
       "disposition": "cohesive"
     },
     {
@@ -319,7 +319,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:18258fdd12555cce3bb8c80acc97268378137e32518c09b81eab55075f070468",
+      "contentHash": "sha256:2a7b4d259f64a1065434dea525b66c4bf5b60d69b3e3f2e1ba3b838572d5d8b9",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
       "disposition": "cohesive"

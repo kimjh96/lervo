@@ -301,6 +301,10 @@ export interface KnowledgeLintIssue {
   severity: "error" | "warning";
   path: string;
   message: string;
+  /** Repository-relative referenced path for reference and staleness findings; never content. */
+  target?: string;
+  /** Stable reason or signal names, for example `connected_path_changed`. */
+  reasons?: string[];
 }
 
 export interface KnowledgeLintResult {
@@ -309,6 +313,17 @@ export interface KnowledgeLintResult {
   valid: boolean;
   checkedConcepts: number;
   issues: KnowledgeLintIssue[];
+  /** Document staleness coverage; absent when staleness was not evaluated for this lint. */
+  documentStaleness?: {
+    status: "observed" | "unavailable";
+    currentRevision: string | null;
+    documents: number;
+    evaluated: number;
+    current: number;
+    stale: number;
+    unknown: number;
+    unevaluated: number;
+  };
 }
 
 export interface KnowledgeQueryHit {
@@ -321,6 +336,8 @@ export interface KnowledgeQueryHit {
   assurance: "unreviewed" | "human_reviewed";
   freshness: KnowledgeFreshness;
   contentHash: string;
+  /** Present only on a historical document returned because the query targets history. */
+  historical?: true;
 }
 
 export interface RepositoryKnowledgeRankerEntry {

@@ -1,7 +1,7 @@
 import { lstat, readFile } from "node:fs/promises";
 import { basename, extname, relative, resolve, sep } from "node:path";
 
-import { loadProjectManifest } from "@lervo/project";
+import { loadDecisionTaxonomy, loadProjectManifest } from "@lervo/project";
 import { stringify } from "yaml";
 
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
@@ -36,6 +36,7 @@ import {
   repositorySourceCanEnterStructuralPublication,
 } from "./publication-snapshot.js";
 import { repositoryInstructionPaths } from "./document-layout.js";
+import { archiveScopes, historicalDocumentMarker } from "./historical-documents.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
 import { summarizeIncrementalReconciliation } from "./incremental-reconciliation.js";
 import {
@@ -135,7 +136,19 @@ function markdownLink(indexPath: string, target: string): string {
   return relative(from, to).split(sep).join("/").split("/").map(encodeURIComponent).join("/");
 }
 
-function groupKey(source: RepositorySource): RepositoryPublicationGroup | null {
+function groupKey(
+  source: RepositorySource,
+  archiveScopePaths: readonly string[],
+): RepositoryPublicationGroup | null {
+  if (
+    source.kind === "documentation" &&
+    historicalDocumentMarker({
+      path: source.path,
+      content: source.content,
+      archiveScopes: archiveScopePaths,
+    }) !== null
+  )
+    return "historical";
   if (source.agentArtifact?.role === "behavioral_instruction" || source.kind === "instruction")
     return "agent_instructions";
   if (source.agentArtifact?.role === "skill" || source.agentArtifact?.role === "legacy_command")
@@ -158,14 +171,16 @@ const groupDefinitions = [
   { key: "specifications", slug: "specifications", profile: "reference" as const },
   { key: "decisions", slug: "decisions", profile: "reference" as const },
   { key: "documentation", slug: "documentation", profile: "explanation" as const },
+  { key: "historical", slug: "historical", profile: "explanation" as const },
 ] as const;
 
 function documentGroups(
   documents: RepositorySource[],
+  archiveScopePaths: readonly string[],
 ): Map<RepositoryPublicationGroup, RepositorySource[]> {
   const groups = new Map<RepositoryPublicationGroup, RepositorySource[]>();
   for (const source of documents) {
-    const key = groupKey(source);
+    const key = groupKey(source, archiveScopePaths);
     if (key === null) continue;
     const values = groups.get(key) ?? [];
     values.push(source);
@@ -250,9 +265,11 @@ function sourceNavigationLine(
   source: RepositorySource,
   language: string,
   messages: RepositoryPublicationMessages,
+  historical: boolean,
 ): string {
   const title = titleFor(source, language, messages.sourceTitleFallback).slice(0, 160);
-  return `- [${title}](${markdownLink(path, source.path)}) — \`${source.path}\``;
+  const label = historical ? ` — ${messages.historicalLabel}` : "";
+  return `- [${title}](${markdownLink(path, source.path)}) — \`${source.path}\`${label}`;
 }
 
 function assertNavigationBound(path: string, content: string, maxBytes: number): void {
@@ -273,12 +290,13 @@ function categoryPublications(input: {
   maxEntries: number;
   maxBytes: number;
   language: string;
+  historical: boolean;
 }): Array<Omit<DesiredOutput, "contentHash">> {
   const direct = categoryPublication({
     title: input.label,
     path: input.path,
     lines: input.sources.map((source) =>
-      sourceNavigationLine(input.path, source, input.language, input.messages),
+      sourceNavigationLine(input.path, source, input.language, input.messages, input.historical),
     ),
     messages: input.messages,
   });
@@ -296,7 +314,7 @@ function categoryPublications(input: {
       title: `${input.label} — ${input.messages.page} ${pageNumber}`,
       path: pagePath,
       lines: current.map((source) =>
-        sourceNavigationLine(pagePath, source, input.language, input.messages),
+        sourceNavigationLine(pagePath, source, input.language, input.messages, input.historical),
       ),
       messages: input.messages,
     });
@@ -312,7 +330,7 @@ function categoryPublications(input: {
       title: `${input.label} — ${input.messages.page} ${pageNumber}`,
       path: pagePath,
       lines: candidate.map((item) =>
-        sourceNavigationLine(pagePath, item, input.language, input.messages),
+        sourceNavigationLine(pagePath, item, input.language, input.messages, input.historical),
       ),
       messages: input.messages,
     });
@@ -326,7 +344,9 @@ function categoryPublications(input: {
       const single = categoryPublication({
         title: `${input.label} — ${input.messages.page} ${pages.length + 1}`,
         path: pagePath,
-        lines: [sourceNavigationLine(pagePath, source, input.language, input.messages)],
+        lines: [
+          sourceNavigationLine(pagePath, source, input.language, input.messages, input.historical),
+        ],
         messages: input.messages,
       });
       assertNavigationBound(pagePath, single, input.maxBytes);
@@ -535,6 +555,7 @@ function desiredOutputs(input: {
     maxNavigationEntries: number;
     maxNavigationBytes: number;
   };
+  archiveScopes: readonly string[];
 }): {
   outputs: DesiredOutput[];
   registeredUserDocuments: number;
@@ -622,7 +643,7 @@ function desiredOutputs(input: {
     purpose: "repository-knowledge",
   });
   const indexPath = `${input.publicationRoot.replace(/\/$/, "")}/index.md`;
-  const groups = documentGroups(documents);
+  const groups = documentGroups(documents, input.archiveScopes);
   const generatedConceptId = stableId("concept", {
     projectId: input.scan.projectId,
     role: "repository-index",
@@ -684,6 +705,7 @@ function desiredOutputs(input: {
         maxEntries: input.publication.maxNavigationEntries,
         maxBytes: input.publication.maxNavigationBytes,
         language: input.publication.language,
+        historical: definition.key === "historical",
       }),
     );
   }
@@ -948,6 +970,7 @@ async function buildKnowledgeMigrationPlan(input: {
     generatedPaths: previous.structuralPaths,
     publicationRoot: policy.publicationRoot,
     publication: policy.publication,
+    archiveScopes: archiveScopes(await loadDecisionTaxonomy(root).catch(() => null)),
   });
   const impact = await analyzeRepositoryKnowledgeImpact({ repositoryRoot: root, scan });
   const reconciliation = await summarizeIncrementalReconciliation({
