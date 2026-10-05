@@ -2991,7 +2991,7 @@ var require_compile = __commonJS({
       const schOrFunc = root2.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve95.call(this, root2, ref);
+      let _sch = resolve97.call(this, root2, ref);
       if (_sch === void 0) {
         const schema3 = (_a = root2.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3018,7 +3018,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve95(root2, ref) {
+    function resolve97(root2, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3645,11 +3645,11 @@ var require_fast_uri = __commonJS({
         normalizeString(uri, options);
       } else if (typeof uri === "object") {
         uri = /** @type {T} */
-        parse32(serialize(uri, options), options);
+        parse33(serialize(uri, options), options);
       }
       return uri;
     }
-    function resolve95(baseURI, relativeURI, options) {
+    function resolve97(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const { parsed: baseParsed, malformedAuthorityOrPort: baseMalformed } = parseWithStatus(baseURI, schemelessOptions);
       const { parsed: relativeParsed, malformedAuthorityOrPort: relativeMalformed } = parseWithStatus(relativeURI, schemelessOptions);
@@ -3663,8 +3663,8 @@ var require_fast_uri = __commonJS({
     function resolveComponent(base, relative19, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
-        base = parse32(serialize(base, options), options);
-        relative19 = parse32(serialize(relative19, options), options);
+        base = parse33(serialize(base, options), options);
+        relative19 = parse33(serialize(relative19, options), options);
       }
       options = options || {};
       if (!options.tolerant && relative19.scheme) {
@@ -3908,7 +3908,7 @@ var require_fast_uri = __commonJS({
       }
       return { parsed, malformedAuthorityOrPort };
     }
-    function parse32(uri, opts) {
+    function parse33(uri, opts) {
       return parseWithStatus(uri, opts).parsed;
     }
     function normalizeString(uri, opts) {
@@ -3933,11 +3933,11 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve: resolve95,
+      resolve: resolve97,
       resolveComponent,
       equal,
       serialize,
-      parse: parse32
+      parse: parse33
     };
     module.exports = fastUri;
     module.exports.default = fastUri;
@@ -14407,7 +14407,7 @@ var require_public_api = __commonJS({
       }
       return doc;
     }
-    function parse32(src, reviver, options) {
+    function parse33(src, reviver, options) {
       let _reviver = void 0;
       if (typeof reviver === "function") {
         _reviver = reviver;
@@ -14448,7 +14448,7 @@ var require_public_api = __commonJS({
         return value.toString(options);
       return new Document2.Document(value, _replacer, options).toString(options);
     }
-    exports.parse = parse32;
+    exports.parse = parse33;
     exports.parseAllDocuments = parseAllDocuments2;
     exports.parseDocument = parseDocument;
     exports.stringify = stringify19;
@@ -17586,14 +17586,14 @@ var require_lib = __commonJS({
         super.checkParams(node2, false, true);
         this.scope.exit();
       }
-      forwardNoArrowParamsConversionAt(node2, parse33) {
+      forwardNoArrowParamsConversionAt(node2, parse34) {
         let result;
         if (this.state.noArrowParamsConversionAt.includes(this.offsetToSourcePos(node2.start))) {
           this.state.noArrowParamsConversionAt.push(this.state.start);
-          result = parse33();
+          result = parse34();
           this.state.noArrowParamsConversionAt.pop();
         } else {
-          result = parse33();
+          result = parse34();
         }
         return result;
       }
@@ -29001,7 +29001,7 @@ var require_lib = __commonJS({
         return result;
       }
     };
-    function parse32(input, options) {
+    function parse33(input, options) {
       var _options;
       if (((_options = options) == null ? void 0 : _options.sourceType) === "unambiguous") {
         options = Object.assign({}, options);
@@ -29088,7 +29088,7 @@ var require_lib = __commonJS({
       }
       return cls;
     }
-    exports.parse = parse32;
+    exports.parse = parse33;
     exports.parseExpression = parseExpression;
     exports.tokTypes = tokTypes;
   }
@@ -30408,7 +30408,7 @@ var require_container = __commonJS({
     var Node2 = require_node();
     var { isClean, my } = require_symbols();
     var AtRule2;
-    var parse32;
+    var parse33;
     var Root2;
     var Rule2;
     function cleanSource(nodes) {
@@ -30575,7 +30575,7 @@ var require_container = __commonJS({
       }
       normalize(nodes, sample) {
         if (typeof nodes === "string") {
-          nodes = cleanSource(parse32(nodes).nodes);
+          nodes = cleanSource(parse33(nodes).nodes);
         } else if (typeof nodes === "undefined") {
           nodes = [];
         } else if (Array.isArray(nodes)) {
@@ -30784,7 +30784,7 @@ var require_container = __commonJS({
       }
     };
     Container2.registerParse = (dependant) => {
-      parse32 = dependant;
+      parse33 = dependant;
     };
     Container2.registerRule = (dependant) => {
       Rule2 = dependant;
@@ -32810,7 +32810,7 @@ var require_previous_map = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/previous-map.js"(exports, module) {
     "use strict";
     var { existsSync: existsSync3, readFileSync: readFileSync6, realpathSync } = __require("fs");
-    var { dirname: dirname25, isAbsolute: isAbsolute6, join: join2, relative: relative19, sep: sep17 } = __require("path");
+    var { dirname: dirname26, isAbsolute: isAbsolute6, join: join2, relative: relative19, sep: sep17 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     function realPath(path) {
       try {
@@ -32837,7 +32837,7 @@ var require_previous_map = __commonJS({
         if (!this.mapFile && opts.from) {
           this.mapFile = opts.from;
         }
-        if (this.mapFile) this.root = dirname25(this.mapFile);
+        if (this.mapFile) this.root = dirname26(this.mapFile);
         if (text6) this.text = text6;
       }
       consumer() {
@@ -32883,12 +32883,12 @@ var require_previous_map = __commonJS({
         if (!trusted && !this.unsafeMap) {
           if (!/\.map$/i.test(path)) return void 0;
           if (!cssFile) return void 0;
-          let rel = relative19(realPath(dirname25(cssFile)), realPath(path));
+          let rel = relative19(realPath(dirname26(cssFile)), realPath(path));
           if (rel === ".." || rel.startsWith(".." + sep17) || isAbsolute6(rel)) {
             return void 0;
           }
         }
-        this.root = dirname25(path);
+        this.root = dirname26(path);
         if (existsSync3(path)) {
           this.mapFile = path;
           return readFileSync6(path, "utf-8").toString().trim();
@@ -32925,7 +32925,7 @@ var require_previous_map = __commonJS({
           return this.decodeInline(this.annotation);
         } else if (this.annotation) {
           let map = this.annotation;
-          if (file) map = join2(dirname25(file), map);
+          if (file) map = join2(dirname26(file), map);
           let unknown = this.loadFile(map, file, false);
           if (unknown) {
             try {
@@ -32955,7 +32955,7 @@ var require_input = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/input.js"(exports, module) {
     "use strict";
     var { nanoid } = require_non_secure();
-    var { isAbsolute: isAbsolute6, resolve: resolve95 } = __require("path");
+    var { isAbsolute: isAbsolute6, resolve: resolve97 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { fileURLToPath: fileURLToPath2, pathToFileURL } = __require("url");
     var CssSyntaxError2 = require_css_syntax_error();
@@ -32963,7 +32963,7 @@ var require_input = __commonJS({
     var terminalHighlight = require_terminal_highlight();
     var lineToIndexCache = /* @__PURE__ */ Symbol("lineToIndexCache");
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(resolve95 && isAbsolute6);
+    var pathAvailable = Boolean(resolve97 && isAbsolute6);
     function getLineToIndex(input) {
       if (input[lineToIndexCache]) return input[lineToIndexCache];
       let lines = input.css.split("\n");
@@ -32997,7 +32997,7 @@ var require_input = __commonJS({
           if (!pathAvailable || /^\w+:\/\//.test(opts.from) || isAbsolute6(opts.from)) {
             this.file = opts.from;
           } else {
-            this.file = resolve95(opts.from);
+            this.file = resolve97(opts.from);
           }
         }
         if (pathAvailable && sourceMapAvailable) {
@@ -33118,7 +33118,7 @@ var require_input = __commonJS({
         if (/^\w+:\/\//.test(file)) {
           return file;
         }
-        return resolve95(this.map.consumer().sourceRoot || this.map.root || ".", file);
+        return resolve97(this.map.consumer().sourceRoot || this.map.root || ".", file);
       }
       origin(line, column, endLine, endColumn) {
         if (!this.map) return false;
@@ -33428,12 +33428,12 @@ var require_fromJSON = __commonJS({
 var require_map_generator = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/map-generator.js"(exports, module) {
     "use strict";
-    var { dirname: dirname25, relative: relative19, resolve: resolve95, sep: sep17 } = __require("path");
+    var { dirname: dirname26, relative: relative19, resolve: resolve97, sep: sep17 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { pathToFileURL } = __require("url");
     var Input2 = require_input();
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(dirname25 && resolve95 && relative19 && sep17);
+    var pathAvailable = Boolean(dirname26 && resolve97 && relative19 && sep17);
     var MapGenerator = class {
       constructor(stringify19, root2, opts, cssString) {
         this.stringify = stringify19;
@@ -33465,7 +33465,7 @@ var require_map_generator = __commonJS({
       applyPrevMaps() {
         for (let prev of this.previous()) {
           let from = this.toUrl(this.path(prev.file));
-          let root2 = prev.root || dirname25(prev.file);
+          let root2 = prev.root || dirname26(prev.file);
           let map;
           if (this.mapOpts.sourcesContent === false) {
             map = new SourceMapConsumer(prev.text);
@@ -33660,9 +33660,9 @@ var require_map_generator = __commonJS({
         if (/^\w+:\/\//.test(file)) return file;
         let cached = this.memoizedPaths.get(file);
         if (cached) return cached;
-        let from = this.opts.to ? dirname25(this.opts.to) : ".";
+        let from = this.opts.to ? dirname26(this.opts.to) : ".";
         if (typeof this.mapOpts.annotation === "string") {
-          from = dirname25(resolve95(from, this.mapOpts.annotation));
+          from = dirname26(resolve97(from, this.mapOpts.annotation));
         }
         let path = relative19(from, file);
         this.memoizedPaths.set(file, path);
@@ -34296,7 +34296,7 @@ var require_parse = __commonJS({
     var Container2 = require_container();
     var Input2 = require_input();
     var Parser = require_parser2();
-    function parse32(css, opts) {
+    function parse33(css, opts) {
       let input = new Input2(css, opts);
       let parser = new Parser(input);
       try {
@@ -34317,9 +34317,9 @@ var require_parse = __commonJS({
       }
       return parser.root;
     }
-    module.exports = parse32;
-    parse32.default = parse32;
-    Container2.registerParse(parse32);
+    module.exports = parse33;
+    parse33.default = parse33;
+    Container2.registerParse(parse33);
   }
 });
 
@@ -34425,7 +34425,7 @@ var require_lazy_result = __commonJS({
     var Container2 = require_container();
     var Document2 = require_document();
     var MapGenerator = require_map_generator();
-    var parse32 = require_parse();
+    var parse33 = require_parse();
     var Result2 = require_result();
     var Root2 = require_root();
     var stringify19 = require_stringify2();
@@ -34559,7 +34559,7 @@ var require_lazy_result = __commonJS({
             opts.map.prev = css.map;
           }
         } else {
-          let parser = parse32;
+          let parser = parse33;
           if (opts.syntax) parser = opts.syntax.parse;
           if (opts.parser) parser = opts.parser;
           if (parser.parse) parser = parser.parse;
@@ -34950,7 +34950,7 @@ var require_no_work_result = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/no-work-result.js"(exports, module) {
     "use strict";
     var MapGenerator = require_map_generator();
-    var parse32 = require_parse();
+    var parse33 = require_parse();
     var Result2 = require_result();
     var stringify19 = require_stringify2();
     var warnOnce = require_warn_once();
@@ -34978,7 +34978,7 @@ var require_no_work_result = __commonJS({
           return this._root;
         }
         let root2;
-        let parser = parse32;
+        let parser = parse33;
         try {
           root2 = parser(this._css, this._opts);
         } catch (error) {
@@ -35133,7 +35133,7 @@ var require_postcss = __commonJS({
     var LazyResult = require_lazy_result();
     var list3 = require_list();
     var Node2 = require_node();
-    var parse32 = require_parse();
+    var parse33 = require_parse();
     var Processor2 = require_processor();
     var Result2 = require_result();
     var Root2 = require_root();
@@ -35178,7 +35178,7 @@ var require_postcss = __commonJS({
       return creator;
     };
     postcss2.stringify = stringify19;
-    postcss2.parse = parse32;
+    postcss2.parse = parse33;
     postcss2.fromJSON = fromJSON2;
     postcss2.list = list3;
     postcss2.comment = (defaults) => new Comment2(defaults);
@@ -35208,8 +35208,8 @@ var require_postcss = __commonJS({
 
 // apps/cli/src/terminal-hook-bin.ts
 import { createHash as createHash49 } from "node:crypto";
-import { readFile as readFile32 } from "node:fs/promises";
-import { dirname as dirname24, resolve as resolve94 } from "node:path";
+import { readFile as readFile34 } from "node:fs/promises";
+import { dirname as dirname25, resolve as resolve96 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // packages/event-contract/dist/canonical-json.js
@@ -52049,8 +52049,8 @@ function parseAndValidateYaml(schema3, content3) {
   try {
     value = (0, import_yaml.parse)(content3);
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    throw new LervoProjectError("invalid_yaml", `Unable to read YAML: ${detail}`);
+    const detail2 = error instanceof Error ? error.message : String(error);
+    throw new LervoProjectError("invalid_yaml", `Unable to read YAML: ${detail2}`);
   }
   const validation = validateSchema(schema3, value);
   if (!validation.valid) {
@@ -52075,8 +52075,8 @@ async function loadProjectManifest(root2) {
     throw new LervoProjectError("not_initialized", `${paths.projectManifest} does not exist. Run lervo init first.`);
   }
   if (entry.kind !== "file") {
-    const detail = entry.kind === "unsupported" ? ` (${entry.description})` : "";
-    throw new LervoProjectError("unsafe_path", `${paths.projectManifest} must be a regular file and cannot be a symbolic link${detail}.`);
+    const detail2 = entry.kind === "unsupported" ? ` (${entry.description})` : "";
+    throw new LervoProjectError("unsafe_path", `${paths.projectManifest} must be a regular file and cannot be a symbolic link${detail2}.`);
   }
   return parseAndValidateYaml("project", entry.content);
 }
@@ -52530,6 +52530,42 @@ async function loadDecisionTaxonomy(root2) {
       throw error;
     throw new LervoProjectError("invalid_yaml", `${path} is not valid YAML.`);
   }
+}
+
+// packages/project/dist/repository-document-role-seeding.js
+var conditionalDefaultRoleIds = /* @__PURE__ */ new Set([
+  "product_vision",
+  "system_architecture",
+  "execution_specification",
+  "delivery_roadmap"
+]);
+function documentRoleCandidatePaths(role) {
+  return [role.path, ...role.legacyAliases ?? []];
+}
+function sameRole(left, right) {
+  const aliases = (role) => JSON.stringify(role.legacyAliases ?? []);
+  return left.roleId === right.roleId && left.scopePath === right.scopePath && left.path === right.path && left.cardinality === right.cardinality && left.lifecycleOwner === right.lifecycleOwner && left.relocation === right.relocation && left.rewritePolicy === right.rewritePolicy && left.required === right.required && aliases(left) === aliases(right);
+}
+function isConditionalDefaultDocumentRole(role) {
+  if (!conditionalDefaultRoleIds.has(role.roleId))
+    return false;
+  const template = defaultRepositoryDocumentPolicy.roles.find((item) => item.roleId === role.roleId);
+  return template !== void 0 && sameRole(role, template);
+}
+function isUnboundDefaultDocumentRole(role, pathExists) {
+  return isConditionalDefaultDocumentRole(role) && !documentRoleCandidatePaths(role).some((path) => pathExists(path));
+}
+function conditionalDefaultDocumentRolePath(roleId) {
+  if (!conditionalDefaultRoleIds.has(roleId))
+    return null;
+  return defaultRepositoryDocumentPolicy.roles.find((role) => role.roleId === roleId)?.path ?? null;
+}
+function seedRepositoryDocumentRoles(roles, pathExists, placedPaths = /* @__PURE__ */ new Set()) {
+  const exists3 = (path) => pathExists(path) || placedPaths.has(path);
+  const kept = roles.filter((role) => !isUnboundDefaultDocumentRole(role, exists3));
+  const present = new Set(kept.map((role) => `${role.scopePath}:${role.roleId}`));
+  const restored = defaultRepositoryDocumentPolicy.roles.filter((role) => conditionalDefaultRoleIds.has(role.roleId) && !present.has(`${role.scopePath}:${role.roleId}`) && placedPaths.has(role.path));
+  return [...kept, ...restored];
 }
 
 // packages/project/dist/document-storage.js
@@ -53535,8 +53571,8 @@ function boundProjectedSearchQueries(values, limits = {
   maximumQueryCharacters: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS
 }) {
   assertProjectionLimits(limits);
-  const bounded2 = values.slice(0, limits.maximumQueries).map((value) => boundProjectedSearchQuery(value, limits.maximumQueryCharacters));
-  return [...new Set(bounded2)];
+  const bounded3 = values.slice(0, limits.maximumQueries).map((value) => boundProjectedSearchQuery(value, limits.maximumQueryCharacters));
+  return [...new Set(bounded3)];
 }
 function projectionCore(input) {
   return {
@@ -58575,13 +58611,13 @@ function compare2(left, right) {
   return left === right ? 0 : left < right ? -1 : 1;
 }
 function compareCapabilityVersions(left, right) {
-  const parse32 = (value) => {
+  const parse33 = (value) => {
     const withoutBuild = value.split("+", 1)[0];
     const [core, prerelease] = withoutBuild.split("-", 2);
     return { core: core.split(".").map(Number), prerelease: prerelease?.split(".") };
   };
-  const a = parse32(left);
-  const b = parse32(right);
+  const a = parse33(left);
+  const b = parse33(right);
   for (let index2 = 0; index2 < 3; index2 += 1) {
     const difference = a.core[index2] - b.core[index2];
     if (difference !== 0)
@@ -60136,9 +60172,9 @@ async function isNestedGitWorkingTree(directory) {
 }
 
 // packages/repository-knowledge/dist/workstream-snapshot.js
-function pendingCoordinatesValid(snapshot) {
-  const decisions = snapshot.pendingDecisions ?? [];
-  const approvals = snapshot.pendingApprovals ?? [];
+function pendingCoordinatesValid(snapshot2) {
+  const decisions = snapshot2.pendingDecisions ?? [];
+  const approvals = snapshot2.pendingApprovals ?? [];
   if (new Set(decisions.map((item) => item.decisionId)).size !== decisions.length)
     return false;
   if (new Set(approvals.map((item) => item.approvalId)).size !== approvals.length)
@@ -61193,8 +61229,10 @@ var english = {
     architecture: "Architecture and vision",
     specifications: "Specifications and reference",
     decisions: "Decisions",
-    documentation: "Documentation"
-  }
+    documentation: "Documentation",
+    historical: "Historical documents (not current design)"
+  },
+  historicalLabel: "historical, not current design"
 };
 function repositoryPublicationMessages(language) {
   if (language === "en")
@@ -67007,10 +67045,10 @@ function resolveAll(constructs2, events, context) {
   const called = [];
   let index2 = -1;
   while (++index2 < constructs2.length) {
-    const resolve95 = constructs2[index2].resolveAll;
-    if (resolve95 && !called.includes(resolve95)) {
-      events = resolve95(events, context);
-      called.push(resolve95);
+    const resolve97 = constructs2[index2].resolveAll;
+    if (resolve97 && !called.includes(resolve97)) {
+      events = resolve97(events, context);
+      called.push(resolve97);
     }
   }
   return events;
@@ -71683,6 +71721,316 @@ function calculateManagedBlockPatchCandidateId(candidate) {
   const digest12 = sha2566(canonicalJsonBytes(content3));
   return `mbpc_${digest12.slice("sha256:".length, "sha256:".length + 16)}`;
 }
+function calculateDocumentStalenessResultId(result) {
+  const value = result;
+  const { resultId: _resultId, ...content3 } = value;
+  const digest12 = sha2566(canonicalJsonBytes(content3));
+  return `dst_${digest12.slice("sha256:".length, "sha256:".length + 16)}`;
+}
+
+// packages/documents/dist/document-staleness-types.js
+var DocumentStalenessError = class extends Error {
+  code;
+  constructor(code, message, options) {
+    super(message, options);
+    this.code = code;
+    this.name = "DocumentStalenessError";
+  }
+};
+
+// packages/documents/dist/document-staleness-validation.js
+var SHA2562 = /^sha256:[a-f0-9]{64}$/;
+var MAXIMUM_SNAPSHOT_FILES = 2e4;
+function compareText4(left, right) {
+  return left === right ? 0 : left < right ? -1 : 1;
+}
+function invalidStalenessRequest(message, options) {
+  throw new DocumentStalenessError("invalid_staleness_request", message, options);
+}
+function isContentHash(value) {
+  return SHA2562.test(value);
+}
+function normalizeStalenessTimestamp(value, label) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|([+-])(\d{2}):(\d{2}))$/.exec(value);
+  if (match === null) {
+    invalidStalenessRequest(`${label} must be a date-time with an explicit timezone.`);
+  }
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText, , offsetHourText, offsetMinuteText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText);
+  const calendar = new Date(Date.UTC(year, month - 1, day));
+  if (month < 1 || month > 12 || day < 1 || calendar.getUTCFullYear() !== year || calendar.getUTCMonth() !== month - 1 || calendar.getUTCDate() !== day || hour > 23 || minute > 59 || second > 59 || offsetHourText !== void 0 && Number(offsetHourText) > 23 || offsetMinuteText !== void 0 && Number(offsetMinuteText) > 59) {
+    invalidStalenessRequest(`${label} has an invalid date or time range.`);
+  }
+  const milliseconds = Date.parse(value);
+  if (!Number.isFinite(milliseconds)) {
+    invalidStalenessRequest(`${label} cannot be parsed as a valid time.`);
+  }
+  return { value: new Date(milliseconds).toISOString(), milliseconds };
+}
+function validateStalenessSnapshot(snapshot2, label) {
+  if (snapshot2.revision.length < 1 || snapshot2.revision.length > 200) {
+    invalidStalenessRequest(`${label} revision does not satisfy the contract.`);
+  }
+  const entries = Object.entries(snapshot2.files);
+  if (entries.length > MAXIMUM_SNAPSHOT_FILES) {
+    invalidStalenessRequest(`${label} exceeds the file count limit.`);
+  }
+  const normalizedPaths = /* @__PURE__ */ new Set();
+  for (const [path, contentHash2] of entries) {
+    let normalized2;
+    try {
+      normalized2 = normalizeScanPath(path);
+    } catch (error) {
+      invalidStalenessRequest(`${label} contains an unsafe path.`, { cause: error });
+    }
+    if (normalized2 === "." || normalized2.endsWith("/") || normalizedPaths.has(normalized2)) {
+      invalidStalenessRequest(`${label} contains a non-file path or duplicate path.`);
+    }
+    if (!isContentHash(contentHash2)) {
+      invalidStalenessRequest(`${label} contains an invalid content hash.`);
+    }
+    normalizedPaths.add(normalized2);
+  }
+}
+function snapshotsHaveSameFiles(left, right) {
+  const leftPaths = Object.keys(left.files).sort(compareText4);
+  const rightPaths = Object.keys(right.files).sort(compareText4);
+  return leftPaths.length === rightPaths.length && leftPaths.every((path, index2) => path === rightPaths[index2] && left.files[path] === right.files[path]);
+}
+
+// packages/documents/dist/document-staleness-signals.js
+var MAXIMUM_INPUTS = 4096;
+function filesInScope(snapshot2, scope) {
+  const entries = Object.entries(snapshot2.files).filter(([path]) => path === scope || path.startsWith(`${scope}/`)).sort(([left], [right]) => compareText4(left, right));
+  return new Map(entries);
+}
+function changedScopePaths(before, after) {
+  const paths = /* @__PURE__ */ new Set([...before.keys(), ...after.keys()]);
+  return [...paths].filter((path) => before.get(path) !== after.get(path)).sort(compareText4);
+}
+function unavailableRevisionSignals(reason) {
+  return {
+    documentPath: { status: "unknown" },
+    connectedPaths: { status: "unknown", changedPaths: [], unobservedPaths: [] },
+    reasons: [reason]
+  };
+}
+function evaluateRevisionStaleness(manifest, current, verified) {
+  if (current.revision === manifest.record.verifiedRevision) {
+    const documentMissing = current.files[manifest.record.path] === void 0;
+    const unobservedPaths2 = manifest.record.connectedPaths.filter((scope) => filesInScope(current, scope).size === 0).sort(compareText4);
+    return {
+      documentPath: { status: documentMissing ? "stale" : "current" },
+      connectedPaths: {
+        status: unobservedPaths2.length > 0 ? "unknown" : "current",
+        changedPaths: [],
+        unobservedPaths: unobservedPaths2
+      },
+      reasons: [
+        ...documentMissing ? ["document_path_missing"] : [],
+        ...unobservedPaths2.length > 0 ? ["connected_path_unobserved"] : []
+      ]
+    };
+  }
+  if (verified === void 0)
+    return unavailableRevisionSignals("verified_snapshot_unavailable");
+  if (verified.revision !== manifest.record.verifiedRevision) {
+    return unavailableRevisionSignals("verified_snapshot_mismatch");
+  }
+  const reasons = [];
+  const beforeDocument = verified.files[manifest.record.path];
+  const currentDocument = current.files[manifest.record.path];
+  let documentStatus;
+  if (beforeDocument === void 0 && currentDocument === void 0) {
+    documentStatus = "unknown";
+    reasons.push("document_path_unobserved");
+  } else if (beforeDocument === currentDocument) {
+    documentStatus = "current";
+  } else {
+    documentStatus = "stale";
+    reasons.push("document_path_changed");
+  }
+  const changedPaths = /* @__PURE__ */ new Set();
+  const unobservedPaths = [];
+  for (const scope of manifest.record.connectedPaths) {
+    const before = filesInScope(verified, scope);
+    const after = filesInScope(current, scope);
+    const changed = changedScopePaths(before, after);
+    if (changed.length > 0) {
+      for (const path of changed)
+        changedPaths.add(path);
+    } else if (before.size === 0 && after.size === 0) {
+      unobservedPaths.push(scope);
+    }
+  }
+  let connectedStatus = "current";
+  if (changedPaths.size > 0) {
+    connectedStatus = "stale";
+    reasons.push("connected_path_changed");
+  } else if (unobservedPaths.length > 0) {
+    connectedStatus = "unknown";
+    reasons.push("connected_path_unobserved");
+  }
+  return {
+    documentPath: { status: documentStatus },
+    connectedPaths: {
+      status: connectedStatus,
+      changedPaths: [...changedPaths].sort(compareText4),
+      unobservedPaths: unobservedPaths.sort(compareText4)
+    },
+    reasons
+  };
+}
+function expectedInputs(manifest) {
+  const ownership = manifest.record.ownership;
+  if (ownership.mode === "user")
+    return [];
+  const inputs = ownership.mode === "managed_blocks" ? ownership.blocks.flatMap((block) => block.inputs) : ownership.inputs;
+  const expected = /* @__PURE__ */ new Map();
+  for (const input of inputs) {
+    if (expected.has(input.sourceId)) {
+      invalidStalenessRequest("The same managed input source ID was declared more than once.");
+    }
+    expected.set(input.sourceId, input.contentHash);
+  }
+  return [...expected].map(([sourceId2, contentHash2]) => ({ sourceId: sourceId2, contentHash: contentHash2 })).sort((left, right) => compareText4(left.sourceId, right.sourceId));
+}
+function validateObservations(observations, expected) {
+  if (observations.length > MAXIMUM_INPUTS) {
+    invalidStalenessRequest("The managed input observation count exceeds the limit.");
+  }
+  const expectedIds = new Set(expected.map((input) => input.sourceId));
+  const result = /* @__PURE__ */ new Map();
+  for (const observation of observations) {
+    if (observation.sourceId.length < 1 || observation.sourceId.length > 200 || result.has(observation.sourceId) || !expectedIds.has(observation.sourceId) || observation.status === "available" && !isContentHash(observation.contentHash)) {
+      invalidStalenessRequest("The managed input observation does not satisfy the manifest and common contract.");
+    }
+    result.set(observation.sourceId, observation);
+  }
+  return result;
+}
+function evaluateManagedInputStaleness(manifest, observations) {
+  const expected = expectedInputs(manifest);
+  const observed = validateObservations(observations, expected);
+  if (expected.length === 0) {
+    return {
+      signal: {
+        status: "not_applicable",
+        changedSourceIds: [],
+        missingSourceIds: [],
+        unobservedSourceIds: []
+      },
+      reasons: []
+    };
+  }
+  const changedSourceIds = [];
+  const missingSourceIds = [];
+  const unobservedSourceIds = [];
+  for (const input of expected) {
+    const observation = observed.get(input.sourceId);
+    if (observation === void 0)
+      unobservedSourceIds.push(input.sourceId);
+    else if (observation.status === "missing")
+      missingSourceIds.push(input.sourceId);
+    else if (observation.contentHash !== input.contentHash)
+      changedSourceIds.push(input.sourceId);
+  }
+  const reasons = [];
+  if (changedSourceIds.length > 0)
+    reasons.push("managed_input_changed");
+  if (missingSourceIds.length > 0)
+    reasons.push("managed_input_missing");
+  if (unobservedSourceIds.length > 0)
+    reasons.push("managed_input_unobserved");
+  return {
+    signal: {
+      status: changedSourceIds.length > 0 || missingSourceIds.length > 0 ? "stale" : unobservedSourceIds.length > 0 ? "unknown" : "current",
+      changedSourceIds,
+      missingSourceIds,
+      unobservedSourceIds
+    },
+    reasons
+  };
+}
+
+// packages/documents/dist/document-staleness.js
+function overallStatus(statuses) {
+  if (statuses.includes("stale"))
+    return "stale";
+  return statuses.includes("unknown") ? "unknown" : "current";
+}
+function evaluateDocumentStaleness(input) {
+  try {
+    if (!validateSchema("documentManifest", input.manifest).valid) {
+      invalidStalenessRequest("The document staleness manifest does not satisfy the schema.");
+    }
+    validateDocumentManifest(input.manifest, `${input.manifest.documentId}.yaml`);
+  } catch (error) {
+    if (error instanceof DocumentStalenessError)
+      throw error;
+    invalidStalenessRequest("The semantic contract of the document staleness manifest is invalid.", { cause: error });
+  }
+  validateStalenessSnapshot(input.currentSnapshot, "current repository snapshot");
+  if (input.verifiedSnapshot !== void 0) {
+    validateStalenessSnapshot(input.verifiedSnapshot, "verified repository snapshot");
+    if (input.verifiedSnapshot.revision === input.currentSnapshot.revision && !snapshotsHaveSameFiles(input.verifiedSnapshot, input.currentSnapshot)) {
+      invalidStalenessRequest("Repository snapshots with the same revision have different file sets.");
+    }
+  }
+  const evaluated = normalizeStalenessTimestamp(input.evaluatedAt, "evaluatedAt");
+  const verified = normalizeStalenessTimestamp(input.manifest.record.verifiedAt, "verifiedAt");
+  if (evaluated.milliseconds < verified.milliseconds) {
+    invalidStalenessRequest("evaluatedAt cannot be earlier than the document verifiedAt.");
+  }
+  const dueMilliseconds = verified.milliseconds + input.manifest.record.reviewIntervalDays * 24 * 60 * 60 * 1e3;
+  if (!Number.isFinite(dueMilliseconds) || Number.isNaN(new Date(dueMilliseconds).getTime())) {
+    invalidStalenessRequest("The document review expiration time cannot be calculated.");
+  }
+  const reviewStatus = evaluated.milliseconds >= dueMilliseconds ? "stale" : "current";
+  const revision = evaluateRevisionStaleness(input.manifest, input.currentSnapshot, input.verifiedSnapshot);
+  const managedInputs = evaluateManagedInputStaleness(input.manifest, input.managedInputObservations ?? []);
+  const reasons = [
+    ...reviewStatus === "stale" ? ["review_interval_elapsed"] : [],
+    ...revision.reasons,
+    ...managedInputs.reasons
+  ].sort(compareText4);
+  const resultContent = {
+    schemaVersion: 1,
+    documentId: input.manifest.documentId,
+    evaluatedAt: evaluated.value,
+    status: overallStatus([
+      reviewStatus,
+      revision.documentPath.status,
+      revision.connectedPaths.status,
+      ...managedInputs.signal.status === "not_applicable" ? [] : [managedInputs.signal.status]
+    ]),
+    verifiedRevision: input.manifest.record.verifiedRevision,
+    currentRevision: input.currentSnapshot.revision,
+    signals: {
+      reviewInterval: {
+        status: reviewStatus,
+        dueAt: new Date(dueMilliseconds).toISOString()
+      },
+      documentPath: revision.documentPath,
+      connectedPaths: revision.connectedPaths,
+      managedInputs: managedInputs.signal
+    },
+    reasons
+  };
+  const result = {
+    ...resultContent,
+    resultId: calculateDocumentStalenessResultId(resultContent)
+  };
+  if (!validateSchema("documentStalenessResult", result).valid) {
+    throw new DocumentStalenessError("staleness_contract_invalid", "The document staleness result cannot be made schema-valid.");
+  }
+  return result;
+}
 
 // packages/documents/dist/document-layout.js
 import { posix as posix5 } from "node:path";
@@ -71748,9 +72096,9 @@ function roleBlockers(paths, roles) {
   return blockers;
 }
 function evaluateDocumentLayout(input) {
-  const snapshot = sortedSnapshot(input.snapshot);
+  const snapshot2 = sortedSnapshot(input.snapshot);
   const operations = sortedOperations(input.operations);
-  const projectedPaths = new Set(snapshot.map((entry) => entry.path));
+  const projectedPaths = new Set(snapshot2.map((entry) => entry.path));
   for (const operation of operations) {
     if (operation.action === "delete")
       projectedPaths.delete(operation.path);
@@ -71760,7 +72108,7 @@ function evaluateDocumentLayout(input) {
     } else
       projectedPaths.add(operation.path);
   }
-  const observed = counts(snapshot.map((entry) => entry.path));
+  const observed = counts(snapshot2.map((entry) => entry.path));
   const projected = counts(projectedPaths);
   const blockers = roleBlockers(projectedPaths, input.roles);
   const directories = /* @__PURE__ */ new Set([
@@ -71805,7 +72153,7 @@ function evaluateDocumentLayout(input) {
   return {
     evaluatorVersion: 1,
     status: blockers.length === 0 ? "bounded" : "blocked",
-    snapshotHash: sha2566(canonicalJsonBytes(snapshot)),
+    snapshotHash: sha2566(canonicalJsonBytes(snapshot2)),
     policyHash: sha2566(canonicalJsonBytes(input.policy)),
     roleRegistryHash: sha2566(canonicalJsonBytes(input.roles)),
     operationSetHash: sha2566(canonicalJsonBytes(operations)),
@@ -72167,9 +72515,9 @@ async function evaluateCurrentRepositoryDocumentLayout(input) {
     projectId: manifest.projectId,
     policy: sourcePolicy
   });
-  const snapshot = scan.sources.flatMap((source) => source.status === "included" && /\.mdx?$/iu.test(source.path) && source.contentHash !== null ? [{ path: source.path, contentHash: source.contentHash, ownership: "user" }] : []);
+  const snapshot2 = scan.sources.flatMap((source) => source.status === "included" && /\.mdx?$/iu.test(source.path) && source.contentHash !== null ? [{ path: source.path, contentHash: source.contentHash, ownership: "user" }] : []);
   return evaluateDocumentLayout({
-    snapshot,
+    snapshot: snapshot2,
     operations: input.operations.flatMap((operation) => {
       const converted = layoutOperation(operation);
       return converted === null ? [] : [converted];
@@ -72862,6 +73210,63 @@ function classifyRepositoryDocument(path, content3, taxonomy) {
   };
 }
 
+// packages/repository-knowledge/dist/historical-documents.js
+var defaultArchiveScope = "docs/archive";
+var historicalValue = /^["']?(?:historical|archived|superseded)["']?$/iu;
+var historicalFlag = /^(?:historical|archived)\s*:\s*["']?true["']?\s*$/iu;
+var lifecycleField = /^(?:status|lifecycle)\s*:\s*(.+?)\s*$/iu;
+var bannerText = /^(?:historical|archived|superseded)(?:[.:(\-—]|\s*$|\s+[(\-—])/iu;
+function archiveScopes(taxonomy) {
+  const configured = taxonomy?.documentPolicy.capacity.overrides.filter((override) => override.role === "archive").map((override) => override.scopePath) ?? [];
+  return [.../* @__PURE__ */ new Set([defaultArchiveScope, ...configured])].sort();
+}
+function frontMatterLines(content3) {
+  const lines = content3.replace(/^\uFEFF/u, "").split(/\r?\n/u);
+  if (lines[0]?.trim() !== "---")
+    return { lines: [], bodyOffset: 0 };
+  const end = lines.findIndex((line, index2) => index2 > 0 && /^(?:---|\.\.\.)\s*$/u.test(line));
+  if (end < 0 || end > 64)
+    return { lines: [], bodyOffset: 0 };
+  return { lines: lines.slice(1, end), bodyOffset: end + 1 };
+}
+function historicalDocumentMarker(input) {
+  if (input.archiveScopes.some((scope) => input.path.startsWith(`${scope}/`)))
+    return "archive_scope";
+  if (input.content === void 0)
+    return null;
+  const { lines, bodyOffset } = frontMatterLines(input.content);
+  for (const line of lines) {
+    if (historicalFlag.test(line.trim()))
+      return "front_matter";
+    const value = lifecycleField.exec(line.trim())?.[1];
+    if (value !== void 0 && historicalValue.test(value))
+      return "front_matter";
+  }
+  const body = input.content.replace(/^\uFEFF/u, "").split(/\r?\n/u).slice(bodyOffset).filter((line) => line.trim() !== "").slice(0, 3);
+  for (const line of body) {
+    const quoted = /^\s{0,3}>\s?(.*)$/u.exec(line)?.[1];
+    if (quoted === void 0)
+      continue;
+    const text6 = quoted.replace(/^[*_\s]+/u, "");
+    if (bannerText.test(text6))
+      return "banner";
+  }
+  return null;
+}
+var historyQueryTerms = /* @__PURE__ */ new Set([
+  "archive",
+  "archived",
+  "historical",
+  "history",
+  "legacy",
+  "superseded",
+  "obsolete",
+  "deprecated"
+]);
+function queryTargetsHistory(query) {
+  return (query.normalize("NFKC").toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).some((term) => historyQueryTerms.has(term));
+}
+
 // packages/repository-knowledge/dist/instruction-routes.js
 function repositoryInstructionRouteBlock(_input) {
   return [
@@ -72939,40 +73344,45 @@ async function summarizeIncrementalReconciliation(input) {
 
 // packages/repository-knowledge/dist/document-layout-contract.js
 var documentLayoutPath = ".lervo/knowledge/document-layout.yaml";
-async function inspectDocumentLayoutContract(repositoryRoot) {
+async function loadDocumentLayoutContract(repositoryRoot) {
   try {
-    await loadDecisionTaxonomy(repositoryRoot);
-    return [];
+    return { taxonomy: await loadDecisionTaxonomy(repositoryRoot), blockers: [] };
   } catch (error) {
-    if (error instanceof DecisionTaxonomyContractError)
-      return [
-        {
-          code: "document_layout_contract_invalid",
-          path: documentLayoutPath,
-          message: error.message,
-          issues: [...error.issues]
-        }
-      ];
-    if (error instanceof LervoProjectError && error.code === "invalid_yaml")
-      return [
-        {
-          code: "document_layout_invalid_yaml",
-          path: documentLayoutPath,
-          message: `${documentLayoutPath} is not valid YAML.`,
-          issues: []
-        }
-      ];
-    if (error instanceof LervoProjectError && error.code === "not_initialized")
-      return [
-        {
-          code: "document_layout_unreadable",
-          path: documentLayoutPath,
-          message: `${documentLayoutPath} cannot be read. Run lervo init to install the tracked decision taxonomy.`,
-          issues: []
-        }
-      ];
-    throw error;
+    const blockers = documentLayoutBlockers(error);
+    if (blockers === null)
+      throw error;
+    return { taxonomy: null, blockers };
   }
+}
+function documentLayoutBlockers(error) {
+  if (error instanceof DecisionTaxonomyContractError)
+    return [
+      {
+        code: "document_layout_contract_invalid",
+        path: documentLayoutPath,
+        message: error.message,
+        issues: [...error.issues]
+      }
+    ];
+  if (error instanceof LervoProjectError && error.code === "invalid_yaml")
+    return [
+      {
+        code: "document_layout_invalid_yaml",
+        path: documentLayoutPath,
+        message: `${documentLayoutPath} is not valid YAML.`,
+        issues: []
+      }
+    ];
+  if (error instanceof LervoProjectError && error.code === "not_initialized")
+    return [
+      {
+        code: "document_layout_unreadable",
+        path: documentLayoutPath,
+        message: `${documentLayoutPath} cannot be read. Run lervo init to install the tracked decision taxonomy.`,
+        issues: []
+      }
+    ];
+  return null;
 }
 
 // packages/repository-knowledge/dist/structural-publication-ownership.js
@@ -73024,7 +73434,13 @@ function markdownLink(indexPath, target) {
   const to = resolve37("/repository", target);
   return relative9(from, to).split(sep9).join("/").split("/").map(encodeURIComponent).join("/");
 }
-function groupKey(source) {
+function groupKey(source, archiveScopePaths) {
+  if (source.kind === "documentation" && historicalDocumentMarker({
+    path: source.path,
+    content: source.content,
+    archiveScopes: archiveScopePaths
+  }) !== null)
+    return "historical";
   if (source.agentArtifact?.role === "behavioral_instruction" || source.kind === "instruction")
     return "agent_instructions";
   if (source.agentArtifact?.role === "skill" || source.agentArtifact?.role === "legacy_command")
@@ -73049,12 +73465,13 @@ var groupDefinitions = [
   { key: "architecture", slug: "architecture", profile: "architecture_context" },
   { key: "specifications", slug: "specifications", profile: "reference" },
   { key: "decisions", slug: "decisions", profile: "reference" },
-  { key: "documentation", slug: "documentation", profile: "explanation" }
+  { key: "documentation", slug: "documentation", profile: "explanation" },
+  { key: "historical", slug: "historical", profile: "explanation" }
 ];
-function documentGroups(documents) {
+function documentGroups(documents, archiveScopePaths) {
   const groups = /* @__PURE__ */ new Map();
   for (const source of documents) {
-    const key3 = groupKey(source);
+    const key3 = groupKey(source, archiveScopePaths);
     if (key3 === null)
       continue;
     const values = groups.get(key3) ?? [];
@@ -73113,9 +73530,10 @@ function categoryPublication(input) {
     ""
   ].join("\n");
 }
-function sourceNavigationLine(path, source, language, messages) {
+function sourceNavigationLine(path, source, language, messages, historical) {
   const title = titleFor(source, language, messages.sourceTitleFallback).slice(0, 160);
-  return `- [${title}](${markdownLink(path, source.path)}) \u2014 \`${source.path}\``;
+  const label = historical ? ` \u2014 ${messages.historicalLabel}` : "";
+  return `- [${title}](${markdownLink(path, source.path)}) \u2014 \`${source.path}\`${label}`;
 }
 function assertNavigationBound(path, content3, maxBytes) {
   if (Buffer.byteLength(content3) > maxBytes) {
@@ -73126,7 +73544,7 @@ function categoryPublications(input) {
   const direct = categoryPublication({
     title: input.label,
     path: input.path,
-    lines: input.sources.map((source) => sourceNavigationLine(input.path, source, input.language, input.messages)),
+    lines: input.sources.map((source) => sourceNavigationLine(input.path, source, input.language, input.messages, input.historical)),
     messages: input.messages
   });
   if (input.sources.length <= input.maxEntries && Buffer.byteLength(direct) <= input.maxBytes) {
@@ -73142,7 +73560,7 @@ function categoryPublications(input) {
     const content3 = categoryPublication({
       title: `${input.label} \u2014 ${input.messages.page} ${pageNumber}`,
       path: pagePath,
-      lines: current.map((source) => sourceNavigationLine(pagePath, source, input.language, input.messages)),
+      lines: current.map((source) => sourceNavigationLine(pagePath, source, input.language, input.messages, input.historical)),
       messages: input.messages
     });
     assertNavigationBound(pagePath, content3, input.maxBytes);
@@ -73156,7 +73574,7 @@ function categoryPublications(input) {
     const candidateContent = categoryPublication({
       title: `${input.label} \u2014 ${input.messages.page} ${pageNumber}`,
       path: pagePath,
-      lines: candidate.map((item) => sourceNavigationLine(pagePath, item, input.language, input.messages)),
+      lines: candidate.map((item) => sourceNavigationLine(pagePath, item, input.language, input.messages, input.historical)),
       messages: input.messages
     });
     if (current.length > 0 && (candidate.length > input.maxEntries || Buffer.byteLength(candidateContent) > input.maxBytes))
@@ -73166,7 +73584,9 @@ function categoryPublications(input) {
       const single = categoryPublication({
         title: `${input.label} \u2014 ${input.messages.page} ${pages.length + 1}`,
         path: pagePath,
-        lines: [sourceNavigationLine(pagePath, source, input.language, input.messages)],
+        lines: [
+          sourceNavigationLine(pagePath, source, input.language, input.messages, input.historical)
+        ],
         messages: input.messages
       });
       assertNavigationBound(pagePath, single, input.maxBytes);
@@ -73354,7 +73774,7 @@ function desiredOutputs(input) {
     purpose: "repository-knowledge"
   });
   const indexPath = `${input.publicationRoot.replace(/\/$/, "")}/index.md`;
-  const groups = documentGroups(documents);
+  const groups = documentGroups(documents, input.archiveScopes);
   const generatedConceptId = stableId("concept", {
     projectId: input.scan.projectId,
     role: "repository-index"
@@ -73411,7 +73831,8 @@ function desiredOutputs(input) {
       messages,
       maxEntries: input.publication.maxNavigationEntries,
       maxBytes: input.publication.maxNavigationBytes,
-      language: input.publication.language
+      language: input.publication.language,
+      historical: definition2.key === "historical"
     }));
   }
   for (const source of documents) {
@@ -73632,12 +74053,14 @@ async function createKnowledgeMigrationPlan(input) {
 }
 async function buildKnowledgeMigrationPlan(input) {
   const { root: root2, manifest, policy, scan, previous: previous2 } = input;
+  const layout = await loadDocumentLayoutContract(root2);
   const compilation = desiredOutputs({
     scan,
     projectName: manifest.name,
     generatedPaths: previous2.structuralPaths,
     publicationRoot: policy.publicationRoot,
-    publication: policy.publication
+    publication: policy.publication,
+    archiveScopes: archiveScopes(layout.taxonomy)
   });
   const impact = await analyzeRepositoryKnowledgeImpact({ repositoryRoot: root2, scan });
   const reconciliation = await summarizeIncrementalReconciliation({
@@ -73680,7 +74103,7 @@ async function buildKnowledgeMigrationPlan(input) {
   const staleOperations = (await Promise.all([...previous2.structuralPaths].filter((path) => !desiredPaths.has(path)).map((path) => inspectDeleteOperation({ root: root2, path, previousHashes: previous2.hashes })))).filter((operation) => operation !== null);
   const staleManifestOperations = (await Promise.all([...previous2.structuralManifestPaths].filter((path) => path !== structuralManifestPath).map((path) => inspectDeleteOperation({ root: root2, path, previousHashes: previous2.hashes })))).filter((operation) => operation !== null);
   const derivedStateOperations = await legacyKnowledgeProjectionDeleteOperations(root2);
-  const blockers = await inspectDocumentLayoutContract(root2);
+  const blockers = layout.blockers;
   const operations = [
     ...await Promise.all(allOutputs.map((output) => inspectOperation({
       root: root2,
@@ -77081,7 +77504,35 @@ import { createHash as createHash28 } from "node:crypto";
 import { constants as constants18 } from "node:fs";
 import { lstat as lstat33, open as open19, readFile as readFile21 } from "node:fs/promises";
 import { basename as basename12, posix as posix9, resolve as resolve47 } from "node:path";
+var import_yaml25 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/decision-taxonomy-refresh.js
 var import_yaml24 = __toESM(require_dist(), 1);
+var decisionTaxonomyPath2 = ".lervo/knowledge/document-layout.yaml";
+function planDecisionTaxonomyRefresh(input) {
+  const current = input.taxonomy.documentPolicy.roles;
+  const roles = seedRepositoryDocumentRoles(current, input.pathExists, input.placedPaths);
+  const changed = roles.length !== current.length || roles.some((role, index2) => role !== current[index2]);
+  const upgrade = decisionTaxonomyRequiresUpgrade((0, import_yaml24.parse)(input.taxonomySource));
+  if (!changed && !upgrade)
+    return [];
+  const content3 = serializeDecisionTaxonomy({
+    ...input.taxonomy,
+    documentPolicy: { ...input.taxonomy.documentPolicy, roles }
+  });
+  return [
+    {
+      path: decisionTaxonomyPath2,
+      action: "update",
+      ownership: "lervo_generated",
+      mediaType: "application/yaml",
+      content: content3,
+      expectedCurrentHash: sha2565(input.taxonomySource),
+      desiredHash: sha2565(content3),
+      reason: upgrade ? "upgrade_document_policy" : "bind_document_role_templates"
+    }
+  ];
+}
 
 // packages/repository-knowledge/dist/projection-ignore.js
 import { lstat as lstat32, readFile as readFile20 } from "node:fs/promises";
@@ -77158,7 +77609,7 @@ function classifiedRootDestination(path, content3, taxonomy) {
   const protectedPaths = new Set(roles.map((role) => role.path).filter((rolePath2) => !rolePath2.includes("/")));
   if (path.includes("/") || protectedPaths.has(path) || ECOSYSTEM_ROOT_ENTRYPOINTS.has(path) || !/\.md$/iu.test(path))
     return null;
-  const rolePath = (roleId) => taxonomy.documentPolicy.roles.find((role) => role.roleId === roleId)?.path ?? null;
+  const rolePath = (roleId) => taxonomy.documentPolicy.roles.find((role) => role.roleId === roleId)?.path ?? conditionalDefaultDocumentRolePath(roleId);
   const stem = basename12(path, ".md").toUpperCase();
   const heading = /^#\s+(.+)$/mu.exec(content3)?.[1]?.trim().toLowerCase() ?? "";
   const visionPath = rolePath("product_vision");
@@ -77301,10 +77752,10 @@ async function normalizationOwnershipUpgradeOperations(root2) {
   });
   for (const path of paths) {
     const source = await readFile21(resolve47(root2, path), "utf8");
-    const value = (0, import_yaml24.parse)(source);
+    const value = (0, import_yaml25.parse)(source);
     if (value.schemaVersion !== 1)
       continue;
-    const content3 = (0, import_yaml24.stringify)({
+    const content3 = (0, import_yaml25.stringify)({
       ...value,
       schemaVersion: 2,
       byteOwnership: { owner: "reviewer", rewritePolicy: "reviewed_exact" }
@@ -77828,18 +78279,13 @@ async function createRepositoryLayoutMigrationPlan(input) {
   })() : [];
   const userUpdates = [...referenceUserUpdates, ...publicationIgnoreUserUpdates];
   const normalizationOwnershipOperations = await normalizationOwnershipUpgradeOperations(root2);
-  const taxonomyUpgradeOperation = decisionTaxonomyRequiresUpgrade((0, import_yaml24.parse)(taxonomySource)) ? [
-    {
-      path: ".lervo/knowledge/document-layout.yaml",
-      action: "update",
-      ownership: "lervo_generated",
-      mediaType: "application/yaml",
-      content: serializeDecisionTaxonomy(taxonomy),
-      expectedCurrentHash: sha2565(taxonomySource),
-      desiredHash: sha2565(serializeDecisionTaxonomy(taxonomy)),
-      reason: "upgrade_document_policy"
-    }
-  ] : [];
+  const scannedPaths = new Set(scan.sources.map((source) => source.path));
+  const taxonomyUpgradeOperation = planDecisionTaxonomyRefresh({
+    taxonomySource,
+    taxonomy,
+    pathExists: (path) => scannedPaths.has(path),
+    placedPaths: new Set(moves.map((move) => move.toPath))
+  });
   const structural = publicationIgnoreOperations.length > 0 || moves.length === 0 && userUpdates.length === 0 && normalizationOwnershipOperations.length === 0 && taxonomyUpgradeOperation.length === 0 ? null : await createKnowledgeMigrationPlanForScan({
     repositoryRoot: root2,
     scan: virtualScan,
@@ -77866,7 +78312,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     const currentRecord = bridge.operations.find((operation) => operation.path === bridge.bridgeRecordPath && operation.ownership !== "user");
     if (currentRecord === void 0 || currentRecord.action === "conflict")
       throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The instruction bridge record cannot be bound to the layout migration.");
-    const content3 = (0, import_yaml24.stringify)({
+    const content3 = (0, import_yaml25.stringify)({
       schemaVersion: 1,
       bridgeId: bridge.bridgeId,
       profile: {
@@ -78035,14 +78481,751 @@ async function applyRepositoryLayoutMigrationPlan(input) {
 }
 
 // packages/repository-knowledge/dist/lint-query.js
-import { lstat as lstat35, readFile as readFile23, readdir as readdir14 } from "node:fs/promises";
-import { relative as relative12, resolve as resolve49, sep as sep12 } from "node:path";
-var import_yaml25 = __toESM(require_dist(), 1);
+import { lstat as lstat37, readFile as readFile25, readdir as readdir14 } from "node:fs/promises";
+import { relative as relative12, resolve as resolve51, sep as sep12 } from "node:path";
+var import_yaml26 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-reference-lint.js
+import { lstat as lstat34, readFile as readFile22 } from "node:fs/promises";
+import { resolve as resolve48 } from "node:path";
+
+// packages/repository-knowledge/dist/document-references.js
+import { posix as posix10 } from "node:path";
+var MAXIMUM_DOCUMENT_REFERENCES = 512;
+var schemePattern = /^[A-Za-z][A-Za-z0-9+.-]*:/u;
+var fencePattern = /^\s{0,3}(`{3,}|~{3,})(.*)$/u;
+var inlineCodePattern = /(`+)([^`]+?)\1(?!`)/gu;
+var inlineLinkPattern = /!?\[(?:[^\]\\]|\\.)*\]\(\s*(<[^>]*>|[^)\s]+)(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/gu;
+var referenceDefinitionPattern = /^\s{0,3}\[[^\]]+\]:\s*(<[^>]*>|\S+)/u;
+var pathCharacters = /^[A-Za-z0-9_.][A-Za-z0-9_./+@-]*$/u;
+var symbolPattern = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/u;
+var extensionPattern = /\.[A-Za-z0-9]{1,10}$/u;
+function normalizedRepositoryPath(value) {
+  const normalized2 = posix10.normalize(value.replace(/^\.\//u, ""));
+  if (normalized2 === "." || normalized2 === "" || normalized2 === ".." || normalized2.startsWith("../") || normalized2.startsWith("/"))
+    return null;
+  return normalized2.replace(/\/$/u, "");
+}
+function linkTarget(documentPath2, raw) {
+  let target = raw.startsWith("<") && raw.endsWith(">") ? raw.slice(1, -1) : raw;
+  if (target === "" || target.startsWith("#") || target.startsWith("//"))
+    return null;
+  if (schemePattern.test(target))
+    return null;
+  target = target.replace(/[?#].*$/u, "");
+  if (target === "")
+    return null;
+  try {
+    target = decodeURIComponent(target);
+  } catch {
+    return null;
+  }
+  const joined = target.startsWith("/") ? target.slice(1) : posix10.join(posix10.dirname(documentPath2), target);
+  return normalizedRepositoryPath(joined);
+}
+function codePath(value) {
+  const candidate = value.replace(/:\d+(?::\d+)?$/u, "");
+  if (!candidate.includes("/") || candidate.startsWith("/") || candidate.startsWith("@") || candidate.includes("..") || candidate.includes("//") || !pathCharacters.test(candidate))
+    return null;
+  const directory = candidate.endsWith("/");
+  const target = normalizedRepositoryPath(candidate);
+  if (target === null)
+    return null;
+  const strong = directory || extensionPattern.test(target.split("/").at(-1) ?? "");
+  return { target, weak: !strong };
+}
+function inlineCodeReference(content3) {
+  const trimmed = content3.trim();
+  const symbolMatch = /^(\S+):\s?([^\s:]+)$/u.exec(trimmed);
+  if (symbolMatch !== null && symbolPattern.test(symbolMatch[2])) {
+    const path2 = codePath(symbolMatch[1]);
+    if (path2 !== null && !path2.weak)
+      return { kind: "code_symbol", target: path2.target, symbol: symbolMatch[2] };
+  }
+  const path = codePath(trimmed);
+  if (path === null)
+    return null;
+  return { kind: "code_path", target: path.target, ...path.weak ? { weak: true } : {} };
+}
+function fenceReference(info) {
+  const tokens = info.trim().split(/\s+/u).filter((token) => token !== "");
+  for (const [index2, token] of tokens.entries()) {
+    const named = /^(?:title|file|path)=["']?([^"']+)["']?$/u.exec(token)?.[1];
+    if (named === void 0 && index2 === 0)
+      continue;
+    const path = codePath(named ?? token);
+    if (path !== null && !path.weak)
+      return path.target;
+  }
+  return null;
+}
+function extractDocumentReferences(input) {
+  const references = /* @__PURE__ */ new Map();
+  const add = (reference) => {
+    if (references.size >= MAXIMUM_DOCUMENT_REFERENCES)
+      return;
+    const key3 = `${reference.kind}\0${reference.target}\0${reference.symbol ?? ""}`;
+    if (!references.has(key3))
+      references.set(key3, reference);
+  };
+  let fence = null;
+  const lines = input.content.split(/\r?\n/u);
+  for (let index2 = 0; index2 < lines.length; index2 += 1) {
+    const line = lines[index2];
+    const lineNumber = index2 + 1;
+    const fenceMatch = fencePattern.exec(line);
+    if (fence !== null) {
+      if (fenceMatch !== null && fenceMatch[1].startsWith(fence) && fenceMatch[2].trim() === "")
+        fence = null;
+      continue;
+    }
+    if (fenceMatch !== null) {
+      fence = fenceMatch[1];
+      const target = fenceReference(fenceMatch[2]);
+      if (target !== null)
+        add({ kind: "fence_path", target, line: lineNumber });
+      continue;
+    }
+    const withoutCode = line.replace(inlineCodePattern, (_match, _ticks, code) => {
+      const reference = inlineCodeReference(code);
+      if (reference !== null)
+        add({ ...reference, line: lineNumber });
+      return " ";
+    });
+    const definition2 = referenceDefinitionPattern.exec(withoutCode)?.[1];
+    if (definition2 !== void 0) {
+      const target = linkTarget(input.path, definition2);
+      if (target !== null)
+        add({ kind: "markdown_link", target, line: lineNumber });
+    }
+    for (const match of withoutCode.matchAll(inlineLinkPattern)) {
+      const target = linkTarget(input.path, match[1]);
+      if (target !== null)
+        add({ kind: "markdown_link", target, line: lineNumber });
+    }
+  }
+  return [...references.values()];
+}
+
+// packages/repository-knowledge/dist/document-reference-lint.js
+var referenceCheckedEntrypoints = ["README.md", "AGENTS.md", "CLAUDE.md"];
+var MAXIMUM_REFERENCE_FINDINGS_PER_CODE = 64;
+var MAXIMUM_SYMBOL_FILE_BYTES = 1024 * 1024;
+function currentMarkdownDocumentSources(scan, taxonomy) {
+  const scopes = archiveScopes(taxonomy);
+  return scan.sources.filter((source) => source.status === "included" && source.content !== void 0 && /\.mdx?$/iu.test(source.path) && historicalDocumentMarker({
+    path: source.path,
+    content: source.content,
+    archiveScopes: scopes
+  }) === null).sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
+}
+function repositoryPathOracle(root2, scan) {
+  const files = new Set(scan.sources.map((source) => source.path));
+  const directories = /* @__PURE__ */ new Set();
+  for (const path of files) {
+    const segments = path.split("/");
+    for (let index2 = 1; index2 < segments.length; index2 += 1)
+      directories.add(segments.slice(0, index2).join("/"));
+  }
+  const confirmed = /* @__PURE__ */ new Map();
+  return {
+    topLevel: (segment) => files.has(segment) || directories.has(segment),
+    exists(path) {
+      if (files.has(path) || directories.has(path))
+        return Promise.resolve(true);
+      let observation = confirmed.get(path);
+      if (observation === void 0) {
+        observation = lstat34(resolve48(root2, path)).then(() => true, () => false);
+        confirmed.set(path, observation);
+      }
+      return observation;
+    }
+  };
+}
+function referenceTargetIgnored(input) {
+  const publicationRoot = input.policy.publicationRoot.replace(/\/$/u, "");
+  return input.generatedPaths.has(input.target) || input.target === publicationRoot || input.target.startsWith(`${publicationRoot}/`) || input.target === ".lervo/state" || input.target.startsWith(".lervo/state/") || knowledgeIntakeDisposition(input.target, knowledgeIntakePolicy(input.policy)) === "generated";
+}
+var managedBegin = /^<!-- lervo:begin block=([a-z][a-z0-9_-]{0,99}) schema=\d+ -->$/u;
+function userOwnedProse(content3) {
+  let open33 = null;
+  return content3.split("\n").map((line) => {
+    const text6 = line.replace(/\r$/u, "");
+    if (open33 === null) {
+      open33 = managedBegin.exec(text6)?.[1] ?? null;
+      return open33 === null ? line : "";
+    }
+    if (text6 === `<!-- lervo:end block=${open33} -->`)
+      open33 = null;
+    return "";
+  }).join("\n");
+}
+async function symbolPresent(root2, path, symbol) {
+  try {
+    const target = resolve48(root2, path);
+    const stats = await lstat34(target);
+    if (!stats.isFile() || stats.size > MAXIMUM_SYMBOL_FILE_BYTES)
+      return null;
+    const name2 = symbol.split(".").at(-1).replace(/[$]/gu, "\\$");
+    return new RegExp(`(?<![A-Za-z0-9_$])${name2}(?![A-Za-z0-9_$])`, "u").test(await readFile22(target, "utf8"));
+  } catch {
+    return null;
+  }
+}
+async function roleIssues(input) {
+  const issues = [];
+  for (const role of input.taxonomy?.documentPolicy.roles ?? []) {
+    if (role.required || role.lifecycleOwner === "lervo")
+      continue;
+    const candidates = documentRoleCandidatePaths(role);
+    if ((await Promise.all(candidates.map((path) => input.exists(path)))).includes(true))
+      continue;
+    if (isConditionalDefaultDocumentRole(role))
+      continue;
+    issues.push({
+      code: "document_role_target_missing",
+      severity: "warning",
+      path: role.path,
+      target: role.path,
+      message: `The optional document role ${role.roleId} has no file at ${role.path} or its legacy aliases.`
+    });
+  }
+  return issues;
+}
+async function entrypointIssues(input) {
+  const issues = [];
+  for (const reference of input.references) {
+    if (reference.target === input.source.path || input.ignored(reference.target))
+      continue;
+    if (reference.weak && !input.oracle.topLevel(reference.target.split("/")[0]))
+      continue;
+    const present = await input.oracle.exists(reference.target);
+    if (!present) {
+      issues.push({
+        code: "entrypoint_reference_missing",
+        severity: "warning",
+        path: input.source.path,
+        target: reference.target,
+        reasons: ["path_missing"],
+        message: `Line ${reference.line} references ${reference.target}, which does not exist.`
+      });
+      continue;
+    }
+    if (reference.kind !== "code_symbol")
+      continue;
+    if (await symbolPresent(input.root, reference.target, reference.symbol) !== false)
+      continue;
+    issues.push({
+      code: "entrypoint_reference_missing",
+      severity: "warning",
+      path: input.source.path,
+      target: reference.target,
+      reasons: ["symbol_missing"],
+      message: `Line ${reference.line} references symbol ${reference.symbol} in ${reference.target}, which no longer contains it.`
+    });
+  }
+  return issues;
+}
+async function markdownLinkIssues(input) {
+  const issues = [];
+  for (const reference of input.references) {
+    if (reference.kind !== "markdown_link" || input.ignored(reference.target))
+      continue;
+    if (await input.oracle.exists(reference.target))
+      continue;
+    issues.push({
+      code: "markdown_link_target_missing",
+      severity: "warning",
+      path: input.source.path,
+      target: reference.target,
+      message: `Line ${reference.line} links to ${reference.target}, which does not exist.`
+    });
+  }
+  return issues;
+}
+function bounded(issues) {
+  const byCode = /* @__PURE__ */ new Map();
+  for (const issue of issues) {
+    const values = byCode.get(issue.code) ?? [];
+    values.push(issue);
+    byCode.set(issue.code, values);
+  }
+  const result = [];
+  for (const code of [...byCode.keys()].sort()) {
+    const values = byCode.get(code);
+    result.push(...values.slice(0, MAXIMUM_REFERENCE_FINDINGS_PER_CODE));
+    if (values.length > MAXIMUM_REFERENCE_FINDINGS_PER_CODE)
+      result.push({
+        code: "document_reference_findings_truncated",
+        severity: "warning",
+        path: ".",
+        reasons: [code],
+        message: `${values.length - MAXIMUM_REFERENCE_FINDINGS_PER_CODE} additional ${code} findings were omitted from this bounded report.`
+      });
+  }
+  return result;
+}
+async function lintDocumentReferences(input) {
+  const oracle = repositoryPathOracle(input.root, input.scan);
+  const ignored2 = (target) => referenceTargetIgnored({ target, policy: input.policy, generatedPaths: input.generatedPaths });
+  const issues = await roleIssues({
+    taxonomy: input.taxonomy,
+    exists: (path) => oracle.exists(path)
+  });
+  const entrypoints = new Set(referenceCheckedEntrypoints);
+  for (const source of currentMarkdownDocumentSources(input.scan, input.taxonomy)) {
+    if (entrypoints.has(source.path)) {
+      const references2 = extractDocumentReferences({
+        path: source.path,
+        content: userOwnedProse(source.content)
+      });
+      issues.push(...await entrypointIssues({ root: input.root, source, references: references2, oracle, ignored: ignored2 }));
+      continue;
+    }
+    const references = extractDocumentReferences({ path: source.path, content: source.content });
+    issues.push(...await markdownLinkIssues({ source, references, oracle, ignored: ignored2 }));
+  }
+  return bounded(issues.sort((left, right) => compare3(left.code, right.code) || compare3(left.path, right.path) || compare3(left.target ?? "", right.target ?? "") || compare3(left.message, right.message)));
+}
+function compare3(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+// packages/repository-knowledge/dist/document-staleness-git.js
+import { execFile as execFile3, spawn } from "node:child_process";
+import { promisify as promisify3 } from "node:util";
+var executeFile2 = promisify3(execFile3);
+var objectName = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u;
+var MAXIMUM_LOG_BYTES = 64 * 1024 * 1024;
+var MAXIMUM_LOOKUPS = 3e5;
+var DocumentStalenessGitUnavailable = class extends Error {
+  constructor(message, options) {
+    super(message, options);
+    this.name = "DocumentStalenessGitUnavailable";
+  }
+};
+var gitEnvironment = {
+  ...process.env,
+  GIT_OPTIONAL_LOCKS: "0",
+  GIT_TERMINAL_PROMPT: "0",
+  LC_ALL: "C"
+};
+function gitDocumentStalenessPort(repositoryRoot) {
+  const git8 = async (args, maxBuffer) => {
+    try {
+      const result = await executeFile2("git", args, {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+        env: gitEnvironment,
+        maxBuffer,
+        timeout: 6e4,
+        windowsHide: true
+      });
+      return result.stdout;
+    } catch (error) {
+      throw new DocumentStalenessGitUnavailable("Git history is unavailable.", { cause: error });
+    }
+  };
+  return {
+    async headRevision() {
+      const output = (await git8(["rev-parse", "--verify", "HEAD^{commit}"], 1024)).trim();
+      if (!objectName.test(output))
+        throw new DocumentStalenessGitUnavailable("HEAD is not a commit.");
+      return output;
+    },
+    async latestPathRevisions(pathspecs) {
+      const output = await git8([
+        "log",
+        "--first-parent",
+        "--diff-merges=first-parent",
+        "--name-only",
+        "--no-renames",
+        "-z",
+        "--format=%x01%H %cI",
+        "--",
+        ...pathspecs
+      ], MAXIMUM_LOG_BYTES);
+      const latest = /* @__PURE__ */ new Map();
+      let order = 0;
+      for (const record4 of output.split("").slice(1)) {
+        const [header, ...names] = record4.split("\0");
+        const [revision, committedAt] = (header ?? "").split(" ");
+        if (revision === void 0 || committedAt === void 0 || !objectName.test(revision))
+          throw new DocumentStalenessGitUnavailable("Git log output is malformed.");
+        for (const path of names) {
+          const name2 = path.replace(/^\n/u, "");
+          if (name2 !== "" && !latest.has(name2))
+            latest.set(name2, { revision, committedAt, order });
+        }
+        order += 1;
+      }
+      return latest;
+    },
+    objectNames(lookups) {
+      if (lookups.length > MAXIMUM_LOOKUPS)
+        return Promise.reject(new DocumentStalenessGitUnavailable("Too many object lookups."));
+      return new Promise((resolvePromise, reject) => {
+        const child = spawn("git", ["cat-file", "--batch-check=%(objectname)"], {
+          cwd: repositoryRoot,
+          env: gitEnvironment,
+          windowsHide: true
+        });
+        let stdout = "";
+        child.stdout.setEncoding("utf8");
+        child.stdout.on("data", (chunk) => {
+          stdout += chunk;
+        });
+        child.on("error", (error) => reject(new DocumentStalenessGitUnavailable("Git is unavailable.", { cause: error })));
+        child.on("close", (code) => {
+          const lines = stdout.split("\n").slice(0, lookups.length);
+          if (code !== 0 || lines.length !== lookups.length) {
+            reject(new DocumentStalenessGitUnavailable("Git object lookup failed."));
+            return;
+          }
+          resolvePromise(new Map(lookups.map((lookup, index2) => {
+            const line = lines[index2].trim();
+            return [lookup, objectName.test(line) ? line : null];
+          })));
+        });
+        child.stdin.end(lookups.map((lookup) => `${lookup}
+`).join(""));
+      });
+    }
+  };
+}
+
+// packages/repository-knowledge/dist/document-staleness-state.js
+import { randomUUID as randomUUID7 } from "node:crypto";
+import { lstat as lstat35, mkdir as mkdir14, readFile as readFile23, rename as rename9, rm as rm11, writeFile as writeFile4 } from "node:fs/promises";
+import { dirname as dirname14, resolve as resolve49 } from "node:path";
+
+// packages/repository-knowledge/dist/document-staleness-evaluation.js
+var DOCUMENT_STALENESS_EVALUATOR = "lervo.document-staleness.v1";
+var INFERRED_REVIEW_INTERVAL_DAYS = 365;
+var MAXIMUM_CONNECTED_PATHS = 32;
+var MAXIMUM_REPORTED_DOCUMENTS = 256;
+var MAXIMUM_EVALUATED_DOCUMENTS = 4096;
+function compare4(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+function inferConnectedPathCandidates(input) {
+  const candidates = /* @__PURE__ */ new Set();
+  for (const reference of extractDocumentReferences(input)) {
+    const target = reference.target;
+    if (target === input.path || input.path.startsWith(`${target}/`) || /\.mdx?$/iu.test(target) || input.ignored(target) || reference.weak === true && !input.topLevel(target.split("/")[0]))
+      continue;
+    candidates.add(target);
+  }
+  return [...candidates].sort(compare4).slice(0, MAXIMUM_CONNECTED_PATHS);
+}
+function inferredManifest(input) {
+  return {
+    schemaVersion: 1,
+    documentId: stableId("doc", { path: input.path }),
+    record: {
+      path: input.path,
+      kind: "canonical",
+      responsibleParty: { kind: "team", id: "repository" },
+      connectedPaths: input.connectedPaths,
+      verifiedRevision: input.verifiedRevision,
+      verifiedAt: input.verifiedAt,
+      reviewIntervalDays: INFERRED_REVIEW_INTERVAL_DAYS,
+      ownership: { mode: "user" }
+    },
+    contentPolicy: {
+      mode: "user_managed",
+      mediaType: "text/markdown; charset=utf-8",
+      profileId: "lervo.inferred-staleness/v1",
+      locale: "en",
+      audience: "mixed",
+      metadataPlacement: "sidecar",
+      historyMode: "separate_documents",
+      splitStrategy: "topic_documents",
+      automaticWrites: false,
+      splitRecommendedAtBytes: 32768,
+      oversizeReviewAtBytes: 65536,
+      overflowAction: "report_split_recommended"
+    },
+    relations: { supersedesDocumentIds: [], relatedDocumentIds: [] }
+  };
+}
+function snapshot(revision, paths, objects) {
+  const files = {};
+  for (const path of paths) {
+    const object3 = objects.get(`${revision}:${path}`);
+    if (object3 !== null && object3 !== void 0)
+      files[path] = sha2565(object3);
+  }
+  return { revision, files };
+}
+function emptyReport(status, now, documents) {
+  return {
+    schemaVersion: 1,
+    kind: "document_staleness.report",
+    evaluator: DOCUMENT_STALENESS_EVALUATOR,
+    status,
+    currentRevision: null,
+    evaluatedAt: now.toISOString(),
+    counts: { documents, evaluated: 0, current: 0, stale: 0, unknown: 0, unevaluated: documents },
+    stale: [],
+    unknown: [],
+    truncated: { stale: 0, unknown: 0 }
+  };
+}
+async function evaluateRepositoryDocumentStaleness(input) {
+  const documents = [...input.documents].sort((left, right) => compare4(left.path, right.path)).slice(0, MAXIMUM_EVALUATED_DOCUMENTS);
+  let head;
+  let history;
+  try {
+    head = await input.git.headRevision();
+    history = await input.git.latestPathRevisions([
+      "*.md",
+      "*.mdx",
+      ".lervo/knowledge/document-normalizations"
+    ]);
+  } catch {
+    return emptyReport("unavailable", input.now, documents.length);
+  }
+  const recordsByOutput = /* @__PURE__ */ new Map();
+  for (const record4 of input.normalizationRecords)
+    for (const output of record4.outputPaths)
+      recordsByOutput.set(output, [...recordsByOutput.get(output) ?? [], record4.path]);
+  const plans = documents.map((document4) => {
+    const changes = [document4.path, ...recordsByOutput.get(document4.path) ?? []].map((path) => history.get(path)).filter((change) => change !== void 0).sort((left, right) => left.order - right.order);
+    return {
+      path: document4.path,
+      verified: changes[0] ?? null,
+      candidates: inferConnectedPathCandidates({
+        path: document4.path,
+        content: document4.content,
+        ignored: input.ignored,
+        topLevel: input.topLevel
+      })
+    };
+  });
+  const lookups = /* @__PURE__ */ new Set();
+  for (const plan2 of plans) {
+    if (plan2.verified === null || plan2.candidates.length === 0)
+      continue;
+    for (const path of [plan2.path, ...plan2.candidates]) {
+      lookups.add(`${head}:${path}`);
+      lookups.add(`${plan2.verified.revision}:${path}`);
+    }
+  }
+  let objects;
+  try {
+    objects = await input.git.objectNames([...lookups].sort(compare4));
+  } catch {
+    return emptyReport("unavailable", input.now, documents.length);
+  }
+  const findings = [];
+  let unevaluated = 0;
+  for (const plan2 of plans) {
+    if (plan2.verified === null) {
+      unevaluated += 1;
+      continue;
+    }
+    const verified = plan2.verified;
+    const connectedPaths = plan2.candidates.filter((path) => (objects.get(`${head}:${path}`) ?? null) !== null || (objects.get(`${verified.revision}:${path}`) ?? null) !== null);
+    if (connectedPaths.length === 0) {
+      unevaluated += 1;
+      continue;
+    }
+    const paths = [plan2.path, ...connectedPaths];
+    try {
+      const verifiedAt = new Date(verified.committedAt);
+      const evaluatedAt = input.now < verifiedAt ? verifiedAt : input.now;
+      const result = evaluateDocumentStaleness({
+        manifest: inferredManifest({
+          path: plan2.path,
+          connectedPaths,
+          verifiedRevision: verified.revision,
+          verifiedAt: verifiedAt.toISOString()
+        }),
+        evaluatedAt: evaluatedAt.toISOString(),
+        currentSnapshot: snapshot(head, paths, objects),
+        ...verified.revision === head ? {} : { verifiedSnapshot: snapshot(verified.revision, paths, objects) }
+      });
+      findings.push({
+        path: plan2.path,
+        status: result.status,
+        verifiedRevision: verified.revision,
+        reasons: [...result.reasons],
+        connectedPaths,
+        changedPaths: [...result.signals.connectedPaths.changedPaths]
+      });
+    } catch {
+      findings.push({
+        path: plan2.path,
+        status: "unknown",
+        verifiedRevision: verified.revision,
+        reasons: ["staleness_evidence_inconsistent"],
+        connectedPaths,
+        changedPaths: []
+      });
+    }
+  }
+  const stale = findings.filter((finding) => finding.status === "stale");
+  const unknown = findings.filter((finding) => finding.status === "unknown");
+  return {
+    schemaVersion: 1,
+    kind: "document_staleness.report",
+    evaluator: DOCUMENT_STALENESS_EVALUATOR,
+    status: "observed",
+    currentRevision: head,
+    evaluatedAt: input.now.toISOString(),
+    counts: {
+      documents: documents.length,
+      evaluated: findings.length,
+      current: findings.length - stale.length - unknown.length,
+      stale: stale.length,
+      unknown: unknown.length,
+      unevaluated
+    },
+    stale: stale.slice(0, MAXIMUM_REPORTED_DOCUMENTS),
+    unknown: unknown.slice(0, MAXIMUM_REPORTED_DOCUMENTS),
+    truncated: {
+      stale: Math.max(0, stale.length - MAXIMUM_REPORTED_DOCUMENTS),
+      unknown: Math.max(0, unknown.length - MAXIMUM_REPORTED_DOCUMENTS)
+    }
+  };
+}
+
+// packages/repository-knowledge/dist/document-staleness-state.js
+var documentStalenessStatePath = ".lervo/state/knowledge/document-staleness.json";
+var MAXIMUM_STATE_BYTES2 = 4 * 1024 * 1024;
+function observationCoordinate(input) {
+  return sha2565(canonicalJson4({
+    evaluator: DOCUMENT_STALENESS_EVALUATOR,
+    head: input.head,
+    // The review-interval signal depends on the UTC evaluation day.
+    day: input.now.toISOString().slice(0, 10),
+    documents: input.documents.map((document4) => [document4.path, sha2565(document4.content)]),
+    normalizationRecords: input.normalizationRecords.map((record4) => [
+      record4.path,
+      [...record4.outputPaths].sort()
+    ])
+  }));
+}
+async function readState(root2) {
+  const path = resolve49(root2, documentStalenessStatePath);
+  try {
+    const stats = await lstat35(path);
+    if (!stats.isFile() || stats.size > MAXIMUM_STATE_BYTES2)
+      return null;
+    const value = JSON.parse(await readFile23(path, "utf8"));
+    if (value.schemaVersion !== 1 || typeof value.coordinate !== "string" || value.report?.kind !== "document_staleness.report" || value.report.evaluator !== DOCUMENT_STALENESS_EVALUATOR)
+      return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
+async function writeState(root2, state2) {
+  const path = resolve49(root2, documentStalenessStatePath);
+  const temporary = `${path}.${randomUUID7()}.tmp`;
+  await mkdir14(dirname14(path), { recursive: true });
+  try {
+    await writeFile4(temporary, `${JSON.stringify(state2)}
+`, { flag: "wx" });
+    await rename9(temporary, path);
+  } finally {
+    await rm11(temporary, { force: true });
+  }
+}
+async function observeRepositoryDocumentStaleness(input) {
+  const head = await input.git.headRevision().catch(() => null);
+  const coordinate = head === null ? null : observationCoordinate({
+    head,
+    now: input.now,
+    documents: input.documents,
+    normalizationRecords: input.normalizationRecords
+  });
+  if (coordinate !== null) {
+    const state2 = await readState(input.root);
+    if (state2?.coordinate === coordinate)
+      return state2.report;
+  }
+  const report = await evaluateRepositoryDocumentStaleness(input);
+  if (input.mode === "evaluate_and_record" && coordinate !== null && report.status === "observed")
+    await writeState(input.root, { schemaVersion: 1, coordinate, report }).catch(() => void 0);
+  return report;
+}
+
+// packages/repository-knowledge/dist/document-drift-lint.js
+var MAXIMUM_LISTED_CHANGED_PATHS = 5;
+function staleIssue(finding) {
+  const listed = finding.changedPaths.slice(0, MAXIMUM_LISTED_CHANGED_PATHS);
+  const more = finding.changedPaths.length - listed.length;
+  const changed = listed.length === 0 ? "" : ` Changed connected paths: ${listed.join(", ")}${more > 0 ? ` and ${more} more` : ""}.`;
+  return {
+    code: "document_stale",
+    severity: "warning",
+    path: finding.path,
+    ...listed[0] === void 0 ? {} : { target: listed[0] },
+    reasons: finding.reasons,
+    message: `The document is stale against its verified revision ${finding.verifiedRevision?.slice(0, 12) ?? "unknown"} (${finding.reasons.join(", ")}).${changed}`
+  };
+}
+function documentStalenessLintIssues(report) {
+  if (report.status !== "observed")
+    return [];
+  const issues = report.stale.slice(0, MAXIMUM_REFERENCE_FINDINGS_PER_CODE).map(staleIssue);
+  const omitted = report.counts.stale - issues.length;
+  if (omitted > 0)
+    issues.push({
+      code: "document_reference_findings_truncated",
+      severity: "warning",
+      path: ".",
+      reasons: ["document_stale"],
+      message: `${omitted} additional document_stale findings were omitted from this bounded report.`
+    });
+  if (report.counts.unknown > 0)
+    issues.push({
+      code: "document_staleness_unknown",
+      severity: "warning",
+      path: ".",
+      reasons: [...new Set(report.unknown.flatMap((finding) => finding.reasons))].sort(),
+      message: `${report.counts.unknown} documents with connected paths have unknown staleness; unknown is not current.`
+    });
+  return issues;
+}
+async function lintDocumentDrift(input) {
+  const issues = await lintDocumentReferences(input);
+  if (input.staleness === "skip")
+    return { issues, documentStaleness: void 0 };
+  const oracle = repositoryPathOracle(input.root, input.scan);
+  const report = await observeRepositoryDocumentStaleness({
+    root: input.root,
+    mode: input.staleness,
+    documents: currentMarkdownDocumentSources(input.scan, input.taxonomy).map((source) => ({
+      path: source.path,
+      content: source.content
+    })),
+    normalizationRecords: input.normalizationRecords,
+    ignored: (target) => referenceTargetIgnored({
+      target,
+      policy: input.policy,
+      generatedPaths: input.generatedPaths
+    }),
+    topLevel: oracle.topLevel,
+    git: gitDocumentStalenessPort(input.root),
+    now: input.now ?? /* @__PURE__ */ new Date()
+  });
+  return {
+    issues: [...issues, ...documentStalenessLintIssues(report)],
+    documentStaleness: {
+      status: report.status,
+      currentRevision: report.currentRevision,
+      ...report.counts
+    }
+  };
+}
 
 // packages/repository-knowledge/dist/repository-publication-files.js
 import { constants as constants19 } from "node:fs";
-import { lstat as lstat34, open as open20, readFile as readFile22 } from "node:fs/promises";
-import { relative as relative11, resolve as resolve48, sep as sep11 } from "node:path";
+import { lstat as lstat36, open as open20, readFile as readFile24 } from "node:fs/promises";
+import { relative as relative11, resolve as resolve50, sep as sep11 } from "node:path";
 async function generatedKnowledgePaths(root2) {
   const result = /* @__PURE__ */ new Set();
   const groups = [
@@ -78057,7 +79240,7 @@ async function generatedKnowledgePaths(root2) {
   for (const paths of groups) {
     for (const path of paths) {
       try {
-        const value = JSON.parse(await readFile22(resolve48(root2, path), "utf8"));
+        const value = JSON.parse(await readFile24(resolve50(root2, path), "utf8"));
         for (const output of value.outputs ?? [])
           if (typeof output.path === "string")
             result.add(output.path);
@@ -78068,7 +79251,7 @@ async function generatedKnowledgePaths(root2) {
   return result;
 }
 function safePublicationPath(root2, path) {
-  const target = resolve48(root2, path);
+  const target = resolve50(root2, path);
   const fromRoot = relative11(root2, target);
   return fromRoot === ".." || fromRoot.startsWith(`..${sep11}`) ? null : target;
 }
@@ -78078,13 +79261,13 @@ async function readSafePublication(root2, path, maximumBytes2) {
     return null;
   let current = root2;
   try {
-    const rootStats = await lstat34(root2);
+    const rootStats = await lstat36(root2);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
       return null;
     const segments = relative11(root2, target).split(sep11);
     for (const [index2, segment] of segments.entries()) {
-      current = resolve48(current, segment);
-      const stats = await lstat34(current);
+      current = resolve50(current, segment);
+      const stats = await lstat36(current);
       if (stats.isSymbolicLink())
         return null;
       if (index2 === segments.length - 1 ? !stats.isFile() : !stats.isDirectory())
@@ -78125,7 +79308,7 @@ async function lintSemanticManifests(root2, issues) {
   for (const path of paths) {
     let outputs;
     try {
-      const value = JSON.parse(await readFile23(resolve49(root2, path), "utf8"));
+      const value = JSON.parse(await readFile25(resolve51(root2, path), "utf8"));
       if (value.kind !== "semantic" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
         throw new Error();
       outputs = value.outputs;
@@ -78143,8 +79326,8 @@ async function lintSemanticManifests(root2, issues) {
       try {
         if (target === null)
           throw new Error();
-        const stats = await lstat35(target);
-        if (!stats.isFile() || stats.isSymbolicLink() || sha2565(await readFile23(target)) !== output.contentHash)
+        const stats = await lstat37(target);
+        if (!stats.isFile() || stats.isSymbolicLink() || sha2565(await readFile25(target)) !== output.contentHash)
           throw new Error();
       } catch {
         issues.push({
@@ -78191,7 +79374,7 @@ async function lintInstructionBridgeRecords(root2, projectId, issues) {
     }
     let value;
     try {
-      value = (0, import_yaml25.parse)(new TextDecoder("utf-8", { fatal: true }).decode(recordBytes));
+      value = (0, import_yaml26.parse)(new TextDecoder("utf-8", { fatal: true }).decode(recordBytes));
       const expectedId = stableId("kbridge", {
         projectId,
         provider: "claude",
@@ -78250,14 +79433,14 @@ async function lintRepositoryLayout(root2, issues) {
   const decisionPaths = [];
   for (const directory of [taxonomy.decisionRoot, ...taxonomy.legacyRoots]) {
     try {
-      const entries = await readdir14(resolve49(root2, directory), {
+      const entries = await readdir14(resolve51(root2, directory), {
         withFileTypes: true,
         recursive: true
       });
       for (const entry of entries) {
         if (!entry.isFile() || !/^\d{4}-.+\.md$/u.test(entry.name))
           continue;
-        decisionPaths.push(relative12(root2, resolve49(entry.parentPath, entry.name)).split(sep12).join("/"));
+        decisionPaths.push(relative12(root2, resolve51(entry.parentPath, entry.name)).split(sep12).join("/"));
       }
     } catch {
     }
@@ -78314,7 +79497,7 @@ async function lintRepositoryLayout(root2, issues) {
   }
 }
 async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
-  const root2 = resolve49(repositoryRoot);
+  const root2 = resolve51(repositoryRoot);
   await assertNoKnowledgeMaterializationTransaction({
     repositoryRoot: root2,
     ...options?.allowTransactionPlanId === void 0 ? {} : { allowedPlanId: options.allowTransactionPlanId }
@@ -78338,12 +79521,12 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
   let manifestFound = false;
   for (const path of [structuralManifestPath, legacyStructuralManifestPath]) {
     try {
-      const stats = await lstat35(resolve49(root2, path));
+      const stats = await lstat37(resolve51(root2, path));
       if (!stats.isFile() || stats.isSymbolicLink())
         throw new Error();
       manifestFound = true;
       try {
-        const value = JSON.parse(await readFile23(resolve49(root2, path), "utf8"));
+        const value = JSON.parse(await readFile25(resolve51(root2, path), "utf8"));
         if (typeof value.sourceSnapshotId !== "string" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
           throw new Error();
         manifests.push(value);
@@ -78431,8 +79614,8 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
         continue;
       }
       try {
-        const stats = await lstat35(target);
-        const bytes2 = await readFile23(target);
+        const stats = await lstat37(target);
+        const bytes2 = await readFile25(target);
         if (!stats.isFile() || stats.isSymbolicLink() || sha2565(bytes2) !== output.contentHash)
           throw new Error();
         const publicationPrefix = `${policy.publicationRoot.replace(/\/$/u, "")}/`;
@@ -78465,6 +79648,17 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
       }
     }
   }
+  const drift = await lintDocumentDrift({
+    root: root2,
+    scan,
+    policy,
+    generatedPaths: generated2,
+    taxonomy: await loadDecisionTaxonomy(root2).catch(() => null),
+    normalizationRecords: normalization.records,
+    // Transaction-bound stage checks compare errors only; staleness reads committed history.
+    staleness: options.allowTransactionPlanId !== void 0 ? "skip" : options.documentStaleness ?? "evaluate"
+  });
+  issues.push(...drift.issues);
   const currentUnitVersions = new Set(scan.units.map((unit2) => unit2.unitVersionId));
   const concepts = await loadStoredConcepts(root2);
   const claims = await loadStoredClaims(root2);
@@ -78506,7 +79700,7 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
       continue;
     }
     try {
-      const stats = await lstat35(publication);
+      const stats = await lstat37(publication);
       if (!stats.isFile() || stats.isSymbolicLink())
         throw new Error();
     } catch {
@@ -78599,7 +79793,8 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
     repositoryRoot: root2,
     valid: issues.every((issue) => issue.severity !== "error"),
     checkedConcepts: concepts.filter((item) => item.value !== null).length,
-    issues
+    issues,
+    ...drift.documentStaleness === void 0 ? {} : { documentStaleness: drift.documentStaleness }
   };
 }
 
@@ -78617,7 +79812,9 @@ async function inspectRepositoryKnowledgeCurrency(repositoryRoot, options = {}) 
   ]);
   const lint = await lintRepositoryKnowledge(repositoryRoot, {
     ...shared,
-    preparedNormalization: normalization
+    preparedNormalization: normalization,
+    // The background knowledge pass owns the rebuildable document staleness projection.
+    documentStaleness: "evaluate_and_record"
   });
   const reasons = [];
   if (bootstrap.status !== "not_applicable")
@@ -78645,11 +79842,56 @@ async function inspectRepositoryKnowledgeCurrency(repositoryRoot, options = {}) 
   };
 }
 
+// packages/repository-knowledge/dist/document-drift-attention.js
+var documentDriftAttentionCodes = [
+  "entrypoint_reference_missing",
+  "document_stale",
+  "markdown_link_target_missing",
+  "document_role_target_missing",
+  "document_staleness_unknown",
+  "document_reference_findings_truncated"
+];
+var MAXIMUM_DOCUMENT_DRIFT_ATTENTION_ITEMS = 16;
+var attentionCodes = new Set(documentDriftAttentionCodes);
+var MAXIMUM_DETAIL_CHARACTERS = 300;
+function detail(issue) {
+  const parts = [
+    `path=${issue.path}`,
+    ...issue.target === void 0 ? [] : [`target=${issue.target}`],
+    ...issue.reasons === void 0 || issue.reasons.length === 0 ? [] : [`reasons=${issue.reasons.join(",")}`]
+  ];
+  return parts.join(" ").slice(0, MAXIMUM_DETAIL_CHARACTERS);
+}
+function documentDriftAttentionIssues(lint, maximumItems = MAXIMUM_DOCUMENT_DRIFT_ATTENTION_ITEMS) {
+  const bound = Math.max(1, Math.min(maximumItems, MAXIMUM_DOCUMENT_DRIFT_ATTENTION_ITEMS));
+  const relevant = lint.issues.filter((issue) => attentionCodes.has(issue.code));
+  const queues = documentDriftAttentionCodes.map((code) => relevant.filter((issue) => issue.code === code));
+  const selected = [];
+  for (let round = 0; selected.length < bound; round += 1) {
+    const layer = queues.flatMap((queue) => queue.slice(round, round + 1));
+    if (layer.length === 0)
+      break;
+    selected.push(...layer.slice(0, bound - selected.length));
+  }
+  const items = selected.map((issue) => ({
+    code: issue.code,
+    command: "lervo knowledge lint --json",
+    detail: detail(issue)
+  }));
+  if (relevant.length > items.length)
+    items.push({
+      code: "document_drift_attention_truncated",
+      command: "lervo knowledge lint --json",
+      detail: `omitted=${relevant.length - items.length}`
+    });
+  return items;
+}
+
 // packages/repository-knowledge/dist/public-readme.js
 var MAXIMUM_README_BYTES = 256 * 1024;
 
 // packages/repository-knowledge/dist/query.js
-import { resolve as resolve50 } from "node:path";
+import { resolve as resolve52 } from "node:path";
 
 // packages/repository-knowledge/dist/relation-query.js
 var KNOWLEDGE_RELATION_LIMITS = {
@@ -78762,7 +80004,7 @@ var RepositoryKnowledgeQueryIndex = class _RepositoryKnowledgeQueryIndex {
     this.data = data;
   }
   static async prepare(input) {
-    const root2 = resolve50(input.repositoryRoot);
+    const root2 = resolve52(input.repositoryRoot);
     await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root2 });
     const project2 = await loadProjectManifest(root2);
     const policy = await loadRepositoryKnowledgePolicy(root2);
@@ -78787,6 +80029,7 @@ var RepositoryKnowledgeQueryIndex = class _RepositoryKnowledgeQueryIndex {
       values.push(stored.value);
       claimsByConcept.set(stored.value.conceptId, values);
     }
+    const archiveScopePaths = archiveScopes(await loadDecisionTaxonomy(root2).catch(() => null));
     const storedConcepts = await loadStoredConcepts(root2);
     const storedRelations = await loadStoredRelations(root2);
     const entries = [];
@@ -78831,7 +80074,12 @@ ${linkedClaims.map((claim) => claim.statement).join("\n")}`;
         titleTerms: textTerms(concept.title),
         pathTerms: textTerms(concept.path),
         bodyTerms: textTerms(searchText),
-        searchText
+        searchText,
+        historical: concept.ownership === "user" && historicalDocumentMarker({
+          path: concept.path,
+          content: content3,
+          archiveScopes: archiveScopePaths
+        }) !== null
       });
     }
     const conceptSidecarSetHash = sha2565(JSON.stringify(await Promise.all(storedConcepts.map(async (stored) => {
@@ -78847,7 +80095,12 @@ ${linkedClaims.map((claim) => claim.statement).join("\n")}`;
       title: entry.hit.title,
       path: entry.hit.path,
       contentHash: entry.hit.contentHash,
-      labels: [entry.hit.ownership, entry.hit.assurance, entry.hit.freshness],
+      labels: [
+        entry.hit.ownership,
+        entry.hit.assurance,
+        entry.hit.freshness,
+        ...entry.historical ? ["historical"] : []
+      ],
       text: entry.searchText
     })));
     return new _RepositoryKnowledgeQueryIndex({
@@ -78864,16 +80117,21 @@ ${linkedClaims.map((claim) => claim.statement).join("\n")}`;
   query(input) {
     const rankedHits = [];
     const queryTerms = terms(input.query);
+    const includeHistorical = queryTargetsHistory(input.query);
+    const eligible = (entry) => includeHistorical || !entry.historical;
+    const historicalLabel = (entry) => entry.historical ? { historical: true } : {};
     const toHit = (entry, score) => ({
       ...entry.hit,
+      ...historicalLabel(entry),
       score,
       matchedTerms: queryTerms.filter((term) => hasLexicalTerm(entry.titleTerms, term) || hasLexicalTerm(entry.pathTerms, term) || hasLexicalTerm(entry.bodyTerms, term))
     });
     if (this.data.ranker !== void 0) {
       const byConcept = new Map(this.data.entries.map((entry) => [entry.hit.conceptId, entry]));
+      const withheld = this.data.entries.filter((entry) => !eligible(entry)).length;
       const ranked = this.data.ranker.rank({
         query: input.query,
-        limit: input.limit ?? 20
+        limit: (input.limit ?? 20) + withheld
       });
       const observed = /* @__PURE__ */ new Set();
       for (const item of ranked) {
@@ -78882,15 +80140,18 @@ ${linkedClaims.map((claim) => claim.statement).join("\n")}`;
           throw new TypeError("The repository knowledge ranker returned an invalid result.");
         }
         observed.add(item.conceptId);
-        rankedHits.push(toHit(entry, item.score));
+        if (eligible(entry) && rankedHits.length < (input.limit ?? 20))
+          rankedHits.push(toHit(entry, item.score));
       }
     } else {
       for (const entry of this.data.entries) {
+        if (!eligible(entry))
+          continue;
         const matchedTerms = queryTerms.filter((term) => hasLexicalTerm(entry.titleTerms, term) || hasLexicalTerm(entry.pathTerms, term) || hasLexicalTerm(entry.bodyTerms, term));
         if (matchedTerms.length === 0)
           continue;
         const score = matchedTerms.reduce((total, term) => total + (hasLexicalTerm(entry.titleTerms, term) ? 8 : 0) + (hasLexicalTerm(entry.pathTerms, term) ? 4 : 0) + (hasLexicalTerm(entry.bodyTerms, term) ? 1 : 0), 0);
-        rankedHits.push({ ...entry.hit, score, matchedTerms });
+        rankedHits.push({ ...entry.hit, ...historicalLabel(entry), score, matchedTerms });
       }
     }
     const selectedHits = this.data.ranker === void 0 ? rankedHits.sort((left, right) => right.score - left.score || left.path.localeCompare(right.path)).filter((hit) => hit.score >= Math.max(1, Math.ceil((rankedHits[0]?.score ?? 0) / 10))).slice(0, input.limit ?? 20) : rankedHits;
@@ -78934,10 +80195,10 @@ async function queryRepositoryKnowledge(input) {
 }
 
 // packages/repository-knowledge/dist/reconciliation-review.js
-var import_yaml26 = __toESM(require_dist(), 1);
+var import_yaml27 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-change-source.js
-import { spawn } from "node:child_process";
+import { spawn as spawn2 } from "node:child_process";
 import { createHash as createHash29 } from "node:crypto";
 var REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION = "knowledge:repository";
 var MAXIMUM_REPOSITORY_CHANGE_PUBLISHED_PATHS = 64;
@@ -79022,7 +80283,7 @@ function gitIgnoredPaths(root2, paths) {
   if (paths.length === 0)
     return Promise.resolve(/* @__PURE__ */ new Set());
   return new Promise((settle) => {
-    const child = spawn("git", ["check-ignore", "-z", "--stdin"], {
+    const child = spawn2("git", ["check-ignore", "-z", "--stdin"], {
       cwd: root2,
       stdio: ["pipe", "pipe", "ignore"]
     });
@@ -79052,11 +80313,11 @@ async function planRepositoryChangeInRepository(input) {
 }
 
 // packages/repository-knowledge/dist/repository-knowledge-review-source.js
-import { execFile as execFile3 } from "node:child_process";
+import { execFile as execFile4 } from "node:child_process";
 import { createHash as createHash30 } from "node:crypto";
 import { constants as constants20, closeSync, fstatSync, lstatSync, openSync, readSync } from "node:fs";
-import { resolve as resolve51 } from "node:path";
-import { promisify as promisify3 } from "node:util";
+import { resolve as resolve53 } from "node:path";
+import { promisify as promisify4 } from "node:util";
 
 // packages/repository-knowledge/dist/repository-knowledge-worker-contract.js
 var RepositoryKnowledgeReviewError = class extends Error {
@@ -79154,7 +80415,7 @@ async function readManifest(artifacts, delivery) {
 }
 
 // packages/repository-knowledge/dist/repository-knowledge-review-source.js
-var run = promisify3(execFile3);
+var run = promisify4(execFile4);
 var MAXIMUM_REVIEW_FILE_BYTES = 256 * 1024;
 var MAXIMUM_SUB_JOB_PATHS = 64;
 var MAXIMUM_SUB_JOB_BYTES = 256 * 1024;
@@ -79168,9 +80429,9 @@ function generated(entry, intake) {
 function openCurrent(root2, path) {
   if (!safeRepositoryPath3(path))
     invalid9();
-  let target = resolve51(root2);
+  let target = resolve53(root2);
   for (const part of path.split("/")) {
-    target = resolve51(target, part);
+    target = resolve53(target, part);
     try {
       if (lstatSync(target).isSymbolicLink())
         invalid9();
@@ -79294,8 +80555,8 @@ function partitionReviewSubJobs(sources) {
 }
 
 // packages/repository-knowledge/dist/repository-knowledge-requeue.js
-import { mkdir as mkdir14, readFile as readFile24, rename as rename9, writeFile as writeFile4 } from "node:fs/promises";
-import { dirname as dirname14, resolve as resolve52 } from "node:path";
+import { mkdir as mkdir15, readFile as readFile26, rename as rename10, writeFile as writeFile5 } from "node:fs/promises";
+import { dirname as dirname15, resolve as resolve54 } from "node:path";
 var REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION = "knowledge:repository:requeue";
 var INTAKE_REQUEUE_FAILURE_CODES = /* @__PURE__ */ new Set([
   "review_source_limit_exceeded",
@@ -79314,7 +80575,7 @@ var PAGE_SIZE = 1e3;
 async function readCursor(root2, events) {
   let cursor;
   try {
-    cursor = JSON.parse(await readFile24(resolve52(root2, CURSOR_PATH), "utf8"));
+    cursor = JSON.parse(await readFile26(resolve54(root2, CURSOR_PATH), "utf8"));
   } catch {
     return 0;
   }
@@ -79324,14 +80585,14 @@ async function readCursor(root2, events) {
   return event !== void 0 && event.seq === cursor.seq && event.eventHash === cursor.eventHash ? event.seq : 0;
 }
 async function writeCursor(root2, cursor) {
-  const path = resolve52(root2, CURSOR_PATH);
-  await mkdir14(dirname14(path), { recursive: true });
+  const path = resolve54(root2, CURSOR_PATH);
+  await mkdir15(dirname15(path), { recursive: true });
   const temporary = `${path}.${process.pid}.tmp`;
-  await writeFile4(temporary, `${JSON.stringify({ schemaVersion: 1, ...cursor })}
+  await writeFile5(temporary, `${JSON.stringify({ schemaVersion: 1, ...cursor })}
 `, {
     mode: 384
   });
-  await rename9(temporary, path);
+  await rename10(temporary, path);
 }
 async function requeueStalledRepositoryKnowledgeJobs(input) {
   const afterSeq = await readCursor(input.repositoryRoot, input.events);
@@ -79628,12 +80889,12 @@ async function processRepositoryKnowledgeJobs(input) {
 }
 
 // packages/repository-knowledge/dist/semantic-materialization.js
-var import_yaml27 = __toESM(require_dist(), 1);
+var import_yaml28 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/terminal-integration.js
 import { constants as constants21 } from "node:fs";
-import { lstat as lstat36, open as open21 } from "node:fs/promises";
-import { resolve as resolve53 } from "node:path";
+import { lstat as lstat38, open as open21 } from "node:fs/promises";
+import { resolve as resolve55 } from "node:path";
 var MAXIMUM_CONFIG_BYTES = 256 * 1024;
 var MAXIMUM_RUNTIME_BYTES = 4 * 1024 * 1024;
 var FORMAT = { insertSpaces: true, tabSize: 2, eol: "\n", insertFinalNewline: true };
@@ -79667,7 +80928,7 @@ async function safeOptionalText(path, maximumBytes2 = MAXIMUM_CONFIG_BYTES) {
   let handle;
   try {
     try {
-      const stats = await lstat36(path);
+      const stats = await lstat38(path);
       if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes2)
         throw new Error("unsafe");
     } catch (error) {
@@ -79848,11 +81109,11 @@ function validRuntimeContent(content3) {
   return bytes2 > 0 && bytes2 <= MAXIMUM_RUNTIME_BYTES && content3.startsWith("#!/usr/bin/env node\n");
 }
 async function inspectTerminalIntegration(repositoryRoot) {
-  const root2 = resolve53(repositoryRoot);
-  const existing = await Promise.all(PROVIDERS.map(async (provider) => [provider, await safeOptionalText(resolve53(root2, configurationPath(provider)))]));
+  const root2 = resolve55(repositoryRoot);
+  const existing = await Promise.all(PROVIDERS.map(async (provider) => [provider, await safeOptionalText(resolve55(root2, configurationPath(provider)))]));
   const blockers = [];
   try {
-    const config = await safeOptionalText(resolve53(root2, ".codex/config.toml"));
+    const config = await safeOptionalText(resolve55(root2, ".codex/config.toml"));
     if (config !== null && codexHooksDisabled(config.content))
       blockers.push({ provider: "codex", path: ".codex/config.toml", code: "hooks_disabled" });
   } catch (error) {
@@ -79868,8 +81129,8 @@ async function inspectTerminalIntegration(repositoryRoot) {
   let runtime;
   try {
     const [artifact2, manifestFile] = await Promise.all([
-      safeOptionalText(resolve53(root2, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
-      safeOptionalText(resolve53(root2, RUNTIME_MANIFEST_PATH))
+      safeOptionalText(resolve55(root2, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
+      safeOptionalText(resolve55(root2, RUNTIME_MANIFEST_PATH))
     ]);
     let valid = false;
     if (artifact2 !== null && manifestFile !== null && validRuntimeContent(artifact2.content)) {
@@ -80009,12 +81270,12 @@ async function collectVerificationResultSources(input) {
 
 // packages/repository-knowledge/dist/workstream.js
 import { constants as constants22 } from "node:fs";
-import { lstat as lstat37, mkdir as mkdir15, open as open22, rename as rename10, rm as rm11 } from "node:fs/promises";
-import { basename as basename13, dirname as dirname15, posix as posix10, relative as relative13, resolve as resolve54, sep as sep13 } from "node:path";
+import { lstat as lstat39, mkdir as mkdir16, open as open22, rename as rename11, rm as rm12 } from "node:fs/promises";
+import { basename as basename13, dirname as dirname16, posix as posix11, relative as relative13, resolve as resolve56, sep as sep13 } from "node:path";
 var CURRENT_WORKSTREAM_PATH = ".lervo/state/workstreams/current.json";
 var MAX_HANDOFF_BYTES = 128 * 1024;
 function insideRoot(root2, path) {
-  const target = resolve54(root2, path);
+  const target = resolve56(root2, path);
   const child = relative13(root2, target);
   if (child === ".." || child.startsWith(`..${sep13}`)) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream path escapes the repository.");
@@ -80053,7 +81314,7 @@ async function safeTextFile(root2, path, maximumBytes2) {
   }
 }
 async function readCurrentWorkstreamState(repositoryRoot) {
-  const source = await safeTextFile(resolve54(repositoryRoot), CURRENT_WORKSTREAM_PATH, 64 * 1024);
+  const source = await safeTextFile(resolve56(repositoryRoot), CURRENT_WORKSTREAM_PATH, 64 * 1024);
   if (source === null)
     return null;
   let value;
@@ -80072,7 +81333,7 @@ async function readCurrentWorkstreamState(repositoryRoot) {
   };
 }
 async function restoreCurrentWorkstreamState(input) {
-  const root2 = resolve54(input.repositoryRoot);
+  const root2 = resolve56(input.repositoryRoot);
   const content3 = Buffer.from(input.content).toString("utf8");
   if (input.content.byteLength > 64 * 1024 || sha2565(input.content) !== input.expectedHash) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact is invalid.");
@@ -80087,15 +81348,15 @@ async function restoreCurrentWorkstreamState(input) {
 ` !== content3 || !validateSchema("workstreamSnapshot", value).valid || !pendingCoordinatesValid(value)) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact does not satisfy the v1 contract.");
   }
-  const directory = resolve54(root2, dirname15(CURRENT_WORKSTREAM_PATH));
-  await mkdir15(directory, { recursive: true, mode: 448 });
-  const stats = await lstat37(directory);
+  const directory = resolve56(root2, dirname16(CURRENT_WORKSTREAM_PATH));
+  await mkdir16(directory, { recursive: true, mode: 448 });
+  const stats = await lstat39(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink()) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The workstream projection directory is unsafe.");
   }
-  const target = resolve54(root2, CURRENT_WORKSTREAM_PATH);
+  const target = resolve56(root2, CURRENT_WORKSTREAM_PATH);
   const temporary = `${target}.restore-${process.pid}`;
-  await rm11(temporary, { force: true });
+  await rm12(temporary, { force: true });
   const handle = await open22(temporary, constants22.O_WRONLY | constants22.O_CREAT | constants22.O_EXCL | (constants22.O_NOFOLLOW ?? 0), 384);
   try {
     await handle.writeFile(input.content);
@@ -80103,7 +81364,7 @@ async function restoreCurrentWorkstreamState(input) {
   } finally {
     await handle.close();
   }
-  await rename10(temporary, target);
+  await rename11(temporary, target);
   return value;
 }
 
@@ -80114,14 +81375,14 @@ function freshnessLine(freshness) {
   const behind = freshness.commitsBehind === null ? "" : `; ${freshness.commitsBehind} commits behind HEAD`;
   return `Freshness: stale (${freshness.reasons.join(",")}; recorded ${freshness.ageHours}h ago${behind}).`;
 }
-function currentItems(snapshot) {
-  const pendingDecisions = snapshot.pendingDecisions ?? [];
-  const pendingApprovals = snapshot.pendingApprovals ?? [];
+function currentItems(snapshot2) {
+  const pendingDecisions = snapshot2.pendingDecisions ?? [];
+  const pendingApprovals = snapshot2.pendingApprovals ?? [];
   return [
-    ...snapshot.nextActions.length === 0 ? [] : ["Next actions:", ...snapshot.nextActions.map((item, index2) => `${index2 + 1}. ${item}`)],
-    ...snapshot.blockers.length === 0 ? [] : ["Blockers:", ...snapshot.blockers.map((item) => `- ${item}`)],
-    ...snapshot.notes.length === 0 ? [] : ["Current facts:", ...snapshot.notes.map((item) => `- ${item}`)],
-    ...snapshot.references.length === 0 ? [] : ["References:", ...snapshot.references.map((item) => `- ${item.label}: ${item.path}`)],
+    ...snapshot2.nextActions.length === 0 ? [] : ["Next actions:", ...snapshot2.nextActions.map((item, index2) => `${index2 + 1}. ${item}`)],
+    ...snapshot2.blockers.length === 0 ? [] : ["Blockers:", ...snapshot2.blockers.map((item) => `- ${item}`)],
+    ...snapshot2.notes.length === 0 ? [] : ["Current facts:", ...snapshot2.notes.map((item) => `- ${item}`)],
+    ...snapshot2.references.length === 0 ? [] : ["References:", ...snapshot2.references.map((item) => `- ${item.label}: ${item.path}`)],
     ...pendingDecisions.length === 0 ? [] : [
       "Pending user decisions:",
       ...pendingDecisions.map((item) => `- ${item.decisionId}${item.blocking ? " [blocking]" : ""}: ${item.question}; choices=${item.choices.map((choice) => `${choice.choiceId}:${choice.label}`).join(", ")}; recommended=${item.recommendedChoiceId ?? "none"}`)
@@ -80132,31 +81393,31 @@ function currentItems(snapshot) {
     ]
   ];
 }
-function staleItems(snapshot) {
-  const pendingDecisions = snapshot.pendingDecisions ?? [];
-  const pendingApprovals = snapshot.pendingApprovals ?? [];
+function staleItems(snapshot2) {
+  const pendingDecisions = snapshot2.pendingDecisions ?? [];
+  const pendingApprovals = snapshot2.pendingApprovals ?? [];
   const items = [
-    ...snapshot.nextActions.map((item) => `- next action: ${item}`),
-    ...snapshot.blockers.map((item) => `- blocker: ${item}`),
+    ...snapshot2.nextActions.map((item) => `- next action: ${item}`),
+    ...snapshot2.blockers.map((item) => `- blocker: ${item}`),
     ...pendingDecisions.map((item) => `- decision ${item.decisionId}: text withheld (consequence unclassified)`),
     ...pendingApprovals.map((item) => `- approval ${item.approvalId}: ${item.kind}; text withheld (consequence ${workstreamApprovalConsequence(item.kind)}); binding=${item.bindingHash}`)
   ];
   return [
     ...items.length === 0 ? [] : [`Stale workstream items. ${STALE_WORKSTREAM_INSTRUCTION}`, ...items],
-    ...snapshot.notes.length === 0 ? [] : ["Recorded facts (stale):", ...snapshot.notes.map((item) => `- ${item}`)],
-    ...snapshot.references.length === 0 ? [] : ["References:", ...snapshot.references.map((item) => `- ${item.label}: ${item.path}`)]
+    ...snapshot2.notes.length === 0 ? [] : ["Recorded facts (stale):", ...snapshot2.notes.map((item) => `- ${item}`)],
+    ...snapshot2.references.length === 0 ? [] : ["References:", ...snapshot2.references.map((item) => `- ${item.label}: ${item.path}`)]
   ];
 }
-function formatWorkstreamContext(snapshot, freshness = null) {
+function formatWorkstreamContext(snapshot2, freshness = null) {
   const lines = [
     "## Lervo current workstream",
-    `workstreamId: ${snapshot.workstreamId}; revision: ${snapshot.revision}; status: ${snapshot.status}; snapshotHash: ${sha2565(`${canonicalJson4(snapshot)}
+    `workstreamId: ${snapshot2.workstreamId}; revision: ${snapshot2.revision}; status: ${snapshot2.status}; snapshotHash: ${sha2565(`${canonicalJson4(snapshot2)}
 `)}`,
     ...freshness === null ? [] : [freshnessLine(freshness)],
-    `Title: ${snapshot.title}`,
-    `Objective: ${snapshot.objective}`,
-    ...freshness?.status === "stale" ? staleItems(snapshot) : currentItems(snapshot),
-    ...(snapshot.droppedNoteCount ?? 0) === 0 ? [] : [`Older notes dropped by retention: ${snapshot.droppedNoteCount}.`],
+    `Title: ${snapshot2.title}`,
+    `Objective: ${snapshot2.objective}`,
+    ...freshness?.status === "stale" ? staleItems(snapshot2) : currentItems(snapshot2),
+    ...(snapshot2.droppedNoteCount ?? 0) === 0 ? [] : [`Older notes dropped by retention: ${snapshot2.droppedNoteCount}.`],
     "This is mutable continuation state, not a long-term architecture contract. Promote durable decisions to canonical repository documentation.",
     "Treat a natural-language user reply to a pending item as input to resolve, apply, remove, and canonically record that item when authorized. Never require the user to type a Lervo bookkeeping command.",
     "Before completing a repository-changing direct provider terminal turn, record the next bounded revision with `lervo workstream update --actor agent --provider <current-provider> --patch <json> --apply-now`; the service sets revision, update time, and HEAD. Replace stale facts instead of accumulating prose; do not ask the user to run this bookkeeping command."
@@ -80903,7 +82164,7 @@ async function storeVerificationBytes(store, bytes2) {
 }
 
 // packages/verification/dist/command-executor.js
-import { spawn as spawn2 } from "node:child_process";
+import { spawn as spawn3 } from "node:child_process";
 function commandEnvironment(command, source) {
   const result = {};
   for (const name2 of ["PATH", "Path"]) {
@@ -80929,10 +82190,10 @@ function killProcessTree(child) {
 async function executeVerificationCommand(input) {
   const startedAt = input.now();
   const monotonicStart = performance.now();
-  return new Promise((resolve95) => {
+  return new Promise((resolve97) => {
     let child;
     try {
-      child = spawn2(input.command.executable, input.command.arguments, {
+      child = spawn3(input.command.executable, input.command.arguments, {
         cwd: input.cwd,
         detached: process.platform !== "win32",
         env: commandEnvironment(input.command, input.environment),
@@ -80940,7 +82201,7 @@ async function executeVerificationCommand(input) {
         stdio: ["ignore", "pipe", "pipe"]
       });
     } catch {
-      resolve95({
+      resolve97({
         status: "execution_error",
         exitCode: null,
         startedAt: startedAt.toISOString(),
@@ -80999,7 +82260,7 @@ async function executeVerificationCommand(input) {
       clearTimeout(timeout);
       input.signal?.removeEventListener("abort", abort);
       const status = forced ?? (spawnError ? "execution_error" : code === 0 ? "passed" : "failed");
-      resolve95({
+      resolve97({
         status,
         exitCode: code,
         startedAt: startedAt.toISOString(),
@@ -81013,17 +82274,17 @@ async function executeVerificationCommand(input) {
 }
 
 // packages/verification/dist/validation.js
-import { lstat as lstat38, realpath as realpath3 } from "node:fs/promises";
-import { relative as relative14, resolve as resolve55, sep as sep14 } from "node:path";
+import { lstat as lstat40, realpath as realpath3 } from "node:fs/promises";
+import { relative as relative14, resolve as resolve57, sep as sep14 } from "node:path";
 function isWithin(root2, target) {
   const fromRoot = relative14(root2, target);
   return fromRoot === "" || fromRoot !== ".." && !fromRoot.startsWith(`..${sep14}`);
 }
 async function resolveVerificationWorkingDirectories(repositoryRoot, suite) {
-  const root2 = resolve55(repositoryRoot);
+  const root2 = resolve57(repositoryRoot);
   let realRoot;
   try {
-    const rootStats = await lstat38(root2);
+    const rootStats = await lstat40(root2);
     realRoot = await realpath3(root2);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) {
       throw new Error("unsafe root");
@@ -81033,10 +82294,10 @@ async function resolveVerificationWorkingDirectories(repositoryRoot, suite) {
   }
   const directories = /* @__PURE__ */ new Map();
   for (const command of suite.commands) {
-    const target = resolve55(root2, command.cwd);
-    const expectedRealTarget = resolve55(realRoot, command.cwd);
+    const target = resolve57(root2, command.cwd);
+    const expectedRealTarget = resolve57(realRoot, command.cwd);
     try {
-      const stats = await lstat38(target);
+      const stats = await lstat40(target);
       const realTarget = await realpath3(target);
       if (!isWithin(root2, target) || !stats.isDirectory() || stats.isSymbolicLink() || realTarget !== expectedRealTarget) {
         throw new Error("unsafe cwd");
@@ -81171,13 +82432,13 @@ async function runVerificationSuite(input, options = {}) {
 }
 
 // packages/verification/dist/suite-loader.js
-var import_yaml28 = __toESM(require_dist(), 1);
-import { lstat as lstat40, realpath as realpath4 } from "node:fs/promises";
-import { resolve as resolve56 } from "node:path";
+var import_yaml29 = __toESM(require_dist(), 1);
+import { lstat as lstat42, realpath as realpath4 } from "node:fs/promises";
+import { resolve as resolve58 } from "node:path";
 
 // packages/verification/dist/suite-file-reader.js
 import { constants as constants23 } from "node:fs";
-import { lstat as lstat39, open as open23 } from "node:fs/promises";
+import { lstat as lstat41, open as open23 } from "node:fs/promises";
 function boundedRegularFile2(observation, maximumBytes2) {
   return observation.isFile() && !observation.isSymbolicLink() && observation.size <= maximumBytes2;
 }
@@ -81192,20 +82453,20 @@ function sameAcrossStatSurfaces(pathObservation, handleObservation) {
 }
 async function readVerificationSuiteFile(path, maximumBytes2) {
   const limit = BigInt(maximumBytes2);
-  const beforePath2 = await lstat39(path, { bigint: true });
+  const beforePath2 = await lstat41(path, { bigint: true });
   if (!boundedRegularFile2(beforePath2, limit)) {
     throw new VerificationError("verification_layout_invalid", "The verification suite file is not a safe regular file or exceeds the size limit.");
   }
   const handle = await open23(path, constants23.O_RDONLY | (constants23.O_NOFOLLOW ?? 0));
   try {
     const openedHandle = await handle.stat({ bigint: true });
-    const afterOpenPath = await lstat39(path, { bigint: true });
+    const afterOpenPath = await lstat41(path, { bigint: true });
     if (!boundedRegularFile2(openedHandle, limit) || !boundedRegularFile2(afterOpenPath, limit) || !sameObservation(beforePath2, afterOpenPath) || !sameAcrossStatSurfaces(afterOpenPath, openedHandle)) {
       throw new VerificationError("verification_layout_invalid", "The verification suite changed before it was read.");
     }
     const bytes2 = await handle.readFile();
     const afterReadHandle = await handle.stat({ bigint: true });
-    const afterReadPath = await lstat39(path, { bigint: true });
+    const afterReadPath = await lstat41(path, { bigint: true });
     if (!boundedRegularFile2(afterReadHandle, limit) || !boundedRegularFile2(afterReadPath, limit) || !sameObservation(openedHandle, afterReadHandle) || !sameObservation(afterOpenPath, afterReadPath) || !sameAcrossStatSurfaces(afterReadPath, afterReadHandle)) {
       throw new VerificationError("verification_layout_invalid", "The verification suite changed while it was being read.");
     }
@@ -81222,23 +82483,23 @@ async function loadVerificationSuite(repositoryRoot, suiteId) {
   if (!SUITE_ID.test(suiteId) || suiteId.length > 150) {
     throw new VerificationError("invalid_verification_suite", "The verification suite ID is invalid.");
   }
-  const root2 = resolve56(repositoryRoot);
-  const directory = resolve56(root2, ".lervo/verifications");
+  const root2 = resolve58(repositoryRoot);
+  const directory = resolve58(root2, ".lervo/verifications");
   try {
-    const stats = await lstat40(directory);
-    const expectedDirectory = resolve56(await realpath4(root2), ".lervo/verifications");
+    const stats = await lstat42(directory);
+    const expectedDirectory = resolve58(await realpath4(root2), ".lervo/verifications");
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath4(directory) !== expectedDirectory) {
       throw new Error("unsafe directory");
     }
   } catch (error) {
     throw new VerificationError("verification_layout_invalid", "The verification suite directory is not a safe real directory.", { cause: error });
   }
-  const path = resolve56(directory, `${suiteId}.yaml`);
+  const path = resolve58(directory, `${suiteId}.yaml`);
   try {
     const bytes2 = await readVerificationSuiteFile(path, MAXIMUM_SUITE_BYTES);
     let value;
     try {
-      value = (0, import_yaml28.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
+      value = (0, import_yaml29.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
     } catch (error) {
       throw new VerificationError("invalid_verification_suite", "The verification suite YAML could not be read.", { cause: error });
     }
@@ -81283,14 +82544,14 @@ function parseConvergenceAssetDispositions(value, suiteIds, maximumItems) {
 
 // packages/repository-knowledge-runtime/dist/source-file.js
 import { constants as constants24, closeSync as closeSync2, fstatSync as fstatSync2, lstatSync as lstatSync2, openSync as openSync2, readFileSync } from "node:fs";
-import { resolve as resolve57 } from "node:path";
+import { resolve as resolve59 } from "node:path";
 var MAXIMUM_ORDINARY_SOURCE_BYTES = 64 * 1024 * 1024;
 function ordinaryConvergenceSourcePath(root2, path) {
   if (path.length === 0 || path.includes("\\") || path.includes(":") || path.includes("\0") || path.split("/").some((part) => !part || part === "." || part === ".."))
     throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
-  let target = resolve57(root2);
+  let target = resolve59(root2);
   for (const part of path.split("/")) {
-    target = resolve57(target, part);
+    target = resolve59(target, part);
     if (lstatSync2(target).isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
   }
@@ -81339,10 +82600,10 @@ function resolveConvergenceAssetDispositions(root2, delegation, reviewedManifest
 }
 
 // packages/repository-knowledge-runtime/dist/source-capture-contract.js
-import { posix as posix11 } from "node:path";
+import { posix as posix12 } from "node:path";
 var DEFAULT_REPOSITORY_SOURCE_BYTES = 256 * 1024 * 1024;
 function symbolicReferenceTarget(reference) {
-  return posix11.normalize(posix11.join(posix11.dirname(reference.path), reference.target));
+  return posix12.normalize(posix12.join(posix12.dirname(reference.path), reference.target));
 }
 function safeReferencePath(path) {
   return typeof path === "string" && path.length > 0 && path.length <= 500 && !path.includes("\\") && !path.includes(":") && !path.includes("\0") && !path.split("/").some((part) => !part || part === "." || part === "..") && ![".git", ".lervo"].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
@@ -81537,10 +82798,10 @@ function assertKnowledgeProviderAvailable(input) {
 }
 
 // packages/repository-knowledge-compiler/dist/process-compiler.js
-import { spawn as spawn3 } from "node:child_process";
-import { mkdtemp as mkdtemp4, rm as rm12, writeFile as writeFile5 } from "node:fs/promises";
+import { spawn as spawn4 } from "node:child_process";
+import { mkdtemp as mkdtemp4, rm as rm13, writeFile as writeFile6 } from "node:fs/promises";
 import { tmpdir as tmpdir2 } from "node:os";
-import { resolve as resolve58 } from "node:path";
+import { resolve as resolve60 } from "node:path";
 var NORMALIZATION_ADAPTER_VERSION = "2";
 var MAX_OUTPUT_BYTES2 = 4 * 1024 * 1024;
 var DEFAULT_TIMEOUT_MS = 18e4;
@@ -81698,7 +82959,7 @@ async function runProcess(input) {
   return new Promise((finish) => {
     let child;
     try {
-      child = spawn3(input.executable, [...input.arguments], {
+      child = spawn4(input.executable, [...input.arguments], {
         cwd: input.cwd,
         detached: process.platform !== "win32",
         env: processEnvironment(),
@@ -82034,25 +83295,25 @@ async function createNoCapabilityProviderJsonRunner(options) {
   if (options.systemPrompt !== void 0 && (options.systemPrompt.trim() !== options.systemPrompt || options.systemPrompt.length === 0 || options.systemPrompt.length > 8192)) {
     throw compileFailure("The provider JSON runner system prompt is invalid.");
   }
-  const probeDirectory = await mkdtemp4(resolve58(tmpdir2(), "lervo-provider-json-probe-"));
+  const probeDirectory = await mkdtemp4(resolve60(tmpdir2(), "lervo-provider-json-probe-"));
   try {
     await compilerVersion({ executable, cwd: probeDirectory, timeoutMs });
     if (options.provider === "codex") {
       await assertCodexHasNoModelTools({ executable, cwd: probeDirectory, timeoutMs });
     }
   } finally {
-    await rm12(probeDirectory, { recursive: true, force: true });
+    await rm13(probeDirectory, { recursive: true, force: true });
   }
   const resolveObserved = async (input, signal) => {
-    const directory = await mkdtemp4(resolve58(tmpdir2(), `lervo-${options.provider}-json-`));
+    const directory = await mkdtemp4(resolve60(tmpdir2(), `lervo-${options.provider}-json-`));
     try {
       const prompt = canonicalJson4(input);
       const responseContractSchema = providerResponseContractSchema(input);
       const responseSchema2 = options.provider === "codex" ? providerNativeResponseSchema(responseContractSchema) : responseContractSchema;
       const responseSchemaJson = canonicalJson4(responseSchema2);
-      const codexResponseSchemaPath = resolve58(directory, "response-schema.json");
+      const codexResponseSchemaPath = resolve60(directory, "response-schema.json");
       if (options.provider === "codex") {
-        await writeFile5(codexResponseSchemaPath, `${responseSchemaJson}
+        await writeFile6(codexResponseSchemaPath, `${responseSchemaJson}
 `, {
           encoding: "utf8",
           mode: 384,
@@ -82125,7 +83386,7 @@ async function createNoCapabilityProviderJsonRunner(options) {
         usage: options.provider === "claude" ? claudeJsonUsage(result.stdout) : codexJsonUsage(result.stdout)
       };
     } finally {
-      await rm12(directory, { recursive: true, force: true });
+      await rm13(directory, { recursive: true, force: true });
     }
   };
   return {
@@ -82140,14 +83401,14 @@ async function createProcessDocumentNormalizationCompiler(options) {
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1e3 || timeoutMs > 6e5) {
     throw compileFailure("The document normalizer timeout must be between 1 second and 10 minutes.");
   }
-  const probeDirectory = await mkdtemp4(resolve58(tmpdir2(), "lervo-normalization-probe-"));
+  const probeDirectory = await mkdtemp4(resolve60(tmpdir2(), "lervo-normalization-probe-"));
   let version;
   try {
     version = await compilerVersion({ executable, cwd: probeDirectory, timeoutMs });
     if (options.provider === "codex")
       await assertCodexHasNoModelTools({ executable, cwd: probeDirectory, timeoutMs });
   } finally {
-    await rm12(probeDirectory, { recursive: true, force: true });
+    await rm13(probeDirectory, { recursive: true, force: true });
   }
   const invocationContract = {
     adapter: `lervo-process-document-normalizer@${NORMALIZATION_ADAPTER_VERSION}`,
@@ -82166,7 +83427,7 @@ async function createProcessDocumentNormalizationCompiler(options) {
     isolation: "external_no_capabilities"
   };
   const normalizeObserved = async (envelope, signal) => {
-    const directory = await mkdtemp4(resolve58(tmpdir2(), `lervo-${options.provider}-normalization-`));
+    const directory = await mkdtemp4(resolve60(tmpdir2(), `lervo-${options.provider}-normalization-`));
     try {
       const prompt = canonicalJson4({
         instruction: documentNormalizationInstruction,
@@ -82174,9 +83435,9 @@ async function createProcessDocumentNormalizationCompiler(options) {
         envelope
       });
       const responseSchemaJson = canonicalJson4(providerNativeResponseSchema(documentNormalizationResponseSchema));
-      const codexResponseSchemaPath = resolve58(directory, "response-schema.json");
+      const codexResponseSchemaPath = resolve60(directory, "response-schema.json");
       if (options.provider === "codex")
-        await writeFile5(codexResponseSchemaPath, `${responseSchemaJson}
+        await writeFile6(codexResponseSchemaPath, `${responseSchemaJson}
 `, {
           encoding: "utf8",
           mode: 384,
@@ -82244,7 +83505,7 @@ async function createProcessDocumentNormalizationCompiler(options) {
       const usage = options.provider === "claude" ? claudeJsonUsage(result.stdout) : codexJsonUsage(result.stdout);
       return { response, tokenUsage: documentNormalizationTokenUsage(usage) };
     } finally {
-      await rm12(directory, { recursive: true, force: true });
+      await rm13(directory, { recursive: true, force: true });
     }
   };
   return {
@@ -82270,8 +83531,8 @@ var MAX_TOTAL_BYTES2 = 16 * 1024 * 1024;
 
 // packages/search-local/dist/observation-files.js
 import { constants as constants25 } from "node:fs";
-import { link as link2, lstat as lstat41, mkdir as mkdir16, open as open24, readdir as readdir15, realpath as realpath5, unlink as unlink3 } from "node:fs/promises";
-import { dirname as dirname16, resolve as resolve59 } from "node:path";
+import { link as link2, lstat as lstat43, mkdir as mkdir17, open as open24, readdir as readdir15, realpath as realpath5, unlink as unlink3 } from "node:fs/promises";
+import { dirname as dirname17, resolve as resolve61 } from "node:path";
 
 // packages/search-local/dist/stable-file-observation.js
 function sameMetadata4(left, right) {
@@ -82293,14 +83554,14 @@ function compareText6(left, right) {
 async function safeDirectory(path, create) {
   try {
     if (create)
-      await mkdir16(path, { mode: 448 });
+      await mkdir17(path, { mode: 448 });
   } catch (error) {
     if (error.code !== "EEXIST") {
       throw new SearchLocalError(create ? "observation_write_failed" : "observation_read_failed", "Could not prepare the search observation directory.", { cause: error instanceof Error ? error : void 0 });
     }
   }
   try {
-    const stats = await lstat41(path);
+    const stats = await lstat43(path);
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath5(path) !== path) {
       throw new SearchLocalError("observation_invalid", "The search observation path must be a real directory.");
     }
@@ -82326,7 +83587,7 @@ async function observationPaths(repositoryRoot) {
 async function existingObservationSubdirectory(repositoryRoot, name2) {
   const paths = await observationPaths(repositoryRoot);
   try {
-    await lstat41(paths.state);
+    await lstat43(paths.state);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -82334,7 +83595,7 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
   }
   await safeDirectory(paths.state, false);
   try {
-    await lstat41(paths.root);
+    await lstat43(paths.root);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -82343,9 +83604,9 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
     });
   }
   await safeDirectory(paths.root, false);
-  const directory = resolve59(paths.root, name2);
+  const directory = resolve61(paths.root, name2);
   try {
-    await lstat41(directory);
+    await lstat43(directory);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -82359,20 +83620,20 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
 async function readObservation(path) {
   let handle;
   try {
-    const beforePath2 = await lstat41(path, { bigint: true });
+    const beforePath2 = await lstat43(path, { bigint: true });
     if (!beforePath2.isFile() || beforePath2.isSymbolicLink() || beforePath2.size > BigInt(MAX_FILE_BYTES)) {
       throw new SearchLocalError("observation_invalid", "The search observation source file is unsafe.");
     }
     handle = await open24(path, constants25.O_RDONLY | (constants25.O_NOFOLLOW ?? 0));
     const openedHandle = await handle.stat({ bigint: true });
-    const afterOpenPath = await lstat41(path, { bigint: true });
+    const afterOpenPath = await lstat43(path, { bigint: true });
     if (!openedHandle.isFile() || openedHandle.size > BigInt(MAX_FILE_BYTES) || !afterOpenPath.isFile() || afterOpenPath.isSymbolicLink() || afterOpenPath.size > BigInt(MAX_FILE_BYTES) || !sameFileWithinStatSurface3(beforePath2, afterOpenPath) || !sameFileAcrossStatSurfaces3(afterOpenPath, openedHandle)) {
       throw new SearchLocalError("observation_invalid", "The search observation source path changed before it was read.");
     }
     const buffer = Buffer.alloc(Number(openedHandle.size) + 1);
     const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
     const afterReadHandle = await handle.stat({ bigint: true });
-    const afterReadPath = await lstat41(path, { bigint: true });
+    const afterReadPath = await lstat43(path, { bigint: true });
     if (bytesRead !== Number(openedHandle.size) || !afterReadHandle.isFile() || afterReadHandle.size > BigInt(MAX_FILE_BYTES) || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > BigInt(MAX_FILE_BYTES) || !sameFileWithinStatSurface3(openedHandle, afterReadHandle) || !sameFileWithinStatSurface3(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces3(afterReadPath, afterReadHandle)) {
       throw new SearchLocalError("observation_invalid", "The search observation source changed while it was being read.");
     }
@@ -82404,7 +83665,7 @@ async function listObservations(input) {
     if (!entry.isFile() || entry.isSymbolicLink() || !input.pattern.test(entry.name)) {
       throw new SearchLocalError("observation_invalid", "The search observation directory contains an entry outside the contract.");
     }
-    const value = await readObservation(resolve59(input.path, entry.name));
+    const value = await readObservation(resolve61(input.path, entry.name));
     input.assertValue(value);
     const expectedFileName = input.expectedFileName?.(value);
     if (expectedFileName !== void 0 && expectedFileName !== entry.name) {
@@ -82416,43 +83677,43 @@ async function listObservations(input) {
 }
 
 // packages/search-local/dist/evaluation-bundle-files.js
-var import_yaml29 = __toESM(require_dist(), 1);
+var import_yaml30 = __toESM(require_dist(), 1);
 var MAX_BUNDLE_BYTES = 64 * 1024;
 
 // packages/search-local/dist/evaluation-case-files.js
-var import_yaml30 = __toESM(require_dist(), 1);
+var import_yaml31 = __toESM(require_dist(), 1);
 var MAX_CASE_BYTES = 64 * 1024;
 
 // packages/search-local/dist/policy-file-store.js
 import { constants as constants26 } from "node:fs";
-import { link as link3, lstat as lstat42, mkdir as mkdir17, open as open25, readdir as readdir16, realpath as realpath6, unlink as unlink4 } from "node:fs/promises";
-import { resolve as resolve60 } from "node:path";
-var import_yaml31 = __toESM(require_dist(), 1);
+import { link as link3, lstat as lstat44, mkdir as mkdir18, open as open25, readdir as readdir16, realpath as realpath6, unlink as unlink4 } from "node:fs/promises";
+import { resolve as resolve62 } from "node:path";
+var import_yaml32 = __toESM(require_dist(), 1);
 var MAX_POLICY_BYTES = 64 * 1024;
 async function policyDirectory(repositoryRoot, contract, create) {
   try {
     const root2 = await realpath6(repositoryRoot);
     const paths = resolveProjectPaths(root2);
-    const lervo = await lstat42(paths.lervoRoot);
+    const lervo = await lstat44(paths.lervoRoot);
     if (!lervo.isDirectory() || lervo.isSymbolicLink() || await realpath6(paths.lervoRoot) !== paths.lervoRoot) {
       throw new Error("unsafe lervo root");
     }
     const directory = contract.directory(paths);
     if (create)
-      await mkdir17(directory, { mode: 448 }).catch((error) => {
+      await mkdir18(directory, { mode: 448 }).catch((error) => {
         if (error.code !== "EEXIST")
           throw error;
       });
     else {
       try {
-        await lstat42(directory);
+        await lstat44(directory);
       } catch (error) {
         if (error.code === "ENOENT")
           return null;
         throw error;
       }
     }
-    const stats = await lstat42(directory);
+    const stats = await lstat44(directory);
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath6(directory) !== directory) {
       throw new Error("unsafe policy directory");
     }
@@ -82466,23 +83727,23 @@ async function policyDirectory(repositoryRoot, contract, create) {
 async function readPolicy(path, contract) {
   let handle;
   try {
-    const beforePath2 = await lstat42(path, { bigint: true });
+    const beforePath2 = await lstat44(path, { bigint: true });
     if (!beforePath2.isFile() || beforePath2.isSymbolicLink() || beforePath2.size > BigInt(MAX_POLICY_BYTES)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} is not a safe regular file.`);
     }
     handle = await open25(path, constants26.O_RDONLY | (constants26.O_NOFOLLOW ?? 0));
     const openedHandle = await handle.stat({ bigint: true });
-    const afterOpenPath = await lstat42(path, { bigint: true });
+    const afterOpenPath = await lstat44(path, { bigint: true });
     if (!openedHandle.isFile() || openedHandle.size > BigInt(MAX_POLICY_BYTES) || !afterOpenPath.isFile() || afterOpenPath.isSymbolicLink() || afterOpenPath.size > BigInt(MAX_POLICY_BYTES) || !sameFileWithinStatSurface3(beforePath2, afterOpenPath) || !sameFileAcrossStatSurfaces3(afterOpenPath, openedHandle)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} changed before it was read.`);
     }
     const bytes2 = await handle.readFile();
     const afterReadHandle = await handle.stat({ bigint: true });
-    const afterReadPath = await lstat42(path, { bigint: true });
+    const afterReadPath = await lstat44(path, { bigint: true });
     if (!afterReadHandle.isFile() || afterReadHandle.size > BigInt(MAX_POLICY_BYTES) || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > BigInt(MAX_POLICY_BYTES) || !sameFileWithinStatSurface3(openedHandle, afterReadHandle) || !sameFileWithinStatSurface3(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces3(afterReadPath, afterReadHandle)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} changed while it was being read.`);
     }
-    const value = (0, import_yaml31.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
+    const value = (0, import_yaml32.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
     contract.assertValue(value);
     return value;
   } catch (error) {
@@ -82513,7 +83774,7 @@ async function loadLocalPolicyFiles(input) {
     if (!entry.isFile() || entry.isSymbolicLink() || match === null || !input.contract.idPattern.test(match[1])) {
       throw new SearchLocalError(input.contract.errors.invalid, `The ${input.contract.label} directory contains an entry outside the contract.`);
     }
-    const value = await readPolicy(resolve60(directory, entry.name), input.contract);
+    const value = await readPolicy(resolve62(directory, entry.name), input.contract);
     if (input.contract.id(value) !== match[1]) {
       throw new SearchLocalError(input.contract.errors.invalid, `The ${input.contract.label} ID does not match the filename.`);
     }
@@ -83234,10 +84495,10 @@ var productDefaultSearchRetrievalPlan = {
 
 // packages/repository-context/dist/knowledge-review-context.js
 import { createHash as createHash33 } from "node:crypto";
-import { posix as posix13 } from "node:path";
+import { posix as posix14 } from "node:path";
 
 // packages/repository-context/dist/knowledge-review-queries.js
-import { posix as posix12 } from "node:path";
+import { posix as posix13 } from "node:path";
 function pathTerms(path) {
   return new Set(path.normalize("NFKC").toLocaleLowerCase().match(/[\p{L}\p{N}]{2,}/gu) ?? []);
 }
@@ -83291,7 +84552,7 @@ async function sourceSpecificQueries(root2, paths) {
         continue;
       throw error;
     }
-    const terms2 = [...pathTerms(posix12.basename(path))].filter((term) => !["ts", "tsx", "js", "jsx", "mjs", "cjs"].includes(term));
+    const terms2 = [...pathTerms(posix13.basename(path))].filter((term) => !["ts", "tsx", "js", "jsx", "mjs", "cjs"].includes(term));
     if (!terms2.length)
       continue;
     const eventBearing = /\b(?:events|transaction)\.append\s*\(/u.test(source) && /["'][a-z]+(?:\.[a-z]+){2,}["']/u.test(source);
@@ -83361,7 +84622,7 @@ function linkedRepositoryPaths(document4) {
     const link4 = match[1]?.split("#", 1)[0];
     if (!link4 || link4.startsWith("/") || link4.includes(":") || link4.includes("\\"))
       continue;
-    const path = posix13.normalize(posix13.join(posix13.dirname(document4.path), link4));
+    const path = posix14.normalize(posix14.join(posix14.dirname(document4.path), link4));
     if (path !== ".." && !path.startsWith("../") && !paths.includes(path))
       paths.push(path);
   }
@@ -83539,11 +84800,11 @@ async function loadCanonicalReviewContext(input) {
       cause: error
     });
   }
-  const sourceDirectoryTerms = new Set(input.sourcePaths.flatMap((path) => [...pathTerms(posix13.dirname(path))].filter((term) => !GENERIC_DIRECTORY_TERMS.has(term))));
+  const sourceDirectoryTerms = new Set(input.sourcePaths.flatMap((path) => [...pathTerms(posix14.dirname(path))].filter((term) => !GENERIC_DIRECTORY_TERMS.has(term))));
   const rankedHits = recommendations.hits.map((hit, index2) => ({
     hit,
     index: index2,
-    affinity: [...pathTerms(posix13.dirname(hit.path))].filter((term) => sourceDirectoryTerms.has(term)).length
+    affinity: [...pathTerms(posix14.dirname(hit.path))].filter((term) => sourceDirectoryTerms.has(term)).length
   })).sort((left, right) => right.affinity - left.affinity || left.index - right.index);
   for (const { hit } of rankedHits) {
     if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS)
@@ -83593,15 +84854,15 @@ async function loadCanonicalReviewContext(input) {
 // packages/repository-context/dist/knowledge-review-context-fence.js
 import { createHash as createHash34 } from "node:crypto";
 import { constants as constants27, closeSync as closeSync3, fstatSync as fstatSync3, lstatSync as lstatSync3, openSync as openSync3, readFileSync as readFileSync2 } from "node:fs";
-import { resolve as resolve61 } from "node:path";
+import { resolve as resolve63 } from "node:path";
 function assertCanonicalReviewContextCurrent(root2, documents) {
   for (const document4 of documents) {
     if (!document4.path || document4.path.includes("\\") || document4.path.includes(":") || document4.path.includes("\0") || document4.path.split("/").some((part) => !part || part === "." || part === ".."))
       throw new KnowledgeReviewContextError("review_context_unavailable");
     try {
-      let path = resolve61(root2);
+      let path = resolve63(root2);
       for (const part of document4.path.split("/")) {
-        path = resolve61(path, part);
+        path = resolve63(path, part);
         if (lstatSync3(path).isSymbolicLink())
           throw new KnowledgeReviewContextError("review_context_unavailable");
       }
@@ -83624,10 +84885,10 @@ function assertCanonicalReviewContextCurrent(root2, documents) {
 }
 
 // packages/repository-knowledge-compiler/dist/knowledge-worker-lock.js
-import { randomUUID as randomUUID7 } from "node:crypto";
+import { randomUUID as randomUUID8 } from "node:crypto";
 import { constants as constants28, closeSync as closeSync4, fstatSync as fstatSync4, lstatSync as lstatSync4, openSync as openSync4, readFileSync as readFileSync3, rmSync, writeFileSync, fsyncSync, chmodSync } from "node:fs";
-import { mkdir as mkdir18, lstat as lstat43 } from "node:fs/promises";
-import { resolve as resolve62 } from "node:path";
+import { mkdir as mkdir19, lstat as lstat45 } from "node:fs/promises";
+import { resolve as resolve64 } from "node:path";
 function alive(pid) {
   try {
     process.kill(pid, 0);
@@ -83675,19 +84936,19 @@ function serialized(path, run2) {
 async function acquireKnowledgeWorkerLock(root2) {
   let directory = root2;
   for (const part of [".lervo", "state"]) {
-    directory = resolve62(directory, part);
-    await mkdir18(directory, { mode: 448 }).catch((error) => {
+    directory = resolve64(directory, part);
+    await mkdir19(directory, { mode: 448 }).catch((error) => {
       if (error.code !== "EEXIST")
         throw error;
     });
-    const stat = await lstat43(directory);
+    const stat = await lstat45(directory);
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw new Error("Unsafe knowledge worker state directory.");
   }
-  const path = resolve62(directory, "knowledge-worker.lock");
-  const guard = resolve62(directory, "knowledge-worker-lock.sqlite");
+  const path = resolve64(directory, "knowledge-worker.lock");
+  const guard = resolve64(directory, "knowledge-worker-lock.sqlite");
   const token = `${process.pid}
-${randomUUID7()}
+${randomUUID8()}
 `;
   const acquired = serialized(guard, () => {
     const current = lockBytes(path);
@@ -83896,10 +85157,10 @@ async function recordChangeReviewUsage(input) {
 }
 
 // packages/repository-knowledge-runtime/dist/provider-admission.js
-import { mkdir as mkdir19, lstat as lstat44, chmod as chmod5 } from "node:fs/promises";
+import { mkdir as mkdir20, lstat as lstat46, chmod as chmod5 } from "node:fs/promises";
 import { homedir as homedir2 } from "node:os";
-import { resolve as resolve63 } from "node:path";
-import { randomUUID as randomUUID8 } from "node:crypto";
+import { resolve as resolve65 } from "node:path";
+import { randomUUID as randomUUID9 } from "node:crypto";
 
 // packages/repository-knowledge-runtime/dist/sqlite-row.js
 function requireRow2(value) {
@@ -83925,13 +85186,13 @@ function alive2(pid) {
   }
 }
 async function database(directory) {
-  await mkdir19(directory, { recursive: true, mode: 448 });
-  const parent = await lstat44(directory);
+  await mkdir20(directory, { recursive: true, mode: 448 });
+  const parent = await lstat46(directory);
   if (!parent.isDirectory() || parent.isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
-  const path = resolve63(directory, "admission.sqlite");
+  const path = resolve65(directory, "admission.sqlite");
   try {
-    const file = await lstat44(path);
+    const file = await lstat46(path);
     if (!file.isFile() || file.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   } catch (error) {
@@ -83960,11 +85221,11 @@ function rows(db) {
 }
 async function acquireKnowledgeProviderAdmission(input) {
   const liveWorkPending = await input.liveWorkPending();
-  const directory = input.directory ?? resolve63(homedir2(), ".lervo", "state", "knowledge-provider-admission");
+  const directory = input.directory ?? resolve65(homedir2(), ".lervo", "state", "knowledge-provider-admission");
   const db = await database(directory);
-  const repositoryHash = sha2565(resolve63(input.repositoryRoot));
+  const repositoryHash = sha2565(resolve65(input.repositoryRoot));
   const now = (input.now ?? (() => /* @__PURE__ */ new Date()))().getTime();
-  const nonce = randomUUID8();
+  const nonce = randomUUID9();
   let transactionOpen = false;
   try {
     db.exec("BEGIN IMMEDIATE");
@@ -84052,7 +85313,7 @@ async function acquireKnowledgeProviderAdmission(input) {
 async function pauseKnowledgeProvider(input) {
   if (!/^sha256:[a-f0-9]{64}$/u.test(input.observationHash) || input.resetAt !== null && !Number.isFinite(Date.parse(input.resetAt)))
     throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
-  const db = await database(input.directory ?? resolve63(homedir2(), ".lervo", "state", "knowledge-provider-admission"));
+  const db = await database(input.directory ?? resolve65(homedir2(), ".lervo", "state", "knowledge-provider-admission"));
   try {
     db.prepare(`INSERT INTO provider_pauses(provider,reason,observation_hash,observed_at,reset_at) VALUES(?,?,?,?,?)
       ON CONFLICT(provider) DO UPDATE SET reason=excluded.reason,observation_hash=excluded.observation_hash,observed_at=excluded.observed_at,reset_at=excluded.reset_at`).run(input.provider, input.reason, input.observationHash, (input.now ?? /* @__PURE__ */ new Date()).getTime(), input.resetAt === null ? null : Date.parse(input.resetAt));
@@ -84061,7 +85322,7 @@ async function pauseKnowledgeProvider(input) {
   }
 }
 async function knowledgeProviderAdmissionState(input) {
-  const db = await database(input.directory ?? resolve63(homedir2(), ".lervo", "state", "knowledge-provider-admission"));
+  const db = await database(input.directory ?? resolve65(homedir2(), ".lervo", "state", "knowledge-provider-admission"));
   try {
     const pause = sqliteRow2(db.prepare("SELECT * FROM provider_pauses WHERE provider = ?").get(input.provider));
     const now = (input.now ?? /* @__PURE__ */ new Date()).getTime();
@@ -84078,14 +85339,14 @@ async function knowledgeProviderAdmissionState(input) {
 }
 
 // packages/repository-knowledge-runtime/dist/provider-budget.js
-import { mkdir as mkdir20, chmod as chmod6, lstat as lstat45 } from "node:fs/promises";
-import { resolve as resolve64 } from "node:path";
+import { mkdir as mkdir21, chmod as chmod6, lstat as lstat47 } from "node:fs/promises";
+import { resolve as resolve66 } from "node:path";
 async function reserveConvergenceProviderCall(input) {
-  const directory = resolve64(input.repositoryRoot, ".lervo/state/knowledge");
-  await mkdir20(directory, { recursive: true, mode: 448 });
-  const path = resolve64(directory, "convergence-budgets.sqlite");
+  const directory = resolve66(input.repositoryRoot, ".lervo/state/knowledge");
+  await mkdir21(directory, { recursive: true, mode: 448 });
+  const path = resolve66(directory, "convergence-budgets.sqlite");
   try {
-    const file = await lstat45(path);
+    const file = await lstat47(path);
     if (!file.isFile() || file.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
   } catch (error) {
@@ -84221,9 +85482,9 @@ function createChangeReviewHost(input) {
 
 // packages/repository-knowledge-runtime/dist/settlement-fence.js
 import { constants as constants29, closeSync as closeSync5, fstatSync as fstatSync5, lstatSync as lstatSync5, openSync as openSync5, readFileSync as readFileSync4 } from "node:fs";
-import { resolve as resolve65, dirname as dirname17 } from "node:path";
+import { resolve as resolve67, dirname as dirname18 } from "node:path";
 function bytes(path) {
-  if (lstatSync5(path).isSymbolicLink() || lstatSync5(dirname17(path)).isSymbolicLink())
+  if (lstatSync5(path).isSymbolicLink() || lstatSync5(dirname18(path)).isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   const fd = openSync5(path, constants29.O_RDONLY | constants29.O_NOFOLLOW);
   try {
@@ -84243,7 +85504,7 @@ async function captureConvergenceSettlementAuthority(context, state2) {
   const home = await resolveRepositoryCoordinationHome(context.storage.paths.repositoryRoot, {
     readOnly: true
   });
-  const paths = [resolve65(home.workforce, "agents.json")];
+  const paths = [resolve67(home.workforce, "agents.json")];
   const closed = state2.stageData.settledAssignment;
   if (closed) {
     const [assignments, agents] = await Promise.all([
@@ -84253,7 +85514,7 @@ async function captureConvergenceSettlementAuthority(context, state2) {
     const assignment = assignments.find((item) => item.assignmentId === closed.assignmentId);
     if (assignment?.status !== closed.status || assignment.assigneeAgentId !== closed.agentId || assignment.convergence?.inputArtifactHash !== closed.inputArtifactHash || !agents.some((agent) => agent.agentId === closed.agentId && agent.status === "active"))
       throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
-    paths.push(resolve65(home.workforce, "assignments", `${closed.assignmentId}.json`));
+    paths.push(resolve67(home.workforce, "assignments", `${closed.assignmentId}.json`));
   }
   context.settlementAuthority = {
     obligationId: state2.obligationId,
@@ -84264,7 +85525,7 @@ async function captureConvergenceSettlementAuthority(context, state2) {
 function assertConvergenceSettlementAuthority(context, state2) {
   if (state2.baseline.delegationHash === null || !state2.receipts.length)
     return;
-  const raw = bytes(resolve65(context.storage.paths.repositoryRoot, CONVERGENCE_DELEGATION_PATH));
+  const raw = bytes(resolve67(context.storage.paths.repositoryRoot, CONVERGENCE_DELEGATION_PATH));
   const delegation = parseConvergenceDelegation(JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(raw)));
   if (sha2565(raw) !== state2.baseline.delegationHash || delegation.state !== "active" || Date.parse(delegation.expiresAt) <= Date.now())
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
@@ -84308,7 +85569,7 @@ function convergenceSourceCaptureSettings(root2) {
 
 // packages/repository-knowledge-runtime/dist/source-hash-cache.js
 import { chmodSync as chmodSync2, lstatSync as lstatSync6, rmSync as rmSync2 } from "node:fs";
-import { resolve as resolve66 } from "node:path";
+import { resolve as resolve68 } from "node:path";
 var MAXIMUM_ROWS = 5e4;
 var SCHEMA_VERSION = 1;
 var RACY_WINDOW_NANOSECONDS = 2000000000n;
@@ -84319,9 +85580,9 @@ var disabled = {
   close: () => void 0
 };
 function privateDirectory(root2) {
-  let directory = resolve66(root2);
+  let directory = resolve68(root2);
   for (const part of [".lervo", "state", "knowledge"]) {
-    directory = resolve66(directory, part);
+    directory = resolve68(directory, part);
     try {
       const stat = lstatSync6(directory);
       if (!stat.isDirectory() || stat.isSymbolicLink())
@@ -84374,7 +85635,7 @@ function openSourceHashCache(root2) {
   const directory = privateDirectory(root2);
   if (directory === null)
     return disabled;
-  const path = resolve66(directory, "source-hash-cache.sqlite");
+  const path = resolve68(directory, "source-hash-cache.sqlite");
   try {
     const stat = lstatSync6(path);
     if (!stat.isFile() || stat.isSymbolicLink())
@@ -84450,23 +85711,23 @@ function openSourceHashCache(root2) {
 
 // packages/repository-knowledge-runtime/dist/symbolic-source.js
 import { lstatSync as lstatSync7, readlinkSync } from "node:fs";
-import { resolve as resolve67 } from "node:path";
+import { resolve as resolve69 } from "node:path";
 function symbolicConvergenceSourceBytes(root2, reference) {
-  let link4 = resolve67(root2);
+  let link4 = resolve69(root2);
   const parts = reference.path.split("/");
   for (const part of parts.slice(0, -1)) {
-    link4 = resolve67(link4, part);
+    link4 = resolve69(link4, part);
     const stat = lstatSync7(link4);
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
   }
-  link4 = resolve67(link4, parts.at(-1));
+  link4 = resolve69(link4, parts.at(-1));
   if (!lstatSync7(link4).isSymbolicLink() || readlinkSync(link4) !== reference.target)
     throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
   try {
-    let target = resolve67(root2);
+    let target = resolve69(root2);
     for (const part of symbolicReferenceTarget(reference).split("/")) {
-      target = resolve67(target, part);
+      target = resolve69(target, part);
       if (lstatSync7(target).isSymbolicLink())
         throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
     }
@@ -84592,7 +85853,7 @@ function captureConvergenceSources(root2, policyHash) {
 // packages/repository-knowledge-runtime/dist/source-fingerprint.js
 import { execFileSync as execFileSync2 } from "node:child_process";
 import { lstatSync as lstatSync9, readdirSync } from "node:fs";
-import { resolve as resolve68 } from "node:path";
+import { resolve as resolve70 } from "node:path";
 
 // packages/repository-knowledge-runtime/dist/convergence-queue-observation.js
 var DESTINATIONS2 = [
@@ -84678,7 +85939,7 @@ function porcelainStatusPaths(status) {
   return paths;
 }
 function candidateMetadata(root2) {
-  const state2 = resolve68(root2, KNOWLEDGE_STATE);
+  const state2 = resolve70(root2, KNOWLEDGE_STATE);
   let stores;
   try {
     stores = readdirSync(state2).filter((name2) => name2.endsWith("candidates")).sort();
@@ -84697,10 +85958,10 @@ function candidateMetadata(root2) {
     if (own3?.[0] !== "directory" || depth === 0)
       return;
     for (const name2 of readdirSync(path).sort())
-      visit2(resolve68(path, name2), depth - 1);
+      visit2(resolve70(path, name2), depth - 1);
   };
   for (const store of stores)
-    visit2(resolve68(state2, store), 2);
+    visit2(resolve70(state2, store), 2);
   return observed;
 }
 function convergenceRepositoryDigest(root2) {
@@ -84708,17 +85969,17 @@ function convergenceRepositoryDigest(root2) {
   if (indexPath === void 0 || head === void 0 || !/^[a-f0-9]{40,64}$/u.test(head))
     throw new Error("Repository head observation is invalid.");
   const status = git2(root2, ["status", "--porcelain=v2", "-z", "--untracked-files=all"]);
-  const index2 = metadata(resolve68(root2, indexPath));
+  const index2 = metadata(resolve70(root2, indexPath));
   const settings = convergenceSourceCaptureSettings(root2);
   return sha2565(canonicalJson4({
     head,
     status: sha2565(status),
-    dirty: porcelainStatusPaths(status).map((path) => [path, metadata(resolve68(root2, path))]),
+    dirty: porcelainStatusPaths(status).map((path) => [path, metadata(resolve70(root2, path))]),
     index: index2 === null ? null : { size: index2[1], mtimeNs: index2[2] },
     policy: sha2565(canonicalJson4(settings.policy)),
     delegation: settings.delegationContentHash,
     candidates: sha2565(canonicalJson4(candidateMetadata(root2))),
-    materialization: metadata(resolve68(root2, KNOWLEDGE_STATE, "materialization-transaction"))
+    materialization: metadata(resolve70(root2, KNOWLEDGE_STATE, "materialization-transaction"))
   }));
 }
 function convergenceSourceFingerprint(input) {
@@ -85182,9 +86443,9 @@ function convergenceManagedKnowledgePath(path) {
 }
 
 // packages/repository-knowledge-runtime/dist/workforce-event.js
-import { randomUUID as randomUUID9 } from "node:crypto";
+import { randomUUID as randomUUID10 } from "node:crypto";
 function recordConvergenceWorkforceEvent(storage, event) {
-  const identity2 = randomUUID9().replaceAll("-", "");
+  const identity2 = randomUUID10().replaceAll("-", "");
   storage.events.append({
     eventId: `evt_${identity2}`,
     projectId: storage.manifest.projectId,
@@ -86251,10 +87512,10 @@ async function reviewCanonicalBaseline(context, state2, assertLease) {
 
 // packages/repository-knowledge-runtime/dist/canonical-workspace.js
 import { constants as constants31 } from "node:fs";
-import { execFile as execFile8 } from "node:child_process";
-import { mkdir as mkdir23, lstat as lstat49, open as open27 } from "node:fs/promises";
-import { dirname as dirname21, resolve as resolve73, relative as relative16 } from "node:path";
-import { promisify as promisify8 } from "node:util";
+import { execFile as execFile9 } from "node:child_process";
+import { mkdir as mkdir24, lstat as lstat51, open as open27 } from "node:fs/promises";
+import { dirname as dirname22, resolve as resolve75, relative as relative16 } from "node:path";
+import { promisify as promisify9 } from "node:util";
 
 // packages/workspace-host/dist/index.js
 var WorkspaceHostError = class extends Error {
@@ -86615,15 +87876,15 @@ async function applyWorkspaceCleanup(input) {
 var MAX_ADAPTER_TURN_RESULT_BYTES = 4 * 1024 * 1024;
 
 // packages/adapter-contract/dist/provider-process-environment.js
-import { dirname as dirname18, delimiter, resolve as resolve69 } from "node:path";
+import { dirname as dirname19, delimiter, resolve as resolve71 } from "node:path";
 function createProviderProcessEnvironment(environment = process.env, runtimeExecutable = process.execPath) {
   const result = Object.fromEntries(Object.entries(environment).filter((entry) => entry[1] !== void 0));
   const pathKeys = Object.keys(result).filter((key3) => key3.toLowerCase() === "path");
   const pathKey = pathKeys[0] ?? "PATH";
   for (const duplicate of pathKeys.slice(1))
     delete result[duplicate];
-  const runtimeDirectory = dirname18(resolve69(runtimeExecutable));
-  const existing = (result[pathKey] ?? "").split(delimiter).filter((entry) => entry.length > 0 && resolve69(entry) !== runtimeDirectory);
+  const runtimeDirectory = dirname19(resolve71(runtimeExecutable));
+  const existing = (result[pathKey] ?? "").split(delimiter).filter((entry) => entry.length > 0 && resolve71(entry) !== runtimeDirectory);
   result[pathKey] = [runtimeDirectory, ...existing].join(delimiter);
   return result;
 }
@@ -86698,9 +87959,9 @@ var defaultManagedProviderRunDeadlines = {
 };
 
 // packages/orchestrator/dist/repository-snapshot-git.js
-import { execFile as execFile4 } from "node:child_process";
-import { promisify as promisify4 } from "node:util";
-var execute2 = promisify4(execFile4);
+import { execFile as execFile5 } from "node:child_process";
+import { promisify as promisify5 } from "node:util";
+var execute2 = promisify5(execFile5);
 async function repositorySnapshotGitHead(root2) {
   try {
     const { stdout } = await execute2("git", ["-C", root2, "rev-parse", "--verify", "HEAD"], {
@@ -86716,8 +87977,8 @@ async function repositorySnapshotGitHead(root2) {
 
 // packages/orchestrator/dist/repository-snapshot.js
 import { createHash as createHash37 } from "node:crypto";
-import { lstat as lstat46, readdir as readdir17, readlink } from "node:fs/promises";
-import { relative as relative15, resolve as resolve70, sep as sep15 } from "node:path";
+import { lstat as lstat48, readdir as readdir17, readlink } from "node:fs/promises";
+import { relative as relative15, resolve as resolve72, sep as sep15 } from "node:path";
 var defaultRepositorySnapshotPolicy = Object.freeze({
   excludedDirectoryNames: Object.freeze([
     ".git",
@@ -86794,12 +88055,12 @@ async function captureRepositorySnapshotWithCache(input) {
   const resolvedPolicy = resolveRepositorySnapshotPolicy(input.policy);
   const excludedDirectories = new Set(resolvedPolicy.excludedDirectoryNames);
   const excludedPaths = new Set(resolvedPolicy.excludedPaths);
-  const root2 = resolve70(input.repositoryRoot);
+  const root2 = resolve72(input.repositoryRoot);
   const cacheKey = snapshotCacheKey(root2, resolvedPolicy);
   const previousEntries = input.previous?.cacheKey === cacheKey ? input.previous.entries : /* @__PURE__ */ new Map();
   const nextEntries = /* @__PURE__ */ new Map();
   try {
-    const rootStats = await lstat46(root2);
+    const rootStats = await lstat48(root2);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
       throw new Error("unsafe root");
   } catch {
@@ -86817,7 +88078,7 @@ async function captureRepositorySnapshotWithCache(input) {
     }
     entries.sort((left, right) => left.name.localeCompare(right.name));
     for (const entry of entries) {
-      const absolutePath = resolve70(directory, entry.name);
+      const absolutePath = resolve72(directory, entry.name);
       const path = portablePath2(root2, absolutePath);
       if (excludedPaths.has(path))
         continue;
@@ -86832,7 +88093,7 @@ async function captureRepositorySnapshotWithCache(input) {
         throw new RepositorySnapshotError("The repository snapshot file-count limit was exceeded.");
       }
       if (entry.isSymbolicLink()) {
-        const before = await lstat46(absolutePath, { bigint: true });
+        const before = await lstat48(absolutePath, { bigint: true });
         const identity2 = entryIdentity(before);
         const cached = previousEntries.get(path);
         let hash3;
@@ -86840,7 +88101,7 @@ async function captureRepositorySnapshotWithCache(input) {
           hash3 = cached.hash;
         } else {
           const target = await readlink(absolutePath);
-          if (identity2 !== entryIdentity(await lstat46(absolutePath, { bigint: true }))) {
+          if (identity2 !== entryIdentity(await lstat48(absolutePath, { bigint: true }))) {
             throw new RepositorySnapshotError("Could not snapshot the repository file safely.");
           }
           hash3 = sha2567(`symlink\0${target}`);
@@ -86854,7 +88115,7 @@ async function captureRepositorySnapshotWithCache(input) {
         continue;
       }
       try {
-        const before = await lstat46(absolutePath, { bigint: true });
+        const before = await lstat48(absolutePath, { bigint: true });
         const identity2 = entryIdentity(before);
         const cached = previousEntries.get(path);
         let hash3;
@@ -86864,7 +88125,7 @@ async function captureRepositorySnapshotWithCache(input) {
           contentByteLength = cached.byteLength;
         } else {
           const bytes2 = await input.readFile(root2, path);
-          const after = await lstat46(absolutePath, { bigint: true });
+          const after = await lstat48(absolutePath, { bigint: true });
           if (identity2 !== entryIdentity(after)) {
             throw new Error("changed while reading");
           }
@@ -87001,8 +88262,8 @@ async function runRequiredProjectVerifications(input) {
 }
 
 // packages/orchestrator/dist/repository-snapshot-file-cache.js
-import { mkdir as mkdir21, readFile as readFile25, rename as rename11, writeFile as writeFile6 } from "node:fs/promises";
-import { dirname as dirname19 } from "node:path";
+import { mkdir as mkdir22, readFile as readFile27, rename as rename12, writeFile as writeFile7 } from "node:fs/promises";
+import { dirname as dirname20 } from "node:path";
 var HASH25 = /^sha256:[a-f0-9]{64}$/u;
 function validCache(value) {
   const cache = value;
@@ -87011,25 +88272,25 @@ function validCache(value) {
 async function capturePersistentRepositorySnapshot(repositoryRoot, cachePath, policy = defaultRepositorySnapshotPolicy) {
   let previous2;
   try {
-    const value = JSON.parse(await readFile25(cachePath, "utf8"));
+    const value = JSON.parse(await readFile27(cachePath, "utf8"));
     if (validCache(value))
       previous2 = value;
   } catch {
     previous2 = void 0;
   }
-  const { snapshot, cache } = await captureRepositorySnapshotIncrementally({
+  const { snapshot: snapshot2, cache } = await captureRepositorySnapshotIncrementally({
     repositoryRoot,
     policy,
     ...previous2 === void 0 ? {} : { previous: previous2 }
   });
   try {
-    await mkdir21(dirname19(cachePath), { recursive: true, mode: 448 });
+    await mkdir22(dirname20(cachePath), { recursive: true, mode: 448 });
     const temporary = `${cachePath}.${process.pid}.tmp`;
-    await writeFile6(temporary, JSON.stringify(cache), { mode: 384 });
-    await rename11(temporary, cachePath);
+    await writeFile7(temporary, JSON.stringify(cache), { mode: 384 });
+    await rename12(temporary, cachePath);
   } catch {
   }
-  return snapshot;
+  return snapshot2;
 }
 
 // packages/orchestrator/dist/workspace-provisioning.js
@@ -88253,8 +89514,8 @@ async function verifyWorkspaceIntegrationCandidate(input) {
   const inspectedBefore = await input.integrationHost.inspectTarget(targetRequest3(input.plan));
   if (inspectedBefore.targetCommit !== input.plan.targetBeforeCommit || inspectedBefore.workspace.status !== "present" || inspectedBefore.workspace.headCommit !== candidateCommit || inspectedBefore.workspace.treeHash !== candidateTreeHash || !inspectedBefore.workspace.markerMatched || !inspectedBefore.workspace.clean || inspectedBefore.workspace.gitOperationInProgress !== false)
     throw new WorkspaceHostError("host_effect_uncertain", "The integration candidate changed before verification.");
-  const snapshot = input.captureSnapshot ?? captureRepositorySnapshot;
-  const before = await snapshot(input.plan.integrationWorkspacePath);
+  const snapshot2 = input.captureSnapshot ?? captureRepositorySnapshot;
+  const before = await snapshot2(input.plan.integrationWorkspacePath);
   const clock = input.now ?? (() => /* @__PURE__ */ new Date());
   const verifications = await runRequiredProjectVerifications({
     suites: input.suites,
@@ -88268,7 +89529,7 @@ async function verifyWorkspaceIntegrationCandidate(input) {
     ...input.signal === void 0 ? {} : { signal: input.signal }
   });
   const [after, inspectedAfter] = await Promise.all([
-    snapshot(input.plan.integrationWorkspacePath),
+    snapshot2(input.plan.integrationWorkspacePath),
     input.integrationHost.inspectTarget(targetRequest3(input.plan))
   ]);
   if (after.revision !== before.revision || inspectedAfter.targetCommit !== input.plan.targetBeforeCommit || inspectedAfter.workspace.status !== "present" || inspectedAfter.workspace.headCommit !== candidateCommit || inspectedAfter.workspace.treeHash !== candidateTreeHash || !inspectedAfter.workspace.markerMatched || !inspectedAfter.workspace.clean || inspectedAfter.workspace.gitOperationInProgress !== false)
@@ -88296,13 +89557,13 @@ async function verifyWorkspaceIntegrationCandidate(input) {
 }
 
 // packages/workspace-host-git/dist/evidence.js
-import { execFile as execFile5 } from "node:child_process";
+import { execFile as execFile6 } from "node:child_process";
 import { createHash as createHash43 } from "node:crypto";
 import { constants as constants30 } from "node:fs";
-import { lstat as lstat47, open as open26, readFile as readFile26, realpath as realpath7 } from "node:fs/promises";
-import { dirname as dirname20, isAbsolute as isAbsolute5, resolve as resolve71 } from "node:path";
-import { promisify as promisify5 } from "node:util";
-var execute3 = promisify5(execFile5);
+import { lstat as lstat49, open as open26, readFile as readFile28, realpath as realpath7 } from "node:fs/promises";
+import { dirname as dirname21, isAbsolute as isAbsolute5, resolve as resolve73 } from "node:path";
+import { promisify as promisify6 } from "node:util";
+var execute3 = promisify6(execFile6);
 var COMMIT6 = /^[a-f0-9]{40,64}$/u;
 var HASH31 = /^sha256:[a-f0-9]{64}$/u;
 var MARKER_NAME = "lervo-workspace-owner.json";
@@ -88349,7 +89610,7 @@ async function registeredWorktrees(repositoryRoot) {
   let path = null;
   for (const field2 of output.split("\0")) {
     if (field2.startsWith("worktree "))
-      path = resolve71(field2.slice("worktree ".length));
+      path = resolve73(field2.slice("worktree ".length));
     else if (path !== null && field2.startsWith("HEAD ")) {
       records.set(path, field2.slice("HEAD ".length));
       path = null;
@@ -88367,7 +89628,7 @@ async function gitOperationInProgress(gitDirectory) {
     "rebase-apply"
   ]) {
     try {
-      await lstat47(resolve71(gitDirectory, name2));
+      await lstat49(resolve73(gitDirectory, name2));
       return true;
     } catch (error) {
       if (error.code !== "ENOENT")
@@ -88385,16 +89646,16 @@ var GitWorkspaceEvidence = class {
     return marker.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker.workspaceId) && Number.isSafeInteger(marker.generation) && marker.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker.repositoryInstanceId) && marker.adapterKind === this.binding.kind && marker.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker.creationPlanId) && HASH31.test(marker.pathDigest);
   }
   validateRequest(repositoryRoot, workspacePath, marker, allowSamePath = false) {
-    if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve71(repositoryRoot) !== repositoryRoot || resolve71(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker))
+    if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve73(repositoryRoot) !== repositoryRoot || resolve73(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker))
       fail17("host_coordinate_invalid", "The Git workspace coordinate is invalid.");
   }
   async markerMatches(gitDirectory, expected) {
     try {
-      const path = resolve71(gitDirectory, MARKER_NAME);
-      const info = await lstat47(path);
+      const path = resolve73(gitDirectory, MARKER_NAME);
+      const info = await lstat49(path);
       if (!info.isFile() || info.isSymbolicLink() || info.size > 16384)
         return false;
-      return stableJson10(JSON.parse(await readFile26(path, "utf8"))) === stableJson10(expected);
+      return stableJson10(JSON.parse(await readFile28(path, "utf8"))) === stableJson10(expected);
     } catch {
       return false;
     }
@@ -88407,7 +89668,7 @@ var GitWorkspaceEvidence = class {
       "--path-format=absolute",
       "--git-dir"
     ]);
-    const handle = await open26(resolve71(gitDirectory, MARKER_NAME), constants30.O_WRONLY | constants30.O_CREAT | constants30.O_EXCL | (constants30.O_NOFOLLOW ?? 0), 384);
+    const handle = await open26(resolve73(gitDirectory, MARKER_NAME), constants30.O_WRONLY | constants30.O_CREAT | constants30.O_EXCL | (constants30.O_NOFOLLOW ?? 0), 384);
     try {
       await handle.writeFile(`${JSON.stringify(marker, null, 2)}
 `);
@@ -88442,7 +89703,7 @@ var GitWorkspaceEvidence = class {
         nativeInstanceDigest: null
       };
     try {
-      const info = await lstat47(input.workspacePath);
+      const info = await lstat49(input.workspacePath);
       if (!info.isDirectory() || info.isSymbolicLink())
         return {
           status: "recovery_required",
@@ -88569,7 +89830,7 @@ var GitWorkspaceEvidence = class {
         return existing;
       fail17("host_effect_uncertain", "A different workspace occupies the provision coordinate.");
     }
-    const parentInfo = await lstat47(dirname20(request.workspacePath));
+    const parentInfo = await lstat49(dirname21(request.workspacePath));
     if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink())
       fail17("host_coordinate_invalid", "The workspace parent must be a real directory.");
     await beforeMutation?.();
@@ -88609,13 +89870,13 @@ var GitWorkspaceEvidence = class {
 };
 
 // packages/workspace-host-git/dist/integration.js
-import { execFile as execFile7 } from "node:child_process";
-import { promisify as promisify7 } from "node:util";
+import { execFile as execFile8 } from "node:child_process";
+import { promisify as promisify8 } from "node:util";
 
 // packages/workspace-host-git/dist/target-ref.js
-import { execFile as execFile6 } from "node:child_process";
-import { promisify as promisify6 } from "node:util";
-var execute4 = promisify6(execFile6);
+import { execFile as execFile7 } from "node:child_process";
+import { promisify as promisify7 } from "node:util";
+var execute4 = promisify7(execFile7);
 function fail18(code, message, cause) {
   throw new WorkspaceHostError(code, message, cause === void 0 ? void 0 : { cause });
 }
@@ -88719,7 +89980,7 @@ async function rollbackExactTargetRef(input) {
 }
 
 // packages/workspace-host-git/dist/integration.js
-var execute5 = promisify7(execFile7);
+var execute5 = promisify8(execFile8);
 var COMMIT7 = /^[a-f0-9]{40,64}$/u;
 var VERSION4 = "1.0.0";
 function fail19(code, message, cause) {
@@ -88943,20 +90204,20 @@ function assertConvergenceVerificationPassed(status) {
 }
 
 // packages/repository-knowledge-runtime/dist/effect-checkpoint.js
-import { mkdir as mkdir22, lstat as lstat48, chmod as chmod7 } from "node:fs/promises";
-import { resolve as resolve72 } from "node:path";
+import { mkdir as mkdir23, lstat as lstat50, chmod as chmod7 } from "node:fs/promises";
+import { resolve as resolve74 } from "node:path";
 async function convergenceEffectCheckpoint(input) {
   const { storage, assignment } = input;
   if (!assignment.convergence || !assignment.lease)
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
-  const directory = resolve72(storage.paths.repositoryRoot, ".lervo/state/knowledge");
-  await mkdir22(directory, { recursive: true, mode: 448 });
-  const parent = await lstat48(directory);
+  const directory = resolve74(storage.paths.repositoryRoot, ".lervo/state/knowledge");
+  await mkdir23(directory, { recursive: true, mode: 448 });
+  const parent = await lstat50(directory);
   if (!parent.isDirectory() || parent.isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
-  const path = resolve72(directory, "convergence-effects.sqlite");
+  const path = resolve74(directory, "convergence-effects.sqlite");
   try {
-    const file = await lstat48(path);
+    const file = await lstat50(path);
     if (!file.isFile() || file.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   } catch (error) {
@@ -89012,9 +90273,9 @@ async function convergenceEffectCheckpoint(input) {
   }
 }
 async function readConvergenceEffectCheckpoint(input) {
-  const path = resolve72(input.storage.paths.repositoryRoot, ".lervo/state/knowledge/convergence-effects.sqlite");
+  const path = resolve74(input.storage.paths.repositoryRoot, ".lervo/state/knowledge/convergence-effects.sqlite");
   try {
-    const file = await lstat48(path);
+    const file = await lstat50(path);
     if (!file.isFile() || file.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   } catch (error) {
@@ -89095,7 +90356,7 @@ async function hasCanonicalNormalizationLineage(context, state2, path, targetHas
 }
 
 // packages/repository-knowledge-runtime/dist/canonical-workspace.js
-var execute6 = promisify8(execFile8);
+var execute6 = promisify9(execFile9);
 async function convergenceGit(root2, args) {
   const { stdout } = await execute6("git", ["-C", root2, ...args], { maxBuffer: 16 * 1024 * 1024 });
   return stdout.trim();
@@ -89106,12 +90367,12 @@ async function safeDirectory2(root2, directory) {
     throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   let current = root2;
   for (const part of path.split("/")) {
-    current = resolve73(current, part);
-    await mkdir23(current, { mode: 448 }).catch((error) => {
+    current = resolve75(current, part);
+    await mkdir24(current, { mode: 448 }).catch((error) => {
       if (error.code !== "EEXIST")
         throw error;
     });
-    const stat = await lstat49(current);
+    const stat = await lstat51(current);
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   }
@@ -89123,8 +90384,8 @@ async function provisionCanonicalWorkspace(context, authority, kind) {
     authority.delegation.integrationTarget.ref
   ]);
   const host = new GitWorkspaceHostAdapter();
-  const path = resolve73(root2, ".lervo/state/knowledge/convergence-workspaces", authority.assignment.assignmentId, `lease-${authority.assignment.lease.generation}`, kind);
-  await safeDirectory2(root2, dirname21(path));
+  const path = resolve75(root2, ".lervo/state/knowledge/convergence-workspaces", authority.assignment.assignmentId, `lease-${authority.assignment.lease.generation}`, kind);
+  await safeDirectory2(root2, dirname22(path));
   const plan2 = await convergenceEffectCheckpoint({
     storage: context.storage,
     assignment: authority.assignment,
@@ -89213,8 +90474,8 @@ async function sealCanonicalDrafts(context, state2, authority, drafts) {
           throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
         await authority.assertCurrent();
         context.assertSource(state2);
-        await safeDirectory2(provision.path, dirname21(resolve73(provision.path, draft.path)));
-        const file = await open27(resolve73(provision.path, draft.path), constants31.O_WRONLY | constants31.O_CREAT | constants31.O_TRUNC | constants31.O_NOFOLLOW, 384);
+        await safeDirectory2(provision.path, dirname22(resolve75(provision.path, draft.path)));
+        const file = await open27(resolve75(provision.path, draft.path), constants31.O_WRONLY | constants31.O_CREAT | constants31.O_TRUNC | constants31.O_NOFOLLOW, 384);
         try {
           await file.writeFile(draft.content);
           await file.sync();
@@ -89389,7 +90650,7 @@ async function inspectRetainedCanonicalIntegration(context, state2, drafts) {
 }
 
 // packages/repository-knowledge-runtime/dist/canonical-integration-candidate.js
-import { randomUUID as randomUUID10 } from "node:crypto";
+import { randomUUID as randomUUID11 } from "node:crypto";
 
 // packages/repository-knowledge-runtime/dist/integrator-workspace-closure.js
 async function closeIntegratedConvergenceWorkspace(context, authority, integrationPlan, verification, completion) {
@@ -89528,7 +90789,7 @@ async function prepareCanonicalGitIntegration(context, state2, authority, sealed
       append: (specs) => {
         context.storage.events.transact((transaction) => {
           for (const spec of specs) {
-            const id5 = randomUUID10().replaceAll("-", "");
+            const id5 = randomUUID11().replaceAll("-", "");
             transaction.append({
               ...spec,
               eventId: spec.eventId ?? `evt_${id5}`,
@@ -89568,11 +90829,11 @@ async function prepareCanonicalGitIntegration(context, state2, authority, sealed
 }
 
 // packages/repository-knowledge-runtime/dist/materialization-event.js
-import { randomUUID as randomUUID11 } from "node:crypto";
+import { randomUUID as randomUUID12 } from "node:crypto";
 async function recordConvergenceMaterialization(storage, input) {
   const receipt3 = await storage.artifacts.put(canonicalJson4(input.receipt));
   const validation = await storage.artifacts.put(canonicalJson4(input.validation));
-  const id5 = randomUUID11().replaceAll("-", "");
+  const id5 = randomUUID12().replaceAll("-", "");
   storage.events.append({
     eventId: `evt_${id5}`,
     runId: `run_${id5}`,
@@ -89700,9 +90961,9 @@ import { execFileSync as execFileSync4 } from "node:child_process";
 
 // packages/repository-knowledge-runtime/dist/integration-target-sync.js
 import { createHash as createHash44 } from "node:crypto";
-import { execFile as execFile9 } from "node:child_process";
-import { promisify as promisify9 } from "node:util";
-var execute7 = promisify9(execFile9);
+import { execFile as execFile10 } from "node:child_process";
+import { promisify as promisify10 } from "node:util";
+var execute7 = promisify10(execFile10);
 async function blobHash(root2, commit, path) {
   try {
     const { stdout } = await execute7("git", ["-C", root2, "cat-file", "blob", `${commit}:${path}`], {
@@ -89999,7 +91260,7 @@ async function generateNormalizationBatch(context, state2, assertLease) {
     ...context.executable === void 0 ? {} : { executable: context.executable },
     timeoutMs: 6e5
   });
-  const bounded2 = await selectNormalizationBatchWithinCallBudget({
+  const bounded3 = await selectNormalizationBatchWithinCallBudget({
     repositoryRoot: root2,
     paths: selected,
     compiler: compiler2,
@@ -90012,9 +91273,9 @@ async function generateNormalizationBatch(context, state2, assertLease) {
     stage: "normalization_generation",
     role: "generator",
     state: state2,
-    paths: bounded2,
+    paths: bounded3,
     assertLease,
-    run: (authority) => generate(context, state2, bounded2, authority, compiler2)
+    run: (authority) => generate(context, state2, bounded3, authority, compiler2)
   });
 }
 async function generate(context, state2, paths, authority, compiler2) {
@@ -90804,11 +92065,11 @@ async function unresolvedConvergenceAssets(context, state2) {
 
 // packages/repository-knowledge-runtime/dist/knowledge-output-commit.js
 import { createHash as createHash45 } from "node:crypto";
-import { execFile as execFile10 } from "node:child_process";
+import { execFile as execFile11 } from "node:child_process";
 import { existsSync as existsSync2, readFileSync as readFileSync5 } from "node:fs";
-import { resolve as resolve74 } from "node:path";
-import { promisify as promisify10 } from "node:util";
-var execute8 = promisify10(execFile10);
+import { resolve as resolve76 } from "node:path";
+import { promisify as promisify11 } from "node:util";
+var execute8 = promisify11(execFile11);
 var RECORD_ROOT = ".lervo/knowledge/document-normalizations/";
 var KNOWLEDGE_OUTPUT_COMMIT_AUTHOR = {
   name: "Lervo Knowledge",
@@ -90856,7 +92117,7 @@ async function commitSafe(root2) {
     "index.lock"
   ]) {
     const path = (await git6(root2, ["rev-parse", "--git-path", marker])).trim();
-    if (existsSync2(resolve74(root2, path)))
+    if (existsSync2(resolve76(root2, path)))
       return false;
   }
   return true;
@@ -90921,12 +92182,12 @@ async function settledKnowledgeOutputPaths(input) {
       const committed = await headBlob(root2, path);
       return committed === null ? null : sha2568(committed);
     },
-    current: (path) => sha2568(readFileSync5(resolve74(root2, path))),
+    current: (path) => sha2568(readFileSync5(resolve76(root2, path))),
     drafts: await integratedCanonicalDrafts(input.events, input.artifacts),
     records: normalization.records.flatMap((record4) => {
       if (record4.status !== "current")
         return [];
-      const source = documentNormalizationRecordSource(readFileSync5(resolve74(root2, record4.path), "utf8"));
+      const source = documentNormalizationRecordSource(readFileSync5(resolve76(root2, record4.path), "utf8"));
       return source ? [{ ...record4, source }] : [];
     }),
     deletedRecordSource: async (path) => {
@@ -91296,7 +92557,7 @@ function convergenceRecoveryStatus(storage) {
 // packages/repository-knowledge-runtime/dist/workforce-retention.js
 import { constants as constants32 } from "node:fs";
 import { open as open28 } from "node:fs/promises";
-import { resolve as resolve75 } from "node:path";
+import { resolve as resolve77 } from "node:path";
 async function compactConvergenceWorkforce(storage) {
   if ((storage.writableEventSchemaVersion ?? 1) < 4)
     return 0;
@@ -91317,7 +92578,7 @@ async function compactConvergenceWorkforce(storage) {
     const terminal = storage.events.get(stableId("evt", [provenance.obligationId, "terminal"], 32));
     if (terminal?.type !== "repository.knowledge.convergence.recorded" || terminal.payload.obligationId !== provenance.obligationId)
       continue;
-    const file = await open28(resolve75(home.workforce, "assignments", `${assignment.assignmentId}.json`), constants32.O_RDONLY | constants32.O_NOFOLLOW);
+    const file = await open28(resolve77(home.workforce, "assignments", `${assignment.assignmentId}.json`), constants32.O_RDONLY | constants32.O_NOFOLLOW);
     let hash3;
     try {
       const stat = await file.stat();
@@ -91360,7 +92621,7 @@ async function compactConvergenceWorkforce(storage) {
 }
 
 // packages/repository-knowledge-runtime/dist/workspace-retention.js
-import { resolve as resolve76, relative as relative17 } from "node:path";
+import { resolve as resolve78, relative as relative17 } from "node:path";
 async function compactConvergenceWorkspaces(storage, provider) {
   if ((storage.writableEventSchemaVersion ?? 1) < 4)
     return;
@@ -91377,7 +92638,7 @@ async function compactConvergenceWorkspaces(storage, provider) {
   await validate2();
   const assignments = await listAssignments(root2);
   const journals = (await (await RepositoryCoordinationRecords.open(root2)).list("cleanupJournals")).map((record4) => record4.value).filter(isWorkspaceCleanupJournal);
-  const ownedRoot = resolve76(root2, ".lervo/state/knowledge/convergence-workspaces");
+  const ownedRoot = resolve78(root2, ".lervo/state/knowledge/convergence-workspaces");
   const host = new GitWorkspaceHostAdapter();
   let count = 0;
   for (const workspace of await listWorkspaces(root2)) {
@@ -91473,19 +92734,19 @@ async function runAutonomousKnowledgeWorker(input) {
 }
 
 // packages/repository-knowledge-runtime/dist/resident-health.js
-import { mkdir as mkdir24, lstat as lstat50, chmod as chmod8 } from "node:fs/promises";
-import { resolve as resolve77 } from "node:path";
+import { mkdir as mkdir25, lstat as lstat52, chmod as chmod8 } from "node:fs/promises";
+import { resolve as resolve79 } from "node:path";
 async function healthDatabase(root2, create) {
   let directory = root2;
   for (const part of [".lervo", "state", "knowledge"]) {
-    directory = resolve77(directory, part);
+    directory = resolve79(directory, part);
     if (create)
-      await mkdir24(directory, { mode: 448 }).catch((error) => {
+      await mkdir25(directory, { mode: 448 }).catch((error) => {
         if (error.code !== "EEXIST")
           throw error;
       });
     try {
-      const stat = await lstat50(directory);
+      const stat = await lstat52(directory);
       if (!stat.isDirectory() || stat.isSymbolicLink())
         throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
     } catch (error) {
@@ -91494,9 +92755,9 @@ async function healthDatabase(root2, create) {
       throw error;
     }
   }
-  const path = resolve77(directory, "resident-health.sqlite");
+  const path = resolve79(directory, "resident-health.sqlite");
   try {
-    const stat = await lstat50(path);
+    const stat = await lstat52(path);
     if (!stat.isFile() || stat.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   } catch (error) {
@@ -91563,10 +92824,10 @@ async function inspectKnowledgeResidentHealth(root2, now = /* @__PURE__ */ new D
 }
 
 // packages/repository-knowledge-runtime/dist/full-cycle-admission.js
-import { chmod as chmod9, lstat as lstat51, mkdir as mkdir25 } from "node:fs/promises";
+import { chmod as chmod9, lstat as lstat53, mkdir as mkdir26 } from "node:fs/promises";
 import { homedir as homedir3 } from "node:os";
-import { resolve as resolve78 } from "node:path";
-import { randomUUID as randomUUID12 } from "node:crypto";
+import { resolve as resolve80 } from "node:path";
+import { randomUUID as randomUUID13 } from "node:crypto";
 var LEASE_MILLISECONDS = 10 * 6e4;
 var RENEW_MILLISECONDS = 6e4;
 var POLL_MILLISECONDS = 1e3;
@@ -91579,13 +92840,13 @@ function alive4(pid) {
   }
 }
 async function database2(directory) {
-  await mkdir25(directory, { recursive: true, mode: 448 });
-  const parent = await lstat51(directory);
+  await mkdir26(directory, { recursive: true, mode: 448 });
+  const parent = await lstat53(directory);
   if (!parent.isDirectory() || parent.isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
-  const path = resolve78(directory, "full-cycle-admission.sqlite");
+  const path = resolve80(directory, "full-cycle-admission.sqlite");
   try {
-    const file = await lstat51(path);
+    const file = await lstat53(path);
     if (!file.isFile() || file.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   } catch (error) {
@@ -91637,9 +92898,9 @@ function delay(milliseconds, signal) {
   });
 }
 async function acquireFullCycleAdmission(input) {
-  const directory = input.directory ?? resolve78(homedir3(), ".lervo", "state", "knowledge-provider-admission");
-  const repositoryHash = sha2565(resolve78(input.repositoryRoot));
-  const nonce = randomUUID12();
+  const directory = input.directory ?? resolve80(homedir3(), ".lervo", "state", "knowledge-provider-admission");
+  const repositoryHash = sha2565(resolve80(input.repositoryRoot));
+  const nonce = randomUUID13();
   let waited = false;
   for (; ; ) {
     if (input.signal.aborted)
@@ -91668,9 +92929,9 @@ async function acquireFullCycleAdmission(input) {
 }
 
 // packages/repository-knowledge-runtime/dist/resident-cycle-state.js
-import { chmod as chmod10, lstat as lstat52, mkdir as mkdir26, readFile as readFile27, rename as rename12, rm as rm13, writeFile as writeFile7 } from "node:fs/promises";
-import { resolve as resolve79 } from "node:path";
-import { randomUUID as randomUUID13 } from "node:crypto";
+import { chmod as chmod10, lstat as lstat54, mkdir as mkdir27, readFile as readFile29, rename as rename13, rm as rm14, writeFile as writeFile8 } from "node:fs/promises";
+import { resolve as resolve81 } from "node:path";
+import { randomUUID as randomUUID14 } from "node:crypto";
 var RESIDENT_CYCLE_STATE_PATH = ".lervo/state/knowledge/resident-cycle.json";
 var RESULTS = /* @__PURE__ */ new Set(["idle", "waiting", "attention", "processed", "failed"]);
 var HASH32 = /^sha256:[a-f0-9]{64}$/u;
@@ -91679,11 +92940,11 @@ function timestamp2(value) {
 }
 async function readResidentCycleState(root2) {
   try {
-    const path = resolve79(root2, RESIDENT_CYCLE_STATE_PATH);
-    const stat = await lstat52(path);
+    const path = resolve81(root2, RESIDENT_CYCLE_STATE_PATH);
+    const stat = await lstat54(path);
     if (!stat.isFile() || stat.size > 4096)
       return null;
-    const value = JSON.parse(await readFile27(path, "utf8"));
+    const value = JSON.parse(await readFile29(path, "utf8"));
     if (value?.schemaVersion !== 1 || !(value.fingerprint === null || typeof value.fingerprint === "string" && HASH32.test(value.fingerprint)) || !timestamp2(value.lastCycleAt) || !timestamp2(value.nextReconcileAt) || typeof value.lastResult !== "string" || !RESULTS.has(value.lastResult) || !Number.isSafeInteger(value.idleStreak) || value.idleStreak < 0)
       return null;
     return value;
@@ -91692,25 +92953,25 @@ async function readResidentCycleState(root2) {
   }
 }
 async function writeResidentCycleState(root2, state2) {
-  let directory = resolve79(root2);
+  let directory = resolve81(root2);
   for (const part of [".lervo", "state", "knowledge"]) {
-    directory = resolve79(directory, part);
-    await mkdir26(directory, { mode: 448 }).catch((error) => {
+    directory = resolve81(directory, part);
+    await mkdir27(directory, { mode: 448 }).catch((error) => {
       if (error.code !== "EEXIST")
         throw error;
     });
-    const stat = await lstat52(directory);
+    const stat = await lstat54(directory);
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw new Error("Resident cycle state directory is invalid.");
   }
-  const temporary = resolve79(directory, `.resident-cycle-${randomUUID13()}.tmp`);
+  const temporary = resolve81(directory, `.resident-cycle-${randomUUID14()}.tmp`);
   try {
-    await writeFile7(temporary, `${JSON.stringify(state2)}
+    await writeFile8(temporary, `${JSON.stringify(state2)}
 `, { mode: 384, flag: "wx" });
     await chmod10(temporary, 384);
-    await rename12(temporary, resolve79(root2, RESIDENT_CYCLE_STATE_PATH));
+    await rename13(temporary, resolve81(root2, RESIDENT_CYCLE_STATE_PATH));
   } catch (error) {
-    await rm13(temporary, { force: true });
+    await rm14(temporary, { force: true });
     throw error;
   }
 }
@@ -91970,7 +93231,7 @@ function startAutonomousKnowledgeWorker(input) {
 }
 
 // apps/cli/src/knowledge-worker-command.ts
-import { spawn as spawn4 } from "node:child_process";
+import { spawn as spawn5 } from "node:child_process";
 async function runKnowledgeWorker(input) {
   const storage = await (input.openStorage ?? openProjectStorage)(input.root);
   try {
@@ -92015,11 +93276,11 @@ async function runKnowledgeWorkerCommand(args, io) {
         )
       });
       try {
-        await new Promise((resolve95) => {
+        await new Promise((resolve97) => {
           const stopped = () => {
             process.removeListener("SIGINT", stopped);
             process.removeListener("SIGTERM", stopped);
-            resolve95();
+            resolve97();
           };
           process.once("SIGINT", stopped);
           process.once("SIGTERM", stopped);
@@ -92041,7 +93302,7 @@ async function runKnowledgeWorkerCommand(args, io) {
 }
 function launchDetachedKnowledgeWorker(input) {
   try {
-    const child = spawn4(process.execPath, [input.entry, ...input.args], {
+    const child = spawn5(process.execPath, [input.entry, ...input.args], {
       cwd: input.root,
       detached: true,
       stdio: "ignore",
@@ -92056,7 +93317,7 @@ function launchDetachedKnowledgeWorker(input) {
 }
 
 // apps/cli/src/terminal-command-runtime.ts
-import { resolve as resolve92 } from "node:path";
+import { resolve as resolve94 } from "node:path";
 import { parseArgs as parseArgs4 } from "node:util";
 
 // packages/diagnostics/dist/recovery-guidance-environment.js
@@ -92715,7 +93976,7 @@ function formatTerminalCoverageReport(report) {
 }
 
 // apps/cli/src/terminal-budget-command.ts
-import { resolve as resolve81 } from "node:path";
+import { resolve as resolve83 } from "node:path";
 import { parseArgs } from "node:util";
 
 // apps/cli/src/terminal-budget-format.ts
@@ -92745,18 +94006,18 @@ function formatTerminalBudgetReport(report) {
 var terminalUsage = "  lervo terminal status [--root <path>] [--json]\n  lervo terminal coverage [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--json]\n  lervo terminal budget [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--minimum-samples <1-100>] [--max-query-tokens <tokens>] [--unobserved <block|escalate>] [--exhausted <block|escalate>] [--json]\n  lervo terminal declare --provider <codex|claude> --observation <observation-id> --stdin [--root <path>] [--json]\n  lervo terminal hook --provider <codex|claude> --contract <1|2>";
 
 // apps/cli/src/terminal-repository-root.ts
-import { lstat as lstat53 } from "node:fs/promises";
-import { dirname as dirname22, resolve as resolve80 } from "node:path";
+import { lstat as lstat55 } from "node:fs/promises";
+import { dirname as dirname23, resolve as resolve82 } from "node:path";
 async function resolveTerminalRepositoryRoot(start) {
-  let current = resolve80(start);
+  let current = resolve82(start);
   while (true) {
     try {
-      const manifest = await lstat53(resolve80(current, ".lervo/project.yaml"));
+      const manifest = await lstat55(resolve82(current, ".lervo/project.yaml"));
       if (manifest.isFile() && !manifest.isSymbolicLink()) return current;
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
     }
-    const parent = dirname22(current);
+    const parent = dirname23(current);
     if (parent === current)
       throw new Error("No initialized Lervo repository contains the hook working directory.");
     current = parent;
@@ -92800,7 +94061,7 @@ async function runTerminalBudgetCommand(args, io) {
     const limit = boundedInteger2(parsed.values.limit, 100, 100);
     const minimumSamples = boundedInteger2(parsed.values["minimum-samples"], 30, 100);
     const maxQueryProjectionTokens = parsed.values["max-query-tokens"] === void 0 ? null : boundedInteger2(parsed.values["max-query-tokens"], 1, Number.MAX_SAFE_INTEGER);
-    const root2 = await resolveTerminalRepositoryRoot(resolve81(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve83(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const coverage = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -92831,22 +94092,22 @@ ${terminalUsage}
 }
 
 // apps/cli/src/terminal-declaration-command.ts
-import { resolve as resolve86 } from "node:path";
+import { resolve as resolve88 } from "node:path";
 import { parseArgs as parseArgs2 } from "node:util";
 
 // apps/cli/src/terminal-repository-snapshot.ts
-import { resolve as resolve82 } from "node:path";
+import { resolve as resolve84 } from "node:path";
 function captureTerminalRepositorySnapshot(root2) {
   return capturePersistentRepositorySnapshot(
     root2,
-    resolve82(root2, ".lervo/state/cache/terminal-repository-snapshot.json")
+    resolve84(root2, ".lervo/state/cache/terminal-repository-snapshot.json")
   );
 }
 
 // apps/cli/src/development-pattern-storage.ts
-import { randomUUID as randomUUID14 } from "node:crypto";
-import { mkdir as mkdir27, rename as rename13, writeFile as writeFile8 } from "node:fs/promises";
-import { resolve as resolve83 } from "node:path";
+import { randomUUID as randomUUID15 } from "node:crypto";
+import { mkdir as mkdir28, rename as rename14, writeFile as writeFile9 } from "node:fs/promises";
+import { resolve as resolve85 } from "node:path";
 function allPatternEvents(storage) {
   const events = [];
   const latest = storage.events.latest();
@@ -92927,22 +94188,22 @@ function projectPatterns(events) {
   );
 }
 async function writePatternProjection(repositoryRoot, patterns) {
-  const path = resolve83(repositoryRoot, ".lervo/state/knowledge/development-patterns/current.json");
-  await mkdir27(resolve83(path, ".."), { recursive: true });
+  const path = resolve85(repositoryRoot, ".lervo/state/knowledge/development-patterns/current.json");
+  await mkdir28(resolve85(path, ".."), { recursive: true });
   const temporary = `${path}.${process.pid}.tmp`;
-  await writeFile8(
+  await writeFile9(
     temporary,
     `${JSON.stringify({ schemaVersion: 1, patterns }, null, 2)}
 `,
     "utf8"
   );
-  await rename13(temporary, path);
+  await rename14(temporary, path);
 }
 function patternArtifactId(contentHash2) {
   return `art_${contentHash2.slice("sha256:".length)}`;
 }
 function patternEventDraft(input, projectId) {
-  const identity2 = randomUUID14().replaceAll("-", "");
+  const identity2 = randomUUID15().replaceAll("-", "");
   return {
     eventId: `evt_${identity2}`,
     projectId,
@@ -93055,7 +94316,7 @@ function passedWorkflowVerificationEvidence(storage) {
 }
 
 // apps/cli/src/terminal-event-coordinates.ts
-import { randomUUID as randomUUID15 } from "node:crypto";
+import { randomUUID as randomUUID16 } from "node:crypto";
 var TERMINAL_OBSERVATION_POLICY_VERSION = sha2565(
   "lervo.terminal.unmanaged-observation.v1"
 );
@@ -93089,7 +94350,7 @@ function unmanagedTerminalCoordinates(provider, input) {
   };
 }
 function newTerminalIdentifier(prefix) {
-  return `${prefix}_${randomUUID15().replaceAll("-", "")}`;
+  return `${prefix}_${randomUUID16().replaceAll("-", "")}`;
 }
 function assertTerminalRepositoryRelativePath(path) {
   const normalized2 = path.replaceAll("\\", "/");
@@ -93113,9 +94374,9 @@ function terminalEventDraft(input) {
 
 // apps/cli/src/terminal-knowledge-lifecycle-cache.ts
 import { constants as constants33 } from "node:fs";
-import { randomUUID as randomUUID16 } from "node:crypto";
-import { lstat as lstat54, mkdir as mkdir28, open as open29, readFile as readFile28, rename as rename14, rm as rm14 } from "node:fs/promises";
-import { resolve as resolve84 } from "node:path";
+import { randomUUID as randomUUID17 } from "node:crypto";
+import { lstat as lstat56, mkdir as mkdir29, open as open29, readFile as readFile30, rename as rename15, rm as rm15 } from "node:fs/promises";
+import { resolve as resolve86 } from "node:path";
 
 // apps/cli/src/version-command.ts
 import { createRequire } from "node:module";
@@ -93185,50 +94446,52 @@ function validIssue(value) {
 }
 function validateCache(value) {
   const cache = value;
-  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 2 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH33.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH33.test(cache.supplementalSourcesDigest) || typeof cache.knowledgeProjectionDigest !== "string" || !HASH33.test(cache.knowledgeProjectionDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
+  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 2 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH33.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH33.test(cache.supplementalSourcesDigest) || typeof cache.knowledgeProjectionDigest !== "string" || !HASH33.test(cache.knowledgeProjectionDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue) || cache.advisories !== void 0 && (!Array.isArray(cache.advisories) || cache.advisories.length > 32 || !cache.advisories.every(validIssue))) {
     return null;
   }
   return cache;
 }
-async function readTerminalKnowledgeLifecycleCache(input) {
+async function readTerminalKnowledgeLifecycleCacheEntry(input) {
   try {
-    const target = resolve84(input.root, CACHE_PATH);
-    const stats = await lstat54(target);
+    const target = resolve86(input.root, CACHE_PATH);
+    const stats = await lstat56(target);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_CACHE_BYTES) return null;
-    const cache = validateCache(JSON.parse(await readFile28(target, "utf8")));
+    const cache = validateCache(JSON.parse(await readFile30(target, "utf8")));
     if (cache === null) return null;
     const expected = await cacheCoordinates(input);
     if (expected === null) return null;
     if (cache.cliVersion !== expected.cliVersion || cache.repositoryRevision !== expected.repositoryRevision || cache.supplementalSourcesDigest !== expected.supplementalSourcesDigest || cache.knowledgeProjectionDigest !== expected.knowledgeProjectionDigest) {
       return null;
     }
-    return cache.issues;
+    return { issues: cache.issues, advisories: cache.advisories ?? [] };
   } catch {
     return null;
   }
 }
 async function writeTerminalKnowledgeLifecycleCache(input) {
-  if (!HASH33.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
+  const advisories = input.advisories ?? [];
+  if (!HASH33.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue) || advisories.length > 32 || !advisories.every(validIssue)) {
     throw new Error("The terminal knowledge lifecycle cache input is invalid.");
   }
   const coordinates = await cacheCoordinates(input);
   if (coordinates === null)
     throw new Error("The terminal knowledge lifecycle cache coordinates are unavailable.");
-  const directory = resolve84(input.root, ".lervo/state/terminal-integration");
-  await mkdir28(directory, { recursive: true, mode: 448 });
-  const directoryStats = await lstat54(directory);
+  const directory = resolve86(input.root, ".lervo/state/terminal-integration");
+  await mkdir29(directory, { recursive: true, mode: 448 });
+  const directoryStats = await lstat56(directory);
   if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink())
     throw new Error("Unsafe terminal knowledge lifecycle cache directory.");
   const cache = {
     schemaVersion: 2,
     ...coordinates,
-    issues: input.issues
+    issues: input.issues,
+    ...advisories.length === 0 ? {} : { advisories }
   };
   const bytes2 = `${JSON.stringify(cache)}
 `;
   if (Buffer.byteLength(bytes2) > MAXIMUM_CACHE_BYTES)
     throw new Error("The terminal knowledge lifecycle cache exceeds its storage limit.");
-  const temporary = resolve84(directory, `.knowledge-lifecycle-${randomUUID16()}.tmp`);
+  const temporary = resolve86(directory, `.knowledge-lifecycle-${randomUUID17()}.tmp`);
   let handle;
   try {
     handle = await open29(
@@ -93240,14 +94503,15 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename14(temporary, resolve84(input.root, CACHE_PATH));
+    await rename15(temporary, resolve86(input.root, CACHE_PATH));
   } finally {
     await handle?.close();
-    await rm14(temporary, { force: true });
+    await rm15(temporary, { force: true });
   }
 }
 
 // apps/cli/src/terminal-knowledge-lifecycle-inspection.ts
+var TERMINAL_DRIFT_ATTENTION_ITEMS = 4;
 var TRANSIENT_INSPECTION_FAILURES = /* @__PURE__ */ new Set([
   "instruction_canonical_bootstrap_failed",
   "repository_layout_inspection_failed",
@@ -93368,6 +94632,7 @@ async function inspectStructuralLifecycle(input) {
 }
 async function inspectValidationLifecycle(input) {
   const lintIssues = [];
+  let advisories = [];
   let normalization;
   let normalizationError;
   try {
@@ -93385,6 +94650,7 @@ async function inspectValidationLifecycle(input) {
       ...sharedScan(input.preparedScan),
       ...normalization === void 0 ? {} : { preparedNormalization: normalization }
     });
+    advisories = documentDriftAttentionIssues(lint, TERMINAL_DRIFT_ATTENTION_ITEMS);
     if (!lint.valid) {
       lintIssues.push({
         code: "repository_knowledge_lint_failed",
@@ -93418,11 +94684,14 @@ async function inspectValidationLifecycle(input) {
       })
     );
   }
-  return lintIssues;
+  return { issues: lintIssues, advisories };
 }
 async function inspectTerminalRepositoryKnowledgeLifecycle(input) {
+  return (await inspectTerminalRepositoryKnowledge(input)).issues;
+}
+async function inspectTerminalRepositoryKnowledge(input) {
   await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: input.root });
-  const cached = await readTerminalKnowledgeLifecycleCache(input);
+  const cached = await readTerminalKnowledgeLifecycleCacheEntry(input);
   if (cached !== null) return cached;
   const preparedScan = await scanConfiguredRepositoryKnowledge(input.root, {
     supplementalSources: input.supplementalSources
@@ -93439,50 +94708,53 @@ async function inspectTerminalRepositoryKnowledgeLifecycle(input) {
       preparedScan
     })
   ]);
-  const issues = [...structuralIssues, ...validationIssues];
+  const issues = [...structuralIssues, ...validationIssues.issues];
+  const advisories = validationIssues.advisories;
   if (preparedScan !== void 0 && !issues.some((issue) => TRANSIENT_INSPECTION_FAILURES.has(issue.code))) {
-    const confirmedRevision = await captureTerminalRepositorySnapshot(input.root).then((snapshot) => snapshot.revision).catch(() => null);
+    const confirmedRevision = await captureTerminalRepositorySnapshot(input.root).then((snapshot2) => snapshot2.revision).catch(() => null);
     if (confirmedRevision === input.repositoryRevision) {
-      await writeTerminalKnowledgeLifecycleCache({ ...input, issues }).catch(() => void 0);
+      await writeTerminalKnowledgeLifecycleCache({ ...input, issues, advisories }).catch(
+        () => void 0
+      );
     }
   }
-  return issues;
+  return { issues, advisories };
 }
 
 // apps/cli/src/terminal-prepared-snapshot.ts
 import { constants as constants34 } from "node:fs";
-import { randomUUID as randomUUID17 } from "node:crypto";
-import { lstat as lstat55, mkdir as mkdir29, open as open30, readFile as readFile29, readdir as readdir18, rename as rename15, rm as rm15 } from "node:fs/promises";
-import { resolve as resolve85 } from "node:path";
+import { randomUUID as randomUUID18 } from "node:crypto";
+import { lstat as lstat57, mkdir as mkdir30, open as open30, readFile as readFile31, readdir as readdir18, rename as rename16, rm as rm16 } from "node:fs/promises";
+import { resolve as resolve87 } from "node:path";
 var DIRECTORY = ".lervo/state/terminal-integration/prepared-snapshots";
 var MAXIMUM_SNAPSHOTS = 64;
 var MAXIMUM_BYTES2 = 8 * 1024 * 1024;
 function snapshotPath(root2, observationId) {
   if (!/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(observationId))
     throw new Error("The prepared snapshot observation ID is invalid.");
-  return resolve85(root2, DIRECTORY, `${observationId}.json`);
+  return resolve87(root2, DIRECTORY, `${observationId}.json`);
 }
 function validate(value) {
-  const snapshot = value;
-  if (snapshot === null || typeof snapshot !== "object" || snapshot.schemaVersion !== 1 || typeof snapshot.observationId !== "string" || typeof snapshot.revision !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(snapshot.revision) || snapshot.files === null || typeof snapshot.files !== "object" || Array.isArray(snapshot.files) || Object.keys(snapshot.files).length > 2e4 || snapshot.commits !== void 0 && (snapshot.commits === null || typeof snapshot.commits !== "object" || Array.isArray(snapshot.commits) || Object.entries(snapshot.commits).some(
-    ([path, commit]) => !(path in snapshot.files) || typeof commit !== "string" || !/^[a-f0-9]{40,64}$/u.test(commit)
-  )) || !Object.entries(snapshot.files).every(
+  const snapshot2 = value;
+  if (snapshot2 === null || typeof snapshot2 !== "object" || snapshot2.schemaVersion !== 1 || typeof snapshot2.observationId !== "string" || typeof snapshot2.revision !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(snapshot2.revision) || snapshot2.files === null || typeof snapshot2.files !== "object" || Array.isArray(snapshot2.files) || Object.keys(snapshot2.files).length > 2e4 || snapshot2.commits !== void 0 && (snapshot2.commits === null || typeof snapshot2.commits !== "object" || Array.isArray(snapshot2.commits) || Object.entries(snapshot2.commits).some(
+    ([path, commit]) => !(path in snapshot2.files) || typeof commit !== "string" || !/^[a-f0-9]{40,64}$/u.test(commit)
+  )) || !Object.entries(snapshot2.files).every(
     ([path, hash3]) => path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part.length === 0 || part === "." || part === "..") && typeof hash3 === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash3)
   ))
     throw new Error("The prepared repository snapshot is invalid.");
-  return snapshot;
+  return snapshot2;
 }
-async function writePreparedRepositorySnapshot(root2, snapshot) {
-  const directory = resolve85(root2, DIRECTORY);
-  await mkdir29(directory, { recursive: true, mode: 448 });
-  const stats = await lstat55(directory);
+async function writePreparedRepositorySnapshot(root2, snapshot2) {
+  const directory = resolve87(root2, DIRECTORY);
+  await mkdir30(directory, { recursive: true, mode: 448 });
+  const stats = await lstat57(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe prepared snapshot state directory.");
-  const bytes2 = `${JSON.stringify(snapshot)}
+  const bytes2 = `${JSON.stringify(snapshot2)}
 `;
   if (Buffer.byteLength(bytes2) > MAXIMUM_BYTES2)
     throw new Error("The prepared repository snapshot exceeds its storage limit.");
-  const temporary = resolve85(directory, `.prepared-${randomUUID17()}.tmp`);
+  const temporary = resolve87(directory, `.prepared-${randomUUID18()}.tmp`);
   let handle;
   try {
     handle = await open30(
@@ -93494,36 +94766,36 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename15(temporary, snapshotPath(root2, snapshot.observationId));
+    await rename16(temporary, snapshotPath(root2, snapshot2.observationId));
   } finally {
     await handle?.close();
-    await rm15(temporary, { force: true });
+    await rm16(temporary, { force: true });
   }
   const entries = await Promise.all(
     (await readdir18(directory, { withFileTypes: true })).filter(
       (entry) => entry.isFile() && /^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}\.json$/u.test(entry.name)
     ).map(async (entry) => ({
       name: entry.name,
-      modifiedAt: (await lstat55(resolve85(directory, entry.name))).mtimeMs
+      modifiedAt: (await lstat57(resolve87(directory, entry.name))).mtimeMs
     }))
   );
-  const currentName = `${snapshot.observationId}.json`;
+  const currentName = `${snapshot2.observationId}.json`;
   entries.sort(
     (left, right) => Number(left.name === currentName) - Number(right.name === currentName) || left.modifiedAt - right.modifiedAt || left.name.localeCompare(right.name)
   );
   for (const entry of entries.slice(0, Math.max(0, entries.length - MAXIMUM_SNAPSHOTS)))
-    await rm15(resolve85(directory, entry.name), { force: true });
+    await rm16(resolve87(directory, entry.name), { force: true });
 }
 async function readPreparedRepositorySnapshot(root2, observationId) {
   try {
     const path = snapshotPath(root2, observationId);
-    const stats = await lstat55(path);
+    const stats = await lstat57(path);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_BYTES2)
       throw new Error("The prepared repository snapshot is unsafe.");
-    const snapshot = validate(JSON.parse(await readFile29(path, "utf8")));
-    if (snapshot.observationId !== observationId)
+    const snapshot2 = validate(JSON.parse(await readFile31(path, "utf8")));
+    if (snapshot2.observationId !== observationId)
       throw new Error("The prepared repository snapshot coordinate does not match.");
-    return snapshot;
+    return snapshot2;
   } catch (error) {
     if (error.code === "ENOENT") return null;
     throw error;
@@ -94031,7 +95303,7 @@ async function runTerminalDeclareCommand(args, io) {
     if (!parsed.values.stdin || io.stdin === void 0)
       throw new Error("The declaration must be supplied through --stdin.");
     const draft = parseTurnDeclarationDraft(await io.stdin());
-    const root2 = await resolveTerminalRepositoryRoot(resolve86(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve88(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const context = allTerminalEvents2(storage.events).filter(
       (event) => event.type === "terminal.context.prepared" && event.actor.kind === "provider" && event.actor.provider === parsed.values.provider && event.payload.observationId === parsed.values.observation
@@ -94163,28 +95435,28 @@ import { parseArgs as parseArgs3 } from "node:util";
 
 // apps/cli/src/terminal-activation-state.ts
 import { constants as constants35 } from "node:fs";
-import { randomUUID as randomUUID18 } from "node:crypto";
-import { lstat as lstat56, mkdir as mkdir30, open as open31, readFile as readFile30, rename as rename16, rm as rm16 } from "node:fs/promises";
-import { resolve as resolve87 } from "node:path";
+import { randomUUID as randomUUID19 } from "node:crypto";
+import { lstat as lstat58, mkdir as mkdir31, open as open31, readFile as readFile32, rename as rename17, rm as rm17 } from "node:fs/promises";
+import { resolve as resolve89 } from "node:path";
 function activationPath(root2, provider, event) {
-  return resolve87(
+  return resolve89(
     root2,
     ".lervo/state/terminal-integration",
     `${provider}-${event === "UserPromptSubmit" ? "user-prompt-submit" : "stop"}.json`
   );
 }
 async function writeTerminalActivationReceipt(root2, receipt3) {
-  const directory = resolve87(root2, ".lervo/state/terminal-integration");
+  const directory = resolve89(root2, ".lervo/state/terminal-integration");
   try {
-    await mkdir30(directory, { mode: 448 });
+    await mkdir31(directory, { mode: 448 });
   } catch (error) {
     if (error.code !== "EEXIST") throw error;
   }
-  const stats = await lstat56(directory);
+  const stats = await lstat58(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe terminal activation state directory.");
   const target = activationPath(root2, receipt3.provider, receipt3.hookEvent);
-  const temporary = resolve87(directory, `.activation-${randomUUID18()}.tmp`);
+  const temporary = resolve89(directory, `.activation-${randomUUID19()}.tmp`);
   let handle;
   try {
     handle = await open31(
@@ -94197,10 +95469,10 @@ async function writeTerminalActivationReceipt(root2, receipt3) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename16(temporary, target);
+    await rename17(temporary, target);
   } finally {
     await handle?.close();
-    await rm16(temporary, { force: true });
+    await rm17(temporary, { force: true });
   }
 }
 async function readTerminalActivationReceipts(root2) {
@@ -94209,9 +95481,9 @@ async function readTerminalActivationReceipts(root2) {
     for (const event of ["UserPromptSubmit", "Stop"]) {
       try {
         const path = activationPath(root2, provider, event);
-        const stats = await lstat56(path);
+        const stats = await lstat58(path);
         if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
-        const value = JSON.parse(await readFile30(path, "utf8"));
+        const value = JSON.parse(await readFile32(path, "utf8"));
         if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v2" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string")
           receipts.push(value);
       } catch (error) {
@@ -94302,19 +95574,19 @@ function parseTerminalHookInput(value) {
 }
 
 // apps/cli/src/terminal-lifecycle-inspection.ts
-import { lstat as lstat58 } from "node:fs/promises";
-import { resolve as resolve89 } from "node:path";
+import { lstat as lstat60 } from "node:fs/promises";
+import { resolve as resolve91 } from "node:path";
 
 // apps/cli/src/terminal-repository-replica-service-inspection.ts
-import { execFile as execFile11 } from "node:child_process";
-import { lstat as lstat57 } from "node:fs/promises";
+import { execFile as execFile12 } from "node:child_process";
+import { lstat as lstat59 } from "node:fs/promises";
 import { homedir as homedir4 } from "node:os";
-import { resolve as resolve88 } from "node:path";
+import { resolve as resolve90 } from "node:path";
 var serviceLabel = "dev.lervo.repository-replica";
 var maximumDefinitionBytes = 128 * 1024;
 function launchdServiceLoaded(uid) {
   return new Promise((done) => {
-    execFile11(
+    execFile12(
       "launchctl",
       ["print", `gui/${uid}/${serviceLabel}`],
       { encoding: "utf8", maxBuffer: 4096, timeout: 5e3 },
@@ -94324,7 +95596,7 @@ function launchdServiceLoaded(uid) {
 }
 async function inspectTerminalRepositoryReplicaService(input = {}) {
   if ((input.platform ?? process.platform) !== "darwin") return [];
-  const definition2 = resolve88(
+  const definition2 = resolve90(
     input.homeDirectory ?? homedir4(),
     "Library",
     "LaunchAgents",
@@ -94332,7 +95604,7 @@ async function inspectTerminalRepositoryReplicaService(input = {}) {
   );
   let metadata2;
   try {
-    metadata2 = await lstat57(definition2);
+    metadata2 = await lstat59(definition2);
   } catch (error) {
     if (error.code === "ENOENT") return [];
     return [
@@ -94734,7 +96006,7 @@ async function inspectTerminalLifecycle(root2, expected) {
     }
   }
   try {
-    const handoff = await lstat58(resolve89(root2, "HANDOFF.md"));
+    const handoff = await lstat60(resolve91(root2, "HANDOFF.md"));
     if (handoff.isFile() && !handoff.isSymbolicLink())
       issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
     else
@@ -94826,14 +96098,15 @@ async function inspectTerminalLifecycle(root2, expected) {
       code: terminal.status === "blocked" ? "terminal_integration_blocked" : "terminal_integration_stale",
       command: "lervo migrate knowledge"
     });
+  let knowledgeAdvisories = [];
   if ((expected === void 0 || issues.length === 0) && repositoryKnowledgeInspectionRequired) {
-    issues.push(
-      ...await inspectTerminalRepositoryKnowledgeLifecycle({
-        root: root2,
-        repositoryRevision: currentRepository.revision,
-        supplementalSources: await collectLocalKnowledgeSources2(root2)
-      })
-    );
+    const knowledge = await inspectTerminalRepositoryKnowledge({
+      root: root2,
+      repositoryRevision: currentRepository.revision,
+      supplementalSources: await collectLocalKnowledgeSources2(root2)
+    });
+    issues.push(...knowledge.issues);
+    knowledgeAdvisories = knowledge.advisories;
   }
   const activation = await readTerminalActivationReceipts(root2);
   const runtimeActivation = await inspectTerminalRuntimeActivation(root2, activation);
@@ -94842,6 +96115,7 @@ async function inspectTerminalLifecycle(root2, expected) {
     status: issues.length === 0 ? "current" : "action_required",
     repositoryRoot: root2,
     issues,
+    knowledgeAdvisories,
     activation,
     runtimeActivation,
     activationReadiness: terminalActivationReadiness(runtimeActivation),
@@ -94866,7 +96140,7 @@ function assembleTerminalHookContext(input) {
 // apps/cli/src/terminal-context-loading.ts
 import { constants as constants36 } from "node:fs";
 import { open as open32 } from "node:fs/promises";
-import { relative as relative18, resolve as resolve90, sep as sep16 } from "node:path";
+import { relative as relative18, resolve as resolve92, sep as sep16 } from "node:path";
 var TRUNCATION_NOTICE = "\n[Lervo content truncated]";
 function truncateUtf8(value, maximumBytes2) {
   if (maximumBytes2 <= 0) return "";
@@ -94882,7 +96156,7 @@ function truncateUtf8(value, maximumBytes2) {
   return value.slice(0, end);
 }
 async function loadSelectedTerminalDocument(input) {
-  const target = resolve90(input.repositoryRoot, input.hit.path);
+  const target = resolve92(input.repositoryRoot, input.hit.path);
   const child = relative18(input.repositoryRoot, target);
   if (child === ".." || child.startsWith(`..${sep16}`) || input.maximumBytes <= 0) return null;
   let handle;
@@ -95161,8 +96435,8 @@ function formatTerminalAttentionContext(report) {
 }
 
 // apps/cli/src/terminal-compact-context.ts
-import { mkdir as mkdir31, readFile as readFile31, rename as rename17, writeFile as writeFile9 } from "node:fs/promises";
-import { dirname as dirname23, resolve as resolve91 } from "node:path";
+import { mkdir as mkdir32, readFile as readFile33, rename as rename18, writeFile as writeFile10 } from "node:fs/promises";
+import { dirname as dirname24, resolve as resolve93 } from "node:path";
 
 // apps/cli/src/operating-attention-projection.ts
 var MAXIMUM_ATTENTION_ITEMS = 256;
@@ -95341,7 +96615,7 @@ function createOperatingAttentionReport(input) {
 // apps/cli/src/terminal-compact-format.ts
 var MAXIMUM_ITEM_BYTES = 360;
 var MAXIMUM_DECISIONS = 3;
-function bounded(value, maximumBytes2 = MAXIMUM_ITEM_BYTES) {
+function bounded2(value, maximumBytes2 = MAXIMUM_ITEM_BYTES) {
   if (Buffer.byteLength(value) <= maximumBytes2) return value;
   let result = "";
   for (const character of value) {
@@ -95350,35 +96624,35 @@ function bounded(value, maximumBytes2 = MAXIMUM_ITEM_BYTES) {
   }
   return `${result}\u2026`;
 }
-function formatCompactWorkstreamContext(snapshot, freshness) {
-  const decisions = snapshot.pendingDecisions ?? [];
-  const headline = `Lervo workstream: ${bounded(snapshot.title, 200)} (revision ${snapshot.revision}).`;
+function formatCompactWorkstreamContext(snapshot2, freshness) {
+  const decisions = snapshot2.pendingDecisions ?? [];
+  const headline = `Lervo workstream: ${bounded2(snapshot2.title, 200)} (revision ${snapshot2.revision}).`;
   const context = freshness.status === "stale" ? [
     headline,
     `Its state is stale (${freshness.reasons.join(",")}); its next actions, blockers, decisions, and approvals are not current.`
   ].join("\n") : [
     headline,
-    ...snapshot.nextActions[0] === void 0 ? [] : [`Next: ${bounded(snapshot.nextActions[0])}`],
+    ...snapshot2.nextActions[0] === void 0 ? [] : [`Next: ${bounded2(snapshot2.nextActions[0])}`],
     ...decisions.length === 0 ? [] : [
       `Pending user decisions: ${decisions.length}.`,
       ...decisions.slice(0, MAXIMUM_DECISIONS).map(
-        (item) => `- ${item.decisionId}${item.blocking ? " [blocking]" : ""}: ${bounded(item.question, 240)}; recommended=${item.recommendedChoiceId ?? "none"}`
+        (item) => `- ${item.decisionId}${item.blocking ? " [blocking]" : ""}: ${bounded2(item.question, 240)}; recommended=${item.recommendedChoiceId ?? "none"}`
       )
     ]
   ].join("\n");
   return {
-    workstreamId: snapshot.workstreamId,
-    revision: snapshot.revision,
-    snapshotHash: sha2565(`${canonicalJson4(snapshot)}
+    workstreamId: snapshot2.workstreamId,
+    revision: snapshot2.revision,
+    snapshotHash: sha2565(`${canonicalJson4(snapshot2)}
 `),
     scope: "prefix",
     deliveredByteCount: Buffer.byteLength(context),
     context
   };
 }
-function staleWorkstreamEntryCount(attention2, snapshot, freshness) {
-  if (snapshot === null || freshness?.status !== "stale") return 0;
-  return attention2.items.filter(isStaleWorkstreamItem).length + snapshot.nextActions.length;
+function staleWorkstreamEntryCount(attention2, snapshot2, freshness) {
+  if (snapshot2 === null || freshness?.status !== "stale") return 0;
+  return attention2.items.filter(isStaleWorkstreamItem).length + snapshot2.nextActions.length;
 }
 function formatCompactTerminalPreamble(input) {
   const blocking = input.attention.items.filter((item) => item.blocking && !isStaleWorkstreamItem(item)).slice(0, 5);
@@ -95406,9 +96680,9 @@ function assembleCompactTerminalContext(preamble, workstream) {
 }
 
 // apps/cli/src/workstream-repository-head.ts
-import { execFile as execFile12 } from "node:child_process";
-import { promisify as promisify11 } from "node:util";
-var execute9 = promisify11(execFile12);
+import { execFile as execFile13 } from "node:child_process";
+import { promisify as promisify12 } from "node:util";
+var execute9 = promisify12(execFile13);
 async function git7(root2, args) {
   const { stdout } = await execute9("git", ["-C", root2, ...args], {
     timeout: 5e3,
@@ -95416,8 +96690,8 @@ async function git7(root2, args) {
   });
   return stdout.trim();
 }
-async function measureWorkstreamHeadDistance(root2, snapshot) {
-  const recorded = snapshot.repositoryHead?.commit;
+async function measureWorkstreamHeadDistance(root2, snapshot2) {
+  const recorded = snapshot2.repositoryHead?.commit;
   if (recorded === void 0) return { status: "not_recorded" };
   try {
     await git7(root2, ["merge-base", "--is-ancestor", recorded, "HEAD"]);
@@ -95446,7 +96720,7 @@ var compactQueryProjector = {
 async function readKnowledgeSnapshotCache(root2) {
   try {
     const value = JSON.parse(
-      await readFile31(resolve91(root2, KNOWLEDGE_SNAPSHOT_CACHE), "utf8")
+      await readFile33(resolve93(root2, KNOWLEDGE_SNAPSHOT_CACHE), "utf8")
     );
     return value?.schemaVersion === 1 && /^ksnap_[a-f0-9]{24}$/u.test(value.sourceSnapshotId) ? value : null;
   } catch {
@@ -95471,18 +96745,18 @@ async function terminalKnowledgeSnapshotId(root2, repositoryRevision) {
       sourceSnapshotId: scan.snapshotId
     };
     try {
-      const target = resolve91(root2, KNOWLEDGE_SNAPSHOT_CACHE);
-      await mkdir31(dirname23(target), { recursive: true, mode: 448 });
-      await writeFile9(`${target}.${process.pid}.tmp`, JSON.stringify(value), { mode: 384 });
-      await rename17(`${target}.${process.pid}.tmp`, target);
+      const target = resolve93(root2, KNOWLEDGE_SNAPSHOT_CACHE);
+      await mkdir32(dirname24(target), { recursive: true, mode: 448 });
+      await writeFile10(`${target}.${process.pid}.tmp`, JSON.stringify(value), { mode: 384 });
+      await rename18(`${target}.${process.pid}.tmp`, target);
     } catch {
     }
   }
   return scan.snapshotId;
 }
 async function prefetchTerminalPromptContext(root2) {
-  const snapshot = await captureTerminalRepositorySnapshot(root2);
-  await terminalKnowledgeSnapshotId(root2, snapshot.revision);
+  const snapshot2 = await captureTerminalRepositorySnapshot(root2);
+  await terminalKnowledgeSnapshotId(root2, snapshot2.revision);
 }
 async function prepareCompactTerminalPromptContext(input) {
   const requestDigest = sha2565(input.prompt);
@@ -95755,7 +97029,7 @@ async function prepareTerminalPromptContext(input) {
     targetPath: null,
     reasonIds: ["unmanaged_terminal_retrieval_only"]
   };
-  const cachedLifecycleIssues = await readTerminalKnowledgeLifecycleCache({
+  const cachedLifecycle = await readTerminalKnowledgeLifecycleCacheEntry({
     root: input.root,
     repositoryRevision: repositorySnapshot.revision,
     supplementalSources
@@ -95772,7 +97046,10 @@ async function prepareTerminalPromptContext(input) {
     workstream: currentWorkstream,
     workstreamFreshness,
     canonicalization,
-    knowledgeLifecycle: cachedLifecycleIssues === null ? { coverage: "unavailable", issues: [] } : { coverage: "cached", issues: cachedLifecycleIssues },
+    knowledgeLifecycle: cachedLifecycle === null ? { coverage: "unavailable", issues: [] } : {
+      coverage: "cached",
+      issues: [...cachedLifecycle.issues, ...cachedLifecycle.advisories]
+    },
     observedAt
   });
   const selection = await input.timing.measure(
@@ -95908,9 +97185,9 @@ function terminalDeclarationInstruction(provider, observationId) {
 }
 
 // apps/cli/src/terminal-stage-persistence.ts
-import { randomUUID as randomUUID19 } from "node:crypto";
+import { randomUUID as randomUUID20 } from "node:crypto";
 function eventId() {
-  return `evt_${randomUUID19().replaceAll("-", "")}`;
+  return `evt_${randomUUID20().replaceAll("-", "")}`;
 }
 async function recordTerminalStageObservation(input) {
   const writerVersion = input.storage?.writableEventSchemaVersion ?? (await inspectEventWriterCoordinate(input.root)).coordinate.selectedEventSchemaVersion;
@@ -96240,7 +97517,7 @@ async function runCoverage(args, io) {
     const limit = parsed.values.limit === void 0 ? 20 : Number(parsed.values.limit);
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
       throw new Error("--limit must be an integer between 1 and 100.");
-    const root2 = await resolveTerminalRepositoryRoot(resolve92(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve94(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const report = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -96285,7 +97562,7 @@ ${terminalUsage}
       return 1;
     }
     try {
-      const root2 = await resolveTerminalRepositoryRoot(resolve92(io.cwd, parsed.values.root ?? "."));
+      const root2 = await resolveTerminalRepositoryRoot(resolve94(io.cwd, parsed.values.root ?? "."));
       const result = await inspectTerminalLifecycle(root2);
       io.stdout(
         parsed.values.json ? `${JSON.stringify(result, null, 2)}
@@ -96318,12 +97595,12 @@ ${terminalUsage}
 }
 
 // apps/cli/src/provider-query-runner-codex.ts
-import { mkdtemp as mkdtemp5, rm as rm17 } from "node:fs/promises";
+import { mkdtemp as mkdtemp5, rm as rm18 } from "node:fs/promises";
 import { tmpdir as tmpdir3 } from "node:os";
-import { resolve as resolve93 } from "node:path";
+import { resolve as resolve95 } from "node:path";
 
 // packages/adapter-codex/dist/app-server-client.js
-import { spawn as spawn5 } from "node:child_process";
+import { spawn as spawn6 } from "node:child_process";
 import { createInterface } from "node:readline";
 
 // packages/adapter-codex/dist/async-queue.js
@@ -96367,11 +97644,11 @@ var AsyncQueue = class {
   wait(signal) {
     if (signal.aborted || this.ended || this.values.length > 0)
       return Promise.resolve();
-    return new Promise((resolve95) => {
+    return new Promise((resolve97) => {
       const finish = () => {
         this.waiters.delete(finish);
         signal.removeEventListener("abort", finish);
-        resolve95();
+        resolve97();
       };
       this.waiters.add(finish);
       signal.addEventListener("abort", finish, { once: true });
@@ -96454,7 +97731,7 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     process2.once("exit", () => this.failProcess(true));
   }
   static async connect(options) {
-    const child = spawn5(options.executable, options.commandArguments ?? ["app-server", "--stdio"], {
+    const child = spawn6(options.executable, options.commandArguments ?? ["app-server", "--stdio"], {
       cwd: options.cwd,
       env: createProviderProcessEnvironment(options.environment),
       stdio: ["pipe", "pipe", "pipe"]
@@ -96548,13 +97825,13 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     if (this.exited)
       return;
     this.process.kill("SIGTERM");
-    const exited = new Promise((resolve95) => this.process.once("exit", () => resolve95()));
+    const exited = new Promise((resolve97) => this.process.once("exit", () => resolve97()));
     let timer;
     try {
       await Promise.race([
         exited,
-        new Promise((resolve95) => {
-          timer = setTimeout(resolve95, 1e3);
+        new Promise((resolve97) => {
+          timer = setTimeout(resolve97, 1e3);
         })
       ]);
     } finally {
@@ -96571,12 +97848,12 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     const id5 = this.nextRequestId;
     const operation = diagnosticOperation(method);
     this.nextRequestId += 1;
-    return new Promise((resolve95, reject) => {
+    return new Promise((resolve97, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id5);
         reject(new CodexAdapterError("provider_protocol_failed", "The Codex app-server response timed out.", failureDiagnostic(operation, "response_timeout")));
       }, this.requestTimeoutMs);
-      this.pending.set(id5, { resolve: resolve95, reject, timer, operation });
+      this.pending.set(id5, { resolve: resolve97, reject, timer, operation });
       this.write({ method, id: id5, params });
     });
   }
@@ -96657,15 +97934,15 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
 var MAXIMUM_RESPONSE_BYTES = 1024 * 1024;
 
 // packages/adapter-codex/dist/repository-work.js
-import { execFile as execFile13, spawn as spawn6 } from "node:child_process";
-import { promisify as promisify12 } from "node:util";
+import { execFile as execFile14, spawn as spawn7 } from "node:child_process";
+import { promisify as promisify13 } from "node:util";
 var MAXIMUM_OUTPUT_BYTES = 64 * 1024 * 1024;
-var executeFile2 = promisify12(execFile13);
+var executeFile3 = promisify13(execFile14);
 
 // apps/cli/src/provider-query-runner-codex.ts
 var defaultDependencies = {
-  createDirectory: () => mkdtemp5(resolve93(tmpdir3(), "lervo-codex-query-runner-")),
-  removeDirectory: (path) => rm17(path, { recursive: true, force: true }),
+  createDirectory: () => mkdtemp5(resolve95(tmpdir3(), "lervo-codex-query-runner-")),
+  removeDirectory: (path) => rm18(path, { recursive: true, force: true }),
   assertNoModelTools: assertCodexHasNoModelTools,
   connect: (input) => CodexStdioAppServerClient.connect(input)
 };
@@ -97025,7 +98302,7 @@ async function projectProductionSearchQueries(input, prepareProjector = prepareP
 }
 
 // apps/cli/src/terminal-stage-observation.ts
-import { randomUUID as randomUUID20 } from "node:crypto";
+import { randomUUID as randomUUID21 } from "node:crypto";
 var TerminalStageObservation = class {
   profile;
   recorder;
@@ -97078,7 +98355,7 @@ var TerminalStageObservation = class {
         workId: null,
         terminalObservationId,
         terminalHook,
-        observationSetId: `stgobs_${randomUUID20().replaceAll("-", "").slice(0, 24)}`,
+        observationSetId: `stgobs_${randomUUID21().replaceAll("-", "").slice(0, 24)}`,
         stageCatalogVersion: 2,
         environmentProfileDigest: profileHash,
         repositoryProfile: this.profile.repositoryProfile,
@@ -97094,9 +98371,9 @@ async function verifiedRuntime() {
   try {
     const runtimePath = fileURLToPath(import.meta.url);
     const manifest = JSON.parse(
-      await readFile32(resolve94(dirname24(runtimePath), "runtime-v2.json"), "utf8")
+      await readFile34(resolve96(dirname25(runtimePath), "runtime-v2.json"), "utf8")
     );
-    const content3 = await readFile32(runtimePath);
+    const content3 = await readFile34(runtimePath);
     return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash49("sha256").update(content3).digest("hex")}`;
   } catch {
     return false;
