@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_671f033dddb7fbad4df31471
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ee18becb626a3669b9493f9c
+outputLanguage: en
+outputs:
+  - byteCount: 5944
+    contentHash: sha256:aec55f0e7eb73e95d1aa2995ef2f82c2ee23bab6198cff1a18e28f0acbb983de
+    path: docs/decisions/knowledge/documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md
+    userRegionHash: sha256:aec55f0e7eb73e95d1aa2995ef2f82c2ee23bab6198cff1a18e28f0acbb983de
+profile: decision_record
+recordId: knormdoc_e9a51643b11975916308ddad
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:abfd949bd74adc8086705fc9c0501f9514de6b3cf0c355e6e154ecaab840d5f1
+sourcePath: docs/decisions/knowledge/documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md
+sourceUnitVersionIds:
+  - uv_05819db605e70188cff2dcaf
+  - uv_635f2cd537d7a989dbd4b8d3
+  - uv_7136fdf18a89349a78d1f9cf
+  - uv_d12d8f3fdd9cb78bcd2bf279
+  - uv_d1fb0794368e89d0c2c306de
