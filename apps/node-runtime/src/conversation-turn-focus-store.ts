@@ -2,6 +2,8 @@ import { lstat, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { sqliteRow } from "./sqlite-row.js";
+
 const SCHEMA_VERSION = 1;
 const MAXIMUM_FOCUS_RECORDS = 1_024;
 const ID = /^[a-z][A-Za-z0-9_-]{7,127}$/u;
@@ -79,7 +81,7 @@ export class SQLiteConversationTurnFocusStore implements ConversationTurnFocusSt
         BEGIN IMMEDIATE;
       `);
       try {
-        const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+        const version = sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version;
         if (version !== 0 && version !== SCHEMA_VERSION) {
           throw new Error("The conversation turn-focus schema is unsupported.");
         }
@@ -127,13 +129,15 @@ export class SQLiteConversationTurnFocusStore implements ConversationTurnFocusSt
   read(scope: ConversationTurnFocusScope): ConversationTurnFocus | null {
     this.assertOpen();
     if (!validScope(scope)) throw new Error("The conversation turn-focus scope is invalid.");
-    const row = this.database
-      .prepare(
-        `SELECT participant_id, last_event_at, last_source_event_key_hash
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `SELECT participant_id, last_event_at, last_source_event_key_hash
          FROM conversation_turn_focus
          WHERE project_id = ? AND conversation_id = ? AND thread_id = ?`,
-      )
-      .get(scope.projectId, scope.conversationId, threadKey(scope.threadId));
+        )
+        .get(scope.projectId, scope.conversationId, threadKey(scope.threadId)),
+    );
     if (row === undefined) return null;
     if (
       typeof row.participant_id !== "string" ||
@@ -158,13 +162,15 @@ export class SQLiteConversationTurnFocusStore implements ConversationTurnFocusSt
     const occurredAtMs = Date.parse(focus.lastEventAt);
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const current = this.database
-        .prepare(
-          `SELECT participant_id, last_event_at_ms, last_source_event_key_hash
+      const current = sqliteRow(
+        this.database
+          .prepare(
+            `SELECT participant_id, last_event_at_ms, last_source_event_key_hash
            FROM conversation_turn_focus
            WHERE project_id = ? AND conversation_id = ? AND thread_id = ?`,
-        )
-        .get(focus.projectId, focus.conversationId, threadKey(focus.threadId));
+          )
+          .get(focus.projectId, focus.conversationId, threadKey(focus.threadId)),
+      );
       if (
         current?.last_event_at_ms === occurredAtMs &&
         current.last_source_event_key_hash === focus.lastSourceEventKeyHash &&
@@ -237,16 +243,16 @@ export class SQLiteConversationTurnFocusStore implements ConversationTurnFocusSt
 
   checkIntegrity(): void {
     this.assertOpen();
-    if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+    if (sqliteRow(this.database.prepare("PRAGMA quick_check;").get())?.quick_check !== "ok") {
       throw new Error("The conversation turn-focus database failed integrity checking.");
     }
-    const version = this.database.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(this.database.prepare("PRAGMA user_version;").get())?.user_version;
     if (version !== SCHEMA_VERSION) {
       throw new Error("The conversation turn-focus schema version is invalid.");
     }
-    const count = this.database
-      .prepare("SELECT COUNT(*) AS count FROM conversation_turn_focus")
-      .get()?.count;
+    const count = sqliteRow(
+      this.database.prepare("SELECT COUNT(*) AS count FROM conversation_turn_focus").get(),
+    )?.count;
     if (typeof count !== "number" || count > MAXIMUM_FOCUS_RECORDS) {
       throw new Error("The conversation turn-focus record bound is invalid.");
     }

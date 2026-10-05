@@ -13,6 +13,7 @@ import {
   removeTemporaryRoots,
   temporaryRoot,
 } from "./fixture.js";
+import { sqliteRows } from "../src/sqlite-row.js";
 
 const stores: SQLiteEventStore[] = [];
 afterEach(async () => {
@@ -272,9 +273,11 @@ describe("incremental workstream verification", () => {
     await f.reader.readRevisionChain();
     const db = new DatabaseSync(f.databasePath);
     try {
-      const triggers = db
-        .prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'events'")
-        .all();
+      const triggers = sqliteRows(
+        db
+          .prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'events'")
+          .all(),
+      );
       for (const row of triggers)
         db.exec(`DROP TRIGGER "${String(row.name).replaceAll('"', '""')}"`);
       db.prepare("UPDATE events SET previous_hash = ? WHERE seq = 2").run(

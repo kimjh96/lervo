@@ -13,6 +13,7 @@ import {
   conversationDiscussionSchemaVersion,
   openConversationDiscussionDatabase,
 } from "./conversation-discussion-store-schema.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 const MAXIMUM_DISCUSSIONS = 128;
 const MAXIMUM_PROTOCOL_EVENTS = 1_024;
@@ -83,12 +84,14 @@ export class SQLiteConversationDiscussionStore {
     const topicJson = json(input.topic);
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const current = this.database
-        .prepare(
-          `SELECT envelope_json, topic_json, origin_event_id, requested_at
+      const current = sqliteRow(
+        this.database
+          .prepare(
+            `SELECT envelope_json, topic_json, origin_event_id, requested_at
            FROM conversation_discussions WHERE discussion_id = ?`,
-        )
-        .get(input.envelope.discussionId);
+          )
+          .get(input.envelope.discussionId),
+      );
       if (current === undefined) {
         this.database
           .prepare(
@@ -133,12 +136,14 @@ export class SQLiteConversationDiscussionStore {
 
   get(discussionId: string): StoredConversationDiscussion | null {
     this.assertOpen();
-    const row = this.database
-      .prepare(
-        `SELECT envelope_json, topic_json, origin_event_id, decision_event_id
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `SELECT envelope_json, topic_json, origin_event_id, decision_event_id
          FROM conversation_discussions WHERE discussion_id = ?`,
-      )
-      .get(discussionId);
+        )
+        .get(discussionId),
+    );
     if (row === undefined) return null;
     return {
       envelope: parse(row.envelope_json, "discussion envelope"),
@@ -167,13 +172,15 @@ export class SQLiteConversationDiscussionStore {
       ) {
         throw new Error("The discussion contribution source differs from the accepted roster.");
       }
-      const current = this.database
-        .prepare(
-          `SELECT role_id, agent_binding_json, event_id, content_json, occurred_at
+      const current = sqliteRow(
+        this.database
+          .prepare(
+            `SELECT role_id, agent_binding_json, event_id, content_json, occurred_at
            FROM conversation_discussion_contributions
            WHERE discussion_id = ? AND participant_id = ?`,
-        )
-        .get(input.discussionId, input.contribution.participantId);
+          )
+          .get(input.discussionId, input.contribution.participantId),
+      );
       const bindingJson = json(input.contribution.agentBinding);
       const contentJson = json(input.contribution.content);
       if (current === undefined) {
@@ -211,11 +218,13 @@ export class SQLiteConversationDiscussionStore {
         occurredAt: input.contribution.occurredAt,
       });
       const count = Number(
-        this.database
-          .prepare(
-            "SELECT COUNT(*) AS count FROM conversation_discussion_contributions WHERE discussion_id = ?",
-          )
-          .get(input.discussionId)?.count,
+        sqliteRow(
+          this.database
+            .prepare(
+              "SELECT COUNT(*) AS count FROM conversation_discussion_contributions WHERE discussion_id = ?",
+            )
+            .get(input.discussionId),
+        )?.count,
       );
       const complete = count === discussion.envelope.targets.length;
       if (complete && discussion.decisionEventId === null) {
@@ -236,21 +245,22 @@ export class SQLiteConversationDiscussionStore {
 
   contributions(discussionId: string): StoredConversationDiscussionContribution[] {
     this.assertOpen();
-    return this.database
-      .prepare(
-        `SELECT participant_id, role_id, agent_binding_json, event_id, content_json, occurred_at
+    return sqliteRows(
+      this.database
+        .prepare(
+          `SELECT participant_id, role_id, agent_binding_json, event_id, content_json, occurred_at
          FROM conversation_discussion_contributions
          WHERE discussion_id = ? ORDER BY occurred_at, participant_id`,
-      )
-      .all(discussionId)
-      .map((row) => ({
-        participantId: String(row.participant_id),
-        roleId: String(row.role_id),
-        agentBinding: parse(row.agent_binding_json, "discussion agent binding"),
-        eventId: String(row.event_id),
-        content: parse(row.content_json, "discussion contribution coordinate"),
-        occurredAt: String(row.occurred_at),
-      }));
+        )
+        .all(discussionId),
+    ).map((row) => ({
+      participantId: String(row.participant_id),
+      roleId: String(row.role_id),
+      agentBinding: parse(row.agent_binding_json, "discussion agent binding"),
+      eventId: String(row.event_id),
+      content: parse(row.content_json, "discussion contribution coordinate"),
+      occurredAt: String(row.occurred_at),
+    }));
   }
 
   due(at: string, sourceParticipantId: string): DueConversationDiscussion[] {
@@ -347,10 +357,10 @@ export class SQLiteConversationDiscussionStore {
 
   checkIntegrity(): void {
     this.assertOpen();
-    if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+    if (sqliteRow(this.database.prepare("PRAGMA quick_check;").get())?.quick_check !== "ok") {
       throw new Error("The conversation discussion database failed integrity checking.");
     }
-    const version = this.database.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(this.database.prepare("PRAGMA user_version;").get())?.user_version;
     if (version !== conversationDiscussionSchemaVersion) {
       throw new Error("The conversation discussion schema version is invalid.");
     }

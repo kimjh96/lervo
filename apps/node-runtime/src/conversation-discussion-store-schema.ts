@@ -2,6 +2,8 @@ import { chmod, lstat, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { sqliteRow } from "./sqlite-row.js";
+
 export const conversationDiscussionSchemaVersion = 1;
 
 async function securePath(path: string): Promise<string> {
@@ -34,7 +36,7 @@ export async function openConversationDiscussionDatabase(
       BEGIN IMMEDIATE;
     `);
     try {
-      const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+      const version = sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version;
       if (version !== 0 && version !== conversationDiscussionSchemaVersion) {
         throw new Error("The conversation discussion schema is unsupported.");
       }

@@ -8,7 +8,7 @@ export async function runDiscordWorkforceReconciliationCli(
   ports: { cwd: string; stdout(message: string): void },
 ): Promise<number> {
   const parsed = parseArgs({
-    args,
+    args: [...args],
     strict: true,
     allowPositionals: false,
     options: {
