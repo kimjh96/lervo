@@ -53,7 +53,11 @@ Snapshots map each relative path to `sha256` of its Git object name at HEAD and 
 
 ### Attention
 
-`documentDriftAttentionIssues` maps these codes to at most 16 `{ code, command, detail }` lifecycle issues, plus one `document_drift_attention_truncated` item. `detail` holds only `path=`, `target=`, and `reasons=`. The operating-attention projection already derives `actionOwner: "agent"` for such codes, so they become agent-owned `knowledge_lifecycle` items. The integration point is the terminal validation lifecycle in `apps/cli/src/terminal-knowledge-lifecycle-inspection.ts`, which appends them after its lint call. The terminal and operating-attention workstream owns that wiring.
+`documentDriftAttentionIssues` maps these codes to bounded `{ code, command, detail }` lifecycle issues, plus one `document_drift_attention_truncated` item. `detail` holds only `path=`, `target=`, and `reasons=`, and `command` is `lervo knowledge lint --json`.
+
+The terminal validation lifecycle in `apps/cli/src/terminal-knowledge-lifecycle-inspection.ts` derives at most four of these items from its lint call. It returns them as `advisories`, separate from lifecycle `issues`. Advisories never change `TerminalLifecycleInspection.status`, so they never block a Stop, a worker checkpoint, or a turn declaration. The exact-revision lifecycle cache stores them in an optional `advisories` field.
+
+Operating attention appends them to the knowledge-lifecycle issues, both in `lervo application attention` and in the cached prompt-path projection. The projection derives `actionOwner: "agent"`, `requiresUserAction: false`, and `blocking: false` for these codes. They carry no consequence class and stay inside the twelve-item, 4 KiB terminal attention budget.
 
 ### Historical documents
 

@@ -12,7 +12,7 @@ All drift findings are warnings. Lervo reports them and never writes a document 
 - `document_stale`: the [ADR-0023](../../decisions/knowledge/documents/0023-evidence-based-document-staleness.md) evaluator proves a document stale. It compares the snapshot at the document's verified revision with HEAD, using connected paths inferred from the document's own references.
 - `document_staleness_unknown`: documents whose evidence is unknown. They are counted, never treated as current.
 
-Each finding carries only relative paths and reason names. Each code is bounded to 64 findings, and ordering is deterministic. The lint result's `documentStaleness` field reports coverage: `observed` or `unavailable`, plus evaluated, current, stale, unknown, and unevaluated counts.
+Each finding carries only relative paths and reason names. Each code is bounded to 64 findings, and ordering is deterministic. Up to four findings also appear as agent-owned, non-blocking operating-attention items. They never gate terminal lifecycle status. The lint result's `documentStaleness` field reports coverage: `observed` or `unavailable`, plus evaluated, current, stale, unknown, and unevaluated counts.
 
 ## Staleness projection
 
