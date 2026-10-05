@@ -103,3 +103,20 @@ describe("Hub runtime configuration", () => {
     );
   });
 });
+
+describe("hub credential permissions", () => {
+  it("accepts every permission the Hub authorizes, including workspace coordination", async () => {
+    const { HUB_PERMISSIONS } = await import("@lervo/hub");
+    const { parseHubBearerCredentials } = await import("../src/config.js");
+    const [credential] = parseHubBearerCredentials([
+      {
+        token: "t".repeat(32),
+        principalId: "node:permissions-test",
+        permissions: [...HUB_PERMISSIONS],
+        projects: [{ destinationId: "hub:test", projectId: "prj_0123456789abcdef" }],
+      },
+    ]);
+    expect(credential?.permissions).toEqual([...HUB_PERMISSIONS]);
+    expect(HUB_PERMISSIONS).toContain("workspace.coordinate");
+  });
+});
