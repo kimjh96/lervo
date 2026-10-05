@@ -7,6 +7,7 @@ import {
   createConversationOutboxSchema,
   migrateConversationOutboxAttentionState,
 } from "./outbox-schema.js";
+import { sqliteRow } from "./sqlite-row.js";
 
 export const interactionSQLiteSchemaVersion = 2;
 
@@ -41,7 +42,7 @@ export function configureInteractionDatabase(database: DatabaseSync): void {
 export function migrateInteractionDatabase(database: DatabaseSync): void {
   database.exec("BEGIN IMMEDIATE;");
   try {
-    const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(database.prepare("PRAGMA user_version;").get())?.user_version;
     if (version !== 0 && version !== 1 && version !== interactionSQLiteSchemaVersion) {
       throw new InteractionSQLiteError(
         "integrity_failed",

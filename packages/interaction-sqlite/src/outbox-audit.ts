@@ -5,13 +5,18 @@ import { validateSchema } from "@lervo/schemas";
 
 import { decision, inbound, integer, outbound, text } from "./codec.js";
 import { InteractionSQLiteError } from "./errors.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export function auditConversationOutbox(database: DatabaseSync): void {
-  const rows = database.prepare("SELECT * FROM conversation_outbox ORDER BY outbound_id").all();
+  const rows = sqliteRows(
+    database.prepare("SELECT * FROM conversation_outbox ORDER BY outbound_id").all(),
+  );
   for (const row of rows) {
-    const eventRow = database
-      .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
-      .get(text(row, "source_event_id"), text(row, "role_id"));
+    const eventRow = sqliteRow(
+      database
+        .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
+        .get(text(row, "source_event_id"), text(row, "role_id")),
+    );
     if (eventRow === undefined) {
       throw new InteractionSQLiteError(
         "integrity_failed",
@@ -19,11 +24,13 @@ export function auditConversationOutbox(database: DatabaseSync): void {
       );
     }
     const message = outbound(row, inbound(eventRow));
-    const decisionRow = database
-      .prepare(
-        "SELECT * FROM conversation_participation_decisions WHERE event_id = ? AND role_id = ?",
-      )
-      .get(text(row, "source_event_id"), text(row, "role_id"));
+    const decisionRow = sqliteRow(
+      database
+        .prepare(
+          "SELECT * FROM conversation_participation_decisions WHERE event_id = ? AND role_id = ?",
+        )
+        .get(text(row, "source_event_id"), text(row, "role_id")),
+    );
     if (
       eventRow.status !== "completed" ||
       decisionRow === undefined ||

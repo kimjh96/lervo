@@ -7,6 +7,7 @@ import type { ConversationInboundEvent } from "@lervo/schemas";
 import { inbound, text } from "./codec.js";
 import { InteractionSQLiteError } from "./errors.js";
 import { renewConversationInboxLease } from "./inbox-lease.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export type SQLiteInboxClaim =
   | { status: "claimed"; leaseId: string; attemptCount: number }
@@ -82,9 +83,11 @@ export class ConversationInboxSQLiteRepository {
         "The conversation inbox lease configuration is invalid.",
       );
     const claimedAtMs = milliseconds(input.claimedAt, "Conversation claim");
-    const row = this.database
-      .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
-      .get(input.event.eventId, input.roleId);
+    const row = sqliteRow(
+      this.database
+        .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
+        .get(input.event.eventId, input.roleId),
+    );
     if (row === undefined) return this.insert(input, claimedAtMs);
     const stored = inbound(row);
     if (canonicalJson(stored) !== canonicalJson(input.event)) {
@@ -124,9 +127,9 @@ export class ConversationInboxSQLiteRepository {
     },
     claimedAtMs: number,
   ): SQLiteInboxClaim {
-    const count = this.database
-      .prepare("SELECT COUNT(*) AS count FROM conversation_inbox")
-      .get()?.count;
+    const count = sqliteRow(
+      this.database.prepare("SELECT COUNT(*) AS count FROM conversation_inbox").get(),
+    )?.count;
     if (typeof count !== "number" || !Number.isSafeInteger(count)) {
       throw new InteractionSQLiteError(
         "integrity_failed",
@@ -198,9 +201,11 @@ export class ConversationInboxSQLiteRepository {
         "Could not acquire the conversation inbox lease.",
       );
     }
-    const attemptCount = this.database
-      .prepare("SELECT attempt_count FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
-      .get(input.event.eventId, input.roleId)?.attempt_count;
+    const attemptCount = sqliteRow(
+      this.database
+        .prepare("SELECT attempt_count FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
+        .get(input.event.eventId, input.roleId),
+    )?.attempt_count;
     if (typeof attemptCount !== "number" || !Number.isSafeInteger(attemptCount)) {
       throw new InteractionSQLiteError(
         "integrity_failed",
@@ -218,11 +223,13 @@ export class ConversationInboxSQLiteRepository {
   }): ConversationInboundEvent {
     policyId(input.policyId);
     roleId(input.roleId);
-    const row = this.database
-      .prepare(
-        "SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ? AND policy_id = ?",
-      )
-      .get(input.eventId, input.roleId, input.policyId);
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          "SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ? AND policy_id = ?",
+        )
+        .get(input.eventId, input.roleId, input.policyId),
+    );
     if (row === undefined || row.status !== "leased" || row.lease_id !== input.leaseId) {
       throw new InteractionSQLiteError("lease_mismatch", "The conversation inbox lease differs.");
     }
@@ -349,9 +356,10 @@ export class ConversationInboxSQLiteRepository {
         "The conversation retry query limit is invalid.",
       );
     }
-    return this.database
-      .prepare(
-        `
+    return sqliteRows(
+      this.database
+        .prepare(
+          `
       SELECT * FROM conversation_inbox
       WHERE integration_id = ? AND policy_id = ? AND role_id = ? AND (
         (status = 'pending' AND available_at_ms <= ?)
@@ -360,32 +368,31 @@ export class ConversationInboxSQLiteRepository {
       ORDER BY available_at_ms, event_id, role_id
       LIMIT ?
     `,
-      )
-      .all(input.integrationId, input.policyId, input.roleId, atMs, atMs, input.limit)
-      .map((row) => {
-        policyId(text(row, "policy_id"));
-        roleId(text(row, "role_id"));
-        return {
-          event: inbound(row),
-          policyId: text(row, "policy_id"),
-          roleId: text(row, "role_id"),
-        };
-      });
+        )
+        .all(input.integrationId, input.policyId, input.roleId, atMs, atMs, input.limit),
+    ).map((row) => {
+      policyId(text(row, "policy_id"));
+      roleId(text(row, "role_id"));
+      return {
+        event: inbound(row),
+        policyId: text(row, "policy_id"),
+        roleId: text(row, "role_id"),
+      };
+    });
   }
 
   auditAll(): SQLiteInboxCoordinate[] {
-    return this.database
-      .prepare("SELECT * FROM conversation_inbox ORDER BY event_id, role_id")
-      .all()
-      .map((row) => {
-        policyId(text(row, "policy_id"));
-        roleId(text(row, "role_id"));
-        return {
-          event: inbound(row),
-          policyId: text(row, "policy_id"),
-          roleId: text(row, "role_id"),
-          status: text(row, "status") as SQLiteInboxCoordinate["status"],
-        };
-      });
+    return sqliteRows(
+      this.database.prepare("SELECT * FROM conversation_inbox ORDER BY event_id, role_id").all(),
+    ).map((row) => {
+      policyId(text(row, "policy_id"));
+      roleId(text(row, "role_id"));
+      return {
+        event: inbound(row),
+        policyId: text(row, "policy_id"),
+        roleId: text(row, "role_id"),
+        status: text(row, "status") as SQLiteInboxCoordinate["status"],
+      };
+    });
   }
 }

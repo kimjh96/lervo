@@ -7,6 +7,7 @@ import type { ConversationInboundEvent, ConversationParticipationDecision } from
 
 import { decision, inbound, text } from "./codec.js";
 import { InteractionSQLiteError } from "./errors.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 function milliseconds(value: string, label: string): number {
   const result = Date.parse(value);
@@ -21,16 +22,18 @@ export class ConversationDecisionSQLiteRepository {
 
   window(input: { policyId: string; conversationId: string; at: string }): ParticipationWindow {
     const atMs = milliseconds(input.at, "Participation window");
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT MAX(decided_at_ms) AS latest, COUNT(*) AS count
       FROM conversation_participation_decisions
       WHERE policy_id = ? AND conversation_id = ? AND action = 'respond'
         AND decided_at_ms >= ? AND decided_at_ms <= ?
     `,
-      )
-      .get(input.policyId, input.conversationId, atMs - 3_600_000, atMs);
+        )
+        .get(input.policyId, input.conversationId, atMs - 3_600_000, atMs),
+    );
     const count = row?.count;
     const latest = row?.latest;
     if (
@@ -50,13 +53,15 @@ export class ConversationDecisionSQLiteRepository {
   }
 
   read(event: ConversationInboundEvent, roleId: string): ConversationParticipationDecision | null {
-    const row = this.database
-      .prepare(
-        `
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `
       SELECT * FROM conversation_participation_decisions WHERE event_id = ? AND role_id = ?
     `,
-      )
-      .get(event.eventId, roleId);
+        )
+        .get(event.eventId, roleId),
+    );
     return row === undefined ? null : decision(row, event);
   }
 
@@ -95,12 +100,16 @@ export class ConversationDecisionSQLiteRepository {
   }
 
   auditAll(): void {
-    for (const row of this.database
-      .prepare("SELECT * FROM conversation_participation_decisions ORDER BY decision_id")
-      .all()) {
-      const inboxRow = this.database
-        .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
-        .get(text(row, "event_id"), text(row, "role_id"));
+    for (const row of sqliteRows(
+      this.database
+        .prepare("SELECT * FROM conversation_participation_decisions ORDER BY decision_id")
+        .all(),
+    )) {
+      const inboxRow = sqliteRow(
+        this.database
+          .prepare("SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?")
+          .get(text(row, "event_id"), text(row, "role_id")),
+      );
       if (inboxRow === undefined || inboxRow.status !== "completed") {
         throw new InteractionSQLiteError(
           "integrity_failed",
