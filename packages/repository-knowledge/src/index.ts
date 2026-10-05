@@ -1,5 +1,6 @@
 export {
   createDurableInstructionCandidate,
+  validateDurableInstructionCandidate,
   type DurableInstructionCandidate,
   type DurableInstructionCaptureSource,
   type DurableInstructionCandidateInspection,
