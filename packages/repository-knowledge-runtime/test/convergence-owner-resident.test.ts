@@ -67,7 +67,13 @@ it(
         owner: { role: "waiting_owner", holder: { label: "mac" } },
         convergence: { debtCounts: expect.any(Object) },
       });
-      expect(await inspectKnowledgeResidentHealth(f.root)).toMatchObject({
+      // The 100 ms loop may already be in its next cycle (`running`); wait for the waiting state.
+      let health = await inspectKnowledgeResidentHealth(f.root);
+      await until(async () => {
+        health = await inspectKnowledgeResidentHealth(f.root);
+        return health.state === "waiting";
+      });
+      expect(health).toMatchObject({
         status: "healthy",
         state: "waiting",
         reason: "waiting_owner:mac",
