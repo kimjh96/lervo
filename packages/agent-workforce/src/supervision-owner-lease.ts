@@ -35,6 +35,14 @@ export class SupervisionLeaseError extends Error {
   }
 }
 
+/** Narrows a `node:sqlite` row, which the Node 22.13 type definitions expose as `unknown`. */
+function leaseDatabaseRow(value: unknown): Readonly<Record<string, unknown>> | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    throw new SupervisionLeaseError("lease_invalid");
+  return value as Readonly<Record<string, unknown>>;
+}
+
 /** Durable coordination only. Expiry never establishes that an external effect stopped. */
 export class SQLiteSupervisionOwnerLeaseStore {
   private readonly processLocks = new Map<string, SupervisionProcessLock>();
@@ -66,7 +74,7 @@ export class SQLiteSupervisionOwnerLeaseStore {
           file_identity TEXT NOT NULL
         ) STRICT;
       `);
-      if (database.prepare("PRAGMA quick_check").get()?.quick_check !== "ok")
+      if (leaseDatabaseRow(database.prepare("PRAGMA quick_check").get())?.quick_check !== "ok")
         throw new SupervisionLeaseError("lease_invalid");
       return new SQLiteSupervisionOwnerLeaseStore(database, path);
     } catch (error) {
@@ -93,9 +101,9 @@ export class SQLiteSupervisionOwnerLeaseStore {
       const acquired = this.transaction(() => {
         const previous = this.row(input.supervisionId);
         if (previous === undefined) {
-          const count = this.database
-            .prepare("SELECT count(*) AS count FROM supervision_owner_leases")
-            .get();
+          const count = leaseDatabaseRow(
+            this.database.prepare("SELECT count(*) AS count FROM supervision_owner_leases").get(),
+          );
           if (Number(count?.count) >= 4096) throw new SupervisionLeaseError("lease_capacity");
         }
         let fileIdentity: string | null;
@@ -270,11 +278,13 @@ export class SQLiteSupervisionOwnerLeaseStore {
   }
 
   private processLockIdentity(row: LeaseRow): string | null {
-    const record = this.database
-      .prepare(
-        "SELECT token, file_identity FROM supervision_owner_process_locks WHERE supervision_id = ?",
-      )
-      .get(row.supervision_id);
+    const record = leaseDatabaseRow(
+      this.database
+        .prepare(
+          "SELECT token, file_identity FROM supervision_owner_process_locks WHERE supervision_id = ?",
+        )
+        .get(row.supervision_id),
+    );
     return record?.token === row.token && typeof record.file_identity === "string"
       ? record.file_identity
       : null;
