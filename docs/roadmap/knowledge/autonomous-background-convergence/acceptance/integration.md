@@ -39,5 +39,9 @@ Implemented and source-tested against a bare Git remote and a fake pull request 
 - Merge after passing checks.
 - Local fast-forward and the equivalent reset.
 - Scope refusal, failed checks, disabled merging, non-owner refusal, and fetch failure.
+- One push across cycles with unchanged input, through date-preserving replay or an equivalent remote head.
+- A success-only merge gate, where neutral or cancelled checks block and a merge refused for pending checks keeps waiting.
+- `gh <step> exit <code> <class>` failure details.
+- Formatting of changed and released paths, before the owner commits and on the publication tip.
 
 Installed acceptance remains open: one owner-published pull request merged from each host, with local `main` equal to `origin/main` afterward on both hosts.
