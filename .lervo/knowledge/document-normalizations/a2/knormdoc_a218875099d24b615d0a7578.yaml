@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_46c1d108a8acf5d7901cdef7
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1a1086255a9c9fcf9b5be060
+outputLanguage: en
+outputs:
+  - byteCount: 2114
+    contentHash: sha256:4af9312604d15af7615338fe8ff446fd56f9fbce94baf7ca79bbc81fb50adae3
+    path: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/installed-concurrency.md
+    userRegionHash: sha256:4af9312604d15af7615338fe8ff446fd56f9fbce94baf7ca79bbc81fb50adae3
+profile: roadmap_document
+recordId: knormdoc_a218875099d24b615d0a7578
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6e94f698bd63e4126b02a96e315529390f8c09dd2cd81f5822f717bc7c0bd45d
+sourcePath: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/installed-concurrency.md
+sourceUnitVersionIds:
+  - uv_3350608e6e078c0c1064bcba

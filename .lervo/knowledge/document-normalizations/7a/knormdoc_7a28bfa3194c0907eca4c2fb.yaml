@@ -1,0 +1,39 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_46c1d108a8acf5d7901cdef7
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9a0dd56b58794006e0868d19
+outputLanguage: en
+outputs:
+  - byteCount: 1815
+    contentHash: sha256:5f343c0cbcaa686e8f056d83cd921a90e750c1555c6893278bdbfe78d512368e
+    path: docs/foundation/code-quality-and-commit-ci.md
+    userRegionHash: sha256:5f343c0cbcaa686e8f056d83cd921a90e750c1555c6893278bdbfe78d512368e
+  - byteCount: 958
+    contentHash: sha256:da523e7a6ae96567c1c86e0f4634ae2dae316c7529f71a7ae530413646524f59
+    path: docs/foundation/code-quality-and-commit-ci/commits.md
+    userRegionHash: sha256:da523e7a6ae96567c1c86e0f4634ae2dae316c7529f71a7ae530413646524f59
+  - byteCount: 1782
+    contentHash: sha256:fcec1ecaae8410556e23760535f84bfe1fba980381c4daf2b298a868ec5a609c
+    path: docs/foundation/code-quality-and-commit-ci/quality.md
+    userRegionHash: sha256:fcec1ecaae8410556e23760535f84bfe1fba980381c4daf2b298a868ec5a609c
+profile: repository_document
+recordId: knormdoc_7a28bfa3194c0907eca4c2fb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0b8d1e81a844aa397589c5b22fd43562c86a7537a05e92019aa188a43b0136e2
+sourcePath: docs/foundation/code-quality-and-commit-ci.md
+sourceUnitVersionIds:
+  - uv_08d21bc4e0be2b1f9317309a
+  - uv_777417081f272a8b314f878b
+  - uv_914ef40aa01a1f068bb874f5
+  - uv_bdc864948523ef4da990f98b
+  - uv_cd4df1fa57fb8f920ffa7b74
+  - uv_d852616f37dbcc390b0c85d0
