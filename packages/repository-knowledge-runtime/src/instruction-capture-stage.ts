@@ -262,7 +262,7 @@ async function pendingOwnerRules(
 }
 
 /**
- * The ADR-0466 capture stage of the knowledge resident. It drains the transient owner-turn queue
+ * The ADR-0467 capture stage of the knowledge resident. It drains the transient owner-turn queue
  * under the hourly, daily, and per-cycle budget, assesses each turn semantically through the
  * governed provider path, and turns the result into an exact-review candidate, a held decision or
  * clarification for the owner, or nothing. Queue text is deleted as soon as a turn is settled.

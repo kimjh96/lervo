@@ -56,7 +56,7 @@ afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
 
-describe("instruction capture assessment contract (ADR-0466)", () => {
+describe("instruction capture assessment contract (ADR-0467)", () => {
   it("routes each semantic class from the typed provider result alone", () => {
     const cases = [
       [{ captureClass: "none", durableInstruction: none, decision: null }, "ignored"],

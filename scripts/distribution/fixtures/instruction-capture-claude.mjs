@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Fixture Claude provider for ADR-0466 owner-turn capture. It answers the no-capability JSON
+// Fixture Claude provider for ADR-0467 owner-turn capture. It answers the no-capability JSON
 // contract from `instruction-capture-plan.json` beside this script, keyed by the sha256 digest of
 // the owner turn, so a test decides the semantic classification instead of a model and never
 // relies on words in the turn. It logs only digests and whether context arrived.

@@ -35,7 +35,7 @@ export function candidatesFromRegistry(registry: DocumentRegistry): ContextDocum
   );
 }
 
-/** Applied owner rules (ADR-0466) are repository instructions every managed turn receives. */
+/** Applied owner rules (ADR-0467) are repository instructions every managed turn receives. */
 export const GENERATED_INSTRUCTION_DIRECTORY = "docs/instructions/generated";
 const GENERATED_RULE_FILE = /^rule_[a-f0-9]{24}\.md$/u;
 const MAXIMUM_GENERATED_INSTRUCTIONS = 16;

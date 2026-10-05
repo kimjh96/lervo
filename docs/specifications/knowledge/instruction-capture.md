@@ -3,7 +3,7 @@
 Status: `wired`
 As of: 2026-10-05
 
-This contract implements [ADR-0466](../../decisions/knowledge/documents/0466-capture-owner-turns-semantically-in-the-knowledge-resident.md), the instruction-capture and conversation-decision part of [ADR-0457](../../decisions/knowledge/documents/0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md). It names where owner turns enter, what the resident does with them, what is stored, and how a captured rule reaches review and every provider.
+This contract implements [ADR-0467](../../decisions/knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md), the instruction-capture and conversation-decision part of [ADR-0457](../../decisions/knowledge/documents/0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md). It names where owner turns enter, what the resident does with them, what is stored, and how a captured rule reaches review and every provider.
 
 ## Pipeline
 
@@ -50,6 +50,10 @@ A candidate carries `captureSource`, `captureId`, and the instruction-catalog di
 
 Budget: 4 assessments per cycle, 12 per hour, 60 per day, 200,000 tokens per day. Spend needs the reviewed convergence delegation, host admission, and an unpaused provider; otherwise the cycle reports `deferred` with `knowledge_authority_unavailable`, `knowledge_capacity_unavailable`, or `knowledge_provider_paused`, and the turns stay queued. A failed call or invalid assessment counts one attempt; the third failure drops the turn. Each call records ADR-0459 usage with `channel: knowledge_worker` and `stage: instruction_capture`.
 
+## Ownership across hosts
+
+Only the [ADR-0466](../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) convergence owner assesses and spends. `runAutonomousKnowledgeWorker` resolves the owner verdict before any stage. A non-owner returns `waiting_owner` with `heldCaptureCount` after `holdInstructionCaptureQueue` moves each queued turn's expiry to 24 hours later, capped at seven days after queueing. Hooks and the conversation runtime keep queueing on every host. The queue never leaves its host, so a turn is assessed at most once, by its own host, once that host owns convergence. A host without owner configuration keeps single-host behavior and assesses its own queue. The compact prompt shows `Instruction capture: N owner turns wait on this host until it owns knowledge convergence` while a non-owner fence and queued turns exist. Forwarding held turns to the owner is deferred.
+
 ## Events
 
 Events carry identifiers, digests, classes, and counts. Turn text, provider output, rule text, and decision summaries never enter an event.
@@ -66,7 +70,7 @@ Events carry identifiers, digests, classes, and counts. Turn text, provider outp
 - `lervo knowledge instruction capture [--json]` shows queue depth (digests only), budget, and held items; `--dismiss <capture-id>` removes a held item.
 - Apply writes only `docs/instructions/generated/<rule-id>.md`. Managed runs and Discord turns receive those files under `repository.instructions`; terminal agents see their titles in every compact prompt.
 
-Captured rules are never applied without exact review; ADR-0466 records why and what an automatic-apply amendment would need.
+Captured rules are never applied without exact review; ADR-0467 records why and what an automatic-apply amendment would need.
 
 ## Evaluation
 

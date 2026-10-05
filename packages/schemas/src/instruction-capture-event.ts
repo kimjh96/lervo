@@ -3,7 +3,7 @@ import type { FromSchema } from "json-schema-to-ts";
 import { conversationEventIdSchema, sha256Schema, timestampSchema } from "./common.js";
 
 /**
- * ADR-0457 and ADR-0466 owner-turn capture events. Payloads carry identifiers, digests, classes,
+ * ADR-0457 and ADR-0467 owner-turn capture events. Payloads carry identifiers, digests, classes,
  * and counts only. Owner turns, preceding agent turns, provider output, rule text, and decision
  * summaries never enter an event; normalized summaries live in CAS or the candidate store and the
  * event binds them by hash. `usageObserved` is the provider-reported total token count.

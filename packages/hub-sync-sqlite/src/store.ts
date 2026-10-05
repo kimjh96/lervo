@@ -25,6 +25,8 @@ import {
   type HubSyncIntegrityReport,
   type HubSyncIntegrityStore,
   type HubSyncLifecycle,
+  type HubKnowledgeConvergenceOwnerCoordinate,
+  type HubKnowledgeConvergenceOwnerStore,
   type HubWorkstreamReplicationStore,
   type HubWorkspaceCoordinationStore,
   type HubWorkspaceReservation,
@@ -71,6 +73,12 @@ import {
   type WorkstreamReplicationReadResponse,
 } from "@lervo/schemas";
 
+import {
+  type KnowledgeConvergenceOwnerDecision,
+  type KnowledgeConvergenceOwnerMutation,
+  type KnowledgeConvergenceOwnerReading,
+} from "@lervo/sync-contract";
+
 import { ensureDatabasePath } from "./database-lifecycle.js";
 import { HubAuditSQLiteRepository } from "./audit-repository.js";
 import { HubCommandAuthorshipSQLiteRepository } from "./command-authorship-repository.js";
@@ -87,6 +95,7 @@ import { HubRemoteCommandSQLiteRepository } from "./remote-command-repository.js
 import { HubTraceSQLiteRepository } from "./trace-repository.js";
 import { KnowledgeGraphIndexSQLiteWriter } from "./knowledge-graph-index-writer.js";
 import { HubKnowledgeGraphSQLiteRepository } from "./knowledge-graph-repository.js";
+import { HubKnowledgeConvergenceOwnerSQLiteRepository } from "./knowledge-convergence-owner-repository.js";
 import { SQLiteTransactionRunner } from "./transaction-runner.js";
 import { HubWorkstreamSQLiteRepository } from "./workstream-repository.js";
 import { HubWorkspaceCoordinationSQLiteRepository } from "./workspace-coordination-repository.js";
@@ -99,6 +108,7 @@ export class HubSyncSQLiteStore
     HubSyncLifecycle,
     HubWorkstreamReplicationStore,
     HubWorkspaceCoordinationStore,
+    HubKnowledgeConvergenceOwnerStore,
     HubRemoteCommandQueueStore,
     HubRemoteCommandQueueInspectionStore,
     HubTraceSource,
@@ -136,6 +146,7 @@ export class HubSyncSQLiteStore
   private readonly transactionRunner: SQLiteTransactionRunner;
   private readonly workstreamRepository: HubWorkstreamSQLiteRepository;
   private readonly workspaceCoordinationRepository: HubWorkspaceCoordinationSQLiteRepository;
+  private readonly knowledgeConvergenceOwnerRepository: HubKnowledgeConvergenceOwnerSQLiteRepository;
 
   private constructor(
     path: string,
@@ -159,6 +170,9 @@ export class HubSyncSQLiteStore
     this.transactionRunner = new SQLiteTransactionRunner(database);
     this.workstreamRepository = new HubWorkstreamSQLiteRepository(database);
     this.workspaceCoordinationRepository = new HubWorkspaceCoordinationSQLiteRepository(database);
+    this.knowledgeConvergenceOwnerRepository = new HubKnowledgeConvergenceOwnerSQLiteRepository(
+      database,
+    );
   }
 
   static async open(options: { path: string }): Promise<HubSyncSQLiteStore> {
@@ -253,6 +267,24 @@ export class HubSyncSQLiteStore
   }): Promise<HubWorkspaceReservation> {
     this.assertOpen();
     return this.transactionRunner.write(() => this.workspaceCoordinationRepository.release(input));
+  }
+
+  async mutateKnowledgeConvergenceOwner(input: {
+    destinationId: string;
+    mutation: KnowledgeConvergenceOwnerMutation;
+    acceptedAt: string;
+  }): Promise<KnowledgeConvergenceOwnerDecision> {
+    this.assertOpen();
+    return this.transactionRunner.write(() =>
+      this.knowledgeConvergenceOwnerRepository.mutate(input),
+    );
+  }
+
+  async readKnowledgeConvergenceOwner(
+    input: HubKnowledgeConvergenceOwnerCoordinate & { acceptedAt: string },
+  ): Promise<KnowledgeConvergenceOwnerReading> {
+    this.assertOpen();
+    return this.transactionRunner.read(() => this.knowledgeConvergenceOwnerRepository.read(input));
   }
 
   async publishWorkspaceSummary(input: {

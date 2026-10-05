@@ -1,4 +1,4 @@
-// ADR-0466 owner-turn capture evaluation contract. The suite holds verification-authored owner
+// ADR-0467 owner-turn capture evaluation contract. The suite holds verification-authored owner
 // turns in English and Korean (explicit rules, paraphrases, implicit corrections that need the
 // preceding agent turn, decisions, personal preferences, and negatives) with the expected
 // semantic class, plus one recorded real-provider observation per case. Classification is the

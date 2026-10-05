@@ -1,4 +1,4 @@
-// Records one real-provider observation per case of the ADR-0466 owner-turn capture suite.
+// Records one real-provider observation per case of the ADR-0467 owner-turn capture suite.
 // Usage: node scripts/evaluation/run-instruction-capture-evaluation.mjs --provider <claude|codex>
 // It sends each verification-authored turn through the same no-capability assessment contract the
 // knowledge resident uses, with this repository's canonical-instruction catalog, and rewrites the

@@ -9,7 +9,7 @@ import {
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
 
 /**
- * The hook-side half of ADR-0466 owner-turn capture. It only queues the owner's prompt, with the
+ * The hook-side half of ADR-0467 owner-turn capture. It only queues the owner's prompt, with the
  * agent reply that preceded it, for the knowledge resident; it never calls a provider, never
  * classifies text, and never writes an event. Sessions bound to an assignment workspace are
  * excluded because their prompts come from Lervo or another agent, not from the owner.

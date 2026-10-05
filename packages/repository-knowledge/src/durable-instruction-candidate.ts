@@ -25,7 +25,7 @@ export interface DurableInstructionCandidate {
   /** Instruction-catalog digest at creation; review binds to it instead of the whole snapshot. */
   instructionCatalogDigest?: string;
   captureSource?: DurableInstructionCaptureSource;
-  /** The ADR-0466 capture record that produced this candidate, when it was captured. */
+  /** The ADR-0467 capture record that produced this candidate, when it was captured. */
   captureId?: string;
 }
 

@@ -11,3 +11,4 @@ export * from "./transport.js";
 export * from "./types.js";
 export * from "./worker.js";
 export * from "./workstream-replication.js";
+export * from "./knowledge-convergence-owner-client.js";

@@ -20,6 +20,12 @@ Required payload: `obligationId`, `originalEventId`, `originalEventHash`, `scope
 
 Records verified `current` or explicit `superseded` with a successor. Neither rewrites historical resolution.
 
+## `knowledge.convergence.owner.changed`
+
+Required payload: `repositoryIdentityHash`, `holderHostHash`, `previousHolderHostHash`, `observerHostHash`, `generation`, `mode`, `reason`, `occurredAt`.
+
+Records, in the observing host's own store, a change of the convergence owner it observes or the end of its own holding ([ADR-0466](../../../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md)). Hosts appear only as hashes. It grants no commit authority; the private ownership fence does.
+
 ## Assignment provenance
 
 `assignment.created` gains an all-or-none provenance set: `convergenceContractVersion`, `convergenceObligationId`, `convergenceBaselineEventId`, `convergenceBaselineEventHash`, `convergenceStage`, `convergenceInputArtifactHash`, `convergenceDelegationHash`, and `convergenceAgentId`.

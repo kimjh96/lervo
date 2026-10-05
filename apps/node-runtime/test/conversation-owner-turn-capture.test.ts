@@ -85,7 +85,7 @@ const agentTurn = {
   },
 };
 
-describe("conversation owner-turn capture (ADR-0466, ADR-0457 conversation_decision source)", () => {
+describe("conversation owner-turn capture (ADR-0467, ADR-0457 conversation_decision source)", () => {
   it("queues a human participant's message with the preceding agent reply", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-capture-"));
     roots.push(root);

@@ -149,7 +149,7 @@ export async function runTerminalHookCommand(
               observationEventId,
             });
           });
-          // ADR-0466: queue the owner's turn for background semantic capture. A queue failure
+          // ADR-0467: queue the owner's turn for background semantic capture. A queue failure
           // loses only this capture; it never blocks or delays the prompt.
           await timing.measure("event_commit", () =>
             queueTerminalOwnerTurn({

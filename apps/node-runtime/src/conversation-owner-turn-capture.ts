@@ -5,7 +5,7 @@ import type { ConversationInboundEvent } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 /**
- * The conversation half of ADR-0466 owner-turn capture (the ADR-0457 `conversation_decision`
+ * The conversation half of ADR-0467 owner-turn capture (the ADR-0457 `conversation_decision`
  * source). A configured human participant's message, with the agent reply that preceded it, is
  * queued for the knowledge resident's semantic assessment. Nothing here classifies the text or
  * calls a provider, and nothing is recorded as an event; the managed turn is never delayed by it.

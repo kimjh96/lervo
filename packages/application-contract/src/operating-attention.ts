@@ -122,7 +122,7 @@ export interface DocumentFreshnessBlockedAttentionItemV1 extends OperatingAttent
 }
 
 /**
- * An owner rule or correction captured from a terminal prompt or managed conversation (ADR-0466).
+ * An owner rule or correction captured from a terminal prompt or managed conversation (ADR-0467).
  * It waits for exact-hash review; `title` is the normalized rule title, never the owner's words.
  */
 export interface DurableInstructionCandidateAttentionItemV1 extends OperatingAttentionItemBaseV1 {
@@ -135,7 +135,7 @@ export interface DurableInstructionCandidateAttentionItemV1 extends OperatingAtt
   targetPath: string;
 }
 
-/** A decision the owner stated, held until it is documented or dismissed (ADR-0466). */
+/** A decision the owner stated, held until it is documented or dismissed (ADR-0467). */
 export interface CapturedDecisionAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "captured_decision";
   state: "action_required";
@@ -143,6 +143,30 @@ export interface CapturedDecisionAttentionItemV1 extends OperatingAttentionItemB
   captureSource: "terminal_prompt" | "conversation";
   title: string;
   capturedAt: string;
+}
+
+/**
+ * ADR-0466: this host cannot prove it owns knowledge convergence, or a standalone host saw
+ * another host's fresh knowledge commit. Convergence stays read-only until it is resolved.
+ */
+export interface KnowledgeConvergenceOwnerAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "knowledge_convergence_owner";
+  state: "action_required";
+  role: "unverifiable" | "contended";
+  reason: string;
+  holderLabel: string | null;
+  observedAt: string;
+}
+
+/** ADR-0466: publishing the owner's knowledge commits failed; one item per failure code. */
+export interface KnowledgePublicationAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "knowledge_publication";
+  state: "action_required";
+  failureCode: string;
+  detail: string | null;
+  pullRequestUrl: string | null;
+  occurrences: number;
+  firstObservedAt: string;
 }
 
 export type OperatingAttentionItemV1 =
@@ -156,7 +180,9 @@ export type OperatingAttentionItemV1 =
   | DocumentFreshnessAppliedAttentionItemV1
   | DocumentFreshnessBlockedAttentionItemV1
   | DurableInstructionCandidateAttentionItemV1
-  | CapturedDecisionAttentionItemV1;
+  | CapturedDecisionAttentionItemV1
+  | KnowledgeConvergenceOwnerAttentionItemV1
+  | KnowledgePublicationAttentionItemV1;
 
 export interface OperatingAttentionReportV1 {
   schemaVersion: 1;

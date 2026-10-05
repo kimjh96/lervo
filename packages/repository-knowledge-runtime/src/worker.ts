@@ -21,7 +21,10 @@ import {
   runInstructionCaptureCycle,
   type InstructionCaptureCycleResult,
 } from "./instruction-capture-stage.js";
+import { holdInstructionCaptureQueue } from "./instruction-capture-queue.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
+import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
+import { inspectConvergenceDebt } from "./status.js";
 
 /** A live materialization owns the repository; the cycle yields like a held worker lock. */
 const MATERIALIZATION_BUSY = Symbol("materialization_busy");
@@ -50,8 +53,19 @@ export async function runAutonomousKnowledgeWorker(input: {
   maximumStages?: number;
   admissionDirectory?: string;
   liveWorkPending?: () => Promise<boolean>;
+  /**
+   * ADR-0466 cross-host owner gate. When present, a non-owner runs only read-only debt detection;
+   * when absent, the legacy single-host behavior applies.
+   */
+  owner?: () => Promise<ConvergenceOwnerVerdict>;
 }): Promise<
   | { status: "busy" }
+  | {
+      status: "waiting_owner";
+      owner: ConvergenceOwnerVerdict;
+      convergence: KnowledgeConvergenceStatus;
+      heldCaptureCount: number;
+    }
   | {
       status: "processed";
       outcomes: RepositoryKnowledgeJobOutcome[];
@@ -61,6 +75,15 @@ export async function runAutonomousKnowledgeWorker(input: {
     }
 > {
   const root = input.storage.paths.repositoryRoot;
+  const owner = input.owner === undefined ? null : await input.owner();
+  if (owner !== null && owner.role !== "owner")
+    return {
+      status: "waiting_owner",
+      owner,
+      convergence: (await inspectConvergenceDebt(input.storage)).status,
+      // ADR-0467: only the owner assesses owner turns; this host holds its own queue meanwhile.
+      heldCaptureCount: await holdInstructionCaptureQueue(root, new Date()).catch(() => 0),
+    };
   const context: ConvergenceRuntimeContext = {
     storage: input.storage,
     provider: input.provider,
@@ -85,7 +108,7 @@ export async function runAutonomousKnowledgeWorker(input: {
       repositoryRoot: root,
       events: input.storage.events,
     });
-    // Owner-turn capture (ADR-0466) runs first: it is small, bounded per cycle, and its result is
+    // Owner-turn capture (ADR-0467) runs first: it is small, bounded per cycle, and its result is
     // what the next prompt shows. Its failure leaves the queue for a later cycle and blocks nothing.
     const instructionCapture: InstructionCaptureCycleResult = await runInstructionCaptureCycle({
       storage: input.storage,

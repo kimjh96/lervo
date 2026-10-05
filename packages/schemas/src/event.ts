@@ -151,6 +151,7 @@ export const eventTypesV4 = [
   "repository.replica.reconciled",
   ...documentFreshnessEventTypes,
   ...instructionCaptureEventTypes,
+  "knowledge.convergence.owner.changed",
 ] as const;
 export const eventTypes = eventTypesV4;
 

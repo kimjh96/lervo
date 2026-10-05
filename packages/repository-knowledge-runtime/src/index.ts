@@ -52,3 +52,18 @@ export {
   runInstructionCaptureCycle,
   type InstructionCaptureCycleResult,
 } from "./instruction-capture-stage.js";
+export {
+  ConvergenceOwnership,
+  type ConvergenceOwnerLeasePort,
+  type ConvergenceOwnerLeaseTransport,
+} from "./convergence-owner.js";
+export { readConvergenceOwnerFence } from "./convergence-owner-fence.js";
+export { readConvergenceOwnerHost, CONVERGENCE_OWNER_HOST_PATH } from "./convergence-owner-host.js";
+export type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
+export {
+  publishKnowledgeOutputs,
+  type KnowledgePublicationOutcome,
+} from "./knowledge-publication.js";
+export { createGitHubKnowledgePublicationForge } from "./knowledge-publication-github.js";
+export type { KnowledgePublicationForge } from "./knowledge-publication-forge.js";
+export { readKnowledgePublicationState } from "./knowledge-publication-state.js";

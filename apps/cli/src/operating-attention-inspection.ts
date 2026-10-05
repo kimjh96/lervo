@@ -9,6 +9,7 @@ import {
 
 import { readDocumentFreshnessAttention } from "./document-freshness-attention.js";
 import { readInstructionCaptureAttention } from "./instruction-capture-attention.js";
+import { readKnowledgeConvergenceAttention } from "./knowledge-convergence-attention.js";
 import { createOperatingAttentionReport } from "./operating-attention-projection.js";
 import { readRepositoryReplicaDivergence } from "./repository-replica-divergence-source.js";
 import { inspectTerminalLifecycle } from "./terminal-lifecycle-inspection.js";
@@ -35,6 +36,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       replica,
       documentFreshness,
       instructionCapture,
+      convergence,
     ] = await Promise.all([
       verifiedCurrentWorkstream(storage),
       listCanonicalizationCandidates(input.repositoryRoot).then(
@@ -51,6 +53,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       readRepositoryReplicaDivergence(input.repositoryRoot),
       readDocumentFreshnessAttention(input.repositoryRoot, observedAt),
       readInstructionCaptureAttention(input.repositoryRoot),
+      readKnowledgeConvergenceAttention(input.repositoryRoot).catch(() => null),
     ]);
     const workstreamFreshness =
       workstream === null
@@ -76,6 +79,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       repositoryReplicaDivergence: replica.status === "observed" ? replica.divergence : null,
       documentFreshness,
       instructionCapture,
+      knowledgeConvergence: convergence,
       observedAt,
     });
   } finally {

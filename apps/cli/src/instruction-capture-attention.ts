@@ -9,13 +9,20 @@ import {
   type DurableInstructionCandidateInspection,
   type GeneratedDurableInstruction,
 } from "@lervo/repository-knowledge";
-import { readInstructionCaptureState, type HeldCapture } from "@lervo/repository-knowledge-runtime";
+import {
+  listQueuedInstructionCaptures,
+  readConvergenceOwnerFence,
+  readInstructionCaptureState,
+  type HeldCapture,
+} from "@lervo/repository-knowledge-runtime";
 
-/** Rebuildable capture state the attention projection and compact prompt read (ADR-0466). */
+/** Rebuildable capture state the attention projection and compact prompt read (ADR-0467). */
 export interface InstructionCaptureAttentionInput {
   candidates: readonly DurableInstructionCandidateInspection[];
   held: readonly HeldCapture[];
   applied: { rules: readonly GeneratedDurableInstruction[]; totalCount: number };
+  /** Owner turns queued on this host while another host owns convergence (ADR-0466); 0 otherwise. */
+  waitingForOwnerCount?: number;
 }
 
 const MAXIMUM_LINE_BYTES = 600;
@@ -67,7 +74,7 @@ function heldItem(entry: HeldCapture): CapturedDecisionAttentionItemV1 {
   };
 }
 
-/** Maps captured candidates and held items to the two ADR-0466 attention kinds. */
+/** Maps captured candidates and held items to the two ADR-0467 attention kinds. */
 export function instructionCaptureAttentionItems(
   input: InstructionCaptureAttentionInput,
 ): OperatingAttentionItemV1[] {
@@ -80,6 +87,10 @@ export function instructionCaptureAttentionItems(
  */
 export function instructionCaptureCompactLines(input: InstructionCaptureAttentionInput): string[] {
   const lines: string[] = [];
+  if ((input.waitingForOwnerCount ?? 0) > 0)
+    lines.push(
+      `Instruction capture: ${input.waitingForOwnerCount} ${input.waitingForOwnerCount === 1 ? "owner turn waits" : "owner turns wait"} on this host until it owns knowledge convergence (lervo knowledge convergence status).`,
+    );
   const captured = input.candidates.filter((candidate) => candidate.captureSource !== undefined);
   if (input.candidates.length > 0 || input.held.length > 0) {
     const parts = [
@@ -120,10 +131,13 @@ export function instructionCaptureCompactLines(input: InstructionCaptureAttentio
 export async function readInstructionCaptureAttention(
   root: string,
 ): Promise<InstructionCaptureAttentionInput> {
-  const [candidates, state, applied] = await Promise.all([
+  const [candidates, state, applied, fence, queued] = await Promise.all([
     listDurableInstructionCandidates(root).catch(() => []),
     readInstructionCaptureState(root).catch(() => null),
     listGeneratedDurableInstructions(root).catch(() => ({ rules: [], totalCount: 0 })),
+    readConvergenceOwnerFence(root),
+    listQueuedInstructionCaptures(root).catch(() => []),
   ]);
-  return { candidates, held: state?.held ?? [], applied };
+  const waitingForOwnerCount = fence !== null && fence.verdict.role !== "owner" ? queued.length : 0;
+  return { candidates, held: state?.held ?? [], applied, waitingForOwnerCount };
 }

@@ -4,13 +4,14 @@ import { parseArgs } from "node:util";
 import {
   dismissHeldCapture,
   listQueuedInstructionCaptures,
+  readConvergenceOwnerFence,
   readInstructionCaptureState,
 } from "@lervo/repository-knowledge-runtime";
 
 import type { CliIo } from "./types.js";
 
 /**
- * `lervo knowledge instruction capture`: the ADR-0466 capture status (queue depth, budget
+ * `lervo knowledge instruction capture`: the ADR-0467 capture status (queue depth, budget
  * windows, held decisions and rules) and `--dismiss <capture-id>` for a held item the owner has
  * documented or declined. It never prints queued turn text.
  */
@@ -36,13 +37,17 @@ export async function runKnowledgeInstructionCapture(args: string[], io: CliIo):
     );
     return dismissed ? 0 : 1;
   }
-  const [queue, state] = await Promise.all([
+  const [queue, state, fence] = await Promise.all([
     listQueuedInstructionCaptures(repositoryRoot),
     readInstructionCaptureState(repositoryRoot),
+    readConvergenceOwnerFence(repositoryRoot),
   ]);
+  // ADR-0466: only the convergence owner assesses; null means a single-host repository.
+  const ownerRole = fence?.verdict.role ?? null;
   const report = {
     schemaVersion: 1 as const,
     queuedCount: queue.length,
+    convergenceOwnerRole: ownerRole,
     queued: queue.map((capture) => ({
       captureId: capture.captureId,
       source: capture.source,
@@ -59,6 +64,11 @@ export async function runKnowledgeInstructionCapture(args: string[], io: CliIo):
       ? `${JSON.stringify(report, null, 2)}\n`
       : [
           `Owner-turn capture: ${queue.length} queued for assessment; last cycle ${state.lastCycleAt ?? "never"}.`,
+          ...(ownerRole === null || ownerRole === "owner"
+            ? []
+            : [
+                `This host does not own knowledge convergence (${ownerRole}); queued turns are held here until it does, for at most seven days.`,
+              ]),
           `budget: ${state.budget.assessmentsThisHour} this hour, ${state.budget.assessmentsToday} today, ${state.budget.tokensToday} tokens today`,
           ...(state.held.length === 0
             ? ["No held decisions or rules."]

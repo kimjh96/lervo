@@ -21,7 +21,7 @@ import {
 } from "@lervo/repository-knowledge";
 
 /**
- * The only place owner-turn text rests (ADR-0466): a private, Git-ignored, short-lived queue the
+ * The only place owner-turn text rests (ADR-0467): a private, Git-ignored, short-lived queue the
  * terminal hook and the conversation runtime write and the knowledge resident drains. Records are
  * 0600 files in 0700 directories, expire after a day, and are deleted as soon as they are
  * assessed. Events never carry this text; they carry `promptDigest` only.
@@ -231,6 +231,38 @@ export async function recordInstructionCaptureAttempt(
     next,
   );
   return next;
+}
+
+/** The longest a turn may wait on a host that does not own knowledge convergence (ADR-0466). */
+export const MAXIMUM_CAPTURE_HOLD_MILLISECONDS = 7 * 86_400_000;
+
+/**
+ * Holds queued turns on a host that does not own convergence. Only the owner assesses and spends,
+ * and each host assesses only its own queue, so a turn is never assessed twice; holding keeps it
+ * from expiring while ownership is elsewhere. Each record's expiry moves to 24 hours from now,
+ * capped at seven days after it was queued. Returns the number of records held.
+ */
+export async function holdInstructionCaptureQueue(
+  repositoryRoot: string,
+  now: Date,
+): Promise<number> {
+  const queue = await listQueuedInstructionCaptures(repositoryRoot);
+  for (const capture of queue) {
+    const expiresAt = new Date(
+      Math.min(
+        now.getTime() + CAPTURE_RETENTION_MILLISECONDS,
+        Date.parse(capture.enqueuedAt) + MAXIMUM_CAPTURE_HOLD_MILLISECONDS,
+      ),
+    ).toISOString();
+    if (expiresAt <= capture.expiresAt) continue;
+    await writePrivate(
+      repositoryRoot,
+      INSTRUCTION_CAPTURE_QUEUE_ROOT,
+      `${capture.captureId}.json`,
+      { ...capture, expiresAt },
+    );
+  }
+  return queue.length;
 }
 
 /** Removes expired records and reports how many expired unassessed. */

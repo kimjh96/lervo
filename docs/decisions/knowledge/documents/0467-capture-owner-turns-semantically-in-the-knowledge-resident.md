@@ -1,8 +1,9 @@
-# ADR-0466: Capture owner turns semantically in the knowledge resident
+# ADR-0467: Capture owner turns semantically in the knowledge resident
 
 Status: `accepted`
 Decision date: 2026-10-05
 Amends: [ADR-0457](0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md) (instruction capture and the conversation-decision source)
+Related: [ADR-0466 cross-host convergence owner](../../coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md)
 Part of: [ADR-0452 open collaboration platform](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
 
 ## Context
@@ -50,6 +51,16 @@ Review binds to the instruction-catalog digest recorded on the candidate, so unr
 
 Applied rules reach every provider through existing paths: the compact prompt lists applied rule titles for Claude Code and Codex alike, managed runs and Discord turns receive `docs/instructions/generated/rule_*.md` under the `repository.instructions` rule, and `lervo knowledge query` retrieves them after the knowledge lifecycle registers them. The Lervo-managed `AGENTS.md` route block tells agents never to record owner rules in provider-private memory.
 
+### Ownership across hosts
+
+Only the host that owns knowledge convergence under [ADR-0466](../../coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) runs the assessment stage and spends provider tokens. The stage sits behind the same owner gate as convergence: a resident cycle on a `waiting_owner`, `unverifiable`, `contended`, `ineligible`, or `yielding` host returns before any stage runs.
+
+Every host still queues its own owner turns, because the Claude Code and Codex hooks and the conversation runtime run wherever the owner works. The queue is host-local private state that neither Git nor replica capture carries, so no other host can see or assess a host's turns, and each turn is assessed at most once.
+
+A non-owner host holds its queue instead of letting it expire. Each non-owner cycle moves every queued turn's expiry to 24 hours later, capped at seven days after the turn was queued, and reports the held count as `heldCaptureCount`. The compact prompt states how many owner turns wait on the host, and `lervo knowledge instruction capture` reports the host's ownership role. When the host becomes owner, its next cycle assesses the held turns. A turn held for more than seven days expires unassessed and is counted in `expiredCount`. Forwarding held turns to the owner through the Hub is deferred, as ADR-0466 records.
+
+Candidates and held items are host-local as well. A rule applied on any host writes `docs/instructions/generated/`, which reaches the other host through Git and replica coordination like any repository change.
+
 ### Deviations from ADR-0457
 
 - The managed turn contract does not gain `knowledgeCandidate`. The resident's one assessor serves both surfaces, so a conversation turn's output contract and cost do not change, and both surfaces get the same semantic classes.
@@ -65,7 +76,7 @@ Explicit intake uses a 120-second bound, and failure reasons name the stage: `se
 - `knowledge.instruction_candidate.captured`: `candidateId`, `captureId`, `source` (`terminal_prompt | conversation`), `captureClass` (`durable_instruction | correction_of_agent_behavior | decision`), `turnDigest`, `occurredAt`. It means an exact-review candidate exists; it does not mean the rule is approved or applied.
 - `conversation.knowledge_candidate.recorded` (ADR-0457 fields): `conversationEventId`, `agentId` or null, `kind` (`decision | instruction | fact`), `subjectKeyDigest`, `summaryHash`, `candidateId` (an instruction candidate or the capture ID of a held decision), `occurredAt`.
 - `knowledge.instruction_capture.cycle.completed`: `cycleId`, `assessedCount`, `instructionCandidateCount`, `decisionCount` (held decisions and held rules), `ignoredCount`, `personalPreferenceCount`, `coveredCount`, `failedCount`, `expiredCount`, `skippedForBudget`, `usageObserved`, `occurredAt`. It is recorded only when a cycle assessed, failed, or expired a turn.
-- Queue states: queued, assessed (removed with a tombstone), failed (removed after three attempts, counted in `failedCount`), expired (removed after 24 hours, counted in `expiredCount`). A deferred cycle (no delegation, no capacity, or a paused provider) leaves turns queued.
+- Queue states: queued, held (on a non-owner host, expiry extended up to seven days after queueing), assessed (removed with a tombstone), failed (removed after three attempts, counted in `failedCount`), expired (removed after 24 hours, or after the seven-day hold, counted in `expiredCount`). A deferred cycle (no delegation, no capacity, or a paused provider) leaves turns queued.
 - Held items: `decision` or `rule_needs_clarification`, kept 30 days or until `lervo knowledge instruction capture --dismiss <capture-id>`; at most 16.
 - Attention kinds: `durable_instruction_candidate` and `captured_decision`, both owned by the user and never blocking.
 - A failed queue write loses only that capture and never blocks the prompt or the conversation turn.
@@ -79,4 +90,4 @@ Explicit intake uses a 120-second bound, and failure reasons name the stage: `se
 
 ## Deferred
 
-Automatic application of owner-stated rules, Discord review commands (ADR-0458), and the cross-host single convergence owner (ADR-0457).
+Automatic application of owner-stated rules, Discord review commands (ADR-0458), and forwarding a non-owner host's held turns to the convergence owner through the Hub.

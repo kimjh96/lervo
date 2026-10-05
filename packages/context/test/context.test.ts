@@ -879,7 +879,7 @@ describe("context preparation", () => {
   });
 });
 
-describe("applied owner rules (ADR-0466)", () => {
+describe("applied owner rules (ADR-0467)", () => {
   it("delivers generated owner rules with repository instructions to every role", async () => {
     const fixture = await fixtureRepository();
     const rulePath = `docs/instructions/generated/rule_${"a".repeat(24)}.md`;

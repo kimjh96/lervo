@@ -1,7 +1,7 @@
 import type { GroundedDurableInstruction } from "./durable-instruction.js";
 
 /**
- * ADR-0466 owner-turn capture assessment. One no-capability provider call classifies one owner
+ * ADR-0467 owner-turn capture assessment. One no-capability provider call classifies one owner
  * turn semantically, with the immediately preceding agent turn as bounded context, and normalizes
  * any durable rule. Nothing here matches words: the class, the rule, and its scope come from the
  * provider's reading of meaning, and this module only validates the typed result.

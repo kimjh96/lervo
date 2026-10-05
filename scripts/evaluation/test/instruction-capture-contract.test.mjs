@@ -15,7 +15,7 @@ const suite = () =>
     ),
   );
 
-describe("owner-turn capture evaluation contract (ADR-0466)", () => {
+describe("owner-turn capture evaluation contract (ADR-0467)", () => {
   it("accepts the recorded suite and reports its agreement", () => {
     expect(validateInstructionCaptureSuite(suite())).toMatchObject({
       instructionCaptureCaseCount: 28,

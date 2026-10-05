@@ -76,7 +76,7 @@ export function formatCompactTerminalPreamble(input: {
   staleWorkstreamEntryCount: number;
   /** The ADR-0463 freshness line, at most 200 bytes, or null when every count is zero. */
   documentFreshnessLine?: string | null;
-  /** ADR-0466 capture and applied-owner-rule lines, each at most 600 bytes. */
+  /** ADR-0467 capture and applied-owner-rule lines, each at most 600 bytes. */
   instructionCaptureLines?: readonly string[];
 }): string {
   const blocking = input.attention.items

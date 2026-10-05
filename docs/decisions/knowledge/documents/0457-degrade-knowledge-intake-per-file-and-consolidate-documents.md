@@ -4,7 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-04
 Amends: [ADR-0427](../repository/canonicalization/0427-decouple-conversation-work-from-agent-owned-knowledge-convergence.md), [ADR-0434](../repository/canonicalization/0434-converge-background-canonicalization-normalization-and-knowledge.md), [ADR-0195](../repository/0195-reviewed-document-content-normalization.md), [ADR-0451](../repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md)
 Part of: [ADR-0452 open collaboration platform](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
-Amended by: [ADR-0466](0466-capture-owner-turns-semantically-in-the-knowledge-resident.md) (instruction capture and the conversation-decision source)
+Amended by: [ADR-0467](0467-capture-owner-turns-semantically-in-the-knowledge-resident.md) (instruction capture and the conversation-decision source)
 
 ## Context
 
@@ -37,6 +37,8 @@ On terminal `Stop`, deterministic grounding in `terminal-request-grounding.ts` r
 ### One convergence owner across hosts
 
 Knowledge convergence runs only on the repository writer-lease holder (ADR-0456), or, without a lease, the host named by new `hostIdentityHash` in the delegation grant. Other hosts perform read-only inspection and send candidates through handoff or the Hub. `knowledge.convergence.owner.changed` records holder changes. A non-owner finding debt records `convergence_owner_elsewhere` and does not commit.
+
+Amended by [ADR-0466](../../coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md): the owner is the holder of a Hub-hosted, expiring convergence owner lease, not the ADR-0456 writer lease, and host identity lives in host-local state, not in the delegation grant. ADR-0466 also redefines the `knowledge.convergence.owner.changed` fields.
 
 ### Consolidation normalization
 

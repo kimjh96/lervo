@@ -1,4 +1,4 @@
-/** ADR-0457 and ADR-0466 capture events: identifiers, digests, classes, and counts only. */
+/** ADR-0457 and ADR-0467 capture events: identifiers, digests, classes, and counts only. */
 export const instructionCapturePayloadAllowlists = {
   "knowledge.instruction_candidate.captured": [
     "candidateId",

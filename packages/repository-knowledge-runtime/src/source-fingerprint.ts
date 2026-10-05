@@ -122,7 +122,7 @@ function freshnessObservation(root: string): unknown {
   return { findingsDigest, holds: entries };
 }
 
-/** ADR-0466: a newly queued owner turn wakes the resident; names only, never the turn text. */
+/** ADR-0467: a newly queued owner turn wakes the resident; names only, never the turn text. */
 function instructionCaptureQueueNames(root: string): string[] {
   try {
     return readdirSync(resolve(root, KNOWLEDGE_STATE, "instruction-capture", "queue"))

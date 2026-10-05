@@ -7,13 +7,17 @@ import { promisify } from "node:util";
 import { listDurableInstructionCandidates } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 
+import type { ConvergenceOwnerVerdict } from "../src/convergence-owner-verdict.js";
 import {
   enqueueInstructionCapture,
+  holdInstructionCaptureQueue,
   listQueuedInstructionCaptures,
+  MAXIMUM_CAPTURE_HOLD_MILLISECONDS,
   INSTRUCTION_CAPTURE_QUEUE_ROOT,
 } from "../src/instruction-capture-queue.js";
 import { runInstructionCaptureCycle } from "../src/instruction-capture-stage.js";
 import { readInstructionCaptureState } from "../src/instruction-capture-state.js";
+import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { fixture } from "./fixture.js";
 
 const execute = promisify(execFile);
@@ -149,7 +153,7 @@ const IMPLICIT_KOREAN_CORRECTION = "그건 아니야, 다시는 그렇게 하지
 const PRECEDING_AGENT_TURN =
   "I resolved the conflict by disabling the WSL worker so only the Mac writes knowledge.";
 
-describe("owner-turn instruction capture stage (ADR-0466)", () => {
+describe("owner-turn instruction capture stage (ADR-0467)", () => {
   it(
     "turns English, Korean, paraphrased, and implicit owner rules into exact-review candidates",
     { timeout: 120_000 },
@@ -418,5 +422,83 @@ describe("owner-turn instruction capture stage (ADR-0466)", () => {
     expect(f.eventsOf("knowledge.instruction_capture.cycle.completed")[0]?.payload).toMatchObject({
       skippedForBudget: 2,
     });
+  });
+
+  it(
+    "holds turns without spending on a non-owner host and assesses them once it owns convergence",
+    { timeout: 120_000 },
+    async () => {
+      const f = await captureFixture();
+      await f.plan([
+        {
+          ownerTurn: ENGLISH_RULE,
+          response: {
+            schemaVersion: 1,
+            captureClass: "durable_instruction",
+            durableInstruction: canonicalRule("Keep both hosts available", "Keep both hosts."),
+            decision: null,
+            reasonIds: [],
+          },
+        },
+      ]);
+      await f.enqueue({ ownerTurn: ENGLISH_RULE });
+      const verdict = (role: ConvergenceOwnerVerdict["role"]): ConvergenceOwnerVerdict =>
+        ({
+          role,
+          reason: role === "owner" ? "standalone_owner" : "convergence_owner_elsewhere",
+          mode: "hub",
+          hostHash: `sha256:${"1".repeat(64)}`,
+          hostLabel: "mac",
+          holder: null,
+          validUntil: role === "owner" ? new Date(Date.now() + 600_000).toISOString() : null,
+          wakeAt: null,
+          grantedAt: null,
+          yieldUntil: null,
+          observedAt: new Date().toISOString(),
+        }) as ConvergenceOwnerVerdict;
+      const run = (role: ConvergenceOwnerVerdict["role"]) =>
+        runAutonomousKnowledgeWorker({
+          storage: f.storage,
+          workerId: "capture-owner-test",
+          provider: "claude",
+          executable: f.executable,
+          admissionDirectory: f.admissionDirectory,
+          liveWorkPending: async () => false,
+          owner: async () => verdict(role),
+        });
+      const [queued] = await listQueuedInstructionCaptures(f.root);
+      const waiting = await run("waiting_owner");
+      expect(waiting).toMatchObject({ status: "waiting_owner", heldCaptureCount: 1 });
+      expect(await f.calls()).toEqual([]);
+      const [held] = await listQueuedInstructionCaptures(f.root);
+      expect(Date.parse(held!.expiresAt)).toBeGreaterThanOrEqual(Date.parse(queued!.expiresAt));
+      expect(Date.parse(held!.expiresAt)).toBeLessThanOrEqual(
+        Date.parse(held!.enqueuedAt) + MAXIMUM_CAPTURE_HOLD_MILLISECONDS,
+      );
+      const owned = await run("owner");
+      expect(owned).toMatchObject({
+        status: "processed",
+        instructionCapture: { status: "completed", assessedCount: 1, instructionCandidateCount: 1 },
+      });
+      await run("owner");
+      expect(await f.calls()).toHaveLength(1);
+      expect(await listDurableInstructionCandidates(f.root)).toHaveLength(1);
+    },
+  );
+
+  it("caps a held turn at seven days, then expires it unassessed", async () => {
+    const f = await captureFixture();
+    await f.enqueue({ ownerTurn: KOREAN_RULE });
+    const later = new Date(Date.now() + 6 * 86_400_000);
+    expect(await holdInstructionCaptureQueue(f.root, later)).toBe(1);
+    const [held] = await listQueuedInstructionCaptures(f.root);
+    expect(Date.parse(held!.expiresAt)).toBe(
+      Date.parse(held!.enqueuedAt) + MAXIMUM_CAPTURE_HOLD_MILLISECONDS,
+    );
+    expect(await f.cycle(new Date(Date.now() + 8 * 86_400_000))).toMatchObject({
+      assessedCount: 0,
+    });
+    expect(await listQueuedInstructionCaptures(f.root)).toEqual([]);
+    expect(await f.calls()).toEqual([]);
   });
 });

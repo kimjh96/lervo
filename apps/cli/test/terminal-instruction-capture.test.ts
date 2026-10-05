@@ -112,7 +112,7 @@ const ownerRule = "앞으로 Mac과 WSL 충돌을 한쪽 호스트로 제한해�
 const agentReply = "I resolved the conflict by disabling the WSL worker.";
 const implicitCorrection = "That's not it. Don't do that again.";
 
-describe("terminal owner-turn capture (ADR-0466)", () => {
+describe("terminal owner-turn capture (ADR-0467)", () => {
   it("queues owner prompts with the preceding agent reply and keeps both out of events", async () => {
     const root = await repository();
     await hook(root, "claude", {
@@ -362,5 +362,58 @@ describe("terminal owner-turn capture (ADR-0466)", () => {
         (item) => item.kind === "captured_decision",
       ),
     ).toBe(false);
+  });
+
+  it("tells the agent that owner turns wait on a host that does not own convergence", async () => {
+    const root = await repository();
+    await writeFile(
+      resolve(root, ".lervo/state/knowledge/convergence-owner.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        recordedHolderKey: null,
+        verdict: {
+          role: "waiting_owner",
+          reason: "convergence_owner_elsewhere",
+          mode: "hub",
+          hostHash: `sha256:${"1".repeat(64)}`,
+          hostLabel: "mac",
+          holder: null,
+          validUntil: null,
+          wakeAt: null,
+          grantedAt: null,
+          yieldUntil: null,
+          observedAt: new Date().toISOString(),
+        },
+      }),
+    );
+    await queueTerminalOwnerTurn({
+      root,
+      provider: "claude",
+      providerSessionId: "non-owner-session",
+      prompt: ownerRule,
+      workspaceBinding: null,
+      now: new Date(),
+    });
+    const context = promptContext(
+      await hook(root, "codex", {
+        hook_event_name: "UserPromptSubmit",
+        session_id: "non-owner-codex",
+        prompt: "Continue.",
+      }),
+    );
+    expect(context).toContain(
+      "1 owner turn waits on this host until it owns knowledge convergence",
+    );
+    const status: string[] = [];
+    expect(
+      await runCli(["knowledge", "instruction", "capture", "--json"], {
+        ...quiet(root),
+        stdout: (message) => status.push(message),
+      }),
+    ).toBe(0);
+    expect(JSON.parse(status.join(""))).toMatchObject({
+      convergenceOwnerRole: "waiting_owner",
+    });
+    expect(status.join("")).not.toContain(ownerRule);
   });
 });

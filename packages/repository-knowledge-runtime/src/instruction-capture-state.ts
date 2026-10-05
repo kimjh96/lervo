@@ -7,7 +7,7 @@ import type { InstructionCaptureSurface } from "@lervo/repository-knowledge";
 import { INSTRUCTION_CAPTURE_ROOT } from "./instruction-capture-queue.js";
 
 /**
- * Rebuildable capture bookkeeping (ADR-0466): the hourly and daily budget windows, tombstones
+ * Rebuildable capture bookkeeping (ADR-0467): the hourly and daily budget windows, tombstones
  * that stop a turn from being assessed twice, and held items that wait for the owner. Held items
  * contain only the provider's normalized title and statement, never owner or agent turn text.
  */
