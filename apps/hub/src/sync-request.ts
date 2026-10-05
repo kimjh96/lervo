@@ -10,7 +10,8 @@ export interface HubSyncHttpRoute {
     | "workstreams"
     | "workspace-reservations"
     | "workspace-summaries"
-    | "knowledge-convergence-owner";
+    | "knowledge-convergence-owner"
+    | "knowledge-instruction-candidates";
   projectId: string;
 }
 
@@ -38,7 +39,8 @@ export function matchHubSyncRoute(pathname: string): HubSyncHttpRoute | null {
     kind !== "workstreams" &&
     kind !== "workspace-reservations" &&
     kind !== "workspace-summaries" &&
-    kind !== "knowledge-convergence-owner"
+    kind !== "knowledge-convergence-owner" &&
+    kind !== "knowledge-instruction-candidates"
   )
     return null;
   return { kind, projectId };

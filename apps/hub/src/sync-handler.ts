@@ -8,14 +8,14 @@ import {
   handleWorkspaceCoordinationMutation,
   handleWorkspaceSummaryPublish,
   handleWorkspaceSummaryRead,
-  handleKnowledgeConvergenceOwnerMutation,
-  handleKnowledgeConvergenceOwnerRead,
+  HubKnowledgeInstructionCandidateError,
   HubKnowledgeConvergenceOwnerError,
   isHubWorkspaceCoordinationMutation,
   isHubWorkspaceSummary,
   type HubSyncCommandStore,
   type HubWorkspaceCoordinationStore,
   type HubKnowledgeConvergenceOwnerStore,
+  type HubKnowledgeInstructionCandidateStore,
   type HubWorkspaceSummary,
   type HubWorkstreamReplicationStore,
   HubWorkstreamReplicationError,
@@ -37,6 +37,7 @@ import type { HubRequestAuthenticator } from "./auth.js";
 import { HubHttpRequestTooLargeError, readBoundedJsonBody } from "./body.js";
 import { InvalidHubHttpRequestError, singleAuthorizationHeader } from "./request.js";
 import { resolveHubHttpMaxResponseBytes, sendHubError, sendHubJson } from "./response.js";
+import { serveKnowledgeSyncRoute } from "./sync-knowledge-routes.js";
 import { hubSyncQuery, matchHubSyncRoute } from "./sync-request.js";
 
 const DEFAULT_MAX_REQUEST_BYTES = 4_194_304;
@@ -47,7 +48,8 @@ export interface HubSyncHttpHandlerOptions {
   store: HubSyncCommandStore &
     HubWorkstreamReplicationStore &
     HubWorkspaceCoordinationStore &
-    HubKnowledgeConvergenceOwnerStore;
+    HubKnowledgeConvergenceOwnerStore &
+    HubKnowledgeInstructionCandidateStore;
   hubIdentityHash: string;
   now?: () => Date;
   maxRequestBytes?: number;
@@ -153,6 +155,7 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         "workstreams",
         "workspace-summaries",
         "knowledge-convergence-owner",
+        "knowledge-instruction-candidates",
       ].includes(route.kind);
       const acceptedMethod = supportsRead
         ? request.method === "GET" || request.method === "POST"
@@ -179,9 +182,12 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         (project) =>
           project.destinationId === query.destinationId && project.projectId === route.projectId,
       );
-      // The convergence owner lease coordinates repository work across hosts, like reservations.
+      // The convergence owner lease and ADR-0467 instruction candidates coordinate repository work
+      // across hosts, like reservations.
       const requiredPermission =
-        route.kind.startsWith("workspace-") || route.kind === "knowledge-convergence-owner"
+        route.kind.startsWith("workspace-") ||
+        route.kind === "knowledge-convergence-owner" ||
+        route.kind === "knowledge-instruction-candidates"
           ? request.method === "GET"
             ? "workspace.read"
             : "workspace.coordinate"
@@ -221,40 +227,20 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         sendHubJson(response, 200, { summaries: result }, maxResponseBytes, identityHeaders);
         return;
       }
-      if (route.kind === "knowledge-convergence-owner" && request.method === "GET") {
-        const result = await handleKnowledgeConvergenceOwnerRead({
+      if (
+        await serveKnowledgeSyncRoute({
+          route,
+          method: request.method,
+          query,
           store: options.store,
-          coordinate: {
-            destinationId: query.destinationId,
-            projectId: route.projectId,
-            repositoryIdentityHash: query.projectIdentityHash,
-          },
           acceptedAt,
-        });
-        sendHubJson(response, 200, result, maxResponseBytes, identityHeaders);
+          readBody: () => readBoundedJsonBody(request, maxRequestBytes),
+          send: (status, body) =>
+            sendHubJson(response, status, body, maxResponseBytes, identityHeaders),
+        })
+      )
         return;
-      }
       const body = await readBoundedJsonBody(request, maxRequestBytes);
-      if (route.kind === "knowledge-convergence-owner") {
-        const result = await handleKnowledgeConvergenceOwnerMutation({
-          store: options.store,
-          destinationId: query.destinationId,
-          coordinate: {
-            projectId: route.projectId,
-            repositoryIdentityHash: query.projectIdentityHash,
-          },
-          mutation: body,
-          acceptedAt,
-        });
-        sendHubJson(
-          response,
-          result.status === "granted" ? 201 : 200,
-          result,
-          maxResponseBytes,
-          identityHeaders,
-        );
-        return;
-      }
       if (route.kind === "registration") {
         if (!validateSchema("projectRegistrationRequest", body).valid) {
           throw new InvalidHubHttpRequestError();
@@ -379,7 +365,10 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         syncError(response, error, maxResponseBytes, identityHeaders);
       } else if (error instanceof HubWorkstreamReplicationError) {
         workstreamError(response, error, maxResponseBytes, identityHeaders);
-      } else if (error instanceof HubKnowledgeConvergenceOwnerError) {
+      } else if (
+        error instanceof HubKnowledgeConvergenceOwnerError ||
+        error instanceof HubKnowledgeInstructionCandidateError
+      ) {
         sendHubError(response, 400, "invalid_request", maxResponseBytes, identityHeaders);
       } else if (error instanceof HubWorkspaceCoordinationError) {
         workspaceCoordinationError(response, error, maxResponseBytes, identityHeaders);
