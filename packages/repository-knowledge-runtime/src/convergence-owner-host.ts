@@ -5,6 +5,10 @@ import { isAbsolute, resolve } from "node:path";
 import { sha256 } from "@lervo/repository-knowledge";
 
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import {
+  parseKnowledgePublicationSettings,
+  type KnowledgePublicationSettings,
+} from "./knowledge-publication-settings.js";
 
 /**
  * Host-local convergence owner configuration (ADR-0466). It lives under `.lervo/state`, which Git
@@ -33,6 +37,8 @@ export interface ConvergenceOwnerHostConfig {
   hostId: string;
   hostLabel: string;
   coordination: ConvergenceOwnerCoordination;
+  /** ADR-0466 publication of owner commits to the Git remote; absent disables publication. */
+  publication?: KnowledgePublicationSettings;
 }
 
 export interface ConvergenceOwnerHost {
@@ -66,7 +72,7 @@ function validHub(value: unknown): value is ConvergenceOwnerHubCoordinates {
 export function parseConvergenceOwnerHostConfig(value: unknown): ConvergenceOwnerHostConfig {
   if (
     !record(value) ||
-    Object.keys(value).length !== 4 ||
+    Object.keys(value).length !== ("publication" in value ? 5 : 4) ||
     value.schemaVersion !== 1 ||
     typeof value.hostId !== "string" ||
     !HOST_ID.test(value.hostId) ||
@@ -81,7 +87,12 @@ export function parseConvergenceOwnerHostConfig(value: unknown): ConvergenceOwne
     )
   )
     throw new KnowledgeConvergenceRuntimeError("convergence_owner_host_invalid");
-  return value as unknown as ConvergenceOwnerHostConfig;
+  const config = value as unknown as ConvergenceOwnerHostConfig;
+  if (!("publication" in value)) return config;
+  const publication = parseKnowledgePublicationSettings(value.publication);
+  if (publication === null)
+    throw new KnowledgeConvergenceRuntimeError("convergence_owner_host_invalid");
+  return { ...config, publication };
 }
 
 async function ensureStateDirectory(root: string): Promise<string> {

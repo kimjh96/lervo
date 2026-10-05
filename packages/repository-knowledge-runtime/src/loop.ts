@@ -15,6 +15,7 @@ import {
   runResidentCycle,
 } from "./resident-cycle.js";
 import type { ConvergenceOwnership } from "./convergence-owner.js";
+import type { KnowledgePublicationOutcome } from "./knowledge-publication.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import {
   nonOwnerHealth,
@@ -57,6 +58,8 @@ export function startAutonomousKnowledgeWorker(input: {
   /** ADR-0466 cross-host owner; absent keeps the legacy single-host resident. */
   ownership?: ConvergenceOwnership;
   ownerHeartbeatMilliseconds?: number;
+  /** Publishes the owner's settled commits after each cycle; absent disables publication. */
+  publish?: () => Promise<KnowledgePublicationOutcome>;
 }): () => Promise<void> {
   const base = input.intervalMilliseconds ?? RESIDENT_RECONCILE_BASE_MILLISECONDS;
   if (!Number.isSafeInteger(base) || base < 100 || base > RESIDENT_RECONCILE_BASE_MILLISECONDS)
@@ -179,14 +182,26 @@ export function startAutonomousKnowledgeWorker(input: {
       report("attention", "knowledge_resident_cycle_failed");
       if (!signal.aborted) input.onFailure(cycle.outcome.error);
     }
+    // Publication follows the cycle so commits made by it go out at once; only an owner publishes.
+    const publication =
+      input.publish !== undefined && verdict?.role === "owner" && !signal.aborted
+        ? await input.publish().catch((error: unknown) => {
+            input.onFailure(error);
+            return null;
+          })
+        : null;
     const now = Date.now();
-    const delay = residentReconcileDelay({
+    const reconcileDelay = residentReconcileDelay({
       idleStreak: cycle.state.idleStreak,
       now,
       earliestAvailableAt: cycle.earliestAvailableAt,
       baseMilliseconds: base,
       ceilingMilliseconds: ceiling,
     });
+    const delay =
+      publication?.status === "published" && publication.retryAfterMs !== null
+        ? Math.min(reconcileDelay, publication.retryAfterMs)
+        : reconcileDelay;
     previous = { ...cycle.state, nextReconcileAt: new Date(now + delay).toISOString() };
     // The file is a rebuildable projection; losing it costs one full cycle after a restart.
     await writeResidentCycleState(root, previous).catch(() => undefined);
