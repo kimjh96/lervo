@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-04
 Amends: [ADR-0427](../repository/canonicalization/0427-decouple-conversation-work-from-agent-owned-knowledge-convergence.md), [ADR-0434](../repository/canonicalization/0434-converge-background-canonicalization-normalization-and-knowledge.md), [ADR-0195](../repository/0195-reviewed-document-content-normalization.md), [ADR-0451](../repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md)
 Part of: [ADR-0452 open collaboration platform](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
+Amended by: [ADR-0466](0466-capture-owner-turns-semantically-in-the-knowledge-resident.md) (instruction capture and the conversation-decision source)
 
 ## Context
 

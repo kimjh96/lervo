@@ -59,6 +59,8 @@ Retrieval queries are semantically translated into the repository policy's publi
 
 Direct terminal prompt preparation never materializes a durable rule. The installed explicit consumer, `lervo knowledge instruction intake`, reuses typed grounding under its own authority and evidence contract, creates only a local exact-hash candidate, and requires `knowledge instruction review` before materialization. User-owned content, conflicts, scope, and approval remain reviewable.
 
+[Owner-turn instruction capture](../knowledge/instruction-capture.md) ([ADR-0466](../../decisions/knowledge/documents/0466-capture-owner-turns-semantically-in-the-knowledge-resident.md)) queues owner turns from the terminal hook and managed conversations without classifying them. The knowledge resident assesses each one through a separate no-capability provider contract with the same prohibition on keyword, alias, and phrase routing, and produces only exact-review candidates or held items. The adapter failure `semantic_resolution_failed` is accompanied by a bounded stage reason, such as `semantic_resolution_provider_timed_out`, that carries no provider output.
+
 ## Consumers and Evidence
 
 Workforce planning, managed capability selection, terminal knowledge selection, and deliberation routing consume the validated decision. Typed source needs and authority restrict context selection before loading.
