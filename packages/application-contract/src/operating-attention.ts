@@ -121,6 +121,30 @@ export interface DocumentFreshnessBlockedAttentionItemV1 extends OperatingAttent
   attempts: number;
 }
 
+/**
+ * An owner rule or correction captured from a terminal prompt or managed conversation (ADR-0466).
+ * It waits for exact-hash review; `title` is the normalized rule title, never the owner's words.
+ */
+export interface DurableInstructionCandidateAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "durable_instruction_candidate";
+  state: "waiting_authority";
+  candidateId: string;
+  candidateHash: string;
+  captureSource: "terminal_prompt" | "conversation" | "explicit_intake";
+  title: string;
+  targetPath: string;
+}
+
+/** A decision the owner stated, held until it is documented or dismissed (ADR-0466). */
+export interface CapturedDecisionAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "captured_decision";
+  state: "action_required";
+  captureId: string;
+  captureSource: "terminal_prompt" | "conversation";
+  title: string;
+  capturedAt: string;
+}
+
 export type OperatingAttentionItemV1 =
   | WorkstreamDecisionAttentionItemV1
   | WorkstreamApprovalAttentionItemV1
@@ -130,7 +154,9 @@ export type OperatingAttentionItemV1 =
   | RepositoryReplicaDivergenceAttentionItemV1
   | DocumentFreshnessCandidateAttentionItemV1
   | DocumentFreshnessAppliedAttentionItemV1
-  | DocumentFreshnessBlockedAttentionItemV1;
+  | DocumentFreshnessBlockedAttentionItemV1
+  | DurableInstructionCandidateAttentionItemV1
+  | CapturedDecisionAttentionItemV1;
 
 export interface OperatingAttentionReportV1 {
   schemaVersion: 1;
