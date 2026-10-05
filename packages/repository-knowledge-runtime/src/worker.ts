@@ -17,11 +17,11 @@ import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceRecoveryStatus } from "./recovery-status.js";
 import { runDocumentFreshnessCycle, type DocumentFreshnessCycleResult } from "./freshness-stage.js";
 import { documentFreshnessMayRun } from "./freshness-convergence-gate.js";
+import type { InstructionCandidateExchangeTransport } from "./instruction-candidate-exchange.js";
 import {
-  runInstructionCaptureCycle,
-  type InstructionCaptureCycleResult,
-} from "./instruction-capture-stage.js";
-import { holdInstructionCaptureQueue } from "./instruction-capture-queue.js";
+  runOwnerTurnCaptureWork,
+  type OwnerTurnCaptureWorkResult,
+} from "./owner-turn-capture-work.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import { inspectConvergenceDebt } from "./status.js";
@@ -58,32 +58,55 @@ export async function runAutonomousKnowledgeWorker(input: {
    * when absent, the legacy single-host behavior applies.
    */
   owner?: () => Promise<ConvergenceOwnerVerdict>;
+  /** ADR-0467 Hub adapter for exchanging owner-rule candidates; absent keeps them host-local. */
+  instructionCandidateTransport?: InstructionCandidateExchangeTransport;
 }): Promise<
   | { status: "busy" }
   | {
       status: "waiting_owner";
       owner: ConvergenceOwnerVerdict;
       convergence: KnowledgeConvergenceStatus;
-      heldCaptureCount: number;
+      /** Owner-turn work runs on every host; null when another worker held the lock. */
+      ownerTurns: OwnerTurnCaptureWorkResult | null;
     }
   | {
       status: "processed";
       outcomes: RepositoryKnowledgeJobOutcome[];
       convergence: KnowledgeConvergenceStatus;
       freshness?: DocumentFreshnessCycleResult;
-      instructionCapture?: InstructionCaptureCycleResult;
+      ownerTurns?: OwnerTurnCaptureWorkResult;
     }
 > {
   const root = input.storage.paths.repositoryRoot;
+  const signal = input.signal ?? new AbortController().signal;
+  const liveWorkPending =
+    input.liveWorkPending ??
+    (async () => hasCurrentForegroundLease(await listAssignments(root), Date.now()));
+  const ownerTurnWork = () =>
+    runOwnerTurnCaptureWork({
+      storage: input.storage,
+      provider: input.provider,
+      ...(input.executable === undefined ? {} : { executable: input.executable }),
+      ...(input.admissionDirectory === undefined
+        ? {}
+        : { admissionDirectory: input.admissionDirectory }),
+      signal,
+      liveWorkPending,
+      ...(input.instructionCandidateTransport === undefined
+        ? {}
+        : { transport: input.instructionCandidateTransport }),
+    });
   const owner = input.owner === undefined ? null : await input.owner();
-  if (owner !== null && owner.role !== "owner")
+  if (owner !== null && owner.role !== "owner") {
+    // ADR-0467: assessing this host's own owner turns is not convergence work, so it runs here too.
+    const ownerTurns = await withRepositoryKnowledgeWorkerLock(root, ownerTurnWork);
     return {
       status: "waiting_owner",
       owner,
       convergence: (await inspectConvergenceDebt(input.storage)).status,
-      // ADR-0467: only the owner assesses owner turns; this host holds its own queue meanwhile.
-      heldCaptureCount: await holdInstructionCaptureQueue(root, new Date()).catch(() => 0),
+      ownerTurns: ownerTurns.status === "busy" ? null : ownerTurns.result,
     };
+  }
   const context: ConvergenceRuntimeContext = {
     storage: input.storage,
     provider: input.provider,
@@ -91,10 +114,8 @@ export async function runAutonomousKnowledgeWorker(input: {
     ...(input.admissionDirectory === undefined
       ? {}
       : { admissionDirectory: input.admissionDirectory }),
-    signal: input.signal ?? new AbortController().signal,
-    liveWorkPending:
-      input.liveWorkPending ??
-      (async () => hasCurrentForegroundLease(await listAssignments(root), Date.now())),
+    signal,
+    liveWorkPending,
     assertSource: (state) => assertConvergenceSource(context, state),
   };
   const result = await withRepositoryKnowledgeWorkerLock(root, async () => {
@@ -110,17 +131,7 @@ export async function runAutonomousKnowledgeWorker(input: {
     });
     // Owner-turn capture (ADR-0467) runs first: it is small, bounded per cycle, and its result is
     // what the next prompt shows. Its failure leaves the queue for a later cycle and blocks nothing.
-    const instructionCapture: InstructionCaptureCycleResult = await runInstructionCaptureCycle({
-      storage: input.storage,
-      provider: input.provider,
-      ...(input.executable === undefined ? {} : { executable: input.executable }),
-      ...(input.admissionDirectory === undefined
-        ? {}
-        : { admissionDirectory: input.admissionDirectory }),
-      signal: context.signal,
-      liveWorkPending: context.liveWorkPending,
-      now: () => new Date(),
-    }).catch((): InstructionCaptureCycleResult => ({ status: "unavailable" }));
+    const ownerTurns = await ownerTurnWork();
     // Live work or a paused provider leaves change jobs queued instead of spending their attempts.
     const outcomes = (await changeReviewDeferred(context))
       ? []
@@ -153,7 +164,7 @@ export async function runAutonomousKnowledgeWorker(input: {
         return {
           outcomes,
           convergence: convergenceRecoveryStatus(input.storage),
-          instructionCapture,
+          ownerTurns,
         };
       return MATERIALIZATION_BUSY;
     }
@@ -174,7 +185,7 @@ export async function runAutonomousKnowledgeWorker(input: {
           },
         }).catch((): DocumentFreshnessCycleResult => ({ status: "unavailable" }))
       : { status: "yielded" };
-    return { outcomes, convergence, freshness, instructionCapture };
+    return { outcomes, convergence, freshness, ownerTurns };
   });
   if (result.status === "busy" || result.result === MATERIALIZATION_BUSY) return { status: "busy" };
   return { status: "processed", ...result.result };

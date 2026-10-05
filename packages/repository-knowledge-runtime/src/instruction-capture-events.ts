@@ -18,7 +18,8 @@ export function appendInstructionCaptureEvent(input: {
   type:
     | "knowledge.instruction_candidate.captured"
     | "conversation.knowledge_candidate.recorded"
-    | "knowledge.instruction_capture.cycle.completed";
+    | "knowledge.instruction_capture.cycle.completed"
+    | "knowledge.instruction_candidate.exchanged";
   correlationId: string;
   payload: Record<string, unknown>;
   occurredAt: string;

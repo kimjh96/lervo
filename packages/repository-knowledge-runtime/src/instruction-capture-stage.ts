@@ -366,6 +366,15 @@ export async function runInstructionCaptureCycle(
     await removeQueuedInstructionCapture(root, capture.captureId);
   }
   state.lastCycleAt = now.toISOString();
+  // One attention record, not silent holding, when this host may not spend on assessment.
+  const remaining = queue.length - counts.assessedCount - counts.failedCount;
+  state.authorityBlocked =
+    deferred === "knowledge_authority_unavailable" && remaining > 0
+      ? {
+          since: state.authorityBlocked?.since ?? now.toISOString(),
+          queuedCount: remaining,
+        }
+      : null;
   await writeInstructionCaptureState(root, state, now);
   const cycleId = stableId("kccy", {
     at: now.toISOString(),

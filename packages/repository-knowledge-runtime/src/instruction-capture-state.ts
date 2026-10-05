@@ -50,6 +50,11 @@ export interface InstructionCaptureState {
   assessed: Array<{ captureId: string; at: string }>;
   held: HeldCapture[];
   lastCycleAt: string | null;
+  /**
+   * Set while owner turns are queued but this host has no background-work authority (no active
+   * delegation for its provider); cleared by the next assessment or an empty queue (ADR-0467).
+   */
+  authorityBlocked?: { since: string; queuedCount: number } | null;
 }
 
 export function emptyInstructionCaptureState(): InstructionCaptureState {

@@ -233,38 +233,6 @@ export async function recordInstructionCaptureAttempt(
   return next;
 }
 
-/** The longest a turn may wait on a host that does not own knowledge convergence (ADR-0466). */
-export const MAXIMUM_CAPTURE_HOLD_MILLISECONDS = 7 * 86_400_000;
-
-/**
- * Holds queued turns on a host that does not own convergence. Only the owner assesses and spends,
- * and each host assesses only its own queue, so a turn is never assessed twice; holding keeps it
- * from expiring while ownership is elsewhere. Each record's expiry moves to 24 hours from now,
- * capped at seven days after it was queued. Returns the number of records held.
- */
-export async function holdInstructionCaptureQueue(
-  repositoryRoot: string,
-  now: Date,
-): Promise<number> {
-  const queue = await listQueuedInstructionCaptures(repositoryRoot);
-  for (const capture of queue) {
-    const expiresAt = new Date(
-      Math.min(
-        now.getTime() + CAPTURE_RETENTION_MILLISECONDS,
-        Date.parse(capture.enqueuedAt) + MAXIMUM_CAPTURE_HOLD_MILLISECONDS,
-      ),
-    ).toISOString();
-    if (expiresAt <= capture.expiresAt) continue;
-    await writePrivate(
-      repositoryRoot,
-      INSTRUCTION_CAPTURE_QUEUE_ROOT,
-      `${capture.captureId}.json`,
-      { ...capture, expiresAt },
-    );
-  }
-  return queue.length;
-}
-
 /** Removes expired records and reports how many expired unassessed. */
 export async function pruneInstructionCaptureQueue(
   repositoryRoot: string,

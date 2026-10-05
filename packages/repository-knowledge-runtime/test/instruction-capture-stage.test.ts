@@ -4,19 +4,31 @@ import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
-import { listDurableInstructionCandidates } from "@lervo/repository-knowledge";
+import {
+  listDurableInstructionCandidates,
+  removeDurableInstructionCandidate,
+} from "@lervo/repository-knowledge";
+import {
+  mergeKnowledgeInstructionCandidateRecord,
+  type KnowledgeInstructionCandidateRecord,
+} from "@lervo/sync-contract";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { ConvergenceOwnerVerdict } from "../src/convergence-owner-verdict.js";
 import {
   enqueueInstructionCapture,
-  holdInstructionCaptureQueue,
   listQueuedInstructionCaptures,
-  MAXIMUM_CAPTURE_HOLD_MILLISECONDS,
   INSTRUCTION_CAPTURE_QUEUE_ROOT,
 } from "../src/instruction-capture-queue.js";
 import { runInstructionCaptureCycle } from "../src/instruction-capture-stage.js";
 import { readInstructionCaptureState } from "../src/instruction-capture-state.js";
+import { writeConvergenceOwnerFence } from "../src/convergence-owner-fence.js";
+import { CONVERGENCE_OWNER_HOST_PATH } from "../src/convergence-owner-host.js";
+import {
+  exchangeInstructionCandidates,
+  type InstructionCandidateExchangeTransport,
+} from "../src/instruction-candidate-exchange.js";
+import { recordInstructionCandidateResolution } from "../src/instruction-candidate-exchange-state.js";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { fixture } from "./fixture.js";
 
@@ -388,6 +400,10 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
     });
     expect(await f.calls()).toEqual([]);
     expect(await listQueuedInstructionCaptures(f.root)).toHaveLength(1);
+    // One attention record instead of silent holding.
+    expect((await readInstructionCaptureState(f.root)).authorityBlocked).toMatchObject({
+      queuedCount: 1,
+    });
   });
 
   it("drops a turn after three failed assessments and expires stale queue records", async () => {
@@ -423,82 +439,224 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
       skippedForBudget: 2,
     });
   });
+});
+
+/** An in-memory Hub that applies the real merge rule, standing in for the SQLite route. */
+function fakeHub() {
+  const records = new Map<string, KnowledgeInstructionCandidateRecord>();
+  const transport: InstructionCandidateExchangeTransport = async () => ({
+    async publish(record) {
+      const { next, status } = mergeKnowledgeInstructionCandidateRecord({
+        current: records.get(record.proposedContentHash) ?? null,
+        incoming: record,
+      });
+      records.set(record.proposedContentHash, next);
+      return status;
+    },
+    async list() {
+      return [...records.values()];
+    },
+  });
+  return { records, transport };
+}
+
+async function configureHubHost(
+  root: string,
+  input: { hostId: string; label: string; role: ConvergenceOwnerVerdict["role"] },
+) {
+  await mkdir(resolve(root, ".lervo/state/knowledge"), { recursive: true });
+  await writeFile(
+    resolve(root, CONVERGENCE_OWNER_HOST_PATH),
+    JSON.stringify({
+      schemaVersion: 1,
+      hostId: input.hostId,
+      hostLabel: input.label,
+      coordination: {
+        mode: "hub",
+        hub: {
+          baseUrl: "https://hub.lervo.invalid",
+          bearerTokenFile: "/nonexistent/lervo-hub-token",
+          destinationId: "hub-main",
+          hubIdentityHash: `sha256:${"9".repeat(64)}`,
+        },
+      },
+    }),
+  );
+  await writeConvergenceOwnerFence(root, {
+    schemaVersion: 1,
+    recordedHolderKey: null,
+    verdict: ownerVerdict(input.role, input.label),
+  });
+}
+
+function ownerVerdict(
+  role: ConvergenceOwnerVerdict["role"],
+  label = "mac",
+): ConvergenceOwnerVerdict {
+  return {
+    role,
+    reason: role === "owner" ? "lease_granted" : "convergence_owner_elsewhere",
+    mode: "hub",
+    hostHash: `sha256:${"1".repeat(64)}`,
+    hostLabel: label,
+    holder:
+      role === "owner"
+        ? null
+        : { hostHash: `sha256:${"2".repeat(64)}`, label: "wsl", generation: 3, expiresAt: null },
+    validUntil: role === "owner" ? new Date(Date.now() + 600_000).toISOString() : null,
+    wakeAt: null,
+    grantedAt: null,
+    yieldUntil: null,
+    observedAt: new Date().toISOString(),
+  } as ConvergenceOwnerVerdict;
+}
+
+describe("owner-turn capture across hosts (ADR-0467)", () => {
+  const rule = {
+    schemaVersion: 1,
+    captureClass: "durable_instruction",
+    durableInstruction: canonicalRule(
+      "Keep both hosts available",
+      "Resolve Mac and WSL conflicts without restricting work to one host.",
+    ),
+    decision: null,
+    reasonIds: [],
+  };
 
   it(
-    "holds turns without spending on a non-owner host and assesses them once it owns convergence",
+    "assesses a Mac turn on the Mac although WSL owns convergence, and one rule is one Hub record",
     { timeout: 120_000 },
     async () => {
-      const f = await captureFixture();
-      await f.plan([
-        {
-          ownerTurn: ENGLISH_RULE,
-          response: {
-            schemaVersion: 1,
-            captureClass: "durable_instruction",
-            durableInstruction: canonicalRule("Keep both hosts available", "Keep both hosts."),
-            decision: null,
-            reasonIds: [],
-          },
-        },
-      ]);
-      await f.enqueue({ ownerTurn: ENGLISH_RULE });
-      const verdict = (role: ConvergenceOwnerVerdict["role"]): ConvergenceOwnerVerdict =>
-        ({
-          role,
-          reason: role === "owner" ? "standalone_owner" : "convergence_owner_elsewhere",
-          mode: "hub",
-          hostHash: `sha256:${"1".repeat(64)}`,
-          hostLabel: "mac",
-          holder: null,
-          validUntil: role === "owner" ? new Date(Date.now() + 600_000).toISOString() : null,
-          wakeAt: null,
-          grantedAt: null,
-          yieldUntil: null,
-          observedAt: new Date().toISOString(),
-        }) as ConvergenceOwnerVerdict;
-      const run = (role: ConvergenceOwnerVerdict["role"]) =>
-        runAutonomousKnowledgeWorker({
-          storage: f.storage,
-          workerId: "capture-owner-test",
-          provider: "claude",
-          executable: f.executable,
-          admissionDirectory: f.admissionDirectory,
-          liveWorkPending: async () => false,
-          owner: async () => verdict(role),
-        });
-      const [queued] = await listQueuedInstructionCaptures(f.root);
-      const waiting = await run("waiting_owner");
-      expect(waiting).toMatchObject({ status: "waiting_owner", heldCaptureCount: 1 });
-      expect(await f.calls()).toEqual([]);
-      const [held] = await listQueuedInstructionCaptures(f.root);
-      expect(Date.parse(held!.expiresAt)).toBeGreaterThanOrEqual(Date.parse(queued!.expiresAt));
-      expect(Date.parse(held!.expiresAt)).toBeLessThanOrEqual(
-        Date.parse(held!.enqueuedAt) + MAXIMUM_CAPTURE_HOLD_MILLISECONDS,
-      );
-      const owned = await run("owner");
-      expect(owned).toMatchObject({
-        status: "processed",
-        instructionCapture: { status: "completed", assessedCount: 1, instructionCandidateCount: 1 },
+      const hub = fakeHub();
+      const mac = await captureFixture();
+      const wsl = await captureFixture();
+      await configureHubHost(mac.root, {
+        hostId: `hst_${"a".repeat(32)}`,
+        label: "mac",
+        role: "waiting_owner",
       });
-      await run("owner");
-      expect(await f.calls()).toHaveLength(1);
-      expect(await listDurableInstructionCandidates(f.root)).toHaveLength(1);
+      await configureHubHost(wsl.root, {
+        hostId: `hst_${"b".repeat(32)}`,
+        label: "wsl",
+        role: "owner",
+      });
+      await mac.plan([{ ownerTurn: ENGLISH_RULE, response: rule }]);
+      await mac.enqueue({ ownerTurn: ENGLISH_RULE, precedingAgentTurn: PRECEDING_AGENT_TURN });
+
+      const macCycle = await runAutonomousKnowledgeWorker({
+        storage: mac.storage,
+        workerId: "mac-capture",
+        provider: "claude",
+        executable: mac.executable,
+        admissionDirectory: mac.admissionDirectory,
+        liveWorkPending: async () => false,
+        owner: async () => ownerVerdict("waiting_owner"),
+        instructionCandidateTransport: hub.transport,
+      });
+      expect(macCycle).toMatchObject({
+        status: "waiting_owner",
+        ownerTurns: {
+          instructionCapture: {
+            status: "completed",
+            assessedCount: 1,
+            instructionCandidateCount: 1,
+          },
+          candidateExchange: { status: "exchanged", published: 1 },
+        },
+      });
+      expect(await mac.calls()).toHaveLength(1);
+      expect(hub.records.size).toBe(1);
+      const [record] = [...hub.records.values()];
+      expect(record).toMatchObject({ resolution: "open" });
+      // Neither the Hub record nor any event carries the owner or agent turn.
+      for (const serialized of [
+        JSON.stringify(record),
+        JSON.stringify(mac.events.list({ limit: 1_000 })),
+      ]) {
+        expect(serialized).not.toContain(ENGLISH_RULE);
+        expect(serialized).not.toContain(PRECEDING_AGENT_TURN);
+      }
+      expect(mac.eventsOf("knowledge.instruction_candidate.exchanged")[0]?.payload).toMatchObject({
+        direction: "published",
+        resolution: "open",
+        proposedContentHash: record!.proposedContentHash,
+      });
+
+      // The same rule assessed on WSL too: one Hub record, one candidate per host.
+      await wsl.plan([{ ownerTurn: ENGLISH_RULE, response: rule }]);
+      await wsl.enqueue({ ownerTurn: ENGLISH_RULE });
+      await wsl.cycle();
+      const imported = await exchangeInstructionCandidates({
+        storage: wsl.storage,
+        transport: hub.transport,
+        now: () => new Date(),
+      });
+      expect(imported).toMatchObject({ status: "exchanged", published: 0, imported: 0 });
+      expect(hub.records.size).toBe(1);
+      const wslCandidates = await listDurableInstructionCandidates(wsl.root);
+      expect(wslCandidates.map((candidate) => candidate.proposedContentHash)).toEqual([
+        record!.proposedContentHash,
+      ]);
     },
   );
 
-  it("caps a held turn at seven days, then expires it unassessed", async () => {
+  it(
+    "imports a candidate on the owner and removes it everywhere once the owner applies it",
+    { timeout: 120_000 },
+    async () => {
+      const hub = fakeHub();
+      const mac = await captureFixture();
+      const wsl = await captureFixture();
+      await configureHubHost(mac.root, {
+        hostId: `hst_${"a".repeat(32)}`,
+        label: "mac",
+        role: "waiting_owner",
+      });
+      await configureHubHost(wsl.root, {
+        hostId: `hst_${"b".repeat(32)}`,
+        label: "wsl",
+        role: "owner",
+      });
+      await mac.plan([{ ownerTurn: KOREAN_RULE, response: rule }]);
+      await mac.enqueue({ ownerTurn: KOREAN_RULE });
+      await mac.cycle();
+      const exchange = (storage: typeof mac.storage) =>
+        exchangeInstructionCandidates({ storage, transport: hub.transport, now: () => new Date() });
+      expect(await exchange(mac.storage)).toMatchObject({ published: 1 });
+      expect(await exchange(wsl.storage)).toMatchObject({ imported: 1 });
+      const [owned] = await listDurableInstructionCandidates(wsl.root);
+      expect(owned).toMatchObject({ captureSource: "terminal_prompt" });
+      expect(wsl.eventsOf("knowledge.instruction_candidate.exchanged")[0]?.payload).toMatchObject({
+        direction: "imported",
+      });
+
+      // The owner's review path records the resolution, then removes its candidate.
+      const { candidateHash: _hash, artifactPath: _path, ...candidate } = owned!;
+      await recordInstructionCandidateResolution({
+        repositoryRoot: wsl.root,
+        candidate,
+        resolution: "applied",
+        resolvedAt: new Date(),
+      });
+      await removeDurableInstructionCandidate({
+        repositoryRoot: wsl.root,
+        candidateId: owned!.candidateId,
+        expectedCandidateHash: owned!.candidateHash,
+      });
+      await exchange(wsl.storage);
+      expect([...hub.records.values()][0]).toMatchObject({ resolution: "applied" });
+      expect(await exchange(mac.storage)).toMatchObject({ resolved: 1 });
+      expect(await listDurableInstructionCandidates(mac.root)).toEqual([]);
+      // A later open publish never reopens the applied rule.
+      expect(await exchange(wsl.storage)).toMatchObject({ imported: 0 });
+      expect(await listDurableInstructionCandidates(wsl.root)).toEqual([]);
+    },
+  );
+
+  it("keeps candidates host-local without a Hub", async () => {
     const f = await captureFixture();
-    await f.enqueue({ ownerTurn: KOREAN_RULE });
-    const later = new Date(Date.now() + 6 * 86_400_000);
-    expect(await holdInstructionCaptureQueue(f.root, later)).toBe(1);
-    const [held] = await listQueuedInstructionCaptures(f.root);
-    expect(Date.parse(held!.expiresAt)).toBe(
-      Date.parse(held!.enqueuedAt) + MAXIMUM_CAPTURE_HOLD_MILLISECONDS,
-    );
-    expect(await f.cycle(new Date(Date.now() + 8 * 86_400_000))).toMatchObject({
-      assessedCount: 0,
-    });
-    expect(await listQueuedInstructionCaptures(f.root)).toEqual([]);
-    expect(await f.calls()).toEqual([]);
+    expect(
+      await exchangeInstructionCandidates({ storage: f.storage, now: () => new Date() }),
+    ).toEqual({ status: "standalone" });
   });
 });
