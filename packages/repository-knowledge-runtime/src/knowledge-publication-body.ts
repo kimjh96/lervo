@@ -25,7 +25,10 @@ export function renderKnowledgePublicationBody(input: {
   settings: KnowledgePublicationSettings;
   host: { hostHash: string; hostLabel: string };
   rebuilt: boolean;
+  /** Paths the publisher's own formatting commit changed; 0 when none was needed. */
+  formattedPathCount?: number;
 }): string {
+  const formatted = input.formattedPathCount ?? 0;
   const { commits, settings, host } = input;
   const paths = [...new Set(commits.flatMap((commit) => commit.paths))].sort();
   const listed = paths.slice(0, MAXIMUM_LISTED_PATHS);
@@ -46,7 +49,7 @@ export function renderKnowledgePublicationBody(input: {
     ...listed.map((path) => `- \`${path}\``),
     ...(paths.length > listed.length ? [`- ${paths.length - listed.length} more files`] : []),
     "",
-    `Out of scope: developer work. The publisher includes only non-merge commits whose author and committer are both \`Lervo Knowledge\`, and it refuses the whole publication if any of them changes a path outside ${roots}.${input.rebuilt ? ` These commits were replayed onto the current \`${settings.remote}/${settings.baseBranch}\`, because the local branch held other commits or sat on an older base.` : ""}`,
+    `Out of scope: developer work. The publisher includes only non-merge commits whose author and committer are both \`Lervo Knowledge\`, and it refuses the whole publication if any of them changes a path outside ${roots}.${input.rebuilt ? ` These commits were replayed onto the current \`${settings.remote}/${settings.baseBranch}\`, because the local branch held other commits or sat on an older base.` : ""}${formatted > 0 ? ` One more \`Lervo Knowledge\` commit formats ${formatted} path${formatted === 1 ? "" : "s"} those commits changed or released, using the repository's own Prettier configuration.` : ""}`,
     "",
     `Authority: this host's reviewed convergence delegation and its live convergence owner lease (ADR-0466). External writes: a lease-protected push to \`${settings.branch}\` and this pull request. ${merge}`,
     "",
@@ -60,7 +63,7 @@ export function renderKnowledgePublicationBody(input: {
     "",
     "## Verification",
     "",
-    "- Run by the publisher before the push: the identity and path scope check described above. It passed for every commit.",
+    "- Run by the publisher before the push: the identity and path scope check described above, which passed for every commit, and, when the repository depends on Prettier, its formatter on every path the commits change or release from lifecycle ownership.",
     "- Repository CI on this pull request runs the configured workflows. The publisher reports no CI result here and merges only after every check succeeds.",
     "- Not run by the publisher: local tests, `pnpm quality:check`, and `pnpm docs:check`.",
     "",

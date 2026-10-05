@@ -4,9 +4,15 @@ import {
   KNOWLEDGE_PUBLICATION_TITLE,
   renderKnowledgePublicationBody,
 } from "./knowledge-publication-body.js";
-import type { KnowledgePublicationForge } from "./knowledge-publication-forge.js";
 import {
-  buildKnowledgePublicationTip,
+  loadRepositoryKnowledgeOutputFormatter,
+  type KnowledgeOutputFormatter,
+} from "./knowledge-output-formatter.js";
+import {
+  KnowledgePublicationForgeError,
+  type KnowledgePublicationForge,
+} from "./knowledge-publication-forge.js";
+import {
   fetchKnowledgePublicationRefs,
   inventoryKnowledgePublication,
   KnowledgePublicationGitError,
@@ -26,6 +32,10 @@ import {
   type KnowledgePublicationState,
 } from "./knowledge-publication-state.js";
 import { supersedeStaleKnowledgeCommits } from "./knowledge-publication-supersession.js";
+import {
+  buildKnowledgePublicationTip,
+  equivalentPublishedHead,
+} from "./knowledge-publication-tip.js";
 
 /** While checks run, the resident looks again after this delay instead of its idle backoff. */
 export const KNOWLEDGE_PUBLICATION_CHECK_INTERVAL_MS = 2 * 60_000;
@@ -53,10 +63,12 @@ class PublicationFailure extends Error {
   }
 }
 
-function gitDetail(error: unknown): string | null {
-  return error instanceof KnowledgePublicationGitError
-    ? `git ${error.stage} exit ${error.exitCode ?? "unknown"}`
-    : null;
+/** Path-free detail of a Git or forge failure: the step, the exit code, and the forge's class. */
+function failureDetail(error: unknown): string | null {
+  if (error instanceof KnowledgePublicationGitError)
+    return `git ${error.stage} exit ${error.exitCode ?? "unknown"}`;
+  if (error instanceof KnowledgePublicationForgeError) return error.detail;
+  return null;
 }
 
 async function step<T>(code: KnowledgePublicationFailureCode, work: () => Promise<T>): Promise<T> {
@@ -64,7 +76,7 @@ async function step<T>(code: KnowledgePublicationFailureCode, work: () => Promis
     return await work();
   } catch (error) {
     if (error instanceof PublicationFailure) throw error;
-    throw new PublicationFailure(code, gitDetail(error), { cause: error });
+    throw new PublicationFailure(code, failureDetail(error), { cause: error });
   }
 }
 
@@ -79,6 +91,8 @@ const PULL_REQUEST_OPEN = new Set(["awaiting_checks", "open"]);
 export async function publishKnowledgeOutputs(input: {
   repositoryRoot: string;
   forge: KnowledgePublicationForge;
+  /** The repository formatter; omitted loads the repository's own, null skips formatting. */
+  formatter?: KnowledgeOutputFormatter | null;
   now?: () => Date;
 }): Promise<KnowledgePublicationOutcome> {
   const root = input.repositoryRoot;
@@ -119,6 +133,10 @@ export async function publishKnowledgeOutputs(input: {
       root,
       settings,
       forge: input.forge,
+      formatter: () =>
+        input.formatter === undefined
+          ? loadRepositoryKnowledgeOutputFormatter(root)
+          : Promise.resolve(input.formatter),
       host: { hostHash: host.hostHash, hostLabel: host.config.hostLabel },
       previous,
       base,
@@ -161,6 +179,7 @@ async function publish(input: {
   root: string;
   settings: KnowledgePublicationSettings;
   forge: KnowledgePublicationForge;
+  formatter: () => Promise<KnowledgeOutputFormatter | null>;
   host: { hostHash: string; hostLabel: string };
   previous: KnowledgePublicationState | null;
   base: KnowledgePublicationState;
@@ -212,25 +231,25 @@ async function publish(input: {
       "knowledge_publication_scope_violation",
       `${violations.length} path(s) outside the allowed roots`,
     );
-  const built = await step("knowledge_publication_conflict", () =>
-    buildKnowledgePublicationTip(root, inventory),
+  const built = await step("knowledge_publication_conflict", async () =>
+    buildKnowledgePublicationTip(root, inventory, await input.formatter()),
   );
   if (built.status === "conflict")
     return supersede({ ...input, inventory, conflictPathCount: built.conflictPathCount });
-  const { tip } = built;
-  await step("knowledge_publication_push_failed", async () =>
-    pushKnowledgePublicationTip(
-      root,
-      settings,
-      tip,
-      await remoteTrackingHead(root, settings, settings.branch),
-    ),
-  );
+  // Unchanged content keeps the published head, so its checks are not restarted.
+  const tip = await step("knowledge_publication_push_failed", async () => {
+    const remoteHead = await remoteTrackingHead(root, settings, settings.branch);
+    const published = await equivalentPublishedHead(root, inventory.base, built.tip, remoteHead);
+    if (published !== null) return published;
+    await pushKnowledgePublicationTip(root, settings, built.tip, remoteHead);
+    return built.tip;
+  });
   const body = renderKnowledgePublicationBody({
     commits: inventory.knowledge,
     settings,
     host: input.host,
-    rebuilt: tip !== inventory.head,
+    rebuilt: built.replayed,
+    formattedPathCount: built.formattedPathCount,
   });
   const pullRequest = await step("knowledge_publication_pull_request_failed", async () => {
     const existing = await forge.findPullRequest({
@@ -271,9 +290,21 @@ async function publish(input: {
       "knowledge_publication_checks_failed",
       `${checks.failed} of ${checks.total} checks failed`,
     );
-  await step("knowledge_publication_merge_failed", () =>
-    forge.merge({ number: pullRequest.number, headSha: tip }),
+  const merged = await step("knowledge_publication_merge_failed", () =>
+    forge.merge({ number: pullRequest.number, headSha: tip }).then(
+      () => true,
+      (error: unknown) => {
+        // GitHub can still count a check as running after the rollup reported it finished.
+        if (error instanceof KnowledgePublicationForgeError) {
+          if (error.failureClass === "checks_pending") return false;
+          if (error.failureClass === "checks_failed")
+            throw new PublicationFailure("knowledge_publication_checks_failed", error.detail);
+        }
+        throw error;
+      },
+    ),
   );
+  if (!merged) return { ...opened, status: "awaiting_checks" };
   await step("knowledge_publication_fetch_failed", () =>
     fetchKnowledgePublicationRefs(root, settings),
   );

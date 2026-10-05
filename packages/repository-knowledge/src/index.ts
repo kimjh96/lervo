@@ -38,6 +38,7 @@ export * from "./document-normalization-observation.js";
 export * from "./document-normalization-workset.js";
 export * from "./document-normalization.js";
 export * from "./document-normalization-record-source.js";
+export * from "./document-format-ownership.js";
 export * from "./document-normalization-procedure.js";
 export * from "./document-rewriter-adapters.js";
 export * from "./document-structure-delete.js";

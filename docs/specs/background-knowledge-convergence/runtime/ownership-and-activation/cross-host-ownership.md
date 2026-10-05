@@ -93,15 +93,16 @@ A non-owner cycle returns `{ status: "waiting_owner", owner, convergence }`. `co
 
 The owner's resident runs one publication after each cycle, as [ADR-0466](../../../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md#publication-to-the-shared-remote) defines. `lervo knowledge convergence owner publish [--json]` runs the same step once. The step makes no network call when no unpublished knowledge commit exists and no pull request is open or failed.
 
-| Effect         | Command on the owner host                                                                        | Guard                                                                                       |
-| -------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| Fetch          | `git fetch <remote> +refs/heads/<base>:refs/remotes/<remote>/<base>` and the same for the branch | Host's own Git credential; `GIT_TERMINAL_PROMPT=0`                                          |
-| Replay         | `git worktree add --detach` on the remote base, then `git cherry-pick`                           | Unless `HEAD` already descends from the remote base with only knowledge commits             |
-| Supersede      | `gh pr close`, `git update-ref refs/lervo/knowledge-superseded/<prefix>`, `git reset --keep`     | Only after a replay conflict; reset only on the base branch without developer work          |
-| Push           | `git push --force-with-lease=refs/heads/<branch>:<observed> <remote> <tip>:refs/heads/<branch>`  | Never the base branch                                                                       |
-| Pull request   | `gh pr list`, `gh pr create --body-file -`, `gh pr edit --body-file -`                           | Host's own `gh` login; `GH_PROMPT_DISABLED=1`                                               |
-| Merge          | `gh pr merge --merge --match-head-commit <tip>`                                                  | `merge: when_checks_pass`, at least one check, all finished as success, neutral, or skipped |
-| Local catch-up | `git merge --ff-only` or `git reset --keep`                                                      | On the base branch only; only when no local-only work is lost                               |
+| Effect         | Command on the owner host                                                                        | Guard                                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Fetch          | `git fetch <remote> +refs/heads/<base>:refs/remotes/<remote>/<base>` and the same for the branch | Host's own Git credential; `GIT_TERMINAL_PROMPT=0`                                                                    |
+| Replay         | `git worktree add --detach` on the remote base, then one `git cherry-pick` per commit            | Unless `HEAD` already descends from the remote base with only formatted knowledge commits; source committer date kept |
+| Format         | The repository's Prettier in the replay worktree, then one `Lervo Knowledge` commit              | Only Prettier-owned paths the commits change or release; dated like the last source commit                            |
+| Supersede      | `gh pr close`, `git update-ref refs/lervo/knowledge-superseded/<prefix>`, `git reset --keep`     | Only after a replay conflict; reset only on the base branch without developer work                                    |
+| Push           | `git push --force-with-lease=refs/heads/<branch>:<observed> <remote> <tip>:refs/heads/<branch>`  | Never the base branch; skipped when the remote branch carries the same trees on the current base                      |
+| Pull request   | `gh pr list`, `gh pr create --body-file -`, `gh pr edit --body-file -`                           | Host's own `gh` login; `GH_PROMPT_DISABLED=1`                                                                         |
+| Merge          | `gh pr merge --merge --match-head-commit <head>`                                                 | `merge: when_checks_pass`; every check on the head concluded success, apart from skipped ones, and at least one did   |
+| Local catch-up | `git merge --ff-only` or `git reset --keep`                                                      | On the base branch only; only when no local-only work is lost                                                         |
 
 The publication state file, its statuses, and its failure codes are defined in the ADR. A replay conflict supersedes the selected commits:
 
@@ -110,6 +111,15 @@ The publication state file, its statuses, and its failure codes are defined in t
 - When the base branch is checked out, still at the observed head, and holds no developer work, `git reset --keep` moves it to the remote base. The resident then runs its next cycle within five seconds. The moved head changes the source fingerprint, so convergence opens a new obligation and regenerates the outputs against the current base.
 - Otherwise the branch is left for its owner to rebase, and the superseded commits are listed in `supersededCommits` (at most 64) so no later publication selects them again.
 - The state becomes `superseded` with one `knowledge_publication_superseded` failure. Its path-free detail gives the conflicting path count, the commit count, whether the local base was reset, and the backup ref.
+
+Identical input publishes once. Replay keeps source dates, so an unchanged series replays to the same hash. A remote branch that already holds the same trees on the current base is kept as the published head, so the next cycles only poll its checks. A merge that GitHub refuses because checks are still pending keeps `awaiting_checks`. Every `gh` failure records `gh <step> exit <code> <class>` as its detail:
+
+- Steps: `find`, `create`, `update`, `view`, `close`, `checks`, and `merge`.
+- Classes: `auth`, `network`, `not_found`, `not_mergeable`, `checks_pending`, `checks_failed`, `invalid_response`, `not_installed`, and `unknown`.
+- The class comes from stderr, exit code, or a timeout. Stderr itself is never stored, because it can name repositories, URLs, or accounts.
+- `lervo knowledge convergence owner status` prints the detail with the state. The attention item carries it with a remediation for the `auth`, `network`, `not_installed`, `not_mergeable`, or `not_found` class.
+
+Only checks that concluded `SUCCESS` count toward a merge. `SKIPPED` checks, such as release jobs a workflow runs only outside pull requests, neither pass nor block. At least one check must succeed. Every other finished conclusion fails the gate, including `NEUTRAL`, `CANCELLED`, `TIMED_OUT`, `STALE`, `STARTUP_FAILURE`, `ACTION_REQUIRED`, and status `ERROR` or `FAILURE`.
 
 A state that cannot be read is rebuilt from Git and GitHub at the next publication. `lervo knowledge convergence owner status` prints the publication settings and state. `lervo operating attention` shows at most one `knowledge_publication` item, plus at most one `knowledge_convergence_owner` item for an `unverifiable` or `contended` verdict.
 

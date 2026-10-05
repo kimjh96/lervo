@@ -6,11 +6,24 @@ import { promisify } from "node:util";
 import {
   documentNormalizationRecordSource,
   inspectConfiguredDocumentNormalization,
+  isDocumentFormatOwnershipSource,
 } from "@lervo/repository-knowledge";
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
 import { canonicalDraftKey, integratedCanonicalDrafts } from "./canonical-disposition-ledger.js";
 import { CONVERGENCE_HOST_TRAILER, knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
+import type { ConvergenceApprovedEffect } from "./effect-source-fence.js";
+import {
+  knowledgeOutputFormatTargets,
+  readRevisionFiles,
+  revisionFormatOwnershipSources,
+} from "./knowledge-output-format-scope.js";
+import {
+  formatKnowledgeOutputFiles,
+  loadRepositoryKnowledgeOutputFormatter,
+  restoreKnowledgeOutputFiles,
+  type KnowledgeOutputFormatter,
+} from "./knowledge-output-formatter.js";
 
 const execute = promisify(execFile);
 const RECORD_ROOT = ".lervo/knowledge/document-normalizations/";
@@ -144,16 +157,53 @@ export async function selectSettledKnowledgeOutputs(
   return [...selected].sort();
 }
 
+/**
+ * Formats the selected outputs that the repository formatter owns after the commit, plus clean
+ * paths a retired normalization record released from lifecycle ownership, so the commit never
+ * hands the formatter unformatted bytes. Lifecycle-owned outputs stay byte-exact, and a released
+ * path with uncommitted edits is left to its developer. Returns the paths to commit and the
+ * replaced content of every formatted path.
+ */
+export async function formatSettledKnowledgeOutputs(input: {
+  repositoryRoot: string;
+  formatter: KnowledgeOutputFormatter;
+  selected: readonly string[];
+  dirty: ReadonlyMap<string, "deleted" | "present">;
+}): Promise<{ paths: string[]; replaced: Map<string, string> }> {
+  const root = input.repositoryRoot;
+  const after = await revisionFormatOwnershipSources(root, "HEAD");
+  const changedSources = input.selected.filter(isDocumentFormatOwnershipSource);
+  const before = await readRevisionFiles(root, "HEAD", changedSources);
+  for (const path of changedSources)
+    if (input.dirty.get(path) === "deleted") after.delete(path);
+    else after.set(path, readFileSync(resolve(root, path), "utf8"));
+  const selected = new Set(input.selected);
+  const targets = knowledgeOutputFormatTargets({
+    changedPresentPaths: input.selected.filter((path) => input.dirty.get(path) === "present"),
+    changedSourcesBefore: before,
+    sourcesAfter: after,
+  }).filter((path) => selected.has(path) || !input.dirty.has(path));
+  const replaced = await formatKnowledgeOutputFiles({
+    formatter: input.formatter,
+    directory: root,
+    paths: targets,
+  });
+  return { paths: [...new Set([...input.selected, ...replaced.keys()])].sort(), replaced };
+}
+
+async function observeDirtyPaths(root: string) {
+  return dirtyPaths(await git(root, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]));
+}
+
 /** Observe the repository and select its settled reviewed knowledge outputs. */
 export async function settledKnowledgeOutputPaths(input: {
   repositoryRoot: string;
   events: OutboxStore;
   artifacts: ArtifactStore;
+  dirty?: ReadonlyMap<string, "deleted" | "present">;
 }): Promise<string[]> {
   const root = input.repositoryRoot;
-  const dirty = dirtyPaths(
-    await git(root, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]),
-  );
+  const dirty = input.dirty ?? (await observeDirtyPaths(root));
   if (!dirty.size) return [];
   const current = (path: string) => sha256(readFileSync(resolve(root, path)));
   const drafts = await integratedCanonicalDrafts(input.events, input.artifacts);
@@ -199,14 +249,30 @@ export async function commitSettledKnowledgeOutputs(input: {
   events: OutboxStore;
   artifacts: ArtifactStore;
   obligationId: string;
-}): Promise<{ committed: string[]; head: { before: string; after: string } | null }> {
+  /** The repository formatter; omitted loads the repository's own, null skips formatting. */
+  formatter?: KnowledgeOutputFormatter | null;
+}): Promise<{
+  committed: string[];
+  head: { before: string; after: string } | null;
+  /** Byte changes formatting made to committed paths, approved effects of the stage receipt. */
+  formatEffects?: ConvergenceApprovedEffect[];
+}> {
   const root = input.repositoryRoot;
   if (!(await knowledgeOutputCommitSafe(root))) return { committed: [], head: null };
   // ADR-0466: only the convergence owner commits; a non-owner leaves the bytes for the owner.
   const grant = await knowledgeOutputCommitGrant(root);
   if (!grant.allowed) return { committed: [], head: null };
-  const paths = await settledKnowledgeOutputPaths(input);
-  if (!paths.length) return { committed: [], head: null };
+  const dirty = await observeDirtyPaths(root);
+  const selected = await settledKnowledgeOutputPaths({ ...input, dirty });
+  if (!selected.length) return { committed: [], head: null };
+  const formatter =
+    input.formatter === undefined
+      ? await loadRepositoryKnowledgeOutputFormatter(root)
+      : input.formatter;
+  const { paths, replaced } =
+    formatter === null
+      ? { paths: selected, replaced: new Map<string, string>() }
+      : await formatSettledKnowledgeOutputs({ repositoryRoot: root, formatter, selected, dirty });
   const before = (await git(root, ["rev-parse", "HEAD"])).trim();
   try {
     await git(root, ["add", "-A", "--", ...paths]);
@@ -229,11 +295,18 @@ export async function commitSettledKnowledgeOutputs(input: {
       KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
     );
   } catch {
-    // A concurrent developer Git operation wins; the next idle cycle retries from current bytes.
+    // A concurrent developer Git operation wins; the next idle cycle retries from the reviewed
+    // bytes, which settled selection recognizes only before formatting.
+    await restoreKnowledgeOutputFiles(root, replaced).catch(() => undefined);
     return { committed: [], head: null };
   }
   const after = (await git(root, ["rev-parse", "HEAD"])).trim();
   const parent = (await git(root, ["rev-parse", `${after}^`])).trim();
   if (parent !== before) return { committed: [], head: null };
-  return { committed: paths, head: { before, after } };
+  const formatEffects = [...replaced].map(([path, content]) => ({
+    path,
+    beforeHash: sha256(content),
+    afterHash: sha256(readFileSync(resolve(root, path))),
+  }));
+  return { committed: paths, head: { before, after }, formatEffects };
 }

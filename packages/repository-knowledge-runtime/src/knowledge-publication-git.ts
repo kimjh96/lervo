@@ -1,13 +1,7 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { resolve } from "node:path";
 import { promisify } from "node:util";
 
-import {
-  KNOWLEDGE_OUTPUT_COMMIT_AUTHOR,
-  KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
-} from "./knowledge-output-commit.js";
+import { KNOWLEDGE_OUTPUT_COMMIT_AUTHOR } from "./knowledge-output-commit.js";
 import type { KnowledgePublicationSettings } from "./knowledge-publication-settings.js";
 
 const execute = promisify(execFile);
@@ -98,6 +92,8 @@ export interface KnowledgePublicationCommit {
   subject: string;
   body: string;
   paths: string[];
+  /** Raw committer date (`<epoch> <zone>`), reused by replay so identical input replays identically. */
+  committerDate: string;
 }
 
 export interface KnowledgePublicationInventory {
@@ -133,14 +129,22 @@ export async function inventoryKnowledgePublication(
   );
   const log = await git(
     root,
-    ["log", "--reverse", "--format=%H%x00%P%x00%ae%x00%ce%x00%s%x00%b%x1e", range],
+    [
+      "log",
+      "--reverse",
+      "--date=raw",
+      "--format=%H%x00%P%x00%ae%x00%ce%x00%cd%x00%s%x00%b%x1e",
+      range,
+    ],
     "inspect",
   );
   const knowledge: KnowledgePublicationCommit[] = [];
   let otherCount = 0;
   let developerCount = 0;
   for (const record of log.split("\x1e")) {
-    const [sha, parents, author, committer, subject, body] = record.replace(/^\n/u, "").split("\0");
+    const [sha, parents, author, committer, committerDate, subject, body] = record
+      .replace(/^\n/u, "")
+      .split("\0");
     if (sha === undefined || sha.trim() === "") continue;
     const knowledgeIdentity =
       parents!.trim().split(" ").length === 1 &&
@@ -156,7 +160,13 @@ export async function inventoryKnowledgePublication(
     )
       .split("\0")
       .filter((path) => path !== "");
-    knowledge.push({ sha, subject: subject ?? "", body: (body ?? "").trim(), paths });
+    knowledge.push({
+      sha,
+      subject: subject ?? "",
+      body: (body ?? "").trim(),
+      paths,
+      committerDate: committerDate ?? "",
+    });
   }
   // One pull request carries at most 64 commits; the rest follow after it merges. Deferred
   // commits count as other work, so the tip is then replayed instead of being `HEAD`.
@@ -177,73 +187,6 @@ export function knowledgePublicationScopeViolations(
       ),
     ),
   ].sort();
-}
-
-export type KnowledgePublicationTip =
-  { status: "built"; tip: string } | { status: "conflict"; conflictPathCount: number };
-
-/**
- * The publication tip, always on top of the current remote base. When `HEAD` already descends
- * from that base and `base..HEAD` holds only the knowledge commits, the tip is `HEAD` itself, so a
- * merge commit later lets the local branch fast-forward. Otherwise, including when the local
- * branch still sits on an older base, the knowledge commits are replayed onto the base in a
- * temporary worktree; developer work never enters the tip. A replay conflict means the outputs
- * were computed against stale source bytes: it reports the conflicting path count and leaves no
- * worktree behind.
- */
-export async function buildKnowledgePublicationTip(
-  root: string,
-  inventory: KnowledgePublicationInventory,
-): Promise<KnowledgePublicationTip> {
-  const onBase = await git(
-    root,
-    ["merge-base", "--is-ancestor", inventory.base, inventory.head],
-    "inspect",
-  ).then(
-    () => true,
-    () => false,
-  );
-  if (inventory.otherCount === 0 && onBase) return { status: "built", tip: inventory.head };
-  const directory = await mkdtemp(resolve(tmpdir(), "lervo-knowledge-publication-"));
-  const worktree = resolve(directory, "tree");
-  try {
-    await git(
-      root,
-      ["worktree", "add", "--quiet", "--detach", worktree, inventory.base],
-      "rebuild",
-    );
-    try {
-      await git(
-        worktree,
-        [
-          "cherry-pick",
-          "--allow-empty",
-          "--keep-redundant-commits",
-          ...inventory.knowledge.map((c) => c.sha),
-        ],
-        "rebuild",
-        KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
-      );
-    } catch (error) {
-      const conflicted =
-        error instanceof KnowledgePublicationGitError && error.exitCode === 1
-          ? await git(worktree, ["diff", "--name-only", "--diff-filter=U", "-z"], "rebuild").catch(
-              () => "",
-            )
-          : null;
-      await git(worktree, ["cherry-pick", "--abort"], "rebuild").catch(() => "");
-      if (conflicted === null) throw error;
-      return {
-        status: "conflict",
-        conflictPathCount: conflicted.split("\0").filter((path) => path !== "").length,
-      };
-    }
-    return { status: "built", tip: (await git(worktree, ["rev-parse", "HEAD"], "rebuild")).trim() };
-  } finally {
-    await git(root, ["worktree", "remove", "--force", worktree], "rebuild").catch(() => "");
-    await rm(directory, { recursive: true, force: true });
-    await git(root, ["worktree", "prune"], "rebuild").catch(() => "");
-  }
 }
 
 /** Pushes the tip with a lease on the observed branch head; never touches the base branch. */
