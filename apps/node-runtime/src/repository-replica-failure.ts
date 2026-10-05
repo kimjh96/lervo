@@ -10,6 +10,7 @@ export const REPOSITORY_REPLICA_STAGES = [
   "apply",
   "merge",
   "checkpoint",
+  "supersession",
   "lease",
   "rollback",
 ] as const;
@@ -72,6 +73,33 @@ export class RepositoryReplicaPeerError extends Error {
     this.name = "RepositoryReplicaPeerError";
     this.code = failure.code;
     this.stage = failure.stage;
+  }
+}
+
+export class RepositoryReplicaCoordinatorError extends Error {
+  constructor(
+    readonly code: "repository_replica_config_invalid" | "repository_replica_verification_failed",
+    message: string,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = "RepositoryReplicaCoordinatorError";
+  }
+}
+
+/** A failed cycle with its structured failure and whether the local receipt recorded it. */
+export class RepositoryReplicaCycleError extends Error {
+  readonly code: string;
+
+  constructor(
+    readonly replicaId: string,
+    readonly failure: RepositoryReplicaFailure,
+    readonly receiptRecorded: boolean,
+    options: ErrorOptions,
+  ) {
+    super(`Repository replica ${replicaId} failed at ${failure.stage}.`, options);
+    this.name = "RepositoryReplicaCycleError";
+    this.code = failure.code;
   }
 }
 

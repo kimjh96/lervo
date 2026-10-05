@@ -1,3 +1,8 @@
+import {
+  reconcileKnowledgeSupersession,
+  type KnowledgeSupersessionEntry,
+} from "@lervo/repository-knowledge-runtime";
+
 import type { RepositoryReplicaPeerPort } from "./repository-replica-coordinator.js";
 import {
   applyRepositoryReplicaBundle,
@@ -37,6 +42,16 @@ export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     expectedCurrentSnapshotHash: string;
   }) {
     return mergeRepositoryReplicaBundle(input);
+  }
+
+  reconcileKnowledgeSupersession(input: {
+    repositoryRoot: string;
+    entries: readonly KnowledgeSupersessionEntry[];
+  }) {
+    return reconcileKnowledgeSupersession({
+      repositoryRoot: input.repositoryRoot,
+      incoming: input.entries,
+    });
   }
 
   recordReceipt(input: RepositoryReplicaReceipt): Promise<void> {
