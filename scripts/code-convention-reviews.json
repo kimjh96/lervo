@@ -4,9 +4,9 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:26fefd54c85a515ca89a1413afd9d1639520d8cc279c05b659c563720c09fedc",
+      "contentHash": "sha256:84d193b04f2dee244dfcb70f6a039882daf25bb26eaa5e3bdaa6897f6d1b1d50",
       "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
+      "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, terminal integration planning and apply, command error rendering, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
       "disposition": "cohesive"
     },
     {
@@ -53,9 +53,9 @@
     },
     {
       "path": "apps/cli/src/upgrade-command.ts",
-      "contentHash": "sha256:760dd259d8d7142260270c9507b7ea98ec48a684adbf2fcd92b56a78c0ea7574",
-      "responsibility": "Repository upgrade plan/apply command",
-      "rationale": "Argument parsing, inspection, exact role-approval validation, stage application, lint, and receipt formatting all describe one bounded repository-upgrade command lifecycle and share one outer plan identity; workforce policy and persistence remain in their owning package.",
+      "contentHash": "sha256:d1e4b61aef34e66a66b15dc4c02c35c8465c6a0793f96386a9a6704dbd996600",
+      "responsibility": "Repository upgrade plan composition and apply sequencing",
+      "rationale": "The module composes one content-bound upgrade plan identity and sequences its exact apply. Stage dependency policy, stage inspection and inner-command capture, terminal integration effects, and plan or receipt rendering live in dedicated modules; workforce policy and persistence remain in their owning package.",
       "disposition": "cohesive"
     },
     {
@@ -200,7 +200,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:f659e24119feb5f4c270e65f7a10985ac03a221b3193c76752c0d38d70d59009",
+      "contentHash": "sha256:502a36761d9fe7e9457758557de38eb3743b65279cf7f8140530a1d74bd5589b",
       "responsibility": "Deterministic structural knowledge compiler",
       "rationale": "Publication rendering, historical-document grouping, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract; historical marker detection lives in its own module.",
       "disposition": "cohesive"
@@ -319,7 +319,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:e7fd0a1b77fc4b6dfc86d900617c1117baa7b4dce88b8da87b1f5b00d10ef698",
+      "contentHash": "sha256:980fac45c1364639fec496f24fd928669024842f188c43e6065de4edb56b8d3d",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, policy, and typed domain failures without owning their implementations. The optional workstream freshness policy field references its owning freshness module rather than redefining it.",
       "disposition": "cohesive"

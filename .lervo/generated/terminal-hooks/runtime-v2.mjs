@@ -52086,6 +52086,215 @@ var import_yaml2 = __toESM(require_dist(), 1);
 import { readFile } from "node:fs/promises";
 import { resolve as resolve2 } from "node:path";
 
+// packages/project/dist/decision-taxonomy-validation.js
+var roleIdPattern = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/u;
+var routeIdPattern = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
+var taxonomyIdPattern = /^[a-z][a-z0-9._-]{2,63}$/u;
+function safeRepositoryPath(value, maximumSegments) {
+  if (typeof value !== "string" || value.length < 1 || value.length > 160 || value.startsWith("/") || value.endsWith("/"))
+    return false;
+  const segments = value.split("/");
+  return segments.length <= maximumSegments && segments.every((segment) => /^[a-z0-9][a-z0-9._-]*$/u.test(segment) && segment !== "." && segment !== "..");
+}
+function safeDocumentPath(value, maximumSegments) {
+  if (typeof value !== "string" || value.length < 1 || value.length > 240 || value.startsWith("/") || value.endsWith("/"))
+    return false;
+  const segments = value.split("/");
+  return segments.length <= maximumSegments && segments.every((segment) => /^\.?[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(segment) && segment !== "." && segment !== "..");
+}
+function isMapping(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+var IssueCollector = class {
+  issues = [];
+  add(pointer2, rule2, description, roleId) {
+    this.issues.push({
+      pointer: pointer2,
+      rule: rule2,
+      ...roleId === void 0 ? {} : { roleId },
+      message: `${pointer2 === "" ? "The document layout" : pointer2} ${description}.`
+    });
+  }
+  mapping(value, pointer2, roleId) {
+    if (isMapping(value))
+      return true;
+    if (value === void 0)
+      this.add(pointer2, "required", "is required", roleId);
+    else
+      this.add(pointer2, "type", "must be a mapping", roleId);
+    return false;
+  }
+  array(value, pointer2, maximum, minimum = 0) {
+    if (!Array.isArray(value)) {
+      if (value === void 0)
+        this.add(pointer2, "required", "is required");
+      else
+        this.add(pointer2, "type", "must be a list");
+      return false;
+    }
+    if (value.length < minimum)
+      this.add(pointer2, "min_items", `must contain at least ${minimum} item(s)`);
+    if (value.length > maximum)
+      this.add(pointer2, "max_items", `must contain at most ${maximum} item(s)`);
+    return true;
+  }
+  integer(value, pointer2, minimum, maximum, roleId) {
+    if (Number.isSafeInteger(value) && Number(value) >= minimum && Number(value) <= maximum)
+      return true;
+    if (value === void 0)
+      this.add(pointer2, "required", "is required", roleId);
+    else
+      this.add(pointer2, "range", `must be an integer from ${minimum} to ${maximum}`, roleId);
+    return false;
+  }
+  oneOf(value, pointer2, allowed, roleId) {
+    if (typeof value === "string" && allowed.includes(value))
+      return;
+    if (value === void 0)
+      this.add(pointer2, "required", "is required", roleId);
+    else
+      this.add(pointer2, "enum", `must be one of ${allowed.join(", ")}`, roleId);
+  }
+};
+function validateCapacity(capacity, pointer2, issues) {
+  const directValid = issues.integer(capacity.maxDirectDocuments, `${pointer2}/maxDirectDocuments`, 4, 1024);
+  const childValid = issues.integer(capacity.maxDocumentBearingChildDirectories, `${pointer2}/maxDocumentBearingChildDirectories`, 4, 256);
+  issues.integer(capacity.maxRepositoryDocuments, `${pointer2}/maxRepositoryDocuments`, 64, 16384);
+  if (capacity.maxNormalizedFamilyOutputs !== 12)
+    issues.add(`${pointer2}/maxNormalizedFamilyOutputs`, capacity.maxNormalizedFamilyOutputs === void 0 ? "required" : "const", capacity.maxNormalizedFamilyOutputs === void 0 ? "is required" : "must equal 12");
+  const overrides = capacity.overrides;
+  if (!issues.array(overrides, `${pointer2}/overrides`, 64))
+    return;
+  const directMinimum = directValid ? Number(capacity.maxDirectDocuments) : 4;
+  const childMinimum = childValid ? Number(capacity.maxDocumentBearingChildDirectories) : 4;
+  const scopes = /* @__PURE__ */ new Set();
+  overrides.forEach((override, index2) => {
+    const at = `${pointer2}/overrides/${index2}`;
+    if (!issues.mapping(override, at))
+      return;
+    if (!safeRepositoryPath(override.scopePath, 12))
+      issues.add(`${at}/scopePath`, "repository_path", "must be a safe repository path");
+    else if (scopes.has(override.scopePath))
+      issues.add(`${at}/scopePath`, "unique", "duplicates an earlier override scope");
+    else
+      scopes.add(override.scopePath);
+    issues.oneOf(override.role, `${at}/role`, ["archive", "catalog", "generated_reference"]);
+    issues.integer(override.maxDirectDocuments, `${at}/maxDirectDocuments`, directMinimum, 1024);
+    issues.integer(override.maxDocumentBearingChildDirectories, `${at}/maxDocumentBearingChildDirectories`, childMinimum, 256);
+  });
+}
+function validateRole(role, pointer2, coordinates, issues) {
+  const roleId = typeof role.roleId === "string" ? role.roleId : void 0;
+  if (roleId === void 0 || !roleIdPattern.test(roleId))
+    issues.add(`${pointer2}/roleId`, role.roleId === void 0 ? "required" : "pattern", role.roleId === void 0 ? "is required" : "must be a lowercase snake_case identifier");
+  if (!(role.scopePath === "." || safeRepositoryPath(role.scopePath, 12)))
+    issues.add(`${pointer2}/scopePath`, "repository_path", "must be . or a safe repository path", roleId);
+  if (!safeDocumentPath(role.path, 12))
+    issues.add(`${pointer2}/path`, "document_path", "must be a safe document path", roleId);
+  issues.oneOf(role.cardinality, `${pointer2}/cardinality`, ["one", "one_per_package"], roleId);
+  issues.oneOf(role.lifecycleOwner, `${pointer2}/lifecycleOwner`, ["user", "lervo", "provider_adapter"], roleId);
+  issues.oneOf(role.relocation, `${pointer2}/relocation`, ["preserve", "reviewed_move", "exact_legacy_alias"], roleId);
+  issues.oneOf(role.rewritePolicy, `${pointer2}/rewritePolicy`, ["repository_tool", "lervo_exact", "reviewed_exact", "managed_regions"], roleId);
+  if (typeof role.required !== "boolean")
+    issues.add(`${pointer2}/required`, role.required === void 0 ? "required" : "type", role.required === void 0 ? "is required" : "must be a boolean", roleId);
+  if (role.legacyAliases !== void 0) {
+    if (!Array.isArray(role.legacyAliases))
+      issues.add(`${pointer2}/legacyAliases`, "type", "must be a list", roleId);
+    else {
+      if (role.legacyAliases.length > 16)
+        issues.add(`${pointer2}/legacyAliases`, "max_items", "must contain at most 16 item(s)", roleId);
+      role.legacyAliases.forEach((alias, index2) => {
+        if (!safeDocumentPath(alias, 12))
+          issues.add(`${pointer2}/legacyAliases/${index2}`, "document_path", "must be a safe document path", roleId);
+      });
+    }
+  }
+  const coordinate = `${String(role.scopePath)}:${String(role.roleId)}`;
+  if (coordinates.has(coordinate))
+    issues.add(`${pointer2}/roleId`, "unique", "duplicates an earlier role in the same scope", roleId);
+  coordinates.add(coordinate);
+}
+function validateDocumentPolicy(value, pointer2, issues) {
+  if (!issues.mapping(value, pointer2))
+    return;
+  if (issues.mapping(value.capacity, `${pointer2}/capacity`))
+    validateCapacity(value.capacity, `${pointer2}/capacity`, issues);
+  if (issues.array(value.roles, `${pointer2}/roles`, 128)) {
+    const coordinates = /* @__PURE__ */ new Set();
+    value.roles.forEach((role, index2) => {
+      if (issues.mapping(role, `${pointer2}/roles/${index2}`))
+        validateRole(role, `${pointer2}/roles/${index2}`, coordinates, issues);
+    });
+  }
+  const rewrite = value.rewrite;
+  if (issues.mapping(rewrite, `${pointer2}/rewrite`)) {
+    issues.integer(rewrite.maxRewriters, `${pointer2}/rewrite/maxRewriters`, 1, 16);
+    issues.integer(rewrite.maxManagedRulesPerRewriter, `${pointer2}/rewrite/maxManagedRulesPerRewriter`, 1, 1024);
+    issues.integer(rewrite.maxManagedRuleBytes, `${pointer2}/rewrite/maxManagedRuleBytes`, 256, 65536);
+  }
+}
+function validateRoute(route, pointer2, seen, issues) {
+  if (typeof route.id !== "string" || !routeIdPattern.test(route.id))
+    issues.add(`${pointer2}/id`, route.id === void 0 ? "required" : "pattern", route.id === void 0 ? "is required" : "must be a lowercase route identifier");
+  else if (seen.ids.has(route.id))
+    issues.add(`${pointer2}/id`, "unique", "duplicates an earlier route id");
+  else
+    seen.ids.add(route.id);
+  if (!safeRepositoryPath(route.path, 5))
+    issues.add(`${pointer2}/path`, route.path === void 0 ? "required" : "repository_path", route.path === void 0 ? "is required" : "must be a safe path of at most 5 segments");
+  else if (seen.paths.has(route.path))
+    issues.add(`${pointer2}/path`, "unique", "duplicates an earlier route path");
+  else
+    seen.paths.add(route.path);
+  issues.integer(route.priority, `${pointer2}/priority`, 0, 1e3);
+  const minimumValid = issues.integer(route.minimumTitleTermMatches, `${pointer2}/minimumTitleTermMatches`, 1, 8);
+  const minimum = minimumValid ? Number(route.minimumTitleTermMatches) : 1;
+  if (!issues.array(route.titleTerms, `${pointer2}/titleTerms`, 64, minimum))
+    return;
+  const terms2 = /* @__PURE__ */ new Set();
+  route.titleTerms.forEach((term, index2) => {
+    if (typeof term !== "string" || term.trim() !== term || term.length < 2 || term.length > 80) {
+      issues.add(`${pointer2}/titleTerms/${index2}`, "title_term", "must be a trimmed string of 2 to 80 characters");
+      return;
+    }
+    const normalized2 = term.toLocaleLowerCase();
+    if (terms2.has(normalized2))
+      issues.add(`${pointer2}/titleTerms/${index2}`, "unique", "duplicates an earlier title term");
+    terms2.add(normalized2);
+  });
+}
+function decisionTaxonomyIssues(value) {
+  const issues = new IssueCollector();
+  if (!issues.mapping(value, ""))
+    return issues.issues;
+  if (value.schemaVersion !== 2)
+    issues.add("/schemaVersion", value.schemaVersion === void 0 ? "required" : "const", value.schemaVersion === void 0 ? "is required" : "must equal 2");
+  if (typeof value.taxonomyId !== "string" || !taxonomyIdPattern.test(value.taxonomyId))
+    issues.add("/taxonomyId", value.taxonomyId === void 0 ? "required" : "pattern", value.taxonomyId === void 0 ? "is required" : "must be a lowercase identifier");
+  if (!safeRepositoryPath(value.decisionRoot, 6))
+    issues.add("/decisionRoot", value.decisionRoot === void 0 ? "required" : "repository_path", value.decisionRoot === void 0 ? "is required" : "must be a safe repository path");
+  if (issues.array(value.legacyRoots, "/legacyRoots", 8)) {
+    const roots = /* @__PURE__ */ new Set();
+    value.legacyRoots.forEach((root2, index2) => {
+      if (!safeRepositoryPath(root2, 6))
+        issues.add(`/legacyRoots/${index2}`, "repository_path", "must be a safe repository path");
+      else if (roots.has(root2))
+        issues.add(`/legacyRoots/${index2}`, "unique", "duplicates an earlier legacy root");
+      roots.add(root2);
+    });
+  }
+  issues.integer(value.maxLeafDocuments, "/maxLeafDocuments", 4, 128);
+  if (issues.array(value.routes, "/routes", 128, 1)) {
+    const seen = { ids: /* @__PURE__ */ new Set(), paths: /* @__PURE__ */ new Set() };
+    value.routes.forEach((route, index2) => {
+      if (issues.mapping(route, `/routes/${index2}`))
+        validateRoute(route, `/routes/${index2}`, seen, issues);
+    });
+  }
+  validateDocumentPolicy(value.documentPolicy, "/documentPolicy", issues);
+  return issues.issues;
+}
+
 // packages/project/dist/repository-document-policy.js
 var defaultRepositoryDocumentPolicy = {
   capacity: {
@@ -52274,69 +52483,40 @@ var defaultDecisionTaxonomy = {
     }
   ]
 };
+var decisionTaxonomyPath = ".lervo/knowledge/document-layout.yaml";
+var maximumMessageIssues = 16;
 function serializeDecisionTaxonomy(taxonomy = defaultDecisionTaxonomy) {
   return (0, import_yaml2.stringify)(taxonomy, { lineWidth: 0 });
-}
-function safeRepositoryPath(value, maximumSegments) {
-  if (typeof value !== "string" || value.length < 1 || value.length > 160 || value.startsWith("/") || value.endsWith("/"))
-    return false;
-  const segments = value.split("/");
-  return segments.length <= maximumSegments && segments.every((segment) => /^[a-z0-9][a-z0-9._-]*$/u.test(segment) && segment !== "." && segment !== "..");
-}
-function safeDocumentPath(value, maximumSegments) {
-  if (typeof value !== "string" || value.length < 1 || value.length > 240 || value.startsWith("/") || value.endsWith("/"))
-    return false;
-  const segments = value.split("/");
-  return segments.length <= maximumSegments && segments.every((segment) => /^\.?[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(segment) && segment !== "." && segment !== "..");
-}
-function finiteInteger(value, minimum, maximum) {
-  return Number.isSafeInteger(value) && Number(value) >= minimum && Number(value) <= maximum;
-}
-function validateDocumentPolicy(value) {
-  const policy = value;
-  const capacity = policy?.capacity;
-  const rewrite = policy?.rewrite;
-  if (policy === null || typeof policy !== "object" || capacity === void 0 || !finiteInteger(capacity.maxDirectDocuments, 4, 1024) || !finiteInteger(capacity.maxDocumentBearingChildDirectories, 4, 256) || !finiteInteger(capacity.maxRepositoryDocuments, 64, 16384) || capacity.maxNormalizedFamilyOutputs !== 12 || !Array.isArray(capacity.overrides) || capacity.overrides.length > 64 || !Array.isArray(policy.roles) || policy.roles.length > 128 || rewrite === void 0 || !finiteInteger(rewrite.maxRewriters, 1, 16) || !finiteInteger(rewrite.maxManagedRulesPerRewriter, 1, 1024) || !finiteInteger(rewrite.maxManagedRuleBytes, 256, 65536))
-    return false;
-  const overrideScopes = /* @__PURE__ */ new Set();
-  for (const override of capacity.overrides) {
-    if (!safeRepositoryPath(override.scopePath, 12) || !["archive", "catalog", "generated_reference"].includes(override.role) || !finiteInteger(override.maxDirectDocuments, capacity.maxDirectDocuments, 1024) || !finiteInteger(override.maxDocumentBearingChildDirectories, capacity.maxDocumentBearingChildDirectories, 256) || overrideScopes.has(override.scopePath))
-      return false;
-    overrideScopes.add(override.scopePath);
-  }
-  const roleCoordinates = /* @__PURE__ */ new Set();
-  for (const role of policy.roles) {
-    const coordinate = `${role.scopePath}:${role.roleId}`;
-    if (!/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/u.test(role.roleId) || !(role.scopePath === "." || safeRepositoryPath(role.scopePath, 12)) || !safeDocumentPath(role.path, 12) || !["one", "one_per_package"].includes(role.cardinality) || !["user", "lervo", "provider_adapter"].includes(role.lifecycleOwner) || !["preserve", "reviewed_move", "exact_legacy_alias"].includes(role.relocation) || !["repository_tool", "lervo_exact", "reviewed_exact", "managed_regions"].includes(role.rewritePolicy) || typeof role.required !== "boolean" || role.legacyAliases !== void 0 && (!Array.isArray(role.legacyAliases) || role.legacyAliases.length > 16 || !role.legacyAliases.every((path) => safeDocumentPath(path, 12))) || roleCoordinates.has(coordinate))
-      return false;
-    roleCoordinates.add(coordinate);
-  }
-  return true;
 }
 function upgradeLegacyTaxonomy(value) {
   const legacy = value;
   return legacy !== null && typeof legacy === "object" && legacy.schemaVersion === 1 ? { ...legacy, schemaVersion: 2, documentPolicy: defaultRepositoryDocumentPolicy } : value;
 }
+var DecisionTaxonomyContractError = class extends LervoProjectError {
+  issues;
+  constructor(issues) {
+    const shown = issues.slice(0, maximumMessageIssues);
+    super("contract_invalid", [
+      `${decisionTaxonomyPath} does not satisfy the decision taxonomy contract (${issues.length} issue(s)).`,
+      ...shown.map((issue) => `  [${issue.rule}]${issue.roleId === void 0 ? "" : ` role=${issue.roleId}`} ${issue.message}`),
+      ...issues.length > shown.length ? [`  ... ${issues.length - shown.length} more issue(s)`] : []
+    ].join("\n"));
+    this.issues = issues;
+    this.name = "DecisionTaxonomyContractError";
+  }
+};
 function validateDecisionTaxonomy(value) {
   const taxonomy = upgradeLegacyTaxonomy(value);
-  const routes = taxonomy?.routes;
-  if (taxonomy === null || typeof taxonomy !== "object" || taxonomy.schemaVersion !== 2 || typeof taxonomy.taxonomyId !== "string" || !/^[a-z][a-z0-9._-]{2,63}$/u.test(taxonomy.taxonomyId) || !safeRepositoryPath(taxonomy.decisionRoot, 6) || !Array.isArray(taxonomy.legacyRoots) || taxonomy.legacyRoots.length > 8 || !taxonomy.legacyRoots.every((root2) => safeRepositoryPath(root2, 6)) || new Set(taxonomy.legacyRoots).size !== taxonomy.legacyRoots.length || !Number.isSafeInteger(taxonomy.maxLeafDocuments) || taxonomy.maxLeafDocuments < 4 || taxonomy.maxLeafDocuments > 128 || !Array.isArray(routes) || routes.length < 1 || routes.length > 128 || !validateDocumentPolicy(taxonomy.documentPolicy))
-    throw new LervoProjectError("contract_invalid", ".lervo/knowledge/document-layout.yaml does not satisfy the decision taxonomy contract.");
-  const ids = /* @__PURE__ */ new Set();
-  const paths = /* @__PURE__ */ new Set();
-  for (const route of routes) {
-    if (route === null || typeof route !== "object" || typeof route.id !== "string" || !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(route.id) || !safeRepositoryPath(route.path, 5) || !Number.isSafeInteger(route.priority) || route.priority < 0 || route.priority > 1e3 || !Number.isSafeInteger(route.minimumTitleTermMatches) || route.minimumTitleTermMatches < 1 || route.minimumTitleTermMatches > 8 || !Array.isArray(route.titleTerms) || route.titleTerms.length < route.minimumTitleTermMatches || route.titleTerms.length > 64 || !route.titleTerms.every((term) => typeof term === "string" && term.trim() === term && term.length >= 2 && term.length <= 80) || new Set(route.titleTerms.map((term) => term.toLocaleLowerCase())).size !== route.titleTerms.length || ids.has(route.id) || paths.has(route.path))
-      throw new LervoProjectError("contract_invalid", ".lervo/knowledge/document-layout.yaml does not satisfy the decision taxonomy contract.");
-    ids.add(route.id);
-    paths.add(route.path);
-  }
+  const issues = decisionTaxonomyIssues(taxonomy);
+  if (issues.length > 0)
+    throw new DecisionTaxonomyContractError(issues);
   return taxonomy;
 }
 function decisionTaxonomyRequiresUpgrade(value) {
   return value !== null && typeof value === "object" && value.schemaVersion === 1;
 }
 async function loadDecisionTaxonomy(root2) {
-  const path = resolve2(root2, ".lervo/knowledge/document-layout.yaml");
+  const path = resolve2(root2, decisionTaxonomyPath);
   let content3;
   try {
     content3 = await readFile(path, "utf8");
@@ -72757,6 +72937,53 @@ async function summarizeIncrementalReconciliation(input) {
   };
 }
 
+// packages/repository-knowledge/dist/document-layout-contract.js
+var documentLayoutPath = ".lervo/knowledge/document-layout.yaml";
+async function inspectDocumentLayoutContract(repositoryRoot) {
+  try {
+    await loadDecisionTaxonomy(repositoryRoot);
+    return [];
+  } catch (error) {
+    if (error instanceof DecisionTaxonomyContractError)
+      return [
+        {
+          code: "document_layout_contract_invalid",
+          path: documentLayoutPath,
+          message: error.message,
+          issues: [...error.issues]
+        }
+      ];
+    if (error instanceof LervoProjectError && error.code === "invalid_yaml")
+      return [
+        {
+          code: "document_layout_invalid_yaml",
+          path: documentLayoutPath,
+          message: `${documentLayoutPath} is not valid YAML.`,
+          issues: []
+        }
+      ];
+    if (error instanceof LervoProjectError && error.code === "not_initialized")
+      return [
+        {
+          code: "document_layout_unreadable",
+          path: documentLayoutPath,
+          message: `${documentLayoutPath} cannot be read. Run lervo init to install the tracked decision taxonomy.`,
+          issues: []
+        }
+      ];
+    throw error;
+  }
+}
+
+// packages/repository-knowledge/dist/structural-publication-ownership.js
+var structuralPublicationHeader = "<!-- lervo:generated repository-knowledge-v1 -->";
+function isRegeneratableStructuralPublication(input) {
+  const root2 = input.publicationRoot.replace(/^\.\//u, "").replace(/\/+$/u, "");
+  const headerLine = `${structuralPublicationHeader}
+`;
+  return root2.length > 0 && input.path.startsWith(`${root2}/`) && input.path.endsWith(".md") && input.desiredContent.startsWith(headerLine) && Buffer.from(input.currentContent.subarray(0, Buffer.byteLength(headerLine))).toString("utf8") === headerLine;
+}
+
 // packages/repository-knowledge/dist/compiler.js
 function yaml(value) {
   return (0, import_yaml13.stringify)(value, { lineWidth: 0, sortMapEntries: true });
@@ -72844,7 +73071,7 @@ function structuralOverview(input) {
     counts2.set(source.kind, (counts2.get(source.kind) ?? 0) + 1);
   }
   const lines = [
-    "<!-- lervo:generated repository-knowledge-v1 -->",
+    structuralPublicationHeader,
     `# ${input.messages.repositoryKnowledge}`,
     "",
     `> ${input.messages.generatedOverview}`,
@@ -72877,7 +73104,7 @@ function structuralOverview(input) {
 }
 function categoryPublication(input) {
   return [
-    "<!-- lervo:generated repository-knowledge-v1 -->",
+    structuralPublicationHeader,
     `# ${input.title}`,
     "",
     `> ${input.messages.generatedNavigation}`,
@@ -73321,6 +73548,20 @@ async function inspectOperation(input) {
         expectedCurrentHash: currentHash2
       };
     }
+    if (isRegeneratableStructuralPublication({
+      path: input.output.path,
+      publicationRoot: input.publicationRoot,
+      currentContent: current,
+      desiredContent: input.output.content
+    })) {
+      return {
+        ...desired,
+        action: "update",
+        ownership: "lervo_generated",
+        expectedCurrentHash: currentHash2,
+        reason: "regenerate_edited_generated_publication"
+      };
+    }
     if (input.repairMode === "replace_unrecorded_structural_records" && /^\.lervo\/knowledge\/(?:bundles|concepts)\/[a-f0-9]{2}\/(?:bundle|concept)_[a-f0-9]{24}\.yaml$/u.test(input.output.path)) {
       return {
         ...desired,
@@ -73439,12 +73680,14 @@ async function buildKnowledgeMigrationPlan(input) {
   const staleOperations = (await Promise.all([...previous2.structuralPaths].filter((path) => !desiredPaths.has(path)).map((path) => inspectDeleteOperation({ root: root2, path, previousHashes: previous2.hashes })))).filter((operation) => operation !== null);
   const staleManifestOperations = (await Promise.all([...previous2.structuralManifestPaths].filter((path) => path !== structuralManifestPath).map((path) => inspectDeleteOperation({ root: root2, path, previousHashes: previous2.hashes })))).filter((operation) => operation !== null);
   const derivedStateOperations = await legacyKnowledgeProjectionDeleteOperations(root2);
+  const blockers = await inspectDocumentLayoutContract(root2);
   const operations = [
     ...await Promise.all(allOutputs.map((output) => inspectOperation({
       root: root2,
       output,
       previousHashes: previous2.hashes,
-      repairMode: input.repairMode
+      repairMode: input.repairMode,
+      publicationRoot: policy.publicationRoot
     }))),
     ...staleOperations,
     ...staleManifestOperations,
@@ -73458,14 +73701,15 @@ async function buildKnowledgeMigrationPlan(input) {
     compiler: "lervo.structural@2",
     repairMode: input.repairMode,
     reconciliation,
-    operations: operations.map((operation) => operation.action === "delete" ? operation : (({ content: _content, ...value }) => value)(operation))
+    operations: operations.map((operation) => operation.action === "delete" ? operation : (({ content: _content, ...value }) => value)(operation)),
+    blockers
   };
   return {
     schemaVersion: 1,
     planId: stableId("kplan", planMaterials),
     projectId: manifest.projectId,
     repositoryRoot: root2,
-    status: operations.some((operation) => operation.action === "conflict") ? "blocked" : "ready",
+    status: blockers.length > 0 || operations.some((operation) => operation.action === "conflict") ? "blocked" : "ready",
     mode: input.mode,
     repairMode: input.repairMode,
     reconciliation,
@@ -73476,6 +73720,7 @@ async function buildKnowledgeMigrationPlan(input) {
     impact: impact.summary,
     impactReportId: impact.reportId,
     operations,
+    blockers,
     registeredUserDocuments: compilation.registeredUserDocuments,
     generatedConcepts: compilation.generatedConcepts,
     entrypoints: compilation.entrypoints,
@@ -89491,6 +89736,10 @@ async function synchronizeIntegrationTarget(input) {
   }
   const tree = await convergenceGit(root2, ["rev-parse", "HEAD^{tree}"]);
   const merge = await convergenceGit(root2, [
+    "-c",
+    "user.name=Lervo Knowledge Worker",
+    "-c",
+    "user.email=knowledge@lervo.invalid",
     "commit-tree",
     tree,
     "-p",
@@ -90565,6 +90814,12 @@ var KNOWLEDGE_OUTPUT_COMMIT_AUTHOR = {
   name: "Lervo Knowledge",
   email: "knowledge@lervo.invalid"
 };
+var KNOWLEDGE_OUTPUT_COMMIT_IDENTITY = {
+  GIT_AUTHOR_NAME: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name,
+  GIT_AUTHOR_EMAIL: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email,
+  GIT_COMMITTER_NAME: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name,
+  GIT_COMMITTER_EMAIL: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email
+};
 var sha2568 = (bytes2) => `sha256:${createHash45("sha256").update(bytes2).digest("hex")}`;
 async function git6(root2, args, env) {
   const { stdout } = await execute8("git", ["-C", root2, ...args], {
@@ -90700,10 +90955,7 @@ async function commitSettledKnowledgeOutputs(input) {
       `Lervo convergence ${input.obligationId} settled these reviewed outputs.`,
       "--",
       ...paths
-    ], {
-      GIT_AUTHOR_NAME: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name,
-      GIT_AUTHOR_EMAIL: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email
-    });
+    ], KNOWLEDGE_OUTPUT_COMMIT_IDENTITY);
   } catch {
     return { committed: [], head: null };
   }

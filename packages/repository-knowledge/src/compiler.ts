@@ -39,6 +39,7 @@ import { repositoryInstructionPaths } from "./document-layout.js";
 import { archiveScopes, historicalDocumentMarker } from "./historical-documents.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
 import { summarizeIncrementalReconciliation } from "./incremental-reconciliation.js";
+import { inspectDocumentLayoutContract } from "./document-layout-contract.js";
 import {
   isRebuildableStructuralProjectionPath,
   legacyStructuralBundleDirectory,
@@ -50,6 +51,10 @@ import {
   structuralManifestPath,
   structuralProjectionLayoutVersion,
 } from "./structural-projection.js";
+import {
+  isRegeneratableStructuralPublication,
+  structuralPublicationHeader,
+} from "./structural-publication-ownership.js";
 
 interface GeneratedOutputRecord {
   path: string;
@@ -202,7 +207,7 @@ function structuralOverview(input: {
     counts.set(source.kind, (counts.get(source.kind) ?? 0) + 1);
   }
   const lines = [
-    "<!-- lervo:generated repository-knowledge-v1 -->",
+    structuralPublicationHeader,
     `# ${input.messages.repositoryKnowledge}`,
     "",
     `> ${input.messages.generatedOverview}`,
@@ -250,7 +255,7 @@ function categoryPublication(input: {
   messages: RepositoryPublicationMessages;
 }): string {
   return [
-    "<!-- lervo:generated repository-knowledge-v1 -->",
+    structuralPublicationHeader,
     `# ${input.title}`,
     "",
     `> ${input.messages.generatedNavigation}`,
@@ -813,6 +818,7 @@ async function inspectOperation(input: {
   output: DesiredOutput;
   previousHashes: Map<string, Set<string>>;
   repairMode: KnowledgeMigrationPlan["repairMode"];
+  publicationRoot: string;
 }): Promise<KnowledgeFileOperation> {
   const desired = {
     path: input.output.path,
@@ -858,6 +864,22 @@ async function inspectOperation(input: {
         action: "update",
         ownership: "lervo_generated",
         expectedCurrentHash: currentHash,
+      };
+    }
+    if (
+      isRegeneratableStructuralPublication({
+        path: input.output.path,
+        publicationRoot: input.publicationRoot,
+        currentContent: current,
+        desiredContent: input.output.content,
+      })
+    ) {
+      return {
+        ...desired,
+        action: "update",
+        ownership: "lervo_generated",
+        expectedCurrentHash: currentHash,
+        reason: "regenerate_edited_generated_publication",
       };
     }
     if (
@@ -1024,6 +1046,7 @@ async function buildKnowledgeMigrationPlan(input: {
     )
   ).filter((operation): operation is KnowledgeFileOperation => operation !== null);
   const derivedStateOperations = await legacyKnowledgeProjectionDeleteOperations(root);
+  const blockers = await inspectDocumentLayoutContract(root);
   const operations = [
     ...(await Promise.all(
       allOutputs.map((output) =>
@@ -1032,6 +1055,7 @@ async function buildKnowledgeMigrationPlan(input: {
           output,
           previousHashes: previous.hashes,
           repairMode: input.repairMode,
+          publicationRoot: policy.publicationRoot,
         }),
       ),
     )),
@@ -1052,13 +1076,17 @@ async function buildKnowledgeMigrationPlan(input: {
         ? operation
         : (({ content: _content, ...value }) => value)(operation),
     ),
+    blockers,
   };
   return {
     schemaVersion: 1,
     planId: stableId("kplan", planMaterials),
     projectId: manifest.projectId,
     repositoryRoot: root,
-    status: operations.some((operation) => operation.action === "conflict") ? "blocked" : "ready",
+    status:
+      blockers.length > 0 || operations.some((operation) => operation.action === "conflict")
+        ? "blocked"
+        : "ready",
     mode: input.mode,
     repairMode: input.repairMode,
     reconciliation,
@@ -1069,6 +1097,7 @@ async function buildKnowledgeMigrationPlan(input: {
     impact: impact.summary,
     impactReportId: impact.reportId,
     operations,
+    blockers,
     registeredUserDocuments: compilation.registeredUserDocuments,
     generatedConcepts: compilation.generatedConcepts,
     entrypoints: compilation.entrypoints,

@@ -178,6 +178,16 @@ export interface KnowledgeFileOperation {
 
 export type KnowledgeMigrationOperation = KnowledgeFileOperation;
 
+export interface KnowledgeMigrationBlocker {
+  code:
+    | "document_layout_contract_invalid"
+    | "document_layout_invalid_yaml"
+    | "document_layout_unreadable";
+  path: ".lervo/knowledge/document-layout.yaml";
+  message: string;
+  issues: import("@lervo/project").DecisionTaxonomyIssue[];
+}
+
 export interface KnowledgeMigrationPlan {
   schemaVersion: 1;
   planId: string;
@@ -198,6 +208,8 @@ export interface KnowledgeMigrationPlan {
   impact: KnowledgeImpactSummary;
   impactReportId: string;
   operations: KnowledgeMigrationOperation[];
+  /** Repository contracts that the apply-time validation would reject. */
+  blockers: KnowledgeMigrationBlocker[];
   registeredUserDocuments: number;
   generatedConcepts: number;
   entrypoints: {
