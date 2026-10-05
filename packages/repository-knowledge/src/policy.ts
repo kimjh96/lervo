@@ -7,6 +7,10 @@ import { transientToolCacheDirectoryNames } from "@lervo/context";
 import type { RepositoryKnowledgePolicy } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
 import { supportedRepositoryPublicationLanguages } from "./publication-language.js";
+import {
+  defaultWorkstreamFreshnessPolicy,
+  type WorkstreamFreshnessPolicy,
+} from "./workstream-freshness.js";
 
 export const defaultRepositoryKnowledgePolicy: RepositoryKnowledgePolicy = {
   schemaVersion: 1,
@@ -71,6 +75,33 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
+function boundedInteger(value: unknown, minimum: number, maximum: number): boolean {
+  return (
+    Number.isSafeInteger(value) && (value as number) >= minimum && (value as number) <= maximum
+  );
+}
+
+function workstreamPolicyValid(value: unknown): boolean {
+  if (value === undefined) return true;
+  const item = value as Partial<WorkstreamFreshnessPolicy> | null;
+  return (
+    item !== null &&
+    typeof item === "object" &&
+    Object.keys(item).every((key) => key === "staleAfterCommits" || key === "staleAfterHours") &&
+    boundedInteger(item.staleAfterCommits, 1, 100_000) &&
+    boundedInteger(item.staleAfterHours, 1, 8_760)
+  );
+}
+
+/** Thresholds for workstream staleness: the policy section when present, else the defaults. */
+export function workstreamFreshnessPolicy(
+  policy: Pick<RepositoryKnowledgePolicy, "workstream">,
+): WorkstreamFreshnessPolicy {
+  return policy.workstream === undefined
+    ? { ...defaultWorkstreamFreshnessPolicy }
+    : { ...policy.workstream };
+}
+
 export function validateRepositoryKnowledgePolicy(value: unknown): RepositoryKnowledgePolicy {
   const item = value as Partial<RepositoryKnowledgePolicy> | null;
   const publication = item?.publication ?? defaultRepositoryKnowledgePolicy.publication;
@@ -105,7 +136,8 @@ export function validateRepositoryKnowledgePolicy(value: unknown): RepositoryKno
     !Number.isSafeInteger(item.limits.maxFileBytes) ||
     item.limits.maxFileBytes < 1 ||
     !Number.isSafeInteger(item.limits.maxTotalBytes) ||
-    item.limits.maxTotalBytes < 1
+    item.limits.maxTotalBytes < 1 ||
+    !workstreamPolicyValid(item.workstream)
   ) {
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
@@ -116,6 +148,7 @@ export function validateRepositoryKnowledgePolicy(value: unknown): RepositoryKno
     ...(item as RepositoryKnowledgePolicy),
     publication: { ...publication },
     normalization: { exclude: [...normalization.exclude] },
+    ...(item.workstream === undefined ? {} : { workstream: { ...item.workstream } }),
   };
 }
 

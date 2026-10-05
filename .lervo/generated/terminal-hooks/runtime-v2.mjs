@@ -2991,7 +2991,7 @@ var require_compile = __commonJS({
       const schOrFunc = root2.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve91.call(this, root2, ref);
+      let _sch = resolve95.call(this, root2, ref);
       if (_sch === void 0) {
         const schema3 = (_a = root2.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3018,7 +3018,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve91(root2, ref) {
+    function resolve95(root2, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3649,7 +3649,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve91(baseURI, relativeURI, options) {
+    function resolve95(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const { parsed: baseParsed, malformedAuthorityOrPort: baseMalformed } = parseWithStatus(baseURI, schemelessOptions);
       const { parsed: relativeParsed, malformedAuthorityOrPort: relativeMalformed } = parseWithStatus(relativeURI, schemelessOptions);
@@ -3933,7 +3933,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve: resolve91,
+      resolve: resolve95,
       resolveComponent,
       equal,
       serialize,
@@ -7079,7 +7079,7 @@ var require_json_schema_2020_12 = __commonJS({
     var content3 = require_content();
     var core = require_core3();
     var format2 = require_format_annotation();
-    var metadata = require_meta_data();
+    var metadata2 = require_meta_data();
     var validation = require_validation2();
     var META_SUPPORT_DATA = ["/properties"];
     function addMetaSchema2020($data) {
@@ -7091,7 +7091,7 @@ var require_json_schema_2020_12 = __commonJS({
         content3,
         core,
         with$data(this, format2),
-        metadata,
+        metadata2,
         with$data(this, validation)
       ].forEach((sch) => this.addMetaSchema(sch, void 0, false));
       return this;
@@ -10256,7 +10256,7 @@ var require_timestamp = __commonJS({
       resolve: (str) => parseSexagesimal(str, false),
       stringify: stringifySexagesimal
     };
-    var timestamp3 = {
+    var timestamp4 = {
       identify: (value) => value instanceof Date,
       default: true,
       tag: "tag:yaml.org,2002:timestamp",
@@ -10265,7 +10265,7 @@ var require_timestamp = __commonJS({
       // assumed to be 00:00:00Z (start of day, UTC).
       test: RegExp("^([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})(?:(?:t|T|[ \\t]+)([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2}(\\.[0-9]+)?)(?:[ \\t]*(Z|[-+][012]?[0-9](?::[0-9]{2})?))?)?$"),
       resolve(str) {
-        const match = str.match(timestamp3.test);
+        const match = str.match(timestamp4.test);
         if (!match)
           throw new Error("!!timestamp expects a date, starting with yyyy-mm-dd");
         const [, year, month, day, hour, minute, second] = match.map(Number);
@@ -10284,7 +10284,7 @@ var require_timestamp = __commonJS({
     };
     exports.floatTime = floatTime;
     exports.intTime = intTime;
-    exports.timestamp = timestamp3;
+    exports.timestamp = timestamp4;
   }
 });
 
@@ -10304,7 +10304,7 @@ var require_schema4 = __commonJS({
     var omap = require_omap();
     var pairs = require_pairs();
     var set = require_set();
-    var timestamp3 = require_timestamp();
+    var timestamp4 = require_timestamp();
     var schema3 = [
       map.map,
       seq.seq,
@@ -10324,9 +10324,9 @@ var require_schema4 = __commonJS({
       omap.omap,
       pairs.pairs,
       set.set,
-      timestamp3.intTime,
-      timestamp3.floatTime,
-      timestamp3.timestamp
+      timestamp4.intTime,
+      timestamp4.floatTime,
+      timestamp4.timestamp
     ];
     exports.schema = schema3;
   }
@@ -10351,7 +10351,7 @@ var require_tags = __commonJS({
     var pairs = require_pairs();
     var schema$2 = require_schema4();
     var set = require_set();
-    var timestamp3 = require_timestamp();
+    var timestamp4 = require_timestamp();
     var schemas = /* @__PURE__ */ new Map([
       ["core", schema3.schema],
       ["failsafe", [map.map, seq.seq, string4.string]],
@@ -10365,11 +10365,11 @@ var require_tags = __commonJS({
       float: float.float,
       floatExp: float.floatExp,
       floatNaN: float.floatNaN,
-      floatTime: timestamp3.floatTime,
+      floatTime: timestamp4.floatTime,
       int: int.int,
       intHex: int.intHex,
       intOct: int.intOct,
-      intTime: timestamp3.intTime,
+      intTime: timestamp4.intTime,
       map: map.map,
       merge: merge.merge,
       null: _null.nullTag,
@@ -10377,7 +10377,7 @@ var require_tags = __commonJS({
       pairs: pairs.pairs,
       seq: seq.seq,
       set: set.set,
-      timestamp: timestamp3.timestamp
+      timestamp: timestamp4.timestamp
     };
     var coreKnownTags = {
       "tag:yaml.org,2002:binary": binary.binary,
@@ -10385,7 +10385,7 @@ var require_tags = __commonJS({
       "tag:yaml.org,2002:omap": omap.omap,
       "tag:yaml.org,2002:pairs": pairs.pairs,
       "tag:yaml.org,2002:set": set.set,
-      "tag:yaml.org,2002:timestamp": timestamp3.timestamp
+      "tag:yaml.org,2002:timestamp": timestamp4.timestamp
     };
     function getTags(customTags, schemaName, addMergeTag) {
       const schemaTags = schemas.get(schemaName);
@@ -25536,7 +25536,7 @@ var require_lib = __commonJS({
           if (!sawUnary) this.checkExponentialAfterUnary(expr2);
           return expr2;
         }
-        const update = this.match(34);
+        const update2 = this.match(34);
         const node2 = this.startNode();
         if (tokenIsPrefix(this.state.type)) {
           node2.operator = this.state.value;
@@ -25556,14 +25556,14 @@ var require_lib = __commonJS({
               this.raise(Errors.DeletePrivateField, node2);
             }
           }
-          if (!update) {
+          if (!update2) {
             if (!sawUnary) {
               this.checkExponentialAfterUnary(node2);
             }
             return this.finishNode(node2, "UnaryExpression");
           }
         }
-        const expr = this.parseUpdate(node2, update, refExpressionErrors);
+        const expr = this.parseUpdate(node2, update2, refExpressionErrors);
         if (isAwait) {
           const {
             type
@@ -25576,8 +25576,8 @@ var require_lib = __commonJS({
         }
         return expr;
       }
-      parseUpdate(node2, update, refExpressionErrors) {
-        if (update) {
+      parseUpdate(node2, update2, refExpressionErrors) {
+        if (update2) {
           const updateExpressionNode = node2;
           this.checkLVal(updateExpressionNode.argument, this.finishNode(updateExpressionNode, "UpdateExpression"));
           return node2;
@@ -32955,7 +32955,7 @@ var require_input = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/input.js"(exports, module) {
     "use strict";
     var { nanoid } = require_non_secure();
-    var { isAbsolute: isAbsolute6, resolve: resolve91 } = __require("path");
+    var { isAbsolute: isAbsolute6, resolve: resolve95 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { fileURLToPath: fileURLToPath2, pathToFileURL } = __require("url");
     var CssSyntaxError2 = require_css_syntax_error();
@@ -32963,7 +32963,7 @@ var require_input = __commonJS({
     var terminalHighlight = require_terminal_highlight();
     var lineToIndexCache = /* @__PURE__ */ Symbol("lineToIndexCache");
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(resolve91 && isAbsolute6);
+    var pathAvailable = Boolean(resolve95 && isAbsolute6);
     function getLineToIndex(input) {
       if (input[lineToIndexCache]) return input[lineToIndexCache];
       let lines = input.css.split("\n");
@@ -32997,7 +32997,7 @@ var require_input = __commonJS({
           if (!pathAvailable || /^\w+:\/\//.test(opts.from) || isAbsolute6(opts.from)) {
             this.file = opts.from;
           } else {
-            this.file = resolve91(opts.from);
+            this.file = resolve95(opts.from);
           }
         }
         if (pathAvailable && sourceMapAvailable) {
@@ -33118,7 +33118,7 @@ var require_input = __commonJS({
         if (/^\w+:\/\//.test(file)) {
           return file;
         }
-        return resolve91(this.map.consumer().sourceRoot || this.map.root || ".", file);
+        return resolve95(this.map.consumer().sourceRoot || this.map.root || ".", file);
       }
       origin(line, column, endLine, endColumn) {
         if (!this.map) return false;
@@ -33428,12 +33428,12 @@ var require_fromJSON = __commonJS({
 var require_map_generator = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/map-generator.js"(exports, module) {
     "use strict";
-    var { dirname: dirname25, relative: relative19, resolve: resolve91, sep: sep17 } = __require("path");
+    var { dirname: dirname25, relative: relative19, resolve: resolve95, sep: sep17 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { pathToFileURL } = __require("url");
     var Input2 = require_input();
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(dirname25 && resolve91 && relative19 && sep17);
+    var pathAvailable = Boolean(dirname25 && resolve95 && relative19 && sep17);
     var MapGenerator = class {
       constructor(stringify19, root2, opts, cssString) {
         this.stringify = stringify19;
@@ -33662,7 +33662,7 @@ var require_map_generator = __commonJS({
         if (cached) return cached;
         let from = this.opts.to ? dirname25(this.opts.to) : ".";
         if (typeof this.mapOpts.annotation === "string") {
-          from = dirname25(resolve91(from, this.mapOpts.annotation));
+          from = dirname25(resolve95(from, this.mapOpts.annotation));
         }
         let path = relative19(from, file);
         this.memoizedPaths.set(file, path);
@@ -35208,8 +35208,8 @@ var require_postcss = __commonJS({
 
 // apps/cli/src/terminal-hook-bin.ts
 import { createHash as createHash49 } from "node:crypto";
-import { readFile as readFile31 } from "node:fs/promises";
-import { dirname as dirname24, resolve as resolve90 } from "node:path";
+import { readFile as readFile32 } from "node:fs/promises";
+import { dirname as dirname24, resolve as resolve94 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // packages/event-contract/dist/canonical-json.js
@@ -49612,7 +49612,19 @@ var workstreamSnapshotSchema = {
         }
       }
     },
-    updatedAt: timestampSchema
+    updatedAt: timestampSchema,
+    /** Server-observed repository HEAD at write time; absent on snapshots that predate it. */
+    repositoryHead: {
+      type: "object",
+      properties: {
+        commit: { type: "string", pattern: "^[a-f0-9]{40,64}$" },
+        observedAt: timestampSchema
+      },
+      required: ["commit", "observedAt"],
+      additionalProperties: false
+    },
+    /** Cumulative count of oldest notes dropped by rolling note retention. */
+    droppedNoteCount: { type: "integer", minimum: 0 }
   },
   required: [
     "schemaVersion",
@@ -54720,6 +54732,24 @@ var EventStoreError = class extends Error {
   }
 };
 
+// packages/event-store-sqlite/dist/sqlite-row.js
+function requireRow(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new EventStoreError("integrity_failed", "The SQLite event store row is not an object.");
+  }
+  return value;
+}
+function sqliteRow(value) {
+  return value === void 0 ? void 0 : requireRow(value);
+}
+function sqliteRows(values) {
+  return values.map(requireRow);
+}
+function* iterateSqliteRows(values) {
+  for (const value of values)
+    yield requireRow(value);
+}
+
 // packages/event-store-sqlite/dist/migrations.js
 var migrations = [
   `
@@ -54783,20 +54813,23 @@ var migrations = [
   `
 ];
 var storageSchemaVersion = migrations.length;
-function configureDatabase(database2) {
-  const defensiveDatabase = database2;
+var supplementalIndexes = `
+  CREATE INDEX IF NOT EXISTS events_type_seq ON events (project_id, type, seq);
+`;
+function configureDatabase(database3) {
+  const defensiveDatabase = database3;
   defensiveDatabase.enableDefensive?.(true);
-  database2.exec(`
+  database3.exec(`
     PRAGMA journal_mode = WAL;
     PRAGMA synchronous = FULL;
     PRAGMA foreign_keys = ON;
     PRAGMA busy_timeout = 5000;
   `);
 }
-function migrateDatabase(database2) {
-  database2.exec("BEGIN IMMEDIATE;");
+function migrateDatabase(database3) {
+  database3.exec("BEGIN IMMEDIATE;");
   try {
-    const row = database2.prepare("PRAGMA user_version;").get();
+    const row = sqliteRow(database3.prepare("PRAGMA user_version;").get());
     const version = row?.user_version;
     if (typeof version !== "number" || !Number.isSafeInteger(version)) {
       throw new EventStoreError("integrity_failed", "The SQLite schema version cannot be read.");
@@ -54805,12 +54838,13 @@ function migrateDatabase(database2) {
       throw new EventStoreError("integrity_failed", `Unsupported event store schema: ${version}`);
     }
     for (let index2 = version; index2 < migrations.length; index2 += 1) {
-      database2.exec(migrations[index2]);
-      database2.exec(`PRAGMA user_version = ${index2 + 1};`);
+      database3.exec(migrations[index2]);
+      database3.exec(`PRAGMA user_version = ${index2 + 1};`);
     }
-    database2.exec("COMMIT;");
+    database3.exec(supplementalIndexes);
+    database3.exec("COMMIT;");
   } catch (error) {
-    database2.exec("ROLLBACK;");
+    database3.exec("ROLLBACK;");
     throw error;
   }
 }
@@ -54830,13 +54864,13 @@ async function ensureDatabasePath(path) {
   }
   return absolutePath;
 }
-function bindDatabaseMetadata(database2, projectId) {
-  database2.exec("BEGIN IMMEDIATE;");
+function bindDatabaseMetadata(database3, projectId) {
+  database3.exec("BEGIN IMMEDIATE;");
   try {
-    const getMeta = database2.prepare("SELECT value FROM store_meta WHERE key = ?");
-    const storedVersion = getMeta.get("storage_schema_version")?.value;
-    const storedProjectId = getMeta.get("project_id")?.value;
-    const insertMeta = database2.prepare("INSERT INTO store_meta (key, value) VALUES (?, ?)");
+    const getMeta = database3.prepare("SELECT value FROM store_meta WHERE key = ?");
+    const storedVersion = sqliteRow(getMeta.get("storage_schema_version"))?.value;
+    const storedProjectId = sqliteRow(getMeta.get("project_id"))?.value;
+    const insertMeta = database3.prepare("INSERT INTO store_meta (key, value) VALUES (?, ?)");
     if (storedVersion === void 0) {
       insertMeta.run("storage_schema_version", String(storageSchemaVersion));
     } else {
@@ -54845,7 +54879,7 @@ function bindDatabaseMetadata(database2, projectId) {
         throw new EventStoreError("integrity_failed", `Unsupported event store schema: ${String(storedVersion)}`);
       }
       if (parsedVersion < storageSchemaVersion) {
-        database2.prepare("UPDATE store_meta SET value = ? WHERE key = ?").run(String(storageSchemaVersion), "storage_schema_version");
+        database3.prepare("UPDATE store_meta SET value = ? WHERE key = ?").run(String(storageSchemaVersion), "storage_schema_version");
       }
     }
     if (storedProjectId === void 0) {
@@ -54853,9 +54887,9 @@ function bindDatabaseMetadata(database2, projectId) {
     } else if (storedProjectId !== projectId) {
       throw new EventStoreError("project_mismatch", `The event store belongs to ${String(storedProjectId)} and cannot be opened as ${projectId}.`);
     }
-    database2.exec("COMMIT;");
+    database3.exec("COMMIT;");
   } catch (error) {
-    database2.exec("ROLLBACK;");
+    database3.exec("ROLLBACK;");
     throw error;
   }
 }
@@ -54920,12 +54954,13 @@ function rowToEvent(row) {
 
 // packages/event-store-sqlite/dist/event-repository.js
 var integrityPageSize = 1e3;
+var maximumListedTypes = 64;
 var SQLiteEventRepository = class {
   database;
   projectId;
   writableEventSchemaVersion;
-  constructor(database2, projectId, writableEventSchemaVersion) {
-    this.database = database2;
+  constructor(database3, projectId, writableEventSchemaVersion) {
+    this.database = database3;
     this.projectId = projectId;
     this.writableEventSchemaVersion = writableEventSchemaVersion;
   }
@@ -54939,7 +54974,7 @@ var SQLiteEventRepository = class {
     const requestedIdentity = eventIdentity(draft, sanitized.payload);
     const effectiveDraft = this.writableEventSchemaVersion === 2 && draft.schemaVersion === 1 ? { ...draft, schemaVersion: 2 } : draft;
     const effectiveIdentity = eventIdentity(effectiveDraft, sanitized.payload);
-    const existingRow = this.database.prepare("SELECT * FROM events WHERE event_id = ?").get(draft.eventId);
+    const existingRow = sqliteRow(this.database.prepare("SELECT * FROM events WHERE event_id = ?").get(draft.eventId));
     if (existingRow) {
       const existing = rowToEvent(existingRow);
       const existingIdentity = eventIdentity(existing, existing.payload);
@@ -54951,7 +54986,7 @@ var SQLiteEventRepository = class {
     if (draft.schemaVersion > this.writableEventSchemaVersion) {
       throw new EventStoreError("event_schema_unsupported", "The requested event schema exceeds this writer activation.");
     }
-    const tailRow = this.database.prepare("SELECT seq, event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1").get(this.projectId);
+    const tailRow = sqliteRow(this.database.prepare("SELECT seq, event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1").get(this.projectId));
     const seqValue = tailRow?.seq;
     if (seqValue !== void 0 && (typeof seqValue !== "number" || !Number.isSafeInteger(seqValue))) {
       throw new EventStoreError("integrity_failed", "The event tail sequence is not a safe integer.");
@@ -54981,11 +55016,11 @@ var SQLiteEventRepository = class {
     return { event, inserted: true, redactions: sanitized.redactions };
   }
   get(eventId2) {
-    const row = this.database.prepare("SELECT * FROM events WHERE event_id = ?").get(eventId2);
+    const row = sqliteRow(this.database.prepare("SELECT * FROM events WHERE event_id = ?").get(eventId2));
     return row ? rowToEvent(row) : null;
   }
   latest() {
-    const row = this.database.prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1").get(this.projectId);
+    const row = sqliteRow(this.database.prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1").get(this.projectId));
     return row ? rowToEvent(row) : null;
   }
   list(options = {}) {
@@ -54997,7 +55032,23 @@ var SQLiteEventRepository = class {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1e3) {
       throw new RangeError("limit must be a safe integer between 1 and 1000.");
     }
-    const rows2 = options.runId ? this.database.prepare("SELECT * FROM events WHERE project_id = ? AND run_id = ? AND seq > ? ORDER BY seq LIMIT ?").all(this.projectId, options.runId, afterSeq, limit) : this.database.prepare("SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?").all(this.projectId, afterSeq, limit);
+    const types = options.types === void 0 ? void 0 : [...new Set(options.types)];
+    if (types !== void 0 && (types.length < 1 || types.length > maximumListedTypes || types.some((type) => typeof type !== "string" || type.length === 0))) {
+      throw new RangeError(`types must name between 1 and ${maximumListedTypes} non-empty event types.`);
+    }
+    const conditions = ["project_id = ?"];
+    const parameters = [this.projectId];
+    if (options.runId) {
+      conditions.push("run_id = ?");
+      parameters.push(options.runId);
+    }
+    if (types !== void 0) {
+      conditions.push(`type IN (${types.map(() => "?").join(", ")})`);
+      parameters.push(...types);
+    }
+    conditions.push("seq > ?");
+    parameters.push(afterSeq, limit);
+    const rows2 = sqliteRows(this.database.prepare(`SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY seq LIMIT ?`).all(...parameters));
     return rows2.map(rowToEvent);
   }
   verifyIntegrity() {
@@ -55005,7 +55056,7 @@ var SQLiteEventRepository = class {
     let eventCount = 0;
     const page = this.database.prepare("SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?");
     while (true) {
-      const rows2 = page.all(this.projectId, eventCount, integrityPageSize);
+      const rows2 = sqliteRows(page.all(this.projectId, eventCount, integrityPageSize));
       if (rows2.length === 0)
         break;
       for (const row of rows2) {
@@ -55180,8 +55231,8 @@ var outboxDeliverySelection = `
 // packages/event-store-sqlite/dist/outbox.js
 var SQLiteOutboxRepository = class {
   database;
-  constructor(database2) {
-    this.database = database2;
+  constructor(database3) {
+    this.database = database3;
   }
   enqueue(request) {
     const eventId2 = requireOutboxIdentifier(request.eventId, "eventId");
@@ -55191,10 +55242,10 @@ var SQLiteOutboxRepository = class {
     if (availableAt < enqueuedAt) {
       throw new EventStoreError("invalid_outbox_request", "availableAt cannot be earlier than enqueuedAt.");
     }
-    const existing = this.database.prepare("SELECT 1 FROM outbox WHERE event_id = ? AND destination_id = ?").get(eventId2, destinationId);
+    const existing = sqliteRow(this.database.prepare("SELECT 1 FROM outbox WHERE event_id = ? AND destination_id = ?").get(eventId2, destinationId));
     if (existing)
       return { inserted: false };
-    const event = this.database.prepare("SELECT 1 FROM events WHERE event_id = ?").get(eventId2);
+    const event = sqliteRow(this.database.prepare("SELECT 1 FROM events WHERE event_id = ?").get(eventId2));
     if (!event) {
       throw new EventStoreError("outbox_not_found", `Event ${eventId2} to enqueue in the outbox is missing.`);
     }
@@ -55207,7 +55258,7 @@ var SQLiteOutboxRepository = class {
   }
   outstandingCount(destinationId) {
     const destination = requireOutboxIdentifier(destinationId, "destinationId");
-    const row = this.database.prepare("SELECT COUNT(*) AS count FROM outbox WHERE destination_id = ? AND acknowledged_at IS NULL").get(destination);
+    const row = sqliteRow(this.database.prepare("SELECT COUNT(*) AS count FROM outbox WHERE destination_id = ? AND acknowledged_at IS NULL").get(destination));
     if (typeof row?.count !== "number") {
       throw new EventStoreError("integrity_failed", "The outstanding outbox count is invalid.");
     }
@@ -55216,7 +55267,7 @@ var SQLiteOutboxRepository = class {
   get(eventId2, destinationId) {
     const event = requireOutboxIdentifier(eventId2, "eventId");
     const destination = requireOutboxIdentifier(destinationId, "destinationId");
-    const row = this.database.prepare(`${outboxDeliverySelection} WHERE o.event_id = ? AND o.destination_id = ?`).get(event, destination);
+    const row = sqliteRow(this.database.prepare(`${outboxDeliverySelection} WHERE o.event_id = ? AND o.destination_id = ?`).get(event, destination));
     return row === void 0 ? null : rowToOutboxDelivery(row);
   }
   claim(request) {
@@ -55226,7 +55277,7 @@ var SQLiteOutboxRepository = class {
     const limit = requireOutboxPositiveInteger(request.limit ?? 1, "limit", 100);
     const destinationId = request.destinationId === void 0 ? void 0 : requireOutboxIdentifier(request.destinationId, "destinationId");
     const leaseExpiresAt = new Date(Date.parse(claimedAt) + leaseDurationMs).toISOString();
-    const candidates = destinationId ? this.database.prepare(`
+    const candidates = destinationId ? sqliteRows(this.database.prepare(`
             SELECT event_id, destination_id
             FROM outbox
             WHERE acknowledged_at IS NULL
@@ -55235,7 +55286,7 @@ var SQLiteOutboxRepository = class {
               AND destination_id = ?
             ORDER BY available_at, enqueued_at, event_id, destination_id
             LIMIT ?
-          `).all(claimedAt, claimedAt, destinationId, limit) : this.database.prepare(`
+          `).all(claimedAt, claimedAt, destinationId, limit)) : sqliteRows(this.database.prepare(`
             SELECT event_id, destination_id
             FROM outbox
             WHERE acknowledged_at IS NULL
@@ -55243,7 +55294,7 @@ var SQLiteOutboxRepository = class {
               AND (lease_owner IS NULL OR lease_expires_at <= ?)
             ORDER BY available_at, enqueued_at, event_id, destination_id
             LIMIT ?
-          `).all(claimedAt, claimedAt, limit);
+          `).all(claimedAt, claimedAt, limit));
     const deliveries = [];
     const lease = this.database.prepare(`
       UPDATE outbox
@@ -55261,7 +55312,7 @@ var SQLiteOutboxRepository = class {
       const result = lease.run(workerId, claimedAt, leaseExpiresAt, eventId2, selectedDestination, claimedAt, claimedAt);
       if (result.changes !== 1)
         continue;
-      const row = read.get(eventId2, selectedDestination);
+      const row = sqliteRow(read.get(eventId2, selectedDestination));
       if (!row) {
         throw new EventStoreError("integrity_failed", "The leased outbox item cannot be read.");
       }
@@ -55274,7 +55325,7 @@ var SQLiteOutboxRepository = class {
     const destinationId = requireOutboxIdentifier(request.destinationId, "destinationId");
     const workerId = requireOutboxIdentifier(request.workerId, "workerId");
     const acknowledgedAt = requireOutboxTimestamp(request.acknowledgedAt, "acknowledgedAt");
-    const row = this.database.prepare("SELECT * FROM outbox WHERE event_id = ? AND destination_id = ?").get(eventId2, destinationId);
+    const row = sqliteRow(this.database.prepare("SELECT * FROM outbox WHERE event_id = ? AND destination_id = ?").get(eventId2, destinationId));
     if (!row)
       throw new EventStoreError("outbox_not_found", "The outbox item to acknowledge is missing.");
     if (row.acknowledged_at !== null)
@@ -55303,7 +55354,7 @@ var SQLiteOutboxRepository = class {
     if (availableAt < failedAt) {
       throw new EventStoreError("invalid_outbox_request", "availableAt cannot be earlier than failedAt.");
     }
-    const row = this.database.prepare("SELECT * FROM outbox WHERE event_id = ? AND destination_id = ?").get(eventId2, destinationId);
+    const row = sqliteRow(this.database.prepare("SELECT * FROM outbox WHERE event_id = ? AND destination_id = ?").get(eventId2, destinationId));
     if (!row)
       throw new EventStoreError("outbox_not_found", "The outbox item to retry is missing.");
     if (row.acknowledged_at !== null || row.lease_owner !== workerId || typeof row.lease_started_at !== "string" || typeof row.lease_expires_at !== "string" || failedAt < row.lease_started_at || row.lease_expires_at <= failedAt) {
@@ -55362,12 +55413,12 @@ var SQLiteOutboxRepository = class {
       throw new EventStoreError("invalid_outbox_request", "The outbox status is unsupported.");
     }
     const where = clauses.length === 0 ? "" : `WHERE ${clauses.join(" AND ")}`;
-    const rows2 = this.database.prepare(`${outboxDeliverySelection} ${where} ORDER BY o.enqueued_at, o.event_id, o.destination_id LIMIT ?`).all(...parameters, limit);
+    const rows2 = sqliteRows(this.database.prepare(`${outboxDeliverySelection} ${where} ORDER BY o.enqueued_at, o.event_id, o.destination_id LIMIT ?`).all(...parameters, limit));
     return rows2.map(rowToOutboxDelivery);
   }
   verifyIntegrity() {
     let count = 0;
-    const rows2 = this.database.prepare(`${outboxDeliverySelection} ORDER BY o.enqueued_at, o.event_id, o.destination_id`).iterate();
+    const rows2 = iterateSqliteRows(this.database.prepare(`${outboxDeliverySelection} ORDER BY o.enqueued_at, o.event_id, o.destination_id`).iterate());
     for (const row of rows2) {
       rowToOutboxDelivery(row);
       count += 1;
@@ -55384,20 +55435,20 @@ async function openReadOnlyEventDatabase(input) {
   const stats = await lstat6(path);
   if (!stats.isFile() || stats.isSymbolicLink())
     throw new EventStoreError("integrity_failed", "A read-only event store must be an existing regular file.");
-  const database2 = new DatabaseSync(path, {
+  const database3 = new DatabaseSync(path, {
     readOnly: true,
     allowExtension: false,
     enableForeignKeyConstraints: true
   });
   try {
-    if (database2.prepare("PRAGMA user_version").get()?.user_version !== storageSchemaVersion)
+    if (sqliteRow(database3.prepare("PRAGMA user_version").get())?.user_version !== storageSchemaVersion)
       throw new EventStoreError("integrity_failed", "The existing event store requires an owner-managed schema migration.");
-    if (database2.prepare("SELECT value FROM store_meta WHERE key = 'project_id'").get()?.value !== input.projectId)
+    if (sqliteRow(database3.prepare("SELECT value FROM store_meta WHERE key = 'project_id'").get())?.value !== input.projectId)
       throw new EventStoreError("project_mismatch", "The read-only store differs from the expected project.");
-    database2.exec("PRAGMA query_only = ON");
-    return { path, database: database2 };
+    database3.exec("PRAGMA query_only = ON");
+    return { path, database: database3 };
   } catch (error) {
-    database2.close();
+    database3.close();
     throw error;
   }
 }
@@ -55415,43 +55466,43 @@ var SQLiteEventStore = class _SQLiteEventStore {
   transactionActive = false;
   events;
   outbox;
-  constructor(path, projectId, database2, writableEventSchemaVersion, readOnly = false) {
-    this.database = database2;
+  constructor(path, projectId, database3, writableEventSchemaVersion, readOnly = false) {
+    this.database = database3;
     this.readOnly = readOnly;
     this.path = path;
     this.projectId = projectId;
-    this.events = new SQLiteEventRepository(database2, projectId, writableEventSchemaVersion);
-    this.outbox = new SQLiteOutboxRepository(database2);
+    this.events = new SQLiteEventRepository(database3, projectId, writableEventSchemaVersion);
+    this.outbox = new SQLiteOutboxRepository(database3);
   }
   static async open(options) {
     if (![1, 2, 3, 4].includes(options.writableEventSchemaVersion ?? 1)) {
       throw new EventStoreError("event_schema_unsupported", "The writer activation version is unsupported.");
     }
     const path = await ensureDatabasePath(options.path);
-    const database2 = new DatabaseSync(path, {
+    const database3 = new DatabaseSync(path, {
       enableForeignKeyConstraints: true,
       allowExtension: false
     });
     try {
-      configureDatabase(database2);
-      migrateDatabase(database2);
-      bindDatabaseMetadata(database2, options.projectId);
-      const store = new _SQLiteEventStore(path, options.projectId, database2, options.writableEventSchemaVersion ?? 1);
+      configureDatabase(database3);
+      migrateDatabase(database3);
+      bindDatabaseMetadata(database3, options.projectId);
+      const store = new _SQLiteEventStore(path, options.projectId, database3, options.writableEventSchemaVersion ?? 1);
       store.verifyIntegrity();
       return store;
     } catch (error) {
-      database2.close();
+      database3.close();
       throw error;
     }
   }
   static async openReadOnly(options) {
-    const { path, database: database2 } = await openReadOnlyEventDatabase(options);
+    const { path, database: database3 } = await openReadOnlyEventDatabase(options);
     try {
-      const store = new _SQLiteEventStore(path, options.projectId, database2, 3, true);
+      const store = new _SQLiteEventStore(path, options.projectId, database3, 3, true);
       store.verifyIntegrity();
       return store;
     } catch (error) {
-      database2.close();
+      database3.close();
       throw error;
     }
   }
@@ -55536,7 +55587,7 @@ var SQLiteEventStore = class _SQLiteEventStore {
   }
   journalMode() {
     this.assertOpen();
-    const mode = this.database.prepare("PRAGMA journal_mode;").get()?.journal_mode;
+    const mode = sqliteRow(this.database.prepare("PRAGMA journal_mode;").get())?.journal_mode;
     if (typeof mode !== "string") {
       throw new EventStoreError("integrity_failed", "The SQLite journal mode cannot be inspected.");
     }
@@ -55544,11 +55595,11 @@ var SQLiteEventStore = class _SQLiteEventStore {
   }
   verifyIntegrity() {
     this.assertOpen();
-    const quickCheck = this.database.prepare("PRAGMA quick_check;").get()?.quick_check;
+    const quickCheck = sqliteRow(this.database.prepare("PRAGMA quick_check;").get())?.quick_check;
     if (quickCheck !== "ok") {
       throw new EventStoreError("integrity_failed", `SQLite quick_check failed: ${String(quickCheck)}`);
     }
-    const foreignKeyViolation = this.database.prepare("PRAGMA foreign_key_check;").get();
+    const foreignKeyViolation = sqliteRow(this.database.prepare("PRAGMA foreign_key_check;").get());
     if (foreignKeyViolation !== void 0) {
       throw new EventStoreError("integrity_failed", "The SQLite foreign-key check failed.");
     }
@@ -55584,28 +55635,28 @@ async function inspectExistingEventStore(input) {
   }
   const temporaryRoot = await mkdtemp(resolve10(tmpdir(), "lervo-event-inspection-"));
   const inspectionPath = resolve10(temporaryRoot, "events.sqlite");
-  let database2;
+  let database3;
   try {
     await copyFile(path, inspectionPath);
-    database2 = new DatabaseSync(inspectionPath, { readOnly: true, allowExtension: false });
-    const quickCheck = database2.prepare("PRAGMA quick_check;").get()?.quick_check;
+    database3 = new DatabaseSync(inspectionPath, { readOnly: true, allowExtension: false });
+    const quickCheck = sqliteRow(database3.prepare("PRAGMA quick_check;").get())?.quick_check;
     if (quickCheck !== "ok") {
       throw new EventStoreError("integrity_failed", "SQLite quick_check failed.");
     }
-    if (database2.prepare("PRAGMA foreign_key_check;").get() !== void 0) {
+    if (sqliteRow(database3.prepare("PRAGMA foreign_key_check;").get()) !== void 0) {
       throw new EventStoreError("integrity_failed", "The SQLite foreign-key check failed.");
     }
-    const version = database2.prepare("PRAGMA user_version;").get()?.user_version;
+    const version = sqliteRow(database3.prepare("PRAGMA user_version;").get())?.user_version;
     if (typeof version !== "number" || !Number.isSafeInteger(version) || version < 1 || version > storageSchemaVersion) {
       throw new EventStoreError("integrity_failed", `Unsupported event store schema: ${String(version)}`);
     }
-    const projectId = database2.prepare("SELECT value FROM store_meta WHERE key = 'project_id'").get()?.value;
+    const projectId = sqliteRow(database3.prepare("SELECT value FROM store_meta WHERE key = 'project_id'").get())?.value;
     if (projectId !== input.projectId) {
       throw new EventStoreError("project_mismatch", "The event store project identifier differs from the manifest.");
     }
     let eventCount = 0;
     let previousHash = null;
-    const rows2 = database2.prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq").iterate(input.projectId);
+    const rows2 = iterateSqliteRows(database3.prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq").iterate(input.projectId));
     for (const row of rows2) {
       const event = rowToEvent(row);
       eventCount += 1;
@@ -55614,7 +55665,7 @@ async function inspectExistingEventStore(input) {
       }
       previousHash = event.eventHash;
     }
-    const foreignProject = database2.prepare("SELECT project_id FROM events WHERE project_id <> ? LIMIT 1").get(input.projectId);
+    const foreignProject = sqliteRow(database3.prepare("SELECT project_id FROM events WHERE project_id <> ? LIMIT 1").get(input.projectId));
     if (foreignProject !== void 0) {
       throw new EventStoreError("project_mismatch", "The event store contains an event from a different project.");
     }
@@ -55625,7 +55676,7 @@ async function inspectExistingEventStore(input) {
       requiresSchemaMigration: version < storageSchemaVersion
     };
   } finally {
-    database2?.close();
+    database3?.close();
     await rm(temporaryRoot, { recursive: true, force: true });
   }
 }
@@ -56343,6 +56394,13 @@ var RepositorySourceGateError = class extends Error {
     this.name = "RepositorySourceGateError";
   }
 };
+function sourceGateRow(value) {
+  if (value === void 0)
+    return void 0;
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    throw new RepositorySourceGateError("repository_source_gate_invalid", "The repository source gate row is not an object.");
+  return value;
+}
 function busy(error) {
   const code = error?.errcode;
   return typeof code === "number" && [5, 6].includes(code & 255);
@@ -56371,21 +56429,21 @@ async function databasePath(repositoryRoot) {
     throw new RepositorySourceGateError("repository_source_gate_invalid", "The repository source gate file is unsafe.");
   return path;
 }
-function initialize(database2) {
-  database2.exec("PRAGMA busy_timeout = 100;");
-  if (database2.prepare("PRAGMA journal_mode").get()?.journal_mode !== "delete")
+function initialize(database3) {
+  database3.exec("PRAGMA busy_timeout = 100;");
+  if (sourceGateRow(database3.prepare("PRAGMA journal_mode").get())?.journal_mode !== "delete")
     throw new RepositorySourceGateError("repository_source_gate_invalid", "The repository source gate requires rollback journaling.");
-  const version = Number(database2.prepare("PRAGMA user_version").get()?.user_version);
+  const version = Number(sourceGateRow(database3.prepare("PRAGMA user_version").get())?.user_version);
   if (version === 1) {
-    if (database2.prepare("SELECT marker FROM repository_source_gate WHERE id = 1").get()?.marker !== 1)
+    if (sourceGateRow(database3.prepare("SELECT marker FROM repository_source_gate WHERE id = 1").get())?.marker !== 1)
       throw new RepositorySourceGateError("repository_source_gate_invalid", "The repository source gate marker is invalid.");
     return;
   }
   if (version !== 0)
     throw new RepositorySourceGateError("repository_source_gate_invalid", "The repository source gate schema is unsupported.");
-  database2.exec("BEGIN EXCLUSIVE");
+  database3.exec("BEGIN EXCLUSIVE");
   try {
-    database2.exec(`
+    database3.exec(`
       CREATE TABLE IF NOT EXISTS repository_source_gate (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         marker INTEGER NOT NULL CHECK (marker = 1)
@@ -56393,9 +56451,9 @@ function initialize(database2) {
       INSERT OR IGNORE INTO repository_source_gate VALUES (1, 1);
       PRAGMA user_version = 1;
     `);
-    database2.exec("COMMIT");
+    database3.exec("COMMIT");
   } catch (error) {
-    database2.exec("ROLLBACK");
+    database3.exec("ROLLBACK");
     throw error;
   }
 }
@@ -56412,17 +56470,17 @@ async function assertNoInterruptedMaterialization(repositoryRoot) {
   throw new RepositorySourceGateError("knowledge_recovery_required", "An interrupted knowledge materialization must be recovered before repository work.");
 }
 async function acquire(repositoryRoot, mode) {
-  let database2;
+  let database3;
   try {
-    database2 = new DatabaseSync(await databasePath(repositoryRoot), { allowExtension: false });
-    initialize(database2);
-    database2.exec(mode === "read" ? "BEGIN" : "BEGIN EXCLUSIVE");
-    if (database2.prepare("SELECT marker FROM repository_source_gate WHERE id = 1").get()?.marker !== 1)
+    database3 = new DatabaseSync(await databasePath(repositoryRoot), { allowExtension: false });
+    initialize(database3);
+    database3.exec(mode === "read" ? "BEGIN" : "BEGIN EXCLUSIVE");
+    if (sourceGateRow(database3.prepare("SELECT marker FROM repository_source_gate WHERE id = 1").get())?.marker !== 1)
       throw new Error("The repository source gate marker changed.");
     if (mode === "read")
       await assertNoInterruptedMaterialization(repositoryRoot);
-    const held = database2;
-    database2 = void 0;
+    const held = database3;
+    database3 = void 0;
     let released = false;
     return {
       release() {
@@ -56437,12 +56495,12 @@ async function acquire(repositoryRoot, mode) {
       }
     };
   } catch (error) {
-    if (database2 !== void 0) {
+    if (database3 !== void 0) {
       try {
-        database2.exec("ROLLBACK");
+        database3.exec("ROLLBACK");
       } catch {
       }
-      database2.close();
+      database3.close();
     }
     if (error instanceof RepositorySourceGateError)
       throw error;
@@ -56543,15 +56601,15 @@ async function acquireLock2(path, now) {
     try {
       const lock = JSON.parse(await readBounded(path) ?? "null");
       const age = lock !== null && validTime(lock.createdAt) ? now.getTime() - Date.parse(lock.createdAt) : 0;
-      let alive4 = true;
+      let alive5 = true;
       if (lock?.hostname === hostname() && typeof lock.pid === "number" && Number.isSafeInteger(lock.pid)) {
         try {
           process.kill(lock.pid, 0);
         } catch (processError) {
-          alive4 = processError.code !== "ESRCH";
+          alive5 = processError.code !== "ESRCH";
         }
       }
-      if (age > STALE_LOCK_MS && !alive4) {
+      if (age > STALE_LOCK_MS && !alive5) {
         await rm6(path);
         handle = await create();
       } else
@@ -60964,6 +61022,43 @@ function repositoryPublicationMessages(language) {
   throw new Error(`Unsupported repository publication language: ${language}`);
 }
 
+// packages/repository-knowledge/dist/workstream-freshness.js
+var defaultWorkstreamFreshnessPolicy = {
+  staleAfterCommits: 20,
+  staleAfterHours: 48
+};
+var FUTURE_TOLERANCE_MS = 5 * 60 * 1e3;
+function assessWorkstreamFreshness(input) {
+  const policy = input.policy ?? defaultWorkstreamFreshnessPolicy;
+  const ageMs = input.observedAt.getTime() - Date.parse(input.snapshot.updatedAt);
+  const reasons = [];
+  if (!Number.isFinite(ageMs) || ageMs < -FUTURE_TOLERANCE_MS)
+    reasons.push("updated_at_in_future");
+  else if (ageMs > policy.staleAfterHours * 36e5)
+    reasons.push("age_exceeded");
+  if (input.headDistance.status === "unresolvable")
+    reasons.push("recorded_head_unresolvable");
+  if (input.headDistance.status === "measured" && input.headDistance.commitsBehind > policy.staleAfterCommits)
+    reasons.push("commits_behind");
+  return {
+    status: reasons.length === 0 ? "current" : "stale",
+    reasons,
+    commitsBehind: input.headDistance.status === "measured" ? input.headDistance.commitsBehind : null,
+    ageHours: Number.isFinite(ageMs) ? Math.max(0, Math.floor(ageMs / 36e5)) : 0,
+    policy
+  };
+}
+var APPROVAL_CONSEQUENCES = {
+  repository_bytes: "repository_write",
+  managed_write: "repository_write",
+  external_action: "external_effect",
+  deployment: "deployment"
+};
+function workstreamApprovalConsequence(kind) {
+  return APPROVAL_CONSEQUENCES[kind] ?? "unclassified";
+}
+var STALE_WORKSTREAM_INSTRUCTION = "Re-verify against the repository before acting; do not present as current.";
+
 // packages/repository-knowledge/dist/policy.js
 var defaultRepositoryKnowledgePolicy = {
   schemaVersion: 1,
@@ -61020,17 +61115,30 @@ var defaultRepositoryKnowledgePolicy = {
 function isStringArray(value) {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
+function boundedInteger(value, minimum, maximum) {
+  return Number.isSafeInteger(value) && value >= minimum && value <= maximum;
+}
+function workstreamPolicyValid(value) {
+  if (value === void 0)
+    return true;
+  const item = value;
+  return item !== null && typeof item === "object" && Object.keys(item).every((key3) => key3 === "staleAfterCommits" || key3 === "staleAfterHours") && boundedInteger(item.staleAfterCommits, 1, 1e5) && boundedInteger(item.staleAfterHours, 1, 8760);
+}
+function workstreamFreshnessPolicy(policy) {
+  return policy.workstream === void 0 ? { ...defaultWorkstreamFreshnessPolicy } : { ...policy.workstream };
+}
 function validateRepositoryKnowledgePolicy(value) {
   const item = value;
   const publication = item?.publication ?? defaultRepositoryKnowledgePolicy.publication;
   const normalization = item?.normalization ?? defaultRepositoryKnowledgePolicy.normalization;
-  if (item === null || typeof item !== "object" || item.schemaVersion !== 1 || typeof item.policyId !== "string" || !/^[a-z][a-z0-9._-]{2,63}$/.test(item.policyId) || typeof item.publicationRoot !== "string" || item.publicationRoot.length === 0 || item.publicationRoot.startsWith("/") || item.publicationRoot.split("/").includes("..") || typeof publication !== "object" || publication === null || typeof publication.language !== "string" || !supportedRepositoryPublicationLanguages.includes(publication.language) || !Number.isSafeInteger(publication.maxNavigationEntries) || publication.maxNavigationEntries < 4 || publication.maxNavigationEntries > 128 || !Number.isSafeInteger(publication.maxNavigationBytes) || publication.maxNavigationBytes < 1024 || publication.maxNavigationBytes > 65536 || typeof normalization !== "object" || normalization === null || !isStringArray(normalization.exclude) || !isStringArray(item.exclude) || item.limits === void 0 || !Number.isSafeInteger(item.limits.maxFiles) || item.limits.maxFiles < 1 || !Number.isSafeInteger(item.limits.maxFileBytes) || item.limits.maxFileBytes < 1 || !Number.isSafeInteger(item.limits.maxTotalBytes) || item.limits.maxTotalBytes < 1) {
+  if (item === null || typeof item !== "object" || item.schemaVersion !== 1 || typeof item.policyId !== "string" || !/^[a-z][a-z0-9._-]{2,63}$/.test(item.policyId) || typeof item.publicationRoot !== "string" || item.publicationRoot.length === 0 || item.publicationRoot.startsWith("/") || item.publicationRoot.split("/").includes("..") || typeof publication !== "object" || publication === null || typeof publication.language !== "string" || !supportedRepositoryPublicationLanguages.includes(publication.language) || !Number.isSafeInteger(publication.maxNavigationEntries) || publication.maxNavigationEntries < 4 || publication.maxNavigationEntries > 128 || !Number.isSafeInteger(publication.maxNavigationBytes) || publication.maxNavigationBytes < 1024 || publication.maxNavigationBytes > 65536 || typeof normalization !== "object" || normalization === null || !isStringArray(normalization.exclude) || !isStringArray(item.exclude) || item.limits === void 0 || !Number.isSafeInteger(item.limits.maxFiles) || item.limits.maxFiles < 1 || !Number.isSafeInteger(item.limits.maxFileBytes) || item.limits.maxFileBytes < 1 || !Number.isSafeInteger(item.limits.maxTotalBytes) || item.limits.maxTotalBytes < 1 || !workstreamPolicyValid(item.workstream)) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", ".lervo/knowledge/policy.yaml does not satisfy the repository knowledge policy contract.");
   }
   return {
     ...item,
     publication: { ...publication },
-    normalization: { exclude: [...normalization.exclude] }
+    normalization: { exclude: [...normalization.exclude] },
+    ...item.workstream === void 0 ? {} : { workstream: { ...item.workstream } }
   };
 }
 async function loadRepositoryKnowledgePolicy(root2) {
@@ -66719,10 +66827,10 @@ function resolveAll(constructs2, events, context) {
   const called = [];
   let index2 = -1;
   while (++index2 < constructs2.length) {
-    const resolve91 = constructs2[index2].resolveAll;
-    if (resolve91 && !called.includes(resolve91)) {
-      events = resolve91(events, context);
-      called.push(resolve91);
+    const resolve95 = constructs2[index2].resolveAll;
+    if (resolve95 && !called.includes(resolve95)) {
+      events = resolve95(events, context);
+      called.push(resolve95);
     }
   }
   return events;
@@ -72530,18 +72638,18 @@ function classifyRepositoryDocument(path, content3, taxonomy) {
     return { kind: "not_migration_candidate" };
   const heading = /^#\s+(.+)$/mu.exec(content3)?.[1]?.trim() ?? "";
   const classificationText = `${basename9(path, posix6.extname(path))} ${heading}`;
-  const metadata = explicitRoute(content3);
-  if (metadata.state === "invalid")
+  const metadata2 = explicitRoute(content3);
+  if (metadata2.state === "invalid")
     return { kind: "blocked", blocker: { code: "invalid_document_metadata", path } };
   let route;
   let classificationBasis;
   let matchedTitleTerms;
-  if (metadata.state === "present") {
-    const selected = taxonomy.routes.find((candidate) => candidate.id === metadata.routeId);
+  if (metadata2.state === "present") {
+    const selected = taxonomy.routes.find((candidate) => candidate.id === metadata2.routeId);
     if (selected === void 0)
       return {
         kind: "blocked",
-        blocker: { code: "unknown_document_route", path, candidateRouteIds: [metadata.routeId] }
+        blocker: { code: "unknown_document_route", path, candidateRouteIds: [metadata2.routeId] }
       };
     route = selected;
     classificationBasis = "explicit_metadata";
@@ -72563,7 +72671,7 @@ function classifyRepositoryDocument(path, content3, taxonomy) {
   return {
     kind: "classified",
     destination: {
-      toPath: `${documentRoot(taxonomy)}/${route.path}/${metadata.state === "present" && metadata.filename !== void 0 ? metadata.filename : basename9(path)}`,
+      toPath: `${documentRoot(taxonomy)}/${route.path}/${metadata2.state === "present" && metadata2.filename !== void 0 ? metadata2.filename : basename9(path)}`,
       routeId: route.id,
       routePath: route.path,
       group,
@@ -74126,19 +74234,19 @@ function classifyFlatDecision(path, content3, taxonomy) {
   const heading = /^#\s+ADR-\d{4}:\s+(.+)$/mu.exec(content3)?.[1]?.trim();
   if (heading === void 0 || heading.length === 0)
     return { kind: "blocked", blocker: { code: "invalid_decision_heading", path } };
-  const metadata = explicitRoute2(content3);
-  if (metadata.state === "invalid" || metadata.state === "present" && metadata.taxonomyId !== void 0 && metadata.taxonomyId !== taxonomy.taxonomyId) {
+  const metadata2 = explicitRoute2(content3);
+  if (metadata2.state === "invalid" || metadata2.state === "present" && metadata2.taxonomyId !== void 0 && metadata2.taxonomyId !== taxonomy.taxonomyId) {
     return { kind: "blocked", blocker: { code: "invalid_decision_metadata", path } };
   }
   let route;
   let classificationBasis;
   let matchedTitleTerms;
-  if (metadata.state === "present") {
-    const selected = taxonomy.routes.find((candidate) => candidate.id === metadata.routeId);
+  if (metadata2.state === "present") {
+    const selected = taxonomy.routes.find((candidate) => candidate.id === metadata2.routeId);
     if (selected === void 0)
       return {
         kind: "blocked",
-        blocker: { code: "unknown_decision_route", path, candidateRouteIds: [metadata.routeId] }
+        blocker: { code: "unknown_decision_route", path, candidateRouteIds: [metadata2.routeId] }
       };
     route = selected;
     classificationBasis = "explicit_metadata";
@@ -78251,9 +78359,9 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
 }
 
 // packages/repository-knowledge/dist/knowledge-currency.js
-async function inspectRepositoryKnowledgeCurrency(repositoryRoot) {
+async function inspectRepositoryKnowledgeCurrency(repositoryRoot, options = {}) {
   await assertNoKnowledgeMaterializationTransaction({ repositoryRoot });
-  const { scan } = await scanConfiguredRepositoryKnowledge(repositoryRoot);
+  const scan = options.preparedScan ?? (await scanConfiguredRepositoryKnowledge(repositoryRoot)).scan;
   const shared = { preparedScan: scan };
   const [bootstrap, layout, migration, bridge, normalization] = await Promise.all([
     createKnowledgeInstructionBootstrapPlan({ repositoryRoot, ...shared }),
@@ -79753,15 +79861,18 @@ async function restoreCurrentWorkstreamState(input) {
   await rename10(temporary, target);
   return value;
 }
-function formatWorkstreamContext(snapshot) {
+
+// packages/repository-knowledge/dist/workstream-context.js
+function freshnessLine(freshness) {
+  if (freshness.status === "current")
+    return "Freshness: current.";
+  const behind = freshness.commitsBehind === null ? "" : `; ${freshness.commitsBehind} commits behind HEAD`;
+  return `Freshness: stale (${freshness.reasons.join(",")}; recorded ${freshness.ageHours}h ago${behind}).`;
+}
+function currentItems(snapshot) {
   const pendingDecisions = snapshot.pendingDecisions ?? [];
   const pendingApprovals = snapshot.pendingApprovals ?? [];
-  const lines = [
-    "## Lervo current workstream",
-    `workstreamId: ${snapshot.workstreamId}; revision: ${snapshot.revision}; status: ${snapshot.status}; snapshotHash: ${sha2565(`${canonicalJson4(snapshot)}
-`)}`,
-    `Title: ${snapshot.title}`,
-    `Objective: ${snapshot.objective}`,
+  return [
     ...snapshot.nextActions.length === 0 ? [] : ["Next actions:", ...snapshot.nextActions.map((item, index2) => `${index2 + 1}. ${item}`)],
     ...snapshot.blockers.length === 0 ? [] : ["Blockers:", ...snapshot.blockers.map((item) => `- ${item}`)],
     ...snapshot.notes.length === 0 ? [] : ["Current facts:", ...snapshot.notes.map((item) => `- ${item}`)],
@@ -79773,10 +79884,37 @@ function formatWorkstreamContext(snapshot) {
     ...pendingApprovals.length === 0 ? [] : [
       "Pending user approvals:",
       ...pendingApprovals.map((item) => `- ${item.approvalId}${item.blocking ? " [blocking]" : ""}: ${item.kind}; ${item.summary}; binding=${item.bindingHash}`)
-    ],
+    ]
+  ];
+}
+function staleItems(snapshot) {
+  const pendingDecisions = snapshot.pendingDecisions ?? [];
+  const pendingApprovals = snapshot.pendingApprovals ?? [];
+  const items = [
+    ...snapshot.nextActions.map((item) => `- next action: ${item}`),
+    ...snapshot.blockers.map((item) => `- blocker: ${item}`),
+    ...pendingDecisions.map((item) => `- decision ${item.decisionId}: text withheld (consequence unclassified)`),
+    ...pendingApprovals.map((item) => `- approval ${item.approvalId}: ${item.kind}; text withheld (consequence ${workstreamApprovalConsequence(item.kind)}); binding=${item.bindingHash}`)
+  ];
+  return [
+    ...items.length === 0 ? [] : [`Stale workstream items. ${STALE_WORKSTREAM_INSTRUCTION}`, ...items],
+    ...snapshot.notes.length === 0 ? [] : ["Recorded facts (stale):", ...snapshot.notes.map((item) => `- ${item}`)],
+    ...snapshot.references.length === 0 ? [] : ["References:", ...snapshot.references.map((item) => `- ${item.label}: ${item.path}`)]
+  ];
+}
+function formatWorkstreamContext(snapshot, freshness = null) {
+  const lines = [
+    "## Lervo current workstream",
+    `workstreamId: ${snapshot.workstreamId}; revision: ${snapshot.revision}; status: ${snapshot.status}; snapshotHash: ${sha2565(`${canonicalJson4(snapshot)}
+`)}`,
+    ...freshness === null ? [] : [freshnessLine(freshness)],
+    `Title: ${snapshot.title}`,
+    `Objective: ${snapshot.objective}`,
+    ...freshness?.status === "stale" ? staleItems(snapshot) : currentItems(snapshot),
+    ...(snapshot.droppedNoteCount ?? 0) === 0 ? [] : [`Older notes dropped by retention: ${snapshot.droppedNoteCount}.`],
     "This is mutable continuation state, not a long-term architecture contract. Promote durable decisions to canonical repository documentation.",
     "Treat a natural-language user reply to a pending item as input to resolve, apply, remove, and canonically record that item when authorized. Never require the user to type a Lervo bookkeeping command.",
-    "Before completing a repository-changing direct provider terminal turn, use `lervo workstream current --json` and the reviewed `lervo workstream update` plan/apply flow to record the next bounded revision. Replace stale facts instead of accumulating prose; do not ask the user to run this bookkeeping command."
+    "Before completing a repository-changing direct provider terminal turn, record the next bounded revision with `lervo workstream update --actor agent --provider <current-provider> --patch <json> --apply-now`; the service sets revision, update time, and HEAD. Replace stale facts instead of accumulating prose; do not ask the user to run this bookkeeping command."
   ];
   return lines.join("\n");
 }
@@ -79786,12 +79924,17 @@ var KNOWLEDGE_CONVERGENCE_DESTINATION = "knowledge:convergence";
 var MAXIMUM_CONVERGENCE_OBLIGATIONS = 1024;
 
 // packages/repository-knowledge/dist/knowledge-convergence-replay.js
+var CONVERGENCE_EVENT_TYPES = [
+  "repository.knowledge.baseline.requested",
+  "repository.knowledge.stage.recorded",
+  "repository.knowledge.convergence.recorded"
+];
 function replayKnowledgeConvergence(events) {
   const active = /* @__PURE__ */ new Map();
   let lastCurrent = null;
   let afterSeq = 0;
   for (; ; ) {
-    const page = events.list({ afterSeq, limit: 1e3 });
+    const page = events.list({ afterSeq, limit: 1e3, types: CONVERGENCE_EVENT_TYPES });
     if (page.length === 0)
       break;
     for (const event of page) {
@@ -79826,6 +79969,15 @@ function replayKnowledgeConvergence(events) {
     throw new Error("Canonical convergence history exceeds the active obligation ceiling.");
   return [...lastCurrent === null ? [] : [lastCurrent], ...active.values()];
 }
+function memoizedKnowledgeConvergenceReplay(events) {
+  let cached = null;
+  return () => {
+    const head = events.latest()?.eventHash ?? null;
+    if (cached === null || cached.head !== head)
+      cached = { head, rows: replayKnowledgeConvergence(events) };
+    return cached.rows;
+  };
+}
 function reconcileKnowledgeConvergenceOutbox(events, rows2, now) {
   let recovered = 0;
   for (const row of rows2) {
@@ -79850,8 +80002,7 @@ function reconcileKnowledgeConvergenceOutbox(events, rows2, now) {
 }
 
 // packages/repository-knowledge/dist/knowledge-convergence-status.js
-function convergenceStatus(input, baseline, now, transport) {
-  const rows2 = replayKnowledgeConvergence(input.events);
+function convergenceStatus(input, baseline, now, transport, rows2 = replayKnowledgeConvergence(input.events)) {
   const active = rows2.filter((row2) => row2.outcome === null);
   const oldest = active[0];
   const latestCurrent = rows2.findLast((row2) => row2.outcome?.payload.terminalState === "current")?.outcome;
@@ -80117,29 +80268,18 @@ function assertKnowledgeConvergenceComplete(input, snapshotHash) {
     throw new Error("Knowledge convergence requires every stage and the exact final verified snapshot.");
 }
 
-// packages/repository-knowledge/dist/knowledge-convergence-owner.js
-async function loadInput(artifacts, hash3, projectId, obligationId2) {
-  if (!/^sha256:[a-f0-9]{64}$/u.test(hash3))
-    throw new Error("The convergence input coordinate is invalid.");
-  const bytes2 = await artifacts.get(`lervo-cas://sha256/${hash3.slice(7)}`);
-  if (bytes2.byteLength > 16 * 1024 * 1024 || sha2565(bytes2) !== hash3)
-    throw new Error("The convergence input artifact is invalid.");
-  const value = JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(bytes2));
-  if (value.schemaVersion !== 1 || value.obligationId !== obligationId2 || value.baseline?.projectId !== projectId || !Array.isArray(value.receipts) || value.stageData === null || typeof value.stageData !== "object")
-    throw new Error("The convergence input identity is invalid.");
-  return value;
-}
-async function discover(input, now) {
+// packages/repository-knowledge/dist/knowledge-convergence-discovery.js
+async function discoverKnowledgeConvergenceObligation(input, now, replay) {
   const baseline = await input.host.discover();
-  const rows2 = replayKnowledgeConvergence(input.events);
+  const rows2 = replay();
   const lastCurrent = rows2.findLast((row) => row.outcome?.payload.terminalState === "current");
   if (lastCurrent?.outcome?.payload.snapshotHash === baseline.sourceSnapshotHash && lastCurrent.baseline.payload.policyHash === baseline.policyHash && lastCurrent.baseline.payload.delegationHash === baseline.delegationHash && Object.values(baseline.debtCounts).every((count) => count === 0))
-    return;
+    return baseline;
   const existing = rows2.find((row) => row.outcome === null && (row.latest?.payload.snapshotHash ?? row.baseline.payload.sourceSnapshotHash) === baseline.sourceSnapshotHash && row.baseline.payload.policyHash === baseline.policyHash && row.baseline.payload.delegationHash === baseline.delegationHash);
   if (existing !== void 0)
-    return;
+    return baseline;
   if (rows2.filter((row) => row.outcome === null).length >= MAXIMUM_CONVERGENCE_OBLIGATIONS)
-    return;
+    return baseline;
   const obligationId2 = stableId("kconv", {
     projectId: baseline.projectId,
     snapshot: baseline.sourceSnapshotHash,
@@ -80149,7 +80289,7 @@ async function discover(input, now) {
   });
   const eventId2 = convergenceEventId([obligationId2, "baseline"]);
   if (input.events.get(eventId2) !== null)
-    return;
+    return baseline;
   const state2 = {
     schemaVersion: 1,
     obligationId: obligationId2,
@@ -80219,9 +80359,23 @@ async function discover(input, now) {
       });
     }
   });
+  return baseline;
 }
-async function resumeDependencies(input, now) {
-  for (const row of replayKnowledgeConvergence(input.events)) {
+
+// packages/repository-knowledge/dist/knowledge-convergence-owner.js
+async function loadInput(artifacts, hash3, projectId, obligationId2) {
+  if (!/^sha256:[a-f0-9]{64}$/u.test(hash3))
+    throw new Error("The convergence input coordinate is invalid.");
+  const bytes2 = await artifacts.get(`lervo-cas://sha256/${hash3.slice(7)}`);
+  if (bytes2.byteLength > 16 * 1024 * 1024 || sha2565(bytes2) !== hash3)
+    throw new Error("The convergence input artifact is invalid.");
+  const value = JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(bytes2));
+  if (value.schemaVersion !== 1 || value.obligationId !== obligationId2 || value.baseline?.projectId !== projectId || !Array.isArray(value.receipts) || value.stageData === null || typeof value.stageData !== "object")
+    throw new Error("The convergence input identity is invalid.");
+  return value;
+}
+async function resumeDependencies(input, now, replay) {
+  for (const row of replay()) {
     if (row.outcome !== null || row.latest === null || row.latest.payload.dependencyHash === null || row.latest.payload.state === "queued")
       continue;
     if (await input.host.dependencyCurrent(row.latest.payload.dependencyHash))
@@ -80254,15 +80408,18 @@ async function processKnowledgeConvergence(input) {
     throw new Error("The convergence stage budget is invalid.");
   if (input.writableEventSchemaVersion < 4)
     return convergenceStatus(input, await input.host.discover(), now(), "reader_transition_required");
-  await discover(input, now());
+  const replay = memoizedKnowledgeConvergenceReplay(input.events);
+  const baseline = await discoverKnowledgeConvergenceObligation(input, now(), replay);
+  const discoveredHead = input.events.latest()?.eventHash ?? null;
+  let deliveries = 0;
   input.events.purgeAcknowledged({
     destinationId: KNOWLEDGE_CONVERGENCE_DESTINATION,
     before: new Date(now().getTime() - 7 * 24 * 60 * 6e4).toISOString(),
     keepMostRecent: 1024,
     limit: 1e3
   });
-  await resumeDependencies(input, now());
-  reconcileKnowledgeConvergenceOutbox(input.events, replayKnowledgeConvergence(input.events), now().toISOString());
+  await resumeDependencies(input, now(), replay);
+  reconcileKnowledgeConvergenceOutbox(input.events, replay(), now().toISOString());
   for (let index2 = 0; index2 < (input.maximumStages ?? 8); index2++) {
     const [delivery] = input.events.claim({
       workerId: input.workerId,
@@ -80273,7 +80430,8 @@ async function processKnowledgeConvergence(input) {
     });
     if (delivery === void 0)
       break;
-    const row = replayKnowledgeConvergence(input.events).find((item) => item.baseline.payload.obligationId === delivery.event.payload.obligationId);
+    deliveries++;
+    const row = replay().find((item) => item.baseline.payload.obligationId === delivery.event.payload.obligationId);
     const terminal = input.events.get(convergenceEventId([delivery.event.payload.obligationId, "terminal"]));
     if (terminal?.type === "repository.knowledge.convergence.recorded") {
       input.events.transact((transaction) => {
@@ -80322,13 +80480,13 @@ async function processKnowledgeConvergence(input) {
       assertLease();
       const code = normalizedConvergenceFailure(error);
       if (["knowledge_job_transient_failure", "knowledge_materialization_busy"].includes(code) && delivery.attemptCount < 16) {
-        const delay = Math.min(60 * 6e4, 6e4 * 2 ** (delivery.attemptCount - 1));
+        const delay2 = Math.min(60 * 6e4, 6e4 * 2 ** (delivery.attemptCount - 1));
         input.events.reschedule({
           eventId: delivery.event.eventId,
           destinationId: KNOWLEDGE_CONVERGENCE_DESTINATION,
           workerId: input.workerId,
           failedAt: now().toISOString(),
-          availableAt: new Date(now().getTime() + delay).toISOString(),
+          availableAt: new Date(now().getTime() + delay2).toISOString(),
           failureCode: code
         });
         break;
@@ -80379,7 +80537,8 @@ async function processKnowledgeConvergence(input) {
       assertSettlement: () => input.host.assertSettlement(result.input)
     });
   }
-  return convergenceStatus(input, await input.host.discover(), now(), "ready");
+  const unchanged = deliveries === 0 && (input.events.latest()?.eventHash ?? null) === discoveredHead;
+  return convergenceStatus(input, unchanged ? baseline : await input.host.discover(), now(), "ready", replay());
 }
 
 // packages/repository-knowledge/dist/document-normalization-subset.js
@@ -80525,7 +80684,7 @@ function killProcessTree(child) {
 async function executeVerificationCommand(input) {
   const startedAt = input.now();
   const monotonicStart = performance.now();
-  return new Promise((resolve91) => {
+  return new Promise((resolve95) => {
     let child;
     try {
       child = spawn2(input.command.executable, input.command.arguments, {
@@ -80536,7 +80695,7 @@ async function executeVerificationCommand(input) {
         stdio: ["ignore", "pipe", "pipe"]
       });
     } catch {
-      resolve91({
+      resolve95({
         status: "execution_error",
         exitCode: null,
         startedAt: startedAt.toISOString(),
@@ -80595,7 +80754,7 @@ async function executeVerificationCommand(input) {
       clearTimeout(timeout);
       input.signal?.removeEventListener("abort", abort);
       const status = forced ?? (spawnError ? "execution_error" : code === 0 ? "passed" : "failed");
-      resolve91({
+      resolve95({
         status,
         exitCode: code,
         startedAt: startedAt.toISOString(),
@@ -80880,7 +81039,8 @@ function parseConvergenceAssetDispositions(value, suiteIds, maximumItems) {
 // packages/repository-knowledge-runtime/dist/source-file.js
 import { constants as constants24, closeSync as closeSync2, fstatSync as fstatSync2, lstatSync as lstatSync2, openSync as openSync2, readFileSync } from "node:fs";
 import { resolve as resolve57 } from "node:path";
-function ordinaryConvergenceSourceBytes(root2, path, maximumBytes2 = 64 * 1024 * 1024) {
+var MAXIMUM_ORDINARY_SOURCE_BYTES = 64 * 1024 * 1024;
+function ordinaryConvergenceSourcePath(root2, path) {
   if (path.length === 0 || path.includes("\\") || path.includes(":") || path.includes("\0") || path.split("/").some((part) => !part || part === "." || part === ".."))
     throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
   let target = resolve57(root2);
@@ -80889,15 +81049,22 @@ function ordinaryConvergenceSourceBytes(root2, path, maximumBytes2 = 64 * 1024 *
     if (lstatSync2(target).isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
   }
+  return target;
+}
+function readOrdinaryConvergenceSource(root2, path, maximumBytes2 = MAXIMUM_ORDINARY_SOURCE_BYTES) {
+  const target = ordinaryConvergenceSourcePath(root2, path);
   const descriptor = openSync2(target, constants24.O_RDONLY | constants24.O_NOFOLLOW);
   try {
-    const stat = fstatSync2(descriptor);
-    if (!stat.isFile() || stat.size > maximumBytes2)
+    const stat = fstatSync2(descriptor, { bigint: true });
+    if (!stat.isFile() || stat.size > BigInt(maximumBytes2))
       throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
-    return readFileSync(descriptor);
+    return { bytes: readFileSync(descriptor), stat };
   } finally {
     closeSync2(descriptor);
   }
+}
+function ordinaryConvergenceSourceBytes(root2, path, maximumBytes2 = MAXIMUM_ORDINARY_SOURCE_BYTES) {
+  return readOrdinaryConvergenceSource(root2, path, maximumBytes2).bytes;
 }
 
 // packages/repository-knowledge-runtime/dist/asset-disposition-manifest.js
@@ -83488,6 +83655,22 @@ import { mkdir as mkdir19, lstat as lstat44, chmod as chmod5 } from "node:fs/pro
 import { homedir as homedir2 } from "node:os";
 import { resolve as resolve63 } from "node:path";
 import { randomUUID as randomUUID8 } from "node:crypto";
+
+// packages/repository-knowledge-runtime/dist/sqlite-row.js
+function requireRow2(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new KnowledgeConvergenceRuntimeError("knowledge_state_row_invalid");
+  }
+  return value;
+}
+function sqliteRow2(value) {
+  return value === void 0 ? void 0 : requireRow2(value);
+}
+function sqliteRows2(values) {
+  return values.map(requireRow2);
+}
+
+// packages/repository-knowledge-runtime/dist/provider-admission.js
 function alive2(pid) {
   try {
     process.kill(pid, 0);
@@ -83520,9 +83703,9 @@ async function database(directory) {
     provider TEXT PRIMARY KEY, reason TEXT NOT NULL, observation_hash TEXT NOT NULL,
     observed_at INTEGER NOT NULL, reset_at INTEGER
   )`);
-  if (!db.prepare("PRAGMA table_info(requests)").all().some((row) => row.name === "provider"))
+  if (!sqliteRows2(db.prepare("PRAGMA table_info(requests)").all()).some((row) => row.name === "provider"))
     db.exec("ALTER TABLE requests ADD COLUMN provider TEXT");
-  if (!db.prepare("PRAGMA table_info(requests)").all().some((row) => row.name === "purpose"))
+  if (!sqliteRows2(db.prepare("PRAGMA table_info(requests)").all()).some((row) => row.name === "purpose"))
     db.exec("ALTER TABLE requests ADD COLUMN purpose TEXT");
   db.exec("CREATE TABLE IF NOT EXISTS provider_recoveries(provider TEXT PRIMARY KEY, observation_hash TEXT NOT NULL, observed_at INTEGER NOT NULL)");
   return db;
@@ -83547,7 +83730,7 @@ async function acquireKnowledgeProviderAdmission(input) {
       transactionOpen = false;
       return null;
     }
-    const pause = db.prepare("SELECT * FROM provider_pauses WHERE provider = ?").get(input.provider);
+    const pause = sqliteRow2(db.prepare("SELECT * FROM provider_pauses WHERE provider = ?").get(input.provider));
     if (pause !== void 0 && (pause.reset_at === null || typeof pause.reset_at !== "number" || pause.reset_at > now) && input.purpose !== "availability_probe") {
       db.prepare("DELETE FROM requests WHERE repository_hash = ? AND nonce IS NULL").run(repositoryHash);
       db.exec("COMMIT");
@@ -83561,7 +83744,7 @@ async function acquireKnowledgeProviderAdmission(input) {
       if (!alive2(row.owner_pid) || row.nonce === null && deadline <= now)
         db.prepare("DELETE FROM requests WHERE repository_hash = ? AND owner_pid = ?").run(row.repository_hash, row.owner_pid);
     }
-    if (rows(db).length >= 1024 && db.prepare("SELECT repository_hash FROM requests WHERE repository_hash = ?").get(repositoryHash) === void 0) {
+    if (rows(db).length >= 1024 && sqliteRow2(db.prepare("SELECT repository_hash FROM requests WHERE repository_hash = ?").get(repositoryHash)) === void 0) {
       db.exec("COMMIT");
       transactionOpen = false;
       return null;
@@ -83581,7 +83764,7 @@ async function acquireKnowledgeProviderAdmission(input) {
       ON CONFLICT(repository_hash) DO UPDATE SET owner_pid=excluded.owner_pid,last_seen_at=excluded.last_seen_at,provider=excluded.provider,purpose=excluded.purpose`).run(repositoryHash, process.pid, now, now, input.provider, input.purpose ?? null);
     const pending = rows(db);
     const active = pending.filter((row) => row.nonce !== null);
-    const paused = new Set(db.prepare("SELECT provider FROM provider_pauses WHERE reset_at IS NULL OR reset_at > ?").all(now).map((row) => String(row.provider)));
+    const paused = new Set(sqliteRows2(db.prepare("SELECT provider FROM provider_pauses WHERE reset_at IS NULL OR reset_at > ?").all(now)).map((row) => String(row.provider)));
     const first = pending.find((row) => row.nonce === null && (!paused.has(row.provider ?? "") || row.purpose === "availability_probe"));
     if (active.length >= 2 || first?.repository_hash !== repositoryHash) {
       db.exec("COMMIT");
@@ -83635,7 +83818,7 @@ async function pauseKnowledgeProvider(input) {
 async function knowledgeProviderAdmissionState(input) {
   const db = await database(input.directory ?? resolve63(homedir2(), ".lervo", "state", "knowledge-provider-admission"));
   try {
-    const pause = db.prepare("SELECT * FROM provider_pauses WHERE provider = ?").get(input.provider);
+    const pause = sqliteRow2(db.prepare("SELECT * FROM provider_pauses WHERE provider = ?").get(input.provider));
     const now = (input.now ?? /* @__PURE__ */ new Date()).getTime();
     return {
       paused: pause !== void 0 && (pause.reset_at === null || Number(pause.reset_at) > now),
@@ -83667,26 +83850,26 @@ async function reserveConvergenceProviderCall(input) {
   const db = new DatabaseSync(path);
   await chmod6(path, 384);
   db.exec("PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS budgets (batch_hash TEXT PRIMARY KEY, calls INTEGER NOT NULL, obligation_id TEXT)");
-  if (!db.prepare("PRAGMA table_info(budgets)").all().some((row) => row.name === "obligation_id"))
+  if (!sqliteRows2(db.prepare("PRAGMA table_info(budgets)").all()).some((row) => row.name === "obligation_id"))
     db.exec("ALTER TABLE budgets ADD COLUMN obligation_id TEXT");
   let transaction = false;
   try {
     db.exec("BEGIN IMMEDIATE");
     transaction = true;
-    for (const row of db.prepare("SELECT DISTINCT obligation_id FROM budgets WHERE obligation_id IS NOT NULL LIMIT 8192").all()) {
+    for (const row of sqliteRows2(db.prepare("SELECT DISTINCT obligation_id FROM budgets WHERE obligation_id IS NOT NULL LIMIT 8192").all())) {
       const id6 = String(row.obligation_id);
       const terminal = input.events.get(stableId("evt", [id6, "terminal"], 32));
       if (terminal?.type === "repository.knowledge.convergence.recorded" && terminal.payload.obligationId === id6 || input.events.get(id6)?.type === "repository.knowledge.resolved")
         db.prepare("DELETE FROM budgets WHERE obligation_id=?").run(id6);
     }
     const id5 = sha2565(input.batchId);
-    const prior = db.prepare("SELECT calls FROM budgets WHERE batch_hash=?").get(id5);
+    const prior = sqliteRow2(db.prepare("SELECT calls FROM budgets WHERE batch_hash=?").get(id5));
     const count = prior === void 0 ? 0 : Number(prior.calls);
     if (!Number.isSafeInteger(count) || count < 0)
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
     if (count >= input.maximumCalls)
       throw new KnowledgeConvergenceRuntimeError("normalization_budget_exceeded");
-    if (prior === void 0 && Number(db.prepare("SELECT count(*) AS count FROM budgets").get().count) >= 8192)
+    if (prior === void 0 && Number(sqliteRow2(db.prepare("SELECT count(*) AS count FROM budgets").get()).count) >= 8192)
       throw new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
     db.prepare("INSERT INTO budgets(batch_hash,calls,obligation_id) VALUES(?,?,?) ON CONFLICT(batch_hash) DO UPDATE SET calls=excluded.calls").run(id5, count + 1, input.obligationId);
     db.exec("COMMIT");
@@ -83848,6 +84031,7 @@ function assertConvergenceSettlementAuthority(context, state2) {
 
 // packages/repository-knowledge-runtime/dist/source-capture.js
 import { execFileSync } from "node:child_process";
+import { lstatSync as lstatSync8 } from "node:fs";
 
 // packages/repository-knowledge-runtime/dist/source-capture-settings.js
 function convergenceSourceCaptureSettings(root2) {
@@ -83877,29 +84061,171 @@ function convergenceSourceCaptureSettings(root2) {
   };
 }
 
-// packages/repository-knowledge-runtime/dist/symbolic-source.js
-import { lstatSync as lstatSync6, readlinkSync } from "node:fs";
+// packages/repository-knowledge-runtime/dist/source-hash-cache.js
+import { chmodSync as chmodSync2, lstatSync as lstatSync6, rmSync as rmSync2 } from "node:fs";
 import { resolve as resolve66 } from "node:path";
+var MAXIMUM_ROWS = 5e4;
+var SCHEMA_VERSION = 1;
+var RACY_WINDOW_NANOSECONDS = 2000000000n;
+var disabled = {
+  lookup: () => null,
+  record: () => void 0,
+  commit: () => void 0,
+  close: () => void 0
+};
+function privateDirectory(root2) {
+  let directory = resolve66(root2);
+  for (const part of [".lervo", "state", "knowledge"]) {
+    directory = resolve66(directory, part);
+    try {
+      const stat = lstatSync6(directory);
+      if (!stat.isDirectory() || stat.isSymbolicLink())
+        return null;
+    } catch {
+      return null;
+    }
+  }
+  return directory;
+}
+function openDatabase(path) {
+  const db = new DatabaseSync(path);
+  try {
+    chmodSync2(path, 384);
+    db.exec("PRAGMA busy_timeout=5000");
+    const version = Number(sqliteRow2(db.prepare("PRAGMA user_version").get())?.user_version ?? 0);
+    if (version !== SCHEMA_VERSION) {
+      db.exec("DROP TABLE IF EXISTS sources");
+      db.exec(`PRAGMA user_version=${SCHEMA_VERSION}`);
+    }
+    db.exec("CREATE TABLE IF NOT EXISTS sources(path TEXT PRIMARY KEY,size TEXT NOT NULL,mtime_ns TEXT NOT NULL,ctime_ns TEXT NOT NULL,ino TEXT NOT NULL,hashed_at_ns TEXT NOT NULL,sha256 TEXT NOT NULL,kind TEXT NOT NULL)");
+    return db;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+}
+function loadRows(db) {
+  const rows2 = /* @__PURE__ */ new Map();
+  for (const row of sqliteRows2(db.prepare("SELECT * FROM sources").all())) {
+    if (typeof row.path !== "string" || typeof row.sha256 !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(row.sha256) || row.kind !== "text" && row.kind !== "opaque")
+      continue;
+    rows2.set(row.path, {
+      contentHash: row.sha256,
+      kind: row.kind,
+      size: String(row.size),
+      mtimeNs: String(row.mtime_ns),
+      ctimeNs: String(row.ctime_ns),
+      ino: String(row.ino),
+      hashedAtNs: String(row.hashed_at_ns)
+    });
+  }
+  return rows2;
+}
+function removeDatabase(path) {
+  for (const suffix of ["", "-journal", "-wal", "-shm"])
+    rmSync2(`${path}${suffix}`, { force: true });
+}
+function openSourceHashCache(root2) {
+  const directory = privateDirectory(root2);
+  if (directory === null)
+    return disabled;
+  const path = resolve66(directory, "source-hash-cache.sqlite");
+  try {
+    const stat = lstatSync6(path);
+    if (!stat.isFile() || stat.isSymbolicLink())
+      return disabled;
+  } catch (error) {
+    if (error.code !== "ENOENT")
+      return disabled;
+  }
+  let db;
+  let rows2;
+  try {
+    db = openDatabase(path);
+    rows2 = loadRows(db);
+  } catch {
+    try {
+      removeDatabase(path);
+      db = openDatabase(path);
+      rows2 = loadRows(db);
+    } catch {
+      return disabled;
+    }
+  }
+  const recorded = /* @__PURE__ */ new Map();
+  return {
+    lookup(source, stat) {
+      const row = rows2.get(source);
+      if (row === void 0 || row.size !== stat.size.toString() || row.mtimeNs !== stat.mtimeNs.toString() || row.ctimeNs !== stat.ctimeNs.toString() || row.ino !== stat.ino.toString())
+        return null;
+      const hashedAt = BigInt(row.hashedAtNs);
+      if (stat.mtimeNs + RACY_WINDOW_NANOSECONDS >= hashedAt || stat.ctimeNs + RACY_WINDOW_NANOSECONDS >= hashedAt)
+        return null;
+      return { contentHash: row.contentHash, kind: row.kind };
+    },
+    record(source, stat, hashedAtNs, value) {
+      recorded.set(source, {
+        ...value,
+        size: stat.size.toString(),
+        mtimeNs: stat.mtimeNs.toString(),
+        ctimeNs: stat.ctimeNs.toString(),
+        ino: stat.ino.toString(),
+        hashedAtNs: hashedAtNs.toString()
+      });
+    },
+    commit(presentPaths) {
+      if (presentPaths.size > MAXIMUM_ROWS)
+        return;
+      try {
+        db.exec("BEGIN IMMEDIATE");
+        try {
+          const remove = db.prepare("DELETE FROM sources WHERE path=?");
+          for (const source of rows2.keys())
+            if (!presentPaths.has(source))
+              remove.run(source);
+          const upsert = db.prepare("INSERT INTO sources VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(path) DO UPDATE SET size=excluded.size,mtime_ns=excluded.mtime_ns,ctime_ns=excluded.ctime_ns,ino=excluded.ino,hashed_at_ns=excluded.hashed_at_ns,sha256=excluded.sha256,kind=excluded.kind");
+          for (const [source, row] of recorded)
+            if (presentPaths.has(source))
+              upsert.run(source, row.size, row.mtimeNs, row.ctimeNs, row.ino, row.hashedAtNs, row.contentHash, row.kind);
+          if (Number(sqliteRow2(db.prepare("SELECT count(*) AS count FROM sources").get()).count) > MAXIMUM_ROWS)
+            db.exec("DELETE FROM sources");
+          db.exec("COMMIT");
+        } catch (error) {
+          db.exec("ROLLBACK");
+          throw error;
+        }
+      } catch {
+      }
+    },
+    close() {
+      db.close();
+    }
+  };
+}
+
+// packages/repository-knowledge-runtime/dist/symbolic-source.js
+import { lstatSync as lstatSync7, readlinkSync } from "node:fs";
+import { resolve as resolve67 } from "node:path";
 function symbolicConvergenceSourceBytes(root2, reference) {
-  let link4 = resolve66(root2);
+  let link4 = resolve67(root2);
   const parts = reference.path.split("/");
   for (const part of parts.slice(0, -1)) {
-    link4 = resolve66(link4, part);
-    const stat = lstatSync6(link4);
+    link4 = resolve67(link4, part);
+    const stat = lstatSync7(link4);
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
   }
-  link4 = resolve66(link4, parts.at(-1));
-  if (!lstatSync6(link4).isSymbolicLink() || readlinkSync(link4) !== reference.target)
+  link4 = resolve67(link4, parts.at(-1));
+  if (!lstatSync7(link4).isSymbolicLink() || readlinkSync(link4) !== reference.target)
     throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
   try {
-    let target = resolve66(root2);
+    let target = resolve67(root2);
     for (const part of symbolicReferenceTarget(reference).split("/")) {
-      target = resolve66(target, part);
-      if (lstatSync6(target).isSymbolicLink())
+      target = resolve67(target, part);
+      if (lstatSync7(target).isSymbolicLink())
         throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
     }
-    const stat = lstatSync6(target);
+    const stat = lstatSync7(target);
     if (reference.targetKind === "file" ? !stat.isFile() : !stat.isDirectory())
       throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
   } catch (error) {
@@ -83907,7 +84233,7 @@ function symbolicConvergenceSourceBytes(root2, reference) {
       cause: error
     });
   }
-  if (readlinkSync(link4) !== reference.target || !lstatSync6(link4).isSymbolicLink())
+  if (readlinkSync(link4) !== reference.target || !lstatSync7(link4).isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   return Buffer.from(`\0${canonicalJson4({ kind: "repository_symbolic_reference", ...reference })}`);
 }
@@ -83940,6 +84266,36 @@ function git(root2, args) {
     });
   }
 }
+function classifiedSource(bytes2) {
+  let kind = "opaque";
+  if (bytes2.byteLength <= 256 * 1024) {
+    try {
+      if (!new TextDecoder("utf8", { fatal: true }).decode(bytes2).includes("\0"))
+        kind = "text";
+    } catch {
+    }
+  }
+  return { contentHash: sha2565(bytes2), kind };
+}
+function observeConvergenceSource(root2, path, settings, cache) {
+  const reference = settings.policy.symbolicReferences.find((item) => item.path === path);
+  if (reference) {
+    const bytes3 = symbolicConvergenceSourceBytes(root2, reference);
+    return { ...classifiedSource(bytes3), byteLength: bytes3.byteLength };
+  }
+  const stat = lstatSync8(ordinaryConvergenceSourcePath(root2, path), { bigint: true });
+  if (stat.isFile() && stat.size <= BigInt(MAXIMUM_ORDINARY_SOURCE_BYTES)) {
+    const cached = cache.lookup(path, stat);
+    if (cached !== null)
+      return { ...cached, byteLength: Number(stat.size) };
+  }
+  const hashedAtNs = BigInt(Date.now()) * 1000000n;
+  const { bytes: bytes2, stat: read } = readOrdinaryConvergenceSource(root2, path);
+  const observed = classifiedSource(bytes2);
+  if (BigInt(bytes2.byteLength) === read.size)
+    cache.record(path, read, hashedAtNs, observed);
+  return { ...observed, byteLength: bytes2.byteLength };
+}
 function captureConvergenceChangedPaths(root2) {
   return [
     ...new Set([
@@ -83958,27 +84314,25 @@ function captureConvergenceSources(root2, policyHash) {
     throw new KnowledgeConvergenceRuntimeError("knowledge_source_limit_exceeded");
   const sources = [];
   let totalBytes = 0;
-  for (const path of paths) {
-    let bytes2;
-    try {
-      bytes2 = convergenceSourceBytes(root2, path, settings);
-    } catch (error) {
-      if (error.code === "ENOENT")
-        continue;
-      throw error;
-    }
-    totalBytes += bytes2.byteLength;
-    if (totalBytes > settings.policy.maximumRepositoryBytes)
-      throw new KnowledgeConvergenceRuntimeError("knowledge_source_limit_exceeded");
-    let kind = "opaque";
-    if (bytes2.byteLength <= 256 * 1024) {
+  const cache = openSourceHashCache(root2);
+  try {
+    for (const path of paths) {
+      let observed;
       try {
-        if (!new TextDecoder("utf8", { fatal: true }).decode(bytes2).includes("\0"))
-          kind = "text";
-      } catch {
+        observed = observeConvergenceSource(root2, path, settings, cache);
+      } catch (error) {
+        if (error.code === "ENOENT")
+          continue;
+        throw error;
       }
+      totalBytes += observed.byteLength;
+      if (totalBytes > settings.policy.maximumRepositoryBytes)
+        throw new KnowledgeConvergenceRuntimeError("knowledge_source_limit_exceeded");
+      sources.push({ path, contentHash: observed.contentHash, kind: observed.kind });
     }
-    sources.push({ path, contentHash: sha2565(bytes2), kind });
+    cache.commit(new Set(sources.map((source) => source.path)));
+  } finally {
+    cache.close();
   }
   assertSymbolicTargetsCaptured(settings.policy.symbolicReferences, sources.map((source) => source.path));
   if (settings.delegationContentHash !== null && sha2565(ordinaryConvergenceSourceBytes(root2, CONVERGENCE_DELEGATION_PATH, 64 * 1024)) !== settings.delegationContentHash)
@@ -83988,6 +84342,148 @@ function captureConvergenceSources(root2, policyHash) {
   const changedPaths = captureConvergenceChangedPaths(root2);
   const snapshotHash = sha2565(canonicalJson4({ head, policyHash, sources, changedPaths }));
   return { head, snapshotId: `ksnap_${snapshotHash.slice(7, 31)}`, snapshotHash, sources };
+}
+
+// packages/repository-knowledge-runtime/dist/source-fingerprint.js
+import { execFileSync as execFileSync2 } from "node:child_process";
+import { lstatSync as lstatSync9, readdirSync } from "node:fs";
+import { resolve as resolve68 } from "node:path";
+
+// packages/repository-knowledge-runtime/dist/convergence-queue-observation.js
+var DESTINATIONS2 = [
+  KNOWLEDGE_CONVERGENCE_DESTINATION,
+  REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION,
+  REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION
+];
+var PAGE = 1e3;
+function observeConvergenceQueue(events) {
+  const outboxOutstanding = {};
+  let earliestAvailableAt = null;
+  const consider = (value) => {
+    earliestAvailableAt = Math.min(earliestAvailableAt ?? value, Number.isFinite(value) ? value : 0);
+  };
+  for (const destinationId of DESTINATIONS2) {
+    const outstanding = events.outstandingCount(destinationId);
+    outboxOutstanding[destinationId] = outstanding;
+    if (outstanding === 0)
+      continue;
+    const pending = events.listOutbox({ destinationId, status: "pending", limit: PAGE });
+    const leased = events.listOutbox({ destinationId, status: "leased", limit: PAGE });
+    if (pending.length === PAGE || leased.length === PAGE)
+      consider(0);
+    for (const delivery of pending)
+      consider(Date.parse(delivery.availableAt));
+    for (const delivery of leased)
+      consider(Date.parse(delivery.lease?.expiresAt ?? ""));
+  }
+  return { eventsHead: events.latest()?.eventHash ?? null, outboxOutstanding, earliestAvailableAt };
+}
+
+// packages/repository-knowledge-runtime/dist/source-fingerprint.js
+var MAXIMUM_OBSERVED_PATHS = 2e4;
+var KNOWLEDGE_STATE = ".lervo/state/knowledge";
+function git2(root2, args) {
+  return execFileSync2("git", ["--no-optional-locks", "-C", root2, ...args], {
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+    stdio: ["ignore", "pipe", "ignore"]
+  });
+}
+function metadata(path) {
+  try {
+    const stat = lstatSync9(path, { bigint: true });
+    return [
+      stat.isDirectory() ? "directory" : stat.isFile() ? "file" : "other",
+      stat.size.toString(),
+      stat.mtimeNs.toString(),
+      stat.ctimeNs.toString(),
+      stat.ino.toString()
+    ];
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return null;
+    throw error;
+  }
+}
+function porcelainStatusPaths(status) {
+  const records = status.split("\0");
+  const paths = [];
+  for (let index2 = 0; index2 < records.length; index2++) {
+    const record4 = records[index2];
+    if (record4.length === 0 || record4.startsWith("# "))
+      continue;
+    const fields2 = record4.split(" ");
+    if (record4[0] === "1" && fields2.length >= 9)
+      paths.push(fields2.slice(8).join(" "));
+    else if (record4[0] === "2" && fields2.length >= 10) {
+      paths.push(fields2.slice(9).join(" "));
+      const original = records[++index2];
+      if (original === void 0 || original.length === 0)
+        throw new Error("Invalid repository status rename record.");
+      paths.push(original);
+    } else if (record4[0] === "u" && fields2.length >= 11)
+      paths.push(fields2.slice(10).join(" "));
+    else if ((record4[0] === "?" || record4[0] === "!") && record4[1] === " ")
+      paths.push(record4.slice(2));
+    else
+      throw new Error("Invalid repository status record.");
+    if (paths.length > MAXIMUM_OBSERVED_PATHS)
+      throw new Error("Repository status observation limit exceeded.");
+  }
+  return paths;
+}
+function candidateMetadata(root2) {
+  const state2 = resolve68(root2, KNOWLEDGE_STATE);
+  let stores;
+  try {
+    stores = readdirSync(state2).filter((name2) => name2.endsWith("candidates")).sort();
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return [];
+    throw error;
+  }
+  const observed = [];
+  let count = 0;
+  const visit2 = (path, depth) => {
+    if (++count > MAXIMUM_OBSERVED_PATHS)
+      throw new Error("Candidate observation limit exceeded.");
+    const own3 = metadata(path);
+    observed.push([path.slice(state2.length + 1), own3]);
+    if (own3?.[0] !== "directory" || depth === 0)
+      return;
+    for (const name2 of readdirSync(path).sort())
+      visit2(resolve68(path, name2), depth - 1);
+  };
+  for (const store of stores)
+    visit2(resolve68(state2, store), 2);
+  return observed;
+}
+function convergenceRepositoryDigest(root2) {
+  const [indexPath, head] = git2(root2, ["rev-parse", "--git-path", "index", "HEAD"]).trim().split("\n");
+  if (indexPath === void 0 || head === void 0 || !/^[a-f0-9]{40,64}$/u.test(head))
+    throw new Error("Repository head observation is invalid.");
+  const status = git2(root2, ["status", "--porcelain=v2", "-z", "--untracked-files=all"]);
+  const index2 = metadata(resolve68(root2, indexPath));
+  const settings = convergenceSourceCaptureSettings(root2);
+  return sha2565(canonicalJson4({
+    head,
+    status: sha2565(status),
+    dirty: porcelainStatusPaths(status).map((path) => [path, metadata(resolve68(root2, path))]),
+    index: index2 === null ? null : { size: index2[1], mtimeNs: index2[2] },
+    policy: sha2565(canonicalJson4(settings.policy)),
+    delegation: settings.delegationContentHash,
+    candidates: sha2565(canonicalJson4(candidateMetadata(root2))),
+    materialization: metadata(resolve68(root2, KNOWLEDGE_STATE, "materialization-transaction"))
+  }));
+}
+function convergenceSourceFingerprint(input) {
+  const sourceDigest = convergenceRepositoryDigest(input.repositoryRoot);
+  const queue = observeConvergenceQueue(input.events);
+  return {
+    fingerprint: sha2565(canonicalJson4({ sourceDigest, ...queue })),
+    sourceDigest,
+    earliestAvailableAt: queue.earliestAvailableAt
+  };
 }
 
 // packages/repository-knowledge-runtime/dist/historical-acceptance.js
@@ -84041,11 +84537,16 @@ async function changedPathsForEvent(payload, artifacts) {
     throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
   return paths;
 }
+var HISTORICAL_EVENT_TYPES = [
+  "repository.change.completed",
+  "repository.knowledge.resolved",
+  "repository.knowledge.convergence.recorded"
+];
 async function historicalObligations(events, artifacts, accepted = /* @__PURE__ */ new Set()) {
   const changes = /* @__PURE__ */ new Map();
   let afterSeq = 0;
   for (; ; ) {
-    const page = events.list({ afterSeq, limit: 1e3 });
+    const page = events.list({ afterSeq, limit: 1e3, types: HISTORICAL_EVENT_TYPES });
     if (page.length === 0)
       break;
     for (const event of page) {
@@ -84111,7 +84612,11 @@ async function integratedInput(artifacts, hash3) {
 async function canonicalDispositionLedger(events, artifacts) {
   const ledger = ledgers.get(events) ?? { afterSeq: 0, entries: /* @__PURE__ */ new Map() };
   for (; ; ) {
-    const page = events.list({ afterSeq: ledger.afterSeq, limit: 1e3 });
+    const page = events.list({
+      afterSeq: ledger.afterSeq,
+      limit: 1e3,
+      types: ["repository.knowledge.stage.recorded"]
+    });
     if (!page.length)
       break;
     for (const event of page) {
@@ -84192,22 +84697,32 @@ async function integratedCanonicalDrafts(events, artifacts) {
 var canonicalDraftKey = key2;
 
 // packages/repository-knowledge-runtime/dist/baseline.js
+function repositoryFence(root2) {
+  try {
+    return convergenceRepositoryDigest(root2);
+  } catch (error) {
+    if (error instanceof KnowledgeConvergenceRuntimeError)
+      throw error;
+    throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_unavailable", {
+      cause: error
+    });
+  }
+}
 async function discoverConvergenceBaseline(root2, events, artifacts) {
+  const fence = repositoryFence(root2);
   const { manifest, policy, scan } = await scanConfiguredRepositoryKnowledge(root2);
   const delegation = await loadConvergenceDelegation(root2);
   const policyHash = sha2565(canonicalJson4({ contract: "background-knowledge-convergence-v1", policy }));
-  const before = captureConvergenceSources(root2, policyHash);
-  const beforeChanged = captureConvergenceChangedPaths(root2);
+  const after = captureConvergenceSources(root2, policyHash);
+  const afterChanged = captureConvergenceChangedPaths(root2);
   const [normalization, currency, candidates] = await Promise.all([
     inspectConfiguredDocumentNormalization({ repositoryRoot: root2, preparedScan: scan }),
-    inspectRepositoryKnowledgeCurrency(root2),
+    inspectRepositoryKnowledgeCurrency(root2, { preparedScan: scan }),
     listCanonicalizationCandidates(root2)
   ]);
   const acceptance = loadHistoricalAcceptance(root2, manifest.projectId);
   const historical = await historicalObligations(events, artifacts, acceptance?.accepted);
-  const after = captureConvergenceSources(root2, policyHash);
-  const afterChanged = captureConvergenceChangedPaths(root2);
-  if (before.snapshotHash !== after.snapshotHash || canonicalJson4(beforeChanged) !== canonicalJson4(afterChanged))
+  if (repositoryFence(root2) !== fence)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   const historicalEvents = historical.events;
   const obligationPaths = /* @__PURE__ */ new Set([
@@ -84277,6 +84792,22 @@ async function discoverConvergenceBaseline(root2, events, artifacts) {
     }),
     normalizationPaths: normalization.pendingDocuments,
     historicalEvents
+  };
+}
+function cycleScopedConvergenceDiscovery(root2, events, artifacts) {
+  let last = null;
+  return async () => {
+    let key3;
+    try {
+      key3 = `${convergenceRepositoryDigest(root2)}:${events.latest()?.eventHash ?? ""}`;
+    } catch {
+      key3 = null;
+    }
+    if (key3 !== null && last?.key === key3)
+      return last.baseline;
+    const baseline = await discoverConvergenceBaseline(root2, events, artifacts);
+    last = key3 === null ? null : { key: key3, baseline };
+    return baseline;
   };
 }
 
@@ -85477,7 +86008,7 @@ async function reviewCanonicalBaseline(context, state2, assertLease) {
 import { constants as constants31 } from "node:fs";
 import { execFile as execFile8 } from "node:child_process";
 import { mkdir as mkdir23, lstat as lstat49, open as open27 } from "node:fs/promises";
-import { dirname as dirname21, resolve as resolve71, relative as relative16 } from "node:path";
+import { dirname as dirname21, resolve as resolve73, relative as relative16 } from "node:path";
 import { promisify as promisify8 } from "node:util";
 
 // packages/workspace-host/dist/index.js
@@ -85839,15 +86370,15 @@ async function applyWorkspaceCleanup(input) {
 var MAX_ADAPTER_TURN_RESULT_BYTES = 4 * 1024 * 1024;
 
 // packages/adapter-contract/dist/provider-process-environment.js
-import { dirname as dirname18, delimiter, resolve as resolve67 } from "node:path";
+import { dirname as dirname18, delimiter, resolve as resolve69 } from "node:path";
 function createProviderProcessEnvironment(environment = process.env, runtimeExecutable = process.execPath) {
   const result = Object.fromEntries(Object.entries(environment).filter((entry) => entry[1] !== void 0));
   const pathKeys = Object.keys(result).filter((key3) => key3.toLowerCase() === "path");
   const pathKey = pathKeys[0] ?? "PATH";
   for (const duplicate of pathKeys.slice(1))
     delete result[duplicate];
-  const runtimeDirectory = dirname18(resolve67(runtimeExecutable));
-  const existing = (result[pathKey] ?? "").split(delimiter).filter((entry) => entry.length > 0 && resolve67(entry) !== runtimeDirectory);
+  const runtimeDirectory = dirname18(resolve69(runtimeExecutable));
+  const existing = (result[pathKey] ?? "").split(delimiter).filter((entry) => entry.length > 0 && resolve69(entry) !== runtimeDirectory);
   result[pathKey] = [runtimeDirectory, ...existing].join(delimiter);
   return result;
 }
@@ -85941,7 +86472,7 @@ async function repositorySnapshotGitHead(root2) {
 // packages/orchestrator/dist/repository-snapshot.js
 import { createHash as createHash37 } from "node:crypto";
 import { lstat as lstat46, readdir as readdir17, readlink } from "node:fs/promises";
-import { relative as relative15, resolve as resolve68, sep as sep15 } from "node:path";
+import { relative as relative15, resolve as resolve70, sep as sep15 } from "node:path";
 var defaultRepositorySnapshotPolicy = Object.freeze({
   excludedDirectoryNames: Object.freeze([
     ".git",
@@ -86018,7 +86549,7 @@ async function captureRepositorySnapshotWithCache(input) {
   const resolvedPolicy = resolveRepositorySnapshotPolicy(input.policy);
   const excludedDirectories = new Set(resolvedPolicy.excludedDirectoryNames);
   const excludedPaths = new Set(resolvedPolicy.excludedPaths);
-  const root2 = resolve68(input.repositoryRoot);
+  const root2 = resolve70(input.repositoryRoot);
   const cacheKey = snapshotCacheKey(root2, resolvedPolicy);
   const previousEntries = input.previous?.cacheKey === cacheKey ? input.previous.entries : /* @__PURE__ */ new Map();
   const nextEntries = /* @__PURE__ */ new Map();
@@ -86041,7 +86572,7 @@ async function captureRepositorySnapshotWithCache(input) {
     }
     entries.sort((left, right) => left.name.localeCompare(right.name));
     for (const entry of entries) {
-      const absolutePath = resolve68(directory, entry.name);
+      const absolutePath = resolve70(directory, entry.name);
       const path = portablePath2(root2, absolutePath);
       if (excludedPaths.has(path))
         continue;
@@ -87524,7 +88055,7 @@ import { execFile as execFile5 } from "node:child_process";
 import { createHash as createHash43 } from "node:crypto";
 import { constants as constants30 } from "node:fs";
 import { lstat as lstat47, open as open26, readFile as readFile26, realpath as realpath7 } from "node:fs/promises";
-import { dirname as dirname20, isAbsolute as isAbsolute5, resolve as resolve69 } from "node:path";
+import { dirname as dirname20, isAbsolute as isAbsolute5, resolve as resolve71 } from "node:path";
 import { promisify as promisify5 } from "node:util";
 var execute3 = promisify5(execFile5);
 var COMMIT6 = /^[a-f0-9]{40,64}$/u;
@@ -87543,7 +88074,7 @@ function stableJson10(value) {
 function digest10(value) {
   return `sha256:${createHash43("sha256").update(stableJson10(value)).digest("hex")}`;
 }
-async function git2(root2, arguments_) {
+async function git3(root2, arguments_) {
   try {
     const { stdout } = await execute3("git", ["-C", root2, ...arguments_], {
       encoding: "utf8",
@@ -87568,12 +88099,12 @@ async function gitSucceeds(root2, arguments_) {
   }
 }
 async function registeredWorktrees(repositoryRoot) {
-  const output = await git2(repositoryRoot, ["worktree", "list", "--porcelain", "-z"]);
+  const output = await git3(repositoryRoot, ["worktree", "list", "--porcelain", "-z"]);
   const records = /* @__PURE__ */ new Map();
   let path = null;
   for (const field2 of output.split("\0")) {
     if (field2.startsWith("worktree "))
-      path = resolve69(field2.slice("worktree ".length));
+      path = resolve71(field2.slice("worktree ".length));
     else if (path !== null && field2.startsWith("HEAD ")) {
       records.set(path, field2.slice("HEAD ".length));
       path = null;
@@ -87591,7 +88122,7 @@ async function gitOperationInProgress(gitDirectory) {
     "rebase-apply"
   ]) {
     try {
-      await lstat47(resolve69(gitDirectory, name2));
+      await lstat47(resolve71(gitDirectory, name2));
       return true;
     } catch (error) {
       if (error.code !== "ENOENT")
@@ -87609,12 +88140,12 @@ var GitWorkspaceEvidence = class {
     return marker.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker.workspaceId) && Number.isSafeInteger(marker.generation) && marker.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker.repositoryInstanceId) && marker.adapterKind === this.binding.kind && marker.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker.creationPlanId) && HASH31.test(marker.pathDigest);
   }
   validateRequest(repositoryRoot, workspacePath, marker, allowSamePath = false) {
-    if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve69(repositoryRoot) !== repositoryRoot || resolve69(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker))
+    if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve71(repositoryRoot) !== repositoryRoot || resolve71(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker))
       fail17("host_coordinate_invalid", "The Git workspace coordinate is invalid.");
   }
   async markerMatches(gitDirectory, expected) {
     try {
-      const path = resolve69(gitDirectory, MARKER_NAME);
+      const path = resolve71(gitDirectory, MARKER_NAME);
       const info = await lstat47(path);
       if (!info.isFile() || info.isSymbolicLink() || info.size > 16384)
         return false;
@@ -87626,12 +88157,12 @@ var GitWorkspaceEvidence = class {
   async writeMarker(workspacePath, marker) {
     if (!this.validMarker(marker))
       fail17("host_coordinate_invalid", "The workspace ownership marker is invalid.");
-    const gitDirectory = await git2(workspacePath, [
+    const gitDirectory = await git3(workspacePath, [
       "rev-parse",
       "--path-format=absolute",
       "--git-dir"
     ]);
-    const handle = await open26(resolve69(gitDirectory, MARKER_NAME), constants30.O_WRONLY | constants30.O_CREAT | constants30.O_EXCL | (constants30.O_NOFOLLOW ?? 0), 384);
+    const handle = await open26(resolve71(gitDirectory, MARKER_NAME), constants30.O_WRONLY | constants30.O_CREAT | constants30.O_EXCL | (constants30.O_NOFOLLOW ?? 0), 384);
     try {
       await handle.writeFile(`${JSON.stringify(marker, null, 2)}
 `);
@@ -87692,7 +88223,7 @@ var GitWorkspaceEvidence = class {
         nativeInstanceDigest: digest10({ path: input.workspacePath })
       };
     }
-    const coordinates = (await git2(input.workspacePath, [
+    const coordinates = (await git3(input.workspacePath, [
       "rev-parse",
       "--path-format=absolute",
       "HEAD",
@@ -87703,13 +88234,13 @@ var GitWorkspaceEvidence = class {
     if (coordinates.length !== 3 || !COMMIT6.test(headCommit) || !COMMIT6.test(treeHash) || !isAbsolute5(gitDirectory) || gitDirectory.includes("\0"))
       fail17("host_coordinate_invalid", "The Git inspection coordinates are invalid.");
     const [status, operation, matched] = await Promise.all([
-      git2(input.workspacePath, ["status", "--porcelain=v2", "--untracked-files=normal"]),
+      git3(input.workspacePath, ["status", "--porcelain=v2", "--untracked-files=normal"]),
       gitOperationInProgress(gitDirectory),
       this.markerMatches(gitDirectory, input.marker)
     ]);
     const [changed, untracked] = headCommit === input.baseCommit && status.length === 0 ? ["", ""] : await Promise.all([
-      git2(input.workspacePath, ["diff", "--name-only", "-z", input.baseCommit]),
-      git2(input.workspacePath, ["ls-files", "--others", "--exclude-standard", "-z"])
+      git3(input.workspacePath, ["diff", "--name-only", "-z", input.baseCommit]),
+      git3(input.workspacePath, ["ls-files", "--others", "--exclude-standard", "-z"])
     ]);
     const changedPaths = [
       ...new Set(`${changed}\0${untracked}`.split("\0").filter(Boolean))
@@ -87736,7 +88267,7 @@ var GitWorkspaceEvidence = class {
       input.baseCommit,
       inspection.headCommit
     ]);
-    const commitIds = baseCommitReachable ? (await git2(input.workspacePath, [
+    const commitIds = baseCommitReachable ? (await git3(input.workspacePath, [
       "rev-list",
       "--reverse",
       `${input.baseCommit}..${inspection.headCommit}`
@@ -87757,7 +88288,7 @@ var GitWorkspaceEvidence = class {
         childWorkspaceCount: 0,
         reviewLinkCount: 0
       };
-    const targetCommit = await git2(request.repositoryRoot, [
+    const targetCommit = await git3(request.repositoryRoot, [
       "show-ref",
       "--verify",
       "--hash",
@@ -87797,7 +88328,7 @@ var GitWorkspaceEvidence = class {
     if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink())
       fail17("host_coordinate_invalid", "The workspace parent must be a real directory.");
     await beforeMutation?.();
-    await git2(request.repositoryRoot, [
+    await git3(request.repositoryRoot, [
       "worktree",
       "add",
       "--detach",
@@ -87824,7 +88355,7 @@ var GitWorkspaceEvidence = class {
       fail17("host_operation_in_progress", "A Git operation is in progress.");
     if (!before.clean)
       fail17("host_not_clean", "The workspace contains tracked or untracked changes.");
-    await git2(request.repositoryRoot, ["worktree", "remove", request.workspacePath]);
+    await git3(request.repositoryRoot, ["worktree", "remove", request.workspacePath]);
     const after = await this.inspect(request);
     if (after.status !== "absent")
       fail17("host_effect_uncertain", "Git did not prove non-force worktree removal.");
@@ -87843,7 +88374,7 @@ var execute4 = promisify6(execFile6);
 function fail18(code, message, cause) {
   throw new WorkspaceHostError(code, message, cause === void 0 ? void 0 : { cause });
 }
-async function git3(root2, arguments_) {
+async function git4(root2, arguments_) {
   try {
     const { stdout } = await execute4("git", ["-C", root2, ...arguments_], {
       encoding: "utf8",
@@ -87877,13 +88408,13 @@ async function exactTargetCommit(repositoryRoot, targetRef) {
   }
 }
 async function assertTargetRefNotCheckedOut(repositoryRoot, targetRef) {
-  const output = await git3(repositoryRoot, ["worktree", "list", "--porcelain", "-z"]);
+  const output = await git4(repositoryRoot, ["worktree", "list", "--porcelain", "-z"]);
   if (output.split("\0").some((field2) => field2 === `branch ${targetRef}`))
     fail18("host_coordinate_invalid", "The Git integration target ref is checked out in a registered worktree.");
 }
 async function assertCandidateGraph(input) {
   const [treeHash, descendsFromTarget] = await Promise.all([
-    git3(input.repositoryRoot, ["rev-parse", `${input.candidateCommit}^{tree}`]),
+    git4(input.repositoryRoot, ["rev-parse", `${input.candidateCommit}^{tree}`]),
     gitSucceeds2(input.repositoryRoot, [
       "merge-base",
       "--is-ancestor",
@@ -87949,7 +88480,7 @@ var VERSION4 = "1.0.0";
 function fail19(code, message, cause) {
   throw new WorkspaceHostError(code, message, cause === void 0 ? void 0 : { cause });
 }
-async function git4(root2, arguments_, environment) {
+async function git5(root2, arguments_, environment) {
   try {
     const { stdout } = await execute5("git", ["-C", root2, ...arguments_], {
       encoding: "utf8",
@@ -88068,10 +88599,10 @@ var GitWorkspaceIntegrationAdapter = class {
       };
     }
     const [candidateCommit, candidateTreeHash, targetCommit, status] = await Promise.all([
-      git4(request.integrationWorkspacePath, ["rev-parse", "HEAD"]),
-      git4(request.integrationWorkspacePath, ["rev-parse", "HEAD^{tree}"]),
+      git5(request.integrationWorkspacePath, ["rev-parse", "HEAD"]),
+      git5(request.integrationWorkspacePath, ["rev-parse", "HEAD^{tree}"]),
       exactTargetCommit(request.repositoryRoot, request.targetRef),
-      git4(request.integrationWorkspacePath, [
+      git5(request.integrationWorkspacePath, [
         "status",
         "--porcelain=v2",
         "--untracked-files=normal"
@@ -88168,17 +88699,17 @@ function assertConvergenceVerificationPassed(status) {
 
 // packages/repository-knowledge-runtime/dist/effect-checkpoint.js
 import { mkdir as mkdir22, lstat as lstat48, chmod as chmod7 } from "node:fs/promises";
-import { resolve as resolve70 } from "node:path";
+import { resolve as resolve72 } from "node:path";
 async function convergenceEffectCheckpoint(input) {
   const { storage, assignment } = input;
   if (!assignment.convergence || !assignment.lease)
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
-  const directory = resolve70(storage.paths.repositoryRoot, ".lervo/state/knowledge");
+  const directory = resolve72(storage.paths.repositoryRoot, ".lervo/state/knowledge");
   await mkdir22(directory, { recursive: true, mode: 448 });
   const parent = await lstat48(directory);
   if (!parent.isDirectory() || parent.isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
-  const path = resolve70(directory, "convergence-effects.sqlite");
+  const path = resolve72(directory, "convergence-effects.sqlite");
   try {
     const file = await lstat48(path);
     if (!file.isFile() || file.isSymbolicLink())
@@ -88190,7 +88721,7 @@ async function convergenceEffectCheckpoint(input) {
   const db = new DatabaseSync(path);
   await chmod7(path, 384);
   db.exec("PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS checkpoints (coordinate_hash TEXT PRIMARY KEY, obligation_id TEXT NOT NULL, artifact_hash TEXT NOT NULL, assignment_id TEXT, input_hash TEXT, effect TEXT, lease_generation INTEGER)");
-  const columns = db.prepare("PRAGMA table_info(checkpoints)").all().map((row) => row.name);
+  const columns = sqliteRows2(db.prepare("PRAGMA table_info(checkpoints)").all()).map((row) => row.name);
   for (const [name2, type] of [
     ["assignment_id", "TEXT"],
     ["input_hash", "TEXT"],
@@ -88206,7 +88737,7 @@ async function convergenceEffectCheckpoint(input) {
     input.effect
   ]));
   try {
-    const prior = db.prepare("SELECT artifact_hash FROM checkpoints WHERE coordinate_hash=?").get(coordinate);
+    const prior = sqliteRow2(db.prepare("SELECT artifact_hash FROM checkpoints WHERE coordinate_hash=?").get(coordinate));
     if (prior) {
       const hash3 = String(prior.artifact_hash);
       if (!/^sha256:[a-f0-9]{64}$/u.test(hash3))
@@ -88219,13 +88750,13 @@ async function convergenceEffectCheckpoint(input) {
         throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
       return stored.value;
     }
-    for (const row of db.prepare("SELECT DISTINCT obligation_id FROM checkpoints LIMIT 8192").all()) {
+    for (const row of sqliteRows2(db.prepare("SELECT DISTINCT obligation_id FROM checkpoints LIMIT 8192").all())) {
       const id5 = String(row.obligation_id);
       const terminal = storage.events.get(stableId("evt", [id5, "terminal"], 32));
       if (terminal?.type === "repository.knowledge.convergence.recorded" && terminal.payload.obligationId === id5)
         db.prepare("DELETE FROM checkpoints WHERE obligation_id=?").run(id5);
     }
-    if (Number(db.prepare("SELECT count(*) AS count FROM checkpoints").get().count) >= 8192)
+    if (Number(sqliteRow2(db.prepare("SELECT count(*) AS count FROM checkpoints").get()).count) >= 8192)
       throw new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
     const value = await input.prepare();
     const proof = await storage.artifacts.put(canonicalJson4({ schemaVersion: 1, coordinate, assignment, effect: input.effect, value }));
@@ -88236,7 +88767,7 @@ async function convergenceEffectCheckpoint(input) {
   }
 }
 async function readConvergenceEffectCheckpoint(input) {
-  const path = resolve70(input.storage.paths.repositoryRoot, ".lervo/state/knowledge/convergence-effects.sqlite");
+  const path = resolve72(input.storage.paths.repositoryRoot, ".lervo/state/knowledge/convergence-effects.sqlite");
   try {
     const file = await lstat48(path);
     if (!file.isFile() || file.isSymbolicLink())
@@ -88248,9 +88779,9 @@ async function readConvergenceEffectCheckpoint(input) {
   }
   const db = new DatabaseSync(path, { readOnly: true });
   try {
-    if (!db.prepare("PRAGMA table_info(checkpoints)").all().some((row2) => row2.name === "assignment_id"))
+    if (!sqliteRows2(db.prepare("PRAGMA table_info(checkpoints)").all()).some((row2) => row2.name === "assignment_id"))
       return null;
-    const row = db.prepare("SELECT coordinate_hash,artifact_hash FROM checkpoints WHERE assignment_id=? AND input_hash=? AND effect=? ORDER BY lease_generation DESC LIMIT 1").get(input.assignmentId, input.inputArtifactHash, input.effect);
+    const row = sqliteRow2(db.prepare("SELECT coordinate_hash,artifact_hash FROM checkpoints WHERE assignment_id=? AND input_hash=? AND effect=? ORDER BY lease_generation DESC LIMIT 1").get(input.assignmentId, input.inputArtifactHash, input.effect));
     if (!row)
       return null;
     const hash3 = String(row.artifact_hash);
@@ -88330,7 +88861,7 @@ async function safeDirectory2(root2, directory) {
     throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
   let current = root2;
   for (const part of path.split("/")) {
-    current = resolve71(current, part);
+    current = resolve73(current, part);
     await mkdir23(current, { mode: 448 }).catch((error) => {
       if (error.code !== "EEXIST")
         throw error;
@@ -88347,7 +88878,7 @@ async function provisionCanonicalWorkspace(context, authority, kind) {
     authority.delegation.integrationTarget.ref
   ]);
   const host = new GitWorkspaceHostAdapter();
-  const path = resolve71(root2, ".lervo/state/knowledge/convergence-workspaces", authority.assignment.assignmentId, `lease-${authority.assignment.lease.generation}`, kind);
+  const path = resolve73(root2, ".lervo/state/knowledge/convergence-workspaces", authority.assignment.assignmentId, `lease-${authority.assignment.lease.generation}`, kind);
   await safeDirectory2(root2, dirname21(path));
   const plan2 = await convergenceEffectCheckpoint({
     storage: context.storage,
@@ -88437,8 +88968,8 @@ async function sealCanonicalDrafts(context, state2, authority, drafts) {
           throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
         await authority.assertCurrent();
         context.assertSource(state2);
-        await safeDirectory2(provision.path, dirname21(resolve71(provision.path, draft.path)));
-        const file = await open27(resolve71(provision.path, draft.path), constants31.O_WRONLY | constants31.O_CREAT | constants31.O_TRUNC | constants31.O_NOFOLLOW, 384);
+        await safeDirectory2(provision.path, dirname21(resolve73(provision.path, draft.path)));
+        const file = await open27(resolve73(provision.path, draft.path), constants31.O_WRONLY | constants31.O_CREAT | constants31.O_TRUNC | constants31.O_NOFOLLOW, 384);
         try {
           await file.writeFile(draft.content);
           await file.sync();
@@ -88502,7 +89033,7 @@ async function sealCanonicalDrafts(context, state2, authority, drafts) {
 }
 
 // packages/repository-knowledge-runtime/dist/canonical-integration-recovery.js
-import { execFileSync as execFileSync2 } from "node:child_process";
+import { execFileSync as execFileSync3 } from "node:child_process";
 async function inspectRetainedCanonicalIntegration(context, state2, drafts) {
   const root2 = context.storage.paths.repositoryRoot;
   const delegation = await assertConvergenceDelegation({
@@ -88566,7 +89097,7 @@ async function inspectRetainedCanonicalIntegration(context, state2, drafts) {
     if (sha2565(bytes2) !== result.resultContentHash)
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
   }
-  const target = execFileSync2("git", ["-C", root2, "rev-parse", plan2.targetRef], {
+  const target = execFileSync3("git", ["-C", root2, "rev-parse", plan2.targetRef], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"]
   }).trim();
@@ -88575,13 +89106,13 @@ async function inspectRetainedCanonicalIntegration(context, state2, drafts) {
   for (const draft of drafts) {
     if (!pathWithinConvergenceRoots(draft.path, delegation.canonicalRoots))
       throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
-    const after = sha2565(execFileSync2("git", ["-C", root2, "show", `${target}:${draft.path}`], {
+    const after = sha2565(execFileSync3("git", ["-C", root2, "show", `${target}:${draft.path}`], {
       maxBuffer: 256 * 1024,
       stdio: ["ignore", "pipe", "pipe"]
     }));
     let before = null;
     try {
-      before = sha2565(execFileSync2("git", ["-C", root2, "show", `${plan2.targetBeforeCommit}:${draft.path}`], {
+      before = sha2565(execFileSync3("git", ["-C", root2, "show", `${plan2.targetBeforeCommit}:${draft.path}`], {
         maxBuffer: 256 * 1024,
         stdio: ["ignore", "pipe", "pipe"]
       }));
@@ -88920,7 +89451,7 @@ async function integrateCanonicalWorkspace(context, state2, authority, sealedWor
 }
 
 // packages/repository-knowledge-runtime/dist/canonical-target-preflight.js
-import { execFileSync as execFileSync3 } from "node:child_process";
+import { execFileSync as execFileSync4 } from "node:child_process";
 
 // packages/repository-knowledge-runtime/dist/integration-target-sync.js
 import { createHash as createHash44 } from "node:crypto";
@@ -88999,7 +89530,7 @@ async function preflightCanonicalTargets(context, state2, drafts) {
       throw new KnowledgeConvergenceRuntimeError("knowledge_semantic_review_invalid");
     let before = null;
     try {
-      before = sha2565(execFileSync3("git", ["-C", root2, "show", `${targetCommit}:${draft.path}`], {
+      before = sha2565(execFileSync4("git", ["-C", root2, "show", `${targetCommit}:${draft.path}`], {
         encoding: "buffer",
         maxBuffer: 256 * 1024,
         stdio: ["ignore", "pipe", "pipe"]
@@ -90026,7 +90557,7 @@ async function unresolvedConvergenceAssets(context, state2) {
 import { createHash as createHash45 } from "node:crypto";
 import { execFile as execFile10 } from "node:child_process";
 import { existsSync as existsSync2, readFileSync as readFileSync5 } from "node:fs";
-import { resolve as resolve72 } from "node:path";
+import { resolve as resolve74 } from "node:path";
 import { promisify as promisify10 } from "node:util";
 var execute8 = promisify10(execFile10);
 var RECORD_ROOT = ".lervo/knowledge/document-normalizations/";
@@ -90035,7 +90566,7 @@ var KNOWLEDGE_OUTPUT_COMMIT_AUTHOR = {
   email: "knowledge@lervo.invalid"
 };
 var sha2568 = (bytes2) => `sha256:${createHash45("sha256").update(bytes2).digest("hex")}`;
-async function git5(root2, args, env) {
+async function git6(root2, args, env) {
   const { stdout } = await execute8("git", ["-C", root2, ...args], {
     maxBuffer: 64 * 1024 * 1024,
     ...env === void 0 ? {} : { env: { ...process.env, ...env } }
@@ -90055,7 +90586,7 @@ async function headBlob(root2, path) {
 }
 async function commitSafe(root2) {
   try {
-    await git5(root2, ["symbolic-ref", "-q", "HEAD"]);
+    await git6(root2, ["symbolic-ref", "-q", "HEAD"]);
   } catch {
     return false;
   }
@@ -90069,8 +90600,8 @@ async function commitSafe(root2) {
     "BISECT_LOG",
     "index.lock"
   ]) {
-    const path = (await git5(root2, ["rev-parse", "--git-path", marker])).trim();
-    if (existsSync2(resolve72(root2, path)))
+    const path = (await git6(root2, ["rev-parse", "--git-path", marker])).trim();
+    if (existsSync2(resolve74(root2, path)))
       return false;
   }
   return true;
@@ -90125,7 +90656,7 @@ async function selectSettledKnowledgeOutputs(input) {
 }
 async function settledKnowledgeOutputPaths(input) {
   const root2 = input.repositoryRoot;
-  const dirty = dirtyPaths(await git5(root2, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]));
+  const dirty = dirtyPaths(await git6(root2, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]));
   if (!dirty.size)
     return [];
   const normalization = await inspectConfiguredDocumentNormalization({ repositoryRoot: root2 });
@@ -90135,12 +90666,12 @@ async function settledKnowledgeOutputPaths(input) {
       const committed = await headBlob(root2, path);
       return committed === null ? null : sha2568(committed);
     },
-    current: (path) => sha2568(readFileSync5(resolve72(root2, path))),
+    current: (path) => sha2568(readFileSync5(resolve74(root2, path))),
     drafts: await integratedCanonicalDrafts(input.events, input.artifacts),
     records: normalization.records.flatMap((record4) => {
       if (record4.status !== "current")
         return [];
-      const source = documentNormalizationRecordSource(readFileSync5(resolve72(root2, record4.path), "utf8"));
+      const source = documentNormalizationRecordSource(readFileSync5(resolve74(root2, record4.path), "utf8"));
       return source ? [{ ...record4, source }] : [];
     }),
     deletedRecordSource: async (path) => {
@@ -90156,10 +90687,10 @@ async function commitSettledKnowledgeOutputs(input) {
   const paths = await settledKnowledgeOutputPaths(input);
   if (!paths.length)
     return { committed: [], head: null };
-  const before = (await git5(root2, ["rev-parse", "HEAD"])).trim();
+  const before = (await git6(root2, ["rev-parse", "HEAD"])).trim();
   try {
-    await git5(root2, ["add", "-A", "--", ...paths]);
-    await git5(root2, [
+    await git6(root2, ["add", "-A", "--", ...paths]);
+    await git6(root2, [
       "commit",
       "--only",
       "--quiet",
@@ -90176,8 +90707,8 @@ async function commitSettledKnowledgeOutputs(input) {
   } catch {
     return { committed: [], head: null };
   }
-  const after = (await git5(root2, ["rev-parse", "HEAD"])).trim();
-  const parent = (await git5(root2, ["rev-parse", `${after}^`])).trim();
+  const after = (await git6(root2, ["rev-parse", "HEAD"])).trim();
+  const parent = (await git6(root2, ["rev-parse", `${after}^`])).trim();
   if (parent !== before)
     return { committed: [], head: null };
   return { committed: paths, head: { before, after } };
@@ -90362,8 +90893,9 @@ function assertConvergenceSource(context, state2) {
 function createConvergenceRuntimeHost(context) {
   const root2 = context.storage.paths.repositoryRoot;
   const source = (state2) => assertConvergenceSource(context, state2);
+  const discover = cycleScopedConvergenceDiscovery(root2, context.storage.events, context.storage.artifacts);
   return {
-    discover: () => discoverConvergenceBaseline(root2, context.storage.events, context.storage.artifacts),
+    discover,
     assertSettlement: (state2) => {
       source(state2);
       assertConvergenceSettlementAuthority(context, state2);
@@ -90385,7 +90917,7 @@ function createConvergenceRuntimeHost(context) {
       if (sha2565(bytes2) !== hash3)
         throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
       const dependency = JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(bytes2));
-      const baseline = await discoverConvergenceBaseline(root2, context.storage.events, context.storage.artifacts);
+      const baseline = await discover();
       if (dependency.snapshotHash !== void 0 && dependency.snapshotHash !== baseline.sourceSnapshotHash)
         return false;
       if (dependency.delegationHash !== void 0 && dependency.delegationHash !== baseline.delegationHash)
@@ -90512,7 +91044,7 @@ function convergenceRecoveryStatus(storage) {
 // packages/repository-knowledge-runtime/dist/workforce-retention.js
 import { constants as constants32 } from "node:fs";
 import { open as open28 } from "node:fs/promises";
-import { resolve as resolve73 } from "node:path";
+import { resolve as resolve75 } from "node:path";
 async function compactConvergenceWorkforce(storage) {
   if ((storage.writableEventSchemaVersion ?? 1) < 4)
     return 0;
@@ -90533,7 +91065,7 @@ async function compactConvergenceWorkforce(storage) {
     const terminal = storage.events.get(stableId("evt", [provenance.obligationId, "terminal"], 32));
     if (terminal?.type !== "repository.knowledge.convergence.recorded" || terminal.payload.obligationId !== provenance.obligationId)
       continue;
-    const file = await open28(resolve73(home.workforce, "assignments", `${assignment.assignmentId}.json`), constants32.O_RDONLY | constants32.O_NOFOLLOW);
+    const file = await open28(resolve75(home.workforce, "assignments", `${assignment.assignmentId}.json`), constants32.O_RDONLY | constants32.O_NOFOLLOW);
     let hash3;
     try {
       const stat = await file.stat();
@@ -90576,7 +91108,7 @@ async function compactConvergenceWorkforce(storage) {
 }
 
 // packages/repository-knowledge-runtime/dist/workspace-retention.js
-import { resolve as resolve74, relative as relative17 } from "node:path";
+import { resolve as resolve76, relative as relative17 } from "node:path";
 async function compactConvergenceWorkspaces(storage, provider) {
   if ((storage.writableEventSchemaVersion ?? 1) < 4)
     return;
@@ -90593,7 +91125,7 @@ async function compactConvergenceWorkspaces(storage, provider) {
   await validate2();
   const assignments = await listAssignments(root2);
   const journals = (await (await RepositoryCoordinationRecords.open(root2)).list("cleanupJournals")).map((record4) => record4.value).filter(isWorkspaceCleanupJournal);
-  const ownedRoot = resolve74(root2, ".lervo/state/knowledge/convergence-workspaces");
+  const ownedRoot = resolve76(root2, ".lervo/state/knowledge/convergence-workspaces");
   const host = new GitWorkspaceHostAdapter();
   let count = 0;
   for (const workspace of await listWorkspaces(root2)) {
@@ -90690,11 +91222,11 @@ async function runAutonomousKnowledgeWorker(input) {
 
 // packages/repository-knowledge-runtime/dist/resident-health.js
 import { mkdir as mkdir24, lstat as lstat50, chmod as chmod8 } from "node:fs/promises";
-import { resolve as resolve75 } from "node:path";
+import { resolve as resolve77 } from "node:path";
 async function healthDatabase(root2, create) {
   let directory = root2;
   for (const part of [".lervo", "state", "knowledge"]) {
-    directory = resolve75(directory, part);
+    directory = resolve77(directory, part);
     if (create)
       await mkdir24(directory, { mode: 448 }).catch((error) => {
         if (error.code !== "EEXIST")
@@ -90710,7 +91242,7 @@ async function healthDatabase(root2, create) {
       throw error;
     }
   }
-  const path = resolve75(directory, "resident-health.sqlite");
+  const path = resolve77(directory, "resident-health.sqlite");
   try {
     const stat = await lstat50(path);
     if (!stat.isFile() || stat.isSymbolicLink())
@@ -90743,11 +91275,11 @@ async function recordKnowledgeResidentHealth(input) {
     db.exec("BEGIN IMMEDIATE");
     const now = (input.now ?? /* @__PURE__ */ new Date()).getTime();
     const key3 = sha2565(input.workerId);
-    for (const row of db.prepare("SELECT * FROM residents").all()) {
+    for (const row of sqliteRows2(db.prepare("SELECT * FROM residents").all())) {
       if (String(row.worker_hash) !== key3 && (now - Number(row.heartbeat) > 12e4 || !alive3(Number(row.pid))))
         db.prepare("DELETE FROM residents WHERE worker_hash=?").run(String(row.worker_hash));
     }
-    if (db.prepare("SELECT worker_hash FROM residents WHERE worker_hash=?").get(key3) === void 0 && Number(db.prepare("SELECT count(*) AS count FROM residents").get().count) >= 64)
+    if (sqliteRow2(db.prepare("SELECT worker_hash FROM residents WHERE worker_hash=?").get(key3)) === void 0 && Number(sqliteRow2(db.prepare("SELECT count(*) AS count FROM residents").get()).count) >= 64)
       throw new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
     db.prepare("INSERT INTO residents VALUES(?,?,?,?,?) ON CONFLICT(worker_hash) DO UPDATE SET pid=excluded.pid,heartbeat=excluded.heartbeat,state=excluded.state,reason=excluded.reason").run(key3, process.pid, now, input.state, input.reason?.slice(0, 128) ?? null);
     db.exec("COMMIT");
@@ -90758,7 +91290,8 @@ async function recordKnowledgeResidentHealth(input) {
 async function inspectKnowledgeResidentHealth(root2, now = /* @__PURE__ */ new Date()) {
   const db = await healthDatabase(root2, false);
   try {
-    const row = db?.prepare("SELECT * FROM residents WHERE state != 'stopped' ORDER BY heartbeat DESC").all().find((item) => now.getTime() - Number(item.heartbeat) <= 12e4 && alive3(Number(item.pid)));
+    const residents = db ? sqliteRows2(db.prepare("SELECT * FROM residents WHERE state != 'stopped' ORDER BY heartbeat DESC").all()) : [];
+    const row = residents.find((item) => now.getTime() - Number(item.heartbeat) <= 12e4 && alive3(Number(item.pid)));
     if (!row)
       return {
         status: "not_running",
@@ -90777,86 +91310,407 @@ async function inspectKnowledgeResidentHealth(root2, now = /* @__PURE__ */ new D
   }
 }
 
+// packages/repository-knowledge-runtime/dist/full-cycle-admission.js
+import { chmod as chmod9, lstat as lstat51, mkdir as mkdir25 } from "node:fs/promises";
+import { homedir as homedir3 } from "node:os";
+import { resolve as resolve78 } from "node:path";
+import { randomUUID as randomUUID12 } from "node:crypto";
+var LEASE_MILLISECONDS = 10 * 6e4;
+var RENEW_MILLISECONDS = 6e4;
+var POLL_MILLISECONDS = 1e3;
+function alive4(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code !== "ESRCH";
+  }
+}
+async function database2(directory) {
+  await mkdir25(directory, { recursive: true, mode: 448 });
+  const parent = await lstat51(directory);
+  if (!parent.isDirectory() || parent.isSymbolicLink())
+    throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
+  const path = resolve78(directory, "full-cycle-admission.sqlite");
+  try {
+    const file = await lstat51(path);
+    if (!file.isFile() || file.isSymbolicLink())
+      throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
+  } catch (error) {
+    if (error.code !== "ENOENT")
+      throw error;
+  }
+  const db = new DatabaseSync(path);
+  await chmod9(path, 384);
+  db.exec("PRAGMA busy_timeout=5000");
+  db.exec("CREATE TABLE IF NOT EXISTS holder(slot INTEGER PRIMARY KEY CHECK(slot=1),owner_pid INTEGER NOT NULL,nonce TEXT NOT NULL,repository_hash TEXT NOT NULL,acquired_at INTEGER NOT NULL,expires_at INTEGER NOT NULL)");
+  return db;
+}
+async function tryAcquire(input) {
+  const db = await database2(input.directory);
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const holder = sqliteRow2(db.prepare("SELECT * FROM holder WHERE slot=1").get());
+      const held = holder !== void 0 && Number(holder.expires_at) > input.now && alive4(Number(holder.owner_pid));
+      if (!held)
+        db.prepare("INSERT OR REPLACE INTO holder VALUES(1,?,?,?,?,?)").run(process.pid, input.nonce, input.repositoryHash, input.now, input.now + LEASE_MILLISECONDS);
+      db.exec("COMMIT");
+      return !held;
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  } finally {
+    db.close();
+  }
+}
+async function update(directory, sql, ...values) {
+  const db = await database2(directory);
+  try {
+    db.prepare(sql).run(...values);
+  } finally {
+    db.close();
+  }
+}
+function delay(milliseconds, signal) {
+  return new Promise((resolveDelay) => {
+    const timer = setTimeout(done, milliseconds);
+    function done() {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", done);
+      resolveDelay();
+    }
+    signal.addEventListener("abort", done, { once: true });
+  });
+}
+async function acquireFullCycleAdmission(input) {
+  const directory = input.directory ?? resolve78(homedir3(), ".lervo", "state", "knowledge-provider-admission");
+  const repositoryHash = sha2565(resolve78(input.repositoryRoot));
+  const nonce = randomUUID12();
+  let waited = false;
+  for (; ; ) {
+    if (input.signal.aborted)
+      throw new KnowledgeConvergenceRuntimeError("knowledge_cancelled");
+    if (await tryAcquire({ directory, repositoryHash, nonce, now: Date.now() }))
+      break;
+    if (!waited)
+      input.onWait?.();
+    waited = true;
+    await delay((input.pollMilliseconds ?? POLL_MILLISECONDS) * (0.75 + Math.random() / 2), input.signal);
+  }
+  const renewal = setInterval(() => {
+    void update(directory, "UPDATE holder SET expires_at=? WHERE slot=1 AND nonce=?", Date.now() + LEASE_MILLISECONDS, nonce).catch(() => void 0);
+  }, RENEW_MILLISECONDS);
+  renewal.unref();
+  let released = false;
+  return {
+    release: async () => {
+      if (released)
+        return;
+      released = true;
+      clearInterval(renewal);
+      await update(directory, "DELETE FROM holder WHERE slot=1 AND nonce=?", nonce);
+    }
+  };
+}
+
+// packages/repository-knowledge-runtime/dist/resident-cycle-state.js
+import { chmod as chmod10, lstat as lstat52, mkdir as mkdir26, readFile as readFile27, rename as rename12, rm as rm13, writeFile as writeFile7 } from "node:fs/promises";
+import { resolve as resolve79 } from "node:path";
+import { randomUUID as randomUUID13 } from "node:crypto";
+var RESIDENT_CYCLE_STATE_PATH = ".lervo/state/knowledge/resident-cycle.json";
+var RESULTS = /* @__PURE__ */ new Set(["idle", "waiting", "attention", "processed", "failed"]);
+var HASH32 = /^sha256:[a-f0-9]{64}$/u;
+function timestamp2(value) {
+  return value === null || typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+async function readResidentCycleState(root2) {
+  try {
+    const path = resolve79(root2, RESIDENT_CYCLE_STATE_PATH);
+    const stat = await lstat52(path);
+    if (!stat.isFile() || stat.size > 4096)
+      return null;
+    const value = JSON.parse(await readFile27(path, "utf8"));
+    if (value?.schemaVersion !== 1 || !(value.fingerprint === null || typeof value.fingerprint === "string" && HASH32.test(value.fingerprint)) || !timestamp2(value.lastCycleAt) || !timestamp2(value.nextReconcileAt) || typeof value.lastResult !== "string" || !RESULTS.has(value.lastResult) || !Number.isSafeInteger(value.idleStreak) || value.idleStreak < 0)
+      return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
+async function writeResidentCycleState(root2, state2) {
+  let directory = resolve79(root2);
+  for (const part of [".lervo", "state", "knowledge"]) {
+    directory = resolve79(directory, part);
+    await mkdir26(directory, { mode: 448 }).catch((error) => {
+      if (error.code !== "EEXIST")
+        throw error;
+    });
+    const stat = await lstat52(directory);
+    if (!stat.isDirectory() || stat.isSymbolicLink())
+      throw new Error("Resident cycle state directory is invalid.");
+  }
+  const temporary = resolve79(directory, `.resident-cycle-${randomUUID13()}.tmp`);
+  try {
+    await writeFile7(temporary, `${JSON.stringify(state2)}
+`, { mode: 384, flag: "wx" });
+    await chmod10(temporary, 384);
+    await rename12(temporary, resolve79(root2, RESIDENT_CYCLE_STATE_PATH));
+  } catch (error) {
+    await rm13(temporary, { force: true });
+    throw error;
+  }
+}
+
+// packages/repository-knowledge-runtime/dist/resident-cycle.js
+var RESIDENT_RECONCILE_BASE_MILLISECONDS = 6e4;
+var RESIDENT_RECONCILE_CEILING_MILLISECONDS = 9e5;
+var SKIPPABLE = /* @__PURE__ */ new Set(["idle", "waiting", "attention"]);
+var MINIMUM_DUE_DELAY_MILLISECONDS = 1e3;
+function classifyResidentCycle(result) {
+  if (result.status === "busy" || result.outcomes.length > 0)
+    return "processed";
+  switch (result.convergence.state) {
+    case "idle":
+      return "idle";
+    case "waiting_authority":
+      return "waiting";
+    case "attention_required":
+    case "recovery_required":
+      return "attention";
+    default:
+      return "processed";
+  }
+}
+function residentCycleSkippable(input) {
+  const { previous: previous2, observed, now } = input;
+  if (previous2 === null || observed === null || previous2.fingerprint === null)
+    return false;
+  if (!SKIPPABLE.has(previous2.lastResult) || previous2.fingerprint !== observed.fingerprint)
+    return false;
+  if (observed.earliestAvailableAt !== null && observed.earliestAvailableAt <= now)
+    return false;
+  if (previous2.lastCycleAt === null)
+    return false;
+  const elapsed = now - Date.parse(previous2.lastCycleAt);
+  return elapsed >= 0 && elapsed < input.ceilingMilliseconds;
+}
+function residentReconcileDelay(input) {
+  let delay2 = Math.min(input.ceilingMilliseconds, input.baseMilliseconds * 2 ** Math.min(Math.max(0, input.idleStreak - 1), 30));
+  if (input.earliestAvailableAt !== null && input.earliestAvailableAt > input.now)
+    delay2 = Math.min(delay2, Math.max(MINIMUM_DUE_DELAY_MILLISECONDS, input.earliestAvailableAt - input.now));
+  return delay2;
+}
+function nextIdleStreak(streak, outcome) {
+  return outcome === "processed" ? 0 : Math.min(streak + 1, 64);
+}
+async function runResidentCycle(input) {
+  const startedAt = input.now();
+  let observed;
+  try {
+    observed = input.observe();
+  } catch {
+    observed = null;
+  }
+  const previousStreak = input.previous?.idleStreak ?? 0;
+  if (residentCycleSkippable({
+    previous: input.previous,
+    observed,
+    now: startedAt,
+    ceilingMilliseconds: input.ceilingMilliseconds
+  }))
+    return {
+      outcome: { kind: "skipped" },
+      state: { ...input.previous, idleStreak: nextIdleStreak(previousStreak, "skipped") },
+      earliestAvailableAt: observed.earliestAvailableAt
+    };
+  const lastCycleAt = new Date(startedAt).toISOString();
+  try {
+    const result = await input.runFull();
+    const lastResult = classifyResidentCycle(result);
+    return {
+      outcome: { kind: "completed", result },
+      state: {
+        schemaVersion: 1,
+        fingerprint: observed?.fingerprint ?? null,
+        lastCycleAt,
+        lastResult,
+        idleStreak: nextIdleStreak(previousStreak, lastResult)
+      },
+      earliestAvailableAt: observed?.earliestAvailableAt ?? null
+    };
+  } catch (error) {
+    return {
+      outcome: { kind: "failed", error },
+      state: {
+        schemaVersion: 1,
+        fingerprint: null,
+        lastCycleAt,
+        lastResult: "failed",
+        idleStreak: nextIdleStreak(previousStreak, "failed")
+      },
+      earliestAvailableAt: null
+    };
+  }
+}
+
 // packages/repository-knowledge-runtime/dist/loop.js
+function healthOf(result) {
+  if (result.status === "busy")
+    return "busy";
+  switch (result.convergence.state) {
+    case "waiting_authority":
+      return "waiting";
+    case "attention_required":
+    case "recovery_required":
+      return "attention";
+    default:
+      return "idle";
+  }
+}
 function startAutonomousKnowledgeWorker(input) {
-  const interval = input.intervalMilliseconds ?? 6e4;
-  if (!Number.isSafeInteger(interval) || interval < 100 || interval > 6e4)
+  const base = input.intervalMilliseconds ?? RESIDENT_RECONCILE_BASE_MILLISECONDS;
+  if (!Number.isSafeInteger(base) || base < 100 || base > RESIDENT_RECONCILE_BASE_MILLISECONDS)
     throw new Error("Invalid convergence interval.");
+  const ceiling = input.reconcileCeilingMilliseconds ?? RESIDENT_RECONCILE_CEILING_MILLISECONDS;
+  if (!Number.isSafeInteger(ceiling) || ceiling < base || ceiling > RESIDENT_RECONCILE_CEILING_MILLISECONDS)
+    throw new Error("Invalid convergence reconciliation ceiling.");
+  const root2 = input.storage.paths.repositoryRoot;
   const controller = new AbortController();
+  const signal = input.signal === void 0 ? controller.signal : AbortSignal.any([input.signal, controller.signal]);
   let running = null;
   let pending = false;
+  let woken = false;
   let firstWake = null;
   let lastWake = null;
   let debounce = null;
+  let reconcile = null;
+  let previous2;
   let healthState = "idle";
   let healthReason = null;
   let healthWrite = Promise.resolve();
   const heartbeat = () => {
     healthWrite = healthWrite.then(() => recordKnowledgeResidentHealth({
-      repositoryRoot: input.storage.paths.repositoryRoot,
+      repositoryRoot: root2,
       workerId: input.workerId,
       state: healthState,
       reason: healthReason
     })).catch(input.onFailure);
   };
+  const report = (state2, reason) => {
+    healthState = state2;
+    healthReason = reason;
+    heartbeat();
+  };
+  const runFull = async () => {
+    report("running", null);
+    const admission = await acquireFullCycleAdmission({
+      repositoryRoot: root2,
+      signal,
+      ...input.admissionDirectory === void 0 ? {} : { directory: input.admissionDirectory },
+      onWait: () => report("busy", "knowledge_cycle_admission_wait")
+    });
+    try {
+      if (healthState !== "running")
+        report("running", null);
+      return await runAutonomousKnowledgeWorker({ ...input, signal });
+    } finally {
+      await admission.release();
+    }
+  };
+  const runOnce = async () => {
+    previous2 ??= await readResidentCycleState(root2);
+    if (woken && previous2 !== null)
+      previous2 = { ...previous2, idleStreak: 0 };
+    woken = false;
+    const cycle2 = await runResidentCycle({
+      previous: previous2,
+      now: Date.now,
+      ceilingMilliseconds: ceiling,
+      observe: () => convergenceSourceFingerprint({ repositoryRoot: root2, events: input.storage.events }),
+      runFull
+    });
+    if (cycle2.outcome.kind === "skipped") {
+      const state2 = cycle2.state.lastResult === "waiting" ? "waiting" : cycle2.state.lastResult === "attention" ? "attention" : "idle";
+      report(state2, state2 !== "idle" && healthState === state2 && healthReason !== null ? healthReason : "source_unchanged");
+    } else if (cycle2.outcome.kind === "completed") {
+      const { result } = cycle2.outcome;
+      report(healthOf(result), result.status === "processed" ? result.convergence.reason : null);
+      input.onCycle?.(result);
+    } else {
+      report("attention", "knowledge_resident_cycle_failed");
+      if (!signal.aborted)
+        input.onFailure(cycle2.outcome.error);
+    }
+    const now = Date.now();
+    const delay2 = residentReconcileDelay({
+      idleStreak: cycle2.state.idleStreak,
+      now,
+      earliestAvailableAt: cycle2.earliestAvailableAt,
+      baseMilliseconds: base,
+      ceilingMilliseconds: ceiling
+    });
+    previous2 = { ...cycle2.state, nextReconcileAt: new Date(now + delay2).toISOString() };
+    await writeResidentCycleState(root2, previous2).catch(() => void 0);
+    return delay2;
+  };
   const cycle = () => {
-    if (controller.signal.aborted || input.signal?.aborted)
+    if (signal.aborted)
       return;
     if (running !== null) {
       pending = true;
       return;
     }
-    healthState = "running";
-    healthReason = null;
-    heartbeat();
-    running = runAutonomousKnowledgeWorker({
-      ...input,
-      signal: input.signal === void 0 ? controller.signal : AbortSignal.any([input.signal, controller.signal])
-    }).then((result) => {
-      healthState = result.status === "busy" ? "busy" : result.convergence.state === "idle" ? "idle" : result.convergence.state === "waiting_authority" ? "waiting" : ["attention_required", "recovery_required"].includes(result.convergence.state) ? "attention" : "idle";
-      healthReason = result.status === "processed" ? result.convergence.reason : null;
-      heartbeat();
-      input.onCycle?.(result);
+    if (reconcile !== null)
+      clearTimeout(reconcile);
+    reconcile = null;
+    let delay2 = base;
+    running = runOnce().then((next) => {
+      delay2 = next;
     }).catch((error) => {
-      healthState = "attention";
-      healthReason = "knowledge_resident_cycle_failed";
-      heartbeat();
-      if (!controller.signal.aborted)
+      if (!signal.aborted)
         input.onFailure(error);
     }).finally(() => {
       running = null;
+      if (signal.aborted)
+        return;
       if (pending) {
         pending = false;
         schedule();
       }
+      reconcile = setTimeout(cycle, delay2);
     });
   };
   const schedule = () => {
     const now = Date.now();
+    woken = true;
     firstWake ??= now;
     lastWake = now;
     if (debounce !== null)
       clearTimeout(debounce);
-    const delay = Math.max(0, Math.min(lastWake + 3e4, firstWake + 6e4) - now);
+    const delay2 = Math.max(0, Math.min(lastWake + 3e4, firstWake + 6e4) - now);
     debounce = setTimeout(() => {
       debounce = null;
       firstWake = null;
       lastWake = null;
       cycle();
-    }, delay);
+    }, delay2);
   };
   const unsubscribe = input.subscribe ? input.subscribe(schedule) : watchProjectEventChanges({ path: input.storage.paths.eventDatabase, latest: () => input.storage.events.latest() }, schedule);
-  const timer = setInterval(cycle, interval);
   const healthTimer = setInterval(heartbeat, 15e3);
   cycle();
   return async () => {
     controller.abort();
-    clearInterval(timer);
+    if (reconcile !== null)
+      clearTimeout(reconcile);
     clearInterval(healthTimer);
     if (debounce !== null)
       clearTimeout(debounce);
     unsubscribe?.();
     await running;
+    if (reconcile !== null)
+      clearTimeout(reconcile);
     healthState = "stopped";
     heartbeat();
     await healthWrite;
@@ -90909,11 +91763,11 @@ async function runKnowledgeWorkerCommand(args, io) {
         )
       });
       try {
-        await new Promise((resolve91) => {
+        await new Promise((resolve95) => {
           const stopped = () => {
             process.removeListener("SIGINT", stopped);
             process.removeListener("SIGTERM", stopped);
-            resolve91();
+            resolve95();
           };
           process.once("SIGINT", stopped);
           process.once("SIGTERM", stopped);
@@ -90950,7 +91804,7 @@ function launchDetachedKnowledgeWorker(input) {
 }
 
 // apps/cli/src/terminal-command-runtime.ts
-import { resolve as resolve88 } from "node:path";
+import { resolve as resolve92 } from "node:path";
 import { parseArgs as parseArgs4 } from "node:util";
 
 // packages/diagnostics/dist/recovery-guidance-environment.js
@@ -91609,7 +92463,7 @@ function formatTerminalCoverageReport(report) {
 }
 
 // apps/cli/src/terminal-budget-command.ts
-import { resolve as resolve77 } from "node:path";
+import { resolve as resolve81 } from "node:path";
 import { parseArgs } from "node:util";
 
 // apps/cli/src/terminal-budget-format.ts
@@ -91639,13 +92493,13 @@ function formatTerminalBudgetReport(report) {
 var terminalUsage = "  lervo terminal status [--root <path>] [--json]\n  lervo terminal coverage [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--json]\n  lervo terminal budget [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--minimum-samples <1-100>] [--max-query-tokens <tokens>] [--unobserved <block|escalate>] [--exhausted <block|escalate>] [--json]\n  lervo terminal declare --provider <codex|claude> --observation <observation-id> --stdin [--root <path>] [--json]\n  lervo terminal hook --provider <codex|claude> --contract <1|2>";
 
 // apps/cli/src/terminal-repository-root.ts
-import { lstat as lstat51 } from "node:fs/promises";
-import { dirname as dirname22, resolve as resolve76 } from "node:path";
+import { lstat as lstat53 } from "node:fs/promises";
+import { dirname as dirname22, resolve as resolve80 } from "node:path";
 async function resolveTerminalRepositoryRoot(start) {
-  let current = resolve76(start);
+  let current = resolve80(start);
   while (true) {
     try {
-      const manifest = await lstat51(resolve76(current, ".lervo/project.yaml"));
+      const manifest = await lstat53(resolve80(current, ".lervo/project.yaml"));
       if (manifest.isFile() && !manifest.isSymbolicLink()) return current;
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
@@ -91658,7 +92512,7 @@ async function resolveTerminalRepositoryRoot(start) {
 }
 
 // apps/cli/src/terminal-budget-command.ts
-function boundedInteger(value, fallback, maximum) {
+function boundedInteger2(value, fallback, maximum) {
   if (value === void 0) return fallback;
   if (!/^[1-9]\d*$/u.test(value)) throw new Error("A terminal budget integer is invalid.");
   const parsed = Number(value);
@@ -91691,10 +92545,10 @@ async function runTerminalBudgetCommand(args, io) {
     const exhaustedAction = parsed.values.exhausted ?? "block";
     if (unobservedAction !== "block" && unobservedAction !== "escalate" || exhaustedAction !== "block" && exhaustedAction !== "escalate")
       throw new Error("Terminal budget actions must be block or escalate.");
-    const limit = boundedInteger(parsed.values.limit, 100, 100);
-    const minimumSamples = boundedInteger(parsed.values["minimum-samples"], 30, 100);
-    const maxQueryProjectionTokens = parsed.values["max-query-tokens"] === void 0 ? null : boundedInteger(parsed.values["max-query-tokens"], 1, Number.MAX_SAFE_INTEGER);
-    const root2 = await resolveTerminalRepositoryRoot(resolve77(io.cwd, parsed.values.root ?? "."));
+    const limit = boundedInteger2(parsed.values.limit, 100, 100);
+    const minimumSamples = boundedInteger2(parsed.values["minimum-samples"], 30, 100);
+    const maxQueryProjectionTokens = parsed.values["max-query-tokens"] === void 0 ? null : boundedInteger2(parsed.values["max-query-tokens"], 1, Number.MAX_SAFE_INTEGER);
+    const root2 = await resolveTerminalRepositoryRoot(resolve81(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const coverage = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -91725,22 +92579,22 @@ ${terminalUsage}
 }
 
 // apps/cli/src/terminal-declaration-command.ts
-import { resolve as resolve82 } from "node:path";
+import { resolve as resolve86 } from "node:path";
 import { parseArgs as parseArgs2 } from "node:util";
 
 // apps/cli/src/terminal-repository-snapshot.ts
-import { resolve as resolve78 } from "node:path";
+import { resolve as resolve82 } from "node:path";
 function captureTerminalRepositorySnapshot(root2) {
   return capturePersistentRepositorySnapshot(
     root2,
-    resolve78(root2, ".lervo/state/cache/terminal-repository-snapshot.json")
+    resolve82(root2, ".lervo/state/cache/terminal-repository-snapshot.json")
   );
 }
 
 // apps/cli/src/development-pattern-storage.ts
-import { randomUUID as randomUUID12 } from "node:crypto";
-import { mkdir as mkdir25, rename as rename12, writeFile as writeFile7 } from "node:fs/promises";
-import { resolve as resolve79 } from "node:path";
+import { randomUUID as randomUUID14 } from "node:crypto";
+import { mkdir as mkdir27, rename as rename13, writeFile as writeFile8 } from "node:fs/promises";
+import { resolve as resolve83 } from "node:path";
 function allPatternEvents(storage) {
   const events = [];
   const latest = storage.events.latest();
@@ -91821,22 +92675,22 @@ function projectPatterns(events) {
   );
 }
 async function writePatternProjection(repositoryRoot, patterns) {
-  const path = resolve79(repositoryRoot, ".lervo/state/knowledge/development-patterns/current.json");
-  await mkdir25(resolve79(path, ".."), { recursive: true });
+  const path = resolve83(repositoryRoot, ".lervo/state/knowledge/development-patterns/current.json");
+  await mkdir27(resolve83(path, ".."), { recursive: true });
   const temporary = `${path}.${process.pid}.tmp`;
-  await writeFile7(
+  await writeFile8(
     temporary,
     `${JSON.stringify({ schemaVersion: 1, patterns }, null, 2)}
 `,
     "utf8"
   );
-  await rename12(temporary, path);
+  await rename13(temporary, path);
 }
 function patternArtifactId(contentHash2) {
   return `art_${contentHash2.slice("sha256:".length)}`;
 }
 function patternEventDraft(input, projectId) {
-  const identity2 = randomUUID12().replaceAll("-", "");
+  const identity2 = randomUUID14().replaceAll("-", "");
   return {
     eventId: `evt_${identity2}`,
     projectId,
@@ -91949,7 +92803,7 @@ function passedWorkflowVerificationEvidence(storage) {
 }
 
 // apps/cli/src/terminal-event-coordinates.ts
-import { randomUUID as randomUUID13 } from "node:crypto";
+import { randomUUID as randomUUID15 } from "node:crypto";
 var TERMINAL_OBSERVATION_POLICY_VERSION = sha2565(
   "lervo.terminal.unmanaged-observation.v1"
 );
@@ -91983,7 +92837,7 @@ function unmanagedTerminalCoordinates(provider, input) {
   };
 }
 function newTerminalIdentifier(prefix) {
-  return `${prefix}_${randomUUID13().replaceAll("-", "")}`;
+  return `${prefix}_${randomUUID15().replaceAll("-", "")}`;
 }
 function assertTerminalRepositoryRelativePath(path) {
   const normalized2 = path.replaceAll("\\", "/");
@@ -92007,9 +92861,9 @@ function terminalEventDraft(input) {
 
 // apps/cli/src/terminal-knowledge-lifecycle-cache.ts
 import { constants as constants33 } from "node:fs";
-import { randomUUID as randomUUID14 } from "node:crypto";
-import { lstat as lstat52, mkdir as mkdir26, open as open29, readFile as readFile27, rename as rename13, rm as rm13 } from "node:fs/promises";
-import { resolve as resolve80 } from "node:path";
+import { randomUUID as randomUUID16 } from "node:crypto";
+import { lstat as lstat54, mkdir as mkdir28, open as open29, readFile as readFile28, rename as rename14, rm as rm14 } from "node:fs/promises";
+import { resolve as resolve84 } from "node:path";
 
 // apps/cli/src/version-command.ts
 import { createRequire } from "node:module";
@@ -92031,7 +92885,7 @@ var KNOWLEDGE_PROJECTION_COORDINATE_PATHS = [
   ".lervo/state/knowledge/current/source-units.json",
   ".lervo/state/knowledge/current/structural/manifests/current.json"
 ];
-var HASH32 = /^sha256:[a-f0-9]{64}$/u;
+var HASH33 = /^sha256:[a-f0-9]{64}$/u;
 function supplementalSourcesDigest(sources) {
   return sha2565(
     canonicalJson4(
@@ -92079,17 +92933,17 @@ function validIssue(value) {
 }
 function validateCache(value) {
   const cache = value;
-  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 2 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH32.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH32.test(cache.supplementalSourcesDigest) || typeof cache.knowledgeProjectionDigest !== "string" || !HASH32.test(cache.knowledgeProjectionDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
+  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 2 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH33.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH33.test(cache.supplementalSourcesDigest) || typeof cache.knowledgeProjectionDigest !== "string" || !HASH33.test(cache.knowledgeProjectionDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
     return null;
   }
   return cache;
 }
 async function readTerminalKnowledgeLifecycleCache(input) {
   try {
-    const target = resolve80(input.root, CACHE_PATH);
-    const stats = await lstat52(target);
+    const target = resolve84(input.root, CACHE_PATH);
+    const stats = await lstat54(target);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_CACHE_BYTES) return null;
-    const cache = validateCache(JSON.parse(await readFile27(target, "utf8")));
+    const cache = validateCache(JSON.parse(await readFile28(target, "utf8")));
     if (cache === null) return null;
     const expected = await cacheCoordinates(input);
     if (expected === null) return null;
@@ -92102,15 +92956,15 @@ async function readTerminalKnowledgeLifecycleCache(input) {
   }
 }
 async function writeTerminalKnowledgeLifecycleCache(input) {
-  if (!HASH32.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
+  if (!HASH33.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
     throw new Error("The terminal knowledge lifecycle cache input is invalid.");
   }
   const coordinates = await cacheCoordinates(input);
   if (coordinates === null)
     throw new Error("The terminal knowledge lifecycle cache coordinates are unavailable.");
-  const directory = resolve80(input.root, ".lervo/state/terminal-integration");
-  await mkdir26(directory, { recursive: true, mode: 448 });
-  const directoryStats = await lstat52(directory);
+  const directory = resolve84(input.root, ".lervo/state/terminal-integration");
+  await mkdir28(directory, { recursive: true, mode: 448 });
+  const directoryStats = await lstat54(directory);
   if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink())
     throw new Error("Unsafe terminal knowledge lifecycle cache directory.");
   const cache = {
@@ -92122,7 +92976,7 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
 `;
   if (Buffer.byteLength(bytes2) > MAXIMUM_CACHE_BYTES)
     throw new Error("The terminal knowledge lifecycle cache exceeds its storage limit.");
-  const temporary = resolve80(directory, `.knowledge-lifecycle-${randomUUID14()}.tmp`);
+  const temporary = resolve84(directory, `.knowledge-lifecycle-${randomUUID16()}.tmp`);
   let handle;
   try {
     handle = await open29(
@@ -92134,10 +92988,10 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename13(temporary, resolve80(input.root, CACHE_PATH));
+    await rename14(temporary, resolve84(input.root, CACHE_PATH));
   } finally {
     await handle?.close();
-    await rm13(temporary, { force: true });
+    await rm14(temporary, { force: true });
   }
 }
 
@@ -92345,16 +93199,16 @@ async function inspectTerminalRepositoryKnowledgeLifecycle(input) {
 
 // apps/cli/src/terminal-prepared-snapshot.ts
 import { constants as constants34 } from "node:fs";
-import { randomUUID as randomUUID15 } from "node:crypto";
-import { lstat as lstat53, mkdir as mkdir27, open as open30, readFile as readFile28, readdir as readdir18, rename as rename14, rm as rm14 } from "node:fs/promises";
-import { resolve as resolve81 } from "node:path";
+import { randomUUID as randomUUID17 } from "node:crypto";
+import { lstat as lstat55, mkdir as mkdir29, open as open30, readFile as readFile29, readdir as readdir18, rename as rename15, rm as rm15 } from "node:fs/promises";
+import { resolve as resolve85 } from "node:path";
 var DIRECTORY = ".lervo/state/terminal-integration/prepared-snapshots";
 var MAXIMUM_SNAPSHOTS = 64;
 var MAXIMUM_BYTES2 = 8 * 1024 * 1024;
 function snapshotPath(root2, observationId) {
   if (!/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(observationId))
     throw new Error("The prepared snapshot observation ID is invalid.");
-  return resolve81(root2, DIRECTORY, `${observationId}.json`);
+  return resolve85(root2, DIRECTORY, `${observationId}.json`);
 }
 function validate(value) {
   const snapshot = value;
@@ -92367,16 +93221,16 @@ function validate(value) {
   return snapshot;
 }
 async function writePreparedRepositorySnapshot(root2, snapshot) {
-  const directory = resolve81(root2, DIRECTORY);
-  await mkdir27(directory, { recursive: true, mode: 448 });
-  const stats = await lstat53(directory);
+  const directory = resolve85(root2, DIRECTORY);
+  await mkdir29(directory, { recursive: true, mode: 448 });
+  const stats = await lstat55(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe prepared snapshot state directory.");
   const bytes2 = `${JSON.stringify(snapshot)}
 `;
   if (Buffer.byteLength(bytes2) > MAXIMUM_BYTES2)
     throw new Error("The prepared repository snapshot exceeds its storage limit.");
-  const temporary = resolve81(directory, `.prepared-${randomUUID15()}.tmp`);
+  const temporary = resolve85(directory, `.prepared-${randomUUID17()}.tmp`);
   let handle;
   try {
     handle = await open30(
@@ -92388,17 +93242,17 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename14(temporary, snapshotPath(root2, snapshot.observationId));
+    await rename15(temporary, snapshotPath(root2, snapshot.observationId));
   } finally {
     await handle?.close();
-    await rm14(temporary, { force: true });
+    await rm15(temporary, { force: true });
   }
   const entries = await Promise.all(
     (await readdir18(directory, { withFileTypes: true })).filter(
       (entry) => entry.isFile() && /^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}\.json$/u.test(entry.name)
     ).map(async (entry) => ({
       name: entry.name,
-      modifiedAt: (await lstat53(resolve81(directory, entry.name))).mtimeMs
+      modifiedAt: (await lstat55(resolve85(directory, entry.name))).mtimeMs
     }))
   );
   const currentName = `${snapshot.observationId}.json`;
@@ -92406,15 +93260,15 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
     (left, right) => Number(left.name === currentName) - Number(right.name === currentName) || left.modifiedAt - right.modifiedAt || left.name.localeCompare(right.name)
   );
   for (const entry of entries.slice(0, Math.max(0, entries.length - MAXIMUM_SNAPSHOTS)))
-    await rm14(resolve81(directory, entry.name), { force: true });
+    await rm15(resolve85(directory, entry.name), { force: true });
 }
 async function readPreparedRepositorySnapshot(root2, observationId) {
   try {
     const path = snapshotPath(root2, observationId);
-    const stats = await lstat53(path);
+    const stats = await lstat55(path);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_BYTES2)
       throw new Error("The prepared repository snapshot is unsafe.");
-    const snapshot = validate(JSON.parse(await readFile28(path, "utf8")));
+    const snapshot = validate(JSON.parse(await readFile29(path, "utf8")));
     if (snapshot.observationId !== observationId)
       throw new Error("The prepared repository snapshot coordinate does not match.");
     return snapshot;
@@ -92925,7 +93779,7 @@ async function runTerminalDeclareCommand(args, io) {
     if (!parsed.values.stdin || io.stdin === void 0)
       throw new Error("The declaration must be supplied through --stdin.");
     const draft = parseTurnDeclarationDraft(await io.stdin());
-    const root2 = await resolveTerminalRepositoryRoot(resolve82(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve86(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const context = allTerminalEvents2(storage.events).filter(
       (event) => event.type === "terminal.context.prepared" && event.actor.kind === "provider" && event.actor.provider === parsed.values.provider && event.payload.observationId === parsed.values.observation
@@ -93057,28 +93911,28 @@ import { parseArgs as parseArgs3 } from "node:util";
 
 // apps/cli/src/terminal-activation-state.ts
 import { constants as constants35 } from "node:fs";
-import { randomUUID as randomUUID16 } from "node:crypto";
-import { lstat as lstat54, mkdir as mkdir28, open as open31, readFile as readFile29, rename as rename15, rm as rm15 } from "node:fs/promises";
-import { resolve as resolve83 } from "node:path";
+import { randomUUID as randomUUID18 } from "node:crypto";
+import { lstat as lstat56, mkdir as mkdir30, open as open31, readFile as readFile30, rename as rename16, rm as rm16 } from "node:fs/promises";
+import { resolve as resolve87 } from "node:path";
 function activationPath(root2, provider, event) {
-  return resolve83(
+  return resolve87(
     root2,
     ".lervo/state/terminal-integration",
     `${provider}-${event === "UserPromptSubmit" ? "user-prompt-submit" : "stop"}.json`
   );
 }
 async function writeTerminalActivationReceipt(root2, receipt3) {
-  const directory = resolve83(root2, ".lervo/state/terminal-integration");
+  const directory = resolve87(root2, ".lervo/state/terminal-integration");
   try {
-    await mkdir28(directory, { mode: 448 });
+    await mkdir30(directory, { mode: 448 });
   } catch (error) {
     if (error.code !== "EEXIST") throw error;
   }
-  const stats = await lstat54(directory);
+  const stats = await lstat56(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe terminal activation state directory.");
   const target = activationPath(root2, receipt3.provider, receipt3.hookEvent);
-  const temporary = resolve83(directory, `.activation-${randomUUID16()}.tmp`);
+  const temporary = resolve87(directory, `.activation-${randomUUID18()}.tmp`);
   let handle;
   try {
     handle = await open31(
@@ -93091,10 +93945,10 @@ async function writeTerminalActivationReceipt(root2, receipt3) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename15(temporary, target);
+    await rename16(temporary, target);
   } finally {
     await handle?.close();
-    await rm15(temporary, { force: true });
+    await rm16(temporary, { force: true });
   }
 }
 async function readTerminalActivationReceipts(root2) {
@@ -93103,9 +93957,9 @@ async function readTerminalActivationReceipts(root2) {
     for (const event of ["UserPromptSubmit", "Stop"]) {
       try {
         const path = activationPath(root2, provider, event);
-        const stats = await lstat54(path);
+        const stats = await lstat56(path);
         if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
-        const value = JSON.parse(await readFile29(path, "utf8"));
+        const value = JSON.parse(await readFile30(path, "utf8"));
         if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v2" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string")
           receipts.push(value);
       } catch (error) {
@@ -93196,14 +94050,14 @@ function parseTerminalHookInput(value) {
 }
 
 // apps/cli/src/terminal-lifecycle-inspection.ts
-import { lstat as lstat56 } from "node:fs/promises";
-import { resolve as resolve85 } from "node:path";
+import { lstat as lstat58 } from "node:fs/promises";
+import { resolve as resolve89 } from "node:path";
 
 // apps/cli/src/terminal-repository-replica-service-inspection.ts
 import { execFile as execFile11 } from "node:child_process";
-import { lstat as lstat55 } from "node:fs/promises";
-import { homedir as homedir3 } from "node:os";
-import { resolve as resolve84 } from "node:path";
+import { lstat as lstat57 } from "node:fs/promises";
+import { homedir as homedir4 } from "node:os";
+import { resolve as resolve88 } from "node:path";
 var serviceLabel = "dev.lervo.repository-replica";
 var maximumDefinitionBytes = 128 * 1024;
 function launchdServiceLoaded(uid) {
@@ -93218,15 +94072,15 @@ function launchdServiceLoaded(uid) {
 }
 async function inspectTerminalRepositoryReplicaService(input = {}) {
   if ((input.platform ?? process.platform) !== "darwin") return [];
-  const definition2 = resolve84(
-    input.homeDirectory ?? homedir3(),
+  const definition2 = resolve88(
+    input.homeDirectory ?? homedir4(),
     "Library",
     "LaunchAgents",
     `${serviceLabel}.plist`
   );
-  let metadata;
+  let metadata2;
   try {
-    metadata = await lstat55(definition2);
+    metadata2 = await lstat57(definition2);
   } catch (error) {
     if (error.code === "ENOENT") return [];
     return [
@@ -93236,7 +94090,7 @@ async function inspectTerminalRepositoryReplicaService(input = {}) {
       }
     ];
   }
-  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 1 || metadata.size > maximumDefinitionBytes || (metadata.mode & 63) !== 0) {
+  if (!metadata2.isFile() || metadata2.isSymbolicLink() || metadata2.size < 1 || metadata2.size > maximumDefinitionBytes || (metadata2.mode & 63) !== 0) {
     return [
       {
         code: "repository_replica_service_definition_unsafe",
@@ -93628,7 +94482,7 @@ async function inspectTerminalLifecycle(root2, expected) {
     }
   }
   try {
-    const handoff = await lstat56(resolve85(root2, "HANDOFF.md"));
+    const handoff = await lstat58(resolve89(root2, "HANDOFF.md"));
     if (handoff.isFile() && !handoff.isSymbolicLink())
       issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
     else
@@ -93760,7 +94614,7 @@ function assembleTerminalHookContext(input) {
 // apps/cli/src/terminal-context-loading.ts
 import { constants as constants36 } from "node:fs";
 import { open as open32 } from "node:fs/promises";
-import { relative as relative18, resolve as resolve86, sep as sep16 } from "node:path";
+import { relative as relative18, resolve as resolve90, sep as sep16 } from "node:path";
 var TRUNCATION_NOTICE = "\n[Lervo content truncated]";
 function truncateUtf8(value, maximumBytes2) {
   if (maximumBytes2 <= 0) return "";
@@ -93776,7 +94630,7 @@ function truncateUtf8(value, maximumBytes2) {
   return value.slice(0, end);
 }
 async function loadSelectedTerminalDocument(input) {
-  const target = resolve86(input.repositoryRoot, input.hit.path);
+  const target = resolve90(input.repositoryRoot, input.hit.path);
   const child = relative18(input.repositoryRoot, target);
   if (child === ".." || child.startsWith(`..${sep16}`) || input.maximumBytes <= 0) return null;
   let handle;
@@ -93975,6 +94829,31 @@ async function selectTerminalContextCandidates(input) {
   };
 }
 
+// apps/cli/src/terminal-context-budget.ts
+var MAXIMUM_COMPACT_CONTEXT_BYTES = 4 * 1024;
+var MAXIMUM_TERMINAL_ATTENTION_BYTES = 4 * 1024;
+function truncationMarker(maximumBytes2) {
+  return `
+[Lervo context truncated at ${maximumBytes2} bytes; inspect \`lervo workstream current\` and \`lervo application attention --json\`.]`;
+}
+function utf8Prefix(value, maximumBytes2) {
+  let bytes2 = 0;
+  let end = 0;
+  for (const character of value) {
+    const characterBytes = Buffer.byteLength(character);
+    if (bytes2 + characterBytes > maximumBytes2) break;
+    bytes2 += characterBytes;
+    end += character.length;
+  }
+  return value.slice(0, end);
+}
+function capContextBytes(value, maximumBytes2) {
+  if (Buffer.byteLength(value) <= maximumBytes2) return value;
+  const marker = truncationMarker(maximumBytes2);
+  if (Buffer.byteLength(marker) > maximumBytes2) return utf8Prefix(value, maximumBytes2);
+  return `${utf8Prefix(value, maximumBytes2 - Buffer.byteLength(marker))}${marker}`;
+}
+
 // apps/cli/src/operating-attention-format.ts
 function describe(item) {
   if (item.kind === "workstream_decision") return item.question;
@@ -93988,24 +94867,50 @@ function describe(item) {
   }
   return `${item.issueCode}${item.detail === null ? "" : ` \xB7 ${item.detail}`}`;
 }
+var WORKSTREAM_KINDS = /* @__PURE__ */ new Set([
+  "workstream_decision",
+  "workstream_approval",
+  "workstream_blocker"
+]);
+function isStaleWorkstreamItem(item) {
+  return WORKSTREAM_KINDS.has(item.kind) && item.state === "stale";
+}
+function staleWorkstreamCountLine(count) {
+  return count === 0 ? [] : [`${count} stale workstream items need re-verification: \`lervo workstream current\`.`];
+}
 function formatTerminalAttentionContext(report) {
   const maximumItems = 12;
-  const selected = report.items.slice(0, maximumItems);
-  return [
-    `Repository attention: ${report.status}; digest: ${report.reportDigest}; items: ${report.summary.totalCount}; omitted: ${report.summary.truncatedCount}; blocking: ${report.summary.blockingCount}; requiresUserAction: ${report.summary.userActionCount}; stale: ${report.summary.staleCount}; canonicalizationCoverage: ${report.coverage.canonicalization}; lifecycleCoverage: ${report.coverage.knowledgeLifecycle}.`,
-    ...selected.map(
-      (item) => `- ${item.kind}:${item.itemId}; owner=${item.actionOwner}; requiresUserAction=${item.requiresUserAction}; blocking=${item.blocking}; ${describe(item)}`
-    ),
-    ...report.items.length > maximumItems ? [
-      `- ${report.items.length - maximumItems} additional items remain in \`lervo application attention --json\`.`
-    ] : [],
-    "Before claiming completion, resolve current agent-owned items that fall within this task. If a current blocking item requires user action, present its bounded question or approval in this turn instead of waiting to encounter it incidentally. Do not infer approval, do not ask the user to run Lervo bookkeeping, and do not treat this prepared projection as receipt or acknowledgment."
-  ].join("\n");
+  const current = report.items.filter((item) => !isStaleWorkstreamItem(item));
+  const staleWorkstreamCount = report.items.length - current.length;
+  const selected = current.slice(0, maximumItems);
+  const userOwnedBlocking = selected.some(
+    (item) => item.actionOwner === "user" && item.requiresUserAction && item.blocking
+  );
+  return capContextBytes(
+    [
+      `Repository attention: ${report.status}; digest: ${report.reportDigest}; items: ${report.summary.totalCount}; omitted: ${report.summary.truncatedCount}; blocking: ${report.summary.blockingCount}; requiresUserAction: ${report.summary.userActionCount}; stale: ${report.summary.staleCount}; canonicalizationCoverage: ${report.coverage.canonicalization}; lifecycleCoverage: ${report.coverage.knowledgeLifecycle}.`,
+      ...selected.map(
+        (item) => `- ${item.kind}:${item.itemId}; owner=${item.actionOwner}; requiresUserAction=${item.requiresUserAction}; blocking=${item.blocking}; ${describe(item)}`
+      ),
+      ...current.length > maximumItems ? [
+        `- ${current.length - maximumItems} additional items remain in \`lervo application attention --json\`.`
+      ] : [],
+      ...staleWorkstreamCountLine(staleWorkstreamCount),
+      [
+        "Before claiming completion, resolve current agent-owned items that fall within this task.",
+        ...userOwnedBlocking ? [
+          "For a listed current blocking item with owner=user, present its bounded question or approval in this turn instead of waiting to encounter it incidentally."
+        ] : [],
+        "Do not infer approval, do not ask the user to run Lervo bookkeeping, and do not treat this prepared projection as receipt or acknowledgment."
+      ].join(" ")
+    ].join("\n"),
+    MAXIMUM_TERMINAL_ATTENTION_BYTES
+  );
 }
 
 // apps/cli/src/terminal-compact-context.ts
-import { mkdir as mkdir29, readFile as readFile30, rename as rename16, writeFile as writeFile8 } from "node:fs/promises";
-import { dirname as dirname23, resolve as resolve87 } from "node:path";
+import { mkdir as mkdir31, readFile as readFile31, rename as rename17, writeFile as writeFile9 } from "node:fs/promises";
+import { dirname as dirname23, resolve as resolve91 } from "node:path";
 
 // apps/cli/src/operating-attention-projection.ts
 var MAXIMUM_ATTENTION_ITEMS = 256;
@@ -94059,6 +94964,53 @@ function replicaDivergenceItem(divergence) {
     instruction: divergence.reason === "no_common_history" ? `Replica ${divergence.replicaId} has no common history with its peer; choose which host's repository to keep and re-seed the other before replication resumes.` : `Make both hosts agree on the conflicting paths, or on the coordinator host run lervo-node repository-replica reconcile --config <coordinator-config> --replica ${divergence.replicaId} --prefer local|peer; the reconciling cycle records repository.replica.reconciled.`
   };
 }
+var STALE_INSTRUCTION = `${STALE_WORKSTREAM_INSTRUCTION} Inspect it with lervo workstream current.`;
+function workstreamAttentionItems(workstream, stale) {
+  return [
+    ...(workstream.pendingDecisions ?? []).map((decision) => ({
+      schemaVersion: 1,
+      kind: "workstream_decision",
+      itemId: decision.decisionId,
+      state: stale ? "stale" : "pending",
+      consequence: "unclassified",
+      decisionId: decision.decisionId,
+      question: decision.question,
+      choices: decision.choices.map((choice) => ({ ...choice })),
+      recommendedChoiceId: decision.recommendedChoiceId,
+      actionOwner: stale ? "agent" : "user",
+      requiresUserAction: !stale,
+      blocking: !stale && decision.blocking,
+      instruction: stale ? STALE_INSTRUCTION : `Resolve workstream decision ${decision.decisionId} through an authorized workstream update.`
+    })),
+    ...(workstream.pendingApprovals ?? []).map((approval) => ({
+      schemaVersion: 1,
+      kind: "workstream_approval",
+      itemId: approval.approvalId,
+      state: stale ? "stale" : "pending",
+      consequence: workstreamApprovalConsequence(approval.kind),
+      approvalId: approval.approvalId,
+      approvalKind: approval.kind,
+      summary: approval.summary,
+      bindingHash: approval.bindingHash,
+      actionOwner: stale ? "agent" : "user",
+      requiresUserAction: !stale,
+      blocking: !stale && approval.blocking,
+      instruction: stale ? STALE_INSTRUCTION : `Resolve workstream approval ${approval.approvalId} only against its exact binding hash.`
+    })),
+    ...workstream.blockers.map((summary, blockerIndex) => ({
+      schemaVersion: 1,
+      kind: "workstream_blocker",
+      itemId: `workstream_blocker_${sha2565(summary).slice("sha256:".length, "sha256:".length + 24)}`,
+      state: stale ? "stale" : "blocked",
+      blockerIndex,
+      summary,
+      actionOwner: stale ? "agent" : "unassigned",
+      requiresUserAction: false,
+      blocking: !stale,
+      instruction: stale ? STALE_INSTRUCTION : "Inspect the blocker against current repository evidence before assigning an action owner."
+    }))
+  ];
+}
 function ordered(items) {
   return items.sort((left, right) => {
     const user = Number(right.requiresUserAction) - Number(left.requiresUserAction);
@@ -94070,52 +95022,7 @@ function ordered(items) {
   });
 }
 function createOperatingAttentionReport(input) {
-  const workstreamItems = input.workstream === null ? [] : [
-    ...(input.workstream.pendingDecisions ?? []).map(
-      (decision) => ({
-        schemaVersion: 1,
-        kind: "workstream_decision",
-        itemId: decision.decisionId,
-        state: "pending",
-        decisionId: decision.decisionId,
-        question: decision.question,
-        choices: decision.choices.map((choice) => ({ ...choice })),
-        recommendedChoiceId: decision.recommendedChoiceId,
-        actionOwner: "user",
-        requiresUserAction: true,
-        blocking: decision.blocking,
-        instruction: `Resolve workstream decision ${decision.decisionId} through an authorized workstream update.`
-      })
-    ),
-    ...(input.workstream.pendingApprovals ?? []).map(
-      (approval) => ({
-        schemaVersion: 1,
-        kind: "workstream_approval",
-        itemId: approval.approvalId,
-        state: "pending",
-        approvalId: approval.approvalId,
-        approvalKind: approval.kind,
-        summary: approval.summary,
-        bindingHash: approval.bindingHash,
-        actionOwner: "user",
-        requiresUserAction: true,
-        blocking: approval.blocking,
-        instruction: `Resolve workstream approval ${approval.approvalId} only against its exact binding hash.`
-      })
-    ),
-    ...input.workstream.blockers.map((summary, blockerIndex) => ({
-      schemaVersion: 1,
-      kind: "workstream_blocker",
-      itemId: `workstream_blocker_${sha2565(summary).slice("sha256:".length, "sha256:".length + 24)}`,
-      state: "blocked",
-      blockerIndex,
-      summary,
-      actionOwner: "unassigned",
-      requiresUserAction: false,
-      blocking: true,
-      instruction: "Inspect the blocker against current repository evidence before assigning an action owner."
-    }))
-  ];
+  const workstreamItems = input.workstream === null ? [] : workstreamAttentionItems(input.workstream, input.workstreamFreshness?.status === "stale");
   const candidateItems = input.canonicalization.candidates.flatMap((candidate) => {
     const item = canonicalizationItem(candidate);
     return item === null ? [] : [item];
@@ -94179,15 +95086,9 @@ function createOperatingAttentionReport(input) {
   };
 }
 
-// apps/cli/src/terminal-compact-context.ts
+// apps/cli/src/terminal-compact-format.ts
 var MAXIMUM_ITEM_BYTES = 360;
 var MAXIMUM_DECISIONS = 3;
-var KNOWLEDGE_SNAPSHOT_CACHE = ".lervo/state/cache/terminal-knowledge-snapshot.json";
-var compactQueryProjector = {
-  id: "lervo.terminal-compact",
-  version: 1,
-  buildId: searchQueryProjectorBuildId("lervo.terminal-compact-projector.v1")
-};
 function bounded(value, maximumBytes2 = MAXIMUM_ITEM_BYTES) {
   if (Buffer.byteLength(value) <= maximumBytes2) return value;
   let result = "";
@@ -94197,10 +95098,103 @@ function bounded(value, maximumBytes2 = MAXIMUM_ITEM_BYTES) {
   }
   return `${result}\u2026`;
 }
+function formatCompactWorkstreamContext(snapshot, freshness) {
+  const decisions = snapshot.pendingDecisions ?? [];
+  const headline = `Lervo workstream: ${bounded(snapshot.title, 200)} (revision ${snapshot.revision}).`;
+  const context = freshness.status === "stale" ? [
+    headline,
+    `Its state is stale (${freshness.reasons.join(",")}); its next actions, blockers, decisions, and approvals are not current.`
+  ].join("\n") : [
+    headline,
+    ...snapshot.nextActions[0] === void 0 ? [] : [`Next: ${bounded(snapshot.nextActions[0])}`],
+    ...decisions.length === 0 ? [] : [
+      `Pending user decisions: ${decisions.length}.`,
+      ...decisions.slice(0, MAXIMUM_DECISIONS).map(
+        (item) => `- ${item.decisionId}${item.blocking ? " [blocking]" : ""}: ${bounded(item.question, 240)}; recommended=${item.recommendedChoiceId ?? "none"}`
+      )
+    ]
+  ].join("\n");
+  return {
+    workstreamId: snapshot.workstreamId,
+    revision: snapshot.revision,
+    snapshotHash: sha2565(`${canonicalJson4(snapshot)}
+`),
+    scope: "prefix",
+    deliveredByteCount: Buffer.byteLength(context),
+    context
+  };
+}
+function staleWorkstreamEntryCount(attention2, snapshot, freshness) {
+  if (snapshot === null || freshness?.status !== "stale") return 0;
+  return attention2.items.filter(isStaleWorkstreamItem).length + snapshot.nextActions.length;
+}
+function formatCompactTerminalPreamble(input) {
+  const blocking = input.attention.items.filter((item) => item.blocking && !isStaleWorkstreamItem(item)).slice(0, 5);
+  return [
+    'Lervo compact terminal context. Before changing repository bytes, run `lervo knowledge query "<purpose and paths>"` for applicable rules, as AGENTS.md requires.',
+    ...blocking.length === 0 ? [] : [
+      `Blocking attention: ${blocking.map((item) => `${item.kind}:${item.itemId}${item.requiresUserAction ? " [user]" : ""}`).join("; ")}. Details: \`lervo application attention --json\`.`
+    ],
+    ...staleWorkstreamCountLine(input.staleWorkstreamEntryCount),
+    ...input.backgroundKnowledgeActive ? [
+      "Background knowledge convergence is active and owns canonicalization, normalization, and knowledge refresh; this turn needs no knowledge refresh or turn declaration."
+    ] : [input.declarationInstruction],
+    input.workstreamPresent ? "If this turn changes repository-authored bytes, record the next bounded revision with `lervo workstream update --actor agent --provider <current-provider> --patch <json> --apply-now`; the service sets revision, update time, and HEAD. Never ask the user to run bookkeeping." : "If this turn changes repository-authored bytes, create a bounded checkpoint with `lervo workstream start --actor agent --provider <current-provider> --stdin --apply-now`; never ask the user to run bookkeeping."
+  ].join("\n");
+}
+function assembleCompactTerminalContext(preamble, workstream) {
+  const cappedPreamble = capContextBytes(preamble, MAXIMUM_COMPACT_CONTEXT_BYTES);
+  const separator = "\n\n";
+  const remaining = MAXIMUM_COMPACT_CONTEXT_BYTES - Buffer.byteLength(cappedPreamble) - Buffer.byteLength(separator);
+  if (workstream === null || remaining <= 0 || cappedPreamble !== preamble)
+    return { additionalContext: cappedPreamble, workstream: null };
+  const context = capContextBytes(workstream.context, remaining);
+  const delivered = { ...workstream, context, deliveredByteCount: Buffer.byteLength(context) };
+  return { additionalContext: `${cappedPreamble}${separator}${context}`, workstream: delivered };
+}
+
+// apps/cli/src/workstream-repository-head.ts
+import { execFile as execFile12 } from "node:child_process";
+import { promisify as promisify11 } from "node:util";
+var execute9 = promisify11(execFile12);
+async function git7(root2, args) {
+  const { stdout } = await execute9("git", ["-C", root2, ...args], {
+    timeout: 5e3,
+    maxBuffer: 4096
+  });
+  return stdout.trim();
+}
+async function measureWorkstreamHeadDistance(root2, snapshot) {
+  const recorded = snapshot.repositoryHead?.commit;
+  if (recorded === void 0) return { status: "not_recorded" };
+  try {
+    await git7(root2, ["merge-base", "--is-ancestor", recorded, "HEAD"]);
+    const count = Number(await git7(root2, ["rev-list", "--count", `${recorded}..HEAD`]));
+    return Number.isSafeInteger(count) && count >= 0 ? { status: "measured", commitsBehind: count } : { status: "unresolvable" };
+  } catch {
+    return { status: "unresolvable" };
+  }
+}
+async function observeWorkstreamFreshness(input) {
+  return assessWorkstreamFreshness({
+    snapshot: input.snapshot,
+    headDistance: await measureWorkstreamHeadDistance(input.root, input.snapshot),
+    observedAt: input.observedAt,
+    policy: input.policy
+  });
+}
+
+// apps/cli/src/terminal-compact-context.ts
+var KNOWLEDGE_SNAPSHOT_CACHE = ".lervo/state/cache/terminal-knowledge-snapshot.json";
+var compactQueryProjector = {
+  id: "lervo.terminal-compact",
+  version: 1,
+  buildId: searchQueryProjectorBuildId("lervo.terminal-compact-projector.v1")
+};
 async function readKnowledgeSnapshotCache(root2) {
   try {
     const value = JSON.parse(
-      await readFile30(resolve87(root2, KNOWLEDGE_SNAPSHOT_CACHE), "utf8")
+      await readFile31(resolve91(root2, KNOWLEDGE_SNAPSHOT_CACHE), "utf8")
     );
     return value?.schemaVersion === 1 && /^ksnap_[a-f0-9]{24}$/u.test(value.sourceSnapshotId) ? value : null;
   } catch {
@@ -94225,10 +95219,10 @@ async function terminalKnowledgeSnapshotId(root2, repositoryRevision) {
       sourceSnapshotId: scan.snapshotId
     };
     try {
-      const target = resolve87(root2, KNOWLEDGE_SNAPSHOT_CACHE);
-      await mkdir29(dirname23(target), { recursive: true, mode: 448 });
-      await writeFile8(`${target}.${process.pid}.tmp`, JSON.stringify(value), { mode: 384 });
-      await rename16(`${target}.${process.pid}.tmp`, target);
+      const target = resolve91(root2, KNOWLEDGE_SNAPSHOT_CACHE);
+      await mkdir31(dirname23(target), { recursive: true, mode: 448 });
+      await writeFile9(`${target}.${process.pid}.tmp`, JSON.stringify(value), { mode: 384 });
+      await rename17(`${target}.${process.pid}.tmp`, target);
     } catch {
     }
   }
@@ -94238,43 +95232,9 @@ async function prefetchTerminalPromptContext(root2) {
   const snapshot = await captureTerminalRepositorySnapshot(root2);
   await terminalKnowledgeSnapshotId(root2, snapshot.revision);
 }
-function formatCompactWorkstreamContext(snapshot) {
-  const decisions = snapshot.pendingDecisions ?? [];
-  const context = [
-    `Lervo workstream: ${bounded(snapshot.title, 200)} (revision ${snapshot.revision}).`,
-    ...snapshot.nextActions[0] === void 0 ? [] : [`Next: ${bounded(snapshot.nextActions[0])}`],
-    ...decisions.length === 0 ? [] : [
-      `Pending user decisions: ${decisions.length}.`,
-      ...decisions.slice(0, MAXIMUM_DECISIONS).map(
-        (item) => `- ${item.decisionId}${item.blocking ? " [blocking]" : ""}: ${bounded(item.question, 240)}; recommended=${item.recommendedChoiceId ?? "none"}`
-      )
-    ]
-  ].join("\n");
-  return {
-    workstreamId: snapshot.workstreamId,
-    revision: snapshot.revision,
-    snapshotHash: sha2565(`${canonicalJson4(snapshot)}
-`),
-    scope: "prefix",
-    deliveredByteCount: Buffer.byteLength(context),
-    context
-  };
-}
-function formatCompactTerminalPreamble(input) {
-  const blocking = input.attention.items.filter((item) => item.blocking).slice(0, 5);
-  return [
-    'Lervo compact terminal context. Before changing repository bytes, run `lervo knowledge query "<purpose and paths>"` for applicable rules, as AGENTS.md requires.',
-    ...blocking.length === 0 ? [] : [
-      `Blocking attention: ${blocking.map((item) => `${item.kind}:${item.itemId}${item.requiresUserAction ? " [user]" : ""}`).join("; ")}. Details: \`lervo application attention --json\`.`
-    ],
-    ...input.backgroundKnowledgeActive ? [
-      "Background knowledge convergence is active and owns canonicalization, normalization, and knowledge refresh; this turn needs no knowledge refresh or turn declaration."
-    ] : [input.declarationInstruction],
-    input.workstreamPresent ? "If this turn changes repository-authored bytes, record the next bounded revision with the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow; never ask the user to run bookkeeping." : "If this turn changes repository-authored bytes, create a bounded checkpoint with the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow; never ask the user to run bookkeeping."
-  ].join("\n");
-}
 async function prepareCompactTerminalPromptContext(input) {
   const requestDigest = sha2565(input.prompt);
+  const observedAt = /* @__PURE__ */ new Date();
   const repositorySnapshot = await input.timing.measure(
     "repository_snapshot",
     () => captureTerminalRepositorySnapshot(input.root)
@@ -94291,6 +95251,12 @@ async function prepareCompactTerminalPromptContext(input) {
           loadRepositoryKnowledgePolicy(input.root),
           verifiedCurrentWorkstream(storage)
         ]);
+        const workstreamFreshness = currentWorkstream === null ? null : await observeWorkstreamFreshness({
+          root: input.root,
+          snapshot: currentWorkstream,
+          policy: workstreamFreshnessPolicy(policy),
+          observedAt
+        });
         const queryProjection = createSearchQueryProjection({
           projector: compactQueryProjector,
           requestDigest,
@@ -94301,7 +95267,12 @@ async function prepareCompactTerminalPromptContext(input) {
           durationMs: 0,
           status: "empty"
         });
-        return { queryProjection, currentWorkstream, projectId: storage.manifest.projectId };
+        return {
+          queryProjection,
+          currentWorkstream,
+          workstreamFreshness,
+          projectId: storage.manifest.projectId
+        };
       } finally {
         await storage.close();
       }
@@ -94315,21 +95286,28 @@ async function prepareCompactTerminalPromptContext(input) {
   const attention2 = createOperatingAttentionReport({
     projectId: query.projectId,
     workstream: query.currentWorkstream,
+    workstreamFreshness: query.workstreamFreshness,
     canonicalization,
     knowledgeLifecycle: { coverage: "unavailable", issues: [] },
-    observedAt: /* @__PURE__ */ new Date()
+    observedAt
   });
-  const workstream = query.currentWorkstream === null ? null : formatCompactWorkstreamContext(query.currentWorkstream);
   const preamble = formatCompactTerminalPreamble({
     attention: attention2,
     declarationInstruction: input.declarationInstruction,
     backgroundKnowledgeActive: input.workspaceBinding?.executionKind === "worker" || health.status === "healthy",
-    workstreamPresent: workstream !== null
+    workstreamPresent: query.currentWorkstream !== null,
+    staleWorkstreamEntryCount: staleWorkstreamEntryCount(
+      attention2,
+      query.currentWorkstream,
+      query.workstreamFreshness
+    )
   });
+  const { additionalContext, workstream } = assembleCompactTerminalContext(
+    preamble,
+    query.currentWorkstream === null || query.workstreamFreshness === null ? null : formatCompactWorkstreamContext(query.currentWorkstream, query.workstreamFreshness)
+  );
   return {
-    additionalContext: workstream === null ? preamble : `${preamble}
-
-${workstream.context}`,
+    additionalContext,
     sourceSnapshotId,
     recommendationCount: 0,
     documents: [],
@@ -94530,12 +95508,20 @@ async function prepareTerminalPromptContext(input) {
     repositoryRevision: repositorySnapshot.revision,
     supplementalSources
   });
+  const observedAt = /* @__PURE__ */ new Date();
+  const workstreamFreshness = currentWorkstream === null ? null : await observeWorkstreamFreshness({
+    root: input.root,
+    snapshot: currentWorkstream,
+    policy: workstreamFreshnessPolicy(preparedKnowledge.policy),
+    observedAt
+  });
   const attention2 = createOperatingAttentionReport({
     projectId,
     workstream: currentWorkstream,
+    workstreamFreshness,
     canonicalization,
     knowledgeLifecycle: cachedLifecycleIssues === null ? { coverage: "unavailable", issues: [] } : { coverage: "cached", issues: cachedLifecycleIssues },
-    observedAt: /* @__PURE__ */ new Date()
+    observedAt
   });
   const selection = await input.timing.measure(
     "search",
@@ -94552,7 +95538,7 @@ async function prepareTerminalPromptContext(input) {
   );
   const assembled = await input.timing.measure("context_assembly", async () => {
     const workstream = currentWorkstream === null ? null : (() => {
-      const full = formatWorkstreamContext(currentWorkstream);
+      const full = formatWorkstreamContext(currentWorkstream, workstreamFreshness);
       const noticeBytes = Buffer.byteLength(TRUNCATION_NOTICE2);
       const context = Buffer.byteLength(full) <= MAXIMUM_WORKSTREAM_CONTEXT_BYTES ? full : `${truncateUtf82(full, MAXIMUM_WORKSTREAM_CONTEXT_BYTES - noticeBytes)}${TRUNCATION_NOTICE2}`;
       return {
@@ -94570,7 +95556,7 @@ async function prepareTerminalPromptContext(input) {
       "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
       "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes."
     ].join("\n\n") : terminalDeclarationInstruction(input.provider, input.observationId);
-    const workstreamInstruction = input.workspaceBinding?.executionKind === "worker" ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping." : workstream === null ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint through the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow before completion. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands." : "If this turn changes repository-authored bytes, the agent must record the next bounded revision through the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow before completion. Preserve identity and origin, replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
+    const workstreamInstruction = input.workspaceBinding?.executionKind === "worker" ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping." : workstream === null ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint before completion with `lervo workstream start --actor agent --provider <current-provider> --stdin --apply-now`. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands." : "If this turn changes repository-authored bytes, the agent must record the next bounded revision before completion with `lervo workstream update --actor agent --provider <current-provider> --patch <json> --apply-now`; the service sets revision, update time, and HEAD and preserves identity and origin. Replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
     const preamble = [
       "Lervo terminal integration v2 used a provider-neutral query projection only for read-only candidate retrieval in the current repository. It did not resolve effects, authority, execution, external systems, or cross-repository routing.",
       `effectGroundingStatus: ${grounding.status}; workflowId: none; reasons: ${grounding.reasons.join(",")}`,
@@ -94670,9 +95656,9 @@ function terminalDeclarationInstruction(provider, observationId) {
 }
 
 // apps/cli/src/terminal-stage-persistence.ts
-import { randomUUID as randomUUID17 } from "node:crypto";
+import { randomUUID as randomUUID19 } from "node:crypto";
 function eventId() {
-  return `evt_${randomUUID17().replaceAll("-", "")}`;
+  return `evt_${randomUUID19().replaceAll("-", "")}`;
 }
 async function recordTerminalStageObservation(input) {
   const writerVersion = input.storage?.writableEventSchemaVersion ?? (await inspectEventWriterCoordinate(input.root)).coordinate.selectedEventSchemaVersion;
@@ -95002,7 +95988,7 @@ async function runCoverage(args, io) {
     const limit = parsed.values.limit === void 0 ? 20 : Number(parsed.values.limit);
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
       throw new Error("--limit must be an integer between 1 and 100.");
-    const root2 = await resolveTerminalRepositoryRoot(resolve88(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve92(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const report = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -95047,7 +96033,7 @@ ${terminalUsage}
       return 1;
     }
     try {
-      const root2 = await resolveTerminalRepositoryRoot(resolve88(io.cwd, parsed.values.root ?? "."));
+      const root2 = await resolveTerminalRepositoryRoot(resolve92(io.cwd, parsed.values.root ?? "."));
       const result = await inspectTerminalLifecycle(root2);
       io.stdout(
         parsed.values.json ? `${JSON.stringify(result, null, 2)}
@@ -95080,9 +96066,9 @@ ${terminalUsage}
 }
 
 // apps/cli/src/provider-query-runner-codex.ts
-import { mkdtemp as mkdtemp5, rm as rm16 } from "node:fs/promises";
+import { mkdtemp as mkdtemp5, rm as rm17 } from "node:fs/promises";
 import { tmpdir as tmpdir3 } from "node:os";
-import { resolve as resolve89 } from "node:path";
+import { resolve as resolve93 } from "node:path";
 
 // packages/adapter-codex/dist/app-server-client.js
 import { spawn as spawn5 } from "node:child_process";
@@ -95129,11 +96115,11 @@ var AsyncQueue = class {
   wait(signal) {
     if (signal.aborted || this.ended || this.values.length > 0)
       return Promise.resolve();
-    return new Promise((resolve91) => {
+    return new Promise((resolve95) => {
       const finish = () => {
         this.waiters.delete(finish);
         signal.removeEventListener("abort", finish);
-        resolve91();
+        resolve95();
       };
       this.waiters.add(finish);
       signal.addEventListener("abort", finish, { once: true });
@@ -95310,13 +96296,13 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     if (this.exited)
       return;
     this.process.kill("SIGTERM");
-    const exited = new Promise((resolve91) => this.process.once("exit", () => resolve91()));
+    const exited = new Promise((resolve95) => this.process.once("exit", () => resolve95()));
     let timer;
     try {
       await Promise.race([
         exited,
-        new Promise((resolve91) => {
-          timer = setTimeout(resolve91, 1e3);
+        new Promise((resolve95) => {
+          timer = setTimeout(resolve95, 1e3);
         })
       ]);
     } finally {
@@ -95333,12 +96319,12 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     const id5 = this.nextRequestId;
     const operation = diagnosticOperation(method);
     this.nextRequestId += 1;
-    return new Promise((resolve91, reject) => {
+    return new Promise((resolve95, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id5);
         reject(new CodexAdapterError("provider_protocol_failed", "The Codex app-server response timed out.", failureDiagnostic(operation, "response_timeout")));
       }, this.requestTimeoutMs);
-      this.pending.set(id5, { resolve: resolve91, reject, timer, operation });
+      this.pending.set(id5, { resolve: resolve95, reject, timer, operation });
       this.write({ method, id: id5, params });
     });
   }
@@ -95419,15 +96405,15 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
 var MAXIMUM_RESPONSE_BYTES = 1024 * 1024;
 
 // packages/adapter-codex/dist/repository-work.js
-import { execFile as execFile12, spawn as spawn6 } from "node:child_process";
-import { promisify as promisify11 } from "node:util";
+import { execFile as execFile13, spawn as spawn6 } from "node:child_process";
+import { promisify as promisify12 } from "node:util";
 var MAXIMUM_OUTPUT_BYTES = 64 * 1024 * 1024;
-var executeFile2 = promisify11(execFile12);
+var executeFile2 = promisify12(execFile13);
 
 // apps/cli/src/provider-query-runner-codex.ts
 var defaultDependencies = {
-  createDirectory: () => mkdtemp5(resolve89(tmpdir3(), "lervo-codex-query-runner-")),
-  removeDirectory: (path) => rm16(path, { recursive: true, force: true }),
+  createDirectory: () => mkdtemp5(resolve93(tmpdir3(), "lervo-codex-query-runner-")),
+  removeDirectory: (path) => rm17(path, { recursive: true, force: true }),
   assertNoModelTools: assertCodexHasNoModelTools,
   connect: (input) => CodexStdioAppServerClient.connect(input)
 };
@@ -95787,7 +96773,7 @@ async function projectProductionSearchQueries(input, prepareProjector = prepareP
 }
 
 // apps/cli/src/terminal-stage-observation.ts
-import { randomUUID as randomUUID18 } from "node:crypto";
+import { randomUUID as randomUUID20 } from "node:crypto";
 var TerminalStageObservation = class {
   profile;
   recorder;
@@ -95840,7 +96826,7 @@ var TerminalStageObservation = class {
         workId: null,
         terminalObservationId,
         terminalHook,
-        observationSetId: `stgobs_${randomUUID18().replaceAll("-", "").slice(0, 24)}`,
+        observationSetId: `stgobs_${randomUUID20().replaceAll("-", "").slice(0, 24)}`,
         stageCatalogVersion: 2,
         environmentProfileDigest: profileHash,
         repositoryProfile: this.profile.repositoryProfile,
@@ -95856,9 +96842,9 @@ async function verifiedRuntime() {
   try {
     const runtimePath = fileURLToPath(import.meta.url);
     const manifest = JSON.parse(
-      await readFile31(resolve90(dirname24(runtimePath), "runtime-v2.json"), "utf8")
+      await readFile32(resolve94(dirname24(runtimePath), "runtime-v2.json"), "utf8")
     );
-    const content3 = await readFile31(runtimePath);
+    const content3 = await readFile32(runtimePath);
     return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash49("sha256").update(content3).digest("hex")}`;
   } catch {
     return false;

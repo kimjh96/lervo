@@ -1,6 +1,6 @@
 import type { KnowledgeLintIssue, KnowledgeLintResult } from "./types.js";
 
-/** Lint codes that become agent-owned `knowledge_lifecycle` attention items (ADR-0462). */
+/** Lint codes that become agent-owned `knowledge_lifecycle` attention items (ADR-0464). */
 export const documentDriftAttentionCodes = [
   "document_role_target_missing",
   "markdown_link_target_missing",

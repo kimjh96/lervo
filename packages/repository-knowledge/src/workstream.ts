@@ -13,6 +13,7 @@ import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enfo
 import { normalizationRecordRetirementOperations } from "./document-normalization-record-retirement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { pendingCoordinatesValid, snapshotFromStartDraft } from "./workstream-snapshot.js";
+import { workstreamIntentHash, type WorkstreamBookkeeping } from "./workstream-bookkeeping.js";
 import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
 import {
   RepositoryKnowledgeError,
@@ -122,7 +123,8 @@ export interface WorkstreamUpdatePlan {
       | "invalid_revision"
       | "identity_changed"
       | "origin_changed"
-      | "invalid_snapshot";
+      | "invalid_snapshot"
+      | "invalid_patch";
     message: string;
   }>;
   operations: KnowledgeFileOperation[];
@@ -153,7 +155,8 @@ export interface WorkstreamStartDraft {
   references: WorkstreamSnapshot["references"];
   pendingDecisions?: NonNullable<WorkstreamSnapshot["pendingDecisions"]>;
   pendingApprovals?: NonNullable<WorkstreamSnapshot["pendingApprovals"]>;
-  updatedAt: string;
+  /** Ignored when the service stamps bookkeeping. */
+  updatedAt?: string;
 }
 
 export interface WorkstreamStartPlan {
@@ -168,6 +171,8 @@ export interface WorkstreamStartPlan {
   snapshot: WorkstreamSnapshot | null;
   blockers: Array<{ code: "current_workstream_exists" | "invalid_draft"; message: string }>;
   operations: KnowledgeFileOperation[];
+  /** Service-stamped write facts; null when the caller supplied an exact draft. */
+  bookkeeping: WorkstreamBookkeeping | null;
 }
 
 export interface WorkstreamStartReceipt {
@@ -614,55 +619,12 @@ export async function restoreCurrentWorkstreamState(input: {
   return value as WorkstreamSnapshot;
 }
 
-export function formatWorkstreamContext(snapshot: WorkstreamSnapshot): string {
-  const pendingDecisions = snapshot.pendingDecisions ?? [];
-  const pendingApprovals = snapshot.pendingApprovals ?? [];
-  const lines = [
-    "## Lervo current workstream",
-    `workstreamId: ${snapshot.workstreamId}; revision: ${snapshot.revision}; status: ${snapshot.status}; snapshotHash: ${sha256(`${canonicalJson(snapshot)}\n`)}`,
-    `Title: ${snapshot.title}`,
-    `Objective: ${snapshot.objective}`,
-    ...(snapshot.nextActions.length === 0
-      ? []
-      : ["Next actions:", ...snapshot.nextActions.map((item, index) => `${index + 1}. ${item}`)]),
-    ...(snapshot.blockers.length === 0
-      ? []
-      : ["Blockers:", ...snapshot.blockers.map((item) => `- ${item}`)]),
-    ...(snapshot.notes.length === 0
-      ? []
-      : ["Current facts:", ...snapshot.notes.map((item) => `- ${item}`)]),
-    ...(snapshot.references.length === 0
-      ? []
-      : ["References:", ...snapshot.references.map((item) => `- ${item.label}: ${item.path}`)]),
-    ...(pendingDecisions.length === 0
-      ? []
-      : [
-          "Pending user decisions:",
-          ...pendingDecisions.map(
-            (item) =>
-              `- ${item.decisionId}${item.blocking ? " [blocking]" : ""}: ${item.question}; choices=${item.choices.map((choice) => `${choice.choiceId}:${choice.label}`).join(", ")}; recommended=${item.recommendedChoiceId ?? "none"}`,
-          ),
-        ]),
-    ...(pendingApprovals.length === 0
-      ? []
-      : [
-          "Pending user approvals:",
-          ...pendingApprovals.map(
-            (item) =>
-              `- ${item.approvalId}${item.blocking ? " [blocking]" : ""}: ${item.kind}; ${item.summary}; binding=${item.bindingHash}`,
-          ),
-        ]),
-    "This is mutable continuation state, not a long-term architecture contract. Promote durable decisions to canonical repository documentation.",
-    "Treat a natural-language user reply to a pending item as input to resolve, apply, remove, and canonically record that item when authorized. Never require the user to type a Lervo bookkeeping command.",
-    "Before completing a repository-changing direct provider terminal turn, use `lervo workstream current --json` and the reviewed `lervo workstream update` plan/apply flow to record the next bounded revision. Replace stale facts instead of accumulating prose; do not ask the user to run this bookkeeping command.",
-  ];
-  return lines.join("\n");
-}
-
 export async function createWorkstreamStartPlan(input: {
   repositoryRoot: string;
   projectId: string;
   draft: unknown;
+  /** When present the service owns update time, HEAD observation, and note retention. */
+  bookkeeping?: WorkstreamBookkeeping;
 }): Promise<WorkstreamStartPlan> {
   const root = resolve(input.repositoryRoot);
   const blockers: WorkstreamStartPlan["blockers"] = [];
@@ -682,7 +644,8 @@ export async function createWorkstreamStartPlan(input: {
       message:
         "The current workstream is not settled as completed or cancelled; record its next revision with workstream update.",
     });
-  const snapshot = snapshotFromStartDraft(input.projectId, input.draft, predecessor);
+  const bookkeeping = input.bookkeeping ?? null;
+  const snapshot = snapshotFromStartDraft(input.projectId, input.draft, predecessor, bookkeeping);
   if (snapshot === null)
     blockers.push({
       code: "invalid_draft",
@@ -694,7 +657,7 @@ export async function createWorkstreamStartPlan(input: {
     planKind: "workstream_start",
     projectId: input.projectId,
     currentSnapshotContentHash: currentSource?.contentHash ?? null,
-    desiredSnapshotContentHash,
+    desiredIntentHash: snapshot === null ? null : workstreamIntentHash(snapshot),
     blockers,
   });
   const operations: KnowledgeFileOperation[] =
@@ -723,6 +686,7 @@ export async function createWorkstreamStartPlan(input: {
     snapshot,
     blockers,
     operations,
+    bookkeeping,
   };
 }
 
@@ -759,6 +723,7 @@ export async function applyWorkstreamStartPlan(input: {
     repositoryRoot: input.plan.repositoryRoot,
     projectId: input.plan.projectId,
     draft,
+    ...(input.plan.bookkeeping === null ? {} : { bookkeeping: input.plan.bookkeeping }),
   });
   if (
     current.planId !== input.plan.planId ||
@@ -1293,7 +1258,7 @@ export async function createWorkstreamUpdatePlan(input: {
   const planId = stableId("kwstreamplan", {
     projectId: input.projectId,
     currentSnapshotContentHash: currentSource?.contentHash ?? null,
-    desiredSnapshotContentHash,
+    desiredIntentHash: snapshot === null ? null : workstreamIntentHash(snapshot),
     blockers,
   });
   const operations: KnowledgeFileOperation[] =

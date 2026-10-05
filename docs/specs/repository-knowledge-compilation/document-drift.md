@@ -1,6 +1,6 @@
 # Document Drift and Historical Documents
 
-This specification covers how `lervo knowledge lint` reports drift between repository documents and the repository they describe, and how historical documents are kept out of current navigation. [ADR-0462](../../decisions/knowledge/documents/0462-report-document-drift-and-historical-documents.md) holds the exact rules.
+This specification covers how `lervo knowledge lint` reports drift between repository documents and the repository they describe, and how historical documents are kept out of current navigation. [ADR-0464](../../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md) holds the exact rules.
 
 ## Drift findings
 

@@ -1,7 +1,7 @@
 import type { DecisionTaxonomy } from "@lervo/project";
 
 /**
- * Recognized historical-document markers (ADR-0462):
+ * Recognized historical-document markers (ADR-0464):
  *
  * - `archive_scope`: the path is `docs/archive/**` or under a capacity override whose role is
  *   `archive` in `.lervo/knowledge/document-layout.yaml`.

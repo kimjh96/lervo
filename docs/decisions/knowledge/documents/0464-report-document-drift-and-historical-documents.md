@@ -1,4 +1,4 @@
-# ADR-0462: Report document drift and separate historical documents
+# ADR-0464: Report document drift and separate historical documents
 
 Status: `accepted`
 Decision date: 2026-10-05

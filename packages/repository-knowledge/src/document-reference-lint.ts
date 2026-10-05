@@ -17,7 +17,7 @@ import type {
   RepositorySource,
 } from "./types.js";
 
-/** Root entrypoints whose user-owned prose is checked for references (ADR-0462). */
+/** Root entrypoints whose user-owned prose is checked for references (ADR-0464). */
 export const referenceCheckedEntrypoints = ["README.md", "AGENTS.md", "CLAUDE.md"] as const;
 
 /** Per-code bound; further findings collapse into one truncation finding. */
@@ -29,7 +29,7 @@ export type DocumentReferenceLintCode =
 
 /**
  * Included Markdown sources describing the current repository. Historical documents are frozen
- * records, so reference and staleness checks skip them (ADR-0462).
+ * records, so reference and staleness checks skip them (ADR-0464).
  */
 export function currentMarkdownDocumentSources(
   scan: RepositoryKnowledgeScan,

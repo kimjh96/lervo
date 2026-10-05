@@ -82,6 +82,8 @@ export interface RepositoryKnowledgePolicy {
     maxNavigationBytes: number;
   };
   normalization?: { exclude: string[] };
+  /** Optional workstream staleness thresholds; defaults apply when absent. */
+  workstream?: import("./workstream-freshness.js").WorkstreamFreshnessPolicy;
   exclude: string[];
   limits: {
     maxFiles: number;

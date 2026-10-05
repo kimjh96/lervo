@@ -23,7 +23,7 @@ Interactive repository-context preparation, CLI knowledge query, and product sea
 
 Ranked results expose the applied `{ id, version }` engine and `adapterBuildId`. This metadata contains no query text, source bytes, credential, provider identity, or personal data. Missing metadata means a compatibility caller omitted the ranker. Invalid, duplicate, unknown, non-positive, or unsafe-score results fail closed. A fuzzy engine hit may have no legacy literal `matchedTerms`; that list reports literal overlap only and does not explain the engine's ranking.
 
-Historical documents, as defined in [ADR-0462](../decisions/knowledge/documents/0462-report-document-drift-and-historical-documents.md), are left out of default results on both the compatibility and ranker paths. The ranker receives a `historical` label and is asked for extra candidates so the result limit still holds. A query that names history as a whole word (`archive`, `archived`, `historical`, `history`, `legacy`, `superseded`, `obsolete`, or `deprecated`) includes those documents, and each such hit carries `historical: true`.
+Historical documents, as defined in [ADR-0464](../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md), are left out of default results on both the compatibility and ranker paths. The ranker receives a `historical` label and is asked for extra candidates so the result limit still holds. A query that names history as a whole word (`archive`, `archived`, `historical`, `history`, `legacy`, `superseded`, `obsolete`, or `deprecated`) includes those documents, and each such hit carries `historical: true`.
 
 Query results are `recommended`. Ranking and cache evidence do not prove selection, loading, injection, reference, or use.
 

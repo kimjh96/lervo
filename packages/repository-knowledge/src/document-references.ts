@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 
 /**
- * Deterministic repository-path references inferred from one Markdown document (ADR-0462).
+ * Deterministic repository-path references inferred from one Markdown document (ADR-0464).
  *
  * - `markdown_link`: inline links, images, and reference definitions whose target is not a URL,
  *   scheme, protocol-relative, or anchor-only coordinate. The fragment and query are removed;
