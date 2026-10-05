@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_7980e97820c4c3a46769e743
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f06ff67153a32b519ccae223
+outputLanguage: en
+outputs:
+  - byteCount: 550
+    contentHash: sha256:4dd1527bb50e1fdaa72abbf12c344f05eb7d57e8babf74d5a034c8d450a64467
+    path: docs/specs/background-knowledge-convergence/scheduling-and-events.md
+    userRegionHash: sha256:4dd1527bb50e1fdaa72abbf12c344f05eb7d57e8babf74d5a034c8d450a64467
+profile: specification_document
+recordId: knormdoc_a6f34734045c205fddc489e1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4dd1527bb50e1fdaa72abbf12c344f05eb7d57e8babf74d5a034c8d450a64467
+sourcePath: docs/specs/background-knowledge-convergence/scheduling-and-events.md
+sourceUnitVersionIds:
+  - uv_054d40506295227740132951
+  - uv_081461ecb0eb5f55f57bf903

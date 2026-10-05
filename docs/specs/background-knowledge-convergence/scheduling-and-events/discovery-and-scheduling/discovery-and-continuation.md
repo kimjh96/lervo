@@ -1,0 +1,11 @@
+# Discovery and durable continuation
+
+One owner per repository shares the Node/CLI worker lock and exact outbox leases. Startup, local event changes, and repository edits under a Node resident wake it. Behind a change fence, an adaptive timer backs off from 60 seconds to 15 minutes to inspect idle repositories ([resident cycle](../../runtime/discovery-and-progress/resident-cycle.md)). Without a Node, a detached bounded CLI worker advances available stages but cannot promise progress after exit. Status exposes the absence of a resident host. No Hub is required.
+
+Discovery captures a complete, stable source scan, lifecycle reasons, current canonical candidates, pending normalization families, and writer/delegation coordinates. A baseline identity binds project, source snapshot, policy, and debt digest. The baseline event and first queue row are atomic and idempotent. Lease expiry or host restart replays canonical events rather than creating another task system.
+
+Preserve `repository.change.completed` as the canonical change-job source. Reconcile bounded pages against resolutions and outstanding entries so queue-capacity rejection cannot strand a discoverable event. Cursor advance and inserted projection rows share a transaction. Invalid or unsupported events stop at a visible reader boundary.
+
+Stages are `assessment`, `canonical_review`, `canonical_integration`, `normalization_generation`, `normalization_review`, `normalization_apply`, and `lifecycle_verification`. Each acknowledgement atomically records its stage result and creates the next durable stage or dependency. `pending_review` counts as progress only with a readable exact candidate/decision and a scheduled owner. Existing `attention_required` outcomes may create a linked recovery obligation; their historical event is never updated or falsely marked current.
+
+Startup migration inventories old resolutions, current candidates, and all current lifecycle debt. It records acknowledged but unfinished work, including null candidates, as fresh source-bound obligations. Irrecoverable historical before-bytes remain evidence gaps. A reviewed new baseline may establish present-state currency without retroactively proving the old change.
