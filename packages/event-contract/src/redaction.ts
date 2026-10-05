@@ -4,6 +4,10 @@ import {
 } from "./convergence-assignment-payload.js";
 import { knowledgeConvergencePayloadAllowlists } from "./knowledge-convergence-payload.js";
 import {
+  documentFreshnessPayloadAllowlists,
+  documentFreshnessPayloadSchemas,
+} from "./document-freshness-payload.js";
+import {
   validateSchema,
   type AgentContextHandoffRecordedEventPayload,
   type AgentContextPromotedEventPayload,
@@ -34,6 +38,7 @@ export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue
 
 export const eventPayloadAllowlists = {
   ...knowledgeConvergencePayloadAllowlists,
+  ...documentFreshnessPayloadAllowlists,
   "managed.execution.reserved": ["executionKey", "requestHash"],
   "role.input.bound": roleInputPayloadFields,
   ...supervisionPayloadAllowlists,
@@ -1359,6 +1364,7 @@ export function sanitizeEventPayload(
 }
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
+  ...documentFreshnessPayloadSchemas,
   "assignment.convergence.archived": "convergenceAssignmentArchivedEventPayload",
   "repository.knowledge.baseline.requested": "repositoryKnowledgeBaselineRequestedEventPayload",
   "repository.knowledge.stage.recorded": "repositoryKnowledgeStageRecordedEventPayload",
