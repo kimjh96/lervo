@@ -121,6 +121,30 @@ export interface DocumentFreshnessBlockedAttentionItemV1 extends OperatingAttent
   attempts: number;
 }
 
+/**
+ * ADR-0466: this host cannot prove it owns knowledge convergence, or a standalone host saw
+ * another host's fresh knowledge commit. Convergence stays read-only until it is resolved.
+ */
+export interface KnowledgeConvergenceOwnerAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "knowledge_convergence_owner";
+  state: "action_required";
+  role: "unverifiable" | "contended";
+  reason: string;
+  holderLabel: string | null;
+  observedAt: string;
+}
+
+/** ADR-0466: publishing the owner's knowledge commits failed; one item per failure code. */
+export interface KnowledgePublicationAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "knowledge_publication";
+  state: "action_required";
+  failureCode: string;
+  detail: string | null;
+  pullRequestUrl: string | null;
+  occurrences: number;
+  firstObservedAt: string;
+}
+
 export type OperatingAttentionItemV1 =
   | WorkstreamDecisionAttentionItemV1
   | WorkstreamApprovalAttentionItemV1
@@ -130,7 +154,9 @@ export type OperatingAttentionItemV1 =
   | RepositoryReplicaDivergenceAttentionItemV1
   | DocumentFreshnessCandidateAttentionItemV1
   | DocumentFreshnessAppliedAttentionItemV1
-  | DocumentFreshnessBlockedAttentionItemV1;
+  | DocumentFreshnessBlockedAttentionItemV1
+  | KnowledgeConvergenceOwnerAttentionItemV1
+  | KnowledgePublicationAttentionItemV1;
 
 export interface OperatingAttentionReportV1 {
   schemaVersion: 1;
