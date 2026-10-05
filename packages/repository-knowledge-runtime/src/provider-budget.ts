@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { sha256, stableId } from "@lervo/repository-knowledge";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 /** One bounded private projection. Reservations survive failures and process restarts. */
 export async function reserveConvergenceProviderCall(input: {
@@ -29,21 +30,22 @@ export async function reserveConvergenceProviderCall(input: {
     "PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS budgets (batch_hash TEXT PRIMARY KEY, calls INTEGER NOT NULL, obligation_id TEXT)",
   );
   if (
-    !db
-      .prepare("PRAGMA table_info(budgets)")
-      .all()
-      .some((row) => row.name === "obligation_id")
+    !sqliteRows(db.prepare("PRAGMA table_info(budgets)").all()).some(
+      (row) => row.name === "obligation_id",
+    )
   )
     db.exec("ALTER TABLE budgets ADD COLUMN obligation_id TEXT");
   let transaction = false;
   try {
     db.exec("BEGIN IMMEDIATE");
     transaction = true;
-    for (const row of db
-      .prepare(
-        "SELECT DISTINCT obligation_id FROM budgets WHERE obligation_id IS NOT NULL LIMIT 8192",
-      )
-      .all()) {
+    for (const row of sqliteRows(
+      db
+        .prepare(
+          "SELECT DISTINCT obligation_id FROM budgets WHERE obligation_id IS NOT NULL LIMIT 8192",
+        )
+        .all(),
+    )) {
       const id = String(row.obligation_id);
       const terminal = input.events.get(stableId("evt", [id, "terminal"], 32));
       // A per-change review budget is scoped by the resolution event its job will record.
@@ -55,7 +57,7 @@ export async function reserveConvergenceProviderCall(input: {
         db.prepare("DELETE FROM budgets WHERE obligation_id=?").run(id);
     }
     const id = sha256(input.batchId);
-    const prior = db.prepare("SELECT calls FROM budgets WHERE batch_hash=?").get(id);
+    const prior = sqliteRow(db.prepare("SELECT calls FROM budgets WHERE batch_hash=?").get(id));
     const count = prior === undefined ? 0 : Number(prior.calls);
     if (!Number.isSafeInteger(count) || count < 0)
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
@@ -63,7 +65,7 @@ export async function reserveConvergenceProviderCall(input: {
       throw new KnowledgeConvergenceRuntimeError("normalization_budget_exceeded");
     if (
       prior === undefined &&
-      Number(db.prepare("SELECT count(*) AS count FROM budgets").get()!.count) >= 8192
+      Number(sqliteRow(db.prepare("SELECT count(*) AS count FROM budgets").get())!.count) >= 8192
     )
       throw new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
     db.prepare(

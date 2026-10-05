@@ -2,6 +2,8 @@ import { chmodSync, lstatSync, rmSync, type BigIntStats } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
+
 export const SOURCE_HASH_CACHE_PATH = ".lervo/state/knowledge/source-hash-cache.sqlite";
 const MAXIMUM_ROWS = 50_000;
 const SCHEMA_VERSION = 1;
@@ -59,7 +61,7 @@ function openDatabase(path: string): DatabaseSync {
   try {
     chmodSync(path, 0o600);
     db.exec("PRAGMA busy_timeout=5000");
-    const version = Number(db.prepare("PRAGMA user_version").get()?.user_version ?? 0);
+    const version = Number(sqliteRow(db.prepare("PRAGMA user_version").get())?.user_version ?? 0);
     if (version !== SCHEMA_VERSION) {
       db.exec("DROP TABLE IF EXISTS sources");
       db.exec(`PRAGMA user_version=${SCHEMA_VERSION}`);
@@ -76,7 +78,7 @@ function openDatabase(path: string): DatabaseSync {
 
 function loadRows(db: DatabaseSync): Map<string, CacheRow> {
   const rows = new Map<string, CacheRow>();
-  for (const row of db.prepare("SELECT * FROM sources").all()) {
+  for (const row of sqliteRows(db.prepare("SELECT * FROM sources").all())) {
     if (
       typeof row.path !== "string" ||
       typeof row.sha256 !== "string" ||
@@ -180,7 +182,8 @@ export function openSourceHashCache(root: string): SourceHashCache {
                 row.kind,
               );
           if (
-            Number(db.prepare("SELECT count(*) AS count FROM sources").get()!.count) > MAXIMUM_ROWS
+            Number(sqliteRow(db.prepare("SELECT count(*) AS count FROM sources").get())!.count) >
+            MAXIMUM_ROWS
           )
             db.exec("DELETE FROM sources");
           db.exec("COMMIT");

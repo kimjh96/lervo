@@ -8,6 +8,7 @@ import { sha256 } from "@lervo/repository-knowledge";
 import { captureConvergenceSources } from "../src/source-capture.js";
 import { SOURCE_HASH_CACHE_PATH } from "../src/source-hash-cache.js";
 import { fixture } from "./fixture.js";
+import { sqliteRows } from "../src/sqlite-row.js";
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
@@ -86,10 +87,9 @@ it("prunes absent paths and rebuilds a corrupt cache", async () => {
   const paths = () => {
     const db = cache(f.root);
     try {
-      return db
-        .prepare("SELECT path FROM sources ORDER BY path")
-        .all()
-        .map((row) => row.path);
+      return sqliteRows(db.prepare("SELECT path FROM sources ORDER BY path").all()).map(
+        (row) => row.path,
+      );
     } finally {
       db.close();
     }

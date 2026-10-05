@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { sha256 } from "@lervo/repository-knowledge";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 export type KnowledgeResidentState =
   "running" | "idle" | "waiting" | "attention" | "busy" | "stopped";
@@ -72,7 +73,7 @@ export async function recordKnowledgeResidentHealth(input: {
     db.exec("BEGIN IMMEDIATE");
     const now = (input.now ?? new Date()).getTime();
     const key = sha256(input.workerId);
-    for (const row of db.prepare("SELECT * FROM residents").all()) {
+    for (const row of sqliteRows(db.prepare("SELECT * FROM residents").all())) {
       if (
         String(row.worker_hash) !== key &&
         (now - Number(row.heartbeat) > 120_000 || !alive(Number(row.pid)))
@@ -80,8 +81,9 @@ export async function recordKnowledgeResidentHealth(input: {
         db.prepare("DELETE FROM residents WHERE worker_hash=?").run(String(row.worker_hash));
     }
     if (
-      db.prepare("SELECT worker_hash FROM residents WHERE worker_hash=?").get(key) === undefined &&
-      Number(db.prepare("SELECT count(*) AS count FROM residents").get()!.count) >= 64
+      sqliteRow(db.prepare("SELECT worker_hash FROM residents WHERE worker_hash=?").get(key)) ===
+        undefined &&
+      Number(sqliteRow(db.prepare("SELECT count(*) AS count FROM residents").get())!.count) >= 64
     )
       throw new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
     db.prepare(
@@ -99,10 +101,16 @@ export async function inspectKnowledgeResidentHealth(
 ): Promise<KnowledgeResidentHealth> {
   const db = await healthDatabase(root, false);
   try {
-    const row = db
-      ?.prepare("SELECT * FROM residents WHERE state != 'stopped' ORDER BY heartbeat DESC")
-      .all()
-      .find((item) => now.getTime() - Number(item.heartbeat) <= 120_000 && alive(Number(item.pid)));
+    const residents = db
+      ? sqliteRows(
+          db
+            .prepare("SELECT * FROM residents WHERE state != 'stopped' ORDER BY heartbeat DESC")
+            .all(),
+        )
+      : [];
+    const row = residents.find(
+      (item) => now.getTime() - Number(item.heartbeat) <= 120_000 && alive(Number(item.pid)),
+    );
     if (!row)
       return {
         status: "not_running",

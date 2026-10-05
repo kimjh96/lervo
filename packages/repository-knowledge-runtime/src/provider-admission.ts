@@ -7,6 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { sha256 } from "@lervo/repository-knowledge";
 
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 function alive(pid: number): boolean {
   try {
@@ -41,17 +42,15 @@ async function database(directory: string): Promise<DatabaseSync> {
     observed_at INTEGER NOT NULL, reset_at INTEGER
   )`);
   if (
-    !db
-      .prepare("PRAGMA table_info(requests)")
-      .all()
-      .some((row) => row.name === "provider")
+    !sqliteRows(db.prepare("PRAGMA table_info(requests)").all()).some(
+      (row) => row.name === "provider",
+    )
   )
     db.exec("ALTER TABLE requests ADD COLUMN provider TEXT");
   if (
-    !db
-      .prepare("PRAGMA table_info(requests)")
-      .all()
-      .some((row) => row.name === "purpose")
+    !sqliteRows(db.prepare("PRAGMA table_info(requests)").all()).some(
+      (row) => row.name === "purpose",
+    )
   )
     db.exec("ALTER TABLE requests ADD COLUMN purpose TEXT");
   db.exec(
@@ -106,9 +105,9 @@ export async function acquireKnowledgeProviderAdmission(input: {
       transactionOpen = false;
       return null;
     }
-    const pause = db
-      .prepare("SELECT * FROM provider_pauses WHERE provider = ?")
-      .get(input.provider);
+    const pause = sqliteRow(
+      db.prepare("SELECT * FROM provider_pauses WHERE provider = ?").get(input.provider),
+    );
     if (
       pause !== undefined &&
       (pause.reset_at === null || typeof pause.reset_at !== "number" || pause.reset_at > now) &&
@@ -133,9 +132,11 @@ export async function acquireKnowledgeProviderAdmission(input: {
     }
     if (
       rows(db).length >= 1_024 &&
-      db
-        .prepare("SELECT repository_hash FROM requests WHERE repository_hash = ?")
-        .get(repositoryHash) === undefined
+      sqliteRow(
+        db
+          .prepare("SELECT repository_hash FROM requests WHERE repository_hash = ?")
+          .get(repositoryHash),
+      ) === undefined
     ) {
       db.exec("COMMIT");
       transactionOpen = false;
@@ -159,10 +160,11 @@ export async function acquireKnowledgeProviderAdmission(input: {
     const pending = rows(db);
     const active = pending.filter((row) => row.nonce !== null);
     const paused = new Set(
-      db
-        .prepare("SELECT provider FROM provider_pauses WHERE reset_at IS NULL OR reset_at > ?")
-        .all(now)
-        .map((row) => String(row.provider)),
+      sqliteRows(
+        db
+          .prepare("SELECT provider FROM provider_pauses WHERE reset_at IS NULL OR reset_at > ?")
+          .all(now),
+      ).map((row) => String(row.provider)),
     );
     const first = pending.find(
       (row) =>
@@ -263,9 +265,9 @@ export async function knowledgeProviderAdmissionState(input: {
     input.directory ?? resolve(homedir(), ".lervo", "state", "knowledge-provider-admission"),
   );
   try {
-    const pause = db
-      .prepare("SELECT * FROM provider_pauses WHERE provider = ?")
-      .get(input.provider);
+    const pause = sqliteRow(
+      db.prepare("SELECT * FROM provider_pauses WHERE provider = ?").get(input.provider),
+    );
     const now = (input.now ?? new Date()).getTime();
     return {
       paused: pause !== undefined && (pause.reset_at === null || Number(pause.reset_at) > now),
@@ -295,9 +297,9 @@ export async function settleKnowledgeProviderProbe(input: {
   );
   try {
     db.exec("BEGIN IMMEDIATE");
-    const current = db
-      .prepare("SELECT * FROM provider_pauses WHERE provider=?")
-      .get(input.provider);
+    const current = sqliteRow(
+      db.prepare("SELECT * FROM provider_pauses WHERE provider=?").get(input.provider),
+    );
     if (
       current &&
       (current.observation_hash !== input.priorObservationHash ||
