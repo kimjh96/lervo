@@ -102,6 +102,24 @@ describe("document drift attention", () => {
     });
   });
 
+  it("keeps entrypoint and staleness findings visible when many role findings exist", () => {
+    const roles = Array.from({ length: 10 }, (_, index) => ({
+      code: "document_role_target_missing",
+      severity: "warning" as const,
+      path: `IMPLEMENTATION-HANDOFF/${index}.md`,
+      message: "missing",
+    }));
+    const lint = argoDriftLint(1);
+    const items = documentDriftAttentionIssues({ issues: [...roles, ...lint.issues] }, 4);
+    expect(items.map((item) => item.code)).toEqual([
+      "entrypoint_reference_missing",
+      "document_stale",
+      "document_role_target_missing",
+      "document_role_target_missing",
+      "document_drift_attention_truncated",
+    ]);
+  });
+
   it("projects agent-owned, non-blocking items within the terminal byte cap beside stale workstream items", () => {
     const advisories = documentDriftAttentionIssues(argoDriftLint(10), 4);
     const report = createOperatingAttentionReport({

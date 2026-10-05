@@ -53,7 +53,7 @@ Snapshots map each relative path to `sha256` of its Git object name at HEAD and 
 
 ### Attention
 
-`documentDriftAttentionIssues` maps these codes to bounded `{ code, command, detail }` lifecycle issues, plus one `document_drift_attention_truncated` item. `detail` holds only `path=`, `target=`, and `reasons=`, and `command` is `lervo knowledge lint --json`.
+`documentDriftAttentionIssues` maps these codes to bounded `{ code, command, detail }` lifecycle issues, plus one `document_drift_attention_truncated` item. It takes findings round-robin across codes in this priority order: `entrypoint_reference_missing`, `document_stale`, `markdown_link_target_missing`, `document_role_target_missing`, `document_staleness_unknown`. One prolific code therefore cannot hide the others. `detail` holds only `path=`, `target=`, and `reasons=`, and `command` is `lervo knowledge lint --json`.
 
 The terminal validation lifecycle in `apps/cli/src/terminal-knowledge-lifecycle-inspection.ts` derives at most four of these items from its lint call. It returns them as `advisories`, separate from lifecycle `issues`. Advisories never change `TerminalLifecycleInspection.status`, so they never block a Stop, a worker checkpoint, or a turn declaration. The exact-revision lifecycle cache stores them in an optional `advisories` field.
 

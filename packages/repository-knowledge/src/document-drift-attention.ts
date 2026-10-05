@@ -1,11 +1,14 @@
 import type { KnowledgeLintIssue, KnowledgeLintResult } from "./types.js";
 
-/** Lint codes that become agent-owned `knowledge_lifecycle` attention items (ADR-0464). */
+/**
+ * Lint codes that become agent-owned `knowledge_lifecycle` attention items (ADR-0464), in the
+ * priority order used when a small bound must choose between them.
+ */
 export const documentDriftAttentionCodes = [
-  "document_role_target_missing",
-  "markdown_link_target_missing",
   "entrypoint_reference_missing",
   "document_stale",
+  "markdown_link_target_missing",
+  "document_role_target_missing",
   "document_staleness_unknown",
   "document_reference_findings_truncated",
 ] as const;
@@ -35,7 +38,8 @@ function detail(issue: KnowledgeLintIssue): string {
 
 /**
  * Projects document drift lint warnings into bounded, privacy-bounded lifecycle issues: relative
- * paths and reason names only, deterministic order, and one overflow item beyond the bound.
+ * paths and reason names only, and one overflow item beyond the bound. Items are taken
+ * round-robin across codes in priority order, so one prolific code cannot hide the others.
  * Agents resolve them by updating the owning document through the normal reviewed path; this
  * projection never authorizes a write.
  */
@@ -45,7 +49,16 @@ export function documentDriftAttentionIssues(
 ): DocumentDriftAttentionIssue[] {
   const bound = Math.max(1, Math.min(maximumItems, MAXIMUM_DOCUMENT_DRIFT_ATTENTION_ITEMS));
   const relevant = lint.issues.filter((issue) => attentionCodes.has(issue.code));
-  const items = relevant.slice(0, bound).map((issue) => ({
+  const queues = documentDriftAttentionCodes.map((code) =>
+    relevant.filter((issue) => issue.code === code),
+  );
+  const selected: KnowledgeLintIssue[] = [];
+  for (let round = 0; selected.length < bound; round += 1) {
+    const layer = queues.flatMap((queue) => (queue[round] === undefined ? [] : [queue[round]]));
+    if (layer.length === 0) break;
+    selected.push(...layer.slice(0, bound - selected.length));
+  }
+  const items = selected.map((issue) => ({
     code: issue.code,
     command: "lervo knowledge lint --json",
     detail: detail(issue),
