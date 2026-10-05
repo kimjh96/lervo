@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_570cb2fdb60af9de21c13771
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f5c52d7d6d64c93954f9bcfc
+outputLanguage: en
+outputs:
+  - byteCount: 748
+    contentHash: sha256:3ccd36376761ffaaf7af9e991e85426a4301647d89b026a2f4cfd015fe19c924
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/detached-launch.md
+    userRegionHash: sha256:3ccd36376761ffaaf7af9e991e85426a4301647d89b026a2f4cfd015fe19c924
+profile: specification_document
+recordId: knormdoc_d1d275646b1048d6fcdcae93
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:fa594ad5c93b89d3186cccddf2e3de961f87c108cb7d32ca81f78a6f41bac9cd
+sourcePath: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/detached-launch.md
+sourceUnitVersionIds:
+  - uv_6fd59cac55782504252da512
