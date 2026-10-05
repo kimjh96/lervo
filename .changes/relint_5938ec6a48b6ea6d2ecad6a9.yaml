@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5938ec6a48b6ea6d2ecad6a9"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Coordinate background knowledge convergence across hosts with one Hub-leased owner, a commit fence, and standalone contention detection."
