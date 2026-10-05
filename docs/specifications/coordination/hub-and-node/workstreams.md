@@ -4,9 +4,9 @@
 
 Workstream revisions are shared by project and repository identity across authorized destination registrations. Requests bind registration, repository identity, exact current and previous snapshot hashes, and bounded snapshot bytes.
 
-Node validates local ancestry, reads the Hub head set, and publishes the missing suffix when a local ancestry match is proved. Without a match, it republishes available ancestry idempotently.
+Node validates local ancestry and reads the Hub head set. When a local ancestry match is proved, Node publishes the missing suffix; otherwise, it republishes available ancestry idempotently.
 
-The Hub retains at most 16 append-only heads and returns exact snapshot bytes only for a unique head. Divergence is observable and never automatically selected or merged. Node imports only a newer unique head through CAS, the lazy projection, and a system `workstream.snapshot.recorded` event with change kind `hub_replication_import`.
+The Hub retains at most 16 append-only heads and returns exact snapshot bytes only for a unique head. Divergence is observable; no head is automatically selected or merged. Node imports only a newer unique head through CAS, the lazy projection, and a system `workstream.snapshot.recorded` event with change kind `hub_replication_import`.
 
 ## Permissions and exclusions
 

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d25f6b91b0ebbd4c6fe78b34
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f5121836fc0df41cd2d057b0
+outputLanguage: en
+outputs:
+  - byteCount: 1434
+    contentHash: sha256:3eb4a3a17cb12f27b8d0bbe60a1e94307779082bac39b7275de39946b8fd9391
+    path: docs/specifications/coordination/node-change-driven-work/repository-replicas.md
+    userRegionHash: sha256:3eb4a3a17cb12f27b8d0bbe60a1e94307779082bac39b7275de39946b8fd9391
+profile: specification_document
+recordId: knormdoc_41564d198f649fe1dc311d49
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:41bb8b154e0d7b40bf2612c8fa71ed2aba14259081527658ffc4d5386a02caae
+sourcePath: docs/specifications/coordination/node-change-driven-work/repository-replicas.md
+sourceUnitVersionIds:
+  - uv_e1bf2ad5fd6cfa931f64bdee
