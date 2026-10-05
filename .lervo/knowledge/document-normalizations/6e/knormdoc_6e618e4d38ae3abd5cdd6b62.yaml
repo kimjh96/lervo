@@ -1,0 +1,39 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a8538fa58e7a77bbcb588012
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8cf96dcfe2a3470f55732015
+outputLanguage: en
+outputs:
+  - byteCount: 15995
+    contentHash: sha256:5bf5ab8c42a8f4deb362f879245ecc1e55577559b9083fda1017a0697dbd31a0
+    path: docs/decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md
+    userRegionHash: sha256:5bf5ab8c42a8f4deb362f879245ecc1e55577559b9083fda1017a0697dbd31a0
+profile: decision_record
+recordId: knormdoc_6e618e4d38ae3abd5cdd6b62
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:352f22c2c0c011f74e951c9598fc28e2b5f35ec74b7df5f858fc569c622912f4
+sourcePath: docs/decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md
+sourceUnitVersionIds:
+  - uv_06fa8d0b1874fc6590ab4005
+  - uv_28e4b30a22474719664a2efd
+  - uv_2e88b6c39cc9383ea2d12c0b
+  - uv_3487d6f5b5659d00dad4e509
+  - uv_55362261ff314e7017773e3a
+  - uv_68c806d5df7f059a5fcbf9e7
+  - uv_967a6aa44098057abd08ca54
+  - uv_ad298ab4d554da0a2eb4ae05
+  - uv_cccb15c1f8131bda115976df
+  - uv_dacd3b963bbe2161a8028156
+  - uv_eda074304bb736df63b4d9fc
+  - uv_f48b9f9eb6d4446b1984339d
+  - uv_f5f28405fd4d454aa2a1a2bf
+  - uv_f753223e5c0a5bea4af4dfdf

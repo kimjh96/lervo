@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a8538fa58e7a77bbcb588012
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_55e74f5ab046376a5b867f50
+outputLanguage: en
+outputs:
+  - byteCount: 1562
+    contentHash: sha256:f80109bc7a6d2809693f139106bc6b819b65ccc23483248eb65ec229d7524b71
+    path: docs/specifications/execution/stage-observation-and-performance.md
+    userRegionHash: sha256:f80109bc7a6d2809693f139106bc6b819b65ccc23483248eb65ec229d7524b71
+profile: specification_document
+recordId: knormdoc_2fac4db74cd92e23cd6f3008
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f80109bc7a6d2809693f139106bc6b819b65ccc23483248eb65ec229d7524b71
+sourcePath: docs/specifications/execution/stage-observation-and-performance.md
+sourceUnitVersionIds:
+  - uv_2c2b3a529317110e0a6cd38a
+  - uv_f21703cdfa159405cfd0d4f8

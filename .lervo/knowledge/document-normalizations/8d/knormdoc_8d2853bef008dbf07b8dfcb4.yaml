@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a8538fa58e7a77bbcb588012
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c1dce5fee26846375534187c
+outputLanguage: en
+outputs:
+  - byteCount: 251
+    contentHash: sha256:acba6fd44d1669f67beb81aad999a8a3ceb79683873254ac9a4a7f7f27fe81bb
+    path: docs/specifications/execution/product-surfaces/deliberation/results-and-evolution.md
+    userRegionHash: sha256:acba6fd44d1669f67beb81aad999a8a3ceb79683873254ac9a4a7f7f27fe81bb
+  - byteCount: 914
+    contentHash: sha256:fc8c891ce0bd4d47707fa4bcd422c1d21ab385080f441f148e46d3ec0968c398
+    path: docs/specifications/execution/product-surfaces/deliberation/results-and-evolution/compatibility.md
+    userRegionHash: sha256:fc8c891ce0bd4d47707fa4bcd422c1d21ab385080f441f148e46d3ec0968c398
+  - byteCount: 737
+    contentHash: sha256:f8a4fa134554c417148d1b8340d69ae5242cae44dca2df154d8b7fa2c5545a9b
+    path: docs/specifications/execution/product-surfaces/deliberation/results-and-evolution/projection.md
+    userRegionHash: sha256:f8a4fa134554c417148d1b8340d69ae5242cae44dca2df154d8b7fa2c5545a9b
+  - byteCount: 754
+    contentHash: sha256:3f8ac150d65513742984f41b51da4bb45bbdc028f8b7eefbc361eed0a95acfd4
+    path: docs/specifications/execution/product-surfaces/deliberation/results-and-evolution/results.md
+    userRegionHash: sha256:3f8ac150d65513742984f41b51da4bb45bbdc028f8b7eefbc361eed0a95acfd4
+profile: specification_document
+recordId: knormdoc_8d2853bef008dbf07b8dfcb4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:32d06dad4c9d183433cb37d5b37e509cfb36fc9700d62ebac678568fed05b79b
+sourcePath: docs/specifications/execution/product-surfaces/deliberation/results-and-evolution.md
+sourceUnitVersionIds:
+  - uv_020351dbfbce78130c61fc32
+  - uv_047553329e9ea1713cca9be9
+  - uv_52712a3f564605e941565355
+  - uv_f31d78d1a5778c2b865cd3e3

@@ -7,7 +7,7 @@ Related: [ADR-0456](0456-hand-off-repositories-atomically-with-a-writer-lease.md
 
 ## Context
 
-The Lervo repository runs delegated knowledge residents concurrently on Mac (`com.lervo.mac.knowledge`) and WSL (the Lervo Node's resident child). Each host has its own clone, event store, delegation grant, and worker lock, and independently normalizes, canonicalizes, and commits `Lervo Knowledge` outputs. ADR-0434 requires one convergence owner per repository. ADR-0457 proposed binding ownership to the ADR-0456 writer lease or a delegation-grant `hostIdentityHash`, but neither is implemented: the worker lock is a PID file, the grant lacks host identity, and no writer lease exists.
+The Lervo repository runs delegated knowledge residents concurrently on Mac (`com.lervo.mac.knowledge`) and WSL (the Lervo Node's resident child). Each host has its own clone, event store, delegation grant, and worker lock, and independently normalizes, canonicalizes, and commits `Lervo Knowledge` outputs. ADR-0434 requires one convergence owner per repository. ADR-0457 proposed ownership through the ADR-0456 writer lease or a delegation-grant `hostIdentityHash`; neither is implemented. The worker lock is a PID file, the grant lacks host identity, and no writer lease exists.
 
 The owner rejects fixed Mac-only ownership: work starts through Claude Code or Codex on Mac and through Discord, the WSL Hub, and Nodes. Either host must converge, and local execution without a Hub must remain possible (invariant 1).
 
@@ -26,7 +26,7 @@ The Hub stores one convergence owner lease per destination, project, and reposit
 
 The Hub clock determines expiry. Hosts convert the remaining Hub lifetime to local time from request start, subtracting a 60-second margin so host clock skew cannot create two live leases.
 
-This is not ADR-0456's writer lease, which never expires silently because it protects human work. Background convergence must survive host death, so its owner lease expires after 30 minutes without renewal.
+Unlike ADR-0456's writer lease, which never expires silently because it protects human work, the background convergence lease expires after 30 minutes without renewal to survive host death.
 
 ### Host identity and coordination mode
 
@@ -60,7 +60,7 @@ A heartbeat renews every 10 minutes, one-third of the lease lifetime. If renewal
 
 Invariant 1 holds as follows:
 
-- `standalone` needs no Hub. It checks bounded first-parent history for `Lervo Knowledge` commits with another host's trailer newer than one lease lifetime. A match records `contended` and blocks commits until it ages out. Thus two unconfigured hosts surface attention after the first commit crosses between them.
+- `standalone` needs no Hub. It checks bounded first-parent history for `Lervo Knowledge` commits with another host's trailer newer than one lease lifetime. A match records `contended` and blocks commits until it ages out. Two unconfigured hosts therefore surface attention after the first commit crosses between them.
 - A `hub` host losing Hub access remains owner only until its locally proven lease ends. Without proof, it records `unverifiable` and degrades explicitly; it never falls back to standalone.
 
 ### Deterministic handoff
@@ -127,7 +127,9 @@ Publication failure codes are:
 - `knowledge_publication_merge_failed`
 - `knowledge_publication_superseded`: recorded with status `superseded`.
 
-Each failure records a path-free detail, first and last observation, and occurrence count; repeats of the same code update one record. Details are `git <stage> exit <code>` or `gh <step> exit <code> <class>`, with a closed class derived from stderr; stderr itself is never stored. The [specification](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/cross-host-ownership.md#publication) lists steps and classes. `lervo operating attention` projects it as one `knowledge_publication` item, including `superseded` publications as failures. It also projects an `unverifiable` or `contended` verdict as one `knowledge_convergence_owner` item carrying `failureCode` and `httpStatus`, with an instruction naming the cause's remediation.
+Each failure records a path-free detail, first and last observation, and occurrence count; repeats of the same code update one record. Details are `git <stage> exit <code>` or `gh <step> exit <code> <class>`, with a closed class derived from stderr; stderr itself is never stored. The [specification](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/cross-host-ownership.md#publication) lists steps and classes.
+
+`lervo operating attention` projects publication state as one `knowledge_publication` item, including `superseded` publications as failures. It also projects an `unverifiable` or `contended` verdict as one `knowledge_convergence_owner` item carrying `failureCode` and `httpStatus`, with an instruction naming the cause's remediation.
 
 Failures never undo a push or merge; the next cycle retries from current Git state. Publication adds no canonical event: Git history and the pull request are the durable record.
 
