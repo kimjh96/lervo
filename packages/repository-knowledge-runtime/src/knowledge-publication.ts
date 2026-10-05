@@ -33,6 +33,10 @@ import {
 } from "./knowledge-publication-state.js";
 import { supersedeStaleKnowledgeCommits } from "./knowledge-publication-supersession.js";
 import {
+  reconcileKnowledgeSupersession,
+  recordKnowledgeSupersession,
+} from "./knowledge-supersession.js";
+import {
   buildKnowledgePublicationTip,
   equivalentPublishedHead,
 } from "./knowledge-publication-tip.js";
@@ -103,7 +107,14 @@ export async function publishKnowledgeOutputs(input: {
   if (!(await knowledgeOutputCommitGrant(root, now().getTime())).allowed)
     return { status: "not_owner" };
   const previous = await readKnowledgePublicationState(root);
-  const superseded = new Set(previous?.supersededCommits ?? []);
+  // Superseded commits a replica brought back from another host leave this branch first.
+  const supersession = await reconcileKnowledgeSupersession({ repositoryRoot: root, now }).catch(
+    () => null,
+  );
+  const superseded = new Set([
+    ...(previous?.supersededCommits ?? []),
+    ...(supersession?.entries.map((entry) => entry.commit) ?? []),
+  ]);
   // Without new local commits or an open pull request there is nothing to ask the remote.
   const local = await inventoryKnowledgePublication(root, settings, superseded).catch(() => null);
   if (
@@ -139,6 +150,7 @@ export async function publishKnowledgeOutputs(input: {
           : Promise.resolve(input.formatter),
       host: { hostHash: host.hostHash, hostLabel: host.config.hostLabel },
       previous,
+      superseded,
       base,
       progress,
     });
@@ -182,6 +194,7 @@ async function publish(input: {
   formatter: () => Promise<KnowledgeOutputFormatter | null>;
   host: { hostHash: string; hostLabel: string };
   previous: KnowledgePublicationState | null;
+  superseded: ReadonlySet<string>;
   base: KnowledgePublicationState;
   progress: { current: KnowledgePublicationState; requeue: boolean };
 }): Promise<KnowledgePublicationState> {
@@ -190,11 +203,7 @@ async function publish(input: {
     fetchKnowledgePublicationRefs(root, settings),
   );
   const inventory = await step("knowledge_publication_fetch_failed", async () => {
-    const value = await inventoryKnowledgePublication(
-      root,
-      settings,
-      new Set(base.supersededCommits ?? []),
-    );
+    const value = await inventoryKnowledgePublication(root, settings, input.superseded);
     if (value === null)
       throw new PublicationFailure("knowledge_publication_fetch_failed", "base branch absent");
     return value;
@@ -313,9 +322,9 @@ async function publish(input: {
 
 /**
  * A replay conflict means the commits were computed against stale source bytes. They are never
- * published: an open publication pull request, which carries only them, is closed first, then the
- * local branch is backed up and moved to the remote base when no work can be lost, which requeues
- * convergence there. One `knowledge_publication_superseded` failure records the outcome.
+ * published: they enter the supersession ledger the replica carries to other checkouts, an open
+ * publication pull request, which carries only them, is closed, then the local branch is backed
+ * up and moved to the remote base when no work can be lost, which requeues convergence there. One `knowledge_publication_superseded` failure records the outcome.
  */
 async function supersede(input: {
   root: string;
@@ -328,6 +337,15 @@ async function supersede(input: {
   conflictPathCount: number;
 }): Promise<KnowledgePublicationState> {
   const { root, settings, forge, base, inventory } = input;
+  // Recorded first, so a replica drops the same commits on every host even if a later step fails.
+  await step("knowledge_publication_conflict", () =>
+    recordKnowledgeSupersession({
+      repositoryRoot: root,
+      commits: inventory.knowledge.map((commit) => commit.sha),
+      base: inventory.base,
+      supersededAt: base.updatedAt,
+    }),
+  );
   const open = await step("knowledge_publication_pull_request_failed", () =>
     forge.findPullRequest({ head: settings.branch, base: settings.baseBranch }),
   );
