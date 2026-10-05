@@ -1,6 +1,10 @@
 import { spawn } from "node:child_process";
 
 import { redactDiagnosticText } from "@lervo/event-contract";
+import type {
+  KnowledgeSupersessionEntry,
+  KnowledgeSupersessionReconciliation,
+} from "@lervo/repository-knowledge-runtime";
 import { assertRepositoryReplicaSnapshot, type RepositoryReplicaSnapshot } from "@lervo/sync";
 
 import type {
@@ -12,6 +16,7 @@ import {
   RepositoryReplicaStageError,
   parseRepositoryReplicaPeerFailure,
 } from "./repository-replica-failure.js";
+import { parseReplicaKnowledgeSupersession } from "./repository-replica-knowledge-supersession.js";
 
 const MAXIMUM_SSH_OUTPUT_BYTES = 512 * 1024 * 1024;
 const DEFAULT_COMMAND_TIMEOUT_MS = 60_000;
@@ -215,6 +220,17 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     const snapshot = JSON.parse(Buffer.from(output).toString("utf8")) as RepositoryReplicaSnapshot;
     assertRepositoryReplicaSnapshot(snapshot);
     return snapshot;
+  }
+
+  async reconcileKnowledgeSupersession(input: {
+    repositoryRoot: string;
+    entries: readonly KnowledgeSupersessionEntry[];
+  }): Promise<KnowledgeSupersessionReconciliation> {
+    const output = await this.execute(
+      ["knowledge-supersession", "--root", input.repositoryRoot],
+      Buffer.from(`${JSON.stringify({ entries: input.entries })}\n`, "utf8"),
+    );
+    return parseReplicaKnowledgeSupersession(JSON.parse(Buffer.from(output).toString("utf8")));
   }
 
   async recordReceipt(input: RepositoryReplicaReceipt): Promise<void> {

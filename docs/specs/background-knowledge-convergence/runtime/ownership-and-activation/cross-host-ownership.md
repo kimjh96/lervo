@@ -110,6 +110,7 @@ The publication state file, its statuses, and its failure codes are defined in t
 - `refs/lervo/knowledge-superseded/<first 12 hex of HEAD>` keeps the local head reachable. Only the eight newest backup refs are kept.
 - When the base branch is checked out, still at the observed head, and holds no developer work, `git reset --keep` moves it to the remote base. The resident then runs its next cycle within five seconds. The moved head changes the source fingerprint, so convergence opens a new obligation and regenerates the outputs against the current base.
 - Otherwise the branch is left for its owner to rebase, and the superseded commits are listed in `supersededCommits` (at most 64) so no later publication selects them again.
+- In both cases the commits enter the [supersession ledger](knowledge-supersession.md) first, so every replicated checkout drops them too.
 - The state becomes `superseded` with one `knowledge_publication_superseded` failure. Its path-free detail gives the conflicting path count, the commit count, whether the local base was reset, and the backup ref.
 
 Identical input publishes once. Replay keeps source dates, so an unchanged series replays to the same hash. A remote branch that already holds the same trees on the current base is kept as the published head, so the next cycles only poll its checks. A merge that GitHub refuses because checks are still pending keeps `awaiting_checks`. Every `gh` failure records `gh <step> exit <code> <class>` as its detail:
@@ -121,7 +122,7 @@ Identical input publishes once. Replay keeps source dates, so an unchanged serie
 
 Only checks that concluded `SUCCESS` count toward a merge. `SKIPPED` checks, such as release jobs a workflow runs only outside pull requests, neither pass nor block. At least one check must succeed. Every other finished conclusion fails the gate, including `NEUTRAL`, `CANCELLED`, `TIMED_OUT`, `STALE`, `STARTUP_FAILURE`, `ACTION_REQUIRED`, and status `ERROR` or `FAILURE`.
 
-A state that cannot be read is rebuilt from Git and GitHub at the next publication. `lervo knowledge convergence owner status` prints the publication settings and state. `lervo operating attention` shows at most one `knowledge_publication` item, plus at most one `knowledge_convergence_owner` item for an `unverifiable` or `contended` verdict.
+A state that cannot be read is rebuilt from Git and GitHub at the next publication. `lervo knowledge convergence owner status` prints the publication settings and state. `lervo operating attention` shows at most one `knowledge_publication` item for the publication state and one for held superseded commits. It adds at most one `knowledge_convergence_owner` item for an `unverifiable` or `contended` verdict.
 
 ## Replica coordination
 
@@ -135,4 +136,4 @@ To add a repository whose two checkouts both run residents:
 4. Remove any stale entry for the replica ID from the coordinator state file, add the repository with `conflictPolicy: "hold"`, and restart the coordinator. The first cycle must report `current`.
 5. After the next owner commit, confirm both `HEAD`s are equal and that `git log --author=knowledge@lervo.invalid` shows the same trailer host on both.
 
-A held divergence still records `repository.replica.diverged` once per identity under ADR-0456.
+A held divergence still records `repository.replica.diverged` once per identity under ADR-0456. Before any history moves, every cycle drops superseded knowledge commits on both checkouts; see [knowledge supersession](knowledge-supersession.md).

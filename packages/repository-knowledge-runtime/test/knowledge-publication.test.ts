@@ -22,6 +22,7 @@ import type { KnowledgeOutputFormatter } from "../src/knowledge-output-formatter
 import { KnowledgePublicationForgeError } from "../src/knowledge-publication-forge.js";
 import { publishKnowledgeOutputs } from "../src/knowledge-publication.js";
 import { readKnowledgePublicationState } from "../src/knowledge-publication-state.js";
+import { readKnowledgeSupersessionLedger } from "../src/knowledge-supersession-ledger.js";
 
 const execute = promisify(execFile);
 const directories: string[] = [];
@@ -393,6 +394,15 @@ describe("knowledge output publication", () => {
         await git(root, ["rev-parse", `refs/lervo/knowledge-superseded/${stale.slice(0, 12)}`]),
       ).toBe(stale);
       expect(await readFile(resolve(root, "notes.txt"), "utf8")).toBe("uncommitted\n");
+      // The replica carries this ledger, so other hosts drop the same commit.
+      expect((await readKnowledgeSupersessionLedger(root)).entries).toEqual([
+        {
+          commit: stale,
+          patchId: expect.stringMatching(/^[0-9a-f]{40}$/u),
+          base: await remoteMain(remote),
+          supersededAt: expect.any(String),
+        },
+      ]);
       expect(await publish()).toEqual({ status: "unchanged" });
 
       // Regenerated outputs on the current base publish cleanly through a new pull request.

@@ -19,9 +19,14 @@ import {
 } from "./repository-replica-events.js";
 import {
   describeRepositoryReplicaFailure,
-  type RepositoryReplicaFailure,
+  RepositoryReplicaCoordinatorError,
+  RepositoryReplicaCycleError,
   type RepositoryReplicaStage,
 } from "./repository-replica-failure.js";
+import {
+  reconcileReplicaKnowledgeSupersession,
+  type RepositoryReplicaKnowledgeSupersessionPort,
+} from "./repository-replica-knowledge-supersession.js";
 import type {
   RepositoryReplicaConflictPolicy,
   RepositoryReplicaMergeResult,
@@ -32,8 +37,12 @@ import {
 } from "./repository-replica-receipt.js";
 
 export type { RepositoryReplicaReceipt } from "./repository-replica-receipt.js";
+export {
+  RepositoryReplicaCoordinatorError,
+  RepositoryReplicaCycleError,
+} from "./repository-replica-failure.js";
 
-export interface RepositoryReplicaPeerPort {
+export interface RepositoryReplicaPeerPort extends RepositoryReplicaKnowledgeSupersessionPort {
   snapshot(repositoryRoot: string): Promise<RepositoryReplicaSnapshot>;
   bundle(repositoryRoot: string, expectedSnapshotHash: string): Promise<Uint8Array>;
   apply(input: {
@@ -81,33 +90,6 @@ export type RepositoryReplicaCycleResult =
       };
       divergence: RepositoryReplicaDivergenceObservation;
     };
-
-export class RepositoryReplicaCoordinatorError extends Error {
-  constructor(
-    readonly code: "repository_replica_config_invalid" | "repository_replica_verification_failed",
-    message: string,
-    options?: ErrorOptions,
-  ) {
-    super(message, options);
-    this.name = "RepositoryReplicaCoordinatorError";
-  }
-}
-
-/** A failed cycle with its structured failure and whether the local receipt recorded it. */
-export class RepositoryReplicaCycleError extends Error {
-  readonly code: string;
-
-  constructor(
-    readonly replicaId: string,
-    readonly failure: RepositoryReplicaFailure,
-    readonly receiptRecorded: boolean,
-    options: ErrorOptions,
-  ) {
-    super(`Repository replica ${replicaId} failed at ${failure.stage}.`, options);
-    this.name = "RepositoryReplicaCycleError";
-    this.code = failure.code;
-  }
-}
 
 /**
  * Why a cycle runs. A `recovery` cycle comes from the reconciliation timer with no observed
@@ -211,16 +193,29 @@ export class RepositoryReplicaCoordinator {
     stage: { current: RepositoryReplicaStage },
   ): Promise<RepositoryReplicaCycleResult> {
     const state = await this.state.read();
-    const [local, peer] = await Promise.all([
-      this.options.local.snapshot(input.localRoot),
-      this.options.peer.snapshot(input.peerRoot),
-    ]);
+    const observe = () =>
+      Promise.all([
+        this.options.local.snapshot(input.localRoot),
+        this.options.peer.snapshot(input.peerRoot),
+      ]);
+    let [local, peer] = await observe();
+    // Superseded knowledge commits leave both branches before either side's history can move.
+    stage.current = "supersession";
+    const supersession = await reconcileReplicaKnowledgeSupersession({
+      local: this.options.local,
+      peer: this.options.peer,
+      localRoot: input.localRoot,
+      peerRoot: input.peerRoot,
+    });
+    stage.current = "snapshot";
+    if (supersession.droppedCommitCount > 0) [local, peer] = await observe();
     assertRepositoryReplicaSnapshot(local);
     assertRepositoryReplicaSnapshot(peer);
     const common = state.replicas[input.replicaId]?.commonSnapshotHash ?? null;
     let decision = reconcileRepositoryReplicas({ local, peer, commonSnapshotHash: common });
     let status: "current" | "pushed" | "pulled" | "merged" = "current";
     let generatedResolutionCount: number | undefined;
+    let transferredSnapshotHash: string | null = null;
     if (decision.status === "divergent") {
       const divergent = decision;
       const held = async (conflict?: {
@@ -276,14 +271,16 @@ export class RepositoryReplicaCoordinator {
         peer,
         commonSnapshotHash: peer.snapshotHash,
       });
-      if (decision.status !== "push")
+      // A merge whose result is exactly the peer's state, such as a fast-forward after the local
+      // side dropped superseded commits, imported the peer and leaves nothing to push.
+      if (decision.status !== "push" && decision.status !== "current")
         throw new RepositoryReplicaCoordinatorError(
           "repository_replica_verification_failed",
           "The merged repository replica did not become the push source.",
         );
-      status = "merged";
+      if (decision.status === "current") transferredSnapshotHash = merged.snapshot.snapshotHash;
+      status = decision.status === "current" ? "pulled" : "merged";
     }
-    let transferredSnapshotHash: string | null = null;
     if (decision.status === "push" || decision.status === "pull") {
       const push = decision.status === "push";
       const [source, target] = push

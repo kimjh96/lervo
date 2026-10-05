@@ -2,6 +2,11 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
+import {
+  parseKnowledgeSupersessionEntries,
+  reconcileKnowledgeSupersession,
+} from "@lervo/repository-knowledge-runtime";
+
 import { readRepositoryReplicaCoordinatorConfig } from "./repository-replica-config.js";
 import { type RepositoryReplicaReceipt } from "./repository-replica-coordinator.js";
 import { LocalRepositoryReplicaPeer } from "./repository-replica-local-peer.js";
@@ -34,6 +39,7 @@ const PEER_ACTION_STAGES: Record<string, RepositoryReplicaStage> = {
   apply: "apply",
   adopt: "apply",
   receipt: "verify",
+  "knowledge-supersession": "supersession",
 };
 const PREFERENCES = { local: "prefer_local", peer: "prefer_peer" } as const;
 
@@ -91,6 +97,19 @@ async function runPeerAction(
       ...(action === "adopt" ? { allowHistoryReplacement: true } : {}),
     });
     ports.stdout(`${JSON.stringify(applied)}\n`);
+    return;
+  }
+  if (action === "knowledge-supersession") {
+    const request = JSON.parse(Buffer.from(await ports.stdinBytes()).toString("utf8")) as {
+      entries?: unknown;
+    };
+    const entries = parseKnowledgeSupersessionEntries(request?.entries);
+    if (entries === null) throw new Error("The knowledge supersession entries are invalid.");
+    const result = await reconcileKnowledgeSupersession({
+      repositoryRoot: root,
+      incoming: entries,
+    });
+    ports.stdout(`${JSON.stringify(result)}\n`);
     return;
   }
   const receipt = JSON.parse(
@@ -172,6 +191,6 @@ export async function runRepositoryReplicaCli(
     );
   }
   throw new Error(
-    "Usage: lervo-node repository-replica <snapshot|bundle|apply|adopt|receipt|reconcile|watch> ...",
+    "Usage: lervo-node repository-replica <snapshot|bundle|apply|adopt|receipt|knowledge-supersession|reconcile|watch> ...",
   );
 }

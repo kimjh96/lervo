@@ -7,6 +7,7 @@ import {
   readConvergenceOwnerFence,
   readConvergenceOwnerHost,
   readKnowledgePublicationState,
+  readKnowledgeSupersessionLedger,
 } from "@lervo/repository-knowledge-runtime";
 
 import {
@@ -18,6 +19,8 @@ import {
 export interface KnowledgeConvergenceAttentionInput {
   owner: Awaited<ReturnType<typeof readConvergenceOwnerFence>>;
   publication: Awaited<ReturnType<typeof readKnowledgePublicationState>>;
+  /** Superseded knowledge commits this checkout could not drop; absent means none. */
+  supersession?: Awaited<ReturnType<typeof readKnowledgeSupersessionLedger>>;
   /** The Hub scope an ownership remediation names; absent or null outside hub mode. */
   hubScope?: ConvergenceOwnerHubScope | null;
 }
@@ -37,12 +40,13 @@ export async function readKnowledgeConvergenceAttention(
   root: string,
   projectId: string,
 ): Promise<KnowledgeConvergenceAttentionInput> {
-  const [owner, publication, hubScope] = await Promise.all([
+  const [owner, publication, hubScope, supersession] = await Promise.all([
     readConvergenceOwnerFence(root),
     readKnowledgePublicationState(root),
     readConvergenceOwnerHubScope(root, projectId),
+    readKnowledgeSupersessionLedger(root),
   ]);
-  return { owner, publication, hubScope };
+  return { owner, publication, hubScope, supersession };
 }
 
 const PUBLICATION_INSTRUCTIONS: Record<string, string> = {
@@ -77,12 +81,22 @@ const FORGE_FAILURE_INSTRUCTIONS: Record<string, string> = {
     "GitHub could not find the knowledge publication pull request or repository. Check the host's gh repository context, then run lervo knowledge convergence owner publish.",
 };
 
+/** Remediations for each reason superseded knowledge commits stayed on the branch. */
+const SUPERSESSION_HELD_INSTRUCTIONS: Record<string, string> = {
+  not_on_branch:
+    "Superseded Lervo Knowledge commits remain because HEAD is detached or a Git operation is in progress. Finish or abort the operation and check out the branch; the next replica cycle drops them.",
+  under_other_work:
+    "Superseded Lervo Knowledge commits sit below other commits on this branch, so they were not removed automatically and replication waits. Rebase the branch onto the remote base and drop the commits authored by knowledge@lervo.invalid that git log lists before your own work; a backup ref under refs/lervo/knowledge-superseded keeps them.",
+  worktree_conflict:
+    "Superseded Lervo Knowledge commits remain because uncommitted edits touch the same paths. Commit or stash those edits; the next replica cycle drops the commits.",
+};
+
 function forgeFailureInstruction(detail: string | null): string | undefined {
   const failureClass = detail === null ? undefined : /^gh \S+ exit \S+ (\S+)$/u.exec(detail)?.[1];
   return failureClass === undefined ? undefined : FORGE_FAILURE_INSTRUCTIONS[failureClass];
 }
 
-/** At most one ownership item and one publication item. */
+/** At most one ownership item, one publication item, and one held-supersession item. */
 export function knowledgeConvergenceAttentionItems(
   input: KnowledgeConvergenceAttentionInput,
 ): OperatingAttentionItemV1[] {
@@ -129,6 +143,25 @@ export function knowledgeConvergenceAttentionItems(
         forgeFailureInstruction(failure.detail) ??
         PUBLICATION_INSTRUCTIONS[failure.code] ??
         "Inspect lervo knowledge convergence owner status and retry the publication.",
+    };
+    items.push(item);
+  }
+  const held = input.supersession?.held ?? null;
+  if (held !== null) {
+    const item: KnowledgePublicationAttentionItemV1 = {
+      schemaVersion: 1,
+      kind: "knowledge_publication",
+      itemId: "knowledge_publication_knowledge_supersession_held",
+      state: "action_required",
+      failureCode: "knowledge_supersession_held",
+      detail: `${held.commitCount} superseded commit(s) held: ${held.reason}`,
+      pullRequestUrl: null,
+      occurrences: 1,
+      firstObservedAt: held.observedAt,
+      actionOwner: "user",
+      requiresUserAction: true,
+      blocking: false,
+      instruction: SUPERSESSION_HELD_INSTRUCTIONS[held.reason]!,
     };
     items.push(item);
   }

@@ -25,9 +25,7 @@ export async function supersedeStaleKnowledgeCommits(
   settings: KnowledgePublicationSettings,
   inventory: KnowledgePublicationInventory,
 ): Promise<KnowledgeSupersession> {
-  const backupRef = `${KNOWLEDGE_SUPERSEDED_REF_PREFIX}${inventory.head.slice(0, 12)}`;
-  await git(root, ["update-ref", backupRef, inventory.head], "supersede");
-  await pruneBackupRefs(root);
+  const backupRef = await retainKnowledgeSupersededHead(root, inventory.head);
   if (inventory.developerCount > 0) return { backupRef, localReset: false };
   const branch = (
     await git(root, ["symbolic-ref", "--quiet", "--short", "HEAD"], "supersede").catch(() => "")
@@ -45,6 +43,14 @@ export async function supersedeStaleKnowledgeCommits(
     () => false,
   );
   return { backupRef, localReset: reset };
+}
+
+/** Keeps `head` reachable under a backup ref before superseded commits leave a branch. */
+export async function retainKnowledgeSupersededHead(root: string, head: string): Promise<string> {
+  const backupRef = `${KNOWLEDGE_SUPERSEDED_REF_PREFIX}${head.slice(0, 12)}`;
+  await git(root, ["update-ref", backupRef, head], "supersede");
+  await pruneBackupRefs(root);
+  return backupRef;
 }
 
 async function pruneBackupRefs(root: string): Promise<void> {

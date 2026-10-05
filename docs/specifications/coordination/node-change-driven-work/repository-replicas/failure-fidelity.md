@@ -3,7 +3,7 @@
 Every replica failure resolves to a structured failure ([ADR-0456](../../../../decisions/coordination/sync/0456-hand-off-repositories-atomically-with-a-writer-lease.md)):
 
 - `code`: a bounded failure code, such as `repository_replica_snapshot_failed`, `repository_replica_merge_failed`, or `repository_replica_transfer_failed`.
-- `stage`: `protocol`, `snapshot`, `bundle`, `transfer`, `verify`, `apply`, `merge`, `checkpoint`, `lease`, or `rollback`. An apply whose automatic rollback cannot be proven reports `rollback`.
+- `stage`: `protocol`, `snapshot`, `bundle`, `transfer`, `verify`, `apply`, `merge`, `checkpoint`, `supersession`, `lease`, or `rollback`. `supersession` is the exchange of superseded knowledge commits that runs before any history moves. An apply whose automatic rollback cannot be proven reports `rollback`.
 - `gitExitCode`: the failing Git process exit code, or null.
 - `stderrDigest`: the failing Git or SSH stderr, diagnostically redacted and reduced to one line of at most 512 characters, or null.
 - `causeChain`: up to eight redacted cause messages, outermost first.

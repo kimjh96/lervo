@@ -43,5 +43,6 @@ Implemented and source-tested against a bare Git remote and a fake pull request 
 - A success-only merge gate, where neutral or cancelled checks block and a merge refused for pending checks keeps waiting.
 - `gh <step> exit <code> <class>` failure details.
 - Formatting of changed and released paths, before the owner commits and on the publication tip.
+- [ADR-0468](../../../../decisions/coordination/sync/0468-propagate-knowledge-supersession-across-replicated-checkouts.md) supersession across a simulated two-host replica: both checkouts converge to the remote base without resurrecting superseded commits, a developer commit above them holds replication with one attention item, and repeated cycles change nothing.
 
-Installed acceptance remains open: one owner-published pull request merged from each host, with local `main` equal to `origin/main` afterward on both hosts.
+Installed acceptance remains open: one owner-published pull request merged from each host, with local `main` equal to `origin/main` afterward on both hosts. After an installed supersession, both checkouts must stay at `origin/main` across later replica cycles.

@@ -67,6 +67,14 @@ export {
 export { createGitHubKnowledgePublicationForge } from "./knowledge-publication-github.js";
 export type { KnowledgePublicationForge } from "./knowledge-publication-forge.js";
 export { readKnowledgePublicationState } from "./knowledge-publication-state.js";
+export { reconcileKnowledgeSupersession } from "./knowledge-supersession.js";
+export {
+  parseKnowledgeSupersessionEntries,
+  parseKnowledgeSupersessionReconciliation,
+  readKnowledgeSupersessionLedger,
+  type KnowledgeSupersessionEntry,
+  type KnowledgeSupersessionReconciliation,
+} from "./knowledge-supersession-ledger.js";
 export {
   exchangeInstructionCandidates,
   type InstructionCandidateExchangePort,
