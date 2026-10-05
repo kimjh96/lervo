@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0ea63730a7e1f75139ff9aff
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9e9b53234d38a46e72d27dd0
+outputLanguage: en
+outputs:
+  - byteCount: 943
+    contentHash: sha256:4550dd6ddab6ce6655a72b1099db3e7fce94af5f934f016eff987a66966fb1d3
+    path: docs/roadmap/product-outcome-convergence/execution/autonomous-continuation.md
+    userRegionHash: sha256:4550dd6ddab6ce6655a72b1099db3e7fce94af5f934f016eff987a66966fb1d3
+profile: roadmap_document
+recordId: knormdoc_9a0fea76f5ec8907b796b05e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4550dd6ddab6ce6655a72b1099db3e7fce94af5f934f016eff987a66966fb1d3
+sourcePath: docs/roadmap/product-outcome-convergence/execution/autonomous-continuation.md
+sourceUnitVersionIds:
+  - uv_f11ba7c9b2bce3c2829216e1
