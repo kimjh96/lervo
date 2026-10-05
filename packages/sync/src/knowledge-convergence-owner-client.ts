@@ -3,11 +3,12 @@ import {
   isKnowledgeConvergenceOwnerDecision,
   isKnowledgeConvergenceOwnerReading,
   type KnowledgeConvergenceOwnerDecision,
+  type KnowledgeConvergenceOwnerFailureCode,
   type KnowledgeConvergenceOwnerMutation,
   type KnowledgeConvergenceOwnerReading,
 } from "@lervo/sync-contract";
 
-import { HubJsonHttpClient } from "./hub-json-http-client.js";
+import { HubJsonHttpClient, HubJsonHttpStatusError } from "./hub-json-http-client.js";
 
 const MAXIMUM_BEARER_TOKEN_FILE_BYTES = 8_192;
 const LEASE_REQUEST_TIMEOUT_MS = 15_000;
@@ -22,15 +23,40 @@ export interface HubKnowledgeConvergenceOwnerTarget {
 
 /**
  * Any transport, identity, status, or body failure. The caller treats it as "the Hub could not
- * prove the lease", never as a refusal by another holder.
+ * prove the lease", never as a refusal by another holder. `failureCode` and `httpStatus` name the
+ * cause without the message, URL, or token path.
  */
 export class HubKnowledgeConvergenceOwnerUnavailableError extends Error {
   readonly code = "convergence_owner_hub_unavailable";
 
-  constructor(message: string, options?: ErrorOptions) {
+  constructor(
+    message: string,
+    readonly failureCode: KnowledgeConvergenceOwnerFailureCode,
+    readonly httpStatus: number | null = null,
+    options?: ErrorOptions,
+  ) {
     super(message, options);
     this.name = "HubKnowledgeConvergenceOwnerUnavailableError";
   }
+}
+
+/** Classifies a failed Hub JSON request; only an HTTP status crosses into the failure. */
+function classifyHubOwnerRequestFailure(error: unknown): {
+  failureCode: KnowledgeConvergenceOwnerFailureCode;
+  httpStatus: number | null;
+} {
+  if (error instanceof HubJsonHttpStatusError) {
+    const httpStatus = error.status;
+    if (httpStatus === 401) return { failureCode: "hub_unauthorized", httpStatus };
+    if (httpStatus === 403) return { failureCode: "hub_forbidden", httpStatus };
+    if (httpStatus >= 500) return { failureCode: "hub_unreachable", httpStatus };
+    return { failureCode: "hub_response_invalid", httpStatus };
+  }
+  const name = (error as { name?: unknown } | null)?.name;
+  // fetch rejects with a TypeError when no answer arrives and with an abort on timeout.
+  if (error instanceof TypeError || name === "AbortError" || name === "TimeoutError")
+    return { failureCode: "hub_unreachable", httpStatus: null };
+  return { failureCode: "hub_response_invalid", httpStatus: null };
 }
 
 /** HTTP adapter for the ADR-0466 Hub convergence owner lease. */
@@ -44,13 +70,22 @@ export class HubKnowledgeConvergenceOwnerClient {
       fetch?: typeof globalThis.fetch;
     },
   ) {
-    this.client = new HubJsonHttpClient({
-      bearerToken: target.bearerToken,
-      expectedHubIdentityHash: target.hubIdentityHash,
-      destinationId: target.destinationId,
-      requestTimeoutMs: LEASE_REQUEST_TIMEOUT_MS,
-      ...(target.fetch === undefined ? {} : { fetch: target.fetch }),
-    });
+    try {
+      this.client = new HubJsonHttpClient({
+        bearerToken: target.bearerToken,
+        expectedHubIdentityHash: target.hubIdentityHash,
+        destinationId: target.destinationId,
+        requestTimeoutMs: LEASE_REQUEST_TIMEOUT_MS,
+        ...(target.fetch === undefined ? {} : { fetch: target.fetch }),
+      });
+    } catch (error) {
+      throw new HubKnowledgeConvergenceOwnerUnavailableError(
+        "The convergence owner Hub coordinates or token are invalid.",
+        "hub_configuration_invalid",
+        null,
+        { cause: error },
+      );
+    }
     const base = new URL(target.baseUrl);
     this.url = new URL(
       `v1/sync/projects/${encodeURIComponent(target.projectId)}/knowledge-convergence-owner`,
@@ -68,11 +103,15 @@ export class HubKnowledgeConvergenceOwnerClient {
       mutation.request.projectId !== this.target.projectId ||
       mutation.request.repositoryIdentityHash !== this.target.repositoryIdentityHash
     )
-      throw new Error("The convergence owner mutation names another repository.");
+      throw new HubKnowledgeConvergenceOwnerUnavailableError(
+        "The convergence owner mutation names another repository.",
+        "hub_configuration_invalid",
+      );
     const body = await this.request("POST", mutation, [200, 201], signal);
     if (!isKnowledgeConvergenceOwnerDecision(body))
       throw new HubKnowledgeConvergenceOwnerUnavailableError(
         "The Hub returned an invalid convergence owner decision.",
+        "hub_response_invalid",
       );
     return body;
   }
@@ -82,6 +121,7 @@ export class HubKnowledgeConvergenceOwnerClient {
     if (!isKnowledgeConvergenceOwnerReading(body))
       throw new HubKnowledgeConvergenceOwnerUnavailableError(
         "The Hub returned an invalid convergence owner reading.",
+        "hub_response_invalid",
       );
     return body;
   }
@@ -103,8 +143,11 @@ export class HubKnowledgeConvergenceOwnerClient {
         ...(signal === undefined ? {} : { signal }),
       });
     } catch (error) {
+      const failure = classifyHubOwnerRequestFailure(error);
       throw new HubKnowledgeConvergenceOwnerUnavailableError(
         "The Hub convergence owner request failed.",
+        failure.failureCode,
+        failure.httpStatus,
         { cause: error },
       );
     }
@@ -112,6 +155,7 @@ export class HubKnowledgeConvergenceOwnerClient {
     if (response.authentication?.status !== "verified")
       throw new HubKnowledgeConvergenceOwnerUnavailableError(
         "The Hub identity did not match the configured convergence owner Hub.",
+        "hub_identity_mismatch",
       );
     return response.body;
   }
@@ -132,6 +176,8 @@ export async function createHubKnowledgeConvergenceOwnerClient(
   } catch (error) {
     throw new HubKnowledgeConvergenceOwnerUnavailableError(
       "The convergence owner Hub token file could not be read safely.",
+      "token_file_unreadable",
+      null,
       { cause: error },
     );
   }

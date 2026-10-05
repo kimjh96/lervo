@@ -12,10 +12,12 @@ export const KNOWLEDGE_PUBLICATION_STATE_PATH = ".lervo/state/knowledge/knowledg
  * - `merged`: the last pull request merged and the local base branch caught up.
  * - `local_diverged`: the pull request merged, but the local base branch also holds other
  *   unpublished commits, so it was left for its owner to pull or rebase.
+ * - `superseded`: the knowledge commits conflicted with the current remote base, so they were
+ *   not published; `failure` carries `knowledge_publication_superseded`.
  * - `failed`: the last attempt failed; `failure` names the stage and code.
  */
 export type KnowledgePublicationStatus =
-  "idle" | "awaiting_checks" | "open" | "merged" | "local_diverged" | "failed";
+  "idle" | "awaiting_checks" | "open" | "merged" | "local_diverged" | "superseded" | "failed";
 
 export type KnowledgePublicationFailureCode =
   | "knowledge_publication_fetch_failed"
@@ -24,7 +26,8 @@ export type KnowledgePublicationFailureCode =
   | "knowledge_publication_push_failed"
   | "knowledge_publication_pull_request_failed"
   | "knowledge_publication_checks_failed"
-  | "knowledge_publication_merge_failed";
+  | "knowledge_publication_merge_failed"
+  | "knowledge_publication_superseded";
 
 export interface KnowledgePublicationFailure {
   code: KnowledgePublicationFailureCode;
@@ -44,9 +47,26 @@ export interface KnowledgePublicationState {
   commitCount: number;
   updatedAt: string;
   failure: KnowledgePublicationFailure | null;
+  /**
+   * Knowledge commits a replay conflict superseded while the local branch kept them, newest
+   * last and at most 64; they are never selected again. Absent in state written before it existed.
+   */
+  supersededCommits?: string[];
 }
 
-const STATUSES = new Set(["idle", "awaiting_checks", "open", "merged", "local_diverged", "failed"]);
+/** Bounds `supersededCommits`; older entries drop out and, if still local, conflict once more. */
+export const MAXIMUM_SUPERSEDED_COMMITS = 64;
+
+const STATUSES = new Set([
+  "idle",
+  "awaiting_checks",
+  "open",
+  "merged",
+  "local_diverged",
+  "superseded",
+  "failed",
+]);
+const COMMIT = /^[0-9a-f]{40,64}$/u;
 
 /** Missing or invalid state reads as null; the next publication rebuilds it from Git and GitHub. */
 export async function readKnowledgePublicationState(
@@ -59,7 +79,11 @@ export async function readKnowledgePublicationState(
     const value = JSON.parse(await readFile(path, "utf8")) as Partial<KnowledgePublicationState>;
     return value?.schemaVersion === 1 &&
       typeof value.status === "string" &&
-      STATUSES.has(value.status)
+      STATUSES.has(value.status) &&
+      (value.supersededCommits === undefined ||
+        (Array.isArray(value.supersededCommits) &&
+          value.supersededCommits.length <= MAXIMUM_SUPERSEDED_COMMITS &&
+          value.supersededCommits.every((sha) => typeof sha === "string" && COMMIT.test(sha))))
       ? (value as KnowledgePublicationState)
       : null;
   } catch {

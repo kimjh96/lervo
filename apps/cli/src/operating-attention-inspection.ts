@@ -44,7 +44,9 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
         ),
         readRepositoryReplicaDivergence(input.repositoryRoot),
         readDocumentFreshnessAttention(input.repositoryRoot, observedAt),
-        readKnowledgeConvergenceAttention(input.repositoryRoot).catch(() => null),
+        readKnowledgeConvergenceAttention(input.repositoryRoot, storage.manifest.projectId).catch(
+          () => null,
+        ),
       ]);
     const workstreamFreshness =
       workstream === null

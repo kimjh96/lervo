@@ -112,7 +112,14 @@ class FakeForge implements KnowledgePublicationForge {
     found.body = input.body;
   }
   async viewPullRequest(number: number) {
-    return this.pullRequests.find((pr) => pr.number === number)!;
+    const found = this.pullRequests.find((pr) => pr.number === number);
+    if (found === undefined) throw new Error("pull request not found");
+    return found;
+  }
+  closed: { number: number; comment: string }[] = [];
+  async closePullRequest(input: { number: number; comment: string }) {
+    this.pullRequests.find((pr) => pr.number === input.number)!.state = "closed";
+    this.closed.push(input);
   }
   async checks({
     number,
@@ -202,6 +209,22 @@ async function setup(options: { merge?: "when_checks_pass" | "never" } = {}) {
 
 const remoteMain = (remote: string) => git(remote, ["rev-parse", "refs/heads/main"]);
 
+/** Lands a developer commit on the remote base from another clone, moving `origin/main`. */
+async function advanceRemoteMain(remote: string, path: string, content: string) {
+  const other = await mkdtemp(resolve(tmpdir(), "lervo-knowledge-publication-other-"));
+  directories.push(other);
+  const clone = resolve(other, "clone");
+  await execute("git", ["clone", "--quiet", remote, clone]);
+  await commit(clone, path, content, developer, "docs: land other work");
+  await git(clone, ["push", "--quiet", "origin", "main"]);
+}
+
+const isAncestor = (root: string, ancestor: string, descendant: string) =>
+  git(root, ["merge-base", "--is-ancestor", ancestor, descendant]).then(
+    () => true,
+    () => false,
+  );
+
 describe("knowledge output publication", () => {
   it(
     "publishes owner commits as one pull request, merges after checks pass, and fast-forwards local main",
@@ -275,7 +298,7 @@ describe("knowledge output publication", () => {
       expect(await git(root, ["log", "-1", "--format=%s"])).toBe(
         "docs: apply reviewed background knowledge",
       );
-      expect(forge.pullRequests[0]!.body).toContain("replayed onto `origin/main`");
+      expect(forge.pullRequests[0]!.body).toContain("replayed onto the current `origin/main`");
     },
   );
 
@@ -295,6 +318,156 @@ describe("knowledge output publication", () => {
       expect(await publish()).toMatchObject({ state: { status: "merged" } });
       expect(await git(root, ["rev-parse", "HEAD"])).toBe(await remoteMain(remote));
       expect(await readFile(resolve(root, "notes.txt"), "utf8")).toBe("uncommitted\n");
+    },
+  );
+
+  it(
+    "replays commits that sit on an older base onto the current remote base",
+    { timeout: 60_000 },
+    async () => {
+      const { root, remote, forge, publish } = await setup({ merge: "never" });
+      await commit(root, "docs/runtime.md", "# Runtime\n\nOwner.\n", knowledge);
+      const head = await git(root, ["rev-parse", "HEAD"]);
+      // The local branch holds only knowledge commits, but origin/main has moved past its base.
+      await advanceRemoteMain(remote, "docs/other.md", "# Other\n");
+      const outcome = await publish();
+      expect(outcome).toMatchObject({ state: { status: "open", commitCount: 1 } });
+      const published = await git(remote, ["rev-parse", "refs/heads/lervo/knowledge-outputs"]);
+      expect(published).not.toBe(head);
+      expect(await isAncestor(remote, await remoteMain(remote), published)).toBe(true);
+      expect(await git(remote, ["show", `${published}:docs/runtime.md`])).toContain("Owner.");
+      expect(forge.pullRequests[0]!.body).toContain("replayed onto the current `origin/main`");
+      expect(await git(root, ["rev-parse", "HEAD"])).toBe(head);
+    },
+  );
+
+  it(
+    "supersedes stale commits that conflict with the current base, closes their pull request, and requeues convergence",
+    { timeout: 60_000 },
+    async () => {
+      const { root, remote, forge, publish } = await setup();
+      await commit(root, "docs/runtime.md", "# Runtime\n\nStale owner output.\n", knowledge);
+      const stale = await git(root, ["rev-parse", "HEAD"]);
+      expect(await publish()).toMatchObject({
+        state: { status: "awaiting_checks", pullRequestNumber: 1 },
+      });
+      // Another host's outputs for the same document merge first.
+      await advanceRemoteMain(remote, "docs/runtime.md", "# Runtime\n\nCurrent output.\n");
+      await writeFile(resolve(root, "notes.txt"), "uncommitted\n");
+
+      const outcome = await publish();
+      expect(outcome).toMatchObject({
+        status: "published",
+        retryAfterMs: 5_000,
+        state: {
+          status: "superseded",
+          pullRequestNumber: null,
+          pullRequestUrl: null,
+          publishedHead: null,
+          commitCount: 1,
+          supersededCommits: [],
+          failure: {
+            code: "knowledge_publication_superseded",
+            occurrences: 1,
+            detail: `1 conflicting path(s) in 1 commit(s); local base reset to the remote base and convergence requeued; backup refs/lervo/knowledge-superseded/${stale.slice(0, 12)}`,
+          },
+        },
+      });
+      expect(forge.pullRequests).toHaveLength(1);
+      expect(forge.pullRequests[0]!.state).toBe("closed");
+      expect(forge.closed[0]!.comment).toContain("conflict with the current base");
+      expect(forge.merges).toBe(0);
+      expect(await git(root, ["rev-parse", "HEAD"])).toBe(await remoteMain(remote));
+      expect(
+        await git(root, ["rev-parse", `refs/lervo/knowledge-superseded/${stale.slice(0, 12)}`]),
+      ).toBe(stale);
+      expect(await readFile(resolve(root, "notes.txt"), "utf8")).toBe("uncommitted\n");
+      expect(await publish()).toEqual({ status: "unchanged" });
+
+      // Regenerated outputs on the current base publish cleanly through a new pull request.
+      await commit(root, "docs/runtime.md", "# Runtime\n\nCurrent output.\n\nMore.\n", knowledge);
+      expect(await publish()).toMatchObject({
+        state: { status: "awaiting_checks", pullRequestNumber: 2, failure: null },
+      });
+    },
+  );
+
+  it(
+    "keeps a conflicting stale commit local beside developer work and never selects it again",
+    { timeout: 60_000 },
+    async () => {
+      const { root, remote, forge, publish } = await setup();
+      await commit(
+        root,
+        "src/feature.ts",
+        "export const value = 1;\n",
+        developer,
+        "feat: add value",
+      );
+      await commit(root, "docs/runtime.md", "# Runtime\n\nStale owner output.\n", knowledge);
+      const head = await git(root, ["rev-parse", "HEAD"]);
+      await advanceRemoteMain(remote, "docs/runtime.md", "# Runtime\n\nCurrent output.\n");
+
+      const outcome = await publish();
+      expect(outcome).toMatchObject({
+        retryAfterMs: null,
+        state: {
+          status: "superseded",
+          supersededCommits: [head],
+          failure: { code: "knowledge_publication_superseded" },
+        },
+      });
+      expect(
+        (outcome as { state: { failure: { detail: string } } }).state.failure.detail,
+      ).toContain("local base kept");
+      expect(await git(root, ["rev-parse", "HEAD"])).toBe(head);
+      expect(forge.pullRequests).toEqual([]);
+      await expect(
+        git(remote, ["rev-parse", "refs/heads/lervo/knowledge-outputs"]),
+      ).rejects.toThrow();
+      expect(await publish()).toEqual({ status: "unchanged" });
+      expect(await readKnowledgePublicationState(root)).toMatchObject({
+        supersededCommits: [head],
+      });
+    },
+  );
+
+  it(
+    "recreates a pull request that was closed outside the publisher",
+    { timeout: 60_000 },
+    async () => {
+      const { root, remote, forge, publish } = await setup();
+      await commit(root, "docs/runtime.md", "# Runtime\n\nOwner.\n", knowledge);
+      expect(await publish()).toMatchObject({
+        state: { status: "awaiting_checks", pullRequestNumber: 1 },
+      });
+      forge.pullRequests[0]!.state = "closed";
+      await git(remote, ["update-ref", "-d", "refs/heads/lervo/knowledge-outputs"]);
+      expect(await publish()).toMatchObject({
+        state: {
+          status: "awaiting_checks",
+          pullRequestNumber: 2,
+          pullRequestUrl: "https://github.invalid/pull/2",
+        },
+      });
+      expect(await git(remote, ["rev-parse", "refs/heads/lervo/knowledge-outputs"])).toBe(
+        await git(root, ["rev-parse", "HEAD"]),
+      );
+
+      // Without unpublished commits, a closed or unknown pull request leaves nothing to wait for.
+      forge.pullRequests[1]!.state = "closed";
+      await git(root, ["reset", "--quiet", "--hard", "origin/main"]);
+      expect(await publish()).toMatchObject({
+        state: { status: "idle", pullRequestNumber: null, pullRequestUrl: null },
+      });
+      forge.pullRequests.splice(0);
+      await commit(root, "docs/runtime.md", "# Runtime\n\nAgain.\n", knowledge);
+      expect(await publish()).toMatchObject({ state: { status: "awaiting_checks" } });
+      forge.pullRequests.splice(0);
+      await git(root, ["reset", "--quiet", "--hard", "origin/main"]);
+      expect(await publish()).toMatchObject({
+        state: { status: "idle", pullRequestNumber: null },
+      });
     },
   );
 
@@ -458,6 +631,8 @@ describe("GitHub CLI publication adapter", () => {
         body: "b",
       }),
     ).toMatchObject({ number: 12, state: "open", headSha: "b".repeat(40) });
+    await forge.closePullRequest({ number: 12, comment: "superseded" });
+    expect(calls.at(-1)!.args).toEqual(["pr", "close", "12", "--comment", "superseded"]);
     await forge.merge({ number: 12, headSha: "b".repeat(40) });
     expect(calls.find((call) => call.args[1] === "create")).toMatchObject({ input: "b" });
     expect(calls.at(-1)!.args).toEqual([

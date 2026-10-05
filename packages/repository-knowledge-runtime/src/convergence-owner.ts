@@ -1,7 +1,9 @@
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   calculateProjectIdentityHash,
+  knowledgeConvergenceOwnerFailureOf,
   type KnowledgeConvergenceOwnerDecision,
+  type KnowledgeConvergenceOwnerFailure,
   type KnowledgeConvergenceOwnerMutation,
   type KnowledgeConvergenceOwnerReading,
 } from "@lervo/sync-contract";
@@ -30,6 +32,7 @@ import {
   standaloneVerdict,
   verdictFromHubDecision,
   verdictWithoutHub,
+  withoutHubFailure,
   type ConvergenceOwnerVerdict,
 } from "./convergence-owner-verdict.js";
 
@@ -203,17 +206,22 @@ export class ConvergenceOwnership {
       );
     }
     if (heldLeaseCurrent({ previous, now, hostHash: host.hostHash }))
-      return this.settle(host, { ...previous!, reason: "lease_held", observedAt: iso(now) }, null);
-    const port = await this.leasePort(host);
-    if (port === null)
+      return this.settle(
+        host,
+        { ...withoutHubFailure(previous!), reason: "lease_held", observedAt: iso(now) },
+        null,
+      );
+    const leasePort = await this.leasePort(host);
+    if ("failure" in leasePort)
       return this.settle(
         host,
         {
-          ...verdictWithoutHub({ previous: null, now, host: identity }),
+          ...verdictWithoutHub({ previous: null, now, host: identity, failure: leasePort.failure }),
           reason: "convergence_owner_transport_missing",
         },
         null,
       );
+    const { port } = leasePort;
     const requestStartedAt = this.now();
     let decision: KnowledgeConvergenceOwnerDecision;
     try {
@@ -231,10 +239,15 @@ export class ConvergenceOwnership {
         },
         signal,
       );
-    } catch {
+    } catch (error) {
       return this.settle(
         host,
-        verdictWithoutHub({ previous, now: this.now(), host: identity }),
+        verdictWithoutHub({
+          previous,
+          now: this.now(),
+          host: identity,
+          failure: knowledgeConvergenceOwnerFailureOf(error),
+        }),
         null,
       );
     }
@@ -271,10 +284,16 @@ export class ConvergenceOwnership {
     }
   }
 
-  private async leasePort(host: ConvergenceOwnerHost): Promise<ConvergenceOwnerLeasePort | null> {
-    if (host.config.coordination.mode !== "hub" || this.input.transport === undefined) return null;
+  /** The cached lease port, or why none exists: no transport (null) or a failed construction. */
+  private async leasePort(
+    host: ConvergenceOwnerHost,
+  ): Promise<
+    { port: ConvergenceOwnerLeasePort } | { failure: KnowledgeConvergenceOwnerFailure | null }
+  > {
+    if (host.config.coordination.mode !== "hub" || this.input.transport === undefined)
+      return { failure: null };
     const key = JSON.stringify(host.config.coordination.hub);
-    if (this.port?.key === key) return this.port.port;
+    if (this.port?.key === key) return { port: this.port.port };
     try {
       const port = await this.input.transport({
         ...host.config.coordination.hub,
@@ -282,9 +301,9 @@ export class ConvergenceOwnership {
         repositoryIdentityHash: this.repositoryIdentityHash,
       });
       this.port = { key, port };
-      return port;
-    } catch {
-      return null;
+      return { port };
+    } catch (error) {
+      return { failure: knowledgeConvergenceOwnerFailureOf(error) };
     }
   }
 
@@ -294,9 +313,9 @@ export class ConvergenceOwnership {
     signal: AbortSignal | undefined,
   ): Promise<boolean> {
     const generation = previous.holder?.generation ?? null;
-    const port = await this.leasePort(host);
-    if (port === null || generation === null) return false;
-    const decision = await port.mutate(
+    const leasePort = await this.leasePort(host);
+    if ("failure" in leasePort || generation === null) return false;
+    const decision = await leasePort.port.mutate(
       {
         operation: "release",
         request: {

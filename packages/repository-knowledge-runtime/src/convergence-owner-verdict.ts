@@ -1,4 +1,8 @@
-import type { KnowledgeConvergenceOwnerDecision } from "@lervo/sync-contract";
+import type {
+  KnowledgeConvergenceOwnerDecision,
+  KnowledgeConvergenceOwnerFailure,
+  KnowledgeConvergenceOwnerFailureCode,
+} from "@lervo/sync-contract";
 
 /** ADR-0466 lease timing. Renewal is a bounded heartbeat, never a tight poll. */
 export const CONVERGENCE_OWNER_LEASE_TTL_MS = 30 * 60_000;
@@ -15,6 +19,7 @@ export const CONVERGENCE_OWNER_YIELD_MS = CONVERGENCE_OWNER_LEASE_TTL_MS;
  * - `waiting_owner`: another host holds a live lease; this host stays read-only.
  * - `unverifiable`: ownership cannot be proven (Hub unreachable without a live local lease,
  *   invalid host configuration, or missing transport); this host stays read-only with attention.
+ *   A failed Hub request names its cause in `failureCode` and `httpStatus`.
  * - `contended`: a standalone host saw another host's fresh knowledge commit; read-only with
  *   attention, because two unconfigured hosts are converging one repository.
  * - `ineligible`: this host has no usable delegation and does not contend for the lease.
@@ -60,6 +65,13 @@ export interface ConvergenceOwnerVerdict {
   grantedAt: string | null;
   yieldUntil: string | null;
   observedAt: string;
+  /**
+   * Why the last Hub lease request proved nothing; set only by a failed request. Absent in fences
+   * written before the field existed, which read as no recorded cause.
+   */
+  failureCode?: KnowledgeConvergenceOwnerFailureCode | null;
+  /** The Hub's HTTP status for `failureCode`, when it answered with one. */
+  httpStatus?: number | null;
 }
 
 const iso = (milliseconds: number) => new Date(milliseconds).toISOString();
@@ -138,8 +150,14 @@ export function verdictWithoutHub(input: {
   previous: ConvergenceOwnerVerdict | null;
   now: number;
   host: { hostHash: string; hostLabel: string };
+  /** The failed request's cause; null when no request was possible, such as a missing transport. */
+  failure: KnowledgeConvergenceOwnerFailure | null;
 }): ConvergenceOwnerVerdict {
   const { previous, now } = input;
+  const cause = {
+    failureCode: input.failure?.failureCode ?? null,
+    httpStatus: input.failure?.httpStatus ?? null,
+  };
   if (
     previous?.role === "owner" &&
     previous.mode === "hub" &&
@@ -147,7 +165,12 @@ export function verdictWithoutHub(input: {
     previous.validUntil !== null &&
     Date.parse(previous.validUntil) > now
   )
-    return { ...previous, reason: "hub_unavailable_within_lease", observedAt: iso(now) };
+    return {
+      ...previous,
+      reason: "hub_unavailable_within_lease",
+      observedAt: iso(now),
+      ...cause,
+    };
   return {
     role: "unverifiable",
     reason: "convergence_owner_unverifiable",
@@ -160,7 +183,14 @@ export function verdictWithoutHub(input: {
     grantedAt: null,
     yieldUntil: null,
     observedAt: iso(now),
+    ...cause,
   };
+}
+
+/** The verdict without a Hub failure cause, for a held lease that needed no request. */
+export function withoutHubFailure(verdict: ConvergenceOwnerVerdict): ConvergenceOwnerVerdict {
+  const { failureCode: _failureCode, httpStatus: _httpStatus, ...rest } = verdict;
+  return rest;
 }
 
 /** A live, recently granted lease needs no Hub round trip until its renewal point. */

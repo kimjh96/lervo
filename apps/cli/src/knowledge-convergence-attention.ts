@@ -5,23 +5,44 @@ import type {
 } from "@lervo/application-contract";
 import {
   readConvergenceOwnerFence,
+  readConvergenceOwnerHost,
   readKnowledgePublicationState,
 } from "@lervo/repository-knowledge-runtime";
+
+import {
+  convergenceOwnerRemediation,
+  type ConvergenceOwnerHubScope,
+} from "./knowledge-convergence-owner-remediation.js";
 
 /** ADR-0466 private state the attention projection reads; absent files mean nothing to report. */
 export interface KnowledgeConvergenceAttentionInput {
   owner: Awaited<ReturnType<typeof readConvergenceOwnerFence>>;
   publication: Awaited<ReturnType<typeof readKnowledgePublicationState>>;
+  /** The Hub scope an ownership remediation names; absent or null outside hub mode. */
+  hubScope?: ConvergenceOwnerHubScope | null;
+}
+
+/** Reads the Hub destination of a Hub-mode host; any other host has no Hub scope. */
+async function readConvergenceOwnerHubScope(
+  root: string,
+  projectId: string,
+): Promise<ConvergenceOwnerHubScope | null> {
+  const host = await readConvergenceOwnerHost(root).catch(() => null);
+  return host?.config.coordination.mode === "hub"
+    ? { projectId, destinationId: host.config.coordination.hub.destinationId }
+    : null;
 }
 
 export async function readKnowledgeConvergenceAttention(
   root: string,
+  projectId: string,
 ): Promise<KnowledgeConvergenceAttentionInput> {
-  const [owner, publication] = await Promise.all([
+  const [owner, publication, hubScope] = await Promise.all([
     readConvergenceOwnerFence(root),
     readKnowledgePublicationState(root),
+    readConvergenceOwnerHubScope(root, projectId),
   ]);
-  return { owner, publication };
+  return { owner, publication, hubScope };
 }
 
 const PUBLICATION_INSTRUCTIONS: Record<string, string> = {
@@ -32,7 +53,9 @@ const PUBLICATION_INSTRUCTIONS: Record<string, string> = {
   knowledge_publication_scope_violation:
     "A Lervo Knowledge commit changes a path outside the allowed publication roots. Inspect it with git log --author=knowledge@lervo.invalid and move or revert it; nothing was published.",
   knowledge_publication_conflict:
-    "The knowledge commits do not apply cleanly to the remote base branch. Pull or rebase the local base branch, then run lervo knowledge convergence owner publish.",
+    "Replaying the knowledge commits onto the remote base branch failed for a reason other than a content conflict. Check the host's Git installation and temporary directory, then run lervo knowledge convergence owner publish.",
+  knowledge_publication_superseded:
+    "The knowledge commits were computed against an older base and conflict with the current remote base, so they were not published; a backup ref keeps them. When the local base branch was reset, convergence regenerates the outputs on its next cycle and nothing else is needed. Otherwise rebase the local base branch onto the remote base, then run lervo knowledge convergence owner publish.",
   knowledge_publication_pull_request_failed:
     "Check that gh is installed and authenticated on this host, then run lervo knowledge convergence owner publish.",
   knowledge_publication_checks_failed:
@@ -55,19 +78,21 @@ export function knowledgeConvergenceAttentionItems(
       state: "action_required",
       role: verdict.role,
       reason: verdict.reason,
+      failureCode: verdict.failureCode ?? null,
+      httpStatus: verdict.httpStatus ?? null,
       holderLabel: verdict.holder?.label ?? null,
       observedAt: verdict.observedAt,
       actionOwner: "user",
       requiresUserAction: true,
       blocking: false,
-      instruction:
-        verdict.role === "contended"
-          ? "Two hosts commit background knowledge for this repository. Configure both in hub mode with one Hub; see the cross-host ownership specification."
-          : "This host cannot prove it owns background knowledge convergence. Check its Hub configuration and reachability with lervo knowledge convergence owner status.",
+      instruction: convergenceOwnerRemediation(verdict, input.hubScope ?? null)!,
     };
     items.push(item);
   }
-  const failure = input.publication?.status === "failed" ? input.publication.failure : null;
+  const failure =
+    input.publication?.status === "failed" || input.publication?.status === "superseded"
+      ? input.publication.failure
+      : null;
   if (failure !== null && failure !== undefined) {
     const item: KnowledgePublicationAttentionItemV1 = {
       schemaVersion: 1,

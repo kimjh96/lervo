@@ -27,7 +27,7 @@ it("reports host identity and verdict without exposing Hub coordinates", async (
   roots.push(root);
   expect(await run(root, ["owner", "status", "--json"])).toMatchObject({
     code: 0,
-    stdout: `${JSON.stringify({ host: null, verdict: null, publication: null }, null, 2)}\n`,
+    stdout: `${JSON.stringify({ host: null, verdict: null, remediation: null, publication: null }, null, 2)}\n`,
   });
   await mkdir(resolve(root, ".lervo/state/knowledge"), { recursive: true });
   await writeFile(
@@ -55,5 +55,35 @@ it("reports host identity and verdict without exposing Hub coordinates", async (
   });
   expect(status.stdout).not.toContain("hub.example.invalid");
   expect(status.stdout).not.toContain("/secure/hub-token");
+  await writeFile(
+    resolve(root, ".lervo/state/knowledge/convergence-owner.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      recordedHolderKey: null,
+      verdict: {
+        role: "unverifiable",
+        reason: "convergence_owner_unverifiable",
+        mode: "hub",
+        hostHash: `sha256:${"1".repeat(64)}`,
+        hostLabel: "mac",
+        holder: null,
+        validUntil: null,
+        wakeAt: null,
+        grantedAt: null,
+        yieldUntil: null,
+        observedAt: "2026-10-05T00:00:00.000Z",
+        failureCode: "hub_forbidden",
+        httpStatus: 403,
+      },
+    }),
+  );
+  const forbidden = JSON.parse((await run(root, ["owner", "status"])).stdout);
+  expect(forbidden.verdict).toMatchObject({ failureCode: "hub_forbidden", httpStatus: 403 });
+  // Without a project manifest the remediation still names the permissions to grant.
+  expect(forbidden.remediation).toContain(
+    "Grant workspace.read and workspace.coordinate for this repository's project at the configured Hub destination",
+  );
+  expect(forbidden.remediation).toContain("(HTTP 403)");
+  expect(JSON.stringify(forbidden)).not.toContain("/secure/hub-token");
   expect(await run(root, ["owner", "claim"])).toMatchObject({ code: 1 });
 });
