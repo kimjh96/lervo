@@ -18,6 +18,7 @@ import { convergenceRecoveryStatus } from "./recovery-status.js";
 import { runDocumentFreshnessCycle, type DocumentFreshnessCycleResult } from "./freshness-stage.js";
 import { documentFreshnessMayRun } from "./freshness-convergence-gate.js";
 import type { InstructionCandidateExchangeTransport } from "./instruction-candidate-exchange.js";
+import { listQueuedInstructionCaptures } from "./instruction-capture-queue.js";
 import {
   runOwnerTurnCaptureWork,
   type OwnerTurnCaptureWorkResult,
@@ -66,7 +67,7 @@ export async function runAutonomousKnowledgeWorker(input: {
       status: "waiting_owner";
       owner: ConvergenceOwnerVerdict;
       convergence: KnowledgeConvergenceStatus;
-      /** Owner-turn work runs on every host; null when another worker held the lock. */
+      /** Owner-turn work runs on every host; null when there was nothing to do or the lock was held. */
       ownerTurns: OwnerTurnCaptureWorkResult | null;
     }
   | {
@@ -99,12 +100,18 @@ export async function runAutonomousKnowledgeWorker(input: {
   const owner = input.owner === undefined ? null : await input.owner();
   if (owner !== null && owner.role !== "owner") {
     // ADR-0467: assessing this host's own owner turns is not convergence work, so it runs here too.
-    const ownerTurns = await withRepositoryKnowledgeWorkerLock(root, ownerTurnWork);
+    // A non-owner with no queued turn and no Hub exchange has nothing to do and takes no lock.
+    const pending =
+      input.instructionCandidateTransport !== undefined ||
+      (await listQueuedInstructionCaptures(root).catch(() => [])).length > 0;
+    const ownerTurns = pending
+      ? await withRepositoryKnowledgeWorkerLock(root, ownerTurnWork)
+      : null;
     return {
       status: "waiting_owner",
       owner,
       convergence: (await inspectConvergenceDebt(input.storage)).status,
-      ownerTurns: ownerTurns.status === "busy" ? null : ownerTurns.result,
+      ownerTurns: ownerTurns === null || ownerTurns.status === "busy" ? null : ownerTurns.result,
     };
   }
   const context: ConvergenceRuntimeContext = {
