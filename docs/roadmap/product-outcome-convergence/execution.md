@@ -1,6 +1,6 @@
 # Prime-Agent-derived execution outcomes
 
-Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance states, and claim boundaries apply to all linked outcomes.
+Part of [Product outcome convergence](../product-outcome-convergence.md). Its baseline, acceptance states, and claim boundaries apply to all linked outcomes.
 
 - [Bounded work graph](execution/bounded-work-graph.md): `wired`.
 - [Root and recursive worker contracts](execution/worker-contracts.md): `wired`.

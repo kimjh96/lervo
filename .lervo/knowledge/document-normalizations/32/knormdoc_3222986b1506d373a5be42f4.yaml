@@ -1,0 +1,52 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2ce58d947f3d4ff577e0d8ad
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fa2dc3141ad276656b72fdf4
+outputLanguage: en
+outputs:
+  - byteCount: 1693
+    contentHash: sha256:ac1af5b0b5be1e0c429f17b03a3ed0cc29b6634f41d7b8e34b81a5b522c168fb
+    path: docs/roadmap/open-collaboration-platform.md
+    userRegionHash: sha256:ac1af5b0b5be1e0c429f17b03a3ed0cc29b6634f41d7b8e34b81a5b522c168fb
+  - byteCount: 10133
+    contentHash: sha256:1c82820cbc139bd0dec9c3cb0b1f0d6db9cc13781eb3f6121eab2ba4a60f62ce
+    path: docs/roadmap/open-collaboration-platform/delivery-sequence.md
+    userRegionHash: sha256:1c82820cbc139bd0dec9c3cb0b1f0d6db9cc13781eb3f6121eab2ba4a60f62ce
+  - byteCount: 4775
+    contentHash: sha256:019796411664bbfdcf0a10b146c1b563e65e2ca82ef0ad8128b62c5ce5a9e433
+    path: docs/roadmap/open-collaboration-platform/slice-0-delivery-notes.md
+    userRegionHash: sha256:019796411664bbfdcf0a10b146c1b563e65e2ca82ef0ad8128b62c5ce5a9e433
+  - byteCount: 4092
+    contentHash: sha256:aaa530d53c09f521d5bc68750a1deb577b173e7b3741e865c3f2413a07e14d2e
+    path: docs/roadmap/open-collaboration-platform/validation-and-context.md
+    userRegionHash: sha256:aaa530d53c09f521d5bc68750a1deb577b173e7b3741e865c3f2413a07e14d2e
+profile: roadmap_document
+recordId: knormdoc_3222986b1506d373a5be42f4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:041f8a6080e74c2f8b676b3bdc49d7a5228991728c99908337d612c6b7c055d9
+sourcePath: docs/roadmap/open-collaboration-platform.md
+sourceUnitVersionIds:
+  - uv_0392660dcbe2c5a4711da1ba
+  - uv_0c619666f3158f29a45d951b
+  - uv_475c8ea9332d8afe346e7486
+  - uv_50fe87f35f605a67563adb53
+  - uv_805d90cd6ec4798b58677e96
+  - uv_87eca7bad4efc3c29c3fa99f
+  - uv_8bc0fc96cc7f5761c3feedf4
+  - uv_99896a0804653fd8eaafb52e
+  - uv_af722d43ee13ddd62f89d063
+  - uv_d1d78210564a7ee217a9af25
+  - uv_d8f33fe065390ae024a407a3
+  - uv_e71f3fbe0fdc1e9b477c2818
+  - uv_f482f2cf30db98fe55cb6945
+  - uv_f584f87a3d991d5b4e53fbad
+  - uv_feb7045ef75e43cc528a5357
