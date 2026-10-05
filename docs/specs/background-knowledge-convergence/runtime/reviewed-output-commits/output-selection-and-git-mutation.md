@@ -1,6 +1,6 @@
 # Output selection and Git mutation
 
-The commit helper requires a symbolic branch and refuses observed merge, cherry-pick, revert, rebase, bisect, or index-lock markers. It reads porcelain status, including untracked files, and selects:
+The commit helper requires a symbolic branch and refuses observed merge, cherry-pick, revert, rebase, bisect, or index-lock markers. Under [ADR-0466](../../../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md), it also refuses when the private ownership fence does not grant this host a current `owner` verdict. A refusal returns the empty result and leaves the bytes in the working tree. The freshness commit applies the same grant. An owner's commits add the trailer `Lervo-Convergence-Host: <hostHash>`. It reads porcelain status, including untracked files, and selects:
 
 - Present integrated draft bytes whose recorded preimage equals the current HEAD blob hash, including null for an absent path.
 - Dirty present records and reviewed rewrite paths from current normalization records whose source hash matches HEAD or an integrated draft over that HEAD preimage.
