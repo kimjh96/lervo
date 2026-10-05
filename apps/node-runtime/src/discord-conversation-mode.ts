@@ -18,6 +18,7 @@ import type {
   ConversationRequestedEffect,
 } from "./conversation-intent-resolver.js";
 import type { ConversationHistoryPort } from "./conversation-history.js";
+import type { ConversationOwnerTurnCapturePort } from "./conversation-owner-turn-capture.js";
 import type { ConversationIntentResolutionStore } from "./conversation-intent-store.js";
 import type {
   ConversationDiscussionDirective,
@@ -90,6 +91,7 @@ export class NaturalLanguageDiscordConversationResponder
       platformAction: DiscordPlatformActionResponder;
       explicitControl?: ConversationResponder;
       discussion?: ConversationDiscussionRuntime;
+      ownerTurnCapture?: ConversationOwnerTurnCapturePort;
     },
   ) {}
 
@@ -237,6 +239,11 @@ export class NaturalLanguageDiscordConversationResponder
       }
     }
     const priorTurns = await this.options.history.recent(event);
+    await this.options.ownerTurnCapture?.capture({
+      event,
+      priorTurns,
+      respondingAgentId: this.options.respondingAgent.agentId,
+    });
     const respondingAgentMentioned =
       event.mentions.participantIds.includes(this.options.respondingAgent.participantId) ||
       event.mentions.roleIds.includes(this.options.respondingAgent.roleId);

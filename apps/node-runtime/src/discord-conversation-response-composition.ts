@@ -14,6 +14,7 @@ import { createProviderConversationIntentResolver } from "./conversation-intent-
 import { conversationPublicationWritingContract } from "./conversation-publication-writing-contract.js";
 import { SQLiteConversationHistory } from "./conversation-history.js";
 import { SQLiteConversationIntentResolutionStore } from "./conversation-intent-store.js";
+import { createConversationOwnerTurnCapture } from "./conversation-owner-turn-capture.js";
 import {
   createAuthorizedAgentEffectRequesters,
   createDiscordHubContinuation,
@@ -334,6 +335,10 @@ export async function openDiscordConversationResponseComposition(input: {
       platformAction,
       discussion: discussionRuntime,
       ...(deliberationRuntime === null ? {} : { explicitControl: deliberationRuntime.responder }),
+      ownerTurnCapture: createConversationOwnerTurnCapture({
+        repositoryRoot: options.repositoryRoot,
+        artifactStore: artifacts,
+      }),
     });
     responder = modeResponder;
   }
