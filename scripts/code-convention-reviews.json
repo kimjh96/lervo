@@ -165,7 +165,7 @@
     },
     {
       "path": "packages/node-work-admission/src/store.ts",
-      "contentHash": "sha256:3246677431a002f88ae5acd345d6c73d83b9977d2d98cf975fbc2c7a2d34873e",
+      "contentHash": "sha256:c0e42e3f880e68975d56b28bd46e10ece76f0830594fe40bcd6efacd32540cfb",
       "responsibility": "SQLite Node work session, claim and upgrade freeze adapter",
       "rationale": "One SQLite adapter owns the bounded session, claim, and freeze lifecycle. Its exact digest check, dead-session cleanup, and retained scope participation record permit inactive recovery only when the service manager explicitly verifies that state. Configuration bytes, service status, rollback, and provider behavior remain outside the store.",
       "disposition": "cohesive"

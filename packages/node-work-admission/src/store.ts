@@ -146,7 +146,8 @@ export class SQLiteNodeWorkAdmission {
       `);
       database.exec("BEGIN IMMEDIATE;");
       try {
-        const version = database.prepare("PRAGMA user_version;").get()?.user_version;
+        const version = (database.prepare("PRAGMA user_version;").get() as Row | undefined)
+          ?.user_version;
         if (version !== 0 && version !== 1) {
           throw new NodeWorkAdmissionError(
             "admission_invalid",
