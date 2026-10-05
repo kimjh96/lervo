@@ -6,7 +6,6 @@ import {
   processKnowledgeConvergence,
   processRepositoryKnowledgeJobs,
   requeueStalledRepositoryKnowledgeJobs,
-  assertNoKnowledgeMaterializationTransaction,
   type KnowledgeConvergenceStatus,
   type RepositoryKnowledgeJobOutcome,
 } from "@lervo/repository-knowledge";
@@ -16,6 +15,10 @@ import { createConvergenceRuntimeHost, assertConvergenceSource } from "./host.js
 import { knowledgeProviderAdmissionState } from "./provider-admission.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceRecoveryStatus } from "./recovery-status.js";
+import { materializationTransactionState } from "./materialization-transaction.js";
+
+/** A live materialization owns the repository; the cycle yields like a held worker lock. */
+const MATERIALIZATION_BUSY = Symbol("materialization_busy");
 import { compactConvergenceWorkforce } from "./workforce-retention.js";
 import { compactConvergenceWorkspaces } from "./workspace-retention.js";
 
@@ -64,12 +67,10 @@ export async function runAutonomousKnowledgeWorker(input: {
     assertSource: (state) => assertConvergenceSource(context, state),
   };
   const result = await withRepositoryKnowledgeWorkerLock(root, async () => {
-    try {
-      await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
-    } catch (error) {
-      if ((error as { code?: string }).code !== "knowledge_recovery_required") throw error;
+    const transaction = await materializationTransactionState(root);
+    if (transaction === "busy") return MATERIALIZATION_BUSY;
+    if (transaction === "recovery_required")
       return { outcomes: [], convergence: convergenceRecoveryStatus(input.storage) };
-    }
     await compactConvergenceWorkspaces(input.storage, input.provider);
     await compactConvergenceWorkforce(input.storage);
     await requeueStalledRepositoryKnowledgeJobs({
@@ -88,18 +89,28 @@ export async function runAutonomousKnowledgeWorker(input: {
           host: createChangeReviewHost(context),
         });
     const delegation = await loadConvergenceDelegation(root);
-    const convergence = await processKnowledgeConvergence({
-      events: input.storage.events,
-      artifacts: input.storage.artifacts,
-      workerId: input.workerId,
-      writableEventSchemaVersion: input.storage.writableEventSchemaVersion ?? 1,
-      host: createConvergenceRuntimeHost(context),
-      maximumStages: Math.min(
-        input.maximumStages ?? 8,
-        delegation?.delegation.resourceCeilings.maximumStages ?? 8,
-      ),
-    });
+    let convergence: KnowledgeConvergenceStatus;
+    try {
+      convergence = await processKnowledgeConvergence({
+        events: input.storage.events,
+        artifacts: input.storage.artifacts,
+        workerId: input.workerId,
+        writableEventSchemaVersion: input.storage.writableEventSchemaVersion ?? 1,
+        host: createConvergenceRuntimeHost(context),
+        maximumStages: Math.min(
+          input.maximumStages ?? 8,
+          delegation?.delegation.resourceCeilings.maximumStages ?? 8,
+        ),
+      });
+    } catch (error) {
+      // Another process's transaction can begin while discovery reads knowledge currency.
+      if ((error as { code?: unknown } | null)?.code !== "knowledge_recovery_required") throw error;
+      if ((await materializationTransactionState(root)) === "recovery_required")
+        return { outcomes, convergence: convergenceRecoveryStatus(input.storage) };
+      return MATERIALIZATION_BUSY;
+    }
     return { outcomes, convergence };
   });
-  return result.status === "busy" ? result : { status: "processed", ...result.result };
+  if (result.status === "busy" || result.result === MATERIALIZATION_BUSY) return { status: "busy" };
+  return { status: "processed", ...result.result };
 }

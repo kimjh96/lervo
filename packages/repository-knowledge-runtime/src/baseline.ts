@@ -147,6 +147,30 @@ export async function discoverConvergenceBaseline(
   };
 }
 
+const DISCOVERY_ATTEMPTS = 3;
+
+/**
+ * A commit or edit landing during the complete capture invalidates only that capture. Retrying a
+ * bounded number of times keeps a busy repository from failing every cycle before any stage runs.
+ */
+async function discoverStableConvergenceBaseline(
+  root: string,
+  events: OutboxStore,
+  artifacts: ArtifactStore,
+): Promise<KnowledgeConvergenceBaseline> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await discoverConvergenceBaseline(root, events, artifacts);
+    } catch (error) {
+      if (
+        attempt >= DISCOVERY_ATTEMPTS ||
+        (error as { code?: unknown } | null)?.code !== "source_bytes_changed"
+      )
+        throw error;
+    }
+  }
+}
+
 /**
  * Cycle-scoped discovery: an unchanged repository digest and canonical event head reuse the last
  * baseline, so dependency checks and the closing status do not repeat the complete capture.
@@ -165,7 +189,7 @@ export function cycleScopedConvergenceDiscovery(
       key = null;
     }
     if (key !== null && last?.key === key) return last.baseline;
-    const baseline = await discoverConvergenceBaseline(root, events, artifacts);
+    const baseline = await discoverStableConvergenceBaseline(root, events, artifacts);
     last = key === null ? null : { key, baseline };
     return baseline;
   };

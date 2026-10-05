@@ -1,8 +1,11 @@
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { readFile, writeFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import {
   applyDurableKnowledgeOperations,
+  canonicalJson,
   recoverKnowledgeMaterialization,
   sha256,
   assessCanonicalization,
@@ -126,7 +129,11 @@ it(
       }),
     ).rejects.toThrow();
     expect(await run(f)).toMatchObject({
-      convergence: { state: "recovery_required", reason: "knowledge_recovery_required" },
+      convergence: {
+        state: "recovery_required",
+        reason: "knowledge_recovery_required",
+        recoveryCommand: "lervo knowledge materialize --recover",
+      },
     });
     await expect(readFile(f.log)).rejects.toMatchObject({ code: "ENOENT" });
     const head = f.events.latest()?.eventHash ?? null;
@@ -142,6 +149,59 @@ it(
     }
     expect(result!).toMatchObject({
       convergence: { state: "idle", lastVerifiedCurrency: expect.any(Object) },
+    });
+  },
+);
+
+it(
+  "yields to a materialization journal that a live process still owns",
+  { timeout: 60_000 },
+  async () => {
+    const f = await fixture(true);
+    fixtures.push(f);
+    const content = '{"fixture":"concurrent"}\n';
+    await expect(
+      applyDurableKnowledgeOperations({
+        repositoryRoot: f.root,
+        projectId: f.storage.manifest.projectId,
+        planId: "kstruct_fedcba9876543210fedcba98",
+        operations: [
+          {
+            path: ".lervo/knowledge/concurrent.json",
+            ownership: "user",
+            mediaType: "application/json",
+            action: "create",
+            content,
+            desiredHash: sha256(content),
+          },
+        ],
+        receipt: {},
+        recordApplied: () => {},
+        failureInjector: (phase) => (phase === "published:0" ? "interrupt" : undefined),
+      }),
+    ).rejects.toThrow();
+    // Rebind the journal to another running process, as a terminal compile would own it.
+    const owner = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60_000)"]);
+    try {
+      const journalPath = resolve(
+        f.root,
+        ".lervo/state/knowledge/materialization-transaction/journal.json",
+      );
+      const journal = JSON.parse(await readFile(journalPath, "utf8")) as { ownerPid: number };
+      await writeFile(journalPath, `${canonicalJson({ ...journal, ownerPid: owner.pid })}\n`);
+      const before = f.events.latest()?.eventHash ?? null;
+      expect(await run(f)).toEqual({ status: "busy" });
+      expect(f.events.latest()?.eventHash ?? null).toBe(before);
+    } finally {
+      owner.kill("SIGKILL");
+      await once(owner, "exit");
+    }
+    // Once the owner is gone the journal is interrupted and needs the explicit owner command.
+    expect(await run(f)).toMatchObject({
+      convergence: {
+        state: "recovery_required",
+        recoveryCommand: "lervo knowledge materialize --recover",
+      },
     });
   },
 );
