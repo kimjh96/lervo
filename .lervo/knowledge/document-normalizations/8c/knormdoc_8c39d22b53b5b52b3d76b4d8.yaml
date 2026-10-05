@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_aa1b69945352bdf862d8cff9
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e2cd4a1022b1e7f7aca0322d
+outputLanguage: en
+outputs:
+  - byteCount: 1631
+    contentHash: sha256:ca045850cdf8dea4fd546acd72615cca259af4949a508aafc6b514c99d752b6a
+    path: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/delegation-and-activation.md
+    userRegionHash: sha256:ca045850cdf8dea4fd546acd72615cca259af4949a508aafc6b514c99d752b6a
+profile: specification_document
+recordId: knormdoc_8c39d22b53b5b52b3d76b4d8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c54a3ca66f79860083fd888d4cc2eba2c71ee5a9ee4c0c6e043f6930d6c4a21a
+sourcePath: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/delegation-and-activation.md
+sourceUnitVersionIds:
+  - uv_7c238a1f18cdeadbfa5e68ed
