@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_62fa166d685c3aafa6dff771
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5fe3f7395555e4f81e05713f
+outputLanguage: en
+outputs:
+  - byteCount: 15596
+    contentHash: sha256:3e77fcea5009ee224ebb713df562e600218afb790a393e7af569e5e36cc5b6ef
+    path: docs/decisions/knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md
+    userRegionHash: sha256:3e77fcea5009ee224ebb713df562e600218afb790a393e7af569e5e36cc5b6ef
+profile: decision_record
+recordId: knormdoc_262f5d4b2dcd6854badbd693
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:547270be8167ed2b83be309f640693de6aa75b002585f7a81c05d816dde770e8
+sourcePath: docs/decisions/knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md
+sourceUnitVersionIds:
+  - uv_07909e593ed24174b5072226
+  - uv_3e93ada057040404069f5b1b
+  - uv_5cf86f638ddc3a0b467826ca
+  - uv_6077e23cc958590f3fc9e91e
+  - uv_679915d95b0882de40ae76df
+  - uv_6f2d8d1e060a425d476a9ddc
+  - uv_85b615c5f5b428c86a49e4e1
+  - uv_8ab90cfc82f7f75eb823a4ac
+  - uv_af99e68c2a71b7589964b374
+  - uv_b071c8866f423fe587785356
+  - uv_b6cae7b2e409e0a6660cf0ec
+  - uv_bceed7a72e3fd76b081a7efc
+  - uv_c6c46be2ecdd6fe1e400674b

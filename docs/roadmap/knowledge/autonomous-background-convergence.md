@@ -9,7 +9,7 @@ Drain existing and new canonicalization, normalization, and knowledge debt throu
 
 The local runtime is implemented. A [privately installed native Codex canary](../../evidence/quality/background-knowledge-convergence-implementation.md) verified changed canonical drafts through independent review, real Git integration, normalization, and no-Hub currency. Earlier canaries verified restart and the last idle document edit. Focused recovery covers failed-assignment reopening, verified Git completion before root apply, safe workspace cleanup and archival, successive integration generations, new source roots, and exact normalization lineage.
 
-[ADR-0466](../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) cross-host ownership is implemented in source: a Hub owner lease, a commit fence, and standalone contention detection. It is not yet installed on the Mac and WSL hosts.
+[ADR-0466](../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) cross-host ownership is implemented in source through a Hub owner lease, commit fence, and standalone contention detection. It is not yet installed on Mac and WSL hosts.
 
 Production fleet activation and remaining installed acceptance gates remain open. Backlog cleanup alone does not satisfy the outcome.
 
