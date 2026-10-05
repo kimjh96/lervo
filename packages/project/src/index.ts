@@ -1,6 +1,7 @@
 export * from "./config.js";
 export * from "./decision-taxonomy.js";
 export * from "./repository-document-policy.js";
+export * from "./repository-document-role-seeding.js";
 export * from "./document-storage.js";
 export * from "./document-validation.js";
 export * from "./event-writer-activation-contract.js";
