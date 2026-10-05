@@ -9,6 +9,7 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
+import { documentFreshnessEventTypes } from "./document-freshness-event.js";
 
 export const eventTypesV1 = [
   "run.requested",
@@ -147,6 +148,7 @@ export const eventTypesV4 = [
   "assignment.convergence.archived",
   "repository.replica.diverged",
   "repository.replica.reconciled",
+  ...documentFreshnessEventTypes,
 ] as const;
 export const eventTypes = eventTypesV4;
 

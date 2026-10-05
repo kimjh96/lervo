@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { lstatSync, readdirSync } from "node:fs";
+import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
@@ -95,6 +95,34 @@ function candidateMetadata(root: string): unknown[] {
 }
 
 /**
+ * ADR-0463 adds the freshness findings digest and the hold store to the fence, so a changed
+ * detection report or an owner hold wakes the resident; candidate stores are observed above.
+ */
+function freshnessObservation(root: string): unknown {
+  let findingsDigest: unknown = null;
+  try {
+    const path = resolve(root, KNOWLEDGE_STATE, "freshness-cycle.json");
+    if ((metadata(path)?.[0] ?? null) === "file")
+      findingsDigest =
+        (JSON.parse(readFileSync(path, "utf8")) as { findingsDigest?: unknown }).findingsDigest ??
+        null;
+  } catch {
+    findingsDigest = "unreadable";
+  }
+  const holds = resolve(root, KNOWLEDGE_STATE, "freshness-holds");
+  let entries: unknown[] = [];
+  try {
+    entries = readdirSync(holds)
+      .sort()
+      .slice(0, 1_024)
+      .map((name) => [name, metadata(resolve(holds, name))]);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  return { findingsDigest, holds: entries };
+}
+
+/**
  * The cheap change fence of ADR-0461. Any read failure propagates so the caller runs a full cycle;
  * equality proves only that the observed inputs did not change, never document currency.
  */
@@ -117,6 +145,7 @@ export function convergenceRepositoryDigest(root: string): string {
       delegation: settings.delegationContentHash,
       candidates: sha256(canonicalJson(candidateMetadata(root))),
       materialization: metadata(resolve(root, KNOWLEDGE_STATE, "materialization-transaction")),
+      freshness: freshnessObservation(root),
     }),
   );
 }

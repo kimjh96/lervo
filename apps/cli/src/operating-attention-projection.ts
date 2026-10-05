@@ -16,6 +16,10 @@ import {
 import type { WorkstreamSnapshot } from "@lervo/schemas";
 import type { RepositoryReplicaOpenDivergence } from "@lervo/sync";
 
+import {
+  documentFreshnessAttentionItems,
+  type DocumentFreshnessAttentionInput,
+} from "./document-freshness-attention.js";
 import type { TerminalLifecycleInspection } from "./terminal-hook-contract.js";
 
 const MAXIMUM_ATTENTION_ITEMS = 256;
@@ -184,6 +188,8 @@ export function createOperatingAttentionReport(input: {
   };
   /** The open divergence the local replica receipt projects, when replication is configured. */
   repositoryReplicaDivergence?: RepositoryReplicaOpenDivergence | null;
+  /** ADR-0463 freshness candidates, applies, and the blocked window; null when unreadable. */
+  documentFreshness?: DocumentFreshnessAttentionInput | null;
   observedAt: Date;
 }): OperatingAttentionReportV1 {
   const workstreamItems =
@@ -214,10 +220,15 @@ export function createOperatingAttentionReport(input: {
       : [replicaDivergenceItem(input.repositoryReplicaDivergence)];
   const allItems = ordered([
     ...new Map(
-      [...workstreamItems, ...candidateItems, ...lifecycleItems, ...replicaItems].map((item) => [
-        item.itemId,
-        item,
-      ]),
+      [
+        ...workstreamItems,
+        ...candidateItems,
+        ...lifecycleItems,
+        ...replicaItems,
+        ...(input.documentFreshness === undefined || input.documentFreshness === null
+          ? []
+          : documentFreshnessAttentionItems(input.documentFreshness)),
+      ].map((item) => [item.itemId, item]),
     ).values(),
   ]);
   const items = allItems.slice(0, MAXIMUM_ATTENTION_ITEMS);

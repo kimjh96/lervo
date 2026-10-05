@@ -15,6 +15,8 @@ import { createConvergenceRuntimeHost, assertConvergenceSource } from "./host.js
 import { knowledgeProviderAdmissionState } from "./provider-admission.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceRecoveryStatus } from "./recovery-status.js";
+import { runDocumentFreshnessCycle, type DocumentFreshnessCycleResult } from "./freshness-stage.js";
+import { documentFreshnessMayRun } from "./freshness-convergence-gate.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
 
 /** A live materialization owns the repository; the cycle yields like a held worker lock. */
@@ -50,6 +52,7 @@ export async function runAutonomousKnowledgeWorker(input: {
       status: "processed";
       outcomes: RepositoryKnowledgeJobOutcome[];
       convergence: KnowledgeConvergenceStatus;
+      freshness?: DocumentFreshnessCycleResult;
     }
 > {
   const root = input.storage.paths.repositoryRoot;
@@ -109,7 +112,24 @@ export async function runAutonomousKnowledgeWorker(input: {
         return { outcomes, convergence: convergenceRecoveryStatus(input.storage) };
       return MATERIALIZATION_BUSY;
     }
-    return { outcomes, convergence };
+    // Freshness runs after intake and convergence (ADR-0463) and only while convergence is parked,
+    // so its commit never lands inside an ADR-0465 batch boundary; its failure never blocks them.
+    const freshness: DocumentFreshnessCycleResult = documentFreshnessMayRun(convergence)
+      ? await runDocumentFreshnessCycle({
+          context: {
+            storage: input.storage,
+            provider: input.provider,
+            ...(input.executable === undefined ? {} : { executable: input.executable }),
+            ...(input.admissionDirectory === undefined
+              ? {}
+              : { admissionDirectory: input.admissionDirectory }),
+            signal: context.signal,
+            liveWorkPending: context.liveWorkPending,
+            now: () => new Date(),
+          },
+        }).catch((): DocumentFreshnessCycleResult => ({ status: "unavailable" }))
+      : { status: "yielded" };
+    return { outcomes, convergence, freshness };
   });
   if (result.status === "busy" || result.result === MATERIALIZATION_BUSY) return { status: "busy" };
   return { status: "processed", ...result.result };

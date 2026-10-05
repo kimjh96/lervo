@@ -27,7 +27,9 @@ export interface ChangeReviewHostInput {
 }
 
 /** Background review spend needs the reviewed delegation; its absence grants inspection only. */
-async function reviewCallCeiling(input: ChangeReviewHostInput): Promise<number> {
+export async function knowledgeReviewCallCeiling(
+  input: Pick<ChangeReviewHostInput, "storage" | "provider" | "now">,
+): Promise<number> {
   let loaded: Awaited<ReturnType<typeof loadConvergenceDelegation>>;
   try {
     loaded = await loadConvergenceDelegation(input.storage.paths.repositoryRoot);
@@ -57,7 +59,7 @@ export function governChangeReviewCalls(input: ChangeReviewHostInput): Knowledge
   const descriptor = noCapabilityReviewAccountingDescriptor(input.provider);
   const occurredAt = () => (input.now ?? (() => new Date()))().toISOString();
   return async (job, call) => {
-    const maximumCalls = await reviewCallCeiling(input);
+    const maximumCalls = await knowledgeReviewCallCeiling(input);
     let admission: Awaited<ReturnType<typeof acquireKnowledgeProviderAdmission>>;
     try {
       admission = await acquireKnowledgeProviderAdmission({

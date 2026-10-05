@@ -96,6 +96,26 @@ it("changes for every repository, policy, delegation and candidate input and not
   await fence.changed("candidate rewrite", () =>
     writeFile(resolve(shard, `kcanon_${"a".repeat(24)}.json`), '{"x":1}'),
   );
+  const freshness = resolve(f.root, ".lervo/state/knowledge");
+  const cycle = (findingsDigest: string, lastCycleAt: string) =>
+    writeFile(
+      resolve(freshness, "freshness-cycle.json"),
+      JSON.stringify({ schemaVersion: 1, findingsDigest, lastCycleAt }),
+    );
+  await fence.changed("freshness findings digest", () => cycle(`sha256:${"1".repeat(64)}`, "a"));
+  await cycle(`sha256:${"1".repeat(64)}`, "b");
+  fence.unchanged("freshness cycle bookkeeping without new findings");
+  await fence.changed("freshness hold", async () => {
+    await mkdir(resolve(freshness, "freshness-holds"), { recursive: true });
+    await writeFile(resolve(freshness, "freshness-holds", `${"2".repeat(32)}.json`), "{}");
+  });
+  await fence.changed("freshness candidate", async () => {
+    await mkdir(resolve(freshness, "freshness-candidates/ab"), { recursive: true });
+    await writeFile(
+      resolve(freshness, `freshness-candidates/ab/kfresh_ab${"0".repeat(22)}.json`),
+      "{}",
+    );
+  });
 });
 
 it("changes for new canonical events and outbox work, and reports due deliveries", async () => {

@@ -7,6 +7,7 @@ import { transientToolCacheDirectoryNames } from "@lervo/context";
 import type { RepositoryKnowledgePolicy } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
 import { supportedRepositoryPublicationLanguages } from "./publication-language.js";
+import { documentFreshnessPolicySectionValid } from "./document-freshness-policy.js";
 import {
   defaultWorkstreamFreshnessPolicy,
   type WorkstreamFreshnessPolicy,
@@ -137,7 +138,8 @@ export function validateRepositoryKnowledgePolicy(value: unknown): RepositoryKno
     item.limits.maxFileBytes < 1 ||
     !Number.isSafeInteger(item.limits.maxTotalBytes) ||
     item.limits.maxTotalBytes < 1 ||
-    !workstreamPolicyValid(item.workstream)
+    !workstreamPolicyValid(item.workstream) ||
+    !documentFreshnessPolicySectionValid(item.documentFreshness)
   ) {
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
@@ -149,6 +151,9 @@ export function validateRepositoryKnowledgePolicy(value: unknown): RepositoryKno
     publication: { ...publication },
     normalization: { exclude: [...normalization.exclude] },
     ...(item.workstream === undefined ? {} : { workstream: { ...item.workstream } }),
+    ...(item.documentFreshness === undefined
+      ? {}
+      : { documentFreshness: { ...item.documentFreshness } }),
   };
 }
 

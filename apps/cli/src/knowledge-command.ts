@@ -25,6 +25,7 @@ import { runKnowledgeSemanticMaterialize } from "./knowledge-materialization-com
 import { runKnowledgeOkfExchange } from "./knowledge-okf-command.js";
 import { runKnowledgeReview, runKnowledgeReviewPolicy } from "./knowledge-review-command.js";
 import { runKnowledgeStructure } from "./knowledge-structure-command.js";
+import { runKnowledgeFreshness } from "./knowledge-freshness-command.js";
 import { writeCommandError } from "./command-error-output.js";
 import { runKnowledgeMigration } from "./knowledge-migration-command.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
@@ -134,6 +135,7 @@ export async function runKnowledgeCommand(
   if (subcommand === "review") return runKnowledgeReview(args.slice(1), io);
   if (subcommand === "materialize") return runKnowledgeSemanticMaterialize(args.slice(1), io);
   if (subcommand === "structure") return runKnowledgeStructure(args.slice(1), io);
+  if (subcommand === "freshness") return runKnowledgeFreshness(args.slice(1), io);
   if (subcommand === "instruction") {
     return runKnowledgeInstruction(
       args.slice(1),

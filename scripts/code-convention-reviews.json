@@ -137,9 +137,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:6989cae30bdfe4d11db51965089215207b68cc66e003b668742e6422bfb231e3",
+      "contentHash": "sha256:0bfedf41c244aa41b9e37ce401eb6452394a4f482d9a7b5faa830150fb9e9f2d",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. V4 convergence payload/provenance rules remain separate modules; the replica divergence allowlists, the archive coordinate, and the ADR-0459 and ADR-0460 attribution, receipt origin, and usage-verification allowlist fields only map hash-only payloads to their schemas and introduce no provider work, authority decision or persistence.",
+      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, ADR-0459 and ADR-0460 attribution, and ADR-0463 document freshness allowlists only map hash-only payloads to their schemas; the convergence and freshness lists live in their own modules, and none adds provider work, authority decisions or persistence.",
       "disposition": "cohesive"
     },
     {
@@ -319,9 +319,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:0ead550991006b71a32821b093bc5344099ae8d73e05de7e4844956855ec3274",
+      "contentHash": "sha256:e0d34ed9aa63c9bdbaaf791a599576a9440664a2e0de30454bbb02caee394232",
       "responsibility": "Repository knowledge public contract types",
-      "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, policy, and typed domain failures without owning their implementations. The optional workstream freshness policy field references its owning freshness module rather than redefining it.",
+      "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, policy, and typed domain failures without owning their implementations. The optional workstream freshness policy field references its owning freshness module rather than redefining it. The optional document freshness policy section references its owning freshness policy module rather than redefining it.",
       "disposition": "cohesive"
     },
     {
@@ -361,9 +361,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:10697fb4fa7cf7ae50a9390f11afee8a06da8511f9506403c8fa0a700613a233",
+      "contentHash": "sha256:83c9127393fc2240915f951667c11d65796e047290e19e19dc7b71435b567126",
       "responsibility": "Repository schema validator registry",
-      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, and repository replica event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry.",
+      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, and repository replica event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry. The ADR-0463 document freshness event payload validators are compiled from their own schema module.",
       "disposition": "cohesive"
     },
     {

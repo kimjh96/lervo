@@ -74,6 +74,8 @@ export function formatCompactTerminalPreamble(input: {
   backgroundKnowledgeActive: boolean;
   workstreamPresent: boolean;
   staleWorkstreamEntryCount: number;
+  /** The ADR-0463 freshness line, at most 200 bytes, or null when every count is zero. */
+  documentFreshnessLine?: string | null;
 }): string {
   const blocking = input.attention.items
     .filter((item) => item.blocking && !isStaleWorkstreamItem(item))
@@ -86,6 +88,9 @@ export function formatCompactTerminalPreamble(input: {
           `Blocking attention: ${blocking.map((item) => `${item.kind}:${item.itemId}${item.requiresUserAction ? " [user]" : ""}`).join("; ")}. Details: \`lervo application attention --json\`.`,
         ]),
     ...staleWorkstreamCountLine(input.staleWorkstreamEntryCount),
+    ...(input.documentFreshnessLine === undefined || input.documentFreshnessLine === null
+      ? []
+      : [input.documentFreshnessLine]),
     ...(input.backgroundKnowledgeActive
       ? [
           "Background knowledge convergence is active and owns canonicalization, normalization, and knowledge refresh; this turn needs no knowledge refresh or turn declaration.",

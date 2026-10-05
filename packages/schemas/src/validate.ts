@@ -53,6 +53,14 @@ import {
   repositoryReplicaDivergedEventPayloadSchema,
   repositoryReplicaReconciledEventPayloadSchema,
 } from "./repository-replica-event.js";
+import {
+  documentFreshnessCandidateAppliedEventPayloadSchema,
+  documentFreshnessCandidateCreatedEventPayloadSchema,
+  documentFreshnessCandidateRejectedEventPayloadSchema,
+  documentFreshnessCandidateRevertedEventPayloadSchema,
+  documentFreshnessCandidateVerifiedEventPayloadSchema,
+  documentFreshnessCycleCompletedEventPayloadSchema,
+} from "./document-freshness-event.js";
 import { conversationInboundEventSchema } from "./conversation-event.js";
 import {
   conversationDeliveryReceiptSchema,
@@ -388,6 +396,24 @@ const validators = {
   repositoryReplicaDivergedEventPayload: ajv.compile(repositoryReplicaDivergedEventPayloadSchema),
   repositoryReplicaReconciledEventPayload: ajv.compile(
     repositoryReplicaReconciledEventPayloadSchema,
+  ),
+  documentFreshnessCandidateCreatedEventPayload: ajv.compile(
+    documentFreshnessCandidateCreatedEventPayloadSchema,
+  ),
+  documentFreshnessCandidateVerifiedEventPayload: ajv.compile(
+    documentFreshnessCandidateVerifiedEventPayloadSchema,
+  ),
+  documentFreshnessCandidateAppliedEventPayload: ajv.compile(
+    documentFreshnessCandidateAppliedEventPayloadSchema,
+  ),
+  documentFreshnessCandidateRejectedEventPayload: ajv.compile(
+    documentFreshnessCandidateRejectedEventPayloadSchema,
+  ),
+  documentFreshnessCandidateRevertedEventPayload: ajv.compile(
+    documentFreshnessCandidateRevertedEventPayloadSchema,
+  ),
+  documentFreshnessCycleCompletedEventPayload: ajv.compile(
+    documentFreshnessCycleCompletedEventPayloadSchema,
   ),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
   productActivityPage: ajv.compile(productActivityPageSchema),

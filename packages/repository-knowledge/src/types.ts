@@ -84,6 +84,8 @@ export interface RepositoryKnowledgePolicy {
   normalization?: { exclude: string[] };
   /** Optional workstream staleness thresholds; defaults apply when absent. */
   workstream?: import("./workstream-freshness.js").WorkstreamFreshnessPolicy;
+  /** Optional document freshness bounds (ADR-0463); defaults apply to absent keys. */
+  documentFreshness?: import("./document-freshness-policy.js").DocumentFreshnessPolicySection;
   exclude: string[];
   limits: {
     maxFiles: number;
