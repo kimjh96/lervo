@@ -273,11 +273,12 @@ async function publish(input: {
         body,
       });
     if (existing.title !== KNOWLEDGE_PUBLICATION_TITLE || existing.body.trim() !== body.trim())
-      await forge.updatePullRequest({
-        number: existing.number,
-        title: KNOWLEDGE_PUBLICATION_TITLE,
-        body,
-      });
+      // A stale description never blocks merging reviewed outputs; the next cycle retries it.
+      await forge
+        .updatePullRequest({ number: existing.number, title: KNOWLEDGE_PUBLICATION_TITLE, body })
+        .catch((error: unknown) => {
+          if (!(error instanceof KnowledgePublicationForgeError)) throw error;
+        });
     return existing;
   });
   const opened: KnowledgePublicationState = {
