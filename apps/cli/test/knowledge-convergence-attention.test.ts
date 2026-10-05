@@ -180,3 +180,41 @@ it("projects a superseded publication as one attention item with its conflict co
   ]);
   expect(items[0]!.instruction).toContain("convergence regenerates the outputs");
 });
+
+it("shows the gh step, exit code, and failure class with a class-specific remediation", () => {
+  const publication = {
+    ...failedPublication,
+    failure: {
+      ...failedPublication.failure,
+      code: "knowledge_publication_pull_request_failed" as const,
+      detail: "gh update exit 1 auth",
+    },
+  };
+  const [item] = knowledgeConvergenceAttentionItems({ owner: null, publication });
+  expect(item).toMatchObject({
+    kind: "knowledge_publication",
+    failureCode: "knowledge_publication_pull_request_failed",
+    detail: "gh update exit 1 auth",
+  });
+  expect(item!.instruction).toContain("gh auth status");
+  const report = createOperatingAttentionReport({
+    projectId: "prj_attention_fixture",
+    workstream: null,
+    workstreamFreshness: null,
+    canonicalization: { coverage: "complete", candidates: [] },
+    knowledgeLifecycle: { coverage: "complete", issues: [] },
+    knowledgeConvergence: { owner: null, publication },
+    observedAt: new Date("2026-10-05T00:11:00.000Z"),
+  });
+  expect(formatOperatingAttention(report)).toContain(
+    "knowledge_publication_pull_request_failed · gh update exit 1 auth · occurrences 2",
+  );
+  const [unclassified] = knowledgeConvergenceAttentionItems({
+    owner: null,
+    publication: {
+      ...publication,
+      failure: { ...publication.failure, detail: "gh update exit 1 unknown" },
+    },
+  });
+  expect(unclassified!.instruction).toContain("Check that gh is installed and authenticated");
+});

@@ -59,10 +59,28 @@ const PUBLICATION_INSTRUCTIONS: Record<string, string> = {
   knowledge_publication_pull_request_failed:
     "Check that gh is installed and authenticated on this host, then run lervo knowledge convergence owner publish.",
   knowledge_publication_checks_failed:
-    "A required check failed on the knowledge publication pull request. Inspect its CI result; the publisher will not merge until every check passes.",
+    "A check on the knowledge publication pull request finished without success, for example failed, cancelled, or neutral. Inspect its CI result; the publisher will not merge until every check succeeds.",
   knowledge_publication_merge_failed:
     "Merging the knowledge publication pull request failed. Inspect the pull request and merge or close it.",
 };
+
+/** Remediations for the forge failure class a `gh <step> exit <code> <class>` detail names. */
+const FORGE_FAILURE_INSTRUCTIONS: Record<string, string> = {
+  auth: "The gh CLI on this host is not authenticated for this repository or lacks write access. Run gh auth status, log in with an account that can push and merge, then run lervo knowledge convergence owner publish.",
+  network:
+    "The gh CLI on this host could not reach GitHub in time. Check the host's network and GitHub status; the next resident cycle retries.",
+  not_installed:
+    "The gh CLI is not installed or not on the resident's PATH on this host. Install it, log in, then run lervo knowledge convergence owner publish.",
+  not_mergeable:
+    "GitHub refused to merge the knowledge publication pull request because it is not mergeable at the published head. Inspect the pull request for conflicts or a branch policy, then merge or close it.",
+  not_found:
+    "GitHub could not find the knowledge publication pull request or repository. Check the host's gh repository context, then run lervo knowledge convergence owner publish.",
+};
+
+function forgeFailureInstruction(detail: string | null): string | undefined {
+  const failureClass = detail === null ? undefined : /^gh \S+ exit \S+ (\S+)$/u.exec(detail)?.[1];
+  return failureClass === undefined ? undefined : FORGE_FAILURE_INSTRUCTIONS[failureClass];
+}
 
 /** At most one ownership item and one publication item. */
 export function knowledgeConvergenceAttentionItems(
@@ -108,6 +126,7 @@ export function knowledgeConvergenceAttentionItems(
       requiresUserAction: true,
       blocking: false,
       instruction:
+        forgeFailureInstruction(failure.detail) ??
         PUBLICATION_INSTRUCTIONS[failure.code] ??
         "Inspect lervo knowledge convergence owner status and retry the publication.",
     };
