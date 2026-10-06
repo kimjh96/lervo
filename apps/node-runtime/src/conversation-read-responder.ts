@@ -38,6 +38,7 @@ import { prepareConversationRepositoryContext } from "./conversation-repository-
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 import { SQLiteConversationResponseArtifactStore } from "./conversation-response-artifact-store.js";
 import { createConversationSnapshotProcessCapture } from "./conversation-snapshot-process.js";
+import type { NodeRuntimeDeferredWork } from "./startup-deferred-work.js";
 import {
   conversationPolicyDigest,
   conversationWritingDocumentId,
@@ -48,10 +49,16 @@ import {
 export interface ManagedConversationRepositoryResources {
   captureSnapshot: CaptureRepositorySnapshot;
   knowledgeQuery: RevisionedRepositoryKnowledgeQuery;
+  /**
+   * ADR-0480: runs the knowledge-index warm-up after Node readiness. Without it the warm-up starts
+   * in the background immediately; a query never depends on it.
+   */
+  deferredWork?: Pick<NodeRuntimeDeferredWork, "schedule">;
 }
 
 export function createManagedConversationRepositoryResources(input?: {
   snapshotWorkerEntry?: string;
+  deferredWork?: Pick<NodeRuntimeDeferredWork, "schedule">;
 }): ManagedConversationRepositoryResources {
   return {
     captureSnapshot:
@@ -59,7 +66,27 @@ export function createManagedConversationRepositoryResources(input?: {
         ? createCachedRepositorySnapshotCapture()
         : createConversationSnapshotProcessCapture(input.snapshotWorkerEntry),
     knowledgeQuery: new RevisionedRepositoryKnowledgeQuery(),
+    ...(input?.deferredWork === undefined ? {} : { deferredWork: input.deferredWork }),
   };
+}
+
+/**
+ * Prepares the knowledge index for the current revision without blocking the caller. The index is
+ * a rebuildable projection: a query resolves or rebuilds it for its own snapshot revision.
+ */
+function scheduleKnowledgeWarmup(
+  resources: ManagedConversationRepositoryResources,
+  repositoryRoot: string,
+): void {
+  const warm = async () => {
+    const snapshot = await resources.captureSnapshot(repositoryRoot);
+    await resources.knowledgeQuery.prepare({ repositoryRoot, sourceRevision: snapshot.revision });
+  };
+  if (resources.deferredWork !== undefined) {
+    resources.deferredWork.schedule("conversation_knowledge_index", warm);
+    return;
+  }
+  void warm().catch(() => undefined);
 }
 
 function id(prefix: string): string {
@@ -120,11 +147,7 @@ export async function openManagedConversationReadResponder(input: {
     const repositoryResources =
       input.repositoryResources ?? createManagedConversationRepositoryResources();
     const { captureSnapshot, knowledgeQuery } = repositoryResources;
-    const initialSnapshot = await captureSnapshot(input.repositoryRoot);
-    await knowledgeQuery.prepare({
-      repositoryRoot: input.repositoryRoot,
-      sourceRevision: initialSnapshot.revision,
-    });
+    scheduleKnowledgeWarmup(repositoryResources, input.repositoryRoot);
     const agentContextMaterializer = new AgentContextMaterializer({
       repositoryRoot: input.repositoryRoot,
       projectId: input.projectId,

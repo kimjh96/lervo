@@ -47,6 +47,40 @@ const absentWorkstream = {
 };
 
 describe("Node runtime readiness snapshot", () => {
+  it("advances updatedAt while starting and settles once when readiness is reached", async () => {
+    let settled = 0;
+    const publisher = createNodeRuntimeHealthPublisher(
+      await stateDirectory(),
+      false,
+      false,
+      undefined,
+      false,
+      false,
+      { startingHeartbeatMs: 20, onSettled: () => (settled += 1) },
+    );
+    await publisher.initialize();
+    const first = await snapshot(publisher.path);
+    let heartbeat = first;
+    for (let attempt = 0; attempt < 200 && heartbeat.updatedAt === first.updatedAt; attempt += 1) {
+      await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 10));
+      heartbeat = await snapshot(publisher.path);
+    }
+    expect(heartbeat).toMatchObject({ status: "starting", processId: first.processId });
+    expect(Date.parse(heartbeat.updatedAt)).toBeGreaterThan(Date.parse(first.updatedAt));
+    expect(settled).toBe(0);
+
+    await publisher.observeSync(idleSync);
+    await publisher.observeWorkstreamReplication(absentWorkstream);
+    const ready = await snapshot(publisher.path);
+    expect(ready.status).toBe("ready");
+    expect(settled).toBe(1);
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 1_100));
+    expect((await snapshot(publisher.path)).updatedAt).toBe(ready.updatedAt);
+    await publisher.observeWorkstreamReplicationFailure("local_state_invalid");
+    expect(settled).toBe(1);
+    publisher.close();
+  });
+
   it("does not replace identical health bytes in one burst but publishes changes immediately", async () => {
     const publisher = createNodeRuntimeHealthPublisher(await stateDirectory(), false);
     await publisher.initialize();

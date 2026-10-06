@@ -6,7 +6,6 @@ import type { NodeSupervisionService } from "./supervision-startup.js";
 import { createSyncCycleObserver } from "./sync-cycle-observer.js";
 import { createNodeDeploymentTransports } from "./deployment-transports.js";
 import { watchLocalEventChanges } from "./local-event-wakeup.js";
-import { lstat } from "node:fs/promises";
 
 import { FileSystemCas } from "@lervo/cas";
 import { ConversationOperationDrain } from "@lervo/conversation-app";
@@ -23,7 +22,7 @@ import type { NodeRuntimeConfig } from "./config-types.js";
 import { parseNodeRuntimeConfig } from "./config.js";
 import { loadNodeBearerToken, ReloadableNodeBearerToken } from "./credentials.js";
 import { NodeRuntimeError } from "./errors.js";
-import { createNodeRuntimeHealthPublisher } from "./health.js";
+import { createNodeRuntimeHealthPublisher, type NodeRuntimeHealthPublisher } from "./health.js";
 import { createNodeRuntimeDeployment, type NodeRuntimeDeployment } from "./lifecycle.js";
 import { createNodeOrganizationCredentialDelivery } from "./organization-credential-delivery.js";
 import { openDeploymentConversation } from "./deployment-conversation.js";
@@ -34,19 +33,8 @@ import type { NodeRuntimeOpenPorts } from "./open-ports.js";
 import { loadNodeRuntimeTrust, ReloadableNodeRuntimeTrust } from "./trust.js";
 import { NodeWorkstreamReplicationLocalPort } from "./workstream-replication.js";
 import { openNodeRuntimeWorkAdmission, type NodeRuntimeWorkAdmission } from "./work-admission.js";
-
-async function assertRepositoryRoot(path: string): Promise<void> {
-  try {
-    const metadata = await lstat(path);
-    if (!metadata.isDirectory() || metadata.isSymbolicLink()) throw new Error("unsafe root");
-  } catch (error) {
-    throw new NodeRuntimeError(
-      "project_invalid",
-      "The Node runtime repository root must be an initialized physical directory.",
-      { cause: error },
-    );
-  }
-}
+import { createNodeRuntimeDeferredWork } from "./startup-deferred-work.js";
+import { assertRepositoryRoot } from "./repository-root.js";
 
 export async function openNodeRuntime(
   config: NodeRuntimeConfig,
@@ -59,6 +47,9 @@ export async function openNodeRuntime(
   let supervision: NodeSupervisionService | null = null;
   let operationDrain = new ConversationOperationDrain();
   let workAdmission: NodeRuntimeWorkAdmission | undefined;
+  let openedHealth: NodeRuntimeHealthPublisher | undefined;
+  // ADR-0480: cache warm-ups wait until readiness settles, so they never delay it.
+  const deferredWork = createNodeRuntimeDeferredWork();
   try {
     const validated = parseNodeRuntimeConfig(config, process.cwd());
     await assertRepositoryRoot(validated.repositoryRoot);
@@ -94,7 +85,9 @@ export async function openNodeRuntime(
       },
       configuredDiscordConversations(validated).length > 0,
       validated.outcomeSupervision !== undefined,
+      { onSettled: () => deferredWork.release() },
     );
+    openedHealth = health;
     store = await SQLiteEventStore.open({
       path: paths.eventDatabase,
       projectId: manifest.projectId,
@@ -195,6 +188,7 @@ export async function openNodeRuntime(
       ...(ports.knowledgeWorkerEntry === undefined
         ? {}
         : { snapshotWorkerEntry: ports.knowledgeWorkerEntry }),
+      deferredWork,
       dataDirectory: paths.data,
       operationDrain,
       ...(ports.runtimeConfigPath === undefined
@@ -351,10 +345,15 @@ export async function openNodeRuntime(
           }),
       supervision,
       operationDrain,
-      () => workAdmission?.close(),
+      () => {
+        deferredWork.close();
+        workAdmission?.close();
+      },
     );
   } catch (error) {
     operationDrain.stop();
+    deferredWork.close();
+    openedHealth?.close();
     const cleanupErrors: unknown[] = [];
     try {
       await supervision?.close();

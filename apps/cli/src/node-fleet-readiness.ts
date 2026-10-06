@@ -72,9 +72,37 @@ function readinessReceipt(
 }
 
 /**
+ * ADR-0480: liveness of the first process seen `starting`. Its advancing `updatedAt` heartbeat is
+ * startup progress. Another process later reporting `starting` means the replacement restarted,
+ * so liveness stops counting for the rest of the observation.
+ */
+class StartingLiveness {
+  private identity: string | null = null;
+  private updatedAt = 0;
+  private replaced = false;
+
+  advanced(snapshot: NodeRuntimeHealthSnapshot, identity: string, updatedAt: number): boolean {
+    if (snapshot.status !== "starting" || this.replaced) return false;
+    if (this.identity === null) {
+      this.identity = identity;
+      this.updatedAt = updatedAt;
+      return false;
+    }
+    if (this.identity !== identity) {
+      this.replaced = true;
+      return false;
+    }
+    if (updatedAt <= this.updatedAt) return false;
+    this.updatedAt = updatedAt;
+    return true;
+  }
+}
+
+/**
  * Requires three consecutive fresh, monotonic observations from one process in which no
  * component regressed from its baseline. The window lasts 60 seconds past the latest startup
- * progress (a first fresh snapshot or more accepted components), bounded at 600 seconds.
+ * progress (a first fresh snapshot, more accepted components, or an advancing `starting`
+ * heartbeat from the same process), bounded at 600 seconds.
  */
 export async function observeNodeFleetReadiness(request: {
   path: string;
@@ -94,6 +122,7 @@ export async function observeNodeFleetReadiness(request: {
   let last: { snapshot: NodeRuntimeHealthSnapshot; evaluation: NodeReadinessEvaluation } | null =
     null;
   let progressMark = -1;
+  const liveness = new StartingLiveness();
   let deadline = idleObservationLimit;
   let attempt = 0;
   for (; attempt < Math.min(deadline, maximumObservationLimit); attempt += 1) {
@@ -105,8 +134,9 @@ export async function observeNodeFleetReadiness(request: {
       const fresh = updatedAt >= request.notBefore.getTime();
       if (fresh) {
         last = { snapshot: current, evaluation };
-        if (evaluation.acceptedCount > progressMark) {
-          progressMark = evaluation.acceptedCount;
+        const live = liveness.advanced(current, currentIdentity, updatedAt);
+        if (evaluation.acceptedCount > progressMark || live) {
+          progressMark = Math.max(progressMark, evaluation.acceptedCount);
           deadline = attempt + idleObservationLimit;
         }
       }

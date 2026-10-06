@@ -15,6 +15,15 @@ import type {
 
 export const NODE_RUNTIME_HEALTH_FILE = "node-runtime-health.json";
 
+/** ADR-0480: how often a `starting` snapshot refreshes `updatedAt` as process liveness. */
+export const NODE_RUNTIME_STARTING_HEARTBEAT_MS = 5_000;
+
+export interface NodeRuntimeHealthPublisherOptions {
+  startingHeartbeatMs?: number;
+  /** Called once, when the aggregate first leaves `starting` for `ready` or `degraded`. */
+  onSettled?(): void;
+}
+
 export interface NodeRuntimeHealthPublisher {
   readonly path: string;
   initialize(): Promise<void>;
@@ -28,6 +37,8 @@ export interface NodeRuntimeHealthPublisher {
   observeSupervision(health: NodeRuntimeComponentHealth): Promise<void>;
   observeConversationFailure(code: string): Promise<void>;
   stopping(): Promise<void>;
+  /** Stops the starting heartbeat without publishing; used when startup fails. */
+  close(): void;
 }
 
 function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapshot["status"] {
@@ -111,6 +122,8 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   private pending: Promise<void> = Promise.resolve();
   private publishedContent: string | null = null;
   private publishedAt = 0;
+  private heartbeat: ReturnType<typeof setInterval> | null = null;
+  private settled = false;
 
   constructor(
     stateDirectory: string,
@@ -119,6 +132,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
     eventReaderIdentity: NodeRuntimeEventReaderIdentity | undefined,
     conversationConfigured: boolean,
     supervisionConfigured: boolean,
+    private readonly options: NodeRuntimeHealthPublisherOptions,
   ) {
     this.path = resolve(stateDirectory, NODE_RUNTIME_HEALTH_FILE);
     const now = new Date().toISOString();
@@ -147,6 +161,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
     try {
       await assertStateDirectory(resolve(this.path, ".."));
       await this.publish(() => undefined);
+      this.startHeartbeat();
     } catch (error) {
       throw new NodeRuntimeError(
         "startup_failed",
@@ -219,10 +234,40 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
     });
   }
 
+  close(): void {
+    this.stopHeartbeat();
+  }
+
+  /**
+   * A slow but live startup keeps `updatedAt` advancing, so readiness observers can tell it from
+   * a hung or crashed process. A blocked event loop delays the heartbeat, which is intended.
+   */
+  private startHeartbeat(): void {
+    if (this.heartbeat !== null || this.snapshot.status !== "starting") return;
+    this.heartbeat = setInterval(() => {
+      this.publish(() => undefined).catch(() => this.stopHeartbeat());
+    }, this.options.startingHeartbeatMs ?? NODE_RUNTIME_STARTING_HEARTBEAT_MS);
+    this.heartbeat.unref();
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeat === null) return;
+    clearInterval(this.heartbeat);
+    this.heartbeat = null;
+  }
+
   private publish(update: () => void): Promise<void> {
     const operation = this.pending.then(async () => {
       update();
       this.snapshot.status = aggregate(this.snapshot);
+      if (this.snapshot.status !== "starting") this.stopHeartbeat();
+      if (
+        !this.settled &&
+        (this.snapshot.status === "ready" || this.snapshot.status === "degraded")
+      ) {
+        this.settled = true;
+        this.options.onSettled?.();
+      }
       const now = Date.now();
       const content = JSON.stringify({ ...this.snapshot, updatedAt: null });
       if (
@@ -248,6 +293,7 @@ export function createNodeRuntimeHealthPublisher(
   eventReaderIdentity?: NodeRuntimeEventReaderIdentity,
   conversationConfigured = false,
   supervisionConfigured = false,
+  options: NodeRuntimeHealthPublisherOptions = {},
 ): NodeRuntimeHealthPublisher {
   return new FileNodeRuntimeHealthPublisher(
     stateDirectory,
@@ -256,5 +302,6 @@ export function createNodeRuntimeHealthPublisher(
     eventReaderIdentity,
     conversationConfigured,
     supervisionConfigured,
+    options,
   );
 }

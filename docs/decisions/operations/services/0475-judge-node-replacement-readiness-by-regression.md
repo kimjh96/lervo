@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-06
 Amends: [ADR-0207](0207-transactional-repository-node-apply-and-readiness.md), [ADR-0214](0214-bounded-repository-upgrade-orchestration.md)
+Amended by: [ADR-0480](0480-defer-node-cache-warmups-past-readiness.md) (starting heartbeat counts as progress)
 
 ## Context
 
