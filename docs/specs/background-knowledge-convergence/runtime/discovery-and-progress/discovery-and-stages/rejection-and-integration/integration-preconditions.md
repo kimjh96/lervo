@@ -6,6 +6,8 @@ Before recording a mismatch, the runtime attempts one synchronization of the int
 
 A delegation can name a host-local ref that this host never created. Synchronization starts an absent ref at `HEAD` with a create-only ref update. If the ref still cannot be resolved, the stage records `attention_required/knowledge_integration_target_unavailable` until the delegated ref exists ([ADR-0472](../../../../../../decisions/knowledge/documents/0472-start-absent-integration-refs-and-bound-untyped-stage-failures.md)).
 
+When the ref is not synchronized, the runtime checks whether a squash merge absorbed it. Every ref-only path must be byte-equal at `HEAD`, changed by a base-side commit, or committed only by Lervo and never adopted, and at least one path must have been decided by the base. The runtime then keeps the old tip under `refs/lervo/knowledge-integration-absorbed/`, moves the Lervo-only ref to `HEAD` with a compare-and-swap, and records `knowledge.integration_target.absorbed`. It never touches the working tree or a user branch ([ADR-0482](../../../../../../decisions/knowledge/semantics/0482-absorb-squash-merged-semantic-candidates-and-type-verification-source-changes.md)).
+
 Other mismatches record `waiting_authority/canonical_target_diverged` with a private exact target-ref/commit dependency. Source or target-ref changes trigger reevaluation. Matching target bytes resume the existing review without another model call.
 
 Unchanged drafts are invalid semantic changes and cannot start an empty Git integration.

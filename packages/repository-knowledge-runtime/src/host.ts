@@ -27,6 +27,7 @@ import { verifyConvergenceLifecycle } from "./lifecycle-final.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { resolveIntegrationTarget } from "./integration-target-sync.js";
+import { inspectIntegrationTargetAbsorption } from "./integration-target-absorption.js";
 import { inspectRetainedCanonicalIntegration } from "./canonical-integration-recovery.js";
 import type { CanonicalBatch } from "./canonical-review.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
@@ -122,9 +123,16 @@ export function createConvergenceRuntimeHost(
         const authority = await loadConvergenceDelegation(root);
         if (!authority || authority.delegation.integrationTarget.ref !== dependency.targetRef)
           return false;
+        const target = await resolveIntegrationTarget(
+          root,
+          authority.delegation.integrationTarget.ref,
+        );
+        if (target !== dependency.targetCommit) return false;
+        // ADR-0482: a squash merge that absorbed the ref lets integration preflight move it.
+        const head = await resolveIntegrationTarget(root, "HEAD");
         return (
-          (await resolveIntegrationTarget(root, authority.delegation.integrationTarget.ref)) ===
-          dependency.targetCommit
+          head === null ||
+          (await inspectIntegrationTargetAbsorption(root, target, head).catch(() => null)) === null
         );
       }
       // The attention clears once the delegated ref exists, whoever created it.

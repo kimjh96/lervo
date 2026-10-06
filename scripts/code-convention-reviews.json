@@ -130,7 +130,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:ddfd7a176bc3f985ee3b473545565760ce65416cdbf7b0df938bd8ef5032c0c1",
+      "contentHash": "sha256:8ca4a0264b4c648d0ecb8bd237079a335335e685329c4b57a9d65c8830c2c2e1",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, owner-lease, attribution, freshness, capture, delegation-continuation, publication-repair, and ADR-0477 definition-installation allowlists only map hash-only payloads to their schemas; the convergence, freshness, and capture lists live in their own modules, and none adds provider work, authority decisions or persistence.",
       "disposition": "cohesive"
@@ -368,7 +368,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:2872a686d0ec08726a8429640280f614625a1e410420e3d7f0504ea3fbf77eea",
+      "contentHash": "sha256:537b6b61d99cbf041d44f2fa2abcac1a4c4927688b8495914941663e2a3b2dab",
       "responsibility": "Repository schema validator registry",
       "rationale": "The module declaratively compiles one schema registry. Dedicated event schema modules own the additive validators, including ADR-0463 freshness, ADR-0467 capture, ADR-0469 continuation, ADR-0473 publication repair, and ADR-0477 definition installation payloads; privacy, durable decisions, source inspection and persistence remain outside this registry.",
       "disposition": "cohesive"

@@ -22,6 +22,10 @@ import type { CanonicalDraft } from "./canonical-assessment-contract.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceEffectCheckpoint } from "./effect-checkpoint.js";
+import {
+  observedRepositorySnapshot,
+  withVerificationSourceChanges,
+} from "./verification-source-changes.js";
 import { hasCanonicalNormalizationLineage } from "./canonical-normalization-lineage.js";
 
 const execute = promisify(execFile);
@@ -137,16 +141,24 @@ export async function verifyCanonicalWorkspace(
   const receipts: ManagedProjectVerification[] = [];
   for (const required of authority.delegation.verification) {
     await authority.assertCurrent();
+    const suite = await loadVerificationSuite(
+      context.storage.paths.repositoryRoot,
+      required.suiteId,
+    );
     const revision = (await captureRepositorySnapshot(root)).revision;
-    const observed = await runVerificationSuite({
-      suite: await loadVerificationSuite(context.storage.paths.repositoryRoot, required.suiteId),
-      repositoryRoot: root,
-      repositoryRevision: revision,
-      captureRepositoryRevision: async (target) =>
-        (await captureRepositorySnapshot(target)).revision,
-      artifactStore: context.storage.artifacts,
-      signal: context.signal,
-    });
+    const observed = await withVerificationSourceChanges(
+      context.storage.artifacts,
+      observedRepositorySnapshot,
+      (captureRepositoryRevision) =>
+        runVerificationSuite({
+          suite,
+          repositoryRoot: root,
+          repositoryRevision: revision,
+          captureRepositoryRevision,
+          artifactStore: context.storage.artifacts,
+          signal: context.signal,
+        }),
+    );
     assertConvergenceVerificationPassed(observed.result.status);
     receipts.push(observed);
   }
