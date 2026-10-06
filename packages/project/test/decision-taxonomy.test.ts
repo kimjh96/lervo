@@ -33,6 +33,21 @@ describe("decision taxonomy validation", () => {
     );
   });
 
+  it("accepts a role whose bytes a repository tool generates", () => {
+    const taxonomy = structuredClone(defaultDecisionTaxonomy);
+    taxonomy.documentPolicy.roles.push({
+      roleId: "package_changelog",
+      scopePath: ".",
+      path: "CHANGELOG.md",
+      cardinality: "one_per_package",
+      lifecycleOwner: "tool_generated",
+      relocation: "preserve",
+      rewritePolicy: "repository_tool",
+      required: false,
+    });
+    expect(decisionTaxonomyIssues(taxonomy)).toEqual([]);
+  });
+
   it("names every missing field when an edit removes rewrite and routes", () => {
     expect(decisionTaxonomyIssues(argoLayoutWithoutRewriteAndRoutes())).toEqual([
       { pointer: "/routes", rule: "required", message: "/routes is required." },

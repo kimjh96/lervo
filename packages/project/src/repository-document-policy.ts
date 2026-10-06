@@ -6,7 +6,11 @@ export interface RepositoryDocumentRole {
   scopePath: string;
   path: string;
   cardinality: "one" | "one_per_package";
-  lifecycleOwner: "user" | "lervo" | "provider_adapter";
+  /**
+   * `tool_generated`: a repository tool, such as a release generator, writes these bytes; Lervo
+   * never normalizes, refreshes, or otherwise rewrites them (ADR-0471).
+   */
+  lifecycleOwner: "user" | "lervo" | "provider_adapter" | "tool_generated";
   relocation: "preserve" | "reviewed_move" | "exact_legacy_alias";
   rewritePolicy: RepositoryDocumentRewritePolicy;
   required: boolean;
