@@ -1,6 +1,7 @@
-import { chmod, mkdir, writeFile } from "node:fs/promises";
+import { chmod, mkdir, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES } from "@lervo/repository-knowledge";
 import { build } from "esbuild";
 
 import { nodeSqliteBundlePlugin } from "../../../scripts/distribution/lib/node-sqlite-bundle.mjs";
@@ -72,6 +73,13 @@ await Promise.all(
   ),
 );
 await chmod(resolve(outputDirectory, "node-runtime.js"), 0o755);
+
+// Repositories reject a generated hook runtime above this budget, which would block `lervo upgrade`.
+const terminalHookBytes = (await stat(resolve(outputDirectory, "terminal-hook.js"))).size;
+if (terminalHookBytes > TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES)
+  throw new Error(
+    `dist/terminal-hook.js is ${terminalHookBytes} bytes, above the ${TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES}-byte terminal hook runtime budget.`,
+  );
 
 await writeFile(
   resolve(outputDirectory, "bin.metafile.json"),

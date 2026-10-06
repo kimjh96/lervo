@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   applyTerminalIntegrationPlan,
   createTerminalIntegrationPlan,
+  TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES,
   terminalHookCommand,
 } from "../src/index.js";
 
@@ -162,6 +163,36 @@ describe("terminal integration migration", () => {
     expect(
       await readFile(resolve(root, ".lervo/generated/terminal-hooks/runtime-v2.mjs"), "utf8"),
     ).toBe(nextRuntime);
+  });
+
+  it("accepts a runtime above 4 MiB within the budget and blocks one above it", async () => {
+    const root = await repository();
+    const initial = await createTerminalIntegrationPlan(root, runtimeContent);
+    await applyTerminalIntegrationPlan({
+      plan: initial,
+      runtimeContent,
+      approvedOperationId: initial.operationId,
+      approvedHash: initial.approvalHash!,
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
+    const padded = (bytes: number) =>
+      `${runtimeContent}//${"x".repeat(bytes - Buffer.byteLength(runtimeContent) - 3)}\n`;
+    const large = padded(4 * 1024 * 1024 + 70_512);
+    const update = await createTerminalIntegrationPlan(root, large);
+    expect(update).toMatchObject({ status: "ready", blockers: [], runtime: { action: "update" } });
+    await applyTerminalIntegrationPlan({
+      plan: update,
+      runtimeContent: large,
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
+    expect((await createTerminalIntegrationPlan(root, large)).status).toBe("current");
+
+    const oversized = padded(TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES + 1);
+    expect((await createTerminalIntegrationPlan(root, oversized)).blockers).toEqual([
+      expect.objectContaining({ code: "runtime_invalid" }),
+    ]);
   });
 
   it("gives a repeated byte transition a distinct plan after an intervening application event", async () => {

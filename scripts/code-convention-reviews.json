@@ -312,7 +312,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/terminal-integration.ts",
-      "contentHash": "sha256:1b1c1ce02e1d37436b6c0a1a66486a71b2517b6c9ccf9812fce8bef0abeb2c97",
+      "contentHash": "sha256:2e60666d3469c9350e0159161129ad23a717a4044be78392676dbd31a531e09f",
       "responsibility": "Provider terminal-hook installation lifecycle",
       "rationale": "Provider configuration merge, runtime integrity, inspection, plan creation, and apply form one fail-closed terminal integration contract.",
       "disposition": "cohesive"
