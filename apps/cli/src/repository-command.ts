@@ -11,6 +11,7 @@ import {
   resolveRegisteredRepository,
 } from "@lervo/repository-registry";
 
+import { onboardKnowledgeContinuity } from "./knowledge-continuity-onboarding.js";
 import type { CliIo } from "./types.js";
 import {
   applyNodeFleetOnboarding,
@@ -260,10 +261,15 @@ export async function runRepositoryCommand(args: string[], io: CliIo): Promise<n
         registryPath: path,
         repositoryRoot: parsed.values.root,
       });
+      // ADR-0469: a registered checkout joins background knowledge continuity at once.
+      const knowledgeContinuity = await onboardKnowledgeContinuity({
+        repositoryRoot: result.registration.repositoryRoot,
+        register: false,
+      });
       io.stdout(
         parsed.values.json
-          ? `${JSON.stringify(result, null, 2)}\n`
-          : `Repository ${result.registration.projectId}: ${result.change}\n  ${result.registration.name}\n  ${result.registration.repositoryRoot}\n`,
+          ? `${JSON.stringify({ ...result, knowledgeContinuity }, null, 2)}\n`
+          : `Repository ${result.registration.projectId}: ${result.change}\n  ${result.registration.name}\n  ${result.registration.repositoryRoot}\n${knowledgeContinuity === null ? "" : `  knowledge continuity: delegation ${knowledgeContinuity.delegation} · owner-host ${knowledgeContinuity.ownerHost}\n`}`,
       );
       return 0;
     }

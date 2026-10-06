@@ -3,6 +3,7 @@ import { inspectAutonomousKnowledgeStatus } from "@lervo/repository-knowledge-ru
 import type { CliIo } from "./types.js";
 import { runKnowledgeConvergenceDelegationCommand } from "./knowledge-convergence-delegation-command.js";
 import { runKnowledgeConvergenceOwnerCommand } from "./knowledge-convergence-owner-command.js";
+import { runKnowledgeConvergenceDoctorCommand } from "./knowledge-convergence-doctor-command.js";
 import { runKnowledgeProviderProbeCommand } from "./knowledge-provider-probe-command.js";
 
 /** Baseline migration rehearsal and status are read-only and grant no semantic approval. */
@@ -13,11 +14,14 @@ export async function runKnowledgeConvergenceCommand(
   if (args[0] === "provider-probe") return runKnowledgeProviderProbeCommand(args.slice(1), io);
   if (args[0] === "delegation") return runKnowledgeConvergenceDelegationCommand(args.slice(1), io);
   if (args[0] === "owner") return runKnowledgeConvergenceOwnerCommand(args.slice(1), io);
+  if (args[0] === "doctor") return runKnowledgeConvergenceDoctorCommand(args.slice(1), io);
   if (
     !["status", "inspect"].includes(args[0] ?? "") ||
     args.slice(1).some((arg) => arg !== "--json")
   ) {
-    io.stderr("Usage: lervo knowledge convergence <status|inspect> [--json]\n");
+    io.stderr(
+      "Usage: lervo knowledge convergence <status|inspect|doctor|owner|delegation|provider-probe> [--json]\n",
+    );
     return 1;
   }
   try {

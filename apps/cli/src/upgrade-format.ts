@@ -40,7 +40,11 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
     `workforce role bindings: ${plan.stages.workforce.disposition} (${plan.stages.workforce.reason})`,
     `terminal integration: ${plan.stages.terminalIntegration.disposition} (${plan.stages.terminalIntegration.reason})`,
     ...blockerLines(plan.stages.terminalIntegration.blockers, "  "),
-    `knowledge: ${plan.stages.knowledge.disposition} (${plan.stages.knowledge.reason})`,
+    `knowledge: ${plan.stages.knowledge.disposition} (${plan.stages.knowledge.reason})${
+      plan.stages.knowledge.backgroundDebt === undefined
+        ? ""
+        : ` · ${plan.stages.knowledge.backgroundDebt.pendingDocuments} pending document(s) owned by the background resident through its ${plan.stages.knowledge.backgroundDebt.owner === "delegation" ? "delegation" : "host continuity policy"}`
+    }`,
     ...blockerLines(plan.stages.knowledge.blockers, "  "),
     `repository Node: ${plan.stages.node.disposition} (${plan.stages.node.reason})`,
   ];

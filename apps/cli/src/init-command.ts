@@ -7,6 +7,8 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { applyCapabilityMigration, createCapabilityMigrationPlan } from "@lervo/capabilities";
 
 import type { CliIo } from "./types.js";
+import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
+import { onboardKnowledgeContinuity } from "./knowledge-continuity-onboarding.js";
 import { runKnowledgeMigration } from "./knowledge-command.js";
 import { recordWorkforceEvent } from "./workforce-events.js";
 
@@ -14,7 +16,8 @@ export const initUsage =
   "  lervo init [--dry-run] [--minimal|--onboard] [--root <path>] [--name <name>] [--json]";
 
 interface OnboardingResult {
-  status: "pending_authority" | "provider_ready" | "blocked";
+  /** `background_owned`: ADR-0469 continuity owns the remaining normalization debt. */
+  status: "pending_authority" | "provider_ready" | "background_owned" | "blocked";
   initialAgentId: string;
   completedStages: string[];
   pendingStage: string | null;
@@ -107,6 +110,15 @@ async function bootstrapOnboarding(root: string): Promise<OnboardingResult> {
         pendingPlan: null,
       };
     }
+    // ADR-0469: with a delegation or host continuity policy, the resident owns provider selection.
+    if (plan.status === "provider_required" && (await knowledgeBackgroundOwner(root)) !== null)
+      return {
+        status: "background_owned",
+        initialAgentId: initialAgent.agentId,
+        completedStages: [...completedStages, "knowledge_continuity"],
+        pendingStage: null,
+        pendingPlan: null,
+      };
     const pendingStage = String(
       plan.planKind ??
         (plan.status === "provider_required" ? "document_normalization" : "provider_integration"),
@@ -225,9 +237,19 @@ export async function runInitCommand(args: string[], io: CliIo): Promise<number>
       values.minimal || (process.env.NODE_ENV === "test" && !values.onboard)
         ? null
         : await bootstrapOnboarding(root);
+    // ADR-0469 default onboarding: on a host with a continuity policy, join the host registry and
+    // derive owner-host configuration and delegation now; otherwise nothing changes.
+    const knowledgeContinuity =
+      onboarding === null || onboarding.status === "blocked"
+        ? null
+        : await onboardKnowledgeContinuity({ repositoryRoot: root, register: true });
     if (values.json) {
       io.stdout(
-        `${JSON.stringify({ schemaVersion: 1, initialization: plan, result, onboarding }, null, 2)}\n`,
+        `${JSON.stringify(
+          { schemaVersion: 1, initialization: plan, result, onboarding, knowledgeContinuity },
+          null,
+          2,
+        )}\n`,
       );
     }
     if (!values.json) {
@@ -240,6 +262,10 @@ export async function runInitCommand(args: string[], io: CliIo): Promise<number>
         io.stdout(
           `Onboarding: ${onboarding.status}\ninitial agent: ${onboarding.initialAgentId}\ncompleted: ${onboarding.completedStages.join(", ")}\n${onboarding.pendingStage === null ? "" : `pending: ${onboarding.pendingStage}\nRespond in natural language to the shown authority decision; the agent must perform the Lervo bookkeeping.\n`}`,
         );
+        if (knowledgeContinuity !== null)
+          io.stdout(
+            `knowledge continuity: delegation ${knowledgeContinuity.delegation} · owner-host ${knowledgeContinuity.ownerHost}\n`,
+          );
       }
     }
     return 0;

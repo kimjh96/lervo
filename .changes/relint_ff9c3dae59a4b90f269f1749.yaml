@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ff9c3dae59a4b90f269f1749"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Keep background knowledge continuous on every host: same-scope delegation renewal under a host policy, cross-host delegation seeding, derived Hub owner-host configuration, honest upgrade status, and a continuity doctor."

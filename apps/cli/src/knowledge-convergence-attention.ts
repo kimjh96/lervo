@@ -4,6 +4,8 @@ import type {
   OperatingAttentionItemV1,
 } from "@lervo/application-contract";
 import {
+  defaultConvergenceContinuityPolicyPath,
+  inspectConvergenceContinuity,
   readConvergenceOwnerFence,
   readConvergenceOwnerHost,
   readKnowledgePublicationState,
@@ -14,6 +16,7 @@ import {
   convergenceOwnerRemediation,
   type ConvergenceOwnerHubScope,
 } from "./knowledge-convergence-owner-remediation.js";
+import { continuityAttentionItems } from "./knowledge-continuity-attention.js";
 
 /** ADR-0466 private state the attention projection reads; absent files mean nothing to report. */
 export interface KnowledgeConvergenceAttentionInput {
@@ -23,6 +26,8 @@ export interface KnowledgeConvergenceAttentionInput {
   supersession?: Awaited<ReturnType<typeof readKnowledgeSupersessionLedger>>;
   /** The Hub scope an ownership remediation names; absent or null outside hub mode. */
   hubScope?: ConvergenceOwnerHubScope | null;
+  /** ADR-0469 continuity findings of this checkout; absent means none were inspected. */
+  continuity?: Awaited<ReturnType<typeof inspectConvergenceContinuity>> | null;
 }
 
 /** Reads the Hub destination of a Hub-mode host; any other host has no Hub scope. */
@@ -40,13 +45,17 @@ export async function readKnowledgeConvergenceAttention(
   root: string,
   projectId: string,
 ): Promise<KnowledgeConvergenceAttentionInput> {
-  const [owner, publication, hubScope, supersession] = await Promise.all([
+  const [owner, publication, hubScope, supersession, continuity] = await Promise.all([
     readConvergenceOwnerFence(root),
     readKnowledgePublicationState(root),
     readConvergenceOwnerHubScope(root, projectId),
     readKnowledgeSupersessionLedger(root),
+    inspectConvergenceContinuity({
+      repositoryRoot: root,
+      policyPath: defaultConvergenceContinuityPolicyPath(),
+    }).catch(() => null),
   ]);
-  return { owner, publication, hubScope, supersession };
+  return { owner, publication, hubScope, supersession, continuity };
 }
 
 const PUBLICATION_INSTRUCTIONS: Record<string, string> = {
@@ -96,7 +105,10 @@ function forgeFailureInstruction(detail: string | null): string | undefined {
   return failureClass === undefined ? undefined : FORGE_FAILURE_INSTRUCTIONS[failureClass];
 }
 
-/** At most one ownership item, one publication item, and one held-supersession item. */
+/**
+ * At most one ownership item, one publication item, one held-supersession item, and the bounded
+ * ADR-0469 continuity items.
+ */
 export function knowledgeConvergenceAttentionItems(
   input: KnowledgeConvergenceAttentionInput,
 ): OperatingAttentionItemV1[] {
@@ -165,5 +177,11 @@ export function knowledgeConvergenceAttentionItems(
     };
     items.push(item);
   }
+  items.push(
+    ...continuityAttentionItems(
+      input.continuity?.findings ?? [],
+      input.continuity?.state?.observedAt ?? null,
+    ),
+  );
   return items;
 }
