@@ -17,6 +17,10 @@ Implemented and source-tested. Tests cover:
 
 Implemented and source-tested, with [ADR-0471](../../../../../decisions/coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md) ownership safety: upgrade event writer stage (local-only activation with backup, stale hook reader, unreachable Hub, stale approval), host resident hold and automatic activation, Node child hold and resume, host lock and status, host service install, upgrade, and blockers, the doctor's `event_schema_outdated` and `continuity_pending` findings, unproven Hub coordinates that stay read-only, project-credential candidates, the continuity timer under admission, and identity-preserving rebind.
 
+- [ ] A host that lacks a delegation-bound suite, repository role, or asset manifest installs the exact reviewed bytes another host shared through the Hub and seeds under [ADR-0477](../../../../../decisions/coordination/sync/0477-carry-delegation-bound-definitions-across-hosts.md).
+
+Implemented and source-tested: binding-reproducing contract validation and size bound; content-addressed Hub storage with refresh and pruning; HTTP publish, list, and read under `sync.write` with project scope; two simulated hosts where the peer lacks an untracked suite, installs it, seeds the same scope, and waits for the owner; user-owned conflict, forged content, and older-Hub cases; repository role installation; and managed replacement.
+
 ## Open installed acceptance
 
 - On the Mac, `lervo upgrade --apply` activates schema 4 for axli, plen, shiflo, and digimon, installs `com.lervo.knowledge.host`, and the doctor shows each served.
@@ -24,3 +28,4 @@ Implemented and source-tested, with [ADR-0471](../../../../../decisions/coordina
 - A delegation renews inside its window on an installed host without owner input.
 - plen and digimon run in Hub mode with one owner.
 - `lervo upgrade` reports `current (background_owned)` on a delegated repository with normalization debt.
+- On the Mac, axli installs `.lervo/verifications/repository.knowledge.yaml` from the WSL delegation's shared definition, reports an active delegation, and observes `waiting_owner` while WSL holds the lease.
