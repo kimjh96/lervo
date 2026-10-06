@@ -13,7 +13,7 @@ it("names the changed source of a typed failure and shortens the repository root
       "/work/repo",
     ),
   ).toBe(
-    "Knowledge convergence failed: source_bytes_changed (./docs/specs/runtime.md changed during the scan.)\n",
+    "Knowledge convergence failed in /work/repo: source_bytes_changed (./docs/specs/runtime.md changed during the scan.)\n",
   );
 });
 
@@ -25,9 +25,11 @@ it("keeps typed detail on one bounded line", () => {
     ),
     "/work/repo",
   );
-  expect(line.startsWith("Knowledge convergence failed: knowledge_source_unsafe (docs/a.md")).toBe(
-    true,
-  );
+  expect(
+    line.startsWith(
+      "Knowledge convergence failed in /work/repo: knowledge_source_unsafe (docs/a.md",
+    ),
+  ).toBe(true);
   expect(line.trimEnd()).not.toMatch(/[\r\n]/u);
   expect(line.length).toBeLessThan(400);
 });
@@ -38,8 +40,14 @@ it("keeps native errors and invalid codes code-only", () => {
       Object.assign(new Error("ENOENT: /Users/someone/private/file"), { code: "Not A Code" }),
       "/work/repo",
     ),
-  ).toBe("Knowledge convergence failed: knowledge_job_transient_failure\n");
+  ).toBe("Knowledge convergence failed in /work/repo: knowledge_job_transient_failure\n");
   expect(knowledgeWorkerFailureLine({ code: "knowledge_source_unsafe" }, "/work/repo")).toBe(
-    "Knowledge convergence failed: knowledge_source_unsafe\n",
+    "Knowledge convergence failed in /work/repo: knowledge_source_unsafe\n",
+  );
+});
+
+it("labels a host resident scan failure that belongs to no checkout", () => {
+  expect(knowledgeWorkerFailureLine({ code: "repository_registry_invalid" }, "")).toBe(
+    "Host knowledge resident scan failed: repository_registry_invalid\n",
   );
 });

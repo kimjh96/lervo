@@ -21,6 +21,8 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 - The local-only path works without a Hub. Absent Node registration is current, not an onboarding side effect.
 - A stale registered Node under a current sync-disabled project policy remains pending authority without blocking local generated-only migration.
 - CLI acquisition remains an explicit installation-environment responsibility and is never reported as repository-upgrade evidence.
+- An `event_writer` stage activates event schema 4 through the existing event-contract evidence, plan, and apply contract, after a recoverable backup. Local-only and Node-absent checkouts activate in the reviewed apply. Hub-enabled checkouts with a Node re-observe Node health and Hub capability, or report the exact blocker and remedy ([ADR-0470](../../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md)).
+- A `host_service` stage installs, activates, or transactionally replaces the one host resident service (launchd or systemd user) when a registered checkout without a Node needs a resident. It never duplicates a Node's resident.
 
 ## Evidence
 
@@ -29,6 +31,9 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 - `apps/cli/test/upgrade-node.test.ts`
 - `apps/cli/test/upgrade-independent-stages.test.ts`
 - `apps/cli/test/upgrade-stage-policy.test.ts`
+- `apps/cli/test/event-writer-activation-stage.test.ts`
+- `apps/cli/test/knowledge-host-service.test.ts`
+- `apps/cli/test/upgrade-event-writer-host-service.test.ts`
 - `apps/cli/test/repository-command.test.ts`
 - `packages/repository-knowledge/test/repository-layout-migration.test.ts`
 - `scripts/distribution/test/runtime-service-management.test.mjs`

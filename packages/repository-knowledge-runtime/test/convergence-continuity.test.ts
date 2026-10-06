@@ -185,6 +185,43 @@ describe("delegation continuity", () => {
     expect(continuedEvents(f)).toHaveLength(1);
   });
 
+  it("rebinds a delegation whose suite a managed upgrade rewrote, keeping every scope identifier (ADR-0470)", async () => {
+    const f = await tracked(true);
+    const path = await policyFile(f);
+    await continuity({ f, policyPath: path }).reconcile();
+    const renewed = (await loadConvergenceDelegation(f.root))!.delegation;
+    const suite = renewed.verification[0]!;
+    const suitePath = resolve(f.root, ".lervo/verifications", `${suite.suiteId}.yaml`);
+    const definition = JSON.parse(await readFile(suitePath, "utf8"));
+    definition.commands[0].timeoutMs += 1;
+    await writeFile(suitePath, JSON.stringify(definition));
+
+    const state = await continuity({ f, policyPath: path }).reconcile({ force: true });
+    const rebound = (await loadConvergenceDelegation(f.root))!.delegation;
+    expect(rebound.verification).toEqual([
+      { suiteId: suite.suiteId, suiteHash: expect.not.stringMatching(suite.suiteHash) },
+    ]);
+    expect(rebound.expiresAt).toBe(renewed.expiresAt);
+    expect(rebound.canonicalRoots).toEqual(renewed.canonicalRoots);
+    expect(rebound.roles).toEqual(renewed.roles);
+    expect(state).toMatchObject({
+      lastContinuation: { action: "rebound", source: "binding_refresh" },
+      continuationFailure: null,
+    });
+    expect(continuedEvents(f).at(-1)).toMatchObject({
+      payload: {
+        action: "rebound",
+        source: "binding_refresh",
+        previousPlanHash: renewed.review.planHash,
+        planHash: rebound.review.planHash,
+      },
+    });
+    // Nothing drifted any more, so a further reconciliation records nothing new.
+    const count = continuedEvents(f).length;
+    await continuity({ f, policyPath: path }).reconcile({ force: true });
+    expect(continuedEvents(f)).toHaveLength(count);
+  });
+
   it("never renews under a revoked policy and asks the owner before the delegation lapses", async () => {
     const f = await tracked(true);
     const path = await policyFile(f, templatePolicy("revoked"));
@@ -290,15 +327,14 @@ describe("two hosts of one repository", () => {
     expect(verdicts.find((verdict) => verdict.role === "waiting_owner")?.holder?.label).toBe("mac");
   });
 
-  it("keeps a host standalone and reports the cause when the Hub refuses its credential", async () => {
+  it("keeps a refused host read-only in Hub mode and reports the cause (ADR-0470)", async () => {
     const f = await tracked(true);
     const path = await policyFile(f, templatePolicy());
     const hosts = new FakeHostRecordHub();
     hosts.refuse = { failureCode: "hub_forbidden", httpStatus: 403 };
     const state = await continuity({ f, policyPath: path, hosts }).reconcile();
     expect(state).toMatchObject({
-      ownerHost: { state: "standalone", hubFailureCode: "hub_forbidden" },
-      hub: { status: "not_configured" },
+      ownerHost: { state: "hub", hubFailureCode: "hub_forbidden" },
     });
     expect(state?.findings).toContainEqual({
       code: "owner_host_hub_unusable",

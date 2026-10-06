@@ -106,7 +106,8 @@ describe("lervo upgrade with a blocked stage", () => {
       pending: Array<{ stage: string; disposition: string; blockers: Array<{ code: string }> }>;
     };
     expect(receipt.status).toBe("blocked");
-    expect(receipt.appliedStages).toEqual(["terminal_integration"]);
+    // The event writer stage was deferred behind the hook runtime and applies after it.
+    expect(receipt.appliedStages).toEqual(["terminal_integration", "event_writer"]);
     expect(receipt.knowledgeLint).toBeNull();
     expect(receipt.skippedStages).toEqual([
       { stage: "knowledge_lint", reason: "knowledge_stage_blocked" },

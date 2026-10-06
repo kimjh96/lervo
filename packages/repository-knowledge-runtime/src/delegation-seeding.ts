@@ -81,7 +81,7 @@ async function localParent(input: {
 }
 
 /** What a child of `parent` with this role and provider is bound to on this host. */
-async function localRoleBinding(input: {
+export async function localRoleBinding(input: {
   root: string;
   projectId: string;
   roleId: string;

@@ -4,7 +4,7 @@ This reference describes the supplied `.github/workflows/code-quality.yml` and `
 
 ## Shared workflow controls
 
-Both workflows run on pull requests and pushes to `main`, grant `contents: read`, and run one job on `ubuntu-latest` with a ten-minute timeout. Concurrency groups include workflow and ref, prefixed by `code-quality-` and `commit-convention-`, respectively. A replacement run cancels an in-progress run in its group.
+Both workflows run on pull requests and pushes to `main`, grant `contents: read`, and run their quality and commit jobs on `ubuntu-latest` with a ten-minute timeout. Code quality also runs the release-artifact and test jobs described below. Concurrency groups include workflow and ref, prefixed by `code-quality-` and `commit-convention-`, respectively. A replacement run cancels an in-progress run in its group.
 
 Both check out full history (`fetch-depth: 0`) and disable persisted credentials. Shared action pins:
 
@@ -22,6 +22,15 @@ The `quality` job (`ESLint and Prettier`) runs `pnpm quality:check`, then `pnpm 
 - Pushes: `pnpm release:completion:check --base "${{ github.event.before }}"`.
 
 Bases are explicitly event-bound. The workflow declares neither a fallback base nor continue-on-error behavior. The YAML establishes invocation and sequence, not successful completion or the checker's internal handling of unavailable Git objects.
+
+## Release artifacts and tests
+
+Under [ADR-0470](../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md), the code-quality workflow runs two more jobs on every pull request and push to `main`. They use the same pins, Node 22.13.0, and frozen install:
+
+- `release-artifacts` (`Release manifest and SBOM`, 20 minutes): `pnpm build`, then `pnpm release:manifest:check` and `pnpm release:sbom:check`. A stale `apps/cli/release-artifact-manifest.json` or `apps/cli/release-sbom.cdx.json` fails the pull request, not only the release branch. The packed-CLI matrix still runs only for `lervo/release-cli`, tags, and manual dispatch.
+- `test` (`Tests (shard n/4)`, four shards, 45 minutes each, no fail-fast): a Git identity for repository fixtures, `pnpm build`, then `pnpm test --maxWorkers=2 --testTimeout=30000 --shard=<n>/4`. Two workers match the hosted runner's cores. As in [ADR-0356](../decisions/execution/verification/0356-bound-test-deadlines-for-busy-host-shards.md), the default deadline is wider than the 5-second Vitest default, because CPU-bound tests that take 4 seconds on a developer machine exceeded it on the two-core runners. Per-test deadlines still take precedence, and assertions are unchanged. Each shard took 15 to 22 minutes on the first run.
+
+The vitest setup file `scripts/quality/lib/test-user-state-isolation.mjs` points `LERVO_USER_STATE_DIRECTORY` at a per-process temporary directory. No test can then read or change a developer's host registry, continuity policy, host resident status, or user services.
 
 ## Node API baseline
 

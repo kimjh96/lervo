@@ -418,9 +418,14 @@ describe("lervo upgrade", () => {
     expect(await runCli(["upgrade", "--json"], io(root, firstOutput, errors))).toBe(0);
     const first = JSON.parse(firstOutput.join("")) as {
       status: string;
-      stages: { knowledge: { disposition: string; reason: string } };
+      stages: {
+        knowledge: { disposition: string; reason: string };
+        eventWriter: { disposition: string };
+      };
     };
-    expect(first.status).toBe("pending_authority");
+    // A new checkout writes schema 1; the event writer stage is ready beside the user decision.
+    expect(first.status).toBe("ready");
+    expect(first.stages.eventWriter.disposition).toBe("safe_apply");
     expect(first.stages.knowledge).toMatchObject({
       disposition: "pending_authority",
       reason: "review_required",

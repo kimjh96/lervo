@@ -36,9 +36,14 @@ export function startRepositoryKnowledgeLoop(input: {
   workerEntry?: string;
   /** ADR-0469: this Node's Hub coordinates for zero-touch owner-host configuration. */
   hub?: KnowledgeHubCoordinates;
+  /**
+   * ADR-0470: start the resident child although the writer is older than schema 4; the child
+   * holds with `event_schema_outdated` and resumes after activation.
+   */
+  awaitAdmission?: boolean;
 }): () => Promise<void> {
   if (
-    (input.storage?.writableEventSchemaVersion ?? 1) >= 4 &&
+    ((input.storage?.writableEventSchemaVersion ?? 1) >= 4 || input.awaitAdmission === true) &&
     input.host === undefined &&
     input.workerEntry !== undefined
   )

@@ -4,7 +4,11 @@ import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { renderRuntimeService } from "../render-runtime-service.mjs";
+import {
+  formatRuntimeServiceDefinition,
+  renderRuntimeService,
+  runtimeServiceTargetPath,
+} from "../render-runtime-service.mjs";
 
 const roots = [];
 const nodeInstance = "nfi_0123456789abcdef01234567";
@@ -269,5 +273,65 @@ describe("runtime service definition renderer", () => {
       second,
     ]);
     expect(await readFile(first, "utf8")).not.toBe(await readFile(second, "utf8"));
+  });
+});
+
+describe("knowledge host resident service definition", () => {
+  const input = {
+    runtime: "knowledge-host",
+    instance: null,
+    nodeExecutable: "/opt/node/bin/node",
+    executable: "/opt/lervo/dist/bin.js",
+    config: "/home/owner/state/knowledge-host/config.json",
+  };
+
+  it("runs the host resident subcommand with its config under one per-user identity", () => {
+    const systemd = formatRuntimeServiceDefinition({ ...input, manager: "systemd" });
+    expect(systemd).toContain(
+      'ExecStart="/opt/node/bin/node" "/opt/lervo/dist/bin.js" knowledge worker --watch --host --config "/home/owner/state/knowledge-host/config.json"',
+    );
+    expect(systemd).toContain("Description=Lervo host knowledge resident");
+    const launchd = formatRuntimeServiceDefinition({ ...input, manager: "launchd" });
+    expect(launchd).toContain("<string>com.lervo.knowledge.host</string>");
+    expect(launchd).toContain(
+      "<string>/opt/lervo/dist/bin.js</string>\n    <string>knowledge</string>\n    <string>worker</string>\n    <string>--watch</string>\n    <string>--host</string>\n    <string>--config</string>",
+    );
+    expect(runtimeServiceTargetPath({ ...input, manager: "systemd" }, "/home/owner")).toBe(
+      "/home/owner/.config/systemd/user/lervo-knowledge-host.service",
+    );
+    expect(runtimeServiceTargetPath({ ...input, manager: "launchd" }, "/home/owner")).toBe(
+      "/home/owner/Library/LaunchAgents/com.lervo.knowledge.host.plist",
+    );
+  });
+
+  it("renders resolved tool directories into PATH before the system directories", () => {
+    const systemd = formatRuntimeServiceDefinition({
+      ...input,
+      manager: "systemd",
+      pathDirectories: ["/opt/homebrew/bin", "/usr/bin", "/opt/homebrew/bin"],
+    });
+    expect(systemd).toContain(
+      'Environment="PATH=/opt/node/bin:/opt/lervo/dist:/opt/homebrew/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"',
+    );
+    const node = {
+      manager: "launchd",
+      runtime: "node",
+      instance: nodeInstance,
+      executable: "/opt/lervo/launcher",
+      config: "/home/owner/node.json",
+    };
+    // Without tool directories the bytes stay exactly those of earlier releases.
+    expect(formatRuntimeServiceDefinition(node)).toBe(
+      formatRuntimeServiceDefinition({ ...node, pathDirectories: [] }),
+    );
+    expect(() =>
+      formatRuntimeServiceDefinition({ ...node, pathDirectories: ["relative/bin"] }),
+    ).toThrow(/absolute/u);
+  });
+
+  it("rejects an instance for the host resident", () => {
+    expect(() =>
+      formatRuntimeServiceDefinition({ ...input, manager: "systemd", instance: nodeInstance }),
+    ).toThrow(/argument|instance/u);
   });
 });

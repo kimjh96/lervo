@@ -25,3 +25,7 @@ Follow the [activation requirements](../activation.md), including the version 3 
 Both plan and apply re-observe the fleet registry, service definition, runtime config, Node health, and Hub identity-bound capability. A different member, coordinate, source hash, identity, or capability, or a stale Node observation, fails before coordinate mutation.
 
 The evidence file exposes only hashes and reader reports—never local paths, service bodies, URLs, or credentials.
+
+## Through `lervo upgrade`
+
+The upgrade's `event_writer` stage runs steps 3 through 5 after the Node stage and the terminal hook runtime are current ([ADR-0470](../../../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md)). It writes the same backup as [local-only activation](local-only.md#automatic-activation). A failed observation does not activate; it blocks the stage with its code and remedy, for example `reader_inventory_node_health_stale` or `reader_inventory_hub_unavailable`. After activation, the Node's held knowledge resident resumes within a minute without a Node restart.

@@ -83,7 +83,8 @@ describe("streaming recent execution evidence", () => {
       values.slice(-4_096).map((value) => value.seq),
     );
     expect(events.latest()).toBe(values.at(-1));
-  });
+    // 33,000 synthetic events take about 4 s alone; a loaded host or CI runner needs more.
+  }, 60_000);
 
   it("rejects unsafe old evidence even after it would leave the retained window", () => {
     const values = history(4);

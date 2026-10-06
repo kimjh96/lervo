@@ -1,5 +1,7 @@
 import type { ContinuityFinding } from "@lervo/repository-knowledge-runtime";
 
+import { eventWriterBlocker } from "./event-writer-activation-blockers.js";
+
 const INSTALL_POLICY =
   "lervo knowledge convergence delegation renewal-policy install, then rerun it with --apply <policy-id>";
 const REVIEW_DELEGATION =
@@ -29,7 +31,7 @@ const SEED_FAILURES: Record<string, string> = {
 
 const HUB_FAILURES: Record<string, string> = {
   hub_forbidden:
-    "The Hub refused this host's credential for this project. Upgrade the Hub to an ADR-0469 version, which lets a credential with sync.write coordinate knowledge for its projects, or add this project to the credential's projects",
+    "The Hub refused this host's credential for this project. Hub credentials are scoped per project: place this project's own credential at nodes/<projectId>/secrets/hub-sync.token in the Lervo user state directory (or ~/.config/lervo/nodes on Linux), upgrade the Hub to an ADR-0469 version so a credential with sync.write coordinates knowledge for its projects, or add this project to the credential's projects",
   hub_unauthorized:
     "The Hub did not accept the token in this host's Node configuration. Replace it with a current credential",
   hub_unreachable: "The Hub did not answer. Check that it runs and is reachable from this host",
@@ -40,6 +42,20 @@ const HUB_FAILURES: Record<string, string> = {
   hub_configuration_invalid: "The Hub coordinates or token cannot form a request. Fix them",
   token_file_unreadable: "Make the Hub bearer token file an owner-only (0600) regular file",
 };
+
+/** ADR-0470: the next step for a checkout no resident has reconciled, by who should host it. */
+const RESIDENT_HOSTS: Record<string, string> = {
+  node_served:
+    "Its registered Node should run this checkout's resident. Check lervo repository node status --json and restart the Node if its health is stale.",
+  host_resident_absent:
+    "No Node serves this checkout and no host knowledge resident runs on this host. Run lervo upgrade and apply its plan; its host_service stage installs the host resident service.",
+  host_resident_unlisted:
+    "The host knowledge resident runs but does not list this checkout. Register it with lervo repository register --write; the resident serves it within five minutes.",
+};
+
+function residentHost(detail: string | null, fallback: string): string {
+  return (detail === null ? undefined : RESIDENT_HOSTS[detail]) ?? fallback;
+}
 
 function hubFailure(detail: string | null): string {
   return (detail === null ? undefined : HUB_FAILURES[detail]) ?? "Check the Hub configuration";
@@ -76,7 +92,7 @@ export function continuityRemediation(finding: ContinuityFinding): string {
     case "owner_host_standalone":
       return "No Hub coordinates exist for this repository on this host, so it converges standalone. Register a Node for it (lervo repository node plan, then apply) to coordinate across hosts.";
     case "owner_host_hub_unusable":
-      return `This host has Hub coordinates but they cannot coordinate this project, so it stays standalone. ${hubFailure(finding.detail)}. The resident switches to Hub mode on its next hourly cycle.`;
+      return `This host has Hub coordinates but they cannot coordinate this project, so it stays read-only: it never owns standalone while another host may hold the Hub lease. ${hubFailure(finding.detail)}. The resident re-probes on every reconciliation and resumes as soon as coordination works.`;
     case "owner_host_invalid":
       return "The owner-host configuration is invalid. Fix .lervo/state/knowledge/convergence-owner-host.json, or delete it and the resident derives it again.";
     case "lease_unverifiable":
@@ -96,11 +112,17 @@ export function continuityRemediation(finding: ContinuityFinding): string {
     case "peer_unreported":
       return `Host ${finding.detail} has not reported for two hours; its resident may be stopped. Run ${DOCTOR} on that host.`;
     case "continuity_unobserved":
-      return "No knowledge resident has reconciled continuity for this checkout on this host yet. Register a Node for it (lervo repository node plan, then apply) or run lervo knowledge worker --watch.";
+      return `No knowledge resident has reconciled continuity for this checkout on this host yet. ${residentHost(finding.detail, "Run lervo upgrade and apply its plan to install the host resident service, or register a Node for it.")}`;
     case "continuity_stale":
-      return "Continuity was last reconciled more than two hours ago, so the resident for this checkout is not running.";
+      return `Continuity was last reconciled more than two hours ago, so the resident for this checkout is not running. ${residentHost(finding.detail, "Run lervo knowledge convergence doctor again after the host resident's next scan.")}`;
     case "resident_not_running":
-      return "No knowledge resident heartbeat exists for this checkout. Start its Node or lervo knowledge worker --watch.";
+      return `No knowledge resident heartbeat exists for this checkout. ${residentHost(finding.detail, "Start its Node, or run lervo upgrade to install the host resident service.")}`;
+    case "host_resident_scan_stalled":
+      return "The host knowledge resident keeps its heartbeat, but its repository scan has not finished for over ten minutes; knowledge-host-resident.json in the Lervo user state directory names the checkout it is opening. Restart the service (launchctl kickstart -k gui/$UID/com.lervo.knowledge.host, or systemctl --user restart lervo-knowledge-host.service) and report the named checkout if it recurs.";
+    case "continuity_pending":
+      return "The host knowledge resident serves this checkout and reconciles it on its next cycle; nothing is needed.";
+    case "event_schema_outdated":
+      return `This checkout's event writer is older than schema 4, so its knowledge resident is held. Run lervo upgrade and apply its plan: it backs up the event store and activates schema 4. The host resident activates local-only checkouts itself and retries every 30 minutes.${finding.detail === null ? "" : ` Current blocker (${finding.detail}): ${eventWriterBlocker({ code: finding.detail }).message}`}`;
     case "hook_runtime_stale":
       return "The generated terminal hook runtime is older than the installed Lervo. Run lervo upgrade, then apply its plan.";
     case "replica_diverged":

@@ -1,5 +1,6 @@
 import { runKnowledgeConvergenceCommand } from "./knowledge-convergence-command.js";
 import { resolve } from "node:path";
+import { runHostKnowledgeResidentsCommand } from "./knowledge-host-resident-command.js";
 import { runKnowledgeWorkerCommand } from "./knowledge-worker-command.js";
 import { parseArgs } from "node:util";
 import {
@@ -50,7 +51,10 @@ export async function runKnowledgeCommand(
   if (subcommand === "export" || subcommand === "import" || subcommand === "okf")
     return runKnowledgeOkfExchange(args, io);
   if (subcommand === "convergence") return runKnowledgeConvergenceCommand(args.slice(1), io);
-  if (subcommand === "worker") return runKnowledgeWorkerCommand(args.slice(1), io);
+  if (subcommand === "worker")
+    return args.includes("--host")
+      ? runHostKnowledgeResidentsCommand(args.slice(1), io)
+      : runKnowledgeWorkerCommand(args.slice(1), io);
   if (subcommand === "refresh")
     return runKnowledgeMigration({ args: args.slice(1), io, mode: "refresh" });
   if (subcommand === "canonicalization") return runKnowledgeCanonicalization(args.slice(1), io);

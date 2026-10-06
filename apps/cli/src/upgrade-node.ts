@@ -10,8 +10,12 @@ import {
   type NodeFleetOnboardingPlan,
 } from "@lervo/repository-registry";
 
+// @ts-expect-error The repository service script intentionally remains plain ESM.
+import { formatRuntimeServiceDefinition } from "../../../scripts/distribution/render-runtime-service.mjs";
+
 import { applyNodeFleetOnboarding, inspectNodeFleetStatus } from "./node-fleet-apply.js";
 import { readNodeServiceCoordinates } from "./node-service-coordinates.js";
+import { nodeServiceToolDirectories } from "./node-service-tool-directories.js";
 
 export { parseNodeServiceCoordinates } from "./node-service-coordinates.js";
 
@@ -23,13 +27,18 @@ export interface NodeUpgradeStage {
   runtimeBuildHash: string | null;
   configPathDigest: string | null;
   serviceTargetHash: string | null;
+  /** ADR-0470: hash of the definition this upgrade renders, including tool directories. */
+  desiredServiceHash?: string | null;
   reason: string;
+  blockers?: Array<{ code: string; message: string }>;
 }
 
 export interface NodeUpgradeInspection {
   stage: NodeUpgradeStage;
   plan: NodeFleetOnboardingPlan | null;
   configPath: string | null;
+  /** The resolved service PATH tool directories the apply renders. */
+  pathDirectories?: string[];
 }
 
 function sha256(value: string | Uint8Array): string {
@@ -219,11 +228,51 @@ export async function inspectRegisteredNodeUpgrade(
       configPath: coordinates.config,
     };
   }
+  const tools = await nodeServiceToolDirectories({
+    repositoryRoot: physicalRoot,
+    configPath: coordinates.config,
+  });
+  if (tools.missing.length > 0)
+    return {
+      stage: {
+        ...stage({
+          ...planFields,
+          disposition: "blocked",
+          runtimeBuildHash: desired.hash,
+          configPath: coordinates.config,
+          reason: "node_service_tool_unresolved",
+        }),
+        blockers: [
+          {
+            code: "service_tool_unresolved",
+            message: `The repository Node runs ${tools.missing.join(", ")}, but no directory on this shell's PATH provides it. Install it or add its directory to PATH, then rerun \`lervo upgrade\`.`,
+          },
+        ],
+      },
+      plan,
+      configPath: coordinates.config,
+    };
+  const desiredServiceHash = sha256(
+    formatRuntimeServiceDefinition({
+      manager: plan.desired.serviceManager,
+      runtime: "node",
+      instance: plan.desired.serviceInstanceId,
+      executable: desired.launcher,
+      config: coordinates.config,
+      pathDirectories: tools.directories,
+    }) as string,
+  );
   const deploymentFields = {
     ...planFields,
     runtimeBuildHash: desired.hash,
     configPath: coordinates.config,
   };
+  const inspected = (value: NodeUpgradeStage): NodeUpgradeInspection => ({
+    stage: { ...value, desiredServiceHash },
+    plan,
+    configPath: coordinates.config,
+    pathDirectories: tools.directories,
+  });
   if (coordinates.executable === desired.launcher) {
     try {
       const [launcher, payload] = await Promise.all([
@@ -255,13 +304,13 @@ export async function inspectRegisteredNodeUpgrade(
   const fleet = await inspectNodeFleetStatus({ registryPath });
   const status = fleet.instances.find((item) => item.projectId === projectId);
   const deploymentCurrent =
-    coordinates.executable === desired.launcher && plan.registry.reconciliation === "unchanged";
+    coordinates.executable === desired.launcher &&
+    plan.registry.reconciliation === "unchanged" &&
+    desiredServiceHash === plan.service.targetContentHash;
   if (deploymentCurrent && status?.recoveryAction === "none")
-    return {
-      stage: stage({ ...deploymentFields, disposition: "current", reason: "exact_runtime_ready" }),
-      plan,
-      configPath: coordinates.config,
-    };
+    return inspected(
+      stage({ ...deploymentFields, disposition: "current", reason: "exact_runtime_ready" }),
+    );
   const hubUnavailableOnly =
     status !== undefined &&
     status.service.managerAvailable &&
@@ -275,34 +324,33 @@ export async function inspectRegisteredNodeUpgrade(
       (value) => value === "unavailable:hub_unavailable",
     );
   if (deploymentCurrent && hubUnavailableOnly)
-    return {
-      stage: stage({
+    return inspected(
+      stage({
         ...deploymentFields,
         disposition: "current",
         reason: "exact_runtime_deployed_hub_unavailable",
       }),
-      plan,
-      configPath: coordinates.config,
-    };
+    );
   if (deploymentCurrent && status !== undefined && status.recoveryAction !== "reapply_exact_plan")
-    return {
-      stage: stage({
+    return inspected(
+      stage({
         ...deploymentFields,
         disposition: "blocked",
         reason: `node_runtime_${status.recoveryAction}`,
       }),
-      plan,
-      configPath: coordinates.config,
-    };
-  return {
-    stage: stage({
+    );
+  return inspected(
+    stage({
       ...deploymentFields,
       disposition: "safe_apply",
-      reason: deploymentCurrent ? "node_runtime_recovery" : "node_runtime_build_or_version_changed",
+      reason: deploymentCurrent
+        ? "node_runtime_recovery"
+        : coordinates.executable === desired.launcher &&
+            plan.registry.reconciliation === "unchanged"
+          ? "node_service_definition_changed"
+          : "node_runtime_build_or_version_changed",
     }),
-    plan,
-    configPath: coordinates.config,
-  };
+  );
 }
 
 export async function applyRegisteredNodeUpgrade(inspection: NodeUpgradeInspection): Promise<void> {
@@ -316,5 +364,8 @@ export async function applyRegisteredNodeUpgrade(inspection: NodeUpgradeInspecti
     plan: inspection.plan,
     configPath: inspection.configPath,
     allowHubUnavailableReadiness: true,
+    ...(inspection.pathDirectories === undefined
+      ? {}
+      : { pathDirectories: inspection.pathDirectories }),
   });
 }

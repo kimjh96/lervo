@@ -45,7 +45,10 @@ function ownerHostObservation(
         : host.config.coordination.mode;
   return {
     state,
-    hubFailureCode: state === "standalone" ? (derivation?.hubFailure?.failureCode ?? null) : null,
+    hubFailureCode:
+      state === "standalone" || state === "hub"
+        ? (derivation?.hubFailure?.failureCode ?? null)
+        : null,
     publication:
       host?.config.coordination.mode !== "hub"
         ? "not_applicable"

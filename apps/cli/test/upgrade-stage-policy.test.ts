@@ -30,6 +30,32 @@ describe("upgrade stage dependency policy", () => {
     expect(deferringPrerequisite("terminal_integration", { knowledge: "blocked" })).toBeNull();
   });
 
+  it("orders event writer activation after the hook runtime and Node stages apply", () => {
+    expect(upgradeStageDependencies.host_service).toEqual([]);
+    const terminal = deferringPrerequisite("event_writer", {
+      terminal_integration: "safe_apply",
+      node: "current",
+    });
+    expect(deferralReason(terminal!)).toBe("terminal_integration_must_apply_first");
+    expect(
+      deferringPrerequisite("event_writer", {
+        terminal_integration: "pending_authority",
+        node: "current",
+      }),
+    ).toBeNull();
+    const node = deferringPrerequisite("event_writer", {
+      terminal_integration: "current",
+      node: "safe_apply",
+    });
+    expect(deferralReason(node!)).toBe("node_must_apply_first");
+    expect(
+      deferringPrerequisite("event_writer", {
+        terminal_integration: "current",
+        node: "pending_authority",
+      }),
+    ).toBeNull();
+  });
+
   it("keeps a blocked plan non-current while listing independent safe stages", () => {
     const dispositions = {
       capabilities: "current",
@@ -37,11 +63,16 @@ describe("upgrade stage dependency policy", () => {
       terminal_integration: "safe_apply",
       knowledge: "blocked",
       node: "deferred",
+      event_writer: "deferred",
+      host_service: "safe_apply",
     } as const;
     expect(overallUpgradeStatus(Object.values(dispositions))).toBe("blocked");
-    expect(applicableUpgradeStages(dispositions, false)).toEqual(["terminal_integration"]);
+    expect(applicableUpgradeStages(dispositions, false)).toEqual([
+      "terminal_integration",
+      "host_service",
+    ]);
     expect(
       applicableUpgradeStages({ ...dispositions, workforce: "pending_authority" }, true),
-    ).toEqual(["workforce", "terminal_integration"]);
+    ).toEqual(["workforce", "terminal_integration", "host_service"]);
   });
 });

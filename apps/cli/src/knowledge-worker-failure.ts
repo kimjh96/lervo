@@ -17,5 +17,10 @@ export function knowledgeWorkerFailureLine(error: unknown, repositoryRoot: strin
     .replace(/[\r\n\0]+/gu, " ")
     .trim()
     .slice(0, MAXIMUM_DETAIL_CHARACTERS);
-  return `Knowledge convergence failed: ${code}${detail ? ` (${detail})` : ""}\n`;
+  // A host resident serves many checkouts from one log, so every line names its checkout.
+  const subject =
+    repositoryRoot.length > 0
+      ? `Knowledge convergence failed in ${repositoryRoot.replace(/[\r\n\0]+/gu, " ")}`
+      : "Host knowledge resident scan failed";
+  return `${subject}: ${code}${detail ? ` (${detail})` : ""}\n`;
 }

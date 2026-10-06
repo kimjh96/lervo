@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import { afterEach, expect, it } from "vitest";
 
+import { acquireFullCycleAdmission } from "../src/full-cycle-admission.js";
 import { startAutonomousKnowledgeWorker } from "../src/loop.js";
 import { readResidentCycleState } from "../src/resident-cycle-state.js";
 import { inspectKnowledgeResidentHealth } from "../src/resident-health.js";
@@ -23,6 +24,47 @@ async function until(condition: () => Promise<boolean> | boolean, timeout = 60_0
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 25));
   }
 }
+
+it(
+  "keeps reconciling continuity while a cycle waits for host-wide admission (ADR-0470)",
+  { timeout: 60_000 },
+  async () => {
+    const f = await fixture();
+    fixtures.push(f);
+    const held = await acquireFullCycleAdmission({
+      repositoryRoot: resolve(f.directory, "another-repository"),
+      signal: new AbortController().signal,
+      directory: f.admissionDirectory,
+    });
+    let reconciliations = 0;
+    const cycles: unknown[] = [];
+    const stop = startAutonomousKnowledgeWorker({
+      storage: f.storage,
+      workerId: "resident",
+      provider: "claude",
+      executable: f.executable,
+      admissionDirectory: f.admissionDirectory,
+      subscribe: () => () => undefined,
+      onCycle: (result) => cycles.push(result),
+      onFailure: () => undefined,
+      intervalMilliseconds: 100,
+      continuity: {
+        reconcile: async () => {
+          reconciliations += 1;
+          return null;
+        },
+      } as never,
+      continuityTickMilliseconds: 50,
+    });
+    try {
+      await until(() => reconciliations >= 4);
+      expect(cycles).toEqual([]);
+    } finally {
+      await held.release();
+      await stop();
+    }
+  },
+);
 
 it(
   "skips unchanged reconciliation, keeps the waiting reason, and runs in full after an edit",

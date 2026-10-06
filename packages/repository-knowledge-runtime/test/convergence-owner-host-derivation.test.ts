@@ -107,24 +107,40 @@ describe("owner-host derivation", () => {
     });
   });
 
-  it("keeps a working standalone host standalone when the Hub refuses the project", async () => {
+  it("never falls back to standalone ownership when the Hub refuses the project (ADR-0470)", async () => {
     const root = await checkout();
-    const result = await derive(root, {
+    const refused = await derive(root, {
       probe: async () => ({ failureCode: "hub_forbidden", httpStatus: 403 }),
     });
-    expect(result).toEqual({
-      derivation: { status: "derived", mode: "standalone", source: "none" },
+    expect(refused).toEqual({
+      derivation: { status: "derived", mode: "hub", source: "node_runtime" },
       hubFailure: { failureCode: "hub_forbidden", httpStatus: 403 },
-      publication: "not_applicable",
+      publication: "unavailable",
     });
+    // The unproven coordinates make the lease unverifiable, so this host stays read-only.
     expect((await readConvergenceOwnerHost(root))?.config.coordination).toEqual({
-      mode: "standalone",
-    });
-    // Once the Hub accepts the credential, the next reconciliation upgrades the checkout.
-    expect((await derive(root)).derivation).toEqual({
-      status: "derived",
       mode: "hub",
-      source: "node_runtime",
+      hub,
+    });
+    // Unproven coordinates are probed again; once the Hub accepts them they are proven.
+    let probes = 0;
+    const accepted = await derive(root, {
+      probe: async () => {
+        probes += 1;
+        return null;
+      },
+    });
+    expect(probes).toBe(1);
+    expect(accepted.hubFailure).toBeNull();
+    expect(accepted.derivation).toMatchObject({ mode: "hub" });
+  });
+
+  it("stays standalone only on a host without any Hub coordinates", async () => {
+    const root = await checkout();
+    expect((await derive(root, { candidates: [] })).derivation).toEqual({
+      status: "derived",
+      mode: "standalone",
+      source: "none",
     });
   });
 

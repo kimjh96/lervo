@@ -1,7 +1,10 @@
 import { isAbsolute } from "node:path";
 
 import { openProjectStorage } from "@lervo/project-storage";
-import { startAutonomousKnowledgeWorker } from "@lervo/repository-knowledge-runtime";
+import {
+  knowledgeResidentHoldReason,
+  startAutonomousKnowledgeWorker,
+} from "@lervo/repository-knowledge-runtime";
 
 import {
   createKnowledgeConvergenceContinuity,
@@ -9,6 +12,7 @@ import {
   instructionCandidateTransport,
   createKnowledgePublisher,
 } from "./knowledge-convergence-ownership.js";
+import { awaitKnowledgeWorkerAdmission } from "./knowledge-worker-admission.js";
 import { subscribeKnowledgeWakeups } from "./knowledge-worker-wakeups.js";
 import {
   decodeKnowledgeHubCoordinates,
@@ -63,8 +67,25 @@ export async function runKnowledgeWorkerCli(args: readonly string[]): Promise<nu
     const parsed = request(args);
     storage = await openProjectStorage(parsed.root);
     if (controller.signal.aborted) return 0;
-    if ((storage.writableEventSchemaVersion ?? 1) < 4)
-      throw new Error("The resident knowledge worker requires event writer version 4.");
+    const workerId = `node-${process.ppid}-${process.pid}`;
+    if (knowledgeResidentHoldReason(storage.writableEventSchemaVersion) !== null) {
+      // ADR-0470: hold with a visible reason until the writer is activated, then reopen.
+      const initialSchemaVersion = storage.writableEventSchemaVersion;
+      await storage.close();
+      storage = undefined;
+      const admitted = await awaitKnowledgeWorkerAdmission({
+        repositoryRoot: parsed.root,
+        workerId,
+        initialSchemaVersion,
+        signal: controller.signal,
+        onFailure: () =>
+          process.stderr.write("Lervo resident knowledge hold failed (knowledge_hold_failed).\n"),
+      });
+      if (!admitted) return 0;
+      storage = await openProjectStorage(parsed.root);
+      if (knowledgeResidentHoldReason(storage.writableEventSchemaVersion) !== null)
+        throw new Error("The resident knowledge worker requires event writer version 4.");
+    }
     const stopped = new Promise<void>((resolveStopped) =>
       controller.signal.addEventListener("abort", () => resolveStopped(), { once: true }),
     );
@@ -72,7 +93,7 @@ export async function runKnowledgeWorkerCli(args: readonly string[]): Promise<nu
     stop = startAutonomousKnowledgeWorker({
       storage,
       subscribe: (notify) => subscribeKnowledgeWakeups(opened, notify),
-      workerId: `node-${process.ppid}-${process.pid}`,
+      workerId,
       provider: parsed.provider,
       ownership: createKnowledgeConvergenceOwnership(opened, parsed.provider),
       continuity: createKnowledgeConvergenceContinuity(
