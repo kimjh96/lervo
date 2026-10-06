@@ -30,6 +30,7 @@ export function createKnowledgeConvergenceOwnership(
     storage,
     provider,
     transport: (target) => createHubKnowledgeConvergenceOwnerClient(target),
+    continuityPolicyPath: defaultConvergenceContinuityPolicyPath(),
   });
 }
 

@@ -109,6 +109,36 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
+describe("a convergence delegation that HEAD tracks (ADR-0478)", () => {
+  const delegationPath = ".lervo/knowledge/convergence-delegation.json";
+
+  it(
+    "converges both checkouts on the owner's renewal and keeps it through later changes",
+    { timeout: 60_000 },
+    async () => {
+      const { mac, wsl, reconcile } = await replicas();
+      // A repository whose HEAD predates the ignore rule tracks the reviewed grant.
+      for (const root of [mac, wsl]) await writeFile(join(root, delegationPath), "reviewed\n");
+      await git(wsl, ["add", "-f", delegationPath]);
+      await git(wsl, ["commit", "--quiet", "-m", "chore: track the reviewed grant"]);
+      await expect(reconcile()).resolves.toMatchObject({ status: "pulled" });
+
+      // Only the owner renews; the follower receives the exact bytes.
+      await writeFile(join(wsl, delegationPath), "renewed by the owner\n");
+      await expect(reconcile()).resolves.toMatchObject({ status: "pulled" });
+      expect(await readFile(join(mac, delegationPath), "utf8")).toBe("renewed by the owner\n");
+
+      // An upgrade on the owner and an edit on the follower must not restore HEAD's grant.
+      await writeFile(join(wsl, "upgraded.ts"), "export const upgraded = true;\n");
+      await writeFile(join(mac, "source.ts"), "export const value = 3;\n");
+      await expect(reconcile()).resolves.toMatchObject({ status: "merged" });
+      for (const root of [mac, wsl])
+        expect(await readFile(join(root, delegationPath), "utf8")).toBe("renewed by the owner\n");
+      await expect(reconcile()).resolves.toMatchObject({ status: "current" });
+    },
+  );
+});
+
 describe("repository replica with a single knowledge convergence owner", () => {
   it(
     "starts current despite different host-local owner state on each side",

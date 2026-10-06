@@ -142,6 +142,15 @@ function templatePolicy(state: "active" | "revoked" = "active"): ConvergenceCont
   });
 }
 
+/** ADR-0478: only the convergence owner renews, so these single-host cases own first. */
+async function standaloneOwner(f: Fixture): Promise<void> {
+  expect(
+    await new ConvergenceOwnership({ storage: f.storage, provider: "claude" }).observe(),
+  ).toMatchObject({
+    role: "owner",
+  });
+}
+
 function continuedEvents(f: Pick<Fixture, "storage">) {
   return f.storage.events
     .list({ limit: 500 })
@@ -152,6 +161,7 @@ describe("delegation continuity", () => {
   it("adopts the owner's standing policy from a reviewed delegation and renews it at the same scope", async () => {
     const f = await tracked(true);
     const path = await policyFile(f);
+    await standaloneOwner(f);
     const before = (await loadConvergenceDelegation(f.root))!.delegation;
     const state = await continuity({ f, policyPath: path }).reconcile();
     const policy = await readConvergenceContinuityPolicy(path);
@@ -188,6 +198,7 @@ describe("delegation continuity", () => {
   it("rebinds a delegation whose suite a managed upgrade rewrote, keeping every scope identifier (ADR-0470)", async () => {
     const f = await tracked(true);
     const path = await policyFile(f);
+    await standaloneOwner(f);
     await continuity({ f, policyPath: path }).reconcile();
     const renewed = (await loadConvergenceDelegation(f.root))!.delegation;
     const suite = renewed.verification[0]!;

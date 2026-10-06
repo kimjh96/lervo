@@ -31,8 +31,8 @@ export interface ConvergenceContinuityState {
   delegation: { state: string; expiresAt: string | null; scopeHash: string | null };
   policy: { state: string; horizonAt: string | null; authority: string | null };
   lastContinuation: {
-    action: "renewed" | "seeded" | "rebound";
-    source: "renewal" | "peer" | "policy_template" | "binding_refresh";
+    action: "renewed" | "seeded" | "rebound" | "adopted";
+    source: "renewal" | "peer" | "policy_template" | "binding_refresh" | "owner";
     planHash: string;
     expiresAt: string;
     at: string;

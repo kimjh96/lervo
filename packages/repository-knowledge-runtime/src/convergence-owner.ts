@@ -8,7 +8,7 @@ import {
   type KnowledgeConvergenceOwnerReading,
 } from "@lervo/sync-contract";
 
-import { loadConvergenceDelegation } from "./delegation.js";
+import { convergenceOwnerEligible } from "./convergence-owner-eligibility.js";
 import {
   recordConvergenceOwnerChange,
   type ConvergenceOwnerChangeReason,
@@ -72,6 +72,8 @@ export class ConvergenceOwnership {
       /** Absent only for release, which never contends for ownership. */
       provider?: "codex" | "claude";
       transport?: ConvergenceOwnerLeaseTransport;
+      /** The host continuity policy; a lapsed delegation it would renew stays eligible. */
+      continuityPolicyPath?: string | null;
       now?: () => number;
     },
   ) {
@@ -268,20 +270,13 @@ export class ConvergenceOwnership {
     return calculateProjectIdentityHash(this.input.storage.manifest);
   }
 
-  /** Only a host with an active, unexpired delegation for its provider contends for ownership. */
-  private async eligible(now: number): Promise<boolean> {
-    try {
-      const loaded = await loadConvergenceDelegation(this.root);
-      return (
-        loaded !== null &&
-        loaded.delegation.state === "active" &&
-        Date.parse(loaded.delegation.expiresAt) > now &&
-        (this.input.provider === undefined ||
-          loaded.delegation.providers.includes(this.input.provider))
-      );
-    } catch {
-      return false;
-    }
+  private eligible(now: number): Promise<boolean> {
+    return convergenceOwnerEligible({
+      root: this.root,
+      provider: this.input.provider,
+      policyPath: this.input.continuityPolicyPath ?? null,
+      now,
+    });
   }
 
   /** The cached lease port, or why none exists: no transport (null) or a failed construction. */

@@ -28,9 +28,9 @@ Records a change in the observing host's observed convergence owner or the end o
 
 ## `knowledge.convergence.delegation.continued`
 
-Required payload: `repositoryIdentityHash`, `action` (`renewed | seeded | rebound`), `source` (`renewal | peer | policy_template | binding_refresh`), `policyHash`, `previousPlanHash`, `planHash`, `scopeHash`, `expiresAt`, `observerHostHash`, `sourceHostHash`, `occurredAt`.
+Required payload: `repositoryIdentityHash`, `action` (`renewed | seeded | rebound | adopted`), `source` (`renewal | peer | policy_template | binding_refresh | owner`), `policyHash`, `previousPlanHash`, `planHash`, `scopeHash`, `expiresAt`, `observerHostHash`, `sourceHostHash`, `occurredAt`.
 
-Records a delegation the resident renewed or seeded under the host continuity policy ([ADR-0469](../../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md)). The event ID derives from `planHash`. Hashes and the expiry only; the applied delegation, not the event, grants authority. [ADR-0471](../../../../decisions/coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md) adds `rebound` with source `binding_refresh`: an identity-preserving rebind of drifted suite or role hashes. Readers must deploy before writers that emit it.
+Records a delegation the resident renewed or seeded under the host continuity policy ([ADR-0469](../../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md)). The event ID derives from `planHash`. Hashes and the expiry only; the applied delegation, not the event, grants authority. [ADR-0471](../../../../decisions/coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md) adds `rebound` with source `binding_refresh`: an identity-preserving rebind of drifted suite or role hashes. Readers must deploy before writers that emit it. [ADR-0478](../../../../decisions/coordination/sync/0478-renew-each-delegation-with-one-writer.md) adds `adopted` with source `owner`: a host that does not own the repository adopted the owner's term from the owner's host record, and `sourceHostHash` names the owner. Readers must deploy before writers that emit it.
 
 ## `knowledge.convergence.definitions.installed`
 

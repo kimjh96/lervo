@@ -1,6 +1,8 @@
+import { execFile } from "node:child_process";
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
 
 import {
   createRepositoryLayoutMigrationPlan,
@@ -17,6 +19,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runCli } from "../src/main.js";
 
 const roots: string[] = [];
+const execute = promisify(execFile);
 
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
@@ -394,6 +397,53 @@ describe("lervo upgrade", () => {
     ).toContain("Review the requested files.");
     expect(errors).toEqual([]);
   });
+
+  it("never restores a renewed convergence delegation that HEAD tracks (ADR-0478)", async () => {
+    const root = await repository();
+    const delegation = resolve(root, ".lervo/knowledge/convergence-delegation.json");
+    const git = (...args: string[]) =>
+      execute("git", [
+        "-C",
+        root,
+        "-c",
+        "user.name=Test",
+        "-c",
+        "user.email=t@lervo.invalid",
+        ...args,
+      ]);
+    await git("init", "--quiet", "-b", "main");
+    await writeFile(delegation, '{"expiresAt":"2026-10-07T19:00:00.000Z"}\n');
+    await git("add", "-A");
+    await git("add", "-f", ".lervo/knowledge/convergence-delegation.json");
+    await git("commit", "--quiet", "-m", "fixture with a tracked delegation");
+    const renewed = '{"expiresAt":"2026-11-06T19:00:00.000Z"}\n';
+    await writeFile(delegation, renewed);
+    const skill = resolve(root, ".agents/skills/reviewer");
+    await mkdir(skill, { recursive: true });
+    await writeFile(
+      resolve(skill, "SKILL.md"),
+      "---\nname: reviewer\ndescription: Review bounded repository changes.\n---\n\nReview the requested files.\n",
+    );
+
+    const output: string[] = [];
+    const errors: string[] = [];
+    expect(await runCli(["upgrade", "--json"], io(root, output, errors)), errors.join("")).toBe(0);
+    const plan = JSON.parse(output.splice(0).join("")) as { planId: string; status: string };
+    expect(plan.status).toBe("ready");
+    expect(
+      await runCli(
+        ["upgrade", "--apply", "--approval", plan.planId, "--json"],
+        io(root, output, errors),
+      ),
+      errors.join(""),
+    ).toBe(0);
+    const receipt = JSON.parse(output.join("")) as { appliedStages: string[] };
+    expect(receipt.appliedStages).toContain("knowledge_materialization");
+    expect(await readFile(delegation, "utf8")).toBe(renewed);
+    expect((await git("diff", "--name-only")).stdout).toContain(
+      ".lervo/knowledge/convergence-delegation.json",
+    );
+  }, 30_000);
 
   it("does not conflate first initialization with repository upgrade", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-upgrade-uninitialized-"));

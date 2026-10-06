@@ -2,7 +2,11 @@ import { mkdir, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { registerRepository } from "@lervo/repository-registry";
-import type { ContinuityFinding, ContinuityFindingCode } from "@lervo/repository-knowledge-runtime";
+import {
+  ConvergenceOwnership,
+  type ContinuityFinding,
+  type ContinuityFindingCode,
+} from "@lervo/repository-knowledge-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fixture } from "../../../packages/repository-knowledge-runtime/test/fixture.js";
@@ -144,6 +148,10 @@ describe("continuity doctor", () => {
       report.repositories[0]!.findings.every((finding) => finding.remediation.length > 20),
     ).toBe(true);
 
+    // ADR-0478: only the convergence owner renews, so this single host observes ownership first.
+    expect(
+      (await new ConvergenceOwnership({ storage: f.storage, provider: "claude" }).observe()).role,
+    ).toBe("owner");
     // One reconciliation adopts the standing policy, renews the due delegation, and records state.
     const seeded = await run("delegation", "seed", "--json");
     expect(seeded.code, seeded.err).toBe(0);

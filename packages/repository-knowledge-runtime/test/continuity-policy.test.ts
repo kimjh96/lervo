@@ -135,17 +135,49 @@ describe("delegation renewal decision", () => {
       policy: loaded(policy()),
       now,
     });
-    expect(decision).toEqual({ kind: "renew", expiresAt: new Date(now + 30 * DAY).toISOString() });
+    // The next term starts where the previous one ends, not at the renewing host's clock.
+    expect(decision).toEqual({
+      kind: "renew",
+      expiresAt: new Date(now + 24 * HOUR + 30 * DAY).toISOString(),
+    });
     const current = delegation(now + 24 * HOUR);
     const renewed = renewedConvergenceDelegation({
       current,
       expiresAt: new Date(now + 30 * DAY).toISOString(),
-      reviewedAt: new Date(now).toISOString(),
     });
     expect(convergenceDelegationScopeHash(renewed)).toBe(convergenceDelegationScopeHash(current));
     expect(renewed.parentAgentId).toBe(current.parentAgentId);
     expect(renewed.review.reviewerAgentId).toBe(current.review.reviewerAgentId);
+    expect(renewed.review.reviewedAt).toBe(current.review.reviewedAt);
     expect(renewed.review.planHash).not.toBe(current.review.planHash);
+  });
+
+  it("derives the same renewal from the same delegation at any instant inside the window (ADR-0478)", () => {
+    const current = delegation(now + 24 * HOUR);
+    const renewalAt = (instant: number) => {
+      const decision = decideDelegationRenewal({
+        delegation: current,
+        policy: loaded(policy()),
+        now: instant,
+      });
+      if (decision.kind !== "renew") throw new Error(`unexpected ${decision.kind}`);
+      return renewedConvergenceDelegation({ current, expiresAt: decision.expiresAt });
+    };
+    // The WSL and Mac residents of the incident renewed twelve minutes apart.
+    const first = renewalAt(now);
+    expect(renewalAt(now + 12 * 60_000)).toEqual(first);
+    expect(renewalAt(now + 23 * HOUR)).toEqual(first);
+    expect(first.expiresAt).toBe(new Date(now + 24 * HOUR + 30 * DAY).toISOString());
+    // A long-expired delegation resumes on the same lattice, outside its next window.
+    const lapsed = decideDelegationRenewal({
+      delegation: current,
+      policy: loaded(policy()),
+      now: now + 40 * DAY,
+    });
+    expect(lapsed).toEqual({
+      kind: "renew",
+      expiresAt: new Date(now + 24 * HOUR + 60 * DAY).toISOString(),
+    });
   });
 
   it("renews an already expired delegation and caps the term at the horizon", () => {
