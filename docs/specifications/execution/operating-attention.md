@@ -8,7 +8,7 @@ As of: 2026-10-05
 
 Lervo projects repository items requiring action into one provider-neutral, read-only report: pending user authority, review work, and safe repository maintenance otherwise hidden across commands or encountered incidentally by an agent.
 
-The projection is not a source of truth. It reads the current workstream, canonicalization candidate registry, and repository-knowledge lifecycle inspection; their existing ownership and mutation contracts remain authoritative.
+The projection is not a source of truth. It reads the current workstream, canonicalization candidate registry, and repository-knowledge lifecycle inspection. Their existing ownership and mutation contracts remain authoritative.
 
 ## Contract
 

@@ -1,6 +1,6 @@
 # Operating attention report contract
 
-`lervo application attention --json` returns an `OperatingAttentionReportV1` containing:
+`lervo application attention --json` returns an `OperatingAttentionReportV1` with:
 
 - Project and current workstream revision coordinates.
 - A stable report digest excluding observation time.
@@ -10,11 +10,11 @@
 
 The projection includes pending workstream decisions and approvals, workstream blockers, nonterminal canonicalization candidates, and current knowledge-lifecycle issues. Workstream approvals and decisions carry a consequence class: `repository_write`, `deployment`, `external_effect`, or, for decisions, `unclassified`. Every class is consequential.
 
-Items are deduplicated by stable item ID, ordered with user-authority and blocking items first, and limited to 256 returned records. Explicit total and omitted counts prevent failure or an implication of complete coverage.
+Items are deduplicated by stable item ID, ordered with user-authority and blocking items first, and capped at 256 returned records. Explicit total and omitted counts prevent failure or an implication of complete coverage.
 
 ## Workstream and canonicalization candidates
 
-Under [ADR-0462](../../../decisions/execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md), a workstream snapshot is stale when:
+Under [ADR-0462](../../../decisions/execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md), a workstream snapshot is stale if:
 
 - Its update time is older than 48 hours.
 - Its recorded HEAD is more than 20 commits behind or is not an ancestor of the current HEAD.
@@ -26,7 +26,7 @@ Candidate items expose outcome kind, proposed target paths, and whether proposed
 
 ## Document drift
 
-Document drift warnings from `lervo knowledge lint` appear as knowledge-lifecycle items under [ADR-0464](../../../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md). At most four appear, plus one overflow item. Each is agent-owned, non-blocking, and requires no user action. Detail contains only relative paths and reason names. Drift warnings remain separate from lifecycle gates and never change terminal lifecycle status.
+Under [ADR-0464](../../../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md), document drift warnings from `lervo knowledge lint` appear as knowledge-lifecycle items: at most four warnings plus one overflow item. Each is agent-owned, non-blocking, and requires no user action. Detail contains only relative paths and reason names. Drift warnings remain separate from lifecycle gates and never change terminal lifecycle status.
 
 ## Document freshness
 
@@ -47,21 +47,21 @@ These items carry candidate identifiers, relative paths, classes, and counts, ne
 
 Both are user-owned, require user action, and are never blocking. They carry normalized titles, never owner or agent turn text.
 
-A third kind, `instruction_capture_blocked`, appears once per host while owner turns are queued but the host lacks delegation to assess them. It carries the queued count and since when.
+`instruction_capture_blocked` appears once per host while owner turns are queued but the host lacks delegation to assess them. It carries the queued count and since when.
 
 On a Hub-coordinated host that does not own convergence, the candidate instruction names the owner host where the candidate is applied. The compact prompt substitutes one capture line and one applied-owner-rule line, each at most 600 bytes, for the items.
 
 ## Cross-host knowledge convergence
 
-[ADR-0466](../../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) defines two item kinds, with a second publication item under ADR-0468:
+[ADR-0466](../../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) defines two item kinds; ADR-0468 adds a second publication item:
 
 - `knowledge_convergence_owner` appears when this host's ownership verdict is `unverifiable` or `contended`. It carries the role, reason, Hub failure code and HTTP status when recorded, holder label, and observation time. Its instruction names the remediation for that failure code.
-- `knowledge_publication` appears when the last publication of the owner's knowledge commits failed or was superseded by a conflict with the current base. It carries the failure code, path-free detail, pull request URL, occurrence count, and first observation. For a `gh` failure the detail is `gh <step> exit <code> <class>`, and the instruction names the remediation for the `auth`, `network`, `not_installed`, `not_mergeable`, or `not_found` class.
-- A second `knowledge_publication` item, with failure code `knowledge_supersession_held`, appears when this checkout keeps superseded knowledge commits it could not drop ([ADR-0468](../../../decisions/coordination/sync/0468-propagate-knowledge-supersession-across-replicated-checkouts.md)). Its detail gives the commit count and reason, and its instruction names the remediation for that reason.
+- `knowledge_publication` appears when the last publication of the owner's knowledge commits failed or was superseded by a conflict with the current base. It carries the failure code, path-free detail, pull request URL, occurrence count, and first observation. For a `gh` failure, detail is `gh <step> exit <code> <class>`, and the instruction names the remediation for the `auth`, `network`, `not_installed`, `not_mergeable`, or `not_found` class.
+- A second `knowledge_publication` item, with failure code `knowledge_supersession_held`, appears when this checkout keeps superseded knowledge commits it could not drop ([ADR-0468](../../../decisions/coordination/sync/0468-propagate-knowledge-supersession-across-replicated-checkouts.md)). Detail gives the commit count and reason; the instruction names the remediation for that reason.
 
 All are user-owned, require user action, and are never blocking. Each yields at most one item. The projection reads only the private fence, publication state, and supersession ledger; an unreadable file contributes no item.
 
-[ADR-0469](../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) adds `knowledge_convergence_continuity`, one item per [continuity finding](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md#findings) of severity `attention` or `owner_decision`, at most 16. It carries the finding code, severity, a closed detail code or host label, and the last reconciliation time. Its instruction names the exact remediation. Only an `owner_decision` item has state `action_required` and requires user action. Every item is user-owned and never blocking. The projection reads the delegation, host policy, fence, publication state, and continuity state without contacting the Hub.
+[ADR-0469](../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) adds `knowledge_convergence_continuity`: one item per [continuity finding](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md#findings) of severity `attention` or `owner_decision`, at most 16. Each carries the finding code, severity, a closed detail code or host label, and the last reconciliation time. Its instruction names the exact remediation. Only an `owner_decision` item has state `action_required` and requires user action. Every item is user-owned and never blocking. The projection reads the delegation, host policy, fence, publication state, and continuity state without contacting the Hub.
 
 ## Coverage
 

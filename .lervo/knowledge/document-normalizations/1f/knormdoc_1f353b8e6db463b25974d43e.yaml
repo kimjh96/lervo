@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8aa0aedc1c18a63a6aac1d84
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2af375783e7baae7db7e0e70
+outputLanguage: en
+outputs:
+  - byteCount: 1227
+    contentHash: sha256:f663428b20e764bceb1ea240f2f5b6f1a071c6043e6343992e5ce0372f953c0b
+    path: docs/specifications/execution/operating-attention/direct-terminal-context.md
+    userRegionHash: sha256:f663428b20e764bceb1ea240f2f5b6f1a071c6043e6343992e5ce0372f953c0b
+profile: specification_document
+recordId: knormdoc_1f353b8e6db463b25974d43e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f663428b20e764bceb1ea240f2f5b6f1a071c6043e6343992e5ce0372f953c0b
+sourcePath: docs/specifications/execution/operating-attention/direct-terminal-context.md
+sourceUnitVersionIds:
+  - uv_b6594a0d4e7976070b574b73
