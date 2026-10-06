@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e807e3e4086d59edd1510f2b"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Scan supplemental evidence sources in linear time so event-heavy repositories no longer spend minutes of CPU per knowledge scan."
