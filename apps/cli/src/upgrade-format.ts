@@ -1,4 +1,4 @@
-import type { RepositoryUpgradePlan } from "./upgrade-command.js";
+import type { RepositoryUpgradePlan } from "./upgrade-plan.js";
 import type { UpgradeStageBlocker } from "./upgrade-stage-inspection.js";
 import type { StageDisposition, UpgradeStageName } from "./upgrade-stage-policy.js";
 
@@ -47,6 +47,19 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
     }`,
     ...blockerLines(plan.stages.knowledge.blockers, "  "),
     `repository Node: ${plan.stages.node.disposition} (${plan.stages.node.reason})`,
+    `event writer: ${plan.stages.eventWriter.disposition} (${plan.stages.eventWriter.reason}) · schema ${plan.stages.eventWriter.currentSchemaVersion} → ${plan.stages.eventWriter.targetSchemaVersion}`,
+    ...blockerLines(plan.stages.eventWriter.blockers, "  "),
+    `host resident service: ${plan.stages.hostService.disposition} (${plan.stages.hostService.reason})${
+      plan.stages.hostService.serviceIdentity === null
+        ? ""
+        : ` · ${plan.stages.hostService.serviceIdentity} · ${plan.stages.hostService.action}`
+    } · ${plan.stages.hostService.servedRepositoryCount} served, ${plan.stages.hostService.nodeServedRepositoryCount} Node-served`,
+    ...blockerLines(plan.stages.hostService.blockers, "  "),
+    ...(plan.stages.hostService.unmanagedResidentRunning
+      ? [
+          "  A host resident started outside the managed service is running; the managed one stays on standby until it stops. Remove the hand-written service.",
+        ]
+      : []),
   ];
   for (const approval of plan.stages.workforce.requiredApprovals)
     lines.push(

@@ -167,4 +167,58 @@ describe("continuity findings", () => {
       }).map((finding) => finding.code),
     ).toEqual(["continuity_stale", "resident_not_running", "replica_diverged"]);
   });
+
+  it("reports a held resident's cause instead of an absent resident (ADR-0470)", () => {
+    const base = {
+      now,
+      expected: true,
+      stateObservedAt: null,
+      residentRunning: true,
+      hookRuntime: "current" as const,
+      replicaDiverged: false,
+    };
+    expect(localContinuityFindings({ ...base, residentHold: "event_schema_outdated" })).toEqual([
+      { code: "event_schema_outdated", severity: "attention", detail: null },
+    ]);
+    expect(
+      localContinuityFindings({
+        ...base,
+        residentRunning: false,
+        residentHost: {
+          kind: "host_held",
+          reason: "event_schema_outdated",
+          detail: "terminal_hook_reader_stale",
+        },
+      }),
+    ).toEqual([
+      {
+        code: "event_schema_outdated",
+        severity: "attention",
+        detail: "terminal_hook_reader_stale",
+      },
+    ]);
+  });
+
+  it("treats a checkout the running host resident serves as pending, not unobserved", () => {
+    const base = {
+      now,
+      expected: true,
+      stateObservedAt: null,
+      residentRunning: false,
+      hookRuntime: "current" as const,
+      replicaDiverged: false,
+    };
+    expect(localContinuityFindings({ ...base, residentHost: { kind: "host_serving" } })).toEqual([
+      { code: "continuity_pending", severity: "info", detail: null },
+    ]);
+    expect(localContinuityFindings({ ...base, residentHost: { kind: "host_absent" } })).toEqual([
+      { code: "continuity_unobserved", severity: "attention", detail: "host_resident_absent" },
+      { code: "resident_not_running", severity: "attention", detail: "host_resident_absent" },
+    ]);
+    expect(
+      localContinuityFindings({ ...base, residentHost: { kind: "node" } }).map(
+        (finding) => finding.detail,
+      ),
+    ).toEqual(["node_served", "node_served"]);
+  });
 });

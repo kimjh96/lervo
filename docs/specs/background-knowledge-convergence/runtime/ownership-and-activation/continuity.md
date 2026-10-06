@@ -58,23 +58,27 @@ A resident reconciles before each ownership observation. A healthy reconciliatio
 1. Derive the owner-host configuration from the candidate Hub coordinates (below).
 2. Read peer host records through the Hub when the checkout is in Hub mode.
 3. Adopt the standing policy when the host has none and this checkout holds an active reviewed delegation.
-4. Renew a due delegation at the same scope, or seed a missing one from the freshest in-policy peer scope or the template.
+4. Rebind a delegation whose bound suite or role hashes drifted while every identifier stayed the same (`rebound`, source `binding_refresh`, ADR-0471). Otherwise renew a due delegation at the same scope, or seed a missing one from the freshest in-policy peer scope or the template.
 5. Publish this host's record, then write `.lervo/state/knowledge/convergence-continuity.json`.
 
 The CLI worker (`lervo knowledge worker --watch|--once`) and the Node resident child both reconcile. A detached worker launched after a terminal turn reconciles too, off the hook's critical path.
 
 `lervo knowledge worker --watch --host [--provider <codex|claude>]` is the host resident. It runs one ordinary resident for every checkout in `repositories.json` or `node-fleet.json` that no registered Node serves and that has a delegation or an active policy to seed one. It rescans every five minutes, starting residents for new checkouts and stopping them for removed ones.
 
+Under [ADR-0470](../../../../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md), a checkout whose event writer is older than schema 4 is never skipped silently. The host resident runs the local-only writer activation (backup, then the exact plan) and starts the resident. When activation is blocked, it holds the checkout: an `attention` heartbeat with reason `event_schema_outdated`, retried every 30 minutes. A Node's resident child holds the same way and resumes when `lervo upgrade` activates the writer. The host resident records every checkout's state in `knowledge-host-resident.json` and serves only while it holds `knowledge-host-resident.lock`. `lervo upgrade` installs and keeps current its service (`com.lervo.knowledge.host` or `lervo-knowledge-host.service`).
+
 ## Owner-host derivation
 
-| Current configuration                                  | Origin         | Action                                                             |
-| ------------------------------------------------------ | -------------- | ------------------------------------------------------------------ |
-| Absent                                                 | Lervo          | Write one: Hub mode if a candidate probe succeeds, else standalone |
-| `standalone`, label `local`, no publication, no marker | Legacy default | Migrate in place, keeping `hostId`                                 |
-| Hash equals the derivation marker                      | Lervo          | Follow changed coordinates; enable publication when available      |
-| Anything else                                          | Operator       | Never changed                                                      |
+| Current configuration                                  | Origin         | Action                                                                                                  |
+| ------------------------------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------- |
+| Absent                                                 | Lervo          | Write one: Hub mode with the first proven candidate, else the first unproven candidate, else standalone |
+| `standalone`, label `local`, no publication, no marker | Legacy default | Migrate in place, keeping `hostId`                                                                      |
+| Hash equals the derivation marker                      | Lervo          | Follow changed coordinates; enable publication when available                                           |
+| Anything else                                          | Operator       | Never changed                                                                                           |
 
-Candidates come from the owning Node's `hub` configuration for a Node resident. A CLI resident uses the Node registered for the checkout in `node-fleet.json`, then the Hub coordinates of other Hub-mode checkouts on the host, at most four. A probe is one host-record read; any failure keeps the candidate unused and records its `failureCode` as `owner_host_hub_unusable`.
+Candidates come from the owning Node's `hub` configuration for a Node resident. A CLI resident uses, at most four in this order: the Node registered for the checkout in `node-fleet.json`; the Hub block of `nodes/<projectId>/config.json`; this project's `nodes/<projectId>/secrets/hub-sync.token` paired with each Hub other Hub-mode checkouts on the host use; then those checkouts' coordinates as written. `nodes/` sits beside the user state directory, and on Linux also under `$XDG_CONFIG_HOME/lervo/nodes`. A probe is one host-record read.
+
+Under [ADR-0471](../../../../decisions/coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md), when every candidate fails its probe, derivation writes Hub mode with the first candidate and marks it `unproven`. The lease then reports `unverifiable`, the host stays read-only, and the state records the cause as `owner_host_hub_unusable`. Unproven coordinates are probed again at every reconciliation. A host never falls back to standalone, which owns unconditionally, while Hub coordinates exist. Standalone mode is only for hosts without any.
 
 Publication is added only in Hub mode. It requires `git remote get-url origin`, `git symbolic-ref refs/remotes/origin/HEAD`, and `gh auth status` to succeed. The settings are `origin`, the remote default branch, `lervo/knowledge-outputs`, `when_checks_pass`, and the default roots.
 
@@ -98,24 +102,25 @@ Installing or revoking the policy is owner work, once per host. Renewal, seeding
 
 The doctor reports every finding. `lervo application attention` reports those of severity `attention` or `owner_decision` as `knowledge_convergence_continuity` items, except lease, publication, and replica findings, which keep their own items. Only `owner_decision` findings require the user, and no finding blocks.
 
-| Code                                                                | Severity                                                                  | Meaning                                                     |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `delegation_expiring`, `delegation_expired`                         | owner decision unless renewable                                           | No active policy can keep the delegation alive              |
-| `delegation_outside_policy`                                         | owner decision                                                            | The scope exceeds the policy limits                         |
-| `delegation_missing`                                                | attention under a policy, owner decision when a peer converges, else info | No delegation on this host                                  |
-| `delegation_continuation_failed`                                    | attention                                                                 | A renewal or seed failed with the recorded code             |
-| `policy_horizon_near`, `policy_invalid`                             | owner decision                                                            | Reinstall the policy                                        |
-| `owner_host_hub_unusable`, `hub_unavailable`                        | attention                                                                 | Hub coordinates exist but refused or failed, with the cause |
-| `peer_delegation_expiring`                                          | attention without a peer policy, else info                                | A peer host's grant lapses within 72 hours                  |
-| `continuity_unobserved`, `continuity_stale`, `resident_not_running` | attention                                                                 | No resident reconciles this checkout                        |
-| `hook_runtime_stale`                                                | attention                                                                 | The generated terminal hook runtime predates the CLI        |
+| Code                                                                | Severity                                                                  | Meaning                                                      |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `delegation_expiring`, `delegation_expired`                         | owner decision unless renewable                                           | No active policy can keep the delegation alive               |
+| `delegation_outside_policy`                                         | owner decision                                                            | The scope exceeds the policy limits                          |
+| `delegation_missing`                                                | attention under a policy, owner decision when a peer converges, else info | No delegation on this host                                   |
+| `delegation_continuation_failed`                                    | attention                                                                 | A renewal or seed failed with the recorded code              |
+| `policy_horizon_near`, `policy_invalid`                             | owner decision                                                            | Reinstall the policy                                         |
+| `owner_host_hub_unusable`, `hub_unavailable`                        | attention                                                                 | Hub coordinates exist but refused or failed, with the cause  |
+| `peer_delegation_expiring`                                          | attention without a peer policy, else info                                | A peer host's grant lapses within 72 hours                   |
+| `continuity_unobserved`, `continuity_stale`, `resident_not_running` | attention                                                                 | No resident reconciles this checkout                         |
+| `hook_runtime_stale`                                                | attention                                                                 | The generated terminal hook runtime predates the CLI         |
+| `event_schema_outdated`                                             | attention                                                                 | A resident is held because the writer is older than schema 4 |
 
-Informational codes are `delegation_revoked`, `policy_absent`, `policy_revoked`, `owner_host_standalone`, `publication_unavailable`, `peer_delegation_missing`, and `peer_unreported`.
+Informational codes are `continuity_pending` (the host resident serves the checkout but has not reconciled yet), `delegation_revoked`, `policy_absent`, `policy_revoked`, `owner_host_standalone`, `publication_unavailable`, `peer_delegation_missing`, and `peer_unreported`.
 
 ## Per-host rollout
 
 1. Deploy the Hub first. Its new migration adds the host-record table, and the `sync.write` implication removes any credential grant.
-2. Deploy the Node and CLI bundles to WSL and Mac with the existing recipes. On each host, replace any per-repository `lervo knowledge worker --watch` service (such as the Mac `com.lervo.mac.knowledge` job) with one `lervo knowledge worker --watch --host` service, then restart the Nodes.
+2. Deploy the Node and CLI bundles to WSL and Mac with the existing recipes. On each host, remove any per-repository `lervo knowledge worker --watch` service (such as the Mac `com.lervo.mac.knowledge` job) and any hand-written host resident service, then run `lervo upgrade` in a registered repository and apply its plan. Its `host_service` stage installs the one managed host resident service, and its `event_writer` stage activates schema 4. Restart the Nodes.
 3. On each host, the first resident cycle in a repository with a reviewed delegation adopts the policy. To install instead, run `lervo knowledge convergence delegation renewal-policy install` in a delegated repository, then rerun it with `--apply <policy-id>`.
 4. Run `lervo knowledge convergence doctor` on each host. Every registered repository should show an active delegation, owner-host `hub` (or `operator` for lervo), and one `owner` with a `waiting_owner` peer.
 

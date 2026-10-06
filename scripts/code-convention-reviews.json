@@ -52,13 +52,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "apps/cli/src/upgrade-command.ts",
-      "contentHash": "sha256:d1e4b61aef34e66a66b15dc4c02c35c8465c6a0793f96386a9a6704dbd996600",
-      "responsibility": "Repository upgrade plan composition and apply sequencing",
-      "rationale": "The module composes one content-bound upgrade plan identity and sequences its exact apply. Stage dependency policy, stage inspection and inner-command capture, terminal integration effects, and plan or receipt rendering live in dedicated modules; workforce policy and persistence remain in their owning package.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/hub-runtime/src/deployment.ts",
       "contentHash": "sha256:4d471e20b5ce112014c376aa6a93a45456e9fc2976672cc1de8254f8a65c9ad5",
       "responsibility": "Hub runtime deployment composition",
@@ -396,9 +389,9 @@
     },
     {
       "path": "scripts/distribution/lib/runtime-service-management.mjs",
-      "contentHash": "sha256:b254437b463e00ee729745ab1a1976b500e7546d2f4a9d94bfd68f11da9e341a",
+      "contentHash": "sha256:fc18e25bdc14362854bbfa738cbe04d55178097c25cdf673c3b970a65ed54a47",
       "responsibility": "Runtime service lifecycle manager",
-      "rationale": "One runtime service coordinator owns exact predecessor validation, stable manager observations bounded by the canonical graceful stop, and transactional replacement. It verifies inactive recovery only after a missing-session freeze result while the supervision fence is held. CLI configuration policy and its journal remain in a separate adapter. Argument and source validation extraction remains the existing bounded roadmap follow-up.",
+      "rationale": "One coordinator owns exact predecessor validation, stable manager observations within the graceful stop bound, and transactional replacement for Hub, Node, and host knowledge resident services. Rendering, target paths, and PATH directory validation live in the renderer; CLI configuration policy stays in its adapter. Argument validation extraction remains the bounded roadmap follow-up.",
       "disposition": "cohesive"
     },
     {

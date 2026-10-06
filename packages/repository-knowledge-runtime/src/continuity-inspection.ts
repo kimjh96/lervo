@@ -18,6 +18,7 @@ import { loadConvergenceDelegation } from "./delegation.js";
 import { decideDelegationRenewal } from "./delegation-continuity-decision.js";
 import { readKnowledgePublicationState } from "./knowledge-publication-state.js";
 import { inspectKnowledgeResidentHealth, type KnowledgeResidentHealth } from "./resident-health.js";
+import { observeResidentHost, type ResidentHostObservation } from "./resident-host-observation.js";
 
 export interface ConvergenceContinuityInspection {
   delegation: ContinuityDelegationObservation;
@@ -40,6 +41,8 @@ export async function inspectConvergenceContinuity(input: {
   now?: Date;
   hookRuntime?: "current" | "stale" | "unknown";
   replicaDiverged?: boolean;
+  /** ADR-0470: which host runs the resident; observed from the fleet and host status if absent. */
+  residentHost?: ResidentHostObservation | null;
 }): Promise<ConvergenceContinuityInspection> {
   const now = (input.now ?? new Date()).getTime();
   const root = input.repositoryRoot;
@@ -64,11 +67,14 @@ export async function inspectConvergenceContinuity(input: {
   } catch {
     delegation = { state: "invalid" };
   }
-  const [state, fence, publication, resident] = await Promise.all([
+  const [state, fence, publication, resident, residentHost] = await Promise.all([
     readConvergenceContinuityState(root),
     readConvergenceOwnerFence(root),
     readKnowledgePublicationState(root).catch(() => null),
     inspectKnowledgeResidentHealth(root, new Date(now)).catch(() => null),
+    input.residentHost !== undefined
+      ? Promise.resolve(input.residentHost)
+      : observeResidentHost(root, new Date(now)).catch(() => null),
   ]);
   const policyActive = policy.status === "loaded" && policy.policy.state === "active";
   const expected = delegation.state !== "missing" || policyActive;
@@ -95,6 +101,8 @@ export async function inspectConvergenceContinuity(input: {
       residentRunning: resident === null ? null : resident.status !== "not_running",
       hookRuntime: input.hookRuntime ?? "unknown",
       replicaDiverged: input.replicaDiverged ?? false,
+      residentHold: resident?.status === "degraded" ? resident.reason : null,
+      residentHost,
     }),
   ];
   return {

@@ -60,7 +60,7 @@ A host without a delegation may seed one under a policy allowing seeding:
 Each reconciliation derives `.lervo/state/knowledge/convergence-owner-host.json` when Lervo owns it. Ownership means the configuration is absent, is the legacy default (`standalone` with label `local` and no publication), or matches the hash in `.lervo/state/knowledge/convergence-owner-host-derivation.json`. Never rewrite operator-written configuration.
 
 - Hub coordinates come from the Node running this checkout's resident. For a CLI resident, try the Node registered for the checkout, then other Hub-mode repositories on the host.
-- Use a candidate only after a host-record read through it succeeds for this project. A refused or unreachable Hub leaves a working checkout `standalone` and records the cause. Standalone remains available without usable Hub coordinates (invariant 1).
+- Use a candidate only after a host-record read through it succeeds for this project. [ADR-0471](0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md) amends the failure case: a refused or unreachable Hub leaves the checkout in Hub mode with unproven coordinates, so it stays read-only, never a standalone owner, and records the cause. Standalone remains available only without any Hub coordinates (invariant 1).
 - Generate the host ID once and keep it. The label is `mac`, `wsl`, or the sanitized hostname.
 - In Hub mode, enable publication with ADR-0466 defaults when the checkout has an `origin` remote with a known default branch and the host's `gh` is authenticated. Repeat that check at most every six hours.
 - If coordinates disappear from every source, leave an existing Hub configuration unchanged.

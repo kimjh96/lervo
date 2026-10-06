@@ -102,3 +102,36 @@ it("starts a resident with the policy's provider and the Node's Hub coordinates"
   });
   expect(ports.start).toHaveBeenCalledWith(expect.objectContaining({ provider: "codex", hub }));
 });
+
+it("starts the resident child for an outdated writer so it holds and resumes after activation", async () => {
+  const storage = await repository();
+  await installPolicy(storage);
+  await startDeploymentKnowledgeLoop({
+    storage: { ...storage, writableEventSchemaVersion: 3 } as ProjectStorage,
+    store: {} as never,
+    signal: new AbortController().signal,
+    workerEntry: "/runtime/node-runtime.js",
+  });
+  expect(ports.start).toHaveBeenCalledWith(
+    expect.objectContaining({ provider: "codex", awaitAdmission: true }),
+  );
+});
+
+it("keeps an in-process hold beside the supervision loop when the writer is outdated", async () => {
+  const storage = await repository();
+  await installPolicy(storage);
+  await mkdir(storage.paths.repositoryRoot, { recursive: true });
+  const stop = await startDeploymentKnowledgeLoop({
+    storage: { ...storage, writableEventSchemaVersion: 1 } as ProjectStorage,
+    store: {} as never,
+    signal: new AbortController().signal,
+    supervision: { ownerReasoning: { provider: "claude" } } as never,
+  });
+  try {
+    expect(ports.start).toHaveBeenCalledTimes(1);
+    expect(ports.start).toHaveBeenCalledWith(expect.objectContaining({ provider: "claude" }));
+    expect(ports.start).not.toHaveBeenCalledWith(expect.objectContaining({ awaitAdmission: true }));
+  } finally {
+    await stop();
+  }
+});

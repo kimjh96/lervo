@@ -12,7 +12,7 @@ import {
   instructionCandidateTransport,
 } from "./knowledge-convergence-ownership.js";
 import { knowledgeWorkerFailureLine } from "./knowledge-worker-failure.js";
-import { startHostKnowledgeResidents } from "./knowledge-host-residents.js";
+import { untilTerminated } from "./process-termination.js";
 
 import { openProjectStorage } from "@lervo/project-storage";
 import type {
@@ -67,58 +67,18 @@ export async function runKnowledgeWorker(input: {
   }
 }
 
-function untilTerminated(): Promise<void> {
-  return new Promise<void>((resolve) => {
-    const stopped = () => {
-      process.removeListener("SIGINT", stopped);
-      process.removeListener("SIGTERM", stopped);
-      resolve();
-    };
-    process.once("SIGINT", stopped);
-    process.once("SIGTERM", stopped);
-  });
-}
-
-/**
- * `lervo knowledge worker --watch --host [--provider <claude|codex>]` (ADR-0469): one resident per
- * repository this host knows that no Node serves, following registrations as they change.
- */
-async function runHostKnowledgeResidentsCommand(
-  provider: "codex" | "claude" | null,
-  io: { stdout(message: string): void; stderr(message: string): void },
-): Promise<number> {
-  const stop = startHostKnowledgeResidents({
-    provider,
-    onCycle: (root, result) => io.stdout(`${JSON.stringify({ repositoryRoot: root, result })}\n`),
-    onFailure: (root, error) => io.stderr(knowledgeWorkerFailureLine(error, root)),
-  });
-  try {
-    await untilTerminated();
-  } finally {
-    await stop();
-  }
-  return 0;
-}
-
 /** `lervo knowledge worker --once --provider <claude|codex>` */
 export async function runKnowledgeWorkerCommand(
   args: readonly string[],
   io: { cwd: string; stdout(message: string): void; stderr(message: string): void },
 ): Promise<number> {
   const provider = args.includes("--provider") ? args[args.indexOf("--provider") + 1] : undefined;
-  if (args.includes("--host") && args.includes("--watch")) {
-    if (provider !== undefined && provider !== "claude" && provider !== "codex") {
-      io.stderr("Usage: lervo knowledge worker --watch --host [--provider <claude|codex>]\n");
-      return 1;
-    }
-    return runHostKnowledgeResidentsCommand(provider ?? null, io);
-  }
   if (
     (!args.includes("--once") && !args.includes("--watch")) ||
     (provider !== "claude" && provider !== "codex")
   ) {
     io.stderr(
-      "Usage: lervo knowledge worker <--once|--watch> --provider <claude|codex>\n       lervo knowledge worker --watch --host [--provider <claude|codex>]\n",
+      "Usage: lervo knowledge worker <--once|--watch> --provider <claude|codex>\n       lervo knowledge worker --watch --host [--provider <claude|codex>] [--config <absolute-path>]\n",
     );
     return 1;
   }

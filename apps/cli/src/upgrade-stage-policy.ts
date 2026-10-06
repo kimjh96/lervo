@@ -2,7 +2,13 @@ export type StageDisposition =
   "current" | "safe_apply" | "deferred" | "pending_authority" | "blocked";
 
 export type UpgradeStageName =
-  "capabilities" | "workforce" | "terminal_integration" | "knowledge" | "node";
+  | "capabilities"
+  | "workforce"
+  | "terminal_integration"
+  | "knowledge"
+  | "node"
+  | "event_writer"
+  | "host_service";
 
 /**
  * - `applied_first`: the dependent is inspected only after the prerequisite
@@ -30,6 +36,14 @@ export const upgradeStageDependencies: Readonly<
   terminal_integration: [],
   knowledge: [{ stage: "capabilities", requires: "applied_first" }],
   node: [{ stage: "knowledge", requires: "not_blocked" }],
+  // ADR-0470: the generated hook runtime is a local event reader, and a Node reader must be
+  // upgraded before its health can prove it reads the new schema. The stage's own hook reader
+  // preflight decides when the hook runtime still awaits an owner approval.
+  event_writer: [
+    { stage: "terminal_integration", requires: "applied_first" },
+    { stage: "node", requires: "applied_first" },
+  ],
+  host_service: [],
 };
 
 export const upgradeStageApplyOrder: readonly UpgradeStageName[] = [
@@ -38,6 +52,8 @@ export const upgradeStageApplyOrder: readonly UpgradeStageName[] = [
   "terminal_integration",
   "knowledge",
   "node",
+  "event_writer",
+  "host_service",
 ];
 
 /**

@@ -1,5 +1,6 @@
 import type { ConvergenceContinuityPolicyReading } from "./continuity-policy-store.js";
 import type { DelegationRenewalDecision } from "./delegation-continuity-decision.js";
+import type { ResidentHostObservation } from "./resident-host-observation.js";
 
 const HOUR_MS = 60 * 60_000;
 /** Without a policy, an expiring delegation is reported this long before it lapses. */
@@ -42,7 +43,11 @@ export type ContinuityFindingCode =
   | "continuity_stale"
   | "resident_not_running"
   | "hook_runtime_stale"
-  | "replica_diverged";
+  | "replica_diverged"
+  // ADR-0470 resident admission, observed from resident health and the host resident status.
+  | "event_schema_outdated"
+  | "continuity_pending"
+  | "host_resident_scan_stalled";
 
 export interface ContinuityFinding {
   code: ContinuityFindingCode;
@@ -151,6 +156,13 @@ function hostFindings(input: ContinuityFindingsInput): ContinuityFinding[] {
   const host = input.ownerHost;
   if (host?.state === "invalid")
     findings.push({ code: "owner_host_invalid", severity: "attention", detail: null });
+  // ADR-0470: Hub coordinates written unproven keep this host read-only until they work.
+  else if (host?.state === "hub" && host.hubFailureCode !== null)
+    findings.push({
+      code: "owner_host_hub_unusable",
+      severity: "attention",
+      detail: host.hubFailureCode,
+    });
   else if (host?.state === "standalone")
     findings.push(
       host.hubFailureCode === null
@@ -223,10 +235,26 @@ export function continuityFindings(input: ContinuityFindingsInput): ContinuityFi
 /** A continuity projection older than this means no resident reconciles this checkout. */
 export const CONTINUITY_STATE_STALE_MS = 2 * HOUR_MS;
 
+/** The closed detail naming which host should run an unobserved checkout's resident. */
+function residentHostDetail(host: ResidentHostObservation | null): string | null {
+  switch (host?.kind) {
+    case "node":
+      return "node_served";
+    case "host_absent":
+      return "host_resident_absent";
+    case "host_unlisted":
+      return "host_resident_unlisted";
+    default:
+      return null;
+  }
+}
+
 /**
  * Pure: findings only a local reader can observe, added to the resident's persisted findings.
  * `expected` is true when this checkout should have a resident: it holds a delegation or the
- * host has an active continuity policy.
+ * host has an active continuity policy. A held resident (ADR-0470) reports its cause instead of
+ * an absent resident, and a checkout the host resident serves but has not reconciled yet is only
+ * pending, so the advice never asks for a resident that already runs.
  */
 export function localContinuityFindings(input: {
   now: number;
@@ -235,18 +263,36 @@ export function localContinuityFindings(input: {
   residentRunning: boolean | null;
   hookRuntime: "current" | "stale" | "unknown";
   replicaDiverged: boolean;
+  /** The reason a degraded resident heartbeat reports, such as `event_schema_outdated`. */
+  residentHold?: string | null;
+  residentHost?: ResidentHostObservation | null;
 }): ContinuityFinding[] {
   const findings: ContinuityFinding[] = [];
-  if (input.expected && input.stateObservedAt === null)
-    findings.push({ code: "continuity_unobserved", severity: "attention", detail: null });
+  const host = input.residentHost ?? null;
+  const held = input.residentHold === "event_schema_outdated" || host?.kind === "host_held";
+  const detail = residentHostDetail(host);
+  if (held)
+    findings.push({
+      code: "event_schema_outdated",
+      severity: "attention",
+      detail: host?.kind === "host_held" ? host.detail : null,
+    });
+  else if (input.expected && input.stateObservedAt === null)
+    findings.push(
+      host?.kind === "host_serving"
+        ? { code: "continuity_pending", severity: "info", detail: null }
+        : { code: "continuity_unobserved", severity: "attention", detail },
+    );
   else if (
     input.expected &&
     input.stateObservedAt !== null &&
     input.now - Date.parse(input.stateObservedAt) > CONTINUITY_STATE_STALE_MS
   )
-    findings.push({ code: "continuity_stale", severity: "attention", detail: null });
-  if (input.expected && input.residentRunning === false)
-    findings.push({ code: "resident_not_running", severity: "attention", detail: null });
+    findings.push({ code: "continuity_stale", severity: "attention", detail });
+  if (!held && input.expected && input.residentRunning === false && host?.kind !== "host_serving")
+    findings.push({ code: "resident_not_running", severity: "attention", detail });
+  if (host?.kind === "host_stalled")
+    findings.push({ code: "host_resident_scan_stalled", severity: "attention", detail: null });
   if (input.hookRuntime === "stale")
     findings.push({ code: "hook_runtime_stale", severity: "attention", detail: null });
   if (input.replicaDiverged)

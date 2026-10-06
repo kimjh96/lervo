@@ -38,6 +38,8 @@ interface DerivationMarker {
   source: ConvergenceOwnerHubSource | "none";
   derivedAt: string;
   publicationProbedAt: string | null;
+  /** ADR-0470: the written Hub coordinates failed their probe; re-probe them every round. */
+  unproven?: true;
 }
 
 export type ConvergenceOwnerHostOrigin = "absent" | "legacy_default" | "automatic" | "operator";
@@ -139,7 +141,11 @@ export async function deriveConvergenceOwnerHost(input: {
   const currentHub = current?.coordination.mode === "hub" ? current.coordination.hub : null;
   for (const candidate of input.candidates) {
     // Unchanged coordinates were proven when they were written; the lease reports later failures.
-    if (currentHub !== null && canonicalJson(currentHub) === canonicalJson(candidate.hub)) {
+    if (
+      currentHub !== null &&
+      marker?.unproven !== true &&
+      canonicalJson(currentHub) === canonicalJson(candidate.hub)
+    ) {
       chosen = candidate;
       break;
     }
@@ -159,6 +165,11 @@ export async function deriveConvergenceOwnerHost(input: {
       publication: current?.publication === undefined ? "unavailable" : "configured",
     };
 
+  // ADR-0470: Hub coordinates that exist but are refused or unreachable never fall back to
+  // standalone, whose verdict owns unconditionally: another host may hold the Hub lease. The
+  // most specific candidate is written unproven, so the lease reports `unverifiable` and this
+  // host stays read-only until coordination works. Standalone is only for hosts without any.
+  const unproven = chosen === null ? (input.candidates[0] ?? null) : null;
   const probeDue =
     chosen !== null &&
     current?.publication === undefined &&
@@ -175,16 +186,20 @@ export async function deriveConvergenceOwnerHost(input: {
     schemaVersion: 1,
     hostId: current?.hostId ?? `hst_${(input.random ?? (() => randomBytes(16).toString("hex")))()}`,
     hostLabel: input.hostLabel,
-    coordination: chosen === null ? { mode: "standalone" } : { mode: "hub", hub: chosen.hub },
+    coordination:
+      (chosen ?? unproven) === null
+        ? { mode: "standalone" }
+        : { mode: "hub", hub: (chosen ?? unproven)!.hub },
     ...(publication === undefined ? {} : { publication }),
   });
-  const source = chosen?.source ?? "none";
+  const source = (chosen ?? unproven)?.source ?? "none";
   const unchanged =
     current !== null &&
     convergenceOwnerHostConfigHash(current) === convergenceOwnerHostConfigHash(desired);
   if (!unchanged)
     await writePrivateJsonFile(resolve(input.root, CONVERGENCE_OWNER_HOST_PATH), desired);
-  if (!unchanged || probeDue || marker === null)
+  const isUnproven = chosen === null && unproven !== null;
+  if (!unchanged || probeDue || marker === null || (marker.unproven === true) !== isUnproven)
     await writePrivateJsonFile(resolve(input.root, CONVERGENCE_OWNER_HOST_DERIVATION_PATH), {
       schemaVersion: 1,
       configHash: convergenceOwnerHostConfigHash(desired),
@@ -193,6 +208,7 @@ export async function deriveConvergenceOwnerHost(input: {
       publicationProbedAt: probeDue
         ? input.now.toISOString()
         : (marker?.publicationProbedAt ?? null),
+      ...(isUnproven ? { unproven: true as const } : {}),
     } satisfies DerivationMarker);
   return {
     derivation: {

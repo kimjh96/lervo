@@ -11,6 +11,7 @@
 - Frozen CLI configuration replacement amendment: 2026-09-28
 - Shared Discord channel binding amendment: 2026-09-28
 - Asynchronous launchd stop and retained admission scope amendment: 2026-10-05
+- Knowledge host target amendment: 2026-10-06
 
 ## Context
 
@@ -42,6 +43,8 @@ Fixed per-user Hub targets are:
 - `~/Library/LaunchAgents/com.lervo.hub.plist`
 
 [ADR-0202](0202-repository-node-fleet-identity-and-registry.md) replaces the global Node target with required repository-node instance identity: `lervo-node-<instance>.service` or `com.lervo.node.<instance>`. Legacy global Node definitions are never automatically overwritten, stopped, or removed.
+
+[ADR-0470](0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) adds the `knowledge-host` runtime (`lervo-knowledge-host.service`, `com.lervo.knowledge.host`) and resolved tool `PATH` directories.
 
 Different existing bytes yield `service_state_conflict`; the command neither overwrites nor stops the service.
 

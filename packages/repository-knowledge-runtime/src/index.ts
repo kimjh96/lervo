@@ -135,3 +135,24 @@ export {
   inspectConvergenceContinuity,
   type ConvergenceContinuityInspection,
 } from "./continuity-inspection.js";
+export {
+  KNOWLEDGE_RESIDENT_EVENT_SCHEMA_VERSION,
+  knowledgeResidentHoldReason,
+  startKnowledgeResidentHold,
+  type KnowledgeResidentHoldReason,
+} from "./resident-admission.js";
+export {
+  hostKnowledgeResidentStatusPath,
+  hostResidentScanStalled,
+  readHostKnowledgeResidentStatus,
+  writeHostKnowledgeResidentStatus,
+  type HostKnowledgeResidentReading,
+  type HostKnowledgeResidentStatus,
+  type HostResidentRepository,
+} from "./host-resident-status.js";
+export {
+  acquireHostKnowledgeResidentLock,
+  hostKnowledgeResidentLockPath,
+  type HostKnowledgeResidentLock,
+} from "./host-resident-lock.js";
+export { observeResidentHost, type ResidentHostObservation } from "./resident-host-observation.js";

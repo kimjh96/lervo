@@ -27,6 +27,13 @@ import {
 
 type WorkerResult = Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>>;
 
+/**
+ * ADR-0470: continuity (including owner-host derivation, which decides whether this host may own
+ * at all) is offered a turn on this timer as well as before each cycle, so a cycle waiting for
+ * host-wide full-cycle admission cannot starve it. Reconciliation is rate-limited internally.
+ */
+export const RESIDENT_CONTINUITY_TICK_MILLISECONDS = 60_000;
+
 function healthOf(result: WorkerResult): KnowledgeResidentState {
   if (result.status === "busy") return "busy";
   if (result.status === "waiting_owner") return nonOwnerHealth(result.owner).state;
@@ -66,6 +73,7 @@ export function startAutonomousKnowledgeWorker(input: {
   instructionCandidateTransport?: InstructionCandidateExchangeTransport;
   /** ADR-0469 delegation and host continuity; it runs before each ownership observation. */
   continuity?: ConvergenceContinuity;
+  continuityTickMilliseconds?: number;
 }): () => Promise<void> {
   const base = input.intervalMilliseconds ?? RESIDENT_RECONCILE_BASE_MILLISECONDS;
   if (!Number.isSafeInteger(base) || base < 100 || base > RESIDENT_RECONCILE_BASE_MILLISECONDS)
@@ -144,12 +152,29 @@ export function startAutonomousKnowledgeWorker(input: {
       await admission.release();
     }
   };
+  let continuityRun: Promise<void> | null = null;
+  // One reconciliation at a time, whether the timer or the cycle asks for it.
+  const reconcileContinuity = (): Promise<void> => {
+    if (input.continuity === undefined || signal.aborted) return Promise.resolve();
+    continuityRun ??= input.continuity
+      .reconcile({ signal })
+      .then(
+        () => undefined,
+        (error: unknown) => {
+          if (!signal.aborted) input.onFailure(error);
+        },
+      )
+      .finally(() => {
+        continuityRun = null;
+      });
+    return continuityRun;
+  };
   const runOnce = async () => {
     previous ??= await readResidentCycleState(root);
     if (woken && previous !== null) previous = { ...previous, idleStreak: 0 };
     woken = false;
     // Continuity is rate-limited internally and never blocks the cycle; its findings are state.
-    await input.continuity?.reconcile({ signal }).catch(input.onFailure);
+    await reconcileContinuity();
     const observedOwner = await observeOwnership();
     const cycle = await runResidentCycle({
       previous,
@@ -269,15 +294,24 @@ export function startAutonomousKnowledgeWorker(input: {
           // Renewal only; a lost lease aborts the running cycle and the next cycle reports it.
           if (verdict?.role === "owner") observeOwnership().catch(input.onFailure);
         }, input.ownerHeartbeatMilliseconds ?? RESIDENT_OWNER_HEARTBEAT_MILLISECONDS);
+  const continuityTimer =
+    input.continuity === undefined
+      ? null
+      : setInterval(
+          () => void reconcileContinuity(),
+          input.continuityTickMilliseconds ?? RESIDENT_CONTINUITY_TICK_MILLISECONDS,
+        );
   cycle();
   return async () => {
     controller.abort();
     if (reconcile !== null) clearTimeout(reconcile);
     clearInterval(healthTimer);
+    if (continuityTimer !== null) clearInterval(continuityTimer);
     if (ownerHeartbeat !== null) clearInterval(ownerHeartbeat);
     if (debounce !== null) clearTimeout(debounce);
     unsubscribe?.();
     await running;
+    await continuityRun;
     if (reconcile !== null) clearTimeout(reconcile);
     healthState = "stopped";
     heartbeat();

@@ -7,6 +7,7 @@ import {
   createRuntimeServiceDefinition,
   runtimeServiceIdentity,
   runtimeServiceStopTimeoutMs,
+  runtimeServiceTargetPath,
 } from "../render-runtime-service.mjs";
 import {
   NodeSupervisionUpgradeFenceError,
@@ -73,6 +74,7 @@ function parse(args) {
     "--previous-definition",
     "--executable",
     "--node-executable",
+    "--path-directories",
     "--config",
     "--configuration-source",
   ]);
@@ -88,17 +90,17 @@ function parse(args) {
   if (manager !== "systemd" && manager !== "launchd") {
     fail("invalid_arguments", "The service manager is invalid.");
   }
-  if (runtime !== "hub" && runtime !== "node") {
+  if (runtime !== "hub" && runtime !== "node" && runtime !== "knowledge-host") {
     fail("invalid_arguments", "The runtime is invalid.");
   }
   const instance = values.get("--instance");
   if (
     (runtime === "node" && (instance === undefined || !/^nfi_[a-f0-9]{24}$/u.test(instance))) ||
-    (runtime === "hub" && instance !== undefined)
+    (runtime !== "node" && instance !== undefined)
   )
     fail(
       "invalid_arguments",
-      "A Node service requires one valid instance ID; a Hub service does not accept one.",
+      "A Node service requires one valid instance ID; other services do not accept one.",
     );
   if (action === "status") {
     const expectedSize = runtime === "node" ? 4 : 3;
@@ -115,6 +117,7 @@ function parse(args) {
     (runtime === "node" ? 7 : 6) +
     (["upgrade", "rollback"].includes(action) ? 1 : 0) +
     (nodeExecutable === undefined ? 0 : 1) +
+    (values.has("--path-directories") ? 1 : 0) +
     (configurationSource === undefined ? 0 : 1);
   if (!write || values.size !== expectedSize) {
     fail("write_not_authorized", "Install and remove require canonical input and --write.");
@@ -144,17 +147,12 @@ function parse(args) {
     previousDefinition: previousDefinition === undefined ? null : resolve(previousDefinition),
     executable: resolve(executable),
     nodeExecutable: nodeExecutable === undefined ? null : resolve(nodeExecutable),
+    pathDirectories: values.get("--path-directories")?.split(":") ?? [],
     config: resolve(config),
     ...(configurationSource === undefined
       ? {}
       : { configurationSource: resolve(configurationSource) }),
   };
-}
-
-function targetPath(input, homeDirectory, serviceIdentity) {
-  return input.manager === "systemd"
-    ? resolve(homeDirectory, ".config", "systemd", "user", serviceIdentity.name)
-    : resolve(homeDirectory, "Library", "LaunchAgents", serviceIdentity.name);
 }
 
 async function regularFile(path, { required, ownerOnly = false } = { required: true }) {
@@ -675,7 +673,7 @@ export async function manageRuntimeService(args, options = {}) {
     input.manager === "launchd" ? { ...baseIdentity, domain: `gui/${uid}` } : baseIdentity;
   const context = {
     identity: serviceIdentity,
-    target: targetPath(input, homeDirectory, serviceIdentity),
+    target: runtimeServiceTargetPath(input, homeDirectory),
     runCommand: options.runCommand ?? defaultRunCommand,
     wait: options.wait ?? defaultWait,
   };

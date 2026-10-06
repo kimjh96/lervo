@@ -6,8 +6,8 @@ const POLICY_VERSION = sha256("lervo.knowledge-convergence-continuity.v1");
 
 export interface DelegationContinuation {
   repositoryIdentityHash: string;
-  action: "renewed" | "seeded";
-  source: "renewal" | "peer" | "policy_template";
+  action: "renewed" | "seeded" | "rebound";
+  source: "renewal" | "peer" | "policy_template" | "binding_refresh";
   policyHash: string;
   previousPlanHash: string | null;
   planHash: string;

@@ -29,6 +29,7 @@ import {
 } from "./node-fleet-apply-contract.js";
 import { observeNodeFleetReadiness } from "./node-fleet-health.js";
 import { transitionLegacyNodeSingleton } from "./node-fleet-legacy-transition.js";
+import { nodeServiceToolDirectories } from "./node-service-tool-directories.js";
 import {
   assertNodeFleetExecutable,
   materializeInstalledNodeLauncher,
@@ -49,6 +50,7 @@ function serviceArgs(input: {
   definition: string;
   executable: string;
   config: string;
+  pathDirectories: readonly string[];
   previousDefinition?: string;
 }): string[] {
   return [
@@ -67,6 +69,9 @@ function serviceArgs(input: {
       : ["--previous-definition", input.previousDefinition]),
     "--executable",
     input.executable,
+    ...(input.pathDirectories.length === 0
+      ? []
+      : ["--path-directories", input.pathDirectories.join(":")]),
     "--config",
     input.config,
     "--write",
@@ -80,6 +85,11 @@ export async function applyNodeFleetOnboarding(input: {
   ports?: NodeFleetApplyPorts;
   transitionLegacy?: boolean;
   allowHubUnavailableReadiness?: boolean;
+  /**
+   * ADR-0470 tool directories for the service PATH, as the reviewed upgrade plan resolved them;
+   * absent resolves them now from this shell's PATH.
+   */
+  pathDirectories?: readonly string[];
 }): Promise<NodeFleetApplyReceipt> {
   const ports = input.ports ?? {};
   const planInput = {
@@ -130,6 +140,14 @@ export async function applyNodeFleetOnboarding(input: {
       "The runtime config does not match the planned repository, destination, or Node identity.",
     );
   }
+  const pathDirectories =
+    input.pathDirectories ??
+    (
+      await nodeServiceToolDirectories({
+        repositoryRoot: current.desired.repositoryRoot,
+        configPath,
+      })
+    ).directories;
   const executable =
     ports.executablePath === undefined
       ? await materializeInstalledNodeLauncher(input.homeDirectory)
@@ -157,6 +175,7 @@ export async function applyNodeFleetOnboarding(input: {
           definition,
           executable,
           config: configPath,
+          pathDirectories,
         }),
         options,
       );
@@ -170,6 +189,7 @@ export async function applyNodeFleetOnboarding(input: {
           previousDefinition,
           executable,
           config: configPath,
+          pathDirectories,
         }),
         options,
       );
@@ -182,6 +202,7 @@ export async function applyNodeFleetOnboarding(input: {
       instance: current.desired.serviceInstanceId,
       executable,
       config: configPath,
+      pathDirectories,
     });
     await writeFile(definition, content, { encoding: "utf8", mode: 0o600, flag: "wx" });
     await chmod(definition, 0o600);
@@ -205,6 +226,7 @@ export async function applyNodeFleetOnboarding(input: {
           previousDefinition,
           executable,
           config: configPath,
+          pathDirectories,
         }),
         options,
       )) as NodeFleetServiceResult;
@@ -217,6 +239,7 @@ export async function applyNodeFleetOnboarding(input: {
           definition,
           executable,
           config: configPath,
+          pathDirectories,
         }),
         options,
       )) as NodeFleetServiceResult;
