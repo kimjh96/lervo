@@ -15,6 +15,7 @@ import {
   runResidentCycle,
 } from "./resident-cycle.js";
 import type { ConvergenceOwnership } from "./convergence-owner.js";
+import type { ConvergenceContinuity } from "./convergence-continuity.js";
 import type { InstructionCandidateExchangeTransport } from "./instruction-candidate-exchange.js";
 import type { KnowledgePublicationOutcome } from "./knowledge-publication.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
@@ -63,6 +64,8 @@ export function startAutonomousKnowledgeWorker(input: {
   publish?: () => Promise<KnowledgePublicationOutcome>;
   /** ADR-0467 Hub adapter for owner-rule candidates; absent keeps them host-local. */
   instructionCandidateTransport?: InstructionCandidateExchangeTransport;
+  /** ADR-0469 delegation and host continuity; it runs before each ownership observation. */
+  continuity?: ConvergenceContinuity;
 }): () => Promise<void> {
   const base = input.intervalMilliseconds ?? RESIDENT_RECONCILE_BASE_MILLISECONDS;
   if (!Number.isSafeInteger(base) || base < 100 || base > RESIDENT_RECONCILE_BASE_MILLISECONDS)
@@ -145,6 +148,8 @@ export function startAutonomousKnowledgeWorker(input: {
     previous ??= await readResidentCycleState(root);
     if (woken && previous !== null) previous = { ...previous, idleStreak: 0 };
     woken = false;
+    // Continuity is rate-limited internally and never blocks the cycle; its findings are state.
+    await input.continuity?.reconcile({ signal }).catch(input.onFailure);
     const observedOwner = await observeOwnership();
     const cycle = await runResidentCycle({
       previous,
