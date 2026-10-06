@@ -3,7 +3,7 @@
  * sit in the host configuration under `.lervo/state`, so each host chooses its own remote and
  * merge policy and the settings never replicate.
  */
-export interface KnowledgePublicationSettings {
+interface KnowledgePublicationTarget {
   /** Git remote that receives the publication branch, such as `origin`. */
   remote: string;
   /** Protected branch that pull requests target; never pushed to directly. */
@@ -15,10 +15,17 @@ export interface KnowledgePublicationSettings {
    * `never` stops at opening or updating it.
    */
   merge: "when_checks_pass" | "never";
-  /** Repository-relative directory prefixes a published commit may change. */
-  allowedRoots: string[];
 }
 
+/**
+ * Which paths a published commit may change. `scope: "delegation"` (ADR-0471) follows the
+ * knowledge write scope: the active delegation's canonical and normalization roots plus
+ * Lervo-managed knowledge state. `allowedRoots` holds fixed operator-chosen directory prefixes.
+ */
+export type KnowledgePublicationSettings = KnowledgePublicationTarget &
+  ({ scope: "delegation"; allowedRoots?: never } | { scope?: never; allowedRoots: string[] });
+
+/** The fixed roots a configuration without `scope` or `allowedRoots` has always meant. */
 export const DEFAULT_KNOWLEDGE_PUBLICATION_ROOTS = ["docs/", ".lervo/knowledge/"] as const;
 
 const REMOTE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u;
@@ -35,7 +42,10 @@ function validBranch(value: unknown): value is string {
   );
 }
 
-/** Null when invalid; `allowedRoots` defaults to `docs/` and `.lervo/knowledge/`. */
+/**
+ * Null when invalid. Without `scope`, `allowedRoots` defaults to `docs/` and `.lervo/knowledge/`;
+ * `scope: "delegation"` excludes `allowedRoots`.
+ */
 export function parseKnowledgePublicationSettings(
   value: unknown,
 ): KnowledgePublicationSettings | null {
@@ -44,7 +54,7 @@ export function parseKnowledgePublicationSettings(
   const keys = Object.keys(input);
   if (
     !keys.every((key) =>
-      ["remote", "baseBranch", "branch", "merge", "allowedRoots"].includes(key),
+      ["remote", "baseBranch", "branch", "merge", "allowedRoots", "scope"].includes(key),
     ) ||
     typeof input.remote !== "string" ||
     !REMOTE.test(input.remote) ||
@@ -54,6 +64,16 @@ export function parseKnowledgePublicationSettings(
     (input.merge !== "when_checks_pass" && input.merge !== "never")
   )
     return null;
+  const target: KnowledgePublicationTarget = {
+    remote: input.remote,
+    baseBranch: input.baseBranch,
+    branch: input.branch,
+    merge: input.merge,
+  };
+  if ("scope" in input)
+    return input.scope === "delegation" && !("allowedRoots" in input)
+      ? { ...target, scope: "delegation" }
+      : null;
   const roots = input.allowedRoots ?? [...DEFAULT_KNOWLEDGE_PUBLICATION_ROOTS];
   if (
     !Array.isArray(roots) ||
@@ -62,11 +82,30 @@ export function parseKnowledgePublicationSettings(
     !roots.every((root) => typeof root === "string" && ROOT.test(root))
   )
     return null;
+  return { ...target, allowedRoots: [...(roots as string[])] };
+}
+
+/**
+ * ADR-0471 migration of a Lervo-derived publication setting: the fixed default roots that
+ * derivation used to write become the delegation scope. Anything else is returned unchanged; the
+ * caller applies this only to configurations Lervo itself wrote.
+ */
+export function migrateDerivedKnowledgePublicationSettings(
+  settings: KnowledgePublicationSettings,
+): KnowledgePublicationSettings {
+  if (
+    settings.scope === "delegation" ||
+    settings.allowedRoots.length !== DEFAULT_KNOWLEDGE_PUBLICATION_ROOTS.length ||
+    !DEFAULT_KNOWLEDGE_PUBLICATION_ROOTS.every(
+      (root, index) => settings.allowedRoots[index] === root,
+    )
+  )
+    return settings;
   return {
-    remote: input.remote,
-    baseBranch: input.baseBranch,
-    branch: input.branch,
-    merge: input.merge,
-    allowedRoots: [...(roots as string[])],
+    remote: settings.remote,
+    baseBranch: settings.baseBranch,
+    branch: settings.branch,
+    merge: settings.merge,
+    scope: "delegation",
   };
 }

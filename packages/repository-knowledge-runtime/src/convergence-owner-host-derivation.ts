@@ -11,7 +11,10 @@ import {
   type ConvergenceOwnerHostConfig,
   type ConvergenceOwnerHubCoordinates,
 } from "./convergence-owner-host.js";
-import type { KnowledgePublicationSettings } from "./knowledge-publication-settings.js";
+import {
+  migrateDerivedKnowledgePublicationSettings,
+  type KnowledgePublicationSettings,
+} from "./knowledge-publication-settings.js";
 import { readPrivateJsonFile, writePrivateJsonFile } from "./private-state-file.js";
 
 /**
@@ -170,18 +173,21 @@ export async function deriveConvergenceOwnerHost(input: {
   // most specific candidate is written unproven, so the lease reports `unverifiable` and this
   // host stays read-only until coordination works. Standalone is only for hosts without any.
   const unproven = chosen === null ? (input.candidates[0] ?? null) : null;
+  // ADR-0473: a derived publication setting is probed again on the same interval, so a remote
+  // whose default branch changed, or a base derived from a stale local ref, is corrected. A failed
+  // probe keeps the current setting, and fixed default roots become the delegation scope.
   const probeDue =
     chosen !== null &&
-    current?.publication === undefined &&
     (marker?.publicationProbedAt === null ||
       marker?.publicationProbedAt === undefined ||
       input.now.getTime() - Date.parse(marker.publicationProbedAt) >=
         PUBLICATION_PROBE_INTERVAL_MS);
-  const publication =
-    chosen === null
+  const probed = probeDue ? await input.publication() : null;
+  const kept =
+    current?.publication === undefined
       ? undefined
-      : (current?.publication ??
-        (probeDue ? ((await input.publication()) ?? undefined) : undefined));
+      : migrateDerivedKnowledgePublicationSettings(current.publication);
+  const publication = chosen === null ? undefined : (probed ?? kept);
   const desired = parseConvergenceOwnerHostConfig({
     schemaVersion: 1,
     hostId: current?.hostId ?? `hst_${(input.random ?? (() => randomBytes(16).toString("hex")))()}`,

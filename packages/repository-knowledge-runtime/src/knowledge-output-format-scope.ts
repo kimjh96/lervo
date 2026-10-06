@@ -4,6 +4,7 @@ import {
   DOCUMENT_FORMAT_OWNERSHIP_ROOTS,
   documentFormatOwnedPaths,
   isDocumentFormatOwnershipSource,
+  observeToolGeneratedDocuments,
 } from "@lervo/repository-knowledge";
 
 const execute = promisify(execFile);
@@ -110,9 +111,16 @@ export async function revisionRangeFormatTargets(input: {
     readRevisionFiles(input.root, input.base, changedSources),
     readRevisionFiles(input.root, input.tip, touched),
   ]);
-  return knowledgeOutputFormatTargets({
+  const targets = knowledgeOutputFormatTargets({
     changedPresentPaths: present.keys(),
     changedSourcesBefore: before,
     sourcesAfter: after,
   });
+  // ADR-0471: a repair restores a tool-generated document to its tool's exact bytes, so the
+  // publication formatter must not touch it either.
+  const toolGenerated = await observeToolGeneratedDocuments({
+    repositoryRoot: input.root,
+    paths: targets,
+  });
+  return targets.filter((path) => !toolGenerated.has(path));
 }

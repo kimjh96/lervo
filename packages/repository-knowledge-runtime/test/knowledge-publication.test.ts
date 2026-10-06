@@ -21,6 +21,12 @@ import {
 import type { KnowledgeOutputFormatter } from "../src/knowledge-output-formatter.js";
 import { KnowledgePublicationForgeError } from "../src/knowledge-publication-forge.js";
 import { publishKnowledgeOutputs } from "../src/knowledge-publication.js";
+import type { KnowledgePublicationRepairEvents } from "../src/knowledge-publication-repair.js";
+import {
+  CONVERGENCE_DELEGATION_PATH,
+  convergenceDelegationPlanHash,
+  type ConvergenceDelegation,
+} from "../src/delegation-contract.js";
 import { readKnowledgePublicationState } from "../src/knowledge-publication-state.js";
 import { readKnowledgeSupersessionLedger } from "../src/knowledge-supersession-ledger.js";
 
@@ -163,7 +169,13 @@ class FakeForge implements KnowledgePublicationForge {
 }
 
 async function setup(
-  options: { merge?: "when_checks_pass" | "never"; formatter?: KnowledgeOutputFormatter } = {},
+  options: {
+    merge?: "when_checks_pass" | "never";
+    formatter?: KnowledgeOutputFormatter;
+    scope?: "delegation";
+    /** Files the developer commits on the remote base before the owner clones it. */
+    seed?: Record<string, string>;
+  } = {},
 ) {
   const directory = await mkdtemp(resolve(tmpdir(), "lervo-knowledge-publication-"));
   directories.push(directory);
@@ -175,6 +187,8 @@ async function setup(
   await writeFile(resolve(seed, ".gitignore"), ".lervo/state/\n");
   await git(seed, ["add", ".gitignore"]);
   await commit(seed, "docs/runtime.md", "# Runtime\n", developer, "docs: seed");
+  for (const [path, content] of Object.entries(options.seed ?? {}))
+    await commit(seed, path, content, developer, `chore: seed ${path}`);
   await git(seed, ["push", "--quiet", "origin", "main"]);
   const root = resolve(directory, "owner");
   await execute("git", ["clone", "--quiet", remote, root]);
@@ -191,6 +205,7 @@ async function setup(
         baseBranch: "main",
         branch: "lervo/knowledge-outputs",
         merge: options.merge ?? "when_checks_pass",
+        ...(options.scope === undefined ? {} : { scope: options.scope }),
       },
     }),
   );
@@ -216,12 +231,70 @@ async function setup(
   const forge = new FakeForge(remote, directory);
   // The bare remote keeps a reflog, so tests can count every update of the publication branch.
   await git(remote, ["config", "core.logAllRefUpdates", "always"]);
+  const events: { type: string; payload: Record<string, unknown> }[] = [];
+  const store = {
+    events: {
+      get: (eventId: string) =>
+        events.find((event) => (event as { eventId?: string }).eventId === eventId) ?? null,
+      append: (event: { type: string; payload: Record<string, unknown> }) => events.push(event),
+    },
+    manifest: { projectId: "prj_knowledge_publication" },
+    writableEventSchemaVersion: 4,
+  } as unknown as KnowledgePublicationRepairEvents;
   const publish = () =>
-    publishKnowledgeOutputs({ repositoryRoot: root, forge, formatter: options.formatter ?? null });
-  return { root, remote, forge, publish, owner };
+    publishKnowledgeOutputs({
+      repositoryRoot: root,
+      forge,
+      formatter: options.formatter ?? null,
+      events: store,
+    });
+  return { root, remote, forge, publish, owner, events };
 }
 
 const remoteMain = (remote: string) => git(remote, ["rev-parse", "refs/heads/main"]);
+
+/** An active delegation whose normalization roots reach outside `docs/`, as in production. */
+function publicationDelegation(): ConvergenceDelegation {
+  const hash = (digit: string) => `sha256:${digit.repeat(64)}`;
+  const binding = {
+    roleId: "developer",
+    version: "1.0.0",
+    contractHash: hash("1"),
+    profileHash: hash("2"),
+    capabilityHash: hash("3"),
+  };
+  const plan: Omit<ConvergenceDelegation, "review"> = {
+    schemaVersion: 1,
+    projectId: "prj_knowledge_publication",
+    state: "active",
+    parentAgentId: `agt_${"a".repeat(24)}`,
+    parentRoleHash: hash("1"),
+    roles: { generator: binding, reviewer: binding, writer: binding, integrator: binding },
+    canonicalRoots: ["docs"],
+    normalizationRoots: ["README.md", "AGENTS.md", ".agents/skills", "apps/site/README.md"],
+    providers: ["codex"],
+    verification: [{ suiteId: "repository.default.v1", suiteHash: hash("4") }],
+    integrationTarget: {
+      ref: "refs/heads/lervo/knowledge-integration",
+      repositoryIdentityHash: hash("5"),
+    },
+    expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+    resourceCeilings: {
+      maximumStages: 4,
+      maximumDocuments: 4,
+      maximumSourceBytes: 65_536,
+      maximumProviderCalls: 4,
+    },
+  };
+  return {
+    ...plan,
+    review: {
+      reviewerAgentId: `agt_${"b".repeat(24)}`,
+      reviewedAt: new Date().toISOString(),
+      planHash: convergenceDelegationPlanHash(plan),
+    },
+  };
+}
 
 /** Lands a developer commit on the remote base from another clone, moving `origin/main`. */
 async function advanceRemoteMain(remote: string, path: string, content: string) {
@@ -497,23 +570,157 @@ describe("knowledge output publication", () => {
     },
   );
 
-  it("refuses a knowledge commit outside the allowed roots and records one failure", async () => {
+  it("refuses an out-of-scope path a developer also changed and records one failure", async () => {
     const { root, remote, forge, publish } = await setup();
     await commit(root, "src/generated.ts", "export {};\n", knowledge);
+    await commit(root, "src/generated.ts", "export const value = 1;\n", developer, "feat: edit");
     const first = await publish();
     const second = await publish();
     expect(first).toMatchObject({
       state: {
         status: "failed",
-        failure: { code: "knowledge_publication_scope_violation", occurrences: 1 },
+        failure: {
+          code: "knowledge_publication_scope_violation",
+          detail:
+            "1 path(s) outside the knowledge write scope, 0 tool-owned path(s); automatic repair blocked: 1 developer_change",
+          occurrences: 1,
+        },
       },
     });
+    expect(await readFile(resolve(root, "src/generated.ts"), "utf8")).toBe(
+      "export const value = 1;\n",
+    );
     expect(second).toMatchObject({ state: { failure: { occurrences: 2 } } });
     expect(forge.pullRequests).toEqual([]);
     await expect(
       git(remote, ["rev-parse", "refs/heads/lervo/knowledge-outputs"]),
     ).rejects.toThrow();
   });
+
+  it(
+    "restores an out-of-scope knowledge change in one corrective commit, records it, and publishes",
+    { timeout: 60_000 },
+    async () => {
+      const { root, forge, publish, events } = await setup();
+      await commit(root, "src/generated.ts", "export {};\n", knowledge);
+      const offending = await git(root, ["rev-parse", "HEAD"]);
+      expect(await publish()).toMatchObject({
+        state: { status: "awaiting_checks", failure: null, commitCount: 2 },
+      });
+      await expect(readFile(resolve(root, "src/generated.ts"), "utf8")).rejects.toThrow();
+      const repair = await git(root, ["log", "-1", "--format=%H%n%ae%n%ce%n%B"]);
+      const [repairCommit, author, committer, ...message] = repair.split("\n");
+      expect([author, committer]).toEqual(["knowledge@lervo.invalid", "knowledge@lervo.invalid"]);
+      expect(message.join("\n")).toContain(
+        "docs: restore paths the knowledge lifecycle must not change",
+      );
+      expect(message.join("\n")).toContain("- src/generated.ts: outside the knowledge write scope");
+      expect(message.join("\n")).toContain(`Lervo-Publication-Repair: ${offending}`);
+      expect(events).toEqual([
+        expect.objectContaining({
+          type: "knowledge.publication.repaired",
+          payload: expect.objectContaining({
+            repairCommit,
+            repairedCommits: [offending],
+            toolGeneratedPathCount: 0,
+            outsideScopePathCount: 1,
+            normalizationPathCount: 0,
+          }),
+        }),
+      ]);
+      expect(forge.pullRequests).toHaveLength(1);
+      // The repaired history publishes as is; the next cycle repairs nothing more.
+      await publish();
+      expect(events).toHaveLength(1);
+    },
+  );
+
+  it(
+    "restores a release-please changelog a published knowledge commit rewrote and retires its record",
+    { timeout: 60_000 },
+    async () => {
+      // The tool's bytes carry trailing spaces the repository formatter would strip.
+      const changelog =
+        "# Changelog  \n\n## [1.2.0](https://example.invalid/compare) (2026-10-01)\n\n### Features\n\n* **app:** add sign-in ([#12](https://example.invalid/12))\n";
+      const { root, remote, publish, events } = await setup({
+        formatter: trailingSpaceFormatter,
+        seed: {
+          "release-please-config.json": JSON.stringify({ packages: { "apps/app": {} } }),
+          ".release-please-manifest.json": JSON.stringify({ "apps/app": "1.2.0" }),
+          "apps/app/CHANGELOG.md": changelog,
+        },
+      });
+      const record =
+        ".lervo/knowledge/document-normalizations/92/knormdoc_92ff6843c1236faa3d1585fd.yaml";
+      await mkdir(resolve(root, ".lervo/knowledge/document-normalizations/92"), {
+        recursive: true,
+      });
+      await writeFile(
+        resolve(root, "apps/app/CHANGELOG.md"),
+        "# Changelog\n\n## 1.2.0\n\n- Add Sign-In.\n",
+      );
+      await writeFile(
+        resolve(root, record),
+        `sourcePath: apps/app/CHANGELOG.md\noutputs:\n  - path: apps/app/CHANGELOG.md\n  - path: apps/app/CHANGELOG/features.md\n`,
+      );
+      await mkdir(resolve(root, "apps/app/CHANGELOG"), { recursive: true });
+      await writeFile(resolve(root, "apps/app/CHANGELOG/features.md"), "# Features\n");
+      await git(root, ["add", "-A"], knowledge);
+      await git(
+        root,
+        ["commit", "--quiet", "-m", "docs: apply reviewed background knowledge"],
+        knowledge,
+      );
+      const rewrite = await git(root, ["rev-parse", "HEAD"]);
+      // The rewrite was already published: it sits on the remote base.
+      await git(root, ["push", "--quiet", "origin", "main"]);
+      await git(root, ["fetch", "--quiet", "origin"]);
+
+      await publish();
+      expect(await readFile(resolve(root, "apps/app/CHANGELOG.md"), "utf8")).toBe(changelog);
+      // The publication formatter leaves the restored tool bytes alone on the published tip.
+      expect(
+        await git(remote, ["show", "refs/heads/lervo/knowledge-outputs:apps/app/CHANGELOG.md"]),
+      ).toBe(changelog.trim());
+      await expect(readFile(resolve(root, record), "utf8")).rejects.toThrow();
+      await expect(
+        readFile(resolve(root, "apps/app/CHANGELOG/features.md"), "utf8"),
+      ).rejects.toThrow();
+      expect(await git(root, ["log", "-1", "--format=%B"])).toContain(
+        `Lervo-Publication-Repair: ${rewrite}`,
+      );
+      expect(events).toEqual([
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            repairedCommits: [rewrite],
+            toolGeneratedPathCount: 1,
+            outsideScopePathCount: 0,
+            normalizationPathCount: 2,
+          }),
+        }),
+      ]);
+    },
+  );
+
+  it(
+    "publishes paths inside the active delegation's roots and refuses nothing it reviewed",
+    { timeout: 60_000 },
+    async () => {
+      const { root, forge, publish, events } = await setup({
+        scope: "delegation",
+        seed: { [CONVERGENCE_DELEGATION_PATH]: JSON.stringify(publicationDelegation()) },
+      });
+      await commit(root, "apps/site/README.md", "# Site\n\nReviewed.\n", knowledge);
+      await commit(root, ".agents/skills/review/SKILL.md", "# Review\n", knowledge);
+      expect(await publish()).toMatchObject({
+        state: { status: "awaiting_checks", failure: null, commitCount: 2 },
+      });
+      expect(events).toEqual([]);
+      expect(forge.pullRequests[0]!.body).toContain(
+        "the active convergence delegation's canonical and normalization roots",
+      );
+    },
+  );
 
   it(
     "stops at the pull request when checks fail or merging is disabled",

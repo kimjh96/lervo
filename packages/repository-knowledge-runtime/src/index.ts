@@ -67,6 +67,7 @@ export {
 export { createGitHubKnowledgePublicationForge } from "./knowledge-publication-github.js";
 export type { KnowledgePublicationForge } from "./knowledge-publication-forge.js";
 export { readKnowledgePublicationState } from "./knowledge-publication-state.js";
+export type { KnowledgePublicationRepairEvents } from "./knowledge-publication-repair.js";
 export { reconcileKnowledgeSupersession } from "./knowledge-supersession.js";
 export {
   parseKnowledgeSupersessionEntries,
