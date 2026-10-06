@@ -32,7 +32,7 @@ It never automatically rewrites user-owned documents, rebinds a repository-defin
 
 ### Stage dependencies
 
-The plan publishes `policy.stageDependencies`. Apply follows this order: capabilities, workforce, terminal integration, knowledge, then Node.
+The plan publishes `policy.stageDependencies`. Apply follows capabilities, workforce, terminal integration, knowledge, then Node. [ADR-0470](0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) adds `event_writer` after terminal integration and Node, and an independent `host_service` stage. [ADR-0483](../../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) adds `replica_service` as the last stage, after `node`.
 
 | Stage | Requires |
 | --- | --- |
@@ -41,6 +41,11 @@ The plan publishes `policy.stageDependencies`. Apply follows this order: capabil
 | `terminal_integration` | Nothing |
 | `knowledge` | Capabilities applied first |
 | `node` | Knowledge not blocked, then knowledge lint |
+| `event_writer` | `terminal_integration` and `node` applied first |
+| `host_service` | Nothing |
+| `replica_service` | Runs last, after `node`; a stage deferred behind an applying `node` stage is re-observed during apply |
+
+Event writer activation retains ADR-0470's reader-evidence, backup, and exact-plan requirements. A stage deferred behind terminal integration or Node applies only if it becomes ready in the same run; otherwise it is skipped with its blockers. Host service remains independent. The replica service stage retains ADR-0483's applicability, pointer, migration, service replacement, and stale-plan checks. These stage requirements do not establish installed activation or fleet acceptance.
 
 A blocked stage defers only its dependents. Independent stages still plan and apply under the same exact approval; for example, a generated-only hook runtime refresh applies while unclassified documents block knowledge. The plan lists those stages in `applicableStages` and stays `blocked` until the blocker clears. The blocked stage reports its exact blockers: layout blockers, conflicts, contract issues, or the inner command's error envelope. The receipt records skipped stages and their reasons. Apply refuses a blocked plan only when `applicableStages` is empty.
 
