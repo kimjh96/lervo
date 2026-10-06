@@ -33,6 +33,7 @@ it("refuses a live conversation before the service operation and releases no abs
         runtime: "node",
         action: "upgrade",
         config: value.config,
+        busyWaitMs: 0,
         openAdmission: async () => ({
           scope: "scope",
           store: {
@@ -51,6 +52,42 @@ it("refuses a live conversation before the service operation and releases no abs
   ).rejects.toMatchObject({ code: "service_upgrade_work_busy" });
   expect(touched).toBe(false);
   expect(closed).toBe(true);
+});
+
+it("waits for admitted work to drain and then runs the service operation", async () => {
+  const value = await fixture();
+  const steps = [];
+  let attempts = 0;
+  const freeze = { token: "freeze", scope: "scope", ownerPid: process.pid };
+  await withNodeWorkUpgradeFence(
+    {
+      runtime: "node",
+      action: "upgrade",
+      config: value.config,
+      busyWaitMs: 60_000,
+      busyRetryMs: 1,
+      sleep: async () => {
+        steps.push("waited");
+      },
+      openAdmission: async () => ({
+        scope: "scope",
+        store: {
+          tryFreeze: () => {
+            attempts += 1;
+            return attempts < 3
+              ? { status: "busy", reason: "active_work" }
+              : { status: "frozen", freeze };
+          },
+          unfreeze: () => steps.push("unfrozen"),
+          close: () => steps.push("closed"),
+        },
+      }),
+    },
+    async () => {
+      steps.push("operation");
+    },
+  );
+  expect(steps).toEqual(["waited", "waited", "operation", "unfrozen", "closed"]);
 });
 
 it("holds the exact idle freeze through operation failure and then releases it", async () => {
@@ -157,6 +194,7 @@ it("refuses admitted work and excludes new work throughout an idle upgrade acros
       runtime: "node",
       action: "upgrade",
       config: value.config,
+      busyWaitMs: 0,
       openAdmission: async () => ({
         store: await SQLiteNodeWorkAdmission.open({ path }),
         scope,

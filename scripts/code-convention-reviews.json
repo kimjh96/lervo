@@ -403,7 +403,7 @@
     },
     {
       "path": "scripts/distribution/lib/runtime-service-management.mjs",
-      "contentHash": "sha256:fc18e25bdc14362854bbfa738cbe04d55178097c25cdf673c3b970a65ed54a47",
+      "contentHash": "sha256:106ffdc1712b62f02f4d37f152204ff8d796a3d21409687fa0d07a626fc4b0ec",
       "responsibility": "Runtime service lifecycle manager",
       "rationale": "One coordinator owns exact predecessor validation, stable manager observations within the graceful stop bound, and transactional replacement for Hub, Node, and host knowledge resident services. Rendering, target paths, and PATH directory validation live in the renderer; CLI configuration policy stays in its adapter. Argument validation extraction remains the bounded roadmap follow-up.",
       "disposition": "cohesive"

@@ -49,6 +49,7 @@ it.each([
         runtime: "node",
         action: "upgrade",
         config: fixture.path,
+        busyWaitMs: 0,
         ...(standing
           ? {
               resolveStanding: async (_root, binding) => ({
@@ -93,7 +94,48 @@ it.each([
   },
 );
 
-it("refuses a busy owner without touching the service", async () => {
+it("waits for a running supervision cycle and then upgrades", async () => {
+  const fixture = await config();
+  const sequence = [];
+  let attempts = 0;
+  const result = await withNodeSupervisionUpgradeFence(
+    {
+      runtime: "node",
+      action: "upgrade",
+      config: fixture.path,
+      busyWaitMs: 60_000,
+      busyRetryMs: 1,
+      sleep: async () => {
+        sequence.push("waited");
+      },
+      openLeases: async () => ({
+        acquire: (input) => {
+          attempts += 1;
+          if (attempts < 3) return null;
+          sequence.push(`acquired:${input.supervisionId}`);
+          return { supervisionId: input.supervisionId };
+        },
+        release: (value) => sequence.push(`released:${value.supervisionId}`),
+        close: () => sequence.push("closed"),
+      }),
+    },
+    async () => {
+      sequence.push("upgrade");
+      return "upgraded";
+    },
+  );
+  expect(result).toBe("upgraded");
+  expect(sequence).toEqual([
+    "waited",
+    "waited",
+    "acquired:supervision.test",
+    "upgrade",
+    "released:supervision.test",
+    "closed",
+  ]);
+});
+
+it("refuses an owner that stays busy for the whole wait without touching the service", async () => {
   const fixture = await config();
   let touched = false;
   let closed = false;
@@ -103,6 +145,7 @@ it("refuses a busy owner without touching the service", async () => {
         runtime: "node",
         action: "upgrade",
         config: fixture.path,
+        busyWaitMs: 0,
         openLeases: async () => ({
           acquire: () => null,
           release: () => {
@@ -149,6 +192,7 @@ it("releases the next-successor fence when the current successor is busy", async
         runtime: "node",
         action: "upgrade",
         config: fixture.path,
+        busyWaitMs: 0,
         resolveStanding: async (_root, binding) => ({
           binding: { ...binding, supervisionId: "supervision.test.s1" },
           index: 1,
@@ -181,6 +225,7 @@ it("rejects a standing successor change observed after locking", async () => {
         runtime: "node",
         action: "upgrade",
         config: fixture.path,
+        busyWaitMs: 0,
         resolveStanding: async (_root, binding) => {
           resolves += 1;
           const index = resolves;
@@ -223,6 +268,7 @@ it("uses the real cross-connection process lock and releases it after a failed u
     runtime: "node",
     action: "upgrade",
     config: fixture.path,
+    busyWaitMs: 0,
     openLeases: async () => SQLiteSupervisionOwnerLeaseStore.open(path),
   };
   try {

@@ -8,6 +8,10 @@ export class NodeWorkUpgradeFenceError extends Error {
   }
 }
 
+/** How long an upgrade waits for admitted Node work to drain before refusing. */
+export const NODE_WORK_BUSY_WAIT_MS = 15 * 60_000;
+const NODE_WORK_BUSY_RETRY_MS = 5_000;
+
 async function openNodeAdmission(source, configPath) {
   const { SQLiteNodeWorkAdmission, nodeWorkAdmissionDatabasePath, nodeWorkAdmissionScope } =
     await import("../../../packages/node-work-admission/dist/index.js");
@@ -42,20 +46,30 @@ export async function withNodeWorkUpgradeFence(input, operation) {
   }
   try {
     let decision;
-    try {
-      const freezeInput = {
-        scope: admission.scope,
-        configDigest: source.sourceDigest,
-      };
-      decision = admission.store.tryFreeze(freezeInput);
-      if (
-        decision.status === "busy" &&
-        decision.reason === "session_missing" &&
-        (await input.verifyInactivePredecessor?.()) === true
-      )
-        decision = admission.store.tryFreeze({ ...freezeInput, allowNoSession: true });
-    } catch (error) {
-      throw new NodeWorkUpgradeFenceError("service_upgrade_fence_invalid", error);
+    const sleep =
+      input.sleep ?? ((durationMs) => new Promise((done) => setTimeout(done, durationMs)));
+    const deadline = Date.now() + (input.busyWaitMs ?? NODE_WORK_BUSY_WAIT_MS);
+    // Admitted Node work finishes on its own; wait for it to drain before freezing instead of
+    // failing the upgrade. A concurrent upgrade (`upgrade_owned`) is still refused at once.
+    for (;;) {
+      try {
+        const freezeInput = {
+          scope: admission.scope,
+          configDigest: source.sourceDigest,
+        };
+        decision = admission.store.tryFreeze(freezeInput);
+        if (
+          decision.status === "busy" &&
+          decision.reason === "session_missing" &&
+          (await input.verifyInactivePredecessor?.()) === true
+        )
+          decision = admission.store.tryFreeze({ ...freezeInput, allowNoSession: true });
+      } catch (error) {
+        throw new NodeWorkUpgradeFenceError("service_upgrade_fence_invalid", error);
+      }
+      if (decision.status === "frozen" || decision.reason !== "active_work") break;
+      if (Date.now() >= deadline) break;
+      await sleep(input.busyRetryMs ?? NODE_WORK_BUSY_RETRY_MS);
     }
     if (decision.status !== "frozen") {
       throw new NodeWorkUpgradeFenceError(
