@@ -80,16 +80,16 @@ describe("conversation knowledge review context", () => {
 
   it("prioritizes source-adjacent documents within the bounded recommendation set", async () => {
     const root = await fixture();
-    await mkdir(resolve(root, "docs/knowledge"), { recursive: true });
+    await mkdir(resolve(root, "docs/specs/knowledge"), { recursive: true });
     await writeFile(resolve(root, "docs/generic.md"), "# Generic\n");
-    await writeFile(resolve(root, "docs/knowledge/target.md"), "# Knowledge target\n");
+    await writeFile(resolve(root, "docs/specs/knowledge/target.md"), "# Knowledge target\n");
     const documents = await loadConversationKnowledgeReviewContext({
       repositoryRoot: root,
       sourcePaths: ["apps/knowledge/src/source.ts"],
       queryKnowledge: queryWith([
         { path: "docs/generic.md", contentHash: hash("# Generic\n"), freshness: "current" },
         {
-          path: "docs/knowledge/target.md",
+          path: "docs/specs/knowledge/target.md",
           contentHash: hash("# Knowledge target\n"),
           freshness: "current",
         },
@@ -97,7 +97,7 @@ describe("conversation knowledge review context", () => {
     });
     expect(documents.map((document) => document.path)).toEqual([
       "AGENTS.md",
-      "docs/knowledge/target.md",
+      "docs/specs/knowledge/target.md",
       "docs/generic.md",
     ]);
   });

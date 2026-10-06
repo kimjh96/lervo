@@ -48,6 +48,37 @@ describe("canonical review context", () => {
     expect(documents.map((document) => document.path)).toEqual(["AGENTS.md"]);
   });
 
+  it("never binds the rebuildable publication root as review context", async () => {
+    // digimon: a broad recommendation bound docs/knowledge/documentation.md, which the next
+    // knowledge refresh rewrote, so the waiting canonical review became review_context_stale.
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
+    roots.push(root);
+    await mkdir(resolve(root, ".lervo"));
+    await fixtureFile(
+      root,
+      ".lervo/knowledge/policy.yaml",
+      serializeRepositoryKnowledgePolicy(defaultRepositoryKnowledgePolicy),
+    );
+    await fixtureFile(root, "AGENTS.md", "Repository instructions.\n");
+    const projection = `${defaultRepositoryKnowledgePolicy.publicationRoot}/documentation.md`;
+    const hits = [
+      {
+        path: projection,
+        contentHash: await fixtureFile(root, projection, "# Documentation\nGenerated index.\n"),
+      },
+      {
+        path: "docs/pipeline.md",
+        contentHash: await fixtureFile(root, "docs/pipeline.md", "Asset pipeline contract.\n"),
+      },
+    ];
+    const documents = await loadCanonicalReviewContext({
+      repositoryRoot: root,
+      sourcePaths: ["apps/tools/create_model.py"],
+      queryKnowledge: async () => ({ hits }),
+    });
+    expect(documents.map((document) => document.path)).toEqual(["AGENTS.md", "docs/pipeline.md"]);
+  });
+
   it("loads direct source links before broad recommendations", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
     roots.push(root);
