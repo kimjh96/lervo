@@ -6,20 +6,20 @@ import { listNodeFleetInstances } from "@lervo/repository-registry";
 import {
   failNodeFleetApply,
   type NodeFleetApplyPorts,
-  type NodeFleetApplyReceipt,
   type NodeFleetServiceResult,
   type NodeFleetStatusReport,
 } from "./node-fleet-apply-contract.js";
+import { nodeReadinessComponentText as componentStatus } from "./node-fleet-readiness-policy.js";
 
 // @ts-expect-error The repository service script intentionally remains plain ESM.
 import { manageRuntimeService } from "../../../scripts/distribution/manage-runtime-service.mjs";
 
-const readyObservations = 3;
-const readyIntervalMs = 500;
-const readyMaximumObservations = 120;
 const maximumHealthBytes = 64 * 1024;
 
-async function readHealthSnapshot(path: string): Promise<NodeRuntimeHealthSnapshot> {
+/** Reads one owner-only, bounded Node health snapshot or fails with a typed readiness code. */
+export async function readNodeFleetHealthSnapshot(
+  path: string,
+): Promise<NodeRuntimeHealthSnapshot> {
   const metadata = await lstat(path);
   if (
     !metadata.isFile() ||
@@ -45,24 +45,10 @@ async function readHealthSnapshot(path: string): Promise<NodeRuntimeHealthSnapsh
 
 async function readReportedHealth(path: string): Promise<NodeRuntimeHealthSnapshot | null> {
   try {
-    return await readHealthSnapshot(path);
+    return await readNodeFleetHealthSnapshot(path);
   } catch {
     return null;
   }
-}
-
-function componentStatus(
-  value: { status: string; failureCode?: string; reasonCode?: string } | undefined,
-): string {
-  return value === undefined
-    ? "unavailable"
-    : value.status === "unavailable"
-      ? `unavailable:${value.failureCode ?? "unknown"}`
-      : value.status === "dormant"
-        ? `dormant:${value.reasonCode ?? "unknown"}`
-        : value.status === "attention"
-          ? `attention:${value.reasonCode ?? "unknown"}`
-          : value.status;
 }
 
 export async function inspectNodeFleetStatus(input: {
@@ -148,98 +134,4 @@ export async function inspectNodeFleetStatus(input: {
     status: instances.every((item) => item.recoveryAction === "none") ? "ready" : "degraded",
     instances,
   };
-}
-
-export async function observeNodeFleetReadiness(
-  path: string,
-  notBefore: Date,
-  ports: NodeFleetApplyPorts,
-  allowHubUnavailable: boolean,
-): Promise<NodeFleetApplyReceipt["readiness"]> {
-  const read = ports.readHealth ?? readHealthSnapshot;
-  const wait =
-    ports.wait ??
-    ((durationMs: number) => new Promise<void>((done) => setTimeout(done, durationMs)));
-  let consecutive = 0;
-  let identity: string | null = null;
-  let previousUpdatedAt = 0;
-  let last: NodeRuntimeHealthSnapshot | null = null;
-  for (let attempt = 0; attempt < readyMaximumObservations; attempt += 1) {
-    try {
-      const current = await read(path);
-      const currentIdentity = `${current.processId}\0${current.startedAt}`;
-      const updatedAt = Date.parse(current.updatedAt);
-      const hubUnavailable = (component: NodeRuntimeHealthSnapshot["sync"]): boolean =>
-        component.status === "unavailable" && component.failureCode === "hub_unavailable";
-      const syncReady =
-        current.sync.status === "ready" || (allowHubUnavailable && hubUnavailable(current.sync));
-      const workstreamReady =
-        current.workstreamReplication.status === "ready" ||
-        (allowHubUnavailable && hubUnavailable(current.workstreamReplication));
-      const remoteReady =
-        current.remoteControl.status === "ready" ||
-        current.remoteControl.status === "disabled" ||
-        (allowHubUnavailable && hubUnavailable(current.remoteControl));
-      const workspaceReady =
-        current.workspaceCoordination.status === "ready" ||
-        current.workspaceCoordination.status === "disabled" ||
-        (allowHubUnavailable && hubUnavailable(current.workspaceCoordination));
-      const offline =
-        hubUnavailable(current.sync) ||
-        hubUnavailable(current.workstreamReplication) ||
-        hubUnavailable(current.workspaceCoordination) ||
-        hubUnavailable(current.remoteControl);
-      const complete =
-        (current.status === "ready" ||
-          (allowHubUnavailable && current.status === "degraded" && offline)) &&
-        syncReady &&
-        workstreamReady &&
-        workspaceReady &&
-        remoteReady &&
-        updatedAt >= notBefore.getTime();
-      if (
-        complete &&
-        (identity === null || identity === currentIdentity) &&
-        updatedAt >= previousUpdatedAt
-      ) {
-        identity = currentIdentity;
-        previousUpdatedAt = updatedAt;
-        last = current;
-        consecutive += 1;
-        if (consecutive === readyObservations) {
-          return {
-            status: offline ? "offline_ready" : "ready",
-            observations: 3,
-            processId: current.processId,
-            startedAt: current.startedAt,
-            sync: componentStatus(current.sync) as NodeFleetApplyReceipt["readiness"]["sync"],
-            workstreamReplication: componentStatus(
-              current.workstreamReplication,
-            ) as NodeFleetApplyReceipt["readiness"]["workstreamReplication"],
-            workspaceCoordination: componentStatus(
-              current.workspaceCoordination,
-            ) as NodeFleetApplyReceipt["readiness"]["workspaceCoordination"],
-            remoteControl: componentStatus(
-              current.remoteControl,
-            ) as NodeFleetApplyReceipt["readiness"]["remoteControl"],
-          };
-        }
-      } else {
-        consecutive = 0;
-        identity = null;
-        previousUpdatedAt = 0;
-      }
-    } catch {
-      consecutive = 0;
-      identity = null;
-      previousUpdatedAt = 0;
-    }
-    await wait(readyIntervalMs);
-  }
-  failNodeFleetApply(
-    "node_fleet_readiness_timeout",
-    last === null
-      ? "The Node runtime did not publish a safe readiness snapshot."
-      : "The Node runtime did not remain completely ready for three observations.",
-  );
 }

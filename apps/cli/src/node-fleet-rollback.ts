@@ -18,10 +18,12 @@ import { createRuntimeServiceDefinition } from "../../../scripts/distribution/re
 
 import {
   assertNodeFleetExecutable,
+  captureNodeFleetReadinessBaseline,
   NodeFleetApplyError,
   type NodeFleetApplyPorts,
   type NodeFleetApplyReceipt,
   observeNodeFleetReadiness,
+  recoverNodeFleetFailure,
 } from "./node-fleet-apply.js";
 
 type RollbackServiceResult = NodeFleetApplyReceipt["service"] & { change: "rolled_back" };
@@ -180,6 +182,13 @@ export async function applyNodeFleetRollback(input: {
     ...(ports.wait === undefined ? {} : { wait: ports.wait }),
     ...(ports.readHealth === undefined ? {} : { readHealth: ports.readHealth }),
   };
+  const now = input.now ?? (() => new Date());
+  // The failed target's health is the regression baseline the predecessor is judged against.
+  const baseline = await captureNodeFleetReadinessBaseline(
+    current.desired.healthPath,
+    readinessPorts,
+    now(),
+  );
   let service: RollbackServiceResult | null = null;
   let registryCommitted = false;
   let compensated = false;
@@ -237,12 +246,13 @@ export async function applyNodeFleetRollback(input: {
     ) {
       fail("node_fleet_rollback_failed", "The predecessor service did not remain active.");
     }
-    const readiness = await observeReadiness(
-      current.desired.healthPath,
-      (input.now ?? (() => new Date()))(),
-      readinessPorts,
-      false,
-    );
+    const readiness = await observeReadiness({
+      path: current.desired.healthPath,
+      notBefore: now(),
+      ports: readinessPorts,
+      allowHubUnavailable: false,
+      baseline,
+    });
     let registry: RegisterNodeFleetInstanceResult;
     try {
       registry = await register({
@@ -255,13 +265,7 @@ export async function applyNodeFleetRollback(input: {
       });
       registryCommitted = true;
     } catch (error) {
-      await compensate().catch((recoveryError: unknown) =>
-        fail(
-          "node_fleet_recovery_failed",
-          "Rollback registration failed and the failed target could not be restored.",
-          recoveryError,
-        ),
-      );
+      await recoverNodeFleetFailure(error, compensate, "Rollback registration");
       fail(
         "node_fleet_registry_apply_failed",
         "Predecessor readiness was observed but fleet registration failed.",
@@ -279,15 +283,7 @@ export async function applyNodeFleetRollback(input: {
       registry,
     };
   } catch (error) {
-    if (!registryCommitted) {
-      await compensate().catch((recoveryError: unknown) =>
-        fail(
-          "node_fleet_recovery_failed",
-          "Node rollback failed and the failed target could not be restored.",
-          recoveryError,
-        ),
-      );
-    }
+    if (!registryCommitted) await recoverNodeFleetFailure(error, compensate, "Node rollback");
     if (error instanceof NodeFleetApplyError) throw error;
     fail("node_fleet_rollback_failed", "The repository Node rollback operation failed.", error);
   } finally {

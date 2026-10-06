@@ -1,6 +1,6 @@
 # Enrollment and waves
 
-Organization enrollment binds an active delivered credential to the deterministic repository service instance, runtime artifact, local onboarding plan and apply receipt hashes, and three complete online readiness observations. It excludes paths, service bodies, credential sources, and secret material. `offline_ready` suffices only for a bounded registered replacement in the local lifecycle; it cannot establish first organization admission.
+Organization enrollment binds an active delivered credential to the deterministic repository service instance, runtime artifact, local onboarding plan and apply receipt hashes, and three complete online readiness observations. It excludes paths, service bodies, credential sources, and secret material. `offline_ready` suffices only for a bounded registered replacement in the local lifecycle; it cannot establish first organization admission. Likewise, a local replacement may carry an unchanged non-delivery condition from its baseline, but a first admission has no baseline and needs complete readiness ([ADR-0475](../../../../decisions/operations/services/0475-judge-node-replacement-readiness-by-regression.md)).
 
 A rollout names every enrolled target exactly once. A multi-Node rollout starts with one canary. Each wave grows by at most twofold, contains at most 32 Nodes, and permits zero unavailable Nodes.
 

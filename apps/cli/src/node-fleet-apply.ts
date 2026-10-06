@@ -23,11 +23,15 @@ import { createRuntimeServiceDefinition } from "../../../scripts/distribution/re
 import {
   failNodeFleetApply as fail,
   NodeFleetApplyError,
+  recoverNodeFleetFailure,
   type NodeFleetApplyPorts,
   type NodeFleetApplyReceipt,
   type NodeFleetServiceResult,
 } from "./node-fleet-apply-contract.js";
-import { observeNodeFleetReadiness } from "./node-fleet-health.js";
+import {
+  captureNodeFleetReadinessBaseline,
+  observeNodeFleetReadiness,
+} from "./node-fleet-readiness.js";
 import { transitionLegacyNodeSingleton } from "./node-fleet-legacy-transition.js";
 import { nodeServiceToolDirectories } from "./node-service-tool-directories.js";
 import {
@@ -36,7 +40,11 @@ import {
 } from "./node-fleet-runtime-material.js";
 
 export * from "./node-fleet-apply-contract.js";
-export { inspectNodeFleetStatus, observeNodeFleetReadiness } from "./node-fleet-health.js";
+export { inspectNodeFleetStatus } from "./node-fleet-health.js";
+export {
+  captureNodeFleetReadinessBaseline,
+  observeNodeFleetReadiness,
+} from "./node-fleet-readiness.js";
 export { assertNodeFleetExecutable } from "./node-fleet-runtime-material.js";
 
 function safeAbsolute(value: string): boolean {
@@ -155,6 +163,11 @@ export async function applyNodeFleetOnboarding(input: {
   const temporaryDirectory = await mkdtemp(resolve(tmpdir(), "lervo-node-service-"));
   const definition = resolve(temporaryDirectory, "service-definition");
   const previousDefinition = resolve(temporaryDirectory, "previous-service-definition");
+  // An existing service's health is the regression baseline; a first install has none.
+  const baseline =
+    current.service.targetState === "present_unverified"
+      ? await captureNodeFleetReadinessBaseline(current.desired.healthPath, ports, new Date())
+      : ({ status: "not_applicable" } as const);
   const appliedAt = new Date();
   let service: NodeFleetServiceResult | null = null;
   let compensated = false;
@@ -251,12 +264,13 @@ export async function applyNodeFleetOnboarding(input: {
       service.enabled === false
     )
       fail("node_fleet_service_unavailable", "The repository service did not remain active.");
-    const readiness = await observeNodeFleetReadiness(
-      current.desired.healthPath,
-      appliedAt,
+    const readiness = await observeNodeFleetReadiness({
+      path: current.desired.healthPath,
+      notBefore: appliedAt,
       ports,
-      input.allowHubUnavailableReadiness === true,
-    );
+      allowHubUnavailable: input.allowHubUnavailableReadiness === true,
+      baseline,
+    });
     let registry: RegisterNodeFleetInstanceResult;
     try {
       registry = await registerNodeFleetInstance({
@@ -269,13 +283,7 @@ export async function applyNodeFleetOnboarding(input: {
       });
       registryCommitted = true;
     } catch (error) {
-      await compensate().catch((recoveryError: unknown) =>
-        fail(
-          "node_fleet_recovery_failed",
-          "Fleet registration failed and the prior service state could not be restored.",
-          recoveryError,
-        ),
-      );
+      await recoverNodeFleetFailure(error, compensate, "Fleet registration");
       fail(
         "node_fleet_registry_apply_failed",
         "Runtime readiness was observed but fleet registration failed.",
@@ -301,14 +309,7 @@ export async function applyNodeFleetOnboarding(input: {
       registry,
     };
   } catch (error) {
-    if (!registryCommitted)
-      await compensate().catch((recoveryError: unknown) =>
-        fail(
-          "node_fleet_recovery_failed",
-          "Node onboarding failed and the prior service state could not be restored.",
-          recoveryError,
-        ),
-      );
+    if (!registryCommitted) await recoverNodeFleetFailure(error, compensate, "Node onboarding");
     if (error instanceof NodeFleetApplyError) throw error;
     if (error instanceof RuntimeServiceManagementError)
       fail(

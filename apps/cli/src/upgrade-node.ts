@@ -14,6 +14,7 @@ import {
 import { formatRuntimeServiceDefinition } from "../../../scripts/distribution/render-runtime-service.mjs";
 
 import { applyNodeFleetOnboarding, inspectNodeFleetStatus } from "./node-fleet-apply.js";
+import { nodeRuntimeHasOnlyAuxiliaryConditions } from "./node-fleet-readiness-policy.js";
 import { readNodeServiceCoordinates } from "./node-service-coordinates.js";
 import { nodeServiceToolDirectories } from "./node-service-tool-directories.js";
 
@@ -329,6 +330,19 @@ export async function inspectRegisteredNodeUpgrade(
         ...deploymentFields,
         disposition: "current",
         reason: "exact_runtime_deployed_hub_unavailable",
+      }),
+    );
+  if (
+    deploymentCurrent &&
+    status !== undefined &&
+    status.recoveryAction === "inspect_runtime_failure" &&
+    nodeRuntimeHasOnlyAuxiliaryConditions(status.runtime)
+  )
+    return inspected(
+      stage({
+        ...deploymentFields,
+        disposition: "current",
+        reason: "exact_runtime_deployed_runtime_attention",
       }),
     );
   if (deploymentCurrent && status !== undefined && status.recoveryAction !== "reapply_exact_plan")

@@ -1,18 +1,98 @@
 import type { NodeRuntimeHealthSnapshot } from "@lervo/node-runtime";
 import type { RegisterNodeFleetInstanceResult } from "@lervo/repository-registry";
 
-export class NodeFleetApplyError extends Error {
-  readonly code: string;
+import { CommandFailure } from "./command-error-output.js";
+import type {
+  NodeReadinessBaseline,
+  NodeReadinessBlocker,
+  NodeReadinessCarriedCondition,
+} from "./node-fleet-readiness-policy.js";
 
-  constructor(code: string, message: string, options?: ErrorOptions) {
-    super(message, options);
+/** Why readiness was not proved: the last observation's blockers and process coordinates. */
+export interface NodeFleetReadinessFailure {
+  baseline: NodeReadinessBaseline["status"];
+  blockers: NodeReadinessBlocker[];
+  lastStatus: NodeRuntimeHealthSnapshot["status"] | null;
+  lastProcessId: number | null;
+  observations: number;
+}
+
+/**
+ * Bounded, secret-free failure details. `failedCode` names the failure that started recovery, and
+ * `recovery` reports whether the prior service state was restored after that failure.
+ */
+export type NodeFleetApplyFailureDetails = {
+  readiness?: NodeFleetReadinessFailure;
+  failedCode?: string;
+  recovery?: "restored" | "failed";
+  recoveryFailureCode?: string;
+};
+
+export class NodeFleetApplyError extends CommandFailure {
+  declare readonly details: NodeFleetApplyFailureDetails;
+
+  constructor(
+    code: string,
+    message: string,
+    options?: ErrorOptions & { details?: NodeFleetApplyFailureDetails },
+  ) {
+    super(code, message, options?.details ?? {});
     this.name = "NodeFleetApplyError";
-    this.code = code;
+    if (options !== undefined && "cause" in options) this.cause = options.cause;
   }
 }
 
-export function failNodeFleetApply(code: string, message: string, cause?: unknown): never {
-  throw new NodeFleetApplyError(code, message, cause === undefined ? undefined : { cause });
+export function failNodeFleetApply(
+  code: string,
+  message: string,
+  cause?: unknown,
+  details?: NodeFleetApplyFailureDetails,
+): never {
+  throw new NodeFleetApplyError(code, message, {
+    ...(cause === undefined ? {} : { cause }),
+    ...(details === undefined ? {} : { details }),
+  });
+}
+
+function failureCode(error: unknown): string {
+  return error !== null &&
+    typeof error === "object" &&
+    "code" in error &&
+    typeof error.code === "string"
+    ? error.code
+    : "node_fleet_apply_failed";
+}
+
+/**
+ * Compensates a failed operation without losing why it failed. A failed compensation becomes
+ * `node_fleet_recovery_failed` that still names the original failure code, its message, and its
+ * readiness blockers; a successful one marks the original failure as `restored`.
+ */
+export async function recoverNodeFleetFailure(
+  failure: unknown,
+  compensate: () => Promise<void>,
+  operation: string,
+): Promise<void> {
+  const original = failure instanceof NodeFleetApplyError ? failure : null;
+  if (original?.details.recovery !== undefined) return;
+  try {
+    await compensate();
+  } catch (recoveryError) {
+    failNodeFleetApply(
+      "node_fleet_recovery_failed",
+      `${operation} failed (${failureCode(failure)}${
+        original === null ? "" : `: ${original.message}`
+      }) and the prior service state could not be restored (${failureCode(recoveryError)}).`,
+      recoveryError,
+      {
+        ...original?.details,
+        failedCode: failureCode(failure),
+        recovery: "failed",
+        recoveryFailureCode: failureCode(recoveryError),
+      },
+    );
+  }
+  if (original !== null) original.details.recovery = "restored";
 }
 
 export interface NodeFleetServiceResult {
@@ -49,8 +129,14 @@ export interface NodeFleetApplyReceipt {
     startedAt: string;
     sync: "ready" | "unavailable:hub_unavailable";
     workstreamReplication: "ready" | "unavailable:hub_unavailable";
-    workspaceCoordination: "ready" | "disabled" | "unavailable:hub_unavailable";
-    remoteControl: "ready" | "disabled" | "unavailable:hub_unavailable";
+    workspaceCoordination: "ready" | "disabled" | `unavailable:${string}`;
+    remoteControl: "ready" | "disabled" | `unavailable:${string}`;
+    conversation: string;
+    supervision: string;
+    /** Whether a predecessor snapshot was available to carry unchanged conditions from. */
+    baseline: NodeReadinessBaseline["status"];
+    /** Pre-existing non-delivery conditions the replacement kept unchanged; never hidden. */
+    carriedConditions: NodeReadinessCarriedCondition[];
   };
   registry: RegisterNodeFleetInstanceResult;
 }
