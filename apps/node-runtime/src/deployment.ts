@@ -236,6 +236,7 @@ export async function openNodeRuntime(
           },
           store: store!,
           signal,
+          hub: validated.hub,
           ...(validated.outcomeSupervision === undefined
             ? {}
             : { supervision: validated.outcomeSupervision }),

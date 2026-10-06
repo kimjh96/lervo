@@ -4,11 +4,16 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { startAutonomousKnowledgeWorker } from "@lervo/repository-knowledge-runtime";
 
 import {
+  createKnowledgeConvergenceContinuity,
   createKnowledgeConvergenceOwnership,
   instructionCandidateTransport,
   createKnowledgePublisher,
 } from "./knowledge-convergence-ownership.js";
 import { subscribeKnowledgeWakeups } from "./knowledge-worker-wakeups.js";
+import {
+  decodeKnowledgeHubCoordinates,
+  KNOWLEDGE_HUB_COORDINATES_ENVIRONMENT,
+} from "./knowledge-hub-coordinates.js";
 
 function request(args: readonly string[]): {
   root: string;
@@ -70,6 +75,10 @@ export async function runKnowledgeWorkerCli(args: readonly string[]): Promise<nu
       workerId: `node-${process.ppid}-${process.pid}`,
       provider: parsed.provider,
       ownership: createKnowledgeConvergenceOwnership(opened, parsed.provider),
+      continuity: createKnowledgeConvergenceContinuity(
+        opened,
+        decodeKnowledgeHubCoordinates(process.env[KNOWLEDGE_HUB_COORDINATES_ENVIRONMENT]),
+      ),
       instructionCandidateTransport,
       publish: createKnowledgePublisher(parsed.root),
       ...(parsed.executable === undefined ? {} : { executable: parsed.executable }),

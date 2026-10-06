@@ -11,7 +11,9 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 import { ConversationChangeLoop } from "./conversation-change-loop.js";
 import { watchLocalEventChanges } from "./local-event-wakeup.js";
 import { startKnowledgeWorkerProcess } from "./knowledge-worker-process.js";
+import type { KnowledgeHubCoordinates } from "./knowledge-hub-coordinates.js";
 import {
+  createKnowledgeConvergenceContinuity,
   createKnowledgeConvergenceOwnership,
   instructionCandidateTransport,
   createKnowledgePublisher,
@@ -32,6 +34,8 @@ export function startRepositoryKnowledgeLoop(input: {
   signal?: AbortSignal;
   onFailure(error: unknown): void;
   workerEntry?: string;
+  /** ADR-0469: this Node's Hub coordinates for zero-touch owner-host configuration. */
+  hub?: KnowledgeHubCoordinates;
 }): () => Promise<void> {
   if (
     (input.storage?.writableEventSchemaVersion ?? 1) >= 4 &&
@@ -42,6 +46,7 @@ export function startRepositoryKnowledgeLoop(input: {
       entry: input.workerEntry,
       repositoryRoot: input.repositoryRoot,
       provider: input.provider,
+      ...(input.hub === undefined ? {} : { hub: input.hub }),
       ...(input.executable === undefined ? {} : { executable: input.executable }),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
       onFailure: input.onFailure,
@@ -52,6 +57,7 @@ export function startRepositoryKnowledgeLoop(input: {
       workerId: `node-${process.pid}`,
       provider: input.provider,
       ownership: createKnowledgeConvergenceOwnership(input.storage!, input.provider),
+      continuity: createKnowledgeConvergenceContinuity(input.storage!, input.hub ?? null),
       instructionCandidateTransport,
       publish: createKnowledgePublisher(input.repositoryRoot),
       ...(input.executable === undefined ? {} : { executable: input.executable }),
