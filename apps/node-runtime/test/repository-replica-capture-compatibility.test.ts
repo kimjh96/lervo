@@ -68,7 +68,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-describe("replica capture compatibility (ADR-0481)", () => {
+describe("replica capture compatibility (ADR-0483)", () => {
   it(
     "refuses a peer runtime with older capture semantics, then pulls a delegation-only change",
     { timeout: 60_000 },

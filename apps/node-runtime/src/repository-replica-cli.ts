@@ -161,7 +161,7 @@ export async function runRepositoryReplicaCli(
 ): Promise<number> {
   const action = args[0];
   if (action === "capture-version") {
-    // ADR-0481: lets a coordinator refuse to compare snapshots across capture semantics.
+    // ADR-0483: lets a coordinator refuse to compare snapshots across capture semantics.
     ports.stdout(
       `${JSON.stringify({ schemaVersion: 1, captureVersion: REPOSITORY_REPLICA_CAPTURE_VERSION })}\n`,
     );

@@ -22,7 +22,7 @@ import { parseReplicaKnowledgeSupersession } from "./repository-replica-knowledg
 
 const MAXIMUM_SSH_OUTPUT_BYTES = 512 * 1024 * 1024;
 const DEFAULT_COMMAND_TIMEOUT_MS = 60_000;
-/** The usage line of every runtime before ADR-0481; newer runtimes list `capture-version` first. */
+/** The usage line of every runtime before ADR-0483; newer runtimes list `capture-version` first. */
 const LEGACY_USAGE = "Usage: lervo-node repository-replica <snapshot|";
 const CAPTURE_VERSION_UNSUPPORTED = "repository_replica_capture_version_unsupported";
 
@@ -208,7 +208,7 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
   }
 
   /**
-   * ADR-0481: the remote runtime's capture semantics. A runtime that predates the action rejects
+   * ADR-0483: the remote runtime's capture semantics. A runtime that predates the action rejects
    * it with its usage line, which lists no `capture-version`; it captures with the legacy
    * semantics. Any other failure stays a transport failure.
    */

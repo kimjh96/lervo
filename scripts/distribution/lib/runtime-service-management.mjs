@@ -90,7 +90,7 @@ function parse(args) {
   if (manager !== "systemd" && manager !== "launchd") {
     fail("invalid_arguments", "The service manager is invalid.");
   }
-  if (runtime !== "hub" && runtime !== "node" && runtime !== "knowledge-host") {
+  if (!["hub", "node", "knowledge-host", "repository-replica"].includes(runtime)) {
     fail("invalid_arguments", "The runtime is invalid.");
   }
   const instance = values.get("--instance");

@@ -33,6 +33,7 @@ import {
   observeNodeFleetReadiness,
 } from "./node-fleet-readiness.js";
 import { transitionLegacyNodeSingleton } from "./node-fleet-legacy-transition.js";
+import { pointCurrentNodeRuntimeAt } from "./node-runtime-pointer.js";
 import { nodeServiceToolDirectories } from "./node-service-tool-directories.js";
 import {
   assertNodeFleetExecutable,
@@ -300,6 +301,9 @@ export async function applyNodeFleetOnboarding(input: {
         ...(ports.serviceOptions === undefined ? {} : { serviceOptions: ports.serviceOptions }),
       });
     }
+    // ADR-0483: the activated runtime becomes this host's `current`. A failed swap leaves the
+    // previous pointer, which the next `lervo upgrade` repairs; onboarding itself succeeded.
+    await pointCurrentNodeRuntimeAt(executable, input.homeDirectory).catch(() => undefined);
     return {
       schemaVersion: 1,
       operation: "repository_node_onboarding",

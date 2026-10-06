@@ -20,9 +20,13 @@ Replica apply preserves the untracked host-local paths while cleaning source fil
 
 ## Capture version
 
-Each runtime names its capture semantics as `REPOSITORY_REPLICA_CAPTURE_VERSION`. The current version is `lervo.repository-replica.capture.v2`, which includes the tracked delegation from ADR-0478. `repository-replica capture-version` prints `{"schemaVersion":1,"captureVersion":"..."}`. After observing both snapshots and before comparing them, every coordinator cycle compares the local and peer versions at stage `protocol`. A peer runtime that predates the action exits 1 with a usage line that does not list it, and that answer counts as `lervo.repository-replica.capture.v1`. Different versions fail the cycle with `repository_replica_capture_incompatible` before any snapshot is compared or recorded. A malformed answer fails with `repository_replica_capture_version_invalid`. A matching pair is trusted for 15 minutes per coordinator process ([ADR-0481](../../../../decisions/coordination/sync/0481-compare-replica-snapshots-only-under-one-capture-semantics.md)).
+Each runtime names its capture semantics as `REPOSITORY_REPLICA_CAPTURE_VERSION`. The current version is `lervo.repository-replica.capture.v2`, which includes the tracked delegation from ADR-0478. `repository-replica capture-version` prints `{"schemaVersion":1,"captureVersion":"..."}`. After observing both snapshots and before comparing them, every coordinator cycle compares the local and peer versions at stage `protocol`. A peer runtime that predates the action exits 1 with a usage line that does not list it, and that answer counts as `lervo.repository-replica.capture.v1`. Different versions fail the cycle with `repository_replica_capture_incompatible` before any snapshot is compared or recorded. A malformed answer fails with `repository_replica_capture_version_invalid`. A matching pair is trusted for 15 minutes per coordinator process ([ADR-0483](../../../../decisions/coordination/sync/0483-run-replica-commands-through-one-current-runtime.md)).
 
 Bump the version with any change that lets the same bytes produce a different snapshot. The cache fingerprint version derives from it.
+
+## Peer runtime
+
+The peer command runs `<peer.remoteRuntimesDirectory>/current/node-runtime.js`. `current` is the peer host's atomic runtime pointer, which Node activation and `lervo upgrade` keep at the activated runtime. `peer.remoteRuntimeExecutable` is an explicit override, and exactly one of the two is required. The coordinator configuration accepts only known keys at every level. The coordinator service itself runs through the local host's `current` pointer.
 
 ## Transfer and readiness
 

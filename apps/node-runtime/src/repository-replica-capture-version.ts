@@ -1,7 +1,7 @@
 /**
  * The capture semantics this runtime implements. Bump it whenever the same repository bytes can
  * produce a different snapshot, so a coordinator never compares snapshots across semantics
- * (ADR-0481). `v2` is ADR-0478: a tracked delegation's worktree bytes are captured.
+ * (ADR-0483). `v2` is ADR-0478: a tracked delegation's worktree bytes are captured.
  */
 export const REPOSITORY_REPLICA_CAPTURE_VERSION = "lervo.repository-replica.capture.v2";
 

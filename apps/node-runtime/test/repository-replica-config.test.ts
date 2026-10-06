@@ -4,7 +4,10 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { readRepositoryReplicaCoordinatorConfig } from "../src/repository-replica-config.js";
+import {
+  readRepositoryReplicaCoordinatorConfig,
+  remoteRuntimePayload,
+} from "../src/repository-replica-config.js";
 
 const roots: string[] = [];
 
@@ -56,5 +59,53 @@ describe("repository replica coordinator configuration", () => {
         readRepositoryReplicaCoordinatorConfig(await configWith({ idleRecoveryCeilingMs })),
       ).rejects.toThrow("The repository replica coordinator configuration is invalid.");
     }
+  });
+
+  it("rejects an unknown key at every level instead of ignoring it (ADR-0483)", async () => {
+    const peer = {
+      executable: "ssh",
+      arguments: [],
+      destination: "fixture",
+      remoteNodeExecutable: "node",
+      remoteRuntimeExecutable: "runtime",
+    };
+    for (const extra of [
+      // The 2026-10-06 edit placed the runtime path at the top level, where it did nothing.
+      { remoteRuntimeExecutable: "/home/user/runtime.js" },
+      { peer: { ...peer, remoteRuntime: "runtime" } },
+      {
+        repositories: [{ replicaId: "project", localRoot: "/l", peerRoot: "/p", policy: "hold" }],
+      },
+    ])
+      await expect(readRepositoryReplicaCoordinatorConfig(await configWith(extra))).rejects.toThrow(
+        "The repository replica coordinator configuration is invalid.",
+      );
+  });
+
+  it("follows the peer's current runtime pointer unless an explicit runtime overrides it", async () => {
+    const base = {
+      executable: "ssh",
+      arguments: [],
+      destination: "fixture",
+      remoteNodeExecutable: "node",
+    };
+    const pointer = await readRepositoryReplicaCoordinatorConfig(
+      await configWith({
+        peer: { ...base, remoteRuntimesDirectory: "/home/user/.local/share/lervo/runtimes/node" },
+      }),
+    );
+    expect(remoteRuntimePayload(pointer.peer)).toBe(
+      "/home/user/.local/share/lervo/runtimes/node/current/node-runtime.js",
+    );
+    const explicit = await readRepositoryReplicaCoordinatorConfig(await configWith({}));
+    expect(remoteRuntimePayload(explicit.peer)).toBe("runtime");
+    for (const peer of [
+      base,
+      { ...base, remoteRuntimesDirectory: "/r", remoteRuntimeExecutable: "runtime" },
+      { ...base, remoteRuntimesDirectory: "relative/runtimes" },
+    ])
+      await expect(
+        readRepositoryReplicaCoordinatorConfig(await configWith({ peer })),
+      ).rejects.toThrow("The repository replica coordinator configuration is invalid.");
   });
 });

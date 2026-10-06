@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { access, chmod, lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { failNodeFleetApply } from "./node-fleet-apply-contract.js";
+import { nodeRuntimesDirectory } from "./node-runtime-pointer.js";
 
 function safeAbsolute(value: string): boolean {
   return resolve(value) === value && !/[\0\r\n]/u.test(value);
@@ -66,19 +66,7 @@ export async function materializeInstalledNodeLauncher(homeDirectory?: string): 
   }
   const bytes = await readFile(source);
   const hash = createHash("sha256").update(bytes).digest("hex");
-  const home = resolve(homeDirectory ?? homedir());
-  const directory =
-    process.platform === "darwin"
-      ? resolve(
-          home,
-          "Library",
-          "Application Support",
-          "Lervo",
-          "runtimes",
-          "node",
-          hash.slice(0, 16),
-        )
-      : resolve(home, ".local", "share", "lervo", "runtimes", "node", hash.slice(0, 16));
+  const directory = resolve(nodeRuntimesDirectory(homeDirectory), hash.slice(0, 16));
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const payload = resolve(directory, "node-runtime.js");
   const launcher = resolve(directory, `lervo-node-launcher-${hash.slice(0, 12)}`);

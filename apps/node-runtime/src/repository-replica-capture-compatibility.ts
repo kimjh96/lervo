@@ -26,7 +26,7 @@ export function parseRepositoryReplicaCaptureVersion(value: unknown): string {
 }
 
 /**
- * ADR-0481: two sides may compare snapshots only when both capture with the same semantics. A
+ * ADR-0483: two sides may compare snapshots only when both capture with the same semantics. A
  * peer runtime with older semantics computes a different snapshot for the same bytes, so a change
  * only it can see would look unchanged forever. The cycle fails instead of reporting `current`.
  */
@@ -48,7 +48,7 @@ export class RepositoryReplicaCaptureCompatibility {
       throw new RepositoryReplicaStageError(
         "repository_replica_capture_incompatible",
         "protocol",
-        `The local side captures with ${local} and the peer with ${peer}; update the peer runtime path.`,
+        `The local side captures with ${local} and the peer with ${peer}; point peer.remoteRuntimesDirectory at the peer's runtimes directory, or update peer.remoteRuntimeExecutable.`,
       );
     this.provenUntil = this.now() + COMPATIBLE_FOR_MS;
   }

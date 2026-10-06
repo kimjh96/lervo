@@ -57,6 +57,16 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
         : ` · ${plan.stages.hostService.serviceIdentity} · ${plan.stages.hostService.action}`
     } · ${plan.stages.hostService.servedRepositoryCount} served, ${plan.stages.hostService.nodeServedRepositoryCount} Node-served`,
     ...blockerLines(plan.stages.hostService.blockers, "  "),
+    `repository replica service: ${plan.stages.replicaService.disposition} (${plan.stages.replicaService.reason})${
+      plan.stages.replicaService.runtime === null
+        ? ""
+        : ` · current runtime ${plan.stages.replicaService.runtime} (${plan.stages.replicaService.pointerAction})`
+    }${
+      plan.stages.replicaService.serviceIdentity === null
+        ? ""
+        : ` · ${plan.stages.replicaService.serviceIdentity} · ${plan.stages.replicaService.action}`
+    }`,
+    ...blockerLines(plan.stages.replicaService.blockers, "  "),
     ...(plan.stages.hostService.unmanagedResidentRunning
       ? [
           "  A host resident started outside the managed service is running; the managed one stays on standby until it stops. Remove the hand-written service.",
