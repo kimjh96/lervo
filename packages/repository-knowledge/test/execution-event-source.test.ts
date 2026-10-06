@@ -82,6 +82,47 @@ describe("execution event knowledge source", () => {
     }
   });
 
+  it("scans a full execution event capacity without quadratic source checks", async () => {
+    const sources = Array.from({ length: EXECUTION_EVENT_SOURCE_MAX_EVENTS }, (_, index) => {
+      const eventId = `evt_capacity${String(index).padStart(8, "0")}`;
+      return {
+        path: `@event/${eventId}`,
+        kind: "execution_event" as const,
+        origin: "execution_event_store" as const,
+        adapter: "lervo.execution-event",
+        classification: "ordinary" as const,
+        unitKind: "event" as const,
+        locator: `event:${eventId}`,
+        title: eventId,
+        content: `{"eventId":"${eventId}"}\n`,
+      };
+    });
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-execution-event-capacity-"));
+    try {
+      const startedAt = performance.now();
+      const scan = await scanRepositoryKnowledge({
+        repositoryRoot: root,
+        projectId: "prj_executionfixture",
+        policy: {
+          ...defaultRepositoryKnowledgePolicy,
+          limits: {
+            ...defaultRepositoryKnowledgePolicy.limits,
+            maxFiles: EXECUTION_EVENT_SOURCE_MAX_EVENTS + 16,
+          },
+        },
+        supplementalSources: sources,
+        observeRevision: async () => ({ status: "unavailable", reason: "git_head_unavailable" }),
+      });
+      expect(scan.sources.filter((source) => source.kind === "execution_event")).toHaveLength(
+        EXECUTION_EVENT_SOURCE_MAX_EVENTS,
+      );
+      // The quadratic collision check took minutes at this size; linear scanning takes seconds.
+      expect(performance.now() - startedAt).toBeLessThan(20_000);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 60_000);
+
   it("fails closed when a rehashed event contains a payload field outside the event allowlist", () => {
     const privateValue = "private-event-fixture";
     const value = event({
