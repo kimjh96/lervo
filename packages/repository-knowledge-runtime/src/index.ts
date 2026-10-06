@@ -98,6 +98,7 @@ export {
   type ConvergenceHostRecordPort,
   type ConvergenceHostRecordTransport,
 } from "./convergence-continuity.js";
+export type { ConvergenceDefinitionPort } from "./delegation-definition-exchange.js";
 export {
   convergenceHostLabel,
   type ConvergenceOwnerHubCandidate,

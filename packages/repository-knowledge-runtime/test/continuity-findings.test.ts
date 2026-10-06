@@ -145,6 +145,23 @@ describe("continuity findings", () => {
     ]);
   });
 
+  it("names a failed definition exchange only while host records still work (ADR-0477)", () => {
+    expect(
+      continuityFindings(input({ definitionExchangeFailure: "hub_definitions_unsupported" })),
+    ).toEqual([
+      {
+        code: "definition_exchange_unavailable",
+        severity: "attention",
+        detail: "hub_definitions_unsupported",
+      },
+    ]);
+    expect(
+      continuityFindings(
+        input({ hubFailure: "hub_unreachable", definitionExchangeFailure: "hub_unreachable" }),
+      ).map((finding) => finding.code),
+    ).toEqual(["hub_unavailable"]);
+  });
+
   it("adds local gaps only for checkouts that should have a resident", () => {
     expect(
       localContinuityFindings({
