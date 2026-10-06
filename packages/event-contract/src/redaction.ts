@@ -115,6 +115,19 @@ export const eventPayloadAllowlists = {
     "reason",
     "occurredAt",
   ],
+  "knowledge.convergence.delegation.continued": [
+    "repositoryIdentityHash",
+    "action",
+    "source",
+    "policyHash",
+    "previousPlanHash",
+    "planHash",
+    "scopeHash",
+    "expiresAt",
+    "observerHostHash",
+    "sourceHostHash",
+    "occurredAt",
+  ],
   "repository.change.completed": [
     "sourceKind",
     "sourceEventId",
@@ -1392,6 +1405,8 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "repository.replica.diverged": "repositoryReplicaDivergedEventPayload",
   "repository.replica.reconciled": "repositoryReplicaReconciledEventPayload",
   "knowledge.convergence.owner.changed": "knowledgeConvergenceOwnerChangedEventPayload",
+  "knowledge.convergence.delegation.continued":
+    "knowledgeConvergenceDelegationContinuedEventPayload",
   "repository.knowledge.resolved": "repositoryKnowledgeResolvedEventPayload",
   "agent.context.promoted": "agentContextPromotedEventPayload",
   "agent.context.handoff.recorded": "agentContextHandoffRecordedEventPayload",
