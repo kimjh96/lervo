@@ -8,6 +8,7 @@ import { discoverConvergenceBaseline } from "./baseline.js";
 import { readConvergenceOwnerFence } from "./convergence-owner-fence.js";
 import { inspectKnowledgeResidentHealth } from "./resident-health.js";
 import { convergenceRecoveryStatus } from "./recovery-status.js";
+import { withNormalizationScopeGap } from "./normalization-scope-gap.js";
 
 /**
  * Read-only debt detection: currency, normalization, and candidate inspection without a baseline
@@ -29,11 +30,14 @@ export async function inspectConvergenceDebt(
     storage.events,
     storage.artifacts,
   );
-  const status = inspectKnowledgeConvergenceStatus({
-    events: storage.events,
-    baseline,
-    writableEventSchemaVersion: storage.writableEventSchemaVersion ?? 1,
-  });
+  const status = await withNormalizationScopeGap(
+    storage,
+    inspectKnowledgeConvergenceStatus({
+      events: storage.events,
+      baseline,
+      writableEventSchemaVersion: storage.writableEventSchemaVersion ?? 1,
+    }),
+  );
   return {
     status,
     baselineCurrent:
