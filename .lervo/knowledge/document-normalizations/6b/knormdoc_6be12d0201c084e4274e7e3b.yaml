@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2d197f62f51fd0af3bab8b43
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d6b2c253d78ed483bac2f871
+outputLanguage: en
+outputs:
+  - byteCount: 791
+    contentHash: sha256:2b372a8ca808a8d244d394e6fece4e4794fd6071792e8670595fc3c6e2389d45
+    path: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/integration/cross-host-ownership.md
+    userRegionHash: sha256:2b372a8ca808a8d244d394e6fece4e4794fd6071792e8670595fc3c6e2389d45
+profile: roadmap_document
+recordId: knormdoc_6be12d0201c084e4274e7e3b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2b372a8ca808a8d244d394e6fece4e4794fd6071792e8670595fc3c6e2389d45
+sourcePath: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/integration/cross-host-ownership.md
+sourceUnitVersionIds:
+  - uv_1d7fc96d3f218f062eb84cb1
+  - uv_f88d98e80413554d5946d875
