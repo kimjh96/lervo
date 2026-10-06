@@ -10,6 +10,7 @@ import {
   handleWorkspaceSummaryRead,
   HubKnowledgeInstructionCandidateError,
   HubKnowledgeConvergenceHostError,
+  HubKnowledgeConvergenceDefinitionError,
   HubKnowledgeConvergenceOwnerError,
   isHubWorkspaceCoordinationMutation,
   isHubWorkspaceSummary,
@@ -18,6 +19,7 @@ import {
   type HubKnowledgeConvergenceOwnerStore,
   type HubKnowledgeInstructionCandidateStore,
   type HubKnowledgeConvergenceHostStore,
+  type HubKnowledgeConvergenceDefinitionStore,
   type HubWorkspaceSummary,
   type HubWorkstreamReplicationStore,
   HubWorkstreamReplicationError,
@@ -53,7 +55,8 @@ export interface HubSyncHttpHandlerOptions {
     HubWorkspaceCoordinationStore &
     HubKnowledgeConvergenceOwnerStore &
     HubKnowledgeInstructionCandidateStore &
-    HubKnowledgeConvergenceHostStore;
+    HubKnowledgeConvergenceHostStore &
+    HubKnowledgeConvergenceDefinitionStore;
   hubIdentityHash: string;
   now?: () => Date;
   maxRequestBytes?: number;
@@ -161,14 +164,14 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         "knowledge-convergence-owner",
         "knowledge-instruction-candidates",
         "knowledge-convergence-hosts",
+        "knowledge-convergence-definitions",
       ].includes(route.kind);
-      const acceptedMethod = supportsRead
-        ? request.method === "GET" || request.method === "POST"
-        : request.method === "POST";
-      if (!acceptedMethod) {
+      // ADR-0477: a definition is read by its content hash and never written through that path.
+      const allowed = route.contentHash !== undefined ? "GET" : supportsRead ? "GET, POST" : "POST";
+      if (!allowed.split(", ").includes(request.method ?? "")) {
         sendHubError(response, 405, "method_not_allowed", maxResponseBytes, {
           ...identityHeaders,
-          allow: supportsRead ? "GET, POST" : "POST",
+          allow: allowed,
         });
         return;
       }
@@ -366,7 +369,8 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
       } else if (
         error instanceof HubKnowledgeConvergenceOwnerError ||
         error instanceof HubKnowledgeInstructionCandidateError ||
-        error instanceof HubKnowledgeConvergenceHostError
+        error instanceof HubKnowledgeConvergenceHostError ||
+        error instanceof HubKnowledgeConvergenceDefinitionError
       ) {
         sendHubError(response, 400, "invalid_request", maxResponseBytes, identityHeaders);
       } else if (error instanceof HubWorkspaceCoordinationError) {
