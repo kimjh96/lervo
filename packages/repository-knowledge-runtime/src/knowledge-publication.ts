@@ -128,7 +128,7 @@ export async function publishKnowledgeOutputs(input: {
     ...(supersession?.entries.map((entry) => entry.commit) ?? []),
   ]);
   const scope = await loadKnowledgePublicationScope(root, settings, now());
-  // ADR-0471: tool-owned and out-of-scope paths are restored before anything is published. A
+  // ADR-0473: tool-owned and out-of-scope paths are restored before anything is published. A
   // failed repair publishes nothing either: the scope check below still refuses those paths.
   const repair = await repairKnowledgePublication({
     repositoryRoot: root,

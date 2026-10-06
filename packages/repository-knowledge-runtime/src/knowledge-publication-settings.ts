@@ -18,7 +18,7 @@ interface KnowledgePublicationTarget {
 }
 
 /**
- * Which paths a published commit may change. `scope: "delegation"` (ADR-0471) follows the
+ * Which paths a published commit may change. `scope: "delegation"` (ADR-0473) follows the
  * knowledge write scope: the active delegation's canonical and normalization roots plus
  * Lervo-managed knowledge state. `allowedRoots` holds fixed operator-chosen directory prefixes.
  */
@@ -86,7 +86,7 @@ export function parseKnowledgePublicationSettings(
 }
 
 /**
- * ADR-0471 migration of a Lervo-derived publication setting: the fixed default roots that
+ * ADR-0473 migration of a Lervo-derived publication setting: the fixed default roots that
  * derivation used to write become the delegation scope. Anything else is returned unchanged; the
  * caller applies this only to configurations Lervo itself wrote.
  */

@@ -5,7 +5,7 @@ import { sha256Schema, timestampSchema } from "./common.js";
 const commitSchema = { type: "string", pattern: "^[0-9a-f]{40}$" } as const;
 
 /**
- * ADR-0471 knowledge publication repair. The convergence owner records each corrective commit
+ * ADR-0473 knowledge publication repair. The convergence owner records each corrective commit
  * that restored tool-owned or out-of-scope paths changed by `Lervo Knowledge` commits. Paths,
  * contents, and host labels stay in Git and host-local state; the event carries commit
  * coordinates, counts, and one digest of the restored path set.

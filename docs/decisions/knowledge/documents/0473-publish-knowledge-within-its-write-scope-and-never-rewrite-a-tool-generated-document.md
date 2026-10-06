@@ -1,4 +1,4 @@
-# ADR-0471: Publish knowledge within its write scope and never rewrite a tool-generated document
+# ADR-0473: Publish knowledge within its write scope and never rewrite a tool-generated document
 
 Status: `accepted`
 Decision date: 2026-10-06
@@ -24,7 +24,7 @@ The last unpublished knowledge commit that changed a path decides that path. A p
 
 ### Derived settings are revalidated
 
-The derivation probe reads the remote's own default branch with `git ls-remote --symref origin HEAD`, never the local `origin/HEAD`. It writes `scope: "delegation"`. For a configuration Lervo derived, the probe runs again on the existing six-hour interval even when publication is already configured, so a wrong or changed base is corrected. A failed probe keeps the current setting. A derived setting that still holds the old fixed default roots migrates to `scope: "delegation"` at the next reconciliation, without a probe. Operator-written configurations are never changed.
+The derivation probe reads the remote's own default branch with `git ls-remote --symref origin HEAD`, never the local `origin/HEAD`. It writes `scope: "delegation"`. For a configuration Lervo derived, the probe runs again on the existing six-hour interval even when publication is already configured, so a wrong or changed base is corrected. A failed probe keeps the current setting. A derived setting that still holds the old fixed default roots migrates to `scope: "delegation"` at the next reconciliation, without a probe. Operator-written configurations are never changed. Publication is probed and kept only for proven Hub coordinates; a host that [ADR-0471](../../coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md) holds in unproven Hub mode gains no publication setting.
 
 ### Tool-generated documents have their own owner
 

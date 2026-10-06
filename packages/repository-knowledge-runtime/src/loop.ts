@@ -70,7 +70,7 @@ export function startAutonomousKnowledgeWorker(input: {
   ownerHeartbeatMilliseconds?: number;
   /**
    * Publishes the owner's settled commits after each cycle; absent disables publication. The
-   * resident's event store receives `knowledge.publication.repaired` (ADR-0471).
+   * resident's event store receives `knowledge.publication.repaired` (ADR-0473).
    */
   publish?: (context: {
     events: KnowledgePublicationRepairEvents;

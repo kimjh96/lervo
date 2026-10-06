@@ -129,7 +129,7 @@ async function authorHistory(
 }
 
 /**
- * ADR-0471: the paths among `paths` that a repository tool owns, each with the evidence that
+ * ADR-0473: the paths among `paths` that a repository tool owns, each with the evidence that
  * proves it. Every probe is read-only and fails toward user ownership: an unreadable
  * configuration, a missing Git history, or an unreadable file contributes no evidence.
  */

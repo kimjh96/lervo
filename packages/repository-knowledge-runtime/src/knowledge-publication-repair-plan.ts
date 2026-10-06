@@ -211,7 +211,7 @@ async function dirtyPaths(root: string, paths: readonly string[]): Promise<Set<s
 }
 
 /**
- * ADR-0471 repair plan. Candidates are tool-generated paths that recent Lervo commits changed and
+ * ADR-0473 repair plan. Candidates are tool-generated paths that recent Lervo commits changed and
  * unpublished paths outside the knowledge write scope; the normalization records and extra
  * outputs of a restored tool-generated document follow it. Every target is restored only to
  * content that predates Lervo's own run of changes, never past a person's or a tool's commit.

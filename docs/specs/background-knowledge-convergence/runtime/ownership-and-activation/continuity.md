@@ -82,7 +82,7 @@ Under [ADR-0471](../../../../decisions/coordination/sync/0471-keep-cross-host-kn
 
 Publication is added only in Hub mode. It requires `git remote get-url origin`, `git ls-remote --symref origin HEAD`, and `gh auth status` to succeed. The settings are `origin`, the default branch the remote advertises, `lervo/knowledge-outputs`, `when_checks_pass`, and `scope: "delegation"`. The local `refs/remotes/origin/HEAD` is never consulted: it can be missing or name a feature branch.
 
-Under [ADR-0471](../../../../decisions/knowledge/documents/0471-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md), the probe also runs every six hours for a derived configuration that already publishes. A different base branch replaces the derived one, and a failed probe keeps it. A derived setting that still holds the old default roots (`docs/` and `.lervo/knowledge/`) becomes `scope: "delegation"` at the next reconciliation, without a probe.
+Under [ADR-0473](../../../../decisions/knowledge/documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md), the probe also runs every six hours for a derived configuration that already publishes. A different base branch replaces the derived one, and a failed probe keeps it. A derived setting that still holds the old default roots (`docs/` and `.lervo/knowledge/`) becomes `scope: "delegation"` at the next reconciliation, without a probe.
 
 ### Migrating hand-written configurations
 

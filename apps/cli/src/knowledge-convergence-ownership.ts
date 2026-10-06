@@ -35,7 +35,7 @@ export function createKnowledgeConvergenceOwnership(
 
 /**
  * Publishes the owner's settled knowledge commits through the host's authenticated `gh`. The
- * caller's event store, when given, receives `knowledge.publication.repaired` (ADR-0471).
+ * caller's event store, when given, receives `knowledge.publication.repaired` (ADR-0473).
  */
 export function createKnowledgePublisher(
   repositoryRoot: string,

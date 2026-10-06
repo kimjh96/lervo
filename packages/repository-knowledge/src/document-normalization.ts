@@ -1293,7 +1293,7 @@ export interface CompileDocumentNormalizationCandidateInput {
   outputLanguage: string;
   taxonomy?: DecisionTaxonomy;
   normalizationExclude?: readonly string[];
-  /** ADR-0471: documents a repository tool owns; never normalized. */
+  /** ADR-0473: documents a repository tool owns; never normalized. */
   toolGeneratedPaths?: ReadonlySet<string>;
   compiler: RepositoryDocumentNormalizationCompiler;
   signal: AbortSignal;

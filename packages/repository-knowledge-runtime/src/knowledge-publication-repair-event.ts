@@ -20,7 +20,7 @@ function hex(value: string, length: number): string {
 }
 
 /**
- * Appends `knowledge.publication.repaired` (ADR-0471). The repair commit is unique, so a retried
+ * Appends `knowledge.publication.repaired` (ADR-0473). The repair commit is unique, so a retried
  * append is deduplicated. The commit and its `Lervo-Publication-Repair` trailers stay the
  * canonical record; a store that cannot accept schema-4 events loses only this audit line.
  */

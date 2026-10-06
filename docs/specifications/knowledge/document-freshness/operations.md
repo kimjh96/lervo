@@ -2,7 +2,7 @@
 
 ## Authority and apply
 
-A tool-generated document never becomes a finding, so it never receives a candidate ([ADR-0471](../../../decisions/knowledge/documents/0471-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md)). Its repository tool owns its bytes.
+A tool-generated document never becomes a finding, so it never receives a candidate ([ADR-0473](../../../decisions/knowledge/documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md)). Its repository tool owns its bytes.
 
 Resolve ownership of every other document in this order:
 

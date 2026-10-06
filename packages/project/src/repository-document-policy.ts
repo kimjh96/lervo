@@ -8,7 +8,7 @@ export interface RepositoryDocumentRole {
   cardinality: "one" | "one_per_package";
   /**
    * `tool_generated`: a repository tool, such as a release generator, writes these bytes; Lervo
-   * never normalizes, refreshes, or otherwise rewrites them (ADR-0471).
+   * never normalizes, refreshes, or otherwise rewrites them (ADR-0473).
    */
   lifecycleOwner: "user" | "lervo" | "provider_adapter" | "tool_generated";
   relocation: "preserve" | "reviewed_move" | "exact_legacy_alias";

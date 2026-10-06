@@ -7,7 +7,7 @@ After canonical bootstrap, layout, and bridges are current, `migrate knowledge -
 - Covers ordinary `.md` files outside generated navigation and `.changes/`.
 - Distinguishes README, agent instruction, bridge, portable skill or reference, decision, product, architecture, specification, roadmap, instruction, pull-request template, and general document profiles.
 - Excludes release intents and the replace-in-place current release note from provider normalization; both retain release ownership.
-- Excludes tool-generated documents ([ADR-0471](../../decisions/knowledge/documents/0471-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md)). The repository must supply evidence: a `tool_generated` layout role, a declared release-please changelog, `linguist-generated`, a generated-file marker, or a history touched only by automation identities. Inspection, preflight, compilation, and plan validation apply the same exclusion.
+- Excludes tool-generated documents ([ADR-0473](../../decisions/knowledge/documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md)). The repository must supply evidence: a `tool_generated` layout role, a declared release-please changelog, `linguist-generated`, a generated-file marker, or a history touched only by automation identities. Inspection, preflight, compilation, and plan validation apply the same exclusion.
 - Uses `publication.language`; v1 accepts `en`.
 
 ## Output structure

@@ -116,7 +116,7 @@ export async function revisionRangeFormatTargets(input: {
     changedSourcesBefore: before,
     sourcesAfter: after,
   });
-  // ADR-0471: a repair restores a tool-generated document to its tool's exact bytes, so the
+  // ADR-0473: a repair restores a tool-generated document to its tool's exact bytes, so the
   // publication formatter must not touch it either.
   const toolGenerated = await observeToolGeneratedDocuments({
     repositoryRoot: input.root,

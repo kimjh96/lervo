@@ -41,7 +41,7 @@ function remoteDefaultBranch(lsRemoteSymref: string): string | null {
 }
 
 /**
- * ADR-0469 and ADR-0471: publication settings this host can serve without operator input, or
+ * ADR-0469 and ADR-0473: publication settings this host can serve without operator input, or
  * null. It requires an `origin` remote, the remote's own default branch, and an authenticated `gh`
  * session. Nothing is pushed or stored; the probe reads the remote's advertised `HEAD` and the
  * `gh` login. The derived scope is the knowledge write scope, never fixed roots.

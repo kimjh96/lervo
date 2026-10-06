@@ -36,7 +36,7 @@ Records a delegation the resident renewed or seeded under the host continuity po
 
 Required payload: `repairCommit`, `repairedCommits` (1 to 64), `toolGeneratedPathCount`, `outsideScopePathCount`, `normalizationPathCount`, `pathSetHash`, `hostHash`, `occurredAt`.
 
-Records one corrective `Lervo Knowledge` commit. The commit restored tool-generated documents or out-of-scope paths that earlier knowledge commits changed ([ADR-0471](../../../../decisions/knowledge/documents/0471-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md)). The event ID derives from `repairCommit`. It carries commit coordinates, counts, and one digest, never paths or content. The commit and its `Lervo-Publication-Repair` trailers remain canonical; losing the event loses only the audit line.
+Records one corrective `Lervo Knowledge` commit. The commit restored tool-generated documents or out-of-scope paths that earlier knowledge commits changed ([ADR-0473](../../../../decisions/knowledge/documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md)). The event ID derives from `repairCommit`. It carries commit coordinates, counts, and one digest, never paths or content. The commit and its `Lervo-Publication-Repair` trailers remain canonical; losing the event loses only the audit line.
 
 ## Assignment provenance
 

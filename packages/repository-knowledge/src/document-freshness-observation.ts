@@ -213,7 +213,7 @@ export async function observeDocumentFreshnessFindings(input: {
   const rolePaths = new Set((taxonomy?.documentPolicy.roles ?? []).map((role) => role.path));
   const oracle = filesystemDocumentFreshnessOracle(root);
   const successors = await supersededDocuments(root);
-  // ADR-0471: a repository tool owns these bytes, so no refresh is ever proposed for them.
+  // ADR-0473: a repository tool owns these bytes, so no refresh is ever proposed for them.
   const toolGenerated = await observeToolGeneratedDocuments({
     repositoryRoot: root,
     paths: [...sources.keys()],

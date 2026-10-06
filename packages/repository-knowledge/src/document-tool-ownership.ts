@@ -3,7 +3,7 @@ import { posix } from "node:path";
 import type { RepositoryDocumentRole } from "@lervo/project";
 
 /**
- * ADR-0471 evidence that a repository tool, not a person or Lervo, owns a document's bytes. Each
+ * ADR-0473 evidence that a repository tool, not a person or Lervo, owns a document's bytes. Each
  * kind is a fact the repository itself declares or records; none is inferred from a file name.
  */
 export type DocumentToolOwnershipEvidence =

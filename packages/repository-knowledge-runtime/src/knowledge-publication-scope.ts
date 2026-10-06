@@ -6,7 +6,7 @@ import type { KnowledgePublicationCommit } from "./knowledge-publication-git.js"
 import type { KnowledgePublicationSettings } from "./knowledge-publication-settings.js";
 import { convergenceManagedKnowledgePath } from "./managed-knowledge-scope.js";
 
-/** Marks a corrective commit that restores paths; its paths always publish (ADR-0471). */
+/** Marks a corrective commit that restores paths; its paths always publish (ADR-0473). */
 export const KNOWLEDGE_PUBLICATION_REPAIR_TRAILER = "Lervo-Publication-Repair";
 
 const MANAGED_KNOWLEDGE_ROOT = ".lervo/knowledge/";
@@ -102,7 +102,7 @@ async function freshnessCommitAuthorized(
 }
 
 /**
- * ADR-0471: the last unpublished knowledge commit that changed a path decides it. A repair commit
+ * ADR-0473: the last unpublished knowledge commit that changed a path decides it. A repair commit
  * restores, so it always passes; otherwise a tool-generated path fails, and a path the scope does
  * not admit fails unless a verified freshness commit changed it. Without `toolGenerated`, the
  * repository's tool-ownership evidence for the changed paths is observed.

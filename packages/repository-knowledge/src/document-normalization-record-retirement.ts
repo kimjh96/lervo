@@ -74,7 +74,7 @@ export async function normalizationRecordRetirementOperations(
 
 /**
  * The lifecycle records whose source is one of `sourcePaths`, with the outputs each record binds.
- * ADR-0471 repair retires the records of a tool-owned document it restores.
+ * ADR-0473 repair retires the records of a tool-owned document it restores.
  */
 export async function documentNormalizationRecordsForSources(
   root: string,

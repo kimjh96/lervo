@@ -103,7 +103,7 @@ async function rollback(root: string, paths: readonly string[]): Promise<void> {
 }
 
 /**
- * ADR-0471: restores tool-owned and out-of-scope paths that `Lervo Knowledge` commits changed, in
+ * ADR-0473: restores tool-owned and out-of-scope paths that `Lervo Knowledge` commits changed, in
  * one corrective `Lervo Knowledge` commit carrying a `Lervo-Publication-Repair` trailer per undone
  * commit, then records `knowledge.publication.repaired`. Only the convergence owner commits; a
  * path with uncommitted edits, a developer commit in Lervo's run, or unreadable history is left
