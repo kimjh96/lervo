@@ -8,11 +8,11 @@ Capture resets the copied index to `HEAD` with `read-tree --reset`. This produce
 
 Worktree bytes from these host-local paths never enter a replica snapshot:
 
-- `.lervo/knowledge/convergence-delegation.json`
+- `.lervo/knowledge/convergence-delegation.json`, only when `HEAD` does not track it
 - `.lervo/state`
 - `.lervo/data`
 
-Capture excludes them independently of `.gitignore` and ignore rules in `HEAD`: after staging the worktree into the temporary index, it restores their exact `HEAD` entries. This restore replaces a pathspec exclusion because Git rejects exclusion pathspecs beneath ignored directories.
+Capture excludes these host-local bytes independently of `.gitignore` and ignore rules in `HEAD`: after staging the worktree into the temporary index, it restores the exact `HEAD` entries of `.lervo/state` and `.lervo/data`. It restores the delegation's absent `HEAD` entry only when `HEAD` does not track that file. This restore replaces a pathspec exclusion because Git rejects exclusion pathspecs beneath ignored directories.
 
 The delegation is host-local only while `HEAD` does not track it. A delegation that `HEAD` tracks is shared repository content that only the convergence owner writes, so capture keeps its worktree bytes. Apply, merge, and rollback then reproduce the owner's renewal instead of resetting it to `HEAD` ([ADR-0478](../../../../decisions/coordination/sync/0478-renew-each-delegation-with-one-writer.md)).
 
