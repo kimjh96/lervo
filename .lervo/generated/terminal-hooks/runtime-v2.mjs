@@ -2227,20 +2227,20 @@ var require_resolve = __commonJS({
       return false;
     }
     function countKeys(schema3) {
-      let count = 0;
+      let count2 = 0;
       for (const key3 in schema3) {
         if (key3 === "$ref")
           return Infinity;
-        count++;
+        count2++;
         if (SIMPLE_INLINED.has(key3))
           continue;
         if (typeof schema3[key3] == "object") {
-          (0, util_1.eachItem)(schema3[key3], (sch) => count += countKeys(sch));
+          (0, util_1.eachItem)(schema3[key3], (sch) => count2 += countKeys(sch));
         }
-        if (count === Infinity)
+        if (count2 === Infinity)
           return Infinity;
       }
-      return count;
+      return count2;
     }
     function getFullPath(resolver2, id5 = "", normalize) {
       if (normalize !== false)
@@ -2991,7 +2991,7 @@ var require_compile = __commonJS({
       const schOrFunc = root2.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve116.call(this, root2, ref);
+      let _sch = resolve118.call(this, root2, ref);
       if (_sch === void 0) {
         const schema3 = (_a = root2.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3018,7 +3018,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve116(root2, ref) {
+    function resolve118(root2, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3645,11 +3645,11 @@ var require_fast_uri = __commonJS({
         normalizeString(uri, options);
       } else if (typeof uri === "object") {
         uri = /** @type {T} */
-        parse33(serialize(uri, options), options);
+        parse34(serialize(uri, options), options);
       }
       return uri;
     }
-    function resolve116(baseURI, relativeURI, options) {
+    function resolve118(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const { parsed: baseParsed, malformedAuthorityOrPort: baseMalformed } = parseWithStatus(baseURI, schemelessOptions);
       const { parsed: relativeParsed, malformedAuthorityOrPort: relativeMalformed } = parseWithStatus(relativeURI, schemelessOptions);
@@ -3663,8 +3663,8 @@ var require_fast_uri = __commonJS({
     function resolveComponent(base, relative19, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
-        base = parse33(serialize(base, options), options);
-        relative19 = parse33(serialize(relative19, options), options);
+        base = parse34(serialize(base, options), options);
+        relative19 = parse34(serialize(relative19, options), options);
       }
       options = options || {};
       if (!options.tolerant && relative19.scheme) {
@@ -3908,7 +3908,7 @@ var require_fast_uri = __commonJS({
       }
       return { parsed, malformedAuthorityOrPort };
     }
-    function parse33(uri, opts) {
+    function parse34(uri, opts) {
       return parseWithStatus(uri, opts).parsed;
     }
     function normalizeString(uri, opts) {
@@ -3933,11 +3933,11 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve: resolve116,
+      resolve: resolve118,
       resolveComponent,
       equal,
       serialize,
-      parse: parse33
+      parse: parse34
     };
     module.exports = fastUri;
     module.exports.default = fastUri;
@@ -5438,8 +5438,8 @@ var require_contains = __commonJS({
         cxt.result(valid, () => cxt.reset());
         function validateItemsWithCount() {
           const schValid = gen.name("_valid");
-          const count = gen.let("count", 0);
-          validateItems(schValid, () => gen.if(schValid, () => checkLimits(count)));
+          const count2 = gen.let("count", 0);
+          validateItems(schValid, () => gen.if(schValid, () => checkLimits(count2)));
         }
         function validateItems(_valid, block) {
           gen.forRange("i", 0, len, (i) => {
@@ -5452,16 +5452,16 @@ var require_contains = __commonJS({
             block();
           });
         }
-        function checkLimits(count) {
-          gen.code((0, codegen_1._)`${count}++`);
+        function checkLimits(count2) {
+          gen.code((0, codegen_1._)`${count2}++`);
           if (max === void 0) {
-            gen.if((0, codegen_1._)`${count} >= ${min}`, () => gen.assign(valid, true).break());
+            gen.if((0, codegen_1._)`${count2} >= ${min}`, () => gen.assign(valid, true).break());
           } else {
-            gen.if((0, codegen_1._)`${count} > ${max}`, () => gen.assign(valid, false).break());
+            gen.if((0, codegen_1._)`${count2} > ${max}`, () => gen.assign(valid, false).break());
             if (min === 1)
               gen.assign(valid, true);
             else
-              gen.if((0, codegen_1._)`${count} >= ${min}`, () => gen.assign(valid, true));
+              gen.if((0, codegen_1._)`${count2} >= ${min}`, () => gen.assign(valid, true));
           }
         }
       }
@@ -7748,8 +7748,8 @@ var require_Node = __commonJS({
         };
         const res = toJS.toJS(this, "", ctx);
         if (typeof onAnchor === "function")
-          for (const { count, res: res2 } of ctx.anchors.values())
-            onAnchor(res2, count);
+          for (const { count: count2, res: res2 } of ctx.anchors.values())
+            onAnchor(res2, count2);
         return typeof reviver === "function" ? applyReviver.applyReviver(reviver, { "": res }, "", res) : res;
       }
     };
@@ -7855,13 +7855,13 @@ var require_Alias = __commonJS({
         const anchor = anchors2 && source && anchors2.get(source);
         return anchor ? anchor.count * anchor.aliasCount : 0;
       } else if (identity2.isCollection(node2)) {
-        let count = 0;
+        let count2 = 0;
         for (const item of node2.items) {
           const c = getAliasCount(doc, item, anchors2);
-          if (c > count)
-            count = c;
+          if (c > count2)
+            count2 = c;
         }
-        return count;
+        return count2;
       } else if (identity2.isPair(node2)) {
         const kc = getAliasCount(doc, node2.key, anchors2);
         const vc = getAliasCount(doc, node2.value, anchors2);
@@ -10256,7 +10256,7 @@ var require_timestamp = __commonJS({
       resolve: (str) => parseSexagesimal(str, false),
       stringify: stringifySexagesimal
     };
-    var timestamp6 = {
+    var timestamp7 = {
       identify: (value) => value instanceof Date,
       default: true,
       tag: "tag:yaml.org,2002:timestamp",
@@ -10265,7 +10265,7 @@ var require_timestamp = __commonJS({
       // assumed to be 00:00:00Z (start of day, UTC).
       test: RegExp("^([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})(?:(?:t|T|[ \\t]+)([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2}(\\.[0-9]+)?)(?:[ \\t]*(Z|[-+][012]?[0-9](?::[0-9]{2})?))?)?$"),
       resolve(str) {
-        const match = str.match(timestamp6.test);
+        const match = str.match(timestamp7.test);
         if (!match)
           throw new Error("!!timestamp expects a date, starting with yyyy-mm-dd");
         const [, year, month, day, hour, minute, second] = match.map(Number);
@@ -10284,7 +10284,7 @@ var require_timestamp = __commonJS({
     };
     exports.floatTime = floatTime;
     exports.intTime = intTime;
-    exports.timestamp = timestamp6;
+    exports.timestamp = timestamp7;
   }
 });
 
@@ -10304,7 +10304,7 @@ var require_schema4 = __commonJS({
     var omap = require_omap();
     var pairs = require_pairs();
     var set = require_set();
-    var timestamp6 = require_timestamp();
+    var timestamp7 = require_timestamp();
     var schema3 = [
       map.map,
       seq.seq,
@@ -10324,9 +10324,9 @@ var require_schema4 = __commonJS({
       omap.omap,
       pairs.pairs,
       set.set,
-      timestamp6.intTime,
-      timestamp6.floatTime,
-      timestamp6.timestamp
+      timestamp7.intTime,
+      timestamp7.floatTime,
+      timestamp7.timestamp
     ];
     exports.schema = schema3;
   }
@@ -10351,7 +10351,7 @@ var require_tags = __commonJS({
     var pairs = require_pairs();
     var schema$2 = require_schema4();
     var set = require_set();
-    var timestamp6 = require_timestamp();
+    var timestamp7 = require_timestamp();
     var schemas = /* @__PURE__ */ new Map([
       ["core", schema3.schema],
       ["failsafe", [map.map, seq.seq, string4.string]],
@@ -10365,11 +10365,11 @@ var require_tags = __commonJS({
       float: float.float,
       floatExp: float.floatExp,
       floatNaN: float.floatNaN,
-      floatTime: timestamp6.floatTime,
+      floatTime: timestamp7.floatTime,
       int: int.int,
       intHex: int.intHex,
       intOct: int.intOct,
-      intTime: timestamp6.intTime,
+      intTime: timestamp7.intTime,
       map: map.map,
       merge: merge.merge,
       null: _null.nullTag,
@@ -10377,7 +10377,7 @@ var require_tags = __commonJS({
       pairs: pairs.pairs,
       seq: seq.seq,
       set: set.set,
-      timestamp: timestamp6.timestamp
+      timestamp: timestamp7.timestamp
     };
     var coreKnownTags = {
       "tag:yaml.org,2002:binary": binary.binary,
@@ -10385,7 +10385,7 @@ var require_tags = __commonJS({
       "tag:yaml.org,2002:omap": omap.omap,
       "tag:yaml.org,2002:pairs": pairs.pairs,
       "tag:yaml.org,2002:set": set.set,
-      "tag:yaml.org,2002:timestamp": timestamp6.timestamp
+      "tag:yaml.org,2002:timestamp": timestamp7.timestamp
     };
     function getTags(customTags, schemaName, addMergeTag) {
       const schemaTags = schemas.get(schemaName);
@@ -10814,8 +10814,8 @@ var require_Document = __commonJS({
         };
         const res = toJS.toJS(this.contents, jsonArg ?? "", ctx);
         if (typeof onAnchor === "function")
-          for (const { count, res: res2 } of ctx.anchors.values())
-            onAnchor(res2, count);
+          for (const { count: count2, res: res2 } of ctx.anchors.values())
+            onAnchor(res2, count2);
         return typeof reviver === "function" ? applyReviver.applyReviver(reviver, { "": res }, "", res) : res;
       }
       /**
@@ -10892,12 +10892,12 @@ var require_errors2 = __commonJS({
         lineStr = prev + lineStr;
       }
       if (/[^ ]/.test(lineStr)) {
-        let count = 1;
+        let count2 = 1;
         const end = error.linePos[1];
         if (end?.line === line && end.col > col) {
-          count = Math.max(1, Math.min(end.col - col, 80 - ci));
+          count2 = Math.max(1, Math.min(end.col - col, 80 - ci));
         }
-        const pointer2 = " ".repeat(ci) + "^".repeat(count);
+        const pointer2 = " ".repeat(ci) + "^".repeat(count2);
         error.message += `:
 
 ${lineStr}
@@ -14407,7 +14407,7 @@ var require_public_api = __commonJS({
       }
       return doc;
     }
-    function parse33(src, reviver, options) {
+    function parse34(src, reviver, options) {
       let _reviver = void 0;
       if (typeof reviver === "function") {
         _reviver = reviver;
@@ -14448,7 +14448,7 @@ var require_public_api = __commonJS({
         return value.toString(options);
       return new Document2.Document(value, _replacer, options).toString(options);
     }
-    exports.parse = parse33;
+    exports.parse = parse34;
     exports.parseAllDocuments = parseAllDocuments2;
     exports.parseDocument = parseDocument;
     exports.stringify = stringify19;
@@ -17586,14 +17586,14 @@ var require_lib = __commonJS({
         super.checkParams(node2, false, true);
         this.scope.exit();
       }
-      forwardNoArrowParamsConversionAt(node2, parse34) {
+      forwardNoArrowParamsConversionAt(node2, parse35) {
         let result2;
         if (this.state.noArrowParamsConversionAt.includes(this.offsetToSourcePos(node2.start))) {
           this.state.noArrowParamsConversionAt.push(this.state.start);
-          result2 = parse34();
+          result2 = parse35();
           this.state.noArrowParamsConversionAt.pop();
         } else {
-          result2 = parse34();
+          result2 = parse35();
         }
         return result2;
       }
@@ -19053,9 +19053,9 @@ var require_lib = __commonJS({
             return String.fromCodePoint(codePoint);
           }
         } else {
-          let count = 0;
+          let count2 = 0;
           let semi = false;
-          while (count++ < 10 && this.state.pos < this.length && !(semi = this.codePointAtPos(this.state.pos) === 59)) {
+          while (count2++ < 10 && this.state.pos < this.length && !(semi = this.codePointAtPos(this.state.pos) === 59)) {
             ++this.state.pos;
           }
           if (semi) {
@@ -29001,7 +29001,7 @@ var require_lib = __commonJS({
         return result2;
       }
     };
-    function parse33(input, options) {
+    function parse34(input, options) {
       var _options;
       if (((_options = options) == null ? void 0 : _options.sourceType) === "unambiguous") {
         options = Object.assign({}, options);
@@ -29088,7 +29088,7 @@ var require_lib = __commonJS({
       }
       return cls;
     }
-    exports.parse = parse33;
+    exports.parse = parse34;
     exports.parseExpression = parseExpression;
     exports.tokTypes = tokTypes;
   }
@@ -30408,7 +30408,7 @@ var require_container = __commonJS({
     var Node2 = require_node();
     var { isClean, my } = require_symbols();
     var AtRule2;
-    var parse33;
+    var parse34;
     var Root2;
     var Rule2;
     function cleanSource(nodes) {
@@ -30575,7 +30575,7 @@ var require_container = __commonJS({
       }
       normalize(nodes, sample) {
         if (typeof nodes === "string") {
-          nodes = cleanSource(parse33(nodes).nodes);
+          nodes = cleanSource(parse34(nodes).nodes);
         } else if (typeof nodes === "undefined") {
           nodes = [];
         } else if (Array.isArray(nodes)) {
@@ -30784,7 +30784,7 @@ var require_container = __commonJS({
       }
     };
     Container2.registerParse = (dependant) => {
-      parse33 = dependant;
+      parse34 = dependant;
     };
     Container2.registerRule = (dependant) => {
       Rule2 = dependant;
@@ -31953,11 +31953,11 @@ var require_source_map_consumer = __commonJS({
       var sourceRoot = this.sourceRoot;
       var boundCallback = aCallback.bind(context);
       var names = this._names;
-      var sources = this._sources;
+      var sources2 = this._sources;
       var sourceMapURL = this._sourceMapURL;
       for (var i = 0, n = mappings.length; i < n; i++) {
         var mapping = mappings[i];
-        var source = mapping.source === null ? null : sources.at(mapping.source);
+        var source = mapping.source === null ? null : sources2.at(mapping.source);
         if (source !== null) {
           source = util.computeSourceURL(sourceRoot, source, sourceMapURL);
         }
@@ -32024,7 +32024,7 @@ var require_source_map_consumer = __commonJS({
         sourceMap = util.parseSourceMapInput(aSourceMap);
       }
       var version = util.getArg(sourceMap, "version");
-      var sources = util.getArg(sourceMap, "sources");
+      var sources2 = util.getArg(sourceMap, "sources");
       var names = util.getArg(sourceMap, "names", []);
       var sourceRoot = util.getArg(sourceMap, "sourceRoot", null);
       var sourcesContent = util.getArg(sourceMap, "sourcesContent", null);
@@ -32036,11 +32036,11 @@ var require_source_map_consumer = __commonJS({
       if (sourceRoot) {
         sourceRoot = util.normalize(sourceRoot);
       }
-      sources = sources.map(String).map(util.normalize).map(function(source) {
+      sources2 = sources2.map(String).map(util.normalize).map(function(source) {
         return sourceRoot && util.isAbsolute(sourceRoot) && util.isAbsolute(source) ? util.relative(sourceRoot, source) : source;
       });
       this._names = ArraySet.fromArray(names.map(String), true);
-      this._sources = ArraySet.fromArray(sources, true);
+      this._sources = ArraySet.fromArray(sources2, true);
       this._absoluteSources = this._sources.toArray().map(function(s) {
         return util.computeSourceURL(sourceRoot, s, aSourceMapURL);
       });
@@ -32071,7 +32071,7 @@ var require_source_map_consumer = __commonJS({
     BasicSourceMapConsumer.fromSourceMap = function SourceMapConsumer_fromSourceMap(aSourceMap, aSourceMapURL) {
       var smc = Object.create(BasicSourceMapConsumer.prototype);
       var names = smc._names = ArraySet.fromArray(aSourceMap._names.toArray(), true);
-      var sources = smc._sources = ArraySet.fromArray(aSourceMap._sources.toArray(), true);
+      var sources2 = smc._sources = ArraySet.fromArray(aSourceMap._sources.toArray(), true);
       smc.sourceRoot = aSourceMap._sourceRoot;
       smc.sourcesContent = aSourceMap._generateSourcesContent(
         smc._sources.toArray(),
@@ -32091,7 +32091,7 @@ var require_source_map_consumer = __commonJS({
         destMapping.generatedLine = srcMapping.generatedLine;
         destMapping.generatedColumn = srcMapping.generatedColumn;
         if (srcMapping.source) {
-          destMapping.source = sources.indexOf(srcMapping.source);
+          destMapping.source = sources2.indexOf(srcMapping.source);
           destMapping.originalLine = srcMapping.originalLine;
           destMapping.originalColumn = srcMapping.originalColumn;
           if (srcMapping.name) {
@@ -32411,13 +32411,13 @@ var require_source_map_consumer = __commonJS({
     IndexedSourceMapConsumer.prototype._version = 3;
     Object.defineProperty(IndexedSourceMapConsumer.prototype, "sources", {
       get: function() {
-        var sources = [];
+        var sources2 = [];
         for (var i = 0; i < this._sections.length; i++) {
           for (var j = 0; j < this._sections[i].consumer.sources.length; j++) {
-            sources.push(this._sections[i].consumer.sources[j]);
+            sources2.push(this._sections[i].consumer.sources[j]);
           }
         }
-        return sources;
+        return sources2;
       }
     });
     IndexedSourceMapConsumer.prototype.originalPositionFor = function IndexedSourceMapConsumer_originalPositionFor(aArgs) {
@@ -32705,9 +32705,9 @@ var require_source_node = __commonJS({
           this.children[i].walkSourceContents(aFn);
         }
       }
-      var sources = Object.keys(this.sourceContents);
-      for (var i = 0, len = sources.length; i < len; i++) {
-        aFn(util.fromSetString(sources[i]), this.sourceContents[sources[i]]);
+      var sources2 = Object.keys(this.sourceContents);
+      for (var i = 0, len = sources2.length; i < len; i++) {
+        aFn(util.fromSetString(sources2[i]), this.sourceContents[sources2[i]]);
       }
     };
     SourceNode.prototype.toString = function SourceNode_toString() {
@@ -32955,15 +32955,15 @@ var require_input = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/input.js"(exports, module) {
     "use strict";
     var { nanoid } = require_non_secure();
-    var { isAbsolute: isAbsolute7, resolve: resolve116 } = __require("path");
+    var { isAbsolute: isAbsolute7, resolve: resolve118 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
-    var { fileURLToPath: fileURLToPath2, pathToFileURL } = __require("url");
+    var { fileURLToPath: fileURLToPath2, pathToFileURL: pathToFileURL2 } = __require("url");
     var CssSyntaxError2 = require_css_syntax_error();
     var PreviousMap = require_previous_map();
     var terminalHighlight = require_terminal_highlight();
     var lineToIndexCache = /* @__PURE__ */ Symbol("lineToIndexCache");
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(resolve116 && isAbsolute7);
+    var pathAvailable = Boolean(resolve118 && isAbsolute7);
     function getLineToIndex(input) {
       if (input[lineToIndexCache]) return input[lineToIndexCache];
       let lines = input.css.split("\n");
@@ -32997,7 +32997,7 @@ var require_input = __commonJS({
           if (!pathAvailable || /^\w+:\/\//.test(opts.from) || isAbsolute7(opts.from)) {
             this.file = opts.from;
           } else {
-            this.file = resolve116(opts.from);
+            this.file = resolve118(opts.from);
           }
         }
         if (pathAvailable && sourceMapAvailable) {
@@ -33076,8 +33076,8 @@ var require_input = __commonJS({
           source: this.css
         };
         if (this.file) {
-          if (pathToFileURL) {
-            result2.input.url = pathToFileURL(this.file).toString();
+          if (pathToFileURL2) {
+            result2.input.url = pathToFileURL2(this.file).toString();
           }
           result2.input.file = this.file;
         }
@@ -33118,7 +33118,7 @@ var require_input = __commonJS({
         if (/^\w+:\/\//.test(file)) {
           return file;
         }
-        return resolve116(this.map.consumer().sourceRoot || this.map.root || ".", file);
+        return resolve118(this.map.consumer().sourceRoot || this.map.root || ".", file);
       }
       origin(line, column, endLine, endColumn) {
         if (!this.map) return false;
@@ -33135,11 +33135,11 @@ var require_input = __commonJS({
         }
         let fromUrl;
         if (isAbsolute7(from.source)) {
-          fromUrl = pathToFileURL(from.source);
+          fromUrl = pathToFileURL2(from.source);
         } else {
           fromUrl = new URL(
             from.source,
-            this.map.consumer().sourceRoot || pathToFileURL(this.map.mapFile)
+            this.map.consumer().sourceRoot || pathToFileURL2(this.map.mapFile)
           );
         }
         let result2 = {
@@ -33428,12 +33428,12 @@ var require_fromJSON = __commonJS({
 var require_map_generator = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/map-generator.js"(exports, module) {
     "use strict";
-    var { dirname: dirname28, relative: relative19, resolve: resolve116, sep: sep17 } = __require("path");
+    var { dirname: dirname28, relative: relative19, resolve: resolve118, sep: sep17 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
-    var { pathToFileURL } = __require("url");
+    var { pathToFileURL: pathToFileURL2 } = __require("url");
     var Input2 = require_input();
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(dirname28 && resolve116 && relative19 && sep17);
+    var pathAvailable = Boolean(dirname28 && resolve118 && relative19 && sep17);
     var MapGenerator = class {
       constructor(stringify19, root2, opts, cssString) {
         this.stringify = stringify19;
@@ -33662,7 +33662,7 @@ var require_map_generator = __commonJS({
         if (cached) return cached;
         let from = this.opts.to ? dirname28(this.opts.to) : ".";
         if (typeof this.mapOpts.annotation === "string") {
-          from = dirname28(resolve116(from, this.mapOpts.annotation));
+          from = dirname28(resolve118(from, this.mapOpts.annotation));
         }
         let path = relative19(from, file);
         this.memoizedPaths.set(file, path);
@@ -33724,8 +33724,8 @@ var require_map_generator = __commonJS({
       toFileUrl(path) {
         let cached = this.memoizedFileURLs.get(path);
         if (cached) return cached;
-        if (pathToFileURL) {
-          let fileURL = pathToFileURL(path).toString();
+        if (pathToFileURL2) {
+          let fileURL = pathToFileURL2(path).toString();
           this.memoizedFileURLs.set(path, fileURL);
           return fileURL;
         } else {
@@ -34296,7 +34296,7 @@ var require_parse = __commonJS({
     var Container2 = require_container();
     var Input2 = require_input();
     var Parser = require_parser2();
-    function parse33(css, opts) {
+    function parse34(css, opts) {
       let input = new Input2(css, opts);
       let parser = new Parser(input);
       try {
@@ -34317,9 +34317,9 @@ var require_parse = __commonJS({
       }
       return parser.root;
     }
-    module.exports = parse33;
-    parse33.default = parse33;
-    Container2.registerParse(parse33);
+    module.exports = parse34;
+    parse34.default = parse34;
+    Container2.registerParse(parse34);
   }
 });
 
@@ -34425,7 +34425,7 @@ var require_lazy_result = __commonJS({
     var Container2 = require_container();
     var Document2 = require_document();
     var MapGenerator = require_map_generator();
-    var parse33 = require_parse();
+    var parse34 = require_parse();
     var Result2 = require_result();
     var Root2 = require_root();
     var stringify19 = require_stringify2();
@@ -34559,7 +34559,7 @@ var require_lazy_result = __commonJS({
             opts.map.prev = css.map;
           }
         } else {
-          let parser = parse33;
+          let parser = parse34;
           if (opts.syntax) parser = opts.syntax.parse;
           if (opts.parser) parser = opts.parser;
           if (parser.parse) parser = parser.parse;
@@ -34950,7 +34950,7 @@ var require_no_work_result = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/no-work-result.js"(exports, module) {
     "use strict";
     var MapGenerator = require_map_generator();
-    var parse33 = require_parse();
+    var parse34 = require_parse();
     var Result2 = require_result();
     var stringify19 = require_stringify2();
     var warnOnce = require_warn_once();
@@ -34978,7 +34978,7 @@ var require_no_work_result = __commonJS({
           return this._root;
         }
         let root2;
-        let parser = parse33;
+        let parser = parse34;
         try {
           root2 = parser(this._css, this._opts);
         } catch (error) {
@@ -35133,7 +35133,7 @@ var require_postcss = __commonJS({
     var LazyResult = require_lazy_result();
     var list3 = require_list();
     var Node2 = require_node();
-    var parse33 = require_parse();
+    var parse34 = require_parse();
     var Processor2 = require_processor();
     var Result2 = require_result();
     var Root2 = require_root();
@@ -35178,7 +35178,7 @@ var require_postcss = __commonJS({
       return creator;
     };
     postcss2.stringify = stringify19;
-    postcss2.parse = parse33;
+    postcss2.parse = parse34;
     postcss2.fromJSON = fromJSON2;
     postcss2.list = list3;
     postcss2.comment = (defaults) => new Comment2(defaults);
@@ -35208,8 +35208,8 @@ var require_postcss = __commonJS({
 
 // apps/cli/src/terminal-hook-bin.ts
 import { createHash as createHash50 } from "node:crypto";
-import { readFile as readFile45 } from "node:fs/promises";
-import { dirname as dirname27, resolve as resolve115 } from "node:path";
+import { readFile as readFile47 } from "node:fs/promises";
+import { dirname as dirname27, resolve as resolve117 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // packages/event-contract/dist/canonical-json.js
@@ -53952,22 +53952,22 @@ function countEmptyMarkdownSections(text6) {
   return emptySections;
 }
 function countVagueTerms(text6, terms2) {
-  return terms2.reduce((count, term) => count + (term.length === 0 ? 0 : text6.split(term).length - 1), 0);
+  return terms2.reduce((count2, term) => count2 + (term.length === 0 ? 0 : text6.split(term).length - 1), 0);
 }
 var deterministicWritingChecks = {
   forbid_em_dash: (text6) => countPattern(text6, /—/g),
-  forbid_abstract_action_subject: (text6) => abstractActionSubjectPatterns.reduce((count, pattern) => count + countPattern(text6, pattern), 0),
+  forbid_abstract_action_subject: (text6) => abstractActionSubjectPatterns.reduce((count2, pattern) => count2 + countPattern(text6, pattern), 0),
   no_empty_sections: (text6) => countEmptyMarkdownSections(text6),
   forbid_vague_terms: (text6, contract) => countVagueTerms(text6, contract.terminology.forbiddenVagueTerms)
 };
 function lintDeterministicWriting(text6, contract) {
   return contract.verification.deterministicChecks.map((checkId) => {
-    const count = deterministicWritingChecks[checkId](text6, contract);
+    const count2 = deterministicWritingChecks[checkId](text6, contract);
     return {
       checkId,
       kind: "deterministic",
-      status: count === 0 ? "passed" : "failed",
-      violationCount: count,
+      status: count2 === 0 ? "passed" : "failed",
+      violationCount: count2,
       evidenceDigest: digestEvidence(checkId, text6)
     };
   });
@@ -54050,7 +54050,7 @@ function prepareSearchCorpus(inputs) {
   }
   const seen = /* @__PURE__ */ new Set();
   let characters = 0;
-  const sources = inputs.map((input) => {
+  const sources2 = inputs.map((input) => {
     assertSourceReference(input);
     if (typeof input.text !== "string" || input.text.length < 1 || input.text.length > SEARCH_MAX_SOURCE_CHARACTERS || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(input.text)) {
       throw new SearchError("corpus_invalid", "The search source content contract is invalid.");
@@ -54083,7 +54083,7 @@ function prepareSearchCorpus(inputs) {
     }
     return structuredClone(input);
   }).sort((left, right) => compareText(searchSourceKey(left), searchSourceKey(right)));
-  const indexSources = sources.map((source) => ({
+  const indexSources = sources2.map((source) => ({
     kind: source.kind,
     sourceId: source.sourceId,
     contentHash: source.contentHash,
@@ -54094,7 +54094,7 @@ function prepareSearchCorpus(inputs) {
       text: source.text
     })
   }));
-  return { sources, indexSources, corpusDigest: canonicalHash(indexSources) };
+  return { sources: sources2, indexSources, corpusDigest: canonicalHash(indexSources) };
 }
 
 // packages/search/dist/normalize.js
@@ -56357,13 +56357,13 @@ var SQLiteOutboxRepository = class {
     return rows2.map(rowToOutboxDelivery);
   }
   verifyIntegrity() {
-    let count = 0;
+    let count2 = 0;
     const rows2 = iterateSqliteRows(this.database.prepare(`${outboxDeliverySelection} ORDER BY o.enqueued_at, o.event_id, o.destination_id`).iterate());
     for (const row of rows2) {
       rowToOutboxDelivery(row);
-      count += 1;
+      count2 += 1;
     }
-    return count;
+    return count2;
   }
 };
 
@@ -58715,13 +58715,13 @@ async function listRoleContracts(repositoryRoot) {
   const resolved = /* @__PURE__ */ new Map();
   for (const definition2 of listBuiltInRoleDefinitions())
     resolved.set(definition2.profile.roleId, builtInContract(definition2.profile.roleId));
-  const sources = await repositorySources(repositoryRoot);
+  const sources2 = await repositorySources(repositoryRoot);
   const resolving = /* @__PURE__ */ new Set();
   const resolveCustom = (roleId, depth) => {
     const present = resolved.get(roleId);
     if (present !== void 0)
       return present;
-    const entry = sources.get(roleId);
+    const entry = sources2.get(roleId);
     if (entry === void 0)
       fail4("role_not_found", `Role ${roleId} does not exist in the built-in or repository registry.`);
     if (depth > MAXIMUM_COMPOSITION_DEPTH || resolving.has(roleId))
@@ -58748,7 +58748,7 @@ async function listRoleContracts(repositoryRoot) {
       resolving.delete(roleId);
     }
   };
-  for (const roleId of [...sources.keys()].sort())
+  for (const roleId of [...sources2.keys()].sort())
     resolveCustom(roleId, 1);
   return [...resolved.values()].sort((left, right) => left.roleId.localeCompare(right.roleId)).map((contract) => structuredClone(contract));
 }
@@ -59392,13 +59392,13 @@ function compare2(left, right) {
   return left === right ? 0 : left < right ? -1 : 1;
 }
 function compareCapabilityVersions(left, right) {
-  const parse33 = (value) => {
+  const parse34 = (value) => {
     const withoutBuild = value.split("+", 1)[0];
     const [core, prerelease] = withoutBuild.split("-", 2);
     return { core: core.split(".").map(Number), prerelease: prerelease?.split(".") };
   };
-  const a = parse33(left);
-  const b = parse33(right);
+  const a = parse34(left);
+  const b = parse34(right);
   for (let index2 = 0; index2 < 3; index2 += 1) {
     const difference = a.core[index2] - b.core[index2];
     if (difference !== 0)
@@ -62232,7 +62232,7 @@ var english = {
     "Register subagents with their parent agent and give them the same assignment, lease, evidence, verification, and finalization contract as root agents."
   ],
   publicationSnapshot: ({ snapshotId, included, includedBytes, excluded, unsupported }) => `Publication input snapshot: \`${snapshotId}\`. Included ${included} publishable sources (${includedBytes} bytes), excluded ${excluded}, unsupported ${unsupported}. This coordinate binds the structural source set and intentionally omits revision metadata, verification results, execution events, and local-inventory-only agent surfaces. A full query snapshot may differ while this publication remains current; use \`lervo migrate knowledge\` to determine currency.`,
-  itemCount: (count, singular, plural2 = `${singular}s`) => `${count} ${count === 1 ? singular : plural2}`,
+  itemCount: (count2, singular, plural2 = `${singular}s`) => `${count2} ${count2 === 1 ? singular : plural2}`,
   groups: {
     agent_instructions: "Agent instructions",
     agent_workflows: "Agent workflows",
@@ -63031,10 +63031,10 @@ function extractCssSymbolSpans(content3) {
 function createScanner(text6, ignoreTrivia = false) {
   const len = text6.length;
   let pos = 0, value = "", tokenOffset = 0, token = 16, lineNumber = 0, lineStartOffset = 0, tokenLineStartOffset = 0, prevTokenLineStartOffset = 0, scanError = 0;
-  function scanHexDigits(count, exact) {
+  function scanHexDigits(count2, exact) {
     let digits = 0;
     let value2 = 0;
-    while (digits < count || !exact) {
+    while (digits < count2 || !exact) {
       let ch = text6.charCodeAt(pos);
       if (ch >= 48 && ch <= 57) {
         value2 = value2 * 16 + ch - 48;
@@ -63048,7 +63048,7 @@ function createScanner(text6, ignoreTrivia = false) {
       pos++;
       digits++;
     }
-    if (digits < count) {
+    if (digits < count2) {
       value2 = -1;
     }
     return value2;
@@ -63673,9 +63673,9 @@ function format(documentText, range3, options) {
   }
   return editOperations;
 }
-function repeat(s, count) {
+function repeat(s, count2) {
   let result2 = "";
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < count2; i++) {
     result2 += s;
   }
   return result2;
@@ -65023,7 +65023,7 @@ async function scanRepositoryKnowledge(input) {
   });
   const observeRevision = input.observeRevision ?? observeGitHeadRevision;
   const revisionBefore = await observeRevision(root2);
-  const sources = [];
+  const sources2 = [];
   let includedBytes = 0;
   let visitedFiles = 0;
   const walk = async (directory) => {
@@ -65042,7 +65042,7 @@ async function scanRepositoryKnowledge(input) {
       }
       if (knowledgeScannerExcludes(path, input.policy)) {
         if (entry.isFile() || entry.isSymbolicLink()) {
-          sources.push({
+          sources2.push({
             sourceId: sourceId2,
             path,
             ...identityFields,
@@ -65058,7 +65058,7 @@ async function scanRepositoryKnowledge(input) {
         continue;
       }
       if (entry.isSymbolicLink()) {
-        sources.push({
+        sources2.push({
           sourceId: sourceId2,
           path,
           ...identityFields,
@@ -65091,7 +65091,7 @@ async function scanRepositoryKnowledge(input) {
         continue;
       }
       if (secretCandidatePath(path)) {
-        sources.push({
+        sources2.push({
           sourceId: id5,
           path,
           ...identityFields,
@@ -65108,7 +65108,7 @@ async function scanRepositoryKnowledge(input) {
       const artifactProfile = repositoryAgentArtifactForPath(path);
       const boundedOpaqueResource = artifactProfile?.contentHandling === "opaque_resource";
       if (stats.size > input.policy.limits.maxFileBytes && !boundedOpaqueResource) {
-        sources.push({
+        sources2.push({
           sourceId: id5,
           path,
           ...identityFields,
@@ -65131,7 +65131,7 @@ async function scanRepositoryKnowledge(input) {
         if (includedBytes > input.policy.limits.maxTotalBytes) {
           throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "Read source bytes exceed the policy limit.");
         }
-        sources.push({
+        sources2.push({
           sourceId: id5,
           path,
           ...identityFields,
@@ -65148,7 +65148,7 @@ async function scanRepositoryKnowledge(input) {
       if (binaryExtensions.has(extname2(path).toLowerCase())) {
         if (includeOpaqueSkillResource())
           continue;
-        sources.push({
+        sources2.push({
           sourceId: id5,
           path,
           ...identityFields,
@@ -65165,7 +65165,7 @@ async function scanRepositoryKnowledge(input) {
       if (bytes2.includes(0)) {
         if (includeOpaqueSkillResource())
           continue;
-        sources.push({
+        sources2.push({
           sourceId: id5,
           path,
           ...identityFields,
@@ -65185,7 +65185,7 @@ async function scanRepositoryKnowledge(input) {
       } catch {
         if (includeOpaqueSkillResource())
           continue;
-        sources.push({
+        sources2.push({
           sourceId: id5,
           path,
           ...identityFields,
@@ -65205,7 +65205,7 @@ async function scanRepositoryKnowledge(input) {
       if (includedBytes > input.policy.limits.maxTotalBytes) {
         throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "Read source bytes exceed the policy limit.");
       }
-      sources.push({
+      sources2.push({
         sourceId: id5,
         path,
         ...identityFields,
@@ -65234,7 +65234,7 @@ async function scanRepositoryKnowledge(input) {
     if (includedBytes > input.policy.limits.maxTotalBytes) {
       throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "Read source bytes exceed the policy limit.");
     }
-    sources.push({
+    sources2.push({
       sourceId: revisionSourceId,
       path: GIT_REVISION_SOURCE_PATH,
       kind: "revision_metadata",
@@ -65246,7 +65246,7 @@ async function scanRepositoryKnowledge(input) {
       origin: "git_revision_adapter"
     });
   } else {
-    sources.push({
+    sources2.push({
       sourceId: revisionSourceId,
       path: GIT_REVISION_SOURCE_PATH,
       kind: "revision_metadata",
@@ -65260,7 +65260,7 @@ async function scanRepositoryKnowledge(input) {
   }
   const supplementalByPath = /* @__PURE__ */ new Map();
   for (const supplemental of [...input.supplementalSources ?? []].sort((left, right) => left.path.localeCompare(right.path))) {
-    if (!/^@(?:verification|event)\/[a-z][a-z0-9_]{2,150}$/u.test(supplemental.path) || supplemental.content.includes("\0") || !/^[a-z][a-z0-9._+-]{2,127}$/u.test(supplemental.adapter) || supplemental.locator.length === 0 || supplemental.locator.length > 300 || supplemental.title.length === 0 || supplemental.title.length > 300 || supplementalByPath.has(supplemental.path) || sources.some((source) => source.path === supplemental.path) || supplemental.kind === "verification_result" && supplemental.unitKind !== "verification" || supplemental.kind === "execution_event" && supplemental.unitKind !== "event") {
+    if (!/^@(?:verification|event)\/[a-z][a-z0-9_]{2,150}$/u.test(supplemental.path) || supplemental.content.includes("\0") || !/^[a-z][a-z0-9._+-]{2,127}$/u.test(supplemental.adapter) || supplemental.locator.length === 0 || supplemental.locator.length > 300 || supplemental.title.length === 0 || supplemental.title.length > 300 || supplementalByPath.has(supplemental.path) || sources2.some((source) => source.path === supplemental.path) || supplemental.kind === "verification_result" && supplemental.unitKind !== "verification" || supplemental.kind === "execution_event" && supplemental.unitKind !== "event") {
       throw new RepositoryKnowledgeError("knowledge_evidence_source_invalid", "The supplemental evidence source contract is invalid.");
     }
     visitedFiles += 1;
@@ -65276,7 +65276,7 @@ async function scanRepositoryKnowledge(input) {
       throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "Read source bytes exceed the policy limit.");
     }
     supplementalByPath.set(supplemental.path, supplemental);
-    sources.push({
+    sources2.push({
       sourceId: stableId("src", { projectId: input.projectId, path: supplemental.path }),
       path: supplemental.path,
       kind: supplemental.kind,
@@ -65288,11 +65288,11 @@ async function scanRepositoryKnowledge(input) {
       origin: supplemental.origin
     });
   }
-  sources.sort((left, right) => left.path.localeCompare(right.path));
-  if (new Set(sources.map((source) => source.sourceId)).size !== sources.length) {
+  sources2.sort((left, right) => left.path.localeCompare(right.path));
+  if (new Set(sources2.map((source) => source.sourceId)).size !== sources2.length) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "Document move lineage and the current source path conflict under the same source identity.");
   }
-  const included = sources.filter((source) => source.status === "included" && source.content !== void 0 && source.contentHash !== null);
+  const included = sources2.filter((source) => source.status === "included" && source.content !== void 0 && source.contentHash !== null);
   const skillDescriptors = await extractSkillContractUnitDescriptors({
     repositoryRoot: root2,
     sources: included
@@ -65353,7 +65353,7 @@ async function scanRepositoryKnowledge(input) {
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", `The document move lineage ${lineage.value.lineageId} source-unit binding differs from the current exact moved bytes (${sourceUnitIds.length}/${lineage.value.sourceUnitCount}, ${bindingDigest}/${lineage.value.sourceUnitBindingDigest}).`);
     }
   }
-  const snapshotMaterials = sources.map(({ content: _content, ...source }) => source);
+  const snapshotMaterials = sources2.map(({ content: _content, ...source }) => source);
   const contentSnapshotMaterials = snapshotMaterials.filter((source) => source.kind !== "revision_metadata" && source.kind !== "verification_result" && source.kind !== "execution_event");
   const contentUnitVersions = units.filter((unit2) => unit2.unitKind !== "revision" && unit2.unitKind !== "verification" && unit2.unitKind !== "event").map((unit2) => unit2.unitVersionId);
   return {
@@ -65370,13 +65370,13 @@ async function scanRepositoryKnowledge(input) {
       units: contentUnitVersions
     }),
     coverage: {
-      included: sources.filter((source) => source.status === "included").length,
-      excluded: sources.filter((source) => source.status === "excluded").length,
-      unsupported: sources.filter((source) => source.status === "unsupported").length,
+      included: sources2.filter((source) => source.status === "included").length,
+      excluded: sources2.filter((source) => source.status === "excluded").length,
+      unsupported: sources2.filter((source) => source.status === "unsupported").length,
       includedBytes,
       complete: true
     },
-    sources,
+    sources: sources2,
     units
   };
 }
@@ -65392,7 +65392,7 @@ function relocateRepositoryKnowledgeScanSource(input) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The document move cannot be projected onto the current scan.");
   }
   const identityPath = source.identityPath ?? source.path;
-  const sources = input.scan.sources.map((item) => item.sourceId === source.sourceId ? {
+  const sources2 = input.scan.sources.map((item) => item.sourceId === source.sourceId ? {
     sourceId: item.sourceId,
     path: input.toPath,
     identityPath,
@@ -65411,7 +65411,7 @@ function relocateRepositoryKnowledgeScanSource(input) {
     path: input.toPath,
     ...item.unitKind === "file" ? { title: basename8(input.toPath) } : {}
   } : item).sort((left, right) => left.unitId.localeCompare(right.unitId) || left.unitVersionId.localeCompare(right.unitVersionId));
-  const snapshotMaterials = sources.map(({ content: _content, ...item }) => item);
+  const snapshotMaterials = sources2.map(({ content: _content, ...item }) => item);
   const contentSnapshotMaterials = snapshotMaterials.filter((item) => item.kind !== "revision_metadata" && item.kind !== "verification_result" && item.kind !== "execution_event");
   const contentUnitVersions = units.filter((item) => item.unitKind !== "revision" && item.unitKind !== "verification" && item.unitKind !== "event").map((item) => item.unitVersionId);
   return {
@@ -65424,7 +65424,7 @@ function relocateRepositoryKnowledgeScanSource(input) {
       sources: contentSnapshotMaterials,
       units: contentUnitVersions
     }),
-    sources,
+    sources: sources2,
     units
   };
 }
@@ -65445,12 +65445,12 @@ function upsertRepositoryKnowledgeScanSource(input) {
     contentHash: sha2565(input.content),
     content: input.content
   };
-  const sources = [...input.scan.sources.filter((item) => item.path !== input.path), source].sort((left, right) => left.path.localeCompare(right.path));
+  const sources2 = [...input.scan.sources.filter((item) => item.path !== input.path), source].sort((left, right) => left.path.localeCompare(right.path));
   const units = [
     ...input.scan.units.filter((item) => item.sourceId !== existing?.sourceId),
     ...extractUnits(input.scan.projectId, source)
   ].sort((left, right) => left.unitId.localeCompare(right.unitId) || left.unitVersionId.localeCompare(right.unitVersionId));
-  const snapshotMaterials = sources.map(({ content: _content, ...item }) => item);
+  const snapshotMaterials = sources2.map(({ content: _content, ...item }) => item);
   const contentSnapshotMaterials = snapshotMaterials.filter((item) => item.kind !== "revision_metadata" && item.kind !== "verification_result" && item.kind !== "execution_event");
   const contentUnitVersions = units.filter((item) => item.unitKind !== "revision" && item.unitKind !== "verification" && item.unitKind !== "event").map((item) => item.unitVersionId);
   return {
@@ -65468,7 +65468,7 @@ function upsertRepositoryKnowledgeScanSource(input) {
       included: input.scan.coverage.included + (existing === void 0 ? 1 : 0),
       includedBytes: input.scan.coverage.includedBytes - (existing?.byteCount ?? 0) + source.byteCount
     },
-    sources,
+    sources: sources2,
     units
   };
 }
@@ -68139,10 +68139,10 @@ function resolveAll(constructs2, events, context) {
   const called = [];
   let index2 = -1;
   while (++index2 < constructs2.length) {
-    const resolve116 = constructs2[index2].resolveAll;
-    if (resolve116 && !called.includes(resolve116)) {
-      events = resolve116(events, context);
-      called.push(resolve116);
+    const resolve118 = constructs2[index2].resolveAll;
+    if (resolve118 && !called.includes(resolve118)) {
+      events = resolve118(events, context);
+      called.push(resolve118);
     }
   }
   return events;
@@ -68994,9 +68994,9 @@ var SpliceBuffer = class {
    *   Any removed items.
    */
   splice(start, deleteCount, items) {
-    const count = deleteCount || 0;
+    const count2 = deleteCount || 0;
     this.setCursor(Math.trunc(start));
-    const removed = this.right.splice(this.right.length - count, Number.POSITIVE_INFINITY);
+    const removed = this.right.splice(this.right.length - count2, Number.POSITIVE_INFINITY);
     if (items) chunkedPush(this.left, items);
     return removed.reverse();
   }
@@ -73822,7 +73822,7 @@ function validJournal(value) {
   return item !== null && typeof item === "object" && item.schemaVersion === 1 && item.transactionType === "knowledge_materialization" && /^(?:ksmat|kstruct|kbridgeplan|kinstbootplan|kinstructionplan|klayout|knormplan|kwstreamplan|kpatternplan)_[a-f0-9]{24}$/.test(item.planId) && typeof item.projectId === "string" && Number.isSafeInteger(item.ownerPid) && item.ownerPid > 0 && ["preparing", "staged", "publishing", "event_recording", "committed"].includes(item.phase) && Number.isSafeInteger(item.publishedCount) && item.publishedCount >= 0 && (item.activeIndex === null || Number.isSafeInteger(item.activeIndex) && item.activeIndex >= 0) && Array.isArray(item.operations) && item.operations.length > 0 && item.operations.length <= 2e4 && new Set(item.operations.flatMap((operation) => [
     operation.path,
     ...operation.destinationPath === void 0 ? [] : [operation.destinationPath]
-  ])).size === item.operations.reduce((count, operation) => count + (operation.destinationPath === void 0 ? 1 : 2), 0) && item.operations.every((operation) => typeof operation.path === "string" && (operation.action === "create" || operation.action === "update" || operation.action === "delete" || operation.action === "move" || operation.action === "move_update") && (operation.beforeHash === null || /^sha256:[a-f0-9]{64}$/.test(operation.beforeHash)) && (operation.afterHash === null || /^sha256:[a-f0-9]{64}$/.test(operation.afterHash)) && (operation.action === "delete" ? operation.destinationPath === void 0 && operation.beforeHash !== null && operation.afterHash === null : operation.action === "move" || operation.action === "move_update" ? typeof operation.destinationPath === "string" && operation.destinationPath !== operation.path && operation.beforeHash !== null && operation.afterHash !== null && (operation.action === "move_update" || operation.afterHash === operation.beforeHash) : operation.destinationPath === void 0 && operation.afterHash !== null));
+  ])).size === item.operations.reduce((count2, operation) => count2 + (operation.destinationPath === void 0 ? 1 : 2), 0) && item.operations.every((operation) => typeof operation.path === "string" && (operation.action === "create" || operation.action === "update" || operation.action === "delete" || operation.action === "move" || operation.action === "move_update") && (operation.beforeHash === null || /^sha256:[a-f0-9]{64}$/.test(operation.beforeHash)) && (operation.afterHash === null || /^sha256:[a-f0-9]{64}$/.test(operation.afterHash)) && (operation.action === "delete" ? operation.destinationPath === void 0 && operation.beforeHash !== null && operation.afterHash === null : operation.action === "move" || operation.action === "move_update" ? typeof operation.destinationPath === "string" && operation.destinationPath !== operation.path && operation.beforeHash !== null && operation.afterHash !== null && (operation.action === "move_update" || operation.afterHash === operation.beforeHash) : operation.destinationPath === void 0 && operation.afterHash !== null));
 }
 async function readJournal(root2) {
   const transaction = transactionRoot(root2);
@@ -74080,10 +74080,10 @@ function repositorySourceCanEnterStructuralPublication(source) {
   return source.agentArtifact?.contentHandling !== "local_inventory_only" && source.kind !== "revision_metadata" && source.kind !== "verification_result" && source.kind !== "execution_event";
 }
 function repositoryKnowledgePublicationSnapshotId(scan) {
-  const sources = scan.sources.filter(repositorySourceCanEnterStructuralPublication).map(({ content: _content, ...source }) => source);
-  const sourceIds = new Set(sources.map((source) => source.sourceId));
+  const sources2 = scan.sources.filter(repositorySourceCanEnterStructuralPublication).map(({ content: _content, ...source }) => source);
+  const sourceIds = new Set(sources2.map((source) => source.sourceId));
   const unitVersionIds = scan.units.filter((unit2) => sourceIds.has(unit2.sourceId) && unit2.unitKind !== "revision" && unit2.unitKind !== "verification" && unit2.unitKind !== "event").map((unit2) => unit2.unitVersionId);
-  return stableId("ksnap", { sources, units: unitVersionIds });
+  return stableId("ksnap", { sources: sources2, units: unitVersionIds });
 }
 
 // packages/repository-knowledge/dist/document-layout.js
@@ -74625,15 +74625,15 @@ function structuralOverview(input) {
       unsupported: eligibleSources.filter((item) => item.status === "unsupported").length
     }),
     "",
-    ...[...counts2.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([kind, count]) => `- ${kind}: ${count}`)
+    ...[...counts2.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([kind, count2]) => `- ${kind}: ${count2}`)
   ];
   lines.push("", `## ${input.messages.knowledgeMap}`, "");
   for (const definition2 of groupDefinitions) {
-    const sources = input.groups.get(definition2.key);
-    if (sources === void 0 || sources.length === 0)
+    const sources2 = input.groups.get(definition2.key);
+    if (sources2 === void 0 || sources2.length === 0)
       continue;
     const categoryPath = `${input.indexPath.slice(0, input.indexPath.lastIndexOf("/") + 1)}${definition2.slug}.md`;
-    lines.push(`- [${input.messages.groups[definition2.key]}](${markdownLink(input.indexPath, categoryPath)}) \u2014 ${input.messages.itemCount(sources.length, "concept")}`);
+    lines.push(`- [${input.messages.groups[definition2.key]}](${markdownLink(input.indexPath, categoryPath)}) \u2014 ${input.messages.itemCount(sources2.length, "concept")}`);
   }
   if ([...input.groups.values()].every((items) => items.length === 0)) {
     lines.push("", `## ${input.messages.startingPoint}`, "", input.messages.noPublications);
@@ -74920,9 +74920,9 @@ function desiredOutputs(input) {
   const categoryOutputs = [];
   let activeCategoryCount = 0;
   for (const definition2 of groupDefinitions) {
-    const sources = groups.get(definition2.key) ?? [];
+    const sources2 = groups.get(definition2.key) ?? [];
     const categoryPath = `${input.publicationRoot.replace(/\/$/, "")}/${definition2.slug}.md`;
-    if (sources.length === 0)
+    if (sources2.length === 0)
       continue;
     activeCategoryCount += 1;
     const label = messages.groups[definition2.key];
@@ -74941,7 +74941,7 @@ function desiredOutputs(input) {
       path: categoryPath,
       ownership: "lervo_generated",
       publicationStatus: "draft",
-      sourceUnitVersionIds: sources.map((source) => sourceFileUnit(input.scan, source)?.unitVersionId).filter((item) => item !== void 0),
+      sourceUnitVersionIds: sources2.map((source) => sourceFileUnit(input.scan, source)?.unitVersionId).filter((item) => item !== void 0),
       assurance: "unreviewed",
       freshness: "current"
     });
@@ -74949,7 +74949,7 @@ function desiredOutputs(input) {
       label,
       slug: definition2.slug,
       path: categoryPath,
-      sources,
+      sources: sources2,
       messages,
       maxEntries: input.publication.maxNavigationEntries,
       maxBytes: input.publication.maxNavigationBytes,
@@ -76092,13 +76092,13 @@ function inspectGroupedDecisionPaths(paths, taxonomy) {
     }
   }
   for (const route of taxonomy.routes) {
-    const count = routeCounts.get(route.id) ?? 0;
-    if (count > taxonomy.maxLeafDocuments)
+    const count2 = routeCounts.get(route.id) ?? 0;
+    if (count2 > taxonomy.maxLeafDocuments)
       blockers.push({
         code: "decision_leaf_overflow",
         path: `${taxonomy.decisionRoot}/${route.path}`,
         configuredMaximum: taxonomy.maxLeafDocuments,
-        observedCount: count
+        observedCount: count2
       });
   }
   return blockers;
@@ -76208,7 +76208,7 @@ function documentNormalizationWorksetBinding(input) {
     input.pendingDocuments,
     input.staleDocuments
   ];
-  if (counts2.some((count) => !Number.isSafeInteger(count) || count < 0) || input.currentDocuments + input.pendingDocuments !== input.eligibleDocuments || input.staleDocuments > input.pendingDocuments || documents.some((document4) => typeof document4.path !== "string" || document4.path.length < 1 || !/^sha256:[a-f0-9]{64}$/u.test(document4.contentHash) || !Number.isSafeInteger(document4.byteCount) || document4.byteCount < 1) || new Set(documents.map((document4) => document4.path)).size !== documents.length || selectionPaths === void 0 && documents.length !== (input.scope === "stale" ? input.staleDocuments : input.pendingDocuments) || selectionPaths !== void 0 && (selectionPaths.length < 1 || new Set(selectionPaths).size !== selectionPaths.length || canonicalJson4(selectionPaths) !== canonicalJson4(documents.map((document4) => document4.path))))
+  if (counts2.some((count2) => !Number.isSafeInteger(count2) || count2 < 0) || input.currentDocuments + input.pendingDocuments !== input.eligibleDocuments || input.staleDocuments > input.pendingDocuments || documents.some((document4) => typeof document4.path !== "string" || document4.path.length < 1 || !/^sha256:[a-f0-9]{64}$/u.test(document4.contentHash) || !Number.isSafeInteger(document4.byteCount) || document4.byteCount < 1) || new Set(documents.map((document4) => document4.path)).size !== documents.length || selectionPaths === void 0 && documents.length !== (input.scope === "stale" ? input.staleDocuments : input.pendingDocuments) || selectionPaths !== void 0 && (selectionPaths.length < 1 || new Set(selectionPaths).size !== selectionPaths.length || canonicalJson4(selectionPaths) !== canonicalJson4(documents.map((document4) => document4.path))))
     throw new RepositoryKnowledgeError("knowledge_compile_policy_violation", "The document normalization workset counts or source bindings are inconsistent.");
   const sourceBytes = documents.reduce((sum, document4) => sum + document4.byteCount, 0);
   const repository = {
@@ -76706,7 +76706,7 @@ function requiredResponse(value, envelope) {
     telemetry.networkRequests,
     telemetry.externalActions,
     telemetry.toolCalls
-  ].some((count) => count !== 0))
+  ].some((count2) => count2 !== 0))
     throw new RepositoryKnowledgeError("knowledge_compile_policy_violation", "The document normalizer did not prove the no-capability contract.");
   const inputs = new Map(envelope.documents.map((document4) => [document4.path, document4]));
   const seenSources = /* @__PURE__ */ new Set();
@@ -76876,7 +76876,7 @@ function validateDocumentNormalizationCandidate(candidate) {
     repositoryCounts.unrecordedDocuments,
     candidate.workset.selectedDocuments,
     candidate.workset.sourceBytes
-  ].some((count) => !Number.isSafeInteger(count) || count < 0) || repositoryCounts.currentDocuments + repositoryCounts.pendingDocuments !== repositoryCounts.eligibleDocuments || repositoryCounts.staleDocuments + repositoryCounts.unrecordedDocuments !== repositoryCounts.pendingDocuments || candidate.workset.selectedDocuments !== candidate.items.length || candidate.workset.sourceBytes !== candidate.items.reduce((sum, item) => sum + item.sourceByteCount, 0))
+  ].some((count2) => !Number.isSafeInteger(count2) || count2 < 0) || repositoryCounts.currentDocuments + repositoryCounts.pendingDocuments !== repositoryCounts.eligibleDocuments || repositoryCounts.staleDocuments + repositoryCounts.unrecordedDocuments !== repositoryCounts.pendingDocuments || candidate.workset.selectedDocuments !== candidate.items.length || candidate.workset.sourceBytes !== candidate.items.reduce((sum, item) => sum + item.sourceByteCount, 0))
     invalidCandidate("the workset counts do not match the repository or candidate operations");
   const expectedWorkset = documentNormalizationWorksetBinding({
     scope: candidate.workset.scope,
@@ -77600,10 +77600,10 @@ async function createDocumentNormalizationPlan(input) {
   const blockers = [];
   if (scan.snapshotId !== input.candidate.sourceSnapshotId || policy.publication.language !== input.candidate.outputLanguage)
     blockers.push({ code: "candidate_stale", path: ".lervo/knowledge/policy.yaml" });
-  const sources = new Map(scan.sources.map((source) => [source.path, source]));
+  const sources2 = new Map(scan.sources.map((source) => [source.path, source]));
   const sourcePaths = new Set(input.candidate.items.map((item) => item.sourcePath));
   for (const item of input.candidate.items) {
-    if (sources.get(item.sourcePath)?.contentHash !== item.sourceContentHash)
+    if (sources2.get(item.sourcePath)?.contentHash !== item.sourceContentHash)
       blockers.push({ code: "candidate_stale", path: item.sourcePath });
     for (const output of item.outputs.filter((output2) => output2.path !== item.sourcePath)) {
       if (sourcePaths.has(output.path) || await hashAt3(resolve45(root2, output.path)) !== null)
@@ -77764,6 +77764,52 @@ function documentNormalizationRecordSource(content3) {
   return { sourcePath: value.sourcePath, sourceContentHash: value.sourceContentHash };
 }
 
+// packages/repository-knowledge/dist/document-format-ownership.js
+var import_yaml17 = __toESM(require_dist(), 1);
+import { posix as posix9 } from "node:path";
+var NORMALIZATION_RECORD_ROOT = ".lervo/knowledge/document-normalizations/";
+var DOCUMENT_MANIFEST_ROOT = ".lervo/documents/";
+var LEGACY_DOCUMENT_REGISTRY = ".lervo/documents.yaml";
+function isDocumentFormatOwnershipSource(path) {
+  return path.startsWith(NORMALIZATION_RECORD_ROOT) && path.endsWith(".yaml") || path.startsWith(DOCUMENT_MANIFEST_ROOT) && path.endsWith(".yaml") && !path.slice(DOCUMENT_MANIFEST_ROOT.length).includes("/") || path === LEGACY_DOCUMENT_REGISTRY;
+}
+var DOCUMENT_FORMAT_OWNERSHIP_ROOTS = [
+  NORMALIZATION_RECORD_ROOT.slice(0, -1),
+  DOCUMENT_MANIFEST_ROOT.slice(0, -1),
+  LEGACY_DOCUMENT_REGISTRY
+];
+var validPath2 = (path) => typeof path === "string" && path !== "" && path === posix9.normalize(path) && !posix9.isAbsolute(path) && path !== ".." && !path.startsWith("../");
+function parseYaml(content3) {
+  try {
+    return (0, import_yaml17.parse)(content3);
+  } catch {
+    return null;
+  }
+}
+function sourceOwnedPaths(path, content3) {
+  const value = parseYaml(content3);
+  if (value === null || typeof value !== "object")
+    return [];
+  if (path.startsWith(NORMALIZATION_RECORD_ROOT)) {
+    const outputs = Array.isArray(value.outputs) ? value.outputs : [];
+    return outputs.map((output) => output?.path).filter((output) => validPath2(output));
+  }
+  const records = path === LEGACY_DOCUMENT_REGISTRY ? Object.values(value.documents ?? {}) : [value.record];
+  return records.flatMap((record8) => {
+    const item = record8;
+    const mode = item?.ownership?.mode;
+    return validPath2(item?.path) && (mode === "managed_blocks" || mode === "lervo_generated") ? [item.path] : [];
+  });
+}
+function documentFormatOwnedPaths(sources2) {
+  const owned = /* @__PURE__ */ new Set();
+  for (const source of sources2)
+    if (isDocumentFormatOwnershipSource(source.path))
+      for (const path of sourceOwnedPaths(source.path, source.content))
+        owned.add(path);
+  return owned;
+}
+
 // packages/repository-knowledge/dist/document-normalization-procedure.js
 var REVIEW = "compare each output in the candidate artifact with its source for preserved meaning, links and lifecycle lines";
 function documentNormalizationProcedure(pendingCount) {
@@ -77812,22 +77858,22 @@ async function inspectRepositoryDocumentRewriters(input) {
 }
 
 // packages/repository-knowledge/dist/document-structure-delete.js
-var import_yaml18 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-normalization-record-retirement.js
-var import_yaml17 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-structure-merge.js
 var import_yaml19 = __toESM(require_dist(), 1);
 
-// packages/repository-knowledge/dist/document-structure-move.js
-var import_yaml21 = __toESM(require_dist(), 1);
+// packages/repository-knowledge/dist/document-normalization-record-retirement.js
+var import_yaml18 = __toESM(require_dist(), 1);
 
-// packages/repository-knowledge/dist/document-normalization-record-move.js
+// packages/repository-knowledge/dist/document-structure-merge.js
 var import_yaml20 = __toESM(require_dist(), 1);
 
-// packages/repository-knowledge/dist/document-structure-split.js
+// packages/repository-knowledge/dist/document-structure-move.js
 var import_yaml22 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-normalization-record-move.js
+var import_yaml21 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-structure-split.js
+var import_yaml23 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/durable-instruction.js
 import { readFile as readFile20 } from "node:fs/promises";
@@ -77988,8 +78034,8 @@ function durableInstructionCatalogEntry(input) {
 // packages/repository-knowledge/dist/durable-instruction-catalog.js
 var MAXIMUM_CATALOG_ENTRIES = 32;
 function inspectDurableInstructionCatalog(input) {
-  const sources = input.scan.sources.filter((source) => source.status === "included" && source.content !== void 0 && (source.path === "AGENTS.md" || source.path.startsWith("docs/instructions/"))).sort((left, right) => left.path.localeCompare(right.path));
-  const complete = sources.length <= MAXIMUM_CATALOG_ENTRIES;
+  const sources2 = input.scan.sources.filter((source) => source.status === "included" && source.content !== void 0 && (source.path === "AGENTS.md" || source.path.startsWith("docs/instructions/"))).sort((left, right) => left.path.localeCompare(right.path));
+  const complete = sources2.length <= MAXIMUM_CATALOG_ENTRIES;
   return {
     complete,
     sourceSnapshotId: input.scan.snapshotId,
@@ -77998,7 +78044,7 @@ function inspectDurableInstructionCatalog(input) {
       retrievalLanguage: input.policy.publication.language,
       canonicalInstructions: {
         complete,
-        entries: sources.slice(0, MAXIMUM_CATALOG_ENTRIES).map((source) => durableInstructionCatalogEntry({ path: source.path, content: source.content }))
+        entries: sources2.slice(0, MAXIMUM_CATALOG_ENTRIES).map((source) => durableInstructionCatalogEntry({ path: source.path, content: source.content }))
       }
     }
   };
@@ -78451,8 +78497,8 @@ var maximumWindowBytes = 16 * 1024 * 1024;
 import { lstat as lstat30 } from "node:fs/promises";
 import { resolve as resolve49 } from "node:path";
 var HASH21 = /^sha256:[a-f0-9]{64}$/;
-function includedSource(sources, path) {
-  const source = sources.find((item) => item.path === path);
+function includedSource(sources2, path) {
+  const source = sources2.find((item) => item.path === path);
   if (source === void 0)
     return null;
   if (source.status !== "included" || source.kind !== "instruction" || source.content === void 0 || source.contentHash === null) {
@@ -78476,10 +78522,10 @@ async function safeFilePresent(path) {
     throw error;
   }
 }
-function routeBlock(sources) {
+function routeBlock(sources2) {
   return repositoryInstructionRouteBlock({
-    instructions: sources.flatMap((source) => source.status === "included" && source.content !== void 0 && source.path.startsWith("docs/instructions/") && source.path.endsWith(".md") ? [{ path: source.path, instructionPaths: repositoryInstructionPaths(source.content) }] : []),
-    skills: sources.flatMap((source) => source.status === "included" && source.path.startsWith(".agents/skills/") && source.path.endsWith("/SKILL.md") ? [{ path: source.path }] : [])
+    instructions: sources2.flatMap((source) => source.status === "included" && source.content !== void 0 && source.path.startsWith("docs/instructions/") && source.path.endsWith(".md") ? [{ path: source.path, instructionPaths: repositoryInstructionPaths(source.content) }] : []),
+    skills: sources2.flatMap((source) => source.status === "included" && source.path.startsWith(".agents/skills/") && source.path.endsWith("/SKILL.md") ? [{ path: source.path }] : [])
   });
 }
 function appendBlock(content3, block) {
@@ -78633,7 +78679,7 @@ async function applyKnowledgeInstructionBootstrapPlan(input) {
 }
 
 // packages/repository-knowledge/dist/instruction-bridge.js
-var import_yaml23 = __toESM(require_dist(), 1);
+var import_yaml24 = __toESM(require_dist(), 1);
 import { constants as constants20 } from "node:fs";
 import { lstat as lstat31, open as open21 } from "node:fs/promises";
 import { resolve as resolve50 } from "node:path";
@@ -78745,7 +78791,7 @@ function instructionBridgeProfile(provider) {
 }
 function validExistingBridgeRecord(bytes2, profile9, bridgeId) {
   try {
-    const value = (0, import_yaml23.parse)(bytes2.toString("utf8"));
+    const value = (0, import_yaml24.parse)(bytes2.toString("utf8"));
     return value !== null && typeof value === "object" && value.schemaVersion === 1 && value.bridgeId === bridgeId && value.profile?.id === profile9.profileId && value.profile.version === profile9.profileVersion && value.profile.provider === profile9.provider && value.profile.discoveryContract === profile9.discoveryContract && value.canonical?.path === profile9.canonicalPath && typeof value.canonical.contentHash === "string" && HASH22.test(value.canonical.contentHash) && value.target?.path === profile9.targetPath && value.target.blockId === profile9.blockId && typeof value.target.contentHash === "string" && HASH22.test(value.target.contentHash) && typeof value.target.managedContentHash === "string" && HASH22.test(value.target.managedContentHash);
   } catch {
     return false;
@@ -78874,7 +78920,7 @@ async function createKnowledgeInstructionBridgePlan(input) {
     targetPath: profile9.targetPath
   });
   const bridgeRecordPath = shardedKnowledgeArtifactPath(".lervo/knowledge/instruction-bridges", bridgeId, "yaml");
-  const bridgeRecordContent = (0, import_yaml23.stringify)({
+  const bridgeRecordContent = (0, import_yaml24.stringify)({
     schemaVersion: 1,
     bridgeId,
     profile: {
@@ -79076,17 +79122,17 @@ import { createHash as createHash29 } from "node:crypto";
 // packages/repository-knowledge/dist/repository-layout-migration.js
 import { constants as constants21 } from "node:fs";
 import { lstat as lstat33, open as open22, readFile as readFile22 } from "node:fs/promises";
-import { basename as basename12, posix as posix9, resolve as resolve52 } from "node:path";
-var import_yaml25 = __toESM(require_dist(), 1);
+import { basename as basename12, posix as posix10, resolve as resolve52 } from "node:path";
+var import_yaml26 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/decision-taxonomy-refresh.js
-var import_yaml24 = __toESM(require_dist(), 1);
+var import_yaml25 = __toESM(require_dist(), 1);
 var decisionTaxonomyPath2 = ".lervo/knowledge/document-layout.yaml";
 function planDecisionTaxonomyRefresh(input) {
   const current = input.taxonomy.documentPolicy.roles;
   const roles = seedRepositoryDocumentRoles(current, input.pathExists, input.placedPaths);
   const changed = roles.length !== current.length || roles.some((role, index2) => role !== current[index2]);
-  const upgrade = decisionTaxonomyRequiresUpgrade((0, import_yaml24.parse)(input.taxonomySource));
+  const upgrade = decisionTaxonomyRequiresUpgrade((0, import_yaml25.parse)(input.taxonomySource));
   if (!changed && !upgrade)
     return [];
   const content3 = serializeDecisionTaxonomy({
@@ -79325,10 +79371,10 @@ async function normalizationOwnershipUpgradeOperations(root2) {
   });
   for (const path of paths) {
     const source = await readFile22(resolve52(root2, path), "utf8");
-    const value = (0, import_yaml25.parse)(source);
+    const value = (0, import_yaml26.parse)(source);
     if (value.schemaVersion !== 1)
       continue;
-    const content3 = (0, import_yaml25.stringify)({
+    const content3 = (0, import_yaml26.stringify)({
       ...value,
       schemaVersion: 2,
       byteOwnership: { owner: "reviewer", rewritePolicy: "reviewed_exact" }
@@ -79364,11 +79410,11 @@ function replaceAllLiteral(content3, from, to) {
 }
 function rewriteReferences(sourcePath, content3, moves) {
   let output = content3;
-  let count = 0;
-  const sourceDirectory = posix9.dirname(sourcePath);
+  let count2 = 0;
+  const sourceDirectory = posix10.dirname(sourcePath);
   for (const move of moves) {
-    const fromRelative = posix9.relative(sourceDirectory, move.fromPath);
-    const toRelative = posix9.relative(sourceDirectory, move.toPath);
+    const fromRelative = posix10.relative(sourceDirectory, move.fromPath);
+    const toRelative = posix10.relative(sourceDirectory, move.toPath);
     const variants = [
       ...fromRelative.startsWith(".") ? [[fromRelative, toRelative]] : [
         [`./${fromRelative}`, `./${toRelative}`],
@@ -79380,10 +79426,10 @@ function rewriteReferences(sourcePath, content3, moves) {
     for (const [from, to] of variants) {
       const replaced = replaceAllLiteral(output, from, to);
       output = replaced.content;
-      count += replaced.count;
+      count2 += replaced.count;
     }
   }
-  return { content: output, count };
+  return { content: output, count: count2 };
 }
 function rebaseMarkdownLinks(content3, fromPath, toPath) {
   const tree = fromMarkdown(content3);
@@ -79393,8 +79439,8 @@ function rebaseMarkdownLinks(content3, fromPath, toPath) {
       const match = /^([^?#]*)([?#].*)?$/u.exec(node2.url);
       const relativeTarget = match?.[1] ?? "";
       if (relativeTarget.length > 0) {
-        const absoluteTarget = posix9.normalize(posix9.join(posix9.dirname(fromPath), relativeTarget));
-        let rebased = posix9.relative(posix9.dirname(toPath), absoluteTarget);
+        const absoluteTarget = posix10.normalize(posix10.join(posix10.dirname(fromPath), relativeTarget));
+        let rebased = posix10.relative(posix10.dirname(toPath), absoluteTarget);
         if (!rebased.startsWith("."))
           rebased = `./${rebased}`;
         rebased += match?.[2] ?? "";
@@ -79885,7 +79931,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     const currentRecord = bridge.operations.find((operation) => operation.path === bridge.bridgeRecordPath && operation.ownership !== "user");
     if (currentRecord === void 0 || currentRecord.action === "conflict")
       throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The instruction bridge record cannot be bound to the layout migration.");
-    const content3 = (0, import_yaml25.stringify)({
+    const content3 = (0, import_yaml26.stringify)({
       schemaVersion: 1,
       bridgeId: bridge.bridgeId,
       profile: {
@@ -80056,14 +80102,14 @@ async function applyRepositoryLayoutMigrationPlan(input) {
 // packages/repository-knowledge/dist/lint-query.js
 import { lstat as lstat37, readFile as readFile26, readdir as readdir17 } from "node:fs/promises";
 import { relative as relative12, resolve as resolve56, sep as sep12 } from "node:path";
-var import_yaml26 = __toESM(require_dist(), 1);
+var import_yaml27 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/document-reference-lint.js
 import { lstat as lstat34, readFile as readFile23 } from "node:fs/promises";
 import { resolve as resolve53 } from "node:path";
 
 // packages/repository-knowledge/dist/document-references.js
-import { posix as posix10 } from "node:path";
+import { posix as posix11 } from "node:path";
 var MAXIMUM_DOCUMENT_REFERENCES = 512;
 var schemePattern = /^[A-Za-z][A-Za-z0-9+.-]*:/u;
 var fencePattern = /^\s{0,3}(`{3,}|~{3,})(.*)$/u;
@@ -80074,7 +80120,7 @@ var pathCharacters = /^[A-Za-z0-9_.][A-Za-z0-9_./+@-]*$/u;
 var symbolPattern = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/u;
 var extensionPattern = /\.[A-Za-z0-9]{1,10}$/u;
 function normalizedRepositoryPath(value) {
-  const normalized2 = posix10.normalize(value.replace(/^\.\//u, ""));
+  const normalized2 = posix11.normalize(value.replace(/^\.\//u, ""));
   if (normalized2 === "." || normalized2 === "" || normalized2 === ".." || normalized2.startsWith("../") || normalized2.startsWith("/"))
     return null;
   return normalized2.replace(/\/$/u, "");
@@ -80093,7 +80139,7 @@ function linkTarget(documentPath2, raw) {
   } catch {
     return null;
   }
-  const joined = target.startsWith("/") ? target.slice(1) : posix10.join(posix10.dirname(documentPath2), target);
+  const joined = target.startsWith("/") ? target.slice(1) : posix11.join(posix11.dirname(documentPath2), target);
   return normalizedRepositoryPath(joined);
 }
 function codePath(value) {
@@ -80950,7 +80996,7 @@ async function lintInstructionBridgeRecords(root2, projectId, issues) {
     }
     let value;
     try {
-      value = (0, import_yaml26.parse)(new TextDecoder("utf-8", { fatal: true }).decode(recordBytes));
+      value = (0, import_yaml27.parse)(new TextDecoder("utf-8", { fatal: true }).decode(recordBytes));
       const expectedId = stableId("kbridge", {
         projectId,
         provider: "claude",
@@ -81753,9 +81799,9 @@ function documentFreshnessAddedTokens(before, replacement) {
     available.set(token, (available.get(token) ?? 0) + 1);
   const added = [];
   for (const token of (replacement.match(tokenPattern) ?? []).map(trimToken)) {
-    const count = available.get(token) ?? 0;
-    if (count > 0)
-      available.set(token, count - 1);
+    const count2 = available.get(token) ?? 0;
+    if (count2 > 0)
+      available.set(token, count2 - 1);
     else if (token !== "")
       added.push(token);
   }
@@ -81878,7 +81924,7 @@ function documentFreshnessOutsideBytesUnchanged(source, output, hunks) {
 }
 
 // packages/repository-knowledge/dist/document-freshness-archive.js
-import { posix as posix11 } from "node:path";
+import { posix as posix12 } from "node:path";
 var fencePattern3 = /^\s{0,3}(`{3,}|~{3,})(.*)$/u;
 var inlineLinkPattern2 = /(!?\[(?:[^\]\\]|\\.)*\]\(\s*)(<[^>]*>|[^)\s]+)((?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\))/gu;
 var referenceDefinitionPattern2 = /^(\s{0,3}\[[^\]]+\]:\s*)(<[^>]*>|\S+)(.*)$/u;
@@ -81905,13 +81951,13 @@ function resolveTarget(documentPath2, path) {
   } catch {
     return null;
   }
-  const joined = decoded.startsWith("/") ? decoded.slice(1) : posix11.join(posix11.dirname(documentPath2), decoded);
-  const normalized2 = posix11.normalize(joined).replace(/\/$/u, "");
+  const joined = decoded.startsWith("/") ? decoded.slice(1) : posix12.join(posix12.dirname(documentPath2), decoded);
+  const normalized2 = posix12.normalize(joined).replace(/\/$/u, "");
   return normalized2 === "." || normalized2.startsWith("../") ? null : normalized2;
 }
 function relativeLink(fromDocument, target) {
-  const relative19 = posix11.relative(posix11.dirname(fromDocument), target);
-  return relative19 === "" ? posix11.basename(target) : relative19;
+  const relative19 = posix12.relative(posix12.dirname(fromDocument), target);
+  return relative19 === "" ? posix12.basename(target) : relative19;
 }
 function rewriteDocumentLinks(input) {
   const rewrites = [];
@@ -81953,9 +81999,9 @@ function rewriteDocumentLinks(input) {
   return { content: output.join("\n"), rewrites };
 }
 function documentFreshnessArchiveTarget(input) {
-  const fallback = posix11.basename(input.documentPath).toLowerCase().replace(/[^a-z0-9.-]+/gu, "-").replace(/^-+/u, "");
+  const fallback = posix12.basename(input.documentPath).toLowerCase().replace(/[^a-z0-9.-]+/gu, "-").replace(/^-+/u, "");
   const name2 = input.suggestedName !== null && archiveName.test(input.suggestedName) ? input.suggestedName : archiveName.test(fallback) ? fallback : "archived-document.md";
-  return posix11.join(input.historicalRoot, name2);
+  return posix12.join(input.historicalRoot, name2);
 }
 function documentFreshnessArchiveBanner(input) {
   const current = input.currentDocumentPath === null ? "It is kept for history and does not describe the current design." : `The current document is [${input.currentDocumentPath}](${relativeLink(input.targetPath, input.currentDocumentPath)}).`;
@@ -82753,26 +82799,26 @@ async function connectedPathChanges(input) {
       const before = objects.get(`${verified}:${path}`) ?? null;
       const after = objects.get(`${input.head}:${path}`) ?? null;
       const removed = before !== null && after === null;
-      const rename27 = removed ? await renameTarget(input.root, path) : null;
+      const rename28 = removed ? await renameTarget(input.root, path) : null;
       changes.set(path, {
         path,
         beforeHash: before === null ? null : sha2565(before),
         afterHash: after === null ? null : sha2565(after),
-        disposition: before === null ? "added" : removed ? rename27?.renamedTo ? "renamed" : "deleted" : "modified",
-        renamedTo: rename27?.renamedTo ?? null
+        disposition: before === null ? "added" : removed ? rename28?.renamedTo ? "renamed" : "deleted" : "modified",
+        renamedTo: rename28?.renamedTo ?? null
       });
     }
   }
   for (const path of input.missingTargets.slice(0, MAXIMUM_MISSING_TARGET_LOOKUPS)) {
     if (changes.has(path))
       continue;
-    const rename27 = await renameTarget(input.root, path);
+    const rename28 = await renameTarget(input.root, path);
     changes.set(path, {
       path,
       beforeHash: null,
       afterHash: null,
-      disposition: rename27.renamedTo === null ? "deleted" : "renamed",
-      renamedTo: rename27.renamedTo
+      disposition: rename28.renamedTo === null ? "deleted" : "renamed",
+      renamedTo: rename28.renamedTo
     });
   }
   return [...changes.values()];
@@ -82825,8 +82871,8 @@ async function observeDocumentFreshnessFindings(input) {
   const lint = input.lint ?? await lintRepositoryKnowledge(root2, { documentStaleness: "evaluate_and_record" });
   const report = await readRecordedDocumentStalenessReport(root2);
   const reportCurrent = report?.status === "observed" && report.currentRevision === head;
-  const sources = /* @__PURE__ */ new Map();
-  const add = (path, source) => sources.set(path, (sources.get(path) ?? /* @__PURE__ */ new Set()).add(source));
+  const sources2 = /* @__PURE__ */ new Map();
+  const add = (path, source) => sources2.set(path, (sources2.get(path) ?? /* @__PURE__ */ new Set()).add(source));
   const staleness = /* @__PURE__ */ new Map();
   if (reportCurrent)
     for (const finding of report.stale) {
@@ -82844,7 +82890,7 @@ async function observeDocumentFreshnessFindings(input) {
   const rolePaths = new Set((taxonomy?.documentPolicy.roles ?? []).map((role) => role.path));
   const oracle = filesystemDocumentFreshnessOracle(root2);
   const successors = await supersededDocuments(root2);
-  const paths = [...sources.keys()].sort();
+  const paths = [...sources2.keys()].sort();
   const findings = [];
   for (const path of paths.slice(0, MAXIMUM_FINDINGS)) {
     const bytes2 = (() => {
@@ -82867,7 +82913,7 @@ async function observeDocumentFreshnessFindings(input) {
       documentHash: sha2565(bytes2),
       currentRevision: head,
       staleness: staleness.get(path) ?? null,
-      sources: [...sources.get(path)],
+      sources: [...sources2.get(path)],
       connectedPathChanges: await connectedPathChanges({
         root: root2,
         head,
@@ -82912,8 +82958,8 @@ function bounded2(value, maximumBytes2) {
     text6 = text6.slice(0, -1);
   return `${text6}...`;
 }
-function plural(count, word) {
-  return `${count} ${word}${count === 1 ? "" : "s"}`;
+function plural(count2, word) {
+  return `${count2} ${word}${count2 === 1 ? "" : "s"}`;
 }
 function documentFreshnessCompactLine(summary) {
   if (summary.staleCount === 0 && summary.awaitingReviewCount === 0 && summary.appliedRecentPaths.length === 0 && !summary.blocked)
@@ -83238,7 +83284,7 @@ async function queryRepositoryKnowledge(input) {
 }
 
 // packages/repository-knowledge/dist/reconciliation-review.js
-var import_yaml27 = __toESM(require_dist(), 1);
+var import_yaml28 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-change-source.js
 import { spawn as spawn2 } from "node:child_process";
@@ -83579,11 +83625,11 @@ async function captureReviewSources(root2, manifest, intake) {
   }
   return capture;
 }
-function partitionReviewSubJobs(sources) {
+function partitionReviewSubJobs(sources2) {
   const subJobs = [];
   let current = [];
   let bytes2 = 0;
-  for (const { source, byteCount } of sources) {
+  for (const { source, byteCount } of sources2) {
     if (current.length === MAXIMUM_SUB_JOB_PATHS || current.length > 0 && bytes2 + byteCount > MAXIMUM_SUB_JOB_BYTES) {
       subJobs.push(current);
       current = [];
@@ -83798,9 +83844,9 @@ async function resolveJob(root2, delivery, artifacts, host, intakePolicy, summar
     assertLease();
     if (subJobs.length === 0 && capture.skipped.some((item) => item.fileDisposition !== "skipped_generated"))
       return new TerminalOutcome("attention_required", "review_sources_unreviewable");
-    for (const [index2, sources] of subJobs.entries()) {
+    for (const [index2, sources2] of subJobs.entries()) {
       summary.subJobIndex = index2;
-      const decision2 = await host.review(sources, {
+      const decision2 = await host.review(sources2, {
         changeEventId: delivery.event.eventId,
         destinationId: delivery.destinationId,
         attemptCount: delivery.attemptCount,
@@ -83932,7 +83978,7 @@ async function processRepositoryKnowledgeJobs(input) {
 }
 
 // packages/repository-knowledge/dist/semantic-materialization.js
-var import_yaml28 = __toESM(require_dist(), 1);
+var import_yaml29 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/terminal-integration.js
 import { constants as constants24 } from "node:fs";
@@ -84259,7 +84305,7 @@ async function collectVerificationResultSources(input) {
   } catch {
     return fail16();
   }
-  const sources = [];
+  const sources2 = [];
   let totalBytes = 0;
   for (const event of [...completed.values()].sort((left, right) => String(left.payload.verificationId).localeCompare(String(right.payload.verificationId)))) {
     const payload = event.payload;
@@ -84296,7 +84342,7 @@ async function collectVerificationResultSources(input) {
       return fail16();
     if (result2.verificationId !== verificationId || result2.suiteId !== suiteId || result2.suiteHash !== payload.suiteHash || result2.repositoryRevision !== payload.repositoryRevision || result2.status !== payload.status || result2.completedAt !== event.occurredAt || JSON.stringify(result2.commands.filter((command) => command.status !== "passed").map((command) => command.commandId)) !== JSON.stringify(payload.nonPassedCommandIds))
       return fail16();
-    sources.push({
+    sources2.push({
       path: `@verification/${verificationId}`,
       kind: "verification_result",
       classification: "ordinary",
@@ -84308,13 +84354,13 @@ async function collectVerificationResultSources(input) {
       adapter: VERIFICATION_RESULT_SOURCE_ADAPTER
     });
   }
-  return sources;
+  return sources2;
 }
 
 // packages/repository-knowledge/dist/workstream.js
 import { constants as constants25 } from "node:fs";
 import { lstat as lstat39, mkdir as mkdir17, open as open25, rename as rename12, rm as rm13 } from "node:fs/promises";
-import { basename as basename13, dirname as dirname17, posix as posix12, relative as relative13, resolve as resolve63, sep as sep13 } from "node:path";
+import { basename as basename13, dirname as dirname17, posix as posix13, relative as relative13, resolve as resolve63, sep as sep13 } from "node:path";
 var CURRENT_WORKSTREAM_PATH = ".lervo/state/workstreams/current.json";
 var MAX_HANDOFF_BYTES = 128 * 1024;
 function insideRoot(root2, path) {
@@ -84818,11 +84864,11 @@ function assertKnowledgeConvergenceComplete(input, snapshotHash) {
 }
 
 // packages/repository-knowledge/dist/knowledge-convergence-discovery.js
-async function discoverKnowledgeConvergenceObligation(input, now, replay) {
+async function discoverKnowledgeConvergenceObligation(input, now, replay2) {
   const baseline = await input.host.discover();
-  const rows2 = replay();
+  const rows2 = replay2();
   const lastCurrent = rows2.findLast((row) => row.outcome?.payload.terminalState === "current");
-  if (lastCurrent?.outcome?.payload.snapshotHash === baseline.sourceSnapshotHash && lastCurrent.baseline.payload.policyHash === baseline.policyHash && lastCurrent.baseline.payload.delegationHash === baseline.delegationHash && Object.values(baseline.debtCounts).every((count) => count === 0))
+  if (lastCurrent?.outcome?.payload.snapshotHash === baseline.sourceSnapshotHash && lastCurrent.baseline.payload.policyHash === baseline.policyHash && lastCurrent.baseline.payload.delegationHash === baseline.delegationHash && Object.values(baseline.debtCounts).every((count2) => count2 === 0))
     return baseline;
   const existing = rows2.find((row) => row.outcome === null && (row.latest?.payload.snapshotHash ?? row.baseline.payload.sourceSnapshotHash) === baseline.sourceSnapshotHash && row.baseline.payload.policyHash === baseline.policyHash && row.baseline.payload.delegationHash === baseline.delegationHash);
   if (existing !== void 0)
@@ -84923,8 +84969,8 @@ async function loadInput(artifacts, hash3, projectId, obligationId2) {
     throw new Error("The convergence input identity is invalid.");
   return value;
 }
-async function resumeDependencies(input, now, replay) {
-  for (const row of replay()) {
+async function resumeDependencies(input, now, replay2) {
+  for (const row of replay2()) {
     if (row.outcome !== null || row.latest === null || row.latest.payload.dependencyHash === null || row.latest.payload.state === "queued")
       continue;
     if (await input.host.dependencyCurrent(row.latest.payload.dependencyHash))
@@ -84957,8 +85003,8 @@ async function processKnowledgeConvergence(input) {
     throw new Error("The convergence stage budget is invalid.");
   if (input.writableEventSchemaVersion < 4)
     return convergenceStatus(input, await input.host.discover(), now(), "reader_transition_required");
-  const replay = memoizedKnowledgeConvergenceReplay(input.events);
-  const baseline = await discoverKnowledgeConvergenceObligation(input, now(), replay);
+  const replay2 = memoizedKnowledgeConvergenceReplay(input.events);
+  const baseline = await discoverKnowledgeConvergenceObligation(input, now(), replay2);
   const discoveredHead = input.events.latest()?.eventHash ?? null;
   let deliveries = 0;
   input.events.purgeAcknowledged({
@@ -84967,8 +85013,8 @@ async function processKnowledgeConvergence(input) {
     keepMostRecent: 1024,
     limit: 1e3
   });
-  await resumeDependencies(input, now(), replay);
-  reconcileKnowledgeConvergenceOutbox(input.events, replay(), now().toISOString());
+  await resumeDependencies(input, now(), replay2);
+  reconcileKnowledgeConvergenceOutbox(input.events, replay2(), now().toISOString());
   for (let index2 = 0; index2 < (input.maximumStages ?? 8); index2++) {
     const [delivery] = input.events.claim({
       workerId: input.workerId,
@@ -84980,7 +85026,7 @@ async function processKnowledgeConvergence(input) {
     if (delivery === void 0)
       break;
     deliveries++;
-    const row = replay().find((item) => item.baseline.payload.obligationId === delivery.event.payload.obligationId);
+    const row = replay2().find((item) => item.baseline.payload.obligationId === delivery.event.payload.obligationId);
     const terminal = input.events.get(convergenceEventId([delivery.event.payload.obligationId, "terminal"]));
     if (terminal?.type === "repository.knowledge.convergence.recorded") {
       input.events.transact((transaction) => {
@@ -85087,7 +85133,7 @@ async function processKnowledgeConvergence(input) {
     });
   }
   const unchanged = deliveries === 0 && (input.events.latest()?.eventHash ?? null) === discoveredHead;
-  return convergenceStatus(input, unchanged ? baseline : await input.host.discover(), now(), "ready", replay());
+  return convergenceStatus(input, unchanged ? baseline : await input.host.discover(), now(), "ready", replay2());
 }
 function inspectKnowledgeConvergenceStatus(input) {
   return convergenceStatus(input, input.baseline, input.now ?? /* @__PURE__ */ new Date(), input.writableEventSchemaVersion < 4 ? "reader_transition_required" : "ready");
@@ -85119,7 +85165,7 @@ async function createStoredDocumentNormalizationSubsetCandidate(input) {
     coverage: {
       eligibleDocuments: items.length,
       normalizedDocuments: items.length,
-      sourceUnits: items.reduce((count, item) => count + item.sourceUnitVersionIds.length, 0),
+      sourceUnits: items.reduce((count2, item) => count2 + item.sourceUnitVersionIds.length, 0),
       complete: true
     }
   };
@@ -85236,7 +85282,7 @@ function killProcessTree(child) {
 async function executeVerificationCommand(input) {
   const startedAt = input.now();
   const monotonicStart = performance.now();
-  return new Promise((resolve116) => {
+  return new Promise((resolve118) => {
     let child;
     try {
       child = spawn3(input.command.executable, input.command.arguments, {
@@ -85247,7 +85293,7 @@ async function executeVerificationCommand(input) {
         stdio: ["ignore", "pipe", "pipe"]
       });
     } catch {
-      resolve116({
+      resolve118({
         status: "execution_error",
         exitCode: null,
         startedAt: startedAt.toISOString(),
@@ -85306,7 +85352,7 @@ async function executeVerificationCommand(input) {
       clearTimeout(timeout);
       input.signal?.removeEventListener("abort", abort);
       const status = forced ?? (spawnError ? "execution_error" : code === 0 ? "passed" : "failed");
-      resolve116({
+      resolve118({
         status,
         exitCode: code,
         startedAt: startedAt.toISOString(),
@@ -85478,7 +85524,7 @@ async function runVerificationSuite(input, options = {}) {
 }
 
 // packages/verification/dist/suite-loader.js
-var import_yaml29 = __toESM(require_dist(), 1);
+var import_yaml30 = __toESM(require_dist(), 1);
 import { lstat as lstat42, realpath as realpath4 } from "node:fs/promises";
 import { resolve as resolve65 } from "node:path";
 
@@ -85545,7 +85591,7 @@ async function loadVerificationSuite(repositoryRoot, suiteId) {
     const bytes2 = await readVerificationSuiteFile(path, MAXIMUM_SUITE_BYTES);
     let value;
     try {
-      value = (0, import_yaml29.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
+      value = (0, import_yaml30.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
     } catch (error) {
       throw new VerificationError("invalid_verification_suite", "The verification suite YAML could not be read.", { cause: error });
     }
@@ -85646,10 +85692,10 @@ function resolveConvergenceAssetDispositions(root2, delegation, reviewedManifest
 }
 
 // packages/repository-knowledge-runtime/dist/source-capture-contract.js
-import { posix as posix13 } from "node:path";
+import { posix as posix14 } from "node:path";
 var DEFAULT_REPOSITORY_SOURCE_BYTES = 256 * 1024 * 1024;
 function symbolicReferenceTarget(reference) {
-  return posix13.normalize(posix13.join(posix13.dirname(reference.path), reference.target));
+  return posix14.normalize(posix14.join(posix14.dirname(reference.path), reference.target));
 }
 function safeReferencePath(path) {
   return typeof path === "string" && path.length > 0 && path.length <= 500 && !path.includes("\\") && !path.includes(":") && !path.includes("\0") && !path.split("/").some((part) => !part || part === "." || part === "..") && ![".git", ".lervo"].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
@@ -85713,7 +85759,7 @@ function parseConvergenceDelegation(value) {
     ceilings.maximumDocuments,
     ceilings.maximumSourceBytes,
     ceilings.maximumProviderCalls
-  ].every((count) => Number.isSafeInteger(count) && count > 0) || ceilings.maximumStages > 8 || ceilings.maximumDocuments > 8 || ceilings.maximumSourceBytes > 1048576 || ceilings.maximumProviderCalls > 8)
+  ].every((count2) => Number.isSafeInteger(count2) && count2 > 0) || ceilings.maximumStages > 8 || ceilings.maximumDocuments > 8 || ceilings.maximumSourceBytes > 1048576 || ceilings.maximumProviderCalls > 8)
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   if (delegation.assetDispositions !== void 0)
     parseConvergenceAssetDispositions(delegation.assetDispositions, delegation.verification.map((suite) => suite.suiteId), 256);
@@ -86728,18 +86774,18 @@ async function listObservations(input) {
 }
 
 // packages/search-local/dist/evaluation-bundle-files.js
-var import_yaml30 = __toESM(require_dist(), 1);
+var import_yaml31 = __toESM(require_dist(), 1);
 var MAX_BUNDLE_BYTES = 64 * 1024;
 
 // packages/search-local/dist/evaluation-case-files.js
-var import_yaml31 = __toESM(require_dist(), 1);
+var import_yaml32 = __toESM(require_dist(), 1);
 var MAX_CASE_BYTES = 64 * 1024;
 
 // packages/search-local/dist/policy-file-store.js
 import { constants as constants29 } from "node:fs";
 import { link as link3, lstat as lstat44, mkdir as mkdir19, open as open28, readdir as readdir19, realpath as realpath6, unlink as unlink4 } from "node:fs/promises";
 import { resolve as resolve69 } from "node:path";
-var import_yaml32 = __toESM(require_dist(), 1);
+var import_yaml33 = __toESM(require_dist(), 1);
 var MAX_POLICY_BYTES = 64 * 1024;
 async function policyDirectory(repositoryRoot, contract, create) {
   try {
@@ -86794,7 +86840,7 @@ async function readPolicy(path, contract) {
     if (!afterReadHandle.isFile() || afterReadHandle.size > BigInt(MAX_POLICY_BYTES) || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > BigInt(MAX_POLICY_BYTES) || !sameFileWithinStatSurface3(openedHandle, afterReadHandle) || !sameFileWithinStatSurface3(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces3(afterReadPath, afterReadHandle)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} changed while it was being read.`);
     }
-    const value = (0, import_yaml32.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
+    const value = (0, import_yaml33.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes2));
     contract.assertValue(value);
     return value;
   } catch (error) {
@@ -87049,7 +87095,7 @@ var Bm25fSearchIndex = class {
         ...input.labels.map((label) => field("label", label, 10)),
         field("text", input.text, 2)
       ].filter((item) => item !== null);
-      const length = fields2.reduce((sum, item) => sum + [...item.frequencies.values()].reduce((fieldSum, count) => fieldSum + count, 0), 0);
+      const length = fields2.reduce((sum, item) => sum + [...item.frequencies.values()].reduce((fieldSum, count2) => fieldSum + count2, 0), 0);
       return { input, fields: fields2, length };
     });
     const totalLength = this.sources.reduce((sum, source) => sum + source.length, 0);
@@ -87111,7 +87157,7 @@ var Bm25fSearchIndex = class {
 var bm25fSearchEvaluationEngine = {
   engine: BM25F_SEARCH_ENGINE,
   adapterBuildId: BM25F_ADAPTER_BUILD_ID,
-  buildIndex: (sources) => new Bm25fSearchIndex(sources)
+  buildIndex: (sources2) => new Bm25fSearchIndex(sources2)
 };
 
 // packages/search-adapter-lexical-v2/dist/features.js
@@ -87220,10 +87266,10 @@ var LexicalV2SearchIndex = class {
       ].filter((item) => item !== null);
       let length = 0;
       for (const item of fields2) {
-        for (const [term, count] of item.exactFrequencies) {
+        for (const [term, count2] of item.exactFrequencies) {
           if (item.name !== "text")
             vocabulary.add(term);
-          length += count;
+          length += count2;
         }
       }
       return { input, fields: fields2, length };
@@ -87232,9 +87278,9 @@ var LexicalV2SearchIndex = class {
     const mutableExactPostings = /* @__PURE__ */ new Map();
     const mutableIdentifierPostings = /* @__PURE__ */ new Map();
     const addPostings = (target, sourceIndex, frequencies, weight) => {
-      for (const [term, count] of frequencies) {
+      for (const [term, count2] of frequencies) {
         const postings = target.get(term) ?? /* @__PURE__ */ new Map();
-        postings.set(sourceIndex, (postings.get(sourceIndex) ?? 0) + count * weight);
+        postings.set(sourceIndex, (postings.get(sourceIndex) ?? 0) + count2 * weight);
         target.set(term, postings);
       }
     };
@@ -87403,7 +87449,7 @@ var LexicalV2SearchIndex = class {
 var lexicalV2SearchEvaluationEngine = {
   engine: LEXICAL_V2_SEARCH_ENGINE,
   adapterBuildId: LEXICAL_V2_ADAPTER_BUILD_ID,
-  buildIndex: (sources) => new LexicalV2SearchIndex(sources)
+  buildIndex: (sources2) => new LexicalV2SearchIndex(sources2)
 };
 
 // packages/repository-context/dist/search-candidate-registry.js
@@ -87546,10 +87592,10 @@ var productDefaultSearchRetrievalPlan = {
 
 // packages/repository-context/dist/knowledge-review-context.js
 import { createHash as createHash34 } from "node:crypto";
-import { posix as posix15 } from "node:path";
+import { posix as posix16 } from "node:path";
 
 // packages/repository-context/dist/knowledge-review-queries.js
-import { posix as posix14 } from "node:path";
+import { posix as posix15 } from "node:path";
 function pathTerms(path) {
   return new Set(path.normalize("NFKC").toLocaleLowerCase().match(/[\p{L}\p{N}]{2,}/gu) ?? []);
 }
@@ -87603,7 +87649,7 @@ async function sourceSpecificQueries(root2, paths) {
         continue;
       throw error;
     }
-    const terms2 = [...pathTerms(posix14.basename(path))].filter((term) => !["ts", "tsx", "js", "jsx", "mjs", "cjs"].includes(term));
+    const terms2 = [...pathTerms(posix15.basename(path))].filter((term) => !["ts", "tsx", "js", "jsx", "mjs", "cjs"].includes(term));
     if (!terms2.length)
       continue;
     const eventBearing = /\b(?:events|transaction)\.append\s*\(/u.test(source) && /["'][a-z]+(?:\.[a-z]+){2,}["']/u.test(source);
@@ -87673,7 +87719,7 @@ function linkedRepositoryPaths(document4) {
     const link4 = match[1]?.split("#", 1)[0];
     if (!link4 || link4.startsWith("/") || link4.includes(":") || link4.includes("\\"))
       continue;
-    const path = posix15.normalize(posix15.join(posix15.dirname(document4.path), link4));
+    const path = posix16.normalize(posix16.join(posix16.dirname(document4.path), link4));
     if (path !== ".." && !path.startsWith("../") && !paths.includes(path))
       paths.push(path);
   }
@@ -87851,11 +87897,11 @@ async function loadCanonicalReviewContext(input) {
       cause: error
     });
   }
-  const sourceDirectoryTerms = new Set(input.sourcePaths.flatMap((path) => [...pathTerms(posix15.dirname(path))].filter((term) => !GENERIC_DIRECTORY_TERMS.has(term))));
+  const sourceDirectoryTerms = new Set(input.sourcePaths.flatMap((path) => [...pathTerms(posix16.dirname(path))].filter((term) => !GENERIC_DIRECTORY_TERMS.has(term))));
   const rankedHits = recommendations.hits.map((hit, index2) => ({
     hit,
     index: index2,
-    affinity: [...pathTerms(posix15.dirname(hit.path))].filter((term) => sourceDirectoryTerms.has(term)).length
+    affinity: [...pathTerms(posix16.dirname(hit.path))].filter((term) => sourceDirectoryTerms.has(term)).length
   })).sort((left, right) => right.affinity - left.affinity || left.index - right.index);
   for (const { hit } of rankedHits) {
     if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS)
@@ -88070,10 +88116,10 @@ function createNoCapabilityKnowledgeReviewHost(root2, provider, executable, gove
   const assertReviewContextCurrent = () => assertCanonicalReviewContextCurrent(root2, context);
   return {
     assertReviewContextCurrent,
-    review: async (sources, job) => {
+    review: async (sources2, job) => {
       context = await loadCanonicalReviewContext({
         repositoryRoot: root2,
-        sourcePaths: sources.map((source) => source.path)
+        sourcePaths: sources2.map((source) => source.path)
       });
       const runner = await createNoCapabilityProviderJsonRunner({
         provider,
@@ -88085,7 +88131,7 @@ function createNoCapabilityKnowledgeReviewHost(root2, provider, executable, gove
         schemaVersion: 1,
         task: "repository_change_knowledge_review",
         responseContract: { schemaVersion: 1, schema: responseSchema },
-        untrustedSourceData: { context, sources }
+        untrustedSourceData: { context, sources: sources2 }
       };
       const value = governor === void 0 ? await runner.resolve(request) : await governor(job, async (signal) => runner.resolveObserved === void 0 ? { value: await runner.resolve(request, signal), usage: null } : runner.resolveObserved(request, signal));
       const classification = value?.classification;
@@ -88421,17 +88467,17 @@ async function reserveConvergenceProviderCall(input) {
     }
     const id5 = sha2565(input.batchId);
     const prior = sqliteRow2(db.prepare("SELECT calls FROM budgets WHERE batch_hash=?").get(id5));
-    const count = prior === void 0 ? 0 : Number(prior.calls);
-    if (!Number.isSafeInteger(count) || count < 0)
+    const count2 = prior === void 0 ? 0 : Number(prior.calls);
+    if (!Number.isSafeInteger(count2) || count2 < 0)
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
-    if (count >= input.maximumCalls)
+    if (count2 >= input.maximumCalls)
       throw new KnowledgeConvergenceRuntimeError("normalization_budget_exceeded");
     if (prior === void 0 && Number(sqliteRow2(db.prepare("SELECT count(*) AS count FROM budgets").get()).count) >= 8192)
       throw new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
-    db.prepare("INSERT INTO budgets(batch_hash,calls,obligation_id) VALUES(?,?,?) ON CONFLICT(batch_hash) DO UPDATE SET calls=excluded.calls").run(id5, count + 1, input.obligationId);
+    db.prepare("INSERT INTO budgets(batch_hash,calls,obligation_id) VALUES(?,?,?) ON CONFLICT(batch_hash) DO UPDATE SET calls=excluded.calls").run(id5, count2 + 1, input.obligationId);
     db.exec("COMMIT");
     transaction = false;
-    return count + 1;
+    return count2 + 1;
   } catch (error) {
     if (transaction)
       db.exec("ROLLBACK");
@@ -88869,7 +88915,7 @@ function captureConvergenceSources(root2, policyHash) {
   ].sort();
   if (paths.length > 2e4)
     throw new KnowledgeConvergenceRuntimeError("knowledge_source_limit_exceeded");
-  const sources = [];
+  const sources2 = [];
   let totalBytes = 0;
   const cache = openSourceHashCache(root2);
   try {
@@ -88885,20 +88931,20 @@ function captureConvergenceSources(root2, policyHash) {
       totalBytes += observed.byteLength;
       if (totalBytes > settings.policy.maximumRepositoryBytes)
         throw new KnowledgeConvergenceRuntimeError("knowledge_source_limit_exceeded");
-      sources.push({ path, contentHash: observed.contentHash, kind: observed.kind });
+      sources2.push({ path, contentHash: observed.contentHash, kind: observed.kind });
     }
-    cache.commit(new Set(sources.map((source) => source.path)));
+    cache.commit(new Set(sources2.map((source) => source.path)));
   } finally {
     cache.close();
   }
-  assertSymbolicTargetsCaptured(settings.policy.symbolicReferences, sources.map((source) => source.path));
+  assertSymbolicTargetsCaptured(settings.policy.symbolicReferences, sources2.map((source) => source.path));
   if (settings.delegationContentHash !== null && sha2565(ordinaryConvergenceSourceBytes(root2, CONVERGENCE_DELEGATION_PATH, 64 * 1024)) !== settings.delegationContentHash)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   if (git2(root2, ["rev-parse", "HEAD"]).trim() !== head)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   const changedPaths = captureConvergenceChangedPaths(root2);
-  const snapshotHash = sha2565(canonicalJson4({ head, policyHash, sources, changedPaths }));
-  return { head, snapshotId: `ksnap_${snapshotHash.slice(7, 31)}`, snapshotHash, sources };
+  const snapshotHash = sha2565(canonicalJson4({ head, policyHash, sources: sources2, changedPaths }));
+  return { head, snapshotId: `ksnap_${snapshotHash.slice(7, 31)}`, snapshotHash, sources: sources2 };
 }
 
 // packages/repository-knowledge-runtime/dist/source-fingerprint.js
@@ -89000,9 +89046,9 @@ function candidateMetadata(root2) {
     throw error;
   }
   const observed = [];
-  let count = 0;
+  let count2 = 0;
   const visit2 = (path, depth) => {
-    if (++count > MAXIMUM_OBSERVED_PATHS)
+    if (++count2 > MAXIMUM_OBSERVED_PATHS)
       throw new Error("Candidate observation limit exceeded.");
     const own3 = metadata(path);
     observed.push([path.slice(state2.length + 1), own3]);
@@ -89098,12 +89144,12 @@ var historicalAcceptanceKey = (event) => `${event.eventId}\0${event.eventHash}`;
 
 // packages/repository-knowledge-runtime/dist/historical-obligations.js
 async function changedPathsForEvent(payload, artifacts) {
-  const count = payload.changedPathCount;
+  const count2 = payload.changedPathCount;
   const published = payload.changedPaths;
-  if (!Number.isSafeInteger(count) || count < 0 || count > 2e4 || !Array.isArray(published))
+  if (!Number.isSafeInteger(count2) || count2 < 0 || count2 > 2e4 || !Array.isArray(published))
     throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
   let paths = published;
-  if (published.length === 0 && count !== 0) {
+  if (published.length === 0 && count2 !== 0) {
     const manifest = payload.sourceManifest;
     if (!manifest?.contentHash?.match(/^sha256:[a-f0-9]{64}$/u) || !Number.isSafeInteger(manifest.byteCount) || manifest.byteCount > 1048576)
       throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
@@ -89120,7 +89166,7 @@ async function changedPathsForEvent(payload, artifacts) {
       throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
     paths = document4.paths.map((entry) => entry.path);
   }
-  if (paths.length !== count || paths.some((path) => typeof path !== "string" || path.length === 0 || path.startsWith("/") || path.includes("\\") || path.split("/").some((part) => part === "" || part === "." || part === "..")))
+  if (paths.length !== count2 || paths.some((path) => typeof path !== "string" || path.length === 0 || path.startsWith("/") || path.includes("\\") || path.split("/").some((part) => part === "" || part === "." || part === "..")))
     throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
   return paths;
 }
@@ -89411,10 +89457,10 @@ function cycleScopedConvergenceDiscovery(root2, events, artifacts) {
 
 // packages/repository-knowledge-runtime/dist/assessment-scope.js
 function convergenceAssessmentSources(state2) {
-  const sources = state2.stageData.assessmentSources ?? state2.baseline.sources;
+  const sources2 = state2.stageData.assessmentSources ?? state2.baseline.sources;
   const dispositions = new Map(state2.baseline.sourceDispositions?.map((item) => [item.path, item]));
   const obligations = state2.baseline.assessmentPaths === void 0 ? null : new Set(state2.baseline.assessmentPaths);
-  return sources.filter((source) => source.kind === "text" && (obligations === null || obligations.has(source.path)) && !["sensitive_local", "policy_excluded"].includes(dispositions.get(source.path)?.kind ?? "semantic_source"));
+  return sources2.filter((source) => source.kind === "text" && (obligations === null || obligations.has(source.path)) && !["sensitive_local", "policy_excluded"].includes(dispositions.get(source.path)?.kind ?? "semantic_source"));
 }
 
 // packages/repository-knowledge-runtime/dist/effect-source-fence.js
@@ -90085,8 +90131,8 @@ function loadAssessmentRetryTargets(input) {
 }
 
 // packages/repository-knowledge-runtime/dist/canonical-source-facts.js
-function canonicalSourceFacts(sources) {
-  return sources.flatMap((source) => {
+function canonicalSourceFacts(sources2) {
+  return sources2.flatMap((source) => {
     if (!source.path.endsWith(".cdx.json") || source.content === void 0)
       return [];
     let document4;
@@ -90226,14 +90272,14 @@ var canonicalAssessmentSchema = {
   },
   required: ["decisions", "drafts"]
 };
-function parseCanonicalAssessment(value, sources, context, capturedSources) {
+function parseCanonicalAssessment(value, sources2, context, capturedSources) {
   const result2 = value;
   const fail20 = () => {
     throw new KnowledgeConvergenceRuntimeError("knowledge_semantic_review_invalid");
   };
-  if (!result2 || !Array.isArray(result2.decisions) || !Array.isArray(result2.drafts) || result2.drafts.length > 8 || result2.decisions.length !== sources.length || new Set(result2.decisions.map((item) => item?.path)).size !== sources.length)
+  if (!result2 || !Array.isArray(result2.decisions) || !Array.isArray(result2.drafts) || result2.drafts.length > 8 || result2.decisions.length !== sources2.length || new Set(result2.decisions.map((item) => item?.path)).size !== sources2.length)
     return fail20();
-  for (const source of sources) {
+  for (const source of sources2) {
     const decision2 = result2.decisions.find((item) => item?.path === source.path);
     if (!decision2 || decision2.contentHash !== source.contentHash || typeof decision2.rationale !== "string" || decision2.rationale.trim().length < 80 || decision2.rationale.length > 4096 || !Array.isArray(decision2.canonicalReferences) || !["no_change", "covered", "candidate", "needs_review"].includes(decision2.disposition))
       return fail20();
@@ -91958,8 +92004,8 @@ async function exactIntegratingSource(plan2, stored, source) {
 async function assertIntegrationSourceBindings(plan2) {
   await Promise.all(plan2.sources.map((source) => assertQueueBinding(plan2, source)));
 }
-async function recoverStartedSources(plan2, sources, occurredAt) {
-  await Promise.all(sources.map(async (source) => {
+async function recoverStartedSources(plan2, sources2, occurredAt) {
+  await Promise.all(sources2.map(async (source) => {
     const stored = await readWorkspace(plan2.repositoryRoot, source.workspaceId);
     if (stored?.workspace.state !== "integrating")
       return;
@@ -92458,7 +92504,7 @@ async function planWorkspaceIntegrationCandidate(input) {
   const ordered2 = queue.filter((entry) => selectedById.has(entry.workspaceId)).map((entry) => selectedById.get(entry.workspaceId));
   if (ordered2.length !== selectedIds.length)
     throw new WorkspaceHostError("host_effect_uncertain", "The selected integration order could not be reproduced.");
-  const sources = ordered2.map(({ queueEntry, workspace }) => ({
+  const sources2 = ordered2.map(({ queueEntry, workspace }) => ({
     workspaceId: workspace.workspaceId,
     generation: workspace.generation,
     workspaceRevision: workspace.revision,
@@ -92475,7 +92521,7 @@ async function planWorkspaceIntegrationCandidate(input) {
     conflictEventId: randomId("evt"),
     recoveryEventId: randomId("evt")
   }));
-  for (const source of sources) {
+  for (const source of sources2) {
     const stored = await readWorkspace(input.repositoryRoot, source.workspaceId);
     if (stored === null || stored.workspace.revision !== source.workspaceRevision || stored.workspace.state !== "integration_pending")
       throw new WorkspaceHostError("host_effect_uncertain", "An integration source changed while the plan was being prepared.");
@@ -92504,7 +92550,7 @@ async function planWorkspaceIntegrationCandidate(input) {
     integratorAgentId: input.integratorAgentId,
     integratorWorkspaceId: storedIntegrator.workspace.workspaceId,
     integratorWorkspaceGeneration: storedIntegrator.workspace.generation,
-    sources: sources.map((source) => ({
+    sources: sources2.map((source) => ({
       workspaceId: source.workspaceId,
       generation: source.generation,
       headCommit: source.headCommit,
@@ -92548,7 +92594,7 @@ async function planWorkspaceIntegrationCandidate(input) {
     targetGeneration: input.targetGeneration,
     targetBeforeCommit,
     targetInspection,
-    sources,
+    sources: sources2,
     ...report,
     verificationRequirements: input.verificationSuites.map((suite) => ({
       suiteId: suite.suiteId,
@@ -94258,8 +94304,8 @@ async function integrateCanonicalBaseline(context, state2, assertLease) {
 // packages/repository-knowledge-runtime/dist/normalization-batch-selection.js
 async function selectNormalizationBatchWithinCallBudget(input) {
   const generatorCalls = input.maximumProviderCalls - 1;
-  for (let count = input.paths.length; count > 1; count -= 1) {
-    const paths = input.paths.slice(0, count);
+  for (let count2 = input.paths.length; count2 > 1; count2 -= 1) {
+    const paths = input.paths.slice(0, count2);
     const preflight2 = await createConfiguredDocumentNormalizationPreflight({
       repositoryRoot: input.repositoryRoot,
       compiler: input.compiler,
@@ -94288,8 +94334,8 @@ async function generateNormalizationBatch(context, state2, assertLease) {
   const root2 = context.storage.paths.repositoryRoot;
   const inspection = await inspectConfiguredDocumentNormalization({ repositoryRoot: root2 });
   const rejected2 = state2.stageData.normalizationRejected ?? {};
-  const sources = new Map((state2.stageData.sourceCapture?.sources ?? state2.baseline.sources).map((source) => [source.path, source.contentHash]));
-  const available = inspection.pendingDocuments.filter((path) => rejected2[path] !== sources.get(path));
+  const sources2 = new Map((state2.stageData.sourceCapture?.sources ?? state2.baseline.sources).map((source) => [source.path, source.contentHash]));
+  const available = inspection.pendingDocuments.filter((path) => rejected2[path] !== sources2.get(path));
   if (!available.length) {
     if (inspection.pendingDocuments.length)
       return waitingConvergenceStage({
@@ -94579,7 +94625,7 @@ async function reviewNormalizationBatch(context, state2, assertLease) {
       const generation = JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(proofBytes));
       if (generation.proof.generatorAgentId === authority.agent.agentId)
         throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
-      const sources = candidate.items.map((item) => ({
+      const sources2 = candidate.items.map((item) => ({
         path: item.sourcePath,
         content: new TextDecoder("utf8", { fatal: true }).decode(convergenceSourceBytes(root2, item.sourcePath))
       }));
@@ -94598,7 +94644,7 @@ async function reviewNormalizationBatch(context, state2, assertLease) {
         task: "independent_normalization_review",
         schema: normalizationReviewResponseSchema,
         contextDocuments,
-        untrustedSourceData: { sources, candidate, context: contextDocuments }
+        untrustedSourceData: { sources: sources2, candidate, context: contextDocuments }
       };
       let observed;
       try {
@@ -94811,7 +94857,7 @@ async function reviewLifecyclePlan(context, state2, assertLease, plan2, paths) {
   const sourcePaths = [
     .../* @__PURE__ */ new Set([...paths, ...convergenceAssessmentSources(state2).map((source) => source.path)])
   ];
-  const sources = sourcePaths.map((path) => {
+  const sources2 = sourcePaths.map((path) => {
     try {
       const content3 = convergenceSourceBytes(context.storage.paths.repositoryRoot, path);
       return {
@@ -94829,7 +94875,7 @@ async function reviewLifecyclePlan(context, state2, assertLease, plan2, paths) {
     repositoryRoot: context.storage.paths.repositoryRoot,
     sourcePaths: paths
   });
-  if (Buffer.byteLength(canonicalJson4({ plan: plan2, sources, context: documents })) > 1048576)
+  if (Buffer.byteLength(canonicalJson4({ plan: plan2, sources: sources2, context: documents })) > 1048576)
     throw new KnowledgeConvergenceRuntimeError("knowledge_source_limit_exceeded");
   const result2 = await withConvergenceAssignment({
     storage: context.storage,
@@ -94855,7 +94901,7 @@ async function reviewLifecyclePlan(context, state2, assertLease, plan2, paths) {
         untrustedSourceData: {
           plan: plan2,
           planHash,
-          sources,
+          sources: sources2,
           context: documents,
           permittedTargets: [
             ...authority.delegation.canonicalRoots,
@@ -95050,13 +95096,13 @@ async function resolveConvergenceCandidates(context, state2, assertLease) {
       repositoryRoot: root2,
       sourcePaths: paths
     });
-    const sources = state2.baseline.sources.filter((source) => paths.includes(source.path)).map((source) => ({
+    const sources2 = state2.baseline.sources.filter((source) => paths.includes(source.path)).map((source) => ({
       ...source,
       ...source.kind === "text" && state2.baseline.sourceDispositions?.find((item) => item.path === source.path)?.kind === "semantic_source" ? {
         content: new TextDecoder("utf8", { fatal: true }).decode(convergenceSourceBytes(root2, source.path))
       } : {}
     }));
-    if (Buffer.byteLength(canonicalJson4({ candidates, documents, sources })) > 1048576)
+    if (Buffer.byteLength(canonicalJson4({ candidates, documents, sources: sources2 })) > 1048576)
       throw new KnowledgeConvergenceRuntimeError("knowledge_source_limit_exceeded");
     return withConvergenceAssignment({
       storage: context.storage,
@@ -95081,7 +95127,7 @@ async function resolveConvergenceCandidates(context, state2, assertLease) {
           contextDocuments: documents,
           untrustedSourceData: {
             candidates,
-            sources,
+            sources: sources2,
             context: documents,
             canonicalCoverage: state2.stageData.canonicalCoverage
           }
@@ -95192,10 +95238,10 @@ async function unresolvedConvergenceAssets(context, state2) {
 
 // packages/repository-knowledge-runtime/dist/knowledge-output-commit.js
 import { createHash as createHash46 } from "node:crypto";
-import { execFile as execFile12 } from "node:child_process";
+import { execFile as execFile13 } from "node:child_process";
 import { existsSync as existsSync3, readFileSync as readFileSync8 } from "node:fs";
-import { resolve as resolve85 } from "node:path";
-import { promisify as promisify12 } from "node:util";
+import { resolve as resolve86 } from "node:path";
+import { promisify as promisify13 } from "node:util";
 
 // packages/repository-knowledge-runtime/dist/convergence-owner-fence.js
 import { randomUUID as randomUUID13 } from "node:crypto";
@@ -95407,8 +95453,141 @@ async function knowledgeOutputCommitGrant(root2, now = Date.now()) {
 }
 var CONVERGENCE_HOST_TRAILER = "Lervo-Convergence-Host";
 
-// packages/repository-knowledge-runtime/dist/knowledge-output-commit.js
+// packages/repository-knowledge-runtime/dist/knowledge-output-format-scope.js
+import { execFile as execFile12 } from "node:child_process";
+import { promisify as promisify12 } from "node:util";
 var execute9 = promisify12(execFile12);
+var MAXIMUM_BUFFER = 256 * 1024 * 1024;
+async function readRevisionFiles(root2, revision, paths) {
+  const files = /* @__PURE__ */ new Map();
+  const requested = paths.filter((path) => !path.includes("\n"));
+  if (requested.length === 0)
+    return files;
+  const output = await new Promise((resolveRead, reject) => {
+    const child = execFile12("git", ["-C", root2, "cat-file", "--batch"], { encoding: "buffer", maxBuffer: MAXIMUM_BUFFER, timeout: 12e4 }, (error, stdout) => error === null ? resolveRead(stdout) : reject(error));
+    child.stdin?.end(requested.map((path) => `${revision}:${path}
+`).join(""));
+  });
+  let offset = 0;
+  for (const path of requested) {
+    const end = output.indexOf(10, offset);
+    if (end < 0)
+      break;
+    const header = output.subarray(offset, end).toString("utf8").split(" ");
+    offset = end + 1;
+    if (header.length !== 3)
+      continue;
+    const size = Number(header[2]);
+    if (header[1] === "blob")
+      files.set(path, output.subarray(offset, offset + size).toString());
+    offset += size + 1;
+  }
+  return files;
+}
+async function revisionFormatOwnershipSources(root2, revision) {
+  const listed = (await execute9("git", [
+    "-C",
+    root2,
+    "ls-tree",
+    "-r",
+    "-z",
+    "--name-only",
+    revision,
+    "--",
+    ...DOCUMENT_FORMAT_OWNERSHIP_ROOTS
+  ], { maxBuffer: MAXIMUM_BUFFER })).stdout.split("\0").filter((path) => path !== "" && isDocumentFormatOwnershipSource(path));
+  return readRevisionFiles(root2, revision, listed);
+}
+var sources = (files) => [...files].map(([path, content3]) => ({ path, content: content3 }));
+function knowledgeOutputFormatTargets(input) {
+  const ownedAfter = documentFormatOwnedPaths(sources(input.sourcesAfter));
+  const candidates = new Set(input.changedPresentPaths);
+  for (const path of documentFormatOwnedPaths(sources(input.changedSourcesBefore)))
+    candidates.add(path);
+  return [...candidates].filter((path) => !ownedAfter.has(path) && !isDocumentFormatOwnershipSource(path)).sort();
+}
+async function revisionRangeFormatTargets(input) {
+  const touched = [...new Set(input.touchedPaths)].sort();
+  const changedSources = touched.filter(isDocumentFormatOwnershipSource);
+  const [after, before, present] = await Promise.all([
+    revisionFormatOwnershipSources(input.root, input.tip),
+    readRevisionFiles(input.root, input.base, changedSources),
+    readRevisionFiles(input.root, input.tip, touched)
+  ]);
+  return knowledgeOutputFormatTargets({
+    changedPresentPaths: present.keys(),
+    changedSourcesBefore: before,
+    sourcesAfter: after
+  });
+}
+
+// packages/repository-knowledge-runtime/dist/knowledge-output-formatter.js
+import { readFile as readFile32, writeFile as writeFile10 } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { resolve as resolve85 } from "node:path";
+import { pathToFileURL } from "node:url";
+async function loadRepositoryKnowledgeOutputFormatter(repositoryRoot) {
+  let entry;
+  try {
+    entry = createRequire(resolve85(repositoryRoot, "package.json")).resolve("prettier");
+  } catch {
+    return null;
+  }
+  const loaded = await import(pathToFileURL(entry).href).catch(() => null);
+  const prettier = typeof loaded?.format === "function" ? loaded : loaded?.default;
+  if (prettier === void 0 || prettier === null)
+    return null;
+  return {
+    async format(absolutePath, content3, ignorePath) {
+      try {
+        const info = await prettier.getFileInfo(absolutePath, {
+          ignorePath,
+          withNodeModules: false
+        });
+        if (info.ignored || info.inferredParser === null)
+          return null;
+        const options = await prettier.resolveConfig(absolutePath) ?? {};
+        return await prettier.format(content3, { ...options, filepath: absolutePath });
+      } catch {
+        return null;
+      }
+    }
+  };
+}
+async function formatKnowledgeOutputFiles(input) {
+  const changed = /* @__PURE__ */ new Map();
+  const ignorePath = resolve85(input.directory, ".prettierignore");
+  for (const path of [...new Set(input.paths)].sort()) {
+    const absolute = resolve85(input.directory, path);
+    const content3 = await readFile32(absolute, "utf8").catch(() => null);
+    if (content3 === null)
+      continue;
+    const formatted = await input.formatter.format(absolute, content3, ignorePath);
+    if (formatted === null || formatted === content3)
+      continue;
+    await writeFile10(absolute, formatted, "utf8");
+    changed.set(path, content3);
+  }
+  return changed;
+}
+async function restoreKnowledgeOutputFiles(directory, previous2) {
+  for (const [path, content3] of previous2)
+    await writeFile10(resolve85(directory, path), content3, "utf8");
+}
+async function unformattedKnowledgeOutputs(input) {
+  const ignorePath = resolve85(input.directory, ".prettierignore");
+  const unformatted = [];
+  for (const path of [...input.contents.keys()].sort()) {
+    const content3 = input.contents.get(path);
+    const formatted = await input.formatter.format(resolve85(input.directory, path), content3, ignorePath);
+    if (formatted !== null && formatted !== content3)
+      unformatted.push(path);
+  }
+  return unformatted;
+}
+
+// packages/repository-knowledge-runtime/dist/knowledge-output-commit.js
+var execute10 = promisify13(execFile13);
 var RECORD_ROOT = ".lervo/knowledge/document-normalizations/";
 var KNOWLEDGE_OUTPUT_COMMIT_AUTHOR = {
   name: "Lervo Knowledge",
@@ -95422,7 +95601,7 @@ var KNOWLEDGE_OUTPUT_COMMIT_IDENTITY = {
 };
 var sha2568 = (bytes2) => `sha256:${createHash46("sha256").update(bytes2).digest("hex")}`;
 async function git7(root2, args, env) {
-  const { stdout } = await execute9("git", ["-C", root2, ...args], {
+  const { stdout } = await execute10("git", ["-C", root2, ...args], {
     maxBuffer: 64 * 1024 * 1024,
     ...env === void 0 ? {} : { env: { ...process.env, ...env } }
   });
@@ -95430,7 +95609,7 @@ async function git7(root2, args, env) {
 }
 async function headBlob(root2, path) {
   try {
-    const { stdout } = await execute9("git", ["-C", root2, "cat-file", "blob", `HEAD:${path}`], {
+    const { stdout } = await execute10("git", ["-C", root2, "cat-file", "blob", `HEAD:${path}`], {
       encoding: "buffer",
       maxBuffer: 64 * 1024 * 1024
     });
@@ -95456,7 +95635,7 @@ async function knowledgeOutputCommitSafe(root2) {
     "index.lock"
   ]) {
     const path = (await git7(root2, ["rev-parse", "--git-path", marker])).trim();
-    if (existsSync3(resolve85(root2, path)))
+    if (existsSync3(resolve86(root2, path)))
       return false;
   }
   return true;
@@ -95509,12 +95688,38 @@ async function selectSettledKnowledgeOutputs(input) {
   }
   return [...selected].sort();
 }
+async function formatSettledKnowledgeOutputs(input) {
+  const root2 = input.repositoryRoot;
+  const after = await revisionFormatOwnershipSources(root2, "HEAD");
+  const changedSources = input.selected.filter(isDocumentFormatOwnershipSource);
+  const before = await readRevisionFiles(root2, "HEAD", changedSources);
+  for (const path of changedSources)
+    if (input.dirty.get(path) === "deleted")
+      after.delete(path);
+    else
+      after.set(path, readFileSync8(resolve86(root2, path), "utf8"));
+  const selected = new Set(input.selected);
+  const targets = knowledgeOutputFormatTargets({
+    changedPresentPaths: input.selected.filter((path) => input.dirty.get(path) === "present"),
+    changedSourcesBefore: before,
+    sourcesAfter: after
+  }).filter((path) => selected.has(path) || !input.dirty.has(path));
+  const replaced = await formatKnowledgeOutputFiles({
+    formatter: input.formatter,
+    directory: root2,
+    paths: targets
+  });
+  return { paths: [.../* @__PURE__ */ new Set([...input.selected, ...replaced.keys()])].sort(), replaced };
+}
+async function observeDirtyPaths(root2) {
+  return dirtyPaths(await git7(root2, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]));
+}
 async function settledKnowledgeOutputPaths(input) {
   const root2 = input.repositoryRoot;
-  const dirty = dirtyPaths(await git7(root2, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]));
+  const dirty = input.dirty ?? await observeDirtyPaths(root2);
   if (!dirty.size)
     return [];
-  const current = (path) => sha2568(readFileSync8(resolve85(root2, path)));
+  const current = (path) => sha2568(readFileSync8(resolve86(root2, path)));
   const drafts = await integratedCanonicalDrafts(input.events, input.artifacts);
   if (![...dirty].some(([path, state2]) => path.startsWith(RECORD_ROOT) || state2 === "present" && drafts.has(canonicalDraftKey(path, current(path)))))
     return [];
@@ -95530,7 +95735,7 @@ async function settledKnowledgeOutputPaths(input) {
     records: normalization.records.flatMap((record8) => {
       if (record8.status !== "current")
         return [];
-      const source = documentNormalizationRecordSource(readFileSync8(resolve85(root2, record8.path), "utf8"));
+      const source = documentNormalizationRecordSource(readFileSync8(resolve86(root2, record8.path), "utf8"));
       return source ? [{ ...record8, source }] : [];
     }),
     deletedRecordSource: async (path) => {
@@ -95546,9 +95751,12 @@ async function commitSettledKnowledgeOutputs(input) {
   const grant = await knowledgeOutputCommitGrant(root2);
   if (!grant.allowed)
     return { committed: [], head: null };
-  const paths = await settledKnowledgeOutputPaths(input);
-  if (!paths.length)
+  const dirty = await observeDirtyPaths(root2);
+  const selected = await settledKnowledgeOutputPaths({ ...input, dirty });
+  if (!selected.length)
     return { committed: [], head: null };
+  const formatter = input.formatter === void 0 ? await loadRepositoryKnowledgeOutputFormatter(root2) : input.formatter;
+  const { paths, replaced } = formatter === null ? { paths: selected, replaced: /* @__PURE__ */ new Map() } : await formatSettledKnowledgeOutputs({ repositoryRoot: root2, formatter, selected, dirty });
   const before = (await git7(root2, ["rev-parse", "HEAD"])).trim();
   try {
     await git7(root2, ["add", "-A", "--", ...paths]);
@@ -95565,13 +95773,19 @@ async function commitSettledKnowledgeOutputs(input) {
       ...paths
     ], KNOWLEDGE_OUTPUT_COMMIT_IDENTITY);
   } catch {
+    await restoreKnowledgeOutputFiles(root2, replaced).catch(() => void 0);
     return { committed: [], head: null };
   }
   const after = (await git7(root2, ["rev-parse", "HEAD"])).trim();
   const parent = (await git7(root2, ["rev-parse", `${after}^`])).trim();
   if (parent !== before)
     return { committed: [], head: null };
-  return { committed: paths, head: { before, after } };
+  const formatEffects = [...replaced].map(([path, content3]) => ({
+    path,
+    beforeHash: sha2568(content3),
+    afterHash: sha2568(readFileSync8(resolve86(root2, path)))
+  }));
+  return { committed: paths, head: { before, after }, formatEffects };
 }
 
 // packages/repository-knowledge-runtime/dist/settled-output-boundary.js
@@ -95601,6 +95815,8 @@ async function commitSettledOutputsAtBoundary(context, state2, stage) {
     nextStage: stage,
     stageData: {},
     committedHead: output.head,
+    // Formatting the committed outputs is this stage's own approved byte change.
+    approvedEffects: output.formatEffects ?? [],
     proof: { status: "settled_outputs_committed", head: output.head, paths: output.committed }
   });
 }
@@ -95935,17 +96151,17 @@ function convergenceRecoveryStatus(storage) {
 }
 
 // packages/repository-knowledge-runtime/dist/freshness-stage.js
-import { execFile as execFile15 } from "node:child_process";
-import { lstat as lstat56, readFile as readFile34 } from "node:fs/promises";
-import { resolve as resolve89 } from "node:path";
-import { promisify as promisify15 } from "node:util";
+import { execFile as execFile16 } from "node:child_process";
+import { lstat as lstat56, readFile as readFile35 } from "node:fs/promises";
+import { resolve as resolve90 } from "node:path";
+import { promisify as promisify16 } from "node:util";
 
 // packages/repository-knowledge-runtime/dist/freshness-commit.js
-import { execFile as execFile13 } from "node:child_process";
-import { promisify as promisify13 } from "node:util";
-var execute10 = promisify13(execFile13);
+import { execFile as execFile14 } from "node:child_process";
+import { promisify as promisify14 } from "node:util";
+var execute11 = promisify14(execFile14);
 async function git8(root2, args, env) {
-  const { stdout } = await execute10("git", ["-C", root2, ...args], {
+  const { stdout } = await execute11("git", ["-C", root2, ...args], {
     maxBuffer: 16 * 1024 * 1024,
     ...env === void 0 ? {} : { env: { ...process.env, ...env } }
   });
@@ -95953,7 +96169,7 @@ async function git8(root2, args, env) {
 }
 async function committedBlob(root2, path) {
   try {
-    const { stdout } = await execute10("git", ["-C", root2, "cat-file", "blob", `HEAD:${path}`], {
+    const { stdout } = await execute11("git", ["-C", root2, "cat-file", "blob", `HEAD:${path}`], {
       encoding: "buffer",
       maxBuffer: 16 * 1024 * 1024
     });
@@ -95987,8 +96203,8 @@ async function commitFreshnessPaths(input) {
 
 // packages/repository-knowledge-runtime/dist/freshness-document-io.js
 import { randomUUID as randomUUID14 } from "node:crypto";
-import { chmod as chmod10, lstat as lstat54, mkdir as mkdir28, readFile as readFile32, rename as rename15, rm as rm16, writeFile as writeFile10 } from "node:fs/promises";
-import { dirname as dirname24, resolve as resolve86 } from "node:path";
+import { chmod as chmod10, lstat as lstat54, mkdir as mkdir28, readFile as readFile33, rename as rename15, rm as rm16, writeFile as writeFile11 } from "node:fs/promises";
+import { dirname as dirname24, resolve as resolve87 } from "node:path";
 var DocumentFreshnessOperationError = class extends Error {
   code;
   constructor(code, message, options) {
@@ -95999,21 +96215,21 @@ var DocumentFreshnessOperationError = class extends Error {
 };
 async function currentDocumentBytes(root2, path) {
   try {
-    const stat2 = await lstat54(resolve86(root2, path));
+    const stat2 = await lstat54(resolve87(root2, path));
     if (!stat2.isFile() || stat2.isSymbolicLink())
       return null;
-    return await readFile32(resolve86(root2, path));
+    return await readFile33(resolve87(root2, path));
   } catch {
     return null;
   }
 }
 async function writeDocumentBytes(root2, path, bytes2) {
-  const target = resolve86(root2, path);
+  const target = resolve87(root2, path);
   await mkdir28(dirname24(target), { recursive: true });
   const mode = await lstat54(target).then((stat2) => stat2.mode & 511, () => 420);
-  const temporary = resolve86(dirname24(target), `.lervo-freshness-${randomUUID14()}.tmp`);
+  const temporary = resolve87(dirname24(target), `.lervo-freshness-${randomUUID14()}.tmp`);
   try {
-    await writeFile10(temporary, bytes2, { flag: "wx", mode });
+    await writeFile11(temporary, bytes2, { flag: "wx", mode });
     await chmod10(temporary, mode);
     await rename15(temporary, target);
   } catch (error) {
@@ -96113,8 +96329,8 @@ function recordFreshnessRejection(input) {
 
 // packages/repository-knowledge-runtime/dist/freshness-state-store.js
 import { randomUUID as randomUUID15 } from "node:crypto";
-import { chmod as chmod11, lstat as lstat55, mkdir as mkdir29, readdir as readdir21, readFile as readFile33, rename as rename16, rm as rm17, writeFile as writeFile11 } from "node:fs/promises";
-import { resolve as resolve87 } from "node:path";
+import { chmod as chmod11, lstat as lstat55, mkdir as mkdir29, readdir as readdir21, readFile as readFile34, rename as rename16, rm as rm17, writeFile as writeFile12 } from "node:fs/promises";
+import { resolve as resolve88 } from "node:path";
 var FRESHNESS_CANDIDATE_ROOT = ".lervo/state/knowledge/freshness-candidates";
 var FRESHNESS_HOLD_ROOT = ".lervo/state/knowledge/freshness-holds";
 var FRESHNESS_CYCLE_PATH = ".lervo/state/knowledge/freshness-cycle.json";
@@ -96148,9 +96364,9 @@ function emptyFreshnessCycleState() {
   };
 }
 async function ensureDirectory(root2, relative19) {
-  let directory = resolve87(root2);
+  let directory = resolve88(root2);
   for (const part of relative19.split("/")) {
-    directory = resolve87(directory, part);
+    directory = resolve88(directory, part);
     await mkdir29(directory, { mode: 448 }).catch((error) => {
       if (error.code !== "EEXIST")
         throw error;
@@ -96164,12 +96380,12 @@ async function ensureDirectory(root2, relative19) {
 async function writeAtomically(root2, relative19, value) {
   const parts = relative19.split("/");
   const directory = await ensureDirectory(root2, parts.slice(0, -1).join("/"));
-  const temporary = resolve87(directory, `.freshness-${randomUUID15()}.tmp`);
+  const temporary = resolve88(directory, `.freshness-${randomUUID15()}.tmp`);
   try {
-    await writeFile11(temporary, `${JSON.stringify(value)}
+    await writeFile12(temporary, `${JSON.stringify(value)}
 `, { mode: 384, flag: "wx" });
     await chmod11(temporary, 384);
-    await rename16(temporary, resolve87(root2, relative19));
+    await rename16(temporary, resolve88(root2, relative19));
   } catch (error) {
     await rm17(temporary, { force: true });
     throw error;
@@ -96180,7 +96396,7 @@ async function readRecord(path) {
     const stat2 = await lstat55(path);
     if (!stat2.isFile() || stat2.size > MAXIMUM_RECORD_BYTES2)
       return null;
-    return JSON.parse(await readFile33(path, "utf8"));
+    return JSON.parse(await readFile34(path, "utf8"));
   } catch {
     return null;
   }
@@ -96197,7 +96413,7 @@ async function writeFreshnessCandidate(root2, candidate) {
   await writeAtomically(root2, candidatePath3(candidate.candidateId), candidate);
 }
 async function listFreshnessCandidates(root2) {
-  const base = resolve87(root2, FRESHNESS_CANDIDATE_ROOT);
+  const base = resolve88(root2, FRESHNESS_CANDIDATE_ROOT);
   let shards;
   try {
     shards = (await readdir21(base)).filter((name2) => /^[a-f0-9]{2}$/u.test(name2)).sort();
@@ -96208,12 +96424,12 @@ async function listFreshnessCandidates(root2) {
   for (const shard of shards) {
     let names;
     try {
-      names = (await readdir21(resolve87(base, shard))).filter((name2) => name2.endsWith(".json")).sort();
+      names = (await readdir21(resolve88(base, shard))).filter((name2) => name2.endsWith(".json")).sort();
     } catch {
       continue;
     }
     for (const name2 of names) {
-      const value = await readRecord(resolve87(base, shard, name2));
+      const value = await readRecord(resolve88(base, shard, name2));
       if (validCandidate(value) && `${value.candidateId}.json` === name2)
         candidates.push(value);
     }
@@ -96224,7 +96440,7 @@ function holdPath(findingDigest) {
   return `${FRESHNESS_HOLD_ROOT}/${findingDigest.slice("sha256:".length, "sha256:".length + 32)}.json`;
 }
 async function listFreshnessHolds(root2) {
-  const base = resolve87(root2, FRESHNESS_HOLD_ROOT);
+  const base = resolve88(root2, FRESHNESS_HOLD_ROOT);
   let names;
   try {
     names = (await readdir21(base)).filter((name2) => /^[a-f0-9]{32}\.json$/u.test(name2)).sort();
@@ -96233,14 +96449,14 @@ async function listFreshnessHolds(root2) {
   }
   const holds = [];
   for (const name2 of names) {
-    const value = await readRecord(resolve87(base, name2));
+    const value = await readRecord(resolve88(base, name2));
     if (value?.schemaVersion === 1 && typeof value.findingDigest === "string" && typeof value.documentPath === "string" && Number.isFinite(Date.parse(value.until)))
       holds.push(value);
   }
   return holds;
 }
 async function readFreshnessCycleState(root2) {
-  const value = await readRecord(resolve87(root2, FRESHNESS_CYCLE_PATH));
+  const value = await readRecord(resolve88(root2, FRESHNESS_CYCLE_PATH));
   const empty = emptyFreshnessCycleState();
   if (value?.schemaVersion !== 1 || typeof value.budget !== "object" || value.budget === null)
     return empty;
@@ -96261,14 +96477,14 @@ async function pruneFreshnessState(root2, now) {
     const terminal = TERMINAL_STATES.has(candidate.state);
     const expired = now.getTime() - Date.parse(candidate.updatedAt) > TERMINAL_RETENTION_MILLISECONDS;
     if (terminal && (expired || kept >= MAXIMUM_CANDIDATES))
-      await rm17(resolve87(root2, candidatePath3(candidate.candidateId)), { force: true });
+      await rm17(resolve88(root2, candidatePath3(candidate.candidateId)), { force: true });
     else
       kept += 1;
   }
   const holds = (await listFreshnessHolds(root2)).sort((left, right) => right.until.localeCompare(left.until));
   for (const [index2, hold] of holds.entries())
     if (Date.parse(hold.until) <= now.getTime() || index2 >= MAXIMUM_HOLDS)
-      await rm17(resolve87(root2, holdPath(hold.findingDigest)), { force: true });
+      await rm17(resolve88(root2, holdPath(hold.findingDigest)), { force: true });
 }
 
 // packages/repository-knowledge-runtime/dist/freshness-apply.js
@@ -96405,12 +96621,12 @@ async function applyLervoManagedFreshnessHunks(input) {
 // packages/repository-knowledge-runtime/dist/freshness-candidate-generation.js
 import { execFileSync as execFileSync5 } from "node:child_process";
 import { readFileSync as readFileSync9 } from "node:fs";
-import { resolve as resolve88 } from "node:path";
+import { resolve as resolve89 } from "node:path";
 
 // packages/repository-knowledge-runtime/dist/freshness-evidence-bundle.js
-import { execFile as execFile14 } from "node:child_process";
-import { promisify as promisify14 } from "node:util";
-var execute11 = promisify14(execFile14);
+import { execFile as execFile15 } from "node:child_process";
+import { promisify as promisify15 } from "node:util";
+var execute12 = promisify15(execFile15);
 var MAXIMUM_DIFF_BYTES = 16 * 1024;
 var MAXIMUM_TOTAL_DIFF_BYTES = 64 * 1024;
 var MAXIMUM_EXCERPT_LINES = 40;
@@ -96419,7 +96635,7 @@ var MAXIMUM_RELATED_DOCUMENTS = 3;
 var definitionPattern = (symbol) => new RegExp(`\\b(?:class|def|function|interface|type|const|let|var|struct|enum|trait|fn)\\s+${symbol.replace(/[$.]/gu, "\\$&")}\\b`, "u");
 async function git9(root2, args, maxBuffer = 4 * 1024 * 1024) {
   try {
-    const { stdout } = await execute11("git", ["--no-optional-locks", "-C", root2, ...args], {
+    const { stdout } = await execute12("git", ["--no-optional-locks", "-C", root2, ...args], {
       encoding: "utf8",
       maxBuffer,
       env: { ...process.env, GIT_OPTIONAL_LOCKS: "0", GIT_TERMINAL_PROMPT: "0", LC_ALL: "C" },
@@ -96433,7 +96649,7 @@ async function git9(root2, args, maxBuffer = 4 * 1024 * 1024) {
 }
 async function blob(root2, spec) {
   try {
-    const { stdout } = await execute11("git", ["-C", root2, "cat-file", "blob", spec], {
+    const { stdout } = await execute12("git", ["-C", root2, "cat-file", "blob", spec], {
       encoding: "buffer",
       maxBuffer: 4 * 1024 * 1024
     });
@@ -96786,7 +97002,7 @@ function inboundMarkdown(root2, documentPath2) {
   }).split("\0").filter((path) => path !== "" && path !== documentPath2).slice(0, MAXIMUM_INBOUND_DOCUMENTS);
   return listed.flatMap((path) => {
     try {
-      return [{ path, content: readFileSync9(resolve88(root2, path), "utf8") }];
+      return [{ path, content: readFileSync9(resolve89(root2, path), "utf8") }];
     } catch {
       return [];
     }
@@ -96868,7 +97084,7 @@ async function generateFreshnessCandidate(input) {
 }
 
 // packages/repository-knowledge-runtime/dist/freshness-stage.js
-var execute12 = promisify15(execFile15);
+var execute13 = promisify16(execFile16);
 var ZERO_SUCCESS_ATTEMPTS = 5;
 var RECENT_APPLY_MILLISECONDS = 24 * 36e5;
 var MAXIMUM_FIRST_SEEN = 512;
@@ -96877,7 +97093,7 @@ async function observationKey(root2, input) {
     const [head, status] = await Promise.all([
       ["rev-parse", "HEAD"],
       ["status", "--porcelain=v2", "-z", "--untracked-files=all"]
-    ].map(async (args) => (await execute12("git", ["--no-optional-locks", "-C", root2, ...args], {
+    ].map(async (args) => (await execute13("git", ["--no-optional-locks", "-C", root2, ...args], {
       maxBuffer: 64 * 1024 * 1024
     })).stdout));
     return sha2565(canonicalJson4({ head: head.trim(), status: sha2565(status), input }));
@@ -96887,8 +97103,8 @@ async function observationKey(root2, input) {
 }
 async function workingBytes(root2, path) {
   try {
-    const stat2 = await lstat56(resolve89(root2, path));
-    return stat2.isFile() ? await readFile34(resolve89(root2, path)) : null;
+    const stat2 = await lstat56(resolve90(root2, path));
+    return stat2.isFile() ? await readFile35(resolve90(root2, path)) : null;
   } catch {
     return null;
   }
@@ -97118,8 +97334,8 @@ function documentFreshnessMayRun(convergence) {
 
 // packages/repository-knowledge-runtime/dist/instruction-capture-queue.js
 import { randomUUID as randomUUID16 } from "node:crypto";
-import { chmod as chmod12, lstat as lstat57, mkdir as mkdir30, readdir as readdir22, readFile as readFile35, rename as rename17, rm as rm18, stat, writeFile as writeFile12 } from "node:fs/promises";
-import { resolve as resolve90 } from "node:path";
+import { chmod as chmod12, lstat as lstat57, mkdir as mkdir30, readdir as readdir22, readFile as readFile36, rename as rename17, rm as rm18, stat, writeFile as writeFile13 } from "node:fs/promises";
+import { resolve as resolve91 } from "node:path";
 var INSTRUCTION_CAPTURE_ROOT = ".lervo/state/knowledge/instruction-capture";
 var INSTRUCTION_CAPTURE_QUEUE_ROOT = `${INSTRUCTION_CAPTURE_ROOT}/queue`;
 var AGENT_TURN_ROOT = `${INSTRUCTION_CAPTURE_ROOT}/agent-turns`;
@@ -97140,9 +97356,9 @@ function boundedUtf8Tail(value, maximumBytes2) {
   return bytes2.subarray(start).toString("utf8");
 }
 async function ensureDirectory2(root2, relative19) {
-  let directory = resolve90(root2);
+  let directory = resolve91(root2);
   for (const part of relative19.split("/")) {
-    directory = resolve90(directory, part);
+    directory = resolve91(directory, part);
     await mkdir30(directory, { mode: 448 }).catch((error) => {
       if (error.code !== "EEXIST")
         throw error;
@@ -97155,12 +97371,12 @@ async function ensureDirectory2(root2, relative19) {
 }
 async function writePrivate(root2, directory, name2, value) {
   const base = await ensureDirectory2(root2, directory);
-  const temporary = resolve90(base, `.capture-${randomUUID16()}.tmp`);
+  const temporary = resolve91(base, `.capture-${randomUUID16()}.tmp`);
   try {
-    await writeFile12(temporary, `${JSON.stringify(value)}
+    await writeFile13(temporary, `${JSON.stringify(value)}
 `, { mode: 384, flag: "wx" });
     await chmod12(temporary, 384);
-    await rename17(temporary, resolve90(base, name2));
+    await rename17(temporary, resolve91(base, name2));
   } catch (error) {
     await rm18(temporary, { force: true });
     throw error;
@@ -97171,7 +97387,7 @@ async function readPrivate(path) {
     const observed = await lstat57(path);
     if (!observed.isFile() || observed.size > MAXIMUM_RECORD_BYTES3)
       return null;
-    return JSON.parse(await readFile35(path, "utf8"));
+    return JSON.parse(await readFile36(path, "utf8"));
   } catch {
     return null;
   }
@@ -97195,8 +97411,8 @@ async function enqueueInstructionCapture(input) {
     conversationEventId: conversation?.conversationEventId ?? null
   });
   const name2 = `${captureId}.json`;
-  const directory = resolve90(input.repositoryRoot, INSTRUCTION_CAPTURE_QUEUE_ROOT);
-  if (validCapture(await readPrivate(resolve90(directory, name2))))
+  const directory = resolve91(input.repositoryRoot, INSTRUCTION_CAPTURE_QUEUE_ROOT);
+  if (validCapture(await readPrivate(resolve91(directory, name2))))
     return { status: "already_queued", captureId };
   const existing = await listQueuedInstructionCaptures(input.repositoryRoot);
   for (const evicted of existing.slice(0, Math.max(0, existing.length - MAXIMUM_QUEUED_CAPTURES + 1)))
@@ -97218,7 +97434,7 @@ async function enqueueInstructionCapture(input) {
   return { status: "queued", captureId };
 }
 async function listQueuedInstructionCaptures(repositoryRoot) {
-  const directory = resolve90(repositoryRoot, INSTRUCTION_CAPTURE_QUEUE_ROOT);
+  const directory = resolve91(repositoryRoot, INSTRUCTION_CAPTURE_QUEUE_ROOT);
   let names;
   try {
     names = (await readdir22(directory)).filter((name2) => /^kcap_[a-f0-9]{24}\.json$/u.test(name2));
@@ -97229,7 +97445,7 @@ async function listQueuedInstructionCaptures(repositoryRoot) {
   }
   const records = [];
   for (const name2 of names) {
-    const value = await readPrivate(resolve90(directory, name2));
+    const value = await readPrivate(resolve91(directory, name2));
     if (validCapture(value) && `${value.captureId}.json` === name2)
       records.push(value);
   }
@@ -97238,7 +97454,7 @@ async function listQueuedInstructionCaptures(repositoryRoot) {
 async function removeQueuedInstructionCapture(repositoryRoot, captureId) {
   if (!CAPTURE_ID2.test(captureId))
     throw new Error("The capture ID is invalid.");
-  await rm18(resolve90(repositoryRoot, INSTRUCTION_CAPTURE_QUEUE_ROOT, `${captureId}.json`), {
+  await rm18(resolve91(repositoryRoot, INSTRUCTION_CAPTURE_QUEUE_ROOT, `${captureId}.json`), {
     force: true
   });
 }
@@ -97255,13 +97471,13 @@ async function pruneInstructionCaptureQueue(repositoryRoot, now) {
     await removeQueuedInstructionCapture(repositoryRoot, capture.captureId);
     expired += 1;
   }
-  const slots = resolve90(repositoryRoot, AGENT_TURN_ROOT);
+  const slots = resolve91(repositoryRoot, AGENT_TURN_ROOT);
   try {
     for (const name2 of await readdir22(slots)) {
-      const value = await readPrivate(resolve90(slots, name2));
+      const value = await readPrivate(resolve91(slots, name2));
       const recordedAt = typeof value?.recordedAt === "string" ? Date.parse(value.recordedAt) : NaN;
       if (!(now.getTime() - recordedAt < AGENT_TURN_RETENTION_MILLISECONDS))
-        await rm18(resolve90(slots, name2), { force: true });
+        await rm18(resolve91(slots, name2), { force: true });
     }
   } catch (error) {
     if (error.code !== "ENOENT")
@@ -97274,9 +97490,9 @@ function sessionKey(provider, providerSessionId) {
 }
 async function recordPrecedingAgentTurn(input) {
   const key3 = sessionKey(input.provider, input.providerSessionId);
-  const directory = resolve90(input.repositoryRoot, AGENT_TURN_ROOT);
+  const directory = resolve91(input.repositoryRoot, AGENT_TURN_ROOT);
   if (input.agentTurn === null || input.agentTurn.trim() === "") {
-    await rm18(resolve90(directory, `${key3}.json`), { force: true });
+    await rm18(resolve91(directory, `${key3}.json`), { force: true });
     return;
   }
   let names = [];
@@ -97289,11 +97505,11 @@ async function recordPrecedingAgentTurn(input) {
   if (names.length >= MAXIMUM_AGENT_TURN_SLOTS) {
     const aged = await Promise.all(names.map(async (name2) => ({
       name: name2,
-      modified: await stat(resolve90(directory, name2)).then((observed) => observed.mtimeMs, () => 0)
+      modified: await stat(resolve91(directory, name2)).then((observed) => observed.mtimeMs, () => 0)
     })));
     aged.sort((left, right) => left.modified - right.modified);
     for (const entry of aged.slice(0, names.length - MAXIMUM_AGENT_TURN_SLOTS + 1))
-      await rm18(resolve90(directory, entry.name), { force: true });
+      await rm18(resolve91(directory, entry.name), { force: true });
   }
   await writePrivate(input.repositoryRoot, AGENT_TURN_ROOT, `${key3}.json`, {
     schemaVersion: 1,
@@ -97305,15 +97521,15 @@ async function readPrecedingAgentTurn(input) {
   const key3 = sessionKey(input.provider, input.providerSessionId);
   if (!SESSION_KEY.test(key3))
     return null;
-  const value = await readPrivate(resolve90(input.repositoryRoot, AGENT_TURN_ROOT, `${key3}.json`));
+  const value = await readPrivate(resolve91(input.repositoryRoot, AGENT_TURN_ROOT, `${key3}.json`));
   if (value?.schemaVersion !== 1 || typeof value.text !== "string" || typeof value.recordedAt !== "string" || !(input.now.getTime() - Date.parse(value.recordedAt) < AGENT_TURN_RETENTION_MILLISECONDS))
     return null;
   return value.text;
 }
 
 // packages/repository-knowledge-runtime/dist/instruction-candidate-exchange.js
-import { readFile as readFile37 } from "node:fs/promises";
-import { resolve as resolve92 } from "node:path";
+import { readFile as readFile38 } from "node:fs/promises";
+import { resolve as resolve93 } from "node:path";
 
 // packages/repository-knowledge-runtime/dist/instruction-capture-events.js
 var INSTRUCTION_CAPTURE_EVENT_SCHEMA_VERSION = 4;
@@ -97342,8 +97558,8 @@ function appendInstructionCaptureEvent(input) {
 
 // packages/repository-knowledge-runtime/dist/instruction-candidate-exchange-state.js
 import { randomUUID as randomUUID17 } from "node:crypto";
-import { chmod as chmod13, lstat as lstat58, mkdir as mkdir31, readFile as readFile36, rename as rename18, rm as rm19, writeFile as writeFile13 } from "node:fs/promises";
-import { resolve as resolve91 } from "node:path";
+import { chmod as chmod13, lstat as lstat58, mkdir as mkdir31, readFile as readFile37, rename as rename18, rm as rm19, writeFile as writeFile14 } from "node:fs/promises";
+import { resolve as resolve92 } from "node:path";
 var INSTRUCTION_CANDIDATE_EXCHANGE_STATE_PATH = `${INSTRUCTION_CAPTURE_ROOT}/exchange.json`;
 var MAXIMUM_KNOWN = 128;
 var MAXIMUM_PENDING_RESOLUTIONS = 16;
@@ -97353,11 +97569,11 @@ function emptyInstructionCandidateExchangeState() {
 }
 async function readInstructionCandidateExchangeState(root2) {
   try {
-    const path = resolve91(root2, INSTRUCTION_CANDIDATE_EXCHANGE_STATE_PATH);
+    const path = resolve92(root2, INSTRUCTION_CANDIDATE_EXCHANGE_STATE_PATH);
     const observed = await lstat58(path);
     if (!observed.isFile() || observed.size > MAXIMUM_STATE_BYTES3)
       return emptyInstructionCandidateExchangeState();
-    const value = JSON.parse(await readFile36(path, "utf8"));
+    const value = JSON.parse(await readFile37(path, "utf8"));
     if (value.schemaVersion !== 1 || !Array.isArray(value.known) || !Array.isArray(value.resolved) || !Array.isArray(value.pendingResolutions))
       return emptyInstructionCandidateExchangeState();
     return value;
@@ -97372,20 +97588,20 @@ async function writeInstructionCandidateExchangeState(root2, state2) {
     resolved: [...new Set(state2.resolved)].slice(-MAXIMUM_KNOWN),
     pendingResolutions: state2.pendingResolutions.slice(-MAXIMUM_PENDING_RESOLUTIONS)
   };
-  let directory = resolve91(root2);
+  let directory = resolve92(root2);
   for (const part of INSTRUCTION_CAPTURE_ROOT.split("/")) {
-    directory = resolve91(directory, part);
+    directory = resolve92(directory, part);
     await mkdir31(directory, { mode: 448 }).catch((error) => {
       if (error.code !== "EEXIST")
         throw error;
     });
   }
-  const temporary = resolve91(directory, `.exchange-${randomUUID17()}.tmp`);
+  const temporary = resolve92(directory, `.exchange-${randomUUID17()}.tmp`);
   try {
-    await writeFile13(temporary, `${JSON.stringify(bounded4)}
+    await writeFile14(temporary, `${JSON.stringify(bounded4)}
 `, { mode: 384, flag: "wx" });
     await chmod13(temporary, 384);
-    await rename18(temporary, resolve91(root2, INSTRUCTION_CANDIDATE_EXCHANGE_STATE_PATH));
+    await rename18(temporary, resolve92(root2, INSTRUCTION_CANDIDATE_EXCHANGE_STATE_PATH));
   } catch (error) {
     await rm19(temporary, { force: true });
     throw error;
@@ -97399,7 +97615,7 @@ function plainCandidate(candidate) {
 }
 async function alreadyApplied(root2, candidate) {
   try {
-    return sha2565(await readFile37(resolve92(root2, candidate.targetPath), "utf8")) === candidate.proposedContentHash;
+    return sha2565(await readFile38(resolve93(root2, candidate.targetPath), "utf8")) === candidate.proposedContentHash;
   } catch {
     return false;
   }
@@ -97674,8 +97890,8 @@ async function assessInstructionCapture(input) {
 
 // packages/repository-knowledge-runtime/dist/instruction-capture-state.js
 import { randomUUID as randomUUID18 } from "node:crypto";
-import { chmod as chmod14, lstat as lstat59, mkdir as mkdir32, readFile as readFile38, rename as rename19, rm as rm20, writeFile as writeFile14 } from "node:fs/promises";
-import { resolve as resolve93 } from "node:path";
+import { chmod as chmod14, lstat as lstat59, mkdir as mkdir32, readFile as readFile39, rename as rename19, rm as rm20, writeFile as writeFile15 } from "node:fs/promises";
+import { resolve as resolve94 } from "node:path";
 var INSTRUCTION_CAPTURE_STATE_PATH = `${INSTRUCTION_CAPTURE_ROOT}/state.json`;
 var MAXIMUM_ASSESSMENTS_PER_CYCLE = 4;
 var MAXIMUM_ASSESSMENTS_PER_HOUR = 12;
@@ -97696,12 +97912,12 @@ function emptyInstructionCaptureState() {
   };
 }
 async function readInstructionCaptureState(root2) {
-  const path = resolve93(root2, INSTRUCTION_CAPTURE_STATE_PATH);
+  const path = resolve94(root2, INSTRUCTION_CAPTURE_STATE_PATH);
   try {
     const observed = await lstat59(path);
     if (!observed.isFile() || observed.size > MAXIMUM_STATE_BYTES4)
       return emptyInstructionCaptureState();
-    const value = JSON.parse(await readFile38(path, "utf8"));
+    const value = JSON.parse(await readFile39(path, "utf8"));
     if (value.schemaVersion !== 1 || typeof value.budget !== "object" || value.budget === null || !Array.isArray(value.assessed) || !Array.isArray(value.held))
       return emptyInstructionCaptureState();
     return value;
@@ -97718,23 +97934,23 @@ function compactInstructionCaptureState(state2, now) {
   };
 }
 async function writeInstructionCaptureState(root2, state2, now) {
-  let directory = resolve93(root2);
+  let directory = resolve94(root2);
   for (const part of INSTRUCTION_CAPTURE_ROOT.split("/")) {
-    directory = resolve93(directory, part);
+    directory = resolve94(directory, part);
     await mkdir32(directory, { mode: 448 }).catch((error) => {
       if (error.code !== "EEXIST")
         throw error;
     });
   }
-  const temporary = resolve93(directory, `.state-${randomUUID18()}.tmp`);
+  const temporary = resolve94(directory, `.state-${randomUUID18()}.tmp`);
   try {
-    await writeFile14(temporary, `${JSON.stringify(compactInstructionCaptureState(state2, now))}
+    await writeFile15(temporary, `${JSON.stringify(compactInstructionCaptureState(state2, now))}
 `, {
       mode: 384,
       flag: "wx"
     });
     await chmod14(temporary, 384);
-    await rename19(temporary, resolve93(root2, INSTRUCTION_CAPTURE_STATE_PATH));
+    await rename19(temporary, resolve94(root2, INSTRUCTION_CAPTURE_STATE_PATH));
   } catch (error) {
     await rm20(temporary, { force: true });
     throw error;
@@ -98054,11 +98270,11 @@ async function runOwnerTurnCaptureWork(input) {
 
 // packages/repository-knowledge-runtime/dist/resident-health.js
 import { mkdir as mkdir33, lstat as lstat60, chmod as chmod15 } from "node:fs/promises";
-import { resolve as resolve94 } from "node:path";
+import { resolve as resolve95 } from "node:path";
 async function healthDatabase(root2, create) {
   let directory = root2;
   for (const part of [".lervo", "state", "knowledge"]) {
-    directory = resolve94(directory, part);
+    directory = resolve95(directory, part);
     if (create)
       await mkdir33(directory, { mode: 448 }).catch((error) => {
         if (error.code !== "EEXIST")
@@ -98074,7 +98290,7 @@ async function healthDatabase(root2, create) {
       throw error;
     }
   }
-  const path = resolve94(directory, "resident-health.sqlite");
+  const path = resolve95(directory, "resident-health.sqlite");
   try {
     const stat2 = await lstat60(path);
     if (!stat2.isFile() || stat2.isSymbolicLink())
@@ -98161,14 +98377,14 @@ async function inspectConvergenceDebt(storage) {
   });
   return {
     status,
-    baselineCurrent: status.lastVerifiedCurrency?.snapshotHash === baseline.sourceSnapshotHash && Object.values(baseline.debtCounts).every((count) => count === 0)
+    baselineCurrent: status.lastVerifiedCurrency?.snapshotHash === baseline.sourceSnapshotHash && Object.values(baseline.debtCounts).every((count2) => count2 === 0)
   };
 }
 
 // packages/repository-knowledge-runtime/dist/workforce-retention.js
 import { constants as constants35 } from "node:fs";
 import { open as open31 } from "node:fs/promises";
-import { resolve as resolve95 } from "node:path";
+import { resolve as resolve96 } from "node:path";
 async function compactConvergenceWorkforce(storage) {
   if ((storage.writableEventSchemaVersion ?? 1) < 4)
     return 0;
@@ -98179,9 +98395,9 @@ async function compactConvergenceWorkforce(storage) {
   const recent = new Set(assignments.toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.assignmentId.localeCompare(b.assignmentId)).slice(0, 128).map((item) => item.assignmentId));
   const workspaces = await listWorkspaces(root2);
   const home = await resolveRepositoryCoordinationHome(root2, { readOnly: true });
-  let count = 0;
+  let count2 = 0;
   for (const assignment of assignments) {
-    if (count >= 16)
+    if (count2 >= 16)
       break;
     const provenance = assignment.convergence;
     if (!provenance || recent.has(assignment.assignmentId) || assignment.lease !== null || !["completed", "failed", "cancelled"].includes(assignment.status) || assignments.some((item) => item.dependencyIds.includes(assignment.assignmentId)) || workspaces.some((item) => item.assignmentId === assignment.assignmentId && item.state !== "removed"))
@@ -98189,7 +98405,7 @@ async function compactConvergenceWorkforce(storage) {
     const terminal = storage.events.get(stableId("evt", [provenance.obligationId, "terminal"], 32));
     if (terminal?.type !== "repository.knowledge.convergence.recorded" || terminal.payload.obligationId !== provenance.obligationId)
       continue;
-    const file = await open31(resolve95(home.workforce, "assignments", `${assignment.assignmentId}.json`), constants35.O_RDONLY | constants35.O_NOFOLLOW);
+    const file = await open31(resolve96(home.workforce, "assignments", `${assignment.assignmentId}.json`), constants35.O_RDONLY | constants35.O_NOFOLLOW);
     let hash3;
     try {
       const stat2 = await file.stat();
@@ -98226,13 +98442,13 @@ async function compactConvergenceWorkforce(storage) {
         });
       }
     });
-    count++;
+    count2++;
   }
-  return count;
+  return count2;
 }
 
 // packages/repository-knowledge-runtime/dist/workspace-retention.js
-import { resolve as resolve96, relative as relative17 } from "node:path";
+import { resolve as resolve97, relative as relative17 } from "node:path";
 async function compactConvergenceWorkspaces(storage, provider) {
   if ((storage.writableEventSchemaVersion ?? 1) < 4)
     return;
@@ -98249,11 +98465,11 @@ async function compactConvergenceWorkspaces(storage, provider) {
   await validate2();
   const assignments = await listAssignments(root2);
   const journals = (await (await RepositoryCoordinationRecords.open(root2)).list("cleanupJournals")).map((record8) => record8.value).filter(isWorkspaceCleanupJournal);
-  const ownedRoot = resolve96(root2, ".lervo/state/knowledge/convergence-workspaces");
+  const ownedRoot = resolve97(root2, ".lervo/state/knowledge/convergence-workspaces");
   const host = new GitWorkspaceHostAdapter();
-  let count = 0;
+  let count2 = 0;
   for (const workspace of await listWorkspaces(root2)) {
-    if (count >= 8)
+    if (count2 >= 8)
       break;
     const assignment = assignments.find((item) => item.assignmentId === workspace.assignmentId);
     const provenance = assignment?.convergence;
@@ -98272,7 +98488,7 @@ async function compactConvergenceWorkspaces(storage, provider) {
     if (journal && ["removing", "cleanup_eligible", "removed"].includes(workspace.state)) {
       await validate2();
       await recoverWorkspaceCleanup({ coordinates, journalId: journal.journalId, host });
-      count++;
+      count2++;
     } else if (["integrated", "cleanup_eligible"].includes(workspace.state)) {
       const plan2 = await planWorkspaceCleanup({
         coordinates,
@@ -98283,7 +98499,7 @@ async function compactConvergenceWorkspaces(storage, provider) {
         continue;
       await validate2();
       await applyWorkspaceCleanup({ plan: plan2, coordinates, host });
-      count++;
+      count2++;
     }
   }
 }
@@ -98395,7 +98611,7 @@ async function runAutonomousKnowledgeWorker(input) {
 // packages/repository-knowledge-runtime/dist/full-cycle-admission.js
 import { chmod as chmod16, lstat as lstat61, mkdir as mkdir34 } from "node:fs/promises";
 import { homedir as homedir3 } from "node:os";
-import { resolve as resolve97 } from "node:path";
+import { resolve as resolve98 } from "node:path";
 import { randomUUID as randomUUID19 } from "node:crypto";
 var LEASE_MILLISECONDS = 10 * 6e4;
 var RENEW_MILLISECONDS = 6e4;
@@ -98413,7 +98629,7 @@ async function database2(directory) {
   const parent = await lstat61(directory);
   if (!parent.isDirectory() || parent.isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
-  const path = resolve97(directory, "full-cycle-admission.sqlite");
+  const path = resolve98(directory, "full-cycle-admission.sqlite");
   try {
     const file = await lstat61(path);
     if (!file.isFile() || file.isSymbolicLink())
@@ -98467,8 +98683,8 @@ function delay(milliseconds, signal) {
   });
 }
 async function acquireFullCycleAdmission(input) {
-  const directory = input.directory ?? resolve97(homedir3(), ".lervo", "state", "knowledge-provider-admission");
-  const repositoryHash = sha2565(resolve97(input.repositoryRoot));
+  const directory = input.directory ?? resolve98(homedir3(), ".lervo", "state", "knowledge-provider-admission");
+  const repositoryHash = sha2565(resolve98(input.repositoryRoot));
   const nonce = randomUUID19();
   let waited = false;
   for (; ; ) {
@@ -98498,8 +98714,8 @@ async function acquireFullCycleAdmission(input) {
 }
 
 // packages/repository-knowledge-runtime/dist/resident-cycle-state.js
-import { chmod as chmod17, lstat as lstat62, mkdir as mkdir35, readFile as readFile39, rename as rename20, rm as rm21, writeFile as writeFile15 } from "node:fs/promises";
-import { resolve as resolve98 } from "node:path";
+import { chmod as chmod17, lstat as lstat62, mkdir as mkdir35, readFile as readFile40, rename as rename20, rm as rm21, writeFile as writeFile16 } from "node:fs/promises";
+import { resolve as resolve99 } from "node:path";
 import { randomUUID as randomUUID20 } from "node:crypto";
 var RESIDENT_CYCLE_STATE_PATH = ".lervo/state/knowledge/resident-cycle.json";
 var RESULTS = /* @__PURE__ */ new Set(["idle", "waiting", "attention", "processed", "failed"]);
@@ -98509,11 +98725,11 @@ function timestamp4(value) {
 }
 async function readResidentCycleState(root2) {
   try {
-    const path = resolve98(root2, RESIDENT_CYCLE_STATE_PATH);
+    const path = resolve99(root2, RESIDENT_CYCLE_STATE_PATH);
     const stat2 = await lstat62(path);
     if (!stat2.isFile() || stat2.size > 4096)
       return null;
-    const value = JSON.parse(await readFile39(path, "utf8"));
+    const value = JSON.parse(await readFile40(path, "utf8"));
     if (value?.schemaVersion !== 1 || !(value.fingerprint === null || typeof value.fingerprint === "string" && HASH37.test(value.fingerprint)) || !timestamp4(value.lastCycleAt) || !timestamp4(value.nextReconcileAt) || typeof value.lastResult !== "string" || !RESULTS.has(value.lastResult) || !Number.isSafeInteger(value.idleStreak) || value.idleStreak < 0)
       return null;
     return value;
@@ -98522,9 +98738,9 @@ async function readResidentCycleState(root2) {
   }
 }
 async function writeResidentCycleState(root2, state2) {
-  let directory = resolve98(root2);
+  let directory = resolve99(root2);
   for (const part of [".lervo", "state", "knowledge"]) {
-    directory = resolve98(directory, part);
+    directory = resolve99(directory, part);
     await mkdir35(directory, { mode: 448 }).catch((error) => {
       if (error.code !== "EEXIST")
         throw error;
@@ -98533,12 +98749,12 @@ async function writeResidentCycleState(root2, state2) {
     if (!stat2.isDirectory() || stat2.isSymbolicLink())
       throw new Error("Resident cycle state directory is invalid.");
   }
-  const temporary = resolve98(directory, `.resident-cycle-${randomUUID20()}.tmp`);
+  const temporary = resolve99(directory, `.resident-cycle-${randomUUID20()}.tmp`);
   try {
-    await writeFile15(temporary, `${JSON.stringify(state2)}
+    await writeFile16(temporary, `${JSON.stringify(state2)}
 `, { mode: 384, flag: "wx" });
     await chmod17(temporary, 384);
-    await rename20(temporary, resolve98(root2, RESIDENT_CYCLE_STATE_PATH));
+    await rename20(temporary, resolve99(root2, RESIDENT_CYCLE_STATE_PATH));
   } catch (error) {
     await rm21(temporary, { force: true });
     throw error;
@@ -98928,15 +99144,15 @@ function recordConvergenceOwnerChange(storage, change) {
 }
 
 // packages/repository-knowledge-runtime/dist/convergence-owner-history.js
-import { execFile as execFile16 } from "node:child_process";
-import { promisify as promisify16 } from "node:util";
-var execute13 = promisify16(execFile16);
+import { execFile as execFile17 } from "node:child_process";
+import { promisify as promisify17 } from "node:util";
+var execute14 = promisify17(execFile17);
 var HASH38 = /^sha256:[a-f0-9]{64}$/u;
 var MAXIMUM_SCANNED_COMMITS = 64;
 async function foreignKnowledgeCommits(input) {
   let stdout;
   try {
-    ({ stdout } = await execute13("git", [
+    ({ stdout } = await execute14("git", [
       "-C",
       input.repositoryRoot,
       "log",
@@ -99339,6 +99555,7 @@ function origin(commit) {
   return freshness === void 0 ? "no recorded obligation" : `freshness candidate \`${freshness}\``;
 }
 function renderKnowledgePublicationBody(input) {
+  const formatted = input.formattedPathCount ?? 0;
   const { commits, settings, host } = input;
   const paths = [...new Set(commits.flatMap((commit) => commit.paths))].sort();
   const listed = paths.slice(0, MAXIMUM_LISTED_PATHS);
@@ -99356,7 +99573,7 @@ function renderKnowledgePublicationBody(input) {
     ...listed.map((path) => `- \`${path}\``),
     ...paths.length > listed.length ? [`- ${paths.length - listed.length} more files`] : [],
     "",
-    `Out of scope: developer work. The publisher includes only non-merge commits whose author and committer are both \`Lervo Knowledge\`, and it refuses the whole publication if any of them changes a path outside ${roots}.${input.rebuilt ? ` These commits were replayed onto the current \`${settings.remote}/${settings.baseBranch}\`, because the local branch held other commits or sat on an older base.` : ""}`,
+    `Out of scope: developer work. The publisher includes only non-merge commits whose author and committer are both \`Lervo Knowledge\`, and it refuses the whole publication if any of them changes a path outside ${roots}.${input.rebuilt ? ` These commits were replayed onto the current \`${settings.remote}/${settings.baseBranch}\`, because the local branch held other commits or sat on an older base.` : ""}${formatted > 0 ? ` One more \`Lervo Knowledge\` commit formats ${formatted} path${formatted === 1 ? "" : "s"} those commits changed or released, using the repository's own Prettier configuration.` : ""}`,
     "",
     `Authority: this host's reviewed convergence delegation and its live convergence owner lease (ADR-0466). External writes: a lease-protected push to \`${settings.branch}\` and this pull request. ${merge}`,
     "",
@@ -99370,7 +99587,7 @@ function renderKnowledgePublicationBody(input) {
     "",
     "## Verification",
     "",
-    "- Run by the publisher before the push: the identity and path scope check described above. It passed for every commit.",
+    "- Run by the publisher before the push: the identity and path scope check described above, which passed for every commit, and, when the repository depends on Prettier, its formatter on every path the commits change or release from lifecycle ownership.",
     "- Repository CI on this pull request runs the configured workflows. The publisher reports no CI result here and merges only after every check succeeds.",
     "- Not run by the publisher: local tests, `pnpm quality:check`, and `pnpm docs:check`.",
     "",
@@ -99401,13 +99618,28 @@ function renderKnowledgePublicationBody(input) {
   ].join("\n");
 }
 
+// packages/repository-knowledge-runtime/dist/knowledge-publication-forge.js
+var KnowledgePublicationForgeError = class extends Error {
+  operation;
+  exitCode;
+  failureClass;
+  constructor(operation, exitCode, failureClass, options) {
+    super(`Knowledge publication forge ${operation} failed: ${failureClass}.`, options);
+    this.operation = operation;
+    this.exitCode = exitCode;
+    this.failureClass = failureClass;
+    this.name = "KnowledgePublicationForgeError";
+  }
+  /** Bounded detail for publication state, such as `gh merge exit 1 not_mergeable`. */
+  get detail() {
+    return `gh ${this.operation} exit ${this.exitCode ?? "unknown"} ${this.failureClass}`;
+  }
+};
+
 // packages/repository-knowledge-runtime/dist/knowledge-publication-git.js
-import { execFile as execFile17 } from "node:child_process";
-import { mkdtemp as mkdtemp5, rm as rm22 } from "node:fs/promises";
-import { tmpdir as tmpdir3 } from "node:os";
-import { resolve as resolve99 } from "node:path";
-import { promisify as promisify17 } from "node:util";
-var execute14 = promisify17(execFile17);
+import { execFile as execFile18 } from "node:child_process";
+import { promisify as promisify18 } from "node:util";
+var execute15 = promisify18(execFile18);
 var MAXIMUM_PUBLISHED_COMMITS = 64;
 var KnowledgePublicationGitError = class extends Error {
   stage;
@@ -99421,7 +99653,7 @@ var KnowledgePublicationGitError = class extends Error {
 };
 async function git10(root2, args, stage, env) {
   try {
-    const { stdout } = await execute14("git", ["-C", root2, ...args], {
+    const { stdout } = await execute15("git", ["-C", root2, ...args], {
       maxBuffer: 16 * 1024 * 1024,
       timeout: 12e4,
       env: { ...process.env, GIT_TERMINAL_PROMPT: "0", ...env }
@@ -99462,12 +99694,18 @@ async function inventoryKnowledgePublication(root2, settings, superseded = /* @_
   const head = (await git10(root2, ["rev-parse", "HEAD"], "inspect")).trim();
   const range3 = `${base}..${head}`;
   const upstream = new Set((await git10(root2, ["cherry", base, head], "inspect")).split("\n").filter((line) => line.startsWith("- ")).map((line) => line.slice(2).trim()));
-  const log = await git10(root2, ["log", "--reverse", "--format=%H%x00%P%x00%ae%x00%ce%x00%s%x00%b%x1e", range3], "inspect");
+  const log = await git10(root2, [
+    "log",
+    "--reverse",
+    "--date=raw",
+    "--format=%H%x00%P%x00%ae%x00%ce%x00%cd%x00%s%x00%b%x1e",
+    range3
+  ], "inspect");
   const knowledge = [];
   let otherCount = 0;
   let developerCount = 0;
   for (const record8 of log.split("")) {
-    const [sha, parents, author, committer, subject, body] = record8.replace(/^\n/u, "").split("\0");
+    const [sha, parents, author, committer, committerDate, subject, body] = record8.replace(/^\n/u, "").split("\0");
     if (sha === void 0 || sha.trim() === "")
       continue;
     const knowledgeIdentity = parents.trim().split(" ").length === 1 && author === KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email && committer === KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email;
@@ -99478,7 +99716,13 @@ async function inventoryKnowledgePublication(root2, settings, superseded = /* @_
       continue;
     }
     const paths = (await git10(root2, ["diff-tree", "--no-commit-id", "--name-only", "-r", "-z", sha], "inspect")).split("\0").filter((path) => path !== "");
-    knowledge.push({ sha, subject: subject ?? "", body: (body ?? "").trim(), paths });
+    knowledge.push({
+      sha,
+      subject: subject ?? "",
+      body: (body ?? "").trim(),
+      paths,
+      committerDate: committerDate ?? ""
+    });
   }
   if (knowledge.length > MAXIMUM_PUBLISHED_COMMITS)
     otherCount += knowledge.splice(MAXIMUM_PUBLISHED_COMMITS).length;
@@ -99488,38 +99732,6 @@ function knowledgePublicationScopeViolations(commits, allowedRoots) {
   return [
     ...new Set(commits.flatMap((commit) => commit.paths.filter((path) => !allowedRoots.some((root2) => path.startsWith(root2)))))
   ].sort();
-}
-async function buildKnowledgePublicationTip(root2, inventory) {
-  const onBase = await git10(root2, ["merge-base", "--is-ancestor", inventory.base, inventory.head], "inspect").then(() => true, () => false);
-  if (inventory.otherCount === 0 && onBase)
-    return { status: "built", tip: inventory.head };
-  const directory = await mkdtemp5(resolve99(tmpdir3(), "lervo-knowledge-publication-"));
-  const worktree = resolve99(directory, "tree");
-  try {
-    await git10(root2, ["worktree", "add", "--quiet", "--detach", worktree, inventory.base], "rebuild");
-    try {
-      await git10(worktree, [
-        "cherry-pick",
-        "--allow-empty",
-        "--keep-redundant-commits",
-        ...inventory.knowledge.map((c) => c.sha)
-      ], "rebuild", KNOWLEDGE_OUTPUT_COMMIT_IDENTITY);
-    } catch (error) {
-      const conflicted = error instanceof KnowledgePublicationGitError && error.exitCode === 1 ? await git10(worktree, ["diff", "--name-only", "--diff-filter=U", "-z"], "rebuild").catch(() => "") : null;
-      await git10(worktree, ["cherry-pick", "--abort"], "rebuild").catch(() => "");
-      if (conflicted === null)
-        throw error;
-      return {
-        status: "conflict",
-        conflictPathCount: conflicted.split("\0").filter((path) => path !== "").length
-      };
-    }
-    return { status: "built", tip: (await git10(worktree, ["rev-parse", "HEAD"], "rebuild")).trim() };
-  } finally {
-    await git10(root2, ["worktree", "remove", "--force", worktree], "rebuild").catch(() => "");
-    await rm22(directory, { recursive: true, force: true });
-    await git10(root2, ["worktree", "prune"], "rebuild").catch(() => "");
-  }
 }
 async function pushKnowledgePublicationTip(root2, settings, tip, expectedRemoteHead) {
   if (expectedRemoteHead === tip)
@@ -99559,7 +99771,7 @@ async function syncLocalBaseAfterPublication(root2, settings) {
 
 // packages/repository-knowledge-runtime/dist/knowledge-publication-state.js
 import { randomUUID as randomUUID21 } from "node:crypto";
-import { chmod as chmod18, lstat as lstat63, mkdir as mkdir36, readFile as readFile40, rename as rename21, rm as rm23, writeFile as writeFile16 } from "node:fs/promises";
+import { chmod as chmod18, lstat as lstat63, mkdir as mkdir36, readFile as readFile41, rename as rename21, rm as rm22, writeFile as writeFile17 } from "node:fs/promises";
 import { resolve as resolve100 } from "node:path";
 var KNOWLEDGE_PUBLICATION_STATE_PATH = ".lervo/state/knowledge/knowledge-publication.json";
 var MAXIMUM_SUPERSEDED_COMMITS = 64;
@@ -99579,7 +99791,7 @@ async function readKnowledgePublicationState(root2) {
     const stat2 = await lstat63(path);
     if (!stat2.isFile() || stat2.size > 8192)
       return null;
-    const value = JSON.parse(await readFile40(path, "utf8"));
+    const value = JSON.parse(await readFile41(path, "utf8"));
     return value?.schemaVersion === 1 && typeof value.status === "string" && STATUSES.has(value.status) && (value.supersededCommits === void 0 || Array.isArray(value.supersededCommits) && value.supersededCommits.length <= MAXIMUM_SUPERSEDED_COMMITS && value.supersededCommits.every((sha) => typeof sha === "string" && COMMIT8.test(sha))) ? value : null;
   } catch {
     return null;
@@ -99599,12 +99811,12 @@ async function writeKnowledgePublicationState(root2, state2) {
   }
   const temporary = resolve100(directory, `.knowledge-publication-${randomUUID21()}.tmp`);
   try {
-    await writeFile16(temporary, `${JSON.stringify(state2)}
+    await writeFile17(temporary, `${JSON.stringify(state2)}
 `, { mode: 384, flag: "wx" });
     await chmod18(temporary, 384);
     await rename21(temporary, resolve100(root2, KNOWLEDGE_PUBLICATION_STATE_PATH));
   } catch (error) {
-    await rm23(temporary, { force: true });
+    await rm22(temporary, { force: true });
     throw error;
   }
 }
@@ -99621,9 +99833,7 @@ function nextKnowledgePublicationFailure(previous2, code, detail2, at) {
 var KNOWLEDGE_SUPERSEDED_REF_PREFIX = "refs/lervo/knowledge-superseded/";
 var RETAINED_BACKUP_REFS = 8;
 async function supersedeStaleKnowledgeCommits(root2, settings, inventory) {
-  const backupRef = `${KNOWLEDGE_SUPERSEDED_REF_PREFIX}${inventory.head.slice(0, 12)}`;
-  await git10(root2, ["update-ref", backupRef, inventory.head], "supersede");
-  await pruneBackupRefs(root2);
+  const backupRef = await retainKnowledgeSupersededHead(root2, inventory.head);
   if (inventory.developerCount > 0)
     return { backupRef, localReset: false };
   const branch = (await git10(root2, ["symbolic-ref", "--quiet", "--short", "HEAD"], "supersede").catch(() => "")).trim();
@@ -99632,6 +99842,12 @@ async function supersedeStaleKnowledgeCommits(root2, settings, inventory) {
     return { backupRef, localReset: false };
   const reset = await git10(root2, ["reset", "--keep", "--quiet", tracking(settings, settings.baseBranch)], "supersede").then(() => true, () => false);
   return { backupRef, localReset: reset };
+}
+async function retainKnowledgeSupersededHead(root2, head) {
+  const backupRef = `${KNOWLEDGE_SUPERSEDED_REF_PREFIX}${head.slice(0, 12)}`;
+  await git10(root2, ["update-ref", backupRef, head], "supersede");
+  await pruneBackupRefs(root2);
+  return backupRef;
 }
 async function pruneBackupRefs(root2) {
   const refs = (await git10(root2, [
@@ -99642,6 +99858,369 @@ async function pruneBackupRefs(root2) {
   ], "supersede")).split("\n").filter((ref) => ref !== "");
   for (const ref of refs.slice(RETAINED_BACKUP_REFS))
     await git10(root2, ["update-ref", "-d", ref], "supersede");
+}
+
+// packages/repository-knowledge-runtime/dist/knowledge-supersession-git.js
+import { spawn as spawn5 } from "node:child_process";
+var MAXIMUM_TIP_COMMITS = 64;
+function gitWithInput(root2, args, input) {
+  return new Promise((resolve118, reject) => {
+    const child = spawn5("git", ["-C", root2, ...args], {
+      stdio: ["pipe", "pipe", "ignore"],
+      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" }
+    });
+    const output = [];
+    child.stdout.on("data", (chunk) => output.push(chunk));
+    child.stdin.on("error", () => void 0);
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code === 0)
+        resolve118(Buffer.concat(output).toString("utf8"));
+      else
+        reject(new Error(`git ${args[0]} exited with ${code ?? "a signal"}`));
+    });
+    child.stdin.end(input);
+  });
+}
+async function knowledgeCommitPatchIds(root2, commits) {
+  if (commits.length === 0)
+    return /* @__PURE__ */ new Map();
+  const patches = await gitWithInput(root2, ["diff-tree", "--stdin", "-p", "-r", "--root", "--no-color", "--no-ext-diff"], `${commits.join("\n")}
+`);
+  const ids = await gitWithInput(root2, ["patch-id", "--stable"], patches);
+  const result2 = /* @__PURE__ */ new Map();
+  for (const line of ids.split("\n")) {
+    const [patchId, commit] = line.trim().split(" ");
+    if (patchId !== void 0 && commit !== void 0)
+      result2.set(commit, patchId);
+  }
+  return result2;
+}
+async function tipKnowledgeCommits(root2) {
+  const log = await git10(root2, [
+    "log",
+    "--first-parent",
+    `--max-count=${MAXIMUM_TIP_COMMITS}`,
+    "--format=%H%x00%P%x00%ae%x00%ce",
+    "HEAD"
+  ], "inspect");
+  const run2 = [];
+  for (const line of log.split("\n")) {
+    const [commit, parents, author, committer] = line.split("\0");
+    if (commit === void 0 || commit === "")
+      continue;
+    const parentList = (parents ?? "").trim().split(" ").filter(Boolean);
+    if (parentList.length !== 1 || author !== KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email || committer !== KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email)
+      break;
+    run2.push({ commit, parent: parentList[0] });
+  }
+  return run2;
+}
+async function isAncestorCommit(root2, ancestor, descendant) {
+  return git10(root2, ["merge-base", "--is-ancestor", ancestor, descendant], "inspect").then(() => true, () => false);
+}
+async function commitsReachableFromHead(root2, commits) {
+  if (commits.length === 0)
+    return [];
+  const present = new Set((await gitWithInput(root2, ["rev-list", "--ignore-missing", "--no-walk", "--stdin"], `${commits.join("\n")}
+`)).split("\n").filter(Boolean));
+  if (present.size === 0)
+    return [];
+  const notInHead = new Set((await gitWithInput(root2, ["rev-list", "--stdin"], `${[...present].join("\n")}
+^HEAD
+`)).split("\n").filter(Boolean));
+  return commits.filter((commit) => present.has(commit) && !notInHead.has(commit));
+}
+
+// packages/repository-knowledge-runtime/dist/knowledge-supersession-ledger.js
+import { randomUUID as randomUUID22 } from "node:crypto";
+import { chmod as chmod19, lstat as lstat64, mkdir as mkdir37, readFile as readFile42, rename as rename22, rm as rm23, writeFile as writeFile18 } from "node:fs/promises";
+import { resolve as resolve101 } from "node:path";
+var KNOWLEDGE_SUPERSESSION_LEDGER_PATH = ".lervo/state/knowledge/knowledge-supersession.json";
+var MAXIMUM_KNOWLEDGE_SUPERSESSION_ENTRIES = 64;
+var OBJECT_ID = /^[0-9a-f]{40,64}$/u;
+var HELD_REASONS = /* @__PURE__ */ new Set(["not_on_branch", "under_other_work", "worktree_conflict"]);
+var BACKUP_REF = /^refs\/lervo\/knowledge-superseded\/[0-9a-f]{12}$/u;
+var timestamp5 = (value) => typeof value === "string" && value.length <= 40 && !Number.isNaN(Date.parse(value));
+var count = (value) => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+function isEntry(value) {
+  if (value === null || typeof value !== "object")
+    return false;
+  const entry = value;
+  return Object.keys(entry).length === 4 && typeof entry.commit === "string" && OBJECT_ID.test(entry.commit) && typeof entry.patchId === "string" && OBJECT_ID.test(entry.patchId) && typeof entry.base === "string" && OBJECT_ID.test(entry.base) && timestamp5(entry.supersededAt);
+}
+function parseKnowledgeSupersessionEntries(value) {
+  return Array.isArray(value) && value.length <= MAXIMUM_KNOWLEDGE_SUPERSESSION_ENTRIES && value.every(isEntry) ? value.map((entry) => ({
+    commit: entry.commit,
+    patchId: entry.patchId,
+    base: entry.base,
+    supersededAt: entry.supersededAt
+  })) : null;
+}
+function parseHeld(value) {
+  if (value === null)
+    return null;
+  if (value === void 0 || typeof value !== "object")
+    return void 0;
+  const held2 = value;
+  return typeof held2.reason === "string" && HELD_REASONS.has(held2.reason) && count(held2.commitCount) && timestamp5(held2.observedAt) ? held2 : void 0;
+}
+function parseLastDrop(value) {
+  if (value === null)
+    return null;
+  if (value === void 0 || typeof value !== "object")
+    return void 0;
+  const drop = value;
+  return count(drop.commitCount) && typeof drop.backupRef === "string" && BACKUP_REF.test(drop.backupRef) && timestamp5(drop.droppedAt) ? drop : void 0;
+}
+var EMPTY_KNOWLEDGE_SUPERSESSION_LEDGER = {
+  schemaVersion: 1,
+  entries: [],
+  held: null,
+  lastDrop: null
+};
+async function readKnowledgeSupersessionLedger(root2) {
+  try {
+    const path = resolve101(root2, KNOWLEDGE_SUPERSESSION_LEDGER_PATH);
+    const stat2 = await lstat64(path);
+    if (!stat2.isFile() || stat2.size > 65536)
+      return EMPTY_KNOWLEDGE_SUPERSESSION_LEDGER;
+    const value = JSON.parse(await readFile42(path, "utf8"));
+    const entries = parseKnowledgeSupersessionEntries(value?.entries);
+    const held2 = parseHeld(value?.held);
+    const lastDrop = parseLastDrop(value?.lastDrop);
+    return value?.schemaVersion === 1 && entries !== null && held2 !== void 0 && lastDrop !== void 0 ? { schemaVersion: 1, entries, held: held2, lastDrop } : EMPTY_KNOWLEDGE_SUPERSESSION_LEDGER;
+  } catch {
+    return EMPTY_KNOWLEDGE_SUPERSESSION_LEDGER;
+  }
+}
+async function writeKnowledgeSupersessionLedger(root2, ledger) {
+  let directory = resolve101(root2);
+  for (const part of [".lervo", "state", "knowledge"]) {
+    directory = resolve101(directory, part);
+    await mkdir37(directory, { mode: 448 }).catch((error) => {
+      if (error.code !== "EEXIST")
+        throw error;
+    });
+    const stat2 = await lstat64(directory);
+    if (!stat2.isDirectory() || stat2.isSymbolicLink())
+      throw new Error("Knowledge supersession ledger directory is invalid.");
+  }
+  const temporary = resolve101(directory, `.knowledge-supersession-${randomUUID22()}.tmp`);
+  try {
+    await writeFile18(temporary, `${JSON.stringify(ledger)}
+`, { mode: 384, flag: "wx" });
+    await chmod19(temporary, 384);
+    await rename22(temporary, resolve101(root2, KNOWLEDGE_SUPERSESSION_LEDGER_PATH));
+  } catch (error) {
+    await rm23(temporary, { force: true });
+    throw error;
+  }
+}
+function mergeKnowledgeSupersessionEntries(current, incoming) {
+  const byCommit = /* @__PURE__ */ new Map();
+  for (const entry of [...current, ...incoming]) {
+    const known = byCommit.get(entry.commit);
+    if (known === void 0 || entry.supersededAt < known.supersededAt)
+      byCommit.set(entry.commit, entry);
+  }
+  return [...byCommit.values()].sort((left, right) => left.supersededAt === right.supersededAt ? left.commit.localeCompare(right.commit) : left.supersededAt.localeCompare(right.supersededAt)).slice(-MAXIMUM_KNOWLEDGE_SUPERSESSION_ENTRIES);
+}
+
+// packages/repository-knowledge-runtime/dist/knowledge-supersession.js
+async function reconcileKnowledgeSupersession(input) {
+  const root2 = input.repositoryRoot;
+  const now = (input.now ?? (() => /* @__PURE__ */ new Date()))().toISOString();
+  const ledger = await readKnowledgeSupersessionLedger(root2);
+  const entries = mergeKnowledgeSupersessionEntries(ledger.entries, input.incoming ?? []);
+  if (entries.length === 0) {
+    await persist(root2, ledger, { ...ledger, entries, held: null });
+    return { entries, dropped: null, held: null };
+  }
+  const tip = await tipKnowledgeCommits(root2);
+  const superseded = await supersededTipRun(root2, tip, entries);
+  let dropped = null;
+  let blocked = null;
+  if (superseded.length > 0) {
+    const drop = await dropTipRun(root2, tip[0].commit, superseded.at(-1).parent);
+    if ("reason" in drop)
+      blocked = drop.reason;
+    else
+      dropped = { commitCount: superseded.length, backupRef: drop.backupRef };
+  }
+  const remaining = new Set(await commitsReachableFromHead(root2, entries.map((entry) => entry.commit)));
+  if (dropped === null)
+    for (const commit of superseded)
+      remaining.add(commit.commit);
+  const held2 = remaining.size === 0 ? null : { reason: blocked ?? "under_other_work", commits: [...remaining].sort() };
+  const previousHeld = ledger.held;
+  await persist(root2, ledger, {
+    schemaVersion: 1,
+    entries,
+    held: held2 === null ? null : {
+      reason: held2.reason,
+      commitCount: held2.commits.length,
+      observedAt: previousHeld?.reason === held2.reason && previousHeld.commitCount === held2.commits.length ? previousHeld.observedAt : now
+    },
+    lastDrop: dropped === null ? ledger.lastDrop : { ...dropped, droppedAt: now }
+  });
+  return { entries, dropped, held: held2 };
+}
+async function supersededTipRun(root2, tip, entries) {
+  const byCommit = new Set(entries.map((entry) => entry.commit));
+  const unmatched = tip.filter((commit) => !byCommit.has(commit.commit));
+  const patchIds = await knowledgeCommitPatchIds(root2, unmatched.map((commit) => commit.commit));
+  const run2 = [];
+  for (const commit of tip) {
+    if (!byCommit.has(commit.commit) && !await staleCopy(root2, commit, patchIds, entries))
+      break;
+    run2.push(commit);
+  }
+  return run2;
+}
+async function staleCopy(root2, commit, patchIds, entries) {
+  const patchId = patchIds.get(commit.commit);
+  for (const entry of entries)
+    if (entry.patchId === patchId && !await isAncestorCommit(root2, entry.base, commit.commit))
+      return true;
+  return false;
+}
+async function dropTipRun(root2, head, target) {
+  const branch = await git10(root2, ["symbolic-ref", "--quiet", "HEAD"], "supersede").then((value) => value.trim(), () => "");
+  const current = (await git10(root2, ["rev-parse", "HEAD"], "supersede")).trim();
+  if (branch === "" || current !== head || !await knowledgeOutputCommitSafe(root2))
+    return { reason: "not_on_branch" };
+  const backupRef = await retainKnowledgeSupersededHead(root2, head);
+  await git10(root2, ["update-index", "-q", "--refresh"], "supersede").catch(() => "");
+  const reset = await git10(root2, ["reset", "--keep", "--quiet", target], "supersede").then(() => true, () => false);
+  return reset ? { backupRef } : { reason: "worktree_conflict" };
+}
+async function persist(root2, previous2, next) {
+  if (JSON.stringify(previous2) !== JSON.stringify(next))
+    await writeKnowledgeSupersessionLedger(root2, next);
+}
+async function recordKnowledgeSupersession(input) {
+  const patchIds = await knowledgeCommitPatchIds(input.repositoryRoot, input.commits);
+  const ledger = await readKnowledgeSupersessionLedger(input.repositoryRoot);
+  const recorded = input.commits.map((commit) => ({
+    commit,
+    patchId: patchIds.get(commit) ?? commit,
+    base: input.base,
+    supersededAt: input.supersededAt
+  }));
+  await persist(input.repositoryRoot, ledger, {
+    ...ledger,
+    entries: mergeKnowledgeSupersessionEntries(ledger.entries, recorded)
+  });
+}
+
+// packages/repository-knowledge-runtime/dist/knowledge-publication-tip.js
+import { mkdtemp as mkdtemp5, rm as rm24 } from "node:fs/promises";
+import { tmpdir as tmpdir3 } from "node:os";
+import { resolve as resolve102 } from "node:path";
+var KNOWLEDGE_PUBLICATION_FORMAT_SUBJECT = "docs: format published background knowledge";
+var touchedPaths = (inventory) => inventory.knowledge.flatMap((commit) => commit.paths);
+async function unformattedAt(root2, formatter, inventory) {
+  const targets = await revisionRangeFormatTargets({
+    root: root2,
+    base: inventory.base,
+    tip: inventory.head,
+    touchedPaths: touchedPaths(inventory)
+  });
+  return unformattedKnowledgeOutputs({
+    formatter,
+    directory: root2,
+    contents: await readRevisionFiles(root2, inventory.head, targets)
+  });
+}
+async function replay(worktree, inventory) {
+  for (const commit of inventory.knowledge) {
+    try {
+      await git10(worktree, ["cherry-pick", "--allow-empty", "--keep-redundant-commits", commit.sha], "rebuild", { ...KNOWLEDGE_OUTPUT_COMMIT_IDENTITY, GIT_COMMITTER_DATE: commit.committerDate });
+    } catch (error) {
+      const conflicted = error instanceof KnowledgePublicationGitError && error.exitCode === 1 ? await git10(worktree, ["diff", "--name-only", "--diff-filter=U", "-z"], "rebuild").catch(() => "") : null;
+      await git10(worktree, ["cherry-pick", "--abort"], "rebuild").catch(() => "");
+      if (conflicted === null)
+        throw error;
+      return {
+        status: "conflict",
+        conflictPathCount: conflicted.split("\0").filter((path) => path !== "").length
+      };
+    }
+  }
+  return { status: "replayed" };
+}
+async function commitFormatting(worktree, formatter, inventory) {
+  const targets = await revisionRangeFormatTargets({
+    root: worktree,
+    base: inventory.base,
+    tip: "HEAD",
+    touchedPaths: touchedPaths(inventory)
+  });
+  const changed = [
+    ...(await formatKnowledgeOutputFiles({ formatter, directory: worktree, paths: targets })).keys()
+  ];
+  if (changed.length === 0)
+    return 0;
+  const date = inventory.knowledge.at(-1).committerDate;
+  await git10(worktree, ["add", "--", ...changed], "rebuild");
+  await git10(worktree, [
+    "commit",
+    "--quiet",
+    "--no-verify",
+    "-m",
+    KNOWLEDGE_PUBLICATION_FORMAT_SUBJECT,
+    "-m",
+    `Lervo formatted ${changed.length} path(s) that the published knowledge commits changed or released, with the repository's own formatter configuration.`
+  ], "rebuild", { ...KNOWLEDGE_OUTPUT_COMMIT_IDENTITY, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date });
+  return changed.length;
+}
+async function buildKnowledgePublicationTip(root2, inventory, formatter) {
+  const onBase = await git10(root2, ["merge-base", "--is-ancestor", inventory.base, inventory.head], "inspect").then(() => true, () => false);
+  const direct = inventory.otherCount === 0 && onBase;
+  if (direct && (formatter === null || (await unformattedAt(root2, formatter, inventory)).length === 0))
+    return { status: "built", tip: inventory.head, replayed: false, formattedPathCount: 0 };
+  const directory = await mkdtemp5(resolve102(tmpdir3(), "lervo-knowledge-publication-"));
+  const worktree = resolve102(directory, "tree");
+  try {
+    await git10(root2, [
+      "worktree",
+      "add",
+      "--quiet",
+      "--detach",
+      worktree,
+      direct ? inventory.head : inventory.base
+    ], "rebuild");
+    if (!direct) {
+      const replayed = await replay(worktree, inventory);
+      if (replayed.status === "conflict")
+        return replayed;
+    }
+    const formattedPathCount = formatter === null ? 0 : await commitFormatting(worktree, formatter, inventory);
+    return {
+      status: "built",
+      tip: (await git10(worktree, ["rev-parse", "HEAD"], "rebuild")).trim(),
+      replayed: !direct,
+      formattedPathCount
+    };
+  } finally {
+    await git10(root2, ["worktree", "remove", "--force", worktree], "rebuild").catch(() => "");
+    await rm24(directory, { recursive: true, force: true });
+    await git10(root2, ["worktree", "prune"], "rebuild").catch(() => "");
+  }
+}
+async function equivalentPublishedHead(root2, base, tip, remoteHead) {
+  if (remoteHead === null || remoteHead === tip)
+    return remoteHead;
+  const descends = await git10(root2, ["merge-base", "--is-ancestor", base, remoteHead], "inspect").then(() => true, () => false);
+  if (!descends)
+    return null;
+  const series = async (head) => (await git10(root2, ["log", "--reverse", "--format=%T %P", `${base}..${head}`], "inspect")).split("\n").filter((line) => line !== "").map((line) => {
+    const fields2 = line.split(" ");
+    return fields2.length === 2 ? fields2[0] : null;
+  });
+  const [remoteTrees, tipTrees] = await Promise.all([series(remoteHead), series(tip)]);
+  return remoteTrees.length > 0 && remoteTrees.length === tipTrees.length && remoteTrees.every((tree, index2) => tree !== null && tree === tipTrees[index2]) ? remoteHead : null;
 }
 
 // packages/repository-knowledge-runtime/dist/knowledge-publication.js
@@ -99657,8 +100236,12 @@ var PublicationFailure = class extends Error {
     this.detail = detail2;
   }
 };
-function gitDetail(error) {
-  return error instanceof KnowledgePublicationGitError ? `git ${error.stage} exit ${error.exitCode ?? "unknown"}` : null;
+function failureDetail(error) {
+  if (error instanceof KnowledgePublicationGitError)
+    return `git ${error.stage} exit ${error.exitCode ?? "unknown"}`;
+  if (error instanceof KnowledgePublicationForgeError)
+    return error.detail;
+  return null;
 }
 async function step(code, work) {
   try {
@@ -99666,7 +100249,7 @@ async function step(code, work) {
   } catch (error) {
     if (error instanceof PublicationFailure)
       throw error;
-    throw new PublicationFailure(code, gitDetail(error), { cause: error });
+    throw new PublicationFailure(code, failureDetail(error), { cause: error });
   }
 }
 var PULL_REQUEST_OPEN = /* @__PURE__ */ new Set(["awaiting_checks", "open"]);
@@ -99680,7 +100263,11 @@ async function publishKnowledgeOutputs(input) {
   if (!(await knowledgeOutputCommitGrant(root2, now().getTime())).allowed)
     return { status: "not_owner" };
   const previous2 = await readKnowledgePublicationState(root2);
-  const superseded = new Set(previous2?.supersededCommits ?? []);
+  const supersession = await reconcileKnowledgeSupersession({ repositoryRoot: root2, now }).catch(() => null);
+  const superseded = /* @__PURE__ */ new Set([
+    ...previous2?.supersededCommits ?? [],
+    ...supersession?.entries.map((entry) => entry.commit) ?? []
+  ]);
   const local = await inventoryKnowledgePublication(root2, settings, superseded).catch(() => null);
   if (local !== null && local.knowledge.length === 0 && previous2 !== null && !PULL_REQUEST_OPEN.has(previous2.status) && previous2.status !== "failed")
     return { status: "unchanged" };
@@ -99702,8 +100289,10 @@ async function publishKnowledgeOutputs(input) {
       root: root2,
       settings,
       forge: input.forge,
+      formatter: () => input.formatter === void 0 ? loadRepositoryKnowledgeOutputFormatter(root2) : Promise.resolve(input.formatter),
       host: { hostHash: host.hostHash, hostLabel: host.config.hostLabel },
       previous: previous2,
+      superseded,
       base,
       progress
     });
@@ -99733,7 +100322,7 @@ async function publish(input) {
   const { root: root2, settings, forge, base } = input;
   await step("knowledge_publication_fetch_failed", () => fetchKnowledgePublicationRefs(root2, settings));
   const inventory = await step("knowledge_publication_fetch_failed", async () => {
-    const value = await inventoryKnowledgePublication(root2, settings, new Set(base.supersededCommits ?? []));
+    const value = await inventoryKnowledgePublication(root2, settings, input.superseded);
     if (value === null)
       throw new PublicationFailure("knowledge_publication_fetch_failed", "base branch absent");
     return value;
@@ -99757,16 +100346,23 @@ async function publish(input) {
   const violations = knowledgePublicationScopeViolations(inventory.knowledge, settings.allowedRoots);
   if (violations.length > 0)
     throw new PublicationFailure("knowledge_publication_scope_violation", `${violations.length} path(s) outside the allowed roots`);
-  const built = await step("knowledge_publication_conflict", () => buildKnowledgePublicationTip(root2, inventory));
+  const built = await step("knowledge_publication_conflict", async () => buildKnowledgePublicationTip(root2, inventory, await input.formatter()));
   if (built.status === "conflict")
     return supersede({ ...input, inventory, conflictPathCount: built.conflictPathCount });
-  const { tip } = built;
-  await step("knowledge_publication_push_failed", async () => pushKnowledgePublicationTip(root2, settings, tip, await remoteTrackingHead(root2, settings, settings.branch)));
+  const tip = await step("knowledge_publication_push_failed", async () => {
+    const remoteHead = await remoteTrackingHead(root2, settings, settings.branch);
+    const published = await equivalentPublishedHead(root2, inventory.base, built.tip, remoteHead);
+    if (published !== null)
+      return published;
+    await pushKnowledgePublicationTip(root2, settings, built.tip, remoteHead);
+    return built.tip;
+  });
   const body = renderKnowledgePublicationBody({
     commits: inventory.knowledge,
     settings,
     host: input.host,
-    rebuilt: tip !== inventory.head
+    rebuilt: built.replayed,
+    formattedPathCount: built.formattedPathCount
   });
   const pullRequest2 = await step("knowledge_publication_pull_request_failed", async () => {
     const existing = await forge.findPullRequest({
@@ -99781,10 +100377,9 @@ async function publish(input) {
         body
       });
     if (existing.title !== KNOWLEDGE_PUBLICATION_TITLE || existing.body.trim() !== body.trim())
-      await forge.updatePullRequest({
-        number: existing.number,
-        title: KNOWLEDGE_PUBLICATION_TITLE,
-        body
+      await forge.updatePullRequest({ number: existing.number, title: KNOWLEDGE_PUBLICATION_TITLE, body }).catch((error) => {
+        if (!(error instanceof KnowledgePublicationForgeError))
+          throw error;
       });
     return existing;
   });
@@ -99804,12 +100399,28 @@ async function publish(input) {
     return { ...opened, status: "awaiting_checks" };
   if (checks2.state === "failed")
     throw new PublicationFailure("knowledge_publication_checks_failed", `${checks2.failed} of ${checks2.total} checks failed`);
-  await step("knowledge_publication_merge_failed", () => forge.merge({ number: pullRequest2.number, headSha: tip }));
+  const merged = await step("knowledge_publication_merge_failed", () => forge.merge({ number: pullRequest2.number, headSha: tip }).then(() => true, (error) => {
+    if (error instanceof KnowledgePublicationForgeError) {
+      if (error.failureClass === "checks_pending")
+        return false;
+      if (error.failureClass === "checks_failed")
+        throw new PublicationFailure("knowledge_publication_checks_failed", error.detail);
+    }
+    throw error;
+  }));
+  if (!merged)
+    return { ...opened, status: "awaiting_checks" };
   await step("knowledge_publication_fetch_failed", () => fetchKnowledgePublicationRefs(root2, settings));
   return afterMerge(root2, settings, opened);
 }
 async function supersede(input) {
   const { root: root2, settings, forge, base, inventory } = input;
+  await step("knowledge_publication_conflict", () => recordKnowledgeSupersession({
+    repositoryRoot: root2,
+    commits: inventory.knowledge.map((commit) => commit.sha),
+    base: inventory.base,
+    supersededAt: base.updatedAt
+  }));
   const open36 = await step("knowledge_publication_pull_request_failed", () => forge.findPullRequest({ head: settings.branch, base: settings.baseBranch }));
   if (open36 !== null)
     await step("knowledge_publication_pull_request_failed", () => forge.closePullRequest({ number: open36.number, comment: SUPERSEDED_COMMENT }));
@@ -99834,26 +100445,27 @@ async function afterMerge(root2, settings, state2) {
 }
 
 // packages/repository-knowledge-runtime/dist/knowledge-publication-github.js
-import { execFile as execFile18 } from "node:child_process";
-var PASSING = /* @__PURE__ */ new Set(["SUCCESS", "NEUTRAL", "SKIPPED"]);
+import { execFile as execFile19 } from "node:child_process";
 var PULL_REQUEST_FIELDS = "number,url,state,headRefOid,title,body";
 function ghRunner(root2, executable) {
   return (args, input) => new Promise((resolveRun, reject) => {
-    const child = execFile18(executable, args, {
+    const child = execFile19(executable, args, {
       cwd: root2,
       maxBuffer: 4 * 1024 * 1024,
       timeout: 6e4,
       env: { ...process.env, GH_PROMPT_DISABLED: "1" }
-    }, (error, stdout) => error === null ? resolveRun(stdout) : reject(error));
+    }, (error, stdout, stderr) => error === null ? resolveRun(stdout) : reject(Object.assign(error, { stderr })));
     if (input !== void 0)
       child.stdin?.end(input);
   });
 }
+var InvalidResponse = class extends Error {
+};
 function pullRequest(value) {
   const item = value;
   const state2 = String(item?.state ?? "").toLowerCase();
   if (item === null || !Number.isSafeInteger(item.number) || typeof item.url !== "string" || typeof item.headRefOid !== "string" || state2 !== "open" && state2 !== "merged" && state2 !== "closed")
-    throw new Error("The GitHub pull request response is invalid.");
+    throw new InvalidResponse("The GitHub pull request response is invalid.");
   return {
     number: item.number,
     url: item.url,
@@ -99863,25 +100475,73 @@ function pullRequest(value) {
     body: typeof item.body === "string" ? item.body : ""
   };
 }
+var STDERR_CLASSES = [
+  [
+    "checks_pending",
+    /status checks? .*(?:expected|pending|in progress|queued)|checks? (?:are |is )?(?:still )?(?:pending|in progress|queued)|waiting (?:for|on) (?:status )?checks?/iu
+  ],
+  ["checks_failed", /status checks? .*(?:fail|error)|checks? (?:have |has )?failed/iu],
+  [
+    "not_mergeable",
+    /not mergeable|merge conflict|cannot be merged|head branch was modified|head branch is out of date|base branch policy|match-head-commit|expected head/iu
+  ],
+  [
+    "auth",
+    /authenticat|gh auth login|bad credentials|HTTP 40[13]|forbidden|permission|must have (?:push|write|admin)|not logged in|resource not accessible/iu
+  ],
+  [
+    "network",
+    /could not resolve host|connection|timed? ?out|timeout|network|ECONN|ENOTFOUND|EAI_AGAIN|TLS|HTTP 5\d\d|unexpected EOF|i\/o/iu
+  ],
+  ["not_found", /not found|could not find|could not resolve to|no pull requests? found|HTTP 404/iu]
+];
+function classifyGitHubCliFailure(error) {
+  if (error instanceof InvalidResponse || error instanceof SyntaxError)
+    return { exitCode: null, failureClass: "invalid_response" };
+  const value = error ?? {};
+  if (value.code === "ENOENT")
+    return { exitCode: null, failureClass: "not_installed" };
+  const exitCode = typeof value.code === "number" ? value.code : null;
+  if (value.killed === true || value.signal === "SIGTERM")
+    return { exitCode, failureClass: "network" };
+  const stderr = typeof value.stderr === "string" ? value.stderr : String(value.stderr ?? "");
+  const match = STDERR_CLASSES.find(([, pattern]) => pattern.test(stderr));
+  return { exitCode, failureClass: match?.[0] ?? "unknown" };
+}
+async function guarded(operation, work) {
+  try {
+    return await work();
+  } catch (error) {
+    if (error instanceof KnowledgePublicationForgeError)
+      throw error;
+    const { exitCode, failureClass } = classifyGitHubCliFailure(error);
+    throw new KnowledgePublicationForgeError(operation, exitCode, failureClass, { cause: error });
+  }
+}
 function summarizeKnowledgePublicationChecks(input) {
   const items = Array.isArray(input.rollup) ? input.rollup : [];
   if (input.observedHeadSha !== input.headSha || items.length === 0)
     return { state: "pending", total: items.length };
   let failed = 0;
+  let succeeded = 0;
   for (const item of items) {
     const conclusion = item.__typename === "StatusContext" ? String(item.state ?? "") : String(item.status ?? "") === "COMPLETED" ? String(item.conclusion ?? "") : "";
     if (conclusion === "" || conclusion === "PENDING" || conclusion === "EXPECTED")
       return { state: "pending", total: items.length };
-    if (!PASSING.has(conclusion))
+    if (conclusion === "SUCCESS")
+      succeeded++;
+    else if (conclusion !== "SKIPPED")
       failed++;
   }
-  return failed === 0 ? { state: "passed", total: items.length } : { state: "failed", total: items.length, failed };
+  if (failed > 0)
+    return { state: "failed", total: items.length, failed };
+  return succeeded === 0 ? { state: "pending", total: items.length } : { state: "passed", total: items.length };
 }
 function createGitHubKnowledgePublicationForge(input) {
   const run2 = input.run ?? ghRunner(input.repositoryRoot, input.executable ?? "gh");
   const view = async (number2) => pullRequest(JSON.parse(await run2(["pr", "view", String(number2), "--json", PULL_REQUEST_FIELDS])));
   return {
-    async findPullRequest({ head, base }) {
+    findPullRequest: ({ head, base }) => guarded("find", async () => {
       const list3 = JSON.parse(await run2([
         "pr",
         "list",
@@ -99897,41 +100557,41 @@ function createGitHubKnowledgePublicationForge(input) {
         PULL_REQUEST_FIELDS
       ]));
       if (!Array.isArray(list3))
-        throw new Error("The GitHub pull request list is invalid.");
+        throw new InvalidResponse("The GitHub pull request list is invalid.");
       return list3.length === 0 ? null : pullRequest(list3[0]);
-    },
-    async createPullRequest({ head, base, title: title2, body }) {
+    }),
+    createPullRequest: ({ head, base, title: title2, body }) => guarded("create", async () => {
       const url = (await run2(["pr", "create", "--head", head, "--base", base, "--title", title2, "--body-file", "-"], body)).trim();
       const number2 = Number(/\/pull\/(\d+)$/u.exec(url)?.[1]);
       if (!Number.isSafeInteger(number2))
-        throw new Error("The created pull request is unknown.");
+        throw new InvalidResponse("The created pull request is unknown.");
       return view(number2);
-    },
-    async updatePullRequest({ number: number2, title: title2, body }) {
-      await run2(["pr", "edit", String(number2), "--title", title2, "--body-file", "-"], body);
-    },
-    viewPullRequest: view,
-    async closePullRequest({ number: number2, comment: comment2 }) {
+    }),
+    updatePullRequest: ({ number: number2, title: title2, body }) => guarded("update", async () => {
+      await run2(["api", "--method", "PATCH", `repos/{owner}/{repo}/pulls/${number2}`, "--input", "-"], JSON.stringify({ title: title2, body }));
+    }),
+    viewPullRequest: (number2) => guarded("view", () => view(number2)),
+    closePullRequest: ({ number: number2, comment: comment2 }) => guarded("close", async () => {
       await run2(["pr", "close", String(number2), "--comment", comment2]);
-    },
-    async checks({ number: number2, headSha }) {
+    }),
+    checks: ({ number: number2, headSha }) => guarded("checks", async () => {
       const value = JSON.parse(await run2(["pr", "view", String(number2), "--json", "headRefOid,statusCheckRollup"]));
       return summarizeKnowledgePublicationChecks({
         headSha,
         observedHeadSha: String(value.headRefOid ?? ""),
         rollup: value.statusCheckRollup
       });
-    },
-    async merge({ number: number2, headSha }) {
+    }),
+    merge: ({ number: number2, headSha }) => guarded("merge", async () => {
       await run2(["pr", "merge", String(number2), "--merge", "--match-head-commit", headSha]);
-    }
+    })
   };
 }
 
 // packages/repository-knowledge-runtime/dist/instruction-candidate-apply-authority.js
-import { execFile as execFile19 } from "node:child_process";
-import { promisify as promisify18 } from "node:util";
-var execute15 = promisify18(execFile19);
+import { execFile as execFile20 } from "node:child_process";
+import { promisify as promisify19 } from "node:util";
+var execute16 = promisify19(execFile20);
 async function instructionCandidateApplyAuthority(repositoryRoot) {
   let host;
   try {
@@ -99957,7 +100617,7 @@ async function instructionCandidateApplyAuthority(repositoryRoot) {
 }
 
 // apps/cli/src/knowledge-worker-command.ts
-import { spawn as spawn5 } from "node:child_process";
+import { spawn as spawn6 } from "node:child_process";
 
 // packages/sync/dist/http-json.js
 var utf82 = new TextDecoder("utf-8", { fatal: true });
@@ -100362,11 +101022,11 @@ async function runKnowledgeWorkerCommand(args, io) {
         onFailure: (error) => io.stderr(knowledgeWorkerFailureLine(error, storage.paths.repositoryRoot))
       });
       try {
-        await new Promise((resolve116) => {
+        await new Promise((resolve118) => {
           const stopped = () => {
             process.removeListener("SIGINT", stopped);
             process.removeListener("SIGTERM", stopped);
-            resolve116();
+            resolve118();
           };
           process.once("SIGINT", stopped);
           process.once("SIGTERM", stopped);
@@ -100388,7 +101048,7 @@ async function runKnowledgeWorkerCommand(args, io) {
 }
 function launchDetachedKnowledgeWorker(input) {
   try {
-    const child = spawn5(process.execPath, [input.entry, ...input.args], {
+    const child = spawn6(process.execPath, [input.entry, ...input.args], {
       cwd: input.root,
       detached: true,
       stdio: "ignore",
@@ -100403,7 +101063,7 @@ function launchDetachedKnowledgeWorker(input) {
 }
 
 // apps/cli/src/terminal-command-runtime.ts
-import { resolve as resolve113 } from "node:path";
+import { resolve as resolve115 } from "node:path";
 import { parseArgs as parseArgs4 } from "node:util";
 
 // packages/diagnostics/dist/recovery-guidance-environment.js
@@ -101062,7 +101722,7 @@ function formatTerminalCoverageReport(report) {
 }
 
 // apps/cli/src/terminal-budget-command.ts
-import { resolve as resolve102 } from "node:path";
+import { resolve as resolve104 } from "node:path";
 import { parseArgs } from "node:util";
 
 // apps/cli/src/terminal-budget-format.ts
@@ -101092,13 +101752,13 @@ function formatTerminalBudgetReport(report) {
 var terminalUsage = "  lervo terminal status [--root <path>] [--json]\n  lervo terminal coverage [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--json]\n  lervo terminal budget [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--minimum-samples <1-100>] [--max-query-tokens <tokens>] [--unobserved <block|escalate>] [--exhausted <block|escalate>] [--json]\n  lervo terminal declare --provider <codex|claude> --observation <observation-id> --stdin [--root <path>] [--json]\n  lervo terminal hook --provider <codex|claude> --contract <1|2>";
 
 // apps/cli/src/terminal-repository-root.ts
-import { lstat as lstat64 } from "node:fs/promises";
-import { dirname as dirname25, resolve as resolve101 } from "node:path";
+import { lstat as lstat65 } from "node:fs/promises";
+import { dirname as dirname25, resolve as resolve103 } from "node:path";
 async function resolveTerminalRepositoryRoot(start) {
-  let current = resolve101(start);
+  let current = resolve103(start);
   while (true) {
     try {
-      const manifest = await lstat64(resolve101(current, ".lervo/project.yaml"));
+      const manifest = await lstat65(resolve103(current, ".lervo/project.yaml"));
       if (manifest.isFile() && !manifest.isSymbolicLink()) return current;
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
@@ -101147,7 +101807,7 @@ async function runTerminalBudgetCommand(args, io) {
     const limit = boundedInteger3(parsed.values.limit, 100, 100);
     const minimumSamples = boundedInteger3(parsed.values["minimum-samples"], 30, 100);
     const maxQueryProjectionTokens = parsed.values["max-query-tokens"] === void 0 ? null : boundedInteger3(parsed.values["max-query-tokens"], 1, Number.MAX_SAFE_INTEGER);
-    const root2 = await resolveTerminalRepositoryRoot(resolve102(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve104(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const coverage = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -101178,22 +101838,22 @@ ${terminalUsage}
 }
 
 // apps/cli/src/terminal-declaration-command.ts
-import { resolve as resolve107 } from "node:path";
+import { resolve as resolve109 } from "node:path";
 import { parseArgs as parseArgs2 } from "node:util";
 
 // apps/cli/src/terminal-repository-snapshot.ts
-import { resolve as resolve103 } from "node:path";
+import { resolve as resolve105 } from "node:path";
 function captureTerminalRepositorySnapshot(root2) {
   return capturePersistentRepositorySnapshot(
     root2,
-    resolve103(root2, ".lervo/state/cache/terminal-repository-snapshot.json")
+    resolve105(root2, ".lervo/state/cache/terminal-repository-snapshot.json")
   );
 }
 
 // apps/cli/src/development-pattern-storage.ts
-import { randomUUID as randomUUID22 } from "node:crypto";
-import { mkdir as mkdir37, rename as rename22, writeFile as writeFile17 } from "node:fs/promises";
-import { resolve as resolve104 } from "node:path";
+import { randomUUID as randomUUID23 } from "node:crypto";
+import { mkdir as mkdir38, rename as rename23, writeFile as writeFile19 } from "node:fs/promises";
+import { resolve as resolve106 } from "node:path";
 function allPatternEvents(storage) {
   const events = [];
   const latest = storage.events.latest();
@@ -101274,22 +101934,22 @@ function projectPatterns(events) {
   );
 }
 async function writePatternProjection(repositoryRoot, patterns) {
-  const path = resolve104(repositoryRoot, ".lervo/state/knowledge/development-patterns/current.json");
-  await mkdir37(resolve104(path, ".."), { recursive: true });
+  const path = resolve106(repositoryRoot, ".lervo/state/knowledge/development-patterns/current.json");
+  await mkdir38(resolve106(path, ".."), { recursive: true });
   const temporary = `${path}.${process.pid}.tmp`;
-  await writeFile17(
+  await writeFile19(
     temporary,
     `${JSON.stringify({ schemaVersion: 1, patterns }, null, 2)}
 `,
     "utf8"
   );
-  await rename22(temporary, path);
+  await rename23(temporary, path);
 }
 function patternArtifactId(contentHash2) {
   return `art_${contentHash2.slice("sha256:".length)}`;
 }
 function patternEventDraft(input, projectId) {
-  const identity2 = randomUUID22().replaceAll("-", "");
+  const identity2 = randomUUID23().replaceAll("-", "");
   return {
     eventId: `evt_${identity2}`,
     projectId,
@@ -101402,7 +102062,7 @@ function passedWorkflowVerificationEvidence(storage) {
 }
 
 // apps/cli/src/terminal-event-coordinates.ts
-import { randomUUID as randomUUID23 } from "node:crypto";
+import { randomUUID as randomUUID24 } from "node:crypto";
 var TERMINAL_OBSERVATION_POLICY_VERSION = sha2565(
   "lervo.terminal.unmanaged-observation.v1"
 );
@@ -101436,7 +102096,7 @@ function unmanagedTerminalCoordinates(provider, input) {
   };
 }
 function newTerminalIdentifier(prefix) {
-  return `${prefix}_${randomUUID23().replaceAll("-", "")}`;
+  return `${prefix}_${randomUUID24().replaceAll("-", "")}`;
 }
 function assertTerminalRepositoryRelativePath(path) {
   const normalized2 = path.replaceAll("\\", "/");
@@ -101460,13 +102120,13 @@ function terminalEventDraft(input) {
 
 // apps/cli/src/terminal-knowledge-lifecycle-cache.ts
 import { constants as constants36 } from "node:fs";
-import { randomUUID as randomUUID24 } from "node:crypto";
-import { lstat as lstat65, mkdir as mkdir38, open as open32, readFile as readFile41, rename as rename23, rm as rm24 } from "node:fs/promises";
-import { resolve as resolve105 } from "node:path";
+import { randomUUID as randomUUID25 } from "node:crypto";
+import { lstat as lstat66, mkdir as mkdir39, open as open32, readFile as readFile43, rename as rename24, rm as rm25 } from "node:fs/promises";
+import { resolve as resolve107 } from "node:path";
 
 // apps/cli/src/version-command.ts
-import { createRequire } from "node:module";
-var require2 = createRequire(import.meta.url);
+import { createRequire as createRequire2 } from "node:module";
+var require2 = createRequire2(import.meta.url);
 var semanticVersionPattern = /^\d+\.\d+\.\d+$/;
 function readCliPackageVersion() {
   const manifest = require2("../package.json");
@@ -101485,10 +102145,10 @@ var KNOWLEDGE_PROJECTION_COORDINATE_PATHS = [
   ".lervo/state/knowledge/current/structural/manifests/current.json"
 ];
 var HASH39 = /^sha256:[a-f0-9]{64}$/u;
-function supplementalSourcesDigest(sources) {
+function supplementalSourcesDigest(sources2) {
   return sha2565(
     canonicalJson4(
-      sources.map((source) => ({
+      sources2.map((source) => ({
         path: source.path,
         kind: source.kind,
         classification: source.classification,
@@ -101539,10 +102199,10 @@ function validateCache(value) {
 }
 async function readTerminalKnowledgeLifecycleCacheEntry(input) {
   try {
-    const target = resolve105(input.root, CACHE_PATH);
-    const stats = await lstat65(target);
+    const target = resolve107(input.root, CACHE_PATH);
+    const stats = await lstat66(target);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_CACHE_BYTES) return null;
-    const cache = validateCache(JSON.parse(await readFile41(target, "utf8")));
+    const cache = validateCache(JSON.parse(await readFile43(target, "utf8")));
     if (cache === null) return null;
     const expected = await cacheCoordinates(input);
     if (expected === null) return null;
@@ -101562,9 +102222,9 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
   const coordinates = await cacheCoordinates(input);
   if (coordinates === null)
     throw new Error("The terminal knowledge lifecycle cache coordinates are unavailable.");
-  const directory = resolve105(input.root, ".lervo/state/terminal-integration");
-  await mkdir38(directory, { recursive: true, mode: 448 });
-  const directoryStats = await lstat65(directory);
+  const directory = resolve107(input.root, ".lervo/state/terminal-integration");
+  await mkdir39(directory, { recursive: true, mode: 448 });
+  const directoryStats = await lstat66(directory);
   if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink())
     throw new Error("Unsafe terminal knowledge lifecycle cache directory.");
   const cache = {
@@ -101577,7 +102237,7 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
 `;
   if (Buffer.byteLength(bytes2) > MAXIMUM_CACHE_BYTES)
     throw new Error("The terminal knowledge lifecycle cache exceeds its storage limit.");
-  const temporary = resolve105(directory, `.knowledge-lifecycle-${randomUUID24()}.tmp`);
+  const temporary = resolve107(directory, `.knowledge-lifecycle-${randomUUID25()}.tmp`);
   let handle;
   try {
     handle = await open32(
@@ -101589,10 +102249,10 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename23(temporary, resolve105(input.root, CACHE_PATH));
+    await rename24(temporary, resolve107(input.root, CACHE_PATH));
   } finally {
     await handle?.close();
-    await rm24(temporary, { force: true });
+    await rm25(temporary, { force: true });
   }
 }
 
@@ -101809,16 +102469,16 @@ async function inspectTerminalRepositoryKnowledge(input) {
 
 // apps/cli/src/terminal-prepared-snapshot.ts
 import { constants as constants37 } from "node:fs";
-import { randomUUID as randomUUID25 } from "node:crypto";
-import { lstat as lstat66, mkdir as mkdir39, open as open33, readFile as readFile42, readdir as readdir23, rename as rename24, rm as rm25 } from "node:fs/promises";
-import { resolve as resolve106 } from "node:path";
+import { randomUUID as randomUUID26 } from "node:crypto";
+import { lstat as lstat67, mkdir as mkdir40, open as open33, readFile as readFile44, readdir as readdir23, rename as rename25, rm as rm26 } from "node:fs/promises";
+import { resolve as resolve108 } from "node:path";
 var DIRECTORY = ".lervo/state/terminal-integration/prepared-snapshots";
 var MAXIMUM_SNAPSHOTS = 64;
 var MAXIMUM_BYTES2 = 8 * 1024 * 1024;
 function snapshotPath(root2, observationId) {
   if (!/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(observationId))
     throw new Error("The prepared snapshot observation ID is invalid.");
-  return resolve106(root2, DIRECTORY, `${observationId}.json`);
+  return resolve108(root2, DIRECTORY, `${observationId}.json`);
 }
 function validate(value) {
   const snapshot2 = value;
@@ -101831,16 +102491,16 @@ function validate(value) {
   return snapshot2;
 }
 async function writePreparedRepositorySnapshot(root2, snapshot2) {
-  const directory = resolve106(root2, DIRECTORY);
-  await mkdir39(directory, { recursive: true, mode: 448 });
-  const stats = await lstat66(directory);
+  const directory = resolve108(root2, DIRECTORY);
+  await mkdir40(directory, { recursive: true, mode: 448 });
+  const stats = await lstat67(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe prepared snapshot state directory.");
   const bytes2 = `${JSON.stringify(snapshot2)}
 `;
   if (Buffer.byteLength(bytes2) > MAXIMUM_BYTES2)
     throw new Error("The prepared repository snapshot exceeds its storage limit.");
-  const temporary = resolve106(directory, `.prepared-${randomUUID25()}.tmp`);
+  const temporary = resolve108(directory, `.prepared-${randomUUID26()}.tmp`);
   let handle;
   try {
     handle = await open33(
@@ -101852,17 +102512,17 @@ async function writePreparedRepositorySnapshot(root2, snapshot2) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename24(temporary, snapshotPath(root2, snapshot2.observationId));
+    await rename25(temporary, snapshotPath(root2, snapshot2.observationId));
   } finally {
     await handle?.close();
-    await rm25(temporary, { force: true });
+    await rm26(temporary, { force: true });
   }
   const entries = await Promise.all(
     (await readdir23(directory, { withFileTypes: true })).filter(
       (entry) => entry.isFile() && /^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}\.json$/u.test(entry.name)
     ).map(async (entry) => ({
       name: entry.name,
-      modifiedAt: (await lstat66(resolve106(directory, entry.name))).mtimeMs
+      modifiedAt: (await lstat67(resolve108(directory, entry.name))).mtimeMs
     }))
   );
   const currentName = `${snapshot2.observationId}.json`;
@@ -101870,15 +102530,15 @@ async function writePreparedRepositorySnapshot(root2, snapshot2) {
     (left, right) => Number(left.name === currentName) - Number(right.name === currentName) || left.modifiedAt - right.modifiedAt || left.name.localeCompare(right.name)
   );
   for (const entry of entries.slice(0, Math.max(0, entries.length - MAXIMUM_SNAPSHOTS)))
-    await rm25(resolve106(directory, entry.name), { force: true });
+    await rm26(resolve108(directory, entry.name), { force: true });
 }
 async function readPreparedRepositorySnapshot(root2, observationId) {
   try {
     const path = snapshotPath(root2, observationId);
-    const stats = await lstat66(path);
+    const stats = await lstat67(path);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_BYTES2)
       throw new Error("The prepared repository snapshot is unsafe.");
-    const snapshot2 = validate(JSON.parse(await readFile42(path, "utf8")));
+    const snapshot2 = validate(JSON.parse(await readFile44(path, "utf8")));
     if (snapshot2.observationId !== observationId)
       throw new Error("The prepared repository snapshot coordinate does not match.");
     return snapshot2;
@@ -102389,7 +103049,7 @@ async function runTerminalDeclareCommand(args, io) {
     if (!parsed.values.stdin || io.stdin === void 0)
       throw new Error("The declaration must be supplied through --stdin.");
     const draft = parseTurnDeclarationDraft(await io.stdin());
-    const root2 = await resolveTerminalRepositoryRoot(resolve107(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve109(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const context = allTerminalEvents2(storage.events).filter(
       (event) => event.type === "terminal.context.prepared" && event.actor.kind === "provider" && event.actor.provider === parsed.values.provider && event.payload.observationId === parsed.values.observation
@@ -102521,28 +103181,28 @@ import { parseArgs as parseArgs3 } from "node:util";
 
 // apps/cli/src/terminal-activation-state.ts
 import { constants as constants38 } from "node:fs";
-import { randomUUID as randomUUID26 } from "node:crypto";
-import { lstat as lstat67, mkdir as mkdir40, open as open34, readFile as readFile43, rename as rename25, rm as rm26 } from "node:fs/promises";
-import { resolve as resolve108 } from "node:path";
+import { randomUUID as randomUUID27 } from "node:crypto";
+import { lstat as lstat68, mkdir as mkdir41, open as open34, readFile as readFile45, rename as rename26, rm as rm27 } from "node:fs/promises";
+import { resolve as resolve110 } from "node:path";
 function activationPath(root2, provider, event) {
-  return resolve108(
+  return resolve110(
     root2,
     ".lervo/state/terminal-integration",
     `${provider}-${event === "UserPromptSubmit" ? "user-prompt-submit" : "stop"}.json`
   );
 }
 async function writeTerminalActivationReceipt(root2, receipt3) {
-  const directory = resolve108(root2, ".lervo/state/terminal-integration");
+  const directory = resolve110(root2, ".lervo/state/terminal-integration");
   try {
-    await mkdir40(directory, { mode: 448 });
+    await mkdir41(directory, { mode: 448 });
   } catch (error) {
     if (error.code !== "EEXIST") throw error;
   }
-  const stats = await lstat67(directory);
+  const stats = await lstat68(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe terminal activation state directory.");
   const target = activationPath(root2, receipt3.provider, receipt3.hookEvent);
-  const temporary = resolve108(directory, `.activation-${randomUUID26()}.tmp`);
+  const temporary = resolve110(directory, `.activation-${randomUUID27()}.tmp`);
   let handle;
   try {
     handle = await open34(
@@ -102555,10 +103215,10 @@ async function writeTerminalActivationReceipt(root2, receipt3) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename25(temporary, target);
+    await rename26(temporary, target);
   } finally {
     await handle?.close();
-    await rm26(temporary, { force: true });
+    await rm27(temporary, { force: true });
   }
 }
 async function readTerminalActivationReceipts(root2) {
@@ -102567,9 +103227,9 @@ async function readTerminalActivationReceipts(root2) {
     for (const event of ["UserPromptSubmit", "Stop"]) {
       try {
         const path = activationPath(root2, provider, event);
-        const stats = await lstat67(path);
+        const stats = await lstat68(path);
         if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
-        const value = JSON.parse(await readFile43(path, "utf8"));
+        const value = JSON.parse(await readFile45(path, "utf8"));
         if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v2" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string")
           receipts.push(value);
       } catch (error) {
@@ -102691,19 +103351,19 @@ async function settleTerminalAgentTurn(input) {
 }
 
 // apps/cli/src/terminal-lifecycle-inspection.ts
-import { lstat as lstat69 } from "node:fs/promises";
-import { resolve as resolve110 } from "node:path";
+import { lstat as lstat70 } from "node:fs/promises";
+import { resolve as resolve112 } from "node:path";
 
 // apps/cli/src/terminal-repository-replica-service-inspection.ts
-import { execFile as execFile20 } from "node:child_process";
-import { lstat as lstat68 } from "node:fs/promises";
+import { execFile as execFile21 } from "node:child_process";
+import { lstat as lstat69 } from "node:fs/promises";
 import { homedir as homedir4 } from "node:os";
-import { resolve as resolve109 } from "node:path";
+import { resolve as resolve111 } from "node:path";
 var serviceLabel = "dev.lervo.repository-replica";
 var maximumDefinitionBytes = 128 * 1024;
 function launchdServiceLoaded(uid) {
   return new Promise((done) => {
-    execFile20(
+    execFile21(
       "launchctl",
       ["print", `gui/${uid}/${serviceLabel}`],
       { encoding: "utf8", maxBuffer: 4096, timeout: 5e3 },
@@ -102713,7 +103373,7 @@ function launchdServiceLoaded(uid) {
 }
 async function inspectTerminalRepositoryReplicaService(input = {}) {
   if ((input.platform ?? process.platform) !== "darwin") return [];
-  const definition2 = resolve109(
+  const definition2 = resolve111(
     input.homeDirectory ?? homedir4(),
     "Library",
     "LaunchAgents",
@@ -102721,7 +103381,7 @@ async function inspectTerminalRepositoryReplicaService(input = {}) {
   );
   let metadata2;
   try {
-    metadata2 = await lstat68(definition2);
+    metadata2 = await lstat69(definition2);
   } catch (error) {
     if (error.code === "ENOENT") return [];
     return [
@@ -103123,7 +103783,7 @@ async function inspectTerminalLifecycle(root2, expected) {
     }
   }
   try {
-    const handoff = await lstat69(resolve110(root2, "HANDOFF.md"));
+    const handoff = await lstat70(resolve112(root2, "HANDOFF.md"));
     if (handoff.isFile() && !handoff.isSymbolicLink())
       issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
     else
@@ -103257,7 +103917,7 @@ function assembleTerminalHookContext(input) {
 // apps/cli/src/terminal-context-loading.ts
 import { constants as constants39 } from "node:fs";
 import { open as open35 } from "node:fs/promises";
-import { relative as relative18, resolve as resolve111, sep as sep16 } from "node:path";
+import { relative as relative18, resolve as resolve113, sep as sep16 } from "node:path";
 var TRUNCATION_NOTICE = "\n[Lervo content truncated]";
 function truncateUtf8(value, maximumBytes2) {
   if (maximumBytes2 <= 0) return "";
@@ -103273,7 +103933,7 @@ function truncateUtf8(value, maximumBytes2) {
   return value.slice(0, end);
 }
 async function loadSelectedTerminalDocument(input) {
-  const target = resolve111(input.repositoryRoot, input.hit.path);
+  const target = resolve113(input.repositoryRoot, input.hit.path);
   const child = relative18(input.repositoryRoot, target);
   if (child === ".." || child.startsWith(`..${sep16}`) || input.maximumBytes <= 0) return null;
   let handle;
@@ -103329,14 +103989,14 @@ function createRepositoryKnowledgeSearchCorpus(scan) {
       text: source.content
     });
   }
-  const sources = [...byPath.values()].sort((left, right) => left.path.localeCompare(right.path));
+  const sources2 = [...byPath.values()].sort((left, right) => left.path.localeCompare(right.path));
   return {
-    sources,
+    sources: sources2,
     digest: canonicalHash(
-      sources.map((source) => ({ path: source.path, contentHash: source.contentHash }))
+      sources2.map((source) => ({ path: source.path, contentHash: source.contentHash }))
     ),
-    documentCount: sources.length,
-    byteCount: sources.reduce((sum, source) => sum + Buffer.byteLength(source.text), 0)
+    documentCount: sources2.length,
+    byteCount: sources2.reduce((sum, source) => sum + Buffer.byteLength(source.text), 0)
   };
 }
 
@@ -103534,8 +104194,8 @@ var WORKSTREAM_KINDS = /* @__PURE__ */ new Set([
 function isStaleWorkstreamItem(item) {
   return WORKSTREAM_KINDS.has(item.kind) && item.state === "stale";
 }
-function staleWorkstreamCountLine(count) {
-  return count === 0 ? [] : [`${count} stale workstream items need re-verification: \`lervo workstream current\`.`];
+function staleWorkstreamCountLine(count2) {
+  return count2 === 0 ? [] : [`${count2} stale workstream items need re-verification: \`lervo workstream current\`.`];
 }
 function formatTerminalAttentionContext(report) {
   const maximumItems = 12;
@@ -103568,8 +104228,8 @@ function formatTerminalAttentionContext(report) {
 }
 
 // apps/cli/src/terminal-compact-context.ts
-import { mkdir as mkdir41, readFile as readFile44, rename as rename26, writeFile as writeFile18 } from "node:fs/promises";
-import { dirname as dirname26, resolve as resolve112 } from "node:path";
+import { mkdir as mkdir42, readFile as readFile46, rename as rename27, writeFile as writeFile20 } from "node:fs/promises";
+import { dirname as dirname26, resolve as resolve114 } from "node:path";
 
 // apps/cli/src/document-freshness-attention.ts
 function changeClasses(candidate) {
@@ -103790,9 +104450,25 @@ var PUBLICATION_INSTRUCTIONS = {
   knowledge_publication_conflict: "Replaying the knowledge commits onto the remote base branch failed for a reason other than a content conflict. Check the host's Git installation and temporary directory, then run lervo knowledge convergence owner publish.",
   knowledge_publication_superseded: "The knowledge commits were computed against an older base and conflict with the current remote base, so they were not published; a backup ref keeps them. When the local base branch was reset, convergence regenerates the outputs on its next cycle and nothing else is needed. Otherwise rebase the local base branch onto the remote base, then run lervo knowledge convergence owner publish.",
   knowledge_publication_pull_request_failed: "Check that gh is installed and authenticated on this host, then run lervo knowledge convergence owner publish.",
-  knowledge_publication_checks_failed: "A required check failed on the knowledge publication pull request. Inspect its CI result; the publisher will not merge until every check passes.",
+  knowledge_publication_checks_failed: "A check on the knowledge publication pull request finished without success, for example failed, cancelled, or neutral. Inspect its CI result; the publisher will not merge until every check succeeds.",
   knowledge_publication_merge_failed: "Merging the knowledge publication pull request failed. Inspect the pull request and merge or close it."
 };
+var FORGE_FAILURE_INSTRUCTIONS = {
+  auth: "The gh CLI on this host is not authenticated for this repository or lacks write access. Run gh auth status, log in with an account that can push and merge, then run lervo knowledge convergence owner publish.",
+  network: "The gh CLI on this host could not reach GitHub in time. Check the host's network and GitHub status; the next resident cycle retries.",
+  not_installed: "The gh CLI is not installed or not on the resident's PATH on this host. Install it, log in, then run lervo knowledge convergence owner publish.",
+  not_mergeable: "GitHub refused to merge the knowledge publication pull request because it is not mergeable at the published head. Inspect the pull request for conflicts or a branch policy, then merge or close it.",
+  not_found: "GitHub could not find the knowledge publication pull request or repository. Check the host's gh repository context, then run lervo knowledge convergence owner publish."
+};
+var SUPERSESSION_HELD_INSTRUCTIONS = {
+  not_on_branch: "Superseded Lervo Knowledge commits remain because HEAD is detached or a Git operation is in progress. Finish or abort the operation and check out the branch; the next replica cycle drops them.",
+  under_other_work: "Superseded Lervo Knowledge commits sit below other commits on this branch, so they were not removed automatically and replication waits. Rebase the branch onto the remote base and drop the commits authored by knowledge@lervo.invalid that git log lists before your own work; a backup ref under refs/lervo/knowledge-superseded keeps them.",
+  worktree_conflict: "Superseded Lervo Knowledge commits remain because uncommitted edits touch the same paths. Commit or stash those edits; the next replica cycle drops the commits."
+};
+function forgeFailureInstruction(detail2) {
+  const failureClass = detail2 === null ? void 0 : /^gh \S+ exit \S+ (\S+)$/u.exec(detail2)?.[1];
+  return failureClass === void 0 ? void 0 : FORGE_FAILURE_INSTRUCTIONS[failureClass];
+}
 function knowledgeConvergenceAttentionItems(input) {
   const items = [];
   const verdict = input.owner?.verdict;
@@ -103830,7 +104506,26 @@ function knowledgeConvergenceAttentionItems(input) {
       actionOwner: "user",
       requiresUserAction: true,
       blocking: false,
-      instruction: PUBLICATION_INSTRUCTIONS[failure2.code] ?? "Inspect lervo knowledge convergence owner status and retry the publication."
+      instruction: forgeFailureInstruction(failure2.detail) ?? PUBLICATION_INSTRUCTIONS[failure2.code] ?? "Inspect lervo knowledge convergence owner status and retry the publication."
+    };
+    items.push(item);
+  }
+  const held2 = input.supersession?.held ?? null;
+  if (held2 !== null) {
+    const item = {
+      schemaVersion: 1,
+      kind: "knowledge_publication",
+      itemId: "knowledge_publication_knowledge_supersession_held",
+      state: "action_required",
+      failureCode: "knowledge_supersession_held",
+      detail: `${held2.commitCount} superseded commit(s) held: ${held2.reason}`,
+      pullRequestUrl: null,
+      occurrences: 1,
+      firstObservedAt: held2.observedAt,
+      actionOwner: "user",
+      requiresUserAction: true,
+      blocking: false,
+      instruction: SUPERSESSION_HELD_INSTRUCTIONS[held2.reason]
     };
     items.push(item);
   }
@@ -104086,11 +104781,11 @@ function assembleCompactTerminalContext(preamble, workstream) {
 }
 
 // apps/cli/src/workstream-repository-head.ts
-import { execFile as execFile21 } from "node:child_process";
-import { promisify as promisify19 } from "node:util";
-var execute16 = promisify19(execFile21);
+import { execFile as execFile22 } from "node:child_process";
+import { promisify as promisify20 } from "node:util";
+var execute17 = promisify20(execFile22);
 async function git11(root2, args) {
-  const { stdout } = await execute16("git", ["-C", root2, ...args], {
+  const { stdout } = await execute17("git", ["-C", root2, ...args], {
     timeout: 5e3,
     maxBuffer: 4096
   });
@@ -104101,8 +104796,8 @@ async function measureWorkstreamHeadDistance(root2, snapshot2) {
   if (recorded === void 0) return { status: "not_recorded" };
   try {
     await git11(root2, ["merge-base", "--is-ancestor", recorded, "HEAD"]);
-    const count = Number(await git11(root2, ["rev-list", "--count", `${recorded}..HEAD`]));
-    return Number.isSafeInteger(count) && count >= 0 ? { status: "measured", commitsBehind: count } : { status: "unresolvable" };
+    const count2 = Number(await git11(root2, ["rev-list", "--count", `${recorded}..HEAD`]));
+    return Number.isSafeInteger(count2) && count2 >= 0 ? { status: "measured", commitsBehind: count2 } : { status: "unresolvable" };
   } catch {
     return { status: "unresolvable" };
   }
@@ -104126,7 +104821,7 @@ var compactQueryProjector = {
 async function readKnowledgeSnapshotCache(root2) {
   try {
     const value = JSON.parse(
-      await readFile44(resolve112(root2, KNOWLEDGE_SNAPSHOT_CACHE), "utf8")
+      await readFile46(resolve114(root2, KNOWLEDGE_SNAPSHOT_CACHE), "utf8")
     );
     return value?.schemaVersion === 1 && /^ksnap_[a-f0-9]{24}$/u.test(value.sourceSnapshotId) ? value : null;
   } catch {
@@ -104151,10 +104846,10 @@ async function terminalKnowledgeSnapshotId(root2, repositoryRevision) {
       sourceSnapshotId: scan.snapshotId
     };
     try {
-      const target = resolve112(root2, KNOWLEDGE_SNAPSHOT_CACHE);
-      await mkdir41(dirname26(target), { recursive: true, mode: 448 });
-      await writeFile18(`${target}.${process.pid}.tmp`, JSON.stringify(value), { mode: 384 });
-      await rename26(`${target}.${process.pid}.tmp`, target);
+      const target = resolve114(root2, KNOWLEDGE_SNAPSHOT_CACHE);
+      await mkdir42(dirname26(target), { recursive: true, mode: 448 });
+      await writeFile20(`${target}.${process.pid}.tmp`, JSON.stringify(value), { mode: 384 });
+      await rename27(`${target}.${process.pid}.tmp`, target);
     } catch {
     }
   }
@@ -104588,9 +105283,9 @@ function terminalDeclarationInstruction(provider, observationId) {
 }
 
 // apps/cli/src/terminal-stage-persistence.ts
-import { randomUUID as randomUUID27 } from "node:crypto";
+import { randomUUID as randomUUID28 } from "node:crypto";
 function eventId() {
-  return `evt_${randomUUID27().replaceAll("-", "")}`;
+  return `evt_${randomUUID28().replaceAll("-", "")}`;
 }
 async function recordTerminalStageObservation(input) {
   const writerVersion = input.storage?.writableEventSchemaVersion ?? (await inspectEventWriterCoordinate(input.root)).coordinate.selectedEventSchemaVersion;
@@ -104942,7 +105637,7 @@ async function runCoverage(args, io) {
     const limit = parsed.values.limit === void 0 ? 20 : Number(parsed.values.limit);
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
       throw new Error("--limit must be an integer between 1 and 100.");
-    const root2 = await resolveTerminalRepositoryRoot(resolve113(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve115(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const report = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -104987,7 +105682,7 @@ ${terminalUsage}
       return 1;
     }
     try {
-      const root2 = await resolveTerminalRepositoryRoot(resolve113(io.cwd, parsed.values.root ?? "."));
+      const root2 = await resolveTerminalRepositoryRoot(resolve115(io.cwd, parsed.values.root ?? "."));
       const result2 = await inspectTerminalLifecycle(root2);
       io.stdout(
         parsed.values.json ? `${JSON.stringify(result2, null, 2)}
@@ -105020,12 +105715,12 @@ ${terminalUsage}
 }
 
 // apps/cli/src/provider-query-runner-codex.ts
-import { mkdtemp as mkdtemp6, rm as rm27 } from "node:fs/promises";
+import { mkdtemp as mkdtemp6, rm as rm28 } from "node:fs/promises";
 import { tmpdir as tmpdir4 } from "node:os";
-import { resolve as resolve114 } from "node:path";
+import { resolve as resolve116 } from "node:path";
 
 // packages/adapter-codex/dist/app-server-client.js
-import { spawn as spawn6 } from "node:child_process";
+import { spawn as spawn7 } from "node:child_process";
 import { createInterface } from "node:readline";
 
 // packages/adapter-codex/dist/async-queue.js
@@ -105069,11 +105764,11 @@ var AsyncQueue = class {
   wait(signal) {
     if (signal.aborted || this.ended || this.values.length > 0)
       return Promise.resolve();
-    return new Promise((resolve116) => {
+    return new Promise((resolve118) => {
       const finish2 = () => {
         this.waiters.delete(finish2);
         signal.removeEventListener("abort", finish2);
-        resolve116();
+        resolve118();
       };
       this.waiters.add(finish2);
       signal.addEventListener("abort", finish2, { once: true });
@@ -105156,7 +105851,7 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     process2.once("exit", () => this.failProcess(true));
   }
   static async connect(options) {
-    const child = spawn6(options.executable, options.commandArguments ?? ["app-server", "--stdio"], {
+    const child = spawn7(options.executable, options.commandArguments ?? ["app-server", "--stdio"], {
       cwd: options.cwd,
       env: createProviderProcessEnvironment(options.environment),
       stdio: ["pipe", "pipe", "pipe"]
@@ -105250,13 +105945,13 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     if (this.exited)
       return;
     this.process.kill("SIGTERM");
-    const exited = new Promise((resolve116) => this.process.once("exit", () => resolve116()));
+    const exited = new Promise((resolve118) => this.process.once("exit", () => resolve118()));
     let timer;
     try {
       await Promise.race([
         exited,
-        new Promise((resolve116) => {
-          timer = setTimeout(resolve116, 1e3);
+        new Promise((resolve118) => {
+          timer = setTimeout(resolve118, 1e3);
         })
       ]);
     } finally {
@@ -105273,12 +105968,12 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     const id5 = this.nextRequestId;
     const operation = diagnosticOperation(method);
     this.nextRequestId += 1;
-    return new Promise((resolve116, reject) => {
+    return new Promise((resolve118, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id5);
         reject(new CodexAdapterError("provider_protocol_failed", "The Codex app-server response timed out.", failureDiagnostic(operation, "response_timeout")));
       }, this.requestTimeoutMs);
-      this.pending.set(id5, { resolve: resolve116, reject, timer, operation });
+      this.pending.set(id5, { resolve: resolve118, reject, timer, operation });
       this.write({ method, id: id5, params });
     });
   }
@@ -105359,15 +106054,15 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
 var MAXIMUM_RESPONSE_BYTES = 1024 * 1024;
 
 // packages/adapter-codex/dist/repository-work.js
-import { execFile as execFile22, spawn as spawn7 } from "node:child_process";
-import { promisify as promisify20 } from "node:util";
+import { execFile as execFile23, spawn as spawn8 } from "node:child_process";
+import { promisify as promisify21 } from "node:util";
 var MAXIMUM_OUTPUT_BYTES = 64 * 1024 * 1024;
-var executeFile3 = promisify20(execFile22);
+var executeFile3 = promisify21(execFile23);
 
 // apps/cli/src/provider-query-runner-codex.ts
 var defaultDependencies = {
-  createDirectory: () => mkdtemp6(resolve114(tmpdir4(), "lervo-codex-query-runner-")),
-  removeDirectory: (path) => rm27(path, { recursive: true, force: true }),
+  createDirectory: () => mkdtemp6(resolve116(tmpdir4(), "lervo-codex-query-runner-")),
+  removeDirectory: (path) => rm28(path, { recursive: true, force: true }),
   assertNoModelTools: assertCodexHasNoModelTools,
   connect: (input) => CodexStdioAppServerClient.connect(input)
 };
@@ -105727,7 +106422,7 @@ async function projectProductionSearchQueries(input, prepareProjector = prepareP
 }
 
 // apps/cli/src/terminal-stage-observation.ts
-import { randomUUID as randomUUID28 } from "node:crypto";
+import { randomUUID as randomUUID29 } from "node:crypto";
 var TerminalStageObservation = class {
   profile;
   recorder;
@@ -105780,7 +106475,7 @@ var TerminalStageObservation = class {
         workId: null,
         terminalObservationId,
         terminalHook,
-        observationSetId: `stgobs_${randomUUID28().replaceAll("-", "").slice(0, 24)}`,
+        observationSetId: `stgobs_${randomUUID29().replaceAll("-", "").slice(0, 24)}`,
         stageCatalogVersion: 2,
         environmentProfileDigest: profileHash,
         repositoryProfile: this.profile.repositoryProfile,
@@ -105796,9 +106491,9 @@ async function verifiedRuntime() {
   try {
     const runtimePath = fileURLToPath(import.meta.url);
     const manifest = JSON.parse(
-      await readFile45(resolve115(dirname27(runtimePath), "runtime-v2.json"), "utf8")
+      await readFile47(resolve117(dirname27(runtimePath), "runtime-v2.json"), "utf8")
     );
-    const content3 = await readFile45(runtimePath);
+    const content3 = await readFile47(runtimePath);
     return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash50("sha256").update(content3).digest("hex")}`;
   } catch {
     return false;
