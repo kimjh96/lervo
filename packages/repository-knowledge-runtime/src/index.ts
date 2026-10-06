@@ -7,6 +7,7 @@ export {
   type ConvergenceRoleBinding,
 } from "./delegation.js";
 export { startAutonomousKnowledgeWorker } from "./loop.js";
+export { acquireFullCycleAdmission, type FullCycleAdmission } from "./full-cycle-admission.js";
 export { inspectAutonomousKnowledgeStatus } from "./status.js";
 export {
   inspectKnowledgeResidentHealth,

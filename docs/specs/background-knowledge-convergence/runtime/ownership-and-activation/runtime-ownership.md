@@ -12,7 +12,7 @@ Under [ADR-0441](../../../../decisions/knowledge/repository/canonicalization/044
 - Busy or invalid managed admission fails the existing repository snapshot stage before provider start.
 - An interrupted materialization journal blocks new managed reads until recovery.
 
-[ADR-0483](../../../../decisions/operations/services/0483-wait-for-live-knowledge-materialization-in-foreground-commands.md) separates a live materialization owner from an interrupted one for foreground commands:
+[ADR-0484](../../../../decisions/operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md) keeps `lervo upgrade --apply` exclusive with background knowledge work. The apply holds the resident's host-wide full-cycle admission from the approval check to its last stage, and a repository knowledge scan retries up to three times when the revision or a file moves under it. The ADR also separates a live materialization owner from an interrupted one for foreground commands:
 
 - `lervo upgrade`, `lervo knowledge` subcommands other than `worker` and `convergence`, `lervo migrate knowledge`, `lervo state`, `lervo terminal status`, and `lervo terminal declare` wait while another running process owns the marker. They poll every 2 seconds, with at most 15 minutes for the whole command, and print one stderr notice per owner.
 - Terminal hooks and attention inspection wait at most 10 seconds because provider hooks have a 30-second timeout.

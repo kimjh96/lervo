@@ -1,3 +1,4 @@
+import { mkdtempSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -11,6 +12,13 @@ import {
 } from "../src/terminal-integration-stage.js";
 import { inspectTerminalRepositoryKnowledge } from "../src/terminal-knowledge-lifecycle-inspection.js";
 import { loadTerminalHookRuntime } from "../src/terminal-runtime.js";
+
+/** Keeps upgrade applies off the developer host's real background-resident admission. */
+const isolatedAdmission = {
+  knowledgeCycleAdmission: {
+    directory: mkdtempSync(resolve(tmpdir(), "lervo-upgrade-admission-")),
+  },
+};
 
 const roots: string[] = [];
 const runtimePath = ".lervo/generated/terminal-hooks/runtime-v2.mjs";
@@ -105,6 +113,7 @@ describe("lervo upgrade with a blocked stage", () => {
       await runCli(
         ["upgrade", "--apply", "--approval", plan.planId, "--json"],
         io(root, output, errors),
+        isolatedAdmission,
       ),
     ).toBe(1);
     expect(errors).toEqual([]);
@@ -150,6 +159,7 @@ describe("lervo upgrade with a blocked stage", () => {
       await runCli(
         ["upgrade", "--apply", "--approval", after.planId, "--json"],
         io(root, output, errors),
+        isolatedAdmission,
       ),
     ).toBe(1);
     expect(errors).toEqual([]);

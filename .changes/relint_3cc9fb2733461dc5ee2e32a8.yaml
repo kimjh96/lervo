@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3cc9fb2733461dc5ee2e32a8"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "lervo upgrade and other foreground commands wait up to 15 minutes for a running knowledge materialization to settle instead of failing; only an interrupted marker fails at once with the recovery command."

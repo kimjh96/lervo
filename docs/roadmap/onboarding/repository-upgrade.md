@@ -19,7 +19,8 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 - A Node publishes component readiness without waiting for cache warm-ups. The managed-conversation knowledge index builds after readiness settles. While `starting`, the Node refreshes `updatedAt` every five seconds, and readiness counts that heartbeat from the first starting process as progress, still bounded at 600 seconds ([ADR-0480](../../decisions/operations/services/0480-defer-node-cache-warmups-past-readiness.md)).
 - An exact installed Node left inactive by a failed stop can resume a guarded upgrade from its prior matching work-admission scope only after stable inactivity and zero live claims. Graceful stop retains that scope, so re-applying after an interrupted launchd upgrade does not fail as `service_upgrade_fence_invalid`. Unregistered Nodes remain blocked.
 - Knowledge lint succeeds after every applied repository upgrade.
-- Background knowledge materialization owned by a running process delays planning and every knowledge step for at most 15 minutes instead of failing the upgrade. An expired wait names the owner. Only an interrupted marker fails at once with the recovery command ([ADR-0483](../../decisions/operations/services/0483-wait-for-live-knowledge-materialization-in-foreground-commands.md)).
+- An apply holds the background resident's host-wide full-cycle admission from the approval check to its last stage, so no resident cycle, materialization, or knowledge commit lands during it. It waits at most 15 minutes for a running cycle. Scans retry a concurrent revision or file change up to three times.
+- Background knowledge materialization owned by a running process delays planning and every knowledge step for at most 15 minutes instead of failing the upgrade. An expired wait names the owner. Only an interrupted marker fails at once with the recovery command ([ADR-0484](../../decisions/operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md)).
 - A blocked stage defers only its dependents under published `policy.stageDependencies`. Independent stages, including generated-only terminal runtime refresh, still apply; the plan remains `blocked` with the stage's exact blockers.
 - The local-only path works without a Hub. Absent Node registration is current, not an onboarding side effect.
 - A stale registered Node under a current sync-disabled project policy remains pending authority without blocking local generated-only migration.
@@ -33,13 +34,14 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 - [ADR-0214](../../decisions/operations/services/0214-bounded-repository-upgrade-orchestration.md)
 - [ADR-0475](../../decisions/operations/services/0475-judge-node-replacement-readiness-by-regression.md)
 - [ADR-0480](../../decisions/operations/services/0480-defer-node-cache-warmups-past-readiness.md)
-- [ADR-0483](../../decisions/operations/services/0483-wait-for-live-knowledge-materialization-in-foreground-commands.md)
+- [ADR-0484](../../decisions/operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md)
 - `apps/node-runtime/test/conversation-read-responder-startup.test.ts`
 - `apps/node-runtime/test/startup-deferred-work.test.ts`
 - `apps/cli/test/node-fleet-readiness.test.ts`
 - `apps/cli/test/node-fleet-readiness-policy.test.ts`
 - `apps/cli/test/upgrade-command.test.ts`
 - `apps/cli/test/upgrade-knowledge-materialization-wait.test.ts`
+- `apps/cli/test/upgrade-resident-exclusion.test.ts`
 - `apps/cli/test/upgrade-node.test.ts`
 - `apps/cli/test/upgrade-independent-stages.test.ts`
 - `apps/cli/test/upgrade-stage-policy.test.ts`

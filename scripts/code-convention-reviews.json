@@ -291,9 +291,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:1949fa864d111cf347bdf041c405e65a716d5b1fdecab9c66229e65a8cd0dcb0",
+      "contentHash": "sha256:8f2dd0f7ffb8605cc338bd91b574a1bb08a1ab9c8135872621b0ffabf1ba8ba4",
       "responsibility": "Bounded repository knowledge scanner",
-      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms own the canonical scanned-source aggregate; safe reads type a source or revision moving under the scan as source_bytes_changed. Inclusion matching and cache naming live in the intake policy, and nested working-tree detection in the filesystem metadata module; no transport or provider concern was added.",
+      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms own the canonical scanned-source aggregate; safe reads type a source or revision moving under the scan as source_bytes_changed, which a bounded read-only rescan absorbs. Inclusion matching and cache naming live in the intake policy, and nested working-tree detection in the filesystem metadata module; no transport or provider concern was added.",
       "disposition": "cohesive"
     },
     {

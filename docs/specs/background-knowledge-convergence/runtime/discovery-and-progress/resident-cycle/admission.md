@@ -6,4 +6,6 @@ A waiter polls about once per second and reports health `busy` with reason `know
 
 A holder renews a ten-minute lease every minute. A dead or expired holder never blocks the next waiter.
 
+`lervo upgrade --apply` holds the same admission for its whole apply. It waits at most 15 minutes for a running cycle and then fails with `knowledge_cycle_admission_wait_expired`. No resident cycle on the host starts until the upgrade releases the admission ([ADR-0484](../../../../../decisions/operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md)).
+
 Admission orders full cycles only. It grants no provider, write or currency authority. Provider admission retains its own two-call limit.

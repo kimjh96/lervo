@@ -6,7 +6,12 @@ import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materi
 import type { CliIo, CliServices } from "./types.js";
 import { applyRepositoryUpgrade } from "./upgrade-apply.js";
 import { formatUpgradePlan, formatUpgradeReceipt } from "./upgrade-format.js";
-import { createRepositoryUpgradePlan, knowledgeStageRefusedByMarker } from "./upgrade-plan.js";
+import {
+  createRepositoryUpgradePlan,
+  knowledgeStageRefusedByMarker,
+  type RepositoryUpgradePlan,
+} from "./upgrade-plan.js";
+import { withKnowledgeResidentExclusion } from "./upgrade-resident-exclusion.js";
 
 export type { RepositoryUpgradePlan } from "./upgrade-plan.js";
 
@@ -24,10 +29,33 @@ function parseRoleBindingApprovals(
   });
 }
 
+function assertApprovedUpgrade(
+  initial: RepositoryUpgradePlan,
+  approval: string | undefined,
+  roleBindingApprovals: Array<{ operationId: string; approvalHash: string }>,
+): void {
+  if (approval !== initial.planId)
+    throw new Error("--approval must equal the exact current repository upgrade plan ID.");
+  if (initial.status === "blocked" && initial.applicableStages.length === 0)
+    throw new Error(
+      "The current repository upgrade plan is blocked and has no independent stage to apply.",
+    );
+  for (const approved of roleBindingApprovals) {
+    if (
+      !initial.stages.workforce.requiredApprovals.some(
+        (required) =>
+          required.operationId === approved.operationId &&
+          required.approvalHash === approved.approvalHash,
+      )
+    )
+      throw new Error("A workforce role-binding approval is not in the approved upgrade plan.");
+  }
+}
+
 export async function runUpgradeCommand(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "knowledgeMaterializationWait"> = {},
+  services: Pick<CliServices, "knowledgeMaterializationWait" | "knowledgeCycleAdmission"> = {},
 ): Promise<number> {
   let values: {
     root?: string;
@@ -75,31 +103,23 @@ export async function runUpgradeCommand(
       io,
       timing: services.knowledgeMaterializationWait,
     });
-    const initial = await materialization.run(
-      () => createRepositoryUpgradePlan(root),
-      knowledgeStageRefusedByMarker,
-    );
+    const plan = () =>
+      materialization.run(() => createRepositoryUpgradePlan(root), knowledgeStageRefusedByMarker);
     if (!values.apply) {
+      const initial = await plan();
       io.stdout(values.json ? `${JSON.stringify(initial, null, 2)}\n` : formatUpgradePlan(initial));
       return initial.status === "blocked" ? 1 : 0;
     }
-    if (values.approval !== initial.planId)
-      throw new Error("--approval must equal the exact current repository upgrade plan ID.");
-    if (initial.status === "blocked" && initial.applicableStages.length === 0)
-      throw new Error(
-        "The current repository upgrade plan is blocked and has no independent stage to apply.",
-      );
-    for (const approval of roleBindingApprovals) {
-      if (
-        !initial.stages.workforce.requiredApprovals.some(
-          (required) =>
-            required.operationId === approval.operationId &&
-            required.approvalHash === approval.approvalHash,
-        )
-      )
-        throw new Error("A workforce role-binding approval is not in the approved upgrade plan.");
-    }
-    const receipt = await applyRepositoryUpgrade(initial, roleBindingApprovals, materialization);
+    // The approval is checked against a plan recreated under the exclusion, so no resident
+    // change can land between that check and the last applied stage.
+    const receipt = await withKnowledgeResidentExclusion(
+      { repositoryRoot: root, io, options: services.knowledgeCycleAdmission },
+      async () => {
+        const initial = await plan();
+        assertApprovedUpgrade(initial, values.approval, roleBindingApprovals);
+        return applyRepositoryUpgrade(initial, roleBindingApprovals, materialization);
+      },
+    );
     io.stdout(
       values.json ? `${JSON.stringify(receipt, null, 2)}\n` : formatUpgradeReceipt(receipt),
     );

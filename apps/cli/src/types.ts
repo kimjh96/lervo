@@ -29,6 +29,7 @@ import type {
 import type { CreateLocalImprovementObservationHost } from "./local-improvement-observation-host.js";
 import type { ExecuteUnattendedScheduler } from "./unattended-scheduler.js";
 import type { KnowledgeMaterializationWaitTiming } from "./knowledge-materialization-wait.js";
+import type { UpgradeResidentExclusionOptions } from "./upgrade-resident-exclusion.js";
 
 export interface CliIo {
   cwd: string;
@@ -70,6 +71,8 @@ export interface CliServices {
   createLocalImprovementObservationHost?: CreateLocalImprovementObservationHost | undefined;
   /** Test seam for foreground waits on a live knowledge materialization owner. */
   knowledgeMaterializationWait?: KnowledgeMaterializationWaitTiming | undefined;
+  /** Test seam for the upgrade's hold on the background resident's full-cycle admission. */
+  knowledgeCycleAdmission?: UpgradeResidentExclusionOptions | undefined;
 }
 
 export type CliServiceOverrides = Partial<CliServices>;

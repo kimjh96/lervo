@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Date: 2026-08-25
+Amended by: [ADR-0484](0484-keep-upgrades-exclusive-with-background-knowledge-work.md) (apply holds the resident full-cycle admission; scans retry concurrent changes)
 
 ## Context
 

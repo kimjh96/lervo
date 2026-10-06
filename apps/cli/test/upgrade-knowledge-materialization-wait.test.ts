@@ -133,7 +133,12 @@ describe("foreground commands and a knowledge materialization marker", () => {
     const code = await runCli(
       ["upgrade", "--apply", "--approval", plan.planId, "--json"],
       io(root, stdout, stderr),
-      { knowledgeMaterializationWait: applying.timing },
+      {
+        knowledgeMaterializationWait: applying.timing,
+        knowledgeCycleAdmission: {
+          directory: await mkdtemp(resolve(tmpdir(), "lervo-admission-")),
+        },
+      },
     );
     expect(code, stdout.join("") + stderr.join("")).toBe(0);
     expect(JSON.parse(stdout.join(""))).toMatchObject({
