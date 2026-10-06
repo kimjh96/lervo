@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1863fead87c2c9e1d6d293ec"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Reevaluate every settled background knowledge stall once after a runtime deploy, give co-hosted residents fair turns at full-cycle admission, park rejected lifecycle plans instead of stopping assessment, and retry a project manifest that lervo upgrade briefly rewrites."

@@ -34,6 +34,20 @@ export function ownershipFingerprint(
 }
 
 /**
+ * ADR-0483: folds the evaluation contract into the change fence, so a newly deployed runtime runs a
+ * full cycle at once instead of skipping on a fingerprint the previous runtime recorded.
+ */
+export function evaluationFingerprint(
+  observed: ConvergenceSourceFingerprint,
+  evaluationContract: string,
+): ConvergenceSourceFingerprint {
+  return {
+    ...observed,
+    fingerprint: sha256(canonicalJson({ source: observed.fingerprint, evaluationContract })),
+  };
+}
+
+/**
  * Resident health for a non-owner. Waiting for another holder is healthy and names its label;
  * unverifiable, contended, and invalid configurations are attention, never silent.
  */

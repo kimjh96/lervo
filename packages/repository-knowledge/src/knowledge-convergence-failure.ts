@@ -7,18 +7,21 @@ export const MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS = 16;
 export const MAXIMUM_UNCLASSIFIED_STAGE_ATTEMPTS = 4;
 
 /**
- * The runtime contract under which a settled stage failure was evaluated (ADR-0479, ADR-0481). A
- * source-limit failure recorded under an older contract predates the current plan-scoped review,
- * so its stage may be reevaluated once.
+ * The reviewed name of the evaluation contract (ADR-0479, ADR-0481, ADR-0483). A host adds the
+ * identity of its evaluation logic, and a stall settled under any other contract is reevaluated once.
  */
-export const KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT = "adr-0481";
+export const KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT = "adr-0483";
 
 /** How long an unclassified attention stays settled before the owner reevaluates the stage. */
 export const UNCLASSIFIED_STAGE_REEVALUATION_MS = 6 * 60 * 60_000;
 
 /** Failure codes the owner reschedules instead of settling, with their logical attempt budgets. */
 export function convergenceRetryLimit(code: string): number | null {
-  if (code === "knowledge_job_transient_failure" || code === "knowledge_materialization_busy")
+  if (
+    code === "knowledge_job_transient_failure" ||
+    code === "knowledge_materialization_busy" ||
+    code === "knowledge_project_unavailable"
+  )
     return MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS;
   if (code === "knowledge_stage_failure_unclassified") return MAXIMUM_UNCLASSIFIED_STAGE_ATTEMPTS;
   return null;
@@ -27,6 +30,8 @@ export function convergenceRetryLimit(code: string): number | null {
 export function normalizedConvergenceFailure(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
   if (code === "cancelled") return "knowledge_cancelled";
+  // ADR-0483: `lervo upgrade` briefly rewrites the project manifest under a running resident.
+  if (code === "not_initialized") return "knowledge_project_unavailable";
   if (
     code === "knowledge_compile_failed" &&
     ((error as { processStatus?: unknown }).processStatus === "timed_out" ||
@@ -58,6 +63,7 @@ export function normalizedConvergenceFailure(error: unknown): string {
     "knowledge_semantic_review_rejected",
     "knowledge_sources_parked",
     "knowledge_verification_modified_sources",
+    "knowledge_project_unavailable",
     "knowledge_cancelled",
     "knowledge_verification_failed",
     "knowledge_lifecycle_blocked",

@@ -3,11 +3,11 @@ import { readFile, writeFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import {
+  canonicalJson,
   inspectConfiguredDocumentNormalization,
   processKnowledgeConvergence,
 } from "@lervo/repository-knowledge";
 import { createConvergenceRuntimeHost } from "../src/host.js";
-import { waitingConvergenceStage } from "../src/stage-receipt.js";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
 import { fixture } from "./fixture.js";
@@ -78,18 +78,24 @@ it.each([false, true])(
                 ).toString("utf8"),
               );
               if (proof.proof.status !== "review_rejected_for_bounded_retry") return result;
-              return waitingConvergenceStage({
-                artifacts: f.artifacts,
-                state,
-                kind: "attention_required",
-                reason: "knowledge_semantic_review_rejected",
-                dependency: {
+              // The pre-ADR runtime settled this dependency without an evaluation contract.
+              const dependency = await f.artifacts.put(
+                canonicalJson({
                   kind: "canonical_rejection",
                   snapshotHash: state.snapshotHash,
                   assessmentHash: proof.proof.assessmentHash,
                   result: proof.proof.review,
-                },
-              });
+                }),
+              );
+              return {
+                state: "attention_required" as const,
+                input: state,
+                assignmentId: null,
+                leaseGeneration: null,
+                failureCode: "knowledge_semantic_review_rejected",
+                dependencyHash: dependency.contentHash,
+                nextStage: null,
+              };
             },
           },
         });

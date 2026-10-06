@@ -105,6 +105,11 @@ interface OwnerInput {
   host: KnowledgeConvergenceHost;
   now?: () => Date;
   maximumStages?: number;
+  /**
+   * ADR-0483: asked between stages. When it returns true, this cycle stops after the stages it
+   * already ran, so another repository waiting for the host's full-cycle admission takes its turn.
+   */
+  shouldYield?: () => boolean | Promise<boolean>;
 }
 
 /** Startup, event wakeups, and the idle timer use this same provider-neutral durable owner. */
@@ -139,6 +144,7 @@ export async function processKnowledgeConvergence(
   await resumeDependencies(input, now(), replay);
   reconcileKnowledgeConvergenceOutbox(input.events, replay(), now().toISOString());
   for (let index = 0; index < (input.maximumStages ?? 8); index++) {
+    if (index > 0 && (await input.shouldYield?.()) === true) break;
     const [delivery] = input.events.claim({
       workerId: input.workerId,
       destinationId: KNOWLEDGE_CONVERGENCE_DESTINATION,
@@ -227,7 +233,8 @@ export async function processKnowledgeConvergence(
           schemaVersion: 1,
           kind: "stage_failure",
           code,
-          evaluationContract: KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT,
+          evaluationContract:
+            input.host.evaluationContract ?? KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT,
           snapshotHash: state.snapshotHash,
           delegationHash: state.baseline.delegationHash,
           evidenceHash: /^sha256:[a-f0-9]{64}$/u.test(

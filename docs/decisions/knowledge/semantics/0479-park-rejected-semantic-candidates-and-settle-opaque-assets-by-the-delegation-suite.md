@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-06
 Amended by: [ADR-0481](0481-bind-generated-projections-by-hash-in-lifecycle-plan-review.md) (generated projections bound by hash in lifecycle plan review)
 Amends: [ADR-0435](../repository/canonicalization/0435-continue-normalization-after-canonical-rejection.md), [ADR-0438](../repository/canonicalization/0438-bind-bounded-asset-manifests-to-delegation.md), and [ADR-0448](../repository/canonicalization/0448-settle-unread-sensitive-sources-by-disposition.md)
+Amended by: [ADR-0483](0483-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md) (lifecycle plans park; every settled stall is reevaluated once per contract)
 
 ## Context
 

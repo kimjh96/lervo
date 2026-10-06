@@ -23,7 +23,11 @@ const MAXIMUM_PARKED_SOURCES = 256;
 const MAXIMUM_REASONS = 4;
 const MAXIMUM_REASON_LENGTH = 1_024;
 
-export type ParkedSourceStage = "canonical" | "normalization";
+/**
+ * `lifecycle` (ADR-0483) parks one exact reviewed lifecycle plan: its `path` is the closed plan kind
+ * and its `contentHash` the plan hash, so a changed plan is reviewed again.
+ */
+export type ParkedSourceStage = "canonical" | "normalization" | "lifecycle";
 
 /**
  * `review_rejected`: bounded regeneration with the reviewer's reasons was exhausted.
@@ -53,7 +57,7 @@ function parkedSource(value: unknown): ParkedConvergenceSource | null {
   if (
     item === null ||
     typeof item !== "object" ||
-    (item.stage !== "canonical" && item.stage !== "normalization") ||
+    (item.stage !== "canonical" && item.stage !== "normalization" && item.stage !== "lifecycle") ||
     typeof item.path !== "string" ||
     typeof item.contentHash !== "string" ||
     !/^sha256:[a-f0-9]{64}$/u.test(item.contentHash) ||
@@ -152,7 +156,8 @@ export async function carriedParkedSources(
     .map(parkedSource)
     .filter(
       (item): item is ParkedConvergenceSource =>
-        item !== null && sources.get(item.path)?.contentHash === item.contentHash,
+        item !== null &&
+        (item.stage === "lifecycle" || sources.get(item.path)?.contentHash === item.contentHash),
     );
 }
 

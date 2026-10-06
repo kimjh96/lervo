@@ -5,7 +5,10 @@ import { inspectConfiguredDocumentNormalization } from "@lervo/repository-knowle
 
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
-import { legacyWholePipelineStop } from "../src/legacy-stop-reevaluation.js";
+import {
+  convergenceEvaluationContract,
+  settledUnderEarlierContract,
+} from "../src/evaluation-contract.js";
 import {
   admitNormalizationDocuments,
   normalizationRejections,
@@ -215,29 +218,19 @@ it("settles an undeclared opaque asset by the passing pinned suite instead of st
   ]);
 }, 180_000);
 
-it("reevaluates each pre-ADR-0479 whole-pipeline stop exactly once", () => {
-  for (const kind of ["normalization_rejection", "canonical_rejection", "typed_asset_verification"])
-    expect(legacyWholePipelineStop({ kind })).toBe(true);
-  expect(
-    legacyWholePipelineStop({ kind: "stage_failure", code: "knowledge_source_limit_exceeded" }),
-  ).toBe(true);
-  expect(
-    legacyWholePipelineStop({
-      kind: "stage_failure",
-      code: "knowledge_source_limit_exceeded",
-      evaluationContract: "adr-0481",
-    }),
-  ).toBe(false);
-  // ADR-0481: axli's limit settled under ADR-0479 disclosed generated projection bytes.
-  expect(
-    legacyWholePipelineStop({
-      kind: "stage_failure",
-      code: "knowledge_source_limit_exceeded",
-      evaluationContract: "adr-0479",
-    }),
-  ).toBe(true);
-  expect(legacyWholePipelineStop({ kind: "parked_sources" })).toBe(false);
-  expect(legacyWholePipelineStop({ kind: "stage_failure", code: "knowledge_lint_invalid" })).toBe(
+it("reevaluates a stall settled by any earlier evaluation logic exactly once", () => {
+  const current = convergenceEvaluationContract();
+  expect(current).toMatch(/^adr-\d{4}:[a-f0-9]{24}$/u);
+  // Pre-ADR stops carried no contract; ADR-0479 and ADR-0481 settled under a reviewed constant.
+  for (const dependency of [
+    { kind: "normalization_rejection" },
+    { kind: "canonical_target_preimage" },
+    { kind: "stage_failure", code: "knowledge_stage_failure_unclassified" },
+    { kind: "stage_failure", evaluationContract: "adr-0479" },
+    { kind: "stage_failure", evaluationContract: "adr-0481" },
+  ])
+    expect(settledUnderEarlierContract(dependency)).toBe(true);
+  expect(settledUnderEarlierContract({ kind: "parked_sources", evaluationContract: current })).toBe(
     false,
   );
 });

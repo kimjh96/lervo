@@ -31,7 +31,10 @@ import { inspectIntegrationTargetAbsorption } from "./integration-target-absorpt
 import { inspectRetainedCanonicalIntegration } from "./canonical-integration-recovery.js";
 import type { CanonicalBatch } from "./canonical-review.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
-import { legacyWholePipelineStop } from "./legacy-stop-reevaluation.js";
+import {
+  convergenceEvaluationContract,
+  settledUnderEarlierContract,
+} from "./evaluation-contract.js";
 import {
   commitSettledOutputsAtBoundary,
   settledOutputBoundary,
@@ -65,6 +68,15 @@ export function assertConvergenceSource(
   assertCanonicalReviewContextCurrent(context.storage.paths.repositoryRoot, bindings);
 }
 
+const UNCERTAIN_EFFECT_CODES: ReadonlySet<string> = new Set([
+  "knowledge_effect_uncertain",
+  "host_effect_uncertain",
+  "knowledge_recovery_required",
+  "knowledge_recovery_busy",
+  "knowledge_recovery_invalid",
+  "knowledge_rollback_failed",
+]);
+
 export function createConvergenceRuntimeHost(
   context: ConvergenceRuntimeContext,
 ): KnowledgeConvergenceHost {
@@ -77,6 +89,7 @@ export function createConvergenceRuntimeHost(
   );
   return {
     discover,
+    evaluationContract: convergenceEvaluationContract(),
     assertSettlement: (state) => {
       source(state);
       assertConvergenceSettlementAuthority(context, state);
@@ -119,6 +132,13 @@ export function createConvergenceRuntimeHost(
         dependency.delegationHash !== baseline.delegationHash
       )
         return false;
+      // ADR-0483: a stall settled by earlier evaluation logic is reevaluated once by this logic.
+      // Uncertain effects keep their own inspection; requeueing them could repeat a write.
+      if (
+        settledUnderEarlierContract(dependency) &&
+        !UNCERTAIN_EFFECT_CODES.has(dependency.code ?? "")
+      )
+        return false;
       if (dependency.kind === "canonical_target_preimage") {
         const authority = await loadConvergenceDelegation(root);
         if (!authority || authority.delegation.integrationTarget.ref !== dependency.targetRef)
@@ -153,7 +173,6 @@ export function createConvergenceRuntimeHost(
         );
       }
       if (dependency.code === "knowledge_cancelled") return context.signal.aborted;
-      if (legacyWholePipelineStop(dependency)) return false;
       if (
         ["knowledge_effect_uncertain", "host_effect_uncertain"].includes(dependency.code ?? "") &&
         dependency.evidenceHash

@@ -1,4 +1,5 @@
 import { watchProjectEventChanges, type ProjectStorage } from "@lervo/project-storage";
+import { convergenceEvaluationContract } from "./evaluation-contract.js";
 import { runAutonomousKnowledgeWorker } from "./worker.js";
 import { recordKnowledgeResidentHealth, type KnowledgeResidentState } from "./resident-health.js";
 import { acquireFullCycleAdmission } from "./full-cycle-admission.js";
@@ -23,6 +24,7 @@ import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import {
   nonOwnerHealth,
   ownershipFingerprint,
+  evaluationFingerprint,
   RESIDENT_OWNER_HEARTBEAT_MILLISECONDS,
 } from "./resident-ownership.js";
 
@@ -150,6 +152,7 @@ export function startAutonomousKnowledgeWorker(input: {
       if (healthState !== "running") report("running", null);
       return await runAutonomousKnowledgeWorker({
         ...input,
+        shouldYield: () => admission.contended(),
         signal: cycleSignal,
         ...(observed === null ? {} : { owner: async () => observed }),
       });
@@ -187,9 +190,12 @@ export function startAutonomousKnowledgeWorker(input: {
       now: Date.now,
       ceilingMilliseconds: ceiling,
       observe: () =>
-        ownershipFingerprint(
-          convergenceSourceFingerprint({ repositoryRoot: root, events: input.storage.events }),
-          observedOwner,
+        evaluationFingerprint(
+          ownershipFingerprint(
+            convergenceSourceFingerprint({ repositoryRoot: root, events: input.storage.events }),
+            observedOwner,
+          ),
+          convergenceEvaluationContract(),
         ),
       runFull,
     });

@@ -11,6 +11,7 @@ import type { KnowledgeConvergenceStage } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import { captureConvergenceSources } from "./source-capture.js";
+import { convergenceEvaluationContract } from "./evaluation-contract.js";
 
 export async function completeConvergenceStage(input: {
   repositoryRoot: string;
@@ -74,7 +75,14 @@ export async function waitingConvergenceStage(input: {
   dependency: unknown;
   kind?: "waiting_authority" | "attention_required" | "recovery_required";
 }): Promise<KnowledgeConvergenceStageResult> {
-  const dependency = await input.artifacts.put(canonicalJson(input.dependency));
+  // ADR-0483: the settled stall names the logic that evaluated it.
+  const dependency = await input.artifacts.put(
+    canonicalJson(
+      input.dependency !== null && typeof input.dependency === "object"
+        ? { ...input.dependency, evaluationContract: convergenceEvaluationContract() }
+        : input.dependency,
+    ),
+  );
   return {
     state: input.kind ?? "waiting_authority",
     input: input.state,
