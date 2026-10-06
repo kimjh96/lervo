@@ -128,8 +128,8 @@ it("runs a full cycle after a new runtime even when no source byte changed", () 
     sourceDigest: `sha256:${"2".repeat(64)}`,
     earliestAvailableAt: null,
   };
-  expect(evaluationFingerprint(observed, "adr-0483:aaaa").fingerprint).not.toBe(
-    evaluationFingerprint(observed, "adr-0483:bbbb").fingerprint,
+  expect(evaluationFingerprint(observed, "adr-0485:aaaa").fingerprint).not.toBe(
+    evaluationFingerprint(observed, "adr-0485:bbbb").fingerprint,
   );
 });
 

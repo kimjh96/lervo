@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-06
 Amends: [ADR-0479](0479-park-rejected-semantic-candidates-and-settle-opaque-assets-by-the-delegation-suite.md)
-Amended by: [ADR-0483](0483-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md) (contract identifies the evaluation module)
+Amended by: [ADR-0485](0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md) (contract identifies the evaluation module)
 
 ## Context
 

@@ -34,7 +34,7 @@ export function ownershipFingerprint(
 }
 
 /**
- * ADR-0483: folds the evaluation contract into the change fence, so a newly deployed runtime runs a
+ * ADR-0485: folds the evaluation contract into the change fence, so a newly deployed runtime runs a
  * full cycle at once instead of skipping on a fingerprint the previous runtime recorded.
  */
 export function evaluationFingerprint(

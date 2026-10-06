@@ -2,15 +2,15 @@
 
 ## States
 
-| State | Meaning |
-| --- | --- |
-| `queued` / `running` | Durable work awaits admission or holds the exact current lease. |
-| `waiting_review` / `waiting_authority` | An exact review or authority dependency blocks progress; live path conflicts preserve user work. |
-| `retry_scheduled` | A bounded retry has an explicit schedule. |
-| `stale` | Source or context changed; old evidence cannot authorize completion. |
-| `recovery_required` | A journal or uncertain host effect must be reconciled before new writes. |
-| `attention_required` | A deterministic source, semantic, policy, usage, capacity, or budget condition requires a changed dependency. |
-| `current` / `superseded` | Exact scope completed or was explicitly replaced by a newer obligation. |
+| State                                  | Meaning                                                                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `queued` / `running`                   | Durable work awaits admission or holds the exact current lease.                                               |
+| `waiting_review` / `waiting_authority` | An exact review or authority dependency blocks progress; live path conflicts preserve user work.              |
+| `retry_scheduled`                      | A bounded retry has an explicit schedule.                                                                     |
+| `stale`                                | Source or context changed; old evidence cannot authorize completion.                                          |
+| `recovery_required`                    | A journal or uncertain host effect must be reconciled before new writes.                                      |
+| `attention_required`                   | A deterministic source, semantic, policy, usage, capacity, or budget condition requires a changed dependency. |
+| `current` / `superseded`               | Exact scope completed or was explicitly replaced by a newer obligation.                                       |
 
 ## Source gate failures
 
@@ -33,7 +33,7 @@ A `knowledge_sources_parked` status also carries `parked` with `count` and `sour
 
 A `knowledge_verification_modified_sources` status also carries `verificationChanges` with `changedPathCount` and up to 256 repository-relative `paths`. A pinned verification suite changed these paths while it ran, as shown by the diff of its before and after snapshots. The status never shows file contents ([ADR-0482](../../../../decisions/knowledge/semantics/0482-absorb-squash-merged-semantic-candidates-and-type-verification-source-changes.md)).
 
-Each settled dependency records the evaluation contract that settled it, `adr-0483:<digest of the runtime's evaluation module>`. A stall settled under any other contract is requeued once by the new runtime and settles again under its contract. Uncertain-effect and recovery dependencies keep their own inspection. A `knowledge_sources_parked` status may list `stage: "lifecycle"` entries naming a parked plan kind ([ADR-0483](../../../../decisions/knowledge/semantics/0483-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md)).
+Each settled dependency records the evaluation contract that settled it, `adr-0485:<digest of the runtime's evaluation module>`. A stall settled under any other contract is requeued once by the new runtime and settles again under its contract. Uncertain-effect and recovery dependencies keep their own inspection. A `knowledge_sources_parked` status may list `stage: "lifecycle"` entries naming a parked plan kind ([ADR-0485](../../../../decisions/knowledge/semantics/0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md)).
 
 Debt counts are `null` when an interrupted journal prevents a stable scan. This `recovery_required` status also carries `recoveryCommand: "lervo knowledge materialize --recover"`, the one owner command that resolves the journal. A journal whose owner process is still running is not interrupted: the resident cycle reports `busy`, and a stage records `knowledge_materialization_busy` as `retry_scheduled` ([ADR-0465](../../../../decisions/knowledge/documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md)). Historical verified currency remains visible but cannot establish present currency.
 

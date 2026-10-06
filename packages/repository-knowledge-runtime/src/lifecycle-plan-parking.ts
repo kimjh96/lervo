@@ -38,7 +38,7 @@ export function lifecyclePlanParked(
 }
 
 /**
- * ADR-0483: a deterministic plan regenerates identically, so a rejected plan is parked at once with
+ * ADR-0485: a deterministic plan regenerates identically, so a rejected plan is parked at once with
  * the reviewer's reason. Any earlier parking of the same kind is replaced.
  */
 export function parkLifecyclePlan(

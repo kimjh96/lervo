@@ -79,7 +79,7 @@ export async function prepareConvergenceLifecycle(
     obligationParkedSources(state),
   );
   const planHash = sha256(canonicalJson(plan));
-  // ADR-0483: a parked exact plan never holds assessment; canonical work continues past it.
+  // ADR-0485: a parked exact plan never holds assessment; canonical work continues past it.
   if (lifecyclePlanParked(parked, kind, planHash)) return null;
   let approval: Awaited<ReturnType<typeof reviewLifecyclePlan>> | null = null;
   try {

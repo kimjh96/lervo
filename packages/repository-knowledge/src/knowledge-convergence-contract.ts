@@ -82,7 +82,7 @@ export interface KnowledgeConvergenceHost {
   /** A stopped dependency resumes only after its coordinate changes. */
   dependencyCurrent(hash: string): Promise<boolean>;
   /**
-   * ADR-0483: the identity of the evaluation logic that settles stages. Settled dependencies record
+   * ADR-0485: the identity of the evaluation logic that settles stages. Settled dependencies record
    * it, so new logic reevaluates each earlier stall once. Absent means the reviewed constant.
    */
   evaluationContract?: string;

@@ -7,7 +7,7 @@ import { KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT } from "@lervo/repository-k
 let cached: string | null = null;
 
 /**
- * ADR-0483: the identity of the evaluation logic that settled a stalled stage. It is the exact
+ * ADR-0485: the identity of the evaluation logic that settled a stalled stage. It is the exact
  * bytes of the module that holds this runtime's stage evaluation: the bundled runtime when
  * installed, or this source file in development. Every deploy of new logic therefore changes it, so
  * each settled stall is reevaluated once by the new logic and then stays settled under it. When the

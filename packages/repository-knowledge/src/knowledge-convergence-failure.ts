@@ -7,10 +7,10 @@ export const MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS = 16;
 export const MAXIMUM_UNCLASSIFIED_STAGE_ATTEMPTS = 4;
 
 /**
- * The reviewed name of the evaluation contract (ADR-0479, ADR-0481, ADR-0483). A host adds the
+ * The reviewed name of the evaluation contract (ADR-0479, ADR-0481, ADR-0485). A host adds the
  * identity of its evaluation logic, and a stall settled under any other contract is reevaluated once.
  */
-export const KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT = "adr-0483";
+export const KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT = "adr-0485";
 
 /** How long an unclassified attention stays settled before the owner reevaluates the stage. */
 export const UNCLASSIFIED_STAGE_REEVALUATION_MS = 6 * 60 * 60_000;
@@ -30,7 +30,7 @@ export function convergenceRetryLimit(code: string): number | null {
 export function normalizedConvergenceFailure(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
   if (code === "cancelled") return "knowledge_cancelled";
-  // ADR-0483: `lervo upgrade` briefly rewrites the project manifest under a running resident.
+  // ADR-0485: `lervo upgrade` briefly rewrites the project manifest under a running resident.
   if (code === "not_initialized") return "knowledge_project_unavailable";
   if (
     code === "knowledge_compile_failed" &&

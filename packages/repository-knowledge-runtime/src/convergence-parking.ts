@@ -24,7 +24,7 @@ const MAXIMUM_REASONS = 4;
 const MAXIMUM_REASON_LENGTH = 1_024;
 
 /**
- * `lifecycle` (ADR-0483) parks one exact reviewed lifecycle plan: its `path` is the closed plan kind
+ * `lifecycle` (ADR-0485) parks one exact reviewed lifecycle plan: its `path` is the closed plan kind
  * and its `contentHash` the plan hash, so a changed plan is reviewed again.
  */
 export type ParkedSourceStage = "canonical" | "normalization" | "lifecycle";

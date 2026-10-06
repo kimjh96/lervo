@@ -54,7 +54,7 @@ export async function runAutonomousKnowledgeWorker(input: {
   maximumStages?: number;
   admissionDirectory?: string;
   liveWorkPending?: () => Promise<boolean>;
-  /** ADR-0483: another repository waits for the host's full-cycle admission; yield between stages. */
+  /** ADR-0485: another repository waits for the host's full-cycle admission; yield between stages. */
   shouldYield?: () => Promise<boolean>;
   /**
    * ADR-0466 cross-host owner gate. When present, a non-owner runs only read-only debt detection;

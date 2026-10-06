@@ -132,7 +132,7 @@ export function createConvergenceRuntimeHost(
         dependency.delegationHash !== baseline.delegationHash
       )
         return false;
-      // ADR-0483: a stall settled by earlier evaluation logic is reevaluated once by this logic.
+      // ADR-0485: a stall settled by earlier evaluation logic is reevaluated once by this logic.
       // Uncertain effects keep their own inspection; requeueing them could repeat a write.
       if (
         settledUnderEarlierContract(dependency) &&

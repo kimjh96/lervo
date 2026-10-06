@@ -18,7 +18,7 @@ const WAITER_STALE_MILLISECONDS = 30_000;
 export interface FullCycleAdmission {
   release(): Promise<void>;
   /**
-   * ADR-0483: whether another repository is waiting for its turn. The holder yields at its next
+   * ADR-0485: whether another repository is waiting for its turn. The holder yields at its next
    * stage boundary, so one long cycle cannot starve every other resident on the host.
    */
   contended(): Promise<boolean>;
@@ -73,7 +73,7 @@ async function tryAcquire(input: {
         holder !== undefined &&
         Number(holder.expires_at) > input.now &&
         alive(Number(holder.owner_pid));
-      // ADR-0483: waiters take turns in arrival order; a gone waiter forfeits its place.
+      // ADR-0485: waiters take turns in arrival order; a gone waiter forfeits its place.
       db.prepare("DELETE FROM waiters WHERE heartbeat<?").run(
         input.now - WAITER_STALE_MILLISECONDS,
       );

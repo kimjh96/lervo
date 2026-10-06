@@ -114,7 +114,7 @@ export async function reviewLifecyclePlan(
             reviewerAgentId: authority.agent.agentId,
           }),
         );
-        // ADR-0483: the stage isolates this exact plan by its hash and the reviewer's reason.
+        // ADR-0485: the stage isolates this exact plan by its hash and the reviewer's reason.
         throw Object.assign(
           new KnowledgeConvergenceRuntimeError("knowledge_semantic_review_rejected"),
           {

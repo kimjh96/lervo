@@ -1,6 +1,6 @@
 /**
  * Lervo-managed knowledge state a convergence writer may change in addition to the delegated roots.
- * ADR-0483 adds the document layout and the move/split lineage records that every repository layout
+ * ADR-0485 adds the document layout and the move/split lineage records that every repository layout
  * plan writes as `lervo_generated` operations; without them a layout plan could neither be approved
  * nor applied. Authority inputs under `.lervo/knowledge/`, such as the delegation and the asset
  * disposition manifest, stay outside this scope.

@@ -75,7 +75,7 @@ export async function waitingConvergenceStage(input: {
   dependency: unknown;
   kind?: "waiting_authority" | "attention_required" | "recovery_required";
 }): Promise<KnowledgeConvergenceStageResult> {
-  // ADR-0483: the settled stall names the logic that evaluated it.
+  // ADR-0485: the settled stall names the logic that evaluated it.
   const dependency = await input.artifacts.put(
     canonicalJson(
       input.dependency !== null && typeof input.dependency === "object"

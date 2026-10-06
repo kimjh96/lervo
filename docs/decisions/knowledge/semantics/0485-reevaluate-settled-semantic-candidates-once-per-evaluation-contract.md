@@ -1,4 +1,4 @@
-# ADR-0483: Reevaluate settled semantic candidates once per evaluation contract
+# ADR-0485: Reevaluate settled semantic candidates once per evaluation contract
 
 Status: `accepted`
 Decision date: 2026-10-07
@@ -15,7 +15,7 @@ About 20 minutes after `main` `ddcb2978` was deployed on 2026-10-06, the WSL own
 
 ## Decision
 
-- **Evaluation contract.** The runtime's contract is `adr-0483:<digest>`. The digest covers the exact bytes of the module that holds stage evaluation: the bundled runtime when installed, or the source file in development. Every dependency that the runtime or the owner settles records it. A dependency settled under any other contract, or under none, is re-evaluated once: its stage is requeued and settles again under the current contract. Uncertain-effect and recovery dependencies keep their own inspection, so no write is repeated blindly. The resident change fence also folds in the contract, so a new runtime runs a full cycle at once.
+- **Evaluation contract.** The runtime's contract is `adr-0485:<digest>`. The digest covers the exact bytes of the module that holds stage evaluation: the bundled runtime when installed, or the source file in development. Every dependency that the runtime or the owner settles records it. A dependency settled under any other contract, or under none, is re-evaluated once: its stage is requeued and settles again under the current contract. Uncertain-effect and recovery dependencies keep their own inspection, so no write is repeated blindly. The resident change fence also folds in the contract, so a new runtime runs a full cycle at once.
 - **Fair admission.** Full-cycle waiters register their turn, and the oldest live waiter is admitted next. Between stages, the holder's owner asks whether another repository waits and stops if one does. Remaining work stays due.
 - **Lifecycle scope.** `.lervo/knowledge/document-layout.yaml` and `.lervo/knowledge/source-lineage/` join the Lervo-managed convergence scope. The delegation and the asset disposition manifest stay outside it.
 - **Lifecycle plan parking.** A rejected exact lifecycle plan regenerates identically, so it is parked at once by kind and plan hash, with the reviewer's reason. The kinds are `repository_layout`, `instruction_bootstrap`, and `instruction_bridge`. Assessment and final verification continue past it. Final verification treats a currency reason that only a parked plan leaves pending as parked, and records `knowledge_sources_parked` with a `lifecycle` entry. A changed plan is reviewed again.

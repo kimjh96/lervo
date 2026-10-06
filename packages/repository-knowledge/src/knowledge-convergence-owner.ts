@@ -106,7 +106,7 @@ interface OwnerInput {
   now?: () => Date;
   maximumStages?: number;
   /**
-   * ADR-0483: asked between stages. When it returns true, this cycle stops after the stages it
+   * ADR-0485: asked between stages. When it returns true, this cycle stops after the stages it
    * already ran, so another repository waiting for the host's full-cycle admission takes its turn.
    */
   shouldYield?: () => boolean | Promise<boolean>;

@@ -71,7 +71,7 @@ export async function verifyConvergenceLifecycle(
     provider: "claude",
   });
   const migration = await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "migrate" });
-  // ADR-0483: a parked exact bridge plan yields to the remaining lifecycle work.
+  // ADR-0485: a parked exact bridge plan yields to the remaining lifecycle work.
   const parkedPlans = mergeParkedSources(
     await carriedParkedSources(context.storage, state),
     obligationParkedSources(state),
