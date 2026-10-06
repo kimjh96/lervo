@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2d197f62f51fd0af3bab8b43
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a3f08d627719d8ad4a69dc29
+outputLanguage: en
+outputs:
+  - byteCount: 6344
+    contentHash: sha256:098bec8ce4d1abacfa5d88d9f07ca2355681cd4ce4d84a51bb292be29f42812f
+    path: docs/decisions/knowledge/repository/canonicalization/0434-converge-background-canonicalization-normalization-and-knowledge.md
+    userRegionHash: sha256:098bec8ce4d1abacfa5d88d9f07ca2355681cd4ce4d84a51bb292be29f42812f
+profile: decision_record
+recordId: knormdoc_f910fb20d26dd4fbf97c4c35
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ba2f75c84fe0bcf376176ab6a6cc292d550ec94044cae52794a301322ca66f61
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0434-converge-background-canonicalization-normalization-and-knowledge.md
+sourceUnitVersionIds:
+  - uv_04ab2f40433a571ac8c36881
+  - uv_1fde214f1ef962d68c6705aa
+  - uv_39f900c2a3a0deca96fadfce
+  - uv_7467989050543784e88076d3
+  - uv_9834e5d114c792aff08dd001
+  - uv_b43f5c881f825e4246876f71
+  - uv_c143f8bd34ede371937261eb
+  - uv_f835cb7944ab2f52ff920a29

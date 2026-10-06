@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8aa0aedc1c18a63a6aac1d84
+compiler:
+  compilerBuildId: sha256:c9a1448434d59681b0453b8c71f88145e32621b4473130739493a1c2fe18f7fd
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 2+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_998c57e525dfb33360e0921a
+outputLanguage: en
+outputs:
+  - byteCount: 7620
+    contentHash: sha256:a2fc1d61967772c82c448f7ba1804d50818b28751c4978e1b80f45b2a56e6d49
+    path: docs/specifications/execution/operating-attention/report-contract.md
+    userRegionHash: sha256:a2fc1d61967772c82c448f7ba1804d50818b28751c4978e1b80f45b2a56e6d49
+profile: specification_document
+recordId: knormdoc_d5e7d4f348c04b7039d675b4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6672b7d92dff7d8a204a29a6246b04a7dd139e41bfd1b0aaf9189e38118bfe30
+sourcePath: docs/specifications/execution/operating-attention/report-contract.md
+sourceUnitVersionIds:
+  - uv_31b0288f46b7f254fc875576
+  - uv_54097b1cd26fe8ab17d14dfe
+  - uv_5e3ae48bd1db8978bf49ffc5
+  - uv_b078b45d15879a9b3084b952
+  - uv_b5dee26de7e816e1710a80f8
+  - uv_d6933d8fb0a762debd9a5b9f
+  - uv_e7c4b612208b56945be020f3
+  - uv_f43c32a5c1f079891ba0b42f

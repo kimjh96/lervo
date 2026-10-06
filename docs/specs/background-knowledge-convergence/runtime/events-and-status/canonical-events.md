@@ -24,7 +24,7 @@ Records verified `current` or explicit `superseded` with a successor. Neither re
 
 Required payload: `repositoryIdentityHash`, `holderHostHash`, `previousHolderHostHash`, `observerHostHash`, `generation`, `mode`, `reason`, `occurredAt`.
 
-Records, in the observing host's own store, a change of its observed convergence owner or the end of its own holding ([ADR-0466](../../../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md)). Hosts appear only as hashes. The event grants no commit authority; the private ownership fence does.
+Records a change in the observing host's observed convergence owner or the end of its own holding, in that host's own store ([ADR-0466](../../../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md)). Hosts appear only as hashes. The private ownership fence grants commit authority; the event does not.
 
 ## `knowledge.convergence.delegation.continued`
 

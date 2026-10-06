@@ -6,11 +6,11 @@ Amended by: [ADR-0469](../../../coordination/sync/0469-keep-background-knowledge
 
 ## Context
 
-The owner requested an implementation design to drain document debt without a later conversation and an audit of canonicalization and knowledge convergence. The [installed audit](../../../../evidence/quality/background-knowledge-convergence-audit.md) found 311 pending documents across seven repositories. All seven failed the read-only knowledge-currency check, including two with no normalization debt.
+The owner requested a design to drain document debt without a later conversation and an audit of canonicalization and knowledge convergence. The [installed audit](../../../../evidence/quality/background-knowledge-convergence-audit.md) found 311 pending documents across seven repositories. All seven failed the read-only knowledge-currency check, including two without normalization debt.
 
-ADR-0433 durably queues observed changes, but its worker can acknowledge `pending_review` or `attention_required` without scheduling the remaining work. Canonicalization and normalization review await subsequent write-capable turns; background normalization generation starts only when a conversation turn requests a candidate. No existing loop independently drains the entire baseline.
+ADR-0433 durably queues observed changes, but its worker can acknowledge `pending_review` or `attention_required` without scheduling remaining work. Canonicalization and normalization review await later write-capable turns; background normalization generation starts only when a conversation turn requests a candidate. No existing loop independently drains the entire baseline.
 
-Two isolated probes reproduced unsafe completion boundaries: source drift during semantic review can still settle `current`, and canonical-only changes can settle `pending_review` without a candidate. An empty operational queue establishes neither semantic completion nor repository currency.
+Two isolated probes exposed unsafe completion boundaries: source drift during semantic review can still settle `current`, and canonical-only changes can settle `pending_review` without a candidate. An empty operational queue proves neither semantic completion nor repository currency.
 
 ## Decision
 
@@ -24,7 +24,7 @@ Detailed contracts:
 
 ### Continuous discovery and ownership
 
-Startup, canonical event changes, and bounded periodic inspection wake the owner. Discovery creates one source-bound baseline obligation for pre-existing debt, even without an active user conversation. A newer snapshot explicitly supersedes an older baseline; it never rewrites an old resolution.
+Startup, canonical event changes, and bounded periodic inspection wake the owner. Discovery creates one source-bound baseline obligation for pre-existing debt, even without an active user conversation. A newer snapshot explicitly supersedes an older baseline without rewriting its resolution.
 
 Change jobs continue to originate in `repository.change.completed`. Outbox and scheduling projections remain rebuildable from canonical events. Durable handoff to the next stage must share the current stage's acknowledgement transaction. Neither a candidate nor an exhausted operation may consume the sole record of unfinished work.
 
@@ -32,7 +32,7 @@ Change jobs continue to originate in `repository.change.completed`. Outbox and s
 
 Normalization generation remains outside provider sandboxes. A separately assigned reviewer compares exact source and candidate bytes and produces per-source approvals or bounded rejections. Generators never approve their own output. Reviewed delegation permits agent review without asking the user about every document; absent authority or conflicting user-owned content remains an explicit decision.
 
-This amendment extends ADR-0195's semantic-review boundary to a specifically authorized independent agent. Model agreement, section coverage, and successful provider calls do not constitute semantic approval. Until implementation and activation are verified, existing terminal and conversation review contracts remain active.
+This amendment extends ADR-0195's semantic-review boundary to a specifically authorized independent agent. Model agreement, section coverage, and successful provider calls do not constitute semantic approval. Existing terminal and conversation review contracts remain active until implementation and activation are verified.
 
 Canonicalization receives the same independent continuation: semantic review must identify a durable candidate or prove source-bound coverage. Presence under a canonical directory does not establish that a file records the changed fact. Authorized edits land through scoped workspace and integration contracts before exact-hash promotion.
 
