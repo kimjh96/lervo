@@ -22,6 +22,7 @@ import { CoResidentConversationPeerTurnRouter } from "./conversation-peer-turn-r
 import { CoResidentConversationDeliberationParticipants } from "./conversation-deliberation-participant-router.js";
 import { resolveDiscordUnaddressedPriorities } from "./discord-conversation-priorities.js";
 import { assertProductOwnerSupervisionPolicy } from "./product-owner-supervision-policy.js";
+import type { NodeRuntimeDeferredWork } from "./startup-deferred-work.js";
 
 function boundedErrorCoordinates(error: unknown): string {
   const coordinates: Array<{ name: string; code: string | null }> = [];
@@ -83,6 +84,8 @@ export async function openDeploymentConversation(input: {
   projectIdentityHash: string;
   repositoryRoot: string;
   snapshotWorkerEntry?: string;
+  /** ADR-0480: receives cache warm-ups that must not delay Node readiness. */
+  deferredWork?: Pick<NodeRuntimeDeferredWork, "schedule">;
   dataDirectory: string;
   operationDrain?: ConversationOperationDrain;
   runtimeConfigPath?: string;
@@ -120,11 +123,12 @@ export async function openDeploymentConversation(input: {
   const providerModels = input.config.remoteCommands?.providerHost?.models;
   const providerReasoningEfforts = input.config.remoteCommands?.providerHost?.reasoningEfforts;
   const providerExecutionProfiles = input.config.remoteCommands?.providerHost?.executionProfiles;
-  const managedRepositoryResources = createManagedConversationRepositoryResources(
-    input.snapshotWorkerEntry === undefined
-      ? undefined
-      : { snapshotWorkerEntry: input.snapshotWorkerEntry },
-  );
+  const managedRepositoryResources = createManagedConversationRepositoryResources({
+    ...(input.snapshotWorkerEntry === undefined
+      ? {}
+      : { snapshotWorkerEntry: input.snapshotWorkerEntry }),
+    ...(input.deferredWork === undefined ? {} : { deferredWork: input.deferredWork }),
+  });
   const turnFocusStore = await SQLiteConversationTurnFocusStore.open(
     resolve(input.dataDirectory, "conversation", "turn-focus.sqlite"),
   );

@@ -6,6 +6,6 @@ During registered replacement, the readiness window may produce `offline_ready` 
 
 Replacement readiness judges regression, not perfection ([ADR-0475](../../../../decisions/operations/services/0475-judge-node-replacement-readiness-by-regression.md)). Before the service operation, apply reads the predecessor's snapshot as a baseline. A non-delivery component (`workspaceCoordination`, `remoteControl`, `conversation`, or `supervision`) may stay `unavailable` only with the exact status and failure code it already had. The receipt lists it in `carriedConditions`. `sync` and `workstreamReplication` never carry a failure over.
 
-The window lasts sixty seconds past the latest startup progress: a first fresh snapshot or more accepted components. It is bounded at 600 seconds.
+The window lasts sixty seconds past the latest startup progress. Progress is a first fresh snapshot, more accepted components, or an advancing `updatedAt` heartbeat in a `starting` snapshot from the first process seen `starting` ([ADR-0480](../../../../decisions/operations/services/0480-defer-node-cache-warmups-past-readiness.md)). A later `starting` snapshot from another process ends heartbeat progress. The window is bounded at 600 seconds.
 
 First onboarding has no baseline. It and every authentication, configuration, integrity, divergence, stale, mixed, unknown, or newly appearing failure still require complete readiness or fail closed. A timeout names each blocking component with its observed and baseline state.

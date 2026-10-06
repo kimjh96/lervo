@@ -141,10 +141,53 @@ describe("Node fleet readiness observation", () => {
     expect(reads).toBe(252);
   });
 
-  it("fails sixty seconds after the last progress and reports a missing fresh snapshot", async () => {
-    const stuck = await observe(
+  it("accepts a slow but live starting process whose heartbeat keeps advancing", async () => {
+    // ADR-0480: components stay pending for 200 seconds, longer than the 60-second idle window,
+    // while the same process refreshes `updatedAt` every five seconds.
+    const { result, reads } = await observe((attempt) => {
+      const pending = attempt < 400;
+      return snapshot(pending ? Math.floor(attempt / 10) * 10 : attempt, {
+        status: pending ? "starting" : "ready",
+        sync: pending ? { status: "pending" } : { status: "ready" },
+        workstreamReplication: pending ? { status: "pending" } : { status: "ready" },
+        remoteControl: pending ? { status: "pending" } : { status: "ready" },
+      });
+    }, undefined);
+    expect(result).toMatchObject({ status: "ready", processId: 200 });
+    expect(reads).toBe(402);
+  });
+
+  it("stops counting liveness once the replacement restarts and caps a live startup", async () => {
+    const pending = {
+      status: "starting" as const,
+      workstreamReplication: { status: "pending" as const },
+    };
+    const restarted = await observe(
       (attempt) =>
-        snapshot(attempt, { status: "starting", workstreamReplication: { status: "pending" } }),
+        snapshot(Math.floor(attempt / 10) * 10, {
+          ...pending,
+          ...(attempt > 100 ? { processId: 201, startedAt: "2026-10-06T00:00:50.000Z" } : {}),
+        }),
+      undefined,
+    ).catch((error: unknown) => error);
+    expect(restarted).toMatchObject({
+      code: "node_fleet_readiness_timeout",
+      details: { readiness: { observations: 219, lastProcessId: 201 } },
+    });
+    const neverReady = await observe(
+      (attempt) => snapshot(Math.floor(attempt / 10) * 10, pending),
+      undefined,
+    ).catch((error: unknown) => error);
+    expect(neverReady).toMatchObject({
+      code: "node_fleet_readiness_timeout",
+      details: { readiness: { observations: 1_200, lastStatus: "starting" } },
+    });
+  });
+
+  it("fails sixty seconds after the last progress and reports a missing fresh snapshot", async () => {
+    // A hung process: its `starting` snapshot stays fresh but `updatedAt` never advances.
+    const stuck = await observe(
+      () => snapshot(1, { status: "starting", workstreamReplication: { status: "pending" } }),
       undefined,
     ).catch((error: unknown) => error);
     expect(stuck).toMatchObject({
