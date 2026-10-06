@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_778f30f218b6b6f7d3b09504"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Update knowledge publication pull requests through the REST API and never let a description update block the merge."

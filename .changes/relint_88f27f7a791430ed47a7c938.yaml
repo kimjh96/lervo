@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_88f27f7a791430ed47a7c938"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Publish the convergence owner's settled knowledge commits through one rolling pull request and merge it after checks pass."
