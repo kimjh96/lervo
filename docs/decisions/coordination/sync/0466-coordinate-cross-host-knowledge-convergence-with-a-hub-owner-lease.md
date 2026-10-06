@@ -4,7 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-05
 Amends: [ADR-0457](../../knowledge/documents/0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md) (one convergence owner across hosts), [ADR-0434](../../knowledge/repository/canonicalization/0434-converge-background-canonicalization-normalization-and-knowledge.md)
 Related: [ADR-0456](0456-hand-off-repositories-atomically-with-a-writer-lease.md), [ADR-0461](../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md)
-Amended by: [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md) (supersession across replicated checkouts)
+Amended by: [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md) (supersession across replicated checkouts), [ADR-0469](0469-keep-background-knowledge-continuous-on-every-host.md) (host continuity)
 
 ## Context
 

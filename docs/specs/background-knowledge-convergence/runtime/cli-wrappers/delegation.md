@@ -1,3 +1,7 @@
 # Delegation
 
 The [asset manifest authority contract](../ownership-and-activation/asset-manifest-authority.md) owns reviewed delegation and optional manifest application. The CLI uses read-only storage for previews and writable storage for application. It rejects an apply ID that differs from the newly generated plan ID. Neither preview nor application authors semantic review.
+
+## Continuity commands
+
+`lervo knowledge convergence delegation renewal-policy <show|install|revoke>` manages the host continuity policy. `install` and `revoke` print a `review_required` plan with the policy ID and write the policy only with `--apply <policy-id>`; a changed plan is refused. `lervo knowledge convergence delegation seed [--json]` runs one continuity reconciliation and prints `renewed`, `seeded`, or `unchanged` with the findings. See [fleet continuity](../ownership-and-activation/continuity.md).

@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-09-27
+Amended by: [ADR-0469](../../../coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) (delegation continuity under an owner-installed host policy)
 
 ## Context
 
