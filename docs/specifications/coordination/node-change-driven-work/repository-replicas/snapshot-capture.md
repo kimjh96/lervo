@@ -18,6 +18,16 @@ The delegation is host-local only while `HEAD` does not track it. A delegation t
 
 Replica apply preserves the untracked host-local paths while cleaning source files, including when resetting to an older `HEAD` temporarily removes the worktree's newer ignore rule. An untracked delegation grant remains local authority and requires separate review on each host.
 
+## Capture version
+
+Each runtime names its capture semantics as `REPOSITORY_REPLICA_CAPTURE_VERSION`. The current version is `lervo.repository-replica.capture.v2`, which includes the tracked delegation from ADR-0478. `repository-replica capture-version` prints `{"schemaVersion":1,"captureVersion":"..."}`. After observing both snapshots and before comparing them, every coordinator cycle compares the local and peer versions at stage `protocol`. A peer runtime that predates the action exits 1 with a usage line that does not list it, and that answer counts as `lervo.repository-replica.capture.v1`. Different versions fail the cycle with `repository_replica_capture_incompatible` before any snapshot is compared or recorded. A malformed answer fails with `repository_replica_capture_version_invalid`. A matching pair is trusted for 15 minutes per coordinator process ([ADR-0483](../../../../decisions/coordination/sync/0483-run-replica-commands-through-one-current-runtime.md)).
+
+Bump the version with any change that lets the same bytes produce a different snapshot. The cache fingerprint version derives from it.
+
+## Peer runtime
+
+The peer command runs `<peer.remoteRuntimesDirectory>/current/node-runtime.js`. `current` is the peer host's atomic runtime pointer, which Node activation and `lervo upgrade` keep at the activated runtime. `peer.remoteRuntimeExecutable` is an explicit override, and exactly one of the two is required. The coordinator configuration accepts only known keys at every level. The coordinator service itself runs through the local host's `current` pointer.
+
 ## Transfer and readiness
 
 A bundle request binds the exact snapshot hash selected by reconciliation. Source advancement before bundle creation cannot substitute newer bytes for that decision's bytes.
@@ -32,7 +42,7 @@ Coordinator observation—the local snapshot and peer `repository-replica snapsh
 
 - **Location:** `<git-dir>/lervo-replica/snapshot-cache.json`, owner-only, inside the per-worktree Git directory and never tracked.
 - **Fields:** `schemaVersion: 1`, `fingerprint` (a `sha256:` digest), and `snapshot` (the exact snapshot record).
-- **Fingerprint:** SHA-256 over a capture-version tag (`v2` since ADR-0478), the host-local path list, the repository root, the digest of `git status --porcelain=v2 -z --branch --untracked-files=all`, and the `lstat` mode, inode, size, and nanosecond modification and change times of the index file, repository `config` and `info/attributes`, and every status-listed path. Status runs with `GIT_OPTIONAL_LOCKS=0`, so it never writes the user's index or wakes the watcher. Git's stat and racy checks keep clean tracked files out of status. Listed paths include metadata because a second edit of a dirty or untracked file leaves its status line unchanged.
+- **Fingerprint:** SHA-256 over a fingerprint tag derived from the capture version, the host-local path list, the repository root, the digest of `git status --porcelain=v2 -z --branch --untracked-files=all`, and the `lstat` mode, inode, size, and nanosecond modification and change times of the index file, repository `config` and `info/attributes`, and every status-listed path. Status runs with `GIT_OPTIONAL_LOCKS=0`, so it never writes the user's index or wakes the watcher. Git's stat and racy checks keep clean tracked files out of status. Listed paths include metadata because a second edit of a dirty or untracked file leaves its status line unchanged.
 - **Hit:** the stored fingerprint equals the current fingerprint, the record's snapshot hash recomputes, and its `head` and `branch` equal the status branch coordinates.
 - **Write:** only when the fingerprint is equal before and after capture and is cacheable. It is not cacheable while any observed timestamp lies within two seconds of observation, while a submodule is listed, while `HEAD` is unborn, or above 20,000 listed paths.
 - **Privacy:** object IDs, digests, and the branch name only; no file contents or paths.

@@ -24,6 +24,10 @@ import {
   type RepositoryReplicaStage,
 } from "./repository-replica-failure.js";
 import {
+  RepositoryReplicaCaptureCompatibility,
+  type RepositoryReplicaCaptureVersionPort,
+} from "./repository-replica-capture-compatibility.js";
+import {
   reconcileReplicaKnowledgeSupersession,
   type RepositoryReplicaKnowledgeSupersessionPort,
 } from "./repository-replica-knowledge-supersession.js";
@@ -42,7 +46,8 @@ export {
   RepositoryReplicaCycleError,
 } from "./repository-replica-failure.js";
 
-export interface RepositoryReplicaPeerPort extends RepositoryReplicaKnowledgeSupersessionPort {
+export interface RepositoryReplicaPeerPort
+  extends RepositoryReplicaKnowledgeSupersessionPort, RepositoryReplicaCaptureVersionPort {
   snapshot(repositoryRoot: string): Promise<RepositoryReplicaSnapshot>;
   bundle(repositoryRoot: string, expectedSnapshotHash: string): Promise<Uint8Array>;
   apply(input: {
@@ -115,6 +120,7 @@ export class RepositoryReplicaCoordinator {
   private readonly state: RepositoryReplicaCoordinatorStateFile;
   private readonly divergences: RepositoryReplicaDivergenceLedger;
   private readonly now: () => Date;
+  private readonly capture: RepositoryReplicaCaptureCompatibility;
   /** The last peer receipt identity this process wrote, per replica. */
   private readonly peerReceipts = new Map<string, string>();
 
@@ -128,6 +134,7 @@ export class RepositoryReplicaCoordinator {
     },
   ) {
     this.now = options.now ?? (() => new Date());
+    this.capture = new RepositoryReplicaCaptureCompatibility(() => this.now().getTime());
     this.state = new RepositoryReplicaCoordinatorStateFile(options.stateFile);
     this.divergences = new RepositoryReplicaDivergenceLedger({
       state: this.state,
@@ -211,6 +218,9 @@ export class RepositoryReplicaCoordinator {
     if (supersession.droppedCommitCount > 0) [local, peer] = await observe();
     assertRepositoryReplicaSnapshot(local);
     assertRepositoryReplicaSnapshot(peer);
+    stage.current = "protocol";
+    await this.capture.assert({ local: this.options.local, peer: this.options.peer });
+    stage.current = "snapshot";
     const common = state.replicas[input.replicaId]?.commonSnapshotHash ?? null;
     let decision = reconcileRepositoryReplicas({ local, peer, commonSnapshotHash: common });
     let status: "current" | "pushed" | "pulled" | "merged" = "current";

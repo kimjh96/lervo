@@ -65,6 +65,7 @@ describe("upgrade stage dependency policy", () => {
       node: "deferred",
       event_writer: "deferred",
       host_service: "safe_apply",
+      replica_service: "deferred",
     } as const;
     expect(overallUpgradeStatus(Object.values(dispositions))).toBe("blocked");
     expect(applicableUpgradeStages(dispositions, false)).toEqual([

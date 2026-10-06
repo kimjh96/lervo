@@ -5,7 +5,7 @@ import { dirname, isAbsolute, resolve } from "node:path";
 export const runtimeServiceStopTimeoutMs = 120_000;
 
 // `knowledge-host` is the ADR-0470 host knowledge resident: one per user, no instance.
-const runtimes = new Set(["hub", "node", "knowledge-host"]);
+const runtimes = new Set(["hub", "node", "knowledge-host", "repository-replica"]);
 
 function fail(message) {
   throw new Error(message);
@@ -54,7 +54,7 @@ function parse(args) {
       values.has(key)
     ) {
       fail(
-        "Usage: --manager <systemd|launchd> --runtime <hub|node|knowledge-host> [--instance <nfi-id>] --executable <absolute-path> [--node-executable <absolute-path>] [--path-directories <dir:dir>] --config <absolute-path> --output <new-absolute-path>",
+        "Usage: --manager <systemd|launchd> --runtime <hub|node|knowledge-host|repository-replica> [--instance <nfi-id>] --executable <absolute-path> [--node-executable <absolute-path>] [--path-directories <dir:dir>] --config <absolute-path> --output <new-absolute-path>",
       );
     }
     values.set(key, value);
@@ -128,6 +128,16 @@ export function runtimeServiceIdentity(input) {
   if (input.runtime !== "node" && input.instance !== null && input.instance !== undefined) {
     fail("Only a Node service accepts an instance ID.");
   }
+  // ADR-0483: the replica coordinator keeps the launchd label hosts already run it under, so
+  // the managed definition replaces that file in place instead of starting a second coordinator.
+  if (input.runtime === "repository-replica")
+    return input.manager === "systemd"
+      ? { name: "lervo-repository-replica.service", domain: null, label: null }
+      : {
+          name: "dev.lervo.repository-replica.plist",
+          domain: null,
+          label: "dev.lervo.repository-replica",
+        };
   const suffix =
     input.runtime === "node" ? `-node-${input.instance.slice(4)}` : `-${input.runtime}`;
   return input.manager === "systemd"
@@ -182,9 +192,11 @@ function runtimePath(input) {
     .join(":");
 }
 
-/** Fixed words before `--config`: the host knowledge resident runs one CLI subcommand. */
+/** Fixed words before `--config`: the host resident and the replica coordinator run one subcommand. */
 function runtimeSubcommand(input) {
-  return input.runtime === "knowledge-host" ? ["knowledge", "worker", "--watch", "--host"] : [];
+  if (input.runtime === "knowledge-host") return ["knowledge", "worker", "--watch", "--host"];
+  if (input.runtime === "repository-replica") return ["repository-replica", "reconcile", "--watch"];
+  return [];
 }
 
 function runtimeArguments(input) {
@@ -194,6 +206,7 @@ function runtimeArguments(input) {
 function title(input) {
   if (input.runtime === "hub") return "Lervo Hub";
   if (input.runtime === "knowledge-host") return "Lervo host knowledge resident";
+  if (input.runtime === "repository-replica") return "Lervo repository replica coordinator";
   return `Lervo Node ${input.instance}`;
 }
 

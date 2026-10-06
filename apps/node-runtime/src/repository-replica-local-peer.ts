@@ -4,6 +4,7 @@ import {
 } from "@lervo/repository-knowledge-runtime";
 
 import type { RepositoryReplicaPeerPort } from "./repository-replica-coordinator.js";
+import { REPOSITORY_REPLICA_CAPTURE_VERSION } from "./repository-replica-capture-version.js";
 import {
   applyRepositoryReplicaBundle,
   createRepositoryReplicaBundle,
@@ -20,6 +21,10 @@ import { observeRepositoryReplicaSnapshot } from "./repository-replica-snapshot-
  * and merge always capture freshly before they read or mutate repository bytes.
  */
 export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
+  captureVersion(): Promise<string> {
+    return Promise.resolve(REPOSITORY_REPLICA_CAPTURE_VERSION);
+  }
+
   snapshot(repositoryRoot: string) {
     return observeRepositoryReplicaSnapshot(repositoryRoot);
   }

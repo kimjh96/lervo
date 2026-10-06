@@ -15,6 +15,10 @@ import {
   inspectHostResidentService,
   type HostResidentServiceStage,
 } from "./knowledge-host-service.js";
+import {
+  inspectRepositoryReplicaService,
+  type RepositoryReplicaServiceStage,
+} from "./repository-replica-service.js";
 import { inspectRegisteredNodeUpgrade, type NodeUpgradeStage } from "./upgrade-node.js";
 import {
   inspectKnowledge,
@@ -53,6 +57,7 @@ export interface RepositoryUpgradePlan {
     nodeService: "registered_instance_transactional_reconciliation";
     eventWriter: "backup_then_exact_event_contract_plan";
     hostService: "one_user_service_for_unserved_repositories";
+    replicaService: "current_runtime_pointer_and_managed_coordinator";
     stageDependencies: typeof upgradeStageDependencies;
   };
   stages: {
@@ -68,6 +73,7 @@ export interface RepositoryUpgradePlan {
     node: Omit<NodeUpgradeStage, "disposition"> & { disposition: StageDisposition };
     eventWriter: EventWriterStage;
     hostService: HostResidentServiceStage;
+    replicaService: RepositoryReplicaServiceStage;
   };
   privacy: {
     scope: "local_plan_and_receipt";
@@ -145,23 +151,33 @@ export async function createRepositoryUpgradePlan(root: string): Promise<Reposit
   const capabilityGate = { capabilities: capabilityDisposition };
   const workforceDeferral = deferringPrerequisite("workforce", capabilityGate);
   const knowledgeDeferral = deferringPrerequisite("knowledge", capabilityGate);
-  const [buildHash, workforce, terminal, knowledge, node, hostService] = await Promise.all([
-    cliBuildHash(),
-    workforceDeferral === null
-      ? inspectWorkforce(repositoryRoot)
-      : Promise.resolve(deferredWorkforce(deferralReason(workforceDeferral))),
-    inspectTerminalIntegration(repositoryRoot),
-    knowledgeDeferral === null
-      ? inspectKnowledge(repositoryRoot)
-      : Promise.resolve(deferredKnowledge(deferralReason(knowledgeDeferral))),
-    inspectRegisteredNodeUpgrade(repositoryRoot, project.projectId, version),
-    inspectHostResidentService(),
-  ]);
+  const [buildHash, workforce, terminal, knowledge, node, hostService, replica] = await Promise.all(
+    [
+      cliBuildHash(),
+      workforceDeferral === null
+        ? inspectWorkforce(repositoryRoot)
+        : Promise.resolve(deferredWorkforce(deferralReason(workforceDeferral))),
+      inspectTerminalIntegration(repositoryRoot),
+      knowledgeDeferral === null
+        ? inspectKnowledge(repositoryRoot)
+        : Promise.resolve(deferredKnowledge(deferralReason(knowledgeDeferral))),
+      inspectRegisteredNodeUpgrade(repositoryRoot, project.projectId, version),
+      inspectHostResidentService(),
+      inspectRepositoryReplicaService(),
+    ],
+  );
   const nodeDeferral = deferringPrerequisite("node", { knowledge: knowledge.disposition });
   const nodeStage: RepositoryUpgradePlan["stages"]["node"] =
     nodeDeferral === null || node.stage.disposition !== "safe_apply"
       ? node.stage
       : { ...node.stage, disposition: "deferred", reason: deferralReason(nodeDeferral) };
+  const replicaDeferral = deferringPrerequisite("replica_service", {
+    node: nodeStage.disposition,
+  });
+  const replicaService: RepositoryReplicaServiceStage =
+    replicaDeferral === null || replica.disposition !== "safe_apply"
+      ? replica
+      : { ...replica, disposition: "deferred", reason: deferralReason(replicaDeferral) };
   const eventWriter = await eventWriterStage(repositoryRoot, {
     terminal_integration: terminal.stage.disposition,
     node: nodeStage.disposition,
@@ -174,6 +190,7 @@ export async function createRepositoryUpgradePlan(root: string): Promise<Reposit
     node: nodeStage.disposition,
     event_writer: eventWriter.disposition,
     host_service: hostService.disposition,
+    replica_service: replicaService.disposition,
   };
   const body = {
     schemaVersion: 1 as const,
@@ -191,6 +208,7 @@ export async function createRepositoryUpgradePlan(root: string): Promise<Reposit
       nodeService: "registered_instance_transactional_reconciliation" as const,
       eventWriter: "backup_then_exact_event_contract_plan" as const,
       hostService: "one_user_service_for_unserved_repositories" as const,
+      replicaService: "current_runtime_pointer_and_managed_coordinator" as const,
       stageDependencies: upgradeStageDependencies,
     },
     stages: {
@@ -206,6 +224,7 @@ export async function createRepositoryUpgradePlan(root: string): Promise<Reposit
       node: nodeStage,
       eventWriter,
       hostService,
+      replicaService,
     },
     privacy: {
       scope: "local_plan_and_receipt" as const,

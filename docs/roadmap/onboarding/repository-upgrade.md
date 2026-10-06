@@ -25,6 +25,7 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 - CLI acquisition remains an explicit installation-environment responsibility and is never reported as repository-upgrade evidence.
 - An `event_writer` stage activates event schema 4 through the existing event-contract evidence, plan, and apply contract, after a recoverable backup. Local-only and Node-absent checkouts activate in the reviewed apply. Hub-enabled checkouts with a Node re-observe Node health and Hub capability, or report the exact blocker and remedy ([ADR-0470](../../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md)).
 - A `host_service` stage installs, activates, or transactionally replaces the one host resident service (launchd or systemd user) when a registered checkout without a Node needs a resident. It never duplicates a Node's resident.
+- A `replica_service` stage, last and after `node`, points the host's `current` Node runtime pointer at the bundled runtime and, when `repository-replica-coordinator.json` sits in the user state directory, migrates a legacy `~/.lervo/repository-replica-coordinator.json` there with a backup, and installs or replaces the `dev.lervo.repository-replica` (launchd) or `lervo-repository-replica.service` (systemd) coordinator service that runs through that pointer ([ADR-0483](../../decisions/coordination/sync/0483-run-replica-commands-through-one-current-runtime.md)).
 
 ## Evidence
 

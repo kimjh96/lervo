@@ -8,7 +8,8 @@ export type UpgradeStageName =
   | "knowledge"
   | "node"
   | "event_writer"
-  | "host_service";
+  | "host_service"
+  | "replica_service";
 
 /**
  * - `applied_first`: the dependent is inspected only after the prerequisite
@@ -44,6 +45,9 @@ export const upgradeStageDependencies: Readonly<
     { stage: "node", requires: "applied_first" },
   ],
   host_service: [],
+  // ADR-0483: an activated Node runtime moves `current` itself; this stage repairs the pointer
+  // and refreshes the replica service after every other stage.
+  replica_service: [{ stage: "node", requires: "applied_first" }],
 };
 
 export const upgradeStageApplyOrder: readonly UpgradeStageName[] = [
@@ -54,6 +58,7 @@ export const upgradeStageApplyOrder: readonly UpgradeStageName[] = [
   "node",
   "event_writer",
   "host_service",
+  "replica_service",
 ];
 
 /**

@@ -16,6 +16,7 @@ import {
   encodeRepositoryReplicaPeerFailure,
   type RepositoryReplicaStage,
 } from "./repository-replica-failure.js";
+import { REPOSITORY_REPLICA_CAPTURE_VERSION } from "./repository-replica-capture-version.js";
 import {
   applyRepositoryReplicaBundle,
   createRepositoryReplicaBundle,
@@ -159,6 +160,13 @@ export async function runRepositoryReplicaCli(
   ports: RepositoryReplicaCliPorts,
 ): Promise<number> {
   const action = args[0];
+  if (action === "capture-version") {
+    // ADR-0483: lets a coordinator refuse to compare snapshots across capture semantics.
+    ports.stdout(
+      `${JSON.stringify({ schemaVersion: 1, captureVersion: REPOSITORY_REPLICA_CAPTURE_VERSION })}\n`,
+    );
+    return 0;
+  }
   if (action === "watch") {
     const root = resolve(ports.cwd, oneOption(args, "--root"));
     await publishRepositoryChangeHints({
@@ -191,6 +199,6 @@ export async function runRepositoryReplicaCli(
     );
   }
   throw new Error(
-    "Usage: lervo-node repository-replica <snapshot|bundle|apply|adopt|receipt|knowledge-supersession|reconcile|watch> ...",
+    "Usage: lervo-node repository-replica <capture-version|snapshot|bundle|apply|adopt|receipt|knowledge-supersession|reconcile|watch> ...",
   );
 }

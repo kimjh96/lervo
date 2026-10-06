@@ -3,6 +3,10 @@ import { applyWorkforceRoleBindingMigration } from "@lervo/agent-workforce";
 
 import { applyEventWriterStage } from "./event-writer-activation-stage.js";
 import { applyHostResidentService } from "./knowledge-host-service.js";
+import {
+  applyRepositoryReplicaService,
+  inspectRepositoryReplicaService,
+} from "./repository-replica-service.js";
 import { applyTerminalIntegrationStage } from "./terminal-integration-stage.js";
 import type { UpgradeReceipt } from "./upgrade-format.js";
 import { applyRegisteredNodeUpgrade, inspectRegisteredNodeUpgrade } from "./upgrade-node.js";
@@ -41,6 +45,7 @@ export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pend
     { stage: "node", ...plan.stages.node },
     { stage: "event_writer", ...plan.stages.eventWriter },
     { stage: "host_service", ...plan.stages.hostService },
+    { stage: "replica_service", ...plan.stages.replicaService },
   ];
   return stages
     .filter((stage) => stage.disposition === "pending_authority" || stage.disposition === "blocked")
@@ -144,6 +149,18 @@ export async function applyRepositoryUpgrade(
     const service = await applyHostResidentService(approved.stages.hostService);
     if (service !== null) appliedStages.push("host_service");
   }
+
+  // ADR-0483: a stage deferred behind the Node stage is re-observed, because an activated Node
+  // already moved `current`; an approved stage is applied against its exact plan.
+  const replicaStage =
+    approved.stages.replicaService.disposition === "deferred"
+      ? await inspectRepositoryReplicaService()
+      : approved.stages.replicaService;
+  if (
+    replicaStage.disposition === "safe_apply" &&
+    (await applyRepositoryReplicaService(replicaStage)) !== null
+  )
+    appliedStages.push("replica_service");
 
   const final = await createRepositoryUpgradePlan(root);
   return {

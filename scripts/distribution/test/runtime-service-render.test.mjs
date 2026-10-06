@@ -335,3 +335,29 @@ describe("knowledge host resident service definition", () => {
     ).toThrow(/argument|instance/u);
   });
 });
+
+describe("repository replica coordinator service definition (ADR-0483)", () => {
+  const input = {
+    runtime: "repository-replica",
+    instance: null,
+    nodeExecutable: "/opt/node/bin/node",
+    executable: "/home/owner/.local/share/lervo/runtimes/node/current/node-runtime.js",
+    config: "/home/owner/state/repository-replica-coordinator.json",
+  };
+
+  it("runs the watching coordinator through the current runtime under the existing label", () => {
+    const systemd = formatRuntimeServiceDefinition({ ...input, manager: "systemd" });
+    expect(systemd).toContain(
+      'ExecStart="/opt/node/bin/node" "/home/owner/.local/share/lervo/runtimes/node/current/node-runtime.js" repository-replica reconcile --watch --config "/home/owner/state/repository-replica-coordinator.json"',
+    );
+    expect(systemd).toContain("Description=Lervo repository replica coordinator");
+    const launchd = formatRuntimeServiceDefinition({ ...input, manager: "launchd" });
+    expect(launchd).toContain("<string>dev.lervo.repository-replica</string>");
+    expect(runtimeServiceTargetPath({ ...input, manager: "systemd" }, "/home/owner")).toBe(
+      "/home/owner/.config/systemd/user/lervo-repository-replica.service",
+    );
+    expect(runtimeServiceTargetPath({ ...input, manager: "launchd" }, "/home/owner")).toBe(
+      "/home/owner/Library/LaunchAgents/dev.lervo.repository-replica.plist",
+    );
+  });
+});

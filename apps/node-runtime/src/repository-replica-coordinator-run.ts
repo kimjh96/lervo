@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 
 import {
   DEFAULT_IDLE_RECOVERY_CEILING_MS,
+  remoteRuntimePayload,
   type RepositoryReplicaCoordinatorConfig,
 } from "./repository-replica-config.js";
 import {
@@ -67,7 +68,11 @@ export async function runRepositoryReplicaCoordinator(
     }));
   if (repositories.length === 0)
     throw new Error("The requested repository replica is not configured.");
-  const peer = new SshRepositoryReplicaPeer(config.peer);
+  const { remoteRuntimesDirectory: _directory, ...peerOptions } = config.peer;
+  const peer = new SshRepositoryReplicaPeer({
+    ...peerOptions,
+    remoteRuntimeExecutable: remoteRuntimePayload(config.peer),
+  });
   const coordinator = new RepositoryReplicaCoordinator({
     stateFile,
     local: new LocalRepositoryReplicaPeer(),

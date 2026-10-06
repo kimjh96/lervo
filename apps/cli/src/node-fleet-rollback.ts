@@ -25,6 +25,7 @@ import {
   observeNodeFleetReadiness,
   recoverNodeFleetFailure,
 } from "./node-fleet-apply.js";
+import { pointCurrentNodeRuntimeAt } from "./node-runtime-pointer.js";
 
 type RollbackServiceResult = NodeFleetApplyReceipt["service"] & { change: "rolled_back" };
 
@@ -272,6 +273,10 @@ export async function applyNodeFleetRollback(input: {
         error,
       );
     }
+    // ADR-0483: the restored runtime becomes `current` again; the next upgrade repairs a failure.
+    await pointCurrentNodeRuntimeAt(predecessorExecutable, input.homeDirectory).catch(
+      () => undefined,
+    );
     return {
       schemaVersion: 1,
       operation: "repository_node_rollback",

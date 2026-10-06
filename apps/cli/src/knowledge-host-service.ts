@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { chmod, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
+import { readFile, realpath } from "node:fs/promises";
+import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -31,19 +31,15 @@ import {
   readKnowledgeHostServiceConfig,
   type KnowledgeHostServiceConfig,
 } from "./knowledge-host-service-config.js";
+import {
+  writeManagedUserService,
+  type ManagedServiceStatus,
+} from "./managed-user-service-write.js";
 import { resolveServiceToolDirectories } from "./service-tool-directories.js";
 import type { UpgradeStageBlocker } from "./upgrade-stage-inspection.js";
 import type { StageDisposition } from "./upgrade-stage-policy.js";
 
 const RUNTIME = "knowledge-host";
-
-interface ServiceStatus {
-  managerAvailable: boolean;
-  installed: boolean;
-  enabled: boolean | null;
-  active: boolean;
-  change?: string;
-}
 
 export interface KnowledgeHostServicePorts {
   platform: NodeJS.Platform;
@@ -54,7 +50,7 @@ export interface KnowledgeHostServicePorts {
   nodeExecutable(): Promise<string>;
   candidates(): Promise<HostResidentCandidates>;
   policyActive(): Promise<boolean>;
-  manage(args: string[], options: Record<string, unknown>): Promise<ServiceStatus>;
+  manage(args: string[], options: Record<string, unknown>): Promise<ManagedServiceStatus>;
   residentLaunch(): Promise<"service" | "manual" | null>;
 }
 
@@ -84,7 +80,7 @@ export function defaultKnowledgeHostServicePorts(): KnowledgeHostServicePorts {
     nodeExecutable: () => realpath(process.execPath),
     candidates: () => hostResidentCandidates(null),
     policyActive,
-    manage: (args, options) => manageRuntimeService(args, options) as Promise<ServiceStatus>,
+    manage: (args, options) => manageRuntimeService(args, options) as Promise<ManagedServiceStatus>,
     residentLaunch,
   };
 }
@@ -324,48 +320,19 @@ export async function applyHostResidentService(
   let configCreated = false;
   if (current.stage.configAction === "create")
     configCreated = await createKnowledgeHostServiceConfig(coordinates!.configPath, config!);
-  const directory = await mkdtemp(resolve(tmpdir(), "lervo-knowledge-host-service-"));
-  try {
-    const definitionPath = resolve(directory, "service-definition");
-    await writeFile(definitionPath, definition!, { mode: 0o600, flag: "wx" });
-    await chmod(definitionPath, 0o600);
-    const previous: string[] = [];
-    if (current.stage.action === "upgrade") {
-      const previousPath = resolve(directory, "previous-service-definition");
-      await writeFile(previousPath, installed!, { mode: 0o600, flag: "wx" });
-      await chmod(previousPath, 0o600);
-      previous.push("--previous-definition", previousPath);
-    }
-    const result = await ports.manage(
-      [
-        "--action",
-        current.stage.action === "upgrade" ? "upgrade" : "install",
-        "--manager",
-        current.stage.manager!,
-        "--runtime",
-        RUNTIME,
-        "--definition",
-        definitionPath,
-        ...previous,
-        "--executable",
-        coordinates!.executable,
-        "--node-executable",
-        coordinates!.nodeExecutable,
-        ...(coordinates!.pathDirectories.length === 0
-          ? []
-          : ["--path-directories", coordinates!.pathDirectories.join(":")]),
-        "--config",
-        coordinates!.configPath,
-        "--write",
-      ],
-      { homeDirectory: ports.homeDirectory, platform: ports.platform, uid: ports.uid },
-    );
-    if (!result.managerAvailable || !result.installed || !result.active || result.enabled === false)
-      throw Object.assign(new Error("The host resident service did not remain active."), {
-        code: "host_service_unavailable",
-      });
-    return { change: result.change ?? "unchanged", configCreated };
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
+  const result = await writeManagedUserService({
+    manage: ports.manage,
+    options: { homeDirectory: ports.homeDirectory, platform: ports.platform, uid: ports.uid },
+    manager: current.stage.manager!,
+    runtime: RUNTIME,
+    action: current.stage.action as "install" | "activate" | "upgrade",
+    definition: definition!,
+    installed,
+    coordinates: coordinates!,
+  });
+  if (!result.managerAvailable || !result.installed || !result.active || result.enabled === false)
+    throw Object.assign(new Error("The host resident service did not remain active."), {
+      code: "host_service_unavailable",
+    });
+  return { change: result.change ?? "unchanged", configCreated };
 }

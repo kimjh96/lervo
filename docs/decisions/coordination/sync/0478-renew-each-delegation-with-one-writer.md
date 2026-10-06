@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-06
 Amends: [ADR-0469](0469-keep-background-knowledge-continuous-on-every-host.md) (renewal), [ADR-0471](0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md) (identity-preserving rebind), [ADR-0456](0456-hand-off-repositories-atomically-with-a-writer-lease.md) (host-local replica paths)
+Amended by: [ADR-0483](0483-run-replica-commands-through-one-current-runtime.md) (peer runtime must share capture semantics)
 Related: [ADR-0466](0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md), [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md), [ADR-0473](../../knowledge/documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md)
 
 ## Context
