@@ -1,5 +1,21 @@
 # Code quality and commit CI execution
 
+## Evidence correction
+
+The workflow YAML, package manifests, alignment test, and CI execution receipts were not supplied for this assessment. The retained source description below is not independently verified workflow evidence. Its assertions must not be used as operational guarantees or proof of execution. This correction governs every section under “Retained source description — unverified.” Existing text is preserved for reconciliation.
+
+The supplied canonical context supports these narrower statements:
+
+- The [code convention](code-convention.md) states that `pnpm check` includes `pnpm quality:check` and that pull requests and pushes to `main` run the dedicated code-quality workflow.
+- The [commit convention](commit-convention.md) requires CI validation of every introduced pull-request commit and every commit pushed to `main`. The claimed last-commit fallback below is unverified and does not currently qualify that canonical policy.
+- [ADR-0470](../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) specifies pull-request and `main` artifact and test jobs on `ubuntu-latest` with Node 22.13.0. Artifact checking builds before checking the manifest and SBOM. Testing builds before `pnpm test`, with four runners, two workers each, a 30-second default test deadline, and a 45-minute timeout per shard. It also specifies per-process temporary user-state isolation. These are documented configuration requirements, not observed run results.
+
+The additional workflow pins, permissions, cancellation controls, checkout settings, installation settings, precise command order and arguments, twenty-minute artifact timeout, matrix triggers, and commit-range fallback require exact workflow bytes before confirmation. Source-based type resolution and the Node engine/type/workflow alignment rule require the corresponding configuration and test bytes. The claimed first-run shard durations and `DatabaseSync.isOpen` incident require execution or incident evidence; neither outcome is established here. No successful CI run, packed smoke, release, or publication is established by this document.
+
+## Retained source description — unverified
+
+All following sections reproduce the prior source description. Statements extending beyond the supported baseline above remain unverified, including statements phrased as facts or instructions.
+
 This reference describes the supplied `.github/workflows/code-quality.yml` and `.github/workflows/commit-convention.yml`. Read with the [code convention](code-convention.md), [commit convention](commit-convention.md), and [CLI version and release management](../distribution/cli-version-management.md).
 
 ## Shared workflow controls
