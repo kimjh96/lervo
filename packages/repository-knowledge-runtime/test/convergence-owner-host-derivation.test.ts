@@ -25,7 +25,7 @@ const publication = {
   baseBranch: "main",
   branch: "lervo/knowledge-outputs",
   merge: "when_checks_pass" as const,
-  allowedRoots: ["docs/", ".lervo/knowledge/"],
+  scope: "delegation" as const,
 };
 const directories: string[] = [];
 afterEach(async () => {
@@ -180,5 +180,52 @@ describe("owner-host derivation", () => {
     expect(probes).toBe(1);
     const result = await derive(root, { now: new Date("2026-10-06T06:00:00.000Z") });
     expect(result.publication).toBe("configured");
+  });
+
+  it("corrects a derived base branch when the remote's default differs, and keeps it when the probe fails", async () => {
+    const root = await checkout();
+    await derive(root, { publication: async () => ({ ...publication, baseBranch: "fix/home" }) });
+    expect((await readConvergenceOwnerHost(root))?.config.publication?.baseBranch).toBe("fix/home");
+    // Within the interval the setting stays as derived.
+    await derive(root, { now: new Date("2026-10-06T05:59:00.000Z") });
+    expect((await readConvergenceOwnerHost(root))?.config.publication?.baseBranch).toBe("fix/home");
+    const corrected = await derive(root, { now: new Date("2026-10-06T06:00:00.000Z") });
+    expect(corrected.derivation.status).toBe("derived");
+    expect((await readConvergenceOwnerHost(root))?.config.publication).toEqual(publication);
+    await derive(root, {
+      publication: async () => null,
+      now: new Date("2026-10-06T12:00:00.000Z"),
+    });
+    expect((await readConvergenceOwnerHost(root))?.config.publication).toEqual(publication);
+  });
+
+  it("migrates the fixed roots a derived configuration holds to the delegation scope", async () => {
+    const root = await checkout();
+    const { scope: _scope, ...target } = publication;
+    const legacy = { ...target, allowedRoots: ["docs/", ".lervo/knowledge/"] };
+    await derive(root, { publication: async () => legacy });
+    expect((await readConvergenceOwnerHost(root))?.config.publication).toEqual(legacy);
+    let probes = 0;
+    const result = await derive(root, {
+      publication: async () => {
+        probes++;
+        return null;
+      },
+      now: new Date("2026-10-06T01:00:00.000Z"),
+    });
+    expect(probes).toBe(0);
+    expect(result.derivation.status).toBe("derived");
+    expect((await readConvergenceOwnerHost(root))?.config.publication).toEqual(publication);
+  });
+
+  it("leaves an operator configuration's publication setting alone", async () => {
+    const root = await checkout();
+    await writeHostConfig(root, { hostId: `hst_${"4".repeat(32)}`, label: "mac", mode: "hub" });
+    const before = await readFile(resolve(root, CONVERGENCE_OWNER_HOST_PATH), "utf8");
+    await derive(root, {
+      publication: async () => ({ ...publication, baseBranch: "trunk" }),
+      now: new Date("2026-10-07T00:00:00.000Z"),
+    });
+    expect(await readFile(resolve(root, CONVERGENCE_OWNER_HOST_PATH), "utf8")).toBe(before);
   });
 });

@@ -21,6 +21,7 @@ export * from "./repository-change-event.js";
 export * from "./repository-replica-event.js";
 export * from "./knowledge-convergence-owner-event.js";
 export * from "./knowledge-convergence-delegation-continued-event.js";
+export * from "./knowledge-publication-repaired-event.js";
 export * from "./document-freshness-event.js";
 export * from "./instruction-capture-event.js";
 export * from "./deliberation-artifact.js";

@@ -17,6 +17,7 @@ import {
 } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { bytePreservedDocumentCollection } from "./document-layout.js";
+import { toolGeneratedDocumentPaths } from "./document-tool-ownership-observation.js";
 import { createDocumentNormalizationShardCache } from "./document-normalization-cache.js";
 import {
   createDocumentNormalizationObservationTracker,
@@ -517,6 +518,7 @@ function eligibleDocuments(
   publicationRoot: string,
   taxonomy?: DecisionTaxonomy,
   normalizationExclude: readonly string[] = [],
+  toolGeneratedPaths: ReadonlySet<string> = new Set(),
 ): Array<{
   source: RepositorySource & { content: string; contentHash: string };
   profile: DocumentNormalizationProfile;
@@ -534,7 +536,8 @@ function eligibleDocuments(
         source.path === publicationRoot ||
         source.path.startsWith(generatedPrefix) ||
         (taxonomy !== undefined && bytePreservedDocumentCollection(source.path, taxonomy)) ||
-        repositoryPathMatchesPatterns(source.path, normalizationExclude)
+        repositoryPathMatchesPatterns(source.path, normalizationExclude) ||
+        toolGeneratedPaths.has(source.path)
       )
         return [];
       const profile = normalizationProfile(source);
@@ -1159,6 +1162,7 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
   publicationRoot: string;
   taxonomy: DecisionTaxonomy;
   normalizationExclude: readonly string[];
+  toolGeneratedPaths: ReadonlySet<string>;
 }): Promise<void> {
   validateDocumentNormalizationCandidate(input.candidate);
   const eligible = eligibleDocuments(
@@ -1166,6 +1170,7 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
     input.publicationRoot,
     input.taxonomy,
     input.normalizationExclude,
+    input.toolGeneratedPaths,
   );
   const lifecycle = await normalizationLifecyclePaths(input.root, input.candidate.outputLanguage);
   const pending = eligible.filter((item) => !lifecycle.current.has(item.source.path));
@@ -1288,6 +1293,8 @@ export interface CompileDocumentNormalizationCandidateInput {
   outputLanguage: string;
   taxonomy?: DecisionTaxonomy;
   normalizationExclude?: readonly string[];
+  /** ADR-0473: documents a repository tool owns; never normalized. */
+  toolGeneratedPaths?: ReadonlySet<string>;
   compiler: RepositoryDocumentNormalizationCompiler;
   signal: AbortSignal;
   currentPaths?: ReadonlySet<string>;
@@ -1315,6 +1322,7 @@ export async function compileDocumentNormalizationCandidateObserved(
     input.publicationRoot,
     input.taxonomy,
     input.normalizationExclude,
+    input.toolGeneratedPaths,
   );
   const eligible = allEligible.filter((item) =>
     input.selectedPaths === undefined
@@ -1981,6 +1989,7 @@ export async function inspectConfiguredDocumentNormalization(input: {
     policy.publicationRoot,
     taxonomy,
     policy.normalization?.exclude,
+    await toolGeneratedDocumentPaths(root, scan, taxonomy),
   );
   const pendingDocuments = eligible
     .map((item) => item.source.path)
@@ -2027,6 +2036,7 @@ export async function compileConfiguredDocumentNormalizationCandidateObserved(
     outputLanguage: prepared.outputLanguage,
     taxonomy: prepared.taxonomy,
     normalizationExclude: prepared.normalizationExclude,
+    toolGeneratedPaths: prepared.toolGeneratedPaths,
     compiler: input.compiler,
     signal: input.signal,
     ceilings: prepared.preflight.ceilings,
@@ -2057,6 +2067,7 @@ async function prepareConfiguredDocumentNormalization(input: {
   outputLanguage: string;
   taxonomy: DecisionTaxonomy;
   normalizationExclude: string[];
+  toolGeneratedPaths: ReadonlySet<string>;
   selectedPaths: Set<string>;
   cache: ReturnType<typeof createDocumentNormalizationShardCache>;
   preflight: DocumentNormalizationPreflight;
@@ -2072,11 +2083,13 @@ async function prepareConfiguredDocumentNormalization(input: {
     loadDecisionTaxonomy(root),
   ]);
   const lifecycle = await normalizationLifecyclePaths(root, policy.publication.language);
+  const toolGeneratedPaths = await toolGeneratedDocumentPaths(root, scan, taxonomy);
   const eligible = eligibleDocuments(
     scan,
     policy.publicationRoot,
     taxonomy,
     policy.normalization?.exclude,
+    toolGeneratedPaths,
   );
   const pending = eligible.filter((item) => !lifecycle.current.has(item.source.path));
   const pendingPaths = new Set(pending.map((item) => item.source.path));
@@ -2146,6 +2159,7 @@ async function prepareConfiguredDocumentNormalization(input: {
     outputLanguage: policy.publication.language,
     taxonomy,
     normalizationExclude: policy.normalization?.exclude ?? [],
+    toolGeneratedPaths,
     selectedPaths,
     cache,
     preflight,
@@ -2273,6 +2287,7 @@ export async function createDocumentNormalizationPlan(input: {
     publicationRoot: policy.publicationRoot,
     taxonomy,
     normalizationExclude: policy.normalization?.exclude ?? [],
+    toolGeneratedPaths: await toolGeneratedDocumentPaths(root, scan, taxonomy),
   });
   const blockers: DocumentNormalizationPlan["blockers"] = [];
   if (

@@ -67,12 +67,12 @@ export async function runKnowledgeConvergenceOwnerCommand(
       });
       return 0;
     }
-    if (action === "publish") {
-      print(await createKnowledgePublisher(io.cwd)());
-      return 0;
-    }
     const storage = await openProjectStorage(io.cwd);
     try {
+      if (action === "publish") {
+        print(await createKnowledgePublisher(io.cwd)({ events: storage }));
+        return 0;
+      }
       const { verdict, hubReleased } = await createKnowledgeConvergenceOwnership(storage).release();
       print({ status: "yielding", hubReleased, verdict });
       return 0;

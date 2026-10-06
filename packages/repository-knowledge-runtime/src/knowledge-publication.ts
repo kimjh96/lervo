@@ -16,12 +16,22 @@ import {
   fetchKnowledgePublicationRefs,
   inventoryKnowledgePublication,
   KnowledgePublicationGitError,
-  knowledgePublicationScopeViolations,
   type KnowledgePublicationInventory,
   pushKnowledgePublicationTip,
   remoteTrackingHead,
   syncLocalBaseAfterPublication,
 } from "./knowledge-publication-git.js";
+import {
+  knowledgePublicationViolationDetail,
+  repairKnowledgePublication,
+  type KnowledgePublicationRepairEvents,
+  type KnowledgePublicationRepairOutcome,
+} from "./knowledge-publication-repair.js";
+import {
+  knowledgePublicationViolations,
+  loadKnowledgePublicationScope,
+  type KnowledgePublicationScope,
+} from "./knowledge-publication-scope.js";
 import type { KnowledgePublicationSettings } from "./knowledge-publication-settings.js";
 import {
   MAXIMUM_SUPERSEDED_COMMITS,
@@ -98,6 +108,8 @@ export async function publishKnowledgeOutputs(input: {
   /** The repository formatter; omitted loads the repository's own, null skips formatting. */
   formatter?: KnowledgeOutputFormatter | null;
   now?: () => Date;
+  /** Receives `knowledge.publication.repaired`; without it the repair commit is the only record. */
+  events?: KnowledgePublicationRepairEvents;
 }): Promise<KnowledgePublicationOutcome> {
   const root = input.repositoryRoot;
   const now = input.now ?? (() => new Date());
@@ -115,6 +127,17 @@ export async function publishKnowledgeOutputs(input: {
     ...(previous?.supersededCommits ?? []),
     ...(supersession?.entries.map((entry) => entry.commit) ?? []),
   ]);
+  const scope = await loadKnowledgePublicationScope(root, settings, now());
+  // ADR-0473: tool-owned and out-of-scope paths are restored before anything is published. A
+  // failed repair publishes nothing either: the scope check below still refuses those paths.
+  const repair = await repairKnowledgePublication({
+    repositoryRoot: root,
+    settings,
+    scope,
+    superseded,
+    now,
+    ...(input.events === undefined ? {} : { events: input.events }),
+  }).catch(() => null);
   // Without new local commits or an open pull request there is nothing to ask the remote.
   const local = await inventoryKnowledgePublication(root, settings, superseded).catch(() => null);
   if (
@@ -149,6 +172,8 @@ export async function publishKnowledgeOutputs(input: {
           ? loadRepositoryKnowledgeOutputFormatter(root)
           : Promise.resolve(input.formatter),
       host: { hostHash: host.hostHash, hostLabel: host.config.hostLabel },
+      scope,
+      repair,
       previous,
       superseded,
       base,
@@ -193,6 +218,8 @@ async function publish(input: {
   forge: KnowledgePublicationForge;
   formatter: () => Promise<KnowledgeOutputFormatter | null>;
   host: { hostHash: string; hostLabel: string };
+  scope: KnowledgePublicationScope;
+  repair: KnowledgePublicationRepairOutcome | null;
   previous: KnowledgePublicationState | null;
   superseded: ReadonlySet<string>;
   base: KnowledgePublicationState;
@@ -231,14 +258,15 @@ async function publish(input: {
       };
     return afterMerge(root, settings, base);
   }
-  const violations = knowledgePublicationScopeViolations(
-    inventory.knowledge,
-    settings.allowedRoots,
-  );
+  const violations = await knowledgePublicationViolations({
+    repositoryRoot: root,
+    commits: inventory.knowledge,
+    scope: input.scope,
+  });
   if (violations.length > 0)
     throw new PublicationFailure(
       "knowledge_publication_scope_violation",
-      `${violations.length} path(s) outside the allowed roots`,
+      knowledgePublicationViolationDetail(violations, input.repair),
     );
   const built = await step("knowledge_publication_conflict", async () =>
     buildKnowledgePublicationTip(root, inventory, await input.formatter()),

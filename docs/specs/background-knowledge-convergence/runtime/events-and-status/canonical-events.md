@@ -32,6 +32,12 @@ Required payload: `repositoryIdentityHash`, `action` (`renewed | seeded | reboun
 
 Records a delegation the resident renewed or seeded under the host continuity policy ([ADR-0469](../../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md)). The event ID derives from `planHash`. Hashes and the expiry only; the applied delegation, not the event, grants authority. [ADR-0471](../../../../decisions/coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md) adds `rebound` with source `binding_refresh`: an identity-preserving rebind of drifted suite or role hashes. Readers must deploy before writers that emit it.
 
+## `knowledge.publication.repaired`
+
+Required payload: `repairCommit`, `repairedCommits` (1 to 64), `toolGeneratedPathCount`, `outsideScopePathCount`, `normalizationPathCount`, `pathSetHash`, `hostHash`, `occurredAt`.
+
+Records one corrective `Lervo Knowledge` commit. The commit restored tool-generated documents or out-of-scope paths that earlier knowledge commits changed ([ADR-0473](../../../../decisions/knowledge/documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md)). The event ID derives from `repairCommit`. It carries commit coordinates, counts, and one digest, never paths or content. The commit and its `Lervo-Publication-Repair` trailers remain canonical; losing the event loses only the audit line.
+
 ## Assignment provenance
 
 `assignment.created` gains an all-or-none provenance set: `convergenceContractVersion`, `convergenceObligationId`, `convergenceBaselineEventId`, `convergenceBaselineEventHash`, `convergenceStage`, `convergenceInputArtifactHash`, `convergenceDelegationHash`, and `convergenceAgentId`.

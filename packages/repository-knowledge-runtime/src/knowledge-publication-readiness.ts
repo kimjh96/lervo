@@ -1,7 +1,6 @@
 import { execFile } from "node:child_process";
 
 import {
-  DEFAULT_KNOWLEDGE_PUBLICATION_ROOTS,
   parseKnowledgePublicationSettings,
   type KnowledgePublicationSettings,
 } from "./knowledge-publication-settings.js";
@@ -29,10 +28,23 @@ function run(root: string): Run {
 }
 
 /**
- * ADR-0469: publication settings this host can serve without operator input, or null. It
- * requires an `origin` remote, an observable remote default branch, and an authenticated `gh`
- * session. Nothing is fetched, pushed, or stored; the probe only reads local Git state and the
- * `gh` login.
+ * The branch the remote itself reports as its default, from `ls-remote --symref`. The local
+ * `refs/remotes/origin/HEAD` is not consulted: it is set once at clone time, may be missing, and
+ * may name a feature branch someone checked out with `remote set-head`.
+ */
+function remoteDefaultBranch(lsRemoteSymref: string): string | null {
+  for (const line of lsRemoteSymref.split("\n")) {
+    const match = /^ref: refs\/heads\/(\S+)\tHEAD$/u.exec(line.trim());
+    if (match !== null) return match[1]!;
+  }
+  return null;
+}
+
+/**
+ * ADR-0469 and ADR-0473: publication settings this host can serve without operator input, or
+ * null. It requires an `origin` remote, the remote's own default branch, and an authenticated `gh`
+ * session. Nothing is pushed or stored; the probe reads the remote's advertised `HEAD` and the
+ * `gh` login. The derived scope is the knowledge write scope, never fixed roots.
  */
 export async function probeKnowledgePublicationSettings(input: {
   repositoryRoot: string;
@@ -43,10 +55,8 @@ export async function probeKnowledgePublicationSettings(input: {
   const execute = input.runner ?? run(input.repositoryRoot);
   const git = input.gitExecutable ?? "git";
   if ((await execute(git, ["remote", "get-url", "origin"])) === null) return null;
-  const head = (
-    await execute(git, ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"])
-  )?.trim();
-  const baseBranch = head?.startsWith("origin/") ? head.slice("origin/".length) : null;
+  const advertised = await execute(git, ["ls-remote", "--symref", "origin", "HEAD"]);
+  const baseBranch = advertised === null ? null : remoteDefaultBranch(advertised);
   if (baseBranch === null || baseBranch === DEFAULT_KNOWLEDGE_PUBLICATION_BRANCH) return null;
   if ((await execute(input.ghExecutable ?? "gh", ["auth", "status"])) === null) return null;
   return parseKnowledgePublicationSettings({
@@ -54,6 +64,6 @@ export async function probeKnowledgePublicationSettings(input: {
     baseBranch,
     branch: DEFAULT_KNOWLEDGE_PUBLICATION_BRANCH,
     merge: "when_checks_pass",
-    allowedRoots: [...DEFAULT_KNOWLEDGE_PUBLICATION_ROOTS],
+    scope: "delegation",
   });
 }

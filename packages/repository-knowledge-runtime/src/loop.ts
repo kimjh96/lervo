@@ -18,6 +18,7 @@ import type { ConvergenceOwnership } from "./convergence-owner.js";
 import type { ConvergenceContinuity } from "./convergence-continuity.js";
 import type { InstructionCandidateExchangeTransport } from "./instruction-candidate-exchange.js";
 import type { KnowledgePublicationOutcome } from "./knowledge-publication.js";
+import type { KnowledgePublicationRepairEvents } from "./knowledge-publication-repair.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import {
   nonOwnerHealth,
@@ -67,8 +68,13 @@ export function startAutonomousKnowledgeWorker(input: {
   /** ADR-0466 cross-host owner; absent keeps the legacy single-host resident. */
   ownership?: ConvergenceOwnership;
   ownerHeartbeatMilliseconds?: number;
-  /** Publishes the owner's settled commits after each cycle; absent disables publication. */
-  publish?: () => Promise<KnowledgePublicationOutcome>;
+  /**
+   * Publishes the owner's settled commits after each cycle; absent disables publication. The
+   * resident's event store receives `knowledge.publication.repaired` (ADR-0473).
+   */
+  publish?: (context: {
+    events: KnowledgePublicationRepairEvents;
+  }) => Promise<KnowledgePublicationOutcome>;
   /** ADR-0467 Hub adapter for owner-rule candidates; absent keeps them host-local. */
   instructionCandidateTransport?: InstructionCandidateExchangeTransport;
   /** ADR-0469 delegation and host continuity; it runs before each ownership observation. */
@@ -218,7 +224,7 @@ export function startAutonomousKnowledgeWorker(input: {
     // Publication follows the cycle so commits made by it go out at once; only an owner publishes.
     const publication =
       input.publish !== undefined && verdict?.role === "owner" && !signal.aborted
-        ? await input.publish().catch((error: unknown) => {
+        ? await input.publish({ events: input.storage }).catch((error: unknown) => {
             input.onFailure(error);
             return null;
           })

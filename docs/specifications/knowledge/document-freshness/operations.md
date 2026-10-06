@@ -2,7 +2,9 @@
 
 ## Authority and apply
 
-Resolve ownership in this order:
+A tool-generated document never becomes a finding, so it never receives a candidate ([ADR-0473](../../../decisions/knowledge/documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md)). Its repository tool owns its bytes.
+
+Resolve ownership of every other document in this order:
 
 1. A range inside one `lervo_v1` managed block's content is Lervo-managed.
 2. A path under the publication root (`docs/knowledge/` by default), or a layout role with `lifecycleOwner: lervo` or `rewritePolicy: lervo_exact`, is Lervo-managed.

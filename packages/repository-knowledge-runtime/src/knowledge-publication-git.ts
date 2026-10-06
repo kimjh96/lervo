@@ -9,7 +9,7 @@ const MAXIMUM_PUBLISHED_COMMITS = 64;
 
 export class KnowledgePublicationGitError extends Error {
   constructor(
-    readonly stage: "fetch" | "inspect" | "rebuild" | "push" | "sync" | "supersede",
+    readonly stage: "fetch" | "inspect" | "rebuild" | "push" | "sync" | "supersede" | "repair",
     readonly exitCode: number | null,
     options?: ErrorOptions,
   ) {
@@ -173,20 +173,6 @@ export async function inventoryKnowledgePublication(
   if (knowledge.length > MAXIMUM_PUBLISHED_COMMITS)
     otherCount += knowledge.splice(MAXIMUM_PUBLISHED_COMMITS).length;
   return { head, base, knowledge, otherCount, developerCount };
-}
-
-/** Paths outside the allowed roots, across every commit; empty means publishable. */
-export function knowledgePublicationScopeViolations(
-  commits: readonly KnowledgePublicationCommit[],
-  allowedRoots: readonly string[],
-): string[] {
-  return [
-    ...new Set(
-      commits.flatMap((commit) =>
-        commit.paths.filter((path) => !allowedRoots.some((root) => path.startsWith(root))),
-      ),
-    ),
-  ].sort();
 }
 
 /** Pushes the tip with a lease on the observed branch head; never touches the base branch. */

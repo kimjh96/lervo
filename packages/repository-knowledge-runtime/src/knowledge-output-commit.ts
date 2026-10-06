@@ -7,6 +7,7 @@ import {
   documentNormalizationRecordSource,
   inspectConfiguredDocumentNormalization,
   isDocumentFormatOwnershipSource,
+  LERVO_KNOWLEDGE_COMMIT_EMAIL,
 } from "@lervo/repository-knowledge";
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
@@ -29,7 +30,7 @@ const execute = promisify(execFile);
 const RECORD_ROOT = ".lervo/knowledge/document-normalizations/";
 export const KNOWLEDGE_OUTPUT_COMMIT_AUTHOR = {
   name: "Lervo Knowledge",
-  email: "knowledge@lervo.invalid",
+  email: LERVO_KNOWLEDGE_COMMIT_EMAIL,
 };
 // Lervo both authors and commits its own outputs, so the commit never depends on a developer or
 // runner identity; without one, `git commit` fails before writing anything.

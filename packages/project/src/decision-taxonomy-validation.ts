@@ -195,7 +195,7 @@ function validateRole(
   issues.oneOf(
     role.lifecycleOwner,
     `${pointer}/lifecycleOwner`,
-    ["user", "lervo", "provider_adapter"],
+    ["user", "lervo", "provider_adapter", "tool_generated"],
     roleId,
   );
   issues.oneOf(

@@ -32,7 +32,10 @@ export function renderKnowledgePublicationBody(input: {
   const { commits, settings, host } = input;
   const paths = [...new Set(commits.flatMap((commit) => commit.paths))].sort();
   const listed = paths.slice(0, MAXIMUM_LISTED_PATHS);
-  const roots = settings.allowedRoots.map((root) => `\`${root}\``).join(" and ");
+  const roots =
+    settings.scope === "delegation"
+      ? "the active convergence delegation's canonical and normalization roots or Lervo-managed knowledge state"
+      : settings.allowedRoots.map((root) => `\`${root}\``).join(" and ");
   const merge =
     settings.merge === "when_checks_pass"
       ? "The publisher merges this pull request with a merge commit after every reported check succeeds, and only while its head is still the commit it pushed."
@@ -49,7 +52,7 @@ export function renderKnowledgePublicationBody(input: {
     ...listed.map((path) => `- \`${path}\``),
     ...(paths.length > listed.length ? [`- ${paths.length - listed.length} more files`] : []),
     "",
-    `Out of scope: developer work. The publisher includes only non-merge commits whose author and committer are both \`Lervo Knowledge\`, and it refuses the whole publication if any of them changes a path outside ${roots}.${input.rebuilt ? ` These commits were replayed onto the current \`${settings.remote}/${settings.baseBranch}\`, because the local branch held other commits or sat on an older base.` : ""}${formatted > 0 ? ` One more \`Lervo Knowledge\` commit formats ${formatted} path${formatted === 1 ? "" : "s"} those commits changed or released, using the repository's own Prettier configuration.` : ""}`,
+    `Out of scope: developer work. The publisher includes only non-merge commits whose author and committer are both \`Lervo Knowledge\`, and it refuses the whole publication if any of them changes a path outside ${roots}, or a document a repository tool generates, unless a later \`Lervo-Publication-Repair\` commit restored that path.${input.rebuilt ? ` These commits were replayed onto the current \`${settings.remote}/${settings.baseBranch}\`, because the local branch held other commits or sat on an older base.` : ""}${formatted > 0 ? ` One more \`Lervo Knowledge\` commit formats ${formatted} path${formatted === 1 ? "" : "s"} those commits changed or released, using the repository's own Prettier configuration.` : ""}`,
     "",
     `Authority: this host's reviewed convergence delegation and its live convergence owner lease (ADR-0466). External writes: a lease-protected push to \`${settings.branch}\` and this pull request. ${merge}`,
     "",
