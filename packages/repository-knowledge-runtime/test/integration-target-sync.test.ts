@@ -4,7 +4,10 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
-import { synchronizeIntegrationTarget } from "../src/integration-target-sync.js";
+import {
+  resolveIntegrationTarget,
+  synchronizeIntegrationTarget,
+} from "../src/integration-target-sync.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -79,4 +82,26 @@ it("fast-forwards a ref that HEAD already contains", async () => {
     await synchronizeIntegrationTarget({ repositoryRoot: root, ref, integrated: () => false }),
   ).toBe("synchronized");
   expect(git(root, "rev-parse", ref)).toBe(git(root, "rev-parse", "HEAD"));
+});
+
+it("starts an absent delegated integration ref at HEAD without touching the working branch", async () => {
+  const { root } = await diverged();
+  git(root, "update-ref", "-d", ref);
+  const status = git(root, "status", "--porcelain");
+  expect(await resolveIntegrationTarget(root, ref)).toBeNull();
+  expect(
+    await synchronizeIntegrationTarget({ repositoryRoot: root, ref, integrated: () => false }),
+  ).toBe("created");
+  expect(git(root, "rev-parse", ref)).toBe(git(root, "rev-parse", "HEAD"));
+  expect(git(root, "symbolic-ref", "HEAD")).toBe("refs/heads/main");
+  expect(git(root, "status", "--porcelain")).toBe(status);
+});
+
+it("records a typed unavailable target when HEAD has no commit to start the ref from", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-integration-sync-"));
+  roots.push(root);
+  git(root, "init", "-q", "-b", "main");
+  await expect(
+    synchronizeIntegrationTarget({ repositoryRoot: root, ref, integrated: () => false }),
+  ).rejects.toMatchObject({ code: "knowledge_integration_target_unavailable" });
 });

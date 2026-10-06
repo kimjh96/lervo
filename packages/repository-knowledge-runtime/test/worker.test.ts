@@ -112,12 +112,15 @@ it(
   },
 );
 
-it(
-  "integrates a reviewed canonical draft through isolated workspaces and verifies actual repository bytes",
+it.each(["present", "absent"] as const)(
+  "integrates a reviewed canonical draft through isolated workspaces and verifies actual repository bytes when the integration ref is %s",
   { timeout: 240_000 },
-  async () => {
+  async (integrationRef) => {
     const f = await fixture(true, true);
     fixtures.push(f);
+    // A delegation seeded on another host names a branch that this host never created.
+    if (integrationRef === "absent")
+      execFileSync("git", ["-C", f.root, "branch", "-D", "knowledge-integration"]);
     const runtimeSource = resolve(f.root, "src/runtime.ts");
     await writeFile(
       runtimeSource,

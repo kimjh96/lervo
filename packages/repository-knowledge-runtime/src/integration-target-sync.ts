@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { convergenceGit } from "./canonical-workspace.js";
+import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 
 const execute = promisify(execFile);
 
@@ -17,19 +18,57 @@ async function blobHash(root: string, commit: string, path: string): Promise<str
   }
 }
 
+/** The commit a ref names, or `null` when this repository has no such ref. */
+export async function resolveIntegrationTarget(root: string, ref: string): Promise<string | null> {
+  try {
+    const { stdout } = await execute("git", [
+      "-C",
+      root,
+      "rev-parse",
+      "--verify",
+      "--quiet",
+      `${ref}^{commit}`,
+    ]);
+    return stdout.trim() || null;
+  } catch (error) {
+    // `--verify --quiet` exits 1 without output only when the ref is absent.
+    if ((error as { code?: unknown }).code === 1) return null;
+    throw error;
+  }
+}
+
+/**
+ * A reviewed delegation can name a host-local branch that this host has never created. Starting it
+ * at `HEAD` is the same transition as fast-forwarding an ancestor ref. The empty old value makes Git
+ * refuse to replace a ref that another writer created meanwhile.
+ */
+async function createIntegrationTarget(root: string, ref: string): Promise<void> {
+  const head = await resolveIntegrationTarget(root, "HEAD");
+  if (head === null)
+    throw new KnowledgeConvergenceRuntimeError("knowledge_integration_target_unavailable");
+  await convergenceGit(root, ["update-ref", ref, head, ""]).catch(() => undefined);
+  if ((await resolveIntegrationTarget(root, ref)) === null)
+    throw new KnowledgeConvergenceRuntimeError("knowledge_integration_target_unavailable");
+}
+
 /**
  * Root apply commits integrated drafts as ordinary working-branch commits, so the integration ref
  * drifts from `HEAD`. When every ref-only change is an integrated draft that already reached the
- * working tree, record a merge with `HEAD`'s exact tree; otherwise leave the ref untouched.
+ * working tree, record a merge with `HEAD`'s exact tree; otherwise leave the ref untouched. An
+ * absent ref starts at `HEAD`.
  */
 export async function synchronizeIntegrationTarget(input: {
   repositoryRoot: string;
   ref: string;
   /** Whether exact draft bytes settled integration, including their root apply. */
   integrated: (path: string, contentHash: string) => boolean;
-}): Promise<"unchanged" | "synchronized"> {
+}): Promise<"unchanged" | "synchronized" | "created"> {
   const root = input.repositoryRoot;
-  const target = await convergenceGit(root, ["rev-parse", input.ref]);
+  const target = await resolveIntegrationTarget(root, input.ref);
+  if (target === null) {
+    await createIntegrationTarget(root, input.ref);
+    return "created";
+  }
   const head = await convergenceGit(root, ["rev-parse", "HEAD"]);
   if (target === head) return "unchanged";
   const isAncestor = async (ancestor: string, descendant: string) =>
