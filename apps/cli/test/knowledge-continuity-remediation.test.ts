@@ -24,6 +24,23 @@ describe("continuity remediation for resident admission (ADR-0470)", () => {
     expect(held).toContain("Hub");
   });
 
+  it("names the missing or conflicting delegation-bound definition and its remedy (ADR-0477)", () => {
+    expect(
+      continuityRemediation({
+        code: "delegation_missing",
+        severity: "attention",
+        detail: "convergence_seed_definition_conflict",
+      }),
+    ).toContain("never overwrites a file it did not install");
+    expect(
+      continuityRemediation({
+        code: "definition_exchange_unavailable",
+        severity: "attention",
+        detail: "hub_definitions_unsupported",
+      }),
+    ).toContain("Upgrade the Hub");
+  });
+
   it("points an unserved checkout at the host resident service or its Node", () => {
     expect(
       continuityRemediation({

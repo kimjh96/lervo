@@ -17,6 +17,10 @@ const SEED_FAILURES: Record<string, string> = {
     "None of the template's canonical or normalization roots exist in this checkout. Review a delegation with this repository's roots",
   convergence_seed_verification_missing:
     "The repository has no repository.default.vN or repository.default verification suite. Add .lervo/verifications/repository.default.v1.yaml, then the resident seeds on its next cycle",
+  convergence_seed_definition_unavailable:
+    "The peer's scope binds a verification suite or asset manifest this checkout lacks, and no host has shared the exact reviewed bytes through the Hub yet. The peer shares them on its next reconciliation once both the Hub and that host run an ADR-0477 version; see the definition_exchange_unavailable finding if one is reported",
+  convergence_seed_definition_conflict:
+    "This checkout has its own different file where the peer's scope binds a verification suite, role, or asset manifest, and Lervo never overwrites a file it did not install. Compare the file with the peer's copy: delete or rename yours to accept the reviewed one, or review a delegation that binds yours",
   convergence_seed_identity_mismatch:
     "The peer's delegation names another repository identity. Check that both checkouts share one .lervo/project.json",
   knowledge_authority_unavailable:
@@ -40,6 +44,8 @@ const HUB_FAILURES: Record<string, string> = {
   hub_response_invalid:
     "The Hub answered unexpectedly. Upgrade it to a version with ADR-0469 host records",
   hub_configuration_invalid: "The Hub coordinates or token cannot form a request. Fix them",
+  hub_definitions_unsupported:
+    "The Hub predates ADR-0477 and cannot carry delegation-bound definitions. Upgrade the Hub; host records keep working meanwhile",
   token_file_unreadable: "Make the Hub bearer token file an owner-only (0600) regular file",
 };
 
@@ -105,6 +111,8 @@ export function continuityRemediation(finding: ContinuityFinding): string {
       return "Publishing knowledge commits failed; see the knowledge_publication attention item.";
     case "hub_unavailable":
       return `Exchanging host records with the Hub failed. ${hubFailure(finding.detail)}.`;
+    case "definition_exchange_unavailable":
+      return `Sharing the definitions a delegation binds through the Hub failed, so a host that lacks a bound suite or role cannot seed. ${hubFailure(finding.detail)}. The resident retries on every reconciliation.`;
     case "peer_delegation_missing":
       return `Host ${finding.detail} has no active delegation. Its resident seeds one from this host's scope on its next cycle; run ${DOCTOR} there if it persists.`;
     case "peer_delegation_expiring":
