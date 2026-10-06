@@ -28,6 +28,7 @@ import {
   type HubKnowledgeConvergenceOwnerCoordinate,
   type HubKnowledgeConvergenceOwnerStore,
   type HubKnowledgeInstructionCandidateCoordinate,
+  type HubKnowledgeConvergenceHostCoordinate,
   type HubKnowledgeInstructionCandidateStore,
   type HubWorkstreamReplicationStore,
   type HubWorkspaceCoordinationStore,
@@ -77,6 +78,8 @@ import {
 
 import {
   type KnowledgeInstructionCandidatePublishStatus,
+  type KnowledgeConvergenceHostPublishStatus,
+  type KnowledgeConvergenceHostRecord,
   type KnowledgeInstructionCandidateRecord,
   type KnowledgeConvergenceOwnerDecision,
   type KnowledgeConvergenceOwnerMutation,
@@ -101,6 +104,7 @@ import { KnowledgeGraphIndexSQLiteWriter } from "./knowledge-graph-index-writer.
 import { HubKnowledgeGraphSQLiteRepository } from "./knowledge-graph-repository.js";
 import { HubKnowledgeConvergenceOwnerSQLiteRepository } from "./knowledge-convergence-owner-repository.js";
 import { HubKnowledgeInstructionCandidateSQLiteRepository } from "./knowledge-instruction-candidate-repository.js";
+import { HubKnowledgeConvergenceHostSQLiteRepository } from "./knowledge-convergence-host-repository.js";
 import { SQLiteTransactionRunner } from "./transaction-runner.js";
 import { HubWorkstreamSQLiteRepository } from "./workstream-repository.js";
 import { HubWorkspaceCoordinationSQLiteRepository } from "./workspace-coordination-repository.js";
@@ -154,6 +158,7 @@ export class HubSyncSQLiteStore
   private readonly workspaceCoordinationRepository: HubWorkspaceCoordinationSQLiteRepository;
   private readonly knowledgeConvergenceOwnerRepository: HubKnowledgeConvergenceOwnerSQLiteRepository;
   private readonly knowledgeInstructionCandidateRepository: HubKnowledgeInstructionCandidateSQLiteRepository;
+  private readonly knowledgeConvergenceHostRepository: HubKnowledgeConvergenceHostSQLiteRepository;
 
   private constructor(
     path: string,
@@ -182,6 +187,9 @@ export class HubSyncSQLiteStore
     );
     this.knowledgeInstructionCandidateRepository =
       new HubKnowledgeInstructionCandidateSQLiteRepository(database);
+    this.knowledgeConvergenceHostRepository = new HubKnowledgeConvergenceHostSQLiteRepository(
+      database,
+    );
   }
 
   static async open(options: { path: string }): Promise<HubSyncSQLiteStore> {
@@ -310,6 +318,27 @@ export class HubSyncSQLiteStore
     return this.transactionRunner.read(() =>
       this.knowledgeInstructionCandidateRepository.list(input),
     );
+  }
+
+  async publishKnowledgeConvergenceHost(input: {
+    destinationId: string;
+    record: KnowledgeConvergenceHostRecord;
+    acceptedAt: string;
+  }): Promise<{
+    status: KnowledgeConvergenceHostPublishStatus;
+    record: KnowledgeConvergenceHostRecord;
+  }> {
+    this.assertOpen();
+    return this.transactionRunner.write(() =>
+      this.knowledgeConvergenceHostRepository.publish(input),
+    );
+  }
+
+  async listKnowledgeConvergenceHosts(
+    input: HubKnowledgeConvergenceHostCoordinate,
+  ): Promise<KnowledgeConvergenceHostRecord[]> {
+    this.assertOpen();
+    return this.transactionRunner.read(() => this.knowledgeConvergenceHostRepository.list(input));
   }
 
   async readKnowledgeConvergenceOwner(
