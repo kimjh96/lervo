@@ -66,6 +66,16 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
         ? ""
         : ` · ${plan.stages.replicaService.serviceIdentity} · ${plan.stages.replicaService.action}`
     }`,
+    ...(plan.stages.replicaService.configMigration === "migrate"
+      ? [
+          "  The coordinator configuration moves from ~/.lervo into the Lervo user state directory; a .pre-adr-0483 backup stays beside the old file.",
+        ]
+      : []),
+    ...(plan.stages.replicaService.peerRuntimeOverride
+      ? [
+          "  The peer runtime stays an explicit path outside any runtimes directory, so it will not follow later deploys. Set peer.remoteRuntimesDirectory to follow them.",
+        ]
+      : []),
     ...blockerLines(plan.stages.replicaService.blockers, "  "),
     ...(plan.stages.hostService.unmanagedResidentRunning
       ? [

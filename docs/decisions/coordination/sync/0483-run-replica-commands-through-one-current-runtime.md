@@ -41,6 +41,22 @@ A new last upgrade stage, `replica_service`, runs after the `node` stage. It app
 - **Later deploys.** The definition names the pointer, not a runtime hash, so its bytes do not change across deploys. Later upgrades move only the pointer.
 - **Planning and stale plans.** The plan carries hashes, the `<hash16>` name, and the service identity, never paths. Apply re-plans and refuses a changed plan with `replica_service_plan_stale`. A stage deferred behind an applying `node` stage is re-observed during apply, because the Node activation already moved `current`.
 
+### `lervo upgrade` migrates the legacy coordinator configuration
+
+Hosts configured before this decision keep the coordinator configuration at `~/.lervo/repository-replica-coordinator.json`, and their peer is pinned to one runtime. When that file exists and the user state directory holds no `repository-replica-coordinator.json`, the `replica_service` stage plans a migration (`configMigration: migrate`, reason `replica_config_legacy`). The plan binds the hash of the migrated content.
+
+On apply, the stage performs these steps in order:
+
+1. It rechecks that the legacy bytes are unchanged.
+2. It copies the legacy file to `<legacy>.pre-adr-0483`, exclusively and with mode 0600.
+3. It publishes the migrated configuration in the user state directory with mode 0600. Publication goes through a hard link from a private temporary file, so the target appears complete and never replaces an existing file.
+4. It renders and installs the service against the migrated path.
+5. After the service runs from the migrated path, it removes the legacy file, so nothing reads it again.
+
+If the service does not stay active, the service manager restores the previous definition, and the legacy file stays in place.
+
+The migration changes one thing. A `peer.remoteRuntimeExecutable` of the form `<dir>/<hash16>/node-runtime.js` becomes `peer.remoteRuntimesDirectory: <dir>`. Any other explicit path stays an override. The stage reports it (`peerRuntimeOverride: true`), and the upgrade output explains that such a path will not follow later deploys. A legacy file that is not a readable configuration blocks the stage with `replica_config_legacy_invalid`. If the user state directory already holds a configuration, the legacy file is never read. An explicit `LERVO_USER_STATE_DIRECTORY` also disables the legacy location, which keeps tests and custom installations isolated from the home directory.
+
 ### The coordinator follows the peer's pointer
 
 `peer.remoteRuntimesDirectory` names the peer's runtimes directory as an absolute path. The peer command then runs `<directory>/current/node-runtime.js`. `peer.remoteRuntimeExecutable` remains as an explicit override. Exactly one of the two must be present.
@@ -74,6 +90,9 @@ New failure codes:
 - `repository_replica_capture_version_unsupported`: internal to the SSH adapter, which maps it to the legacy version.
 - `replica_service_plan_stale`: the replica service stage changed after the plan was approved.
 - `replica_service_unavailable`: the coordinator service did not stay active after install or replacement.
+- `replica_config_legacy_invalid` (blocker): the legacy `~/.lervo` configuration cannot be read as a coordinator configuration.
+
+New host files: `<legacy>.pre-adr-0483`, an owner-only backup of the migrated legacy configuration, written once.
 
 Upgrade blockers reuse `service_tool_unresolved`, `service_manager_unavailable`, and `service_state_conflict` with their ADR-0470 meanings.
 
@@ -82,9 +101,9 @@ Upgrade blockers reuse `service_tool_unresolved`, `service_manager_unavailable`,
 A new coordinator works with an old peer runtime and reports the incompatibility instead of a false `current`. An old coordinator never calls the new action. A configuration that still uses `peer.remoteRuntimeExecutable` keeps working, but it goes stale at the next deploy.
 
 1. Deploy the CLI and Node bundles on both hosts.
-2. Run `lervo upgrade` and apply its plan on every host that runs a Node or coordinates replicas. The `replica_service` stage creates `current`.
-3. On the coordinating host, move the coordinator configuration into the user state directory as `repository-replica-coordinator.json`, mode 0600. In it, replace `peer.remoteRuntimeExecutable` with `peer.remoteRuntimesDirectory`.
-4. Rerun `lervo upgrade`. The stage replaces the hand-written replica service definition under the same label and starts it.
+2. Run `lervo upgrade` and apply its plan on each host. On every host that runs a Node, the `replica_service` stage creates `current`. On the coordinating host, it also migrates the legacy configuration and replaces the hand-written replica service definition under the same label.
+
+No file is edited by hand.
 
 ## Consequences
 
@@ -102,6 +121,8 @@ Focused tests show:
   - A Node host's pointer moves to the bundled runtime without a service.
   - A hand-written `dev.lervo.repository-replica` plist that pins a runtime is replaced, as an upgrade with its predecessor, by one that runs `current/node-runtime.js repository-replica reconcile --watch`. It stays byte-identical when a later deploy moves only the pointer.
   - A changed plan is refused.
+  - The Mac's legacy configuration, pinned to `…/runtimes/node/6722dd85a39d6c93/node-runtime.js`, migrates to `remoteRuntimesDirectory` with every other field kept. The migrated file is mode 0600 in the user state directory, the backup holds the original bytes, the legacy file is gone, and the service renders against the migrated path.
+  - A path outside any runtimes directory stays a reported override. An unreadable legacy file blocks the stage. An existing managed configuration wins over the legacy file.
 - **Renderer:** the replica runtime renders the launchd label `dev.lervo.repository-replica`, the systemd unit `lervo-repository-replica.service`, and its command.
 - **Configuration:** a misplaced top-level `remoteRuntimeExecutable`, an unknown `peer` key, and an unknown repository key are each rejected. `remoteRuntimesDirectory` resolves to `<directory>/current/node-runtime.js`. Neither or both runtime options, and a relative directory, are rejected.
 - **Capture compatibility:** in a Mac and WSL pair that tracks the delegation, a legacy-version peer fails the cycle at `protocol` without moving the common base or the Mac's bytes. A current peer then pulls the WSL-only delegation change byte for byte. The SSH adapter maps a current answer, a legacy usage error behind a 20,000-character source line, SSH exit 255, and a malformed answer.

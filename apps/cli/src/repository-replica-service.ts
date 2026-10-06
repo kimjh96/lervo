@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { chmod, lstat, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
+import { lstat, readFile, realpath } from "node:fs/promises";
+import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 
 import { defaultNodeFleetRegistryPath, listNodeFleetInstances } from "@lervo/repository-registry";
@@ -14,7 +14,18 @@ import {
   // @ts-expect-error The repository service script intentionally remains plain ESM.
 } from "../../../scripts/distribution/render-runtime-service.mjs";
 
+import {
+  writeManagedUserService,
+  type ManagedServiceStatus,
+} from "./managed-user-service-write.js";
 import { materializeInstalledNodeLauncher } from "./node-fleet-runtime-material.js";
+import {
+  legacyReplicaConfigPath,
+  planReplicaConfigMigration,
+  retireLegacyReplicaConfig,
+  writeMigratedReplicaConfig,
+  type ReplicaConfigMigration,
+} from "./repository-replica-config-migration.js";
 import {
   currentNodeRuntimePayload,
   pointCurrentNodeRuntime,
@@ -28,14 +39,6 @@ const RUNTIME = "repository-replica";
 /** The coordinator configuration this stage manages a service for, in the user state directory. */
 export const REPOSITORY_REPLICA_CONFIG_FILE = "repository-replica-coordinator.json";
 
-interface ServiceStatus {
-  managerAvailable: boolean;
-  installed: boolean;
-  enabled: boolean | null;
-  active: boolean;
-  change?: string;
-}
-
 export interface RepositoryReplicaServicePorts {
   platform: NodeJS.Platform;
   homeDirectory: string;
@@ -44,10 +47,12 @@ export interface RepositoryReplicaServicePorts {
   /** The `<hash16>` directory the runtime bundled with this CLI installs into. */
   bundledRuntime(): Promise<string>;
   materializeRuntime(): Promise<void>;
+  /** The pre-ADR-0483 coordinator configuration to migrate, or null when none may be read. */
+  legacyConfigPath: string | null;
   /** Whether this host runs any registered Node, which makes it a replica peer candidate. */
   hostRunsNodes(): Promise<boolean>;
   nodeExecutable(): Promise<string>;
-  manage(args: string[], options: Record<string, unknown>): Promise<ServiceStatus>;
+  manage(args: string[], options: Record<string, unknown>): Promise<ManagedServiceStatus>;
 }
 
 function sha256(value: string | Uint8Array): string {
@@ -76,9 +81,10 @@ export function defaultRepositoryReplicaServicePorts(): RepositoryReplicaService
     materializeRuntime: async () => {
       await materializeInstalledNodeLauncher(home);
     },
+    legacyConfigPath: legacyReplicaConfigPath(home, process.env),
     hostRunsNodes: () => hostRunsNodes(process.env),
     nodeExecutable: () => realpath(process.execPath),
-    manage: (args, options) => manageRuntimeService(args, options) as Promise<ServiceStatus>,
+    manage: (args, options) => manageRuntimeService(args, options) as Promise<ManagedServiceStatus>,
   };
 }
 
@@ -98,11 +104,17 @@ export interface RepositoryReplicaServiceStage {
   action: "none" | "install" | "activate" | "upgrade";
   definitionHash: string | null;
   installedDefinitionHash: string | null;
+  /** `migrate`: the legacy `~/.lervo` configuration moves into the user state directory. */
+  configMigration: "none" | "migrate";
+  migratedConfigHash: string | null;
+  /** The migrated peer keeps an explicit runtime path, which goes stale at the next deploy. */
+  peerRuntimeOverride: boolean;
   blockers: UpgradeStageBlocker[];
 }
 
 interface PreparedReplicaService {
   stage: RepositoryReplicaServiceStage;
+  migration: ReplicaConfigMigration | null;
   definition: string | null;
   installed: Buffer | null;
   coordinates: {
@@ -145,10 +157,17 @@ async function prepareReplicaService(
   const manager =
     ports.platform === "darwin" ? "launchd" : ports.platform === "linux" ? "systemd" : null;
   const configPath = repositoryReplicaConfigPath(ports.environment);
-  const [coordinates, runsNodes] = await Promise.all([
+  const [configured, runsNodes] = await Promise.all([
     regularFile(configPath),
     ports.hostRunsNodes(),
   ]);
+  const legacy = configured
+    ? ({ status: "none" } as const)
+    : await planReplicaConfigMigration({
+        legacyPath: ports.legacyConfigPath,
+      });
+  const migration = legacy.status === "migrate" ? legacy.migration : null;
+  const coordinates = configured || migration !== null;
   const empty: RepositoryReplicaServiceStage = {
     disposition: "current",
     reason: "replica_not_configured",
@@ -159,23 +178,47 @@ async function prepareReplicaService(
     action: "none",
     definitionHash: null,
     installedDefinitionHash: null,
+    configMigration: "none",
+    migratedConfigHash: null,
+    peerRuntimeOverride: false,
     blockers: [],
   };
-  if (manager === null || (!coordinates && !runsNodes))
-    return { stage: empty, definition: null, installed: null, coordinates: null };
+  const unchanged = { definition: null, installed: null, coordinates: null, migration: null };
+  if (manager !== null && legacy.status === "invalid")
+    return {
+      stage: {
+        ...empty,
+        disposition: "blocked",
+        reason: "replica_config_legacy_invalid",
+        blockers: [
+          {
+            code: "replica_config_legacy_invalid",
+            message:
+              "~/.lervo/repository-replica-coordinator.json is not a readable coordinator configuration, so it cannot move into the Lervo user state directory. Fix or remove it, then rerun `lervo upgrade`.",
+          },
+        ],
+      },
+      ...unchanged,
+    };
+  if (manager === null || (!coordinates && !runsNodes)) return { stage: empty, ...unchanged };
   const runtime = await ports.bundledRuntime();
   const pointed = await readCurrentNodeRuntime(ports.homeDirectory, ports.platform);
   const pointerAction = pointed === runtime ? "none" : pointed === null ? "create" : "update";
-  const pointerStage = { ...empty, runtime, pointerAction } as RepositoryReplicaServiceStage;
+  const pointerStage = {
+    ...empty,
+    runtime,
+    pointerAction,
+    configMigration: migration === null ? "none" : "migrate",
+    migratedConfigHash: migration?.contentHash ?? null,
+    peerRuntimeOverride: migration?.peerRuntime === "explicit_override",
+  } as RepositoryReplicaServiceStage;
   if (!coordinates)
     return {
       stage:
         pointerAction === "none"
           ? { ...pointerStage, reason: "runtime_pointer_current" }
           : { ...pointerStage, disposition: "safe_apply", reason: "runtime_pointer_stale" },
-      definition: null,
-      installed: null,
-      coordinates: null,
+      ...unchanged,
     };
   const executable = currentNodeRuntimePayload(ports.homeDirectory, ports.platform);
   const [nodeExecutable, tools] = await Promise.all([
@@ -209,9 +252,15 @@ async function prepareReplicaService(
     stage: {
       ...pointerStage,
       disposition:
-        pointerAction !== "none" && disposition === "current" ? "safe_apply" : disposition,
+        (pointerAction !== "none" || migration !== null) && disposition === "current"
+          ? "safe_apply"
+          : disposition,
       reason:
-        pointerAction !== "none" && disposition === "current" ? "runtime_pointer_stale" : reason,
+        migration !== null && disposition !== "blocked"
+          ? "replica_config_legacy"
+          : pointerAction !== "none" && disposition === "current"
+            ? "runtime_pointer_stale"
+            : reason,
       manager,
       serviceIdentity:
         manager === "launchd" ? "dev.lervo.repository-replica" : "lervo-repository-replica.service",
@@ -223,6 +272,7 @@ async function prepareReplicaService(
     definition,
     installed,
     coordinates: { executable, nodeExecutable, configPath, pathDirectories: tools.directories },
+    migration,
   });
   if (tools.missing.length > 0)
     return prepared("blocked", "service_tool_unresolved", "none", [
@@ -267,6 +317,7 @@ export async function inspectRepositoryReplicaService(
 
 export interface RepositoryReplicaServiceReceipt {
   pointerAction: RepositoryReplicaServiceStage["pointerAction"];
+  configMigration: RepositoryReplicaServiceStage["configMigration"];
   serviceChange: string | null;
 }
 
@@ -287,7 +338,8 @@ export async function applyRepositoryReplicaService(
     current.stage.pointerAction !== approved.pointerAction ||
     current.stage.action !== approved.action ||
     current.stage.definitionHash !== approved.definitionHash ||
-    current.stage.installedDefinitionHash !== approved.installedDefinitionHash
+    current.stage.installedDefinitionHash !== approved.installedDefinitionHash ||
+    current.stage.migratedConfigHash !== approved.migratedConfigHash
   )
     throw Object.assign(new Error("The repository replica service changed after planning."), {
       code: "replica_service_plan_stale",
@@ -300,54 +352,35 @@ export async function applyRepositoryReplicaService(
       platform: ports.platform,
     });
   }
-  if (current.stage.action === "none")
-    return { pointerAction: current.stage.pointerAction, serviceChange: null };
-  const { coordinates, definition, installed } = current;
-  const directory = await mkdtemp(resolve(tmpdir(), "lervo-repository-replica-service-"));
-  try {
-    const definitionPath = resolve(directory, "service-definition");
-    await writeFile(definitionPath, definition!, { mode: 0o600, flag: "wx" });
-    await chmod(definitionPath, 0o600);
-    const previous: string[] = [];
-    if (current.stage.action === "upgrade") {
-      const previousPath = resolve(directory, "previous-service-definition");
-      await writeFile(previousPath, installed!, { mode: 0o600, flag: "wx" });
-      await chmod(previousPath, 0o600);
-      previous.push("--previous-definition", previousPath);
-    }
-    const result = await ports.manage(
-      [
-        "--action",
-        current.stage.action === "upgrade" ? "upgrade" : "install",
-        "--manager",
-        current.stage.manager!,
-        "--runtime",
-        RUNTIME,
-        "--definition",
-        definitionPath,
-        ...previous,
-        "--executable",
-        coordinates!.executable,
-        "--node-executable",
-        coordinates!.nodeExecutable,
-        ...(coordinates!.pathDirectories.length === 0
-          ? []
-          : ["--path-directories", coordinates!.pathDirectories.join(":")]),
-        "--config",
-        coordinates!.configPath,
-        "--write",
-      ],
-      { homeDirectory: ports.homeDirectory, platform: ports.platform, uid: ports.uid },
-    );
-    if (!result.managerAvailable || !result.installed || !result.active || result.enabled === false)
-      throw Object.assign(new Error("The repository replica service did not remain active."), {
-        code: "replica_service_unavailable",
-      });
+  const { coordinates, definition, installed, migration } = current;
+  if (migration !== null) await writeMigratedReplicaConfig(migration, coordinates!.configPath);
+  if (current.stage.action === "none") {
+    if (migration !== null) await retireLegacyReplicaConfig(migration);
     return {
       pointerAction: current.stage.pointerAction,
-      serviceChange: result.change ?? "unchanged",
+      configMigration: current.stage.configMigration,
+      serviceChange: null,
     };
-  } finally {
-    await rm(directory, { recursive: true, force: true });
   }
+  const result = await writeManagedUserService({
+    manage: ports.manage,
+    options: { homeDirectory: ports.homeDirectory, platform: ports.platform, uid: ports.uid },
+    manager: current.stage.manager!,
+    runtime: RUNTIME,
+    action: current.stage.action,
+    definition: definition!,
+    installed,
+    coordinates: coordinates!,
+  });
+  if (!result.managerAvailable || !result.installed || !result.active || result.enabled === false)
+    throw Object.assign(new Error("The repository replica service did not remain active."), {
+      code: "replica_service_unavailable",
+    });
+  // The service now reads the migrated configuration; the legacy file is no longer read.
+  if (migration !== null) await retireLegacyReplicaConfig(migration);
+  return {
+    pointerAction: current.stage.pointerAction,
+    configMigration: current.stage.configMigration,
+    serviceChange: result.change ?? "unchanged",
+  };
 }

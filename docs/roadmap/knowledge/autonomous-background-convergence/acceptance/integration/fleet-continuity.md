@@ -27,7 +27,7 @@ Implemented and source-tested: equal renewal bytes at any instant inside one win
 
 - [ ] A replica whose two sides capture under different semantics fails with a named failure instead of reporting `current`, and a delegation-only owner change reaches the follower once both sides match, under [ADR-0483](../../../../../decisions/coordination/sync/0483-run-replica-commands-through-one-current-runtime.md).
 
-Implemented and source-tested: a legacy-version peer fails the cycle at `protocol` without moving the common base or the follower's bytes; a current peer then pulls the owner's delegation-only change; the `capture-version` command; SSH adapter mapping of a current answer, a legacy usage error, an SSH transport failure, and a malformed answer; the atomic `current` runtime pointer; the `replica_service` upgrade stage, which moves the pointer and replaces a hand-written coordinator definition with one that runs through it; and exact coordinator configuration keys.
+Implemented and source-tested: a legacy-version peer fails the cycle at `protocol` without moving the common base or the follower's bytes; a current peer then pulls the owner's delegation-only change; the `capture-version` command; SSH adapter mapping of a current answer, a legacy usage error, an SSH transport failure, and a malformed answer; the atomic `current` runtime pointer; the `replica_service` upgrade stage, which moves the pointer and replaces a hand-written coordinator definition with one that runs through it; exact coordinator configuration keys; and automatic migration of the legacy `~/.lervo` configuration with a backup.
 
 ## Open installed acceptance
 
@@ -37,5 +37,5 @@ Implemented and source-tested: a legacy-version peer fails the cycle at `protoco
 - plen and digimon run in Hub mode with one owner.
 - `lervo upgrade` reports `current (background_owned)` on a delegated repository with normalization debt.
 - In plen, after both hosts run the ADR-0478 bundles, only the owner renews, and the Mac and WSL delegation files are byte-identical after the next replica cycle and after a later `lervo upgrade --apply`.
-- After `lervo upgrade` on both hosts and `peer.remoteRuntimesDirectory` in the moved coordinator configuration, the Mac replica service runs through `current`, the plen cycle pulls the WSL owner's delegation, both files hash equally, and the next deploy needs no edit to the configuration or the plist.
+- After only `lervo upgrade` on both hosts, the Mac coordinator configuration has migrated to `peer.remoteRuntimesDirectory`, the Mac replica service runs through `current`, the plen cycle pulls the WSL owner's delegation, both files hash equally, and the next deploy needs no edit to the configuration or the plist.
 - On the Mac, axli installs `.lervo/verifications/repository.knowledge.yaml` from the WSL delegation's shared definition, reports an active delegation, and observes `waiting_owner` while WSL holds the lease.

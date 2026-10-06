@@ -1,4 +1,4 @@
-import { chmod, mkdir, mkdtemp, readFile, readlink, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, readlink, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -11,6 +11,7 @@ import {
   pointCurrentNodeRuntime,
   readCurrentNodeRuntime,
 } from "../src/node-runtime-pointer.js";
+import { migrateReplicaConfig } from "../src/repository-replica-config-migration.js";
 import {
   applyRepositoryReplicaService,
   inspectRepositoryReplicaService,
@@ -33,7 +34,7 @@ async function installRuntime(home: string, name: string): Promise<void> {
   await writeFile(resolve(directory, "node-runtime.js"), `// runtime ${name}\n`, { mode: 0o600 });
 }
 
-async function fixture(options: { coordinator?: boolean; nodes?: boolean } = {}) {
+async function fixture(options: { coordinator?: boolean; nodes?: boolean; legacy?: unknown } = {}) {
   const home = await mkdtemp(resolve(tmpdir(), "lervo-replica-service-"));
   directories.push(home);
   const state = resolve(home, "state");
@@ -45,6 +46,15 @@ async function fixture(options: { coordinator?: boolean; nodes?: boolean } = {})
     await chmod(resolve(bin, name), 0o755);
   }
   const environment = { LERVO_USER_STATE_DIRECTORY: state, PATH: bin };
+  const legacyConfigPath = resolve(home, ".lervo", "repository-replica-coordinator.json");
+  if (options.legacy !== undefined) {
+    await mkdir(resolve(legacyConfigPath, ".."), { recursive: true });
+    await writeFile(
+      legacyConfigPath,
+      typeof options.legacy === "string" ? options.legacy : JSON.stringify(options.legacy),
+      { mode: 0o600 },
+    );
+  }
   if (options.coordinator === true)
     await writeFile(repositoryReplicaConfigPath(environment), "{}\n", { mode: 0o600 });
   const target = resolve(home, "Library", "LaunchAgents", "dev.lervo.repository-replica.plist");
@@ -66,11 +76,12 @@ async function fixture(options: { coordinator?: boolean; nodes?: boolean } = {})
     environment,
     bundledRuntime: async () => NEW,
     materializeRuntime: materialize,
+    legacyConfigPath,
     hostRunsNodes: async () => options.nodes ?? false,
     nodeExecutable: async () => resolve(bin, "node"),
     manage,
   };
-  return { home, target, status, manage, materialize, ports };
+  return { home, target, status, manage, materialize, ports, legacyConfigPath, environment };
 }
 
 describe("current Node runtime pointer (ADR-0483)", () => {
@@ -135,6 +146,7 @@ describe("repository replica service stage (ADR-0483)", () => {
     });
     await expect(applyRepositoryReplicaService(stage, ports)).resolves.toEqual({
       pointerAction: "update",
+      configMigration: "none",
       serviceChange: null,
     });
     expect(materialize).toHaveBeenCalledOnce();
@@ -197,6 +209,107 @@ describe("repository replica service stage (ADR-0483)", () => {
     await writeFile(target, "<plist>changed</plist>\n", { mode: 0o600 });
     await expect(applyRepositoryReplicaService(stage, ports)).rejects.toMatchObject({
       code: "replica_service_plan_stale",
+    });
+  });
+});
+
+describe("legacy coordinator configuration migration (ADR-0483)", () => {
+  // The Mac's configuration before ADR-0483, with the peer pinned to one WSL runtime.
+  const legacy = {
+    schemaVersion: 1,
+    stateFile: "/Users/owner/.lervo/state/repository-replicas.json",
+    pollIntervalMs: 30_000,
+    peer: {
+      executable: "/usr/bin/ssh",
+      arguments: ["-o", "BatchMode=yes"],
+      destination: "owner@wsl",
+      remoteNodeExecutable: "/home/jonghyeok/.local/bin/node",
+      remoteRuntimeExecutable:
+        "/home/jonghyeok/.local/share/lervo/runtimes/node/6722dd85a39d6c93/node-runtime.js",
+    },
+    repositories: [{ replicaId: "plen", localRoot: "/Users/owner/plen", peerRoot: "/home/plen" }],
+  };
+
+  it("converts a pinned peer runtime to the pointer and keeps every other field", () => {
+    expect(migrateReplicaConfig(legacy)).toEqual({
+      config: {
+        ...legacy,
+        peer: {
+          executable: "/usr/bin/ssh",
+          arguments: ["-o", "BatchMode=yes"],
+          destination: "owner@wsl",
+          remoteNodeExecutable: "/home/jonghyeok/.local/bin/node",
+          remoteRuntimesDirectory: "/home/jonghyeok/.local/share/lervo/runtimes/node",
+        },
+      },
+      peerRuntime: "pointer",
+    });
+    const custom = { ...legacy, peer: { ...legacy.peer, remoteRuntimeExecutable: "/opt/x.js" } };
+    expect(migrateReplicaConfig(custom)).toEqual({
+      config: custom,
+      peerRuntime: "explicit_override",
+    });
+    expect(migrateReplicaConfig([])).toBeNull();
+  });
+
+  it("moves the legacy file into the user state directory and renders the service against it", async () => {
+    const { ports, target, legacyConfigPath, environment, home } = await fixture({ legacy });
+    await mkdir(resolve(target, ".."), { recursive: true });
+    await writeFile(target, `<plist>${OLD}/node-runtime.js</plist>\n`, { mode: 0o600 });
+    const original = await readFile(legacyConfigPath, "utf8");
+
+    const stage = await inspectRepositoryReplicaService(ports);
+    expect(stage).toMatchObject({
+      disposition: "safe_apply",
+      reason: "replica_config_legacy",
+      configMigration: "migrate",
+      peerRuntimeOverride: false,
+      action: "upgrade",
+    });
+    expect(JSON.stringify(stage)).not.toContain(home);
+    await expect(applyRepositoryReplicaService(stage, ports)).resolves.toMatchObject({
+      configMigration: "migrate",
+      serviceChange: "upgraded",
+    });
+
+    const migratedPath = repositoryReplicaConfigPath(environment);
+    expect((await stat(migratedPath)).mode & 0o777).toBe(0o600);
+    expect(JSON.parse(await readFile(migratedPath, "utf8")).peer).toEqual({
+      executable: "/usr/bin/ssh",
+      arguments: ["-o", "BatchMode=yes"],
+      destination: "owner@wsl",
+      remoteNodeExecutable: "/home/jonghyeok/.local/bin/node",
+      remoteRuntimesDirectory: "/home/jonghyeok/.local/share/lervo/runtimes/node",
+    });
+    // A backup keeps the original bytes, and the legacy location is no longer read.
+    expect(await readFile(`${legacyConfigPath}.pre-adr-0483`, "utf8")).toBe(original);
+    await expect(stat(legacyConfigPath)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(target, "utf8")).toContain(`<string>${migratedPath}</string>`);
+    expect(await inspectRepositoryReplicaService(ports)).toMatchObject({
+      disposition: "current",
+      configMigration: "none",
+    });
+  });
+
+  it("keeps a runtime path outside any runtimes directory as a reported override", async () => {
+    const custom = { ...legacy, peer: { ...legacy.peer, remoteRuntimeExecutable: "/opt/x.js" } };
+    const { ports } = await fixture({ legacy: custom });
+    expect(await inspectRepositoryReplicaService(ports)).toMatchObject({
+      reason: "replica_config_legacy",
+      configMigration: "migrate",
+      peerRuntimeOverride: true,
+    });
+  });
+
+  it("blocks on an unreadable legacy file and prefers an existing managed configuration", async () => {
+    const broken = await fixture({ legacy: "{not json" });
+    expect(await inspectRepositoryReplicaService(broken.ports)).toMatchObject({
+      disposition: "blocked",
+      reason: "replica_config_legacy_invalid",
+    });
+    const both = await fixture({ legacy, coordinator: true });
+    expect(await inspectRepositoryReplicaService(both.ports)).toMatchObject({
+      configMigration: "none",
     });
   });
 });
