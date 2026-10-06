@@ -93,7 +93,7 @@ The remediation for a held or unserved checkout is never "register a Node or run
 The code-quality workflow adds two pull-request and `main` jobs on `ubuntu-latest` with Node 22.13.0:
 
 - `release-artifacts`: `pnpm build`, `pnpm release:manifest:check`, and `pnpm release:sbom:check`.
-- `test`: `pnpm build`, then `pnpm test`, sharded across four runners with two workers each and a 45-minute timeout per shard. A vitest setup file points `LERVO_USER_STATE_DIRECTORY` at a per-process temporary directory, so no test reads or writes a developer's real host registry, policy, or services.
+- `test`: `pnpm build`, then `pnpm test`, sharded across four runners with two workers each, a 30-second default test deadline, and a 45-minute timeout per shard. A vitest setup file points `LERVO_USER_STATE_DIRECTORY` at a per-process temporary directory, so no test reads or writes a developer's real host registry, policy, or services.
 
 ## Failure meaning
 

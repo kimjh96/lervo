@@ -48,7 +48,10 @@ describe("code-quality workflow", () => {
     assert.ok(job["timeout-minutes"] <= 60);
     const runs = job.steps.map(({ run }) => run).filter(Boolean);
     assert.ok(runs.indexOf("pnpm build") < runs.findIndex((run) => run.startsWith("pnpm test")));
-    assert.equal(runs.at(-1), "pnpm test --maxWorkers=2 --shard=${{ matrix.shard }}/4");
+    assert.equal(
+      runs.at(-1),
+      "pnpm test --maxWorkers=2 --testTimeout=30000 --shard=${{ matrix.shard }}/4",
+    );
   });
 
   it("typechecks against Node type definitions that track the engines minimum", async () => {
