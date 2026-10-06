@@ -35,6 +35,7 @@ export type ContinuityFindingCode =
   | "publication_unavailable"
   | "publication_failed"
   | "hub_unavailable"
+  | "definition_exchange_unavailable"
   | "peer_delegation_missing"
   | "peer_delegation_expiring"
   | "peer_unreported"
@@ -89,6 +90,8 @@ export interface ContinuityFindingsInput {
   verdict: { role: string; failureCode: string | null } | null;
   publicationStatus: string | null;
   hubFailure: string | null;
+  /** ADR-0477: why exchanging delegation-bound definitions failed, if it did. */
+  definitionExchangeFailure?: string | null;
   peers: readonly ContinuityPeerObservation[];
 }
 
@@ -187,6 +190,12 @@ function hostFindings(input: ContinuityFindingsInput): ContinuityFinding[] {
     });
   if (input.hubFailure !== null)
     findings.push({ code: "hub_unavailable", severity: "attention", detail: input.hubFailure });
+  else if ((input.definitionExchangeFailure ?? null) !== null)
+    findings.push({
+      code: "definition_exchange_unavailable",
+      severity: "attention",
+      detail: input.definitionExchangeFailure!,
+    });
   return findings;
 }
 

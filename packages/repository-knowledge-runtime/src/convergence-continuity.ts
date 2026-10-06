@@ -28,6 +28,13 @@ import {
 } from "./convergence-owner-host-derivation.js";
 import { loadConvergenceDelegation } from "./delegation.js";
 import { continueConvergenceDelegation } from "./delegation-continuity.js";
+import {
+  definitionExchangeFailureCode,
+  hubDefinitionSource,
+  publishBoundDefinitions,
+  type ConvergenceDefinitionPort,
+  type DefinitionExchangeObservation,
+} from "./delegation-definition-exchange.js";
 import type { KnowledgePublicationSettings } from "./knowledge-publication-settings.js";
 import { readKnowledgePublicationState } from "./knowledge-publication-state.js";
 import { inspectKnowledgeResidentHealth } from "./resident-health.js";
@@ -69,6 +76,8 @@ export interface ConvergenceHostRecordPort {
     signal?: AbortSignal,
   ): Promise<KnowledgeConvergenceHostPublishStatus>;
   list(signal?: AbortSignal): Promise<KnowledgeConvergenceHostRecord[]>;
+  /** ADR-0477 delegation-bound definitions through the same Hub; absent in older adapters. */
+  definitions?: ConvergenceDefinitionPort;
 }
 
 export type ConvergenceHostRecordTransport = (
@@ -196,11 +205,15 @@ export class ConvergenceContinuity {
       } catch (error) {
         hubFailure = knowledgeConvergenceOwnerFailureOf(error).failureCode;
       }
+    const exchange: DefinitionExchangeObservation = { failureCode: null };
+    const definitionPort = hubFailure === null ? (port?.definitions ?? null) : null;
     const continuity = await continueConvergenceDelegation({
       storage: this.input.storage,
       policyPath: this.input.policyPath,
       peers,
       hostHash: host?.hostHash ?? null,
+      definitions:
+        definitionPort === null ? null : hubDefinitionSource(definitionPort, exchange, signal),
       now: startedAt,
     });
     const [current, fence, publication, health] = await Promise.all([
@@ -212,6 +225,17 @@ export class ConvergenceContinuity {
       readKnowledgePublicationState(this.root).catch(() => null),
       inspectKnowledgeResidentHealth(this.root).catch(() => null),
     ]);
+    if (definitionPort !== null && host !== null)
+      await publishBoundDefinitions({
+        storage: this.input.storage,
+        delegation: current,
+        port: definitionPort,
+        hostHash: host.hostHash,
+        now: startedAt,
+        ...(signal === undefined ? {} : { signal }),
+      }).catch((error: unknown) => {
+        exchange.failureCode ??= definitionExchangeFailureCode(error);
+      });
     const verdict =
       fence === null
         ? null
@@ -228,6 +252,7 @@ export class ConvergenceContinuity {
       verdict,
       publicationStatus: publication?.status ?? null,
       hubFailure,
+      definitionExchangeFailure: exchange.failureCode,
       peers: peerSummaries,
     });
     if (port !== null && host !== null)

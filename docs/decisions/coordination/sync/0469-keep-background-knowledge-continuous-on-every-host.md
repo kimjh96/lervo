@@ -50,7 +50,7 @@ Each resident publishes a **host record** through the Hub holding its ADR-0466 l
 
 A host without a delegation may seed one under a policy allowing seeding:
 
-- **From a peer:** use the freshest active peer scope within policy limits. Repository identity must match. Local role contracts, profiles, and capability bindings must resolve to the peer's exact hashes; the plan revalidates suites. Only the accountable agent is local: an active agent with the parent role contract, or a newly hired `Knowledge Steward` with that role.
+- **From a peer:** use the freshest active peer scope within policy limits. Repository identity must match. Local role contracts, profiles, and capability bindings must resolve to the peer's exact hashes; the plan revalidates suites. Only the accountable agent is local: an active agent with the parent role contract, or a newly hired `Knowledge Steward` with that role. [ADR-0477](0477-carry-delegation-bound-definitions-across-hosts.md) amends this: before seeding, the host installs bound suites, repository roles, and the asset manifest it lacks from the exact reviewed bytes another host shared through the Hub.
 - **From the template:** use roots present in this checkout, locally resolved role pins, and the repository's latest `repository.default.vN` suite (else `repository.default`, else its only non-pilot suite).
 
 `lervo knowledge convergence delegation seed` runs the same reconciliation immediately.

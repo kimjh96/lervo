@@ -6,6 +6,7 @@ import {
 } from "@lervo/sync-contract";
 
 import { HubJsonHttpClient } from "./hub-json-http-client.js";
+import { HubKnowledgeConvergenceDefinitionClient } from "./knowledge-convergence-definition-client.js";
 import {
   classifyHubOwnerRequestFailure,
   HubKnowledgeConvergenceOwnerUnavailableError,
@@ -18,11 +19,13 @@ const REQUEST_TIMEOUT_MS = 15_000;
 /**
  * HTTP adapter for ADR-0469 host continuity records. It uses the owner lease's Hub target and
  * failure causes, so a refused request names `hub_forbidden` or `hub_unreachable` exactly as a
- * refused lease does.
+ * refused lease does. `definitions` exchanges the ADR-0477 delegation-bound definitions of the
+ * same repository through the same Hub and credential.
  */
 export class HubKnowledgeConvergenceHostClient {
   private readonly client: HubJsonHttpClient;
   private readonly url: URL;
+  readonly definitions: HubKnowledgeConvergenceDefinitionClient;
 
   constructor(
     private readonly target: HubKnowledgeConvergenceOwnerTarget & {
@@ -53,6 +56,7 @@ export class HubKnowledgeConvergenceHostClient {
     );
     this.url.searchParams.set("destinationId", target.destinationId);
     this.url.searchParams.set("projectIdentityHash", target.repositoryIdentityHash);
+    this.definitions = new HubKnowledgeConvergenceDefinitionClient(target);
   }
 
   async publish(

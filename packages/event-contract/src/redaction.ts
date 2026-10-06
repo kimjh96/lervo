@@ -128,6 +128,14 @@ export const eventPayloadAllowlists = {
     "sourceHostHash",
     "occurredAt",
   ],
+  "knowledge.convergence.definitions.installed": [
+    "repositoryIdentityHash",
+    "scopeHash",
+    "observerHostHash",
+    "sourceHostHash",
+    "definitions",
+    "occurredAt",
+  ],
   "knowledge.publication.repaired": [
     "repairCommit",
     "repairedCommits",
@@ -1417,6 +1425,8 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "knowledge.convergence.owner.changed": "knowledgeConvergenceOwnerChangedEventPayload",
   "knowledge.convergence.delegation.continued":
     "knowledgeConvergenceDelegationContinuedEventPayload",
+  "knowledge.convergence.definitions.installed":
+    "knowledgeConvergenceDefinitionsInstalledEventPayload",
   "knowledge.publication.repaired": "knowledgePublicationRepairedEventPayload",
   "repository.knowledge.resolved": "repositoryKnowledgeResolvedEventPayload",
   "agent.context.promoted": "agentContextPromotedEventPayload",

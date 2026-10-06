@@ -21,6 +21,8 @@ import {
   type DelegationRenewalDecision,
 } from "./delegation-continuity-decision.js";
 import { recordDelegationContinuation } from "./delegation-continuity-event.js";
+import type { ConvergenceDefinitionSource } from "./delegation-definition-acceptance.js";
+import { installPeerScopeDefinitions } from "./delegation-definition-installation.js";
 import {
   applyConvergenceDelegationPlan,
   createConvergenceDelegationPlan,
@@ -102,6 +104,8 @@ export async function continueConvergenceDelegation(input: {
   policyPath: string | null;
   peers: readonly KnowledgeConvergenceHostRecord[];
   hostHash: string | null;
+  /** Where peer-bound definitions come from; null without Hub coordination. */
+  definitions?: ConvergenceDefinitionSource | null;
   now: Date;
 }): Promise<DelegationContinuityResult> {
   const root = input.storage.paths.repositoryRoot;
@@ -240,6 +244,17 @@ export async function continueConvergenceDelegation(input: {
         continuation: null,
         failureCode: seed.kind === "none" ? null : "convergence_continuity_horizon_exhausted",
       };
+    // ADR-0477: a peer scope may bind suites or roles this checkout lacks; install the exact
+    // reviewed bytes first, so seeding and the plan revalidate them like any local definition.
+    if (seed.kind === "peer")
+      await installPeerScopeDefinitions({
+        storage: input.storage,
+        record: seed.record,
+        expiresAt: seed.expiresAt,
+        source: input.definitions ?? null,
+        observerHostHash: input.hostHash,
+        now: input.now,
+      });
     const seeded =
       seed.kind === "peer"
         ? await seedDelegationFromPeerScope({

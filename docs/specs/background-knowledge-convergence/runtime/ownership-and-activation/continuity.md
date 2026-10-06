@@ -58,14 +58,30 @@ A resident reconciles before each ownership observation. A healthy reconciliatio
 1. Derive the owner-host configuration from the candidate Hub coordinates (below).
 2. Read peer host records through the Hub when the checkout is in Hub mode.
 3. Adopt the standing policy when the host has none and this checkout holds an active reviewed delegation.
-4. Rebind a delegation whose bound suite or role hashes drifted while every identifier stayed the same (`rebound`, source `binding_refresh`, ADR-0471). Otherwise renew a due delegation at the same scope, or seed a missing one from the freshest in-policy peer scope or the template.
-5. Publish this host's record, then write `.lervo/state/knowledge/convergence-continuity.json`.
+4. Rebind a delegation whose bound suite or role hashes drifted while every identifier stayed the same (`rebound`, source `binding_refresh`, ADR-0471). Otherwise renew a due delegation at the same scope, or seed a missing one from the freshest in-policy peer scope or the template. Before seeding from a peer, install the bound definitions this checkout lacks (below).
+5. Publish the definitions this host's active delegation binds and reproduces, then this host's record, then write `.lervo/state/knowledge/convergence-continuity.json`.
 
 The CLI worker (`lervo knowledge worker --watch|--once`) and the Node resident child both reconcile. A detached worker launched after a terminal turn reconciles too, off the hook's critical path.
 
 `lervo knowledge worker --watch --host [--provider <codex|claude>]` is the host resident. It runs one ordinary resident for every checkout in `repositories.json` or `node-fleet.json` that no registered Node serves and that has a delegation or an active policy to seed one. It rescans every five minutes, starting residents for new checkouts and stopping them for removed ones.
 
 Under [ADR-0470](../../../../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md), a checkout whose event writer is older than schema 4 is never skipped silently. The host resident runs the local-only writer activation (backup, then the exact plan) and starts the resident. When activation is blocked, it holds the checkout: an `attention` heartbeat with reason `event_schema_outdated`, retried every 30 minutes. A Node's resident child holds the same way and resumes when `lervo upgrade` activates the writer. The host resident records every checkout's state in `knowledge-host-resident.json` and serves only while it holds `knowledge-host-resident.lock`. `lervo upgrade` installs and keeps current its service (`com.lervo.knowledge.host` or `lervo-knowledge-host.service`).
+
+## Delegation-bound definitions
+
+[ADR-0477](../../../../decisions/coordination/sync/0477-carry-delegation-bound-definitions-across-hosts.md) lets a host seed a peer scope whose suites, repository roles, or asset manifest exist only on another host.
+
+| Kind                         | Installed path                                                         | Accepted when                                                                |
+| ---------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `verification_suite`         | `.lervo/verifications/<suiteId>.yaml`                                  | The suite passes its contract, names the bound ID, and hashes to `suiteHash` |
+| `repository_role`            | `.lervo/roles/<roleId>.json` for the role and its repository ancestors | The registry with these sources resolves every accepted binding exactly      |
+| `asset_disposition_manifest` | `.lervo/knowledge/convergence-asset-dispositions.json`                 | The bytes hash to `assetDispositionManifestHash`                             |
+
+Exchange runs through the Hub's `knowledge-convergence-definitions` routes, with the host record's credential and project scope. Every host with an active delegation publishes the bound definitions it reproduces, at most once a day per content hash. A seeding host lists candidates by binding hash and reads them by content hash.
+
+Installation writes one durable knowledge transaction. It creates absent files and replaces only files listed, with their current bytes, in `.lervo/state/knowledge/convergence-installed-definitions.json`. Any other existing file is user-owned: the seed fails with `convergence_seed_definition_conflict` and the file stays unchanged. To accept the shared definition, delete or rename your file; the next reconciliation installs it. A missing shared suite or manifest fails with `convergence_seed_definition_unavailable`.
+
+Installed files are not committed. Commit a suite through ordinary review when every clone should run it.
 
 ## Owner-host derivation
 
@@ -112,6 +128,7 @@ The doctor reports every finding. `lervo application attention` reports those of
 | `delegation_continuation_failed`                                    | attention                                                                 | A renewal or seed failed with the recorded code              |
 | `policy_horizon_near`, `policy_invalid`                             | owner decision                                                            | Reinstall the policy                                         |
 | `owner_host_hub_unusable`, `hub_unavailable`                        | attention                                                                 | Hub coordinates exist but refused or failed, with the cause  |
+| `definition_exchange_unavailable`                                   | attention                                                                 | Bound definitions could not be shared, with the Hub cause    |
 | `peer_delegation_expiring`                                          | attention without a peer policy, else info                                | A peer host's grant lapses within 72 hours                   |
 | `continuity_unobserved`, `continuity_stale`, `resident_not_running` | attention                                                                 | No resident reconciles this checkout                         |
 | `hook_runtime_stale`                                                | attention                                                                 | The generated terminal hook runtime predates the CLI         |
@@ -127,3 +144,5 @@ Informational codes are `continuity_pending` (the host resident serves the check
 4. Run `lervo knowledge convergence doctor` on each host. Every registered repository should show an active delegation, owner-host `hub` (or `operator` for lervo), and one `owner` with a `waiting_owner` peer.
 
 The CLI and Node bundles also need a reader-first rollout for the new event type and attention kind: deploy every host before relying on cross-host records.
+
+For ADR-0477, back up the Hub database and deploy the Hub before the hosts; its migration adds the definitions table, and an older Hub binary cannot open the migrated database. Until the Hub is upgraded, residents report `definition_exchange_unavailable (hub_definitions_unsupported)` and everything else keeps working. After both hosts run the new bundles, the delegated host shares its definitions on its next reconciliation. On the host that lacked them, run `lervo knowledge convergence delegation seed`, then `lervo knowledge convergence doctor`: the repository should show an active delegation and a `waiting_owner` role.

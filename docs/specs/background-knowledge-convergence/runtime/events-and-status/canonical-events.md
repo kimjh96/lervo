@@ -32,6 +32,12 @@ Required payload: `repositoryIdentityHash`, `action` (`renewed | seeded | reboun
 
 Records a delegation the resident renewed or seeded under the host continuity policy ([ADR-0469](../../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md)). The event ID derives from `planHash`. Hashes and the expiry only; the applied delegation, not the event, grants authority. [ADR-0471](../../../../decisions/coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md) adds `rebound` with source `binding_refresh`: an identity-preserving rebind of drifted suite or role hashes. Readers must deploy before writers that emit it.
 
+## `knowledge.convergence.definitions.installed`
+
+Required payload: `repositoryIdentityHash`, `scopeHash`, `observerHostHash`, `sourceHostHash`, `definitions` (1 to 32 entries of `kind`, `bindingHash`, `contentHash`, and `action`: `created | replaced`), `occurredAt`.
+
+Records the delegation-bound suites, repository roles, or asset manifest a host installed before it seeded a peer's scope ([ADR-0477](../../../../decisions/coordination/sync/0477-carry-delegation-bound-definitions-across-hosts.md)). The event ID derives from `scopeHash` and the entries. It carries hashes and closed codes only, never suite IDs, role IDs, paths, commands, or content. The installed files and their materialization receipt are canonical; losing the event loses only the audit line. Readers must deploy before writers that emit it.
+
 ## `knowledge.publication.repaired`
 
 Required payload: `repairCommit`, `repairedCommits` (1 to 64), `toolGeneratedPathCount`, `outsideScopePathCount`, `normalizationPathCount`, `pathSetHash`, `hostHash`, `occurredAt`.

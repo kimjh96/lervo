@@ -12,14 +12,19 @@ export interface HubSyncHttpRoute {
     | "workspace-summaries"
     | "knowledge-convergence-owner"
     | "knowledge-instruction-candidates"
-    | "knowledge-convergence-hosts";
+    | "knowledge-convergence-hosts"
+    | "knowledge-convergence-definitions";
   projectId: string;
+  /** ADR-0477: one definition's content hash, only on the definitions route. */
+  contentHash?: string;
 }
 
 export function matchHubSyncRoute(pathname: string): HubSyncHttpRoute | null {
   const segments = pathname.split("/");
+  const definitionRead =
+    segments.length === 7 && segments[5] === "knowledge-convergence-definitions";
   if (
-    segments.length !== 6 ||
+    (segments.length !== 6 && !definitionRead) ||
     segments[0] !== "" ||
     segments[1] !== "v1" ||
     segments[2] !== "sync" ||
@@ -42,10 +47,13 @@ export function matchHubSyncRoute(pathname: string): HubSyncHttpRoute | null {
     kind !== "workspace-summaries" &&
     kind !== "knowledge-convergence-owner" &&
     kind !== "knowledge-instruction-candidates" &&
-    kind !== "knowledge-convergence-hosts"
+    kind !== "knowledge-convergence-hosts" &&
+    kind !== "knowledge-convergence-definitions"
   )
     return null;
-  return { kind, projectId };
+  if (!definitionRead) return { kind, projectId };
+  if (!HASH_PATTERN.test(segments[6]!)) throw new InvalidHubHttpRequestError();
+  return { kind, projectId, contentHash: segments[6]! };
 }
 
 export function hubSyncQuery(parameters: URLSearchParams): {

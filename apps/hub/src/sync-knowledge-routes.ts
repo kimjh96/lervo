@@ -1,10 +1,14 @@
 import {
+  handleKnowledgeConvergenceDefinitionList,
+  handleKnowledgeConvergenceDefinitionPublish,
+  handleKnowledgeConvergenceDefinitionRead,
   handleKnowledgeConvergenceHostList,
   handleKnowledgeConvergenceHostPublish,
   handleKnowledgeConvergenceOwnerMutation,
   handleKnowledgeConvergenceOwnerRead,
   handleKnowledgeInstructionCandidateList,
   handleKnowledgeInstructionCandidatePublish,
+  type HubKnowledgeConvergenceDefinitionStore,
   type HubKnowledgeConvergenceHostStore,
   type HubKnowledgeConvergenceOwnerStore,
   type HubKnowledgeInstructionCandidateStore,
@@ -14,7 +18,8 @@ import type { HubSyncHttpRoute } from "./sync-request.js";
 
 /**
  * Serves the cross-host knowledge coordination routes: the ADR-0466 convergence owner lease, the
- * ADR-0467 owner-rule candidate exchange, and ADR-0469 host continuity records. Returns false for any other route. Authentication,
+ * ADR-0467 owner-rule candidate exchange, ADR-0469 host continuity records, and ADR-0477
+ * delegation-bound definitions. Returns false for any other route. Authentication,
  * permission, and error translation stay with the sync handler.
  */
 export async function serveKnowledgeSyncRoute(input: {
@@ -23,7 +28,8 @@ export async function serveKnowledgeSyncRoute(input: {
   query: { destinationId: string; projectIdentityHash: string };
   store: HubKnowledgeConvergenceOwnerStore &
     HubKnowledgeInstructionCandidateStore &
-    HubKnowledgeConvergenceHostStore;
+    HubKnowledgeConvergenceHostStore &
+    HubKnowledgeConvergenceDefinitionStore;
   acceptedAt: string;
   readBody(): Promise<unknown>;
   send(status: number, body: unknown): void;
@@ -87,6 +93,34 @@ export async function serveKnowledgeSyncRoute(input: {
       destinationId: input.query.destinationId,
       coordinate: repository,
       record: await input.readBody(),
+      acceptedAt: input.acceptedAt,
+    });
+    input.send(result.status === "created" ? 201 : 200, result);
+    return true;
+  }
+  if (input.route.kind === "knowledge-convergence-definitions") {
+    if (input.route.contentHash !== undefined) {
+      input.send(
+        200,
+        await handleKnowledgeConvergenceDefinitionRead({
+          store: input.store,
+          coordinate: { ...coordinate, contentHash: input.route.contentHash },
+        }),
+      );
+      return true;
+    }
+    if (input.method === "GET") {
+      input.send(
+        200,
+        await handleKnowledgeConvergenceDefinitionList({ store: input.store, coordinate }),
+      );
+      return true;
+    }
+    const result = await handleKnowledgeConvergenceDefinitionPublish({
+      store: input.store,
+      destinationId: input.query.destinationId,
+      coordinate: repository,
+      definition: await input.readBody(),
       acceptedAt: input.acceptedAt,
     });
     input.send(result.status === "created" ? 201 : 200, result);

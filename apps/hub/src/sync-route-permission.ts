@@ -5,6 +5,7 @@ const KNOWLEDGE_COORDINATION_ROUTES: ReadonlySet<HubSyncHttpRoute["kind"]> = new
   "knowledge-convergence-owner",
   "knowledge-instruction-candidates",
   "knowledge-convergence-hosts",
+  "knowledge-convergence-definitions",
 ]);
 
 /** The permission a sync route names explicitly. */

@@ -69,6 +69,7 @@ import {
 } from "./instruction-capture-event.js";
 import { knowledgeConvergenceOwnerChangedEventPayloadSchema } from "./knowledge-convergence-owner-event.js";
 import { knowledgeConvergenceDelegationContinuedEventPayloadSchema } from "./knowledge-convergence-delegation-continued-event.js";
+import { knowledgeConvergenceDefinitionsInstalledEventPayloadSchema } from "./knowledge-convergence-definitions-installed-event.js";
 import { knowledgePublicationRepairedEventPayloadSchema } from "./knowledge-publication-repaired-event.js";
 import { conversationInboundEventSchema } from "./conversation-event.js";
 import {
@@ -441,6 +442,9 @@ const validators = {
   ),
   knowledgeConvergenceDelegationContinuedEventPayload: ajv.compile(
     knowledgeConvergenceDelegationContinuedEventPayloadSchema,
+  ),
+  knowledgeConvergenceDefinitionsInstalledEventPayload: ajv.compile(
+    knowledgeConvergenceDefinitionsInstalledEventPayloadSchema,
   ),
   knowledgePublicationRepairedEventPayload: ajv.compile(
     knowledgePublicationRepairedEventPayloadSchema,
