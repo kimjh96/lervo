@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-07
 Amends: [ADR-0449](../repository/canonicalization/0449-synchronize-integration-target-with-working-branch.md) and [ADR-0472](../documents/0472-start-absent-integration-refs-and-bound-untyped-stage-failures.md)
+Amended by: [ADR-0485](0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md) (settled preimage stalls are reevaluated once)
 
 ## Context
 

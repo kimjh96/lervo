@@ -1,6 +1,8 @@
 import { convergenceManagedKnowledgePath } from "./managed-knowledge-scope.js";
 import { convergenceOperationEffects } from "./effect-source-fence.js";
 import {
+  canonicalJson,
+  sha256,
   createKnowledgeInstructionBootstrapPlan,
   applyKnowledgeInstructionBootstrapPlan,
   createRepositoryLayoutMigrationPlan,
@@ -12,6 +14,17 @@ import {
   type KnowledgeConvergenceStageResult,
 } from "@lervo/repository-knowledge";
 import { classifyDeferredDocumentRoutes } from "./document-route-classification.js";
+import {
+  carriedParkedSources,
+  mergeParkedSources,
+  obligationParkedSources,
+} from "./convergence-parking.js";
+import {
+  lifecyclePlanParked,
+  lifecyclePlanRejection,
+  parkLifecyclePlan,
+  type LifecyclePlanKind,
+} from "./lifecycle-plan-parking.js";
 import { reviewLifecyclePlan } from "./lifecycle-plan-review.js";
 import { withConvergenceAssignment } from "./workforce.js";
 import { pathWithinConvergenceRoots } from "./delegation.js";
@@ -59,10 +72,36 @@ export async function prepareConvergenceLifecycle(
         ),
     ),
   ];
-  const approval =
-    plan.status === "review_required"
-      ? await reviewLifecyclePlan(context, state, assertLease, plan, paths)
-      : null;
+  const kind: LifecyclePlanKind =
+    plan.planKind === "repository_layout" ? "repository_layout" : "instruction_bootstrap";
+  const parked = mergeParkedSources(
+    await carriedParkedSources(context.storage, state),
+    obligationParkedSources(state),
+  );
+  const planHash = sha256(canonicalJson(plan));
+  // ADR-0485: a parked exact plan never holds assessment; canonical work continues past it.
+  if (lifecyclePlanParked(parked, kind, planHash)) return null;
+  let approval: Awaited<ReturnType<typeof reviewLifecyclePlan>> | null = null;
+  try {
+    approval =
+      plan.status === "review_required"
+        ? await reviewLifecyclePlan(context, state, assertLease, plan, paths)
+        : null;
+  } catch (error) {
+    const rejection = lifecyclePlanRejection(error);
+    if (rejection === null) throw error;
+    return completeConvergenceStage({
+      repositoryRoot: root,
+      artifacts: context.storage.artifacts,
+      state,
+      stage: "assessment",
+      nextStage: "assessment",
+      stageData: {
+        parkedSources: parkLifecyclePlan(obligationParkedSources(state), kind, rejection),
+      },
+      proof: { status: "lifecycle_plan_parked", planKind: kind, planHash: rejection.planHash },
+    });
+  }
   return withConvergenceAssignment({
     storage: context.storage,
     provider: context.provider,

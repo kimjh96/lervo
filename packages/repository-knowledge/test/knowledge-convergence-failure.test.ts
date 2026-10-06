@@ -54,3 +54,13 @@ it("retries a typed normalizer timeout while retaining other compile failures", 
     }),
   ).toBe("knowledge_job_transient_failure");
 });
+
+it("types a project manifest that lervo upgrade briefly rewrites as a transient failure", () => {
+  // digimon: a stage read `.lervo/project.yaml` while `lervo upgrade` was rewriting it.
+  const code = normalizedConvergenceFailure({ code: "not_initialized" });
+  expect(code).toBe("knowledge_project_unavailable");
+  expect(convergenceRetryLimit(code)).toBe(16);
+  expect(normalizedConvergenceFailure({ code: "knowledge_verification_modified_sources" })).toBe(
+    "knowledge_verification_modified_sources",
+  );
+});

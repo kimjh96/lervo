@@ -114,9 +114,19 @@ export async function reviewLifecyclePlan(
             reviewerAgentId: authority.agent.agentId,
           }),
         );
+        // ADR-0485: the stage isolates this exact plan by its hash and the reviewer's reason.
         throw Object.assign(
           new KnowledgeConvergenceRuntimeError("knowledge_semantic_review_rejected"),
-          { dependencyHash: evidence.contentHash },
+          {
+            dependencyHash: evidence.contentHash,
+            lifecyclePlanRejection: {
+              planHash,
+              rationale:
+                typeof verdict?.rationale === "string"
+                  ? verdict.rationale
+                  : "The reviewer returned no valid approval for this exact plan.",
+            },
+          },
         );
       }
       return {

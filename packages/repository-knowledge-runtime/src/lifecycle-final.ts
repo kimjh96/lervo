@@ -12,6 +12,12 @@ import {
   parkedSourcesAttention,
   type ParkedConvergenceSource,
 } from "./convergence-parking.js";
+import {
+  lifecyclePlanParked,
+  lifecyclePlanRejection,
+  parkedLifecycleCurrencyReasons,
+  parkLifecyclePlan,
+} from "./lifecycle-plan-parking.js";
 import { commitSettledOutputsAtBoundary } from "./settled-output-boundary.js";
 import { convergenceAssessmentSources } from "./assessment-scope.js";
 import {
@@ -65,21 +71,53 @@ export async function verifyConvergenceLifecycle(
     provider: "claude",
   });
   const migration = await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "migrate" });
-  const plan =
-    bridge.status !== "current"
-      ? bridge
-      : migration.operations.some((operation) => operation.action !== "unchanged")
-        ? migration
-        : null;
+  // ADR-0485: a parked exact bridge plan yields to the remaining lifecycle work.
+  const parkedPlans = mergeParkedSources(
+    await carriedParkedSources(context.storage, state),
+    obligationParkedSources(state),
+  );
+  const bridgePending =
+    bridge.status !== "current" &&
+    !lifecyclePlanParked(parkedPlans, "instruction_bridge", sha256(canonicalJson(bridge)));
+  const plan = bridgePending
+    ? bridge
+    : migration.operations.some((operation) => operation.action !== "unchanged")
+      ? migration
+      : null;
   if (plan) {
     const bridgePlan = "profile" in plan;
     const paths = plan.operations
       .filter((operation) => operation.action !== "unchanged")
       .map((operation) => operation.path);
-    const approval =
-      bridgePlan && plan.status === "review_required"
-        ? await reviewLifecyclePlan(context, state, assertLease, plan, paths)
-        : null;
+    let approval: Awaited<ReturnType<typeof reviewLifecyclePlan>> | null = null;
+    try {
+      approval =
+        bridgePlan && plan.status === "review_required"
+          ? await reviewLifecyclePlan(context, state, assertLease, plan, paths)
+          : null;
+    } catch (error) {
+      const rejection = lifecyclePlanRejection(error);
+      if (rejection === null || !bridgePlan) throw error;
+      return completeConvergenceStage({
+        repositoryRoot: root,
+        artifacts: context.storage.artifacts,
+        state,
+        stage: "lifecycle_verification",
+        nextStage: "lifecycle_verification",
+        stageData: {
+          parkedSources: parkLifecyclePlan(
+            obligationParkedSources(state),
+            "instruction_bridge",
+            rejection,
+          ),
+        },
+        proof: {
+          status: "lifecycle_plan_parked",
+          planKind: "instruction_bridge",
+          planHash: rejection.planHash,
+        },
+      });
+    }
     return withConvergenceAssignment({
       storage: context.storage,
       provider: context.provider,
@@ -162,7 +200,13 @@ export async function verifyConvergenceLifecycle(
   const pendingNormalization = (
     await inspectConfiguredDocumentNormalization({ repositoryRoot: root })
   ).pendingDocuments;
-  const parked = await currentParkedSources(context, state, expectedSources, pendingNormalization);
+  const parked = await currentParkedSources(
+    context,
+    state,
+    expectedSources,
+    pendingNormalization,
+    currency.reasons,
+  );
   const parkedCanonical = new Set(
     parked.filter((item) => item.stage === "canonical").map((item) => item.path),
   );
@@ -185,10 +229,15 @@ export async function verifyConvergenceLifecycle(
   const parkedNormalization = new Set(
     parked.filter((item) => item.stage === "normalization").map((item) => item.path),
   );
+  const parkedLifecycle = parkedLifecycleCurrencyReasons(parked);
   const parkedOnly =
-    parkedNormalization.size > 0 &&
+    parked.length > 0 &&
     pendingNormalization.every((path) => parkedNormalization.has(path)) &&
-    currency.reasons.every((reason) => reason === "normalization_pending");
+    currency.reasons.every(
+      (reason) =>
+        (reason === "normalization_pending" && parkedNormalization.size > 0) ||
+        parkedLifecycle.has(reason),
+    );
   if (
     (!currency.current && !parkedOnly) ||
     !lint.valid ||
@@ -265,6 +314,7 @@ async function currentParkedSources(
   state: KnowledgeConvergenceInput,
   expectedSources: readonly { path: string; contentHash: string }[],
   pendingNormalization: readonly string[],
+  currencyReasons: readonly string[],
 ): Promise<ParkedConvergenceSource[]> {
   const hashes = new Map(state.baseline.sources.map((source) => [source.path, source.contentHash]));
   const assessed = new Set(expectedSources.map((source) => source.path));
@@ -272,9 +322,13 @@ async function currentParkedSources(
   return mergeParkedSources(
     await carriedParkedSources(context.storage, state),
     obligationParkedSources(state),
-  ).filter(
-    (item) =>
-      hashes.get(item.path) === item.contentHash &&
-      (item.stage === "canonical" ? assessed.has(item.path) : pending.has(item.path)),
+  ).filter((item) =>
+    // A parked plan stays parked only while its lifecycle work is still pending.
+    item.stage === "lifecycle"
+      ? [...parkedLifecycleCurrencyReasons([item])].some((reason) =>
+          currencyReasons.includes(reason),
+        )
+      : hashes.get(item.path) === item.contentHash &&
+        (item.stage === "canonical" ? assessed.has(item.path) : pending.has(item.path)),
   );
 }
