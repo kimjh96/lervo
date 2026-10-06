@@ -22,3 +22,4 @@ export {
 export { cancelAssignment } from "./assignment-cancellation.js";
 export { recordAssignmentHandoff, acknowledgeAssignmentHandoff } from "./assignment-handoff.js";
 export { completeAssignment, reconcileAssignmentCompletion } from "./assignment-completion.js";
+export { resolveAgentCapabilityBinding } from "./agent-capability-binding.js";
