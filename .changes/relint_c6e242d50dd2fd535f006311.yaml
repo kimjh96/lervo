@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c6e242d50dd2fd535f006311"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Publish knowledge commits only on top of the current remote base, supersede stale ones that conflict, and name the Hub failure cause of an unverifiable convergence owner."

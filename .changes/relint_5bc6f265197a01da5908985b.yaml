@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5bc6f265197a01da5908985b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Drop superseded knowledge commits on every replicated checkout so the repository replica never resurrects them."

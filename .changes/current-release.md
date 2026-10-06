@@ -1,62 +1,12 @@
-<!-- lervo-release package="@lervo/cli" version="0.19.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.20.0" schema="1" -->
 
 ## What's changed
 
-- Accept the final structured Codex response after intermediate messages during background knowledge compilation.
-- Allow protected Node upgrades to refresh the supervised CLI bundle.
-- Allow ten minutes for bounded background document normalization calls on busy hosts.
-- Back replica coordinator recovery off while replicas stay current and serve unchanged trees from a fingerprint-keyed snapshot cache.
-- Bound autonomous knowledge assessment inputs and recover provider timeouts.
-- Clarify reviewed rejection of stale canonicalization candidates during background convergence.
-- Close owner-accepted historical knowledge obligations and skip reviewed Lervo outputs in background assessment.
-- Commit settled background knowledge at batch boundaries, shrink timed-out normalization reviews, and treat concurrent scan edits and live materialization owners as retryable.
-- Commit settled background knowledge outputs before lifecycle planning so developers keep a clean working tree.
-- Commit settled background knowledge outputs on hosts without a configured Git identity.
-- Default terminal hooks to compact context with cached snapshots so Claude Code and Codex prompts and turn ends stay fast.
-- Degrade per-change knowledge review per file: generated, oversize, and binary paths are skipped and recorded, large changes split into ordered sub-jobs, and jobs stalled by whole-job intake rejection are re-queued once.
-- Hide distributed discussion when a channel lacks two independently bound bot peers, preserving addressed delegation.
-- Include a bounded bundle coordinate in Node supervision failure logs for installed recovery diagnosis.
-- Include bounded linked instruction contracts in canonical review context.
-- Include source-linked authorities in bounded repository review context.
-- Keep background document normalization batches within reviewed provider-call ceilings.
-- Keep background knowledge review out of live Discord repository work.
-- Keep canonical review context available while planned documents are absent.
-- Keep convergence delegation plans read-only while validating agent bindings.
-- Limit background canonical assessment to observed repository source obligations.
-- Load exact release review policies and CLI bundle facts for canonical assessments.
-- Preserve protected Node service failure codes in repository apply diagnostics.
-- Read standing supervision event history through verified cursors, type-filtered pages and a lapsed-deadline backoff instead of repeated full scans.
-- Reclaim background provider slots held by exited workers before their timeout.
-- Record attributed usage and context receipts for Discord repository work and knowledge workers, verify deliberation usage before convergence, and repair unproven multi-provider replies.
-- Record legacy agent display identity during role-binding migration so repository upgrades no longer fail.
-- Record supervision lease release only after its process lock closes.
-- Recover a previously registered inactive Node during guarded service upgrade.
-- Refresh stale documents from evidence: the knowledge resident applies verified Lervo-managed reference updates with a revertible commit, and user-owned updates wait in lervo knowledge freshness review.
-- Reject canonical drafts with stale or missing existing-target hashes before independent review.
-- Release supervision process locks on Node 22.13, which lacks the SQLite open and transaction accessors.
-- Replace the v4 placeholder per-change knowledge reviewer with a governed provider review that is authorized, admitted, budgeted, and measured, and re-queue placeholder-reviewed jobs once.
-- Report bounded supervision recovery evidence failures in the installed Node journal.
-- Report document-layout contract violations by field, regenerate edited generated publication pages, and apply independent upgrade stages while another stage is blocked.
-- Report missing document roles, broken links, stale entrypoint references, and stale documents in knowledge lint, and keep historical documents out of current navigation and retrieval.
-- Repository replica failures report code, stage, Git exit code, and a redacted stderr digest; capture excludes host-local state explicitly; held divergences record diverged and reconciled events once per identity with attention and degraded health.
-- Restore Node supervision health after a validated idle recovery cycle.
-- Restore Node supervision health after transient evidence unavailability clears on a validated authority read.
-- Retain integrated canonical dispositions across background baseline supersession.
-- Retrieve source-specific canonical review evidence in ranked order.
-- Retry invalid independent normalization review within the approved provider call budget.
-- Retry one invalid background canonical assessment within its reviewed call budget.
-- Retry slow supervision authority observations within fresh bounded windows.
-- Retry timed-out document normalization calls within the existing bounded batch.
-- Reuse exact independently approved canonical worksets after repository source changes.
-- Review old canonical candidates with source-specific context before closing their evidence obligations.
-- Settle unread sensitive sources by their baseline disposition in background knowledge currency.
-- Skip nested Git working trees when scanning repository knowledge sources.
-- Skip unchanged background knowledge cycles behind a change fence, back reconciliation off to 15 minutes, and cache source hashes.
-- Stamp workstream revision, update time, and HEAD on the server, add merge-patch and one-call apply updates, and keep stale workstream items out of prompt directives.
-- Stop conversation outbound delivery at the shared retry-policy bound, even after interrupted attempts, and report each outbound that requires attention.
-- Synchronize the knowledge integration target before every canonical integration so drafts verify on current code.
-- Synchronize the knowledge integration target with the working branch when ref-only changes were already integrated.
-- Typecheck against Node 22.13 type definitions and reject malformed SQLite rows with coded integrity errors.
-- Use reviewed eight-document canonical worksets while preserving exact approval replay for prior batches.
-- Version edited loose Agent Skills as the next patch capability instead of failing repository upgrade with a capability conflict.
-- Wait for launchd to finish booting out a Node before upgrading it, and keep a gracefully stopped Node eligible for verified-inactive upgrade recovery.
+- Accept workspace coordination permissions in Hub credential files so convergence owner leases can be granted.
+- Capture owner rules automatically on every host: owner turns are assessed semantically where they were observed, candidates are shared through the Hub and applied by the convergence owner, and instruction intake no longer times out or hides why it failed.
+- Coordinate background knowledge convergence across hosts with one Hub-leased owner, a commit fence, and standalone contention detection.
+- Drop superseded knowledge commits on every replicated checkout so the repository replica never resurrects them.
+- Knowledge publication pushes unchanged content once, merges only after every check succeeds, records gh failure causes, and formats knowledge outputs before committing and publishing.
+- Publish knowledge commits only on top of the current remote base, supersede stale ones that conflict, and name the Hub failure cause of an unverifiable convergence owner.
+- Publish the convergence owner's settled knowledge commits through one rolling pull request and merge it after checks pass.
+- Update knowledge publication pull requests through the REST API and never let a description update block the merge.
