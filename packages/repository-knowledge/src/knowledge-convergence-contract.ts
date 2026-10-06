@@ -93,5 +93,10 @@ export interface KnowledgeConvergenceStatus {
   reason: string | null;
   /** Present only for `recovery_required`: the owner command that resolves the blocked transaction. */
   recoveryCommand?: string;
+  /**
+   * Present only for `retry_scheduled`: attempts consumed, the logical budget for the failure
+   * code (`null` for a code this version does not retry), and when the next attempt is due.
+   */
+  retry?: { attemptCount: number; attemptLimit: number | null; nextAttemptAt: string };
   lastVerifiedCurrency: { obligationId: string; snapshotHash: string; resolvedAt: string } | null;
 }

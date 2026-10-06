@@ -200,12 +200,72 @@ it("reschedules a busy materialization without recording a failed stage", async 
   };
   try {
     const status = await f.cycle(1, 4, () => new Date("2026-09-29T10:00:00.000Z"));
-    expect(status).toMatchObject({ state: "retry_scheduled", outstanding: 1 });
+    expect(status).toMatchObject({
+      state: "retry_scheduled",
+      outstanding: 1,
+      retry: { attemptCount: 1, attemptLimit: 16, nextAttemptAt: "2026-09-29T10:01:00.000Z" },
+    });
     expect(
       f.events
         .list({ limit: 100 })
         .filter((event) => event.type === "repository.knowledge.stage.recorded"),
     ).toEqual([]);
+  } finally {
+    f.events.close();
+  }
+});
+
+it("escalates a repeated untyped stage failure from a visible retry schedule to attention", async () => {
+  const f = await fixture();
+  let clock = Date.parse("2026-10-06T01:49:56.096Z");
+  const evidence = sha256("private stage failure");
+  f.host.runStage = async () => {
+    // The shape of a failed `git rev-parse` for an integration ref that this host never created.
+    throw Object.assign(new Error("Command failed: git rev-parse"), {
+      code: 128,
+      dependencyHash: evidence,
+    });
+  };
+  const cycle = () => f.cycle(1, 4, () => new Date(clock));
+  try {
+    expect(await cycle()).toMatchObject({
+      state: "retry_scheduled",
+      reason: "knowledge_stage_failure_unclassified",
+      retry: { attemptCount: 1, attemptLimit: 4, nextAttemptAt: "2026-10-06T01:50:56.096Z" },
+    });
+    clock += 30_000;
+    expect(await cycle()).toMatchObject({ retry: { attemptCount: 1 } });
+    clock += 60_000;
+    expect(await cycle()).toMatchObject({ retry: { attemptCount: 2 } });
+    clock += 120_000;
+    expect(await cycle()).toMatchObject({ retry: { attemptCount: 3 } });
+    clock += 240_000;
+    const settled = await cycle();
+    expect(settled).toMatchObject({
+      state: "attention_required",
+      reason: "knowledge_stage_failure_unclassified",
+      outstanding: 1,
+    });
+    expect(settled.retry).toBeUndefined();
+    const stage = f.events
+      .list({ limit: 100 })
+      .findLast((event) => event.type === "repository.knowledge.stage.recorded")!;
+    expect(stage.payload).toMatchObject({
+      state: "attention_required",
+      failureCode: "knowledge_stage_failure_unclassified",
+    });
+    const dependency = JSON.parse(
+      Buffer.from(
+        await f.artifacts.get(
+          `lervo-cas://sha256/${(stage.payload.dependencyHash as string).slice(7)}`,
+        ),
+      ).toString("utf8"),
+    );
+    expect(dependency).toMatchObject({
+      code: "knowledge_stage_failure_unclassified",
+      evidenceHash: evidence,
+      reevaluateAt: new Date(clock + 6 * 60 * 60_000).toISOString(),
+    });
   } finally {
     f.events.close();
   }
