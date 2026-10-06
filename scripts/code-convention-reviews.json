@@ -130,23 +130,23 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:0aadc20acfda2c142e4763c30e68d39b033cae4c2eae2f18f48c0867c66d9e33",
+      "contentHash": "sha256:ddfd7a176bc3f985ee3b473545565760ce65416cdbf7b0df938bd8ef5032c0c1",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, owner-lease, ADR-0459 and ADR-0460 attribution, ADR-0463 freshness, ADR-0467 capture, ADR-0469 delegation-continuation, and ADR-0473 publication-repair allowlists only map hash-only payloads to their schemas; the convergence, freshness, and capture lists live in their own modules, and none adds provider work, authority decisions or persistence.",
+      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, owner-lease, attribution, freshness, capture, delegation-continuation, publication-repair, and ADR-0477 definition-installation allowlists only map hash-only payloads to their schemas; the convergence, freshness, and capture lists live in their own modules, and none adds provider work, authority decisions or persistence.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/hub-sync-sqlite/src/migrations.ts",
-      "contentHash": "sha256:7ead1feca2b20d908cd6ec6688b840f419fa9f27d76c62f3ecc8a728d9dda661",
+      "contentHash": "sha256:cc7f18cb303ab0ed3e51883fcd0ac34847b3103a151c913741005160b06df9bc",
       "responsibility": "Hub synchronization SQLite schema migration",
-      "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy. The ADR-0466 owner lease, ADR-0467 instruction candidate, and ADR-0469 host continuity tables are additive migrations.",
+      "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy. The ADR-0466 owner lease, ADR-0467 instruction candidate, ADR-0469 host continuity, and ADR-0477 delegation-bound definition tables are additive migrations.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:77b4f5cc64da3e01826df5519dc35d8d358f19dd7dbfc06b48ac5d4b0128368b",
+      "contentHash": "sha256:8b514f0240ea6ed5e0ba583c3fa2b96ed968718a6d23703444a28e7759d39c23",
       "responsibility": "Hub synchronization SQLite store",
-      "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store. Owner-lease, instruction-candidate, and ADR-0469 host-record methods only open a transaction around their own repositories.",
+      "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store. Owner-lease, instruction-candidate, ADR-0469 host-record, and ADR-0477 definition methods only open a transaction around their own repositories.",
       "disposition": "cohesive"
     },
     {
@@ -361,9 +361,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:16054e0984af1013e6a43601e7496c6e7978e6a6774b53c6c13717ffefb9ac83",
+      "contentHash": "sha256:2872a686d0ec08726a8429640280f614625a1e410420e3d7f0504ea3fbf77eea",
       "responsibility": "Repository schema validator registry",
-      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, repository replica, and convergence-owner event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry. The ADR-0463 document freshness ADR-0467 instruction capture, ADR-0469 delegation continuation, and ADR-0473 publication repair event payload validators are compiled from their own schema modules.",
+      "rationale": "The module declaratively compiles one schema registry. Dedicated event schema modules own the additive validators, including ADR-0463 freshness, ADR-0467 capture, ADR-0469 continuation, ADR-0473 publication repair, and ADR-0477 definition installation payloads; privacy, durable decisions, source inspection and persistence remain outside this registry.",
       "disposition": "cohesive"
     },
     {
