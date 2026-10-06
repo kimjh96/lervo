@@ -4,7 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-04
 Amends: [ADR-0396](0396-conflict-safe-repository-replica-continuation.md), [ADR-0201](0201-repository-scoped-workstream-replication.md), [ADR-0404](0404-merge-divergent-repository-replicas.md)
 Part of: [ADR-0452 open collaboration platform](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
-Amended by: [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md) (supersession stage), [ADR-0478](0478-renew-each-delegation-with-one-writer.md) (a tracked delegation replicates)
+Amended by: [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md) (supersession stage), [ADR-0478](0478-renew-each-delegation-with-one-writer.md) (a tracked delegation replicates), [ADR-0481](0481-compare-replica-snapshots-only-under-one-capture-semantics.md) (capture version handshake)
 
 ## Context
 

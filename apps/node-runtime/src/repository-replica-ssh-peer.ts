@@ -16,10 +16,15 @@ import {
   RepositoryReplicaStageError,
   parseRepositoryReplicaPeerFailure,
 } from "./repository-replica-failure.js";
+import { parseRepositoryReplicaCaptureVersion } from "./repository-replica-capture-compatibility.js";
+import { LEGACY_REPOSITORY_REPLICA_CAPTURE_VERSION } from "./repository-replica-capture-version.js";
 import { parseReplicaKnowledgeSupersession } from "./repository-replica-knowledge-supersession.js";
 
 const MAXIMUM_SSH_OUTPUT_BYTES = 512 * 1024 * 1024;
 const DEFAULT_COMMAND_TIMEOUT_MS = 60_000;
+/** The usage line of every runtime before ADR-0481; newer runtimes list `capture-version` first. */
+const LEGACY_USAGE = "Usage: lervo-node repository-replica <snapshot|";
+const CAPTURE_VERSION_UNSUPPORTED = "repository_replica_capture_version_unsupported";
 
 /**
  * Keeps the peer's structured failure when the remote command reported one; otherwise the SSH
@@ -31,6 +36,18 @@ function peerCommandFailure(
   stderr: Buffer,
 ): RepositoryReplicaPeerError {
   const text = stderr.toString("utf8");
+  // The raw stderr is checked because a runtime's uncaught usage error follows a long source line.
+  if (action === "capture-version" && exitCode === 1 && text.includes(LEGACY_USAGE))
+    return new RepositoryReplicaPeerError(
+      {
+        code: CAPTURE_VERSION_UNSUPPORTED,
+        stage: "protocol",
+        gitExitCode: null,
+        stderrDigest: null,
+        causeChain: ["The peer runtime predates the capture-version action."],
+      },
+      "The peer repository replica runtime predates the capture-version action.",
+    );
   const reported = parseRepositoryReplicaPeerFailure(text);
   if (reported !== null)
     return new RepositoryReplicaPeerError(
@@ -188,6 +205,23 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     child.once("error", failure);
     child.once("close", failure);
     return stop;
+  }
+
+  /**
+   * ADR-0481: the remote runtime's capture semantics. A runtime that predates the action rejects
+   * it with its usage line, which lists no `capture-version`; it captures with the legacy
+   * semantics. Any other failure stays a transport failure.
+   */
+  async captureVersion(): Promise<string> {
+    try {
+      return parseRepositoryReplicaCaptureVersion(
+        JSON.parse(Buffer.from(await this.execute(["capture-version"])).toString("utf8")),
+      );
+    } catch (error) {
+      if (error instanceof RepositoryReplicaPeerError && error.code === CAPTURE_VERSION_UNSUPPORTED)
+        return LEGACY_REPOSITORY_REPLICA_CAPTURE_VERSION;
+      throw error;
+    }
   }
 
   async snapshot(repositoryRoot: string): Promise<RepositoryReplicaSnapshot> {

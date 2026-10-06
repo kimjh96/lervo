@@ -10,7 +10,7 @@ Every replica failure resolves to a structured failure ([ADR-0456](../../../../d
 
 Diagnostic redaction removes private-key blocks, URL credentials, authorization tokens, sensitive-key values, known token formats, and opaque runs of 40 or more characters except Git object IDs and SHA-256 digests. It strips terminal controls.
 
-A failing peer command writes its structured failure as one `lervo-repository-replica-failure-v1` stderr line and exits 1. The SSH peer adapter restores it, preserving a peer Git failure's own stage and digest. Unstructured SSH output becomes `repository_replica_transfer_failed` at `transfer`, with redacted SSH stderr.
+A failing peer command writes its structured failure as one `lervo-repository-replica-failure-v1` stderr line and exits 1. The SSH peer adapter restores it, preserving a peer Git failure's own stage and digest. Unstructured SSH output becomes `repository_replica_transfer_failed` at `transfer`, with redacted SSH stderr. A `capture-version` request that a legacy runtime rejects with its usage line is the one exception: it resolves to the legacy capture version. A version mismatch fails at `protocol` with `repository_replica_capture_incompatible`.
 
 The coordinator prints the code, stage, Git exit code, cause chain, and digest. It records the latest failure in the local receipt as `lastFailure` with `occurredAt`, retaining the last proven parity fields. A replica that never reached parity receives an `attention` receipt that readiness never admits.
 
