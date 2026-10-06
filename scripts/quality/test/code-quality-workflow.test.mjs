@@ -28,6 +28,29 @@ describe("code-quality workflow", () => {
     assert.match(directMain.run, /github\.event\.before/u);
   });
 
+  it("builds and checks the release manifest and SBOM on every pull request", async () => {
+    const workflow = parse(await readFile(workflowPath, "utf8"));
+    const job = workflow.jobs["release-artifacts"];
+    assert.equal(job["runs-on"], "ubuntu-latest");
+    assert.deepEqual(job.steps.map(({ run }) => run).filter(Boolean), [
+      "pnpm install --frozen-lockfile",
+      "pnpm build",
+      "pnpm release:manifest:check",
+      "pnpm release:sbom:check",
+    ]);
+  });
+
+  it("runs the whole test suite in bounded shards after a build", async () => {
+    const workflow = parse(await readFile(workflowPath, "utf8"));
+    const job = workflow.jobs.test;
+    assert.deepEqual(job.strategy.matrix.shard, [1, 2, 3, 4]);
+    assert.equal(job.strategy["fail-fast"], false);
+    assert.ok(job["timeout-minutes"] <= 60);
+    const runs = job.steps.map(({ run }) => run).filter(Boolean);
+    assert.ok(runs.indexOf("pnpm build") < runs.findIndex((run) => run.startsWith("pnpm test")));
+    assert.equal(runs.at(-1), "pnpm test --maxWorkers=2 --shard=${{ matrix.shard }}/4");
+  });
+
   it("typechecks against Node type definitions that track the engines minimum", async () => {
     const workflow = parse(await readFile(workflowPath, "utf8"));
     const manifest = JSON.parse(await readFile(resolve(repositoryRoot, "package.json"), "utf8"));

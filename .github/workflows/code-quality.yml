@@ -44,3 +44,61 @@ jobs:
       - name: Check direct-main release completion
         if: github.event_name == 'push'
         run: pnpm release:completion:check --base "${{ github.event.before }}"
+
+  release-artifacts:
+    name: Release manifest and SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.13.0
+          package-manager-cache: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build release artifact
+        run: pnpm build
+      - name: Verify release manifest
+        run: pnpm release:manifest:check
+      - name: Verify release SBOM
+        run: pnpm release:sbom:check
+
+  test:
+    name: Tests (shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.13.0
+          package-manager-cache: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+      - name: Configure Git identity for repository fixtures
+        run: |
+          git config --global user.name "Lervo CI"
+          git config --global user.email "ci@lervo.invalid"
+          git config --global init.defaultBranch main
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build workspace
+        run: pnpm build
+      - name: Run tests
+        run: pnpm test --maxWorkers=2 --shard=${{ matrix.shard }}/4

@@ -120,5 +120,6 @@ export default defineConfig({
   },
   test: {
     include: ["apps/**/*.test.ts", "packages/**/*.test.ts", "scripts/**/*.test.mjs"],
+    setupFiles: ["./scripts/quality/lib/test-user-state-isolation.mjs"],
   },
 });

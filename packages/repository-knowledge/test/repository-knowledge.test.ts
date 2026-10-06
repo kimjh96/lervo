@@ -1159,7 +1159,8 @@ describe("repository knowledge migration", () => {
     expect(() => extractYamlKeySpans(tooDeep)).toThrowError(
       expect.objectContaining({ code: "knowledge_unit_extraction_failed" }),
     );
-  }, 15_000);
+    // CPU-bound bound checks take about 4 s alone; a busy host or two-core CI runner needs more.
+  }, 60_000);
 
   it("bounds JavaScript and TypeScript symbol count and qualified depth", () => {
     const tooManySymbols = Array.from(
