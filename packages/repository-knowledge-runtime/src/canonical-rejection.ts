@@ -6,7 +6,6 @@ import {
 } from "@lervo/repository-knowledge";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import type { CanonicalBatch } from "./canonical-review.js";
-import { completeConvergenceStage } from "./stage-receipt.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 
 /** Reuse an exact historical rejection when an upgraded owner resumes its queued successor. */
@@ -48,36 +47,4 @@ export async function retainedCanonicalRejection(
   )
     throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
   return { artifactHash, result: value.result };
-}
-
-/** A rejected canonical proposal authorizes no integration and never becomes semantic coverage. */
-export async function continueNormalizationAfterCanonicalRejection(input: {
-  context: ConvergenceRuntimeContext;
-  state: KnowledgeConvergenceInput;
-  batch: CanonicalBatch;
-  rejection: unknown;
-}) {
-  const artifact = await input.context.storage.artifacts.put(
-    canonicalJson({
-      kind: "canonical_rejection",
-      snapshotHash: input.state.snapshotHash,
-      assessmentHash: sha256(canonicalJson(input.batch.assessment)),
-      rejection: input.rejection,
-      sourceBindings: input.batch.sources.map(({ path, contentHash }) => ({ path, contentHash })),
-      retainedForNormalization: true,
-    }),
-  );
-  return completeConvergenceStage({
-    repositoryRoot: input.context.storage.paths.repositoryRoot,
-    artifacts: input.context.storage.artifacts,
-    state: input.state,
-    stage: "canonical_review",
-    nextStage: "normalization_generation",
-    stageData: {
-      canonicalRejection: { artifactHash: artifact.contentHash },
-      canonicalBatch: null,
-      canonicalApproval: null,
-    },
-    proof: { status: "rejection_retained", rejectionArtifactHash: artifact.contentHash },
-  });
 }

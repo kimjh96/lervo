@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_68a85ca48d7ac655419e3682"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Keep background knowledge convergence moving: regenerate rejected documents with the reviewer's reasons, park only exhausted sources with precise status, review lifecycle plans by their own paths, and settle undeclared opaque assets by the passing delegation suite."

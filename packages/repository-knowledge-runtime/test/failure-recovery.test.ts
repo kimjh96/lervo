@@ -306,16 +306,28 @@ it(
       ),
     );
     let result: Awaited<ReturnType<typeof run>>;
-    for (let cycle = 0; cycle < 5; cycle++) {
+    for (let cycle = 0; cycle < 8; cycle++) {
       result = await run(f);
       if (result.status === "processed" && result.convergence.state === "attention_required") break;
     }
+    // ADR-0479: bounded regeneration, then only the rejected family is parked at the very end.
     expect(result!).toMatchObject({
-      convergence: { state: "attention_required", reason: "knowledge_semantic_review_rejected" },
+      convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
     });
     expect(
       (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
     ).toEqual(["docs/specs/a.md"]);
+    const reviews = (await readFile(f.log, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line).request)
+      .filter((request) => request.task === "independent_normalization_review")
+      .filter((request) =>
+        request.untrustedSourceData.candidate.items.some(
+          (item: { sourcePath: string }) => item.sourcePath === "docs/specs/a.md",
+        ),
+      );
+    expect(reviews).toHaveLength(3);
     expect(await readFile(resolve(f.root, "docs/specs/a.md"), "utf8")).toContain(
       "Retain this exact first family.",
     );

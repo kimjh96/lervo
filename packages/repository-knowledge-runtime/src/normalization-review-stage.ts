@@ -18,6 +18,10 @@ import { reviewKnowledgeJson } from "./provider-call.js";
 import { convergenceSourceBytes } from "./source-capture.js";
 import { loadCanonicalReviewContext } from "./review-context.js";
 import { completeConvergenceStage } from "./stage-receipt.js";
+import {
+  normalizationRejections,
+  recordNormalizationRejections,
+} from "./normalization-rejection.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 
@@ -156,13 +160,11 @@ export async function reviewNormalizationBatch(
             operationIds: accepted.map((decision) => decision.operationId),
           })
         : null;
-      const rejected = {
-        ...(state.stageData.normalizationRejected as Record<string, string> | undefined),
-      };
-      for (const decision of decisions.filter((decision) => decision.decision === "reject")) {
-        const item = candidate.items.find((item) => item.operationId === decision.operationId)!;
-        rejected[item.sourcePath] = item.sourceContentHash;
-      }
+      const rejections = recordNormalizationRejections(
+        normalizationRejections(state),
+        candidate,
+        decisions,
+      );
       return completeConvergenceStage({
         repositoryRoot: root,
         artifacts: context.storage.artifacts,
@@ -171,7 +173,9 @@ export async function reviewNormalizationBatch(
         nextStage: "normalization_apply",
         stageData: {
           normalizationAcceptedCandidateId: subset?.candidateId ?? null,
-          normalizationRejected: rejected,
+          // ADR-0479 records supersede the pre-ADR hash map, which is read only as a fallback.
+          normalizationRejected: null,
+          normalizationRejections: rejections,
           normalizationReview: {
             reviewerAgentId: authority.agent.agentId,
             assignmentId: authority.assignment.assignmentId,

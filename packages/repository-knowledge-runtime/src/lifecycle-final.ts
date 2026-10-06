@@ -1,7 +1,17 @@
 import { resolveConvergenceCandidates } from "./candidate-resolution.js";
 import { convergenceManagedKnowledgePath } from "./managed-knowledge-scope.js";
 import { convergenceOperationEffects } from "./effect-source-fence.js";
-import { unresolvedConvergenceAssets } from "./asset-verification.js";
+import {
+  classifyConvergenceAssets,
+  recordConvergenceAssetSettlement,
+} from "./asset-verification.js";
+import {
+  carriedParkedSources,
+  mergeParkedSources,
+  obligationParkedSources,
+  parkedSourcesAttention,
+  type ParkedConvergenceSource,
+} from "./convergence-parking.js";
 import { commitSettledOutputsAtBoundary } from "./settled-output-boundary.js";
 import { convergenceAssessmentSources } from "./assessment-scope.js";
 import {
@@ -11,6 +21,7 @@ import {
   applyKnowledgeMigrationPlan,
   createKnowledgeInstructionBridgePlan,
   applyKnowledgeInstructionBridgePlan,
+  inspectConfiguredDocumentNormalization,
   inspectRepositoryKnowledgeCurrency,
   lintRepositoryKnowledge,
   type KnowledgeConvergenceInput,
@@ -33,6 +44,17 @@ export async function verifyConvergenceLifecycle(
   assertLease: () => void,
 ): Promise<KnowledgeConvergenceStageResult> {
   const root = context.storage.paths.repositoryRoot;
+  // A pre-ADR-0479 obligation retained a canonical rejection here; canonical isolation resumes it.
+  if (state.stageData.canonicalRejection != null)
+    return completeConvergenceStage({
+      repositoryRoot: root,
+      artifacts: context.storage.artifacts,
+      state,
+      stage: "lifecycle_verification",
+      nextStage: "assessment",
+      stageData: { canonicalRejection: null },
+      proof: { status: "retained_rejection_isolated" },
+    });
   const candidates = await resolveConvergenceCandidates(context, state, assertLease);
   if (candidates !== null) return candidates;
   // Publication and instruction bridges bind HEAD, so they are planned only after this commit.
@@ -129,22 +151,6 @@ export async function verifyConvergenceLifecycle(
       },
     });
   }
-  const assets = await unresolvedConvergenceAssets(context, state);
-  if (assets !== null) return assets;
-  const rejection = state.stageData.canonicalRejection as { artifactHash: string } | undefined;
-  if (rejection !== undefined)
-    return waitingConvergenceStage({
-      artifacts: context.storage.artifacts,
-      state,
-      kind: "attention_required",
-      reason: "knowledge_semantic_review_rejected",
-      dependency: {
-        kind: "canonical_rejection",
-        snapshotHash: state.snapshotHash,
-        rejectionArtifactHash: rejection.artifactHash,
-        retainedForNormalization: true,
-      },
-    });
   const before = captureConvergenceSources(root, state.baseline.policyHash);
   const currency = await inspectRepositoryKnowledgeCurrency(root);
   const lint = await lintRepositoryKnowledge(root);
@@ -153,13 +159,21 @@ export async function verifyConvergenceLifecycle(
   const offset = Number(state.stageData.canonicalOffset ?? 0);
   if (before.snapshotHash !== after.snapshotHash)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
+  const pendingNormalization = (
+    await inspectConfiguredDocumentNormalization({ repositoryRoot: root })
+  ).pendingDocuments;
+  const parked = await currentParkedSources(context, state, expectedSources, pendingNormalization);
+  const parkedCanonical = new Set(
+    parked.filter((item) => item.stage === "canonical").map((item) => item.path),
+  );
+  const coveredSources = expectedSources.filter((source) => !parkedCanonical.has(source.path));
   const coverage =
     (state.stageData.canonicalCoverage as
       { path: string; contentHash: string; disposition: string }[] | undefined) ?? [];
   const completeCoverage =
-    coverage.length === expectedSources.length &&
-    new Set(coverage.map((item) => item.path)).size === expectedSources.length &&
-    expectedSources.every((source) =>
+    coverage.length === coveredSources.length &&
+    new Set(coverage.map((item) => item.path)).size === coveredSources.length &&
+    coveredSources.every((source) =>
       coverage.some(
         (item) =>
           item.path === source.path &&
@@ -167,7 +181,20 @@ export async function verifyConvergenceLifecycle(
           ["no_change", "covered", "candidate"].includes(item.disposition),
       ),
     );
-  if (!currency.current || !lint.valid || offset !== expectedSources.length || !completeCoverage)
+  // Pending normalization that consists only of parked documents is reported as parked.
+  const parkedNormalization = new Set(
+    parked.filter((item) => item.stage === "normalization").map((item) => item.path),
+  );
+  const parkedOnly =
+    parkedNormalization.size > 0 &&
+    pendingNormalization.every((path) => parkedNormalization.has(path)) &&
+    currency.reasons.every((reason) => reason === "normalization_pending");
+  if (
+    (!currency.current && !parkedOnly) ||
+    !lint.valid ||
+    offset !== expectedSources.length ||
+    !completeCoverage
+  )
     return waitingConvergenceStage({
       artifacts: context.storage.artifacts,
       state,
@@ -182,6 +209,7 @@ export async function verifyConvergenceLifecycle(
         expectedSources: expectedSources.length,
       },
     });
+  if (parked.length) return parkedSourcesAttention(context.storage.artifacts, state, parked);
   return withConvergenceAssignment({
     storage: context.storage,
     provider: context.provider,
@@ -191,12 +219,18 @@ export async function verifyConvergenceLifecycle(
     paths: [...new Set(state.baseline.sources.map((source) => source.path.split("/")[0]!))],
     assertLease,
     run: async (authority) => {
+      const assets = classifyConvergenceAssets(root, state, authority.delegation);
       const verification = await verifyConvergenceEffect(
         context,
         authority,
         state.baseline.policyHash,
       );
       context.assertSource(state);
+      const assetSettlement = await recordConvergenceAssetSettlement(
+        context.storage.artifacts,
+        assets,
+        verification,
+      );
       return completeConvergenceStage({
         repositoryRoot: root,
         artifacts: context.storage.artifacts,
@@ -215,8 +249,32 @@ export async function verifyConvergenceLifecycle(
           assetDispositionHash: sha256(
             canonicalJson(resolveConvergenceAssetDispositions(root, authority.delegation)),
           ),
+          assetSettlement,
         },
       });
     },
   });
+}
+
+/**
+ * Parked sources of this obligation and the latest earlier one, still bound to their exact bytes.
+ * A parked normalization document counts only while it is still pending.
+ */
+async function currentParkedSources(
+  context: ConvergenceRuntimeContext,
+  state: KnowledgeConvergenceInput,
+  expectedSources: readonly { path: string; contentHash: string }[],
+  pendingNormalization: readonly string[],
+): Promise<ParkedConvergenceSource[]> {
+  const hashes = new Map(state.baseline.sources.map((source) => [source.path, source.contentHash]));
+  const assessed = new Set(expectedSources.map((source) => source.path));
+  const pending = new Set(pendingNormalization);
+  return mergeParkedSources(
+    await carriedParkedSources(context.storage, state),
+    obligationParkedSources(state),
+  ).filter(
+    (item) =>
+      hashes.get(item.path) === item.contentHash &&
+      (item.stage === "canonical" ? assessed.has(item.path) : pending.has(item.path)),
+  );
 }

@@ -2,6 +2,7 @@ import { convergenceStatus } from "./knowledge-convergence-status.js";
 import { assertKnowledgeConvergenceInput } from "./knowledge-convergence-input.js";
 import {
   convergenceRetryLimit,
+  KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT,
   MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS,
   normalizedConvergenceFailure,
   UNCLASSIFIED_STAGE_REEVALUATION_MS,
@@ -226,6 +227,7 @@ export async function processKnowledgeConvergence(
           schemaVersion: 1,
           kind: "stage_failure",
           code,
+          evaluationContract: KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT,
           snapshotHash: state.snapshotHash,
           delegationHash: state.baseline.delegationHash,
           evidenceHash: /^sha256:[a-f0-9]{64}$/u.test(

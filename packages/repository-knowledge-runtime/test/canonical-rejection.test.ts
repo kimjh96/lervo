@@ -9,6 +9,7 @@ import {
 import { createConvergenceRuntimeHost } from "../src/host.js";
 import { waitingConvergenceStage } from "../src/stage-receipt.js";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
+import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
 import { fixture } from "./fixture.js";
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
@@ -20,7 +21,7 @@ afterEach(async () => {
 });
 
 it.each([false, true])(
-  "normalizes independent debt while retaining canonical rejection; legacy upgrade=%s",
+  "parks rejected canonical sources and still normalizes the rest; legacy upgrade=%s",
   { timeout: 300_000 },
   async (legacy) => {
     const f = await fixture(true, true);
@@ -47,6 +48,7 @@ it.each([false, true])(
         maximumStages: 1,
       });
     if (legacy) {
+      // A pre-ADR-0479 owner stopped the whole obligation at its first rejected review.
       const context = {
         storage: f.storage,
         provider: "claude" as const,
@@ -68,16 +70,14 @@ it.each([false, true])(
             ...host,
             runStage: async (stage, state, assertLease) => {
               const result = await host.runStage(stage, state, assertLease);
-              if (stage !== "canonical_review" || !result.input.stageData.canonicalRejection)
-                return result;
-              const rejection = result.input.stageData.canonicalRejection as {
-                artifactHash: string;
-              };
-              const retained = JSON.parse(
+              const receipt = result.input.receipts.find((item) => item.stage === stage);
+              if (stage !== "canonical_review" || receipt === undefined) return result;
+              const proof = JSON.parse(
                 Buffer.from(
-                  await f.artifacts.get(`lervo-cas://sha256/${rejection.artifactHash.slice(7)}`),
+                  await f.artifacts.get(`lervo-cas://sha256/${receipt.artifactHash.slice(7)}`),
                 ).toString("utf8"),
               );
+              if (proof.proof.status !== "review_rejected_for_bounded_retry") return result;
               return waitingConvergenceStage({
                 artifacts: f.artifacts,
                 state,
@@ -86,8 +86,8 @@ it.each([false, true])(
                 dependency: {
                   kind: "canonical_rejection",
                   snapshotHash: state.snapshotHash,
-                  assessmentHash: retained.assessmentHash,
-                  result: retained.rejection.result,
+                  assessmentHash: proof.proof.assessmentHash,
+                  result: proof.proof.review,
                 },
               });
             },
@@ -107,11 +107,12 @@ it.each([false, true])(
       ).toBe(true);
     }
     let result: Awaited<ReturnType<typeof run>> | undefined;
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 64; i++) {
       result = await run();
       if (
         result.status === "processed" &&
-        result.convergence.reason === "knowledge_semantic_review_rejected"
+        result.convergence.state === "attention_required" &&
+        result.convergence.reason !== "knowledge_semantic_review_rejected"
       )
         break;
     }
@@ -119,16 +120,32 @@ it.each([false, true])(
       status: "processed",
       convergence: {
         state: "attention_required",
-        reason: "knowledge_semantic_review_rejected",
+        reason: "knowledge_sources_parked",
         lastVerifiedCurrency: null,
       },
+    });
+    const status = await inspectAutonomousKnowledgeStatus(f.storage);
+    expect(status.parked).toEqual({
+      count: 1,
+      sources: [
+        {
+          stage: "canonical",
+          path: "docs/specs/runtime.md",
+          reason: "review_rejected",
+          attempts: 2,
+        },
+      ],
     });
     expect(
       (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
     ).toEqual([]);
     expect(await readFile(target, "utf8")).toBe(before);
     expect(ref()).toBe(beforeRef);
-    const events = f.events.list({ limit: 1000 });
+    const events = [];
+    for (let page = f.events.list({ limit: 1000 }); page.length;) {
+      events.push(...page);
+      page = f.events.list({ afterSeq: page.at(-1)!.seq, limit: 1000 });
+    }
     expect(
       events.some(
         (e) =>
@@ -146,7 +163,11 @@ it.each([false, true])(
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line));
-    expect(calls.filter((c) => c.request.task === "independent_canonical_review")).toHaveLength(1);
+    // Every review judged a workset no larger than its predecessor; single sources end parked.
+    const reviewed = calls
+      .filter((c) => c.request.task === "independent_canonical_review")
+      .map((c) => c.request.untrustedSourceData.sources.length as number);
+    expect(reviewed.at(-1)).toBe(1);
     expect(calls.some((c) => c.request.envelope)).toBe(true);
     const head = f.events.latest()!.eventHash;
     const logBeforeRestart = await readFile(f.log, "utf8");
@@ -174,7 +195,7 @@ it(
     expect(script).toContain(marker);
     await writeFile(f.executable, script.replace(marker, marker.replace("'approve'", "'reject'")));
     let result: Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>> | undefined;
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 48; i++) {
       result = await runAutonomousKnowledgeWorker({
         storage: f.storage,
         workerId: "bounded-review-retry",
@@ -183,15 +204,11 @@ it(
         admissionDirectory: f.admissionDirectory,
         maximumStages: 1,
       });
-      if (
-        result.status === "processed" &&
-        result.convergence.reason === "knowledge_semantic_review_rejected"
-      )
-        break;
+      if (result.status === "processed" && result.convergence.state === "attention_required") break;
     }
     expect(result).toMatchObject({
       status: "processed",
-      convergence: { state: "attention_required", reason: "knowledge_semantic_review_rejected" },
+      convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
     });
     const calls = (await readFile(f.log, "utf8"))
       .trim()

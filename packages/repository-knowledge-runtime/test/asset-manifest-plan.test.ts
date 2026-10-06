@@ -11,7 +11,8 @@ import {
 import { CONVERGENCE_DELEGATION_PATH } from "../src/delegation.js";
 import { CONVERGENCE_ASSET_DISPOSITIONS_PATH } from "../src/asset-disposition-manifest.js";
 import { discoverConvergenceBaseline } from "../src/baseline.js";
-import { unresolvedConvergenceAssets } from "../src/asset-verification.js";
+import { classifyConvergenceAssets } from "../src/asset-verification.js";
+import { loadConvergenceDelegation } from "../src/delegation.js";
 import {
   captureConvergenceSettlementAuthority,
   assertConvergenceSettlementAuthority,
@@ -73,12 +74,17 @@ it("atomically applies all 277 asset declarations without expanding the grant, a
     liveWorkPending: async () => false,
     assertSource() {},
   };
-  expect(await unresolvedConvergenceAssets(context, state)).toBeNull();
+  const delegation = (await loadConvergenceDelegation(f.root))!.delegation;
+  expect(classifyConvergenceAssets(f.root, state, delegation)).toEqual({
+    declared: 277,
+    suiteBound: [],
+  });
+  // ADR-0479: a declaration for earlier bytes no longer declares the asset; the suite binds it.
   state.baseline.sources.find((source) => source.path === "assets/model-276.bin")!.contentHash =
     `sha256:${"0".repeat(64)}`;
-  expect(await unresolvedConvergenceAssets(context, state)).toMatchObject({
-    state: "attention_required",
-    failureCode: "asset_verification_required",
+  expect(classifyConvergenceAssets(f.root, state, delegation)).toEqual({
+    declared: 276,
+    suiteBound: [{ path: "assets/model-276.bin", contentHash: `sha256:${"0".repeat(64)}` }],
   });
   state.receipts = [
     {
@@ -148,7 +154,7 @@ it("rolls back both files when the canonical materialization event fails", async
   ).toHaveLength(0);
 });
 
-it("settles unread sensitive sources by their baseline disposition while opaque bytes still need verification", async () => {
+it("settles unread sensitive sources by their baseline disposition and binds undeclared opaque bytes to the suite", async () => {
   const f = await fixture(true);
   fixtures.push(f);
   await mkdir(resolve(f.root, "src"), { recursive: true });
@@ -168,21 +174,22 @@ it("settles unread sensitive sources by their baseline disposition while opaque 
     receipts: [],
     stageData: {},
   };
-  const context: ConvergenceRuntimeContext = {
-    storage: f.storage,
-    provider: "claude",
-    signal: new AbortController().signal,
-    liveWorkPending: async () => false,
-    assertSource() {},
-  };
-  expect(await unresolvedConvergenceAssets(context, state)).toBeNull();
+  const delegation = (await loadConvergenceDelegation(f.root))!.delegation;
+  expect(classifyConvergenceAssets(f.root, state, delegation)).toEqual({
+    declared: 0,
+    suiteBound: [],
+  });
 
   await writeFile(resolve(f.root, "src/model.bin"), Buffer.from([0, 1, 2]));
   const withAsset = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
-  expect(
-    await unresolvedConvergenceAssets(context, { ...state, baseline: withAsset }),
-  ).toMatchObject({
-    state: "attention_required",
-    failureCode: "asset_verification_required",
+  expect(classifyConvergenceAssets(f.root, { ...state, baseline: withAsset }, delegation)).toEqual({
+    declared: 0,
+    suiteBound: [
+      {
+        path: "src/model.bin",
+        contentHash: withAsset.sources.find((source) => source.path === "src/model.bin")!
+          .contentHash,
+      },
+    ],
   });
 });

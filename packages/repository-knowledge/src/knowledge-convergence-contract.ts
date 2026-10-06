@@ -103,5 +103,18 @@ export interface KnowledgeConvergenceStatus {
    * and the repository-relative top-level roots that the delegation's normalization roots exclude.
    */
   scopeGap?: { pendingDocuments: number; outsideNormalizationRoots: string[] };
+  /**
+   * Present only for `knowledge_sources_parked` (ADR-0479): the repository-relative sources that
+   * remain after every other stage finished, why each was parked, and its generation attempts.
+   */
+  parked?: {
+    count: number;
+    sources: {
+      stage: "canonical" | "normalization";
+      path: string;
+      reason: "review_rejected" | "owner_decision";
+      attempts: number;
+    }[];
+  };
   lastVerifiedCurrency: { obligationId: string; snapshotHash: string; resolvedAt: string } | null;
 }

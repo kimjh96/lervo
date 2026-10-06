@@ -193,9 +193,9 @@
     },
     {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:65091ecda32ac3720fd14a962af7b5e04341b3dbe841e461dc871b6faa37922a",
+      "contentHash": "sha256:e3047094c18228b7cbb1b03ccd3b931a80e072213372cce406b88cfb14b9896b",
       "responsibility": "Isolated no-capability provider process adapter",
-      "rationale": "One isolated no-capability process boundary for both providers, including native structured JSON output. Shared availability translation serves the three JSON workflows, and Codex failure events become typed provider failures without provider text; host admission, budgets, source policy and document effects stay outside. Common tests cover schema delivery, structured extraction, no tools, usage, cancellation and timeout.",
+      "rationale": "One isolated no-capability process boundary for both providers with native structured JSON output, shared availability translation, typed Codex failures, and the ADR-0479 reviewer-feedback instruction it adds only to envelopes carrying feedback. Admission, budgets, source policy and document effects stay outside. Common tests cover schema delivery, extraction, no tools, usage, cancellation and timeout.",
       "disposition": "cohesive"
     },
     {
@@ -214,9 +214,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:893b5026d243329dd89a03a158c3019ccfa154d6d0519ccd8e12ce2fa11ceefe",
+      "contentHash": "sha256:2a7675b93a0fa641b2acb7579640fea062e853ee5372d300a2c2da8ffa34d6cf",
       "responsibility": "Reviewed document normalization lifecycle",
-      "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation orchestration, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation policy, explicit selection and workset/preflight contracts, shard-cache storage, ADR-0473 tool-ownership evidence and its Git and file probes, and CLI parsing or rendering are separate modules; this module only threads the observed tool-generated path set into eligibility.",
+      "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation, selection, worksets, shard cache, ADR-0473 tool ownership, and CLI rendering are separate; this module only threads tool-generated paths into eligibility and ADR-0479 reviewer feedback into envelopes, while feedback records and admission live in the convergence runtime.",
       "disposition": "cohesive"
     },
     {

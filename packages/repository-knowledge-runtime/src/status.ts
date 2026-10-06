@@ -9,6 +9,7 @@ import { readConvergenceOwnerFence } from "./convergence-owner-fence.js";
 import { inspectKnowledgeResidentHealth } from "./resident-health.js";
 import { convergenceRecoveryStatus } from "./recovery-status.js";
 import { withNormalizationScopeGap } from "./normalization-scope-gap.js";
+import { withParkedSourcesStatus } from "./convergence-parking.js";
 
 /**
  * Read-only debt detection: currency, normalization, and candidate inspection without a baseline
@@ -30,13 +31,16 @@ export async function inspectConvergenceDebt(
     storage.events,
     storage.artifacts,
   );
-  const status = await withNormalizationScopeGap(
+  const status = await withParkedSourcesStatus(
     storage,
-    inspectKnowledgeConvergenceStatus({
-      events: storage.events,
-      baseline,
-      writableEventSchemaVersion: storage.writableEventSchemaVersion ?? 1,
-    }),
+    await withNormalizationScopeGap(
+      storage,
+      inspectKnowledgeConvergenceStatus({
+        events: storage.events,
+        baseline,
+        writableEventSchemaVersion: storage.writableEventSchemaVersion ?? 1,
+      }),
+    ),
   );
   return {
     status,

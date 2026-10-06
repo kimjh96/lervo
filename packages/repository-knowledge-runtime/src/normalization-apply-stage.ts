@@ -34,7 +34,11 @@ export async function applyNormalizationBatch(
       state,
       stage: "normalization_apply",
       nextStage: batch === null ? "lifecycle_verification" : "normalization_generation",
-      stageData: { normalizationCursor: batch?.paths.at(-1) ?? "" },
+      // A wholly rejected batch settles its review here; a regeneration binds its own context.
+      stageData: {
+        normalizationCursor: batch?.paths.at(-1) ?? "",
+        ...(batch === null ? {} : { normalizationReview: null }),
+      },
       proof: { status: "no_approved_effect" },
     });
   if (typeof id !== "string" || !batch)
