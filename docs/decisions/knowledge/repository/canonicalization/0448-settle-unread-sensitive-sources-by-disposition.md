@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-03
 Amends: [ADR-0438](0438-bind-bounded-asset-manifests-to-delegation.md) and [ADR-0434](0434-converge-background-canonicalization-normalization-and-knowledge.md)
+Amended by: [ADR-0479](../../semantics/0479-park-rejected-semantic-candidates-and-settle-opaque-assets-by-the-delegation-suite.md) (undeclared opaque assets are suite-bound at final verification)
 
 ## Context
 

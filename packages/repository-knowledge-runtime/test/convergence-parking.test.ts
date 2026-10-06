@@ -1,0 +1,362 @@
+import { readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { afterEach, expect, it } from "vitest";
+import { inspectConfiguredDocumentNormalization } from "@lervo/repository-knowledge";
+
+import { runAutonomousKnowledgeWorker } from "../src/worker.js";
+import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
+import { legacyWholePipelineStop } from "../src/legacy-stop-reevaluation.js";
+import {
+  admitNormalizationDocuments,
+  normalizationRejections,
+} from "../src/normalization-rejection.js";
+import { canonicalWorksetWindow } from "../src/canonical-isolation.js";
+import type { ParkedConvergenceSource } from "../src/convergence-parking.js";
+import { fixture } from "./fixture.js";
+
+const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
+afterEach(async () => {
+  for (const f of fixtures.splice(0)) {
+    await f.storage.close();
+    await rm(f.directory, { recursive: true, force: true });
+  }
+});
+
+type Fixture = Awaited<ReturnType<typeof fixture>>;
+
+function run(f: Fixture) {
+  return runAutonomousKnowledgeWorker({
+    storage: f.storage,
+    workerId: "parking",
+    provider: "claude",
+    executable: f.executable,
+    admissionDirectory: f.admissionDirectory,
+  });
+}
+
+async function settle(f: Fixture, cycles = 16) {
+  let result: Awaited<ReturnType<typeof run>> | undefined;
+  for (let cycle = 0; cycle < cycles; cycle++) {
+    result = await run(f);
+    if (
+      result.status === "processed" &&
+      (result.convergence.state === "attention_required" ||
+        (result.convergence.state === "idle" && result.convergence.lastVerifiedCurrency !== null))
+    )
+      break;
+  }
+  return result!;
+}
+
+async function requests(f: Fixture) {
+  return (await readFile(f.log, "utf8"))
+    .trim()
+    .split("\n")
+    .map(
+      (line) =>
+        JSON.parse(line).request as {
+          task?: string;
+          envelope?: { documents: { path: string; independentReviewFeedback?: unknown }[] };
+          untrustedSourceData?: Record<string, unknown>;
+        },
+    );
+}
+
+/** Rewrites the fixture provider so the exact reviewer rejects selected sources. */
+async function rejectWhen(f: Fixture, normalization: string, canonical = "false") {
+  const script = await readFile(f.executable, "utf8");
+  await writeFile(
+    f.executable,
+    script.replace(
+      "console.log(JSON.stringify({is_error:false",
+      `if(request.task==='independent_normalization_review'){for(const decision of response.decisions){const item=data.candidate.items.find(source=>source.operationId===decision.operationId);if(${normalization}){decision.decision='reject';decision.checks.links=false;decision.rationale='The link to runtime.md#local-runtime loses its anchor in this rewrite.';}}}
+if(request.task==='independent_canonical_review'&&(${canonical})){response.decision='reject';response.rationale='The workset claims coverage for docs/specs/b.md that no exact canonical quotation supports.';}
+console.log(JSON.stringify({is_error:false`,
+    ),
+  );
+}
+
+it("regenerates a rejected document with the reviewer's reasons and converges", async () => {
+  const f = await fixture(true);
+  fixtures.push(f);
+  await writeFile(resolve(f.root, "docs/specs/a.md"), "# A\n\nKeep this local contract.\n");
+  // The first review of a.md rejects it; the regeneration carries the reason and is approved.
+  await rejectWhen(
+    f,
+    "item.sourcePath==='docs/specs/a.md'&&!readFileSync(" +
+      JSON.stringify(f.log) +
+      ",'utf8').includes('independentReviewFeedback')",
+  );
+  const result = await settle(f);
+  expect(result).toMatchObject({
+    status: "processed",
+    convergence: { state: "idle", lastVerifiedCurrency: expect.any(Object) },
+  });
+  const regenerated = (await requests(f))
+    .flatMap((request) => request.envelope?.documents ?? [])
+    .filter((document) => document.independentReviewFeedback !== undefined);
+  expect(regenerated).toEqual([
+    expect.objectContaining({
+      path: "docs/specs/a.md",
+      independentReviewFeedback: {
+        attempt: 2,
+        reasons: [
+          "The link to runtime.md#local-runtime loses its anchor in this rewrite. (failed checks: links)",
+        ],
+      },
+    }),
+  ]);
+}, 180_000);
+
+it("parks an always-rejected document, carries it to the next obligation, and readmits it when edited", async () => {
+  const f = await fixture(true);
+  fixtures.push(f);
+  await writeFile(resolve(f.root, "docs/specs/a.md"), "# A\n\nKeep this local contract.\n");
+  await rejectWhen(f, "item.sourcePath==='docs/specs/a.md'");
+  expect(await settle(f)).toMatchObject({
+    convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
+  });
+  expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
+    count: 1,
+    sources: [
+      { stage: "normalization", path: "docs/specs/a.md", reason: "review_rejected", attempts: 3 },
+    ],
+  });
+  const generations = async () =>
+    (await requests(f)).filter((request) =>
+      request.envelope?.documents.some((document) => document.path === "docs/specs/a.md"),
+    ).length;
+  expect(await generations()).toBe(3);
+
+  // An unrelated change opens a new obligation; the parked bytes are not generated again.
+  await writeFile(resolve(f.root, "note.ts"), "export const note = 1;\n");
+  expect(await settle(f)).toMatchObject({
+    convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
+  });
+  expect(await generations()).toBe(3);
+
+  // Editing the parked document is the recovery: its new bytes are generated again.
+  await writeFile(resolve(f.root, "docs/specs/a.md"), "# A\n\nKeep this exact local contract.\n");
+  await settle(f);
+  expect(await generations()).toBeGreaterThan(3);
+}, 300_000);
+
+it("isolates one rejected canonical source by halving its workset and integrates the rest", async () => {
+  const f = await fixture(true);
+  fixtures.push(f);
+  for (const name of ["a", "b", "c"])
+    await writeFile(
+      resolve(f.root, `docs/specs/${name}.md`),
+      `# ${name.toUpperCase()}\n\nThe ${name} contract stays local.\n`,
+    );
+  await rejectWhen(f, "false", "data.sources.some(source=>source.path==='docs/specs/b.md')");
+  expect(await settle(f, 48)).toMatchObject({
+    convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
+  });
+  expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
+    count: 1,
+    sources: [
+      { stage: "canonical", path: "docs/specs/b.md", reason: "review_rejected", attempts: 2 },
+    ],
+  });
+  const reviewed = (await requests(f))
+    .filter((request) => request.task === "independent_canonical_review")
+    .map((request) =>
+      (request.untrustedSourceData!.sources as { path: string }[]).map((source) => source.path),
+    );
+  // Reviews containing b.md shrink until b.md alone is judged, then it is parked.
+  const withB = reviewed.filter((paths) => paths.includes("docs/specs/b.md"));
+  expect(withB.at(-1)).toEqual(["docs/specs/b.md"]);
+  expect(withB.map((paths) => paths.length)).toEqual(
+    withB.map((paths) => paths.length).toSorted((left, right) => right - left),
+  );
+  expect(reviewed.flat()).toEqual(expect.arrayContaining(["docs/specs/a.md", "docs/specs/c.md"]));
+  expect(
+    (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
+  ).toEqual([]);
+}, 300_000);
+
+it("settles an undeclared opaque asset by the passing pinned suite instead of stopping", async () => {
+  const f = await fixture(true);
+  fixtures.push(f);
+  await writeFile(resolve(f.root, "icon.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 1, 2, 3]));
+  const result = await settle(f);
+  expect(result).toMatchObject({
+    status: "processed",
+    convergence: { state: "idle", lastVerifiedCurrency: expect.any(Object) },
+  });
+  const stages = f.events
+    .list({ limit: 1_000, types: ["repository.knowledge.stage.recorded"] })
+    .map((event) => event.payload as { stage: string; state: string; failureCode: string | null });
+  expect(stages.some((stage) => stage.failureCode === "asset_verification_required")).toBe(false);
+  // The private suite-bound evidence names the exact asset bytes and the passing suite receipts.
+  const cas = resolve(f.storage.paths.cas, "sha256");
+  const artifacts = (
+    await Promise.all(
+      (await readdir(cas)).map(async (prefix) =>
+        Promise.all(
+          (await readdir(resolve(cas, prefix))).map((name) =>
+            readFile(resolve(cas, prefix, name), "utf8"),
+          ),
+        ),
+      ),
+    )
+  )
+    .flat()
+    .filter((text) => text.includes('"kind":"suite_bound_assets"'))
+    .map(
+      (text) => JSON.parse(text) as { sources: { path: string }[]; verificationReceipts: string[] },
+    );
+  expect(artifacts).toEqual([
+    expect.objectContaining({
+      sources: [expect.objectContaining({ path: "icon.png" })],
+      verificationReceipts: [expect.stringMatching(/^sha256:/u)],
+    }),
+  ]);
+}, 180_000);
+
+it("reevaluates each pre-ADR-0479 whole-pipeline stop exactly once", () => {
+  for (const kind of ["normalization_rejection", "canonical_rejection", "typed_asset_verification"])
+    expect(legacyWholePipelineStop({ kind })).toBe(true);
+  expect(
+    legacyWholePipelineStop({ kind: "stage_failure", code: "knowledge_source_limit_exceeded" }),
+  ).toBe(true);
+  expect(
+    legacyWholePipelineStop({
+      kind: "stage_failure",
+      code: "knowledge_source_limit_exceeded",
+      evaluationContract: "adr-0479",
+    }),
+  ).toBe(false);
+  expect(legacyWholePipelineStop({ kind: "parked_sources" })).toBe(false);
+  expect(legacyWholePipelineStop({ kind: "stage_failure", code: "knowledge_lint_invalid" })).toBe(
+    false,
+  );
+});
+
+const hash = (digit: string) => `sha256:${digit.repeat(64)}`;
+
+it("admits fresh documents first, then regenerates, then parks exhausted bytes", () => {
+  const sources = new Map([
+    ["docs/a.md", hash("1")],
+    ["docs/b.md", hash("2")],
+    ["docs/c.md", hash("3")],
+    ["docs/d.md", hash("4")],
+  ]);
+  const rejections = new Map([
+    ["docs/b.md", { contentHash: hash("2"), attempts: 1, reasons: ["Lost an anchor."] }],
+    ["docs/c.md", { contentHash: hash("3"), attempts: 3, reasons: ["Rewrote a managed block."] }],
+    // A rejection of older bytes no longer applies.
+    ["docs/d.md", { contentHash: hash("9"), attempts: 3, reasons: ["Old."] }],
+  ]);
+  const admission = admitNormalizationDocuments(
+    ["docs/a.md", "docs/b.md", "docs/c.md", "docs/d.md"],
+    sources,
+    rejections,
+    [],
+  );
+  expect(admission.fresh).toEqual(["docs/a.md", "docs/d.md"]);
+  expect([...admission.regenerate]).toEqual([
+    ["docs/b.md", { attempt: 2, reasons: ["Lost an anchor."] }],
+  ]);
+  expect(admission.parked).toEqual([
+    {
+      stage: "normalization",
+      path: "docs/c.md",
+      contentHash: hash("3"),
+      reason: "review_rejected",
+      attempts: 3,
+      reasons: ["Rewrote a managed block."],
+    },
+  ]);
+  // A carried parking whose bytes changed is dropped, so the edited document is admitted again.
+  const changed = admitNormalizationDocuments(
+    ["docs/c.md"],
+    new Map([["docs/c.md", hash("5")]]),
+    new Map(),
+    admission.parked,
+  );
+  expect(changed).toMatchObject({ fresh: ["docs/c.md"], parked: [] });
+});
+
+it("skips parked canonical sources and bounds an isolation span", () => {
+  const sources = ["a", "b", "c", "d", "e"].map((name, index) => ({
+    path: `docs/${name}.md`,
+    contentHash: hash(String(index + 1)),
+    kind: "text" as const,
+  }));
+  const parked: ParkedConvergenceSource[] = [
+    {
+      stage: "canonical",
+      path: "docs/a.md",
+      contentHash: hash("1"),
+      reason: "owner_decision",
+      attempts: 1,
+      reasons: [],
+    },
+    {
+      stage: "canonical",
+      path: "docs/d.md",
+      contentHash: hash("4"),
+      reason: "review_rejected",
+      attempts: 2,
+      reasons: [],
+    },
+  ];
+  const state = { stageData: {} } as Parameters<typeof canonicalWorksetWindow>[3];
+  expect(canonicalWorksetWindow(sources, 0, parked, state)).toEqual({
+    offset: 1,
+    maximumDocuments: 2,
+  });
+  expect(
+    canonicalWorksetWindow(sources, 1, parked, {
+      stageData: { canonicalIsolation: { offset: 1, end: 3, limit: 1 } },
+    } as unknown as typeof state),
+  ).toEqual({ offset: 1, maximumDocuments: 1 });
+  expect(canonicalWorksetWindow(sources, 3, parked, state)).toEqual({
+    offset: 4,
+    maximumDocuments: 1,
+  });
+});
+
+it("reads a pre-ADR-0479 rejection as one attempt and recovers its reviewer reasons", () => {
+  const rejections = normalizationRejections({
+    stageData: {
+      normalizationRejected: { "AGENTS.md": hash("7"), "docs/x.md": hash("8") },
+      normalizationReview: {
+        decisions: [
+          {
+            operationId: "op_agents",
+            sourceContentHash: hash("7"),
+            decision: "reject",
+            rationale: "It rewrites the managed turborepo-agent-rules region.",
+            checks: { protectedRegions: false, meaning: true },
+            unitReviews: [],
+          },
+        ],
+      },
+    },
+  } as unknown as Parameters<typeof normalizationRejections>[0]);
+  expect(Object.fromEntries(rejections)).toEqual({
+    "AGENTS.md": {
+      contentHash: hash("7"),
+      attempts: 1,
+      reasons: [
+        "It rewrites the managed turborepo-agent-rules region. (failed checks: protectedRegions)",
+      ],
+    },
+    "docs/x.md": { contentHash: hash("8"), attempts: 1, reasons: [] },
+  });
+  const admission = admitNormalizationDocuments(
+    ["docs/x.md"],
+    new Map([["docs/x.md", hash("8")]]),
+    rejections,
+    [],
+  );
+  expect(admission.regenerate.get("docs/x.md")).toEqual({
+    attempt: 2,
+    reasons: [
+      "An independent reviewer rejected the previous rewrite of this exact source; its reasons were not retained.",
+    ],
+  });
+});

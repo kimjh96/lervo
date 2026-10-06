@@ -30,6 +30,7 @@ import { resolveIntegrationTarget } from "./integration-target-sync.js";
 import { inspectRetainedCanonicalIntegration } from "./canonical-integration-recovery.js";
 import type { CanonicalBatch } from "./canonical-review.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
+import { legacyWholePipelineStop } from "./legacy-stop-reevaluation.js";
 import {
   commitSettledOutputsAtBoundary,
   settledOutputBoundary,
@@ -103,8 +104,8 @@ export function createConvergenceRuntimeHost(
         targetRef?: string;
         targetCommit?: string;
         evidenceHash?: string;
-        retainedForNormalization?: boolean;
         reevaluateAt?: string;
+        evaluationContract?: string;
       };
       const baseline = await discover();
       if (
@@ -144,12 +145,7 @@ export function createConvergenceRuntimeHost(
         );
       }
       if (dependency.code === "knowledge_cancelled") return context.signal.aborted;
-      if (
-        dependency.kind === "canonical_rejection" &&
-        dependency.retainedForNormalization !== true &&
-        baseline.debtCounts.normalization > 0
-      )
-        return false;
+      if (legacyWholePipelineStop(dependency)) return false;
       if (
         ["knowledge_effect_uncertain", "host_effect_uncertain"].includes(dependency.code ?? "") &&
         dependency.evidenceHash

@@ -1,26 +1,32 @@
-import { assertConvergenceDelegation } from "./delegation.js";
-import {
-  type KnowledgeConvergenceInput,
-  type KnowledgeConvergenceStageResult,
-} from "@lervo/repository-knowledge";
-import { waitingConvergenceStage } from "./stage-receipt.js";
-import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { canonicalJson, sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
+import type { ArtifactStore } from "@lervo/storage-contract";
+
+import type { ConvergenceDelegation } from "./delegation-contract.js";
 import { resolveConvergenceAssetDispositions } from "./asset-disposition-manifest.js";
 
+export interface ConvergenceAssetSettlement {
+  /** Opaque assets with a matching reviewed `opaque_verified` declaration. */
+  declared: number;
+  /**
+   * ADR-0479: opaque assets without a declaration, settled because their exact bytes belong to the
+   * captured revision on which every pinned delegation suite passed. This is not visual, runtime,
+   * or promotion approval, and the proof keeps the two kinds separate.
+   */
+  suiteBound: { path: string; contentHash: string }[];
+}
+
 /**
- * Opaque bytes need exact typed verification before currency. Sensitive bytes are never read, so the
- * baseline's explicit `sensitive_local` disposition settles them; a content hash would add no proof.
+ * Sensitive bytes are never read, so the baseline's explicit `sensitive_local` disposition settles
+ * them; policy exclusions stay visible. Every other opaque source is declared or suite-bound.
  */
-export async function unresolvedConvergenceAssets(
-  context: ConvergenceRuntimeContext,
+export function classifyConvergenceAssets(
+  root: string,
   state: KnowledgeConvergenceInput,
-): Promise<KnowledgeConvergenceStageResult | null> {
-  const delegation = await assertConvergenceDelegation({
-    repositoryRoot: context.storage.paths.repositoryRoot,
-    projectId: state.baseline.projectId,
-    expectedHash: state.baseline.delegationHash,
-    provider: context.provider,
-  });
+  delegation: Pick<
+    ConvergenceDelegation,
+    "assetDispositions" | "assetDispositionManifestHash" | "verification"
+  >,
+): ConvergenceAssetSettlement {
   const dispositionKinds = new Map(
     state.baseline.sourceDispositions?.map((item) => [item.path, item.kind]),
   );
@@ -29,31 +35,40 @@ export async function unresolvedConvergenceAssets(
       source.kind === "opaque" &&
       !["policy_excluded", "sensitive_local"].includes(dispositionKinds.get(source.path) ?? ""),
   );
-  const dispositions = resolveConvergenceAssetDispositions(
-    context.storage.paths.repositoryRoot,
-    delegation,
-  );
-  const unresolved = assets.filter(
-    (source) =>
-      !dispositions.some(
-        (item) =>
-          item.path === source.path &&
-          item.contentHash === source.contentHash &&
-          item.kind === "opaque_verified",
-      ),
-  );
-  if (!unresolved.length) return null;
-  return waitingConvergenceStage({
-    artifacts: context.storage.artifacts,
-    state,
-    kind: "attention_required",
-    reason: "asset_verification_required",
-    dependency: {
+  const declarations = resolveConvergenceAssetDispositions(root, delegation);
+  const declared = (source: { path: string; contentHash: string }) =>
+    declarations.some(
+      (item) =>
+        item.path === source.path &&
+        item.contentHash === source.contentHash &&
+        item.kind === "opaque_verified",
+    );
+  return {
+    declared: assets.filter(declared).length,
+    suiteBound: assets
+      .filter((source) => !declared(source))
+      .map(({ path, contentHash }) => ({ path, contentHash })),
+  };
+}
+
+/** The suite-bound list is private CAS evidence; the stage proof carries its count and hash. */
+export async function recordConvergenceAssetSettlement(
+  artifacts: ArtifactStore,
+  settlement: ConvergenceAssetSettlement,
+  verificationReceipts: readonly string[],
+) {
+  const artifact = await artifacts.put(
+    canonicalJson({
       schemaVersion: 1,
-      kind: "typed_asset_verification",
-      snapshotHash: state.snapshotHash,
-      sources: unresolved.map(({ path, contentHash, kind }) => ({ path, contentHash, kind })),
-      delegationHash: state.baseline.delegationHash,
-    },
-  });
+      kind: "suite_bound_assets",
+      sources: settlement.suiteBound,
+      verificationReceipts,
+    }),
+  );
+  return {
+    declared: settlement.declared,
+    suiteBound: settlement.suiteBound.length,
+    suiteBoundHash: sha256(canonicalJson(settlement.suiteBound)),
+    suiteBoundArtifactHash: artifact.contentHash,
+  };
 }

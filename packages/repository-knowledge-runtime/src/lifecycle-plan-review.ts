@@ -1,6 +1,5 @@
 import { convergenceSourceBytes } from "./source-capture.js";
 import { loadCanonicalReviewContext } from "./review-context.js";
-import { convergenceAssessmentSources } from "./assessment-scope.js";
 import { convergenceManagedKnowledgeRoots } from "./managed-knowledge-scope.js";
 import { canonicalJson, sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { reviewKnowledgeJson } from "./provider-call.js";
@@ -29,10 +28,10 @@ export async function reviewLifecyclePlan(
   if (Buffer.byteLength(bytes) > 1024 * 1024)
     throw new KnowledgeConvergenceRuntimeError("knowledge_source_limit_exceeded");
   const planHash = sha256(bytes);
-  const sourcePaths = [
-    ...new Set([...paths, ...convergenceAssessmentSources(state).map((source) => source.path)]),
-  ];
-  const sources = sourcePaths.map((path) => {
+  // ADR-0479: the reviewer judges exactly the paths the plan changes, plus their review context.
+  // Unchanged repository sources cannot gain or lose meaning through the plan, so disclosing every
+  // assessment source made the request grow with the repository instead of the plan.
+  const sources = [...new Set(paths)].map((path) => {
     try {
       const content = convergenceSourceBytes(context.storage.paths.repositoryRoot, path);
       return {

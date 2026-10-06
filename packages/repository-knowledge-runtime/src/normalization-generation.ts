@@ -6,6 +6,7 @@ import {
   compileConfiguredDocumentNormalizationCandidateObserved,
   inspectConfiguredDocumentNormalization,
   storeDocumentNormalizationCandidate,
+  type DocumentNormalizationReviewFeedback,
   type KnowledgeConvergenceInput,
   type KnowledgeConvergenceStageResult,
   type RepositoryDocumentNormalizationCompiler,
@@ -22,6 +23,13 @@ import {
   NORMALIZATION_OUTSIDE_DELEGATION,
   normalizationScopeGap,
 } from "./normalization-scope-gap.js";
+import {
+  carriedParkedSources,
+  mergeParkedSources,
+  obligationParkedSources,
+  type ParkedConvergenceSource,
+} from "./convergence-parking.js";
+import { admitNormalizationDocuments, normalizationRejections } from "./normalization-rejection.js";
 
 export interface NormalizationBatch {
   candidateId: string;
@@ -54,40 +62,39 @@ export async function generateNormalizationBatch(
 ): Promise<KnowledgeConvergenceStageResult> {
   const root = context.storage.paths.repositoryRoot;
   const inspection = await inspectConfiguredDocumentNormalization({ repositoryRoot: root });
-  const rejected = (state.stageData.normalizationRejected ?? {}) as Record<string, string>;
   const sources = new Map(
     (
       (state.stageData.sourceCapture as ReturnType<typeof captureConvergenceSources> | undefined)
         ?.sources ?? state.baseline.sources
     ).map((source) => [source.path, source.contentHash]),
   );
-  const available = inspection.pendingDocuments.filter(
-    (path) => rejected[path] !== sources.get(path),
+  const admission = admitNormalizationDocuments(
+    inspection.pendingDocuments,
+    sources,
+    normalizationRejections(state),
+    mergeParkedSources(
+      await carriedParkedSources(context.storage, state),
+      obligationParkedSources(state),
+    ),
   );
-  if (!available.length) {
-    if (inspection.pendingDocuments.length)
-      return waitingConvergenceStage({
-        artifacts: context.storage.artifacts,
-        state,
-        reason: "knowledge_semantic_review_rejected",
-        kind: "attention_required",
-        dependency: {
-          schemaVersion: 1,
-          kind: "normalization_rejection",
-          snapshotHash: state.snapshotHash,
-          rejected,
-        },
-      });
+  const available = admission.fresh.length
+    ? admission.fresh
+    : [...admission.regenerate.keys()].toSorted();
+  if (!available.length)
+    // ADR-0479: parked documents never hold the pipeline; later stages still run.
     return completeConvergenceStage({
       repositoryRoot: root,
       artifacts: context.storage.artifacts,
       state,
       stage: "normalization_generation",
       nextStage: "normalization_review",
-      stageData: { normalizationBatch: null },
-      proof: { status: "already_current", inspection },
+      stageData: { normalizationBatch: null, parkedSources: admission.parked },
+      proof: {
+        status: admission.parked.length ? "remaining_documents_parked" : "already_current",
+        inspection,
+        parkedSources: admission.parked.map(({ path, contentHash }) => ({ path, contentHash })),
+      },
     });
-  }
   // Rotate lexicographically after the last family, so rejected families cannot monopolize a cycle.
   const cursor =
     typeof state.stageData.normalizationCursor === "string"
@@ -119,7 +126,8 @@ export async function generateNormalizationBatch(
     state,
     delegation.resourceCeilings.maximumDocuments,
   );
-  const selected = scoped.slice(0, documentLimit).filter((path) => {
+  // A regeneration carries one document's reasons, so its review isolates that document.
+  const selected = scoped.slice(0, admission.fresh.length ? documentLimit : 1).filter((path) => {
     sourceBytes += convergenceSourceBytes(root, path).byteLength;
     return sourceBytes <= delegation.resourceCeilings.maximumSourceBytes;
   });
@@ -165,7 +173,16 @@ export async function generateNormalizationBatch(
     state,
     paths: bounded,
     assertLease,
-    run: (authority) => generate(context, state, bounded, authority, compiler),
+    run: (authority) =>
+      generate(context, state, bounded, authority, compiler, {
+        feedback: new Map(
+          bounded.flatMap((path) => {
+            const feedback = admission.regenerate.get(path);
+            return feedback === undefined ? [] : [[path, feedback] as const];
+          }),
+        ),
+        parkedSources: admission.parked,
+      }),
   });
 }
 
@@ -175,6 +192,10 @@ async function generate(
   paths: string[],
   authority: ConvergenceAssignmentAuthority,
   compiler: RepositoryDocumentNormalizationCompiler,
+  regeneration: {
+    feedback: ReadonlyMap<string, DocumentNormalizationReviewFeedback>;
+    parkedSources: ParkedConvergenceSource[];
+  },
 ): Promise<KnowledgeConvergenceStageResult> {
   const root = context.storage.paths.repositoryRoot;
   const ceilings = authority.delegation.resourceCeilings;
@@ -199,7 +220,19 @@ async function generate(
         delegationHash: state.baseline.delegationHash,
       },
     });
-  const batchId = sha256(canonicalJson([state.obligationId, selected, state.snapshotHash]));
+  const attempts = selected.flatMap((path) => {
+    const feedback = regeneration.feedback.get(path);
+    return feedback === undefined ? [] : [[path, feedback.attempt]];
+  });
+  // Each regeneration attempt is its own bounded batch; a first generation keeps its identity.
+  const batchId = sha256(
+    canonicalJson([
+      state.obligationId,
+      selected,
+      state.snapshotHash,
+      ...(attempts.length ? [attempts] : []),
+    ]),
+  );
   const normalize: NonNullable<
     RepositoryDocumentNormalizationCompiler["normalizeObserved"]
   > = async (envelope, signal) => {
@@ -223,6 +256,7 @@ async function generate(
     compiler: wrapped,
     signal: context.signal,
     sourcePaths: selected,
+    ...(attempts.length ? { reviewFeedback: regeneration.feedback } : {}),
     ceilings: {
       maximumSourceBytes: ceilings.maximumSourceBytes,
       maximumProviderCalls: ceilings.maximumProviderCalls - 1,
@@ -248,9 +282,10 @@ async function generate(
     state,
     stage: "normalization_generation",
     nextStage: "normalization_review",
-    stageData: { normalizationBatch: batch },
+    stageData: { normalizationBatch: batch, parkedSources: regeneration.parkedSources },
     proof: {
       batch,
+      regenerationAttempts: attempts,
       resourceObservation: compilation.resourceObservation,
       generatorAgentId: authority.agent.agentId,
       assignmentId: authority.assignment.assignmentId,

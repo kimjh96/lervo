@@ -18,6 +18,7 @@ The runtime coordinates delegated background knowledge convergence, bounded exec
 - [ADR-0442: conversation repository snapshots](../../decisions/knowledge/repository/canonicalization/0442-isolate-conversation-repository-snapshots.md)
 - [ADR-0444: serialized knowledge materialization](../../decisions/knowledge/repository/canonicalization/0444-serialize-knowledge-materialization-with-managed-runs.md)
 - [ADR-0438: bounded asset manifests](../../decisions/knowledge/repository/canonicalization/0438-bind-bounded-asset-manifests-to-delegation.md)
+- [ADR-0479: parked semantic candidates and suite-bound assets](../../decisions/knowledge/semantics/0479-park-rejected-semantic-candidates-and-settle-opaque-assets-by-the-delegation-suite.md)
 - [ADR-0435: normalization after canonical rejection](../../decisions/knowledge/repository/canonicalization/0435-continue-normalization-after-canonical-rejection.md)
 - [Recovery and retention contract](recovery-and-retention.md)
 - [ADR-0436: reviewed source capture and bounded worksets](../../decisions/knowledge/repository/canonicalization/0436-reviewed-source-capture-and-bounded-canonical-worksets.md)

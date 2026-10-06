@@ -6,7 +6,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { withConvergenceAssignment } from "./workforce.js";
 import { reviewKnowledgeJson } from "./provider-call.js";
-import { completeConvergenceStage, waitingConvergenceStage } from "./stage-receipt.js";
+import { completeConvergenceStage } from "./stage-receipt.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import type {
   CanonicalAssessment,
@@ -14,10 +14,8 @@ import type {
 } from "./canonical-assessment-contract.js";
 import type { SemanticReviewContextDocument } from "./review-context.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
-import {
-  retainedCanonicalRejection,
-  continueNormalizationAfterCanonicalRejection,
-} from "./canonical-rejection.js";
+import { retainedCanonicalRejection } from "./canonical-rejection.js";
+import { isolateRejectedCanonicalBatch } from "./canonical-isolation.js";
 
 export interface CanonicalBatch {
   offset: number;
@@ -89,22 +87,16 @@ export async function reviewCanonicalBaseline(
     });
   if (!batch || !Array.isArray(batch.sources))
     throw new KnowledgeConvergenceRuntimeError("knowledge_job_source_invalid");
-  if (state.baseline.normalizationPaths.length > 0) {
-    const retained = await retainedCanonicalRejection(context, state, batch);
-    if (retained !== null) {
-      const result = validatedReview(retained.result, batch);
-      if (
-        result.decision !== "reject" &&
-        !batch.assessment.decisions.some((decision) => decision.disposition === "needs_review")
-      )
-        throw new KnowledgeConvergenceRuntimeError("knowledge_semantic_review_invalid");
-      return continueNormalizationAfterCanonicalRejection({
-        context,
-        state,
-        batch,
-        rejection: retained,
-      });
-    }
+  // A rejection recorded before an upgrade is reused without another review call (ADR-0435).
+  const retained = await retainedCanonicalRejection(context, state, batch);
+  if (retained !== null) {
+    const result = validatedReview(retained.result, batch);
+    if (
+      result.decision !== "reject" &&
+      !batch.assessment.decisions.some((decision) => decision.disposition === "needs_review")
+    )
+      throw new KnowledgeConvergenceRuntimeError("knowledge_semantic_review_invalid");
+    return rejectedCanonicalBatch(context, state, batch, result, { retainedArtifact: retained });
   }
   return withConvergenceAssignment({
     storage: context.storage,
@@ -142,60 +134,8 @@ export async function reviewCanonicalBaseline(
       if (
         result.decision === "reject" ||
         batch.assessment.decisions.some((decision) => decision.disposition === "needs_review")
-      ) {
-        if (state.baseline.normalizationPaths.length > 0)
-          return continueNormalizationAfterCanonicalRejection({
-            context,
-            state,
-            batch,
-            rejection: {
-              result,
-              reviewerAgentId: authority.agent.agentId,
-              assignmentId: authority.assignment.assignmentId,
-              usage: observed.usage,
-            },
-          });
-        const previousRetry = state.stageData.canonicalReviewRetry as
-          { offset: number; count: number; rationale: string } | undefined;
-        if (
-          result.decision === "reject" &&
-          (previousRetry?.offset !== batch.offset || previousRetry.count < 1)
-        )
-          return completeConvergenceStage({
-            repositoryRoot: root,
-            artifacts: context.storage.artifacts,
-            state,
-            stage: "canonical_review",
-            nextStage: "assessment",
-            stageData: {
-              canonicalBatch: null,
-              canonicalApproval: null,
-              canonicalReviewRetry: {
-                offset: batch.offset,
-                count: previousRetry?.offset === batch.offset ? previousRetry.count + 1 : 1,
-                rationale: result.rationale,
-              },
-            },
-            proof: {
-              status: "review_rejected_for_bounded_retry",
-              assessmentHash,
-              review: result,
-              usage: observed.usage,
-            },
-          });
-        return waitingConvergenceStage({
-          artifacts: context.storage.artifacts,
-          state,
-          kind: "attention_required",
-          reason: "knowledge_semantic_review_rejected",
-          dependency: {
-            kind: "canonical_rejection",
-            snapshotHash: state.snapshotHash,
-            assessmentHash,
-            result,
-          },
-        });
-      }
+      )
+        return rejectedCanonicalBatch(context, state, batch, result, { usage: observed.usage });
       return completeConvergenceStage({
         repositoryRoot: root,
         artifacts: context.storage.artifacts,
@@ -215,5 +155,51 @@ export async function reviewCanonicalBaseline(
         proof: { ...result, usage: observed.usage, reviewerAgentId: authority.agent.agentId },
       });
     },
+  });
+}
+
+/**
+ * ADR-0479: one bounded re-assessment with the reviewer's rationale, then isolation. Rejection never
+ * stops the pipeline; an isolated single source is parked and the remaining sources continue.
+ */
+async function rejectedCanonicalBatch(
+  context: ConvergenceRuntimeContext,
+  state: KnowledgeConvergenceInput,
+  batch: CanonicalBatch,
+  result: CanonicalReviewResult,
+  evidence: unknown,
+): Promise<KnowledgeConvergenceStageResult> {
+  const assessmentHash = sha256(canonicalJson(batch.assessment));
+  const previousRetry = state.stageData.canonicalReviewRetry as
+    { offset: number; count: number; rationale: string } | null | undefined;
+  const retried = previousRetry?.offset === batch.offset ? previousRetry.count : 0;
+  const ownerDecision =
+    batch.sources.length === 1 &&
+    batch.assessment.decisions.some((decision) => decision.disposition === "needs_review");
+  if (!ownerDecision && retried < 1)
+    return completeConvergenceStage({
+      repositoryRoot: context.storage.paths.repositoryRoot,
+      artifacts: context.storage.artifacts,
+      state,
+      stage: "canonical_review",
+      nextStage: "assessment",
+      stageData: {
+        canonicalBatch: null,
+        canonicalApproval: null,
+        canonicalReviewRetry: { offset: batch.offset, count: 1, rationale: result.rationale },
+      },
+      proof: {
+        status: "review_rejected_for_bounded_retry",
+        assessmentHash,
+        review: result,
+        evidence,
+      },
+    });
+  return isolateRejectedCanonicalBatch({
+    context,
+    state,
+    batch,
+    rejection: result,
+    attempts: retried + 1,
   });
 }

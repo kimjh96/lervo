@@ -373,6 +373,25 @@ if (${JSON.stringify(provider)} === "claude") {
       expect(invocation.args).toContain(provider === "codex" ? "--ignore-user-config" : "--tools");
       if (provider === "codex") expect(invocation.args).toContain("--ignore-rules");
       expect(invocation.args).toContain(provider === "codex" ? "--output-schema" : "--json-schema");
+      expect(invocation.input).not.toContain("independent reviewer rejected that rewrite");
+
+      // ADR-0479: a regeneration carries the reviewer's reasons and the instruction to resolve them.
+      const sourcePath = compilation.candidate.items[0]!.sourcePath;
+      await compileDocumentNormalizationCandidateObserved({
+        scan: item.scan,
+        publicationRoot: "docs/knowledge",
+        outputLanguage: "en",
+        compiler: normalizer,
+        signal: new AbortController().signal,
+        reviewFeedback: new Map([
+          [sourcePath, { attempt: 2, reasons: ["The link to guide.md#setup loses its anchor."] }],
+        ]),
+      });
+      const regeneration = JSON.parse(await readFile(item.log, "utf8")) as { input: string };
+      expect(regeneration.input).toContain("independent reviewer rejected that rewrite");
+      expect(regeneration.input).toContain(
+        '"independentReviewFeedback":{"attempt":2,"reasons":["The link to guide.md#setup loses its anchor."]}',
+      );
     });
 
     it(`${provider} cancels and times out normalization through the common process boundary`, async () => {

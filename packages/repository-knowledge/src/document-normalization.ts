@@ -130,6 +130,17 @@ export interface DocumentNormalizationEnvelopeDocument {
     requiredAgentInstructionPath?: "AGENTS.md";
     rewriteWikiLinksAsMarkdown?: true;
   };
+  /**
+   * ADR-0479: an independent reviewer rejected an earlier rewrite of these exact source bytes.
+   * The reasons are untrusted review data; regeneration must address them under every rule.
+   */
+  independentReviewFeedback?: DocumentNormalizationReviewFeedback;
+}
+
+export interface DocumentNormalizationReviewFeedback {
+  /** The generation attempt this envelope starts, beginning at 2 for the first regeneration. */
+  attempt: number;
+  reasons: string[];
 }
 
 export interface DocumentNormalizationEnvelope {
@@ -546,6 +557,7 @@ function normalizationEnvelopes(input: {
   scan: RepositoryKnowledgeScan;
   outputLanguage: string;
   documents: ReturnType<typeof eligibleDocuments>;
+  reviewFeedback?: ReadonlyMap<string, DocumentNormalizationReviewFeedback>;
 }): DocumentNormalizationEnvelope[] {
   const hasRootAgentInstructions = input.scan.sources.some(
     (source) => source.path === "AGENTS.md" && source.status === "included",
@@ -637,6 +649,9 @@ function normalizationEnvelopes(input: {
             ? { rewriteWikiLinksAsMarkdown: true as const }
             : {}),
         },
+        ...(input.reviewFeedback?.has(item.source.path)
+          ? { independentReviewFeedback: input.reviewFeedback.get(item.source.path)! }
+          : {}),
       })),
     };
   });
@@ -1294,6 +1309,8 @@ export interface CompileDocumentNormalizationCandidateInput {
   ) => Promise<void>;
   onShardProgress?: (progress: DocumentNormalizationShardProgress) => void;
   ceilings?: Partial<DocumentNormalizationResourceCeilings>;
+  /** ADR-0479: per source path, the reasons an independent reviewer rejected earlier output. */
+  reviewFeedback?: ReadonlyMap<string, DocumentNormalizationReviewFeedback>;
 }
 
 export async function compileDocumentNormalizationCandidateObserved(
@@ -1320,6 +1337,7 @@ export async function compileDocumentNormalizationCandidateObserved(
     scan: input.scan,
     outputLanguage: input.outputLanguage,
     documents: eligible,
+    ...(input.reviewFeedback === undefined ? {} : { reviewFeedback: input.reviewFeedback }),
   });
   const resourceTracker = createDocumentNormalizationObservationTracker(
     resolveDocumentNormalizationResourceCeilings(input.ceilings),
@@ -2001,6 +2019,7 @@ export interface CompileConfiguredDocumentNormalizationCandidateInput {
   ceilings?: Partial<DocumentNormalizationResourceCeilings>;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
   onShardProgress?: (progress: DocumentNormalizationShardProgress) => void;
+  reviewFeedback?: ReadonlyMap<string, DocumentNormalizationReviewFeedback>;
 }
 
 export async function compileConfiguredDocumentNormalizationCandidateObserved(
@@ -2032,6 +2051,7 @@ export async function compileConfiguredDocumentNormalizationCandidateObserved(
     loadShardResponse: prepared.cache.load,
     storeShardResponse: prepared.cache.store,
     ...(input.onShardProgress === undefined ? {} : { onShardProgress: input.onShardProgress }),
+    ...(input.reviewFeedback === undefined ? {} : { reviewFeedback: input.reviewFeedback }),
   });
 }
 
