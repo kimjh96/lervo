@@ -36,7 +36,11 @@ The owner's 2026-10-06 instruction is the standing policy for hosts where the ow
 
 ### Same-scope renewal
 
-Inside the renewal window, the resident renews its delegation under the policy. Scope, parent, and reviewer stay unchanged; only `expiresAt` (`min(now + term, horizon)`) and `review.reviewedAt` change, and `planHash` is recomputed. Renewal uses the ordinary plan/apply path, retaining role, suite, ancestry, and identity checks. Never renew when:
+The original rule let every resident renew using `min(now + term, horizon)` and change `review.reviewedAt`. [ADR-0478](0478-renew-each-delegation-with-one-writer.md) supersedes both requirements: one host writes renewals and rebinds, expiry follows the previous delegation's term lattice, and the last owner review time is retained.
+
+The delegation writer is the host permitted to commit by the ADR-0466 ownership fence: the Hub lease holder, the standalone owner, or a host without owner-host configuration. Continuity reads that fence at the start of reconciliation. Only this writer renews a due delegation or rebinds drifted suite and role hashes.
+
+For an owner renewal, scope, parent, and reviewer stay unchanged. Compute `expiresAt` as `previous + k × termDays`, choosing the smallest `k ≥ 1` for which `expiresAt − windowHours > now`, then cap the result at the policy horizon. A lapsed delegation resumes on the same lattice. `review.reviewedAt` retains the time of the last owner review for both renewal and rebind; the continuation event records when automation ran. Recompute `review.planHash` for the resulting plan. Renewal uses the ordinary plan/apply path, retaining role, suite, ancestry, and identity checks. Never renew when:
 
 - the owner revoked the delegation;
 - the policy is absent, revoked, or invalid;
@@ -44,6 +48,15 @@ Inside the renewal window, the resident renews its delegation under the policy. 
 - the horizon prevents extension.
 
 Any scope change still requires an owner-reviewed delegation.
+
+Every other host is a follower and never independently renews or rebinds:
+
+- If `HEAD` tracks `.lervo/knowledge/convergence-delegation.json`, the host is a `replica_follower`. It writes nothing; the replica carries the owner's exact worktree bytes.
+- If `HEAD` does not track the file, the host may adopt the owner's expiry from a Hub host record only when the record is at most two hours old, reports role `owner` and an active delegation, has the same scope hash, and supplies an expiry later than both the local expiry and now. The local policy must be active, permit that scope, and cover the expiry with its horizon. Adoption changes the local delegation's term, preserving its local accountable identities.
+
+A follower whose renewal is due records `awaitingOwner` and reconciles again after 15 minutes. Seeding a missing delegation remains available on any host. An active-in-state but expired delegation remains eligible to claim the Hub lease when the host policy would renew it, preventing a fleet of lapsed grants from deadlocking without an owner. Revoked or out-of-policy delegations and hosts without a policy remain ineligible.
+
+Renewals are not committed or published. Tracked grants replicate as working-tree bytes; untracked grants remain host-local. Removing a tracked grant from the index requires ordinary review. The [continuity specification](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md) defines the owner and follower reconciliation paths.
 
 ### Seeding a missing host
 
@@ -93,7 +106,9 @@ On a host with an active policy:
 
 ### Rollout to existing repositories
 
-After deployment, each host's first resident cycle with a reviewed delegation adopts the policy. Each host runs its Nodes and one host resident in place of per-repository knowledge jobs. Residents renew due delegations, migrate legacy standalone defaults to Hub mode where their Node's coordinates work, and seed missing delegations from peer host records. Hand-written configurations remain unchanged; the [continuity specification](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md) defines per-host migration.
+After deployment, each host's first resident cycle with a reviewed delegation adopts the policy. Each host runs its Nodes and one host resident in place of per-repository knowledge jobs. The owner renews due delegations; followers adopt an eligible owner term or receive tracked bytes through the replica. Residents migrate legacy standalone defaults to Hub mode where their Node's coordinates work, and seed missing delegations from peer host records. Hand-written configurations remain unchanged; the [continuity specification](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md) defines per-host migration.
+
+For ADR-0478, deploy the CLI and Node bundles on every host and restart Nodes and host resident services on both hosts in the same maintenance window. No Hub change is required for that amendment. Mixed capture versions can disagree on a renewed tracked delegation's snapshot and report divergence or fail post-apply verification. Deploy event readers before writers that emit the added continuation values. Confirm one owner and follower parity after rollout; this document does not establish that deployment or installed verification occurred.
 
 ## Events, states, and failure meaning
 
@@ -103,12 +118,16 @@ After deployment, each host's first resident cycle with a reviewed delegation ad
 - Privacy: hashes and the expiry only.
 - Event ID derives from `planHash`, deduplicating retried appends. The applied delegation and its materialization receipt grant authority; append failure loses only this audit line.
 
+These original event values are extended by ADR-0471 with `action: rebound`, `source: binding_refresh`, and by ADR-0478 with `action: adopted`, `source: owner`. For adoption, `sourceHostHash` identifies the owner host. Required fields, privacy, and event-ID derivation remain unchanged. Renewal and rebind retain the owner review timestamp; `occurredAt` records the continuation time.
+
 Private state:
 
 - `.lervo/state/knowledge/convergence-continuity.json`: last reconciliation, next due time, delegation and policy state, owner-host state and Hub cause, last continuation, failure record, up to eight peer summaries, and up to 32 findings. It is rebuildable.
 - `.lervo/state/knowledge/convergence-owner-host-derivation.json`: hash of the configuration Lervo wrote, its source, and the last publication check.
 
 Both files use `0600`, contain no addresses, token paths, or messages, and never replicate.
+
+ADR-0478 permits `lastContinuation.action: adopted` with `source: owner`. Its `awaitingOwner` result is in memory only and selects the 15-minute retry interval. Waiting adds no failure code. Expiring and expired findings stay below `owner_decision` while the policy can renew the delegation.
 
 Failure codes:
 
