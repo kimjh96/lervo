@@ -11,6 +11,7 @@ import {
   publishKnowledgeOutputs,
   type InstructionCandidateExchangeTransport,
   type KnowledgePublicationOutcome,
+  type KnowledgePublicationRepairEvents,
 } from "@lervo/repository-knowledge-runtime";
 import {
   createHubKnowledgeConvergenceHostClient,
@@ -32,12 +33,22 @@ export function createKnowledgeConvergenceOwnership(
   });
 }
 
-/** Publishes the owner's settled knowledge commits through the host's authenticated `gh`. */
+/**
+ * Publishes the owner's settled knowledge commits through the host's authenticated `gh`. The
+ * resident's event store receives `knowledge.publication.repaired` (ADR-0471).
+ */
 export function createKnowledgePublisher(
   repositoryRoot: string,
-): () => Promise<KnowledgePublicationOutcome> {
+): (context?: {
+  events: KnowledgePublicationRepairEvents;
+}) => Promise<KnowledgePublicationOutcome> {
   const forge = createGitHubKnowledgePublicationForge({ repositoryRoot });
-  return () => publishKnowledgeOutputs({ repositoryRoot, forge });
+  return (context) =>
+    publishKnowledgeOutputs({
+      repositoryRoot,
+      forge,
+      ...(context === undefined ? {} : { events: context.events }),
+    });
 }
 
 /** ADR-0467: exchanges owner-rule candidates through the same Hub as the owner lease. */

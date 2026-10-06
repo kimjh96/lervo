@@ -64,7 +64,7 @@ const PUBLICATION_INSTRUCTIONS: Record<string, string> = {
   knowledge_publication_push_failed:
     "Check that this host can push the publication branch, and that no one else moved it, then run lervo knowledge convergence owner publish.",
   knowledge_publication_scope_violation:
-    "A Lervo Knowledge commit changes a path outside the allowed publication roots. Inspect it with git log --author=knowledge@lervo.invalid and move or revert it; nothing was published.",
+    "A Lervo Knowledge commit changes a path outside the knowledge write scope or a document a repository tool generates, and the owner could not restore it automatically; nothing was published. The detail names what blocked the repair: commit or discard uncommitted edits to those paths (uncommitted_change), or, when a developer commit also changed them (developer_change), restore them by hand in a commit of your own. The next resident cycle repairs and publishes the rest.",
   knowledge_publication_conflict:
     "Replaying the knowledge commits onto the remote base branch failed for a reason other than a content conflict. Check the host's Git installation and temporary directory, then run lervo knowledge convergence owner publish.",
   knowledge_publication_superseded:
