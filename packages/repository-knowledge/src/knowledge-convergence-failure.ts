@@ -7,10 +7,11 @@ export const MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS = 16;
 export const MAXIMUM_UNCLASSIFIED_STAGE_ATTEMPTS = 4;
 
 /**
- * ADR-0479: the runtime contract under which a settled stage failure was evaluated. A dependency
- * without it predates parking and plan-scoped review, so its stage may be reevaluated once.
+ * The runtime contract under which a settled stage failure was evaluated (ADR-0479, ADR-0480). A
+ * source-limit failure recorded under an older contract predates the current plan-scoped review,
+ * so its stage may be reevaluated once.
  */
-export const KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT = "adr-0479";
+export const KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT = "adr-0480";
 
 /** How long an unclassified attention stays settled before the owner reevaluates the stage. */
 export const UNCLASSIFIED_STAGE_REEVALUATION_MS = 6 * 60 * 60_000;

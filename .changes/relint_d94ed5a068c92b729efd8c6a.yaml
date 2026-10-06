@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d94ed5a068c92b729efd8c6a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Bind rebuildable generated projections by hash in lifecycle plan review, so a stale multi-megabyte knowledge inventory no longer stops background convergence at assessment."

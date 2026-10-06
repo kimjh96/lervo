@@ -225,9 +225,17 @@ it("reevaluates each pre-ADR-0479 whole-pipeline stop exactly once", () => {
     legacyWholePipelineStop({
       kind: "stage_failure",
       code: "knowledge_source_limit_exceeded",
-      evaluationContract: "adr-0479",
+      evaluationContract: "adr-0480",
     }),
   ).toBe(false);
+  // ADR-0480: axli's limit settled under ADR-0479 disclosed generated projection bytes.
+  expect(
+    legacyWholePipelineStop({
+      kind: "stage_failure",
+      code: "knowledge_source_limit_exceeded",
+      evaluationContract: "adr-0479",
+    }),
+  ).toBe(true);
   expect(legacyWholePipelineStop({ kind: "parked_sources" })).toBe(false);
   expect(legacyWholePipelineStop({ kind: "stage_failure", code: "knowledge_lint_invalid" })).toBe(
     false,

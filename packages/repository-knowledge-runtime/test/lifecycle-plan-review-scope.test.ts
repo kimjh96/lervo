@@ -8,7 +8,7 @@ import { reviewLifecyclePlan } from "../src/lifecycle-plan-review.js";
 import type { ConvergenceRuntimeContext } from "../src/stage-context.js";
 import { fixture } from "./fixture.js";
 
-const reviewed: { sources: { path: string }[] }[] = [];
+const reviewed: { plan?: unknown; sources: { path: string }[] }[] = [];
 
 vi.mock("../src/provider-call.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/provider-call.js")>();
@@ -19,7 +19,7 @@ vi.mock("../src/provider-call.js", async (importOriginal) => {
         planHash: string;
         sources: { path: string }[];
       };
-      reviewed.push({ sources: data.sources });
+      reviewed.push({ plan: (data as { plan?: unknown }).plan, sources: data.sources });
       return {
         value: {
           planHash: data.planHash,
@@ -100,4 +100,77 @@ it("reviews a lifecycle plan with its own paths, not every repository source", a
   expect(reviewed.map((review) => review.sources.map((source) => source.path))).toEqual([
     ["docs/specs/runtime.md"],
   ]);
+});
+
+it("binds a stale multi-megabyte generated projection by hash instead of disclosing its bytes", async () => {
+  const f = await fixture(true);
+  fixtures.push(f);
+  // The installed axli stop after ADR-0479: the plan rewrites the private knowledge inventory,
+  // whose stale 4.86 MB bytes were disclosed as a reviewed source.
+  const inventory = ".lervo/state/knowledge/current/inventory.json";
+  await mkdir(resolve(f.root, ".lervo/state/knowledge/current"), { recursive: true });
+  await writeFile(
+    resolve(f.root, inventory),
+    JSON.stringify({
+      sources: Array.from({ length: 40_000 }, (_, index) => `path-${index}`.repeat(10)),
+    }),
+  );
+  const baseline = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
+  const state: KnowledgeConvergenceInput = {
+    schemaVersion: 1,
+    obligationId: "kconv_generated_projection",
+    baseline,
+    snapshotHash: baseline.sourceSnapshotHash,
+    receipts: [],
+    stageData: {},
+  };
+  const context: ConvergenceRuntimeContext = {
+    storage: f.storage,
+    provider: "claude",
+    executable: f.executable,
+    admissionDirectory: f.admissionDirectory,
+    signal: new AbortController().signal,
+    liveWorkPending: async () => false,
+    assertSource() {},
+  };
+  const plan = {
+    planId: "klayout_generated",
+    operations: [
+      {
+        path: inventory,
+        action: "update",
+        ownership: "lervo_generated",
+        content: '{"sources":[]}\n',
+        desiredHash: `sha256:${"1".repeat(64)}`,
+      },
+      {
+        path: "docs/specs/runtime.md",
+        action: "update",
+        ownership: "user",
+        content: "# Runtime\n\nThe runtime works locally without a Hub.\n",
+        desiredHash: `sha256:${"2".repeat(64)}`,
+      },
+    ],
+  };
+  const approval = await reviewLifecyclePlan(context, state, () => {}, plan, [
+    inventory,
+    "docs/specs/runtime.md",
+  ]);
+  expect(approval.planHash).toMatch(/^sha256:/u);
+  const [review] = reviewed as unknown as {
+    plan: { operations: Record<string, unknown>[] };
+    sources: { path: string; content: string | null; contentHash: string | null }[];
+  }[];
+  expect(review!.sources).toEqual([
+    {
+      path: inventory,
+      contentHash: expect.stringMatching(/^sha256:/u),
+      ownership: "lervo_generated",
+      content: null,
+    },
+    expect.objectContaining({ path: "docs/specs/runtime.md", content: expect.any(String) }),
+  ]);
+  expect(review!.plan.operations[0]).not.toHaveProperty("content");
+  expect(review!.plan.operations[0]).toMatchObject({ contentDisclosed: false });
+  expect(review!.plan.operations[1]).toHaveProperty("content");
 });
