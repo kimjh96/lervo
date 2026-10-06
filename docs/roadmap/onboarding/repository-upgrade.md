@@ -15,6 +15,7 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 - Loose skills migrate before knowledge. Generated AGENTS routes include portable skills on first materialization.
 - Registered Node services compare content-addressed payload identity, not semantic version alone, and reuse existing owner-only configuration without exposing it.
 - Same-version rebuilt Node payloads upgrade transactionally. Fleet registry commit requires complete readiness or three fresh Hub-unavailable-only `offline_ready` observations.
+- A replacement accepts a non-delivery condition only when it is unchanged from the predecessor's baseline, such as supervision attention that awaits an owner decision. The receipt lists it in `carriedConditions`. The readiness window extends with startup progress up to 600 seconds. A timeout names the blocking component, and a failed recovery keeps that detail. An exact deployment with only such conditions plans as `current/exact_runtime_deployed_runtime_attention` ([ADR-0475](../../decisions/operations/services/0475-judge-node-replacement-readiness-by-regression.md)).
 - An exact installed Node left inactive by a failed stop can resume a guarded upgrade from its prior matching work-admission scope only after stable inactivity and zero live claims. Graceful stop retains that scope, so re-applying after an interrupted launchd upgrade does not fail as `service_upgrade_fence_invalid`. Unregistered Nodes remain blocked.
 - Knowledge lint succeeds after every applied repository upgrade.
 - A blocked stage defers only its dependents under published `policy.stageDependencies`. Independent stages, including generated-only terminal runtime refresh, still apply; the plan remains `blocked` with the stage's exact blockers.
@@ -27,6 +28,9 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 ## Evidence
 
 - [ADR-0214](../../decisions/operations/services/0214-bounded-repository-upgrade-orchestration.md)
+- [ADR-0475](../../decisions/operations/services/0475-judge-node-replacement-readiness-by-regression.md)
+- `apps/cli/test/node-fleet-readiness.test.ts`
+- `apps/cli/test/node-fleet-readiness-policy.test.ts`
 - `apps/cli/test/upgrade-command.test.ts`
 - `apps/cli/test/upgrade-node.test.ts`
 - `apps/cli/test/upgrade-independent-stages.test.ts`

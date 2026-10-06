@@ -162,6 +162,10 @@ describe("installed organization Node rollout composition", () => {
               workstreamReplication: "ready",
               workspaceCoordination: "disabled",
               remoteControl: "ready",
+              conversation: "disabled",
+              supervision: "disabled",
+              baseline: "observed" as const,
+              carriedConditions: [],
             },
             registry: {
               change: "refreshed",
@@ -362,6 +366,10 @@ describe("installed organization Node rollout composition", () => {
               workstreamReplication: "ready",
               workspaceCoordination: "disabled",
               remoteControl: "ready",
+              conversation: "disabled",
+              supervision: "disabled",
+              baseline: "observed" as const,
+              carriedConditions: [],
             },
             registry: {
               change: "refreshed",

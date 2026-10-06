@@ -221,7 +221,12 @@ export async function runRepositoryCommand(args: string[], io: CliIo): Promise<n
         error instanceof RepositoryRegistryError || error instanceof NodeFleetApplyError
           ? error.code
           : "repository_node_operation_failed";
-      io.stderr(`Repository Node operation failed (${code}).\n`);
+      // Node fleet messages are bounded and secret-free; they name readiness blockers.
+      io.stderr(
+        `Repository Node operation failed (${code})${
+          error instanceof NodeFleetApplyError ? `: ${error.message}` : "."
+        }\n`,
+      );
       return 1;
     }
   }

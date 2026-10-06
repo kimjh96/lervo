@@ -119,6 +119,10 @@ describe("repository Node local rollback", () => {
             workstreamReplication: "ready",
             workspaceCoordination: "disabled",
             remoteControl: "ready",
+            conversation: "disabled",
+            supervision: "disabled",
+            baseline: "unavailable",
+            carriedConditions: [],
           };
         },
         register: async () => {

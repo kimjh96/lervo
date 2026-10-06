@@ -265,6 +265,10 @@ async function installedForwardPort(
             workstreamReplication: "ready",
             workspaceCoordination: "disabled",
             remoteControl: "ready",
+            conversation: "disabled",
+            supervision: "disabled",
+            baseline: "observed" as const,
+            carriedConditions: [],
           },
           registry: {
             change: "refreshed",
@@ -405,6 +409,10 @@ async function installedRollbackPort(enrollment: OrganizationNodeEnrollment, rol
             workstreamReplication: "ready",
             workspaceCoordination: "disabled",
             remoteControl: "ready",
+            conversation: "disabled",
+            supervision: "disabled",
+            baseline: "observed" as const,
+            carriedConditions: [],
           },
           registry: {
             change: "refreshed",
