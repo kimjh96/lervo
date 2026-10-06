@@ -9,6 +9,7 @@ import type { CanonicalDraft } from "./canonical-assessment-contract.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { hasCanonicalNormalizationLineage } from "./canonical-normalization-lineage.js";
 import { synchronizeIntegrationTarget } from "./integration-target-sync.js";
+import { recordIntegrationTargetAbsorbed } from "./integration-target-absorption-event.js";
 import { canonicalDraftKey, integratedCanonicalDrafts } from "./canonical-disposition-ledger.js";
 
 /** A reviewed working copy cannot silently replace different committed target bytes. */
@@ -35,6 +36,8 @@ export async function preflightCanonicalTargets(
     repositoryRoot: root,
     ref: targetRef,
     integrated: (path, hash) => integrated.has(canonicalDraftKey(path, hash)),
+    recordAbsorbed: (absorption) =>
+      recordIntegrationTargetAbsorbed(context.storage, absorption, new Date().toISOString()),
   });
   const targetCommit = await convergenceGit(root, ["rev-parse", targetRef]);
   const sourceHashes = new Map(

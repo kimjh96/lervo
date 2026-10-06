@@ -32,7 +32,7 @@ export async function reviewLifecyclePlan(
   const disclosedPlan = disclosedLifecyclePlan(plan);
   const generated = generatedLifecyclePlanPaths(plan);
   // ADR-0479: the reviewer judges exactly the paths the plan changes, plus their review context.
-  // ADR-0480: of those, rebuildable `lervo_generated` projections are bound by hash, not bytes.
+  // ADR-0481: of those, rebuildable `lervo_generated` projections are bound by hash, not bytes.
   const reviewable = [...new Set(paths)].filter((path) => !generated.has(path));
   const sources = [...new Set(paths)].map((path) => {
     try {

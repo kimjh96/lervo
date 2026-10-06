@@ -2,6 +2,7 @@ import { loadVerificationSuite, runVerificationSuite } from "@lervo/verification
 import { captureConvergenceSources } from "./source-capture.js";
 import { assertConvergenceVerificationPassed } from "./verification-outcome.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { withVerificationSourceChanges } from "./verification-source-changes.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 
 export async function verifyConvergenceEffect(
@@ -10,18 +11,31 @@ export async function verifyConvergenceEffect(
   policyHash: string,
 ): Promise<string[]> {
   const root = context.storage.paths.repositoryRoot;
-  const capture = async () => captureConvergenceSources(root, policyHash).snapshotHash;
+  const observe = async () => {
+    const capture = captureConvergenceSources(root, policyHash);
+    return {
+      revision: capture.snapshotHash,
+      files: new Map(capture.sources.map((source) => [source.path, source.contentHash])),
+    };
+  };
   const receipts: string[] = [];
   for (const binding of authority.delegation.verification) {
     await authority.assertCurrent();
-    const verification = await runVerificationSuite({
-      suite: await loadVerificationSuite(root, binding.suiteId),
-      repositoryRoot: root,
-      repositoryRevision: await capture(),
-      captureRepositoryRevision: capture,
-      artifactStore: context.storage.artifacts,
-      signal: context.signal,
-    });
+    const suite = await loadVerificationSuite(root, binding.suiteId);
+    const repositoryRevision = (await observe()).revision;
+    const verification = await withVerificationSourceChanges(
+      context.storage.artifacts,
+      observe,
+      (captureRepositoryRevision) =>
+        runVerificationSuite({
+          suite,
+          repositoryRoot: root,
+          repositoryRevision,
+          captureRepositoryRevision,
+          artifactStore: context.storage.artifacts,
+          signal: context.signal,
+        }),
+    );
     assertConvergenceVerificationPassed(verification.result.status);
     receipts.push(verification.resultArtifact.contentHash);
   }

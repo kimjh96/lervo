@@ -4,13 +4,16 @@ import {
   planWorkspaceIntegrationCandidate,
   verifyWorkspaceIntegrationCandidate,
   completeWorkspaceIntegration,
-  captureRepositorySnapshot,
 } from "@lervo/orchestrator";
 import { GitWorkspaceIntegrationAdapter } from "@lervo/workspace-host-git";
 import { loadVerificationSuite, runVerificationSuite } from "@lervo/verification";
 import { canonicalJson, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { provisionCanonicalWorkspace } from "./canonical-workspace.js";
 import { convergenceEffectCheckpoint } from "./effect-checkpoint.js";
+import {
+  observedRepositorySnapshot,
+  withVerificationSourceChanges,
+} from "./verification-source-changes.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
@@ -75,15 +78,19 @@ export async function prepareCanonicalGitIntegration(
         artifactStore: context.storage.artifacts,
         verifier: {
           verify: async (input) =>
-            runVerificationSuite({
-              suite: input.suite,
-              repositoryRoot: input.repositoryRoot,
-              repositoryRevision: input.repositoryRevision,
-              captureRepositoryRevision: async (target) =>
-                (await captureRepositorySnapshot(target)).revision,
-              artifactStore: context.storage.artifacts,
-              ...(input.signal === undefined ? {} : { signal: input.signal }),
-            }),
+            withVerificationSourceChanges(
+              context.storage.artifacts,
+              observedRepositorySnapshot,
+              (captureRepositoryRevision) =>
+                runVerificationSuite({
+                  suite: input.suite,
+                  repositoryRoot: input.repositoryRoot,
+                  repositoryRevision: input.repositoryRevision,
+                  captureRepositoryRevision,
+                  artifactStore: context.storage.artifacts,
+                  ...(input.signal === undefined ? {} : { signal: input.signal }),
+                }),
+            ),
         },
         append: (specs) => {
           context.storage.events.transact((transaction) => {

@@ -68,6 +68,13 @@ it("records a history-preserving merge with HEAD when every ref-only change was 
 
 it("leaves the ref untouched when it holds bytes that never settled integration", async () => {
   const { root } = await diverged();
+  // ADR-0482 absorbs a ref whose content the base decided; owner bytes the base never received
+  // keep the ref diverged.
+  git(root, "checkout", "-q", "knowledge-integration");
+  await writeFile(resolve(root, "owner-only.md"), "# Owner only\n");
+  git(root, "add", ".");
+  git(root, "commit", "-qm", "owner change on the integration ref");
+  git(root, "checkout", "-q", "main");
   const before = git(root, "rev-parse", ref);
   expect(
     await synchronizeIntegrationTarget({ repositoryRoot: root, ref, integrated: () => false }),

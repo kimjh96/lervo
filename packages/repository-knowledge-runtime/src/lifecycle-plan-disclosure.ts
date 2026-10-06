@@ -1,5 +1,5 @@
 /**
- * ADR-0480: what an exact lifecycle plan reviewer is shown. Operations the plan itself marks
+ * ADR-0481: what an exact lifecycle plan reviewer is shown. Operations the plan itself marks
  * `lervo_generated` are rebuildable projections such as the knowledge inventory and structural
  * concepts. Deterministic code produces their bytes, and no reviewer judgement can preserve or lose
  * owner meaning in them, so the reviewer sees their path and hashes but not their bytes. The plan

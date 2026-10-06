@@ -155,6 +155,7 @@ export const eventTypesV4 = [
   "knowledge.convergence.delegation.continued",
   "knowledge.convergence.definitions.installed",
   "knowledge.publication.repaired",
+  "knowledge.integration_target.absorbed",
 ] as const;
 export const eventTypes = eventTypesV4;
 

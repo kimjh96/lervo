@@ -3,6 +3,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { convergenceGit } from "./canonical-workspace.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import {
+  absorbIntegrationTarget,
+  inspectIntegrationTargetAbsorption,
+  type IntegrationTargetAbsorption,
+} from "./integration-target-absorption.js";
 
 const execute = promisify(execFile);
 
@@ -54,15 +59,19 @@ async function createIntegrationTarget(root: string, ref: string): Promise<void>
 /**
  * Root apply commits integrated drafts as ordinary working-branch commits, so the integration ref
  * drifts from `HEAD`. When every ref-only change is an integrated draft that already reached the
- * working tree, record a merge with `HEAD`'s exact tree; otherwise leave the ref untouched. An
- * absent ref starts at `HEAD`.
+ * working tree, record a merge with `HEAD`'s exact tree. When a squash merge absorbed the ref
+ * (ADR-0482), move it to `HEAD`; otherwise leave the ref untouched. An absent ref starts at `HEAD`.
  */
 export async function synchronizeIntegrationTarget(input: {
   repositoryRoot: string;
   ref: string;
   /** Whether exact draft bytes settled integration, including their root apply. */
   integrated: (path: string, contentHash: string) => boolean;
-}): Promise<"unchanged" | "synchronized" | "created"> {
+  /** Records an ADR-0482 squash absorption after the ref moved; absent records nothing. */
+  recordAbsorbed?: (
+    absorption: IntegrationTargetAbsorption & { backupRef: string; pathSetHash: string },
+  ) => void;
+}): Promise<"unchanged" | "synchronized" | "created" | "absorbed"> {
   const root = input.repositoryRoot;
   const target = await resolveIntegrationTarget(root, input.ref);
   if (target === null) {
@@ -87,7 +96,13 @@ export async function synchronizeIntegrationTarget(input: {
     .filter(Boolean);
   for (const path of changed) {
     const hash = await blobHash(root, target, path);
-    if (hash === null || !input.integrated(path, hash)) return "unchanged";
+    if (hash === null || !input.integrated(path, hash)) {
+      const absorption = await inspectIntegrationTargetAbsorption(root, target, head);
+      if (absorption === null) return "unchanged";
+      const moved = await absorbIntegrationTarget(root, input.ref, absorption);
+      input.recordAbsorbed?.({ ...absorption, ...moved });
+      return "absorbed";
+    }
   }
   const tree = await convergenceGit(root, ["rev-parse", "HEAD^{tree}"]);
   // The merge carries Lervo's own identity, so it never depends on a configured developer identity.

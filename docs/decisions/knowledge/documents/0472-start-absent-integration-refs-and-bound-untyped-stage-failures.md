@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-06
 Amends: [ADR-0449](../repository/canonicalization/0449-synchronize-integration-target-with-working-branch.md) and [ADR-0469](../../coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md)
+Amended by: [ADR-0482](../semantics/0482-absorb-squash-merged-semantic-candidates-and-type-verification-source-changes.md) (verification source changes have a typed code)
 
 ## Context
 

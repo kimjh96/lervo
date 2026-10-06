@@ -136,6 +136,15 @@ export const eventPayloadAllowlists = {
     "definitions",
     "occurredAt",
   ],
+  "knowledge.integration_target.absorbed": [
+    "previousTarget",
+    "mergeBase",
+    "newTarget",
+    "absorbedPathCount",
+    "droppedPathCount",
+    "pathSetHash",
+    "occurredAt",
+  ],
   "knowledge.publication.repaired": [
     "repairCommit",
     "repairedCommits",
@@ -1428,6 +1437,7 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "knowledge.convergence.definitions.installed":
     "knowledgeConvergenceDefinitionsInstalledEventPayload",
   "knowledge.publication.repaired": "knowledgePublicationRepairedEventPayload",
+  "knowledge.integration_target.absorbed": "knowledgeIntegrationTargetAbsorbedEventPayload",
   "repository.knowledge.resolved": "repositoryKnowledgeResolvedEventPayload",
   "agent.context.promoted": "agentContextPromotedEventPayload",
   "agent.context.handoff.recorded": "agentContextHandoffRecordedEventPayload",

@@ -98,6 +98,7 @@ const eventLabels = {
   "knowledge.convergence.delegation.continued": "Knowledge convergence delegation continued",
   "knowledge.convergence.definitions.installed": "Knowledge convergence definitions installed",
   "knowledge.publication.repaired": "Knowledge publication repaired",
+  "knowledge.integration_target.absorbed": "Knowledge integration target absorbed",
   "conversation.repository_knowledge.resolved": "Repository knowledge job resolved",
   "work.supervision.mandate.installed": "Operating mandate installed",
   "managed.execution.reserved": "Managed execution reserved",

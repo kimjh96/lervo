@@ -107,6 +107,11 @@ export interface KnowledgeConvergenceStatus {
    * Present only for `knowledge_sources_parked` (ADR-0479): the repository-relative sources that
    * remain after every other stage finished, why each was parked, and its generation attempts.
    */
+  /**
+   * Present only for `knowledge_verification_modified_sources` (ADR-0482): the repository-relative
+   * paths a pinned verification suite changed while it ran, read from private evidence.
+   */
+  verificationChanges?: { changedPathCount: number; paths: string[] };
   parked?: {
     count: number;
     sources: {
