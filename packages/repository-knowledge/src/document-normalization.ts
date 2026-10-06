@@ -36,6 +36,7 @@ import {
   type DocumentNormalizationScope,
   type DocumentNormalizationWorksetBinding,
 } from "./document-normalization-workset.js";
+import { declaredContinuationSource } from "./continuation-source-declaration.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { repositoryPathMatchesPatterns } from "./knowledge-intake-policy.js";
 import {
@@ -304,26 +305,12 @@ function normalizationProfile(source: RepositorySource): DocumentNormalizationPr
   if (/^docs\/(?:specifications|specs)\//u.test(source.path)) return "specification_document";
   if (/^docs\/roadmap\//u.test(source.path)) return "roadmap_document";
   if (/^docs\/instructions\//u.test(source.path)) return "instruction_document";
-  if (source.content !== undefined) {
-    const headings = [...source.content.matchAll(/^#{1,6}\s+(.+)$/gmu)]
-      .map((match) => match[1]!)
-      .join("\n");
-    const name = `${basename(source.path, ".md")} ${headings.slice(0, 500)}`;
-    const named =
-      /(?:handoff|hand-over|session|context|status|progress|resume|continuation|current[-_ ]?(?:work|task)|work[-_ ]?log|\uC778\uACC4|\uC138\uC158|\uB9E5\uB77D|\uC9C4\uD589|\uD604\uD669|\uC791\uC5C5)/iu.test(
-        name,
-      );
-    const structured =
-      /(?:objective|goal|purpose|focus|\uBAA9\uD45C|\uBAA9\uC801|\uC911\uC810)/iu.test(headings) &&
-      /(?:next|action|resume|procedure|task|continue|todo|\uB2E4\uC74C|\uD560 \uC77C|\uC7AC\uAC1C|\uC774\uC5B4|\uC791\uC5C5)/iu.test(
-        headings,
-      );
-    const active =
-      /(?:\b(?:resume|continue|next step|in progress|remaining)\b|\uC7AC\uAC1C|\uC774\uC5B4\uC11C|\uB2E4\uC74C \uC791\uC5C5|\uC9C4\uD589 \uC911|\uB0A8\uC740 \uC791\uC5C5)/iu.test(
-        source.content.slice(0, 8192),
-      );
-    if ((named && active) || structured) return "handoff_document";
-  }
+  // ADR-0476: the handoff profile follows a declaration, never a resemblance in names or headings.
+  if (
+    source.content !== undefined &&
+    declaredContinuationSource(source.path, source.content) !== null
+  )
+    return "handoff_document";
   if (
     source.kind === "documentation" ||
     source.kind === "instruction" ||

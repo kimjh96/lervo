@@ -1,4 +1,8 @@
 import { createWorkforceRoleBindingMigrationPlan } from "@lervo/agent-workforce";
+import {
+  createRepositoryLayoutMigrationPlan,
+  type RepositoryLayoutDeferredDocument,
+} from "@lervo/repository-knowledge";
 
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
@@ -30,6 +34,11 @@ export interface KnowledgeStage {
    * host continuity policy; present only with reason `background_owned`.
    */
   backgroundDebt?: { owner: "delegation" | "continuity_policy"; pendingDocuments: number };
+  /**
+   * ADR-0476: documents waiting for a semantic route. They never decide the disposition; each
+   * is reported so the owner sees what the background resident will classify.
+   */
+  deferredDocuments?: Array<Pick<RepositoryLayoutDeferredDocument, "path" | "reason" | "subject">>;
 }
 
 export interface TerminalIntegrationStage {
@@ -128,6 +137,35 @@ function knowledgePlanBlockers(value: Record<string, unknown>): UpgradeStageBloc
     .slice(0, maximumReportedBlockers);
 }
 
+function deferredDocuments(value: unknown): NonNullable<KnowledgeStage["deferredDocuments"]> {
+  return Array.isArray(value)
+    ? value.flatMap((item) => {
+        const document = record(item);
+        return document !== null &&
+          typeof document.path === "string" &&
+          (document.reason === "semantic_classification_pending" ||
+            document.reason === "semantic_classification_uncertain") &&
+          (document.subject === "document" ||
+            document.subject === "decision" ||
+            document.subject === "instruction")
+          ? [{ path: document.path, reason: document.reason, subject: document.subject }]
+          : [];
+      })
+    : [];
+}
+
+/** The layout plan's deferrals; an unavailable layout reports none rather than failing the stage. */
+async function layoutDeferrals(
+  root: string,
+  value: Record<string, unknown> | null,
+): Promise<NonNullable<KnowledgeStage["deferredDocuments"]>> {
+  if (value?.planKind === "repository_layout") return deferredDocuments(value.deferredDocuments);
+  return createRepositoryLayoutMigrationPlan({ repositoryRoot: root }).then(
+    (plan) => deferredDocuments(plan.deferredDocuments),
+    () => [],
+  );
+}
+
 export async function inspectKnowledge(root: string): Promise<KnowledgeStage> {
   const result = await capture(
     (io) =>
@@ -138,6 +176,17 @@ export async function inspectKnowledge(root: string): Promise<KnowledgeStage> {
       }),
     root,
   );
+  const stage = await knowledgeDisposition(root, result);
+  const deferred = await layoutDeferrals(root, result.value);
+  return deferred.length === 0
+    ? stage
+    : { ...stage, deferredDocuments: deferred.slice(0, maximumReportedBlockers) };
+}
+
+async function knowledgeDisposition(
+  root: string,
+  result: CapturedCommand,
+): Promise<KnowledgeStage> {
   if (result.value === null) {
     return {
       disposition: "blocked",

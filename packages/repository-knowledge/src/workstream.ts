@@ -16,13 +16,17 @@ import { pendingCoordinatesValid, snapshotFromStartDraft } from "./workstream-sn
 import { workstreamIntentHash, type WorkstreamBookkeeping } from "./workstream-bookkeeping.js";
 import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
 import {
+  declaredContinuationSource,
+  LEGACY_CONTINUATION_ALIAS,
+} from "./continuation-source-declaration.js";
+import {
   RepositoryKnowledgeError,
   type KnowledgeFileOperation,
   type RepositoryKnowledgeScanOptions,
   type RepositorySource,
 } from "./types.js";
 
-const HANDOFF_PATH = "HANDOFF.md";
+const HANDOFF_PATH = LEGACY_CONTINUATION_ALIAS;
 const CURRENT_WORKSTREAM_PATH = ".lervo/state/workstreams/current.json";
 const MAX_HANDOFF_BYTES = 128 * 1024;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
@@ -92,19 +96,15 @@ export interface ContinuationWorkstreamMigrationReceipt {
   appliedAt: string;
 }
 
+/**
+ * ADR-0476: a continuation source is only what the repository declares, never what its file name
+ * or headings resemble: the dedicated legacy `HANDOFF.md` alias of the `continuation_source`
+ * role, `lervo.workstream.continuation: true` front matter, or an exact `--source` selection.
+ */
 export interface ContinuationSourceCandidate {
   path: string;
   contentHash: string;
-  score: number;
-  signals: Array<
-    | "explicit_selection"
-    | "continuation_filename"
-    | "objective_section"
-    | "next_action_section"
-    | "blocker_section"
-    | "current_state_section"
-    | "active_language"
-  >;
+  signals: Array<"explicit_selection" | "explicit_metadata" | "declared_legacy_alias">;
 }
 
 export interface WorkstreamUpdatePlan {
@@ -769,68 +769,13 @@ function continuationCandidate(source: RepositorySource): ContinuationSourceCand
     source.content === undefined ||
     source.contentHash === null ||
     !/\.md$/iu.test(source.path) ||
-    source.path.startsWith(".lervo/") ||
-    source.path.startsWith("docs/knowledge/") ||
-    /^(?:README|AGENTS|CLAUDE|CONTRIBUTING|SECURITY|CHANGELOG|CODE_OF_CONDUCT)\.md$/u.test(
-      source.path,
-    ) ||
-    source.path.startsWith("docs/decisions/") ||
-    source.path.startsWith("docs/roadmap/") ||
-    /(?:^|\/)\.agents\/skills\//u.test(source.path)
+    source.path.startsWith(".lervo/")
   )
     return null;
-  const parsed = sectionsOf(source.content);
-  const headingText = parsed.sections.map((section) => section.heading).join("\n");
-  const nameText = `${basename(source.path, ".md")} ${parsed.title}`;
-  const signals: ContinuationSourceCandidate["signals"] = [];
-  if (
-    /(?:handoff|hand-over|session|context|status|progress|resume|continuation|current[-_ ]?(?:work|task)|work[-_ ]?log|\uC778\uACC4|\uC138\uC158|\uB9E5\uB77D|\uC9C4\uD589|\uD604\uD669|\uC791\uC5C5)/iu.test(
-      nameText,
-    )
-  )
-    signals.push("continuation_filename");
-  if (/(?:objective|goal|purpose|focus|\uBAA9\uD45C|\uBAA9\uC801|\uC911\uC810)/iu.test(headingText))
-    signals.push("objective_section");
-  if (
-    /(?:next|action|resume|procedure|task|continue|todo|\uB2E4\uC74C|\uD560 \uC77C|\uC7AC\uAC1C|\uC774\uC5B4|\uC791\uC5C5)/iu.test(
-      headingText,
-    )
-  )
-    signals.push("next_action_section");
-  if (/(?:block|risk|issue|\uCC28\uB2E8|\uC704\uD5D8|\uBB38\uC81C)/iu.test(headingText))
-    signals.push("blocker_section");
-  if (
-    /(?:current|status|state|progress|\uD604\uC7AC|\uC0C1\uD0DC|\uD604\uD669|\uC9C4\uD589)/iu.test(
-      headingText,
-    )
-  )
-    signals.push("current_state_section");
-  if (
-    /(?:\b(?:resume|continue|next step|in progress|remaining)\b|\uC7AC\uAC1C|\uC774\uC5B4\uC11C|\uB2E4\uC74C \uC791\uC5C5|\uC9C4\uD589 \uC911|\uB0A8\uC740 \uC791\uC5C5)/iu.test(
-      source.content.slice(0, 8192),
-    )
-  )
-    signals.push("active_language");
-  const weights: Record<ContinuationSourceCandidate["signals"][number], number> = {
-    explicit_selection: 0,
-    continuation_filename: 4,
-    objective_section: 3,
-    next_action_section: 3,
-    blocker_section: 1,
-    current_state_section: 2,
-    active_language: 2,
-  };
-  const score = signals.reduce((sum, signal) => sum + weights[signal], 0);
-  const structured =
-    signals.includes("objective_section") && signals.includes("next_action_section");
-  const namedAndActive =
-    signals.includes("continuation_filename") &&
-    (signals.includes("next_action_section") ||
-      signals.includes("current_state_section") ||
-      signals.includes("active_language"));
-  return structured || namedAndActive
-    ? { path: source.path, contentHash: source.contentHash, score, signals }
-    : null;
+  const declaration = declaredContinuationSource(source.path, source.content);
+  return declaration === null
+    ? null
+    : { path: source.path, contentHash: source.contentHash, signals: [declaration] };
 }
 
 function emptyContinuationPlan(input: {
@@ -896,7 +841,7 @@ export async function createContinuationWorkstreamMigrationPlan(input: {
       const candidate = continuationCandidate(item);
       return candidate === null ? [] : [candidate];
     })
-    .sort((left, right) => right.score - left.score || left.path.localeCompare(right.path));
+    .sort((left, right) => left.path.localeCompare(right.path));
   if (
     current !== null &&
     input.sourcePath === undefined &&
@@ -928,7 +873,6 @@ export async function createContinuationWorkstreamMigrationPlan(input: {
         selected = {
           path: explicit.path,
           contentHash: explicit.contentHash!,
-          score: 0,
           signals: ["explicit_selection"],
         };
         candidates.unshift(selected);

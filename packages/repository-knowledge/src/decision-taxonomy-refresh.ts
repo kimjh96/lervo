@@ -12,7 +12,8 @@ import type { KnowledgeFileOperation } from "./types.js";
 export const decisionTaxonomyPath = ".lervo/knowledge/document-layout.yaml";
 
 /**
- * Plans the Lervo-managed layout rewrite that upgrades a legacy taxonomy, prunes unmodified
+ * Plans the Lervo-managed layout rewrite that upgrades a legacy taxonomy (schema 1, or routes
+ * whose title terms ADR-0476 replaces with prose descriptions), prunes unmodified
  * Lervo role templates whose paths and aliases are all absent, and re-adds a template this plan
  * places a document into. Declared roles are never touched.
  */
@@ -27,7 +28,8 @@ export function planDecisionTaxonomyRefresh(input: {
   const roles = seedRepositoryDocumentRoles(current, input.pathExists, input.placedPaths);
   const changed =
     roles.length !== current.length || roles.some((role, index) => role !== current[index]);
-  const upgrade = decisionTaxonomyRequiresUpgrade(parse(input.taxonomySource));
+  const written = parse(input.taxonomySource) as { schemaVersion?: unknown } | null;
+  const upgrade = decisionTaxonomyRequiresUpgrade(written);
   if (!changed && !upgrade) return [];
   const content = serializeDecisionTaxonomy({
     ...input.taxonomy,
@@ -42,7 +44,11 @@ export function planDecisionTaxonomyRefresh(input: {
       content,
       expectedCurrentHash: sha256(input.taxonomySource),
       desiredHash: sha256(content),
-      reason: upgrade ? "upgrade_document_policy" : "bind_document_role_templates",
+      reason: !upgrade
+        ? "bind_document_role_templates"
+        : written?.schemaVersion === 1
+          ? "upgrade_document_policy"
+          : "describe_semantic_routes",
     },
   ];
 }

@@ -11,6 +11,7 @@ import {
   type KnowledgeConvergenceInput,
   type KnowledgeConvergenceStageResult,
 } from "@lervo/repository-knowledge";
+import { classifyDeferredDocumentRoutes } from "./document-route-classification.js";
 import { reviewLifecyclePlan } from "./lifecycle-plan-review.js";
 import { withConvergenceAssignment } from "./workforce.js";
 import { pathWithinConvergenceRoots } from "./delegation.js";
@@ -29,7 +30,13 @@ export async function prepareConvergenceLifecycle(
 ): Promise<KnowledgeConvergenceStageResult | null> {
   const root = context.storage.paths.repositoryRoot;
   const bootstrap = await createKnowledgeInstructionBootstrapPlan({ repositoryRoot: root });
-  const layout = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+  let layout = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+  // ADR-0476: deferred documents are classified first; the plan then carries their exact moves.
+  if (
+    bootstrap.status === "not_applicable" &&
+    (await classifyDeferredDocumentRoutes(context, state, assertLease, layout)) > 0
+  )
+    layout = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
   const plan =
     bootstrap.status !== "not_applicable" ? bootstrap : layout.status !== "current" ? layout : null;
   if (plan === null) return null;

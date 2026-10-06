@@ -12,7 +12,7 @@ After canonical bootstrap, layout, and bridges are current, `migrate knowledge -
 
 ## Output structure
 
-Every input retains an output at its original path. Ordinary splits use a sibling directory named for the source stem. The root README must not create a root-level `README/` tree; durable detail belongs in the semantic documentation hierarchy. Historical continuation documents may use the bounded handoff profile based on content, while the selected active source has already entered the workstream stage.
+Every input retains an output at its original path. Ordinary splits use a sibling directory named for the source stem. The root README must not create a root-level `README/` tree; durable detail belongs in the semantic documentation hierarchy. Only declared continuation sources, `HANDOFF.md` or Markdown with `lervo.workstream.continuation: true` front matter, use the bounded handoff profile ([ADR-0476](../../decisions/knowledge/documents/0476-route-legacy-documents-semantically-and-never-migrate-application-content.md)); the selected active source has already entered the workstream stage.
 
 Normalized documents have one H1, except `.github/PULL_REQUEST_TEMPLATE.md`: it never splits, contains no H1, and starts at H2 because GitHub renders the title. All outputs obey byte and line limits. Bridges remain below 2 KiB and 40 lines.
 

@@ -31,7 +31,7 @@ Hub document sharing uses structured shared-context coordinates plus CAS bytes; 
 8. Apply and recovery pass failure injection.
 9. Lint succeeds and immediate replan has no changed operations.
 10. A clean clone reproduces tracked knowledge without a Hub.
-11. Ambiguous or unclassified ADRs fail closed, and leaves respect bounds.
+11. Invalid or unknown route metadata fails closed; a document or ADR without explicit metadata or recorded semantic classification defers without blocking; application content its package consumes is never a candidate; and leaves respect bounds.
 12. Eligible Markdown, including portable skills, enters the language and format lifecycle; immediate replan is current, while changed resources become stale.
 13. Fuzzy cross-provider candidates fail closed on weak or ambiguous matches and cannot materialize both pair members.
 14. AGENTS bytes remain constant as canonical instructions and skills grow; legacy route projections migrate once and replan current.

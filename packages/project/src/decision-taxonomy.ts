@@ -17,8 +17,11 @@ export interface DecisionTaxonomyRoute {
   id: string;
   path: string;
   priority: number;
-  minimumTitleTermMatches: number;
-  titleTerms: string[];
+  /**
+   * The route's semantic scope in prose. A semantic classifier reads it as context; it is never
+   * matched as keywords against a document (ADR-0476).
+   */
+  description: string;
 }
 
 export interface DecisionTaxonomy {
@@ -43,95 +46,53 @@ export const defaultDecisionTaxonomy: DecisionTaxonomy = {
       id: "security",
       path: "security",
       priority: 100,
-      minimumTitleTermMatches: 1,
-      titleTerms: [
-        "security",
-        "authentication",
-        "authorization",
-        "credential",
-        "privacy",
-        "encryption",
-      ],
+      description:
+        "Security posture: authentication, authorization, credential handling, privacy, and encryption.",
     },
     {
       id: "data",
       path: "data",
       priority: 90,
-      minimumTitleTermMatches: 1,
-      titleTerms: ["data", "database", "schema", "storage", "persistence", "migration"],
+      description: "Data models, schemas, storage, persistence, and data migration.",
     },
     {
       id: "architecture",
       path: "architecture",
       priority: 80,
-      minimumTitleTermMatches: 1,
-      titleTerms: [
-        "architecture",
-        "system boundary",
-        "component",
-        "integration",
-        "protocol",
-        "api",
-      ],
+      description:
+        "System structure: component boundaries, integrations, protocols, and programming interfaces.",
     },
     {
       id: "product",
       path: "product",
       priority: 70,
-      minimumTitleTermMatches: 1,
-      titleTerms: ["product", "user experience", "requirement", "scope", "workflow", "feature"],
+      description: "Product scope, user experience, requirements, workflows, and features.",
     },
     {
       id: "delivery",
       path: "delivery",
       priority: 60,
-      minimumTitleTermMatches: 1,
-      titleTerms: [
-        "release",
-        "deployment",
-        "deploy",
-        "distribution",
-        "packaging",
-        "build",
-        "continuous integration",
-      ],
+      description:
+        "Build, packaging, release, distribution, deployment, and continuous integration.",
     },
     {
       id: "operations",
       path: "operations",
       priority: 50,
-      minimumTitleTermMatches: 1,
-      titleTerms: [
-        "runtime",
-        "operations",
-        "observability",
-        "monitoring",
-        "doctor",
-        "diagnostic",
-        "incident",
-        "recovery",
-      ],
+      description:
+        "Runtime operation: observability, monitoring, diagnostics, incident handling, and recovery.",
     },
     {
       id: "quality",
       path: "quality",
       priority: 40,
-      minimumTitleTermMatches: 1,
-      titleTerms: [
-        "testing",
-        "verification",
-        "quality",
-        "reliability",
-        "performance",
-        "accessibility",
-      ],
+      description: "Testing, verification, reliability, performance, and accessibility.",
     },
     {
       id: "development",
       path: "development",
       priority: 30,
-      minimumTitleTermMatches: 1,
-      titleTerms: ["developer tooling", "dependency", "code style", "repository", "monorepo"],
+      description: "Developer tooling, dependencies, code style, and repository conventions.",
     },
   ],
 };
@@ -143,15 +104,50 @@ export type {
 
 const decisionTaxonomyPath = ".lervo/knowledge/document-layout.yaml";
 const maximumMessageIssues = 16;
+const maximumRouteDescriptionLength = 512;
 
 export function serializeDecisionTaxonomy(taxonomy = defaultDecisionTaxonomy): string {
   return stringify(taxonomy, { lineWidth: 0 });
 }
 
-function upgradeLegacyTaxonomy(value: unknown): unknown {
+function upgradeLegacyDocumentPolicy(value: unknown): unknown {
   const legacy = value as Record<string, unknown> | null;
   return legacy !== null && typeof legacy === "object" && legacy.schemaVersion === 1
     ? { ...legacy, schemaVersion: 2, documentPolicy: defaultRepositoryDocumentPolicy }
+    : value;
+}
+
+/**
+ * Legacy routes carried `titleTerms`. They are read only so an existing layout stays valid: the
+ * terms become the route's prose scope for the semantic classifier and are never matched again.
+ */
+function legacyRouteDescription(terms: readonly unknown[]): string {
+  let description = "Scope carried from the legacy title terms:";
+  let separator = " ";
+  for (const term of terms) {
+    if (typeof term !== "string") continue;
+    const next = `${description}${separator}${term}`;
+    if (next.length + 1 > maximumRouteDescriptionLength) break;
+    description = next;
+    separator = "; ";
+  }
+  return `${description}.`;
+}
+
+function upgradeLegacyRoute(route: unknown): unknown {
+  if (route === null || typeof route !== "object" || Array.isArray(route)) return route;
+  const value = route as Record<string, unknown>;
+  if (!("titleTerms" in value) && !("minimumTitleTermMatches" in value)) return route;
+  const { titleTerms, minimumTitleTermMatches: _minimum, ...current } = value;
+  return typeof current.description === "string" || !Array.isArray(titleTerms)
+    ? current
+    : { ...current, description: legacyRouteDescription(titleTerms) };
+}
+
+function upgradeLegacyRoutes(value: unknown): unknown {
+  const taxonomy = value as Record<string, unknown> | null;
+  return taxonomy !== null && typeof taxonomy === "object" && Array.isArray(taxonomy.routes)
+    ? { ...taxonomy, routes: taxonomy.routes.map(upgradeLegacyRoute) }
     : value;
 }
 
@@ -175,18 +171,29 @@ export class DecisionTaxonomyContractError extends LervoProjectError {
   }
 }
 
+/** Validates the layout as written, then returns it in the current route contract. */
 export function validateDecisionTaxonomy(value: unknown): DecisionTaxonomy {
-  const taxonomy = upgradeLegacyTaxonomy(value);
+  const taxonomy = upgradeLegacyDocumentPolicy(value);
   const issues = decisionTaxonomyIssues(taxonomy);
   if (issues.length > 0) throw new DecisionTaxonomyContractError(issues);
-  return taxonomy as DecisionTaxonomy;
+  return upgradeLegacyRoutes(taxonomy) as DecisionTaxonomy;
 }
 
-export function decisionTaxonomyRequiresUpgrade(value: unknown): boolean {
+function hasLegacyRouteFields(route: unknown): boolean {
   return (
-    value !== null &&
-    typeof value === "object" &&
-    (value as { schemaVersion?: unknown }).schemaVersion === 1
+    route !== null &&
+    typeof route === "object" &&
+    ("titleTerms" in route || "minimumTitleTermMatches" in route)
+  );
+}
+
+/** A layout written before the current contract: schema 1, or routes that still carry title terms. */
+export function decisionTaxonomyRequiresUpgrade(value: unknown): boolean {
+  if (value === null || typeof value !== "object") return false;
+  const layout = value as { schemaVersion?: unknown; routes?: unknown };
+  return (
+    layout.schemaVersion === 1 ||
+    (Array.isArray(layout.routes) && layout.routes.some(hasLegacyRouteFields))
   );
 }
 

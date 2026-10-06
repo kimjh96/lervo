@@ -423,12 +423,31 @@ describe("repository workstreams", () => {
     );
   });
 
-  it("discovers continuation state by content anywhere in the repository", async () => {
+  it("ignores Markdown that only resembles continuation state", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "notes"), { recursive: true });
+    await writeFile(
+      resolve(root, "notes/session-handoff.md"),
+      "# Session handoff\n\n## Current objective\n\nResume.\n\n## Next actions\n\n- Continue.\n",
+    );
+    const plan = await createHandoffWorkstreamMigrationPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+    });
+    expect(plan).toMatchObject({ status: "current", candidates: [], blockers: [] });
+  });
+
+  it("imports continuation state the repository declares anywhere through front matter", async () => {
     const root = await repository();
     await mkdir(resolve(root, "notes/team"), { recursive: true });
     await writeFile(
       resolve(root, "notes/team/cobalt.md"),
       [
+        "---",
+        "lervo:",
+        "  workstream:",
+        "    continuation: true",
+        "---",
         "# Cobalt delivery",
         "",
         "## Current objective",
@@ -456,7 +475,7 @@ describe("repository workstreams", () => {
       candidates: [
         {
           path: "notes/team/cobalt.md",
-          signals: expect.arrayContaining(["objective_section", "next_action_section"]),
+          signals: ["explicit_metadata"],
         },
       ],
     });
@@ -492,7 +511,7 @@ describe("repository workstreams", () => {
     await mkdir(resolve(root, "team/a"), { recursive: true });
     await mkdir(resolve(root, "team/b"), { recursive: true });
     const body = (name: string) =>
-      `# ${name}\n\n## Objective\n\nContinue ${name}.\n\n## Next actions\n\n- Verify ${name}.\n`;
+      `---\nlervo:\n  workstream:\n    continuation: true\n---\n# ${name}\n\n## Objective\n\nContinue ${name}.\n\n## Next actions\n\n- Verify ${name}.\n`;
     await writeFile(resolve(root, "team/a/state.md"), body("A"));
     await writeFile(resolve(root, "team/b/progress.md"), body("B"));
     const plan = await createHandoffWorkstreamMigrationPlan({
@@ -504,8 +523,8 @@ describe("repository workstreams", () => {
       blockers: [{ code: "ambiguous_continuation_sources" }],
     });
     expect(plan.candidates.map((item) => item.path)).toEqual([
-      "team/b/progress.md",
       "team/a/state.md",
+      "team/b/progress.md",
     ]);
   });
 
@@ -535,7 +554,7 @@ describe("repository workstreams", () => {
     await mkdir(resolve(root, "docs/repository/history"), { recursive: true });
     await writeFile(
       resolve(root, "docs/repository/history/old-session.md"),
-      "# Old session\n\n## Objective\n\nOld work.\n\n## Next actions\n\n- Historical action.\n",
+      "---\nlervo:\n  workstream:\n    continuation: true\n---\n# Old session\n\n## Objective\n\nOld work.\n\n## Next actions\n\n- Historical action.\n",
     );
     const plan = await createHandoffWorkstreamMigrationPlan({
       repositoryRoot: root,

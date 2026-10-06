@@ -1,13 +1,21 @@
 import type { DecisionTaxonomy, DecisionTaxonomyRoute } from "@lervo/project";
 import { parse } from "yaml";
 
+import { sha256 } from "./integrity.js";
+import {
+  noDocumentRouteEvidence,
+  recordedSemanticRoute,
+  type DeferredDocumentRoute,
+  type DocumentRouteBasis,
+  type DocumentRouteEvidence,
+  type SemanticRouteEvidence,
+} from "./document-route-resolution.js";
+
 export type DecisionLayoutBlockerCode =
-  | "ambiguous_decision_route"
   | "decision_leaf_overflow"
   | "invalid_decision_heading"
   | "invalid_decision_metadata"
   | "legacy_decision_layout"
-  | "unclassified_decision"
   | "unknown_decision_route";
 
 export interface DecisionLayoutBlocker {
@@ -24,29 +32,16 @@ export interface ClassifiedDecisionDestination {
   routePath: string;
   group: string;
   subgroup?: string;
-  classificationBasis: "explicit_metadata" | "title_terms";
-  matchedTitleTerms: string[];
+  classificationBasis: DocumentRouteBasis;
+  /** Present exactly when the basis is `semantic_provider`. */
+  semanticClassification?: SemanticRouteEvidence;
 }
 
 export type FlatDecisionClassification =
   | { kind: "not_flat_decision" }
   | { kind: "blocked"; blocker: DecisionLayoutBlocker }
+  | { kind: "deferred"; deferral: DeferredDocumentRoute }
   | { kind: "classified"; destination: ClassifiedDecisionDestination };
-
-function normalizedWords(value: string): string {
-  return value
-    .normalize("NFKC")
-    .toLocaleLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim()
-    .replace(/\s+/gu, " ");
-}
-
-function containsTerm(title: string, term: string): boolean {
-  const normalizedTitle = ` ${normalizedWords(title)} `;
-  const normalizedTerm = normalizedWords(term);
-  return normalizedTerm.length > 0 && normalizedTitle.includes(` ${normalizedTerm} `);
-}
 
 function flatDecisionName(path: string, taxonomy: DecisionTaxonomy): string | null {
   for (const root of [taxonomy.decisionRoot, ...taxonomy.legacyRoots]) {
@@ -92,30 +87,18 @@ function explicitRoute(
   };
 }
 
-function inferredRoute(
-  title: string,
-  taxonomy: DecisionTaxonomy,
-): { route: DecisionTaxonomyRoute; matchedTerms: string[] } | { candidates: string[] } | null {
-  const candidates = taxonomy.routes.flatMap((route) => {
-    const matchedTerms = route.titleTerms.filter((term) => containsTerm(title, term));
-    return matchedTerms.length >= route.minimumTitleTermMatches ? [{ route, matchedTerms }] : [];
-  });
-  if (candidates.length === 0) return null;
-  const highestPriority = Math.max(...candidates.map((candidate) => candidate.route.priority));
-  const prioritized = candidates.filter(
-    (candidate) => candidate.route.priority === highestPriority,
-  );
-  const strongest = Math.max(...prioritized.map((candidate) => candidate.matchedTerms.length));
-  const finalists = prioritized.filter((candidate) => candidate.matchedTerms.length === strongest);
-  return finalists.length === 1
-    ? finalists[0]!
-    : { candidates: finalists.map((candidate) => candidate.route.id).sort() };
-}
-
+/**
+ * Places one flat decision record. Explicit `lervo.decision.route` metadata wins; otherwise the
+ * recorded semantic classification of these exact bytes decides, and without one the decision is
+ * deferred (ADR-0476). `evidencePath` is the decision's current path when `path` is the identity
+ * path a lineage repair re-places.
+ */
 export function classifyFlatDecision(
   path: string,
   content: string,
   taxonomy: DecisionTaxonomy,
+  evidence: DocumentRouteEvidence = noDocumentRouteEvidence,
+  evidencePath: string = path,
 ): FlatDecisionClassification {
   const name = flatDecisionName(path, taxonomy);
   if (name === null) return { kind: "not_flat_decision" };
@@ -132,8 +115,7 @@ export function classifyFlatDecision(
     return { kind: "blocked", blocker: { code: "invalid_decision_metadata", path } };
   }
   let route: DecisionTaxonomyRoute;
-  let classificationBasis: ClassifiedDecisionDestination["classificationBasis"];
-  let matchedTitleTerms: string[];
+  let semanticClassification: SemanticRouteEvidence | undefined;
   if (metadata.state === "present") {
     const selected = taxonomy.routes.find((candidate) => candidate.id === metadata.routeId);
     if (selected === undefined)
@@ -142,20 +124,30 @@ export function classifyFlatDecision(
         blocker: { code: "unknown_decision_route", path, candidateRouteIds: [metadata.routeId] },
       };
     route = selected;
-    classificationBasis = "explicit_metadata";
-    matchedTitleTerms = [];
   } else {
-    const inferred = inferredRoute(heading, taxonomy);
-    if (inferred === null)
-      return { kind: "blocked", blocker: { code: "unclassified_decision", path } };
-    if ("candidates" in inferred)
+    const semantic = recordedSemanticRoute({
+      subject: "decision",
+      path: evidencePath,
+      contentHash: sha256(content),
+      taxonomy,
+      evidence,
+    });
+    // A decision record is repository documentation by its location; "retain" and document
+    // roles cannot apply, so either answer leaves the decision waiting.
+    if (semantic.kind === "deferred") return semantic;
+    if (semantic.kind !== "route")
       return {
-        kind: "blocked",
-        blocker: { code: "ambiguous_decision_route", path, candidateRouteIds: inferred.candidates },
+        kind: "deferred",
+        deferral: {
+          classificationId: semantic.evidence.classificationId,
+          subject: "decision",
+          path: evidencePath,
+          contentHash: sha256(content),
+          reason: "semantic_classification_uncertain",
+        },
       };
-    route = inferred.route;
-    classificationBasis = "title_terms";
-    matchedTitleTerms = inferred.matchedTerms;
+    route = semantic.route;
+    semanticClassification = semantic.evidence;
   }
   const [group, ...subgroupParts] = route.path.split("/");
   return {
@@ -166,8 +158,9 @@ export function classifyFlatDecision(
       routePath: route.path,
       group: group!,
       ...(subgroupParts.length === 0 ? {} : { subgroup: subgroupParts.join("/") }),
-      classificationBasis,
-      matchedTitleTerms,
+      ...(semanticClassification === undefined
+        ? { classificationBasis: "explicit_metadata" as const }
+        : { classificationBasis: "semantic_provider" as const, semanticClassification }),
     },
   };
 }

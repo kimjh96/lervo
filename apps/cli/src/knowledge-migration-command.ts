@@ -155,7 +155,7 @@ export async function runKnowledgeMigration(input: {
                   2,
                 )}\n`
               : continuation.status === "blocked"
-                ? `Continuation workstream migration is blocked.\n${continuation.blockers.map((item) => `  [${item.code}] ${item.message}`).join("\n")}\n${continuation.candidates.map((item) => `  candidate: ${item.path} score=${item.score} signals=${item.signals.join(",")}`).join("\n")}\n`
+                ? `Continuation workstream migration is blocked.\n${continuation.blockers.map((item) => `  [${item.code}] ${item.message}`).join("\n")}\n${continuation.candidates.map((item) => `  candidate: ${item.path} declared=${item.signals.join(",")}`).join("\n")}\n`
                 : `Continuation workstream migration review plan created.\nplan: ${continuation.planId}\nworkstream: ${continuation.workstream?.workstreamId}\nsource: ${continuation.sourcePath} (${continuation.sourceContentHash})\nreferences updated: ${continuation.referenceUpdates.length}\nnormalization records retired: ${continuation.removedNormalizationRecords.length}\napproval: ${continuation.operationId}=${continuation.approvalHash}\nNo files or state have been changed.\n`,
           );
           return continuation.status === "blocked" ? 1 : 0;

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d1dd0c219f151edff08e206e"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Route legacy repository documents semantically instead of by title terms, keep application content that its own package loads in place, and defer unclassified documents to the background resident without blocking lervo upgrade."

@@ -1,14 +1,10 @@
 import { constants } from "node:fs";
 import { lstat, open, readFile } from "node:fs/promises";
-import { basename, posix, resolve } from "node:path";
+import { posix, resolve } from "node:path";
 
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { parse, stringify } from "yaml";
-import {
-  conditionalDefaultDocumentRolePath,
-  loadDecisionTaxonomy,
-  type DecisionTaxonomy,
-} from "@lervo/project";
+import { loadDecisionTaxonomy } from "@lervo/project";
 
 import {
   createKnowledgeMigrationPlanForScan,
@@ -32,20 +28,23 @@ import {
   repositoryPathCanRemainIncluded,
   upsertRepositoryKnowledgeScanSource,
 } from "./scanner.js";
-import { createDocumentMoveLineage, loadDocumentMoveLineages } from "./source-lineage.js";
+import { createDocumentMoveLineage } from "./source-lineage.js";
 import { loadStoredConcepts } from "./store-reader.js";
-import {
-  classifyFlatDecision,
-  inspectGroupedDecisionPaths,
-  type DecisionLayoutBlockerCode,
-} from "./decision-layout.js";
+import { inspectGroupedDecisionPaths, type DecisionLayoutBlockerCode } from "./decision-layout.js";
 import {
   bytePreservedDocumentCollection,
-  classifyClaudeRule,
-  classifyRepositoryDocument,
   repositoryInstructionPaths,
   type DocumentLayoutBlockerCode,
 } from "./document-layout.js";
+import type { DocumentRouteBasis, SemanticRouteEvidence } from "./document-route-resolution.js";
+import {
+  classifyRepositoryLayoutCandidates,
+  type RepositoryLayoutCandidate,
+  type RepositoryLayoutClassification,
+  type RepositoryLayoutDeferredDocument,
+  type RepositoryLayoutReason,
+  type RepositoryLayoutRetainedDocument,
+} from "./repository-layout-candidates.js";
 import {
   RepositoryKnowledgeError,
   type RepositoryKnowledgePreparedScanOptions,
@@ -54,16 +53,9 @@ import {
   type RepositorySource,
 } from "./types.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
-import { providerSurfaceRoles } from "./provider-surface-descriptors.js";
 import { projectRebuildableKnowledgeIgnore } from "./projection-ignore.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/;
-const ECOSYSTEM_ROOT_ENTRYPOINTS = new Set([
-  "CONTRIBUTING.md",
-  "SECURITY.md",
-  "CHANGELOG.md",
-  "CODE_OF_CONDUCT.md",
-]);
 
 export interface RepositoryLayoutMove {
   operationId: string;
@@ -75,26 +67,14 @@ export interface RepositoryLayoutMove {
   byteCount: number;
   preservedConceptIds: string[];
   lineageId: string;
-  classification:
-    | "product"
-    | "architecture"
-    | "specification"
-    | "roadmap"
-    | "decision"
-    | "document"
-    | "instruction"
-    | "skill";
+  classification: RepositoryLayoutClassification;
   group?: string;
   subgroup?: string;
   routeId?: string;
-  classificationBasis?: "explicit_metadata" | "title_terms";
-  matchedTitleTerms?: string[];
-  reason:
-    | "recognized_root_document_role"
-    | "recognized_decision_document"
-    | "classified_repository_document"
-    | "normalized_provider_instruction"
-    | "normalized_portable_skill";
+  /** ADR-0476: the declaration or recorded semantic evidence the route rests on. */
+  classificationBasis?: DocumentRouteBasis;
+  semanticClassification?: SemanticRouteEvidence;
+  reason: RepositoryLayoutReason;
 }
 
 export interface RepositoryLayoutReferenceUpdate {
@@ -160,6 +140,17 @@ export interface RepositoryLayoutMigrationPlan {
   userUpdates: RepositoryLayoutUserUpdate[];
   machineMoves: RepositoryLayoutMachineMove[];
   referenceUpdates: RepositoryLayoutReferenceUpdate[];
+  /**
+   * Documents awaiting a semantic route. They never block: the background resident classifies
+   * them, and each one is a precise attention entry until then (ADR-0476).
+   */
+  deferredDocuments: RepositoryLayoutDeferredDocument[];
+  deferredDocumentCount: number;
+  /** Markdown kept in place, with the application-content, tool, or semantic evidence why. */
+  retainedDocuments: RepositoryLayoutRetainedDocument[];
+  retainedDocumentCount: number;
+  /** Recorded classifications this plan relies on or waits for; any other record is stale. */
+  semanticClassificationIds: string[];
   blockers: Array<{
     code:
       | "destination_exists"
@@ -194,21 +185,13 @@ export interface RepositoryLayoutMigrationReceipt {
   machineMovedCount: number;
   referenceUpdatedCount: number;
   pathDigests: Array<{ from: string; to: string }>;
+  /** The basis of each move's route, by destination digest; semantic ones cite their record. */
+  classificationBases: Array<{ to: string; basis: DocumentRouteBasis; recordDigest?: string }>;
   created: string[];
   updated: string[];
   unchanged: string[];
   appliedAt: string;
 }
-
-type RepositoryLayoutCandidate = {
-  source: RepositorySource & { content: string; contentHash: string };
-} & Pick<RepositoryLayoutMove, "toPath" | "classification" | "reason"> &
-  Partial<
-    Pick<
-      RepositoryLayoutMove,
-      "group" | "subgroup" | "routeId" | "classificationBasis" | "matchedTitleTerms"
-    >
-  > & { instructionPaths?: string[] };
 
 function mediaTypeFor(source: RepositorySource): DurableKnowledgeUserFileOperation["mediaType"] {
   if (/\.mdx?$/iu.test(source.path)) return "text/markdown";
@@ -217,84 +200,6 @@ function mediaTypeFor(source: RepositorySource): DurableKnowledgeUserFileOperati
   if (/\.[cm]?js$/iu.test(source.path)) return "text/javascript";
   if (/\.[cm]?tsx?$/iu.test(source.path)) return "text/typescript";
   return "text/plain";
-}
-
-function classifiedRootDestination(
-  path: string,
-  content: string,
-  taxonomy: DecisionTaxonomy,
-): Pick<RepositoryLayoutMove, "toPath" | "classification" | "reason"> | null {
-  const roles = [...taxonomy.documentPolicy.roles, ...providerSurfaceRoles()];
-  const protectedPaths = new Set(
-    roles.map((role) => role.path).filter((rolePath) => !rolePath.includes("/")),
-  );
-  if (
-    path.includes("/") ||
-    protectedPaths.has(path) ||
-    ECOSYSTEM_ROOT_ENTRYPOINTS.has(path) ||
-    !/\.md$/iu.test(path)
-  )
-    return null;
-  // An unseeded template still places a recognized document; the plan then binds its role.
-  const rolePath = (roleId: string): string | null =>
-    taxonomy.documentPolicy.roles.find((role) => role.roleId === roleId)?.path ??
-    conditionalDefaultDocumentRolePath(roleId);
-  const stem = basename(path, ".md").toUpperCase();
-  const heading = /^#\s+(.+)$/mu.exec(content)?.[1]?.trim().toLowerCase() ?? "";
-  const visionPath = rolePath("product_vision");
-  if (
-    visionPath !== null &&
-    /(?:^|_)VISION$/u.test(stem) &&
-    /(?:vision|\uBE44\uC804)/u.test(heading)
-  )
-    return {
-      toPath: visionPath,
-      classification: "product",
-      reason: "recognized_root_document_role",
-    };
-  const architecturePath = rolePath("system_architecture");
-  if (
-    architecturePath !== null &&
-    /(?:^|_)ARCHITECTURE$/u.test(stem) &&
-    /(?:architecture|\uC544\uD0A4\uD14D\uCC98|\uAD6C\uC870)/u.test(heading)
-  )
-    return {
-      toPath: architecturePath,
-      classification: "architecture",
-      reason: "recognized_root_document_role",
-    };
-  const executionPath = rolePath("execution_specification");
-  if (
-    executionPath !== null &&
-    /(?:^|_)EXECUTION_SPEC$/u.test(stem) &&
-    /(?:(?:execution|\uC2E4\uD589).*(?:spec|\uADDC\uACA9)|(?:spec|\uADDC\uACA9).*(?:execution|\uC2E4\uD589))/u.test(
-      heading,
-    )
-  )
-    return {
-      toPath: executionPath,
-      classification: "specification",
-      reason: "recognized_root_document_role",
-    };
-  const versionedPlan = /(?:^|_)V(\d+)_PLAN$/u.exec(stem);
-  if (versionedPlan !== null && /(?:plan|\uACC4\uD68D|roadmap|\uB85C\uB4DC\uB9F5)/u.test(heading))
-    return {
-      toPath: `docs/roadmap/v${versionedPlan[1]}.md`,
-      classification: "roadmap",
-      reason: "recognized_root_document_role",
-    };
-  const roadmapPath = rolePath("delivery_roadmap");
-  if (
-    roadmapPath !== null &&
-    /(?:^|_)ROADMAP$/u.test(stem) &&
-    /(?:roadmap|\uB85C\uB4DC\uB9F5|\uACC4\uD68D)/u.test(heading)
-  )
-    return {
-      toPath: roadmapPath,
-      classification: "roadmap",
-      reason: "recognized_root_document_role",
-    };
-  return null;
 }
 
 async function safeFile(
@@ -602,134 +507,14 @@ export async function createRepositoryLayoutMigrationPlan(input: {
         message: "The knowledge concept registry is incomplete.",
       },
     );
-  const classificationBlockers: RepositoryLayoutMigrationPlan["blockers"] = [];
-  const candidates = scan.sources
-    .flatMap<RepositoryLayoutCandidate>((source) => {
-      if (
-        source.status !== "included" ||
-        source.contentHash === null ||
-        source.content === undefined
-      )
-        return [];
-      const includedSource = source as RepositorySource & { content: string; contentHash: string };
-      const claudeSkill = /^(?:.*\/)?\.claude\/skills\/([^/]+)\/(.+)$/u.exec(source.path);
-      if (claudeSkill !== null)
-        return [
-          {
-            source: includedSource,
-            toPath: `.agents/skills/${claudeSkill[1]}/${claudeSkill[2]}`,
-            classification: "skill" as const,
-            reason: "normalized_portable_skill" as const,
-          },
-        ];
-      const instruction = classifyClaudeRule(source.path, source.content, taxonomy);
-      if (instruction.kind === "blocked") {
-        classificationBlockers.push({
-          ...instruction.blocker,
-          pathDigest: sha256(instruction.blocker.path),
-        });
-        return [];
-      }
-      if (instruction.kind === "classified")
-        return [
-          {
-            source: includedSource,
-            ...instruction.route.destination,
-            instructionPaths: instruction.route.paths,
-            classification: "instruction" as const,
-            reason: "normalized_provider_instruction" as const,
-          },
-        ];
-      if (source.kind !== "documentation") return [];
-      const decision = classifyFlatDecision(source.path, source.content, taxonomy);
-      if (decision.kind === "blocked") {
-        classificationBlockers.push({
-          ...decision.blocker,
-          pathDigest: sha256(decision.blocker.path),
-        });
-        return [];
-      }
-      if (decision.kind === "classified")
-        return [
-          {
-            source: includedSource,
-            ...decision.destination,
-            classification: "decision" as const,
-            reason: "recognized_decision_document" as const,
-          },
-        ];
-      const classification = classifiedRootDestination(source.path, source.content, taxonomy);
-      if (classification !== null) return [{ source: includedSource, ...classification }];
-      const document = classifyRepositoryDocument(source.path, source.content, taxonomy);
-      if (document.kind === "blocked") {
-        classificationBlockers.push({
-          ...document.blocker,
-          pathDigest: sha256(document.blocker.path),
-        });
-        return [];
-      }
-      return document.kind === "classified"
-        ? [
-            {
-              source: includedSource,
-              ...document.destination,
-              classification: "document" as const,
-              reason: "classified_repository_document" as const,
-            },
-          ]
-        : [];
-    })
-    .sort((left, right) => left.source.path.localeCompare(right.source.path));
-  const repairableDecisionPaths = new Set<string>();
-  const lineage = await loadDocumentMoveLineages({
-    repositoryRoot: root,
-    projectId: scan.projectId,
-  });
-  const includedSources = new Map(
-    scan.sources.flatMap((source) =>
-      source.status === "included" && source.content !== undefined && source.contentHash !== null
-        ? [
-            [
-              source.path,
-              source as RepositorySource & { content: string; contentHash: string },
-            ] as const,
-          ]
-        : [],
-    ),
-  );
-  const allowedRoutePaths = new Set(taxonomy.routes.map((route) => route.path));
-  for (const record of lineage.records.filter((item) => item.activeTerminal)) {
-    const name = basename(record.value.toPath);
-    const cameFromLegacyFlatRoot = taxonomy.legacyRoots.some(
-      (legacyRoot) => record.value.identityPath === `${legacyRoot}/${name}`,
-    );
-    const canonicalPrefix = `${taxonomy.decisionRoot}/`;
-    if (!cameFromLegacyFlatRoot || !record.value.toPath.startsWith(canonicalPrefix)) continue;
-    const relativeDestination = record.value.toPath.slice(canonicalPrefix.length);
-    const currentRoutePath = relativeDestination.slice(0, relativeDestination.lastIndexOf("/"));
-    const isRetiredRoute = !allowedRoutePaths.has(currentRoutePath);
-    const isPreviousDefaultFallback =
-      taxonomy.taxonomyId === "decisions.default" && currentRoutePath === "foundation";
-    if (!isRetiredRoute && !isPreviousDefaultFallback) continue;
-    const source = includedSources.get(record.value.toPath);
-    if (source === undefined) continue;
-    const reclassified = classifyFlatDecision(record.value.identityPath, source.content, taxonomy);
-    if (reclassified.kind !== "classified" || reclassified.destination.toPath === source.path)
-      continue;
-    candidates.push({
-      source,
-      ...reclassified.destination,
-      classification: "decision",
-      reason: "recognized_decision_document",
-    });
-    repairableDecisionPaths.add(source.path);
-  }
-  candidates.sort((left, right) => left.source.path.localeCompare(right.source.path));
+  const classified = await classifyRepositoryLayoutCandidates({ root, scan, taxonomy });
+  const candidates: RepositoryLayoutCandidate[] = classified.candidates;
+  const repairableDecisionPaths = classified.repairableDecisionPaths;
   const destinationCounts = new Map<string, number>();
   for (const item of candidates)
     destinationCounts.set(item.toPath, (destinationCounts.get(item.toPath) ?? 0) + 1);
   const blockers: RepositoryLayoutMigrationPlan["blockers"] = [
-    ...classificationBlockers,
+    ...classified.blockers,
     ...inspectGroupedDecisionPaths(
       scan.sources.map((source) => source.path),
       taxonomy,
@@ -1002,9 +787,9 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       ...(item.classificationBasis === undefined
         ? {}
         : { classificationBasis: item.classificationBasis }),
-      ...(item.matchedTitleTerms === undefined
+      ...(item.semanticClassification === undefined
         ? {}
-        : { matchedTitleTerms: item.matchedTitleTerms }),
+        : { semanticClassification: item.semanticClassification }),
       reason: item.reason,
     });
     lineageOperations.push({
@@ -1291,6 +1076,11 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     referenceUpdates: referenceOperations.map(withoutContent),
     operations: operations.map(withoutContent),
     blockers,
+    deferredDocuments: classified.deferredDocuments,
+    deferredDocumentCount: classified.deferredDocumentCount,
+    retainedDocuments: classified.retainedDocuments,
+    retainedDocumentCount: classified.retainedDocumentCount,
+    semanticClassificationIds: [...classified.liveClassificationIds].sort(),
   };
   const referenceUpdates: RepositoryLayoutReferenceUpdate[] = [
     ...[...referenceChanges.values()].map((change) => ({
@@ -1332,6 +1122,11 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     userUpdates,
     machineMoves,
     referenceUpdates,
+    deferredDocuments: classified.deferredDocuments,
+    deferredDocumentCount: classified.deferredDocumentCount,
+    retainedDocuments: classified.retainedDocuments,
+    retainedDocumentCount: classified.retainedDocumentCount,
+    semanticClassificationIds: [...classified.liveClassificationIds].sort(),
     blockers,
     operations,
   };
@@ -1402,6 +1197,19 @@ export async function applyRepositoryLayoutMigrationPlan(input: {
       from: sha256(move.fromPath),
       to: sha256(move.toPath),
     })),
+    classificationBases: current.moves.flatMap((move) =>
+      move.classificationBasis === undefined
+        ? []
+        : [
+            {
+              to: sha256(move.toPath),
+              basis: move.classificationBasis,
+              ...(move.semanticClassification === undefined
+                ? {}
+                : { recordDigest: move.semanticClassification.recordDigest }),
+            },
+          ],
+    ),
     created: current.operations
       .filter((operation) => operation.action === "create")
       .map((operation) => operation.path),
