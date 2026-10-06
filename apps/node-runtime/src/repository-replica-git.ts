@@ -12,18 +12,38 @@ import {
 import type { RepositoryReplicaStage } from "./repository-replica-failure.js";
 import { git, text } from "./repository-replica-git-command.js";
 
+const CONVERGENCE_DELEGATION_PATH = ".lervo/knowledge/convergence-delegation.json";
+
 /**
  * Host-local paths whose worktree bytes never enter a replica snapshot and survive replica
  * cleanup. They are excluded explicitly because `HEAD` or the worktree may predate the matching
  * ignore rule. Git rejects exclusion pathspecs under an ignored directory, so capture restores
  * their `HEAD` entries after staging instead.
+ *
+ * ADR-0478: the convergence delegation is host-local only while `HEAD` does not track it. A
+ * tracked delegation is shared repository content that only the convergence owner writes, so its
+ * worktree bytes replicate and the peer receives the owner's exact renewal.
  */
 export const HOST_LOCAL_REPLICA_PATHS = [
-  ".lervo/knowledge/convergence-delegation.json",
+  CONVERGENCE_DELEGATION_PATH,
   ".lervo/state",
   ".lervo/data",
 ] as const;
-const HOST_LOCAL_PATHSPECS = HOST_LOCAL_REPLICA_PATHS.map((path) => `:(top,literal)${path}`);
+
+async function hostLocalPathspecs(repositoryRoot: string): Promise<string[]> {
+  const tracked = text(
+    await git(repositoryRoot, [
+      "ls-tree",
+      "--name-only",
+      "HEAD",
+      "--",
+      CONVERGENCE_DELEGATION_PATH,
+    ]),
+  );
+  return HOST_LOCAL_REPLICA_PATHS.filter(
+    (path) => path !== CONVERGENCE_DELEGATION_PATH || tracked !== CONVERGENCE_DELEGATION_PATH,
+  ).map((path) => `:(top,literal)${path}`);
+}
 export const EXPORT_REF = "refs/lervo/replica/export";
 export const INCOMING_REF = "refs/lervo/replica/incoming";
 export const FIXED_GIT_ENVIRONMENT = {
@@ -125,9 +145,8 @@ export async function captureRepositoryReplicaSnapshot(
     await git(repositoryRoot, ["read-tree", "--reset", "HEAD"], { environment });
     await git(repositoryRoot, ["add", "-A", "--", "."], { environment });
     // Host-local paths keep exactly their HEAD entries, whatever the ignore rules say.
-    await git(repositoryRoot, ["reset", "-q", "HEAD", "--", ...HOST_LOCAL_PATHSPECS], {
-      environment,
-    });
+    const hostLocal = await hostLocalPathspecs(repositoryRoot);
+    await git(repositoryRoot, ["reset", "-q", "HEAD", "--", ...hostLocal], { environment });
     const worktreeTree = text(await git(repositoryRoot, ["write-tree"], { environment }));
     const source = { schemaVersion: 1 as const, head, branch, indexTree, worktreeTree };
     const snapshot: RepositoryReplicaSnapshot = {

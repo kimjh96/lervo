@@ -64,9 +64,10 @@ export async function reboundConvergenceDelegation(input: {
   if (canonicalJson(plan) === canonicalJson(unchanged)) return null;
   return parseConvergenceDelegation({
     ...plan,
+    // ADR-0478: a rebind is a continuation, not a review; equal inputs give equal bytes.
     review: {
       reviewerAgentId: review.reviewerAgentId,
-      reviewedAt: input.now.toISOString(),
+      reviewedAt: review.reviewedAt,
       planHash: convergenceDelegationPlanHash(plan),
     },
   });

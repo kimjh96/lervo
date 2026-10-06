@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-06
 Amends: [ADR-0466](0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) (host configuration, Hub permission), [ADR-0434](../../knowledge/repository/canonicalization/0434-converge-background-canonicalization-normalization-and-knowledge.md) (delegation continuity)
 Related: [ADR-0453](../conversations/agent-organization/0453-act-for-the-owner-through-a-principal-mandate.md), [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0451](../../knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md), [ADR-0467](../../knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md), [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md)
+Amended by: [ADR-0478](0478-renew-each-delegation-with-one-writer.md) (one renewal writer, deterministic renewal)
 
 ## Context
 

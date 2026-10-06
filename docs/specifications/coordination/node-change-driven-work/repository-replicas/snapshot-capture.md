@@ -14,7 +14,9 @@ Worktree bytes from these host-local paths never enter a replica snapshot:
 
 Capture excludes them independently of `.gitignore` and ignore rules in `HEAD`: after staging the worktree into the temporary index, it restores their exact `HEAD` entries. This restore replaces a pathspec exclusion because Git rejects exclusion pathspecs beneath ignored directories.
 
-Replica apply preserves the same paths while cleaning source files, including when resetting to an older `HEAD` temporarily removes the worktree's newer ignore rule. The delegation grant remains local authority and requires separate review on each host.
+The delegation is host-local only while `HEAD` does not track it. A delegation that `HEAD` tracks is shared repository content that only the convergence owner writes, so capture keeps its worktree bytes. Apply, merge, and rollback then reproduce the owner's renewal instead of resetting it to `HEAD` ([ADR-0478](../../../../decisions/coordination/sync/0478-renew-each-delegation-with-one-writer.md)).
+
+Replica apply preserves the untracked host-local paths while cleaning source files, including when resetting to an older `HEAD` temporarily removes the worktree's newer ignore rule. An untracked delegation grant remains local authority and requires separate review on each host.
 
 ## Transfer and readiness
 
@@ -30,7 +32,7 @@ Coordinator observation—the local snapshot and peer `repository-replica snapsh
 
 - **Location:** `<git-dir>/lervo-replica/snapshot-cache.json`, owner-only, inside the per-worktree Git directory and never tracked.
 - **Fields:** `schemaVersion: 1`, `fingerprint` (a `sha256:` digest), and `snapshot` (the exact snapshot record).
-- **Fingerprint:** SHA-256 over a capture-version tag, the host-local path list, the repository root, the digest of `git status --porcelain=v2 -z --branch --untracked-files=all`, and the `lstat` mode, inode, size, and nanosecond modification and change times of the index file, repository `config` and `info/attributes`, and every status-listed path. Status runs with `GIT_OPTIONAL_LOCKS=0`, so it never writes the user's index or wakes the watcher. Git's stat and racy checks keep clean tracked files out of status. Listed paths include metadata because a second edit of a dirty or untracked file leaves its status line unchanged.
+- **Fingerprint:** SHA-256 over a capture-version tag (`v2` since ADR-0478), the host-local path list, the repository root, the digest of `git status --porcelain=v2 -z --branch --untracked-files=all`, and the `lstat` mode, inode, size, and nanosecond modification and change times of the index file, repository `config` and `info/attributes`, and every status-listed path. Status runs with `GIT_OPTIONAL_LOCKS=0`, so it never writes the user's index or wakes the watcher. Git's stat and racy checks keep clean tracked files out of status. Listed paths include metadata because a second edit of a dirty or untracked file leaves its status line unchanged.
 - **Hit:** the stored fingerprint equals the current fingerprint, the record's snapshot hash recomputes, and its `head` and `branch` equal the status branch coordinates.
 - **Write:** only when the fingerprint is equal before and after capture and is cacheable. It is not cacheable while any observed timestamp lies within two seconds of observation, while a submodule is listed, while `HEAD` is unborn, or above 20,000 listed paths.
 - **Privacy:** object IDs, digests, and the branch name only; no file contents or paths.

@@ -16,11 +16,15 @@ import {
 } from "./continuity-policy-store.js";
 import { loadConvergenceDelegation, type ConvergenceDelegation } from "./delegation.js";
 import {
+  decideDelegationAdoption,
   decideDelegationRenewal,
   decideDelegationSeed,
   type DelegationRenewalDecision,
 } from "./delegation-continuity-decision.js";
-import { recordDelegationContinuation } from "./delegation-continuity-event.js";
+import {
+  recordDelegationContinuation,
+  type DelegationContinuation,
+} from "./delegation-continuity-event.js";
 import type { ConvergenceDefinitionSource } from "./delegation-definition-acceptance.js";
 import { installPeerScopeDefinitions } from "./delegation-definition-installation.js";
 import {
@@ -33,22 +37,22 @@ import {
 } from "./delegation-scope.js";
 import { reboundConvergenceDelegation } from "./delegation-rebinding.js";
 import { seedDelegationFromPeerScope, seedDelegationFromTemplate } from "./delegation-seeding.js";
+import type { DelegationWriter } from "./delegation-writer.js";
 import type { ContinuityDelegationObservation } from "./continuity-findings.js";
 
 /** The owner's standing instruction a policy adopted on a delegated host cites (ADR-0469). */
 export const OWNER_STANDING_CONTINUITY_REFERENCE = "ADR-0469";
+
+type ContinuationKind = Pick<DelegationContinuation, "action" | "source">;
 
 export interface DelegationContinuityResult {
   delegation: ContinuityDelegationObservation;
   scopeHash: string | null;
   policy: ConvergenceContinuityPolicyReading;
   renewal: DelegationRenewalDecision | null;
-  continuation: {
-    action: "renewed" | "seeded" | "rebound";
-    source: "renewal" | "peer" | "policy_template" | "binding_refresh";
-    planHash: string;
-    expiresAt: string;
-  } | null;
+  continuation: (ContinuationKind & { planHash: string; expiresAt: string }) | null;
+  /** ADR-0478: a renewal is due, but another host owns the repository and renews it. */
+  awaitingOwner: boolean;
   failureCode: string | null;
 }
 
@@ -94,22 +98,125 @@ async function adoptStandingPolicy(input: {
   return adoptConvergenceContinuityPolicy(input.policyPath, policy);
 }
 
+interface ContinuationContext {
+  storage: ProjectStorage;
+  policy: ConvergenceContinuityPolicyReading;
+  hostHash: string | null;
+  now: Date;
+}
+
+/** Applies one continued delegation through the reviewed plan/apply path and records it. */
+async function applyContinuation(
+  context: ContinuationContext,
+  input: ContinuationKind & {
+    previous: ConvergenceDelegation | null;
+    next: ConvergenceDelegation;
+    policyHash: string;
+    sourceHostHash: string | null;
+    renewal: DelegationRenewalDecision | null;
+  },
+): Promise<DelegationContinuityResult> {
+  const { storage, now } = context;
+  await applyConvergenceDelegationPlan(
+    storage,
+    await createConvergenceDelegationPlan(storage, input.next),
+  );
+  const scopeHash = convergenceDelegationScopeHash(input.next);
+  recordDelegationContinuation(storage, {
+    repositoryIdentityHash: calculateProjectIdentityHash(storage.manifest),
+    action: input.action,
+    source: input.source,
+    policyHash: input.policyHash,
+    previousPlanHash: input.previous?.review.planHash ?? null,
+    planHash: input.next.review.planHash,
+    scopeHash,
+    expiresAt: input.next.expiresAt,
+    observerHostHash: context.hostHash,
+    sourceHostHash: input.sourceHostHash,
+    occurredAt: now.toISOString(),
+  });
+  return {
+    delegation: observe(input.next, now.getTime()),
+    scopeHash,
+    policy: context.policy,
+    renewal: input.renewal,
+    continuation: {
+      action: input.action,
+      source: input.source,
+      planHash: input.next.review.planHash,
+      expiresAt: input.next.expiresAt,
+    },
+    awaitingOwner: false,
+    failureCode: null,
+  };
+}
+
 /**
- * Keeps this checkout's delegation continuous under the host policy: renews a due delegation at
- * the identical scope, or seeds a missing one from a peer scope or the policy template. Every
- * effect goes through the ordinary reviewed plan/apply path and is recorded as an event.
+ * The owner keeps its delegation current: a rebind after a managed upgrade rewrote a bound suite
+ * or role contract (ADR-0470), else a due same-scope renewal. Both derive every byte from the
+ * previous delegation, the policy, and local definitions (ADR-0478).
+ */
+async function continueAsOwner(
+  context: ContinuationContext,
+  loaded: ConvergenceDelegation,
+  renewal: DelegationRenewalDecision,
+  policyHash: string | null,
+): Promise<DelegationContinuityResult | null> {
+  const now = context.now.getTime();
+  const rebound =
+    policyHash !== null &&
+    loaded.state === "active" &&
+    Date.parse(loaded.expiresAt) > now &&
+    (renewal.kind === "current" || renewal.kind === "renew")
+      ? await reboundConvergenceDelegation({
+          root: context.storage.paths.repositoryRoot,
+          current: loaded,
+          now: context.now,
+        })
+      : null;
+  if (rebound !== null && policyHash !== null)
+    return applyContinuation(context, {
+      action: "rebound",
+      source: "binding_refresh",
+      previous: loaded,
+      next: rebound,
+      policyHash,
+      sourceHostHash: null,
+      renewal,
+    });
+  if (renewal.kind !== "renew" || policyHash === null) return null;
+  return applyContinuation(context, {
+    action: "renewed",
+    source: "renewal",
+    previous: loaded,
+    next: renewedConvergenceDelegation({ current: loaded, expiresAt: renewal.expiresAt }),
+    policyHash,
+    sourceHostHash: null,
+    renewal,
+  });
+}
+
+/**
+ * Keeps this checkout's delegation continuous under the host policy. Only the convergence owner
+ * renews or rebinds (ADR-0478); a follower adopts the owner's term, and a replica follower waits
+ * for the owner's bytes. A missing delegation is seeded from a peer scope or the policy template
+ * on any host, because there is nothing to diverge from. Every effect goes through the ordinary
+ * reviewed plan/apply path and is recorded as an event.
  */
 export async function continueConvergenceDelegation(input: {
   storage: ProjectStorage;
   policyPath: string | null;
   peers: readonly KnowledgeConvergenceHostRecord[];
   hostHash: string | null;
+  /** Who may write the delegation now (ADR-0478). */
+  writer: DelegationWriter;
   /** Where peer-bound definitions come from; null without Hub coordination. */
   definitions?: ConvergenceDefinitionSource | null;
   now: Date;
 }): Promise<DelegationContinuityResult> {
   const root = input.storage.paths.repositoryRoot;
   const now = input.now.getTime();
+  const { writer } = input;
   let loaded: ConvergenceDelegation | null;
   try {
     loaded = (await loadConvergenceDelegation(root))?.delegation ?? null;
@@ -123,6 +230,7 @@ export async function continueConvergenceDelegation(input: {
           : await readConvergenceContinuityPolicy(input.policyPath),
       renewal: null,
       continuation: null,
+      awaitingOwner: false,
       failureCode: null,
     };
   }
@@ -148,86 +256,51 @@ export async function continueConvergenceDelegation(input: {
     policy,
   };
   const policyHash = policy.status === "loaded" ? policy.policy.policyHash : null;
-  const identity = calculateProjectIdentityHash(input.storage.manifest);
+  const context: ContinuationContext = {
+    storage: input.storage,
+    policy,
+    hostHash: input.hostHash,
+    now: input.now,
+  };
   try {
     if (loaded !== null) {
       const renewal = decideDelegationRenewal({ delegation: loaded, policy, now });
-      // ADR-0470: a managed upgrade that rewrote a bound suite or role contract is followed by an
-      // identity-preserving rebind before any renewal, through the same plan/apply and event.
-      const rebound =
-        policyHash !== null &&
-        loaded.state === "active" &&
-        Date.parse(loaded.expiresAt) > now &&
-        (renewal.kind === "current" || renewal.kind === "renew")
-          ? await reboundConvergenceDelegation({ root, current: loaded, now: input.now })
-          : null;
-      if (rebound !== null && policyHash !== null) {
-        await applyConvergenceDelegationPlan(
-          input.storage,
-          await createConvergenceDelegationPlan(input.storage, rebound),
+      if (writer === "owner")
+        return (
+          (await continueAsOwner(context, loaded, renewal, policyHash)) ?? {
+            ...base,
+            renewal,
+            continuation: null,
+            awaitingOwner: false,
+            failureCode: null,
+          }
         );
-        recordDelegationContinuation(input.storage, {
-          repositoryIdentityHash: identity,
-          action: "rebound",
-          source: "binding_refresh",
+      const adoption =
+        writer === "follower" && policyHash !== null
+          ? decideDelegationAdoption({
+              delegation: loaded,
+              scopeHash: base.scopeHash!,
+              policy,
+              peers: input.peers,
+              localHostHash: input.hostHash,
+              now,
+            })
+          : { kind: "none" as const };
+      if (adoption.kind === "adopt" && policyHash !== null)
+        return applyContinuation(context, {
+          action: "adopted",
+          source: "owner",
+          previous: loaded,
+          next: renewedConvergenceDelegation({ current: loaded, expiresAt: adoption.expiresAt }),
           policyHash,
-          previousPlanHash: loaded.review.planHash,
-          planHash: rebound.review.planHash,
-          scopeHash: convergenceDelegationScopeHash(rebound),
-          expiresAt: rebound.expiresAt,
-          observerHostHash: input.hostHash,
-          sourceHostHash: null,
-          occurredAt: input.now.toISOString(),
-        });
-        return {
-          delegation: observe(rebound, now),
-          scopeHash: convergenceDelegationScopeHash(rebound),
-          policy,
+          sourceHostHash: adoption.record.hostHash,
           renewal,
-          continuation: {
-            action: "rebound",
-            source: "binding_refresh",
-            planHash: rebound.review.planHash,
-            expiresAt: rebound.expiresAt,
-          },
-          failureCode: null,
-        };
-      }
-      if (renewal.kind !== "renew" || policyHash === null)
-        return { ...base, renewal, continuation: null, failureCode: null };
-      const next = renewedConvergenceDelegation({
-        current: loaded,
-        expiresAt: renewal.expiresAt,
-        reviewedAt: input.now.toISOString(),
-      });
-      await applyConvergenceDelegationPlan(
-        input.storage,
-        await createConvergenceDelegationPlan(input.storage, next),
-      );
-      recordDelegationContinuation(input.storage, {
-        repositoryIdentityHash: identity,
-        action: "renewed",
-        source: "renewal",
-        policyHash,
-        previousPlanHash: loaded.review.planHash,
-        planHash: next.review.planHash,
-        scopeHash: convergenceDelegationScopeHash(next),
-        expiresAt: next.expiresAt,
-        observerHostHash: input.hostHash,
-        sourceHostHash: null,
-        occurredAt: input.now.toISOString(),
-      });
+        });
       return {
-        delegation: observe(next, now),
-        scopeHash: convergenceDelegationScopeHash(next),
-        policy,
+        ...base,
         renewal,
-        continuation: {
-          action: "renewed",
-          source: "renewal",
-          planHash: next.review.planHash,
-          expiresAt: next.expiresAt,
-        },
+        continuation: null,
+        awaitingOwner: renewal.kind === "renew",
         failureCode: null,
       };
     }
@@ -242,6 +315,7 @@ export async function continueConvergenceDelegation(input: {
         ...base,
         renewal: null,
         continuation: null,
+        awaitingOwner: false,
         failureCode: seed.kind === "none" ? null : "convergence_continuity_horizon_exhausted",
       };
     // ADR-0477: a peer scope may bind suites or roles this checkout lacks; install the exact
@@ -269,43 +343,22 @@ export async function continueConvergenceDelegation(input: {
             expiresAt: seed.expiresAt,
             now: input.now,
           });
-    await applyConvergenceDelegationPlan(
-      input.storage,
-      await createConvergenceDelegationPlan(input.storage, seeded),
-    );
-    const source = seed.kind === "peer" ? "peer" : "policy_template";
-    recordDelegationContinuation(input.storage, {
-      repositoryIdentityHash: identity,
+    return await applyContinuation(context, {
       action: "seeded",
-      source,
+      source: seed.kind === "peer" ? "peer" : "policy_template",
+      previous: null,
+      next: seeded,
       policyHash: policy.policy.policyHash,
-      previousPlanHash: null,
-      planHash: seeded.review.planHash,
-      scopeHash: convergenceDelegationScopeHash(seeded),
-      expiresAt: seeded.expiresAt,
-      observerHostHash: input.hostHash,
       sourceHostHash: seed.kind === "peer" ? seed.record.hostHash : null,
-      occurredAt: input.now.toISOString(),
-    });
-    return {
-      delegation: observe(seeded, now),
-      scopeHash: convergenceDelegationScopeHash(seeded),
-      policy,
       renewal: null,
-      continuation: {
-        action: "seeded",
-        source,
-        planHash: seeded.review.planHash,
-        expiresAt: seeded.expiresAt,
-      },
-      failureCode: null,
-    };
+    });
   } catch (error) {
     return {
       ...base,
       renewal:
         loaded === null ? null : decideDelegationRenewal({ delegation: loaded, policy, now }),
       continuation: null,
+      awaitingOwner: false,
       failureCode: failureCodeOf(error),
     };
   }

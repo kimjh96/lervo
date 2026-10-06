@@ -131,7 +131,7 @@ A state that cannot be read is rebuilt from Git and GitHub at the next publicati
 
 ## Replica coordination
 
-Owner commits carry `Lervo-Convergence-Host: <hostHash>` and reach the other checkout through the replica coordinator. Host configuration, fence, delegation, and event stores sit under paths that capture excludes (`.lervo/state`, `.lervo/data`, `.lervo/knowledge/convergence-delegation.json`). Different owner state on each side therefore never makes snapshots differ.
+Owner commits carry `Lervo-Convergence-Host: <hostHash>` and reach the other checkout through the replica coordinator. Host configuration, fence, and event stores sit under paths that capture excludes (`.lervo/state`, `.lervo/data`). Different owner state on each side therefore never makes snapshots differ. Capture also excludes an untracked `.lervo/knowledge/convergence-delegation.json`. A delegation that `HEAD` tracks replicates with its worktree bytes, so the follower receives the owner's exact renewal ([ADR-0478](../../../../decisions/coordination/sync/0478-renew-each-delegation-with-one-writer.md)).
 
 To add a repository whose two checkouts both run residents:
 

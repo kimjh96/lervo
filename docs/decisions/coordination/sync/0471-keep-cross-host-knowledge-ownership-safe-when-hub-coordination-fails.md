@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-06
 Amends: [ADR-0469](0469-keep-background-knowledge-continuous-on-every-host.md) (owner-host derivation, Hub candidates, delegation continuity), [ADR-0466](0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) (standalone fallback)
 Related: [ADR-0470](../../operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md)
+Amended by: [ADR-0478](0478-renew-each-delegation-with-one-writer.md) (rebind only on the owner, review time kept)
 
 ## Context
 

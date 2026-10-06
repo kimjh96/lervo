@@ -21,6 +21,10 @@ Implemented and source-tested, with [ADR-0471](../../../../../decisions/coordina
 
 Implemented and source-tested: binding-reproducing contract validation and size bound; content-addressed Hub storage with refresh and pruning; HTTP publish, list, and read under `sync.write` with project scope; two simulated hosts where the peer lacks an untracked suite, installs it, seeds the same scope, and waits for the owner; user-owned conflict, forged content, and older-Hub cases; repository role installation; and managed replacement.
 
+- [ ] Exactly one host writes each delegation renewal, followers hold the owner's exact bytes, and no replica apply, merge, rollback, or upgrade discards a renewed delegation under [ADR-0478](../../../../../decisions/coordination/sync/0478-renew-each-delegation-with-one-writer.md).
+
+Implemented and source-tested: equal renewal bytes at any instant inside one window and on the term lattice after a lapse; two simulated hosts where only the owner renews, the due follower writes nothing and retries in 15 minutes, then adopts the owner's term with identical bytes; a tracked delegation that the follower leaves to the replica and renews to the previous owner's exact bytes after a takeover with every grant lapsed; replica apply and a coordinator pull-then-merge cycle that carry and keep the owner's renewal of a tracked delegation; and `lervo upgrade --apply` with `knowledge_materialization` leaving a renewed tracked delegation unchanged.
+
 ## Open installed acceptance
 
 - On the Mac, `lervo upgrade --apply` activates schema 4 for axli, plen, shiflo, and digimon, installs `com.lervo.knowledge.host`, and the doctor shows each served.
@@ -28,4 +32,5 @@ Implemented and source-tested: binding-reproducing contract validation and size 
 - A delegation renews inside its window on an installed host without owner input.
 - plen and digimon run in Hub mode with one owner.
 - `lervo upgrade` reports `current (background_owned)` on a delegated repository with normalization debt.
+- In plen, after both hosts run the ADR-0478 bundles, only the owner renews, and the Mac and WSL delegation files are byte-identical after the next replica cycle and after a later `lervo upgrade --apply`.
 - On the Mac, axli installs `.lervo/verifications/repository.knowledge.yaml` from the WSL delegation's shared definition, reports an active delegation, and observes `waiting_owner` while WSL holds the lease.

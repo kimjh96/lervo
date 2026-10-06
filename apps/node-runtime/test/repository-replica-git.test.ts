@@ -214,6 +214,59 @@ describe("Git repository replica", () => {
     );
   });
 
+  describe("a delegation that HEAD tracks (ADR-0478)", () => {
+    const delegationPath = ".lervo/knowledge/convergence-delegation.json";
+
+    async function trackedGrantPair(): Promise<{ owner: string; follower: string }> {
+      const owner = await repository();
+      await mkdir(join(owner, ".lervo/knowledge"), { recursive: true });
+      await writeFile(join(owner, ".lervo/.gitignore"), "knowledge/convergence-delegation.json\n");
+      await writeFile(join(owner, delegationPath), "committed-grant\n");
+      await git(owner, "add", "-f", ".lervo/.gitignore", delegationPath);
+      await git(owner, "commit", "-m", "track grant");
+      return { owner, follower: await clone(owner) };
+    }
+
+    it("carries the owner's renewal to the follower byte for byte", async () => {
+      const { owner, follower } = await trackedGrantPair();
+      const common = await captureRepositoryReplicaSnapshot(follower);
+      await writeFile(join(owner, delegationPath), "owner-renewed-grant\n");
+      expect((await captureRepositoryReplicaSnapshot(owner)).snapshotHash).not.toBe(
+        common.snapshotHash,
+      );
+
+      const applied = await applyRepositoryReplicaBundle({
+        repositoryRoot: follower,
+        bundle: await createRepositoryReplicaBundle(owner),
+        expectedCurrentSnapshotHash: common.snapshotHash,
+      });
+
+      expect(applied).toEqual(await captureRepositoryReplicaSnapshot(owner));
+      expect(await readFile(join(follower, delegationPath), "utf8")).toBe("owner-renewed-grant\n");
+      expect(await git(follower, "rev-parse", "HEAD")).toBe(await git(owner, "rev-parse", "HEAD"));
+    });
+
+    it("keeps a renewed delegation while applying an unrelated change", async () => {
+      const { owner, follower } = await trackedGrantPair();
+      await writeFile(join(owner, delegationPath), "owner-renewed-grant\n");
+      await writeFile(join(follower, delegationPath), "owner-renewed-grant\n");
+      const common = await captureRepositoryReplicaSnapshot(follower);
+      // An upgrade on the owner rewrites generated files; the reset must not restore HEAD's grant.
+      await writeFile(join(owner, "tracked.ts"), "export const upgraded = true;\n");
+
+      await applyRepositoryReplicaBundle({
+        repositoryRoot: follower,
+        bundle: await createRepositoryReplicaBundle(owner),
+        expectedCurrentSnapshotHash: common.snapshotHash,
+      });
+
+      expect(await readFile(join(follower, delegationPath), "utf8")).toBe("owner-renewed-grant\n");
+      expect(await readFile(join(follower, "tracked.ts"), "utf8")).toBe(
+        "export const upgraded = true;\n",
+      );
+    });
+  });
+
   it("rejects an apply when the target moved after reconciliation", async () => {
     const source = await repository();
     const target = await clone(source);

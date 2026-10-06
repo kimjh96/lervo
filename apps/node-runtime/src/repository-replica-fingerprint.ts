@@ -6,7 +6,7 @@ import { git } from "./repository-replica-git-command.js";
 import { HOST_LOCAL_REPLICA_PATHS } from "./repository-replica-git.js";
 
 /** Bumped whenever capture semantics change, so older fingerprints can never match. */
-const FINGERPRINT_VERSION = "lervo-repository-replica-snapshot-fingerprint-v1";
+const FINGERPRINT_VERSION = "lervo-repository-replica-snapshot-fingerprint-v2";
 const MAXIMUM_FINGERPRINT_PATHS = 20_000;
 /**
  * A file whose timestamps are this close to the observation may still be written within the same

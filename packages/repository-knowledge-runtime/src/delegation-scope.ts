@@ -62,13 +62,14 @@ export function bindConvergenceDelegationScope(input: {
 }
 
 /**
- * Same-scope renewal: identical scope, parent, and reviewer; only the term and the review time
- * change. Any other change requires an owner-reviewed delegation.
+ * Same-scope renewal: identical scope, parent, reviewer, and review time; only the term changes.
+ * ADR-0478 keeps `reviewedAt` at the last owner review, because a renewal is a continuation, not
+ * a review, and the result must be the same bytes on every host. Any other change requires an
+ * owner-reviewed delegation.
  */
 export function renewedConvergenceDelegation(input: {
   current: ConvergenceDelegation;
   expiresAt: string;
-  reviewedAt: string;
 }): ConvergenceDelegation {
   const { review, ...rest } = structuredClone(input.current);
   const plan: Omit<ConvergenceDelegation, "review"> = { ...rest, expiresAt: input.expiresAt };
@@ -76,7 +77,7 @@ export function renewedConvergenceDelegation(input: {
     ...plan,
     review: {
       reviewerAgentId: review.reviewerAgentId,
-      reviewedAt: input.reviewedAt,
+      reviewedAt: review.reviewedAt,
       planHash: convergenceDelegationPlanHash(plan),
     },
   });

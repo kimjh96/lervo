@@ -41,10 +41,79 @@ export function decideDelegationRenewal(input: {
   if (renewAt > now) return { kind: "current", renewAt: new Date(renewAt).toISOString() };
   const limits = delegationWithinContinuityLimits(delegation, rules);
   if (limits !== "within") return { kind: "outside_policy", reason: limits };
-  const expiresAt = Math.min(now + rules.renewal.termDays * DAY_MS, Date.parse(rules.horizonAt));
+  const expiresAt = Math.min(
+    nextTermEnd({
+      previousExpiresAt: Date.parse(delegation.expiresAt),
+      termMs: rules.renewal.termDays * DAY_MS,
+      windowMs: rules.renewal.windowHours * HOUR_MS,
+      now,
+    }),
+    Date.parse(rules.horizonAt),
+  );
   if (expiresAt <= Math.max(now, Date.parse(delegation.expiresAt)))
     return { kind: "horizon_exhausted" };
   return { kind: "renew", expiresAt: new Date(expiresAt).toISOString() };
+}
+
+/**
+ * ADR-0478: terms follow one another from the previous expiry, never from a host's clock. The
+ * result is the first whole term past the previous expiry whose own renewal window has not
+ * opened yet, so every host that renews the same delegation in the same window computes the same
+ * expiry, and a long-expired delegation resumes on the same lattice.
+ */
+function nextTermEnd(input: {
+  previousExpiresAt: number;
+  termMs: number;
+  windowMs: number;
+  now: number;
+}): number {
+  const elapsed = Math.max(0, input.now + input.windowMs - input.previousExpiresAt);
+  return input.previousExpiresAt + (Math.floor(elapsed / input.termMs) + 1) * input.termMs;
+}
+
+/** A peer record older than this no longer proves who owns the repository. */
+const OWNER_RECORD_FRESH_MS = 2 * HOUR_MS;
+
+export type DelegationAdoptionDecision =
+  { kind: "adopt"; record: KnowledgeConvergenceHostRecord; expiresAt: string } | { kind: "none" };
+
+/**
+ * ADR-0478: a host that does not own the repository never renews; it adopts the owner's term.
+ * Only a fresh record from the current owner at the identical scope, active and later than the
+ * local expiry, qualifies, and the local policy must still permit that scope and term.
+ */
+export function decideDelegationAdoption(input: {
+  delegation: ConvergenceDelegation;
+  scopeHash: string;
+  policy: ContinuityPolicyStatus;
+  peers: readonly KnowledgeConvergenceHostRecord[];
+  localHostHash: string | null;
+  now: number;
+}): DelegationAdoptionDecision {
+  const { delegation, policy, now } = input;
+  if (delegation.state !== "active" || policy.status !== "loaded") return { kind: "none" };
+  const rules = policy.policy;
+  if (rules.state === "revoked" || delegationWithinContinuityLimits(delegation, rules) !== "within")
+    return { kind: "none" };
+  const floor = Math.max(now, Date.parse(delegation.expiresAt));
+  const owner = input.peers
+    .filter(
+      (record) =>
+        record.hostHash !== input.localHostHash &&
+        record.owner?.role === "owner" &&
+        now - Date.parse(record.observedAt) <= OWNER_RECORD_FRESH_MS &&
+        record.delegation?.state === "active" &&
+        record.delegation.scopeHash === input.scopeHash &&
+        Date.parse(record.delegation.expiresAt) > floor &&
+        Date.parse(record.delegation.expiresAt) <= Date.parse(rules.horizonAt),
+    )
+    .sort(
+      (left, right) =>
+        Date.parse(right.delegation!.expiresAt) - Date.parse(left.delegation!.expiresAt),
+    )[0];
+  return owner === undefined
+    ? { kind: "none" }
+    : { kind: "adopt", record: owner, expiresAt: owner.delegation!.expiresAt };
 }
 
 export type DelegationSeedDecision =

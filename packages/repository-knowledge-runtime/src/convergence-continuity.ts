@@ -28,6 +28,7 @@ import {
 } from "./convergence-owner-host-derivation.js";
 import { loadConvergenceDelegation } from "./delegation.js";
 import { continueConvergenceDelegation } from "./delegation-continuity.js";
+import { observeDelegationWriter } from "./delegation-writer.js";
 import {
   definitionExchangeFailureCode,
   hubDefinitionSource,
@@ -212,6 +213,7 @@ export class ConvergenceContinuity {
       policyPath: this.input.policyPath,
       peers,
       hostHash: host?.hostHash ?? null,
+      writer: await observeDelegationWriter(this.root, startedAt.getTime()),
       definitions:
         definitionPort === null ? null : hubDefinitionSource(definitionPort, exchange, signal),
       now: startedAt,
@@ -275,7 +277,10 @@ export class ConvergenceContinuity {
         .catch((error: unknown) => {
           hubFailure ??= knowledgeConvergenceOwnerFailureOf(error).failureCode;
         });
-    const failed = continuity.failureCode !== null || hubFailure !== null;
+    // ADR-0478: a due renewal this host may not write is checked again at the retry interval,
+    // so a host that just took over ownership renews without waiting a whole hour.
+    const failed =
+      continuity.failureCode !== null || hubFailure !== null || continuity.awaitingOwner;
     const renewAt =
       continuity.renewal?.kind === "current" ? Date.parse(continuity.renewal.renewAt) : Infinity;
     const nextReconcileAt = Math.min(

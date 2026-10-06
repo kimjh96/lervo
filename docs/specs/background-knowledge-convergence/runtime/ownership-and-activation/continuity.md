@@ -58,7 +58,7 @@ A resident reconciles before each ownership observation. A healthy reconciliatio
 1. Derive the owner-host configuration from the candidate Hub coordinates (below).
 2. Read peer host records through the Hub when the checkout is in Hub mode.
 3. Adopt the standing policy when the host has none and this checkout holds an active reviewed delegation.
-4. Rebind a delegation whose bound suite or role hashes drifted while every identifier stayed the same (`rebound`, source `binding_refresh`, ADR-0471). Otherwise renew a due delegation at the same scope, or seed a missing one from the freshest in-policy peer scope or the template. Before seeding from a peer, install the bound definitions this checkout lacks (below).
+4. On the convergence owner only, rebind a delegation whose bound suite or role hashes drifted while every identifier stayed the same (`rebound`, source `binding_refresh`, ADR-0471), or else renew a due delegation at the same scope. A follower adopts the owner's term or waits for the replica (below). Any host seeds a missing delegation from the freshest in-policy peer scope or the template. Before seeding from a peer, install the bound definitions this checkout lacks (below).
 5. Publish the definitions this host's active delegation binds and reproduces, then this host's record, then write `.lervo/state/knowledge/convergence-continuity.json`.
 
 The CLI worker (`lervo knowledge worker --watch|--once`) and the Node resident child both reconcile. A detached worker launched after a terminal turn reconciles too, off the hook's critical path.
@@ -66,6 +66,20 @@ The CLI worker (`lervo knowledge worker --watch|--once`) and the Node resident c
 `lervo knowledge worker --watch --host [--provider <codex|claude>]` is the host resident. It runs one ordinary resident for every checkout in `repositories.json` or `node-fleet.json` that no registered Node serves and that has a delegation or an active policy to seed one. It rescans every five minutes, starting residents for new checkouts and stopping them for removed ones.
 
 Under [ADR-0470](../../../../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md), a checkout whose event writer is older than schema 4 is never skipped silently. The host resident runs the local-only writer activation (backup, then the exact plan) and starts the resident. When activation is blocked, it holds the checkout: an `attention` heartbeat with reason `event_schema_outdated`, retried every 30 minutes. A Node's resident child holds the same way and resumes when `lervo upgrade` activates the writer. The host resident records every checkout's state in `knowledge-host-resident.json` and serves only while it holds `knowledge-host-resident.lock`. `lervo upgrade` installs and keeps current its service (`com.lervo.knowledge.host` or `lervo-knowledge-host.service`).
+
+## One renewal writer
+
+[ADR-0478](../../../../decisions/coordination/sync/0478-renew-each-delegation-with-one-writer.md) lets exactly one host write each renewal. The writer is the host the ownership fence grants commits: the Hub lease holder, the standalone owner, or a host without owner-host configuration. Every other host is a follower:
+
+| Writer role        | When                                              | What it does with a due delegation                                                      |
+| ------------------ | ------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `owner`            | The fence grants commits                          | Rebinds or renews under the host policy                                                 |
+| `follower`         | Another host owns; `HEAD` does not track the file | Adopts a fresh owner record's expiry at the identical scope (`adopted`, source `owner`) |
+| `replica_follower` | Another host owns; `HEAD` tracks the file         | Writes nothing; the repository replica carries the owner's exact bytes                  |
+
+Renewal bytes depend only on the previous delegation and the policy. The new expiry is `previous + k × termDays` for the smallest `k ≥ 1` whose own renewal window has not opened, capped at the horizon. `review.reviewedAt` keeps the last owner review. A follower whose renewal is due reconciles again after 15 minutes. A host whose delegation lapsed stays eligible for the Hub lease while its policy would renew it, so a takeover never deadlocks.
+
+Renewals are never committed or published. To make a tracked delegation host-local, remove it from the index through ordinary review.
 
 ## Delegation-bound definitions
 
@@ -144,5 +158,7 @@ Informational codes are `continuity_pending` (the host resident serves the check
 4. Run `lervo knowledge convergence doctor` on each host. Every registered repository should show an active delegation, owner-host `hub` (or `operator` for lervo), and one `owner` with a `waiting_owner` peer.
 
 The CLI and Node bundles also need a reader-first rollout for the new event type and attention kind: deploy every host before relying on cross-host records.
+
+For ADR-0478, deploy the CLI and Node bundles to both hosts and restart both Nodes and host resident services in one window. Until both hosts run it, a checkout with a renewed tracked delegation reports replica divergence. Afterwards, run `lervo knowledge convergence owner status` on both hosts to confirm one `owner`, then `lervo knowledge convergence doctor`. On the follower, the delegation file should match the owner's bytes after the next replica cycle.
 
 For ADR-0477, back up the Hub database and deploy the Hub before the hosts; its migration adds the definitions table, and an older Hub binary cannot open the migrated database. Until the Hub is upgraded, residents report `definition_exchange_unavailable (hub_definitions_unsupported)` and everything else keeps working. After both hosts run the new bundles, the delegated host shares its definitions on its next reconciliation. On the host that lacked them, run `lervo knowledge convergence delegation seed`, then `lervo knowledge convergence doctor`: the repository should show an active delegation and a `waiting_owner` role.
