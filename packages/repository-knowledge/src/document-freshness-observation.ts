@@ -20,6 +20,7 @@ import type { DocumentStalenessFinding } from "./document-staleness-evaluation.j
 import { gitDocumentStalenessPort } from "./document-staleness-git.js";
 import { readRecordedDocumentStalenessReport } from "./document-staleness-state.js";
 import { archiveScopes } from "./historical-documents.js";
+import { observeToolGeneratedDocuments } from "./document-tool-ownership-observation.js";
 import { sha256 } from "./integrity.js";
 import { lintRepositoryKnowledge } from "./lint-query.js";
 import { loadRepositoryKnowledgePolicy } from "./policy.js";
@@ -212,7 +213,13 @@ export async function observeDocumentFreshnessFindings(input: {
   const rolePaths = new Set((taxonomy?.documentPolicy.roles ?? []).map((role) => role.path));
   const oracle = filesystemDocumentFreshnessOracle(root);
   const successors = await supersededDocuments(root);
-  const paths = [...sources.keys()].sort();
+  // ADR-0471: a repository tool owns these bytes, so no refresh is ever proposed for them.
+  const toolGenerated = await observeToolGeneratedDocuments({
+    repositoryRoot: root,
+    paths: [...sources.keys()],
+    roles: taxonomy?.documentPolicy.roles ?? [],
+  });
+  const paths = [...sources.keys()].filter((path) => !toolGenerated.has(path)).sort();
   const findings: DocumentFreshnessFindingV1[] = [];
   for (const path of paths.slice(0, MAXIMUM_FINDINGS)) {
     const bytes = (() => {
