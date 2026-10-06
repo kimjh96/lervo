@@ -1,6 +1,11 @@
 import { convergenceStatus } from "./knowledge-convergence-status.js";
 import { assertKnowledgeConvergenceInput } from "./knowledge-convergence-input.js";
-import { normalizedConvergenceFailure } from "./knowledge-convergence-failure.js";
+import {
+  convergenceRetryLimit,
+  MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS,
+  normalizedConvergenceFailure,
+  UNCLASSIFIED_STAGE_REEVALUATION_MS,
+} from "./knowledge-convergence-failure.js";
 import type { KnowledgeConvergenceStage } from "@lervo/schemas";
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
@@ -186,7 +191,7 @@ export async function processKnowledgeConvergence(
       });
       await input.host.assertCurrent(state);
       assertLease();
-      if (delivery.attemptCount > 16)
+      if (delivery.attemptCount > MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS)
         throw Object.assign(new Error("Retry ceiling reached."), {
           code: "knowledge_retry_exhausted",
         });
@@ -203,10 +208,8 @@ export async function processKnowledgeConvergence(
     } catch (error) {
       assertLease();
       const code = normalizedConvergenceFailure(error);
-      if (
-        ["knowledge_job_transient_failure", "knowledge_materialization_busy"].includes(code) &&
-        delivery.attemptCount < 16
-      ) {
+      const retryLimit = convergenceRetryLimit(code);
+      if (retryLimit !== null && delivery.attemptCount < retryLimit) {
         const delay = Math.min(60 * 60_000, 60_000 * 2 ** (delivery.attemptCount - 1));
         input.events.reschedule({
           eventId: delivery.event.eventId,
@@ -230,6 +233,13 @@ export async function processKnowledgeConvergence(
           )
             ? (error as { dependencyHash: string }).dependencyHash
             : null,
+          ...(code === "knowledge_stage_failure_unclassified"
+            ? {
+                reevaluateAt: new Date(
+                  now().getTime() + UNCLASSIFIED_STAGE_REEVALUATION_MS,
+                ).toISOString(),
+              }
+            : {}),
         }),
       );
       result = {
@@ -256,7 +266,10 @@ export async function processKnowledgeConvergence(
         input: state,
         assignmentId: null,
         leaseGeneration: null,
-        failureCode: delivery.attemptCount >= 16 ? "knowledge_retry_exhausted" : code,
+        failureCode:
+          delivery.attemptCount >= MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS
+            ? "knowledge_retry_exhausted"
+            : code,
         dependencyHash: dependency.contentHash,
         nextStage: null,
       };

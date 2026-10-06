@@ -26,7 +26,7 @@ import { prepareConvergenceLifecycle } from "./lifecycle-prefix.js";
 import { verifyConvergenceLifecycle } from "./lifecycle-final.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
-import { convergenceGit } from "./canonical-workspace.js";
+import { resolveIntegrationTarget } from "./integration-target-sync.js";
 import { inspectRetainedCanonicalIntegration } from "./canonical-integration-recovery.js";
 import type { CanonicalBatch } from "./canonical-review.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
@@ -104,6 +104,7 @@ export function createConvergenceRuntimeHost(
         targetCommit?: string;
         evidenceHash?: string;
         retainedForNormalization?: boolean;
+        reevaluateAt?: string;
       };
       const baseline = await discover();
       if (
@@ -121,10 +122,17 @@ export function createConvergenceRuntimeHost(
         if (!authority || authority.delegation.integrationTarget.ref !== dependency.targetRef)
           return false;
         return (
-          (await convergenceGit(root, [
-            "rev-parse",
-            authority.delegation.integrationTarget.ref,
-          ])) === dependency.targetCommit
+          (await resolveIntegrationTarget(root, authority.delegation.integrationTarget.ref)) ===
+          dependency.targetCommit
+        );
+      }
+      // The attention clears once the delegated ref exists, whoever created it.
+      if (dependency.code === "knowledge_integration_target_unavailable") {
+        const authority = await loadConvergenceDelegation(root);
+        return (
+          authority !== null &&
+          (await resolveIntegrationTarget(root, authority.delegation.integrationTarget.ref)) ===
+            null
         );
       }
       if (dependency.code === "knowledge_authority_unavailable") {
@@ -190,6 +198,9 @@ export function createConvergenceRuntimeHost(
           return true;
         }
       }
+      // An untyped host failure may have been external; it holds only until its reevaluation time.
+      if (dependency.code === "knowledge_stage_failure_unclassified")
+        return Date.parse(dependency.reevaluateAt ?? "") > Date.now();
       // Semantic refusals and unknown provider resets remain content-bound until explicit reviewed change.
       if (dependency.code === "assignment_path_conflict")
         return (await listAssignments(root)).some(

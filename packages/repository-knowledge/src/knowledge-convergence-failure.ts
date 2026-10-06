@@ -1,3 +1,22 @@
+/** Typed transient failures retry with backoff until the logical sixteen-attempt budget. */
+export const MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS = 16;
+/**
+ * A failure without a typed convergence code is not known to be transient. A few backoff attempts
+ * absorb a passing host condition before the stage records attention with private evidence.
+ */
+export const MAXIMUM_UNCLASSIFIED_STAGE_ATTEMPTS = 4;
+
+/** How long an unclassified attention stays settled before the owner reevaluates the stage. */
+export const UNCLASSIFIED_STAGE_REEVALUATION_MS = 6 * 60 * 60_000;
+
+/** Failure codes the owner reschedules instead of settling, with their logical attempt budgets. */
+export function convergenceRetryLimit(code: string): number | null {
+  if (code === "knowledge_job_transient_failure" || code === "knowledge_materialization_busy")
+    return MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS;
+  if (code === "knowledge_stage_failure_unclassified") return MAXIMUM_UNCLASSIFIED_STAGE_ATTEMPTS;
+  return null;
+}
+
 export function normalizedConvergenceFailure(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
   if (code === "cancelled") return "knowledge_cancelled";
@@ -9,6 +28,8 @@ export function normalizedConvergenceFailure(error: unknown): string {
   )
     return "knowledge_job_transient_failure";
   const allowed = [
+    "knowledge_job_transient_failure",
+    "knowledge_integration_target_unavailable",
     "source_bytes_changed",
     "review_context_stale",
     "review_context_limit_exceeded",
@@ -63,5 +84,5 @@ export function normalizedConvergenceFailure(error: unknown): string {
   ];
   return typeof code === "string" && allowed.includes(code)
     ? code
-    : "knowledge_job_transient_failure";
+    : "knowledge_stage_failure_unclassified";
 }

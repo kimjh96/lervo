@@ -4,6 +4,7 @@ import type {
   KnowledgeConvergenceHost,
   KnowledgeConvergenceStatus,
 } from "./knowledge-convergence-contract.js";
+import { convergenceRetryLimit } from "./knowledge-convergence-failure.js";
 import {
   replayKnowledgeConvergence,
   type KnowledgeConvergenceProjection,
@@ -25,6 +26,14 @@ export function convergenceStatus(
   const event: EventEnvelope | undefined = row?.latest ?? row?.baseline;
   const delivery =
     event === undefined ? null : input.events.getOutbox(event.eventId, "knowledge:convergence");
+  const state: KnowledgeConvergenceStatus["state"] =
+    row === undefined
+      ? "idle"
+      : delivery?.status === "leased" && Date.parse(delivery.lease?.expiresAt ?? "") > now.getTime()
+        ? "running"
+        : delivery?.lastFailure !== null && delivery?.lastFailure !== undefined
+          ? "retry_scheduled"
+          : (row.latest?.payload.state ?? "queued");
   return {
     transport,
     debtCounts: baseline.debtCounts,
@@ -34,19 +43,20 @@ export function convergenceStatus(
         ? null
         : Math.max(0, now.getTime() - Date.parse(oldest.baseline.occurredAt)),
     activeStage: row === undefined ? null : (row.latest?.payload.stage ?? "assessment"),
-    state:
-      row === undefined
-        ? "idle"
-        : delivery?.status === "leased" &&
-            Date.parse(delivery.lease?.expiresAt ?? "") > now.getTime()
-          ? "running"
-          : delivery?.lastFailure !== null && delivery?.lastFailure !== undefined
-            ? "retry_scheduled"
-            : (row.latest?.payload.state ?? "queued"),
+    state,
     reason:
       delivery?.lastFailure?.code ??
       (event?.payload.failureCode as string | null | undefined) ??
       null,
+    ...(state === "retry_scheduled" && delivery !== null
+      ? {
+          retry: {
+            attemptCount: delivery.attemptCount,
+            attemptLimit: convergenceRetryLimit(delivery.lastFailure!.code),
+            nextAttemptAt: delivery.availableAt,
+          },
+        }
+      : {}),
     lastVerifiedCurrency:
       latestCurrent === undefined || latestCurrent === null
         ? null

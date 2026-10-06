@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b371a8e326db4cff4da5a26a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Start an absent delegated knowledge integration ref at HEAD, bound untyped convergence stage failures to four attempts before attention, and show the retry attempt and next attempt time in convergence status."
