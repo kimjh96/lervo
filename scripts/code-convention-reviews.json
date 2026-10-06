@@ -130,9 +130,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:25b867589df243c599723a165e27f94eb90b6affe53693ac3deab2e03dea2032",
+      "contentHash": "sha256:0aadc20acfda2c142e4763c30e68d39b033cae4c2eae2f18f48c0867c66d9e33",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, owner-lease, ADR-0459 and ADR-0460 attribution, ADR-0463 freshness, ADR-0467 capture, and ADR-0469 delegation-continuation allowlists only map hash-only payloads to their schemas; the convergence, freshness, and capture lists live in their own modules, and none adds provider work, authority decisions or persistence.",
+      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, owner-lease, ADR-0459 and ADR-0460 attribution, ADR-0463 freshness, ADR-0467 capture, ADR-0469 delegation-continuation, and ADR-0471 publication-repair allowlists only map hash-only payloads to their schemas; the convergence, freshness, and capture lists live in their own modules, and none adds provider work, authority decisions or persistence.",
       "disposition": "cohesive"
     },
     {
@@ -192,6 +192,13 @@
       "disposition": "cohesive"
     },
     {
+      "path": "packages/repository-knowledge-runtime/src/knowledge-publication.ts",
+      "contentHash": "sha256:d55babefe68009e2cc4896b01a03aabd1e7fb73152a8d35c94e18c54d8688f88",
+      "responsibility": "Knowledge publication orchestration",
+      "rationale": "The module sequences one owner publication (repair, scope check, replay, push, pull request, merge, supersession, local catch-up) into one durable state and failure code. ADR-0471 scope rules, repair planning and commits, Git mechanics, forge transport, body rendering, tip building, supersession ledgers, and state persistence are sibling modules; the remaining functions share one progress and failure contract.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/repository-knowledge/src/compiler.ts",
       "contentHash": "sha256:879000beea2dd947b20f123387e0c52cb07d27d11d2382869a2e39860536e5d5",
       "responsibility": "Deterministic structural knowledge compiler",
@@ -200,9 +207,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:7e63a8b860cb06fda7b904cb3d298a5f7780447e4e1dd968631a64156c6f7829",
+      "contentHash": "sha256:40c14a2b9839c208bcfb6847f432e006bf82916b339b877a458d03eddddad258",
       "responsibility": "Reviewed document normalization lifecycle",
-      "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation orchestration, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation policy, explicit selection and workset/preflight contracts, shard-cache storage, and CLI parsing or rendering are separate modules.",
+      "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation orchestration, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation policy, explicit selection and workset/preflight contracts, shard-cache storage, ADR-0471 tool-ownership evidence and its Git and file probes, and CLI parsing or rendering are separate modules; this module only threads the observed tool-generated path set into eligibility.",
       "disposition": "cohesive"
     },
     {
@@ -354,9 +361,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:8a04ed41d149224de2f4db466412f7d2a51a67de1abc64c5bef3741484bfaa15",
+      "contentHash": "sha256:16054e0984af1013e6a43601e7496c6e7978e6a6774b53c6c13717ffefb9ac83",
       "responsibility": "Repository schema validator registry",
-      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, repository replica, and convergence-owner event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry. The ADR-0463 document freshness ADR-0467 instruction capture, and ADR-0469 delegation continuation event payload validators are compiled from their own schema modules.",
+      "rationale": "The module declaratively compiles one schema registry. Dedicated convergence, archival, repository replica, and convergence-owner event schema modules own the additive validators; privacy, durable decisions, source inspection and persistence remain outside this registry. The ADR-0463 document freshness ADR-0467 instruction capture, ADR-0469 delegation continuation, and ADR-0471 publication repair event payload validators are compiled from their own schema modules.",
       "disposition": "cohesive"
     },
     {
