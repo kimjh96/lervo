@@ -152,6 +152,7 @@ export const eventTypesV4 = [
   ...documentFreshnessEventTypes,
   ...instructionCaptureEventTypes,
   "knowledge.convergence.owner.changed",
+  "knowledge.convergence.delegation.continued",
 ] as const;
 export const eventTypes = eventTypesV4;
 
