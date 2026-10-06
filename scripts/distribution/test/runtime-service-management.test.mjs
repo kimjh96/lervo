@@ -109,6 +109,7 @@ it("does not stop an active supervised Node when its owner lease is busy", async
           commands.push(args);
           return { exitCode: 0 };
         },
+        supervisionBusyWaitMs: 0,
         openSupervisionLeases: async () => ({
           acquire: () => null,
           close: () => undefined,
@@ -154,6 +155,7 @@ it("refuses a busy Node before stop and holds the idle freeze through manager re
   const manager = systemdManager();
   let frozenDuringStop = false;
   const options = {
+    nodeWorkBusyWaitMs: 0,
     platform: "linux",
     homeDirectory: previous.root,
     runCommand: async (command, args) => {

@@ -1,6 +1,6 @@
 # Guarded upgrades and rollback
 
-For a configured supervised Node, `service:manage --action upgrade` and `rollback` acquire the repository supervision owner fence before stopping the old unit. `service_upgrade_supervision_busy` means a cycle remains active: leave the old service running and retry after it settles. Do not stop the unit manually to bypass the fence. This guard does not yet prove independent conversation turns are drained.
+For a configured supervised Node, `service:manage --action upgrade` and `rollback` acquire the repository supervision owner fence before stopping the old unit. The fence waits up to 15 minutes, retrying every 5 seconds, for an active cycle or admitted Node work to settle. `service_upgrade_supervision_busy` or `service_upgrade_work_busy` means the owner stayed busy for the whole wait: the old service keeps running, so retry later. Do not stop the unit manually to bypass the fence. This guard does not yet prove independent conversation turns are drained.
 
 If an exact installed Node is already inactive after a failed stop, guarded upgrade may recover its previously registered work-admission scope only when the configuration digest still matches and dead-session cleanup leaves no live session or claim. The supervisor fence and exact predecessor checks still apply. A Node with no prior registered scope remains ineligible.
 

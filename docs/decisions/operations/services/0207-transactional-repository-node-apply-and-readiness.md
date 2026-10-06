@@ -31,7 +31,7 @@ The receipt excludes bearer tokens, config bodies, service bodies, prompts, prov
 
 `node_fleet_plan_stale`, configuration or identity errors, service conflicts, readiness timeout, registry failure, and recovery failure mean only that the named stage was not proved; none implies successful synchronization. `offline_ready` proves deployment continuity while Hub-dependent capability remains unavailable and retryable. A legacy singleton requires explicit transition and is never silently overwritten.
 
-The apply command preserves the service manager's bounded failure codes, including `service_upgrade_supervision_busy`, `service_upgrade_work_busy`, and `service_upgrade_fence_invalid`. These failures occur before a service stop and retain the installed definition and fleet registration. Failures without a typed service meaning use `node_fleet_apply_failed`.
+The apply command preserves the service manager's bounded failure codes, including `service_upgrade_supervision_busy`, `service_upgrade_work_busy`, and `service_upgrade_fence_invalid`. The supervision and work fences first wait up to 15 minutes for a running cycle or admitted work to settle; a concurrent upgrade is refused at once. These failures occur before a service stop and retain the installed definition and fleet registration. Failures without a typed service meaning use `node_fleet_apply_failed`.
 
 ## Consequences
 

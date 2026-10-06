@@ -698,11 +698,15 @@ export async function manageRuntimeService(args, options = {}) {
           ...input,
           openLeases: options.openSupervisionLeases,
           resolveStanding: options.resolveStandingSupervision,
+          busyWaitMs: options.supervisionBusyWaitMs,
+          sleep: options.supervisionBusySleep,
         },
         (supervisionCoordinates) =>
           withNodeWorkUpgradeFence(
             {
               ...input,
+              busyWaitMs: options.nodeWorkBusyWaitMs,
+              sleep: options.nodeWorkBusySleep,
               verifyInactivePredecessor: async () => {
                 const installed = await currentTarget(context.target);
                 const predecessor = input.action === "upgrade" ? previous : expected;

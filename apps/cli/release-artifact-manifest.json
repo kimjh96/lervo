@@ -175,8 +175,8 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 10270483,
-        "sha256": "sha256:154c322d407202ac6edcc5b4506603c135b4b787d2c354503d4f5fb609d84c7e"
+        "size": 10271945,
+        "sha256": "sha256:cef3c9583c0d03d685dfde27ee512c6d2747766d4b46dc68567b821a11f63d19"
       },
       {
         "path": "dist/node-runtime.js",
@@ -190,7 +190,7 @@
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:958d7f51f6c98b2bfcee62e9fdc62049747c728b49b8c6759c9c3a2200f0b813"
+    "contentDigest": "sha256:9751bf54cfd5e56e0713a5041c05a302b541783145572c34062e71f6b0b94174"
   },
   "dependencies": {
     "portable": [
@@ -303,5 +303,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:14ed6de1732d1e460de2f218c951795f873fb681c37545474829fa4eb253a9fa"
+  "artifactDigest": "sha256:ded8908a43f7b60811b9903555f14ce3a8de89158ff5816fc9598649d2a787a2"
 }
