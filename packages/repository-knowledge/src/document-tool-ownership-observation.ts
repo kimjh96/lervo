@@ -31,6 +31,9 @@ async function git(root: string, args: string[], input?: string): Promise<string
       timeout: 60_000,
       env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
     });
+    // Git may exit before reading its input, for example outside a repository; a broken pipe
+    // then fails only this probe, through the rejected result below.
+    running.child.stdin?.on("error", () => undefined);
     running.child.stdin?.end(input ?? "");
     return (await running).stdout;
   } catch {

@@ -198,6 +198,15 @@ describe("tool-generated document evidence", () => {
     });
   });
 
+  it("treats a directory outside Git as evidence-free, even when Git closes its input early", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-tool-ownership-outside-git-"));
+    roots.push(root);
+    const paths = Array.from({ length: 4096 }, (_, index) => `docs/page-${index}.md`);
+    expect(await observeToolGeneratedDocuments({ repositoryRoot: root, paths, roles: [] })).toEqual(
+      new Map(),
+    );
+  });
+
   it("never offers a tool-generated document for normalization", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-tool-ownership-normalization-"));
     roots.push(root);
