@@ -312,7 +312,15 @@ export async function loadCanonicalReviewContext(input: {
     .sort((left, right) => right.affinity - left.affinity || left.index - right.index);
   for (const { hit } of rankedHits) {
     if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS) break;
-    if (excluded.has(hit.path)) continue;
+    // ADR-0486: the publication root is a rebuildable projection that every refresh rewrites, so
+    // binding its bytes made a waiting review stale without any canonical change.
+    if (
+      excluded.has(hit.path) ||
+      !repositoryPathCanRemainIncluded(hit.path, policy) ||
+      repositorySourceClassificationForPath(hit.path) !== "ordinary" ||
+      hit.path.startsWith(`${policy.publicationRoot}/`)
+    )
+      continue;
     documents.push(
       await loadDocument({
         repositoryRoot: input.repositoryRoot,

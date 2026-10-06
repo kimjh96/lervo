@@ -29,11 +29,12 @@ function repositoryFence(root: string): string {
   }
 }
 
-export async function discoverConvergenceBaseline(
-  root: string,
-  events: OutboxStore,
-  artifacts: ArtifactStore,
-): Promise<KnowledgeConvergenceBaseline> {
+/**
+ * The expensive repository half of discovery: complete scan, byte capture, normalization and
+ * currency inspection. It reads only repository bytes, so it is reused while the repository fence
+ * and the latest knowledge materialization are unchanged.
+ */
+async function observeConvergenceRepository(root: string) {
   const fence = repositoryFence(root);
   const { manifest, policy, scan } = await scanConfiguredRepositoryKnowledge(root);
   const delegation = await loadConvergenceDelegation(root);
@@ -47,11 +48,46 @@ export async function discoverConvergenceBaseline(
     inspectRepositoryKnowledgeCurrency(root, { preparedScan: scan }),
     listCanonicalizationCandidates(root),
   ]);
-  const acceptance = loadHistoricalAcceptance(root, manifest.projectId);
-  const historical = await historicalObligations(events, artifacts, acceptance?.accepted);
   // One complete byte capture; the cheap repository fence proves nothing moved around it.
   if (repositoryFence(root) !== fence)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
+  return {
+    fence,
+    manifest,
+    policy,
+    scan,
+    delegation,
+    policyHash,
+    after,
+    afterChanged,
+    normalization,
+    currency,
+    candidates,
+  };
+}
+
+type ConvergenceRepositoryObservation = Awaited<ReturnType<typeof observeConvergenceRepository>>;
+
+export async function discoverConvergenceBaseline(
+  root: string,
+  events: OutboxStore,
+  artifacts: ArtifactStore,
+  observed?: ConvergenceRepositoryObservation,
+): Promise<KnowledgeConvergenceBaseline> {
+  const {
+    manifest,
+    policy,
+    scan,
+    delegation,
+    policyHash,
+    after,
+    afterChanged,
+    normalization,
+    currency,
+    candidates,
+  } = observed ?? (await observeConvergenceRepository(root));
+  const acceptance = loadHistoricalAcceptance(root, manifest.projectId);
+  const historical = await historicalObligations(events, artifacts, acceptance?.accepted);
   const historicalEvents = historical.events;
   const obligationPaths = new Set([
     ...afterChanged,
@@ -153,14 +189,12 @@ const DISCOVERY_ATTEMPTS = 3;
  * A commit or edit landing during the complete capture invalidates only that capture. Retrying a
  * bounded number of times keeps a busy repository from failing every cycle before any stage runs.
  */
-async function discoverStableConvergenceBaseline(
+async function observeStableConvergenceRepository(
   root: string,
-  events: OutboxStore,
-  artifacts: ArtifactStore,
-): Promise<KnowledgeConvergenceBaseline> {
+): Promise<ConvergenceRepositoryObservation> {
   for (let attempt = 1; ; attempt++) {
     try {
-      return await discoverConvergenceBaseline(root, events, artifacts);
+      return await observeConvergenceRepository(root);
     } catch (error) {
       if (
         attempt >= DISCOVERY_ATTEMPTS ||
@@ -171,25 +205,55 @@ async function discoverStableConvergenceBaseline(
   }
 }
 
+/** The latest knowledge materialization, read incrementally from the canonical event store. */
+function materializationCursor(events: OutboxStore) {
+  let afterSeq = 0;
+  let latest = "";
+  return (): string => {
+    for (;;) {
+      const page = events.list({
+        afterSeq,
+        limit: 1_000,
+        types: ["knowledge.materialization.applied"],
+      });
+      if (page.length === 0) return latest;
+      afterSeq = page.at(-1)!.seq;
+      latest = page.at(-1)!.eventHash;
+    }
+  };
+}
+
 /**
- * Cycle-scoped discovery: an unchanged repository digest and canonical event head reuse the last
- * baseline, so dependency checks and the closing status do not repeat the complete capture.
+ * Cycle-scoped discovery. ADR-0486: the expensive repository observation is reused while the
+ * repository fence and the latest knowledge materialization are unchanged. A materialization can
+ * rewrite ignored generated state the fence cannot see, so it always invalidates the observation.
+ * Stage and assignment events only refresh the cheap event half, which previously repeated the
+ * complete scan and currency inspection after every stage and kept a resident near one core.
  */
 export function cycleScopedConvergenceDiscovery(
   root: string,
   events: OutboxStore,
   artifacts: ArtifactStore,
 ): () => Promise<KnowledgeConvergenceBaseline> {
+  let repository: { key: string; observation: ConvergenceRepositoryObservation } | null = null;
   let last: { key: string; baseline: KnowledgeConvergenceBaseline } | null = null;
+  const materialization = materializationCursor(events);
   return async () => {
-    let key: string | null;
+    let repositoryKey: string | null;
     try {
-      key = `${convergenceRepositoryDigest(root)}:${events.latest()?.eventHash ?? ""}`;
+      repositoryKey = `${convergenceRepositoryDigest(root)}:${materialization()}`;
     } catch {
-      key = null;
+      repositoryKey = null;
     }
+    const key =
+      repositoryKey === null ? null : `${repositoryKey}:${events.latest()?.eventHash ?? ""}`;
     if (key !== null && last?.key === key) return last.baseline;
-    const baseline = await discoverStableConvergenceBaseline(root, events, artifacts);
+    const observation =
+      repositoryKey !== null && repository?.key === repositoryKey
+        ? repository.observation
+        : await observeStableConvergenceRepository(root);
+    repository = repositoryKey === null ? null : { key: repositoryKey, observation };
+    const baseline = await discoverConvergenceBaseline(root, events, artifacts, observation);
     last = key === null ? null : { key, baseline };
     return baseline;
   };

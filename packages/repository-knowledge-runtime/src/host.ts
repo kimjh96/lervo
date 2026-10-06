@@ -28,6 +28,7 @@ import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { resolveIntegrationTarget } from "./integration-target-sync.js";
 import { inspectIntegrationTargetAbsorption } from "./integration-target-absorption.js";
+import { regenerateStaleReview, staleReviewContext } from "./review-context-regeneration.js";
 import { inspectRetainedCanonicalIntegration } from "./canonical-integration-recovery.js";
 import type { CanonicalBatch } from "./canonical-review.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
@@ -242,7 +243,15 @@ export function createConvergenceRuntimeHost(
         provider: context.provider,
       });
       assertLease();
-      source(state);
+      try {
+        source(state);
+      } catch (error) {
+        const regenerated = staleReviewContext(error)
+          ? await regenerateStaleReview(context, state, stage)
+          : null;
+        if (regenerated === null) throw error;
+        return regenerated;
+      }
       const transaction = await materializationTransactionState(root);
       // A live owner settles on its own, so the stage retries instead of recording recovery.
       if (transaction === "busy")

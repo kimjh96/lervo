@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_353d9024ae1df3b223b1f389"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Regenerate a background knowledge review whose bound context changed instead of stopping, never bind the rebuildable publication pages as review context, and reuse the repository observation within a resident cycle so a large repository no longer holds a core."
