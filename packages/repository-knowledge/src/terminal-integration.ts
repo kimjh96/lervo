@@ -91,7 +91,11 @@ export interface TerminalIntegrationInspection {
 }
 
 const MAXIMUM_CONFIG_BYTES = 256 * 1024;
-const MAXIMUM_RUNTIME_BYTES = 4 * 1024 * 1024;
+/**
+ * The largest generated terminal hook runtime a repository accepts. The CLI build fails when its
+ * bundled runtime exceeds this budget, so a release can never ship a runtime `lervo upgrade` rejects.
+ */
+export const TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES = 8 * 1024 * 1024;
 const FORMAT = { insertSpaces: true, tabSize: 2, eol: "\n", insertFinalNewline: true } as const;
 const PROVIDERS = ["codex", "claude"] as const;
 const EVENTS = ["UserPromptSubmit", "Stop"] as const;
@@ -371,7 +375,11 @@ function runtimeManifest(contentHash: string, byteCount: number): string {
 
 function validRuntimeContent(content: string): boolean {
   const bytes = Buffer.byteLength(content);
-  return bytes > 0 && bytes <= MAXIMUM_RUNTIME_BYTES && content.startsWith("#!/usr/bin/env node\n");
+  return (
+    bytes > 0 &&
+    bytes <= TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES &&
+    content.startsWith("#!/usr/bin/env node\n")
+  );
 }
 
 async function runtimeTarget(
@@ -386,7 +394,7 @@ async function runtimeTarget(
   const desiredHash = sha256(desiredContent);
   const desiredManifest = runtimeManifest(desiredHash, Buffer.byteLength(desiredContent));
   const [existing, existingManifest] = await Promise.all([
-    safeOptionalText(resolve(root, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
+    safeOptionalText(resolve(root, RUNTIME_PATH), TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES),
     safeOptionalText(resolve(root, RUNTIME_MANIFEST_PATH)),
   ]);
   const action =
@@ -455,7 +463,7 @@ export async function inspectTerminalIntegration(
   let runtime: TerminalIntegrationRuntimeTarget;
   try {
     const [artifact, manifestFile] = await Promise.all([
-      safeOptionalText(resolve(root, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
+      safeOptionalText(resolve(root, RUNTIME_PATH), TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES),
       safeOptionalText(resolve(root, RUNTIME_MANIFEST_PATH)),
     ]);
     let valid = false;
