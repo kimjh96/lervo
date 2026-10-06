@@ -1,8 +1,11 @@
 import {
+  handleKnowledgeConvergenceHostList,
+  handleKnowledgeConvergenceHostPublish,
   handleKnowledgeConvergenceOwnerMutation,
   handleKnowledgeConvergenceOwnerRead,
   handleKnowledgeInstructionCandidateList,
   handleKnowledgeInstructionCandidatePublish,
+  type HubKnowledgeConvergenceHostStore,
   type HubKnowledgeConvergenceOwnerStore,
   type HubKnowledgeInstructionCandidateStore,
 } from "@lervo/hub-sync";
@@ -10,15 +13,17 @@ import {
 import type { HubSyncHttpRoute } from "./sync-request.js";
 
 /**
- * Serves the cross-host knowledge coordination routes: the ADR-0466 convergence owner lease and
- * the ADR-0467 owner-rule candidate exchange. Returns false for any other route. Authentication,
+ * Serves the cross-host knowledge coordination routes: the ADR-0466 convergence owner lease, the
+ * ADR-0467 owner-rule candidate exchange, and ADR-0469 host continuity records. Returns false for any other route. Authentication,
  * permission, and error translation stay with the sync handler.
  */
 export async function serveKnowledgeSyncRoute(input: {
   route: HubSyncHttpRoute;
   method: string | undefined;
   query: { destinationId: string; projectIdentityHash: string };
-  store: HubKnowledgeConvergenceOwnerStore & HubKnowledgeInstructionCandidateStore;
+  store: HubKnowledgeConvergenceOwnerStore &
+    HubKnowledgeInstructionCandidateStore &
+    HubKnowledgeConvergenceHostStore;
   acceptedAt: string;
   readBody(): Promise<unknown>;
   send(status: number, body: unknown): void;
@@ -63,6 +68,21 @@ export async function serveKnowledgeSyncRoute(input: {
       return true;
     }
     const result = await handleKnowledgeInstructionCandidatePublish({
+      store: input.store,
+      destinationId: input.query.destinationId,
+      coordinate: repository,
+      record: await input.readBody(),
+      acceptedAt: input.acceptedAt,
+    });
+    input.send(result.status === "created" ? 201 : 200, result);
+    return true;
+  }
+  if (input.route.kind === "knowledge-convergence-hosts") {
+    if (input.method === "GET") {
+      input.send(200, await handleKnowledgeConvergenceHostList({ store: input.store, coordinate }));
+      return true;
+    }
+    const result = await handleKnowledgeConvergenceHostPublish({
       store: input.store,
       destinationId: input.query.destinationId,
       coordinate: repository,

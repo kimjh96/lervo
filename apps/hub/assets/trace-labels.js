@@ -95,6 +95,7 @@ const eventLabels = {
   "knowledge.instruction_capture.cycle.completed": "Owner-turn capture cycle completed",
   "knowledge.instruction_candidate.exchanged": "Owner rule candidate exchanged across hosts",
   "knowledge.convergence.owner.changed": "Knowledge convergence owner changed",
+  "knowledge.convergence.delegation.continued": "Knowledge convergence delegation continued",
   "conversation.repository_knowledge.resolved": "Repository knowledge job resolved",
   "work.supervision.mandate.installed": "Operating mandate installed",
   "managed.execution.reserved": "Managed execution reserved",
