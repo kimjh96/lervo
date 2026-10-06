@@ -3,6 +3,12 @@
 - Status: accepted
 - Decision date: 2026-08-25
 
+## Current replacement-readiness amendments
+
+[ADR-0475](0475-judge-node-replacement-readiness-by-regression.md) amends the replacement and rollback readiness rules below: a fresh predecessor baseline may carry unchanged unavailable non-delivery conditions, receipts expose those conditions, and failures retain bounded readiness and recovery details. Delivery-component failures are never carried over. First onboarding still requires complete readiness.
+
+[ADR-0480](0480-defer-node-cache-warmups-past-readiness.md) further amends observation progress to include advancing starting heartbeats from the first process identity seen starting. The original fixed sixty-second window below is superseded by sixty seconds after qualifying progress, bounded at 600 seconds. A later starting process identity ends heartbeat-based extensions. See [bounded offline replacement](../../../specifications/coordination/hub-and-node/runtime-lifecycle/bounded-offline-replacement.md) for the current operational summary. These amendments do not establish installed verification success.
+
 ## Context
 
 The fleet registry and read-only onboarding plan did not install the shipped runtime, activate a repository-scoped service, prove application readiness, or upgrade an instance. Service files and registry coordinates alone do not establish a working Node.

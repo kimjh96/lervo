@@ -58,13 +58,18 @@ Every cycle starts with `repository-replica protocol` on both sides, exchanging 
 
 ### Host-local exclusion and generated conflicts
 
-Capture uses explicit pathspec exclusions regardless of `.gitignore` or `HEAD` ignore rules:
+The original decision unconditionally excluded `.lervo/knowledge/convergence-delegation.json` and required generated conflicts to be recorded with `resolution: regenerate` instead of resolving to one side. Those rules are superseded by [ADR-0478](0478-renew-each-delegation-with-one-writer.md) and the current [divergence and merge specification](../../../specifications/coordination/node-change-driven-work/repository-replicas/divergence-and-merge.md).
 
-- `:(exclude).lervo/knowledge/convergence-delegation.json`
-- `:(exclude).lervo/state`
-- `:(exclude).lervo/data`
+Capture preserves the host-local boundary for `.lervo/state` and `.lervo/data` regardless of ignore rules by restoring their `HEAD` entries after staging. Delegation capture depends on whether `HEAD` tracks `.lervo/knowledge/convergence-delegation.json`:
 
-Merge no longer resolves `.lervo/knowledge/` or `.lervo/generated/` conflicts to one side. It records them in the diverged event with `resolution: regenerate`; `reconcile` regenerates these rebuildable projections.
+- When tracked, its exact worktree bytes enter the snapshot. Apply, merge, and rollback reproduce those bytes rather than restoring the committed grant.
+- When untracked, it remains host-local, never enters a snapshot, and survives apply cleanup. Capture restores its absent `HEAD` entry after staging.
+
+Only the ADR-0466 convergence owner renews or rebinds the delegation. A tracked-file follower writes nothing and receives the owner's exact bytes through replication. An untracked-file follower may adopt the owner's term through the guarded Hub-record path in ADR-0478. This convergence ownership rule does not replace the repository writer-lease and handoff requirements above.
+
+Conflicts confined to `.lervo/knowledge/` and `.lervo/generated/` resolve to the local merging side. The merge reports the resolved path count and the coordinator logs it, so resolution is not silent. This includes a tracked delegation conflict; after reconciliation only the convergence owner writes its next renewal. Other conflicts continue to follow the configured `hold`, `prefer_local`, or `prefer_peer` policy and the divergence reporting contract. The former `resolution: regenerate` requirement is no longer operative.
+
+ADR-0478 changes the snapshot-cache fingerprint to `v2`. Both hosts must deploy the changed capture semantics together: mixed versions can compute different snapshots for a renewed tracked delegation and report divergence or fail post-apply verification. Renewals remain uncommitted working-tree changes and are not knowledge publication outputs. Removing a tracked delegation from the index requires ordinary review.
 
 ### Error fidelity
 
@@ -104,6 +109,8 @@ Privacy: events contain hashes of hosts, snapshots, and paths, never paths, cred
 3. Introduce leases as `not_configured` by default. Enable each repository with `lervo repository handoff init`, starting with the Lervo repository removed from replication.
 4. Retire `repositoryReplica.required` after every configured repository has a lease.
 5. Resolve the plen, flemo, and digimon backlog through `reconcile`, recording `reconciled` events as the acceptance baseline.
+
+The exclusions in step 1 follow the amended tracked-versus-untracked rule above. ADR-0478 additionally requires deploying CLI and Node bundles to both hosts and restarting Nodes and host resident services in one maintenance window before relying on tracked-delegation parity. These are rollout requirements, not evidence that rollout or the acceptance scenarios completed.
 
 ## Acceptance (installed)
 
