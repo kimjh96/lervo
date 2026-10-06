@@ -8,7 +8,7 @@ import {
   queryTargetsHistory,
 } from "./historical-documents.js";
 import { analyzeRepositoryKnowledgeImpact } from "./impact.js";
-import { assertNoKnowledgeMaterializationTransaction } from "./durable-apply.js";
+import { assertNoKnowledgeMaterializationTransaction } from "./materialization-owner.js";
 import { sha256 } from "./integrity.js";
 import { loadRepositoryKnowledgePolicy } from "./policy.js";
 import { generatedKnowledgePaths, readSafePublication } from "./repository-publication-files.js";

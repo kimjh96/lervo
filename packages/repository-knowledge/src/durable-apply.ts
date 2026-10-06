@@ -6,7 +6,6 @@ import {
   mkdtemp,
   open,
   readFile,
-  readdir,
   rename,
   rm,
   rmdir,
@@ -20,22 +19,20 @@ import { syncDirectory } from "@lervo/filesystem-durability";
 import { evaluateCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256 } from "./integrity.js";
 import { withKnowledgeSourceWrite } from "./knowledge-source-gate.js";
+import {
+  JOURNAL_NAME,
+  readJournal,
+  safeTarget,
+  transactionRoot,
+  type JournalOperation,
+  type KnowledgeMaterializationJournal,
+} from "./materialization-journal.js";
+import { materializationOwnerAlive } from "./materialization-owner.js";
 import type { KnowledgeFileOperation } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
-const TRANSACTION_RELATIVE = ".lervo/state/knowledge/materialization-transaction";
-const JOURNAL_NAME = "journal.json";
-
 export type KnowledgeMaterializationCheckpoint =
   "staged" | `original_moved:${number}` | `published:${number}` | "event_recorded" | "committed";
-
-interface JournalOperation {
-  path: string;
-  action: "create" | "update" | "delete" | "move" | "move_update";
-  destinationPath?: string;
-  beforeHash: string | null;
-  afterHash: string | null;
-}
 
 export interface DurableKnowledgeDeleteOperation {
   path: string;
@@ -75,33 +72,6 @@ export interface DurableKnowledgeUserFileOperation {
   content: string;
   expectedCurrentHash?: string;
   desiredHash: string;
-}
-
-interface KnowledgeMaterializationJournal {
-  schemaVersion: 1;
-  transactionType: "knowledge_materialization";
-  planId: string;
-  projectId: string;
-  ownerPid: number;
-  phase: "preparing" | "staged" | "publishing" | "event_recording" | "committed";
-  publishedCount: number;
-  activeIndex: number | null;
-  operations: JournalOperation[];
-}
-
-function transactionRoot(root: string): string {
-  return resolve(root, TRANSACTION_RELATIVE);
-}
-
-function safeTarget(root: string, path: string): string {
-  const target = resolve(root, path);
-  const child = relative(root, target);
-  if (child === ".." || child.startsWith(`..${sep}`))
-    throw new RepositoryKnowledgeError(
-      "knowledge_recovery_invalid",
-      "The knowledge transaction path escapes the repository.",
-    );
-  return target;
 }
 
 async function ensureSafeParent(root: string, target: string): Promise<void> {
@@ -307,157 +277,6 @@ async function rollback(
   await cleanupTransaction(transaction);
 }
 
-function validJournal(value: unknown): value is KnowledgeMaterializationJournal {
-  const item = value as KnowledgeMaterializationJournal | null;
-  return (
-    item !== null &&
-    typeof item === "object" &&
-    item.schemaVersion === 1 &&
-    item.transactionType === "knowledge_materialization" &&
-    /^(?:ksmat|kstruct|kbridgeplan|kinstbootplan|kinstructionplan|klayout|knormplan|kwstreamplan|kpatternplan)_[a-f0-9]{24}$/.test(
-      item.planId,
-    ) &&
-    typeof item.projectId === "string" &&
-    Number.isSafeInteger(item.ownerPid) &&
-    item.ownerPid > 0 &&
-    ["preparing", "staged", "publishing", "event_recording", "committed"].includes(item.phase) &&
-    Number.isSafeInteger(item.publishedCount) &&
-    item.publishedCount >= 0 &&
-    (item.activeIndex === null ||
-      (Number.isSafeInteger(item.activeIndex) && item.activeIndex >= 0)) &&
-    Array.isArray(item.operations) &&
-    item.operations.length > 0 &&
-    item.operations.length <= 20000 &&
-    new Set(
-      item.operations.flatMap((operation) => [
-        operation.path,
-        ...(operation.destinationPath === undefined ? [] : [operation.destinationPath]),
-      ]),
-    ).size ===
-      item.operations.reduce(
-        (count, operation) => count + (operation.destinationPath === undefined ? 1 : 2),
-        0,
-      ) &&
-    item.operations.every(
-      (operation) =>
-        typeof operation.path === "string" &&
-        (operation.action === "create" ||
-          operation.action === "update" ||
-          operation.action === "delete" ||
-          operation.action === "move" ||
-          operation.action === "move_update") &&
-        (operation.beforeHash === null || /^sha256:[a-f0-9]{64}$/.test(operation.beforeHash)) &&
-        (operation.afterHash === null || /^sha256:[a-f0-9]{64}$/.test(operation.afterHash)) &&
-        (operation.action === "delete"
-          ? operation.destinationPath === undefined &&
-            operation.beforeHash !== null &&
-            operation.afterHash === null
-          : operation.action === "move" || operation.action === "move_update"
-            ? typeof operation.destinationPath === "string" &&
-              operation.destinationPath !== operation.path &&
-              operation.beforeHash !== null &&
-              operation.afterHash !== null &&
-              (operation.action === "move_update" || operation.afterHash === operation.beforeHash)
-            : operation.destinationPath === undefined && operation.afterHash !== null),
-    )
-  );
-}
-
-async function readJournal(root: string): Promise<KnowledgeMaterializationJournal> {
-  const transaction = transactionRoot(root);
-  try {
-    const stat = await lstat(transaction);
-    if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error("unsafe transaction");
-    const names = await readdir(transaction);
-    if (!names.includes(JOURNAL_NAME)) throw new Error("missing journal");
-    const bytes = await readFile(resolve(transaction, JOURNAL_NAME));
-    if (bytes.byteLength > 4 * 1024 * 1024) throw new Error("large journal");
-    const value: unknown = JSON.parse(bytes.toString("utf8"));
-    if (!validJournal(value) || `${canonicalJson(value)}\n` !== bytes.toString("utf8"))
-      throw new Error("invalid journal");
-    for (const operation of value.operations) {
-      safeTarget(root, operation.path);
-      if (operation.destinationPath !== undefined) safeTarget(root, operation.destinationPath);
-    }
-    return value;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT")
-      throw new RepositoryKnowledgeError(
-        "knowledge_recovery_not_found",
-        "No knowledge materialization transaction is available to recover.",
-      );
-    if (error instanceof RepositoryKnowledgeError) throw error;
-    throw new RepositoryKnowledgeError(
-      "knowledge_recovery_invalid",
-      "The knowledge materialization transaction journal is invalid.",
-    );
-  }
-}
-
-function ownerAlive(pid: number): boolean {
-  if (pid === process.pid) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "EPERM";
-  }
-}
-
-export async function assertNoKnowledgeMaterializationTransaction(input: {
-  repositoryRoot: string;
-  allowedPlanId?: string;
-}): Promise<void> {
-  const root = resolve(input.repositoryRoot);
-  try {
-    const stat = await lstat(transactionRoot(root));
-    if (!stat.isDirectory() || stat.isSymbolicLink())
-      throw new RepositoryKnowledgeError(
-        "knowledge_recovery_invalid",
-        "The knowledge materialization transaction marker is unsafe.",
-      );
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw error;
-  }
-  if (input.allowedPlanId !== undefined) {
-    const journal = await readJournal(root);
-    if (journal.planId === input.allowedPlanId && journal.ownerPid === process.pid) return;
-  }
-  throw new RepositoryKnowledgeError(
-    "knowledge_recovery_required",
-    "The previous knowledge materialization transaction must be recovered first.",
-  );
-}
-
-/**
- * Classify the materialization marker without changing it. A journal owned by another running
- * process is `live` and settles on its own; any other marker is `interrupted` and keeps requiring
- * explicit `lervo knowledge materialize --recover`.
- */
-export async function inspectKnowledgeMaterializationOwner(input: {
-  repositoryRoot: string;
-}): Promise<"none" | "live" | "interrupted"> {
-  const root = resolve(input.repositoryRoot);
-  try {
-    await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
-    return "none";
-  } catch (error) {
-    if (
-      !(error instanceof RepositoryKnowledgeError) ||
-      error.code !== "knowledge_recovery_required"
-    )
-      throw error;
-  }
-  try {
-    return ownerAlive((await readJournal(root)).ownerPid) ? "live" : "interrupted";
-  } catch (error) {
-    if (error instanceof RepositoryKnowledgeError && error.code === "knowledge_recovery_not_found")
-      return "none";
-    return "interrupted";
-  }
-}
-
 type RecoveryInput = {
   repositoryRoot: string;
   eventRecorded: (planId: string) => boolean;
@@ -478,7 +297,7 @@ export function recoverKnowledgeMaterialization(input: RecoveryInput): Promise<R
 async function recoverMaterializationUnderGate(input: RecoveryInput): Promise<RecoveryResult> {
   const root = resolve(input.repositoryRoot);
   const journal = await readJournal(root);
-  if (ownerAlive(journal.ownerPid))
+  if (materializationOwnerAlive(journal.ownerPid))
     throw new RepositoryKnowledgeError(
       "knowledge_recovery_busy",
       "The knowledge materialization owner process is still running.",

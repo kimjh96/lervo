@@ -28,12 +28,28 @@ import { runKnowledgeReview, runKnowledgeReviewPolicy } from "./knowledge-review
 import { runKnowledgeStructure } from "./knowledge-structure-command.js";
 import { runKnowledgeFreshness } from "./knowledge-freshness-command.js";
 import { writeCommandError } from "./command-error-output.js";
+import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { runKnowledgeMigration } from "./knowledge-migration-command.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import { runKnowledgeCanonicalization } from "./knowledge-canonicalization-command.js";
 export { runKnowledgeMigration } from "./knowledge-migration-command.js";
 export { formatKnowledgeMigrationPlan } from "./knowledge-migration-format.js";
 export { knowledgeUsage } from "./knowledge-usage.js";
+
+/**
+ * The resident worker and convergence status own their marker handling, and migration settles
+ * inside `runKnowledgeMigration`; every other subcommand waits for a live owner first.
+ */
+const SELF_SETTLING_SUBCOMMANDS = new Set(["worker", "convergence", "refresh"]);
+
+function knowledgeCommandRoot(args: string[], cwd: string): string {
+  const index = args.indexOf("--root");
+  const inline = args.find((arg) => arg.startsWith("--root="));
+  return resolve(
+    cwd,
+    (index >= 0 ? args[index + 1] : undefined) ?? inline?.slice("--root=".length) ?? ".",
+  );
+}
 
 export async function runKnowledgeCommand(
   args: string[],
@@ -44,10 +60,23 @@ export async function runKnowledgeCommand(
       | "createLocalImprovementObservationHost"
       | "improvementObservationPort"
       | "groundProductionRequest"
+      | "knowledgeMaterializationWait"
     >
   > = {},
 ): Promise<number> {
   const subcommand = args[0];
+  if (subcommand !== undefined && !SELF_SETTLING_SUBCOMMANDS.has(subcommand)) {
+    try {
+      await foregroundKnowledgeMaterializationSettlement({
+        repositoryRoot: knowledgeCommandRoot(args, io.cwd),
+        io,
+        timing: services.knowledgeMaterializationWait,
+      }).settle();
+    } catch (error) {
+      writeCommandError(io, error, { json: args.includes("--json") });
+      return 1;
+    }
+  }
   if (subcommand === "export" || subcommand === "import" || subcommand === "okf")
     return runKnowledgeOkfExchange(args, io);
   if (subcommand === "convergence") return runKnowledgeConvergenceCommand(args.slice(1), io);

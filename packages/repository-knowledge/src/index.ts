@@ -66,6 +66,15 @@ export * from "./document-structure-merge.js";
 export * from "./document-structure-move.js";
 export * from "./document-structure-split.js";
 export * from "./durable-apply.js";
+export {
+  assertNoKnowledgeMaterializationTransaction,
+  describeKnowledgeMaterializationOwner,
+  inspectKnowledgeMaterializationOwner,
+  KNOWLEDGE_MATERIALIZATION_RECOVERY_COMMAND,
+  type KnowledgeMaterializationOwner,
+  type LiveKnowledgeMaterializationOwner,
+} from "./materialization-owner.js";
+export * from "./materialization-settlement.js";
 export * from "./durable-instruction.js";
 export * from "./durable-instruction-catalog.js";
 export * from "./generated-durable-instructions.js";

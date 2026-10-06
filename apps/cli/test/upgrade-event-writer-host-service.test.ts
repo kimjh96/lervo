@@ -1,9 +1,17 @@
+import { mkdtempSync } from "node:fs";
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { applyInitPlan, createInitPlan, inspectEventWriterCoordinate } from "@lervo/project";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+/** Keeps upgrade applies off the developer host's real background-resident admission. */
+const isolatedAdmission = {
+  knowledgeCycleAdmission: {
+    directory: mkdtempSync(resolve(tmpdir(), "lervo-upgrade-admission-")),
+  },
+};
 
 const ports = vi.hoisted(() => ({
   inspect: vi.fn(),
@@ -84,6 +92,7 @@ describe("lervo upgrade event writer and host service stages", () => {
     await runCli(
       ["upgrade", "--apply", "--approval", plan.planId, "--json"],
       io(root, output, errors),
+      isolatedAdmission,
     );
     const receipt = JSON.parse(output.join("")) as { appliedStages: string[] };
     expect(receipt.appliedStages).toEqual(expect.arrayContaining(["event_writer", "host_service"]));

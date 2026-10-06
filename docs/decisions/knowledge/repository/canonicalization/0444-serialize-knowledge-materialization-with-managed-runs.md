@@ -2,6 +2,7 @@
 
 Status: accepted
 Decision date: 2026-09-29
+Amended by: [ADR-0484](../../../operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md) (foreground commands wait for a live owner)
 
 ## Context
 

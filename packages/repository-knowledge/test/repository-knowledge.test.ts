@@ -1063,6 +1063,25 @@ describe("repository knowledge migration", () => {
       code: "source_bytes_changed",
       message: "The repository revision changed during the scan.",
     });
+    // A repository that keeps moving fails after three bounded attempts of two observations each.
+    expect(observation).toBe(6);
+
+    // A single concurrent commit, such as a resident knowledge commit or a replica pull, is
+    // absorbed: the next attempt scans the new revision.
+    let moved = 0;
+    const settled = await scanRepositoryKnowledge({
+      repositoryRoot: root,
+      projectId: "prj_knowledgefixture",
+      policy: defaultRepositoryKnowledgePolicy,
+      observeRevision: async () => ({
+        status: "observed",
+        content: `${(++moved === 1 ? "1" : "2").repeat(40)}\n`,
+      }),
+    });
+    expect(moved).toBe(4);
+    expect(settled.sources).toContainEqual(
+      expect.objectContaining({ path: "@git/HEAD", content: `${"2".repeat(40)}\n` }),
+    );
   });
 
   it("fails closed on YAML ambiguity without exposing source text", async () => {

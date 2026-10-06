@@ -4,6 +4,7 @@ import {
   type RepositoryLayoutDeferredDocument,
 } from "@lervo/repository-knowledge";
 
+import { CommandFailure } from "./command-error-output.js";
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
 import {
@@ -95,6 +96,16 @@ async function capture(run: (io: CliIo) => Promise<number>, cwd: string): Promis
     }
   }
   return { code, value, error: stderr.join("").trim() };
+}
+
+/** Keeps a captured command's error code, such as a materialization marker refusal. */
+function capturedFailure(result: CapturedCommand, fallback: string): Error {
+  const envelope = record(result.value?.error);
+  const message =
+    (typeof envelope?.message === "string" ? envelope.message : null) ?? (result.error || fallback);
+  return typeof envelope?.code === "string"
+    ? new CommandFailure(envelope.code, message)
+    : new Error(message);
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -350,13 +361,8 @@ export async function applyKnowledgeStage(root: string, stage: KnowledgeStage): 
       }),
     root,
   );
-  if (result.code !== 0) {
-    const envelope = record(result.value?.error);
-    throw new Error(
-      (typeof envelope?.message === "string" ? envelope.message : null) ??
-        (result.error || "The exact knowledge migration stage failed."),
-    );
-  }
+  if (result.code !== 0)
+    throw capturedFailure(result, "The exact knowledge migration stage failed.");
 }
 
 export async function lintKnowledge(root: string): Promise<{ valid: boolean; issueCount: number }> {
@@ -366,11 +372,7 @@ export async function lintKnowledge(root: string): Promise<{ valid: boolean; iss
   );
   const valid = result.code === 0 && result.value?.valid === true;
   const issues = Array.isArray(result.value?.issues) ? result.value.issues.length : valid ? 0 : 1;
-  const envelope = record(result.value?.error);
   if (!valid)
-    throw new Error(
-      (typeof envelope?.message === "string" ? envelope.message : null) ??
-        (result.error || `Repository knowledge lint failed with ${issues} issue(s).`),
-    );
+    throw capturedFailure(result, `Repository knowledge lint failed with ${issues} issue(s).`);
   return { valid, issueCount: issues };
 }

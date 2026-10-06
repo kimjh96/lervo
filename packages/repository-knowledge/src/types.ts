@@ -449,6 +449,7 @@ export class RepositoryKnowledgeError extends Error {
       | "knowledge_recovery_busy"
       | "knowledge_recovery_invalid"
       | "knowledge_materialization_busy"
+      | "knowledge_materialization_wait_expired"
       | "knowledge_source_gate_invalid"
       | "knowledge_rollback_failed"
       | "knowledge_impact_invalid"

@@ -1,3 +1,4 @@
+import { mkdtempSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -17,6 +18,13 @@ import { resolveRepositoryCoordinationHome } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
+
+/** Keeps upgrade applies off the developer host's real background-resident admission. */
+const isolatedAdmission = {
+  knowledgeCycleAdmission: {
+    directory: mkdtempSync(resolve(tmpdir(), "lervo-upgrade-admission-")),
+  },
+};
 
 const roots: string[] = [];
 const execute = promisify(execFile);
@@ -77,6 +85,7 @@ describe("lervo upgrade", () => {
       await runCli(
         ["upgrade", "--apply", "--approval", plan.planId, "--json"],
         io(root, output, errors),
+        isolatedAdmission,
       ),
       errors.join(""),
     ).toBe(0);
@@ -174,6 +183,7 @@ describe("lervo upgrade", () => {
       await runCli(
         ["upgrade", "--apply", "--approval", plan.planId, "--json"],
         io(root, output, errors),
+        isolatedAdmission,
       ),
       errors.join("\n"),
     ).toBe(0);
@@ -206,7 +216,11 @@ describe("lervo upgrade", () => {
 
     await writeFile(resolve(root, "main.ts"), "export const value = false;\n");
     expect(
-      await runCli(["upgrade", "--apply", "--approval", plan.planId], io(root, [], errors)),
+      await runCli(
+        ["upgrade", "--apply", "--approval", plan.planId],
+        io(root, [], errors),
+        isolatedAdmission,
+      ),
     ).toBe(1);
     expect(errors.join(" ")).toContain("exact current repository upgrade plan");
     await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
@@ -242,6 +256,7 @@ describe("lervo upgrade", () => {
       await runCli(
         ["upgrade", "--apply", "--approval", plan.planId, "--json"],
         io(root, output, errors),
+        isolatedAdmission,
       ),
       errors.join("\n"),
     ).toBe(0);
@@ -322,6 +337,7 @@ describe("lervo upgrade", () => {
           `${required.operationId}=sha256:${"0".repeat(64)}`,
         ],
         io(root, [], errors),
+        isolatedAdmission,
       ),
     ).toBe(1);
     expect(errors.join("\n")).toContain("not in the approved upgrade plan");
@@ -339,6 +355,7 @@ describe("lervo upgrade", () => {
           "--json",
         ],
         io(root, output, errors),
+        isolatedAdmission,
       ),
       errors.join("\n"),
     ).toBe(0);
@@ -376,6 +393,7 @@ describe("lervo upgrade", () => {
     const applyCode = await runCli(
       ["upgrade", "--apply", "--approval", plan.planId, "--json"],
       io(root, output, errors),
+      isolatedAdmission,
     );
     if (applyCode !== 0) throw new Error(`${errors.join(" ")} ${output.join(" ")}`);
     const receipt = JSON.parse(output.join("")) as {
@@ -434,6 +452,7 @@ describe("lervo upgrade", () => {
       await runCli(
         ["upgrade", "--apply", "--approval", plan.planId, "--json"],
         io(root, output, errors),
+        isolatedAdmission,
       ),
       errors.join(""),
     ).toBe(0);

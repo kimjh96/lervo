@@ -7,7 +7,7 @@ import { parse } from "yaml";
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
 import { sha256, stableId } from "./integrity.js";
 import { analyzeRepositoryKnowledgeImpact } from "./impact.js";
-import { assertNoKnowledgeMaterializationTransaction } from "./durable-apply.js";
+import { assertNoKnowledgeMaterializationTransaction } from "./materialization-owner.js";
 import { evaluateCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { inspectRepositoryDocumentRewriters } from "./document-rewriter-adapters.js";
 import { lintDocumentDrift, type DocumentStalenessLintMode } from "./document-drift-lint.js";

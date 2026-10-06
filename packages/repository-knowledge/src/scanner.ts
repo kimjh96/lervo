@@ -504,7 +504,7 @@ function extractUnits(
   ];
 }
 
-export async function scanRepositoryKnowledge(input: {
+interface RepositoryKnowledgeScanInput {
   repositoryRoot: string;
   projectId: string;
   policy: RepositoryKnowledgePolicy;
@@ -512,7 +512,35 @@ export async function scanRepositoryKnowledge(input: {
   observeRevision?: ObserveGitRevision;
   supplementalSources?: readonly RepositorySupplementalSource[];
   sourceUnitFailureMode?: "fail" | "file_only";
-}): Promise<RepositoryKnowledgeScan> {
+}
+
+/** Attempts per scan when another writer moves the revision or a file under it. */
+const REPOSITORY_KNOWLEDGE_SCAN_ATTEMPTS = 3;
+
+/**
+ * A scan only reads, so one that saw a concurrent commit, replica pull, or edit is repeated
+ * against the new state. A repository that keeps moving still fails with `source_bytes_changed`.
+ */
+export async function scanRepositoryKnowledge(
+  input: RepositoryKnowledgeScanInput,
+): Promise<RepositoryKnowledgeScan> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await scanRepositoryKnowledgeOnce(input);
+    } catch (error) {
+      if (
+        attempt >= REPOSITORY_KNOWLEDGE_SCAN_ATTEMPTS ||
+        !(error instanceof RepositoryKnowledgeError) ||
+        error.code !== "source_bytes_changed"
+      )
+        throw error;
+    }
+  }
+}
+
+async function scanRepositoryKnowledgeOnce(
+  input: RepositoryKnowledgeScanInput,
+): Promise<RepositoryKnowledgeScan> {
   const root = resolve(input.repositoryRoot);
   const sourceLineages = await loadDocumentMoveLineages({
     repositoryRoot: root,
