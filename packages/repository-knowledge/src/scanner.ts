@@ -767,6 +767,8 @@ export async function scanRepositoryKnowledge(input: {
     });
   }
   const supplementalByPath = new Map<string, RepositorySupplementalSource>();
+  // A set keeps the collision check linear; event-heavy repositories supply thousands of units.
+  const repositorySourcePaths = new Set(sources.map((source) => source.path));
   for (const supplemental of [...(input.supplementalSources ?? [])].sort((left, right) =>
     left.path.localeCompare(right.path),
   )) {
@@ -779,7 +781,7 @@ export async function scanRepositoryKnowledge(input: {
       supplemental.title.length === 0 ||
       supplemental.title.length > 300 ||
       supplementalByPath.has(supplemental.path) ||
-      sources.some((source) => source.path === supplemental.path) ||
+      repositorySourcePaths.has(supplemental.path) ||
       (supplemental.kind === "verification_result" && supplemental.unitKind !== "verification") ||
       (supplemental.kind === "execution_event" && supplemental.unitKind !== "event")
     ) {
