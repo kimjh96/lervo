@@ -751,6 +751,18 @@ const migrations = [
       PRIMARY KEY (destination_id, project_id, repository_identity_hash, proposed_content_hash)
     ) STRICT;
   `,
+  `
+    CREATE TABLE IF NOT EXISTS hub_knowledge_convergence_hosts (
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      repository_identity_hash TEXT NOT NULL,
+      host_hash TEXT NOT NULL,
+      record_json TEXT NOT NULL,
+      observed_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (destination_id, project_id, repository_identity_hash, host_hash)
+    ) STRICT;
+  `,
 ] as const;
 
 export const hubSyncSchemaVersion = migrations.length;

@@ -61,6 +61,8 @@ On a Hub-coordinated host that does not own convergence, the candidate instructi
 
 All are user-owned, require user action, and are never blocking. Each yields at most one item. The projection reads only the private fence, publication state, and supersession ledger; an unreadable file contributes no item.
 
+[ADR-0469](../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) adds `knowledge_convergence_continuity`, one item per [continuity finding](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md#findings) of severity `attention` or `owner_decision`, at most 16. It carries the finding code, severity, a closed detail code or host label, and the last reconciliation time. Its instruction names the exact remediation. Only an `owner_decision` item has state `action_required` and requires user action. Every item is user-owned and never blocking. The projection reads the delegation, host policy, fence, publication state, and continuity state without contacting the Hub.
+
 ## Coverage
 
 `unavailable` coverage is not an empty success: aggregate status remains `action_required`, even when no item could be read. A missing workstream is reported as missing without inventing a blocker; a repository may legitimately have no current continuation.

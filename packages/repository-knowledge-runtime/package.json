@@ -31,6 +31,7 @@
     "@lervo/verification": "workspace:*",
     "@lervo/work-controller": "workspace:*",
     "@lervo/workspace-host-git": "workspace:*",
-    "@lervo/sync-contract": "workspace:*"
+    "@lervo/sync-contract": "workspace:*",
+    "@lervo/repository-registry": "workspace:*"
   }
 }

@@ -1799,6 +1799,9 @@ importers:
       '@lervo/repository-knowledge-compiler':
         specifier: workspace:*
         version: link:../repository-knowledge-compiler
+      '@lervo/repository-registry':
+        specifier: workspace:*
+        version: link:../repository-registry
       '@lervo/roles':
         specifier: workspace:*
         version: link:../roles

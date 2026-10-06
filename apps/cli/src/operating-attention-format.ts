@@ -23,6 +23,8 @@ function describe(item: OperatingAttentionItemV1): string {
     return `${item.role} · ${item.reason}${item.failureCode === null ? "" : ` · ${item.failureCode}${item.httpStatus === null ? "" : ` HTTP ${item.httpStatus}`}`}${item.holderLabel === null ? "" : ` · holder ${item.holderLabel}`}`;
   if (item.kind === "knowledge_publication")
     return `${item.failureCode}${item.detail === null ? "" : ` · ${item.detail}`} · occurrences ${item.occurrences}${item.pullRequestUrl === null ? "" : ` · ${item.pullRequestUrl}`}`;
+  if (item.kind === "knowledge_convergence_continuity")
+    return `${item.severity} · ${item.findingCode}${item.detail === null ? "" : ` · ${item.detail}`}`;
   if (item.kind === "document_freshness_blocked")
     return `${item.reasonCode} · attempts ${item.attempts}`;
   if (item.kind === "durable_instruction_candidate")

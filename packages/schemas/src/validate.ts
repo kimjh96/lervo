@@ -68,6 +68,7 @@ import {
   knowledgeInstructionCaptureCycleCompletedEventPayloadSchema,
 } from "./instruction-capture-event.js";
 import { knowledgeConvergenceOwnerChangedEventPayloadSchema } from "./knowledge-convergence-owner-event.js";
+import { knowledgeConvergenceDelegationContinuedEventPayloadSchema } from "./knowledge-convergence-delegation-continued-event.js";
 import { conversationInboundEventSchema } from "./conversation-event.js";
 import {
   conversationDeliveryReceiptSchema,
@@ -436,6 +437,9 @@ const validators = {
   ),
   knowledgeConvergenceOwnerChangedEventPayload: ajv.compile(
     knowledgeConvergenceOwnerChangedEventPayloadSchema,
+  ),
+  knowledgeConvergenceDelegationContinuedEventPayload: ajv.compile(
+    knowledgeConvergenceDelegationContinuedEventPayloadSchema,
   ),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
   productActivityPage: ajv.compile(productActivityPageSchema),

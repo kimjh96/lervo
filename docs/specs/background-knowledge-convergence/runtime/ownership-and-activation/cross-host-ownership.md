@@ -31,9 +31,10 @@
 ```
 
 - `hostLabel` matches `^[a-z0-9][a-z0-9-]{0,31}$`. It names the host to operators only.
-- `coordination` is either `{ "mode": "standalone" }` or the Hub form above. The Hub principal behind the token needs `workspace.read` and `workspace.coordinate` for the project at `destinationId`. Every host of one repository must use the same Hub and `destinationId`.
+- `coordination` is either `{ "mode": "standalone" }` or the Hub form above. The Hub principal behind the token needs `workspace.read` and `workspace.coordinate`, or since ADR-0469 `sync.write`, for the project at `destinationId`. Every host of one repository must use the same Hub and `destinationId`.
 - `publication` is optional; without it the owner never pushes. `merge` is `when_checks_pass` or `never`. `allowedRoots` holds 1 to 16 repository-relative prefixes ending in `/`, and defaults to `docs/` and `.lervo/knowledge/`. The publication branch must differ from the base branch.
 - A missing file is created as `standalone` with label `local` and a random `hostId` on the first observation. An invalid file yields `unverifiable / convergence_owner_host_invalid`; it never falls back to standalone.
+- Under [ADR-0469](../../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md), each resident derives this file from the Hub coordinates the host already uses for sync when Lervo owns it: absent, the legacy `standalone`/`local` default, or a file Lervo wrote. Hand-written files are never changed. See [fleet continuity](continuity.md#owner-host-derivation).
 
 The CLI worker (`lervo knowledge worker --watch|--once`) and the Node resident child both compose the owner with the Hub HTTP client from `@lervo/sync`. Library callers that pass no owner keep the legacy single-host behavior.
 
@@ -62,16 +63,16 @@ A resident observes ownership once per cycle (full or skipped) and in the owner 
 
 The Hub client attaches one cause to every failed lease request. The fence keeps only the code and the HTTP status; no error message, URL, token, or token path. `owner status` and the `knowledge_convergence_owner` attention item show both, with this remediation:
 
-| `failureCode`               | Meaning                                                    | Remediation                                                                                                                                              |
-| --------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `hub_unauthorized`          | 401: the Hub did not accept the token                      | Replace the token in `bearerTokenFile` with a current credential for the project                                                                         |
-| `hub_forbidden`             | 403: the principal lacks the project scope or a permission | Grant `workspace.read` and `workspace.coordinate` for the project ID at `destinationId` to the token's principal; the client cannot see the principal ID |
-| `hub_unreachable`           | No answer, a timeout, or a 5xx status                      | Check that `baseUrl` is reachable and the Hub is running                                                                                                 |
-| `hub_identity_mismatch`     | The answer lacked the configured Hub identity              | Compare `hubIdentityHash` with the Hub's identity                                                                                                        |
-| `hub_response_invalid`      | An unexpected status, content type, or body                | Check that the Hub runs a version with the owner lease                                                                                                   |
-| `hub_configuration_invalid` | The coordinates or token cannot form a request             | Fix `baseUrl`, `destinationId`, `hubIdentityHash`, or the token                                                                                          |
-| `token_file_unreadable`     | The token file could not be read safely                    | Make `bearerTokenFile` an owner-only (`0600`) regular file                                                                                               |
-| `hub_request_failed`        | A failure the client did not classify                      | Inspect the Hub configuration and reachability                                                                                                           |
+| `failureCode`               | Meaning                                                    | Remediation                                                                                                                                                                                  |
+| --------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hub_unauthorized`          | 401: the Hub did not accept the token                      | Replace the token in `bearerTokenFile` with a current credential for the project                                                                                                             |
+| `hub_forbidden`             | 403: the principal lacks the project scope or a permission | Add the project ID at `destinationId` to the token principal's projects, with `sync.write` (ADR-0469) or `workspace.read` and `workspace.coordinate`; the client cannot see the principal ID |
+| `hub_unreachable`           | No answer, a timeout, or a 5xx status                      | Check that `baseUrl` is reachable and the Hub is running                                                                                                                                     |
+| `hub_identity_mismatch`     | The answer lacked the configured Hub identity              | Compare `hubIdentityHash` with the Hub's identity                                                                                                                                            |
+| `hub_response_invalid`      | An unexpected status, content type, or body                | Check that the Hub runs a version with the owner lease                                                                                                                                       |
+| `hub_configuration_invalid` | The coordinates or token cannot form a request             | Fix `baseUrl`, `destinationId`, `hubIdentityHash`, or the token                                                                                                                              |
+| `token_file_unreadable`     | The token file could not be read safely                    | Make `bearerTokenFile` an owner-only (`0600`) regular file                                                                                                                                   |
+| `hub_request_failed`        | A failure the client did not classify                      | Inspect the Hub configuration and reachability                                                                                                                                               |
 
 A verdict built from a Hub answer, or from a held lease that needed no request, records no cause. A fence written before these fields existed reads as "no recorded cause".
 

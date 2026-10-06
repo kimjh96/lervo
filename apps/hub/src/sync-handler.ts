@@ -9,6 +9,7 @@ import {
   handleWorkspaceSummaryPublish,
   handleWorkspaceSummaryRead,
   HubKnowledgeInstructionCandidateError,
+  HubKnowledgeConvergenceHostError,
   HubKnowledgeConvergenceOwnerError,
   isHubWorkspaceCoordinationMutation,
   isHubWorkspaceSummary,
@@ -16,6 +17,7 @@ import {
   type HubWorkspaceCoordinationStore,
   type HubKnowledgeConvergenceOwnerStore,
   type HubKnowledgeInstructionCandidateStore,
+  type HubKnowledgeConvergenceHostStore,
   type HubWorkspaceSummary,
   type HubWorkstreamReplicationStore,
   HubWorkstreamReplicationError,
@@ -38,6 +40,7 @@ import { HubHttpRequestTooLargeError, readBoundedJsonBody } from "./body.js";
 import { InvalidHubHttpRequestError, singleAuthorizationHeader } from "./request.js";
 import { resolveHubHttpMaxResponseBytes, sendHubError, sendHubJson } from "./response.js";
 import { serveKnowledgeSyncRoute } from "./sync-knowledge-routes.js";
+import { syncRoutePermitted } from "./sync-route-permission.js";
 import { hubSyncQuery, matchHubSyncRoute } from "./sync-request.js";
 
 const DEFAULT_MAX_REQUEST_BYTES = 4_194_304;
@@ -49,7 +52,8 @@ export interface HubSyncHttpHandlerOptions {
     HubWorkstreamReplicationStore &
     HubWorkspaceCoordinationStore &
     HubKnowledgeConvergenceOwnerStore &
-    HubKnowledgeInstructionCandidateStore;
+    HubKnowledgeInstructionCandidateStore &
+    HubKnowledgeConvergenceHostStore;
   hubIdentityHash: string;
   now?: () => Date;
   maxRequestBytes?: number;
@@ -156,6 +160,7 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         "workspace-summaries",
         "knowledge-convergence-owner",
         "knowledge-instruction-candidates",
+        "knowledge-convergence-hosts",
       ].includes(route.kind);
       const acceptedMethod = supportsRead
         ? request.method === "GET" || request.method === "POST"
@@ -182,21 +187,14 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         (project) =>
           project.destinationId === query.destinationId && project.projectId === route.projectId,
       );
-      // The convergence owner lease and ADR-0467 instruction candidates coordinate repository work
-      // across hosts, like reservations.
-      const requiredPermission =
-        route.kind.startsWith("workspace-") ||
-        route.kind === "knowledge-convergence-owner" ||
-        route.kind === "knowledge-instruction-candidates"
-          ? request.method === "GET"
-            ? "workspace.read"
-            : "workspace.coordinate"
-          : route.kind === "workstreams"
-            ? request.method === "GET"
-              ? "workstream.read"
-              : "workstream.write"
-            : "sync.write";
-      if (!inScope || !principal.permissions.includes(requiredPermission)) {
+      if (
+        !inScope ||
+        !syncRoutePermitted({
+          kind: route.kind,
+          method: request.method,
+          permissions: principal.permissions,
+        })
+      ) {
         sendHubError(response, 403, "forbidden", maxResponseBytes, identityHeaders);
         return;
       }
@@ -367,7 +365,8 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         workstreamError(response, error, maxResponseBytes, identityHeaders);
       } else if (
         error instanceof HubKnowledgeConvergenceOwnerError ||
-        error instanceof HubKnowledgeInstructionCandidateError
+        error instanceof HubKnowledgeInstructionCandidateError ||
+        error instanceof HubKnowledgeConvergenceHostError
       ) {
         sendHubError(response, 400, "invalid_request", maxResponseBytes, identityHeaders);
       } else if (error instanceof HubWorkspaceCoordinationError) {

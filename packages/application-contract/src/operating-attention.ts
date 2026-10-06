@@ -185,6 +185,21 @@ export interface KnowledgePublicationAttentionItemV1 extends OperatingAttentionI
   firstObservedAt: string;
 }
 
+/**
+ * ADR-0469: a background knowledge continuity gap on this host, such as a delegation that will
+ * lapse without a policy, a Hub that refuses coordination, or a checkout no resident reconciles.
+ * It never blocks; it requires the user only for an authority or scope decision.
+ */
+export interface KnowledgeConvergenceContinuityAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "knowledge_convergence_continuity";
+  state: "action_required" | "observed";
+  findingCode: string;
+  severity: "attention" | "owner_decision";
+  /** A closed cause code or a host label; never a path, URL, or message. */
+  detail: string | null;
+  observedAt: string | null;
+}
+
 export type OperatingAttentionItemV1 =
   | WorkstreamDecisionAttentionItemV1
   | WorkstreamApprovalAttentionItemV1
@@ -199,7 +214,8 @@ export type OperatingAttentionItemV1 =
   | CapturedDecisionAttentionItemV1
   | InstructionCaptureBlockedAttentionItemV1
   | KnowledgeConvergenceOwnerAttentionItemV1
-  | KnowledgePublicationAttentionItemV1;
+  | KnowledgePublicationAttentionItemV1
+  | KnowledgeConvergenceContinuityAttentionItemV1;
 
 export interface OperatingAttentionReportV1 {
   schemaVersion: 1;

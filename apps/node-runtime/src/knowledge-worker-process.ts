@@ -1,7 +1,15 @@
 import { fork, type ChildProcess } from "node:child_process";
 
+import {
+  encodeKnowledgeHubCoordinates,
+  KNOWLEDGE_HUB_COORDINATES_ENVIRONMENT,
+  type KnowledgeHubCoordinates,
+} from "./knowledge-hub-coordinates.js";
+
 interface KnowledgeWorkerProcessInput {
   entry: string;
+  /** ADR-0469: the owning Node's Hub coordinates, handed to the child for continuity. */
+  hub?: KnowledgeHubCoordinates;
   repositoryRoot: string;
   provider: "codex" | "claude";
   executable?: string;
@@ -37,6 +45,14 @@ export function startKnowledgeWorkerProcess(
         execPath: process.execPath,
         execArgv: [],
         stdio: ["ignore", "inherit", "inherit", "ipc"],
+        ...(input.hub === undefined
+          ? {}
+          : {
+              env: {
+                ...process.env,
+                [KNOWLEDGE_HUB_COORDINATES_ENVIRONMENT]: encodeKnowledgeHubCoordinates(input.hub),
+              },
+            }),
       });
     } catch {
       fail("knowledge_worker_launch_failed");

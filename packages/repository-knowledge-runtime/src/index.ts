@@ -91,3 +91,47 @@ export {
   type InstructionCandidateApplyAuthority,
 } from "./instruction-candidate-apply-authority.js";
 export type { OwnerTurnCaptureWorkResult } from "./owner-turn-capture-work.js";
+export {
+  ConvergenceContinuity,
+  type ConvergenceContinuityInput,
+  type ConvergenceHostRecordPort,
+  type ConvergenceHostRecordTransport,
+} from "./convergence-continuity.js";
+export {
+  convergenceHostLabel,
+  type ConvergenceOwnerHubCandidate,
+} from "./convergence-owner-host-derivation.js";
+export {
+  continuityPolicyFromDelegation,
+  sealConvergenceContinuityPolicy,
+  DEFAULT_CONTINUITY_HORIZON_DAYS,
+  DEFAULT_CONTINUITY_RENEWAL,
+  type ConvergenceContinuityPolicy,
+} from "./continuity-policy.js";
+export {
+  convergenceContinuityPolicyPath,
+  defaultConvergenceContinuityPolicyPath,
+  readConvergenceContinuityPolicy,
+  writeConvergenceContinuityPolicy,
+  type ConvergenceContinuityPolicyReading,
+} from "./continuity-policy-store.js";
+export {
+  readConvergenceContinuityState,
+  type ContinuityPeerSummary,
+  type ConvergenceContinuityState,
+} from "./continuity-state.js";
+export { continuityPeerSummary } from "./continuity-host-record.js";
+export {
+  continuityFindings,
+  continuityPeerFindings,
+  localContinuityFindings,
+  type ContinuityFinding,
+  type ContinuityFindingCode,
+  type ContinuityFindingSeverity,
+} from "./continuity-findings.js";
+export { convergenceDelegationScopeHash } from "./delegation-scope.js";
+export { probeKnowledgePublicationSettings } from "./knowledge-publication-readiness.js";
+export {
+  inspectConvergenceContinuity,
+  type ConvergenceContinuityInspection,
+} from "./continuity-inspection.js";

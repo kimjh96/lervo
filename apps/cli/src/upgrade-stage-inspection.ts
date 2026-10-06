@@ -1,5 +1,6 @@
 import { createWorkforceRoleBindingMigrationPlan } from "@lervo/agent-workforce";
 
+import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
 import {
   planTerminalIntegrationStage,
@@ -24,6 +25,11 @@ export interface KnowledgeStage {
   status: string;
   reason: string;
   blockers: UpgradeStageBlocker[];
+  /**
+   * ADR-0469: normalization debt the background resident drains under its delegation or the
+   * host continuity policy; present only with reason `background_owned`.
+   */
+  backgroundDebt?: { owner: "delegation" | "continuity_policy"; pendingDocuments: number };
 }
 
 export interface TerminalIntegrationStage {
@@ -176,6 +182,27 @@ export async function inspectKnowledge(root: string): Promise<KnowledgeStage> {
       status,
       reason: "generated_only_exact_plan",
       blockers: [],
+    };
+  }
+  // Provider selection is owner work only when no background owner will normalize the debt.
+  const backgroundOwner =
+    envelope === null && status === "provider_required"
+      ? await knowledgeBackgroundOwner(root)
+      : null;
+  if (backgroundOwner !== null) {
+    return {
+      disposition: "current",
+      planKind,
+      planId,
+      status,
+      reason: "background_owned",
+      blockers: [],
+      backgroundDebt: {
+        owner: backgroundOwner,
+        pendingDocuments: Array.isArray(result.value.pendingDocuments)
+          ? result.value.pendingDocuments.length
+          : 0,
+      },
     };
   }
   if (

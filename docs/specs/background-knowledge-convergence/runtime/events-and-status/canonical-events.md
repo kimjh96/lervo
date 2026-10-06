@@ -26,6 +26,12 @@ Required payload: `repositoryIdentityHash`, `holderHostHash`, `previousHolderHos
 
 Records, in the observing host's own store, a change of its observed convergence owner or the end of its own holding ([ADR-0466](../../../../decisions/coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md)). Hosts appear only as hashes. The event grants no commit authority; the private ownership fence does.
 
+## `knowledge.convergence.delegation.continued`
+
+Required payload: `repositoryIdentityHash`, `action` (`renewed | seeded`), `source` (`renewal | peer | policy_template`), `policyHash`, `previousPlanHash`, `planHash`, `scopeHash`, `expiresAt`, `observerHostHash`, `sourceHostHash`, `occurredAt`.
+
+Records a delegation the resident renewed or seeded under the host continuity policy ([ADR-0469](../../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md)). The event ID derives from `planHash`. Hashes and the expiry only; the applied delegation, not the event, grants authority.
+
 ## Assignment provenance
 
 `assignment.created` gains an all-or-none provenance set: `convergenceContractVersion`, `convergenceObligationId`, `convergenceBaselineEventId`, `convergenceBaselineEventHash`, `convergenceStage`, `convergenceInputArtifactHash`, `convergenceDelegationHash`, and `convergenceAgentId`.

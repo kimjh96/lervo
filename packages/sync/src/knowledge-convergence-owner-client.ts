@@ -41,7 +41,7 @@ export class HubKnowledgeConvergenceOwnerUnavailableError extends Error {
 }
 
 /** Classifies a failed Hub JSON request; only an HTTP status crosses into the failure. */
-function classifyHubOwnerRequestFailure(error: unknown): {
+export function classifyHubOwnerRequestFailure(error: unknown): {
   failureCode: KnowledgeConvergenceOwnerFailureCode;
   httpStatus: number | null;
 } {

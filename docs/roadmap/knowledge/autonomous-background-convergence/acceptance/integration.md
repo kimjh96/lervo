@@ -12,3 +12,4 @@
 
 - [Cross-host convergence ownership](integration/cross-host-ownership.md): source-test evidence and open installed acceptance.
 - [Owner publication](integration/owner-publication.md): publication and supersession evidence and open installed acceptance.
+- [Fleet continuity](integration/fleet-continuity.md): delegation renewal, seeding, zero-touch configuration, and doctor evidence and open installed acceptance.

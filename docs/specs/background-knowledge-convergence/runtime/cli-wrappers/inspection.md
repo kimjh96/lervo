@@ -15,3 +15,7 @@ The status object's `owner` is the latest [cross-host ownership](../ownership-an
 `lervo knowledge convergence owner publish [--json]` runs one knowledge publication now; it never contacts the remote on a non-owner.
 
 Release and publish report a failure code matching the same pattern, or `convergence_owner_command_failed`.
+
+## Continuity doctor
+
+`lervo knowledge convergence doctor [--json]` inspects every repository in the host registry and Node fleet registry, plus the current one. It reports delegation, policy, owner-host, lease, publication, resident, hook-runtime, replica, and peer facts with one remediation per finding. It changes no file, reads peers live from the Hub in Hub mode, and exits 1 when any finding needs attention or an owner decision. See [fleet continuity](../ownership-and-activation/continuity.md#findings).
