@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4c632e38c592f816dbfe7aa0
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6d0c09d4c2df50a127e52c28
+outputLanguage: en
+outputs:
+  - byteCount: 965
+    contentHash: sha256:f8f2c51e2e22dded995b434179e1f51a8fc5c261a6ec333814ac48d73e6c5ae6
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/inspection.md
+    userRegionHash: sha256:f8f2c51e2e22dded995b434179e1f51a8fc5c261a6ec333814ac48d73e6c5ae6
+  - byteCount: 517
+    contentHash: sha256:a14e70aeadabe2d3086f16cd5fa4053d3610f0c4d885ed87946dabb93fdd45d7
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/inspection/continuity-doctor.md
+    userRegionHash: sha256:a14e70aeadabe2d3086f16cd5fa4053d3610f0c4d885ed87946dabb93fdd45d7
+  - byteCount: 559
+    contentHash: sha256:7f7b79c569c77fc87b060faa9879d28faa8f7a28da07aa58fcca24c1ecc5c82a
+    path: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/inspection/owner-commands.md
+    userRegionHash: sha256:7f7b79c569c77fc87b060faa9879d28faa8f7a28da07aa58fcca24c1ecc5c82a
+profile: specification_document
+recordId: knormdoc_6a03185f295d550ee6328cf1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4e2d64e2806f4dd96e65191eca2ba77a7f330047300fdc3b0a8ccdbb2097a4e6
+sourcePath: docs/specs/background-knowledge-convergence/runtime/cli-wrappers/inspection.md
+sourceUnitVersionIds:
+  - uv_7d8acaa496a0b9ba964bdd3e
+  - uv_956df42ea23b23cc4569b716
+  - uv_acbe7e9a3a3d87921ea2599e
