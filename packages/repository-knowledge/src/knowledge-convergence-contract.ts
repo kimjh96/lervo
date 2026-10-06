@@ -98,5 +98,10 @@ export interface KnowledgeConvergenceStatus {
    * code (`null` for a code this version does not retry), and when the next attempt is due.
    */
   retry?: { attemptCount: number; attemptLimit: number | null; nextAttemptAt: string };
+  /**
+   * Present only for `knowledge_normalization_outside_delegation`: how many pending documents wait
+   * and the repository-relative top-level roots that the delegation's normalization roots exclude.
+   */
+  scopeGap?: { pendingDocuments: number; outsideNormalizationRoots: string[] };
   lastVerifiedCurrency: { obligationId: string; snapshotHash: string; resolvedAt: string } | null;
 }

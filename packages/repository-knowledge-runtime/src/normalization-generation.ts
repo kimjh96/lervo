@@ -18,6 +18,10 @@ import { convergenceSourceBytes } from "./source-capture.js";
 import { withKnowledgeProviderAdmission } from "./provider-call.js";
 import { selectNormalizationBatchWithinCallBudget } from "./normalization-batch-selection.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import {
+  NORMALIZATION_OUTSIDE_DELEGATION,
+  normalizationScopeGap,
+} from "./normalization-scope-gap.js";
 
 export interface NormalizationBatch {
   candidateId: string;
@@ -103,6 +107,13 @@ export async function generateNormalizationBatch(
   const scoped = rotated.filter((path) =>
     pathWithinConvergenceRoots(path, delegation.normalizationRoots),
   );
+  if (!scoped.length)
+    return waitingConvergenceStage({
+      artifacts: context.storage.artifacts,
+      state,
+      reason: NORMALIZATION_OUTSIDE_DELEGATION,
+      dependency: normalizationScopeGap(state, sorted),
+    });
   let sourceBytes = 0;
   const documentLimit = normalizationDocumentLimit(
     state,
