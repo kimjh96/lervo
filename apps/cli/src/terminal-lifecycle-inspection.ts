@@ -2,7 +2,10 @@ import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { openProjectStorage } from "@lervo/project-storage";
-import { inspectTerminalIntegration } from "@lervo/repository-knowledge";
+import {
+  inspectTerminalIntegration,
+  type KnowledgeMaterializationSettlement,
+} from "@lervo/repository-knowledge";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
@@ -36,6 +39,7 @@ export async function terminalTurnDeclarationRequired(root: string): Promise<boo
 export async function inspectTerminalLifecycle(
   root: string,
   expected?: PreparedTerminalTurnExpectation,
+  materialization?: KnowledgeMaterializationSettlement,
 ): Promise<TerminalLifecycleInspection> {
   // Execution-evidence sources scan the whole event log; only knowledge inspection needs them.
   const currentRepository = await captureTerminalRepositorySnapshot(root);
@@ -186,6 +190,7 @@ export async function inspectTerminalLifecycle(
       root,
       repositoryRevision: currentRepository.revision,
       supplementalSources: await collectLocalKnowledgeSources(root),
+      materialization,
     });
     issues.push(...knowledge.issues);
     knowledgeAdvisories = knowledge.advisories;

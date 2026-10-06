@@ -16,8 +16,9 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { assertNoKnowledgeMaterializationTransaction } from "@lervo/repository-knowledge";
 import { visitEventSnapshot } from "@lervo/storage-contract";
 
+import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { inspectStateRetentionEvidence } from "./state-retention-evidence.js";
-import type { CliIo } from "./types.js";
+import type { CliIo, CliServices } from "./types.js";
 
 export const stateUsage =
   "  lervo state status [--root <path>] [--json]\n  lervo state prune [--apply --approval <plan-id> | --recover <plan-id>] [--root <path>] [--json]\n  lervo state reset [--apply --approval <plan-id>] [--root <path>] [--json]";
@@ -273,7 +274,11 @@ async function plan(repositoryRoot: string, bindContent: boolean): Promise<State
   };
 }
 
-export async function runStateCommand(args: string[], io: CliIo): Promise<number> {
+export async function runStateCommand(
+  args: string[],
+  io: CliIo,
+  services: Pick<CliServices, "knowledgeMaterializationWait"> = {},
+): Promise<number> {
   try {
     const parsed = parseArgs({
       args,
@@ -299,6 +304,12 @@ export async function runStateCommand(args: string[], io: CliIo): Promise<number
       throw new Error("Specify state status, prune, or reset.");
     const action = parsed.positionals[0]!;
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    // Retention and reset classify any remaining marker; a live owner settles first.
+    await foregroundKnowledgeMaterializationSettlement({
+      repositoryRoot,
+      io,
+      timing: services.knowledgeMaterializationWait,
+    }).settle();
     if (action === "prune") {
       if (parsed.values.recover !== undefined && (parsed.values.apply || parsed.values.approval))
         throw new Error("--recover cannot be combined with --apply or --approval.");

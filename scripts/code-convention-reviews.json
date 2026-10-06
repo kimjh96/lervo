@@ -4,7 +4,7 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:bdd5d166b95cdbaf0e6124d1c64109883135cecca7456f9d9094a3c49c4cb867",
+      "contentHash": "sha256:a7bd319825bb83ac668b28047974f848928aaad4841f92abfce0b2f76b8f102e",
       "responsibility": "Knowledge migration plan/apply orchestration",
       "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, terminal integration planning and apply, command error rendering, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
       "disposition": "cohesive"
@@ -207,7 +207,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:879000beea2dd947b20f123387e0c52cb07d27d11d2382869a2e39860536e5d5",
+      "contentHash": "sha256:1d088d7d90ee719274a43af8f2926abb0b0898d71c2540800598d30d3ec93a2d",
       "responsibility": "Deterministic structural knowledge compiler",
       "rationale": "Publication rendering, historical-document grouping, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract; historical marker detection lives in its own module.",
       "disposition": "cohesive"
@@ -242,9 +242,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/durable-apply.ts",
-      "contentHash": "sha256:2f682b49222dc13fd7bc08aaef59e11130947c1034e7dafc6a7504cb5cd321c5",
+      "contentHash": "sha256:c75855ea755a5b4f99b443b3f8de1b9daff2d0c05fa80a8c9de0fe9080355907",
       "responsibility": "Durable knowledge filesystem transaction",
-      "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, read-only owner inspection, and cleanup implement one atomic filesystem transaction protocol. Apply and recovery take the same external source gate through a small wrapper; SQLite mechanics and background retry policy remain in separate modules, and the worker's busy-versus-recovery decision lives in the convergence runtime.",
+      "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, and cleanup implement one atomic filesystem transaction protocol under the external source gate. Journal reading, read-only owner classification, and the foreground wait for a live owner live in separate materialization modules; SQLite mechanics, background retry policy, and the worker's busy-versus-recovery decision stay elsewhere.",
       "disposition": "cohesive"
     },
     {
@@ -256,7 +256,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
-      "contentHash": "sha256:c26896b1328417a11ff4dab54763a5da7016fc3416b93a2c7fca56178b0ab6bc",
+      "contentHash": "sha256:477a401bcae5309a8112e03c5260dbe7c09e55baecd7e1a53566f5b665b5eee4",
       "responsibility": "Repository knowledge lifecycle lint",
       "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars and compose the extracted drift lint.",
       "disposition": "cohesive"
@@ -326,7 +326,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:e0d34ed9aa63c9bdbaaf791a599576a9440664a2e0de30454bbb02caee394232",
+      "contentHash": "sha256:968147f6a57ccb199c9f8c62675dd0b2a233bc25ff73a7d912bba39475f930a3",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, policy, and typed domain failures without owning their implementations. The optional workstream freshness policy field references its owning freshness module rather than redefining it. The optional document freshness policy section references its owning freshness policy module rather than redefining it.",
       "disposition": "cohesive"

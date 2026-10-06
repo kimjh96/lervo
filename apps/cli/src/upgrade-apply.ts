@@ -1,5 +1,6 @@
 import { applyCapabilityMigration, createCapabilityMigrationPlan } from "@lervo/capabilities";
 import { applyWorkforceRoleBindingMigration } from "@lervo/agent-workforce";
+import type { KnowledgeMaterializationSettlement } from "@lervo/repository-knowledge";
 
 import { applyEventWriterStage } from "./event-writer-activation-stage.js";
 import { applyHostResidentService } from "./knowledge-host-service.js";
@@ -10,13 +11,18 @@ import {
 import { applyTerminalIntegrationStage } from "./terminal-integration-stage.js";
 import type { UpgradeReceipt } from "./upgrade-format.js";
 import { applyRegisteredNodeUpgrade, inspectRegisteredNodeUpgrade } from "./upgrade-node.js";
-import { createRepositoryUpgradePlan, type RepositoryUpgradePlan } from "./upgrade-plan.js";
+import {
+  createRepositoryUpgradePlan,
+  knowledgeStageRefusedByMarker,
+  type RepositoryUpgradePlan,
+} from "./upgrade-plan.js";
 import {
   applyKnowledgeStage,
   inspectKnowledge,
   inspectTerminalIntegration,
   inspectWorkforce,
   lintKnowledge,
+  type KnowledgeStage,
   type UpgradeStageBlocker,
 } from "./upgrade-stage-inspection.js";
 import {
@@ -57,10 +63,18 @@ export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pend
     }));
 }
 
-/** Applies an exact, freshly recreated upgrade plan stage by stage in the published order. */
+const knowledgeRefusedByMarker = (stage: KnowledgeStage): boolean =>
+  stage.reason === "knowledge_recovery_required";
+
+/**
+ * Applies an exact, freshly recreated upgrade plan stage by stage in the published order. Every
+ * knowledge step runs through the command's materialization settlement, so background knowledge
+ * work that starts between stages delays the upgrade instead of failing it.
+ */
 export async function applyRepositoryUpgrade(
   approved: RepositoryUpgradePlan,
   roleBindingApprovals: Array<{ operationId: string; approvalHash: string }>,
+  materialization: KnowledgeMaterializationSettlement,
 ): Promise<UpgradeReceipt> {
   const root = approved.repositoryRoot;
   const appliedStages: string[] = [];
@@ -107,9 +121,13 @@ export async function applyRepositoryUpgrade(
   }
 
   for (let index = 0; index < approved.policy.maximumKnowledgeStages; index += 1) {
-    const stage = await inspectKnowledge(root);
+    // A marker refusal happens before any write, so inspecting and applying again is safe.
+    const stage = await materialization.run(async () => {
+      const inspected = await inspectKnowledge(root);
+      if (inspected.disposition === "safe_apply") await applyKnowledgeStage(root, inspected);
+      return inspected;
+    }, knowledgeRefusedByMarker);
     if (stage.disposition !== "safe_apply") break;
-    await applyKnowledgeStage(root, stage);
     appliedStages.push(stage.planKind);
     if (index === approved.policy.maximumKnowledgeStages - 1)
       throw new Error(
@@ -117,14 +135,17 @@ export async function applyRepositoryUpgrade(
       );
   }
 
-  const postKnowledge = await inspectKnowledge(root);
+  const postKnowledge = await materialization.run(
+    () => inspectKnowledge(root),
+    knowledgeRefusedByMarker,
+  );
   let lint: UpgradeReceipt["knowledgeLint"] = null;
   const nodeDeferral = deferringPrerequisite("node", { knowledge: postKnowledge.disposition });
   if (nodeDeferral !== null) {
     skippedStages.push({ stage: "knowledge_lint", reason: deferralReason(nodeDeferral) });
     skippedStages.push({ stage: "node", reason: deferralReason(nodeDeferral) });
   } else {
-    lint = await lintKnowledge(root);
+    lint = await materialization.run(() => lintKnowledge(root));
     const node = await inspectRegisteredNodeUpgrade(root, approved.projectId, approved.cli.version);
     if (node.stage.disposition === "safe_apply") {
       await applyRegisteredNodeUpgrade(node);
@@ -162,7 +183,10 @@ export async function applyRepositoryUpgrade(
   )
     appliedStages.push("replica_service");
 
-  const final = await createRepositoryUpgradePlan(root);
+  const final = await materialization.run(
+    () => createRepositoryUpgradePlan(root),
+    knowledgeStageRefusedByMarker,
+  );
   return {
     schemaVersion: 1,
     operation: "repository_upgrade",

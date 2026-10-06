@@ -30,6 +30,7 @@ import { readPreparedRepositorySnapshot } from "./terminal-prepared-snapshot.js"
 import { resolveTerminalRepositoryRoot } from "./terminal-repository-root.js";
 import { terminalDeliberationDeclarationMatches } from "./terminal-turn-observation.js";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
+import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import type { CliIo } from "./types.js";
 
 type TerminalTurnDeclarationDraft = Pick<
@@ -206,6 +207,10 @@ export async function runTerminalDeclareCommand(args: string[], io: CliIo): Prom
           root,
           repositoryRevision: repository.revision,
           supplementalSources,
+          materialization: foregroundKnowledgeMaterializationSettlement({
+            repositoryRoot: root,
+            io,
+          }),
         })
       : [];
     if (

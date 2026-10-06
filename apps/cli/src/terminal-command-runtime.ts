@@ -5,6 +5,7 @@ import { createTerminalCoverageReport } from "@lervo/diagnostics";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { RepositoryKnowledgeError } from "@lervo/repository-knowledge";
 
+import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { formatTerminalCoverageReport } from "./terminal-coverage-format.js";
 import { runTerminalBudgetCommand } from "./terminal-budget-command.js";
 import { terminalUsage } from "./terminal-command-usage.js";
@@ -84,7 +85,11 @@ export async function runTerminalCommand(
     }
     try {
       const root = await resolveTerminalRepositoryRoot(resolve(io.cwd, parsed.values.root ?? "."));
-      const result = await inspectTerminalLifecycle(root);
+      const result = await inspectTerminalLifecycle(
+        root,
+        undefined,
+        foregroundKnowledgeMaterializationSettlement({ repositoryRoot: root, io }),
+      );
       io.stdout(
         parsed.values.json
           ? `${JSON.stringify(result, null, 2)}\n`

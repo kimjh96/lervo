@@ -12,9 +12,11 @@ import {
   assertNoKnowledgeMaterializationTransaction,
   RepositoryKnowledgeError,
   scanConfiguredRepositoryKnowledge,
+  type KnowledgeMaterializationSettlement,
   type RepositoryKnowledgeScan,
   type RepositorySupplementalSource,
 } from "@lervo/repository-knowledge";
+import { terminalHookKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { documentRouteDeferralAdvisories } from "./document-route-deferral-attention.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 
@@ -236,22 +238,28 @@ async function inspectValidationLifecycle(input: {
   return { issues: lintIssues, advisories };
 }
 
-/** Lifecycle gates only; drift advisories never block a turn, declaration, or checkpoint. */
-export async function inspectTerminalRepositoryKnowledgeLifecycle(input: {
+interface TerminalRepositoryKnowledgeInput {
   root: string;
   repositoryRevision: string;
   supplementalSources: RepositorySupplementalSource[];
-}): Promise<LifecycleIssue[]> {
+  /** Defaults to the hook-bounded wait; foreground commands pass their own settlement. */
+  materialization?: KnowledgeMaterializationSettlement | undefined;
+}
+
+/** Lifecycle gates only; drift advisories never block a turn, declaration, or checkpoint. */
+export async function inspectTerminalRepositoryKnowledgeLifecycle(
+  input: TerminalRepositoryKnowledgeInput,
+): Promise<LifecycleIssue[]> {
   return (await inspectTerminalRepositoryKnowledge(input)).issues;
 }
 
 /** Lifecycle gates plus bounded, agent-owned document drift advisories for attention. */
-export async function inspectTerminalRepositoryKnowledge(input: {
-  root: string;
-  repositoryRevision: string;
-  supplementalSources: RepositorySupplementalSource[];
-}): Promise<TerminalKnowledgeLifecycleCacheEntry> {
-  await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: input.root });
+export async function inspectTerminalRepositoryKnowledge(
+  input: TerminalRepositoryKnowledgeInput,
+): Promise<TerminalKnowledgeLifecycleCacheEntry> {
+  await (input.materialization ?? terminalHookKnowledgeMaterializationSettlement(input.root)).run(
+    () => assertNoKnowledgeMaterializationTransaction({ repositoryRoot: input.root }),
+  );
   const cached = await readTerminalKnowledgeLifecycleCacheEntry(input);
   if (cached !== null) return cached;
   const preparedScan = await scanConfiguredRepositoryKnowledge(input.root, {

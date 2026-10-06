@@ -149,7 +149,7 @@ export async function runCli(
     return runVersionCommand(args.slice(1), io);
   }
   if (command === "init") return runInitCommand(args.slice(1), io);
-  if (command === "upgrade") return runUpgradeCommand(args.slice(1), io);
+  if (command === "upgrade") return runUpgradeCommand(args.slice(1), io, services);
   if (command === "migrate") return runMigrateCommand(args.slice(1), io);
   if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io, services);
   if (command === "application") return runApplicationCommand(args.slice(1), io, services);
@@ -159,7 +159,7 @@ export async function runCli(
   if (command === "deliberate") return runDeliberateCommand(args.slice(1), io, services);
   if (command === "trace") return runTraceCommand(args.slice(1), io, services);
   if (command === "search") return runSearchCommand(args.slice(1), io);
-  if (command === "state") return runStateCommand(args.slice(1), io);
+  if (command === "state") return runStateCommand(args.slice(1), io, services);
   if (command === "doctor") return runDoctorCommand(args.slice(1), io, services);
   if (command === "capability") return runCapabilityCommand(args.slice(1), io);
   if (command === "environment") return runEnvironmentCommand(args.slice(1), io, services);

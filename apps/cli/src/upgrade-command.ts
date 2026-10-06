@@ -2,10 +2,11 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { writeCommandError } from "./command-error-output.js";
-import type { CliIo } from "./types.js";
+import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
+import type { CliIo, CliServices } from "./types.js";
 import { applyRepositoryUpgrade } from "./upgrade-apply.js";
 import { formatUpgradePlan, formatUpgradeReceipt } from "./upgrade-format.js";
-import { createRepositoryUpgradePlan } from "./upgrade-plan.js";
+import { createRepositoryUpgradePlan, knowledgeStageRefusedByMarker } from "./upgrade-plan.js";
 
 export type { RepositoryUpgradePlan } from "./upgrade-plan.js";
 
@@ -23,7 +24,11 @@ function parseRoleBindingApprovals(
   });
 }
 
-export async function runUpgradeCommand(args: string[], io: CliIo): Promise<number> {
+export async function runUpgradeCommand(
+  args: string[],
+  io: CliIo,
+  services: Pick<CliServices, "knowledgeMaterializationWait"> = {},
+): Promise<number> {
   let values: {
     root?: string;
     apply?: boolean;
@@ -65,7 +70,15 @@ export async function runUpgradeCommand(args: string[], io: CliIo): Promise<numb
   const root = resolve(io.cwd, values.root ?? ".");
   try {
     const roleBindingApprovals = parseRoleBindingApprovals(values["approve-role-binding"]);
-    const initial = await createRepositoryUpgradePlan(root);
+    const materialization = foregroundKnowledgeMaterializationSettlement({
+      repositoryRoot: root,
+      io,
+      timing: services.knowledgeMaterializationWait,
+    });
+    const initial = await materialization.run(
+      () => createRepositoryUpgradePlan(root),
+      knowledgeStageRefusedByMarker,
+    );
     if (!values.apply) {
       io.stdout(values.json ? `${JSON.stringify(initial, null, 2)}\n` : formatUpgradePlan(initial));
       return initial.status === "blocked" ? 1 : 0;
@@ -86,7 +99,7 @@ export async function runUpgradeCommand(args: string[], io: CliIo): Promise<numb
       )
         throw new Error("A workforce role-binding approval is not in the approved upgrade plan.");
     }
-    const receipt = await applyRepositoryUpgrade(initial, roleBindingApprovals);
+    const receipt = await applyRepositoryUpgrade(initial, roleBindingApprovals, materialization);
     io.stdout(
       values.json ? `${JSON.stringify(receipt, null, 2)}\n` : formatUpgradeReceipt(receipt),
     );

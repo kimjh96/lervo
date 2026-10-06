@@ -24,7 +24,7 @@ import type {
   RepositoryEntrypointDisposition,
 } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
-import { assertNoKnowledgeMaterializationTransaction } from "./durable-apply.js";
+import { assertNoKnowledgeMaterializationTransaction } from "./materialization-owner.js";
 import { summarizeRepositoryAgentArtifacts } from "./agent-artifact-summary.js";
 import {
   repositoryPublicationMessages,

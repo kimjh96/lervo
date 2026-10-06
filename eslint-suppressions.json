@@ -411,7 +411,7 @@
   },
   "packages/repository-knowledge/src/durable-apply.ts": {
     "lervo/require-caught-error-cause": {
-      "count": 6
+      "count": 4
     }
   },
   "packages/repository-knowledge/src/durable-instruction-candidate-store.ts": {

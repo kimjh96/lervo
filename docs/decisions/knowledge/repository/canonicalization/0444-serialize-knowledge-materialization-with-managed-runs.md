@@ -2,6 +2,7 @@
 
 Status: accepted
 Decision date: 2026-09-29
+Amended by: [ADR-0483](../../../operations/services/0483-wait-for-live-knowledge-materialization-in-foreground-commands.md) (foreground commands wait for a live owner)
 
 ## Context
 

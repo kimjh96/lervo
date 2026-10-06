@@ -141,6 +141,16 @@ async function eventWriterStage(
   };
 }
 
+/**
+ * A knowledge stage blocked only because a materialization marker existed. The foreground
+ * settlement waits for a live owner and plans again; an interrupted marker refuses before this.
+ */
+export function knowledgeStageRefusedByMarker(
+  plan: Pick<RepositoryUpgradePlan, "stages">,
+): boolean {
+  return plan.stages.knowledge.reason === "knowledge_recovery_required";
+}
+
 export async function createRepositoryUpgradePlan(root: string): Promise<RepositoryUpgradePlan> {
   const repositoryRoot = await realpath(resolve(root));
   const project = await loadProjectManifest(repositoryRoot);

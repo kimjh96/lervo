@@ -6,7 +6,7 @@ import { createKnowledgeMigrationPlan, scanConfiguredRepositoryKnowledge } from 
 import { createRepositoryLayoutMigrationPlan } from "./repository-layout-migration.js";
 import { lintRepositoryKnowledge } from "./lint-query.js";
 import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
-import { assertNoKnowledgeMaterializationTransaction } from "./durable-apply.js";
+import { assertNoKnowledgeMaterializationTransaction } from "./materialization-owner.js";
 import { listCanonicalizationCandidates } from "./canonicalization-candidate-record.js";
 import type { RepositoryKnowledgePreparedScanOptions } from "./types.js";
 

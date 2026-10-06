@@ -23,6 +23,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
+import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
 import {
   applyTerminalIntegrationStage,
@@ -120,6 +121,7 @@ export async function runKnowledgeMigration(input: {
     const repositoryRoot = resolve(input.io.cwd, values.root ?? ".");
     if (values.rebuild === true && input.mode !== "refresh")
       throw new Error("--rebuild is supported only by lervo knowledge refresh.");
+    await foregroundKnowledgeMaterializationSettlement({ repositoryRoot, io: input.io }).settle();
     const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
     if (input.mode === "migrate") {
       const projectStorage = await openProjectStorage(repositoryRoot);
