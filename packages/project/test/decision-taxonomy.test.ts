@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { decisionTaxonomyIssues } from "../src/decision-taxonomy-validation.js";
 import {
   DecisionTaxonomyContractError,
+  decisionTaxonomyRequiresUpgrade,
   defaultDecisionTaxonomy,
   loadDecisionTaxonomy,
   validateDecisionTaxonomy,
@@ -63,13 +64,13 @@ describe("decision taxonomy validation", () => {
     const taxonomy = structuredClone(defaultDecisionTaxonomy);
     const role = taxonomy.documentPolicy.roles[1]!;
     (role as { cardinality: string }).cardinality = "many";
-    taxonomy.routes[0]!.titleTerms.push("Security");
+    taxonomy.routes[0]!.description = " padded ";
     taxonomy.documentPolicy.rewrite.maxRewriters = 99;
     expect(decisionTaxonomyIssues(taxonomy)).toEqual([
       {
-        pointer: "/routes/0/titleTerms/6",
-        rule: "unique",
-        message: "/routes/0/titleTerms/6 duplicates an earlier title term.",
+        pointer: "/routes/0/description",
+        rule: "route_description",
+        message: "/routes/0/description must be a trimmed prose scope of 8 to 512 characters.",
       },
       {
         pointer: "/documentPolicy/roles/1/cardinality",
@@ -119,5 +120,48 @@ describe("decision taxonomy validation", () => {
     expect(error.message).toContain("(2 issue(s))");
     expect(error.message).toContain("[required] /documentPolicy/rewrite is required.");
     expect(error.message).toContain("[required] /routes is required.");
+  });
+
+  it("reads legacy title terms only as a route's prose scope", () => {
+    const legacy = {
+      ...structuredClone(defaultDecisionTaxonomy),
+      routes: [
+        {
+          id: "platform.api",
+          path: "platform/api",
+          priority: 10,
+          minimumTitleTermMatches: 1,
+          titleTerms: ["public api", "compatibility"],
+        },
+      ],
+    };
+
+    expect(decisionTaxonomyIssues(legacy)).toEqual([]);
+    expect(decisionTaxonomyRequiresUpgrade(legacy)).toBe(true);
+    const current = validateDecisionTaxonomy(legacy);
+    expect(current.routes).toEqual([
+      {
+        id: "platform.api",
+        path: "platform/api",
+        priority: 10,
+        description: "Scope carried from the legacy title terms: public api; compatibility.",
+      },
+    ]);
+    expect(decisionTaxonomyRequiresUpgrade(current)).toBe(false);
+  });
+
+  it("requires a route description once title terms are gone", () => {
+    const taxonomy = structuredClone(defaultDecisionTaxonomy) as unknown as {
+      routes: Array<Record<string, unknown>>;
+    };
+    delete taxonomy.routes[0]!.description;
+
+    expect(decisionTaxonomyIssues(taxonomy)).toEqual([
+      {
+        pointer: "/routes/0/description",
+        rule: "required",
+        message: "/routes/0/description is required.",
+      },
+    ]);
   });
 });

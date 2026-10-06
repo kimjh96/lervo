@@ -34,6 +34,20 @@ export * from "./development-pattern-rollback.js";
 export * from "./development-pattern.js";
 export * from "./document-layout-enforcement.js";
 export * from "./document-layout.js";
+export type { ApplicationContentEvidence } from "./application-content-evidence.js";
+export * from "./document-route-classification-contract.js";
+export * from "./document-route-classification-store.js";
+export type {
+  DeferredDocumentRoute,
+  DocumentRouteBasis,
+  DocumentRouteDeferralReason,
+  RetainedDocumentPlacement,
+  SemanticRouteEvidence,
+} from "./document-route-resolution.js";
+export type {
+  RepositoryLayoutDeferredDocument,
+  RepositoryLayoutRetainedDocument,
+} from "./repository-layout-candidates.js";
 export * from "./document-normalization-observation.js";
 export * from "./document-normalization-workset.js";
 export * from "./document-normalization.js";

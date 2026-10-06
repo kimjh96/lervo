@@ -9,6 +9,7 @@ import {
   applyTerminalIntegrationStage,
   planTerminalIntegrationStage,
 } from "../src/terminal-integration-stage.js";
+import { inspectTerminalRepositoryKnowledge } from "../src/terminal-knowledge-lifecycle-inspection.js";
 import { loadTerminalHookRuntime } from "../src/terminal-runtime.js";
 
 const roots: string[] = [];
@@ -46,13 +47,20 @@ async function repositoryWithInstalledTerminalHooks(): Promise<string> {
 }
 
 describe("lervo upgrade with a blocked stage", () => {
-  it("regenerates the terminal runtime while knowledge stays blocked by unclassified documents", async () => {
+  it("regenerates the terminal runtime while knowledge stays blocked by invalid document metadata", async () => {
     const root = await repositoryWithInstalledTerminalHooks();
     await writeFile(resolve(root, runtimePath), "#!/usr/bin/env node\n// stale runtime\n");
     await mkdir(resolve(root, "v3"), { recursive: true });
     await mkdir(resolve(root, "v4"), { recursive: true });
-    await writeFile(resolve(root, "v3/REQUIREMENTS.md"), "# Requirements\n\nVersion three.\n");
-    await writeFile(resolve(root, "v4/DESIGN.md"), "# Design\n\nVersion four.\n");
+    const invalidMetadata = ["---", "lervo:", "  document: invalid", "---"].join("\n");
+    await writeFile(
+      resolve(root, "v3/REQUIREMENTS.md"),
+      `${invalidMetadata}\n# Requirements\n\nVersion three.\n`,
+    );
+    await writeFile(
+      resolve(root, "v4/DESIGN.md"),
+      `${invalidMetadata}\n# Design\n\nVersion four.\n`,
+    );
     const requirements = await readFile(resolve(root, "v3/REQUIREMENTS.md"), "utf8");
 
     const output: string[] = [];
@@ -79,14 +87,16 @@ describe("lervo upgrade with a blocked stage", () => {
     expect(plan.stages.knowledge.disposition).toBe("blocked");
     expect(plan.stages.knowledge.blockers).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ code: "unclassified_document", path: "v3/REQUIREMENTS.md" }),
-        expect.objectContaining({ code: "unclassified_document", path: "v4/DESIGN.md" }),
+        expect.objectContaining({ code: "invalid_document_metadata", path: "v3/REQUIREMENTS.md" }),
+        expect.objectContaining({ code: "invalid_document_metadata", path: "v4/DESIGN.md" }),
       ]),
     );
 
     const humanOutput: string[] = [];
     expect(await runCli(["upgrade"], io(root, humanOutput, errors))).toBe(1);
-    expect(humanOutput.join("")).toContain("blocker [unclassified_document] v3/REQUIREMENTS.md");
+    expect(humanOutput.join("")).toContain(
+      "blocker [invalid_document_metadata] v3/REQUIREMENTS.md",
+    );
     expect(humanOutput.join("")).toContain(
       `Independent stages can still apply (terminal_integration): re-run with --apply --approval ${plan.planId}.`,
     );
@@ -118,7 +128,7 @@ describe("lervo upgrade with a blocked stage", () => {
         stage: "knowledge",
         disposition: "blocked",
         blockers: expect.arrayContaining([
-          expect.objectContaining({ code: "unclassified_document" }),
+          expect.objectContaining({ code: "invalid_document_metadata" }),
         ]),
       }),
     );
@@ -147,5 +157,67 @@ describe("lervo upgrade with a blocked stage", () => {
       status: "failed",
       error: { message: expect.stringContaining("no independent stage to apply") },
     });
+  }, 30_000);
+
+  it("keeps the knowledge stage unblocked by application content and unmatched titles", async () => {
+    const root = await repositoryWithInstalledTerminalHooks();
+    const data = "apps/web/app/[lang]/docs/_data";
+    await mkdir(resolve(root, `${data}/writing-guide`), { recursive: true });
+    await mkdir(resolve(root, "misc"), { recursive: true });
+    await writeFile(resolve(root, "apps/web/package.json"), '{ "name": "web" }\n');
+    await writeFile(
+      resolve(root, "apps/web/app/[lang]/docs/page.tsx"),
+      'export const guides = join(process.cwd(), "app", "[lang]", "docs", "_data");\n',
+    );
+    for (const path of [
+      `${data}/writing-guide.md`,
+      `${data}/writing-guide/korean.md`,
+      `${data}/sentences.md`,
+      `${data}/vocabulary.md`,
+    ])
+      await writeFile(resolve(root, path), "# Guide\n\nRendered by the web app.\n");
+    await writeFile(resolve(root, "misc/purple-zebra.md"), "# Purple zebra quorum\n\nNotes.\n");
+
+    const output: string[] = [];
+    const errors: string[] = [];
+    await runCli(["upgrade", "--json"], io(root, output, errors));
+    expect(errors).toEqual([]);
+    const plan = JSON.parse(output.splice(0).join("")) as {
+      stages: {
+        knowledge: {
+          disposition: string;
+          blockers: unknown[];
+          deferredDocuments?: Array<{ path: string; reason: string; subject: string }>;
+        };
+      };
+    };
+    expect(plan.stages.knowledge.disposition).not.toBe("blocked");
+    expect(plan.stages.knowledge.blockers).toEqual([]);
+    expect(plan.stages.knowledge.deferredDocuments).toEqual([
+      {
+        path: "misc/purple-zebra.md",
+        reason: "semantic_classification_pending",
+        subject: "document",
+      },
+    ]);
+
+    const humanOutput: string[] = [];
+    await runCli(["upgrade"], io(root, humanOutput, errors));
+    expect(humanOutput.join("")).toContain(
+      "deferred [semantic_classification_pending] misc/purple-zebra.md",
+    );
+    expect(humanOutput.join("")).not.toContain(data);
+
+    const knowledge = await inspectTerminalRepositoryKnowledge({
+      root,
+      repositoryRevision: "unrecorded",
+      supplementalSources: [],
+    });
+    expect(knowledge.advisories).toContainEqual({
+      code: "document_route_classification_deferred",
+      detail: "misc/purple-zebra.md: semantic_classification_pending",
+      command: expect.stringContaining("lervo.document.route"),
+    });
+    expect(knowledge.issues.map((issue) => issue.code)).not.toContain("repository_layout_blocked");
   }, 30_000);
 });

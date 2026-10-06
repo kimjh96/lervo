@@ -1,3 +1,4 @@
+import { documentRouteDeferralLines } from "./document-route-deferral-attention.js";
 import type { RepositoryUpgradePlan } from "./upgrade-plan.js";
 import type { UpgradeStageBlocker } from "./upgrade-stage-inspection.js";
 import type { StageDisposition, UpgradeStageName } from "./upgrade-stage-policy.js";
@@ -46,6 +47,7 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
         : ` · ${plan.stages.knowledge.backgroundDebt.pendingDocuments} pending document(s) owned by the background resident through its ${plan.stages.knowledge.backgroundDebt.owner === "delegation" ? "delegation" : "host continuity policy"}`
     }`,
     ...blockerLines(plan.stages.knowledge.blockers, "  "),
+    ...documentRouteDeferralLines(plan.stages.knowledge.deferredDocuments ?? [], "  "),
     `repository Node: ${plan.stages.node.disposition} (${plan.stages.node.reason})`,
     `event writer: ${plan.stages.eventWriter.disposition} (${plan.stages.eventWriter.reason}) · schema ${plan.stages.eventWriter.currentSchemaVersion} → ${plan.stages.eventWriter.targetSchemaVersion}`,
     ...blockerLines(plan.stages.eventWriter.blockers, "  "),

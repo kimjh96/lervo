@@ -7,7 +7,7 @@ As of: 2026-08-30
 
 A bounded scanner discovers sources without assuming folder structure. Adapters extract stable file, section, key, symbol, revision, verification, event, and skill-contract units. A deterministic structural compiler builds a bounded knowledge map and sidecars. Isolated, capability-free Codex or Claude compilers may produce source-cited semantic or normalization candidates.
 
-Human documentation remains under `docs/`, including `docs/knowledge`; `.lervo` contains policy, provenance, manifests, and rebuildable state. `.lervo/knowledge/document-layout.yaml` routes decisions, documents, and canonical instructions; unknown or tied classifications fail closed. Provider-neutral behavior belongs in `docs/instructions/<route>`, portable Agent Skills in `.agents/skills`, and machine registries use deterministic two-hex fan-out while retaining legacy flat-path reads. `foundation` is never an implicit fallback.
+Human documentation remains under `docs/`, including `docs/knowledge`; `.lervo` contains policy, provenance, manifests, and rebuildable state. `.lervo/knowledge/document-layout.yaml` routes decisions, documents, and canonical instructions through explicit metadata or recorded semantic classification, never title keywords; an unclassified document defers to the background resident instead of blocking, and Markdown that its own workspace package consumes is never moved. Provider-neutral behavior belongs in `docs/instructions/<route>`, portable Agent Skills in `.agents/skills`, and machine registries use deterministic two-hex fan-out while retaining legacy flat-path reads. `foundation` is never an implicit fallback.
 
 Normalization produces bounded English Markdown for an audience profile with complete source-section coverage. Every source requires exact approval. Content-bound shard caches and a three-process ceiling keep runs bounded and resumable without weakening compiler-build or source binding. Planning revalidates inner bindings and the complete current source set. Lifecycle sidecars bind output hashes, format and language versions, compiler build, and skill-resource hashes. Changed documents or skills become stale without automatic rewriting.
 
@@ -30,6 +30,7 @@ README is a byte-preserved, normalization-independent public entrypoint by defau
 - [Agent surface inventory](../decisions/knowledge/repository/0189-typed-repository-agent-surface-inventory.md)
 - [Bounded publication](../decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md)
 - [Decision taxonomy](../decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md)
+- [Semantic document routing](../decisions/knowledge/documents/0476-route-legacy-documents-semantically-and-never-migrate-application-content.md)
 - [Document normalization](../decisions/knowledge/repository/0195-reviewed-document-content-normalization.md)
 - [Sharded documents](../decisions/knowledge/documents/0017-sharded-document-manifests.md)
 - [Existing document adoption](../decisions/knowledge/documents/0018-existing-document-adoption.md)

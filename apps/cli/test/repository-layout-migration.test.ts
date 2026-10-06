@@ -2,8 +2,10 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { createRepositoryLayoutMigrationPlan } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { formatRepositoryLayoutMigrationPlan } from "../src/knowledge-migration-format.js";
 import { runCli } from "../src/main.js";
 
 const roots: string[] = [];
@@ -125,11 +127,8 @@ describe("repository layout migration CLI", () => {
   it("completes plan, approved apply, lint, and idempotent rerun through migrate knowledge", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-layout-migration-"));
     roots.push(root);
-    await writeFile(resolve(root, "README.md"), "# Example\n\nSee PROJECT_ARCHITECTURE.md.\n");
-    await writeFile(
-      resolve(root, "PROJECT_ARCHITECTURE.md"),
-      "# Architecture\n\nRuntime design.\n",
-    );
+    await writeFile(resolve(root, "README.md"), "# Example\n\nSee ARCHITECTURE.md.\n");
+    await writeFile(resolve(root, "ARCHITECTURE.md"), "# Architecture\n\nRuntime design.\n");
     const messages: string[] = [];
     const errors: string[] = [];
     const io = {
@@ -157,7 +156,7 @@ describe("repository layout migration CLI", () => {
       movedCount: 1,
       referenceUpdatedCount: 1,
     });
-    await expect(access(resolve(root, "PROJECT_ARCHITECTURE.md"))).rejects.toMatchObject({
+    await expect(access(resolve(root, "ARCHITECTURE.md"))).rejects.toMatchObject({
       code: "ENOENT",
     });
     expect(await readFile(resolve(root, "README.md"), "utf8")).toContain(
@@ -267,8 +266,8 @@ describe("repository layout migration CLI", () => {
     expect(errors).toEqual([]);
   }, 25_000);
 
-  it("reports an actionable blocked plan for an unclassified ADR", async () => {
-    const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-layout-blocked-"));
+  it("reports an unclassified ADR as a deferred document instead of a blocker", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-layout-deferred-"));
     roots.push(root);
     const messages: string[] = [];
     const errors: string[] = [];
@@ -283,18 +282,28 @@ describe("repository layout migration CLI", () => {
       resolve(root, "docs/adr/0001-zebra.md"),
       "# ADR-0001: Purple zebra quorum\n\nDecision.\n",
     );
-    messages.length = 0;
-
-    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(1);
-    const plan = JSON.parse(messages.join("")) as {
-      status: string;
-      moves: unknown[];
-      blockers: Array<{ code: string; path: string }>;
-    };
-    expect(plan).toMatchObject({ status: "blocked", moves: [] });
-    expect(plan.blockers).toContainEqual(
-      expect.objectContaining({ code: "unclassified_decision", path: "docs/adr/0001-zebra.md" }),
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    expect(plan.status).not.toBe("blocked");
+    expect(plan.blockers).toEqual([]);
+    expect(plan.moves).toEqual([]);
+    expect(plan.deferredDocuments).toEqual([
+      expect.objectContaining({
+        subject: "decision",
+        path: "docs/adr/0001-zebra.md",
+        reason: "semantic_classification_pending",
+      }),
+    ]);
+    expect(formatRepositoryLayoutMigrationPlan(plan)).toContain(
+      "deferred [semantic_classification_pending] docs/adr/0001-zebra.md",
     );
+    messages.length = 0;
+    expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      valid: true,
+      issues: expect.arrayContaining([
+        expect.objectContaining({ code: "ungrouped_decision_document", severity: "warning" }),
+      ]),
+    });
     expect(errors).toEqual([]);
   });
 });

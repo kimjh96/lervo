@@ -1,13 +1,27 @@
 import { basename, posix } from "node:path";
 
 import type { DecisionTaxonomy, DecisionTaxonomyRoute } from "@lervo/project";
-import { parse } from "yaml";
+
+import {
+  declaredLegacyAliasRole,
+  placeableDocumentRole,
+  type PlaceableDocumentRole,
+} from "./document-role-catalog.js";
+export { repositoryInstructionPaths } from "./document-front-matter.js";
+import { explicitDocumentPlacement, repositoryInstructionPaths } from "./document-front-matter.js";
+import { sha256 } from "./integrity.js";
+import {
+  noDocumentRouteEvidence,
+  recordedSemanticRoute,
+  type DeferredDocumentRoute,
+  type DocumentRouteBasis,
+  type DocumentRouteEvidence,
+  type RetainedDocumentPlacement,
+  type SemanticRouteEvidence,
+} from "./document-route-resolution.js";
 
 export type DocumentLayoutBlockerCode =
-  | "ambiguous_document_route"
-  | "invalid_document_metadata"
-  | "unclassified_document"
-  | "unknown_document_route";
+  "invalid_document_metadata" | "unknown_document_role" | "unknown_document_route";
 
 export interface DocumentLayoutBlocker {
   code: DocumentLayoutBlockerCode;
@@ -21,13 +35,25 @@ export interface ClassifiedDocumentDestination {
   routePath: string;
   group: string;
   subgroup?: string;
-  classificationBasis: "explicit_metadata" | "title_terms";
-  matchedTitleTerms: string[];
+  classificationBasis: DocumentRouteBasis;
+  /** Present exactly when the basis is `semantic_provider`. */
+  semanticClassification?: SemanticRouteEvidence;
+}
+
+/** A document that fills a repository document role, such as the product vision. */
+export interface DocumentRolePlacement {
+  toPath: string;
+  roleId: string;
+  classificationBasis: DocumentRouteBasis;
+  /** Present exactly when the basis is `semantic_provider`. */
+  semanticClassification?: SemanticRouteEvidence;
 }
 
 export type RepositoryDocumentClassification =
-  | { kind: "not_migration_candidate" }
+  | { kind: "not_migration_candidate"; retained?: RetainedDocumentPlacement }
+  | { kind: "role_placed"; placement: DocumentRolePlacement }
   | { kind: "blocked"; blocker: DocumentLayoutBlocker }
+  | { kind: "deferred"; deferral: DeferredDocumentRoute }
   | { kind: "classified"; destination: ClassifiedDocumentDestination };
 
 export interface RepositoryInstructionRoute {
@@ -60,23 +86,13 @@ const RESERVED_DOCUMENT_TREES = [
 
 const BYTE_PRESERVED_DOCUMENT_TREES = new Set(["archive", "inherited"]);
 
-function normalizedWords(value: string): string {
-  return value
-    .normalize("NFKC")
-    .toLocaleLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim()
-    .replace(/\s+/gu, " ");
-}
-
-function containsTerm(value: string, term: string): boolean {
-  const normalizedValue = ` ${normalizedWords(value)} `;
-  const normalizedTerm = normalizedWords(term);
-  return normalizedTerm.length > 0 && normalizedValue.includes(` ${normalizedTerm} `);
-}
-
 function documentRoot(taxonomy: DecisionTaxonomy): string {
   return posix.dirname(taxonomy.decisionRoot);
+}
+
+/** The repository documentation root the reviewed layout declares, such as `docs`. */
+export function repositoryDocumentationRoot(taxonomy: DecisionTaxonomy): string {
+  return documentRoot(taxonomy);
 }
 
 function preservedRolePath(path: string, taxonomy: DecisionTaxonomy): boolean {
@@ -97,7 +113,11 @@ function alreadyCanonical(path: string, taxonomy: DecisionTaxonomy): boolean {
   return RESERVED_DOCUMENT_TREES.some((tree) => path.startsWith(`${root}/${tree}/`));
 }
 
-function migrationCandidate(path: string, taxonomy: DecisionTaxonomy): boolean {
+/**
+ * Structural candidacy from the reviewed layout: canonical trees, declared roles, local
+ * entrypoints, and provider surfaces are never legacy documents. Content evidence is separate.
+ */
+export function structuralMigrationCandidate(path: string, taxonomy: DecisionTaxonomy): boolean {
   if (!/\.mdx?$/iu.test(path)) return false;
   // Reviewed normalization creates bounded sibling topic families beside a
   // package README. They inherit that local entrypoint's placement instead of
@@ -119,252 +139,205 @@ function migrationCandidate(path: string, taxonomy: DecisionTaxonomy): boolean {
   return !alreadyCanonical(path, taxonomy);
 }
 
-function explicitRoute(
-  content: string,
-):
-  | { state: "absent" }
-  | { state: "invalid" }
-  | { state: "present"; routeId: string; filename?: string } {
-  if (!content.startsWith("---\n") && !content.startsWith("---\r\n")) return { state: "absent" };
-  const boundary = /\r?\n---\r?\n/gu;
-  boundary.lastIndex = content.indexOf("\n") + 1;
-  const match = boundary.exec(content);
-  if (match === null || match.index > 8192) return { state: "absent" };
-  let value: unknown;
-  try {
-    value = parse(content.slice(content.indexOf("\n") + 1, match.index));
-  } catch {
-    return { state: "invalid" };
-  }
-  const document = (value as { lervo?: { document?: unknown } } | null)?.lervo?.document as
-    { route?: unknown } | undefined;
-  if (document === undefined) return { state: "absent" };
-  if (document === null || typeof document !== "object" || typeof document.route !== "string")
-    return { state: "invalid" };
-  const filename = (document as { filename?: unknown }).filename;
-  if (
-    filename !== undefined &&
-    (typeof filename !== "string" || !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.mdx?$/u.test(filename))
-  )
-    return { state: "invalid" };
+function destination(
+  toDirectory: string,
+  filename: string,
+  route: DecisionTaxonomyRoute,
+  basis: { kind: "explicit_metadata" } | { kind: "semantic"; evidence: SemanticRouteEvidence },
+): ClassifiedDocumentDestination {
+  const [group, ...subgroupParts] = route.path.split("/");
   return {
-    state: "present",
-    routeId: document.route,
-    ...(filename === undefined ? {} : { filename }),
+    toPath: `${toDirectory}/${route.path}/${filename}`,
+    routeId: route.id,
+    routePath: route.path,
+    group: group!,
+    ...(subgroupParts.length === 0 ? {} : { subgroup: subgroupParts.join("/") }),
+    ...(basis.kind === "explicit_metadata"
+      ? { classificationBasis: "explicit_metadata" as const }
+      : {
+          classificationBasis: "semantic_provider" as const,
+          semanticClassification: basis.evidence,
+        }),
   };
 }
 
-function inferredRoute(
-  value: string,
+type PlacementBasis =
+  | { kind: "explicit_metadata" }
+  | { kind: "reviewed_layout_alias" }
+  | { kind: "semantic"; evidence: SemanticRouteEvidence };
+
+function rolePlacement(role: PlaceableDocumentRole, basis: PlacementBasis): DocumentRolePlacement {
+  return {
+    toPath: role.path,
+    roleId: role.roleId,
+    ...(basis.kind === "semantic"
+      ? {
+          classificationBasis: "semantic_provider" as const,
+          semanticClassification: basis.evidence,
+        }
+      : { classificationBasis: basis.kind }),
+  };
+}
+
+type RoutedDocument =
+  | { kind: "blocked"; blocker: DocumentLayoutBlocker }
+  | { kind: "role"; role: PlaceableDocumentRole; basis: PlacementBasis }
+  | { kind: "deferred"; deferral: DeferredDocumentRoute }
+  | { kind: "retained"; evidence: SemanticRouteEvidence }
+  | {
+      kind: "routed";
+      route: DecisionTaxonomyRoute;
+      filename?: string;
+      basis: { kind: "explicit_metadata" } | { kind: "semantic"; evidence: SemanticRouteEvidence };
+    };
+
+/**
+ * Explicit `lervo.document.route` or `lervo.document.role` metadata, the owner's declaration;
+ * null when absent. A role declaration applies only to repository documents.
+ */
+function explicitlyRouted(
+  path: string,
+  content: string,
   taxonomy: DecisionTaxonomy,
-): { route: DecisionTaxonomyRoute; matchedTerms: string[] } | { candidates: string[] } | null {
-  const candidates = taxonomy.routes.flatMap((route) => {
-    const matchedTerms = route.titleTerms.filter((term) => containsTerm(value, term));
-    return matchedTerms.length >= route.minimumTitleTermMatches ? [{ route, matchedTerms }] : [];
-  });
-  if (candidates.length === 0) return null;
-  const strongest = Math.max(...candidates.map((candidate) => candidate.matchedTerms.length));
-  const strongestCandidates = candidates.filter(
-    (candidate) => candidate.matchedTerms.length === strongest,
-  );
-  const highestPriority = Math.max(
-    ...strongestCandidates.map((candidate) => candidate.route.priority),
-  );
-  const finalists = strongestCandidates.filter(
-    (candidate) => candidate.route.priority === highestPriority,
-  );
-  return finalists.length === 1
-    ? finalists[0]!
-    : { candidates: finalists.map((candidate) => candidate.route.id).sort() };
-}
-
-function frontmatterValue(content: string): Record<string, unknown> | null {
-  if (!content.startsWith("---\n") && !content.startsWith("---\r\n")) return null;
-  const match = /\r?\n---\r?\n/gu.exec(content.slice(content.indexOf("\n")));
-  if (match === null || match.index > 8192) return null;
-  try {
-    const value = parse(
-      content.slice(content.indexOf("\n") + 1, content.indexOf("\n") + match.index + 1),
-    );
-    return value !== null && typeof value === "object" ? (value as Record<string, unknown>) : null;
-  } catch {
-    return null;
+  allowRole: boolean,
+): RoutedDocument | null {
+  const metadata = explicitDocumentPlacement(content);
+  if (metadata.state === "absent") return null;
+  if (metadata.state === "invalid" || (metadata.roleId !== undefined && !allowRole))
+    return { kind: "blocked", blocker: { code: "invalid_document_metadata", path } };
+  if (metadata.roleId !== undefined) {
+    const role = placeableDocumentRole(taxonomy, metadata.roleId);
+    return role === null
+      ? {
+          kind: "blocked",
+          blocker: { code: "unknown_document_role", path, candidateRouteIds: [metadata.roleId] },
+        }
+      : { kind: "role", role, basis: { kind: "explicit_metadata" } };
   }
-}
-
-function instructionPaths(content: string): string[] {
-  const value = frontmatterValue(content);
-  const raw = value?.paths ?? value?.globs;
-  const splitGlobs = (input: string): string[] => {
-    const output: string[] = [];
-    let start = 0;
-    let braces = 0;
-    for (let index = 0; index < input.length; index += 1) {
-      if (input[index] === "{") braces += 1;
-      else if (input[index] === "}") braces = Math.max(0, braces - 1);
-      else if (input[index] === "," && braces === 0) {
-        output.push(input.slice(start, index));
-        start = index + 1;
+  const routeId = metadata.routeId ?? "";
+  const route = taxonomy.routes.find((candidate) => candidate.id === routeId);
+  return route === undefined
+    ? {
+        kind: "blocked",
+        blocker: { code: "unknown_document_route", path, candidateRouteIds: [routeId] },
       }
-    }
-    output.push(input.slice(start));
-    return output;
+    : {
+        kind: "routed",
+        route,
+        ...(metadata.filename === undefined ? {} : { filename: metadata.filename }),
+        basis: { kind: "explicit_metadata" },
+      };
+}
+
+/** Recorded semantic evidence bound to these bytes and routes, else a deferral. */
+function semanticallyRouted(input: {
+  subject: "document" | "instruction";
+  path: string;
+  content: string;
+  taxonomy: DecisionTaxonomy;
+  evidence: DocumentRouteEvidence;
+}): RoutedDocument {
+  const semantic = recordedSemanticRoute({
+    subject: input.subject,
+    path: input.path,
+    contentHash: sha256(input.content),
+    taxonomy: input.taxonomy,
+    evidence: input.evidence,
+  });
+  if (semantic.kind === "deferred") return semantic;
+  if (semantic.kind === "retain_in_place") return { kind: "retained", evidence: semantic.evidence };
+  if (semantic.kind === "role")
+    return {
+      kind: "role",
+      role: semantic.role,
+      basis: { kind: "semantic", evidence: semantic.evidence },
+    };
+  return {
+    kind: "routed",
+    route: semantic.route,
+    basis: { kind: "semantic", evidence: semantic.evidence },
   };
-  const paths = Array.isArray(raw) ? raw : typeof raw === "string" ? splitGlobs(raw) : [];
-  return [
-    ...new Set(
-      paths
-        .filter((item): item is string => typeof item === "string")
-        .map((item) => item.trim())
-        .filter(Boolean),
-    ),
-  ].sort();
-}
-
-export function repositoryInstructionPaths(content: string): string[] {
-  return instructionPaths(content);
-}
-
-function fallbackInstructionRoute(
-  path: string,
-  taxonomy: DecisionTaxonomy,
-): DecisionTaxonomyRoute | null {
-  const name = basename(path).toLocaleLowerCase();
-  const preferredIds = name.startsWith("app-")
-    ? ["platform.app", "application", "product"]
-    : name.startsWith("web-")
-      ? ["platform.web", "web", "architecture"]
-      : ["repository", "development", "foundation"];
-  for (const id of preferredIds) {
-    const exact = taxonomy.routes.find((route) => route.id === id);
-    if (exact !== undefined) return exact;
-  }
-  return null;
-}
-
-function preferredInstructionRoute(
-  path: string,
-  taxonomy: DecisionTaxonomy,
-): DecisionTaxonomyRoute | null {
-  const name = basename(path, ".md").toLocaleLowerCase();
-  const preferredId = /(?:notification|reminder)/u.test(name)
-    ? "platform.notifications"
-    : /widget/u.test(name)
-      ? "platform.widgets"
-      : /(?:bridge|protocol)/u.test(name)
-        ? "integration.bridge"
-        : /(?:supabase|database)/u.test(name)
-          ? "data.supabase"
-          : /entit(?:y|ies)/u.test(name)
-            ? "shared.domain"
-            : name.startsWith("app-")
-              ? "platform.app"
-              : name.startsWith("web-")
-                ? "platform.web"
-                : /^(?:code-principles|typescript)$/u.test(name)
-                  ? "repository"
-                  : null;
-  return preferredId === null
-    ? null
-    : (taxonomy.routes.find((route) => route.id === preferredId) ?? null);
 }
 
 export function classifyClaudeRule(
   path: string,
   content: string,
   taxonomy: DecisionTaxonomy,
+  evidence: DocumentRouteEvidence = noDocumentRouteEvidence,
 ):
-  | { kind: "not_migration_candidate" }
+  | { kind: "not_migration_candidate"; retained?: RetainedDocumentPlacement }
   | { kind: "blocked"; blocker: DocumentLayoutBlocker }
+  | { kind: "deferred"; deferral: DeferredDocumentRoute }
   | { kind: "classified"; route: RepositoryInstructionRoute } {
   if (!/(^|\/)\.claude\/rules\/.+\.md$/u.test(path)) return { kind: "not_migration_candidate" };
-  const value = frontmatterValue(content);
-  const description = typeof value?.description === "string" ? value.description : "";
-  const heading = /^#\s+(.+)$/mu.exec(content)?.[1]?.trim() ?? "";
-  const paths = instructionPaths(content);
-  const inferred = inferredRoute(
-    `${basename(path, ".md")} ${description} ${heading} ${paths.join(" ")}`,
-    taxonomy,
-  );
-  if (inferred !== null && "candidates" in inferred)
+  const routed =
+    explicitlyRouted(path, content, taxonomy, false) ??
+    semanticallyRouted({ subject: "instruction", path, content, taxonomy, evidence });
+  if (routed.kind === "blocked" || routed.kind === "deferred") return routed;
+  // The response contract admits roles only for documents, so an instruction never gets one.
+  if (routed.kind === "role")
+    return { kind: "blocked", blocker: { code: "invalid_document_metadata", path } };
+  if (routed.kind === "retained")
     return {
-      kind: "blocked",
-      blocker: { code: "ambiguous_document_route", path, candidateRouteIds: inferred.candidates },
+      kind: "not_migration_candidate",
+      retained: { path, basis: "semantic_provider", semanticClassification: routed.evidence },
     };
-  const selected =
-    preferredInstructionRoute(path, taxonomy) ??
-    inferred?.route ??
-    fallbackInstructionRoute(path, taxonomy);
-  if (selected === null)
-    return { kind: "blocked", blocker: { code: "unclassified_document", path } };
-  const [group, ...subgroupParts] = selected.path.split("/");
   return {
     kind: "classified",
     route: {
-      paths,
-      destination: {
-        toPath: `${documentRoot(taxonomy)}/instructions/${selected.path}/${basename(path)}`,
-        routeId: selected.id,
-        routePath: selected.path,
-        group: group!,
-        ...(subgroupParts.length === 0 ? {} : { subgroup: subgroupParts.join("/") }),
-        classificationBasis: "title_terms",
-        matchedTitleTerms: selected === inferred?.route ? inferred.matchedTerms : [],
-      },
+      paths: repositoryInstructionPaths(content),
+      destination: destination(
+        `${documentRoot(taxonomy)}/instructions`,
+        basename(path),
+        routed.route,
+        routed.basis,
+      ),
     },
   };
 }
 
+/**
+ * Places one legacy repository document. Explicit metadata is the owner's declaration, then an
+ * exact legacy alias the reviewed layout declares for a role. Otherwise application content its
+ * own package consumes is never a candidate, and everything else needs recorded semantic
+ * evidence. A document without it is deferred, never blocking (ADR-0476).
+ */
 export function classifyRepositoryDocument(
   path: string,
   content: string,
   taxonomy: DecisionTaxonomy,
+  evidence: DocumentRouteEvidence = noDocumentRouteEvidence,
 ): RepositoryDocumentClassification {
-  if (!migrationCandidate(path, taxonomy)) return { kind: "not_migration_candidate" };
-  const heading = /^#\s+(.+)$/mu.exec(content)?.[1]?.trim() ?? "";
-  const classificationText = `${basename(path, posix.extname(path))} ${heading}`;
-  const metadata = explicitRoute(content);
-  if (metadata.state === "invalid")
-    return { kind: "blocked", blocker: { code: "invalid_document_metadata", path } };
-
-  let route: DecisionTaxonomyRoute;
-  let classificationBasis: ClassifiedDocumentDestination["classificationBasis"];
-  let matchedTitleTerms: string[];
-  if (metadata.state === "present") {
-    const selected = taxonomy.routes.find((candidate) => candidate.id === metadata.routeId);
-    if (selected === undefined)
-      return {
-        kind: "blocked",
-        blocker: { code: "unknown_document_route", path, candidateRouteIds: [metadata.routeId] },
-      };
-    route = selected;
-    classificationBasis = "explicit_metadata";
-    matchedTitleTerms = [];
-  } else {
-    const inferred = inferredRoute(classificationText, taxonomy);
-    if (inferred === null)
-      return { kind: "blocked", blocker: { code: "unclassified_document", path } };
-    if ("candidates" in inferred)
-      return {
-        kind: "blocked",
-        blocker: { code: "ambiguous_document_route", path, candidateRouteIds: inferred.candidates },
-      };
-    route = inferred.route;
-    classificationBasis = "title_terms";
-    matchedTitleTerms = inferred.matchedTerms;
-  }
-
-  const [group, ...subgroupParts] = route.path.split("/");
+  if (!structuralMigrationCandidate(path, taxonomy)) return { kind: "not_migration_candidate" };
+  const aliasRole = declaredLegacyAliasRole(taxonomy, path);
+  const declared: RoutedDocument | null =
+    explicitlyRouted(path, content, taxonomy, true) ??
+    (aliasRole === null
+      ? null
+      : { kind: "role", role: aliasRole, basis: { kind: "reviewed_layout_alias" } });
+  const consumed = evidence.applicationContent.get(path);
+  if (declared === null && consumed !== undefined && consumed.length > 0)
+    return {
+      kind: "not_migration_candidate",
+      retained: { path, basis: "application_content", evidence: [...consumed] },
+    };
+  const routed =
+    declared ?? semanticallyRouted({ subject: "document", path, content, taxonomy, evidence });
+  if (routed.kind === "blocked" || routed.kind === "deferred") return routed;
+  if (routed.kind === "retained")
+    return {
+      kind: "not_migration_candidate",
+      retained: { path, basis: "semantic_provider", semanticClassification: routed.evidence },
+    };
+  if (routed.kind === "role")
+    return { kind: "role_placed", placement: rolePlacement(routed.role, routed.basis) };
   return {
     kind: "classified",
-    destination: {
-      toPath: `${documentRoot(taxonomy)}/${route.path}/${metadata.state === "present" && metadata.filename !== undefined ? metadata.filename : basename(path)}`,
-      routeId: route.id,
-      routePath: route.path,
-      group: group!,
-      ...(subgroupParts.length === 0 ? {} : { subgroup: subgroupParts.join("/") }),
-      classificationBasis,
-      matchedTitleTerms,
-    },
+    destination: destination(
+      documentRoot(taxonomy),
+      routed.filename ?? basename(path),
+      routed.route,
+      routed.basis,
+    ),
   };
 }

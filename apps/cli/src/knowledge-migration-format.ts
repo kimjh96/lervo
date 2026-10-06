@@ -3,6 +3,8 @@ import type {
   RepositoryLayoutMigrationPlan,
 } from "@lervo/repository-knowledge";
 
+import { documentRouteDeferralLines } from "./document-route-deferral-attention.js";
+
 export function printableKnowledgeMigrationPlan(plan: KnowledgeMigrationPlan): unknown {
   return {
     ...plan,
@@ -26,10 +28,20 @@ export function formatRepositoryLayoutMigrationPlan(plan: RepositoryLayoutMigrat
   ];
   for (const move of plan.moves) {
     lines.push(
-      `  ${move.fromPath} -> ${move.toPath} (${move.classification})`,
+      `  ${move.fromPath} -> ${move.toPath} (${move.classification}${move.classificationBasis === undefined ? "" : `; ${move.classificationBasis}`})`,
       `  approval: ${move.operationId}=${move.approvalHash}`,
     );
   }
+  if (plan.deferredDocumentCount > 0)
+    lines.push(
+      `Deferred documents (not blocking): ${plan.deferredDocumentCount}`,
+      ...documentRouteDeferralLines(plan.deferredDocuments, "  "),
+    );
+  if (plan.retainedDocumentCount > 0)
+    lines.push(
+      `Retained in place: ${plan.retainedDocumentCount}`,
+      ...plan.retainedDocuments.map((item) => `  ${item.path} (${item.basis})`),
+    );
   for (const update of plan.userUpdates) {
     lines.push(
       `  ${update.path} (${update.reason})`,

@@ -10,6 +10,7 @@ export type DecisionTaxonomyIssueRule =
   | "unique"
   | "repository_path"
   | "document_path"
+  | "route_description"
   | "title_term";
 
 export interface DecisionTaxonomyIssue {
@@ -304,6 +305,34 @@ function validateRoute(
     issues.add(`${pointer}/path`, "unique", "duplicates an earlier route path");
   else seen.paths.add(route.path);
   issues.integer(route.priority, `${pointer}/priority`, 0, 1000);
+  const legacy = route.titleTerms !== undefined || route.minimumTitleTermMatches !== undefined;
+  if (route.description !== undefined || !legacy) validateRouteDescription(route, pointer, issues);
+  if (legacy) validateLegacyTitleTerms(route, pointer, issues);
+}
+
+function validateRouteDescription(route: Mapping, pointer: string, issues: IssueCollector): void {
+  const description = route.description;
+  if (
+    typeof description === "string" &&
+    description.trim() === description &&
+    description.length >= 8 &&
+    description.length <= 512
+  )
+    return;
+  issues.add(
+    `${pointer}/description`,
+    description === undefined ? "required" : "route_description",
+    description === undefined
+      ? "is required"
+      : "must be a trimmed prose scope of 8 to 512 characters",
+  );
+}
+
+/**
+ * Title terms are accepted only so a layout written before ADR-0476 stays readable; loading turns
+ * them into the route description, and nothing matches them against documents.
+ */
+function validateLegacyTitleTerms(route: Mapping, pointer: string, issues: IssueCollector): void {
   const minimumValid = issues.integer(
     route.minimumTitleTermMatches,
     `${pointer}/minimumTitleTermMatches`,

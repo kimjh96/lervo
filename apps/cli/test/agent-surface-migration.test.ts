@@ -19,7 +19,13 @@ describe("agent surface migration CLI", () => {
     await mkdir(resolve(root, ".claude/rules"), { recursive: true });
     await mkdir(resolve(root, ".agents/rules"), { recursive: true });
     await writeFile(resolve(root, "AGENTS.md"), "# Instructions\n");
-    await writeFile(resolve(root, ".claude/rules/api.md"), "# API behavior\n");
+    await writeFile(
+      resolve(root, ".claude/rules/api.md"),
+      ["---", "lervo:", "  document:", "    route: architecture", "---", "# API behavior", ""].join(
+        "\n",
+      ),
+    );
+    await writeFile(resolve(root, ".claude/rules/zebra.md"), "# Purple zebra quorum\n");
     await writeFile(
       resolve(root, ".claude/settings.json"),
       '{"fixture":"do-not-print-this-setting"}\n',
@@ -39,8 +45,9 @@ describe("agent surface migration CLI", () => {
     const output = messages.join("");
     expect(output).toContain("Plan status: item approvals required");
     expect(output).toContain(
-      ".claude/rules/api.md -> docs/instructions/architecture/api.md (instruction)",
+      ".claude/rules/api.md -> docs/instructions/architecture/api.md (instruction; explicit_metadata)",
     );
+    expect(output).toContain("deferred [semantic_classification_pending] .claude/rules/zebra.md");
     expect(output).toContain("approval: kdocop_");
     expect(output).not.toContain("do-not-print-this-setting");
     expect(errors).toEqual([]);

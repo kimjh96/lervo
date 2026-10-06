@@ -6,6 +6,7 @@ import {
   applyInitPlan,
   createInitPlan,
   defaultDecisionTaxonomy,
+  loadDecisionTaxonomy,
   type DecisionTaxonomy,
 } from "@lervo/project";
 import { afterEach, describe, expect, it } from "vitest";
@@ -14,7 +15,12 @@ import {
   applyRepositoryLayoutMigrationPlan,
   classifyRepositoryDocument,
   createDocumentMoveLineage,
+  createDocumentRouteClassificationRecords,
+  createDocumentRouteClassificationRequest,
   createRepositoryLayoutMigrationPlan,
+  interpretDocumentRouteClassificationResponse,
+  loadDocumentRouteClassifications,
+  recordDocumentRouteClassifications,
   inspectRepositoryDocumentRewriters,
   lintRepositoryKnowledge,
   recoverKnowledgeMaterialization,
@@ -24,7 +30,11 @@ import {
 
 const roots: string[] = [];
 
-async function repository(): Promise<string> {
+/**
+ * The fixture's two root documents are classified semantically, as the background resident
+ * would, unless a test needs them unclassified.
+ */
+async function repository(options: { classifyRoots?: boolean } = {}): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-layout-migration-"));
   roots.push(root);
   await writeFile(
@@ -47,7 +57,68 @@ async function repository(): Promise<string> {
       now: new Date("2026-08-23T00:00:00.000Z"),
     }),
   );
+  if (options.classifyRoots !== false)
+    await recordSemanticRoutes(root, [
+      { path: "EXAMPLE_ARCHITECTURE.md", outcome: "role", roleId: "system_architecture" },
+      { path: "EXAMPLE_VISION.md", outcome: "role", roleId: "product_vision" },
+    ]);
   return root;
+}
+
+/**
+ * Records what a no-capability semantic classifier answered for these documents, exactly as the
+ * background resident does, so plans read real recorded evidence instead of title terms.
+ */
+async function recordSemanticRoutes(
+  root: string,
+  entries: Array<{
+    path: string;
+    subject?: "document" | "decision" | "instruction";
+    outcome?: "route" | "role" | "retain_in_place" | "uncertain";
+    routeId?: string | null;
+    roleId?: string;
+  }>,
+): Promise<void> {
+  const taxonomy = await loadDecisionTaxonomy(root);
+  const documents = await Promise.all(
+    entries.map(async (entry) => {
+      const content = await readFile(resolve(root, entry.path), "utf8");
+      return {
+        subject: entry.subject ?? "document",
+        path: entry.path,
+        contentHash: sha256(content),
+        workspacePackage: null,
+        content,
+      };
+    }),
+  );
+  const { request, requestDigest } = createDocumentRouteClassificationRequest({
+    taxonomy,
+    documents,
+  });
+  const response = {
+    classifications: entries.map((entry, index) => ({
+      path: entry.path,
+      contentHash: documents[index]!.contentHash,
+      outcome: entry.outcome ?? "route",
+      routeId: entry.outcome === undefined || entry.outcome === "route" ? entry.routeId! : null,
+      roleId: entry.outcome === "role" ? entry.roleId! : null,
+      rationale: "The document's purpose matches this route's described scope.",
+    })),
+  };
+  await recordDocumentRouteClassifications({
+    repositoryRoot: root,
+    records: createDocumentRouteClassificationRecords({
+      request,
+      requestDigest,
+      verdicts: interpretDocumentRouteClassificationResponse(request, response),
+      provider: "codex",
+      responseDigest: sha256(JSON.stringify(response)),
+      observationArtifactHash: null,
+      classifiedAt: new Date("2026-10-06T00:00:00.000Z"),
+    }),
+    liveClassificationIds: new Set((await loadDocumentRouteClassifications(root)).keys()),
+  });
 }
 
 afterEach(async () => {
@@ -56,8 +127,24 @@ afterEach(async () => {
 
 describe("repository layout migration", () => {
   it("plans and atomically applies classified root moves with exact reference updates", async () => {
-    const root = await repository();
+    const root = await repository({ classifyRoots: false });
+    const unclassified = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    // The `*_ARCHITECTURE` / `*_VISION` stems and their headings no longer place anything.
+    expect(unclassified.moves).toEqual([]);
+    expect(unclassified.blockers).toEqual([]);
+    expect(unclassified.deferredDocuments.map((item) => item.path)).toEqual([
+      "EXAMPLE_ARCHITECTURE.md",
+      "EXAMPLE_VISION.md",
+    ]);
+    await recordSemanticRoutes(root, [
+      { path: "EXAMPLE_ARCHITECTURE.md", outcome: "role", roleId: "system_architecture" },
+      { path: "EXAMPLE_VISION.md", outcome: "role", roleId: "product_vision" },
+    ]);
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    expect(plan.moves.map((move) => move.classificationBasis)).toEqual([
+      "semantic_provider",
+      "semantic_provider",
+    ]);
     expect(plan).toMatchObject({ status: "review_required" });
     expect(plan.moves.map((move) => [move.fromPath, move.toPath])).toEqual([
       ["EXAMPLE_ARCHITECTURE.md", "docs/architecture/system.md"],
@@ -96,6 +183,71 @@ describe("repository layout migration", () => {
     );
   });
 
+  it("places root role documents by explicit metadata or a declared legacy alias only", async () => {
+    const root = await repository({ classifyRoots: false });
+    await writeFile(
+      resolve(root, "OVERVIEW.md"),
+      ["---", "lervo:", "  document:", "    role: product_vision", "---", "# Overview", ""].join(
+        "\n",
+      ),
+    );
+    await writeFile(resolve(root, "ARCHITECTURE.md"), "# Notes\n\nNo heading keyword.\n");
+    await writeFile(
+      resolve(root, "PLAN.md"),
+      ["---", "lervo:", "  document:", "    role: invented_role", "---", "# Plan", ""].join("\n"),
+    );
+    await writeFile(resolve(root, "V2_PLAN.md"), "# Version two plan\n\nRoadmap.\n");
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+
+    expect(plan.moves).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fromPath: "OVERVIEW.md",
+          toPath: "docs/product/vision.md",
+          classification: "product",
+          classificationBasis: "explicit_metadata",
+        }),
+        expect.objectContaining({
+          fromPath: "ARCHITECTURE.md",
+          toPath: "docs/architecture/system.md",
+          classification: "architecture",
+          classificationBasis: "reviewed_layout_alias",
+        }),
+      ]),
+    );
+    expect(plan.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "unknown_document_role",
+        path: "PLAN.md",
+        candidateRouteIds: ["invented_role"],
+      }),
+    );
+    // The removed `V<n>_PLAN` stem rule no longer creates docs/roadmap/v2.md.
+    expect(plan.moves.some((move) => move.fromPath === "V2_PLAN.md")).toBe(false);
+    expect(plan.deferredDocuments.map((item) => item.path)).toContain("V2_PLAN.md");
+  });
+
+  it("defers a semantic role whose destination already exists instead of blocking", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/product"), { recursive: true });
+    await writeFile(resolve(root, "docs/product/vision.md"), "# Vision\n\nCurrent.\n");
+    await recordSemanticRoutes(root, [
+      { path: "EXAMPLE_VISION.md", outcome: "role", roleId: "product_vision" },
+    ]);
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+
+    expect(plan.moves.some((move) => move.fromPath === "EXAMPLE_VISION.md")).toBe(false);
+    expect(plan.blockers).toEqual([]);
+    expect(plan.deferredDocuments).toContainEqual(
+      expect.objectContaining({
+        path: "EXAMPLE_VISION.md",
+        reason: "semantic_classification_uncertain",
+      }),
+    );
+  });
+
   it("moves discovered documents from docs and nested repository locations into semantic routes", async () => {
     const root = await repository();
     await mkdir(resolve(root, "apps/web/notes"), { recursive: true });
@@ -108,6 +260,10 @@ describe("repository layout migration", () => {
       resolve(root, "apps/web/notes/public-api.md"),
       "# Public API compatibility\n\nSee [runbook](../../../docs/runtime-recovery.md).\n",
     );
+    await recordSemanticRoutes(root, [
+      { path: "apps/web/notes/public-api.md", routeId: "architecture" },
+      { path: "docs/runtime-recovery.md", routeId: "operations" },
+    ]);
 
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
 
@@ -117,6 +273,11 @@ describe("repository layout migration", () => {
           fromPath: "apps/web/notes/public-api.md",
           toPath: "docs/architecture/public-api.md",
           classification: "document",
+          classificationBasis: "semantic_provider",
+          semanticClassification: expect.objectContaining({
+            provider: "codex",
+            recordDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+          }),
         }),
         expect.objectContaining({
           fromPath: "docs/runtime-recovery.md",
@@ -151,16 +312,149 @@ describe("repository layout migration", () => {
     );
   });
 
-  it("blocks unclassified discovered documents instead of leaving them as a completed migration", async () => {
+  it("defers a document no title term matches instead of blocking the plan", async () => {
     const root = await repository();
     await mkdir(resolve(root, "misc"), { recursive: true });
     await writeFile(resolve(root, "misc/purple-zebra.md"), "# Purple zebra quorum\n\nNotes.\n");
 
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
 
-    expect(plan.status).toBe("blocked");
-    expect(plan.blockers).toContainEqual(
-      expect.objectContaining({ code: "unclassified_document", path: "misc/purple-zebra.md" }),
+    expect(plan.status).toBe("review_required");
+    expect(plan.blockers).toEqual([]);
+    expect(plan.moves.some((move) => move.fromPath === "misc/purple-zebra.md")).toBe(false);
+    expect(plan.deferredDocumentCount).toBe(1);
+    expect(plan.deferredDocuments).toEqual([
+      expect.objectContaining({
+        subject: "document",
+        path: "misc/purple-zebra.md",
+        reason: "semantic_classification_pending",
+        workspacePackage: null,
+        classificationId: expect.stringMatching(/^kdroute_[a-f0-9]{24}$/u),
+      }),
+    ]);
+  });
+
+  it("keeps a semantically uncertain document deferred until an owner or new bytes decide", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "misc"), { recursive: true });
+    await writeFile(resolve(root, "misc/purple-zebra.md"), "# Purple zebra quorum\n\nNotes.\n");
+    await recordSemanticRoutes(root, [{ path: "misc/purple-zebra.md", outcome: "uncertain" }]);
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+
+    expect(plan.blockers).toEqual([]);
+    expect(plan.deferredDocuments).toEqual([
+      expect.objectContaining({
+        path: "misc/purple-zebra.md",
+        reason: "semantic_classification_uncertain",
+      }),
+    ]);
+    await writeFile(resolve(root, "misc/purple-zebra.md"), "# Purple zebra quorum\n\nEdited.\n");
+    expect(
+      (await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).deferredDocuments,
+    ).toEqual([expect.objectContaining({ reason: "semantic_classification_pending" })]);
+  });
+
+  it("never routes a document its semantic classifier retains in place", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "fixtures"), { recursive: true });
+    await writeFile(resolve(root, "fixtures/sample.md"), "# Sample\n\nRendered sample.\n");
+    await recordSemanticRoutes(root, [{ path: "fixtures/sample.md", outcome: "retain_in_place" }]);
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+
+    expect(plan.moves.some((move) => move.fromPath === "fixtures/sample.md")).toBe(false);
+    expect(plan.deferredDocuments).toEqual([]);
+    expect(plan.retainedDocuments).toEqual([
+      expect.objectContaining({ path: "fixtures/sample.md", basis: "semantic_provider" }),
+    ]);
+  });
+
+  it("never treats application content its own workspace package loads as a migration candidate", async () => {
+    const root = await repository();
+    const data = "apps/web/app/[lang]/docs/_data";
+    await mkdir(resolve(root, `${data}/writing-guide`), { recursive: true });
+    await writeFile(
+      resolve(root, "apps/web/package.json"),
+      JSON.stringify({ name: "web", private: true }),
+    );
+    await writeFile(
+      resolve(root, "apps/web/app/[lang]/docs/page.tsx"),
+      [
+        'import { readFile } from "node:fs/promises";',
+        'import { join } from "node:path";',
+        "",
+        "export async function guide(slug: string): Promise<string> {",
+        '  return readFile(join(process.cwd(), "app", "[lang]", "docs", "_data", `${slug}.md`), "utf8");',
+        "}",
+        "",
+      ].join("\n"),
+    );
+    for (const [path, heading] of [
+      [`${data}/writing-guide.md`, "Writing guide"],
+      [`${data}/writing-guide/korean.md`, "Korean"],
+      [`${data}/sentences.md`, "Sentences"],
+      [`${data}/vocabulary.md`, "Vocabulary"],
+    ] as const)
+      await writeFile(resolve(root, path), `# ${heading}\n\nRendered by the web app.\n`);
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+
+    const paths = [
+      `${data}/sentences.md`,
+      `${data}/vocabulary.md`,
+      `${data}/writing-guide.md`,
+      `${data}/writing-guide/korean.md`,
+    ];
+    expect(plan.blockers).toEqual([]);
+    expect(plan.deferredDocuments).toEqual([]);
+    expect(plan.moves.some((move) => paths.includes(move.fromPath))).toBe(false);
+    expect(plan.retainedDocuments).toEqual(
+      paths.map((path) => ({
+        path,
+        basis: "application_content",
+        evidence: [
+          {
+            kind: "source_reference",
+            packageRoot: "apps/web",
+            sourcePath: "apps/web/app/[lang]/docs/page.tsx",
+            target: data,
+            targetKind: "directory",
+          },
+        ],
+      })),
+    );
+  });
+
+  it("lets explicit document metadata place Markdown its package also loads", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "apps/web/content"), { recursive: true });
+    await writeFile(resolve(root, "apps/web/package.json"), "{}\n");
+    await writeFile(
+      resolve(root, "apps/web/load.ts"),
+      'export const content = import.meta.glob("./content/*.md");\n',
+    );
+    await writeFile(
+      resolve(root, "apps/web/content/release-notes.md"),
+      ["---", "lervo:", "  document:", "    route: delivery", "---", "# Notes", ""].join("\n"),
+    );
+    await writeFile(resolve(root, "apps/web/content/home.md"), "# Home\n");
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+
+    expect(plan.moves).toContainEqual(
+      expect.objectContaining({
+        fromPath: "apps/web/content/release-notes.md",
+        toPath: "docs/delivery/release-notes.md",
+        classificationBasis: "explicit_metadata",
+      }),
+    );
+    expect(plan.retainedDocuments).toContainEqual(
+      expect.objectContaining({
+        path: "apps/web/content/home.md",
+        basis: "application_content",
+        evidence: [expect.objectContaining({ kind: "source_reference", targetKind: "glob" })],
+      }),
     );
   });
 
@@ -312,6 +606,10 @@ describe("repository layout migration", () => {
       resolve(root, "apps/node/DISTRIBUTION_GUIDE.md"),
       "# Distribution guide\n\nNode package.\n",
     );
+    await recordSemanticRoutes(root, [
+      { path: "apps/hub/DISTRIBUTION_GUIDE.md", routeId: "delivery" },
+      { path: "apps/node/DISTRIBUTION_GUIDE.md", routeId: "delivery" },
+    ]);
 
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
 
@@ -350,6 +648,9 @@ describe("repository layout migration", () => {
         "",
       ].join("\n"),
     );
+    await recordSemanticRoutes(root, [
+      { path: ".claude/rules/api.md", subject: "instruction", routeId: "architecture" },
+    ]);
 
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
 
@@ -603,6 +904,11 @@ describe("repository layout migration", () => {
       resolve(root, "docs/adr/0003-architecture.md"),
       "# ADR-0003: Web protocol architecture\n\nDecision.\n",
     );
+    await recordSemanticRoutes(root, [
+      { path: "docs/adr/0001-security.md", subject: "decision", routeId: "security" },
+      { path: "docs/adr/0002-database.md", subject: "decision", routeId: "data" },
+      { path: "docs/adr/0003-architecture.md", subject: "decision", routeId: "architecture" },
+    ]);
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
     expect(plan.moves.map((move) => [move.fromPath, move.toPath, move.group])).toEqual(
       expect.arrayContaining([
@@ -617,7 +923,7 @@ describe("repository layout migration", () => {
     );
   });
 
-  it("blocks an unclassified flat ADR instead of falling back to foundation", async () => {
+  it("defers an unclassified flat ADR instead of blocking or falling back to foundation", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/adr"), { recursive: true });
     await writeFile(
@@ -627,10 +933,23 @@ describe("repository layout migration", () => {
 
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
 
-    expect(plan.status).toBe("blocked");
+    expect(plan.status).not.toBe("blocked");
+    expect(plan.blockers).toEqual([]);
     expect(plan.moves.some((move) => move.fromPath.endsWith("0004-zebra.md"))).toBe(false);
-    expect(plan.blockers).toContainEqual(
-      expect.objectContaining({ code: "unclassified_decision", path: "docs/adr/0004-zebra.md" }),
+    expect(plan.deferredDocuments).toEqual([
+      expect.objectContaining({
+        subject: "decision",
+        path: "docs/adr/0004-zebra.md",
+        reason: "semantic_classification_pending",
+      }),
+    ]);
+    const lint = await lintRepositoryKnowledge(root);
+    expect(lint.issues).toContainEqual(
+      expect.objectContaining({
+        code: "ungrouped_decision_document",
+        severity: "warning",
+        path: "docs/adr/0004-zebra.md",
+      }),
     );
   });
 
@@ -660,8 +979,8 @@ describe("repository layout migration", () => {
       toPath: "docs/decisions/product/0005-zebra.md",
       routeId: "product",
       classificationBasis: "explicit_metadata",
-      matchedTitleTerms: [],
     });
+    expect(move).not.toHaveProperty("semanticClassification");
   });
 
   it("uses repository-defined routes instead of a hardcoded Lervo domain list", async () => {
@@ -690,6 +1009,23 @@ describe("repository layout migration", () => {
       resolve(root, "records/adr/0006-api.md"),
       "# ADR-0006: Public API compatibility\n\nDecision.\n",
     );
+    const unclassified = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    // The legacy title term "public api" matches the heading, yet it no longer places anything.
+    expect(unclassified.moves.some((move) => move.fromPath === "records/adr/0006-api.md")).toBe(
+      false,
+    );
+    expect(unclassified.deferredDocuments).toContainEqual(
+      expect.objectContaining({ path: "records/adr/0006-api.md" }),
+    );
+    expect(unclassified.operations).toContainEqual(
+      expect.objectContaining({
+        path: ".lervo/knowledge/document-layout.yaml",
+        reason: "upgrade_document_policy",
+      }),
+    );
+    await recordSemanticRoutes(root, [
+      { path: "records/adr/0006-api.md", subject: "decision", routeId: "platform.api" },
+    ]);
 
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
 
@@ -698,54 +1034,33 @@ describe("repository layout migration", () => {
         fromPath: "records/adr/0006-api.md",
         toPath: "records/decisions/platform/api/0006-api.md",
         routeId: "platform.api",
-        classificationBasis: "title_terms",
-        matchedTitleTerms: ["public api"],
+        classificationBasis: "semantic_provider",
       }),
     );
   });
 
-  it("blocks equal strongest repository route matches", async () => {
+  it("rewrites legacy title-term routes as prose route descriptions", async () => {
     const root = await repository();
-    await writeFile(
-      resolve(root, ".lervo/knowledge/document-layout.yaml"),
-      [
-        "schemaVersion: 1",
-        "taxonomyId: decisions.ambiguous",
-        "decisionRoot: docs/decisions",
-        "legacyRoots:",
-        "  - docs/adr",
-        "maxLeafDocuments: 24",
-        "routes:",
-        "  - id: alpha",
-        "    path: alpha",
-        "    priority: 10",
-        "    minimumTitleTermMatches: 1",
-        "    titleTerms:",
-        "      - quorum",
-        "  - id: beta",
-        "    path: beta",
-        "    priority: 10",
-        "    minimumTitleTermMatches: 1",
-        "    titleTerms:",
-        "      - quorum",
-        "",
-      ].join("\n"),
+    const legacy = (
+      await readFile(resolve(root, ".lervo/knowledge/document-layout.yaml"), "utf8")
+    ).replace(
+      "    description: Data models, schemas, storage, persistence, and data migration.\n",
+      "    minimumTitleTermMatches: 1\n    titleTerms:\n      - database\n      - schema\n",
     );
-    await mkdir(resolve(root, "docs/adr"), { recursive: true });
-    await writeFile(
-      resolve(root, "docs/adr/0007-quorum.md"),
-      "# ADR-0007: Durable quorum\n\nDecision.\n",
-    );
+    expect(legacy).toContain("titleTerms:");
+    await writeFile(resolve(root, ".lervo/knowledge/document-layout.yaml"), legacy);
 
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    const operation = plan.operations.find(
+      (item) => item.path === ".lervo/knowledge/document-layout.yaml",
+    );
 
-    expect(plan.status).toBe("blocked");
-    expect(plan.blockers).toContainEqual(
-      expect.objectContaining({
-        code: "ambiguous_decision_route",
-        path: "docs/adr/0007-quorum.md",
-        candidateRouteIds: ["alpha", "beta"],
-      }),
+    expect(operation).toMatchObject({ action: "update", reason: "describe_semantic_routes" });
+    expect(operation && "content" in operation ? operation.content : "").not.toContain(
+      "titleTerms",
+    );
+    expect(operation && "content" in operation ? operation.content : "").toContain(
+      'description: "Scope carried from the legacy title terms: database; schema."',
     );
   });
 
@@ -811,6 +1126,9 @@ describe("repository layout migration", () => {
       recursive: true,
     });
     await writeFile(resolve(root, lineage.file), lineage.content);
+    await recordSemanticRoutes(root, [
+      { path: currentPath, subject: "decision", routeId: "operations" },
+    ]);
 
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
 
@@ -819,7 +1137,7 @@ describe("repository layout migration", () => {
         fromPath: currentPath,
         toPath: "docs/decisions/operations/0008-doctor.md",
         routeId: "operations",
-        classificationBasis: "title_terms",
+        classificationBasis: "semantic_provider",
       }),
     );
   });
@@ -879,6 +1197,14 @@ describe("repository layout migration", () => {
       recursive: true,
     });
     await writeFile(resolve(root, lineage.file), lineage.content);
+    const deferred = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    expect(deferred.blockers).toEqual([]);
+    expect(deferred.deferredDocuments).toContainEqual(
+      expect.objectContaining({ subject: "decision", path: currentPath }),
+    );
+    await recordSemanticRoutes(root, [
+      { path: currentPath, subject: "decision", routeId: "operations.trace" },
+    ]);
 
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
 

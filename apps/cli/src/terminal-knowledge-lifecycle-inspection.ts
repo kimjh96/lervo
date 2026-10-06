@@ -15,6 +15,7 @@ import {
   type RepositoryKnowledgeScan,
   type RepositorySupplementalSource,
 } from "@lervo/repository-knowledge";
+import { documentRouteDeferralAdvisories } from "./document-route-deferral-attention.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 
 import type { TerminalLifecycleInspection } from "./terminal-hook-contract.js";
@@ -65,7 +66,7 @@ async function inspectStructuralLifecycle(input: {
   root: string;
   supplementalSources: RepositorySupplementalSource[];
   preparedScan: RepositoryKnowledgeScan | undefined;
-}): Promise<LifecycleIssue[]> {
+}): Promise<{ issues: LifecycleIssue[]; advisories: LifecycleIssue[] }> {
   const issues: LifecycleIssue[] = [];
   let instructionBootstrapStatus:
     Awaited<ReturnType<typeof createKnowledgeInstructionBootstrapPlan>>["status"] | null = null;
@@ -113,6 +114,9 @@ async function inspectStructuralLifecycle(input: {
   if (layout !== null && layout.status !== "current") {
     issues.push({ code: `repository_layout_${layout.status}`, command: "lervo migrate knowledge" });
   }
+  // ADR-0476: a document waiting for a semantic route is attention, never a lifecycle gate.
+  const advisories =
+    layout === null ? [] : documentRouteDeferralAdvisories(layout.deferredDocuments);
 
   let structuralCurrent = false;
   if (layout?.status === "current") {
@@ -165,7 +169,7 @@ async function inspectStructuralLifecycle(input: {
       );
     }
   }
-  return issues;
+  return { issues, advisories };
 }
 
 async function inspectValidationLifecycle(input: {
@@ -267,8 +271,8 @@ export async function inspectTerminalRepositoryKnowledge(input: {
       preparedScan,
     }),
   ]);
-  const issues = [...structuralIssues, ...validationIssues.issues];
-  const advisories = validationIssues.advisories;
+  const issues = [...structuralIssues.issues, ...validationIssues.issues];
+  const advisories = [...structuralIssues.advisories, ...validationIssues.advisories];
   if (
     preparedScan !== undefined &&
     !issues.some((issue) => TRANSIENT_INSPECTION_FAILURES.has(issue.code))

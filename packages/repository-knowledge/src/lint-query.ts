@@ -256,12 +256,13 @@ async function lintRepositoryLayout(root: string, issues: KnowledgeLintIssue[]):
           path.startsWith(`${directory}/`) && !path.slice(directory.length + 1).includes("/"),
       )
     ) {
+      // ADR-0476: an ungrouped decision waits for a semantic route; it is pending, not invalid.
       issues.push({
         code: "ungrouped_decision_document",
-        severity: "error",
+        severity: "warning",
         path,
         message:
-          "The decision document requires an explicit configured semantic route. Run lervo migrate knowledge.",
+          "The decision document awaits a semantic route. Add lervo.decision.route metadata naming a configured route, or let the background knowledge resident classify it.",
       });
     }
   }

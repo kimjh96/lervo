@@ -4,7 +4,7 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:84d193b04f2dee244dfcb70f6a039882daf25bb26eaa5e3bdaa6897f6d1b1d50",
+      "contentHash": "sha256:bdd5d166b95cdbaf0e6124d1c64109883135cecca7456f9d9094a3c49c4cb867",
       "responsibility": "Knowledge migration plan/apply orchestration",
       "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, terminal integration planning and apply, command error rendering, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
       "disposition": "cohesive"
@@ -185,6 +185,13 @@
       "disposition": "cohesive"
     },
     {
+      "path": "packages/project/src/decision-taxonomy-validation.ts",
+      "contentHash": "sha256:3bb4954265db781ad4c21303ef373d8573079ae2d7289b100b619b8de73258e4",
+      "responsibility": "Document-layout contract validation",
+      "rationale": "Declarative validation of one tracked layout contract: capacity, roles, routes with their prose descriptions, and legacy title terms read only for compatibility all report through the same JSON-pointer issue collector; loading, upgrade, and serialization live in the taxonomy module.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
       "contentHash": "sha256:65091ecda32ac3720fd14a962af7b5e04341b3dbe841e461dc871b6faa37922a",
       "responsibility": "Isolated no-capability provider process adapter",
@@ -207,7 +214,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:e8e2095f4ec75b47f38f25d8062421a149d3f2bf6f6a8c6fe9292b6e44b9bbcc",
+      "contentHash": "sha256:893b5026d243329dd89a03a158c3019ccfa154d6d0519ccd8e12ce2fa11ceefe",
       "responsibility": "Reviewed document normalization lifecycle",
       "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation orchestration, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation policy, explicit selection and workset/preflight contracts, shard-cache storage, ADR-0473 tool-ownership evidence and its Git and file probes, and CLI parsing or rendering are separate modules; this module only threads the observed tool-generated path set into eligibility.",
       "disposition": "cohesive"
@@ -249,7 +256,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
-      "contentHash": "sha256:872a3fe46e20050986262cc46e2eccb63e0b68d8c5bc43b37c80f11857a1cc46",
+      "contentHash": "sha256:c26896b1328417a11ff4dab54763a5da7016fc3416b93a2c7fca56178b0ab6bc",
       "responsibility": "Repository knowledge lifecycle lint",
       "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars and compose the extracted drift lint.",
       "disposition": "cohesive"
@@ -277,9 +284,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:65f19d0725a89f1f8cbd12a52d5431e86951329911bdfcff71e3743a195bb3bc",
+      "contentHash": "sha256:fee3b10041f7bbc40a96b4588baffcb30eca3ee90f7f0cb91bcbbe6b3b54f046",
       "responsibility": "Repository document-layout migration",
-      "rationale": "Classification, link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction; taxonomy role-template refresh and tool-specific formatter configuration are outside this boundary.",
+      "rationale": "Link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction. Source classification and its evidence observation live in the layout-candidate modules; taxonomy role-template refresh and tool-specific formatter configuration are outside this boundary.",
       "disposition": "cohesive"
     },
     {
@@ -326,7 +333,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/workstream.ts",
-      "contentHash": "sha256:4b8391394bd0a79e6b6de7173b5426b04608320c7f0be2981ffa14e064759c4c",
+      "contentHash": "sha256:3a6ad30971ed3895f18cf05029670c8dfd74d11c255d20a1ba415756b2d4bd84",
       "responsibility": "Revisioned workstream snapshot lifecycle",
       "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, intent-bound plan identity, and durable apply protocol. Snapshot construction, bookkeeping, revision derivation, freshness, and context rendering live in sibling modules, so this module keeps durable lifecycle orchestration only.",
       "disposition": "cohesive"
