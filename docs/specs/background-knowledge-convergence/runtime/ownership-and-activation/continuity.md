@@ -73,14 +73,16 @@ Under [ADR-0470](../../../../decisions/operations/services/0470-admit-every-know
 | ------------------------------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------- |
 | Absent                                                 | Lervo          | Write one: Hub mode with the first proven candidate, else the first unproven candidate, else standalone |
 | `standalone`, label `local`, no publication, no marker | Legacy default | Migrate in place, keeping `hostId`                                                                      |
-| Hash equals the derivation marker                      | Lervo          | Follow changed coordinates; enable publication when available                                           |
+| Hash equals the derivation marker                      | Lervo          | Follow changed coordinates; enable and revalidate publication                                           |
 | Anything else                                          | Operator       | Never changed                                                                                           |
 
 Candidates come from the owning Node's `hub` configuration for a Node resident. A CLI resident uses, at most four in this order: the Node registered for the checkout in `node-fleet.json`; the Hub block of `nodes/<projectId>/config.json`; this project's `nodes/<projectId>/secrets/hub-sync.token` paired with each Hub other Hub-mode checkouts on the host use; then those checkouts' coordinates as written. `nodes/` sits beside the user state directory, and on Linux also under `$XDG_CONFIG_HOME/lervo/nodes`. A probe is one host-record read.
 
 Under [ADR-0471](../../../../decisions/coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md), when every candidate fails its probe, derivation writes Hub mode with the first candidate and marks it `unproven`. The lease then reports `unverifiable`, the host stays read-only, and the state records the cause as `owner_host_hub_unusable`. Unproven coordinates are probed again at every reconciliation. A host never falls back to standalone, which owns unconditionally, while Hub coordinates exist. Standalone mode is only for hosts without any.
 
-Publication is added only in Hub mode. It requires `git remote get-url origin`, `git symbolic-ref refs/remotes/origin/HEAD`, and `gh auth status` to succeed. The settings are `origin`, the remote default branch, `lervo/knowledge-outputs`, `when_checks_pass`, and the default roots.
+Publication is added only in Hub mode. It requires `git remote get-url origin`, `git ls-remote --symref origin HEAD`, and `gh auth status` to succeed. The settings are `origin`, the default branch the remote advertises, `lervo/knowledge-outputs`, `when_checks_pass`, and `scope: "delegation"`. The local `refs/remotes/origin/HEAD` is never consulted: it can be missing or name a feature branch.
+
+Under [ADR-0471](../../../../decisions/knowledge/documents/0471-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md), the probe also runs every six hours for a derived configuration that already publishes. A different base branch replaces the derived one, and a failed probe keeps it. A derived setting that still holds the old default roots (`docs/` and `.lervo/knowledge/`) becomes `scope: "delegation"` at the next reconciliation, without a probe.
 
 ### Migrating hand-written configurations
 

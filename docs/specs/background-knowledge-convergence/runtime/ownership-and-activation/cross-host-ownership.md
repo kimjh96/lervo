@@ -25,14 +25,15 @@
     "baseBranch": "main",
     "branch": "lervo/knowledge-outputs",
     "merge": "when_checks_pass",
-    "allowedRoots": ["docs/", ".lervo/knowledge/"]
+    "scope": "delegation"
   }
 }
 ```
 
 - `hostLabel` matches `^[a-z0-9][a-z0-9-]{0,31}$`. It names the host to operators only.
 - `coordination` is either `{ "mode": "standalone" }` or the Hub form above. The Hub principal behind the token needs `workspace.read` and `workspace.coordinate`, or since ADR-0469 `sync.write`, for the project at `destinationId`. Every host of one repository must use the same Hub and `destinationId`.
-- `publication` is optional; without it the owner never pushes. `merge` is `when_checks_pass` or `never`. `allowedRoots` holds 1 to 16 repository-relative prefixes ending in `/`, and defaults to `docs/` and `.lervo/knowledge/`. The publication branch must differ from the base branch.
+- `publication` is optional; without it the owner never pushes. `merge` is `when_checks_pass` or `never`. The publication branch must differ from the base branch.
+- Since [ADR-0471](../../../../decisions/knowledge/documents/0471-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md), `scope: "delegation"` makes a path publishable when it is Lervo-managed knowledge state or lies within the active delegation's `canonicalRoots` or `normalizationRoots`. `allowedRoots` cannot accompany it. Without `scope`, `allowedRoots` holds 1 to 16 repository-relative prefixes ending in `/`, and defaults to `docs/` and `.lervo/knowledge/`. Derivation writes `scope: "delegation"`.
 - A missing file is created as `standalone` with label `local` and a random `hostId` on the first observation. An invalid file yields `unverifiable / convergence_owner_host_invalid`; it never falls back to standalone.
 - Under [ADR-0469](../../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md), each resident derives this file from the Hub coordinates the host already uses for sync when Lervo owns it: absent, the legacy `standalone`/`local` default, or a file Lervo wrote. Hand-written files are never changed. See [fleet continuity](continuity.md#owner-host-derivation).
 
@@ -96,6 +97,7 @@ The owner's resident runs one publication after each cycle, as [ADR-0466](../../
 
 | Effect         | Command on the owner host                                                                        | Guard                                                                                                                 |
 | -------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Repair         | `git checkout <restore-point> -- <path>` or removal, then one `Lervo Knowledge` commit           | Only paths whose newest commits are Lervo's own and that have no uncommitted edits (ADR-0471)                         |
 | Fetch          | `git fetch <remote> +refs/heads/<base>:refs/remotes/<remote>/<base>` and the same for the branch | Host's own Git credential; `GIT_TERMINAL_PROMPT=0`                                                                    |
 | Replay         | `git worktree add --detach` on the remote base, then one `git cherry-pick` per commit            | Unless `HEAD` already descends from the remote base with only formatted knowledge commits; source committer date kept |
 | Format         | The repository's Prettier in the replay worktree, then one `Lervo Knowledge` commit              | Only Prettier-owned paths the commits change or release; dated like the last source commit                            |
@@ -104,6 +106,8 @@ The owner's resident runs one publication after each cycle, as [ADR-0466](../../
 | Pull request   | `gh pr list`, `gh pr create --body-file -`, `gh pr edit --body-file -`                           | Host's own `gh` login; `GH_PROMPT_DISABLED=1`                                                                         |
 | Merge          | `gh pr merge --merge --match-head-commit <head>`                                                 | `merge: when_checks_pass`; every check on the head concluded success, apart from skipped ones, and at least one did   |
 | Local catch-up | `git merge --ff-only` or `git reset --keep`                                                      | On the base branch only; only when no local-only work is lost                                                         |
+
+Before the fetch, the owner restores paths the knowledge lifecycle must not change, as [ADR-0471](../../../../decisions/knowledge/documents/0471-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md#the-owner-repairs-its-own-commits) defines. These are tool-generated documents that recent `Lervo Knowledge` commits rewrote, even after publication, and unpublished paths outside the scope. The corrective commit carries one `Lervo-Publication-Repair` trailer per undone commit and records `knowledge.publication.repaired`. The scope check then refuses a path only when the last unpublished knowledge commit that changed it is not a repair commit, and the path is tool-generated or outside the scope. Its `knowledge_publication_scope_violation` detail names the repair blockers.
 
 The publication state file, its statuses, and its failure codes are defined in the ADR. A replay conflict supersedes the selected commits:
 
