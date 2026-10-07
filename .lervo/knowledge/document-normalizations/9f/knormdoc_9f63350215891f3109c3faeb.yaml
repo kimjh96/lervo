@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_65a2f12dcd50cc25b7e0eda4
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9e3a4691e2cdef8a2ff6e823
+outputLanguage: en
+outputs:
+  - byteCount: 1609
+    contentHash: sha256:20a13ddf206d3597f2757df1a9d39c4137e2c205cf1bb03268ddbd2586ddbdca
+    path: docs/roadmap/v0/repository-knowledge-hardening/discovery-migration-routing.md
+    userRegionHash: sha256:20a13ddf206d3597f2757df1a9d39c4137e2c205cf1bb03268ddbd2586ddbdca
+profile: roadmap_document
+recordId: knormdoc_9f63350215891f3109c3faeb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b91032fdc6909c7b5d49a87045665bd8e24feab61eaeb9a339249320521f82c4
+sourcePath: docs/roadmap/v0/repository-knowledge-hardening/discovery-migration-routing.md
+sourceUnitVersionIds:
+  - uv_6cb75c20ade09cc8596aabd9

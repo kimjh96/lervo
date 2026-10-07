@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_65a2f12dcd50cc25b7e0eda4
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7bdbc4dfe24f3392f35caa4d
+outputLanguage: en
+outputs:
+  - byteCount: 1198
+    contentHash: sha256:7b32b5f484ce5dd873e597291ea48d9f68233af68287ee8b162c05c6e7bdace8
+    path: docs/roadmap/v0/repository-knowledge-hardening/normalization-and-acceptance.md
+    userRegionHash: sha256:7b32b5f484ce5dd873e597291ea48d9f68233af68287ee8b162c05c6e7bdace8
+profile: roadmap_document
+recordId: knormdoc_6382a5c07f25940b7b66fd86
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7b32b5f484ce5dd873e597291ea48d9f68233af68287ee8b162c05c6e7bdace8
+sourcePath: docs/roadmap/v0/repository-knowledge-hardening/normalization-and-acceptance.md
+sourceUnitVersionIds:
+  - uv_b1879028c5c990ed8cd82c7e

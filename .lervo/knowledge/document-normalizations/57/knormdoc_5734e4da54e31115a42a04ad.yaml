@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_65a2f12dcd50cc25b7e0eda4
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4799ce749bcd048b03711d1e
+outputLanguage: en
+outputs:
+  - byteCount: 1149
+    contentHash: sha256:2d8ee7f1644e25aff50e4b0c6ada8871b8e075ca42ea8ca98111dfc75c252b17
+    path: docs/roadmap/v0/repository-knowledge-hardening/terminal-hooks-and-evidence.md
+    userRegionHash: sha256:2d8ee7f1644e25aff50e4b0c6ada8871b8e075ca42ea8ca98111dfc75c252b17
+profile: roadmap_document
+recordId: knormdoc_5734e4da54e31115a42a04ad
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a00799ac40fdabfc5b7218b512449d49f55092e521d3e4b66a77cb8de8954dac
+sourcePath: docs/roadmap/v0/repository-knowledge-hardening/terminal-hooks-and-evidence.md
+sourceUnitVersionIds:
+  - uv_c472d1b3b235a8dc10554b74

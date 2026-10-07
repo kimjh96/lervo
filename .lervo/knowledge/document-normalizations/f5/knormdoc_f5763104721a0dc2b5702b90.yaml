@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_65a2f12dcd50cc25b7e0eda4
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4d75b41b3b09e5873564d4d9
+outputLanguage: en
+outputs:
+  - byteCount: 1295
+    contentHash: sha256:91503b5b3cb4d87f8cc16aad7506a9b4c636756fce51fcc6f36558439e608eb5
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/source-handoff.md
+    userRegionHash: sha256:91503b5b3cb4d87f8cc16aad7506a9b4c636756fce51fcc6f36558439e608eb5
+profile: roadmap_document
+recordId: knormdoc_f5763104721a0dc2b5702b90
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6479cb29cf517a0d2d5e27ff4eb6639814b95ef351246c57b2a699d29600caff
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord/source-handoff.md
+sourceUnitVersionIds:
+  - uv_7c78bd541c8d9775e54270df
