@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3b5a7def98bbeaed7d962f37"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Regenerate a stale background knowledge review before the owner pre-stage currency check so the regeneration runs"

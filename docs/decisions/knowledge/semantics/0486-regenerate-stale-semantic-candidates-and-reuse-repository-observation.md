@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-07
 Amends: [ADR-0485](0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md)
+Amended by: [ADR-0490](0490-regenerate-stale-semantic-candidates-before-the-pre-stage-check.md) (regeneration runs before the owner's pre-stage check)
 
 ## Context
 

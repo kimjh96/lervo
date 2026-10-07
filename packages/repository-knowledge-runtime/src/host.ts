@@ -107,6 +107,16 @@ export function createConvergenceRuntimeHost(
       await captureConvergenceSettlementAuthority(context, state);
       source(state);
     },
+    // ADR-0490: the owner's pre-stage currency check would reject a stale review context before
+    // `runStage` could regenerate it, so a stale review is regenerated here first.
+    prepareStage: async (stage, state) => {
+      try {
+        source(state);
+        return null;
+      } catch (error) {
+        return staleReviewContext(error) ? regenerateStaleReview(context, state, stage) : null;
+      }
+    },
     dependencyCurrent: async (hash) => {
       const bytes = await context.storage.artifacts.get(`lervo-cas://sha256/${hash.slice(7)}`);
       if (sha256(bytes) !== hash)

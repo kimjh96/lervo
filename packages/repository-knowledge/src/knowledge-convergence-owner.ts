@@ -196,14 +196,19 @@ export async function processKnowledgeConvergence(
         baseline: row.baseline,
         artifacts: input.artifacts,
       });
-      await input.host.assertCurrent(state);
+      const prepared = (await input.host.prepareStage?.(stage, state)) ?? null;
       assertLease();
-      if (delivery.attemptCount > MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS)
-        throw Object.assign(new Error("Retry ceiling reached."), {
-          code: "knowledge_retry_exhausted",
-        });
-      result = await input.host.runStage(stage, state, assertLease);
-      assertLease();
+      if (prepared !== null) result = prepared;
+      else {
+        await input.host.assertCurrent(state);
+        assertLease();
+        if (delivery.attemptCount > MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS)
+          throw Object.assign(new Error("Retry ceiling reached."), {
+            code: "knowledge_retry_exhausted",
+          });
+        result = await input.host.runStage(stage, state, assertLease);
+        assertLease();
+      }
       await assertKnowledgeConvergenceInput({
         value: result.input,
         baseline: row.baseline,
