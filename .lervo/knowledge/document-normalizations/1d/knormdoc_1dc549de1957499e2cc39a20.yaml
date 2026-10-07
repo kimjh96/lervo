@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e6812b379cbc7d98747c8739
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_130b937d8da600f5c85e7113
+outputLanguage: en
+outputs:
+  - byteCount: 11408
+    contentHash: sha256:837be91ca016d9a74559ec0d304451f6df7f7dee6d4bbfa380860563ea4f7b9e
+    path: docs/decisions/coordination/sync/0477-carry-delegation-bound-definitions-across-hosts.md
+    userRegionHash: sha256:837be91ca016d9a74559ec0d304451f6df7f7dee6d4bbfa380860563ea4f7b9e
+profile: decision_record
+recordId: knormdoc_1dc549de1957499e2cc39a20
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3e5179d1196130f3bee0494c6ede50a94d126440778c61799a30b3f2724fab9e
+sourcePath: docs/decisions/coordination/sync/0477-carry-delegation-bound-definitions-across-hosts.md
+sourceUnitVersionIds:
+  - uv_2fdedd207bac22dfe1c26494
+  - uv_490c70a4cba991b8eb3b127d
+  - uv_4dc2f8c4eb79b755e056ae6a
+  - uv_51273c330bb9b169074ac7eb
+  - uv_6566bd21d62faea62345b757
+  - uv_852e84a91f2bbe767a178333
+  - uv_8d5b6fdfdf5356b2d9ad245b
+  - uv_9341c0591ea673c06a19616a
+  - uv_acdb1723e3896bf8c58fbcb4
+  - uv_bdfbe3e6b5e302fc5609a1ca
+  - uv_d6f241f0427749784ebc6e4d
+  - uv_dbe3e4fc925a99ed3f7063b5
+  - uv_eab86eee558d6ddcbb0a3571
