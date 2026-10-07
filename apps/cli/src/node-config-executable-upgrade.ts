@@ -15,7 +15,7 @@ import {
 import { nodeRuntimesDirectory, readCurrentNodeRuntime } from "./node-runtime-pointer.js";
 
 /**
- * ADR-0487 part of the repository Node upgrade stage. The plan carries hashes and field names,
+ * ADR-0488 part of the repository Node upgrade stage. The plan carries hashes and field names,
  * never paths: whether the host CLI pointer must move to the running install, and whether the
  * Node configuration still pins a version-specific CLI or runtime path.
  */
@@ -43,7 +43,7 @@ export interface NodeConfigExecutablesOptions {
 }
 
 const MAXIMUM_CONFIG_BYTES = 1_048_576;
-export const NODE_CONFIG_BACKUP_SUFFIX = ".pre-adr-0487";
+export const NODE_CONFIG_BACKUP_SUFFIX = ".pre-adr-0488";
 
 const sha256 = (value: string | Uint8Array): string =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -126,7 +126,7 @@ async function writeExclusive(path: string, bytes: string, mode: number): Promis
 }
 
 async function replaceFile(path: string, bytes: string, mode: number): Promise<void> {
-  const temporary = `${path}.adr-0487-${randomUUID()}`;
+  const temporary = `${path}.adr-0488-${randomUUID()}`;
   try {
     await writeExclusive(temporary, bytes, mode);
     await rename(temporary, path);

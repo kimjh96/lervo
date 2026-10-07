@@ -55,7 +55,7 @@ function plan(document: unknown, options: { pointer?: boolean; running?: string 
   });
 }
 
-describe("Node configuration executable migration (ADR-0487)", () => {
+describe("Node configuration executable migration (ADR-0488)", () => {
   it("moves every pinned CLI install path in the incident configuration to the CLI pointer", () => {
     const result = plan(incidentConfig());
 

@@ -43,7 +43,7 @@ async function executable(path: string, mode = 0o700): Promise<void> {
   await chmod(path, mode);
 }
 
-describe("Node configured executables (ADR-0487)", () => {
+describe("Node configured executables (ADR-0488)", () => {
   it("names every absolute executable field and skips PATH-resolved names", async () => {
     const root = await temporaryRoot();
     expect(

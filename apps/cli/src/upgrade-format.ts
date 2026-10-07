@@ -33,7 +33,7 @@ function blockerLines(blockers: readonly UpgradeStageBlocker[], indent: string):
   });
 }
 
-/** ADR-0487: what the Node stage changes in the host CLI pointer and the Node configuration. */
+/** ADR-0488: what the Node stage changes in the host CLI pointer and the Node configuration. */
 function nodeConfigExecutableLines(stage: NodeConfigExecutablesStage | undefined): string[] {
   if (stage === undefined) return [];
   const lines: string[] = [];
@@ -43,7 +43,7 @@ function nodeConfigExecutableLines(stage: NodeConfigExecutablesStage | undefined
     );
   if (stage.config === "migrate")
     lines.push(
-      `  The Node configuration names the host CLI pointer instead of a version-specific path in ${stage.rewrittenFields.length} field(s); a .pre-adr-0487 backup stays beside it.`,
+      `  The Node configuration names the host CLI pointer instead of a version-specific path in ${stage.rewrittenFields.length} field(s); a .pre-adr-0488 backup stays beside it.`,
     );
   if (stage.overrideFields.length > 0)
     lines.push(

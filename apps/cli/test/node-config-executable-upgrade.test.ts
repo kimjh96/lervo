@@ -74,7 +74,7 @@ async function fixture() {
   return { home, running, removed, config, original, options };
 }
 
-describe("CLI install pointer (ADR-0487)", () => {
+describe("CLI install pointer (ADR-0488)", () => {
   it("creates, keeps, and swaps the pointer only to an install with dist/bin.js", async () => {
     const home = await realpath(await mkdtemp(resolve(tmpdir(), "lervo-cli-pointer-")));
     directories.push(home);
@@ -110,7 +110,7 @@ describe("CLI install pointer (ADR-0487)", () => {
   });
 });
 
-describe("Node configuration executable upgrade (ADR-0487)", () => {
+describe("Node configuration executable upgrade (ADR-0488)", () => {
   it("plans with field names, then points the CLI and rewrites the config with a backup", async () => {
     const { home, running, removed, config, original, options } = await fixture();
 
@@ -139,7 +139,7 @@ describe("Node configuration executable upgrade (ADR-0487)", () => {
       cliBundle: currentCliExecutable(home),
     });
     expect((await stat(config)).mode & 0o777).toBe(0o600);
-    expect(applied.backupPath).toMatch(/node-runtime\.json\.pre-adr-0487-[a-f0-9]{12}$/u);
+    expect(applied.backupPath).toMatch(/node-runtime\.json\.pre-adr-0488-[a-f0-9]{12}$/u);
     expect(await readFile(applied.backupPath!, "utf8")).toBe(original);
     expect((await stat(applied.backupPath!)).mode & 0o777).toBe(0o600);
     expect(original).toContain(removed);

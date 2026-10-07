@@ -6,7 +6,7 @@ import type { NodeRuntimeConfig } from "./config-types.js";
 import { NodeRuntimeError } from "./errors.js";
 
 /**
- * ADR-0487: one executable path a Node configuration names. `lervo_cli` fields name the Lervo
+ * ADR-0488: one executable path a Node configuration names. `lervo_cli` fields name the Lervo
  * CLI bundle and follow the host's CLI pointer after `lervo upgrade`; the others name host tools.
  */
 export interface NodeConfiguredExecutable {

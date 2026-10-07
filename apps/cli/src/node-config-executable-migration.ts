@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 import { CLI_DIST_FILES } from "./cli-install-pointer.js";
 
 /**
- * ADR-0487: plans the rewrite of version-specific executable paths in one Node configuration's
+ * ADR-0488: plans the rewrite of version-specific executable paths in one Node configuration's
  * raw JSON. It reads no file; the caller supplies the bytes and the host's stable pointers.
  *
  * - A CLI install path is `<root>/dist/<published file>`, where `<root>` is a CLI field's install,

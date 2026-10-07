@@ -1,4 +1,4 @@
-# ADR-0487: Point Node configurations at one current CLI
+# ADR-0488: Point Node configurations at one current CLI
 
 Status: `accepted`
 Decision date: 2026-10-07
@@ -54,7 +54,7 @@ On apply, the stage performs these steps in order:
 2. It points `current` at the running CLI install.
 3. It checks that every rewritten path resolves, or fails with `node_config_executable_unresolved`.
 4. It rechecks the configuration bytes against `sourceHash`.
-5. It exclusively writes the original bytes to `<config>.pre-adr-0487-<12 hex>` with mode 0600. The suffix is the start of the source hash. An identical existing backup is reused, and a different one fails with `node_config_backup_conflict`.
+5. It exclusively writes the original bytes to `<config>.pre-adr-0488-<12 hex>` with mode 0600. The suffix is the start of the source hash. An identical existing backup is reused, and a different one fails with `node_config_backup_conflict`.
 6. It writes the migrated bytes to a private temporary file with mode 0600 and renames it over the configuration.
 7. When the deployment also changes, it runs the existing transactional Node replacement.
 
@@ -91,7 +91,7 @@ No event is added.
 New host state:
 
 - The `current` CLI pointer. It is host-local, holds one absolute install path, and is never synchronized. A missing or relative link means no pointer, and the next upgrade creates it.
-- `<config>.pre-adr-0487-<12 hex>`: an owner-only backup of a migrated Node configuration, written once per source content.
+- `<config>.pre-adr-0488-<12 hex>`: an owner-only backup of a migrated Node configuration, written once per source content.
 
 New failure codes:
 

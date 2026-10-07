@@ -70,7 +70,7 @@ async function fixture(codex: (home: string) => string) {
   return home;
 }
 
-describe("repository Node status configured executables (ADR-0487)", () => {
+describe("repository Node status configured executables (ADR-0488)", () => {
   it("reports a removed CLI install by field and path before a restart", async () => {
     const pinned = (home: string) =>
       `${home}/.local/lib/lervo-cli/convergence-0.18.0/node_modules/@lervo/cli/dist/bin.js`;

@@ -4,7 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-07
 Amends: [ADR-0456](0456-hand-off-repositories-atomically-with-a-writer-lease.md) (peer protocol, coordinator configuration), [ADR-0478](0478-renew-each-delegation-with-one-writer.md) (rollout), [ADR-0470](../../operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) (managed user services)
 Related: [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md)
-Amended by: [ADR-0487](../../operations/services/0487-point-node-configurations-at-one-current-cli.md) (a `current` CLI pointer beside the runtimes, which Node configurations name)
+Amended by: [ADR-0488](../../operations/services/0488-point-node-configurations-at-one-current-cli.md) (a `current` CLI pointer beside the runtimes, which Node configurations name)
 
 ## Context
 

@@ -168,7 +168,7 @@ export interface NodeFleetStatusReport {
       updatedAt: string | null;
     };
     recoveryAction: "none" | "reapply_exact_plan" | "inspect_runtime_failure" | "wait_for_runtime";
-    /** ADR-0487: configured executables a restart would need, observed now. */
+    /** ADR-0488: configured executables a restart would need, observed now. */
     configuredExecutables: NodeConfiguredExecutablesReport;
   }>;
 }

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { nodeRuntimesDirectory } from "./node-runtime-pointer.js";
 
 /**
- * ADR-0487: every host keeps one `current` pointer to the installed CLI package that last ran
+ * ADR-0488: every host keeps one `current` pointer to the installed CLI package that last ran
  * `lervo upgrade`, beside the Node runtimes of ADR-0483. Node configurations name
  * `<cli>/current/dist/bin.js`, so removing an old CLI install never breaks a Node at restart.
  * Unlike a Node runtime, the CLI package keeps its own dependencies, so the pointer is an absolute

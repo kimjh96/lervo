@@ -39,7 +39,7 @@ export interface NodeUpgradeStage {
   serviceTargetHash: string | null;
   /** ADR-0470: hash of the definition this upgrade renders, including tool directories. */
   desiredServiceHash?: string | null;
-  /** ADR-0487: the host CLI pointer and the configuration's version-specific paths. */
+  /** ADR-0488: the host CLI pointer and the configuration's version-specific paths. */
   configExecutables?: NodeConfigExecutablesStage;
   reason: string;
   blockers?: Array<{ code: string; message: string }>;
@@ -362,7 +362,7 @@ export async function applyRegisteredNodeUpgrade(inspection: NodeUpgradeInspecti
     inspection.stage.configPathDigest !== sha256(inspection.configPath)
   )
     throw new Error("The registered Node upgrade inputs could not be revalidated.");
-  // ADR-0487: the configuration names the CLI pointer before the replacement Node reads it. A
+  // ADR-0488: the configuration names the CLI pointer before the replacement Node reads it. A
   // failed replacement keeps the migrated configuration, whose paths resolve to the installed CLI.
   const executables = inspection.configExecutables?.stage;
   if (executables !== undefined && nodeConfigExecutablesPending(executables))

@@ -18,7 +18,7 @@ import { nodeRuntimesDirectory } from "./node-runtime-pointer.js";
 import { readNodeServiceCoordinates } from "./node-service-coordinates.js";
 
 /**
- * ADR-0487: what a registered Node's configuration names, observed before the next restart.
+ * ADR-0488: what a registered Node's configuration names, observed before the next restart.
  * `attention` means a restart would fail or degrade because a configured executable is unusable;
  * `pinnedFields` names the fields that `lervo upgrade` would move to the host's stable pointers.
  */
