@@ -8,374 +8,167 @@ routes:
   - id: search.activation.provider-shadow-structured.typed-context
     path: search/activation/provider-shadow-structured/typed-context
     priority: 104
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - typed-context managed canary
-      - task evidence and governance context
+    description: "Scope carried from the legacy title terms: typed-context managed canary; task evidence and governance context."
   - id: search.activation.provider-shadow-structured
     path: search/activation/provider-shadow-structured
     priority: 103
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - structured codex provider-shadow
-      - structured-selection
-      - compatible structured provider-shadow
-      - relational coverage
+    description: "Scope carried from the legacy title terms: structured codex provider-shadow; structured-selection; compatible structured provider-shadow; relational coverage."
   - id: search.activation
     path: search/activation
     priority: 102
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - activation
-      - phase a pilot
-      - registered corpus pilot
+    description: "Scope carried from the legacy title terms: activation; phase a pilot; registered corpus pilot."
   - id: search.rollout
     path: search/rollout
     priority: 101
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - search rollout
+    description: "Scope carried from the legacy title terms: search rollout."
   - id: search.engines
     path: search/engines
     priority: 101
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - search-engine
-      - lexical-v2
-      - retrieval composition
-      - retrieval plan
+    description: "Scope carried from the legacy title terms: search-engine; lexical-v2; retrieval composition; retrieval plan."
   - id: search
     path: search
     priority: 100
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - search
-      - bm25
-      - lexical
+    description: "Scope carried from the legacy title terms: search; bm25; lexical."
   - id: knowledge.documents
     path: knowledge/documents
     priority: 95
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - document
-      - commonmark
-      - markdown
-      - managed block
-      - staleness
+    description: "Scope carried from the legacy title terms: document; commonmark; markdown; managed block; staleness."
   - id: knowledge.semantics
     path: knowledge/semantics
     priority: 94
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - semantic candidate
-      - knowledge graph
-      - duplicate
-      - contradiction
-      - cross provider
-      - compilation comparison
+    description: "Scope carried from the legacy title terms: semantic candidate; knowledge graph; duplicate; contradiction; cross provider; compilation comparison."
   - id: knowledge.repository.canonicalization
     path: knowledge/repository/canonicalization
     priority: 96
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - knowledge candidates
-      - canonicalization
-      - canonical outcomes
+    description: "Scope carried from the legacy title terms: knowledge candidates; canonicalization; canonical outcomes."
   - id: knowledge.repository
     path: knowledge/repository
     priority: 93
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - knowledge
-      - repository migration
-      - agent surface
-      - language
-      - instruction bridge
-      - okf
-      - source unit
-      - parser grade
-      - revision source
+    description: "Scope carried from the legacy title terms: knowledge; repository migration; agent surface; language; instruction bridge; okf; source unit; parser grade; revision source."
   - id: release.staging
     path: release/staging
     priority: 90
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - stage only
-      - stage approval
-      - stage evidence
-      - staged package
-      - npm stage
-      - staging
+    description: "Scope carried from the legacy title terms: stage only; stage approval; stage evidence; staged package; npm stage; staging."
   - id: release.bootstrap
     path: release/bootstrap
     priority: 89
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - first publication
-      - publication bootstrap
+    description: "Scope carried from the legacy title terms: first publication; publication bootstrap."
   - id: release.assurance
     path: release/assurance
     priority: 88
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - sbom
-      - attestation
-      - provenance
-      - trusted publisher
-      - publication authorization
-      - publication preflight
+    description: "Scope carried from the legacy title terms: sbom; attestation; provenance; trusted publisher; publication authorization; publication preflight."
   - id: release.packaging
     path: release/packaging
     priority: 87
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - release
-      - publish
-      - publication
-      - npm
-      - package
+    description: "Scope carried from the legacy title terms: release; publish; publication; npm; package."
   - id: coordination.deliberation
     path: coordination/deliberation
     priority: 84
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - deliberation
+    description: "Scope carried from the legacy title terms: deliberation."
   - id: coordination.conversations.delivery
     path: coordination/conversations/delivery
     priority: 85
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - delivery
-      - reconciliation
+    description: "Scope carried from the legacy title terms: delivery; reconciliation."
   - id: coordination.conversations.agent-organization
     path: coordination/conversations/agent-organization
     priority: 84
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - agent memory
-      - agent context
-      - autonomous participation
+    description: "Scope carried from the legacy title terms: agent memory; agent context; autonomous participation."
   - id: coordination.conversations
     path: coordination/conversations
     priority: 83
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - conversation
-      - slack
-      - discord
+    description: "Scope carried from the legacy title terms: conversation; slack; discord."
   - id: coordination.sync
     path: coordination/sync
     priority: 82
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - hub sync
-      - outbound sync
-      - project sync
-      - registration
+    description: "Scope carried from the legacy title terms: hub sync; outbound sync; project sync; registration."
   - id: coordination.remote-control
     path: coordination/remote-control
     priority: 81
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - hub
-      - remote command
-      - remote commands
-      - remote control
-      - command artifact
-      - role handoff
+    description: "Scope carried from the legacy title terms: hub; remote command; remote commands; remote control; command artifact; role handoff."
   - id: distribution
     path: distribution
     priority: 70
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - distribution
-      - install
-      - installation
-      - installed cli
-      - cli deployment
-      - standalone
+    description: "Scope carried from the legacy title terms: distribution; install; installation; installed cli; cli deployment; standalone."
   - id: operations.trace
     path: operations/trace
     priority: 64
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - trace
+    description: "Scope carried from the legacy title terms: trace."
   - id: operations.diagnostics
     path: operations/diagnostics
     priority: 63
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - doctor
-      - diagnostic
-      - diagnostics
+    description: "Scope carried from the legacy title terms: doctor; diagnostic; diagnostics."
   - id: operations.security
     path: operations/security
     priority: 62
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - bearer token
-      - trust material
-      - credential
-      - tls
+    description: "Scope carried from the legacy title terms: bearer token; trust material; credential; tls."
   - id: operations.services
     path: operations/services
     priority: 61
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - runtime service
-      - readiness
-      - preflight
+    description: "Scope carried from the legacy title terms: runtime service; readiness; preflight."
   - id: operations.storage
     path: operations/storage
     priority: 60
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - storage
-      - event store
-      - cas
-      - cleanup
+    description: "Scope carried from the legacy title terms: storage; event store; cas; cleanup."
   - id: execution.applications
     path: execution/applications
     priority: 57
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - product host
-      - application protocol
-      - application boundary
-      - operating client
+    description: "Scope carried from the legacy title terms: product host; application protocol; application boundary; operating client."
   - id: execution.providers
     path: execution/providers
     priority: 53
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - provider
-      - adapter
-      - session
-      - codex
-      - claude
+    description: "Scope carried from the legacy title terms: provider; adapter; session; codex; claude."
   - id: execution.orchestration.improvement
     path: execution/orchestration/improvement
     priority: 56
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - verified improvement
-      - improvement effect
-      - improvement observation
-      - repeated verification failures
+    description: "Scope carried from the legacy title terms: verified improvement; improvement effect; improvement observation; repeated verification failures."
   - id: execution.orchestration.governed-work.resource-accounting
     path: execution/orchestration/governed-work/resource-accounting
     priority: 59
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - supervision budget
-      - model migration
-      - resource accounting
+    description: "Scope carried from the legacy title terms: supervision budget; model migration; resource accounting."
   - id: execution.orchestration.governed-work.node-composition
     path: execution/orchestration/governed-work/node-composition
     priority: 59
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - deployed product owners
-      - node composition
-      - supervision deployment
+    description: "Scope carried from the legacy title terms: deployed product owners; node composition; supervision deployment."
   - id: execution.orchestration.governed-work.workstream-concurrency
     path: execution/orchestration/governed-work/workstream-concurrency
     priority: 59
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - parallel bound workstreams
-      - workstream concurrency
-      - bound workstreams
+    description: "Scope carried from the legacy title terms: parallel bound workstreams; workstream concurrency; bound workstreams."
   - id: execution.orchestration.governed-work.request-intake
     path: execution/orchestration/governed-work/request-intake
     priority: 59
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - conversation evidence
-      - supervision request
-      - request intake
+    description: "Scope carried from the legacy title terms: conversation evidence; supervision request; request intake."
   - id: execution.orchestration.governed-work.owner-recovery
     path: execution/orchestration/governed-work/owner-recovery
     priority: 59
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - owner interruption
-      - read-only owner
-      - owner recovery
+    description: "Scope carried from the legacy title terms: owner interruption; read-only owner; owner recovery."
   - id: execution.orchestration.governed-work
     path: execution/orchestration/governed-work
     priority: 58
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - governed loop
-      - assignment approval
-      - managed assignment completion
-      - operating board
-      - current objective
-      - assignment interactions
-      - assignment routines
-      - assignment artifacts
-      - assignments through
-      - workstream goals
+    description: "Scope carried from the legacy title terms: governed loop; assignment approval; managed assignment completion; operating board; current objective; assignment interactions; assignment routines; assignment artifacts; assignments through; workstream goals."
   - id: execution.grounding
     path: execution/grounding
     priority: 55
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - request grounding
-      - semantic grounding
-      - grounding
+    description: "Scope carried from the legacy title terms: request grounding; semantic grounding; grounding."
   - id: execution.provider-hooks
     path: execution/providers/hooks
     priority: 54
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - terminal hook
-      - hook isolation
-      - provider hook
+    description: "Scope carried from the legacy title terms: terminal hook; hook isolation; provider hook."
   - id: execution.provider-resource-limits
     path: execution/providers/resource-limits
     priority: 55
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - reserved tokens
-      - token limit
-      - resource limit
+    description: "Scope carried from the legacy title terms: reserved tokens; token limit; resource limit."
   - id: execution.verification
     path: execution/verification
     priority: 52
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - verification
-      - managed write
-      - result artifact
-      - publication gate
-      - permit
-      - approval
+    description: "Scope carried from the legacy title terms: verification; managed write; result artifact; publication gate; permit; approval."
   - id: execution.orchestration
     path: execution/orchestration
     priority: 51
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - run
-      - context
-      - skill
-      - execution
-      - orchestration
-      - specialist roles
-      - cross review
+    description: "Scope carried from the legacy title terms: run; context; skill; execution; orchestration; specialist roles; cross review."
   - id: foundation
     path: foundation
     priority: 10
-    minimumTitleTermMatches: 1
-    titleTerms:
-      - foundation
-      - foundational
-      - product identity
-      - m0 contract
-      - data default
-      - safe project initialization
-      - invariant
+    description: "Scope carried from the legacy title terms: foundation; foundational; product identity; m0 contract; data default; safe project initialization; invariant."
 documentPolicy:
   capacity:
     maxDirectDocuments: 32
