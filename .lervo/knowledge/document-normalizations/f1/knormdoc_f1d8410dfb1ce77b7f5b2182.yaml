@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3094e742e51db9409f18a0c0
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_58d0892979b7a84ba79f7f3c
+outputLanguage: en
+outputs:
+  - byteCount: 2255
+    contentHash: sha256:c11e4ac9adb67a46bea3b488e923b8234bf3c581199195180fc95bf60eb8559e
+    path: docs/decisions/knowledge/repository/canonicalization/0448-settle-unread-sensitive-sources-by-disposition.md
+    userRegionHash: sha256:c11e4ac9adb67a46bea3b488e923b8234bf3c581199195180fc95bf60eb8559e
+profile: decision_record
+recordId: knormdoc_f1d8410dfb1ce77b7f5b2182
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:884fac3372537774868e8369339df4e3502024c07101bdcb9d6c2c0056356f10
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0448-settle-unread-sensitive-sources-by-disposition.md
+sourceUnitVersionIds:
+  - uv_177ff5d80c868ec9e24c94bc
+  - uv_22e0aab9aafb5af19f134aa3
+  - uv_23151d4c79cbc81bf2212196
+  - uv_7da5be0fe8199cae4658ed20
+  - uv_dd9cb2e74e576a9c2ed44d81

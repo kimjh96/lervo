@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3094e742e51db9409f18a0c0
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d7b57835b8f09b483114e120
+outputLanguage: en
+outputs:
+  - byteCount: 2621
+    contentHash: sha256:c1f2ed3df21dc0f36f3db3f8b04858da6656521ad5be8b5e7b3a6a0957c01f24
+    path: docs/decisions/knowledge/repository/canonicalization/0449-synchronize-integration-target-with-working-branch.md
+    userRegionHash: sha256:c1f2ed3df21dc0f36f3db3f8b04858da6656521ad5be8b5e7b3a6a0957c01f24
+profile: decision_record
+recordId: knormdoc_6cf43b4d3078beed3631d2eb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c1f2ed3df21dc0f36f3db3f8b04858da6656521ad5be8b5e7b3a6a0957c01f24
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0449-synchronize-integration-target-with-working-branch.md
+sourceUnitVersionIds:
+  - uv_0c29d7d30f79d636021e51d1
+  - uv_17d4f9c9aadba5c71848972a
+  - uv_6ecf2aac6abc0422d6cdb352
+  - uv_afa8d0f924dc610d99b31163
+  - uv_d7b70bc0b7ed16c1996ba6e1

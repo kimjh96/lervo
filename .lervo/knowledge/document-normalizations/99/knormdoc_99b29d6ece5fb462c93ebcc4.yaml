@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3094e742e51db9409f18a0c0
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_71f955bf02677875dbf57be8
+outputLanguage: en
+outputs:
+  - byteCount: 3180
+    contentHash: sha256:4701cf3707b5db2bda69c9d845ebab164fe4c99f82d264d5b25bbef85de8792b
+    path: docs/decisions/knowledge/semantics/0481-bind-generated-projections-by-hash-in-lifecycle-plan-review.md
+    userRegionHash: sha256:4701cf3707b5db2bda69c9d845ebab164fe4c99f82d264d5b25bbef85de8792b
+profile: decision_record
+recordId: knormdoc_99b29d6ece5fb462c93ebcc4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:052a17697fffdf17695b8856d63abe8066977210f8bca19c48e3ab9a5f8a5793
+sourcePath: docs/decisions/knowledge/semantics/0481-bind-generated-projections-by-hash-in-lifecycle-plan-review.md
+sourceUnitVersionIds:
+  - uv_0a956add8ae61af926f59514
+  - uv_759fca0300001374418f0a1a
+  - uv_8b21e993f33b91e1415bf171
+  - uv_a12b1e05cdb9d751f9b0c608
+  - uv_fb0cfa492c22f3e834a423cd

@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3094e742e51db9409f18a0c0
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fe44ef9b1f182a7fc5a57498
+outputLanguage: en
+outputs:
+  - byteCount: 5697
+    contentHash: sha256:c7530a30211e4180154ff0c4dea40390cb2f5f31100e1a1f43a3f3f750e0804a
+    path: docs/decisions/knowledge/semantics/0482-absorb-squash-merged-semantic-candidates-and-type-verification-source-changes.md
+    userRegionHash: sha256:c7530a30211e4180154ff0c4dea40390cb2f5f31100e1a1f43a3f3f750e0804a
+profile: decision_record
+recordId: knormdoc_e3bef34cee89638bcdb02c89
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:eef6e0b593f5e15b810ff1b45e3a38af7677372eda56eff549e7c952af143c8a
+sourcePath: docs/decisions/knowledge/semantics/0482-absorb-squash-merged-semantic-candidates-and-type-verification-source-changes.md
+sourceUnitVersionIds:
+  - uv_1c1338ba91c1d9ff324c0a70
+  - uv_1c457124af877744c2694932
+  - uv_2845fdd8731b7c52a9eb1a7c
+  - uv_3c4494205ab845b430f18a93
+  - uv_4625bdcc1997dda1dc8b1814
+  - uv_5d671eb197f7c1a64142fcbd
+  - uv_6aa946e81b291b858a10ce95

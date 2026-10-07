@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3094e742e51db9409f18a0c0
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a937e86bec78bc3e61b5d838
+outputLanguage: en
+outputs:
+  - byteCount: 9501
+    contentHash: sha256:8877a255f05708688f8164ad376a3aee4e1195cf69f50f0735e7f30fb8ec8801
+    path: docs/decisions/knowledge/semantics/0479-park-rejected-semantic-candidates-and-settle-opaque-assets-by-the-delegation-suite.md
+    userRegionHash: sha256:8877a255f05708688f8164ad376a3aee4e1195cf69f50f0735e7f30fb8ec8801
+profile: decision_record
+recordId: knormdoc_ac9cd2b8c13038fe83d4f4f1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:22f7ae273e8e2f1afd4d2d4dafe5091e2955aa4e4ebb3db924e3ce8f907f0385
+sourcePath: docs/decisions/knowledge/semantics/0479-park-rejected-semantic-candidates-and-settle-opaque-assets-by-the-delegation-suite.md
+sourceUnitVersionIds:
+  - uv_03db36c5311a0032e68eb426
+  - uv_1b2d9a0d5be1d78515d191ed
+  - uv_1d0b2ecae74f5abedfa5f1e7
+  - uv_24670190208cd7d28b6bd1ec
+  - uv_3a20b68e1c6abd3e06f8365c
+  - uv_656d886bf64b60d48556204f
+  - uv_7c8c579bdfdea5316b928499
+  - uv_9c42d2cc6a8679cf45e8a78a
+  - uv_b15814957230c037b273720f
+  - uv_ce8e334916de48425701b57a

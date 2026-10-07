@@ -7,7 +7,7 @@ Amended by: [ADR-0479](../../semantics/0479-park-rejected-semantic-candidates-an
 
 ## Context
 
-Final lifecycle verification required an exact reviewed asset disposition for every opaque and sensitive source. The installed Mac delegation declared no asset dispositions, so 20 sensitive sources blocked Mac baseline currency. These were ordinary source and documentation files whose paths or classifications indicate possible secrets, such as `credentials.ts` and `budget-tokens.ts`.
+Final lifecycle verification required an exact reviewed asset disposition for every opaque and sensitive source. The installed Mac delegation declared none, so 20 sensitive sources blocked Mac baseline currency. These were ordinary source and documentation files whose paths or classifications indicate possible secrets, such as `credentials.ts` and `budget-tokens.ts`.
 
 The scanner never reads their bytes. Binding them to a reviewed content hash adds no semantic or privacy guarantee because Lervo cannot inspect changes. Every routine edit would block currency until the owner renewed the manifest.
 
