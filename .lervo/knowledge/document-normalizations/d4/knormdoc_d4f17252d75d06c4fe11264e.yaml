@@ -1,0 +1,45 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f28d5d9a8230db6c9548d635
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7c08267b1c1a313e3f88f7b4
+outputLanguage: en
+outputs:
+  - byteCount: 804
+    contentHash: sha256:743275ceae9d438e0e91892ab2578d23ace66a04b7caceba65c28314480b8408
+    path: docs/foundation/event-writer-rollout/activation/local-only.md
+    userRegionHash: sha256:743275ceae9d438e0e91892ab2578d23ace66a04b7caceba65c28314480b8408
+  - byteCount: 921
+    contentHash: sha256:d968898bc2a98381e6cf1a347ecb0872f8a5b01a5cafca12d411fc7fb33ac82c
+    path: docs/foundation/event-writer-rollout/activation/local-only/automatic-activation.md
+    userRegionHash: sha256:d968898bc2a98381e6cf1a347ecb0872f8a5b01a5cafca12d411fc7fb33ac82c
+  - byteCount: 2324
+    contentHash: sha256:0d515d8eb5d8fb3c6dcfea36be8886049e16d02e249f78a833a784c6879b9077
+    path: docs/foundation/event-writer-rollout/activation/local-only/database-disaster-recovery.md
+    userRegionHash: sha256:0d515d8eb5d8fb3c6dcfea36be8886049e16d02e249f78a833a784c6879b9077
+  - byteCount: 1346
+    contentHash: sha256:1d08c877dda46484d67650e12b93ca55917f8b0bdd59cd6e9847d27b8d406e19
+    path: docs/foundation/event-writer-rollout/activation/local-only/manual-activation.md
+    userRegionHash: sha256:1d08c877dda46484d67650e12b93ca55917f8b0bdd59cd6e9847d27b8d406e19
+  - byteCount: 701
+    contentHash: sha256:9c67f17409e1da7530285a92acac97d4a78a6a12014944f61b66ba2d964a04f4
+    path: docs/foundation/event-writer-rollout/activation/local-only/rollback-and-recovery.md
+    userRegionHash: sha256:9c67f17409e1da7530285a92acac97d4a78a6a12014944f61b66ba2d964a04f4
+profile: repository_document
+recordId: knormdoc_d4f17252d75d06c4fe11264e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4a994bcd860d5a6a6ddcfef294db4b2d1578d8f9abf0d7d937b64d62aa32cad7
+sourcePath: docs/foundation/event-writer-rollout/activation/local-only.md
+sourceUnitVersionIds:
+  - uv_30140144ef7a9cae96e582c8
+  - uv_5bdf796a8cedc5caf1c598d0
+  - uv_82fab1bd56567eeb894faebd
+  - uv_c81b947ca37bc21e8546d7a1
