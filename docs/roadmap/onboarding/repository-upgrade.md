@@ -22,6 +22,7 @@ The completion date records the original orchestration milestone. Later amendmen
 - An exact installed Node left inactive by a failed stop can resume a guarded upgrade from its prior matching work-admission scope only after stable inactivity and zero live claims. Graceful stop retains that scope, so re-applying after an interrupted launchd upgrade does not fail as `service_upgrade_fence_invalid`. Unregistered Nodes remain blocked.
 - Knowledge lint succeeds after every applied repository upgrade.
 - An apply holds the background resident's host-wide full-cycle admission from before recreating the plan for the approval check until its last stage ends, whether apply succeeds or fails. It waits at most 15 minutes for a running cycle; timeout applies nothing. While held, no resident full cycle on that host starts, including its discovery, materialization, and knowledge commit. Publication, continuity reconciliation, materialization by another host process, replica changes, and user edits remain outside this exclusion. Marker settlement and scan retries handle those collisions; scans attempt capture at most three times before reporting persistent source changes.
+- `lervo upgrade --apply --safe` acquires the admission, plans, and applies that plan in one window when no stage is `pending_authority`. Otherwise it names every stage that needs an owner and applies nothing. A stale `--approval` fails with `upgrade_plan_changed`, which names the current plan ID and each changed stage or input ([ADR-0487](../../decisions/operations/services/0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md)).
 - Background knowledge materialization owned by a running process delays planning and every knowledge step for at most 15 minutes instead of failing the upgrade. An expired wait names the owner. Only an interrupted marker fails at once with the recovery command ([ADR-0484](../../decisions/operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md)).
 - A blocked stage defers only its dependents under published `policy.stageDependencies`. Independent stages, including generated-only terminal runtime refresh, still apply; the plan remains `blocked` with the stage's exact blockers.
 - The local-only path works without a Hub. Absent Node registration is current, not an onboarding side effect.
@@ -39,6 +40,7 @@ The completion date records the original orchestration milestone. Later amendmen
 - [ADR-0475](../../decisions/operations/services/0475-judge-node-replacement-readiness-by-regression.md)
 - [ADR-0480](../../decisions/operations/services/0480-defer-node-cache-warmups-past-readiness.md)
 - [ADR-0484](../../decisions/operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md)
+- [ADR-0487](../../decisions/operations/services/0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md)
 - `apps/node-runtime/test/conversation-read-responder-startup.test.ts`
 - `apps/node-runtime/test/startup-deferred-work.test.ts`
 - `apps/cli/test/node-fleet-readiness.test.ts`
@@ -46,6 +48,7 @@ The completion date records the original orchestration milestone. Later amendmen
 - `apps/cli/test/upgrade-command.test.ts`
 - `apps/cli/test/upgrade-knowledge-materialization-wait.test.ts`
 - `apps/cli/test/upgrade-resident-exclusion.test.ts`
+- `apps/cli/test/upgrade-safe-apply.test.ts`
 - `apps/cli/test/upgrade-node.test.ts`
 - `apps/cli/test/upgrade-independent-stages.test.ts`
 - `apps/cli/test/upgrade-stage-policy.test.ts`
