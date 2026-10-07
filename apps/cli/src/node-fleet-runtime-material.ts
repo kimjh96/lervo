@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { access, chmod, lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { failNodeFleetApply } from "./node-fleet-apply-contract.js";
@@ -49,6 +49,31 @@ export async function assertNodeFleetExecutable(path: string): Promise<string> {
   return realpath(path);
 }
 
+/** The content-addressed payload and launcher the running CLI bundles for this host. */
+export interface InstalledNodeLauncher {
+  hash: string;
+  launcher: string;
+  payload: string;
+  payloadBytes: Buffer;
+  launcherContent: string;
+}
+
+export async function describeInstalledNodeLauncher(
+  homeDirectory?: string,
+): Promise<InstalledNodeLauncher> {
+  const bytes = await readFile(defaultExecutablePath());
+  const hexadecimal = createHash("sha256").update(bytes).digest("hex");
+  const directory = resolve(nodeRuntimesDirectory(homeDirectory), hexadecimal.slice(0, 16));
+  const payload = resolve(directory, "node-runtime.js");
+  return {
+    hash: `sha256:${hexadecimal}`,
+    launcher: resolve(directory, `lervo-node-launcher-${hexadecimal.slice(0, 12)}`),
+    payload,
+    payloadBytes: bytes,
+    launcherContent: `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(payload)} "$@"\n`,
+  };
+}
+
 export async function materializeInstalledNodeLauncher(homeDirectory?: string): Promise<string> {
   const source = defaultExecutablePath();
   const sourceInfo = await lstat(source).catch((error: unknown) =>
@@ -64,15 +89,11 @@ export async function materializeInstalledNodeLauncher(homeDirectory?: string): 
       "The installed Node runtime payload is unsafe.",
     );
   }
-  const bytes = await readFile(source);
-  const hash = createHash("sha256").update(bytes).digest("hex");
-  const directory = resolve(nodeRuntimesDirectory(homeDirectory), hash.slice(0, 16));
-  await mkdir(directory, { recursive: true, mode: 0o700 });
-  const payload = resolve(directory, "node-runtime.js");
-  const launcher = resolve(directory, `lervo-node-launcher-${hash.slice(0, 12)}`);
-  const launcherContent = `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(payload)} "$@"\n`;
+  const { payload, payloadBytes, launcher, launcherContent } =
+    await describeInstalledNodeLauncher(homeDirectory);
+  await mkdir(dirname(payload), { recursive: true, mode: 0o700 });
   for (const [path, content, mode] of [
-    [payload, bytes, 0o600],
+    [payload, payloadBytes, 0o600],
     [launcher, launcherContent, 0o700],
   ] as const) {
     try {

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d9c58913f0765eb5535912d8"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "lervo upgrade keeps a per-host current CLI pointer and moves pinned Node configuration CLI paths to it with a backup; Node startup names a missing configured executable, and node status reports it before a restart."

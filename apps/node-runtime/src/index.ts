@@ -6,6 +6,7 @@ export type { NodeRemoteCommandPorts, NodeRemoteControlRuntime } from "./control
 export * from "./config-types.js";
 export * from "./config.js";
 export * from "./config-preflight.js";
+export * from "./config-executables.js";
 export * from "./conversation-intent-resolver.js";
 export * from "./credentials.js";
 export * from "./discord-conversation-config.js";

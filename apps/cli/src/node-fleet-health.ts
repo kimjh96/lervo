@@ -9,6 +9,7 @@ import {
   type NodeFleetServiceResult,
   type NodeFleetStatusReport,
 } from "./node-fleet-apply-contract.js";
+import { inspectRegisteredNodeExecutables } from "./node-config-executable-status.js";
 import { nodeReadinessComponentText as componentStatus } from "./node-fleet-readiness-policy.js";
 
 // @ts-expect-error The repository service script intentionally remains plain ESM.
@@ -77,7 +78,13 @@ export async function inspectNodeFleetStatus(input: {
           ...(input.homeDirectory === undefined ? {} : { homeDirectory: input.homeDirectory }),
         },
       )) as NodeFleetServiceResult;
-      const health = await readReportedHealth(registration.healthPath);
+      const [health, configuredExecutables] = await Promise.all([
+        readReportedHealth(registration.healthPath),
+        inspectRegisteredNodeExecutables({
+          registration,
+          ...(input.homeDirectory === undefined ? {} : { homeDirectory: input.homeDirectory }),
+        }),
+      ]);
       const operational =
         service.managerAvailable &&
         service.installed &&
@@ -126,12 +133,18 @@ export async function inspectNodeFleetStatus(input: {
             : runtimeStatus === "starting"
               ? ("wait_for_runtime" as const)
               : ("inspect_runtime_failure" as const),
+        configuredExecutables,
       };
     }),
   );
   return {
     schemaVersion: 1,
-    status: instances.every((item) => item.recoveryAction === "none") ? "ready" : "degraded",
+    // A missing configured executable degrades the fleet before the restart that would fail.
+    status: instances.every(
+      (item) => item.recoveryAction === "none" && item.configuredExecutables.status !== "attention",
+    )
+      ? "ready"
+      : "degraded",
     instances,
   };
 }

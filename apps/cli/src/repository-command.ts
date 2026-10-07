@@ -12,6 +12,7 @@ import {
 } from "@lervo/repository-registry";
 
 import { onboardKnowledgeContinuity } from "./knowledge-continuity-onboarding.js";
+import { formatNodeFleetStatus } from "./node-fleet-status-format.js";
 import type { CliIo } from "./types.js";
 import {
   applyNodeFleetOnboarding,
@@ -109,11 +110,7 @@ export async function runRepositoryCommand(args: string[], io: CliIo): Promise<n
         ...(parsed.values.home === undefined ? {} : { homeDirectory: parsed.values.home }),
       });
       io.stdout(
-        parsed.values.json
-          ? `${JSON.stringify(report, null, 2)}\n`
-          : report.instances.length === 0
-            ? "No repository Node instances are registered.\n"
-            : `Repository Node fleet: ${report.status}\n${report.instances.map((item) => `${item.projectId} · ${item.serviceInstanceId} · ${item.runtime.status}\n  sync=${item.runtime.sync}; workstream=${item.runtime.workstreamReplication}; remote=${item.runtime.remoteControl}; recovery=${item.recoveryAction}`).join("\n")}\n`,
+        parsed.values.json ? `${JSON.stringify(report, null, 2)}\n` : formatNodeFleetStatus(report),
       );
       return report.status === "ready" ? 0 : 1;
     } catch (error) {
