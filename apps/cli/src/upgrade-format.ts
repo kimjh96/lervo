@@ -88,7 +88,9 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
       `  role approval: ${approval.roleId}@${approval.roleVersion} · ${approval.operationId}=${approval.approvalHash}`,
     );
   if (plan.status === "ready" && plan.stages.workforce.requiredApprovals.length === 0)
-    lines.push(`Re-run with --apply --approval ${plan.planId}.`);
+    lines.push(
+      `Re-run with --apply --approval ${plan.planId}, or with --apply --safe to plan and apply in one exclusive step while background work keeps changing the repository.`,
+    );
   if (
     plan.status === "blocked" &&
     plan.applicableStages.length > 0 &&

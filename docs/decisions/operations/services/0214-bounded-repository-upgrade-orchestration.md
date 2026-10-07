@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Date: 2026-08-25
-Amended by: [ADR-0484](0484-keep-upgrades-exclusive-with-background-knowledge-work.md) (apply holds the resident full-cycle admission; scans retry concurrent changes)
+Amended by: [ADR-0484](0484-keep-upgrades-exclusive-with-background-knowledge-work.md) (apply holds the resident full-cycle admission; scans retry concurrent changes), [ADR-0487](0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md) (`--apply --safe` plans and applies approval-free upgrades in one window)
 
 ## Context
 
