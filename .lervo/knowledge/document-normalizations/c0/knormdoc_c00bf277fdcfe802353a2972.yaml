@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5a2581bba767c65787b1dc1f
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0d1de7716438dc59d41c7db9
+outputLanguage: en
+outputs:
+  - byteCount: 1689
+    contentHash: sha256:b019d06a38edab8fc5bdb59e0809553748de4507191275cc3d2ef1b3494fa273
+    path: docs/specifications/coordination/hub-and-node/fleet-rollout/enrollment-and-waves.md
+    userRegionHash: sha256:b019d06a38edab8fc5bdb59e0809553748de4507191275cc3d2ef1b3494fa273
+profile: specification_document
+recordId: knormdoc_c00bf277fdcfe802353a2972
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:532d9cfc326cbfb84c0a076a123f5eb81f9f571cd162171a9866777c465fb27a
+sourcePath: docs/specifications/coordination/hub-and-node/fleet-rollout/enrollment-and-waves.md
+sourceUnitVersionIds:
+  - uv_c883f3a3d7bb5699eb22266d

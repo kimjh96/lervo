@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5a2581bba767c65787b1dc1f
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_22f2fbe12dbfdb62a0991016
+outputLanguage: en
+outputs:
+  - byteCount: 294
+    contentHash: sha256:ddb110767ab955775943bd68b490348d9328b0b57d578c4bff21cab4cc6813fe
+    path: docs/specifications/coordination/conversation-runtime-composition/repository-work.md
+    userRegionHash: sha256:ddb110767ab955775943bd68b490348d9328b0b57d578c4bff21cab4cc6813fe
+  - byteCount: 1130
+    contentHash: sha256:c611de2fda4b7e5ec5fe889834278c3bfee100a13a5f5fd8f2566e9833aa14fd
+    path: docs/specifications/coordination/conversation-runtime-composition/repository-work/completion-ordering.md
+    userRegionHash: sha256:c611de2fda4b7e5ec5fe889834278c3bfee100a13a5f5fd8f2566e9833aa14fd
+  - byteCount: 413
+    contentHash: sha256:e3320c6f5fba68dd4d0d339a574e755c17555754756ff6f76b59c4533cfef0ac
+    path: docs/specifications/coordination/conversation-runtime-composition/repository-work/knowledge-mode.md
+    userRegionHash: sha256:e3320c6f5fba68dd4d0d339a574e755c17555754756ff6f76b59c4533cfef0ac
+  - byteCount: 1351
+    contentHash: sha256:41592ee1a177e4601c638f8694a4702b8da8a5243f7722ac2c4cff6b8c5c25e1
+    path: docs/specifications/coordination/conversation-runtime-composition/repository-work/retrieval-and-measurement.md
+    userRegionHash: sha256:41592ee1a177e4601c638f8694a4702b8da8a5243f7722ac2c4cff6b8c5c25e1
+profile: specification_document
+recordId: knormdoc_820b3c2d97b8a9a63c90239a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f4c7b09ee930673f26b2464567ebb5bc4953aab2e6d98e3146eeed2702329882
+sourcePath: docs/specifications/coordination/conversation-runtime-composition/repository-work.md
+sourceUnitVersionIds:
+  - uv_0d9a748fbf02ac7803acd31d
+  - uv_55f772d5685a2647b6006acf
+  - uv_5b9d5290aff91e80bd9e7db1
+  - uv_bee05434979056816429b4b9

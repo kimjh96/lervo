@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5a2581bba767c65787b1dc1f
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_348939ba680d4f3faf972f76
+outputLanguage: en
+outputs:
+  - byteCount: 451
+    contentHash: sha256:f4e5b13ad38db32a42062671e3998a0206c13be1c1dffcb4de9cea0c77d67c86
+    path: docs/specifications/coordination/hub-and-node/fleet-rollout/acceptance.md
+    userRegionHash: sha256:f4e5b13ad38db32a42062671e3998a0206c13be1c1dffcb4de9cea0c77d67c86
+profile: specification_document
+recordId: knormdoc_35884d88c5de8104ace9b99a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2e2820975e9f743afe890575a20ba3ae05bb3dd08797971d37750c57f45f7f14
+sourcePath: docs/specifications/coordination/hub-and-node/fleet-rollout/acceptance.md
+sourceUnitVersionIds:
+  - uv_4e869ebbb69c557ed4163311
