@@ -1,0 +1,47 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_27744739e55a70bf78b250be
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7a37ffa1f29a90d872c3ad80
+outputLanguage: en
+outputs:
+  - byteCount: 442
+    contentHash: sha256:024604a0d3ddbe09ce2c9bcb9f1a4b6df96933aee18bbd34577fde212929ff00
+    path: docs/specifications/coordination/node-change-driven-work/repository-replicas/snapshot-capture.md
+    userRegionHash: sha256:024604a0d3ddbe09ce2c9bcb9f1a4b6df96933aee18bbd34577fde212929ff00
+  - byteCount: 2254
+    contentHash: sha256:c236c65bcd0c57df55897f2ba7a79fd5b34ecbc4964d385eae27c6be936f43de
+    path: docs/specifications/coordination/node-change-driven-work/repository-replicas/snapshot-capture/capture-semantics.md
+    userRegionHash: sha256:c236c65bcd0c57df55897f2ba7a79fd5b34ecbc4964d385eae27c6be936f43de
+  - byteCount: 2256
+    contentHash: sha256:41361736bdd1b1ec9242a35bbbe242d0cd2b96c7e8c7bde68a34aa6a6be11bb7
+    path: docs/specifications/coordination/node-change-driven-work/repository-replicas/snapshot-capture/observation-cache.md
+    userRegionHash: sha256:41361736bdd1b1ec9242a35bbbe242d0cd2b96c7e8c7bde68a34aa6a6be11bb7
+  - byteCount: 1664
+    contentHash: sha256:be7ff514b5d32c0754d155cdcb639844c3be2c94c74955f1c77b33763644bb59
+    path: docs/specifications/coordination/node-change-driven-work/repository-replicas/snapshot-capture/runtime-protocol.md
+    userRegionHash: sha256:be7ff514b5d32c0754d155cdcb639844c3be2c94c74955f1c77b33763644bb59
+  - byteCount: 705
+    contentHash: sha256:8a51a6f63d7949db457dae6282842c253e548a446a0beb31f7e8ae1c58210fd5
+    path: docs/specifications/coordination/node-change-driven-work/repository-replicas/snapshot-capture/transfer-readiness.md
+    userRegionHash: sha256:8a51a6f63d7949db457dae6282842c253e548a446a0beb31f7e8ae1c58210fd5
+profile: specification_document
+recordId: knormdoc_5f3804346889f898ad79f69b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:42f5cde584538749cc2daf811399fa6ec40925a686a5ee6591f33aa07687af2e
+sourcePath: docs/specifications/coordination/node-change-driven-work/repository-replicas/snapshot-capture.md
+sourceUnitVersionIds:
+  - uv_10ccd6b2a7c45fabd0acaea1
+  - uv_3376600cdeda701e67744994
+  - uv_68db550bc9a32139fe4c6509
+  - uv_71a94232377637853b1fed0c
+  - uv_963ccb6aa95ddcc9c7cd7606
+  - uv_c24149661d4051fcef1a50b3

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_27744739e55a70bf78b250be
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_02b17f9ef6444e61043745bf
+outputLanguage: en
+outputs:
+  - byteCount: 2692
+    contentHash: sha256:fb429547d20e959907e02d7ecc87bfaaba23653da2692a220bb29926d0f2653c
+    path: docs/specifications/coordination/node-change-driven-work/repository-replicas/failure-fidelity.md
+    userRegionHash: sha256:fb429547d20e959907e02d7ecc87bfaaba23653da2692a220bb29926d0f2653c
+profile: specification_document
+recordId: knormdoc_68594263697dcfa844582bab
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6cfaff798ca2939de61a6e6d1b9a4051cc05aa5fdd6f2dea4630c0c146238019
+sourcePath: docs/specifications/coordination/node-change-driven-work/repository-replicas/failure-fidelity.md
+sourceUnitVersionIds:
+  - uv_8150bcfb018d5f34e8c81d67

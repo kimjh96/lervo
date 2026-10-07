@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_27744739e55a70bf78b250be
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_aaaf9c3a7eba0af89be38e72
+outputLanguage: en
+outputs:
+  - byteCount: 3277
+    contentHash: sha256:127485107a1de74eebc5a73ab955af97c0950e7ace0b3657755fb522fc201183
+    path: docs/specifications/knowledge/document-freshness.md
+    userRegionHash: sha256:127485107a1de74eebc5a73ab955af97c0950e7ace0b3657755fb522fc201183
+profile: specification_document
+recordId: knormdoc_d9ffe241ee464e34cfa76d24
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8dd3db6647b39fbbaac922c2ba2b617596b095e2a8b702d306ad78c4a581ce0b
+sourcePath: docs/specifications/knowledge/document-freshness.md
+sourceUnitVersionIds:
+  - uv_47efbaed5fda4a7980d79306
+  - uv_64733057e25670a33f199217
+  - uv_ae8a3eec770149aba9913425
+  - uv_edad5ca26b3a3641050ebec6
+  - uv_f2dfbb1e6b16ce84d9d91296

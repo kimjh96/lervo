@@ -22,20 +22,20 @@ The stage fence digests HEAD, working-tree status, policy, holds, and candidate 
 
 The loop reads one `DocumentFreshnessFindingV1` per document. `observeDocumentFreshnessFindings` in `@lervo/repository-knowledge` runs `lervo knowledge lint` in `evaluate_and_record` mode and reads `readRecordedDocumentStalenessReport` ([ADR-0464](../../../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md)). It uses the report only when `currentRevision` equals HEAD. The pure `documentFreshnessFinding` function maps the report entry and detection-side enrichment; the freshness stage infers no field itself.
 
-| Field | Type | Source |
-| --- | --- | --- |
-| `findingDigest` | sha256 of the canonical finding excluding `detectedAt` | mapping |
-| `sources[]` | `document_stale`, `entrypoint_reference_missing`, `markdown_link_target_missing` | ADR-0464 report and drift lint codes |
-| `documentPath` | repository-relative path | report or lint finding |
-| `documentHash` | sha256 of current bytes | working tree |
-| `verifiedRevision` | report's verified revision, or null for lint-only findings | ADR-0464 report |
-| `currentRevision` | HEAD | Git |
-| `reasons[]` | `connected_path_changed`, `connected_path_deleted`, `reference_target_missing`, `review_interval_elapsed`, `managed_input_changed`, `superseded_by` | report reasons, changed-path dispositions, reference resolution |
-| `connectedPathChanges[]` | `{ path, beforeHash or null, afterHash or null, disposition: modified, deleted, added, renamed, renamedTo or null }` | report `changedPaths`, object lookups, rename detection at the deleting commit |
-| `references[]` | `{ line, target, kind: link or path_mention, symbol or null, resolved }` | ADR-0464 reference extractor and resolution rule |
-| `publicationGroup` | `entrypoint`, `canonical`, `historical`, `generated`, `other` | path, layout roles, ADR-0464 historical classifier |
-| `supersededBy` | path of a current document whose `supersedes` line links this one, or null | bounded `git grep` |
-| `detectedAt` | first observation time of this finding digest | cycle record |
+| Field                    | Type                                                                                                                                                | Source                                                                         |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `findingDigest`          | sha256 of the canonical finding excluding `detectedAt`                                                                                              | mapping                                                                        |
+| `sources[]`              | `document_stale`, `entrypoint_reference_missing`, `markdown_link_target_missing`                                                                    | ADR-0464 report and drift lint codes                                           |
+| `documentPath`           | repository-relative path                                                                                                                            | report or lint finding                                                         |
+| `documentHash`           | sha256 of current bytes                                                                                                                             | working tree                                                                   |
+| `verifiedRevision`       | report's verified revision, or null for lint-only findings                                                                                          | ADR-0464 report                                                                |
+| `currentRevision`        | HEAD                                                                                                                                                | Git                                                                            |
+| `reasons[]`              | `connected_path_changed`, `connected_path_deleted`, `reference_target_missing`, `review_interval_elapsed`, `managed_input_changed`, `superseded_by` | report reasons, changed-path dispositions, reference resolution                |
+| `connectedPathChanges[]` | `{ path, beforeHash or null, afterHash or null, disposition: modified, deleted, added, renamed, renamedTo or null }`                                | report `changedPaths`, object lookups, rename detection at the deleting commit |
+| `references[]`           | `{ line, target, kind: link or path_mention, symbol or null, resolved }`                                                                            | ADR-0464 reference extractor and resolution rule                               |
+| `publicationGroup`       | `entrypoint`, `canonical`, `historical`, `generated`, `other`                                                                                       | path, layout roles, ADR-0464 historical classifier                             |
+| `supersededBy`           | path of a current document whose `supersedes` line links this one, or null                                                                          | bounded `git grep`                                                             |
+| `detectedAt`             | first observation time of this finding digest                                                                                                       | cycle record                                                                   |
 
 Drop evaluator reasons that only report unobserved evidence. Historical documents never become findings. Documents whose working bytes differ from HEAD wait until edits are committed, so freshness commits never carry uncommitted edits.
 

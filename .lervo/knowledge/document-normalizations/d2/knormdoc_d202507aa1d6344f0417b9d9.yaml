@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_27744739e55a70bf78b250be
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_270d5e618b42347ad2b4c947
+outputLanguage: en
+outputs:
+  - byteCount: 2707
+    contentHash: sha256:413c5126324cfdb1bd03eb71851764d3d94a106dab9982a3a4a426b3d67f9f9a
+    path: docs/specifications/coordination/workstream-checkpoint-reconciliation.md
+    userRegionHash: sha256:413c5126324cfdb1bd03eb71851764d3d94a106dab9982a3a4a426b3d67f9f9a
+profile: specification_document
+recordId: knormdoc_d202507aa1d6344f0417b9d9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bb07852aad7b8302abd8993128c4070656c37d68b0895e98e2bfaa56cfe18581
+sourcePath: docs/specifications/coordination/workstream-checkpoint-reconciliation.md
+sourceUnitVersionIds:
+  - uv_a101196fd140c4bd31c43dea
+  - uv_ad319cea91000e02499fda92
