@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-07
 Amends: [ADR-0485](0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md)
 Amended by: [ADR-0490](0490-regenerate-stale-semantic-candidates-before-the-pre-stage-check.md) (regeneration runs before the owner's pre-stage check)
+Amended by: [ADR-0491](0491-never-pin-tool-generated-files-as-assets-and-memoize-the-role-registry.md) (tool-generated lockfile declarations and installed recovery acceptance)
 
 ## Context
 
@@ -13,6 +14,8 @@ About 15 minutes after `main` `c711afe6` was deployed on 2026-10-06, the WSL own
 - **lervo**'s resident used about one core continuously in 10-second samples over two minutes, and its Node service used 5 h 47 min of CPU over 4 h 6 min before the restart. On the lervo repository, one currency inspection costs about 18 s of CPU and one lint about 10 s, measured locally on a Mac. Cycle-scoped discovery was keyed on the repository fence and the event head. Every stage and assignment event therefore repeated the complete scan, capture, normalization inspection, and currency inspection.
 - **lervo**'s `stale/source_bytes_changed` at 19:27:39 UTC followed a `HEAD` reset at 19:27:37 UTC from that day's upgrade. A second reset at 20:03:13 UTC followed the merge of the owner's knowledge-output PR #79. Both are real repository changes. The obligation was requeued at 20:00 UTC and reached `canonical_review`. The normalization debt rose from 89 to 101 because those merges added decision and specification documents. No defect is involved.
 - **shiflo** recorded `attention_required/knowledge_verification_failed` at `canonical_integration`, and the cause is the repository itself. The command `repository-opaque-assets` (`node tools/assets/verify-canonical-assets.mjs`) of its pinned suite `repository.asset-integrity` exited 1 with `Error: Asset hash changed: bun.lock`. The reviewed asset manifest pins `bun.lock` at `sha256:78541f46…`. The owner's PR #51 (`65a2b631`) changed the committed `bun.lock` to `sha256:b5894c20…`. The same check fails on the owner checkout, so Lervo must not bypass it.
+
+The shiflo paragraph preserves the original failed-suite observation and diagnosis. ADR-0491 supersedes its attribution of the cause to the repository: pinning a declared package manager's tool-generated lockfile as a canonical asset is a Lervo design gap. The observed failure remains valid evidence; it does not require manual lockfile repinning under the amended contract.
 
 ## Decision
 
@@ -36,4 +39,18 @@ Installed verification must show:
 
 - `digimon` leaving `review_context_stale`.
 - The lervo resident idling between due stages, instead of holding a core.
+- Under ADR-0491, `shiflo` leaving `knowledge_verification_failed` after its owner host performs the same-scope rebind without an owner command. Tool-ownership evidence must establish the lockfile's package-manager ownership. The rebind removes tool-generated declarations from inline `assetDispositions` and the manifest, updates `assetDispositionManifestHash` through ordinary plan/apply, and preserves every other declaration's exact content and order and every scope coordinate. Recovery requires passing pinned verification against the resulting captured revision; the failed suite is never bypassed.
+
+### Superseded installed acceptance
+
+ADR-0491 replaces the following original requirement, retained here only as history:
+
 - `shiflo` remaining at `knowledge_verification_failed` until the owner reviews a new `bun.lock` asset disposition.
+
+Manual lockfile repinning is no longer current acceptance. Tool-generated opaque files count as `toolGenerated` and require no asset declaration under ADR-0491.
+
+### Evidence limits
+
+These installed criteria are requirements, not evidence that recovery occurred. Neither this decision nor ADR-0491 establishes an installed passing run for shiflo.
+
+The ADR-0490 amendment link is retained. Its document was not available in the exact context used for this correction, so the ordering amendment has not been independently verified here. This correction supplies no replacement ordering contract and does not claim that regeneration before the owner's pre-stage check has been verified.
