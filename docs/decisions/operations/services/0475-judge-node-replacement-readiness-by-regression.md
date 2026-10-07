@@ -7,95 +7,97 @@ Amended by: [ADR-0480](0480-defer-node-cache-warmups-past-readiness.md) (startin
 
 ## Context
 
-On a WSL host with CLI 0.20.0, `lervo upgrade --apply` in the `axli` repository failed its `repository_node` stage with `node_fleet_readiness_timeout`. The replacement Node service was active. Its health snapshot showed `sync`, `workstreamReplication`, and `remoteControl` ready and `workspaceCoordination` disabled. The aggregate was `degraded` only because `supervision` reported `unavailable/supervision_attention_required` with `preflight_repair_requires_review`. That condition was an owner decision that already existed before the upgrade.
+On a WSL host with CLI 0.20.0, `lervo upgrade --apply` in `axli` failed its `repository_node` stage with `node_fleet_readiness_timeout`. The replacement Node service was active: `sync`, `workstreamReplication`, and `remoteControl` were ready; `workspaceCoordination` was disabled. The aggregate was `degraded` solely because `supervision` reported `unavailable/supervision_attention_required` with `preflight_repair_requires_review`, an owner decision predating the upgrade.
 
-ADR-0207 readiness required the aggregate `ready`, or `degraded` caused only by `hub_unavailable`. Any unrelated pending owner decision therefore blocked every replacement. The first attempt reported `node_fleet_recovery_failed` and dropped the readiness failure that started recovery. The fixed 60-second window was also tight: that WSL Node took about 40 seconds to start synchronization.
+ADR-0207 required aggregate `ready`, or `degraded` caused only by `hub_unavailable`, so unrelated pending owner decisions blocked every replacement. The first attempt reported `node_fleet_recovery_failed` but lost the readiness failure that triggered recovery. The fixed 60-second window was also tight: this Node took about 40 seconds to start synchronization.
 
-After a successful replacement, the upgrade planner would still have reported the exact deployed runtime as `blocked/node_runtime_inspect_runtime_failure` because of the same attention.
+Even after successful replacement, the upgrade planner would have classified the exact deployed runtime as `blocked/node_runtime_inspect_runtime_failure` because of the same attention.
 
 ## Decision
 
 ### Regression baseline
 
-Before replacing an installed Node service, apply reads the predecessor's health snapshot as a baseline. A rollback reads the failed target's snapshot the same way. The baseline status is:
+Before replacing an installed Node service, apply reads the predecessor's health snapshot. Rollback similarly reads the failed target's snapshot.
 
-| Status           | Meaning                                                             |
-| ---------------- | ------------------------------------------------------------------- |
-| `observed`       | A valid snapshot no older than two minutes was read.                |
-| `stale`          | The snapshot is older than two minutes; it carries nothing over.    |
-| `unavailable`    | No valid snapshot was readable; it carries nothing over.            |
+| Baseline status | Meaning |
+| --- | --- |
+| `observed` | A valid snapshot no older than two minutes was read. |
+| `stale` | The snapshot is older than two minutes; nothing carries over. |
+| `unavailable` | No valid snapshot was readable; nothing carries over. |
 | `not_applicable` | No service existed (first install); complete readiness is required. |
 
-A failed baseline read never blocks the operation. It only removes the carry-over allowance.
+A failed baseline read never blocks the operation; it removes only the carry-over allowance.
 
 ### Component judgment
 
-Readiness judges six components: `sync`, `workstreamReplication`, `workspaceCoordination`, `remoteControl`, `conversation`, and `supervision`. An absent `conversation` or `supervision` counts as `disabled`. A component is accepted when one of these holds:
+Readiness judges `sync`, `workstreamReplication`, `workspaceCoordination`, `remoteControl`, `conversation`, and `supervision`. Absent `conversation` or `supervision` counts as `disabled`. A component is accepted if any of these conditions holds:
 
-- It is healthy under the runtime aggregate rule. `sync` and `workstreamReplication` must be `ready`. `workspaceCoordination`, `remoteControl`, and `conversation` may also be `disabled`. `supervision` may also be `dormant` or `attention`.
-- The replacement allows Hub unavailability, the component is one of the four Hub-dependent components, and it reports exactly `hub_unavailable`. This retains ADR-0207's `offline_ready` rule.
-- The component is not a delivery component, it is `unavailable`, and the observed baseline had the same status and the same `failureCode`. Such a condition predates the operation, and replacing the runtime cannot resolve it.
+- It is healthy under the runtime aggregate rule: `sync` and `workstreamReplication` must be `ready`; `workspaceCoordination`, `remoteControl`, and `conversation` may also be `disabled`; `supervision` may also be `dormant` or `attention`.
+- The replacement allows Hub unavailability, the component is one of the four Hub-dependent components, and it reports exactly `hub_unavailable`. This preserves ADR-0207's `offline_ready` rule.
+- It is a non-delivery component reporting `unavailable`, and the observed baseline had the same status and `failureCode`. This condition predates the operation and cannot be resolved by replacing the runtime.
 
-`sync` and `workstreamReplication` are delivery components. Their readiness is what a Node deployment exists to prove, so a pre-existing failure there is never carried over. `pending` is never accepted. The process status must be `ready` or `degraded`, never `starting` or `stopping`. A component that newly fails, changes its failure code, or never settles still fails readiness, and the existing compensation runs.
+`sync` and `workstreamReplication` are delivery components: proving their readiness is the purpose of Node deployment, so their pre-existing failures never carry over. `pending` is never accepted. Process status must be `ready` or `degraded`, never `starting` or `stopping`. A newly failing component, a changed failure code, or a component that never settles still fails readiness and triggers existing compensation.
 
 ### Observation budget
 
-The three-consecutive-observation rule stays: fresh, monotonic snapshots from one process identity, 500 milliseconds apart. The fixed 60-second window becomes a progress-based one. A first fresh snapshot, or a higher count of accepted components than any earlier fresh snapshot showed, extends the deadline to 60 seconds past that observation. The high-water mark is shared across process identities, so a restart loop cannot extend the window again without new progress. The total is bounded at 600 seconds (1,200 observations).
+Readiness still requires three consecutive fresh, monotonic snapshots from one process identity, observed 500 milliseconds apart. The fixed 60-second window becomes progress-based: the first fresh snapshot, or an accepted-component count higher than any previous fresh snapshot, extends the deadline to 60 seconds after that observation. The high-water mark spans process identities, so a restart loop cannot extend the window without new progress. The total remains bounded at 600 seconds (1,200 observations).
 
 ### Receipt
 
-The `readiness` block of `repository_node_onboarding` and `repository_node_rollback` receipts adds these fields:
+The `readiness` block in `repository_node_onboarding` and `repository_node_rollback` receipts adds:
 
-| Field               | Type                                                       | Meaning                                                                      |
-| ------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `conversation`      | bounded component text                                     | The accepted conversation state, such as `ready` or `disabled`.              |
-| `supervision`       | bounded component text                                     | The accepted supervision state, such as `unavailable:<failureCode>`.         |
-| `baseline`          | `observed`, `stale`, `unavailable`, or `not_applicable`    | Whether carry-over was possible.                                             |
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `conversation` | bounded component text | Accepted conversation state, such as `ready` or `disabled`. |
+| `supervision` | bounded component text | Accepted supervision state, such as `unavailable:<failureCode>`. |
+| `baseline` | `observed`, `stale`, `unavailable`, or `not_applicable` | Whether carry-over was possible. |
 | `carriedConditions` | list of `{ component, status, failureCode, reasonCodes? }` | Pre-existing, unchanged, non-delivery conditions accepted from the baseline. |
 
-`workspaceCoordination` and `remoteControl` may now report `unavailable:<failureCode>` when that condition is carried. `status` keeps its meaning: `ready` means the delivery components are ready, and `offline_ready` means an allowed Hub outage. A carried condition stays visible in the receipt; it is not evidence that the component works.
+`workspaceCoordination` and `remoteControl` may report `unavailable:<failureCode>` for carried conditions. `status` retains its meaning: `ready` means delivery components are ready; `offline_ready` means an allowed Hub outage. Carried conditions remain visible and do not prove that a component works.
 
-Organization rollout and rollback consume the same receipt. A first organization admission has no baseline, so it still requires complete readiness.
+Organization rollout and rollback consume the same receipt. First organization admission has no baseline and still requires complete readiness.
 
 ### Failure detail
 
-`NodeFleetApplyError` now carries bounded, secret-free `details`, and JSON command output includes them in the error envelope:
+`NodeFleetApplyError` carries bounded, secret-free `details`, included in the JSON command error envelope:
 
-| Field                 | Meaning                                                                                                                                                    |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `readiness`           | `{ baseline, blockers: [{ component, observed, baseline }], lastStatus, lastProcessId, observations }` from the last fresh observation before the timeout. |
-| `failedCode`          | The code of the failure that started compensation.                                                                                                         |
-| `recovery`            | `restored` when compensation succeeded, or `failed` when it could not be proved.                                                                           |
-| `recoveryFailureCode` | The typed code of the compensation failure, or `node_fleet_apply_failed` when it had none.                                                                 |
+| Field | Meaning |
+| --- | --- |
+| `readiness` | `{ baseline, blockers: [{ component, observed, baseline }], lastStatus, lastProcessId, observations }` from the last fresh observation before timeout. |
+| `failedCode` | Code of the failure that triggered compensation. |
+| `recovery` | `restored` if compensation succeeded; `failed` if it could not be proved. |
+| `recoveryFailureCode` | Typed compensation failure code, or `node_fleet_apply_failed` if none existed. |
 
-The timeout message names every blocking component, its observed state, and its baseline state. An example is `supervision=unavailable:supervision_attention_required (baseline ready)`. With no fresh snapshot, the message names the elapsed window instead. `node_fleet_recovery_failed` keeps its [ADR-0235](../security/0235-predecessor-bound-node-rollout-rollback.md) meaning. Its message now includes the original failure code and message, and its details keep the original readiness blockers. `lervo repository node apply` prints the bounded message after the code.
+The timeout message names every blocking component, its observed state, and its baseline state; for example, `supervision=unavailable:supervision_attention_required (baseline ready)`. Without a fresh snapshot, it names the elapsed window instead.
+
+`node_fleet_recovery_failed` retains its [ADR-0235](../security/0235-predecessor-bound-node-rollout-rollback.md) meaning. Its message includes the original failure code and message; its details retain the original readiness blockers. `lervo repository node apply` prints the bounded message after the code.
 
 ### Upgrade planning
 
-A registered exact deployment is `current` with reason `exact_runtime_deployed_runtime_attention` under these conditions:
+A registered exact deployment is `current` with reason `exact_runtime_deployed_runtime_attention` when all of these hold:
 
 - Its service is operational and its aggregate is `degraded`.
 - Its delivery components are `ready` or `hub_unavailable`.
-- Every other component is `ready`, `disabled`, or a settled `unavailable`, `dormant`, or `attention` state, and at least one is `unavailable`.
+- Every other component is `ready`, `disabled`, or in a settled `unavailable`, `dormant`, or `attention` state, with at least one `unavailable`.
 
-Fleet status continues to report `degraded` with `inspect_runtime_failure`; the upgrade does not hide the condition.
+Fleet status still reports `degraded` with `inspect_runtime_failure`; upgrading does not hide the condition.
 
 ## Privacy and failure meaning
 
-Receipts and failure details contain only component names, bounded status codes, bounded `reasonCodes`, process IDs, and counts. They exclude paths, configs, service bodies, credentials, prompts, and provider output. A carried condition proves only that it predates the operation and did not change. It does not prove that the component works or that the owner decision was made.
+Receipts and failure details contain only component names, bounded status codes, bounded `reasonCodes`, process IDs, and counts. They exclude paths, configs, service bodies, credentials, prompts, and provider output. A carried condition proves only that it predates the operation and is unchanged—not that the component works or the owner decision was made.
 
 ## Verification
 
-Focused CLI tests cover the following:
+Focused CLI tests cover:
 
-- Carry-over of identical supervision attention, with the condition reported in `carriedConditions`.
-- Rejection of a newly failing component, a changed failure code, a delivery-component failure, and any carry-over without an observed baseline.
-- Budget extension across slow startup progress, and failure 60 seconds after the last progress.
-- Timeout details that name the blocking component and baseline.
-- Recovery failure that keeps the original readiness blockers, and recovery success marked `restored`.
+- Identical supervision attention carried over and reported in `carriedConditions`.
+- Rejection of a newly failing component, a changed failure code, a delivery-component failure, and carry-over without an observed baseline.
+- Budget extension during slow startup progress, and failure 60 seconds after the last progress.
+- Timeout details naming the blocking component and baseline.
+- Recovery failure retaining original readiness blockers, and recovery success marked `restored`.
 - The upgrade-planning predicate for auxiliary-only conditions.
 
-Installed verification must show `lervo upgrade --apply` in `axli` completing its `repository_node` stage while supervision still reports `preflight_repair_requires_review`, with that condition listed in `carriedConditions`.
+Installed verification must show `lervo upgrade --apply` in `axli` completing `repository_node` while supervision still reports `preflight_repair_requires_review`, listed in `carriedConditions`.
 
 ## References
 

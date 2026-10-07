@@ -12,8 +12,8 @@ Code moves between Mac and WSL through a Mac LaunchAgent-driven replica coordina
 
 Verified defects:
 
-- **Error fidelity:** `repository-replica-merge.ts:196-202` rewraps every non-Git error as "The repository replica merge could not be applied.", retaining the cause only in `{ cause }`; `repository-replica-cli.ts:186-190` prints only `error.message`. Snapshot, bundle, and apply failures also lose Git stderr (`-git.ts:160-164,189-193,373-384`). The current workstream records plen, flemo, and digimon replica merge failures since 2026-09-30 without causes.
-- **Silent divergence:** Default `hold` returns a conflict, which the coordinator maps to `divergent`. Watch mode prints a stderr line each cycle and exits with code 0. `repository_replica_divergent` is declared (`-coordinator.ts:90`) but never thrown. No event, health signal, attention item, or resolution command exists.
+- **Error fidelity:** `repository-replica-merge.ts:196-202` rewraps every non-Git error as "The repository replica merge could not be applied.", retaining the cause only in `{ cause }`; `repository-replica-cli.ts:186-190` prints only `error.message`. Snapshot, bundle, and apply failures lose Git stderr (`-git.ts:160-164,189-193,373-384`). The current workstream records plen, flemo, and digimon replica merge failures since 2026-09-30 without causes.
+- **Silent divergence:** Default `hold` returns a conflict, mapped by the coordinator to `divergent`. Watch mode prints a stderr line each cycle and exits with code 0. `repository_replica_divergent` is declared (`-coordinator.ts:90`) but never thrown. No event, health signal, attention item, or resolution command exists.
 - **No version handshake:** Compatibility relies on implicit snapshot `schemaVersion`, the `lervo-repository-replica-worktree-v1` envelope, and watch-frame strings. Runtime builds are not compared; running coordinators do not detect configuration changes.
 - **Host-local files:** `.lervo/.gitignore` excludes `knowledge/convergence-delegation.json`, normally respected by `git add -A`; the brief's claim that the grant is swept in is mostly incorrect. Capture runs `read-tree HEAD` before `add -A` without explicit pathspec exclusions, so it can capture the grant when `HEAD` predates the ignore rule or `.lervo/.gitignore` lacks it. Separately, `-merge.ts:38` silently resolves `.lervo/knowledge/` and `.lervo/generated/` conflicts to the Mac side.
 - **Checkpoint conflicts:** `apps/node-runtime/src/workstream-replication.ts:41` throws generic "import is blocked", dropping `createReplicatedWorkstreamImportPlan` blocker codes; the cycle rewraps it as `local_state_invalid`. ADR-0201 deferred reconciliation, which was never designed.
@@ -36,7 +36,7 @@ The receiver applies source, checkpoint, then lease within one coordinator trans
 
 ### Writer lease
 
-Each repository has at most one writer host. Both hosts store the lease in `.lervo/state/repository-writer-lease.json`. It is mirrored to the Hub when configured; otherwise, the existing SSH peer transport exchanges it, preserving operation without a Hub.
+Each repository has at most one writer host. Both hosts store the lease in `.lervo/state/repository-writer-lease.json`. The lease is mirrored to the Hub when configured; otherwise, the existing SSH peer transport exchanges it, preserving operation without a Hub.
 
 A lease contains `holderHostHash`, `grantedAt`, and optional `staleAfter`. It never expires silently. After `staleAfter`, the Node reports `lease_stale` as an attention item and refuses writes until a human or principal proxy resolves it under ADR-0453 and within the proxy's mandate.
 
@@ -58,14 +58,14 @@ Every cycle starts with `repository-replica protocol` on both sides, exchanging 
 
 ### Host-local exclusion and generated conflicts
 
-The original unconditional exclusion of `.lervo/knowledge/convergence-delegation.json` and requirement to record generated conflicts with `resolution: regenerate` instead of resolving to one side are superseded by [ADR-0478](0478-renew-each-delegation-with-one-writer.md) and the current [divergence and merge specification](../../../specifications/coordination/node-change-driven-work/repository-replicas/divergence-and-merge.md).
+[ADR-0478](0478-renew-each-delegation-with-one-writer.md) and the current [divergence and merge specification](../../../specifications/coordination/node-change-driven-work/repository-replicas/divergence-and-merge.md) supersede the original unconditional exclusion of `.lervo/knowledge/convergence-delegation.json` and requirement to record generated conflicts with `resolution: regenerate` instead of resolving to one side.
 
 Capture preserves the host-local boundary for `.lervo/state` and `.lervo/data` regardless of ignore rules by restoring their `HEAD` entries after staging. Delegation capture depends on whether `HEAD` tracks `.lervo/knowledge/convergence-delegation.json`:
 
 - When tracked, its exact worktree bytes enter the snapshot. Apply, merge, and rollback reproduce those bytes rather than restoring the committed grant.
 - When untracked, it remains host-local, never enters a snapshot, and survives apply cleanup. Capture restores its absent `HEAD` entry after staging.
 
-Only the ADR-0466 convergence owner renews or rebinds the delegation. A tracked-file follower writes nothing and receives the owner's exact bytes through replication. An untracked-file follower may adopt the owner's term through the guarded Hub-record path in ADR-0478. This convergence ownership rule does not replace the repository writer-lease and handoff requirements.
+Only the ADR-0466 convergence owner renews or rebinds the delegation. A tracked-file follower writes nothing and receives the owner's exact bytes through replication. An untracked-file follower may adopt the owner's term through ADR-0478's guarded Hub-record path. This convergence ownership rule does not replace repository writer-lease and handoff requirements.
 
 Conflicts confined to `.lervo/knowledge/` and `.lervo/generated/` resolve to the local merging side. The merge reports the resolved path count and the coordinator logs it, so resolution is not silent. This includes a tracked delegation conflict; after reconciliation only the convergence owner writes its next renewal. Other conflicts follow the configured `hold`, `prefer_local`, or `prefer_peer` policy and divergence reporting contract. The former `resolution: regenerate` requirement is no longer operative.
 

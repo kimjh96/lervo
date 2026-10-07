@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c934927fdc0683d765dc73ed
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_77830f3553de90373b9a1286
+outputLanguage: en
+outputs:
+  - byteCount: 13294
+    contentHash: sha256:760b28cacbe6159fdc960a4747b5bc7b2c4afe94611c31cad0af07aa985aaa88
+    path: docs/decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md
+    userRegionHash: sha256:760b28cacbe6159fdc960a4747b5bc7b2c4afe94611c31cad0af07aa985aaa88
+profile: decision_record
+recordId: knormdoc_126cd36235b60a2d6f1be9ed
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7eb4e50dedb8bf58125448e95f96e3bbdd6a50cebe48af3493f6c33dc8d37b15
+sourcePath: docs/decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md
+sourceUnitVersionIds:
+  - uv_031a974e87f7d7447061c6ed
+  - uv_183de7ce1482813ba11114bd
+  - uv_2a0e5720af184b531818237a
+  - uv_6e7c3b79326a5f24ff61d443
+  - uv_70c957221fda009591ec26ef
+  - uv_7f660a27dbf76e899996f3f0
+  - uv_8b414fc679cd9a6a1b0c43e7
+  - uv_90ff146741429729b81017c1
+  - uv_94f29390c6c03fadf316240f
+  - uv_a5bbfb1df1a2e3391cc3e7a0
+  - uv_a7e6caa455b6906ff13a9687
+  - uv_bbcb24c1e4407ae82f82942b
+  - uv_f0a36417d4cafe9d0d2a8f41
