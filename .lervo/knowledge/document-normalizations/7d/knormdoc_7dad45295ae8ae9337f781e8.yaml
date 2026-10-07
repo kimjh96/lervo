@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_bf67a854a4395944cadc52cf
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_df47444b681743e1396d414d
+outputLanguage: en
+outputs:
+  - byteCount: 574
+    contentHash: sha256:0cc92f4952171b6642058cf5c2f7979e3a541a26e1c464af9195890100c93a20
+    path: docs/specs/repository-knowledge-compilation/document-drift.md
+    userRegionHash: sha256:0cc92f4952171b6642058cf5c2f7979e3a541a26e1c464af9195890100c93a20
+profile: specification_document
+recordId: knormdoc_7dad45295ae8ae9337f781e8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0cc92f4952171b6642058cf5c2f7979e3a541a26e1c464af9195890100c93a20
+sourcePath: docs/specs/repository-knowledge-compilation/document-drift.md
+sourceUnitVersionIds:
+  - uv_327961569763dfc3879f03a9

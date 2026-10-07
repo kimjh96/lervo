@@ -1,0 +1,43 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_bf67a854a4395944cadc52cf
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_480d8ee6627dda7d5f9f5878
+outputLanguage: en
+outputs:
+  - byteCount: 489
+    contentHash: sha256:f54ca7ee930907c2ca9a9727f2ca513b05aeda67869d627e710e9c19a946fdf7
+    path: docs/specs/document-content-normalization/contract.md
+    userRegionHash: sha256:f54ca7ee930907c2ca9a9727f2ca513b05aeda67869d627e710e9c19a946fdf7
+  - byteCount: 1473
+    contentHash: sha256:755f21ec93c32e6337be300882626c4971e74abcd5328667b1da734d01989953
+    path: docs/specs/document-content-normalization/contract/preservation-and-validation.md
+    userRegionHash: sha256:755f21ec93c32e6337be300882626c4971e74abcd5328667b1da734d01989953
+  - byteCount: 2577
+    contentHash: sha256:c803e6b27bf4abdb047712613018592d64f59ce8cde4d317f2c0c9ae2e7ce841
+    path: docs/specs/document-content-normalization/contract/review-and-apply.md
+    userRegionHash: sha256:c803e6b27bf4abdb047712613018592d64f59ce8cde4d317f2c0c9ae2e7ce841
+  - byteCount: 1840
+    contentHash: sha256:ab4402d92791337145a4643a909cf27c7354392b26e4ed5cea36840409fb7a5e
+    path: docs/specs/document-content-normalization/contract/scope-and-output.md
+    userRegionHash: sha256:ab4402d92791337145a4643a909cf27c7354392b26e4ed5cea36840409fb7a5e
+profile: specification_document
+recordId: knormdoc_b947973106f4256a4a74fe87
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7bb40939f62c27b106853c07794a929722d6922ebe4358fed068bafc97de6708
+sourcePath: docs/specs/document-content-normalization/contract.md
+sourceUnitVersionIds:
+  - uv_440573eeb31779fd5864e97d
+  - uv_640c3c89a7272ed803805917
+  - uv_6c6c91ac5b4d5b2ac222b669
+  - uv_beae5818cca1a0b40f69bef0
+  - uv_c4722a09ff45c6f547b189a9
+  - uv_dddcdba806de8e37c3d17e09

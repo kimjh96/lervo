@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_bf67a854a4395944cadc52cf
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_14aebde4bae799f19a5b566a
+outputLanguage: en
+outputs:
+  - byteCount: 669
+    contentHash: sha256:6462ad4b3c4ca1eeca071e60010a573149336c86520cbab60b900823ec49343f
+    path: docs/specs/repository-knowledge-compilation/document-drift/layout-role-templates.md
+    userRegionHash: sha256:6462ad4b3c4ca1eeca071e60010a573149336c86520cbab60b900823ec49343f
+profile: specification_document
+recordId: knormdoc_65ff6916973ad09ade0b1c2d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:98081fffb00e822420013578c2f1d0807d309720c45197c44f0782328e21f1c3
+sourcePath: docs/specs/repository-knowledge-compilation/document-drift/layout-role-templates.md
+sourceUnitVersionIds:
+  - uv_ee147216f5b4fac62208ebe9
