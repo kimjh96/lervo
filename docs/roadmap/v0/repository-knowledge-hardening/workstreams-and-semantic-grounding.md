@@ -1,5 +1,5 @@
 # Workstreams and semantic grounding
 
-- Structured revisioned workstreams provide repository-wide continuation discovery, explicit ambiguity handling, source-less first checkpoints, CAS/event binding, managed E1–E3 delivery, bounded unmanaged preparation, conditional changed-turn revision advancement, structured pending user items, exact-revision finalization declarations, and automatic cross-provider deliberation-suite resolution.
-- Typed same-provider semantic grounding controls managed workforce planning, capability activation, and deliberation routing. Direct-terminal source selection uses a separate provider-neutral query projection granting no effect, authority, external route, or durable instruction. Raw-language lexical matching only retrieves candidates; only exact protocol coordinates are string-matched authority inputs. Terminal candidate, selected, loaded, hook-prepared, provider-injection, and provider-use states remain distinct.
-- Repository-scoped Hub workstream replication spans separately authorized Node event streams with exact content hashes, automatic Node publication and import, bounded divergent heads, dedicated permissions and health, and no transfer of approval authority.
+- [Revisioned workstreams](workstreams-and-semantic-grounding/revisioned-workstreams.md)
+- [Semantic grounding and terminal source selection](workstreams-and-semantic-grounding/semantic-grounding.md)
+- [Hub workstream replication](workstreams-and-semantic-grounding/hub-replication.md)

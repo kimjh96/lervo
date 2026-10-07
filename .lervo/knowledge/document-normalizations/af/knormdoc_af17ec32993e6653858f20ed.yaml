@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1482dd1f9180163de6d8d4d3
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8cb0118a743cb5ff053097d0
+outputLanguage: en
+outputs:
+  - byteCount: 1389
+    contentHash: sha256:aacb3610cc90a3cfe646be416436d2eba3403067598d5c6f8022dcd399b66a07
+    path: docs/specifications/coordination/conversation-runtime-composition/change-loop.md
+    userRegionHash: sha256:aacb3610cc90a3cfe646be416436d2eba3403067598d5c6f8022dcd399b66a07
+profile: specification_document
+recordId: knormdoc_af17ec32993e6653858f20ed
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ce3ff94fda787a022d3091cbb8c73fa7908de003dfa7399783627591e1b89b68
+sourcePath: docs/specifications/coordination/conversation-runtime-composition/change-loop.md
+sourceUnitVersionIds:
+  - uv_a6f7e87f4ebef59ef33900ef

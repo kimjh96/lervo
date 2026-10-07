@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1482dd1f9180163de6d8d4d3
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a1c4ea98dab8e5694fec6bce
+outputLanguage: en
+outputs:
+  - byteCount: 1658
+    contentHash: sha256:11ebb2f917fd251754d264dc410877e70855b1a5ca3ad5e5f4740522ea8bf94f
+    path: docs/specifications/coordination/conversation-runtime-composition/managed-reads.md
+    userRegionHash: sha256:11ebb2f917fd251754d264dc410877e70855b1a5ca3ad5e5f4740522ea8bf94f
+profile: specification_document
+recordId: knormdoc_0bc3b4a8f500c9628635ce38
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:33ed536bd5f8bcffb7ea20db0f1795fcf83cb665c1ee1ac5dcb1291054843940
+sourcePath: docs/specifications/coordination/conversation-runtime-composition/managed-reads.md
+sourceUnitVersionIds:
+  - uv_8d616f2b4be9e4d096ab3559

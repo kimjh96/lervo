@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1482dd1f9180163de6d8d4d3
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e30f894b46a2eb47a1d50cff
+outputLanguage: en
+outputs:
+  - byteCount: 324
+    contentHash: sha256:e7e872a26ca1202de5193a64644b95cc708c6160f1dfd15aae05bd97d6fd769e
+    path: docs/roadmap/v0/repository-knowledge-hardening/workstreams-and-semantic-grounding.md
+    userRegionHash: sha256:e7e872a26ca1202de5193a64644b95cc708c6160f1dfd15aae05bd97d6fd769e
+  - byteCount: 294
+    contentHash: sha256:e41fc1336bd84b6e6583efd740af9e26ddd6f3f421f34d2d522bfb598f3f93cd
+    path: docs/roadmap/v0/repository-knowledge-hardening/workstreams-and-semantic-grounding/hub-replication.md
+    userRegionHash: sha256:e41fc1336bd84b6e6583efd740af9e26ddd6f3f421f34d2d522bfb598f3f93cd
+  - byteCount: 445
+    contentHash: sha256:2873c2bf299deacb847ceda74825b83b9b04b48b019eb5bcca3e2dbb4486d930
+    path: docs/roadmap/v0/repository-knowledge-hardening/workstreams-and-semantic-grounding/revisioned-workstreams.md
+    userRegionHash: sha256:2873c2bf299deacb847ceda74825b83b9b04b48b019eb5bcca3e2dbb4486d930
+  - byteCount: 577
+    contentHash: sha256:f84d62a58409c541cc3a7f8fddc34e9b928056a0acf2dbca2a5eca29a0408154
+    path: docs/roadmap/v0/repository-knowledge-hardening/workstreams-and-semantic-grounding/semantic-grounding.md
+    userRegionHash: sha256:f84d62a58409c541cc3a7f8fddc34e9b928056a0acf2dbca2a5eca29a0408154
+profile: roadmap_document
+recordId: knormdoc_b9485251b08ff1eb077ffc10
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8e29c216ebbb733483b737a93a4d1d2ea8c0c0659e2fb13de7d6136745d10bbd
+sourcePath: docs/roadmap/v0/repository-knowledge-hardening/workstreams-and-semantic-grounding.md
+sourceUnitVersionIds:
+  - uv_d55ebd431d898ecb08ac6559

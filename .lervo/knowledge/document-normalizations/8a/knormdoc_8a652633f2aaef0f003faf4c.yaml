@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1482dd1f9180163de6d8d4d3
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1213e016c3b5d2d593ae9276
+outputLanguage: en
+outputs:
+  - byteCount: 645
+    contentHash: sha256:4bc50cd8cd83b76df5bc40673b11cf4c1018df04f82659bcb6ff4fd0facf3984
+    path: docs/specifications/coordination/conversation-runtime-composition.md
+    userRegionHash: sha256:4bc50cd8cd83b76df5bc40673b11cf4c1018df04f82659bcb6ff4fd0facf3984
+profile: specification_document
+recordId: knormdoc_8a652633f2aaef0f003faf4c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4bc50cd8cd83b76df5bc40673b11cf4c1018df04f82659bcb6ff4fd0facf3984
+sourcePath: docs/specifications/coordination/conversation-runtime-composition.md
+sourceUnitVersionIds:
+  - uv_365863cd0ef409f4a162f9c1
