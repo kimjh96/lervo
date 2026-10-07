@@ -26,6 +26,7 @@ import {
 import { workstreamSnapshotRecorder } from "./workstream-recording.js";
 import { observeRepositoryHead, observeWorkstreamFreshness } from "./workstream-repository-head.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
+import { runWorkstreamHubCommand, workstreamHubUsage } from "./workstream-hub-command.js";
 
 const currentUsage = "  lervo workstream current [--root <path>] [--context|--json]";
 const startUsage =
@@ -33,7 +34,9 @@ const startUsage =
 const updateUsage =
   "  lervo workstream update (--patch <json>|--stdin-patch|--from <json-path>|--stdin) [--actor <user|agent>] [--provider <codex|claude>] [--root <path>] [--apply <plan-id>|--apply-now] [--json]";
 
-export const workstreamUsage = [currentUsage, startUsage, updateUsage].join("\n");
+export const workstreamUsage = [currentUsage, startUsage, updateUsage, workstreamHubUsage].join(
+  "\n",
+);
 
 const writeDetails = `
 The service sets revision (current + 1), updatedAt, and the observed repository HEAD, and carries
@@ -229,6 +232,13 @@ export async function runWorkstreamCommand(args: string[], io: CliIo): Promise<n
     return subcommand === undefined ? 1 : 0;
   }
   try {
+    if (subcommand === "sync" || subcommand === "reconcile") {
+      if (wantsHelp(args)) {
+        io.stdout(`Usage:\n${workstreamHubUsage}\n`);
+        return 0;
+      }
+      return await runWorkstreamHubCommand(args, io);
+    }
     if (
       (subcommand === "current" || subcommand === "start" || subcommand === "update") &&
       wantsHelp(args.slice(1))

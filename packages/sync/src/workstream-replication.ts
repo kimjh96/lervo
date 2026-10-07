@@ -56,7 +56,7 @@ function bodyOf(input: {
   }
 }
 
-async function readRemoteWorkstream(input: {
+export async function readHubWorkstream(input: {
   transport: AuthenticatedWorkstreamHubTransport;
   registration: ProjectRegistrationRequest;
   destinationId: string;
@@ -125,7 +125,7 @@ export async function runWorkstreamReplicationCycle(input: {
       { cause: error },
     );
   }
-  const initialRemote = await readRemoteWorkstream(input);
+  const initialRemote = await readHubWorkstream(input);
   let publishedCount = 0;
   const unpublished = unpublishedLocalRevisions(revisions, initialRemote);
   for (const revision of unpublished) {
@@ -172,7 +172,7 @@ export async function runWorkstreamReplicationCycle(input: {
     if (result.status !== "duplicate") publishedCount += 1;
   }
 
-  const remote = unpublished.length === 0 ? initialRemote : await readRemoteWorkstream(input);
+  const remote = unpublished.length === 0 ? initialRemote : await readHubWorkstream(input);
   if (remote.status === "not_found") {
     if (revisions.length !== 0) {
       throw new WorkstreamReplicationCycleError(

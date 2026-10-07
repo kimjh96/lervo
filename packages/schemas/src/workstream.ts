@@ -114,6 +114,21 @@ export const workstreamSnapshotSchema = {
         sourcePathDigest: { anyOf: [sha256Schema, { type: "null" }] },
         predecessorWorkstreamId: workstreamIdSchema,
         predecessorSnapshotContentHash: sha256Schema,
+        reconciliationPredecessors: {
+          type: "array",
+          minItems: 2,
+          maxItems: 2,
+          uniqueItems: true,
+          items: {
+            type: "object",
+            properties: {
+              workstreamId: workstreamIdSchema,
+              snapshotContentHash: sha256Schema,
+            },
+            required: ["workstreamId", "snapshotContentHash"],
+            additionalProperties: false,
+          },
+        },
       },
       required: ["kind", "sourceArtifactId", "sourceContentHash", "sourcePathDigest"],
       additionalProperties: false,
@@ -132,6 +147,7 @@ export const workstreamSnapshotSchema = {
         properties: {
           predecessorWorkstreamId: false,
           predecessorSnapshotContentHash: false,
+          reconciliationPredecessors: false,
         },
       },
     },
@@ -213,6 +229,17 @@ export function hasWorkstreamPredecessor(
   snapshot: WorkstreamSnapshot,
   predecessor: WorkstreamSnapshot & { snapshotContentHash: string },
 ): boolean {
+  const parents = workstreamReconciliationPredecessors(snapshot);
+  if (parents !== null)
+    return (
+      snapshot.workstreamId !== predecessor.workstreamId &&
+      parents.some(
+        (parent) =>
+          parent.workstreamId === predecessor.workstreamId &&
+          parent.snapshotContentHash === predecessor.snapshotContentHash,
+      )
+    );
+  if (snapshot.origin.reconciliationPredecessors !== undefined) return false;
   // ADR-0199: a settled completed or cancelled head may be exactly succeeded; unsettled may not.
   return (
     (predecessor.status === "completed" || predecessor.status === "cancelled") &&
@@ -224,6 +251,25 @@ export function hasWorkstreamPredecessor(
     snapshot.origin.predecessorWorkstreamId === predecessor.workstreamId &&
     snapshot.origin.predecessorSnapshotContentHash === predecessor.snapshotContentHash
   );
+}
+/** A reconciliation preserves both exact heads without declaring either task completed. */
+export function workstreamReconciliationPredecessors(snapshot: WorkstreamSnapshot) {
+  const origin = snapshot.origin;
+  const parents = origin.reconciliationPredecessors;
+  if (
+    origin.kind !== "successor" ||
+    parents === undefined ||
+    parents.length !== 2 ||
+    parents[0]?.snapshotContentHash === parents[1]?.snapshotContentHash ||
+    parents.some((parent) => parent.workstreamId === snapshot.workstreamId) ||
+    !parents.some(
+      (parent) =>
+        parent.workstreamId === origin.predecessorWorkstreamId &&
+        parent.snapshotContentHash === origin.predecessorSnapshotContentHash,
+    )
+  )
+    return null;
+  return parents;
 }
 export function isWorkstreamSuccessorRoot(
   snapshot: WorkstreamSnapshot,

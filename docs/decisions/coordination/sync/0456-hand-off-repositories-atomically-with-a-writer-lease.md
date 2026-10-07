@@ -89,6 +89,8 @@ Workstream import surfaces exact blocker codes in health and attention: `invalid
 
 `lervo workstream reconcile --keep local|hub` creates a successor whose `origin` names both predecessor heads. ADR-0201's successor rule extends to allow a reconciliation successor to replace two heads. No head is ever merged automatically.
 
+The [checkpoint reconciliation contract](../../../specifications/coordination/workstream-checkpoint-reconciliation.md) defines exact parent binding, CLI-only publication, deployment compatibility, and interruption recovery.
+
 ## Events, states, and failure meaning
 
 - `repository.handoff.completed`: `handoffId`, `repositoryIdentityHash`, `direction` (`to_peer | from_peer`), `sourceSnapshotHash`, `workstreamSnapshotHash` or null, `leaseHolderHostHash`, `previousHolderHostHash` or null, `protocolVersion`, `occurredAt`. Absence means handoff did not complete.

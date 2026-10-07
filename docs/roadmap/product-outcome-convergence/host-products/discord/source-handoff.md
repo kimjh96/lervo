@@ -13,6 +13,7 @@ Completion requires:
 - A reviewed source handoff.
 - Remote revision verification before command acceptance.
 - Divergence handling.
+- Explicit workstream reconciliation must preserve both predecessor hashes, require an exact reviewed plan, reject changed heads, and import the same successor on Mac, Hub, and WSL. Verify CLI-only checkpoint publication separately from Git replica parity and runtime health.
 - A later verified hand-back.
 
 The handoff must not silently push, discard, merge, or overwrite user-owned changes.

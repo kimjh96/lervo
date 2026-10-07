@@ -50112,7 +50112,22 @@ var workstreamSnapshotSchema = {
         sourceContentHash: { anyOf: [sha256Schema, { type: "null" }] },
         sourcePathDigest: { anyOf: [sha256Schema, { type: "null" }] },
         predecessorWorkstreamId: workstreamIdSchema2,
-        predecessorSnapshotContentHash: sha256Schema
+        predecessorSnapshotContentHash: sha256Schema,
+        reconciliationPredecessors: {
+          type: "array",
+          minItems: 2,
+          maxItems: 2,
+          uniqueItems: true,
+          items: {
+            type: "object",
+            properties: {
+              workstreamId: workstreamIdSchema2,
+              snapshotContentHash: sha256Schema
+            },
+            required: ["workstreamId", "snapshotContentHash"],
+            additionalProperties: false
+          }
+        }
       },
       required: ["kind", "sourceArtifactId", "sourceContentHash", "sourcePathDigest"],
       additionalProperties: false,
@@ -50130,7 +50145,8 @@ var workstreamSnapshotSchema = {
       else: {
         properties: {
           predecessorWorkstreamId: false,
-          predecessorSnapshotContentHash: false
+          predecessorSnapshotContentHash: false,
+          reconciliationPredecessors: false
         }
       }
     },

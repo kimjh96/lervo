@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import type { SQLiteEventStore } from "@lervo/event-store-sqlite";
+import { SQLiteEventStore } from "@lervo/event-store-sqlite";
+import type { ProjectStorage } from "@lervo/project-storage";
 import {
   applyReplicatedWorkstreamImportPlan,
   createReplicatedWorkstreamImportPlan,
@@ -9,6 +10,17 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 import type { LocalWorkstreamRevision, WorkstreamReplicationLocalPort } from "@lervo/sync";
 
 import { WorkstreamRevisionReader } from "./workstream-revision-reader.js";
+
+export function createNodeWorkstreamLocalPort(storage: ProjectStorage) {
+  if (!(storage.events instanceof SQLiteEventStore))
+    throw new Error("Workstream replication requires the verified SQLite event adapter.");
+  return new NodeWorkstreamReplicationLocalPort(
+    storage.paths.repositoryRoot,
+    storage.manifest.projectId,
+    storage.events,
+    storage.artifacts,
+  );
+}
 
 export class NodeWorkstreamReplicationLocalPort implements WorkstreamReplicationLocalPort {
   private readonly reader: WorkstreamRevisionReader;

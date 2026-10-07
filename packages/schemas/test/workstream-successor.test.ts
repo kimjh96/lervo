@@ -31,6 +31,39 @@ const first: WorkstreamSnapshot = {
 };
 
 describe("successor workstream origin", () => {
+  it("binds an explicit reconciliation to either exact active predecessor without settling it", () => {
+    const left = {
+      ...first,
+      workstreamId: "wks_abcdefabcdefabcdefabcdef",
+      snapshotContentHash: `sha256:${"a".repeat(64)}`,
+    };
+    const right = { ...left, snapshotContentHash: `sha256:${"b".repeat(64)}` };
+    const reconciled = {
+      ...first,
+      origin: {
+        ...first.origin,
+        reconciliationPredecessors: [
+          { workstreamId: left.workstreamId, snapshotContentHash: left.snapshotContentHash },
+          { workstreamId: right.workstreamId, snapshotContentHash: right.snapshotContentHash },
+        ],
+      },
+    };
+    expect(validateSchema("workstreamSnapshot", reconciled).valid).toBe(true);
+    expect(isWorkstreamSuccessorRoot(reconciled, left)).toBe(true);
+    expect(isWorkstreamSuccessorRoot(reconciled, right)).toBe(true);
+    expect(
+      isWorkstreamSuccessorRoot(reconciled, {
+        ...right,
+        snapshotContentHash: `sha256:${"c".repeat(64)}`,
+      }),
+    ).toBe(false);
+    const malformed = {
+      ...reconciled,
+      origin: { ...reconciled.origin, predecessorSnapshotContentHash: `sha256:${"c".repeat(64)}` },
+    };
+    expect(isWorkstreamSuccessorRoot(malformed, left)).toBe(false);
+    expect(isWorkstreamSuccessorRoot({ ...reconciled, revision: 2 }, left)).toBe(false);
+  });
   it("requires a complete predecessor and rejects unexplained predecessor fields", () => {
     expect(validateSchema("workstreamSnapshot", first).valid).toBe(true);
     expect(
