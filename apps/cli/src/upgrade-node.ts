@@ -14,14 +14,14 @@ import { formatRuntimeServiceDefinition } from "../../../scripts/distribution/re
 import {
   inspectNodeConfigExecutables,
   nodeConfigExecutablesPending,
-  prepareNodeConfigExecutables,
   type NodeConfigExecutablesInspection,
   type NodeConfigExecutablesStage,
 } from "./node-config-executable-upgrade.js";
-import { applyNodeFleetOnboarding, inspectNodeFleetStatus } from "./node-fleet-apply.js";
+import { inspectNodeFleetStatus } from "./node-fleet-apply.js";
 import { nodeRuntimeHasOnlyAuxiliaryConditions } from "./node-fleet-readiness-policy.js";
 import {
   describeInstalledNodeLauncher,
+  inspectInstalledNodeDependencies,
   type InstalledNodeLauncher,
 } from "./node-fleet-runtime-material.js";
 import { readNodeServiceCoordinates } from "./node-service-coordinates.js";
@@ -295,6 +295,26 @@ export async function inspectRegisteredNodeUpgrade(
     coordinates.executable === desired.launcher &&
     plan.registry.reconciliation === "unchanged" &&
     desiredServiceHash === plan.service.targetContentHash;
+  if (deploymentCurrent) {
+    const dependencies = await inspectInstalledNodeDependencies(desired);
+    if (dependencies === "conflict")
+      return inspected(
+        stage({
+          ...deploymentFields,
+          disposition: "blocked",
+          reason: "node_runtime_dependency_conflict",
+        }),
+      );
+    if (dependencies === "missing")
+      return inspected(
+        stage({
+          ...deploymentFields,
+          disposition: "safe_apply",
+          reason: "node_runtime_dependencies_missing",
+        }),
+        true,
+      );
+  }
   if (deploymentCurrent && status?.recoveryAction === "none")
     return deployed(
       stage({ ...deploymentFields, disposition: "current", reason: "exact_runtime_ready" }),
@@ -355,34 +375,4 @@ export async function inspectRegisteredNodeUpgrade(
   );
 }
 
-export async function applyRegisteredNodeUpgrade(inspection: NodeUpgradeInspection): Promise<void> {
-  if (
-    inspection.plan === null ||
-    inspection.configPath === null ||
-    inspection.stage.configPathDigest !== sha256(inspection.configPath)
-  )
-    throw new Error("The registered Node upgrade inputs could not be revalidated.");
-  // ADR-0489: the migrated configuration replaces the file only inside the guarded service
-  // transition, while the Node is stopped, so the work admission binding moves with it.
-  const executables = inspection.configExecutables?.stage;
-  const prepared =
-    executables !== undefined && nodeConfigExecutablesPending(executables)
-      ? await prepareNodeConfigExecutables(inspection.configPath, executables)
-      : null;
-  try {
-    if (inspection.replaceDeployment === false && prepared?.configurationSource == null) return;
-    await applyNodeFleetOnboarding({
-      plan: inspection.plan,
-      configPath: inspection.configPath,
-      allowHubUnavailableReadiness: true,
-      ...(inspection.pathDirectories === undefined
-        ? {}
-        : { pathDirectories: inspection.pathDirectories }),
-      ...(prepared?.configurationSource == null
-        ? {}
-        : { configurationSource: prepared.configurationSource }),
-    });
-  } finally {
-    await prepared?.cleanup();
-  }
-}
+export { applyRegisteredNodeUpgrade } from "./upgrade-node-apply.js";

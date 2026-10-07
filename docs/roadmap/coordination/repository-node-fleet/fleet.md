@@ -32,6 +32,8 @@ Completed under [ADR-0202](../../../decisions/operations/services/0202-repositor
 
 ## Acceptance
 
+- Under [ADR-0492](../../../decisions/operations/services/0492-install-and-verify-node-runtime-dependency-closures.md), install the external SDK graph with the content-addressed payload, preserve nested dependency versions and executable permissions, and prove loading after removing the source CLI installation. A missing graph must plan safe repair; changed bytes or redirected links must block replacement. SDK importability, provider initialization, response generation, and Discord delivery require separate observations.
+
 - Initializing a Hub-enabled repository produces a ready repository Node without a bookkeeping or replication command.
 - Shiflo and a second repository run simultaneously on the same Mac with distinct service identities and health records.
 - A workstream revision in either repository automatically publishes; a fresh authorized node imports the unique newer head and exposes it to a new Codex or Claude session.

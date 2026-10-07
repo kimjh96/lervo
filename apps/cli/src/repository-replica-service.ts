@@ -18,7 +18,10 @@ import {
   writeManagedUserService,
   type ManagedServiceStatus,
 } from "./managed-user-service-write.js";
-import { materializeInstalledNodeLauncher } from "./node-fleet-runtime-material.js";
+import {
+  describeInstalledNodeLauncher,
+  materializeInstalledNodeLauncher,
+} from "./node-fleet-runtime-material.js";
 import {
   legacyReplicaConfigPath,
   planReplicaConfigMigration,
@@ -75,8 +78,10 @@ export function defaultRepositoryReplicaServicePorts(): RepositoryReplicaService
     uid: typeof process.getuid === "function" ? process.getuid() : null,
     environment: process.env,
     bundledRuntime: async () => {
-      const bytes = await readFile(new URL("./node-runtime.js", import.meta.url));
-      return createHash("sha256").update(bytes).digest("hex").slice(0, 16);
+      return (await describeInstalledNodeLauncher(home)).hash.slice(
+        "sha256:".length,
+        "sha256:".length + 16,
+      );
     },
     materializeRuntime: async () => {
       await materializeInstalledNodeLauncher(home);

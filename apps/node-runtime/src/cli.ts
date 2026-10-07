@@ -5,6 +5,7 @@ import { assertNodeStartupExecutables } from "./config-executables.js";
 import { preflightNodeRuntimeCredentials } from "./config-preflight.js";
 import { openNodeRuntime } from "./deployment.js";
 import { NodeRuntimeError } from "./errors.js";
+import { assertNodeRuntimeDependencies } from "./runtime-dependency-preflight.js";
 import type { NodeRuntimeOpenPorts } from "./open-ports.js";
 import { createManagedProviderRemoteCommandPorts } from "./managed-provider-runtime.js";
 import {
@@ -55,6 +56,7 @@ export async function runNodeRuntimeCli(
     const snapshot = await loadNodeRuntimeConfigSnapshot(path);
     const config = snapshot.config;
     await assertNodeStartupExecutables(config);
+    await assertNodeRuntimeDependencies();
     if (request.mode === "check") {
       await preflightNodeRuntimeCredentials(config);
       ports.stdout("Lervo Node configuration preflight passed.\n");
