@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7e29060c3edefc5149b8ba21"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "lervo upgrade --apply holds the background knowledge resident's cycle admission for its whole run, scans retry concurrent revision changes, and foreground commands wait up to 15 minutes for a running knowledge materialization instead of failing."

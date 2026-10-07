@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c96f75516f4edcb9a85eaedb"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Admit every knowledge resident: lervo upgrade activates event schema 4 with a backup and installs one host resident service; held residents report their cause; refused Hub coordinates never grant ownership; drifted bindings rebind."
