@@ -1,0 +1,43 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_30c464255cfa5378897127a8
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_da9c7d34d27e10b9e4fd7337
+outputLanguage: en
+outputs:
+  - byteCount: 857
+    contentHash: sha256:5011fb3963e779021674abb1659a44c04561c2772aa9b45896a534d81be363a8
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy/layout-and-routing.md
+    userRegionHash: sha256:5011fb3963e779021674abb1659a44c04561c2772aa9b45896a534d81be363a8
+  - byteCount: 1266
+    contentHash: sha256:59f37eccd67109ce5dd6bfdd136560260be5ac07c06ac0e18c9945347664073c
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy/layout-and-routing/contract-diagnostics.md
+    userRegionHash: sha256:59f37eccd67109ce5dd6bfdd136560260be5ac07c06ac0e18c9945347664073c
+  - byteCount: 4217
+    contentHash: sha256:7caaff6b83b0712c1f71107482bb7cece45d63e547161d08cddbbdd44533d466
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy/layout-and-routing/routing.md
+    userRegionHash: sha256:7caaff6b83b0712c1f71107482bb7cece45d63e547161d08cddbbdd44533d466
+  - byteCount: 1858
+    contentHash: sha256:6985871f18085038a188706279f0ea58383e9de22715eb61849da286519a3b84
+    path: docs/specs/repository-knowledge-compilation/structural-publication/policy/layout-and-routing/semantic-classification.md
+    userRegionHash: sha256:6985871f18085038a188706279f0ea58383e9de22715eb61849da286519a3b84
+profile: specification_document
+recordId: knormdoc_2b53f51700abf8eaa9a0e49a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9a830f1353d86e9750b40bf6afd81f4be69c4f32153a0fc82f0f8fe6a73f9daa
+sourcePath: docs/specs/repository-knowledge-compilation/structural-publication/policy/layout-and-routing.md
+sourceUnitVersionIds:
+  - uv_0bacc90232915fda55610fd9
+  - uv_274de79282b12da5b5e79265
+  - uv_502baadb4d20d855c49e2d15
+  - uv_71dee66b3606e84388240414
+  - uv_aa9a64fedc5c8be2ab6ef775
+  - uv_d5236b472ba574e2f92c83c5

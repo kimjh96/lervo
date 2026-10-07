@@ -1,0 +1,16 @@
+# Continuation Detection and Migration
+
+An active continuation document is not a permanent entrypoint. Before layout migration, a bounded repository-wide scan finds only declared continuation sources:
+
+- The dedicated root legacy `HANDOFF.md` alias of the `continuation_source` role.
+- Markdown with `lervo.workstream.continuation: true` front matter.
+
+Under [ADR-0476](../../../decisions/knowledge/documents/0476-route-legacy-documents-semantically-and-never-migrate-application-content.md), file names, titles, headings, and phrases merely resembling a handoff never make a candidate.
+
+One unambiguous or explicitly selected source enters an exact-approved stage that preserves its bytes in CAS, creates `.lervo/state/workstreams/current.json`, and updates resolvable Markdown references. Continuation migration deletes only the dedicated root legacy `HANDOFF.md`.
+
+Every reviewed user-document deletion retires normalization lifecycle records owned by that exact source path in the same durable operation, preventing stale formatter or lint ownership.
+
+An arbitrary continuation source may contain durable knowledge, so its user bytes remain for reviewed normalization and splitting. Multiple declared candidates block without merging or deletion until an exact `--continuation-source` is supplied.
+
+With no source, the working agent creates the first snapshot during its terminal turn. The structured snapshot stays outside structural publication; lasting facts belong in routed Markdown.

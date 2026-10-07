@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_30c464255cfa5378897127a8
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6b186066370684447235263e
+outputLanguage: en
+outputs:
+  - byteCount: 885
+    contentHash: sha256:d03d88723bfe1102a71438739c7ca2d0b552e4b2262d4ade6c309c5d73628d8b
+    path: docs/specs/repository-knowledge-entrypoints-and-continuation/entrypoints-and-bridges.md
+    userRegionHash: sha256:d03d88723bfe1102a71438739c7ca2d0b552e4b2262d4ade6c309c5d73628d8b
+profile: specification_document
+recordId: knormdoc_e8b26e522a43fe054d4132cb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:85f8b4121bd4cd0e2ad15e67569f42415b8c7326d1495b10de09a0a758380efe
+sourcePath: docs/specs/repository-knowledge-entrypoints-and-continuation/entrypoints-and-bridges.md
+sourceUnitVersionIds:
+  - uv_dbe8032af2162189000326f5

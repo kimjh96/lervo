@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_30c464255cfa5378897127a8
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0ca62e30ab4094a87c991340
+outputLanguage: en
+outputs:
+  - byteCount: 329
+    contentHash: sha256:c3a48d1426116e3c04229328f296130d12a7608b6c994bb86150d55d727610f3
+    path: docs/specs/repository-knowledge-compilation/validation-and-exchange.md
+    userRegionHash: sha256:c3a48d1426116e3c04229328f296130d12a7608b6c994bb86150d55d727610f3
+  - byteCount: 2102
+    contentHash: sha256:32837f4397ca148b3dd9140e868a2f5bdcb14a4b4003a6146166deea82c87181
+    path: docs/specs/repository-knowledge-compilation/validation-and-exchange/acceptance.md
+    userRegionHash: sha256:32837f4397ca148b3dd9140e868a2f5bdcb14a4b4003a6146166deea82c87181
+  - byteCount: 483
+    contentHash: sha256:2de7b23e768edcf1b59f8fed2f0b9b264fdd6bd013eda24475f5d9e97674c458
+    path: docs/specs/repository-knowledge-compilation/validation-and-exchange/exchange.md
+    userRegionHash: sha256:2de7b23e768edcf1b59f8fed2f0b9b264fdd6bd013eda24475f5d9e97674c458
+  - byteCount: 691
+    contentHash: sha256:1d291419a33368221b0e27c2dc94ce71a32214c77efaac016e1950db21f69e13
+    path: docs/specs/repository-knowledge-compilation/validation-and-exchange/failures.md
+    userRegionHash: sha256:1d291419a33368221b0e27c2dc94ce71a32214c77efaac016e1950db21f69e13
+profile: specification_document
+recordId: knormdoc_7e825d0c317a363550c04e35
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4a62c02421318023c0b0aecf3428a4b0d41ef413c8066fa81f961d27152579c0
+sourcePath: docs/specs/repository-knowledge-compilation/validation-and-exchange.md
+sourceUnitVersionIds:
+  - uv_08dfa6d53ca72d3779e002e6
+  - uv_5668479389e1e9722bd7c186
+  - uv_7b6d0a1a7e5e990cdc56706c
+  - uv_a3310d23edd6fe5cacc97b89
