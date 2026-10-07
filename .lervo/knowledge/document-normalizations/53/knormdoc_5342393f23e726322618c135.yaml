@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_91c653e860e2fc03c6b017d5
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fd0746689c802e1dd9508bb1
+outputLanguage: en
+outputs:
+  - byteCount: 3188
+    contentHash: sha256:91f286a194197f06425afa8e9c322f53bfe9ead0f74bad83a22579c739f0467f
+    path: docs/foundation/code-quality-and-commit-ci.md
+    userRegionHash: sha256:91f286a194197f06425afa8e9c322f53bfe9ead0f74bad83a22579c739f0467f
+  - byteCount: 1413
+    contentHash: sha256:9fe6d561927a9a0c9760770c882ad9dffe1bedf46da7e544126728be38e8cd5f
+    path: docs/foundation/code-quality-and-commit-ci/commit-ranges.md
+    userRegionHash: sha256:9fe6d561927a9a0c9760770c882ad9dffe1bedf46da7e544126728be38e8cd5f
+  - byteCount: 1291
+    contentHash: sha256:dfc3ac80d9c9b6315f8b599a63f2ea9fd44697df8d270f7182f387378f45f0c8
+    path: docs/foundation/code-quality-and-commit-ci/node-api-baseline.md
+    userRegionHash: sha256:dfc3ac80d9c9b6315f8b599a63f2ea9fd44697df8d270f7182f387378f45f0c8
+  - byteCount: 4149
+    contentHash: sha256:f9a6183fb2c0a915dfbe385636f6c5c14b89afd1111a92569df2567726fabe99
+    path: docs/foundation/code-quality-and-commit-ci/workflows.md
+    userRegionHash: sha256:f9a6183fb2c0a915dfbe385636f6c5c14b89afd1111a92569df2567726fabe99
+profile: repository_document
+recordId: knormdoc_5342393f23e726322618c135
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:021d79ab5433555baefa7d537f8df4be232050b7aa5eb99c865f3a0c8e95d652
+sourcePath: docs/foundation/code-quality-and-commit-ci.md
+sourceUnitVersionIds:
+  - uv_2f6863d88f04bf237d0c763e
+  - uv_471ef3f3d6d4ca248463dcf2
+  - uv_4936a9baa42c5b9bd8d2fc0d
+  - uv_8e1b3b8cb47021ac8914623f
+  - uv_908bd94fc342a2a517755c6a
+  - uv_91a9c04ff9661a5a71995d62
+  - uv_b1e03789926726b8609b6aee
+  - uv_c2ccca9a845843a205568609
+  - uv_c810d685ead048c2215e5e18

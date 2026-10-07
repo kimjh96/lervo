@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_91c653e860e2fc03c6b017d5
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_56170cec10f306f911e05d1c
+outputLanguage: en
+outputs:
+  - byteCount: 429
+    contentHash: sha256:b4912cde648bb9270e9d14822ab4acc10b163eb5b2ea5fbd9198ea52b70e7627
+    path: docs/distribution/node-runtime-distribution/installation-and-readiness/installation-and-activation/service-activation/guarded-upgrades-and-rollback.md
+    userRegionHash: sha256:b4912cde648bb9270e9d14822ab4acc10b163eb5b2ea5fbd9198ea52b70e7627
+  - byteCount: 677
+    contentHash: sha256:4f80c7aa03717dac0d120b273f90d3ad44a769f5cc8194264cb326102bab6873
+    path: docs/distribution/node-runtime-distribution/installation-and-readiness/installation-and-activation/service-activation/guarded-upgrades-and-rollback/pinned-deliberation-cli.md
+    userRegionHash: sha256:4f80c7aa03717dac0d120b273f90d3ad44a769f5cc8194264cb326102bab6873
+  - byteCount: 535
+    contentHash: sha256:21e80f1f7ba23baaa682992948a976eb0fbec71b7f13c26025ca96ab2269a002
+    path: docs/distribution/node-runtime-distribution/installation-and-readiness/installation-and-activation/service-activation/guarded-upgrades-and-rollback/shared-discord-channels.md
+    userRegionHash: sha256:21e80f1f7ba23baaa682992948a976eb0fbec71b7f13c26025ca96ab2269a002
+  - byteCount: 1450
+    contentHash: sha256:3ed0520fb780d904b1da3d43f38888a3b7c8e22ebc537de6a619af1b3888d95d
+    path: docs/distribution/node-runtime-distribution/installation-and-readiness/installation-and-activation/service-activation/guarded-upgrades-and-rollback/transition-guards.md
+    userRegionHash: sha256:3ed0520fb780d904b1da3d43f38888a3b7c8e22ebc537de6a619af1b3888d95d
+profile: repository_document
+recordId: knormdoc_bc94ac1d6c2e90c404e76bfb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7e5ba004d54d85b4dd47407f5af55a4e7dd54a6f95a858f9ff3cfa111639d26e
+sourcePath: docs/distribution/node-runtime-distribution/installation-and-readiness/installation-and-activation/service-activation/guarded-upgrades-and-rollback.md
+sourceUnitVersionIds:
+  - uv_478ddd0a47c1f8f10a176acb
+  - uv_7b51b3f7f90c549865613adc
+  - uv_e6ec1764d28c3d7ed8e59861

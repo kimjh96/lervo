@@ -2,66 +2,28 @@
 
 ## Evidence correction
 
-The workflow YAML, package manifests, alignment test, and CI execution receipts were not supplied for this assessment. The retained source description below is not independently verified workflow evidence. Its assertions must not be used as operational guarantees or proof of execution. This correction governs every section under “Retained source description — unverified.” Existing text is preserved for reconciliation.
+Workflow YAML, package manifests, the alignment test, and CI execution receipts were not supplied. The retained descriptions linked below are unverified source claims, preserved for reconciliation; they are neither operational guarantees nor proof of execution. This correction governs all retained descriptions, including statements phrased as facts or instructions. Coverage indicates preservation, not truth.
 
-The supplied canonical context supports these narrower statements:
+The supplied canonical context supports only this baseline:
 
 - The [code convention](code-convention.md) states that `pnpm check` includes `pnpm quality:check` and that pull requests and pushes to `main` run the dedicated code-quality workflow.
-- The [commit convention](commit-convention.md) requires CI validation of every introduced pull-request commit and every commit pushed to `main`. The claimed last-commit fallback below is unverified and does not currently qualify that canonical policy.
-- [ADR-0470](../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) specifies pull-request and `main` artifact and test jobs on `ubuntu-latest` with Node 22.13.0. Artifact checking builds before checking the manifest and SBOM. Testing builds before `pnpm test`, with four runners, two workers each, a 30-second default test deadline, and a 45-minute timeout per shard. It also specifies per-process temporary user-state isolation. These are documented configuration requirements, not observed run results.
+- The [commit convention](commit-convention.md) requires CI validation of every introduced pull-request commit and every commit pushed to `main`. The retained last-commit fallback is unverified and does not currently qualify this policy.
+- [ADR-0470](../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) specifies pull-request and `main` artifact and test jobs on `ubuntu-latest` with Node 22.13.0. Artifact checking builds before checking the manifest and SBOM. Testing builds before `pnpm test`, using four runners, two workers each, a 30-second default test deadline, and a 45-minute timeout per shard. It also specifies per-process temporary user-state isolation. These are documented configuration requirements, not observed results.
 
-The additional workflow pins, permissions, cancellation controls, checkout settings, installation settings, precise command order and arguments, twenty-minute artifact timeout, matrix triggers, and commit-range fallback require exact workflow bytes before confirmation. Source-based type resolution and the Node engine/type/workflow alignment rule require the corresponding configuration and test bytes. The claimed first-run shard durations and `DatabaseSync.isOpen` incident require execution or incident evidence; neither outcome is established here. No successful CI run, packed smoke, release, or publication is established by this document.
+Exact workflow bytes are required to confirm additional action pins, permissions, cancellation controls, checkout and installation settings, precise command order and arguments, the twenty-minute artifact timeout, matrix triggers, and commit-range fallback. Source-based type resolution and Node engine/type/workflow alignment require their configuration and test bytes. First-run shard durations and the `DatabaseSync.isOpen` incident require execution or incident evidence; neither outcome is established here.
 
-## Retained source description — unverified
+No successful CI run, packed smoke, release, or publication is established.
 
-All following sections reproduce the prior source description. Statements extending beyond the supported baseline above remain unverified, including statements phrased as facts or instructions.
+## Retained descriptions — unverified
 
-This reference describes the supplied `.github/workflows/code-quality.yml` and `.github/workflows/commit-convention.yml`. Read with the [code convention](code-convention.md), [commit convention](commit-convention.md), and [CLI version and release management](../distribution/cli-version-management.md).
+The prior source describes `.github/workflows/code-quality.yml` and `.github/workflows/commit-convention.yml` as supplied, although their bytes were not available for this assessment. Its descriptions are retained in:
 
-## Shared workflow controls
+- [Workflow controls, quality, artifacts, and tests](code-quality-and-commit-ci/workflows.md)
+- [Node API baseline](code-quality-and-commit-ci/node-api-baseline.md)
+- [Commit ranges and fallback](code-quality-and-commit-ci/commit-ranges.md)
 
-Both workflows run on pull requests and pushes to `main`, grant `contents: read`, and run their quality and commit jobs on `ubuntu-latest` with a ten-minute timeout. Code quality also runs the release-artifact and test jobs described below. Concurrency groups include workflow and ref, prefixed by `code-quality-` and `commit-convention-`, respectively. A replacement run cancels an in-progress run in its group.
-
-Both check out full history (`fetch-depth: 0`) and disable persisted credentials. Shared action pins:
-
-- `actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd` (commented v6.0.2).
-- `actions/setup-node@820762786026740c76f36085b0efc47a31fe5020` (commented v7.0.0).
-- `pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9` (commented v6.0.8).
-
-Node is pinned to 22.13.0, package-manager caching is disabled, and dependencies install with `pnpm install --frozen-lockfile`. Neither YAML specifies a pnpm version; the setup action's version is not the package manager's version.
-
-## Quality and release completion
-
-The `quality` job (`ESLint and Prettier`) runs `pnpm quality:check`, then `pnpm typecheck`, then `pnpm architecture:check`. Typecheck resolves workspace packages from source through `tsconfig.json` path aliases and needs no prior build. Subsequent event-specific release completion steps run:
-
-- Pull requests: `pnpm release:completion:check --base "${{ github.event.pull_request.base.sha }}"`.
-- Pushes: `pnpm release:completion:check --base "${{ github.event.before }}"`.
-
-Bases are explicitly event-bound. The workflow declares neither a fallback base nor continue-on-error behavior. The YAML establishes invocation and sequence, not successful completion or the checker's internal handling of unavailable Git objects.
-
-## Release artifacts and tests
-
-Under [ADR-0470](../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md), the code-quality workflow runs two more jobs on every pull request and push to `main`. They use the same pins, Node 22.13.0, and frozen install:
-
-- `release-artifacts` (`Release manifest and SBOM`, 20 minutes): `pnpm build`, then `pnpm release:manifest:check` and `pnpm release:sbom:check`. A stale `apps/cli/release-artifact-manifest.json` or `apps/cli/release-sbom.cdx.json` fails the pull request, not only the release branch. The packed-CLI matrix still runs only for `lervo/release-cli`, tags, and manual dispatch.
-- `test` (`Tests (shard n/4)`, four shards, 45 minutes each, no fail-fast): a Git identity for repository fixtures, `pnpm build`, then `pnpm test --maxWorkers=2 --testTimeout=30000 --shard=<n>/4`. Two workers match the hosted runner's cores. As in [ADR-0356](../decisions/execution/verification/0356-bound-test-deadlines-for-busy-host-shards.md), the default deadline is wider than the 5-second Vitest default, because CPU-bound tests that take 4 seconds on a developer machine exceeded it on the two-core runners. Per-test deadlines still take precedence, and assertions are unchanged. Each shard took 15 to 22 minutes on the first run.
-
-The vitest setup file `scripts/quality/lib/test-user-state-isolation.mjs` points `LERVO_USER_STATE_DIRECTORY` at a per-process temporary directory. No test can then read or change a developer's host registry, continuity policy, host resident status, or user services.
-
-## Node API baseline
-
-Root `engines.node` declares the oldest supported Node release; every repository workflow runs that release. The `@types/node` development dependency uses a tilde range on the same major and minor version, allowing typecheck to reject APIs absent from the minimum's type definitions. Newer definitions can accept APIs that fail at runtime on the minimum: this mismatch once allowed code reading `DatabaseSync.isOpen`, absent in Node 22.13, to pass typecheck and fail release preparation.
-
-Code requiring a newer Node API must raise `engines.node`, workflow Node versions, and the `@types/node` range together. Raising the minimum drops support for existing installations and requires reviewed `minor` or `major` release intent under [CLI version and release management](../distribution/cli-version-management.md). `scripts/quality/test/code-quality-workflow.test.mjs` verifies alignment of all three values.
-
-## Commit ranges and fallback
-
-The `commitlint` job (`Conventional Commits`) validates pull requests using `github.event.pull_request.base.sha` and `github.event.pull_request.head.sha`, passed through `BASE_SHA` and `HEAD_SHA`. It runs `pnpm commit:lint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose`.
-
-For pushes, `BASE_SHA` is `github.event.before` and `HEAD_SHA` is `github.sha`. The workflow checks whether the base resolves as a commit with `git cat-file -e "${BASE_SHA}^{commit}"`. If it resolves, the same range command runs; otherwise, it runs `pnpm commit:lint --last --verbose`.
-
-This fallback qualifies the commit convention's claim that CI validates every commit pushed to `main`: an unresolvable base limits the check to the last commit. Full-history checkout does not remove the fallback. A successful fallback run must not be reported as proof that all commits in the push were validated.
+Read with the conventions above and [CLI version and release management](../distribution/cli-version-management.md).
 
 ## Evidence boundary
 
-These files establish configured checks, inputs, permissions, and cancellation behavior. They do not establish that a run occurred, every step executed, or quality, release completion, or commit validation passed. Historical lifecycle failure identifiers alone neither establish earlier workflow contents nor resolve missing execution evidence.
+The retained source attributes configured checks, inputs, permissions, and cancellation behavior to the workflow files. Without those files, these remain unverified. Configuration alone does not establish that a run occurred, every step executed, or quality, release completion, or commit validation passed. Historical lifecycle failure identifiers alone neither establish earlier workflow contents nor resolve missing execution evidence.
