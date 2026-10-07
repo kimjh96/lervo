@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_31a0298636dcc163dca8ee42
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5617ecfae9d26fe354b11a93
+outputLanguage: en
+outputs:
+  - byteCount: 466
+    contentHash: sha256:51b2a5f1e446176c4511f311ac8c7707b64a3faced5d9b84870723bb1a73684b
+    path: docs/foundation/event-writer-rollout/activation/node-absent.md
+    userRegionHash: sha256:51b2a5f1e446176c4511f311ac8c7707b64a3faced5d9b84870723bb1a73684b
+profile: repository_document
+recordId: knormdoc_c0391fbc48de802838342ab7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6c55bc4759a40a2891b02fd152fcf748519197c53a6173b69072a697324eba6a
+sourcePath: docs/foundation/event-writer-rollout/activation/node-absent.md
+sourceUnitVersionIds:
+  - uv_8f62142bb183cbc76b18d0d8
