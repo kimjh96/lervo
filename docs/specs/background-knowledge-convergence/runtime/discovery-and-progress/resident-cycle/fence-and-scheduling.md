@@ -55,3 +55,9 @@ A missing, oversized or invalid file forces the next full cycle. Write failures 
 The fence uses the existing `reason` column, bounded to 128 characters. An idle resident that skips reports state `idle` with reason `source_unchanged`. This proves skipped work, never document currency.
 
 A resident whose last full cycle was `waiting` or `attention` retains that state and its last reason while skipping. A skip cannot hide an operator-visible authority or recovery condition.
+
+## Evaluation contract invalidation
+
+[ADR-0485](../../../../../decisions/knowledge/semantics/0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md) adds the runtime evaluation contract to the fingerprint inputs above. Its identity is `adr-0485:<digest>`, where the digest covers the exact bytes of the module holding stage evaluation: the bundled runtime when installed, or the source file in development.
+
+A changed evaluation contract changes the resident fence, so the new runtime runs a full cycle at once instead of skipping unchanged repository inputs until the reconciliation ceiling. Settled dependencies record `evaluationContract`; a dependency with a different or absent contract is requeued and reevaluated once under the current contract. Uncertain-effect and recovery dependencies retain their own inspection, so contract invalidation never authorizes blindly repeating a write. These rules add no canonical event or success claim.

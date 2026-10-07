@@ -19,3 +19,14 @@ Each complete capture prunes absent paths. The table holds at most 50,000 rows a
 Source paths already appear in private baselines. The cache holds hashes but no bodies, uses mode `0600`, and is never tracked.
 
 An unreadable or corrupt database is deleted and rebuilt once, then bypassed for that capture. Cache failure never changes capture output: cached and uncached output is byte-identical.
+
+## Repository observation across event appends
+
+[ADR-0486](../../../../../decisions/knowledge/semantics/0486-regenerate-stale-semantic-candidates-and-reuse-repository-observation.md) refines the complete-baseline reuse rule above by splitting cycle-scoped discovery into two parts:
+
+- The repository observation contains the scan, source capture, normalization inspection, currency inspection and candidates. It is reused while the repository fence and the latest `knowledge.materialization.applied` event are unchanged.
+- The event-derived part contains historical obligations, settled dispositions and acceptance. It refreshes on every new event head.
+
+An ordinary stage or assignment event therefore requires fresh event-derived information without repeating the repository observation. The unchanged-event-head condition above governs reuse of the complete baseline, not reuse of its repository observation alone.
+
+A materialization always invalidates the repository observation because it can rewrite ignored generated state that the repository fence cannot see. Repository changes likewise require a fresh observation. This separation preserves source-capture fences, digest computations and cache guarantees; reuse establishes no new verification or currency claim.
