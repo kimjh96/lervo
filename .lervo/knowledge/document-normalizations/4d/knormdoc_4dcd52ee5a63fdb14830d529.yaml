@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e6812b379cbc7d98747c8739
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b7672cb6cedcb87b12b6fd0b
+outputLanguage: en
+outputs:
+  - byteCount: 5529
+    contentHash: sha256:0a04ccb595e08be87e69dad09677a619d574aff1df64324b1dd29db3983e980a
+    path: docs/decisions/coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md
+    userRegionHash: sha256:0a04ccb595e08be87e69dad09677a619d574aff1df64324b1dd29db3983e980a
+profile: decision_record
+recordId: knormdoc_4dcd52ee5a63fdb14830d529
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1f39771d76e34c2afb9fc16aef420201e29a6a94913474200be65d4e6671eca7
+sourcePath: docs/decisions/coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md
+sourceUnitVersionIds:
+  - uv_0d95c7f60bfb0dec3d0a79ee
+  - uv_380108a0dc32e5f3a8fa25a0
+  - uv_3bbbfa857d3c49a866382765
+  - uv_86c5c4d7848c616f6f8e81c8
+  - uv_875467359fab5fb62ed10339
+  - uv_b02267489ab8e09031d98d3e
+  - uv_b449e27d7eca9ff4ea382d9c
+  - uv_bf622a8744bfdf23b6beded0

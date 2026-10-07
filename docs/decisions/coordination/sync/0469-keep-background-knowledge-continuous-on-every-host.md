@@ -10,9 +10,9 @@ Amended by: [ADR-0478](0478-renew-each-delegation-with-one-writer.md) (one renew
 
 The installed fleet on 2026-10-06 exposed gaps requiring manual owner action:
 
-1. Every reviewed convergence delegation expires on a fixed date. Renewal required copying the grant, editing `expiresAt`, recomputing `planHash`, and running plan and apply on each host. Lapsed grants silently stopped all automatic knowledge work.
-2. Delegation coverage varied: lervo, plen, and digimon on both hosts; axli and shiflo only on WSL; flemo and argo only on Mac. Work stalled when the ADR-0466 lease landed on a host without a grant.
-3. Only lervo had a hand-written Hub-mode owner-host configuration. Other checkouts defaulted to `standalone`, allowing plen and digimon, delegated on both hosts, to double-own. Each project's Hub credential also required manual grants of `workspace.read` and `workspace.coordinate`.
+1. Every reviewed convergence delegation had a fixed expiry. Renewal required copying the grant, editing `expiresAt`, recomputing `planHash`, and running plan and apply on each host. Lapsed grants silently stopped all automatic knowledge work.
+2. Delegations covered lervo, plen, and digimon on both hosts; axli and shiflo only on WSL; flemo and argo only on Mac. Work stalled when the ADR-0466 lease landed on a host without a grant.
+3. Only lervo had hand-written Hub-mode owner-host configuration. Other checkouts defaulted to `standalone`, allowing plen and digimon to double-own. Each project's Hub credential also needed manual `workspace.read` and `workspace.coordinate` grants.
 4. `lervo upgrade` reported `pending_authority (provider_required)` for normalization debt already drained by the background resident, preventing upgrades from reaching `current`.
 
 The owner's 2026-10-06 instruction requires automatic handling of existing and future projects on whichever host they occupy, Mac or WSL, without owner action or developer-flow disruption. Resolve cross-host conflicts through coordination, never host restriction.
@@ -21,14 +21,14 @@ The owner's 2026-10-06 instruction requires automatic handling of existing and f
 
 ### Host continuity policy
 
-A **host continuity policy** is the owner's standing consent for background knowledge on one host. It applies to every repository on that host and lives beside the host repository registry as `knowledge-continuity-policy.json` in the user state directory, mode `0600`. Version 1 contains:
+A **host continuity policy** is the owner's standing consent for background knowledge across every repository on one host. It lives beside the host repository registry as `knowledge-continuity-policy.json` in the user state directory, mode `0600`. Version 1 contains:
 
-- `state` (`active | revoked`), `authority`, `issuedAt`, and `horizonAt`, at most 366 days after issue. No continued delegation may expire after the horizon.
+- `state` (`active | revoked`), `authority`, `issuedAt`, and `horizonAt`, at most 366 days after issue. No continued delegation may expire beyond the horizon.
 - `renewal`: `termDays` (1–90, default 30), `windowHours` (1–168, default 48), and `attentionLeadHours` (24–336, default 72).
 - `seeding`: whether a missing delegation may be seeded from a peer host or the template.
 - `limits`: allowed providers and maximum resource ceilings.
-- `template`: default scope for a repository no host has delegated yet. It names parent and worker role IDs, roots, providers, integration ref, and ceilings, and uses the repository's own default verification suite.
-- `policyHash` over the rest. The policy ID derives from its content.
+- `template`: default scope for a repository no host has delegated yet, naming parent and worker role IDs, roots, providers, integration ref, and ceilings, and using the repository's own default verification suite.
+- `policyHash` over the remaining content. The policy ID derives from its content.
 
 `lervo knowledge convergence delegation renewal-policy install|revoke` is a plan/apply owner command; `show` prints the policy. `install` derives limits and template from the current repository's reviewed delegation, never exceeding an owner-reviewed scope.
 
@@ -36,48 +36,48 @@ The owner's 2026-10-06 instruction is the standing policy for hosts where the ow
 
 ### Same-scope renewal
 
-The original rule let every resident renew using `min(now + term, horizon)` and change `review.reviewedAt`. [ADR-0478](0478-renew-each-delegation-with-one-writer.md) supersedes both requirements: one host writes renewals and rebinds, expiry follows the previous delegation's term lattice, and the last owner review time is retained.
+[ADR-0478](0478-renew-each-delegation-with-one-writer.md) supersedes the original rule allowing every resident to renew using `min(now + term, horizon)` and change `review.reviewedAt`: one host writes renewals and rebinds, expiry follows the previous delegation's term lattice, and the last owner review time is retained.
 
-The delegation writer is the host permitted to commit by the ADR-0466 ownership fence: the Hub lease holder, the standalone owner, or a host without owner-host configuration. Continuity reads that fence at the start of reconciliation. Only this writer renews a due delegation or rebinds drifted suite and role hashes.
+The delegation writer is the host permitted to commit by the ADR-0466 ownership fence: the Hub lease holder, standalone owner, or host without owner-host configuration. Continuity reads that fence at reconciliation start. Only this writer renews a due delegation or rebinds drifted suite and role hashes.
 
-For an owner renewal, scope, parent, and reviewer stay unchanged. Compute `expiresAt` as `previous + k × termDays`, choosing the smallest `k ≥ 1` for which `expiresAt − windowHours > now`, then cap the result at the policy horizon. A lapsed delegation resumes on the same lattice. `review.reviewedAt` retains the time of the last owner review for both renewal and rebind; the continuation event records when automation ran. Recompute `review.planHash` for the resulting plan. Renewal uses the ordinary plan/apply path, retaining role, suite, ancestry, and identity checks. Never renew when:
+For an owner renewal, scope, parent, and reviewer remain unchanged. Compute `expiresAt` as `previous + k × termDays`, choosing the smallest `k ≥ 1` for which `expiresAt − windowHours > now`, then cap it at the policy horizon. A lapsed delegation resumes on the same lattice. Renewal and rebind retain the last owner review time in `review.reviewedAt`; the continuation event records when automation ran. Recompute `review.planHash` for the resulting plan. Renewal uses ordinary plan/apply, retaining role, suite, ancestry, and identity checks. Never renew when:
 
-- the owner revoked the delegation;
-- the policy is absent, revoked, or invalid;
-- delegation providers or ceilings exceed policy limits; or
-- the horizon prevents extension.
+- The owner revoked the delegation.
+- The policy is absent, revoked, or invalid.
+- Delegation providers or ceilings exceed policy limits.
+- The horizon prevents extension.
 
 Any scope change still requires an owner-reviewed delegation.
 
 Every other host is a follower and never independently renews or rebinds:
 
 - If `HEAD` tracks `.lervo/knowledge/convergence-delegation.json`, the host is a `replica_follower`. It writes nothing; the replica carries the owner's exact worktree bytes.
-- If `HEAD` does not track the file, the host may adopt the owner's expiry from a Hub host record only when the record is at most two hours old, reports role `owner` and an active delegation, has the same scope hash, and supplies an expiry later than both the local expiry and now. The local policy must be active, permit that scope, and cover the expiry with its horizon. Adoption changes the local delegation's term, preserving its local accountable identities.
+- If `HEAD` does not track the file, the host may adopt the owner's expiry from a Hub host record only if that record is at most two hours old, reports role `owner` and an active delegation, has the same scope hash, and supplies an expiry later than both the local expiry and now. The local policy must be active, permit the scope, and cover the expiry with its horizon. Adoption changes the local delegation's term while preserving local accountable identities.
 
-A follower whose renewal is due records `awaitingOwner` and reconciles again after 15 minutes. Seeding a missing delegation remains available on any host. An active-in-state but expired delegation remains eligible to claim the Hub lease when the host policy would renew it, preventing a fleet of lapsed grants from deadlocking without an owner. Revoked or out-of-policy delegations and hosts without a policy remain ineligible.
+A follower whose renewal is due records `awaitingOwner` and reconciles again after 15 minutes. Seeding a missing delegation remains available on any host. An active-in-state but expired delegation remains eligible to claim the Hub lease when the host policy would renew it, preventing lapsed grants across the fleet from deadlocking without an owner. Revoked or out-of-policy delegations and hosts without a policy remain ineligible.
 
-Renewals are not committed or published. Tracked grants replicate as working-tree bytes; untracked grants remain host-local. Removing a tracked grant from the index requires ordinary review. The [continuity specification](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md) defines the owner and follower reconciliation paths.
+Renewals are not committed or published. Tracked grants replicate as working-tree bytes; untracked grants remain host-local. Removing a tracked grant from the index requires ordinary review. The [continuity specification](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md) defines owner and follower reconciliation paths.
 
 ### Seeding a missing host
 
-Each resident publishes a **host record** through the Hub holding its ADR-0466 lease at `/v1/sync/projects/{projectId}/knowledge-convergence-hosts`. It carries the exchangeable delegation scope—everything except parent agent, review, term, and state—plus policy state, owner role, publication state, resident state, and closed finding codes. Agent identities, Hub addresses, token paths, and hostnames never leave the host. The Hub keeps one record per host, at most eight per repository identity; an older observation never replaces a newer one.
+Each resident publishes a **host record** through the Hub holding its ADR-0466 lease at `/v1/sync/projects/{projectId}/knowledge-convergence-hosts`. The record carries exchangeable delegation scope—everything except parent agent, review, term, and state—plus policy state, owner role, publication state, resident state, and closed finding codes. Agent identities, Hub addresses, token paths, and hostnames never leave the host. The Hub keeps one record per host, at most eight per repository identity; older observations never replace newer ones.
 
 A host without a delegation may seed one under a policy allowing seeding:
 
-- **From a peer:** use the freshest active peer scope within policy limits. Repository identity must match. Local role contracts, profiles, and capability bindings must resolve to the peer's exact hashes; the plan revalidates suites. Only the accountable agent is local: an active agent with the parent role contract, or a newly hired `Knowledge Steward` with that role. [ADR-0477](0477-carry-delegation-bound-definitions-across-hosts.md) amends this: before seeding, the host installs bound suites, repository roles, and the asset manifest it lacks from the exact reviewed bytes another host shared through the Hub.
+- **From a peer:** use the freshest active peer scope within policy limits. Repository identity must match. Local role contracts, profiles, and capability bindings must resolve to the peer's exact hashes; the plan revalidates suites. Only the accountable agent is local: an active agent with the parent role contract, or a newly hired `Knowledge Steward` with that role. [ADR-0477](0477-carry-delegation-bound-definitions-across-hosts.md) amends this: before seeding, install missing bound suites, repository roles, and the asset manifest from the exact reviewed bytes another host shared through the Hub.
 - **From the template:** use roots present in this checkout, locally resolved role pins, and the repository's latest `repository.default.vN` suite (else `repository.default`, else its only non-pilot suite).
 
 `lervo knowledge convergence delegation seed` runs the same reconciliation immediately.
 
 ### Zero-touch owner-host configuration
 
-Each reconciliation derives `.lervo/state/knowledge/convergence-owner-host.json` when Lervo owns it. Ownership means the configuration is absent, is the legacy default (`standalone` with label `local` and no publication), or matches the hash in `.lervo/state/knowledge/convergence-owner-host-derivation.json`. Never rewrite operator-written configuration.
+Each reconciliation derives `.lervo/state/knowledge/convergence-owner-host.json` when Lervo owns it: the configuration is absent, is the legacy default (`standalone` with label `local` and no publication), or matches the hash in `.lervo/state/knowledge/convergence-owner-host-derivation.json`. Never rewrite operator-written configuration.
 
 - Hub coordinates come from the Node running this checkout's resident. For a CLI resident, try the Node registered for the checkout, then other Hub-mode repositories on the host.
-- Use a candidate only after a host-record read through it succeeds for this project. [ADR-0471](0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md) amends the failure case: a refused or unreachable Hub leaves the checkout in Hub mode with unproven coordinates, so it stays read-only, never a standalone owner, and records the cause. Standalone remains available only without any Hub coordinates (invariant 1).
-- Generate the host ID once and keep it. The label is `mac`, `wsl`, or the sanitized hostname.
-- In Hub mode, enable publication with ADR-0466 defaults when the checkout has an `origin` remote with a known default branch and the host's `gh` is authenticated. Repeat that check at most every six hours.
-- If coordinates disappear from every source, leave an existing Hub configuration unchanged.
+- Use a candidate only after a host-record read through it succeeds for this project. [ADR-0471](0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md) amends failure handling: a refused or unreachable Hub leaves the checkout in Hub mode with unproven coordinates, read-only and never a standalone owner, with the cause recorded. Standalone remains available only without any Hub coordinates (invariant 1).
+- Generate the host ID once and retain it. The label is `mac`, `wsl`, or the sanitized hostname.
+- In Hub mode, enable publication with ADR-0466 defaults when the checkout has an `origin` remote with a known default branch and the host's `gh` is authenticated. Repeat this check at most every six hours.
+- If coordinates disappear from every source, leave existing Hub configuration unchanged.
 
 ### Hub permission for knowledge coordination
 
@@ -106,9 +106,9 @@ On a host with an active policy:
 
 ### Rollout to existing repositories
 
-After deployment, each host's first resident cycle with a reviewed delegation adopts the policy. Each host runs its Nodes and one host resident in place of per-repository knowledge jobs. The owner renews due delegations; followers adopt an eligible owner term or receive tracked bytes through the replica. Residents migrate legacy standalone defaults to Hub mode where their Node's coordinates work, and seed missing delegations from peer host records. Hand-written configurations remain unchanged; the [continuity specification](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md) defines per-host migration.
+After deployment, each host's first resident cycle with a reviewed delegation adopts the policy. Each host runs its Nodes and one host resident instead of per-repository knowledge jobs. The owner renews due delegations; followers adopt an eligible owner term or receive tracked bytes through the replica. Residents migrate legacy standalone defaults to Hub mode where their Node's coordinates work and seed missing delegations from peer host records. Hand-written configurations remain unchanged; the [continuity specification](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md) defines per-host migration.
 
-For ADR-0478, deploy the CLI and Node bundles on every host and restart Nodes and host resident services on both hosts in the same maintenance window. No Hub change is required for that amendment. Mixed capture versions can disagree on a renewed tracked delegation's snapshot and report divergence or fail post-apply verification. Deploy event readers before writers that emit the added continuation values. Confirm one owner and follower parity after rollout; this document does not establish that deployment or installed verification occurred.
+For ADR-0478, deploy CLI and Node bundles on every host and restart Nodes and host resident services on both hosts in the same maintenance window. That amendment requires no Hub change. Mixed capture versions can disagree on a renewed tracked delegation's snapshot, report divergence, or fail post-apply verification. Deploy event readers before writers emitting added continuation values. Confirm one owner and follower parity after rollout; this document does not establish that deployment or installed verification occurred.
 
 ## Events, states, and failure meaning
 
@@ -118,7 +118,7 @@ For ADR-0478, deploy the CLI and Node bundles on every host and restart Nodes an
 - Privacy: hashes and the expiry only.
 - Event ID derives from `planHash`. The applied delegation grants authority; append failure loses only this audit line.
 
-ADR-0471 adds `rebound`/`binding_refresh` and ADR-0478 adds `adopted`/`owner`; the [canonical events](../../../specs/background-knowledge-convergence/runtime/events-and-status/canonical-events.md) specification holds the full contract.
+ADR-0471 adds `rebound`/`binding_refresh`; ADR-0478 adds `adopted`/`owner`. The [canonical events specification](../../../specs/background-knowledge-convergence/runtime/events-and-status/canonical-events.md) holds the full contract.
 
 Private state:
 
@@ -147,7 +147,7 @@ Plan and binding failures retain existing codes. Failed steps retry after 15 min
 - Every host converges the same repositories; the lease, not host restriction, selects the owner.
 - Node credentials coordinate knowledge for their projects without credential changes.
 - Upgrades and onboarding report background-owned debt truthfully.
-- Doctor and attention expose every remaining gap and its remedy.
+- Doctor and attention expose every remaining gap and remedy.
 
 ## Deferred
 

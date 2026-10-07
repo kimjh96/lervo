@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e6812b379cbc7d98747c8739
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9815c4375905d6cce6edf9b3
+outputLanguage: en
+outputs:
+  - byteCount: 11046
+    contentHash: sha256:71a49eb8a7a23d4157312f507f0c1c9912cec4cef924bc7910822fb4c96a80ad
+    path: docs/decisions/coordination/sync/0478-renew-each-delegation-with-one-writer.md
+    userRegionHash: sha256:71a49eb8a7a23d4157312f507f0c1c9912cec4cef924bc7910822fb4c96a80ad
+profile: decision_record
+recordId: knormdoc_fb9126d7ca21d615e6eb0ecb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:16dfac97c271e38a5dfbd0e09a6d5d99df2a24999ce3c3ed5c8d606ab5ebdee2
+sourcePath: docs/decisions/coordination/sync/0478-renew-each-delegation-with-one-writer.md
+sourceUnitVersionIds:
+  - uv_186f27417255b8d03673ae1b
+  - uv_1ab29f68c3291caa0a43257d
+  - uv_2c2c7309de4fbfd21fcc5db0
+  - uv_4fa7fc0380f7a1b2043535ec
+  - uv_5a8d1609fa1bb87fefb4d6ab
+  - uv_6bb600b8af2bad8eb6ead265
+  - uv_77d0fb845139040c830c38f4
+  - uv_79d9a0624c93dac0e35f4c77
+  - uv_80e3612a34c47cff4542d11b
+  - uv_ad8b551050b875328b2b2d08
+  - uv_c62da458c36820d05cc0d81b
+  - uv_d82f87158fac3853a97ec0ce
+  - uv_d9225d306a363854b73b3cde

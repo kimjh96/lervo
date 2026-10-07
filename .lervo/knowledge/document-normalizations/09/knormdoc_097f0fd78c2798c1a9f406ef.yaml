@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e6812b379cbc7d98747c8739
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_cfb2fbd31a34e74e1c26abda
+outputLanguage: en
+outputs:
+  - byteCount: 16181
+    contentHash: sha256:e424ec4f6e0bd7f9a6ed8fe8b8093a47dfde92bf372c3ca366d092c54db48920
+    path: docs/decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md
+    userRegionHash: sha256:e424ec4f6e0bd7f9a6ed8fe8b8093a47dfde92bf372c3ca366d092c54db48920
+profile: decision_record
+recordId: knormdoc_097f0fd78c2798c1a9f406ef
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5ac226b691a8da9f8af80c9a3ae09d601302d9d2c488c2636bf1dc6d139ddfbc
+sourcePath: docs/decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md
+sourceUnitVersionIds:
+  - uv_157898fe4c0e4a237aa423c0
+  - uv_1587381168d7ecc0a9cfdb2c
+  - uv_2142c9d6d5617fc7a9c96b3e
+  - uv_342701aef0f83935fbde8898
+  - uv_4ccbce48d376b46fc2d694de
+  - uv_5009df34c47d436ba11d21ae
+  - uv_5421cd99752224efa4d361bd
+  - uv_5792336beea5726d9d8156b4
+  - uv_825bdd49257c684fe8643f68
+  - uv_87e25de318f4d63f01981cab
+  - uv_a0b89ffe83fe9a8435b918c1
+  - uv_a9c4ddc7c7d125801eb063e2
+  - uv_d7092cb0c55f1b0b2d4f5c5b
+  - uv_d8b02a6e028f4e6e9fb5682e
+  - uv_e1a8f01bb312e58514cde465
