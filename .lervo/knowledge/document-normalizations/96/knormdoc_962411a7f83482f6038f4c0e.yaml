@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_54cc37591d1ed538f582ddab
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_68bdc069db0e4f0e22ec8e95
+outputLanguage: en
+outputs:
+  - byteCount: 350
+    contentHash: sha256:46a86440d9d4d23fcb03e662da74f8efeec497fd9d72855ba33f2ef2aa43a6c8
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/discovery-and-stages/rejection-and-integration.md
+    userRegionHash: sha256:46a86440d9d4d23fcb03e662da74f8efeec497fd9d72855ba33f2ef2aa43a6c8
+profile: specification_document
+recordId: knormdoc_962411a7f83482f6038f4c0e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:46a86440d9d4d23fcb03e662da74f8efeec497fd9d72855ba33f2ef2aa43a6c8
+sourcePath: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/discovery-and-stages/rejection-and-integration.md
+sourceUnitVersionIds:
+  - uv_1bfc2248a9d2fcdd51d7d8cc

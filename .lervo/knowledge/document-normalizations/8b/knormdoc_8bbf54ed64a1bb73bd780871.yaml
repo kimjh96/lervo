@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_54cc37591d1ed538f582ddab
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f1d1144e58ae3afcff20d7a7
+outputLanguage: en
+outputs:
+  - byteCount: 1375
+    contentHash: sha256:465f432b49063b82b4ffd18ae014c48f0b548bd7d9d8781b8ea24205b7873eee
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/discovery-and-stages/rejection-and-integration/canonical-rejection.md
+    userRegionHash: sha256:465f432b49063b82b4ffd18ae014c48f0b548bd7d9d8781b8ea24205b7873eee
+profile: specification_document
+recordId: knormdoc_8bbf54ed64a1bb73bd780871
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:72f2e108fe4dd9fa26e357e229880faf1ee842991bce36d17f5878ac814a5788
+sourcePath: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/discovery-and-stages/rejection-and-integration/canonical-rejection.md
+sourceUnitVersionIds:
+  - uv_c8103521ad6ce085f0264bbf

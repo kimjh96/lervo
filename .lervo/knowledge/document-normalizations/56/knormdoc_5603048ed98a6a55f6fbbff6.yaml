@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_54cc37591d1ed538f582ddab
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f0c67bcd3622a1ecc3739d70
+outputLanguage: en
+outputs:
+  - byteCount: 2042
+    contentHash: sha256:11c6e60c6edaf1ca3cf7f971e96cc8ff186d70c13a61d90b56cbc2bf37c9d045
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/discovery-and-stages/rejection-and-integration/integration-preconditions.md
+    userRegionHash: sha256:11c6e60c6edaf1ca3cf7f971e96cc8ff186d70c13a61d90b56cbc2bf37c9d045
+profile: specification_document
+recordId: knormdoc_5603048ed98a6a55f6fbbff6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d55350f4c59606e2978db64a9a9ae8505721c8c67f8ae4bef1a5daa75835ee80
+sourcePath: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/discovery-and-stages/rejection-and-integration/integration-preconditions.md
+sourceUnitVersionIds:
+  - uv_245266aaf2fd402acca75d80
