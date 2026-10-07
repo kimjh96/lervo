@@ -116,9 +116,9 @@ For ADR-0478, deploy the CLI and Node bundles on every host and restart Nodes an
 
 - Required fields: `repositoryIdentityHash`, `action` (`renewed | seeded`), `source` (`renewal | peer | policy_template`), `policyHash`, `previousPlanHash` or null, `planHash`, `scopeHash`, `expiresAt`, `observerHostHash` or null, `sourceHostHash` or null, `occurredAt`.
 - Privacy: hashes and the expiry only.
-- Event ID derives from `planHash`, deduplicating retried appends. The applied delegation and its materialization receipt grant authority; append failure loses only this audit line.
+- Event ID derives from `planHash`. The applied delegation grants authority; append failure loses only this audit line.
 
-These original event values are extended by ADR-0471 with `action: rebound`, `source: binding_refresh`, and by ADR-0478 with `action: adopted`, `source: owner`. For adoption, `sourceHostHash` identifies the owner host. Required fields, privacy, and event-ID derivation remain unchanged. Renewal and rebind retain the owner review timestamp; `occurredAt` records the continuation time.
+ADR-0471 adds `rebound`/`binding_refresh` and ADR-0478 adds `adopted`/`owner`; the [canonical events](../../../specs/background-knowledge-convergence/runtime/events-and-status/canonical-events.md) specification holds the full contract.
 
 Private state:
 
@@ -127,7 +127,7 @@ Private state:
 
 Both files use `0600`, contain no addresses, token paths, or messages, and never replicate.
 
-ADR-0478 permits `lastContinuation.action: adopted` with `source: owner`. Its `awaitingOwner` result is in memory only and selects the 15-minute retry interval. Waiting adds no failure code. Expiring and expired findings stay below `owner_decision` while the policy can renew the delegation.
+Expiring and expired findings stay below `owner_decision` while the policy can renew the delegation.
 
 Failure codes:
 
@@ -139,7 +139,7 @@ Failure codes:
 - `convergence_seed_identity_mismatch`
 - `convergence_continuity_horizon_exhausted`
 
-Plan and binding failures retain existing codes. Failed steps retry after 15 minutes; healthy hosts reconcile hourly and at renewal time. Failure never blocks the resident cycle, hook path, or developer's branch: continuity writes only host-local state and the delegation through its journal.
+Plan and binding failures retain existing codes. Failed steps retry after 15 minutes; healthy hosts reconcile hourly and at renewal time. Failure never blocks the resident cycle, hook path, or developer's branch.
 
 ## Consequences
 

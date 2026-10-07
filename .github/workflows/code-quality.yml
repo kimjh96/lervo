@@ -38,6 +38,8 @@ jobs:
         run: pnpm typecheck
       - name: Check architecture boundaries
         run: pnpm architecture:check
+      - name: Check documentation lifecycle
+        run: pnpm docs:check
       - name: Check pull-request release completion
         if: github.event_name == 'pull_request'
         run: pnpm release:completion:check --base "${{ github.event.pull_request.base.sha }}"

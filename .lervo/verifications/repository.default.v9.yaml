@@ -18,6 +18,15 @@ commands:
     timeoutMs: 300000
     maxOutputBytes: 1048576
     environmentVariableNames: []
+  - commandId: repository-docs
+    executable: node
+    arguments:
+      - --run
+      - docs:check
+    cwd: .
+    timeoutMs: 300000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []
   - commandId: repository-typecheck
     executable: node
     arguments:
