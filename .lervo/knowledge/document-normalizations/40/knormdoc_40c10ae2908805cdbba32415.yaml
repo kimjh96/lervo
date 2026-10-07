@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f6da93f45bd584c536b1336e
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4572f59642fa05b220025782
+outputLanguage: en
+outputs:
+  - byteCount: 4810
+    contentHash: sha256:3916905b0882dd3721f09c460ed6b452979df723188b1c51eb5636998eb95cb6
+    path: docs/decisions/knowledge/documents/0472-start-absent-integration-refs-and-bound-untyped-stage-failures.md
+    userRegionHash: sha256:3916905b0882dd3721f09c460ed6b452979df723188b1c51eb5636998eb95cb6
+profile: decision_record
+recordId: knormdoc_40c10ae2908805cdbba32415
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ba107c2b11d0947be7542a8fee32c60f184ff7a533e277f20b15ad4113fbccdb
+sourcePath: docs/decisions/knowledge/documents/0472-start-absent-integration-refs-and-bound-untyped-stage-failures.md
+sourceUnitVersionIds:
+  - uv_20f4c56dbe3f1e87c7fc0af1
+  - uv_2dd2203759670d7511795257
+  - uv_5c3419f40a7799d80f20af4e
+  - uv_5e4bba9942cf7f286c71c4e9
+  - uv_873ed56721ec4296e72d4834
+  - uv_8c472cc6f4917fee572a764b
+  - uv_c944c9dcc9b2dda4b1c84bc7
+  - uv_e725f7ef29c37cc8a79ccbae

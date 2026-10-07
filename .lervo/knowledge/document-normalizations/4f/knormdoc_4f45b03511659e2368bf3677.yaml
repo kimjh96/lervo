@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f6da93f45bd584c536b1336e
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c6e6bb79639dee567a1c0e22
+outputLanguage: en
+outputs:
+  - byteCount: 9785
+    contentHash: sha256:0d0738994748dba87bdc76c1c850fd9aab80e87b39a04dda0fd8c0b11e90b85b
+    path: docs/decisions/knowledge/documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md
+    userRegionHash: sha256:0d0738994748dba87bdc76c1c850fd9aab80e87b39a04dda0fd8c0b11e90b85b
+profile: decision_record
+recordId: knormdoc_4f45b03511659e2368bf3677
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e062390eeb47c4f2e944cbd031fac82014a4f1c3ce46cf9a0b047dbec7aa3caf
+sourcePath: docs/decisions/knowledge/documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md
+sourceUnitVersionIds:
+  - uv_0e7d62db41832e00d7b5f5d0
+  - uv_25a0953b5b9c683b5421ab81
+  - uv_2ff297ac382b640c85439f9f
+  - uv_48067241181f3bbfe29524d1
+  - uv_6763f67a2eaad541582163ca
+  - uv_8fdf72d5e9419cd7ea33f72f
+  - uv_9065f577f4d430ad5b92f72d
+  - uv_93d2f3bf41e8e482bf58b506
+  - uv_ce156c2727c42771bd5a3199
+  - uv_d4a9f47f1c5dc8e3ed262afa

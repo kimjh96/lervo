@@ -10,7 +10,7 @@ An installed background normalization apply changed repository bytes while a man
 
 ## Decision
 
-`@lervo/project-storage` owns a private, per-repository SQLite source gate in `.lervo/data/repository-source-gate.sqlite`. Managed provider runs acquire a shared read transaction before their first repository snapshot and release it after the run settles. Concurrent managed readers remain possible. Durable knowledge apply and recovery acquire an exclusive transaction around the complete journal and event effect. Rollback journaling prevents an exclusive writer from overlapping an active reader. Process exit releases its SQLite transaction.
+`@lervo/project-storage` owns a private, per-repository SQLite source gate at `.lervo/data/repository-source-gate.sqlite`. Managed provider runs acquire a shared read transaction before their first repository snapshot and release it after the run settles. Concurrent managed readers remain possible. Durable knowledge apply and recovery acquire an exclusive transaction around the complete journal and event effect. Rollback journaling prevents an exclusive writer from overlapping an active reader. Process exit releases its SQLite transaction.
 
 Admission is bounded and fails closed:
 

@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f6da93f45bd584c536b1336e
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a8bf57b08a27654d4213f8b9
+outputLanguage: en
+outputs:
+  - byteCount: 12426
+    contentHash: sha256:5b8d22fe46a6571571d54d26e52709a3d2d6eb35ea1a2a37c44238973f56ad1f
+    path: docs/decisions/coordination/sync/0483-run-replica-commands-through-one-current-runtime.md
+    userRegionHash: sha256:5b8d22fe46a6571571d54d26e52709a3d2d6eb35ea1a2a37c44238973f56ad1f
+profile: decision_record
+recordId: knormdoc_32c59d43151fec9dc1d9ac1f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6bcd0fe9e510032a62af63ae0a9e8c83fee8fd2568296a13c324c7dc909bc2f0
+sourcePath: docs/decisions/coordination/sync/0483-run-replica-commands-through-one-current-runtime.md
+sourceUnitVersionIds:
+  - uv_03a1ac0eb394a08047886cbe
+  - uv_604110c39fa16e79def0fa2d
+  - uv_6d61918b6651b1b5fda13913
+  - uv_6ea595867e2058cc4861920f
+  - uv_74c6d4c328f42c8c71f52dca
+  - uv_83b60f2bc1efabd926af2e5d
+  - uv_954511461c3d756bd1deb8ff
+  - uv_a1cb7afcab5c9e1c072758a9
+  - uv_a985bcd3886d8056bd2f29b0
+  - uv_b7d651cf0994c6be685953b2
+  - uv_c391b5f0d14f7107c1fc2858
+  - uv_ec4761bd671e9deb43619410

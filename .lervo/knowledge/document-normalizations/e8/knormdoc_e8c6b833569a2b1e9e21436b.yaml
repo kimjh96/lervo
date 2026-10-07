@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f6da93f45bd584c536b1336e
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a6074ed2fa429f832cfb2056
+outputLanguage: en
+outputs:
+  - byteCount: 3042
+    contentHash: sha256:3d0f4f55c6e957b761a3d0d856f6cb99400e301095e5cca473bf0f12095f8f79
+    path: docs/decisions/knowledge/repository/canonicalization/0435-continue-normalization-after-canonical-rejection.md
+    userRegionHash: sha256:3d0f4f55c6e957b761a3d0d856f6cb99400e301095e5cca473bf0f12095f8f79
+profile: decision_record
+recordId: knormdoc_e8c6b833569a2b1e9e21436b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:dea09be56b74dadfc402b954d77c06abc8fd9aab1da1c47dfc3f1a5daf10ae63
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0435-continue-normalization-after-canonical-rejection.md
+sourceUnitVersionIds:
+  - uv_5e1dc7c10f34c73038431dc9
+  - uv_8cf11665a70f6de753e38afd
+  - uv_c7c4bd7d8a9de5d1fc30ffeb
+  - uv_cc23b3136b95ea1d66285b30
+  - uv_cc62e220d2868e42d984bb28

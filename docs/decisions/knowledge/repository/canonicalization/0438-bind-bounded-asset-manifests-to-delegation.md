@@ -6,13 +6,13 @@ Amended by: [ADR-0479](../../semantics/0479-park-rejected-semantic-candidates-an
 
 ## Context
 
-Digimon's complete source inventory has 277 opaque assets, exceeding the existing 256-item inline disposition limit and 64 KiB reviewed delegation bound. Omitting captured assets or treating integrity checks as visual approval would falsely establish baseline currency.
+Digimon's complete source inventory contains 277 opaque assets, exceeding the 256-item inline disposition limit and 64 KiB reviewed delegation bound. Omitting captured assets or treating integrity checks as visual approval would falsely establish baseline currency.
 
 ## Decision
 
-An exact reviewed version-one delegation may include `assetDispositionManifestHash`: the SHA-256 digest of the complete raw UTF-8 bytes at `.lervo/knowledge/convergence-asset-dispositions.json`. This fixed, owner-controlled sidecar contains exactly `schemaVersion: 1` and `dispositions`. Each disposition retains the required `path`, `contentHash`, `kind`, `verificationSuiteId`, and `rationale` contract. Paths must be unique, safe repository coordinates outside Git and private Lervo metadata. Kinds remain `opaque_verified` or `sensitive_local`; suite IDs must belong to the delegation's exact pinned meaningful verification suites.
+An exact reviewed version-one delegation may include `assetDispositionManifestHash`, the SHA-256 digest of the complete raw UTF-8 bytes at `.lervo/knowledge/convergence-asset-dispositions.json`. This fixed, owner-controlled sidecar contains exactly `schemaVersion: 1` and `dispositions`. Each disposition requires `path`, `contentHash`, `kind`, `verificationSuiteId`, and `rationale`. Paths must be unique, safe repository coordinates outside Git and private Lervo metadata. Kinds remain `opaque_verified` or `sensitive_local`; suite IDs must belong to the delegation's exact pinned meaningful verification suites.
 
-The sidecar is limited to 1 MiB; inline and sidecar declarations together are limited to 1,024 unique items. The 256-item inline and 64 KiB delegation bounds remain unchanged. Growth replaces this one current file; canonical Git and materialization events retain historical coordinates. This introduces no per-asset authority file, event, or writer version.
+The sidecar is limited to 1 MiB; inline and sidecar declarations together are limited to 1,024 unique items. The 256-item inline and 64 KiB delegation bounds remain unchanged. Growth replaces this one current file; canonical Git and materialization events retain historical coordinates. No per-asset authority file, event, or writer version is introduced.
 
 The optional CLI argument `--asset-manifest-from <reviewed-assets.json>` supplies exact already-reviewed candidate bytes. Preview validates without writing either file. The existing delegation plan binds the desired sidecar bytes and both files' exact preimages. Apply rechecks the entire plan, ancestry, roles, capabilities, suites, and project, then writes both files through one existing durable journal. A stale plan changes neither file. Failure before the canonical materialization event rolls both files back or retains explicit recovery uncertainty. A matching existing sidecar may be bound without replacement.
 

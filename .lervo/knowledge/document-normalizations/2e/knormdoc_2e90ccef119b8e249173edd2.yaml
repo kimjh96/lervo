@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f6da93f45bd584c536b1336e
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3cb32cdf8f8b4bf5e4045a22
+outputLanguage: en
+outputs:
+  - byteCount: 9033
+    contentHash: sha256:ef5490aa2466c7fd134f6a0c46aa17a597458dc2b040d95376c0512f6e8f31c7
+    path: docs/decisions/knowledge/documents/0476-route-legacy-documents-semantically-and-never-migrate-application-content.md
+    userRegionHash: sha256:ef5490aa2466c7fd134f6a0c46aa17a597458dc2b040d95376c0512f6e8f31c7
+profile: decision_record
+recordId: knormdoc_2e90ccef119b8e249173edd2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0ce00408e99a5b11613672af7817e3287ba1fa05d04591f304a244c766039135
+sourcePath: docs/decisions/knowledge/documents/0476-route-legacy-documents-semantically-and-never-migrate-application-content.md
+sourceUnitVersionIds:
+  - uv_0000764147b9888d649d0ab4
+  - uv_3fa35d0badd52b865d299ab1
+  - uv_6d4cbd20ca8e732224ce7307
+  - uv_a570d565ba25e96a461e6261
+  - uv_d984965672650c155232ba57
+  - uv_dfdc783c5724eb6a1e6966fe

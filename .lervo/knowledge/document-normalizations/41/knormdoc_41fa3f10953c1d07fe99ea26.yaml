@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f6da93f45bd584c536b1336e
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5d9584353bd3b9c0ca15dcec
+outputLanguage: en
+outputs:
+  - byteCount: 5166
+    contentHash: sha256:c8662ada6b831ad327f9f9f32601c06062a9d25578acd5b042d500e6fffb5a81
+    path: docs/decisions/knowledge/repository/canonicalization/0438-bind-bounded-asset-manifests-to-delegation.md
+    userRegionHash: sha256:c8662ada6b831ad327f9f9f32601c06062a9d25578acd5b042d500e6fffb5a81
+profile: decision_record
+recordId: knormdoc_41fa3f10953c1d07fe99ea26
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:aa290f0d73f7a746dd2b92905c1e5cb68d613a47ad9a45a7e0146320bfdc4dfd
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0438-bind-bounded-asset-manifests-to-delegation.md
+sourceUnitVersionIds:
+  - uv_0d537e2dd5aa2bb184546c5a
+  - uv_5d7bbaee6e15618a9496f6d8
+  - uv_7f0eaabe526aa059a3493440
+  - uv_8661f95676016233740cfe06
+  - uv_db26a38648d1296346a44ca7
+  - uv_eb21178d82a4870aab5909a0

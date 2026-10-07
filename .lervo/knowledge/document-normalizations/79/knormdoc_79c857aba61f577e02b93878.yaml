@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f6da93f45bd584c536b1336e
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2f175679ba797ec4be0af331
+outputLanguage: en
+outputs:
+  - byteCount: 3209
+    contentHash: sha256:8104b917bc3ed802075870ce1e6ac1c0b19a1ba61a6791468c85d2f65bd38b28
+    path: docs/decisions/knowledge/documents/0474-name-normalization-documents-outside-the-delegation.md
+    userRegionHash: sha256:8104b917bc3ed802075870ce1e6ac1c0b19a1ba61a6791468c85d2f65bd38b28
+profile: decision_record
+recordId: knormdoc_79c857aba61f577e02b93878
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0acc128a5e337b337a8f4ff329b4a9ef7bdaecf286348cf5edb63706a0c48f25
+sourcePath: docs/decisions/knowledge/documents/0474-name-normalization-documents-outside-the-delegation.md
+sourceUnitVersionIds:
+  - uv_3a1f7ef1fd1464a1346c37d4
+  - uv_4f399a5745f7f0d2b9ed5f26
+  - uv_531088d0c32b09d8a14ce115
+  - uv_93e2113b16f4767ce23ff634
+  - uv_ed6106ef37f8dbf12da5bece
