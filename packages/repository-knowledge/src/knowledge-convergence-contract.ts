@@ -82,6 +82,15 @@ export interface KnowledgeConvergenceHost {
   /** A stopped dependency resumes only after its coordinate changes. */
   dependencyCurrent(hash: string): Promise<boolean>;
   /**
+   * ADR-0490: asked before the pre-stage currency check. A result settles the stage without running
+   * it, for example a review regenerated because its bound context changed. Absent or `null` runs
+   * the stage normally.
+   */
+  prepareStage?(
+    stage: KnowledgeConvergenceStage,
+    input: KnowledgeConvergenceInput,
+  ): Promise<KnowledgeConvergenceStageResult | null>;
+  /**
    * ADR-0485: the identity of the evaluation logic that settles stages. Settled dependencies record
    * it, so new logic reevaluates each earlier stall once. Absent means the reviewed constant.
    */

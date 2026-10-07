@@ -9,11 +9,46 @@ import type { RepositoryDocumentRole } from "@lervo/project";
 export type DocumentToolOwnershipEvidence =
   | { kind: "layout_role"; roleId: string }
   | { kind: "generator_configuration"; generator: "release_please"; configurationPath: string }
+  | {
+      kind: "generator_configuration";
+      generator: "package_manager";
+      packageManager: PackageManagerName;
+      configurationPath: string;
+    }
   | { kind: "repository_attribute"; attribute: "linguist-generated" }
   | { kind: "generated_marker" }
   | { kind: "tool_commit_history"; commitCount: number };
 
 export const RELEASE_PLEASE_CONFIGURATION_PATH = "release-please-config.json";
+
+/**
+ * ADR-0491: the lockfiles each package manager writes beside the `package.json` it resolves. A
+ * repository declares its manager in the `packageManager` field; the declared tool, not a name
+ * pattern, is the evidence, and only the files that tool documents as its own output qualify.
+ */
+const PACKAGE_MANAGER_LOCKFILES = {
+  npm: ["package-lock.json", "npm-shrinkwrap.json"],
+  pnpm: ["pnpm-lock.yaml"],
+  yarn: ["yarn.lock"],
+  bun: ["bun.lock", "bun.lockb"],
+} as const;
+
+export type PackageManagerName = keyof typeof PACKAGE_MANAGER_LOCKFILES;
+
+/** The manager a `package.json` declares in `packageManager`, such as `bun@1.3.3`. */
+export function declaredPackageManager(manifest: unknown): PackageManagerName | null {
+  const field = record(manifest)?.packageManager;
+  if (typeof field !== "string") return null;
+  const name = /^([a-z]+)@/u.exec(field)?.[1];
+  return name !== undefined && Object.hasOwn(PACKAGE_MANAGER_LOCKFILES, name)
+    ? (name as PackageManagerName)
+    : null;
+}
+
+/** Whether the declared manager writes this file name as its lockfile. */
+export function packageManagerWritesLockfile(manager: PackageManagerName, name: string): boolean {
+  return (PACKAGE_MANAGER_LOCKFILES[manager] as readonly string[]).includes(name);
+}
 export const RELEASE_PLEASE_MANIFEST_PATH = ".release-please-manifest.json";
 const RELEASE_PLEASE_DEFAULT_CHANGELOG = "CHANGELOG.md";
 const MARKER_LINES = 5;

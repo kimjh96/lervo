@@ -402,3 +402,43 @@ it("discovers again for the closing status after a stage settles", async () => {
     f.events.close();
   }
 });
+
+it("lets the host settle a stage before the pre-stage currency check rejects it", async () => {
+  // digimon after ADR-0486: the owner's pre-stage check threw review_context_stale before the
+  // host's stage could regenerate the review, so the review stalled at attention every cycle.
+  const f = await fixture();
+  const assertCurrent = f.host.assertCurrent;
+  // Discovery checks the new obligation once; the waiting stage's bound context is stale after.
+  let checks = 0;
+  let staleContext = true;
+  f.host.assertCurrent = async (input) => {
+    checks += 1;
+    if (checks > 1 && staleContext)
+      throw Object.assign(new Error("stale"), { code: "review_context_stale" });
+    return assertCurrent(input);
+  };
+  f.host.prepareStage = async (stage, input) => {
+    staleContext = false;
+    f.calls.push(`prepared:${stage}`);
+    return {
+      state: "current",
+      input,
+      assignmentId: null,
+      leaseGeneration: null,
+      failureCode: null,
+      dependencyHash: null,
+      nextStage: stage,
+    };
+  };
+  try {
+    await f.cycle(1);
+    expect(f.calls).toEqual(["prepared:assessment"]);
+    const recorded = f.events
+      .list({ limit: 100, types: ["repository.knowledge.stage.recorded"] })
+      .map((event) => event.payload as { state: string; failureCode: string | null });
+    expect(recorded.some((payload) => payload.failureCode === "review_context_stale")).toBe(false);
+    expect(recorded.some((payload) => payload.state === "current")).toBe(true);
+  } finally {
+    f.events.close();
+  }
+});

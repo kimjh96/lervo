@@ -4,6 +4,7 @@ import { convergenceOperationEffects } from "./effect-source-fence.js";
 import {
   classifyConvergenceAssets,
   recordConvergenceAssetSettlement,
+  toolGeneratedOpaqueSources,
 } from "./asset-verification.js";
 import {
   carriedParkedSources,
@@ -268,7 +269,12 @@ export async function verifyConvergenceLifecycle(
     paths: [...new Set(state.baseline.sources.map((source) => source.path.split("/")[0]!))],
     assertLease,
     run: async (authority) => {
-      const assets = classifyConvergenceAssets(root, state, authority.delegation);
+      const assets = classifyConvergenceAssets(
+        root,
+        state,
+        authority.delegation,
+        await toolGeneratedOpaqueSources(root, state),
+      );
       const verification = await verifyConvergenceEffect(
         context,
         authority,

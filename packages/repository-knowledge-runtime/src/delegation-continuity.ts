@@ -114,12 +114,20 @@ async function applyContinuation(
     policyHash: string;
     sourceHostHash: string | null;
     renewal: DelegationRenewalDecision | null;
+    /** ADR-0491: the asset manifest bytes a rebind binds with the delegation. */
+    reviewedManifestBytes?: Uint8Array;
   },
 ): Promise<DelegationContinuityResult> {
   const { storage, now } = context;
   await applyConvergenceDelegationPlan(
     storage,
-    await createConvergenceDelegationPlan(storage, input.next),
+    await createConvergenceDelegationPlan(
+      storage,
+      input.next,
+      input.reviewedManifestBytes === undefined
+        ? {}
+        : { reviewedManifestBytes: input.reviewedManifestBytes },
+    ),
   );
   const scopeHash = convergenceDelegationScopeHash(input.next);
   recordDelegationContinuation(storage, {
@@ -179,10 +187,13 @@ async function continueAsOwner(
       action: "rebound",
       source: "binding_refresh",
       previous: loaded,
-      next: rebound,
+      next: rebound.delegation,
       policyHash,
       sourceHostHash: null,
       renewal,
+      ...(rebound.reviewedManifestBytes === undefined
+        ? {}
+        : { reviewedManifestBytes: rebound.reviewedManifestBytes }),
     });
   if (renewal.kind !== "renew" || policyHash === null) return null;
   return applyContinuation(context, {

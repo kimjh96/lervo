@@ -198,6 +198,46 @@ describe("tool-generated document evidence", () => {
     });
   });
 
+  it("attributes a lockfile to the package manager its package.json declares", async () => {
+    // shiflo: `bun.lock` was pinned as an opaque canonical asset, so every dependency update broke
+    // the delegation's own verification. The declared manager, not the file name, is the evidence.
+    const root = await repository();
+    await commit(
+      root,
+      "package.json",
+      JSON.stringify({ name: "shiflo", packageManager: "bun@1.3.3", workspaces: ["apps/*"] }),
+    );
+    await commit(root, "bun.lock", "{}\n");
+    await commit(root, "apps/app/package.json", JSON.stringify({ name: "app" }));
+    await commit(root, "apps/app/bun.lock", "{}\n");
+    // Another manager's lockfile, and a lockfile without a package.json beside it, prove nothing.
+    await commit(root, "pnpm-lock.yaml", "lockfileVersion: 9\n");
+    await commit(root, "vendor/bun.lock", "{}\n");
+    const owned = await observeToolGeneratedDocuments({
+      repositoryRoot: root,
+      paths: ["bun.lock", "apps/app/bun.lock", "pnpm-lock.yaml", "vendor/bun.lock"],
+      roles: [],
+    });
+    expect(Object.fromEntries(owned)).toEqual({
+      "bun.lock": [
+        {
+          kind: "generator_configuration",
+          generator: "package_manager",
+          packageManager: "bun",
+          configurationPath: "package.json",
+        },
+      ],
+      "apps/app/bun.lock": [
+        {
+          kind: "generator_configuration",
+          generator: "package_manager",
+          packageManager: "bun",
+          configurationPath: "package.json",
+        },
+      ],
+    });
+  });
+
   it("treats a directory outside Git as evidence-free, even when Git closes its input early", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-tool-ownership-outside-git-"));
     roots.push(root);

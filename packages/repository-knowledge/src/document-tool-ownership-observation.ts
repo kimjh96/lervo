@@ -1,12 +1,14 @@
 import { execFile } from "node:child_process";
 import { open, readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { posix, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { loadDecisionTaxonomy, type RepositoryDocumentRole } from "@lervo/project";
 
 import {
+  declaredPackageManager,
   documentToolOwnership,
+  packageManagerWritesLockfile,
   RELEASE_PLEASE_CONFIGURATION_PATH,
   RELEASE_PLEASE_MANIFEST_PATH,
   releasePleaseChangelogPaths,
@@ -65,8 +67,47 @@ async function leadingContent(root: string, path: string): Promise<string | null
   }
 }
 
-async function generatorOutputs(root: string): Promise<Map<string, DocumentToolOwnershipEvidence>> {
+/**
+ * ADR-0491: lockfiles among `paths` that the package manager declared by their own `package.json`,
+ * or by the nearest ancestor `package.json` that declares one (a workspace root), writes.
+ */
+async function packageManagerOutputs(
+  root: string,
+  paths: readonly string[],
+): Promise<Map<string, DocumentToolOwnershipEvidence>> {
   const outputs = new Map<string, DocumentToolOwnershipEvidence>();
+  const manifests = new Map<string, unknown>();
+  const manifest = async (directory: string) => {
+    if (!manifests.has(directory))
+      manifests.set(directory, await json(root, posix.join(directory, "package.json")));
+    return manifests.get(directory);
+  };
+  for (const path of paths) {
+    const directory = posix.dirname(path);
+    if ((await manifest(directory)) === null) continue;
+    for (let current = directory; ; current = posix.dirname(current)) {
+      const manager = declaredPackageManager(await manifest(current));
+      if (manager !== null) {
+        if (packageManagerWritesLockfile(manager, posix.basename(path)))
+          outputs.set(path, {
+            kind: "generator_configuration",
+            generator: "package_manager",
+            packageManager: manager,
+            configurationPath: posix.join(current, "package.json"),
+          });
+        break;
+      }
+      if (current === ".") break;
+    }
+  }
+  return outputs;
+}
+
+async function generatorOutputs(
+  root: string,
+  paths: readonly string[],
+): Promise<Map<string, DocumentToolOwnershipEvidence>> {
+  const outputs = await packageManagerOutputs(root, paths);
   const configuration = await json(root, RELEASE_PLEASE_CONFIGURATION_PATH);
   if (configuration === null) return outputs;
   const manifest = await json(root, RELEASE_PLEASE_MANIFEST_PATH);
@@ -149,7 +190,7 @@ export async function observeToolGeneratedDocuments(input: {
       () => [] as RepositoryDocumentRole[],
     ));
   const [outputs, attributes, history] = await Promise.all([
-    generatorOutputs(root),
+    generatorOutputs(root, paths),
     generatedAttributes(root, paths),
     authorHistory(root, paths),
   ]);

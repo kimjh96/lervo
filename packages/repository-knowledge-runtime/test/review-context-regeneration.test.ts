@@ -65,6 +65,17 @@ it("regenerates a canonical batch whose bound context changed, instead of settli
   });
 });
 
+it("regenerates through prepareStage before the owner's currency check runs", async () => {
+  // ADR-0490: the deployed owner checked currency before runStage, so only this path reaches it.
+  const { f, state, host } = await waitingReview("docs/knowledge/context.md");
+  expect(await host.prepareStage!("canonical_review", state)).toBeNull();
+  await writeFile(resolve(f.root, "docs/knowledge/context.md"), "# Context\n\nRewritten.\n");
+  await expect(host.assertCurrent(state)).rejects.toMatchObject({ code: "review_context_stale" });
+  const result = await host.prepareStage!("canonical_review", state);
+  expect(result).toMatchObject({ state: "current", nextStage: "assessment" });
+  await expect(host.assertCurrent(result!.input)).resolves.toBeUndefined();
+});
+
 it("stops regenerating after the bounded number of stale contexts", async () => {
   const { f, state, host } = await waitingReview("docs/knowledge/context.md");
   await writeFile(resolve(f.root, "docs/knowledge/context.md"), "# Context\n\nRewritten.\n");

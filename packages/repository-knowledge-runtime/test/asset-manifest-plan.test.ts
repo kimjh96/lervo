@@ -78,6 +78,7 @@ it("atomically applies all 277 asset declarations without expanding the grant, a
   expect(classifyConvergenceAssets(f.root, state, delegation)).toEqual({
     declared: 277,
     suiteBound: [],
+    toolGenerated: 0,
   });
   // ADR-0479: a declaration for earlier bytes no longer declares the asset; the suite binds it.
   state.baseline.sources.find((source) => source.path === "assets/model-276.bin")!.contentHash =
@@ -85,6 +86,7 @@ it("atomically applies all 277 asset declarations without expanding the grant, a
   expect(classifyConvergenceAssets(f.root, state, delegation)).toEqual({
     declared: 276,
     suiteBound: [{ path: "assets/model-276.bin", contentHash: `sha256:${"0".repeat(64)}` }],
+    toolGenerated: 0,
   });
   state.receipts = [
     {
@@ -178,6 +180,7 @@ it("settles unread sensitive sources by their baseline disposition and binds und
   expect(classifyConvergenceAssets(f.root, state, delegation)).toEqual({
     declared: 0,
     suiteBound: [],
+    toolGenerated: 0,
   });
 
   await writeFile(resolve(f.root, "src/model.bin"), Buffer.from([0, 1, 2]));
@@ -191,5 +194,6 @@ it("settles unread sensitive sources by their baseline disposition and binds und
           .contentHash,
       },
     ],
+    toolGenerated: 0,
   });
 });
