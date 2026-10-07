@@ -41,7 +41,7 @@ it(
     cleanups.push(async () => {
       await mac.storage.close();
       await wsl.storage.close();
-      await rm(mac.directory, { recursive: true, force: true });
+      await rm(mac.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     });
     await rm(resolve(wsl.root, CONVERGENCE_DELEGATION_PATH));
     await cp(resolve(mac.root, ".lervo/verifications"), resolve(wsl.root, ".lervo/verifications"), {

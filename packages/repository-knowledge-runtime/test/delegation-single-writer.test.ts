@@ -96,7 +96,7 @@ async function twoHosts(trackDelegation: boolean): Promise<{
   const f: Fixture = await fixture(true);
   cleanups.push(async () => {
     await f.storage.close();
-    await rm(f.directory, { recursive: true, force: true });
+    await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
   if (trackDelegation) {
     await execute("git", ["-C", f.root, "add", "-f", CONVERGENCE_DELEGATION_PATH]);

@@ -147,7 +147,7 @@ async function twoHosts() {
   const mac = await fixture(true);
   cleanups.push(async () => {
     await mac.storage.close();
-    await rm(mac.directory, { recursive: true, force: true });
+    await rm(mac.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
   const policyPath = resolve(mac.directory, "user-state", "knowledge-continuity-policy.json");
   await mkdir(resolve(mac.directory, "user-state"), { recursive: true });

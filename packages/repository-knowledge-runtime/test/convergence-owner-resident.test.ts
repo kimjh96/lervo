@@ -31,7 +31,7 @@ it(
     cleanups.push(async () => {
       await f.storage.close();
       await peer.storage.close();
-      await rm(f.directory, { recursive: true, force: true });
+      await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     });
     // The fully provisioned fixture is the resident host; the clone holds the lease first.
     await writeHostConfig(peer.root, {

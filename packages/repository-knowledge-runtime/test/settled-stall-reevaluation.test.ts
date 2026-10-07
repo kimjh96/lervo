@@ -26,7 +26,9 @@ afterEach(async () => {
 
 it("lets the oldest waiter take the next turn and tells the holder others are waiting", async () => {
   const directory = await mkdtemp(resolve(tmpdir(), "lervo-fair-admission-"));
-  cleanups.push(() => rm(directory, { recursive: true, force: true }));
+  cleanups.push(() =>
+    rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }),
+  );
   const signal = new AbortController().signal;
   const holder = await acquireFullCycleAdmission({ repositoryRoot: "/repo/a", signal, directory });
   expect(await holder.contended()).toBe(false);
@@ -57,7 +59,7 @@ it(
     const f = await fixture(true);
     cleanups.push(async () => {
       await f.storage.close();
-      await rm(f.directory, { recursive: true, force: true });
+      await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     });
     const stages = () =>
       f.events
@@ -79,7 +81,7 @@ it("reevaluates a dependency settled by earlier logic once, then keeps the new s
   const f = await fixture(true);
   cleanups.push(async () => {
     await f.storage.close();
-    await rm(f.directory, { recursive: true, force: true });
+    await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
   const host = createConvergenceRuntimeHost({
     storage: f.storage,

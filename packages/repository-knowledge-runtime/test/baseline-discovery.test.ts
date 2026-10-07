@@ -34,7 +34,7 @@ afterEach(async () => {
   scan.calls = 0;
   for (const f of fixtures.splice(0)) {
     await f.storage.close();
-    await rm(f.directory, { recursive: true, force: true });
+    await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   }
 });
 

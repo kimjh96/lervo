@@ -32,6 +32,6 @@ it("distinguishes an absent, active, failed and stopped resident without inferri
     await recordKnowledgeResidentHealth({ ...input, state: "stopped" });
     expect(await inspectKnowledgeResidentHealth(root)).toMatchObject({ status: "not_running" });
   } finally {
-    await rm(root, { recursive: true, force: true });
+    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   }
 });
