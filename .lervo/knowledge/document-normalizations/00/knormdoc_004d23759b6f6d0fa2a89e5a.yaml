@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5cf75f81a08e4eb700bb3c19
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d0e577a064c5f2fedf128016
+outputLanguage: en
+outputs:
+  - byteCount: 5601
+    contentHash: sha256:1cdb29150ab71d05a88b6b9e9a03a678a12ee56dc4945c0e7877e8a17b42c266
+    path: docs/decisions/knowledge/semantics/0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md
+    userRegionHash: sha256:1cdb29150ab71d05a88b6b9e9a03a678a12ee56dc4945c0e7877e8a17b42c266
+profile: decision_record
+recordId: knormdoc_004d23759b6f6d0fa2a89e5a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c78437f445b67e40eaf7f285930089925d4aed6f9d4998cd658d6f2b12f8c3ed
+sourcePath: docs/decisions/knowledge/semantics/0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md
+sourceUnitVersionIds:
+  - uv_45edabb44225921074df715a
+  - uv_622770a3ff6faa3131e25d12
+  - uv_738915385ce77b89292f65b2
+  - uv_86bb21ccd8a5eca0ce628ccf
+  - uv_e7d6f177431e1ae4ee19cbdd

@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5cf75f81a08e4eb700bb3c19
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9f4da64cb67093cf0a1b3667
+outputLanguage: en
+outputs:
+  - byteCount: 6325
+    contentHash: sha256:369fbb667537094a02d4cf52eb6af36ed7cc63cdd2b6384d2897305ded291e3f
+    path: docs/decisions/knowledge/semantics/0486-regenerate-stale-semantic-candidates-and-reuse-repository-observation.md
+    userRegionHash: sha256:369fbb667537094a02d4cf52eb6af36ed7cc63cdd2b6384d2897305ded291e3f
+profile: decision_record
+recordId: knormdoc_43ecc5ec4e17370308049e58
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0e608fb9f4abec52ee1e1472b33b1b96e98d5b60750d436de0f3d8b088bb8c6e
+sourcePath: docs/decisions/knowledge/semantics/0486-regenerate-stale-semantic-candidates-and-reuse-repository-observation.md
+sourceUnitVersionIds:
+  - uv_0d084e614331184882fc271d
+  - uv_107405ae9dd047531db9d82c
+  - uv_2b4bf73a51097cdf61aaaedb
+  - uv_3bdccf37718a8013be6e3042
+  - uv_66c3f6ec88152020afa1b8e3
+  - uv_b8678a7b544c0c2970d3d17e
+  - uv_c95892c9868c916da66be196

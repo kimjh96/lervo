@@ -27,13 +27,13 @@ Rendered service definitions required manual installation. Activation can start 
 
 ### Runtime and provider commands
 
-Standalone JavaScript runtimes may bind `--node-executable <absolute-path>`. The canonical command then consists of that exact Node executable, runtime entry point, and configuration argument. Node must be a real executable regular file; the JavaScript entry point must be a real regular file but need not be executable. Without this option, the direct-executable contract remains.
+Standalone JavaScript runtimes may bind `--node-executable <absolute-path>`. The canonical command then contains that exact Node executable, runtime entry point, and configuration argument. Node must be a real executable regular file; the JavaScript entry point must be a real regular file but need not be executable. Without this option, the direct-executable contract remains.
 
 Repository Node service inspection reads direct-execution and explicit Node-plus-entry-point definitions for systemd and launchd. It retains separate interpreter and runtime coordinates, binds the complete definition hash, and rejects relative paths, additional arguments, duplicate invocation declarations, unsafe permissions, and changed source bytes. Reading coordinates grants no execution or writer authority.
 
 The renderer avoids ambient `PATH` and shebang resolution without embedding Node in the standalone distribution or adding a runtime-specific wrapper lifecycle. It composes the command and deterministic service `PATH`: bound Node executable directory, runtime directory, then only standard system executable directories. The manager validates and applies only exact rendered bytes. Explicitly configured JavaScript provider launchers can resolve the same bound Node runtime without an interactive-shell path.
 
-Provider adapters preserve the host environment and prepend the running Node executable's directory to each child process path. Independently of service rendering, a configured Codex or Claude entrypoint using `#!/usr/bin/env node` must start identically from an interactive shell, systemd, or launchd. The adapter does not guess another runtime, rewrite the configured provider executable, or publish environment values.
+Provider adapters preserve the host environment and prepend the running Node executable's directory to each child process path. Independently of service rendering, a configured Codex or Claude entrypoint using `#!/usr/bin/env node` must start identically from an interactive shell, systemd, or launchd. The adapter neither guesses another runtime, rewrites the configured provider executable, nor publishes environment values.
 
 ### Targets and conflicts
 

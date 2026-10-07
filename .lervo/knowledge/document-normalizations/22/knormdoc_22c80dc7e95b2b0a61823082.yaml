@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5cf75f81a08e4eb700bb3c19
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8457ba5cd52f66236e0d325c
+outputLanguage: en
+outputs:
+  - byteCount: 4730
+    contentHash: sha256:0dd799695ef49253a46ea9fc8b4ca7a726fe9a31059dbe58bc53de0a41a9b994
+    path: docs/decisions/knowledge/semantics/0491-never-pin-tool-generated-files-as-assets-and-memoize-the-role-registry.md
+    userRegionHash: sha256:0dd799695ef49253a46ea9fc8b4ca7a726fe9a31059dbe58bc53de0a41a9b994
+profile: decision_record
+recordId: knormdoc_22c80dc7e95b2b0a61823082
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1c739871929157e0f1d5161ae96f6c3c3fa36df6929cd8487c5ed19f9a9b98a0
+sourcePath: docs/decisions/knowledge/semantics/0491-never-pin-tool-generated-files-as-assets-and-memoize-the-role-registry.md
+sourceUnitVersionIds:
+  - uv_02d175cf2ce24866ecda17f9
+  - uv_185f758505a0ae1e0b4b9b0e
+  - uv_2e5c19cc6b76e4cb6a42e483
+  - uv_33460d58ef9bfb387e862b3a
+  - uv_5431377bcb82fe1f32921b3d
+  - uv_746c0fbd065dd4094958357d
+  - uv_885501368c8feefccf036663

@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5cf75f81a08e4eb700bb3c19
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_53dd8133a27c960b4b683ca0
+outputLanguage: en
+outputs:
+  - byteCount: 2325
+    contentHash: sha256:567f6029c0811208227cc205d2031784cca521c5b4f58be482a4b640955880d0
+    path: docs/decisions/knowledge/semantics/0490-regenerate-stale-semantic-candidates-before-the-pre-stage-check.md
+    userRegionHash: sha256:567f6029c0811208227cc205d2031784cca521c5b4f58be482a4b640955880d0
+profile: decision_record
+recordId: knormdoc_e33fda50c3214cba0539027a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ad3b6361a6a9cbf3e9577c67e16a786a0a613e3f9630e7ddd4258beda5e37f53
+sourcePath: docs/decisions/knowledge/semantics/0490-regenerate-stale-semantic-candidates-before-the-pre-stage-check.md
+sourceUnitVersionIds:
+  - uv_0758d7304f9e4df0bb77bb3c
+  - uv_24c9ac8a4b847cabca03e84c
+  - uv_2daa20931b303235ecb9df1e
+  - uv_72744a656df323882b57766c
+  - uv_ff6bc1a1e871133ec6fcc572
