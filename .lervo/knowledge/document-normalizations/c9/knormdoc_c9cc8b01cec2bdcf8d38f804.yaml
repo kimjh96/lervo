@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_830d2ce32e50ed7a39e52b81
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6cec40f8283fa2684b080bc7
+outputLanguage: en
+outputs:
+  - byteCount: 2154
+    contentHash: sha256:38aeb454c4838c79149f34007c6690bfa9bcfd416c26caef1d2c418d96285c7e
+    path: docs/foundation/event-writer-rollout/activation/hub-enabled.md
+    userRegionHash: sha256:38aeb454c4838c79149f34007c6690bfa9bcfd416c26caef1d2c418d96285c7e
+profile: repository_document
+recordId: knormdoc_c9cc8b01cec2bdcf8d38f804
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ffda37f6ea6860faa39e408edd34c4304c61bf43f143b8a9335d2d18edcf6df6
+sourcePath: docs/foundation/event-writer-rollout/activation/hub-enabled.md
+sourceUnitVersionIds:
+  - uv_b0037464e37cf73257edfb34
+  - uv_c7d3a9ab2b001a6e06f6e827
