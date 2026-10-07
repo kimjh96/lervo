@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_bd68171876245c4986b64e03
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ab0861091d5b08faa06a8d4f
+outputLanguage: en
+outputs:
+  - byteCount: 2313
+    contentHash: sha256:53d43ab32a138ad75431b506023c0bb73d93bcb402b795994ca3c12dc09981ae
+    path: docs/specs/background-knowledge-convergence/scheduling-and-events/discovery-and-scheduling/discovery-and-continuation.md
+    userRegionHash: sha256:53d43ab32a138ad75431b506023c0bb73d93bcb402b795994ca3c12dc09981ae
+profile: specification_document
+recordId: knormdoc_ba9d2180cc52690326830bca
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c90d406105d990a21facd8ff823d52e5653e1d5b7a7102520d69a8a2943a7d5e
+sourcePath: docs/specs/background-knowledge-convergence/scheduling-and-events/discovery-and-scheduling/discovery-and-continuation.md
+sourceUnitVersionIds:
+  - uv_97179a84da61cae5e4b7b81c

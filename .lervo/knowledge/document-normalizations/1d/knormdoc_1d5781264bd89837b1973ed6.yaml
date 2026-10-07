@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_bd68171876245c4986b64e03
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5635b85b08f49e03f44d68cb
+outputLanguage: en
+outputs:
+  - byteCount: 2621
+    contentHash: sha256:ad8737a48e3b0a7f6a7597828197ae8b2e2470b89249424f64ab94cb2fa15db6
+    path: docs/specs/background-knowledge-convergence/scheduling-and-events/discovery-and-scheduling/resource-and-fairness-bounds.md
+    userRegionHash: sha256:ad8737a48e3b0a7f6a7597828197ae8b2e2470b89249424f64ab94cb2fa15db6
+profile: specification_document
+recordId: knormdoc_1d5781264bd89837b1973ed6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:31faca7e8da340b321049ad4a83fbafbd4376659f73cc89685004c2fb9bce307
+sourcePath: docs/specs/background-knowledge-convergence/scheduling-and-events/discovery-and-scheduling/resource-and-fairness-bounds.md
+sourceUnitVersionIds:
+  - uv_da9f3f55309cfd8c0c75099e

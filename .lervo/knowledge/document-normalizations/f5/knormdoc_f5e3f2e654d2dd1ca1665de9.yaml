@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_bd68171876245c4986b64e03
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_87f5eabdfe40fadbcfcddb72
+outputLanguage: en
+outputs:
+  - byteCount: 1603
+    contentHash: sha256:cca0c4b173968c4238f0901387db74f99e4bef67785aeb7cd65973d3222dda57
+    path: docs/specs/background-knowledge-convergence/scheduling-and-events/discovery-and-scheduling/state-contract.md
+    userRegionHash: sha256:cca0c4b173968c4238f0901387db74f99e4bef67785aeb7cd65973d3222dda57
+profile: specification_document
+recordId: knormdoc_f5e3f2e654d2dd1ca1665de9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4b33cf1f595d664fb1b787cfa3cb710810eaa3fa132cf0daad8fcde5d1788925
+sourcePath: docs/specs/background-knowledge-convergence/scheduling-and-events/discovery-and-scheduling/state-contract.md
+sourceUnitVersionIds:
+  - uv_d474beba3b6b0ba7cce4188d

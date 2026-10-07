@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_bd68171876245c4986b64e03
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_01da50bc1328df6a2f0ccd7d
+outputLanguage: en
+outputs:
+  - byteCount: 1490
+    contentHash: sha256:6f34c75a8c27aff4bc9953dd039e04629474662a57df85ead57f7c5e4a3cd9ce
+    path: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/runtime-ownership.md
+    userRegionHash: sha256:6f34c75a8c27aff4bc9953dd039e04629474662a57df85ead57f7c5e4a3cd9ce
+  - byteCount: 1161
+    contentHash: sha256:da018b9efbfedd19254be13076548a6ae719313be6eef5d711e9bb78122295a9
+    path: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/runtime-ownership/managed-runs-and-materialization.md
+    userRegionHash: sha256:da018b9efbfedd19254be13076548a6ae719313be6eef5d711e9bb78122295a9
+  - byteCount: 1260
+    contentHash: sha256:006c0deaa231505ec13b196bc3f877143ed571ca2854246a2d922d38c231d397
+    path: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/runtime-ownership/upgrade-and-foreground-waits.md
+    userRegionHash: sha256:006c0deaa231505ec13b196bc3f877143ed571ca2854246a2d922d38c231d397
+profile: specification_document
+recordId: knormdoc_c1d3ef6721993b74271ecf95
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2924f26be77ba20b4df2ba0c1477e55b4c281673fe76742c1d0698615110c72c
+sourcePath: docs/specs/background-knowledge-convergence/runtime/ownership-and-activation/runtime-ownership.md
+sourceUnitVersionIds:
+  - uv_05c60bee5cb7b58951e5a6a7

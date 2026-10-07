@@ -1,6 +1,6 @@
 # State contract
 
-Every local state binds obligation ID, source event/hash or baseline event/hash, source snapshot and debt digest, current stage, exact predecessor receipt, lease generation, agent assignment, delegation hash, attempt count, and next wakeup or dependency. Private candidate paths are resolved through hashes, not durable event bodies.
+Every local state binds obligation ID, source event/hash or baseline event/hash, source snapshot and debt digest, current stage, exact predecessor receipt, lease generation, agent assignment, delegation hash, attempt count, and next wakeup or dependency. Resolve private candidate paths through hashes, not durable event bodies.
 
 | State | Required additional proof | Meaning and recovery |
 | --- | --- | --- |
