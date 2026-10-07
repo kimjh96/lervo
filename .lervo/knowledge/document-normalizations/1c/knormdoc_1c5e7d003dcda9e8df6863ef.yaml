@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_33e63de8d9791d11cc25f577
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8b0bfba6949da2499907062d
+outputLanguage: en
+outputs:
+  - byteCount: 8215
+    contentHash: sha256:081ace417c1a1a1996018b45eb7e3beae4ad486fa2bcba2f85862ae79f5eb91e
+    path: docs/specifications/knowledge/document-freshness/pipeline.md
+    userRegionHash: sha256:081ace417c1a1a1996018b45eb7e3beae4ad486fa2bcba2f85862ae79f5eb91e
+profile: specification_document
+recordId: knormdoc_1c5e7d003dcda9e8df6863ef
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bfd815e43f39be27855a2c2bd14be7b65a5af5e48d4ccba05722226d63ddf9f9
+sourcePath: docs/specifications/knowledge/document-freshness/pipeline.md
+sourceUnitVersionIds:
+  - uv_3be622c28835ee739924db80
+  - uv_4ffbeb4ed0106f8bf8ddf50c
+  - uv_a3a3a4e9046554daf71dd9e5
+  - uv_f3198ee9dc86d135c52b3f23
+  - uv_fa5a0d90adb2ca7f27762344

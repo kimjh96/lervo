@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_33e63de8d9791d11cc25f577
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bced6fcdcb58185881701cf4
+outputLanguage: en
+outputs:
+  - byteCount: 2721
+    contentHash: sha256:a4b19ac795d91e1d832b2da671fcf9cbaf62643c1cd243c18970124a0e4d445c
+    path: docs/specs/background-knowledge-convergence/authority-and-completion/lifecycle-and-completion.md
+    userRegionHash: sha256:a4b19ac795d91e1d832b2da671fcf9cbaf62643c1cd243c18970124a0e4d445c
+profile: specification_document
+recordId: knormdoc_986e9544f68b350132388e8f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a269b2b272ebd7333b261f5667398a841cbfe82686b81146e34a94ce39959a05
+sourcePath: docs/specs/background-knowledge-convergence/authority-and-completion/lifecycle-and-completion.md
+sourceUnitVersionIds:
+  - uv_f770696b4c9f44358f8ad312
