@@ -2,6 +2,8 @@
 
 - [ ] Settled knowledge reaches the shared remote from whichever host owns convergence under ADR-0466 publication.
 
+## Implemented validation
+
 Implemented and source-tested against a bare Git remote and a fake pull request host. Tests cover:
 
 - Direct and replayed tips.
@@ -9,15 +11,21 @@ Implemented and source-tested against a bare Git remote and a fake pull request 
 - Supersession of stale commits conflicting with the current base.
 - Recreation of an externally closed pull request.
 - Merge after passing checks.
-- Local fast-forward and the equivalent reset.
+- Local fast-forward and equivalent reset.
 - Scope refusal, failed checks, disabled merging, non-owner refusal, and fetch failure.
-- One push across cycles with unchanged input, through date-preserving replay or an equivalent remote head.
+- One push across cycles with unchanged input, using date-preserving replay or an equivalent remote head.
 - A success-only merge gate: neutral or cancelled checks block; a merge refused for pending checks keeps waiting.
 - `gh <step> exit <code> <class>` failure details.
 - Formatting changed and released paths before the owner commits and on the publication tip.
 - [ADR-0468](../../../../../decisions/coordination/sync/0468-propagate-knowledge-supersession-across-replicated-checkouts.md) supersession across a simulated two-host replica: both checkouts converge to the remote base without resurrecting superseded commits; a developer commit above them holds replication with one attention item; repeated cycles change nothing.
 
-- [ADR-0473](../../../../../decisions/knowledge/documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md) scope and repair. Delegated normalization roots outside `docs/` publish. An out-of-scope knowledge commit is restored in one corrective commit with one `knowledge.publication.repaired` event. A published release-please changelog rewrite is restored and its normalization record retired. A path a developer also changed is refused with `developer_change`. Derived settings take the base from `ls-remote --symref`, are revalidated, and migrate from fixed roots.
+[ADR-0473](../../../../../decisions/knowledge/documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md) scope and repair tests cover:
+
+- Publication of delegated normalization roots outside `docs/`.
+- Restoration of an out-of-scope knowledge commit in one corrective commit with one `knowledge.publication.repaired` event.
+- Restoration of a published release-please changelog rewrite and retirement of its normalization record.
+- Refusal of a path a developer also changed, with `developer_change`.
+- Derived settings that take the base from `ls-remote --symref`, are revalidated, and migrate from fixed roots.
 
 ## Open installed acceptance
 

@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_829f5d09d2867acb2746a274
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4c52fc84aea907a95894dce1
+outputLanguage: en
+outputs:
+  - byteCount: 6323
+    contentHash: sha256:aad4c997b07dc91861f145493c3c540e1f298db68aa169fc15a800ed5518e285
+    path: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/integration/fleet-continuity.md
+    userRegionHash: sha256:aad4c997b07dc91861f145493c3c540e1f298db68aa169fc15a800ed5518e285
+profile: roadmap_document
+recordId: knormdoc_6b708e552068f2fbf9b84fad
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:189659899ba86c0fb1bedadb6c22f064fe65b81e279ec21f9debd34eea136665
+sourcePath: docs/roadmap/knowledge/autonomous-background-convergence/acceptance/integration/fleet-continuity.md
+sourceUnitVersionIds:
+  - uv_3497914744dbd8d734540a22
+  - uv_b8352959b68f4b5c2ff29943
