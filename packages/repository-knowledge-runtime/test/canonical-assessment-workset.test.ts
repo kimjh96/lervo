@@ -8,7 +8,7 @@ import { prepareCanonicalAssessmentSources } from "../src/canonical-assessment-w
 const directories: string[] = [];
 afterEach(async () => {
   for (const directory of directories.splice(0))
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
 });
 
 async function sourceFixture() {

@@ -114,7 +114,7 @@ it(
       ).toBe(true);
     } finally {
       await f.storage.close();
-      await rm(f.directory, { recursive: true, force: true });
+      await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     }
   },
 );

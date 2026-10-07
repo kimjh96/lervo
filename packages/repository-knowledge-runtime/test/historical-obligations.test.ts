@@ -122,5 +122,5 @@ it("fails closed for a malformed or foreign owner acceptance", async () => {
   expect(() => loadHistoricalAcceptance(root, "prj_test")).toThrow(
     expect.objectContaining({ code: "knowledge_job_source_invalid" }),
   );
-  await rm(root, { recursive: true, force: true });
+  await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
 });

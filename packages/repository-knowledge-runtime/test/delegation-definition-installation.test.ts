@@ -30,7 +30,7 @@ async function hosts() {
   const owner = await fixture(true);
   cleanups.push(async () => {
     await owner.storage.close();
-    await rm(owner.directory, { recursive: true, force: true });
+    await rm(owner.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
   const peer = await peerHost({ sourceRoot: owner.root, directory: owner.directory });
   cleanups.push(() => peer.storage.close());

@@ -34,7 +34,9 @@ const execute = promisify(execFile);
 const directories: string[] = [];
 afterEach(async () => {
   await Promise.all(
-    directories.splice(0).map((path) => rm(path, { recursive: true, force: true })),
+    directories
+      .splice(0)
+      .map((path) => rm(path, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 })),
   );
 });
 
@@ -753,7 +755,7 @@ describe("knowledge output publication", () => {
     await owner("waiting_owner");
     expect(await publish()).toEqual({ status: "not_owner" });
     await owner("owner");
-    await rm(remote, { recursive: true, force: true });
+    await rm(remote, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     expect(await publish()).toMatchObject({
       state: { status: "failed", failure: { code: "knowledge_publication_fetch_failed" } },
     });

@@ -32,7 +32,7 @@ it("clears an unknown reset only after one native no-capability probe with obser
     expect((await readFile(f.log, "utf8")).trim().split("\n")).toHaveLength(1);
   } finally {
     await f.storage.close();
-    await rm(f.directory, { recursive: true, force: true });
+    await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   }
 });
 
@@ -69,6 +69,6 @@ it("preserves a newer native pause when an older probe finishes", async () => {
     });
   } finally {
     await f.storage.close();
-    await rm(f.directory, { recursive: true, force: true });
+    await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   }
 });

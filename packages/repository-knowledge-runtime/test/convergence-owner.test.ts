@@ -39,7 +39,7 @@ async function twoHosts(options: { peerMode?: "hub" | "standalone" } = {}) {
   cleanups.push(async () => {
     await f.storage.close();
     await peer.storage.close();
-    await rm(f.directory, { recursive: true, force: true });
+    await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
   await writeHostConfig(f.root, { hostId: `hst_${"1".repeat(32)}`, label: "mac", mode: "hub" });
   await writeHostConfig(peer.root, {

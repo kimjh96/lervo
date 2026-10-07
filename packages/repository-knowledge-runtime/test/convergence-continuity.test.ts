@@ -50,7 +50,7 @@ async function tracked(authorized: boolean): Promise<Fixture> {
   const f = await fixture(authorized);
   cleanups.push(async () => {
     await f.storage.close();
-    await rm(f.directory, { recursive: true, force: true });
+    await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
   return f;
 }

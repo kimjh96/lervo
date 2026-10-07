@@ -39,6 +39,6 @@ it("retains spent reservations across reopen and never prunes an unresolved batc
       code: "normalization_budget_exceeded",
     });
   } finally {
-    await rm(root, { recursive: true, force: true });
+    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   }
 });
