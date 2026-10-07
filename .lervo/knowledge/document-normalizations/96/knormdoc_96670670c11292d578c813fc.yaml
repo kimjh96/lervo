@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5caf0b76d5f56dfb8c9a41c6
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_cad16c2ab6a351da40d5de6d
+outputLanguage: en
+outputs:
+  - byteCount: 728
+    contentHash: sha256:60705dd223873c6d53152526b9285227e6a74a7e09767b01cec4d98edc2a2869
+    path: docs/specifications/coordination/hub-and-node/fleet-rollout/rollback-receiver.md
+    userRegionHash: sha256:60705dd223873c6d53152526b9285227e6a74a7e09767b01cec4d98edc2a2869
+profile: specification_document
+recordId: knormdoc_96670670c11292d578c813fc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5e98ede9da4fe80bf1b2d3bb6d3653b4d73c4538b59b7d49d63498d640a6d36d
+sourcePath: docs/specifications/coordination/hub-and-node/fleet-rollout/rollback-receiver.md
+sourceUnitVersionIds:
+  - uv_0c78d185cbbe9471e991cc75

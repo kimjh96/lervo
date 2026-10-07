@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5caf0b76d5f56dfb8c9a41c6
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_07e12de53290cba35dc4dec4
+outputLanguage: en
+outputs:
+  - byteCount: 755
+    contentHash: sha256:90fdfff56a0ea42a12d7e634eaaa4d9bf37f563e39620259277a59fd9e316f11
+    path: docs/specifications/coordination/hub-and-node/fleet-rollout/predecessor-rollback.md
+    userRegionHash: sha256:90fdfff56a0ea42a12d7e634eaaa4d9bf37f563e39620259277a59fd9e316f11
+profile: specification_document
+recordId: knormdoc_b882c3bb3aee7cbae36d279b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c6888463f1753fc1683fa30dd60ea73b7e32878b70a2f61c8a5d3f57c70de936
+sourcePath: docs/specifications/coordination/hub-and-node/fleet-rollout/predecessor-rollback.md
+sourceUnitVersionIds:
+  - uv_fcd30d96af6fb976d58ef5cb

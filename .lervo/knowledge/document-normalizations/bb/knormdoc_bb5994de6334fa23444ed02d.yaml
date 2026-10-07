@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5caf0b76d5f56dfb8c9a41c6
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_90e51e24bfd96b35ada49bed
+outputLanguage: en
+outputs:
+  - byteCount: 1319
+    contentHash: sha256:fd6e4db6cee8cb78d44c883d5208d3a16342a3710443d50df48395cd24facfcf
+    path: docs/specifications/coordination/hub-and-node/runtime-lifecycle/health-and-stabilization.md
+    userRegionHash: sha256:fd6e4db6cee8cb78d44c883d5208d3a16342a3710443d50df48395cd24facfcf
+profile: specification_document
+recordId: knormdoc_bb5994de6334fa23444ed02d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e368d84bdef9d12606d24282e28a7c277dba209d7f1205034c1671cf63301730
+sourcePath: docs/specifications/coordination/hub-and-node/runtime-lifecycle/health-and-stabilization.md
+sourceUnitVersionIds:
+  - uv_221d78fd8cc0d67ae403c78b

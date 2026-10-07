@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5caf0b76d5f56dfb8c9a41c6
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_080263cde2bf50959387ac1c
+outputLanguage: en
+outputs:
+  - byteCount: 1665
+    contentHash: sha256:c5a4b50a7774315caf017a1a715aaa23ecfdb9432552e926d2079c564c56635a
+    path: docs/specifications/coordination/hub-and-node/runtime-lifecycle/bounded-offline-replacement.md
+    userRegionHash: sha256:c5a4b50a7774315caf017a1a715aaa23ecfdb9432552e926d2079c564c56635a
+profile: specification_document
+recordId: knormdoc_2b2c993d3a7f439c84f67a43
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:452808264e7f8fd8555e2ac4b9ff648f6ec6ebeffd2f29a59c426a4d169a90a5
+sourcePath: docs/specifications/coordination/hub-and-node/runtime-lifecycle/bounded-offline-replacement.md
+sourceUnitVersionIds:
+  - uv_234373136a65516454cf5851
