@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f5785f2d6f8e2482821adad3
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_742a322fc2f1fa64db44f21c
+outputLanguage: en
+outputs:
+  - byteCount: 7470
+    contentHash: sha256:372c13fe4e8921c390941634026508e8f3b04845eafc50f30c9c10cdae21b709
+    path: docs/decisions/operations/services/0489-migrate-node-configurations-only-inside-the-service-transition.md
+    userRegionHash: sha256:372c13fe4e8921c390941634026508e8f3b04845eafc50f30c9c10cdae21b709
+profile: decision_record
+recordId: knormdoc_4c0b8bc4e50ea415bcf7c1f1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3aa976b26c281e77d1c622aa17276e8d84dadb32bd858c7bac7ad4e02100f331
+sourcePath: docs/decisions/operations/services/0489-migrate-node-configurations-only-inside-the-service-transition.md
+sourceUnitVersionIds:
+  - uv_1c4f1ccb46548599d40809a2
+  - uv_2c14395753a6a9898e448ed8
+  - uv_318df706d978ec0dd63f7797
+  - uv_3da02357dcc1261ae46fd840
+  - uv_6dde5ca85164edbc9027c90f
+  - uv_6ddef83ccbbfaa8aab9a7f0c
+  - uv_7f822055d4f844ad158af397
+  - uv_c5463d5dafad8de1a97d2d14
+  - uv_e4793d14178ba4f15df77556
+  - uv_f7b9e8ecd206f7363cf5fe3a

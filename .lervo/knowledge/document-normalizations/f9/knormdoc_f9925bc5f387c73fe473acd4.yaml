@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f5785f2d6f8e2482821adad3
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9dafdad6773a33e124d1a6e3
+outputLanguage: en
+outputs:
+  - byteCount: 12403
+    contentHash: sha256:faad2d4732405a386ba14f761ca5e0de5f9a767f5b9e99c6147235fe9066a056
+    path: docs/decisions/operations/services/0488-point-node-configurations-at-one-current-cli.md
+    userRegionHash: sha256:faad2d4732405a386ba14f761ca5e0de5f9a767f5b9e99c6147235fe9066a056
+profile: decision_record
+recordId: knormdoc_f9925bc5f387c73fe473acd4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:60eae2d5725784dd1ab676e95ba3ff4aff4439ce031247ea44303ff8f5a32c27
+sourcePath: docs/decisions/operations/services/0488-point-node-configurations-at-one-current-cli.md
+sourceUnitVersionIds:
+  - uv_192b1ab0f29bea709e3bfbb8
+  - uv_233a18eed9d7a843b6b3e040
+  - uv_50149a92e0e7c945deb0fd27
+  - uv_6196ca57284a115920d2ced3
+  - uv_61b7b6ff7defc0e754e6053a
+  - uv_83ba556652fd26fa59728d43
+  - uv_94b4ff814073f0ab420f3e04
+  - uv_b818f0a21ea3d881f4886136
+  - uv_baace3fa8c007ed27193937a
+  - uv_bfe22a30e4792ac62328c3d7
+  - uv_e0261d66cd86d90dfba8558e
+  - uv_eee9f0ab0a9ee5d4e316f3b2
