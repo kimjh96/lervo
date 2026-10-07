@@ -12,9 +12,9 @@ import {
 import { formatRuntimeServiceDefinition } from "../../../scripts/distribution/render-runtime-service.mjs";
 
 import {
-  applyNodeConfigExecutables,
   inspectNodeConfigExecutables,
   nodeConfigExecutablesPending,
+  prepareNodeConfigExecutables,
   type NodeConfigExecutablesInspection,
   type NodeConfigExecutablesStage,
 } from "./node-config-executable-upgrade.js";
@@ -249,8 +249,8 @@ export async function inspectRegisteredNodeUpgrade(
     configExecutables: executables,
     replaceDeployment,
   });
-  // A current deployment still applies when the CLI pointer or the configuration is stale; that
-  // apply rewrites only the configuration, which the Node reads at its next start.
+  // A current deployment still applies when the CLI pointer or the configuration is stale; a
+  // configuration change restarts the same service definition through the guarded transition.
   const deployed = (value: NodeUpgradeStage): NodeUpgradeInspection =>
     nodeConfigExecutablesPending(executables.stage)
       ? inspected(
@@ -362,18 +362,27 @@ export async function applyRegisteredNodeUpgrade(inspection: NodeUpgradeInspecti
     inspection.stage.configPathDigest !== sha256(inspection.configPath)
   )
     throw new Error("The registered Node upgrade inputs could not be revalidated.");
-  // ADR-0488: the configuration names the CLI pointer before the replacement Node reads it. A
-  // failed replacement keeps the migrated configuration, whose paths resolve to the installed CLI.
+  // ADR-0489: the migrated configuration replaces the file only inside the guarded service
+  // transition, while the Node is stopped, so the work admission binding moves with it.
   const executables = inspection.configExecutables?.stage;
-  if (executables !== undefined && nodeConfigExecutablesPending(executables))
-    await applyNodeConfigExecutables(inspection.configPath, executables);
-  if (inspection.replaceDeployment === false) return;
-  await applyNodeFleetOnboarding({
-    plan: inspection.plan,
-    configPath: inspection.configPath,
-    allowHubUnavailableReadiness: true,
-    ...(inspection.pathDirectories === undefined
-      ? {}
-      : { pathDirectories: inspection.pathDirectories }),
-  });
+  const prepared =
+    executables !== undefined && nodeConfigExecutablesPending(executables)
+      ? await prepareNodeConfigExecutables(inspection.configPath, executables)
+      : null;
+  try {
+    if (inspection.replaceDeployment === false && prepared?.configurationSource == null) return;
+    await applyNodeFleetOnboarding({
+      plan: inspection.plan,
+      configPath: inspection.configPath,
+      allowHubUnavailableReadiness: true,
+      ...(inspection.pathDirectories === undefined
+        ? {}
+        : { pathDirectories: inspection.pathDirectories }),
+      ...(prepared?.configurationSource == null
+        ? {}
+        : { configurationSource: prepared.configurationSource }),
+    });
+  } finally {
+    await prepared?.cleanup();
+  }
 }

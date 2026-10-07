@@ -1,12 +1,26 @@
 import { readNodeUpgradeConfigSource } from "./node-upgrade-config-source.mjs";
 
 export class NodeWorkUpgradeFenceError extends Error {
-  constructor(code, cause) {
-    super(`The Node work upgrade cannot proceed (${code}).`, { cause });
+  constructor(code, cause, reason) {
+    super(
+      reason === undefined
+        ? `The Node work upgrade cannot proceed (${code}).`
+        : `The Node work upgrade cannot proceed (${code}): ${reason}`,
+      { cause },
+    );
     this.name = "NodeWorkUpgradeFenceError";
     this.code = code;
   }
 }
+
+const FREEZE_REFUSALS = {
+  active_work: "admitted Node work did not finish within the wait.",
+  upgrade_owned: "another upgrade holds this Node's work freeze.",
+  session_missing: "no running Node session holds this work scope.",
+  session_conflict: "more than one Node session holds this work scope.",
+  config_mismatch:
+    "the running Node registered a different configuration digest than the file on disk, and no retained ADR-0488 predecessor matches it.",
+};
 
 /** How long an upgrade waits for admitted Node work to drain before refusing. */
 export const NODE_WORK_BUSY_WAIT_MS = 15 * 60_000;
@@ -46,6 +60,11 @@ export async function withNodeWorkUpgradeFence(input, operation) {
   }
   try {
     let decision;
+    // ADR-0489: a running Node registers the digest of the configuration it read. When the file
+    // was migrated in place since then, a retained ADR-0488 predecessor names that digest.
+    let freezeDigest = source.sourceDigest;
+    let predecessor = null;
+    let predecessors = null;
     const sleep =
       input.sleep ?? ((durationMs) => new Promise((done) => setTimeout(done, durationMs)));
     const deadline = Date.now() + (input.busyWaitMs ?? NODE_WORK_BUSY_WAIT_MS);
@@ -53,11 +72,25 @@ export async function withNodeWorkUpgradeFence(input, operation) {
     // failing the upgrade. A concurrent upgrade (`upgrade_owned`) is still refused at once.
     for (;;) {
       try {
-        const freezeInput = {
-          scope: admission.scope,
-          configDigest: source.sourceDigest,
-        };
+        let freezeInput = { scope: admission.scope, configDigest: freezeDigest };
         decision = admission.store.tryFreeze(freezeInput);
+        if (decision.status === "busy" && decision.reason === "config_mismatch") {
+          predecessors ??= (await input.resolveConfigPredecessors?.(source)) ?? [];
+          for (const candidate of predecessors) {
+            const candidateInput = { ...freezeInput, configDigest: candidate.configDigest };
+            const candidateDecision = admission.store.tryFreeze(candidateInput);
+            if (
+              candidateDecision.status === "busy" &&
+              candidateDecision.reason === "config_mismatch"
+            )
+              continue;
+            freezeInput = candidateInput;
+            freezeDigest = candidate.configDigest;
+            predecessor = candidate;
+            decision = candidateDecision;
+            break;
+          }
+        }
         if (
           decision.status === "busy" &&
           decision.reason === "session_missing" &&
@@ -75,7 +108,11 @@ export async function withNodeWorkUpgradeFence(input, operation) {
       throw new NodeWorkUpgradeFenceError(
         ["active_work", "upgrade_owned"].includes(decision.reason)
           ? "service_upgrade_work_busy"
-          : "service_upgrade_fence_invalid",
+          : decision.reason === "config_mismatch"
+            ? "service_upgrade_config_mismatch"
+            : "service_upgrade_fence_invalid",
+        undefined,
+        FREEZE_REFUSALS[decision.reason],
       );
     }
     let operationResult;
@@ -89,6 +126,7 @@ export async function withNodeWorkUpgradeFence(input, operation) {
             expectedConfigDigest,
             configDigest,
           }),
+        configPredecessor: predecessor,
       });
     } catch (error) {
       operationFailure = error;

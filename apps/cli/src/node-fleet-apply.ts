@@ -61,6 +61,7 @@ function serviceArgs(input: {
   config: string;
   pathDirectories: readonly string[];
   previousDefinition?: string;
+  configurationSource?: string;
 }): string[] {
   return [
     "--action",
@@ -83,6 +84,9 @@ function serviceArgs(input: {
       : ["--path-directories", input.pathDirectories.join(":")]),
     "--config",
     input.config,
+    ...(input.configurationSource === undefined
+      ? []
+      : ["--configuration-source", input.configurationSource]),
     "--write",
   ];
 }
@@ -99,6 +103,11 @@ export async function applyNodeFleetOnboarding(input: {
    * absent resolves them now from this shell's PATH.
    */
   pathDirectories?: readonly string[];
+  /**
+   * ADR-0489: owner-only replacement configuration bytes. The service transition applies them
+   * while the Node is stopped and restarts even an unchanged definition.
+   */
+  configurationSource?: string;
 }): Promise<NodeFleetApplyReceipt> {
   const ports = input.ports ?? {};
   const planInput = {
@@ -173,6 +182,7 @@ export async function applyNodeFleetOnboarding(input: {
   let service: NodeFleetServiceResult | null = null;
   let compensated = false;
   let registryCommitted = false;
+  let rollbackDefinition = true;
   const options = {
     ...ports.serviceOptions,
     ...(input.homeDirectory === undefined ? {} : { homeDirectory: input.homeDirectory }),
@@ -193,7 +203,7 @@ export async function applyNodeFleetOnboarding(input: {
         }),
         options,
       );
-    } else if (service.change === "upgraded") {
+    } else if (service.change === "upgraded" && rollbackDefinition) {
       await manageRuntimeService(
         serviceArgs({
           action: "rollback",
@@ -221,10 +231,18 @@ export async function applyNodeFleetOnboarding(input: {
     await writeFile(definition, content, { encoding: "utf8", mode: 0o600, flag: "wx" });
     await chmod(definition, 0o600);
     const desiredHash = `sha256:${createHash("sha256").update(content).digest("hex")}`;
+    const definitionChanged = current.service.targetContentHash !== desiredHash;
+    if (input.configurationSource !== undefined && current.service.targetContentHash === null)
+      fail(
+        "node_fleet_config_transition_unavailable",
+        "A configuration transition requires an installed repository Node service.",
+      );
     if (
       current.service.targetContentHash !== null &&
-      current.service.targetContentHash !== desiredHash
+      (definitionChanged || input.configurationSource !== undefined)
     ) {
+      // An unchanged definition with a configuration replacement has nothing to roll back to.
+      rollbackDefinition = definitionChanged;
       const currentBytes = await readFile(current.service.targetPath);
       const observedHash = `sha256:${createHash("sha256").update(currentBytes).digest("hex")}`;
       if (observedHash !== current.service.targetContentHash)
@@ -241,6 +259,9 @@ export async function applyNodeFleetOnboarding(input: {
           executable,
           config: configPath,
           pathDirectories,
+          ...(input.configurationSource === undefined
+            ? {}
+            : { configurationSource: input.configurationSource }),
         }),
         options,
       )) as NodeFleetServiceResult;
@@ -318,7 +339,8 @@ export async function applyNodeFleetOnboarding(input: {
     if (error instanceof RuntimeServiceManagementError)
       fail(
         (error as { code: string }).code,
-        "The repository Node service operation failed.",
+        // Service management messages are fixed, path-free texts, so the real reason is shown.
+        `The repository Node service operation failed. ${(error as Error).message}`,
         error,
       );
     fail("node_fleet_apply_failed", "The repository Node onboarding operation failed.", error);
