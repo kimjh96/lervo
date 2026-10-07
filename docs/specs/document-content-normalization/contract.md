@@ -25,7 +25,8 @@ Coverage maps every source section to one or more declared outputs using complet
 - Managed blocks and provider imports.
 - Agent Skill `name`.
 - Fenced examples and links in skills and instructions.
-- Portable inline coordinates.
+
+Validation rejects inline coordinates in portable skill material, as required by [ADR-0195](../../decisions/knowledge/repository/0195-reviewed-document-content-normalization.md).
 
 Outputs end with exactly one newline. Newly introduced trailing spaces, tabs, or blank lines are rejected. Exact source lines may retain required trailing whitespace only through protected material.
 
