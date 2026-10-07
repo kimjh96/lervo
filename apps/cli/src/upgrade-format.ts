@@ -1,4 +1,5 @@
 import { documentRouteDeferralLines } from "./document-route-deferral-attention.js";
+import type { NodeConfigExecutablesStage } from "./node-config-executable-upgrade.js";
 import type { RepositoryUpgradePlan } from "./upgrade-plan.js";
 import type { UpgradeStageBlocker } from "./upgrade-stage-inspection.js";
 import type { StageDisposition, UpgradeStageName } from "./upgrade-stage-policy.js";
@@ -32,6 +33,29 @@ function blockerLines(blockers: readonly UpgradeStageBlocker[], indent: string):
   });
 }
 
+/** ADR-0488: what the Node stage changes in the host CLI pointer and the Node configuration. */
+function nodeConfigExecutableLines(stage: NodeConfigExecutablesStage | undefined): string[] {
+  if (stage === undefined) return [];
+  const lines: string[] = [];
+  if (stage.cliPointer === "create" || stage.cliPointer === "update")
+    lines.push(
+      `  The host CLI pointer moves to the CLI running this upgrade (${stage.cliPointer}).`,
+    );
+  if (stage.config === "migrate")
+    lines.push(
+      `  The Node configuration names the host CLI pointer instead of a version-specific path in ${stage.rewrittenFields.length} field(s); a .pre-adr-0488 backup stays beside it.`,
+    );
+  if (stage.overrideFields.length > 0)
+    lines.push(
+      `  These CLI fields keep an explicit path that will not follow later installs: ${stage.overrideFields.join(", ")}.`,
+    );
+  if (stage.retainedFields.length > 0)
+    lines.push(
+      `  These fields keep a Node runtime path until the current runtime pointer exists: ${stage.retainedFields.join(", ")}.`,
+    );
+  return lines;
+}
+
 export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
   const lines = [
     `Repository upgrade: ${plan.status}`,
@@ -49,6 +73,7 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
     ...blockerLines(plan.stages.knowledge.blockers, "  "),
     ...documentRouteDeferralLines(plan.stages.knowledge.deferredDocuments ?? [], "  "),
     `repository Node: ${plan.stages.node.disposition} (${plan.stages.node.reason})`,
+    ...nodeConfigExecutableLines(plan.stages.node.configExecutables),
     `event writer: ${plan.stages.eventWriter.disposition} (${plan.stages.eventWriter.reason}) · schema ${plan.stages.eventWriter.currentSchemaVersion} → ${plan.stages.eventWriter.targetSchemaVersion}`,
     ...blockerLines(plan.stages.eventWriter.blockers, "  "),
     `host resident service: ${plan.stages.hostService.disposition} (${plan.stages.hostService.reason})${

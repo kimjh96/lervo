@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
-import { homedir } from "node:os";
-import { resolve } from "node:path";
 
 import {
   createNodeFleetOnboardingPlan,
@@ -13,8 +11,19 @@ import {
 // @ts-expect-error The repository service script intentionally remains plain ESM.
 import { formatRuntimeServiceDefinition } from "../../../scripts/distribution/render-runtime-service.mjs";
 
+import {
+  applyNodeConfigExecutables,
+  inspectNodeConfigExecutables,
+  nodeConfigExecutablesPending,
+  type NodeConfigExecutablesInspection,
+  type NodeConfigExecutablesStage,
+} from "./node-config-executable-upgrade.js";
 import { applyNodeFleetOnboarding, inspectNodeFleetStatus } from "./node-fleet-apply.js";
 import { nodeRuntimeHasOnlyAuxiliaryConditions } from "./node-fleet-readiness-policy.js";
+import {
+  describeInstalledNodeLauncher,
+  type InstalledNodeLauncher,
+} from "./node-fleet-runtime-material.js";
 import { readNodeServiceCoordinates } from "./node-service-coordinates.js";
 import { nodeServiceToolDirectories } from "./node-service-tool-directories.js";
 
@@ -30,6 +39,8 @@ export interface NodeUpgradeStage {
   serviceTargetHash: string | null;
   /** ADR-0470: hash of the definition this upgrade renders, including tool directories. */
   desiredServiceHash?: string | null;
+  /** ADR-0488: the host CLI pointer and the configuration's version-specific paths. */
+  configExecutables?: NodeConfigExecutablesStage;
   reason: string;
   blockers?: Array<{ code: string; message: string }>;
 }
@@ -40,6 +51,9 @@ export interface NodeUpgradeInspection {
   configPath: string | null;
   /** The resolved service PATH tool directories the apply renders. */
   pathDirectories?: string[];
+  configExecutables?: NodeConfigExecutablesInspection;
+  /** False when only the CLI pointer or configuration changes and the deployment is current. */
+  replaceDeployment?: boolean;
 }
 
 function sha256(value: string | Uint8Array): string {
@@ -84,51 +98,6 @@ async function safeServiceCoordinates(
   } catch {
     return null;
   }
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replaceAll("'", `'"'"'`)}'`;
-}
-
-async function desiredNodeRuntime(): Promise<{
-  hash: string;
-  launcher: string;
-  payload: string;
-  payloadBytes: Buffer;
-  launcherContent: string;
-}> {
-  const bytes = await readFile(new URL("./node-runtime.js", import.meta.url));
-  const hash = sha256(bytes);
-  const hexadecimal = hash.slice("sha256:".length);
-  const directory =
-    process.platform === "darwin"
-      ? resolve(
-          homedir(),
-          "Library",
-          "Application Support",
-          "Lervo",
-          "runtimes",
-          "node",
-          hexadecimal.slice(0, 16),
-        )
-      : resolve(
-          homedir(),
-          ".local",
-          "share",
-          "lervo",
-          "runtimes",
-          "node",
-          hexadecimal.slice(0, 16),
-        );
-  const payload = resolve(directory, "node-runtime.js");
-  const launcher = resolve(directory, `lervo-node-launcher-${hexadecimal.slice(0, 12)}`);
-  return {
-    hash,
-    launcher,
-    payload,
-    payloadBytes: bytes,
-    launcherContent: `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(payload)} "$@"\n`,
-  };
 }
 
 export async function inspectRegisteredNodeUpgrade(
@@ -214,9 +183,9 @@ export async function inspectRegisteredNodeUpgrade(
       plan,
       configPath: null,
     };
-  let desired: Awaited<ReturnType<typeof desiredNodeRuntime>>;
+  let desired: InstalledNodeLauncher;
   try {
-    desired = await desiredNodeRuntime();
+    desired = await describeInstalledNodeLauncher();
   } catch {
     return {
       stage: stage({
@@ -268,12 +237,30 @@ export async function inspectRegisteredNodeUpgrade(
     runtimeBuildHash: desired.hash,
     configPath: coordinates.config,
   };
-  const inspected = (value: NodeUpgradeStage): NodeUpgradeInspection => ({
-    stage: { ...value, desiredServiceHash },
+  const executables = await inspectNodeConfigExecutables(coordinates.config);
+  const inspected = (
+    value: NodeUpgradeStage,
+    replaceDeployment = false,
+  ): NodeUpgradeInspection => ({
+    stage: { ...value, desiredServiceHash, configExecutables: executables.stage },
     plan,
     configPath: coordinates.config,
     pathDirectories: tools.directories,
+    configExecutables: executables,
+    replaceDeployment,
   });
+  // A current deployment still applies when the CLI pointer or the configuration is stale; that
+  // apply rewrites only the configuration, which the Node reads at its next start.
+  const deployed = (value: NodeUpgradeStage): NodeUpgradeInspection =>
+    nodeConfigExecutablesPending(executables.stage)
+      ? inspected(
+          stage({
+            ...deploymentFields,
+            disposition: "safe_apply",
+            reason: "node_config_executables_stale",
+          }),
+        )
+      : inspected(value);
   if (coordinates.executable === desired.launcher) {
     try {
       const [launcher, payload] = await Promise.all([
@@ -309,7 +296,7 @@ export async function inspectRegisteredNodeUpgrade(
     plan.registry.reconciliation === "unchanged" &&
     desiredServiceHash === plan.service.targetContentHash;
   if (deploymentCurrent && status?.recoveryAction === "none")
-    return inspected(
+    return deployed(
       stage({ ...deploymentFields, disposition: "current", reason: "exact_runtime_ready" }),
     );
   const hubUnavailableOnly =
@@ -325,7 +312,7 @@ export async function inspectRegisteredNodeUpgrade(
       (value) => value === "unavailable:hub_unavailable",
     );
   if (deploymentCurrent && hubUnavailableOnly)
-    return inspected(
+    return deployed(
       stage({
         ...deploymentFields,
         disposition: "current",
@@ -338,7 +325,7 @@ export async function inspectRegisteredNodeUpgrade(
     status.recoveryAction === "inspect_runtime_failure" &&
     nodeRuntimeHasOnlyAuxiliaryConditions(status.runtime)
   )
-    return inspected(
+    return deployed(
       stage({
         ...deploymentFields,
         disposition: "current",
@@ -346,7 +333,7 @@ export async function inspectRegisteredNodeUpgrade(
       }),
     );
   if (deploymentCurrent && status !== undefined && status.recoveryAction !== "reapply_exact_plan")
-    return inspected(
+    return deployed(
       stage({
         ...deploymentFields,
         disposition: "blocked",
@@ -364,6 +351,7 @@ export async function inspectRegisteredNodeUpgrade(
           ? "node_service_definition_changed"
           : "node_runtime_build_or_version_changed",
     }),
+    true,
   );
 }
 
@@ -374,6 +362,12 @@ export async function applyRegisteredNodeUpgrade(inspection: NodeUpgradeInspecti
     inspection.stage.configPathDigest !== sha256(inspection.configPath)
   )
     throw new Error("The registered Node upgrade inputs could not be revalidated.");
+  // ADR-0488: the configuration names the CLI pointer before the replacement Node reads it. A
+  // failed replacement keeps the migrated configuration, whose paths resolve to the installed CLI.
+  const executables = inspection.configExecutables?.stage;
+  if (executables !== undefined && nodeConfigExecutablesPending(executables))
+    await applyNodeConfigExecutables(inspection.configPath, executables);
+  if (inspection.replaceDeployment === false) return;
   await applyNodeFleetOnboarding({
     plan: inspection.plan,
     configPath: inspection.configPath,

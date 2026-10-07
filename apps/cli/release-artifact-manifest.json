@@ -175,22 +175,22 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 10353888,
-        "sha256": "sha256:83b864de67973290716f8aa54976fa8ef5665b9a8cc7c8b1fc4a8c0278f7e7e2"
+        "size": 10373936,
+        "sha256": "sha256:266f1ca53d3d6f6ebe79ccce0a6cbe800d2eaec45ae14bd9aaa2fe3f15bdd60e"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 7097000,
-        "sha256": "sha256:641f30ade7ea5a341d5d952aa9b35a8ee2cb4467ea2600b51f9e29bfb1111764"
+        "size": 7100533,
+        "sha256": "sha256:414651459a1a133ee1588c0ecf09212e2101ac886700609c323911959c201b9c"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 4414638,
-        "sha256": "sha256:e945a8937bbd37c5dbc46219a20645e190e4026aabd89d3fb6ef2ef624cd8ce0"
+        "size": 4414656,
+        "sha256": "sha256:46424d2e6fca052cc15e39fee24abcb306f1a72b0950cd8ac94eadaabe1a4b78"
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:ee26203f332ca567a8be73546f712f25649e96c01f47b0b660bc2d3257901702"
+    "contentDigest": "sha256:fc7c1651494f8a6bec92110a53649db1e06c160afdec8c0e1a8128927a1407a3"
   },
   "dependencies": {
     "portable": [
@@ -303,5 +303,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:d6c6142fc491ab6d9a1b196114e634b8da36d7ec777fe37a2775689bf5c1067e"
+  "artifactDigest": "sha256:10e04e72d8f51caadae022320de2cbd2b54f453715c2c401e1d178d5153fb625"
 }

@@ -2,6 +2,7 @@ import type { NodeRuntimeHealthSnapshot } from "@lervo/node-runtime";
 import type { RegisterNodeFleetInstanceResult } from "@lervo/repository-registry";
 
 import { CommandFailure } from "./command-error-output.js";
+import type { NodeConfiguredExecutablesReport } from "./node-config-executable-status.js";
 import type {
   NodeReadinessBaseline,
   NodeReadinessBlocker,
@@ -167,5 +168,7 @@ export interface NodeFleetStatusReport {
       updatedAt: string | null;
     };
     recoveryAction: "none" | "reapply_exact_plan" | "inspect_runtime_failure" | "wait_for_runtime";
+    /** ADR-0488: configured executables a restart would need, observed now. */
+    configuredExecutables: NodeConfiguredExecutablesReport;
   }>;
 }

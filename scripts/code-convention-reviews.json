@@ -340,9 +340,9 @@
     },
     {
       "path": "packages/repository-registry/src/node-fleet.ts",
-      "contentHash": "sha256:65be7ba7933d2818a6a98176163838ba1f8343d988076ea7b73f29c1e6d6dcac",
+      "contentHash": "sha256:f08b8ec39f1752e0f884dc43e96c0cce05e60c7bc6a89ed5ae4eb2420401d8ac",
       "responsibility": "Repository Node fleet registry",
-      "rationale": "Identity calculation, registry validation, service-file inspection, onboarding planning, listing, and registration share one owner-only fleet registry contract.",
+      "rationale": "Identity calculation, registry validation, service-file inspection, onboarding planning, listing, and registration share one owner-only fleet registry contract; the exported service definition path is the same identity-to-path rule onboarding planning uses, so status readers cannot diverge from it.",
       "disposition": "cohesive"
     },
     {

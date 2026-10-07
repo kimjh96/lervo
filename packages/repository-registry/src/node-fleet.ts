@@ -362,7 +362,8 @@ async function candidate(input: {
   return { ...desired, registeredAt: timestamp, updatedAt: timestamp };
 }
 
-function serviceTargetPath(
+/** The canonical user service definition path for one Node service identity. */
+export function nodeFleetServiceTargetPath(
   homeDirectory: string,
   manager: NodeFleetServiceManager,
   serviceIdentity: string,
@@ -455,7 +456,7 @@ export async function createNodeFleetOnboardingPlan(input: {
   const reconciliation: NodeFleetRegistryReconciliation =
     current === null ? "register" : sameDesired(current, desired) ? "unchanged" : "refresh";
   const homeDirectory = input.homeDirectory ?? homedir();
-  const targetPath = serviceTargetPath(
+  const targetPath = nodeFleetServiceTargetPath(
     homeDirectory,
     desired.serviceManager,
     desired.serviceIdentity,
