@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { CONVERGENCE_ASSET_DISPOSITIONS_PATH } from "./asset-disposition-manifest.js";
+import { toolGeneratedManifestCleanup } from "./tool-generated-asset-dispositions.js";
 import { execFile } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -206,6 +208,25 @@ export async function settledKnowledgeOutputPaths(input: {
   const root = input.repositoryRoot;
   const dirty = input.dirty ?? (await observeDirtyPaths(root));
   if (!dirty.size) return [];
+  const reviewed = await reviewedKnowledgeOutputPaths(input, root, dirty);
+  // ADR-0491: a rebind that only dropped tool-generated asset declarations settles the manifest.
+  const manifest =
+    dirty.get(CONVERGENCE_ASSET_DISPOSITIONS_PATH) === "present" &&
+    (await toolGeneratedManifestCleanup({
+      root,
+      committed: await headBlob(root, CONVERGENCE_ASSET_DISPOSITIONS_PATH),
+      current: readFileSync(resolve(root, CONVERGENCE_ASSET_DISPOSITIONS_PATH)),
+    }))
+      ? [CONVERGENCE_ASSET_DISPOSITIONS_PATH]
+      : [];
+  return [...new Set([...reviewed, ...manifest])].sort();
+}
+
+async function reviewedKnowledgeOutputPaths(
+  input: { events: OutboxStore; artifacts: ArtifactStore },
+  root: string,
+  dirty: ReadonlyMap<string, "deleted" | "present">,
+): Promise<string[]> {
   const current = (path: string) => sha256(readFileSync(resolve(root, path)));
   const drafts = await integratedCanonicalDrafts(input.events, input.artifacts);
   // Every reviewed output is either an integrated draft or travels with a dirty normalization

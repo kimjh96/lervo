@@ -1,4 +1,9 @@
-import { canonicalJson, sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
+import {
+  canonicalJson,
+  observeToolGeneratedDocuments,
+  sha256,
+  type KnowledgeConvergenceInput,
+} from "@lervo/repository-knowledge";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import type { ConvergenceDelegation } from "./delegation-contract.js";
@@ -13,6 +18,11 @@ export interface ConvergenceAssetSettlement {
    * or promotion approval, and the proof keeps the two kinds separate.
    */
   suiteBound: { path: string; contentHash: string }[];
+  /**
+   * ADR-0491: opaque files a repository tool writes, such as a declared package manager's
+   * lockfile. They are tool output, not canonical assets, so no declaration binds or blocks them.
+   */
+  toolGenerated: number;
 }
 
 /**
@@ -26,15 +36,17 @@ export function classifyConvergenceAssets(
     ConvergenceDelegation,
     "assetDispositions" | "assetDispositionManifestHash" | "verification"
   >,
+  toolGenerated: ReadonlySet<string> = new Set(),
 ): ConvergenceAssetSettlement {
   const dispositionKinds = new Map(
     state.baseline.sourceDispositions?.map((item) => [item.path, item.kind]),
   );
-  const assets = state.baseline.sources.filter(
+  const opaque = state.baseline.sources.filter(
     (source) =>
       source.kind === "opaque" &&
       !["policy_excluded", "sensitive_local"].includes(dispositionKinds.get(source.path) ?? ""),
   );
+  const assets = opaque.filter((source) => !toolGenerated.has(source.path));
   const declarations = resolveConvergenceAssetDispositions(root, delegation);
   const declared = (source: { path: string; contentHash: string }) =>
     declarations.some(
@@ -48,7 +60,19 @@ export function classifyConvergenceAssets(
     suiteBound: assets
       .filter((source) => !declared(source))
       .map(({ path, contentHash }) => ({ path, contentHash })),
+    toolGenerated: opaque.length - assets.length,
   };
+}
+
+/** The opaque baseline sources whose bytes a repository tool owns, by ADR-0473 evidence. */
+export async function toolGeneratedOpaqueSources(
+  root: string,
+  state: KnowledgeConvergenceInput,
+): Promise<Set<string>> {
+  const paths = state.baseline.sources
+    .filter((source) => source.kind === "opaque")
+    .map((source) => source.path);
+  return new Set((await observeToolGeneratedDocuments({ repositoryRoot: root, paths })).keys());
 }
 
 /** The suite-bound list is private CAS evidence; the stage proof carries its count and hash. */
@@ -67,6 +91,7 @@ export async function recordConvergenceAssetSettlement(
   );
   return {
     declared: settlement.declared,
+    toolGenerated: settlement.toolGenerated,
     suiteBound: settlement.suiteBound.length,
     suiteBoundHash: sha256(canonicalJson(settlement.suiteBound)),
     suiteBoundArtifactHash: artifact.contentHash,

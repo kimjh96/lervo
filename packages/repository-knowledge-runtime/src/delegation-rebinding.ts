@@ -10,6 +10,7 @@ import {
   type ConvergenceWorkerRole,
 } from "./delegation-contract.js";
 import { localRoleBinding } from "./delegation-seeding.js";
+import { withoutToolGeneratedAssetDispositions } from "./tool-generated-asset-dispositions.js";
 
 const WORKER_ROLES: readonly ConvergenceWorkerRole[] = [
   "generator",
@@ -31,7 +32,7 @@ export async function reboundConvergenceDelegation(input: {
   root: string;
   current: ConvergenceDelegation;
   now: Date;
-}): Promise<ConvergenceDelegation | null> {
+}): Promise<{ delegation: ConvergenceDelegation; reviewedManifestBytes?: Uint8Array } | null> {
   const { current } = input;
   const parent = (await listAgents(input.root, { readOnly: true })).find(
     (agent) => agent.agentId === current.parentAgentId && agent.status === "active",
@@ -53,7 +54,12 @@ export async function reboundConvergenceDelegation(input: {
       suiteId: suite.suiteId,
       suiteHash: verificationSuiteHash(await loadVerificationSuite(input.root, suite.suiteId)),
     });
-  const { review, ...rest } = structuredClone(current);
+  // ADR-0491: tool-generated files leave the asset declarations in the same rebind.
+  const assets = await withoutToolGeneratedAssetDispositions(input.root, current);
+  const { review: _currentReview, ...rest } = structuredClone({
+    ...current,
+    ...(assets?.delegation ?? {}),
+  });
   const plan: Omit<ConvergenceDelegation, "review"> = {
     ...rest,
     parentRoleHash: parent.roleContractHash,
@@ -62,13 +68,16 @@ export async function reboundConvergenceDelegation(input: {
   };
   const { review: _review, ...unchanged } = current;
   if (canonicalJson(plan) === canonicalJson(unchanged)) return null;
-  return parseConvergenceDelegation({
+  const delegation = parseConvergenceDelegation({
     ...plan,
     // ADR-0478: a rebind is a continuation, not a review; equal inputs give equal bytes.
     review: {
-      reviewerAgentId: review.reviewerAgentId,
-      reviewedAt: review.reviewedAt,
+      reviewerAgentId: current.review.reviewerAgentId,
+      reviewedAt: current.review.reviewedAt,
       planHash: convergenceDelegationPlanHash(plan),
     },
   });
+  return assets?.reviewedManifestBytes === undefined
+    ? { delegation }
+    : { delegation, reviewedManifestBytes: assets.reviewedManifestBytes };
 }

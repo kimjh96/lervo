@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_44a3c65581e553b5d5b7e736"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Regenerate a stale knowledge review before the pre-stage check, stop pinning package manager lockfiles as opaque delegation assets, and memoize role registry resolution."

@@ -22,6 +22,7 @@ import {
   type RepositoryRoleSource,
 } from "./repository-role-source.js";
 import type { ResolvedRoleContract, RoleContractCoordinate } from "./types.js";
+import { memoizedRoleRegistry } from "./role-contract-memo.js";
 import { RoleContractError } from "./types.js";
 
 export { parseRepositoryRoleSource, type RepositoryRoleSource } from "./repository-role-source.js";
@@ -30,6 +31,9 @@ const BUILT_IN_VERSION = "1.0.0";
 const MAXIMUM_ROLE_FILES = 256;
 const MAXIMUM_ROLE_BYTES = 128 * 1024;
 const MAXIMUM_COMPOSITION_DEPTH = 8;
+const BUILT_IN_ROLE_IDS: ReadonlySet<string> = new Set(
+  listBuiltInRoleDefinitions().map((definition) => definition.profile.roleId),
+);
 
 function builtInContract(roleId: BuiltInRoleId): ResolvedRoleContract {
   const definition = getBuiltInRoleDefinition(roleId);
@@ -113,12 +117,7 @@ async function repositorySources(
       fail("role_profile_invalid", `Repository role source ${name} is not valid JSON.`, error);
     }
     const source = parseRepositoryRoleSource(parsed, expectedRoleId);
-    if (
-      listBuiltInRoleDefinitions().some(
-        (definition) => definition.profile.roleId === source.roleId,
-      ) ||
-      result.has(source.roleId)
-    )
+    if (BUILT_IN_ROLE_IDS.has(source.roleId) || result.has(source.roleId))
       fail(
         "role_profile_invalid",
         `Repository role ${source.roleId} duplicates an existing role ID.`,
@@ -144,7 +143,7 @@ export async function previewRoleContracts(
   const sources = await repositorySources(repositoryRoot);
   for (const value of overlay) {
     const source = parseRepositoryRoleSource(value);
-    if (listBuiltInRoleDefinitions().some((item) => item.profile.roleId === source.roleId))
+    if (BUILT_IN_ROLE_IDS.has(source.roleId))
       fail("role_profile_invalid", `Repository role ${source.roleId} duplicates a built-in role.`);
     sources.set(source.roleId, { source, path: `.lervo/roles/${source.roleId}.json` });
   }
@@ -154,6 +153,12 @@ export async function previewRoleContracts(
 }
 
 function resolveRoleContracts(
+  sources: Map<string, { source: RepositoryRoleSource; path: string }>,
+): ResolvedRoleContract[] {
+  return memoizedRoleRegistry(sources, () => resolveRoleRegistry(sources));
+}
+
+function resolveRoleRegistry(
   sources: Map<string, { source: RepositoryRoleSource; path: string }>,
 ): ResolvedRoleContract[] {
   const resolved = new Map<string, ResolvedRoleContract>();
@@ -203,9 +208,8 @@ function resolveRoleContracts(
     }
   };
   for (const roleId of [...sources.keys()].sort()) resolveCustom(roleId, 1);
-  return [...resolved.values()]
-    .sort((left, right) => left.roleId.localeCompare(right.roleId))
-    .map((contract) => structuredClone(contract));
+  // The memo hands out private clones of this registry.
+  return [...resolved.values()].sort((left, right) => left.roleId.localeCompare(right.roleId));
 }
 
 export async function resolveRoleContract(
