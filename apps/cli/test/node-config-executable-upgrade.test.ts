@@ -24,9 +24,9 @@ import {
   runningCliInstallRoot,
 } from "../src/cli-install-pointer.js";
 import {
-  applyNodeConfigExecutables,
   inspectNodeConfigExecutables,
   nodeConfigExecutablesPending,
+  prepareNodeConfigExecutables,
 } from "../src/node-config-executable-upgrade.js";
 
 const directories: string[] = [];
@@ -111,7 +111,7 @@ describe("CLI install pointer (ADR-0488)", () => {
 });
 
 describe("Node configuration executable upgrade (ADR-0488)", () => {
-  it("plans with field names, then points the CLI and rewrites the config with a backup", async () => {
+  it("plans with field names, points the CLI, and prepares the migration without writing the config", async () => {
     const { home, running, removed, config, original, options } = await fixture();
 
     const inspection = await inspectNodeConfigExecutables(config, options);
@@ -127,10 +127,12 @@ describe("Node configuration executable upgrade (ADR-0488)", () => {
     expect(JSON.stringify(inspection.stage)).not.toContain(home);
     expect(nodeConfigExecutablesPending(inspection.stage)).toBe(true);
 
-    const applied = await applyNodeConfigExecutables(config, inspection.stage, options);
+    const prepared = await prepareNodeConfigExecutables(config, inspection.stage, options);
 
     expect(await readCurrentCliInstall(home)).toBe(running);
-    const migrated = JSON.parse(await readFile(config, "utf8"));
+    // ADR-0489: a running Node binds its admission to these bytes, so they stay untouched.
+    expect(await readFile(config, "utf8")).toBe(original);
+    const migrated = JSON.parse(await readFile(prepared.configurationSource!, "utf8"));
     expect(migrated.discordConversation.deliberation.cliExecutable).toBe(
       currentCliExecutable(home),
     );
@@ -138,24 +140,27 @@ describe("Node configuration executable upgrade (ADR-0488)", () => {
       nodeExecutable: "/usr/bin/node",
       cliBundle: currentCliExecutable(home),
     });
-    expect((await stat(config)).mode & 0o777).toBe(0o600);
-    expect(applied.backupPath).toMatch(/node-runtime\.json\.pre-adr-0488-[a-f0-9]{12}$/u);
-    expect(await readFile(applied.backupPath!, "utf8")).toBe(original);
-    expect((await stat(applied.backupPath!)).mode & 0o777).toBe(0o600);
+    expect((await stat(prepared.configurationSource!)).mode & 0o777).toBe(0o600);
+    expect(prepared.backupPath).toMatch(/node-runtime\.json\.pre-adr-0488-[a-f0-9]{12}$/u);
+    expect(await readFile(prepared.backupPath!, "utf8")).toBe(original);
+    expect((await stat(prepared.backupPath!)).mode & 0o777).toBe(0o600);
     expect(original).toContain(removed);
 
+    // The guarded service transition replaces the file; then the stage is current.
+    await writeFile(config, await readFile(prepared.configurationSource!), { mode: 0o600 });
+    await prepared.cleanup();
+    await expect(stat(prepared.configurationSource!)).rejects.toMatchObject({ code: "ENOENT" });
     const again = await inspectNodeConfigExecutables(config, options);
     expect(again.stage).toMatchObject({ cliPointer: "current", config: "current" });
     expect(nodeConfigExecutablesPending(again.stage)).toBe(false);
 
-    // A later CLI install moves only the pointer; the configuration bytes stay the same.
+    // A later CLI install moves only the pointer; nothing replaces the configuration.
     const next = await installCli(home, "open-collab-0.21.0");
     const nextOptions = { ...options, cliBin: pathToFileURL(resolve(next, "dist", "bin.js")) };
     const moved = await inspectNodeConfigExecutables(config, nextOptions);
     expect(moved.stage).toMatchObject({ cliPointer: "update", config: "current" });
-    const before = await readFile(config, "utf8");
-    await applyNodeConfigExecutables(config, moved.stage, nextOptions);
-    expect(await readFile(config, "utf8")).toBe(before);
+    const pointerOnly = await prepareNodeConfigExecutables(config, moved.stage, nextOptions);
+    expect(pointerOnly.configurationSource).toBeNull();
     expect(await readFile(currentCliExecutable(home), "utf8")).toContain("open-collab-0.21.0");
   });
 
@@ -165,7 +170,7 @@ describe("Node configuration executable upgrade (ADR-0488)", () => {
     await writeFile(config, `${JSON.stringify({ schemaVersion: 1 })}\n`);
 
     await expect(
-      applyNodeConfigExecutables(config, inspection.stage, options),
+      prepareNodeConfigExecutables(config, inspection.stage, options),
     ).rejects.toMatchObject({ code: "node_config_executables_plan_stale" });
   });
 

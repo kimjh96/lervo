@@ -16,9 +16,10 @@ import {
 import { NodeWorkUpgradeFenceError, withNodeWorkUpgradeFence } from "./node-work-upgrade-fence.mjs";
 import { nodeUpgradePredecessorConfig } from "./node-upgrade-predecessor-config.mjs";
 import {
-  createNodeCliConfigurationTransition,
   NodeCliConfigurationTransitionError,
+  selectNodeConfigurationTransition,
 } from "./node-cli-configuration-transition.mjs";
+import { findMigratedConfigPredecessors } from "./node-executable-path-rewrites.mjs";
 
 const MAXIMUM_DEFINITION_BYTES = 131_072;
 const SERVICE_STABILITY_OBSERVATIONS = 3;
@@ -578,7 +579,12 @@ async function stopForUpgrade(input, context) {
 
 async function upgrade(input, expected, previous, context) {
   const current = await currentTarget(context.target);
-  if (current === null || !current.equals(previous) || current.equals(expected)) {
+  // A configuration-only transition restarts the same definition under the guarded fence.
+  if (
+    current === null ||
+    !current.equals(previous) ||
+    (current.equals(expected) && context.configurationTransition === undefined)
+  ) {
     fail(
       "service_state_conflict",
       "The installed service does not match the exact upgrade predecessor.",
@@ -707,6 +713,8 @@ export async function manageRuntimeService(args, options = {}) {
               ...input,
               busyWaitMs: options.nodeWorkBusyWaitMs,
               sleep: options.nodeWorkBusySleep,
+              resolveConfigPredecessors: (source) =>
+                findMigratedConfigPredecessors(input.config, source.config),
               verifyInactivePredecessor: async () => {
                 const installed = await currentTarget(context.target);
                 const predecessor = input.action === "upgrade" ? previous : expected;
@@ -725,16 +733,17 @@ export async function manageRuntimeService(args, options = {}) {
               openAdmission: options.openNodeWorkAdmission,
             },
             async (admission) => {
-              if (input.action === "upgrade") {
-                const configurationTransition = await (
-                  options.prepareConfigurationTransition ??
-                  (input.configurationSource === undefined
-                    ? undefined
-                    : createNodeCliConfigurationTransition)
-                )?.(input, admission);
+              const configurationTransition = await selectNodeConfigurationTransition(
+                input,
+                admission,
+                options.prepareConfigurationTransition,
+              );
+              if (input.action === "upgrade")
                 return upgrade(input, expected, previous, { ...context, configurationTransition });
-              }
-              const restored = await upgrade(input, previous, expected, context);
+              const restored = await upgrade(input, previous, expected, {
+                ...context,
+                configurationTransition,
+              });
               return { ...restored, change: "rolled_back" };
             },
           ),

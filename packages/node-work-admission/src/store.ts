@@ -27,7 +27,12 @@ export type NodeUpgradeFreezeResult =
   | { status: "frozen"; freeze: NodeUpgradeFreeze }
   | {
       status: "busy";
-      reason: "active_work" | "upgrade_owned" | "session_missing" | "session_conflict";
+      reason:
+        | "active_work"
+        | "upgrade_owned"
+        | "session_missing"
+        | "session_conflict"
+        | "config_mismatch";
     };
 
 export class NodeWorkAdmissionError extends Error {
@@ -343,8 +348,9 @@ export class SQLiteNodeWorkAdmission {
         .prepare("SELECT config_digest, freeze_token FROM node_work_scope WHERE scope = ?")
         .get(input.scope) as Row | undefined;
       if (scope === undefined) return { status: "busy", reason: "session_missing" };
+      // The scope binds the configuration digest its Node registered with.
       if (scope.config_digest !== input.configDigest) {
-        return { status: "busy", reason: "session_conflict" };
+        return { status: "busy", reason: "config_mismatch" };
       }
       if (scope.freeze_token !== null) return { status: "busy", reason: "upgrade_owned" };
       const sessions = this.database

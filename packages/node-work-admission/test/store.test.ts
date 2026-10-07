@@ -64,7 +64,7 @@ it("fails closed without an exact live session or matching configuration", async
     const session = first.registerSession({ scope, configDigest, ownerPid: 1001 });
     expect(
       second.tryFreeze({ scope, configDigest: `sha256:${"b".repeat(64)}`, ownerPid: 2001 }),
-    ).toEqual({ status: "busy", reason: "session_conflict" });
+    ).toEqual({ status: "busy", reason: "config_mismatch" });
     expect(() => second.registerSession({ scope, configDigest, ownerPid: 3001 })).toThrow(
       "already owns",
     );
@@ -97,7 +97,7 @@ it("freezes a previously registered stopped Node only with exact inactive author
         ownerPid: 2001,
         allowNoSession: true,
       }),
-    ).toEqual({ status: "busy", reason: "session_conflict" });
+    ).toEqual({ status: "busy", reason: "config_mismatch" });
     const frozen = second.tryFreeze({
       scope,
       configDigest,
@@ -136,7 +136,7 @@ it("keeps a gracefully stopped Node eligible for exact inactive recovery", async
         ownerPid: 2001,
         allowNoSession: true,
       }),
-    ).toEqual({ status: "busy", reason: "session_conflict" });
+    ).toEqual({ status: "busy", reason: "config_mismatch" });
     const recovered = second.tryFreeze({
       scope,
       configDigest,

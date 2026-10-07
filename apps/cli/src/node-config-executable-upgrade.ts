@@ -1,5 +1,7 @@
-import { createHash, randomUUID } from "node:crypto";
-import { lstat, open, readFile, rename, rm, stat } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { lstat, mkdtemp, open, readFile, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 
 import {
   currentCliInstallRoot,
@@ -125,17 +127,6 @@ async function writeExclusive(path: string, bytes: string, mode: number): Promis
   }
 }
 
-async function replaceFile(path: string, bytes: string, mode: number): Promise<void> {
-  const temporary = `${path}.adr-0488-${randomUUID()}`;
-  try {
-    await writeExclusive(temporary, bytes, mode);
-    await rename(temporary, path);
-  } catch (error) {
-    await rm(temporary, { force: true });
-    throw error;
-  }
-}
-
 /** Keeps the first bytes for one source hash; an existing identical backup is reused. */
 async function backUp(configPath: string, original: string): Promise<string> {
   const backup = `${configPath}${NODE_CONFIG_BACKUP_SUFFIX}-${sha256(original).slice(7, 19)}`;
@@ -152,15 +143,25 @@ async function backUp(configPath: string, original: string): Promise<string> {
   return backup;
 }
 
+/** A prepared configuration migration that the guarded Node service transition applies. */
+export interface PreparedNodeConfigExecutables {
+  backupPath: string | null;
+  /** An owner-only file holding the migrated bytes, or null when the configuration is current. */
+  configurationSource: string | null;
+  cleanup(): Promise<void>;
+}
+
 /**
- * Applies an approved inspection: re-observes it, moves the CLI pointer, checks that every
- * rewritten path resolves, backs up the configuration owner-only, and replaces it atomically.
+ * Prepares an approved inspection: re-observes it, moves the CLI pointer, checks that every
+ * rewritten path resolves, and backs up the configuration owner-only. ADR-0489: it never writes
+ * the configuration itself. A running Node binds its work admission to the configuration digest,
+ * so only the guarded service transition may replace the file, while the Node is stopped.
  */
-export async function applyNodeConfigExecutables(
+export async function prepareNodeConfigExecutables(
   configPath: string,
   approved: NodeConfigExecutablesStage,
   options: NodeConfigExecutablesOptions = {},
-): Promise<{ backupPath: string | null }> {
+): Promise<PreparedNodeConfigExecutables> {
   const current = await inspectNodeConfigExecutables(configPath, options);
   if (JSON.stringify(current.stage) !== JSON.stringify(approved))
     failNodeFleetApply(
@@ -174,7 +175,7 @@ export async function applyNodeConfigExecutables(
     });
   const migration = current.migration;
   if (current.stage.config !== "migrate" || migration?.migratedContent == null)
-    return { backupPath: null };
+    return { backupPath: null, configurationSource: null, cleanup: async () => undefined };
   for (const rewrite of migration.rewrites) {
     if ((await stat(rewrite.to).catch(() => null)) === null)
       failNodeFleetApply(
@@ -189,6 +190,17 @@ export async function applyNodeConfigExecutables(
       "The Node configuration changed before its executables were migrated.",
     );
   const backupPath = await backUp(configPath, original);
-  await replaceFile(configPath, migration.migratedContent, 0o600);
-  return { backupPath };
+  const directory = await mkdtemp(resolve(tmpdir(), "lervo-node-config-"));
+  const configurationSource = resolve(directory, "node-config-candidate.json");
+  try {
+    await writeExclusive(configurationSource, migration.migratedContent, 0o600);
+  } catch (error) {
+    await rm(directory, { recursive: true, force: true });
+    throw error;
+  }
+  return {
+    backupPath,
+    configurationSource,
+    cleanup: () => rm(directory, { recursive: true, force: true }),
+  };
 }

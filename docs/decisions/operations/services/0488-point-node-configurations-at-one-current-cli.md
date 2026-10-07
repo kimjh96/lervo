@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-07
 Amends: [ADR-0214](0214-bounded-repository-upgrade-orchestration.md) (repository Node stage), [ADR-0483](../../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) (host pointers)
 Related: [ADR-0207](0207-transactional-repository-node-apply-and-readiness.md)
+Amended by: [ADR-0489](0489-migrate-node-configurations-only-inside-the-service-transition.md) (the configuration changes only inside the guarded service transition)
 
 ## Context
 
@@ -46,7 +47,7 @@ The migration rewrites the raw configuration JSON. Every string anywhere in the 
 - **Node runtime path.** A string `<runtimes>/<hash16>/...` becomes `<runtimes>/current/...` once the ADR-0483 pointer exists. Until then the field is retained and reported, and a later upgrade migrates it after the `replica_service` stage creates the pointer.
 - **Override.** Any other value in a CLI field stays unchanged. It is reported as an override that will not follow later installs.
 
-A current deployment whose pointer or configuration is stale plans `safe_apply` with reason `node_config_executables_stale`. This also applies when the deployment would otherwise be `blocked` by a failing runtime, because a missing executable is a common cause of that failure. Such an apply changes only the pointer and the configuration. A running Node keeps its resolved paths and reads the new configuration at its next start. A deployment change still replaces the Node service as before.
+A current deployment whose pointer or configuration is stale plans `safe_apply` with reason `node_config_executables_stale`. This also applies when the deployment would otherwise be `blocked` by a failing runtime, because a missing executable is a common cause of that failure. Such an apply changes only the pointer and the configuration. ADR-0489 applies the configuration through the guarded service transition, which restarts the unchanged definition. A deployment change still replaces the Node service as before.
 
 On apply, the stage performs these steps in order:
 

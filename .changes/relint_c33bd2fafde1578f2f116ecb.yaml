@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c33bd2fafde1578f2f116ecb"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "lervo upgrade applies Node configuration path migrations only inside the guarded service transition, recovers Nodes whose configuration was migrated in place, and names fence refusals such as a configuration digest mismatch."
