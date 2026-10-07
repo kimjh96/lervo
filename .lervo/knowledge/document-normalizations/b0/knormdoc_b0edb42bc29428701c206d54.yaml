@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_00fa48d1e301c3751d91a3ce
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1348b6ddecfa2f396e948160
+outputLanguage: en
+outputs:
+  - byteCount: 850
+    contentHash: sha256:fb0ab453d8d47e1b4a720f470da5bff67de16b8fa417617bceebe8ee2bb414f7
+    path: docs/specs/semantic-recovery-and-node-upgrade-amendments.md
+    userRegionHash: sha256:fb0ab453d8d47e1b4a720f470da5bff67de16b8fa417617bceebe8ee2bb414f7
+  - byteCount: 1741
+    contentHash: sha256:420e56da473fb1a8546027f53fb029a7887850291a10478b05d556f566f82a56
+    path: docs/specs/semantic-recovery-and-node-upgrade-amendments/semantic-review-preparation.md
+    userRegionHash: sha256:420e56da473fb1a8546027f53fb029a7887850291a10478b05d556f566f82a56
+  - byteCount: 3115
+    contentHash: sha256:801d065f3b498ac9c551075ee800a3b8eebeb8f02d705e89ef4f5b294bfb5098
+    path: docs/specs/semantic-recovery-and-node-upgrade-amendments/tool-ownership-and-role-resolution.md
+    userRegionHash: sha256:801d065f3b498ac9c551075ee800a3b8eebeb8f02d705e89ef4f5b294bfb5098
+  - byteCount: 5172
+    contentHash: sha256:5288d4ad1b87271524a91f8c35860c18645a7f0151f15459bc9d926e232ac05f
+    path: docs/specs/semantic-recovery-and-node-upgrade-amendments/upgrade-orchestration.md
+    userRegionHash: sha256:5288d4ad1b87271524a91f8c35860c18645a7f0151f15459bc9d926e232ac05f
+profile: specification_document
+recordId: knormdoc_b0edb42bc29428701c206d54
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f6d249086436f941a340d55edec35e1b2f712c18aac41265992a605c1d3c6193
+sourcePath: docs/specs/semantic-recovery-and-node-upgrade-amendments.md
+sourceUnitVersionIds:
+  - uv_5550cd49243db5f4c50edeb7
+  - uv_857d44ee8686ac259137fe98
+  - uv_b6d3a1f7ae486bb8aae03a3e
+  - uv_f224ae338b80bc5fc5790a9f
