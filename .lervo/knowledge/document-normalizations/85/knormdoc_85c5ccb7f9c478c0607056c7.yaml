@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c791f605de39f2cabf093b65
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_877ca85949edc003b9b5a96e
+outputLanguage: en
+outputs:
+  - byteCount: 5371
+    contentHash: sha256:71335d8dd710b15548fecbe6aadfe6e6b9f0c71f0b2a6365428080a7d41de4fe
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/resident-cycle/fence-and-scheduling.md
+    userRegionHash: sha256:71335d8dd710b15548fecbe6aadfe6e6b9f0c71f0b2a6365428080a7d41de4fe
+profile: specification_document
+recordId: knormdoc_85c5ccb7f9c478c0607056c7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7ab3bf4d472b6d9afe4c95c8f95383382b9a14e38e0f647e4da3121b5c5af16f
+sourcePath: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/resident-cycle/fence-and-scheduling.md
+sourceUnitVersionIds:
+  - uv_13e0b2f268adf62e732683f7
+  - uv_63a49f96eaf764ee7a407a4c
+  - uv_658c69f3a55e81846074cee5
+  - uv_6ad677af7f5e0b33cd836251
+  - uv_a22666c39fb71558e13d11e4
+  - uv_dbe57216772cb8e55fd6c7f6
+  - uv_f594ab7fcde773bf95946620

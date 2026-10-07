@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c791f605de39f2cabf093b65
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_557fad018ae15dc38d1f97dc
+outputLanguage: en
+outputs:
+  - byteCount: 1669
+    contentHash: sha256:1f22e8fd2bbcc9f0e2a183994c5ca2b64c5dcc56956f97dbae04223b5c7e1aad
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/execution-and-admission/budgets.md
+    userRegionHash: sha256:1f22e8fd2bbcc9f0e2a183994c5ca2b64c5dcc56956f97dbae04223b5c7e1aad
+profile: specification_document
+recordId: knormdoc_2ee32712f8fcb7d9a15eb9de
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2fa8de8bba484c1c6fc0de684d56ee38be4ffc99068f659a63bd33152698d5d5
+sourcePath: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/execution-and-admission/budgets.md
+sourceUnitVersionIds:
+  - uv_d9dc7998ea3f3c88edf8532a

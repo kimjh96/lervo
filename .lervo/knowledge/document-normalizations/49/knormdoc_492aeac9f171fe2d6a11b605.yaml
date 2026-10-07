@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c791f605de39f2cabf093b65
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_18bba4f82cecc491de40a303
+outputLanguage: en
+outputs:
+  - byteCount: 295
+    contentHash: sha256:a2253606b6b3f9b97ddf21f630434381f1366084ed263ecd4bf0fba2948e1e96
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/resident-cycle/observation-and-cache.md
+    userRegionHash: sha256:a2253606b6b3f9b97ddf21f630434381f1366084ed263ecd4bf0fba2948e1e96
+  - byteCount: 2062
+    contentHash: sha256:ba5ba25c49a014eedcc8d32a56708988e3889b6e2359427db146cc65da5c609a
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/resident-cycle/observation-and-cache/cycle-observation.md
+    userRegionHash: sha256:ba5ba25c49a014eedcc8d32a56708988e3889b6e2359427db146cc65da5c609a
+  - byteCount: 1081
+    contentHash: sha256:279c66ea5e036cc14f3e70e51a6ac816123b014611e11db3648682686323cbed
+    path: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/resident-cycle/observation-and-cache/source-hash-cache.md
+    userRegionHash: sha256:279c66ea5e036cc14f3e70e51a6ac816123b014611e11db3648682686323cbed
+profile: specification_document
+recordId: knormdoc_492aeac9f171fe2d6a11b605
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bd23601a6c2d214ac7c3d2911791a271c763fa73cd4e402eded386f9c9499795
+sourcePath: docs/specs/background-knowledge-convergence/runtime/discovery-and-progress/resident-cycle/observation-and-cache.md
+sourceUnitVersionIds:
+  - uv_046830f9ce94c7a969204505
+  - uv_864f7c52442f9e2b9e8e846b
+  - uv_a6f4a16cfbe5bce81dad952e
+  - uv_e336e04e1aa13841731475cb
