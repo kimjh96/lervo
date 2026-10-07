@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_46c8acff0a144465632c4260
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2d649179b897ba26b6ccbc01
+outputLanguage: en
+outputs:
+  - byteCount: 6632
+    contentHash: sha256:302f27e38f51ba1b8717415a4f34b3982c8c619aadecef17e94b28c0845fac54
+    path: docs/decisions/operations/services/0207-transactional-repository-node-apply-and-readiness.md
+    userRegionHash: sha256:302f27e38f51ba1b8717415a4f34b3982c8c619aadecef17e94b28c0845fac54
+profile: decision_record
+recordId: knormdoc_505232d996faedb20b2eb669
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3169717951152c7417a2faddb5b797bc7762495088ef2ad475b9c034f7c4a5ce
+sourcePath: docs/decisions/operations/services/0207-transactional-repository-node-apply-and-readiness.md
+sourceUnitVersionIds:
+  - uv_03f83bf45d1ca4e376fad8e1
+  - uv_133aecf53093ad0cfa21a89d
+  - uv_55aa63b0524a0cd128c5f902
+  - uv_648bd03189b3994735e9618a
+  - uv_7203f6dd606d34338a3ca506
+  - uv_a7b612684e58158db46c9343
+  - uv_ad6300303f510f8facaada47

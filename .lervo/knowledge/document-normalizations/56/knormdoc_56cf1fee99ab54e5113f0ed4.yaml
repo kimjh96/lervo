@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_46c8acff0a144465632c4260
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4eb441100ad4d3d5880704c9
+outputLanguage: en
+outputs:
+  - byteCount: 9883
+    contentHash: sha256:3580c4a041061e0e3ebee4bb489928bff055cadd86f9231fb0dd0998d30f52b1
+    path: docs/decisions/operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md
+    userRegionHash: sha256:3580c4a041061e0e3ebee4bb489928bff055cadd86f9231fb0dd0998d30f52b1
+profile: decision_record
+recordId: knormdoc_56cf1fee99ab54e5113f0ed4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2d67592a12965bfca36f3ed6d29e2de200fac870e637a5c13b035bf5fd822e75
+sourcePath: docs/decisions/operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md
+sourceUnitVersionIds:
+  - uv_20b58df9a006986426363964
+  - uv_2d5d60a81e1c1486de7f78ff
+  - uv_4da902927ba2fb8c78658019
+  - uv_51aa1c58e861ae634ced7605
+  - uv_74a6622181515b67ebf3f769
+  - uv_9e9c54b234270e322a15475c
+  - uv_bcdd470729ad792a1b936a31
+  - uv_c0453f0337d8ffcbb90c0c30
+  - uv_cd231ed179c98cec40bcba2a
+  - uv_d73186140066ec7444316dfd

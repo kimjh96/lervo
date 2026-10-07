@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_46c8acff0a144465632c4260
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e306f6d60e3500b5c32cc8c0
+outputLanguage: en
+outputs:
+  - byteCount: 8210
+    contentHash: sha256:28ef144efee820d85b7a482868ec40e39c0d05af70e6df613f979eeeaf8d41db
+    path: docs/decisions/operations/services/0475-judge-node-replacement-readiness-by-regression.md
+    userRegionHash: sha256:28ef144efee820d85b7a482868ec40e39c0d05af70e6df613f979eeeaf8d41db
+profile: decision_record
+recordId: knormdoc_e6bf423d48c25d80e7bbdc04
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7b9eedf8236d773b59a71fc0bed9322d04098476a53591f615e9f9796ca87e34
+sourcePath: docs/decisions/operations/services/0475-judge-node-replacement-readiness-by-regression.md
+sourceUnitVersionIds:
+  - uv_347e63de79c602764b91bfae
+  - uv_3ac47336b1eadd382a855a52
+  - uv_497c83f65e6e3dec69854d23
+  - uv_591652b15abb09c40da08dbc
+  - uv_7934c3c07acaf6dcc32ee40b
+  - uv_877e56b2920a97c2ed83ea9f
+  - uv_963c043cdedafcc36d247cb6
+  - uv_982f46712f6c695c09a4d6c9
+  - uv_a4e162e8ee8a61ecc172c61c
+  - uv_b4b296a7a7433762e5fe130e
+  - uv_b71792562d5fece53cd9d19a
+  - uv_edfa6e9cf00f7c21fab0167e

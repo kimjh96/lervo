@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_46c8acff0a144465632c4260
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8763d09c993ab4a8951d64bb
+outputLanguage: en
+outputs:
+  - byteCount: 5261
+    contentHash: sha256:bea76a2190d23ebeae7240b52d899dbc58c39878e100a413a69ef3a8c38021d7
+    path: docs/decisions/operations/services/0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md
+    userRegionHash: sha256:bea76a2190d23ebeae7240b52d899dbc58c39878e100a413a69ef3a8c38021d7
+profile: decision_record
+recordId: knormdoc_27fdfa34d298802aed1c9cd7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4203a1c7ba8dffa547c0d6d4f5d97df652f4d987c5ad1a319fc6bdf8fb8ca258
+sourcePath: docs/decisions/operations/services/0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md
+sourceUnitVersionIds:
+  - uv_0680692299b51968e251b05c
+  - uv_271f748d8d7aa220ebe5d245
+  - uv_35cdad12cac7a2b24c41d4eb
+  - uv_48b98ce929288bf72c564825
+  - uv_76710246588f0d070552fdfa
+  - uv_9a85f15be8e245055aefb13c
+  - uv_9e88758f00c7099f735da8bc
+  - uv_e72b6eceec72c2d675d8c935

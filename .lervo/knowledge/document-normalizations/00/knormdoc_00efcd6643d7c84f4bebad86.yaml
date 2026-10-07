@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_46c8acff0a144465632c4260
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c58696af3deddd14a927c100
+outputLanguage: en
+outputs:
+  - byteCount: 6008
+    contentHash: sha256:3cabc1fe6dfd565c305984ea9ee935e3b9ce7be9c3b3cff81e5dc544542e23c6
+    path: docs/decisions/operations/services/0480-defer-node-cache-warmups-past-readiness.md
+    userRegionHash: sha256:3cabc1fe6dfd565c305984ea9ee935e3b9ce7be9c3b3cff81e5dc544542e23c6
+profile: decision_record
+recordId: knormdoc_00efcd6643d7c84f4bebad86
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a4df3b6269aeb78f7057230fa9696679c6cb541ed60dfa9a9129a0a613f5fdb7
+sourcePath: docs/decisions/operations/services/0480-defer-node-cache-warmups-past-readiness.md
+sourceUnitVersionIds:
+  - uv_15f88c9a60d96ae7aca5ec98
+  - uv_3e79af4087779d6bd5ec10f8
+  - uv_4afb53da469da481c6cc48e3
+  - uv_4c88b7f29e9e67a8c32fd924
+  - uv_72f2575cd130f9277f4f8e9d
+  - uv_7d5d0f3c48d4746f65dd4b0d
+  - uv_9946a3af50d5901b0a6b733e
+  - uv_cc8ebb70630ec9a6ebd9bdf2
+  - uv_d626f389494382279d77058e

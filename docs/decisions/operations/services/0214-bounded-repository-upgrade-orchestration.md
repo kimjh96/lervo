@@ -2,7 +2,12 @@
 
 Status: `accepted`
 Date: 2026-08-25
-Amended by: [ADR-0484](0484-keep-upgrades-exclusive-with-background-knowledge-work.md) (apply holds the resident full-cycle admission; scans retry concurrent changes), [ADR-0487](0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md) (`--apply --safe` plans and applies approval-free upgrades in one window), [ADR-0488](0488-point-node-configurations-at-one-current-cli.md) (Node stage maintains the host CLI pointer and migrates pinned configuration paths)
+
+Amended by:
+
+- [ADR-0484](0484-keep-upgrades-exclusive-with-background-knowledge-work.md): apply holds the resident full-cycle admission; scans retry concurrent changes.
+- [ADR-0487](0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md): `--apply --safe` plans and applies approval-free upgrades in one window.
+- [ADR-0488](0488-point-node-configurations-at-one-current-cli.md): the Node stage maintains the host CLI pointer and migrates pinned configuration paths.
 
 ## Context
 
@@ -32,7 +37,7 @@ It never automatically rewrites user-owned documents, rebinds a repository-defin
 
 ### Stage dependencies
 
-The plan publishes `policy.stageDependencies`. Apply follows capabilities, workforce, terminal integration, knowledge, then Node. [ADR-0470](0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) adds `event_writer` after terminal integration and Node, and an independent `host_service` stage. [ADR-0483](../../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) adds `replica_service` as the last stage, after `node`.
+The plan publishes `policy.stageDependencies`. Apply follows capabilities, workforce, terminal integration, knowledge, then Node. [ADR-0470](0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) adds `event_writer` after terminal integration and Node, plus an independent `host_service` stage. [ADR-0483](../../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) adds `replica_service` last, after `node`.
 
 | Stage | Requires |
 | --- | --- |
@@ -45,11 +50,11 @@ The plan publishes `policy.stageDependencies`. Apply follows capabilities, workf
 | `host_service` | Nothing |
 | `replica_service` | Runs last, after `node`; a stage deferred behind an applying `node` stage is re-observed during apply |
 
-Event writer activation retains ADR-0470's reader-evidence, backup, and exact-plan requirements. A stage deferred behind terminal integration or Node applies only if it becomes ready in the same run; otherwise it is skipped with its blockers. Host service remains independent. The replica service stage retains ADR-0483's applicability, pointer, migration, service replacement, and stale-plan checks. These stage requirements do not establish installed activation or fleet acceptance.
+Event writer activation retains ADR-0470's reader-evidence, backup, and exact-plan requirements. A stage deferred behind terminal integration or Node applies only if it becomes ready in the same run; otherwise it is skipped with its blockers. Host service remains independent. The replica service stage retains ADR-0483's applicability, pointer, migration, service replacement, and stale-plan checks. These requirements do not establish installed activation or fleet acceptance.
 
-A blocked stage defers only its dependents. Independent stages still plan and apply under the same exact approval; for example, a generated-only hook runtime refresh applies while unclassified documents block knowledge. The plan lists those stages in `applicableStages` and stays `blocked` until the blocker clears. The blocked stage reports its exact blockers: layout blockers, conflicts, contract issues, or the inner command's error envelope. The receipt records skipped stages and their reasons. Apply refuses a blocked plan only when `applicableStages` is empty.
+A blocked stage defers only its dependents. Independent stages still plan and apply under the same exact approval; for example, a generated-only hook runtime refresh applies while unclassified documents block knowledge. The plan lists those stages in `applicableStages` and stays `blocked` until the blocker clears. The blocked stage reports its exact blockers: layout blockers, conflicts, contract issues, or the inner command's error envelope. The receipt records skipped stages and reasons. Apply refuses a blocked plan only when `applicableStages` is empty.
 
-Terminal integration is a separate stage. Only a `ready` plan (generated runtime bytes, no provider-owned hook change) applies automatically. A provider hook change stays `pending_authority` with its exact approval. When the knowledge sub-plan chain reaches terminal integration, the preceding knowledge stages are current, and the separate stage reports the terminal work.
+Terminal integration is separate. Only a `ready` plan (generated runtime bytes, no provider-owned hook change) applies automatically. A provider hook change stays `pending_authority` with its exact approval. When the knowledge sub-plan chain reaches terminal integration, preceding knowledge stages are current, and the separate stage reports the terminal work.
 
 ### Repository Node
 
@@ -57,7 +62,7 @@ A historical fleet registration whose current project policy disables Hub synchr
 
 For a registered Node, the planner reads only the owner-only canonical service definition, extracts absolute executable and config coordinates, and exposes only the config-path digest. SHA-256 and the content-addressed launcher path identify the desired Node payload, so changed builds are replaced even when their semantic version is unchanged. An exact active deployment is current even while its optional Hub is unavailable; the stage reason preserves that observation without claiming runtime readiness. Apply revalidates the service-target hash and config through the existing Node contract, observes three complete or narrowly bounded `offline_ready` snapshots, and commits fleet registration last.
 
-[ADR-0488](0488-point-node-configurations-at-one-current-cli.md) adds the Node configuration's executables to this stage. The stage points the host's `current` CLI pointer at the running CLI install and rewrites version-specific CLI and Node runtime paths in the configuration to the host pointers. It writes an owner-only `.pre-adr-0488` backup first. The plan exposes only field names and hashes. A current deployment with only that work plans `node_config_executables_stale` and leaves the Node service unchanged.
+[ADR-0488](0488-point-node-configurations-at-one-current-cli.md) adds the Node configuration's executables to this stage. It points the host's `current` CLI pointer at the running CLI install and rewrites version-specific CLI and Node runtime paths in the configuration to the host pointers, first writing an owner-only `.pre-adr-0488` backup. The plan exposes only field names and hashes. A current deployment with only that work plans `node_config_executables_stale` and leaves the Node service unchanged.
 
 ### CLI acquisition
 
