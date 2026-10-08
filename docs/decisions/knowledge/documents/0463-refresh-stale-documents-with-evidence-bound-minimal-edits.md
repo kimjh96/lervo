@@ -138,7 +138,7 @@ Report metrics weekly from events:
 4. `contract-only`: Tier 0 and the `document_freshness` signal await ADR-0460 Slice 1; metrics projection is deferred.
 5. `wired`: `archive` operation.
 6. Deferred by owner decision: `document_freshness` mandate kind.
-7. `installed-proven`: installed journey on the Lervo repository.
+7. `wired`; installed proof pending: the [document freshness specification's correction](../../../specifications/knowledge/document-freshness.md#installed-journey-completion) reports one local fixture-provider run on a copy of the Lervo repository. That result does not establish real-provider installed completion. A real-provider run and its evidence document under `docs/evidence/quality/` remain open. This replaces the former `installed-proven` label.
 
 Also deferred: freshness of pending workstream approvals in compact context (recorded follow-up: a stale-hit marker under ADR-0459), non-Markdown sources, edits above the 25 percent bound, cross-repository evidence, and languages outside the English boundary (invariant 8).
 
