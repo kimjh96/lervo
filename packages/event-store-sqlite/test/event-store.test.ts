@@ -77,6 +77,39 @@ afterEach(async () => {
 });
 
 describe("SQLite append-only event store", () => {
+  it("reads mixed maintenance history after writer rollback and rejects schema 5 on a schema-4 writer", async () => {
+    const path = await databasePath();
+    const maintenance: EventDraft = {
+      ...draft(),
+      eventId: "evt_maintenance_receipt",
+      schemaVersion: 5,
+      type: "document.freshness.assessment.recorded",
+      payload: {
+        projectId,
+        findingDigest: policyVersion,
+        documentHash: policyVersion,
+        evidenceContractHash: policyVersion,
+        receiptHash: policyVersion,
+        occurredAt: "2026-10-08T01:00:00Z",
+        outcome: "verified_no_change",
+        dependencyDigest: policyVersion,
+        verificationContractHash: policyVersion,
+      },
+    };
+    let store = await SQLiteEventStore.open({ path, projectId, writableEventSchemaVersion: 4 });
+    store.append(draft());
+    expect(() => store.append(maintenance)).toThrowError(
+      expect.objectContaining({ code: "event_schema_unsupported" }),
+    );
+    store.close();
+    store = await SQLiteEventStore.open({ path, projectId, writableEventSchemaVersion: 5 });
+    store.append(maintenance);
+    store.close();
+    store = await SQLiteEventStore.open({ path, projectId, writableEventSchemaVersion: 1 });
+    expect(store.list().map((event) => event.schemaVersion)).toEqual([1, 5]);
+    expect(store.verifyIntegrity().valid).toBe(true);
+    store.close();
+  });
   it("enforces one immutable causal event per run and one root per work", async () => {
     const store = await SQLiteEventStore.open({
       path: await databasePath(),

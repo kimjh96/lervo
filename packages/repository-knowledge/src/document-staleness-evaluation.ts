@@ -7,6 +7,10 @@ import type { DocumentManifest } from "@lervo/schemas";
 import { extractDocumentReferences } from "./document-references.js";
 import type { DocumentStalenessGitPort } from "./document-staleness-git.js";
 import { sha256, stableId } from "./integrity.js";
+import {
+  documentFreshnessAssessmentMatches,
+  type DocumentFreshnessAssessmentV1,
+} from "./document-freshness-assessment.js";
 
 export const DOCUMENT_STALENESS_EVALUATOR = "lervo.document-staleness.v1" as const;
 /** Review interval for inferred manifests; code drift, not age, is the primary signal. */
@@ -61,6 +65,8 @@ export interface DocumentStalenessInput {
   topLevel: (segment: string) => boolean;
   git: DocumentStalenessGitPort;
   now: Date;
+  assessments?: readonly DocumentFreshnessAssessmentV1[];
+  assessmentPolicyHash?: string;
 }
 
 function compare(left: string, right: string): number {
@@ -213,6 +219,8 @@ export async function evaluateRepositoryDocumentStaleness(
     };
   });
   const lookups = new Set<string>();
+  for (const assessment of input.assessments ?? [])
+    for (const object of assessment.dependency.objects) lookups.add(`${head}:${object.path}`);
   for (const plan of plans) {
     if (plan.verified === null || plan.candidates.length === 0) continue;
     for (const path of [plan.path, ...plan.candidates]) {
@@ -261,13 +269,30 @@ export async function evaluateRepositoryDocumentStaleness(
           ? {}
           : { verifiedSnapshot: snapshot(verified.revision, paths, objects) }),
       });
+      const document = documents.find((item) => item.path === plan.path)!;
+      const assessment = input.assessments?.find((item) => item.documentPath === plan.path);
+      const assessed =
+        result.reasons.every(
+          (reason) => reason === "connected_path_changed" || reason === "review_interval_elapsed",
+        ) &&
+        assessment !== undefined &&
+        input.assessmentPolicyHash !== undefined &&
+        documentFreshnessAssessmentMatches({
+          assessment,
+          documentHash: sha256(document.content),
+          policyHash: input.assessmentPolicyHash,
+          connectedPaths,
+          objects,
+          revision: head,
+          now: input.now,
+        });
       findings.push({
         path: plan.path,
-        status: result.status,
+        status: assessed ? "current" : result.status,
         verifiedRevision: verified.revision,
-        reasons: [...result.reasons],
+        reasons: assessed ? [] : [...result.reasons],
         connectedPaths,
-        changedPaths: [...result.signals.connectedPaths.changedPaths],
+        changedPaths: assessed ? [] : [...result.signals.connectedPaths.changedPaths],
       });
     } catch {
       findings.push({

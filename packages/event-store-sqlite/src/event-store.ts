@@ -32,7 +32,7 @@ import { sqliteRow } from "./sqlite-row.js";
 export interface OpenEventStoreOptions {
   path: string;
   projectId: ProjectManifest["projectId"];
-  writableEventSchemaVersion?: 1 | 2 | 3 | 4;
+  writableEventSchemaVersion?: 1 | 2 | 3 | 4 | 5;
 }
 
 function isThenable(value: unknown): value is PromiseLike<unknown> {
@@ -56,7 +56,7 @@ export class SQLiteEventStore implements OutboxStore {
     path: string,
     projectId: string,
     private readonly database: DatabaseSync,
-    writableEventSchemaVersion: 1 | 2 | 3 | 4,
+    writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5,
     private readonly readOnly = false,
   ) {
     this.path = path;
@@ -66,7 +66,7 @@ export class SQLiteEventStore implements OutboxStore {
   }
 
   static async open(options: OpenEventStoreOptions): Promise<SQLiteEventStore> {
-    if (![1, 2, 3, 4].includes(options.writableEventSchemaVersion ?? 1)) {
+    if (![1, 2, 3, 4, 5].includes(options.writableEventSchemaVersion ?? 1)) {
       throw new EventStoreError(
         "event_schema_unsupported",
         "The writer activation version is unsupported.",

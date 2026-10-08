@@ -109,6 +109,11 @@ export {
   readRecordedDocumentStalenessReport,
 } from "./document-staleness-state.js";
 export * from "./document-freshness-contract.js";
+export * from "./document-freshness-assessment.js";
+export {
+  readDocumentFreshnessAssessments,
+  storeDocumentFreshnessAssessment,
+} from "./document-freshness-assessment-store.js";
 export * from "./document-freshness-policy.js";
 export {
   documentFreshnessFinding,

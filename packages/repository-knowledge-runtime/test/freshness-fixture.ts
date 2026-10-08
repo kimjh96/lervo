@@ -24,14 +24,15 @@ export interface FreshnessPlanEntry {
   archiveName?: string;
   currentDocumentPath?: string;
   explanation?: string;
+  assessmentAgrees?: boolean;
 }
 
 /**
  * A scratch repository with an active convergence delegation and the document freshness fixture
  * provider, which answers from a per-document plan instead of a model.
  */
-export async function freshnessFixture() {
-  const base = await fixture(true);
+export async function freshnessFixture(eventSchema: 4 | 5 = 4) {
+  const base = await fixture(true, false, false, 0, eventSchema);
   const providerDirectory = resolve(base.directory, "freshness-provider");
   await mkdir(providerDirectory, { recursive: true });
   const executable = resolve(providerDirectory, "claude");

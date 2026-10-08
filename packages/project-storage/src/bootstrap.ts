@@ -54,7 +54,7 @@ class OpenedProjectStorage implements ProjectStorage {
   constructor(
     readonly manifest: ProjectStorage["manifest"],
     readonly paths: ProjectStorage["paths"],
-    readonly writableEventSchemaVersion: 1 | 2 | 3 | 4,
+    readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5,
     readonly events: OutboxStore,
     readonly artifacts: CloseableArtifactStore,
     readonly readOnly = false,

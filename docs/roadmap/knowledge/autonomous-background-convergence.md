@@ -18,3 +18,4 @@ Production fleet activation and remaining installed acceptance gates remain open
 - [Delivery order](autonomous-background-convergence/delivery.md): settlement safety, delegation, integration, normalization, and lifecycle completion.
 - [Acceptance gates](autonomous-background-convergence/acceptance.md): observed completion and remaining installed requirements.
 - [Validation and rollout](autonomous-background-convergence/rollout.md): activation prerequisites and installed verification history.
+- [Maintenance recovery and speed](maintenance-recovery-and-speed.md): proposed evidence recovery, fair preparation and safe effects, bounded status, and installed performance gates from the October 8 investigation.

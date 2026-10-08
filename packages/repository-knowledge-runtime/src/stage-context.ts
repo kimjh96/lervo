@@ -14,4 +14,6 @@ export interface ConvergenceRuntimeContext {
   signal: AbortSignal;
   liveWorkPending(): Promise<boolean>;
   assertSource(state: KnowledgeConvergenceInput): void;
+  /** Shared by stage adapters; completed shards resume through their exact cache next turn. */
+  providerQuantum?: { remaining: number };
 }

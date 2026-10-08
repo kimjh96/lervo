@@ -1,5 +1,27 @@
 /** ADR-0463 freshness events: coordinates, counts, and codes only; edit bodies stay in CAS. */
 export const documentFreshnessPayloadAllowlists = {
+  "document.freshness.evidence.recovered": [
+    "projectId",
+    "findingDigest",
+    "documentHash",
+    "evidenceContractHash",
+    "receiptHash",
+    "outcome",
+    "occurredAt",
+    "predecessorCandidateId",
+    "attempt",
+  ],
+  "document.freshness.assessment.recorded": [
+    "projectId",
+    "findingDigest",
+    "documentHash",
+    "evidenceContractHash",
+    "receiptHash",
+    "outcome",
+    "occurredAt",
+    "dependencyDigest",
+    "verificationContractHash",
+  ],
   "document.freshness.candidate.created": [
     "candidateId",
     "findingDigest",
@@ -65,6 +87,8 @@ export const documentFreshnessPayloadAllowlists = {
 } as const;
 
 export const documentFreshnessPayloadSchemas = {
+  "document.freshness.evidence.recovered": "documentFreshnessEvidenceRecoveredEventPayload",
+  "document.freshness.assessment.recorded": "documentFreshnessAssessmentRecordedEventPayload",
   "document.freshness.candidate.created": "documentFreshnessCandidateCreatedEventPayload",
   "document.freshness.candidate.verified": "documentFreshnessCandidateVerifiedEventPayload",
   "document.freshness.candidate.applied": "documentFreshnessCandidateAppliedEventPayload",

@@ -106,3 +106,5 @@ export * from "./workstream-replication.js";
 export * from "./work-execution-report.js";
 export * from "./knowledge-convergence-event.js";
 export * from "./convergence-assignment-archive-event.js";
+
+export * from "./knowledge-maintenance-event.js";

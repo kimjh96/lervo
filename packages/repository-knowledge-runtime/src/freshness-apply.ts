@@ -17,6 +17,27 @@ import {
 } from "./freshness-document-io.js";
 import { appendFreshnessEvent, recordFreshnessRejection } from "./freshness-events.js";
 import { listFreshnessHolds, writeFreshnessCandidate } from "./freshness-state-store.js";
+import { freshnessDependenciesCurrent } from "./freshness-dependencies.js";
+
+async function assertFreshnessDependencies(input: {
+  storage: FreshnessStorage;
+  candidate: DocumentFreshnessCandidateV1;
+  now: Date;
+}): Promise<void> {
+  if (
+    input.candidate.dependencyWitness === undefined ||
+    (await freshnessDependenciesCurrent(
+      input.storage.paths.repositoryRoot,
+      input.candidate.dependencyWitness,
+    ))
+  )
+    return;
+  await supersedeFreshnessCandidate(input);
+  throw new DocumentFreshnessOperationError(
+    "source_changed",
+    "Reviewed freshness evidence changed before apply.",
+  );
+}
 
 /**
  * Supersedes a candidate whose source bytes changed under it. `source_changed` means the owner
@@ -125,6 +146,7 @@ async function applyEdit(input: {
     appliedHunkIds: new Set(candidate.appliedHunkIds),
     newHunkIds: input.hunkIds,
   });
+  await assertFreshnessDependencies(input);
   try {
     await writeDocumentBytes(root, candidate.documentPath, output);
   } catch (error) {
@@ -254,6 +276,7 @@ export async function applyFreshnessCandidateByOwner(input: {
     approvedAt: input.now.toISOString(),
   };
   if (candidate.operation === "archive" && candidate.archive !== null) {
+    await assertFreshnessDependencies(input);
     let written: Awaited<ReturnType<typeof writeFreshnessArchive>>;
     try {
       written = await writeFreshnessArchive({ storage: input.storage, candidate });

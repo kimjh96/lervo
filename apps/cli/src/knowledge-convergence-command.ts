@@ -1,5 +1,9 @@
+import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
 import { openReadOnlyProjectStorage } from "@lervo/project-storage";
-import { inspectAutonomousKnowledgeStatus } from "@lervo/repository-knowledge-runtime";
+import {
+  inspectAutonomousKnowledgeStatus,
+  readAutonomousKnowledgeStatus,
+} from "@lervo/repository-knowledge-runtime";
 import type { CliIo } from "./types.js";
 import { runKnowledgeConvergenceDelegationCommand } from "./knowledge-convergence-delegation-command.js";
 import { runKnowledgeConvergenceOwnerCommand } from "./knowledge-convergence-owner-command.js";
@@ -25,6 +29,13 @@ export async function runKnowledgeConvergenceCommand(
     return 1;
   }
   try {
+    if (args[0] === "status") {
+      const paths = resolveProjectPaths(io.cwd);
+      const manifest = await loadProjectManifest(paths.repositoryRoot);
+      const status = await readAutonomousKnowledgeStatus({ paths, manifest });
+      io.stdout(`${JSON.stringify(status, null, args.includes("--json") ? 2 : undefined)}\n`);
+      return 0;
+    }
     const storage = await openReadOnlyProjectStorage(io.cwd);
     try {
       const status = await inspectAutonomousKnowledgeStatus(storage);

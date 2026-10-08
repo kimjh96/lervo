@@ -48,6 +48,7 @@ export interface DocumentFreshnessStatusReport {
   recentApplies: Array<{ candidateId: string; documentPath: string; timeToFreshSeconds: number }>;
   summary: DocumentFreshnessSummary;
   lastCycleAt: string | null;
+  technicalRecovery?: { pending: number; exhausted: number; reasonCounts: Record<string, number> };
 }
 
 function tally(values: readonly string[]): Record<string, number> {
@@ -78,6 +79,15 @@ export async function inspectDocumentFreshnessStatus(
     schemaVersion: 1,
     kind: "document_freshness.status",
     enabled: policy.enabled,
+    technicalRecovery: {
+      pending: Object.values(cycle.evidenceRecovery ?? {}).filter(
+        (item) => item.attempts < 2 || item.nextCursor !== null,
+      ).length,
+      exhausted: Object.values(cycle.evidenceRecovery ?? {}).filter(
+        (item) => item.attempts >= 2 && item.nextCursor === null,
+      ).length,
+      reasonCounts: tally(Object.values(cycle.evidenceRecovery ?? {}).map((item) => item.reason)),
+    },
     counts: {
       byState: tally(candidates.map((candidate) => candidate.state)),
       byPriority: tally(candidates.map((candidate) => candidate.priorityClass)),

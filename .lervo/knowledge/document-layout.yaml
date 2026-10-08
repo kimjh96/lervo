@@ -29,6 +29,10 @@ routes:
     path: search
     priority: 100
     description: "Scope carried from the legacy title terms: search; bm25; lexical."
+  - id: knowledge.maintenance
+    path: knowledge/maintenance
+    priority: 97
+    description: "Background knowledge maintenance scheduling, evidence recovery, progress observations, and bounded processing performance."
   - id: knowledge.documents
     path: knowledge/documents
     priority: 95

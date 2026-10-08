@@ -11,6 +11,7 @@ import { convergenceRecoveryStatus } from "./recovery-status.js";
 import { withNormalizationScopeGap } from "./normalization-scope-gap.js";
 import { withParkedSourcesStatus } from "./convergence-parking.js";
 import { withVerificationChangesStatus } from "./verification-source-changes.js";
+import { readMaintenanceObservation } from "./maintenance-observation.js";
 
 /**
  * Read-only debt detection: currency, normalization, and candidate inspection without a baseline
@@ -62,5 +63,65 @@ export async function inspectAutonomousKnowledgeStatus(storage: ProjectStorage) 
     worker: await inspectKnowledgeResidentHealth(root),
     owner: (await readConvergenceOwnerFence(root))?.verdict ?? null,
     baselineCurrent,
+  };
+}
+
+/** Metadata only. Cached verification is historical and cannot authorize an effect. */
+export async function readAutonomousKnowledgeStatus(
+  storage: Pick<ProjectStorage, "paths" | "manifest">,
+  now = new Date(),
+) {
+  const root = storage.paths.repositoryRoot;
+  const [observation, worker, fence] = await Promise.all([
+    readMaintenanceObservation(root, storage.manifest.projectId),
+    inspectKnowledgeResidentHealth(root, now).catch(() => ({
+      status: "degraded" as const,
+      state: null,
+      heartbeatAt: null,
+      reason: "maintenance_health_unavailable",
+    })),
+    readConvergenceOwnerFence(root),
+  ]);
+  const owner = fence?.verdict ?? null;
+  const sameOwner =
+    observation !== null &&
+    observation.ownerGeneration === (owner?.holder?.generation ?? null) &&
+    observation.ownerHostHash === (owner?.hostHash ?? null);
+  const age =
+    observation === null ? null : Math.max(0, now.getTime() - Date.parse(observation.observedAt));
+  const status = observation?.status ?? {
+    transport: "ready" as const,
+    state: "attention_required" as const,
+    debtCounts: null,
+    outstanding: null,
+    oldestAgeMilliseconds: null,
+    activeStage: null,
+    reason: "maintenance_observation_unavailable",
+    lastVerifiedCurrency: null,
+  };
+  return {
+    schemaVersion: 2,
+    kind: "knowledge_maintenance.status",
+    ...status,
+    worker,
+    owner,
+    baselineCurrent: false,
+    observation: {
+      schemaVersion: 1,
+      coverage:
+        observation === null ? "unknown" : sameOwner && age! <= 900_000 ? "observed" : "stale",
+      observedAt: observation?.observedAt ?? null,
+      ageMilliseconds: age,
+      verifiedAt: observation?.verifiedAt ?? null,
+      source:
+        observation === null ? "unknown" : owner?.role === "owner" && sameOwner ? "owner" : "local",
+      ownerGeneration: observation?.ownerGeneration ?? null,
+      reason:
+        observation === null
+          ? "maintenance_observation_unavailable"
+          : !sameOwner
+            ? "maintenance_owner_changed"
+            : "maintenance_currency_unverified",
+    },
   };
 }

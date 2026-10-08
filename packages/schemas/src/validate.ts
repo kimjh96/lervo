@@ -1,4 +1,8 @@
 import {
+  documentFreshnessEvidenceRecoveredEventPayloadSchema,
+  documentFreshnessAssessmentRecordedEventPayloadSchema,
+} from "./knowledge-maintenance-event.js";
+import {
   repositoryKnowledgeBaselineRequestedEventPayloadSchema,
   repositoryKnowledgeStageRecordedEventPayloadSchema,
   repositoryKnowledgeConvergenceRecordedEventPayloadSchema,
@@ -407,6 +411,12 @@ const validators = {
   repositoryReplicaDivergedEventPayload: ajv.compile(repositoryReplicaDivergedEventPayloadSchema),
   repositoryReplicaReconciledEventPayload: ajv.compile(
     repositoryReplicaReconciledEventPayloadSchema,
+  ),
+  documentFreshnessEvidenceRecoveredEventPayload: ajv.compile(
+    documentFreshnessEvidenceRecoveredEventPayloadSchema,
+  ),
+  documentFreshnessAssessmentRecordedEventPayload: ajv.compile(
+    documentFreshnessAssessmentRecordedEventPayloadSchema,
   ),
   documentFreshnessCandidateCreatedEventPayload: ajv.compile(
     documentFreshnessCandidateCreatedEventPayloadSchema,

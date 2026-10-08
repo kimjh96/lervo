@@ -40,6 +40,10 @@ export interface FreshnessCycleState {
   budget: { day: string; tokensUsed: number; attempts: number; verified: number };
   summary: DocumentFreshnessSummary;
   lastCycleAt: string | null;
+  evidenceRecovery?: Record<
+    string,
+    { attempts: number; receiptHash: string; nextCursor: string | null; reason: string }
+  >;
 }
 
 export function emptyFreshnessCycleState(): FreshnessCycleState {

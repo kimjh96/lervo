@@ -84,6 +84,17 @@ export const eventWriterCoordinateSchema = {
     {
       type: "object",
       properties: {
+        schemaVersion: { type: "integer", const: 4 },
+        projectId: projectIdSchema,
+        selectedEventSchemaVersion: { type: "integer", const: 5 },
+        activationEvidence: activationValueSchema,
+      },
+      required: ["schemaVersion", "projectId", "selectedEventSchemaVersion", "activationEvidence"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
         schemaVersion: { type: "integer", const: 3 },
         projectId: projectIdSchema,
         selectedEventSchemaVersion: { type: "integer", const: 4 },

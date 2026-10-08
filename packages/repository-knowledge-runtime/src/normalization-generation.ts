@@ -30,6 +30,11 @@ import {
   type ParkedConvergenceSource,
 } from "./convergence-parking.js";
 import { admitNormalizationDocuments, normalizationRejections } from "./normalization-rejection.js";
+import { packNormalizationDocuments } from "./normalization-packing.js";
+import {
+  normalizationCostKey,
+  normalizationLearnedLimit,
+} from "./normalization-cost-controller.js";
 
 export interface NormalizationBatch {
   candidateId: string;
@@ -37,6 +42,7 @@ export interface NormalizationBatch {
   paths: string[];
   generatedInputHash: string;
   maximumCalls: number;
+  costKey?: string;
 }
 
 /**
@@ -121,16 +127,32 @@ export async function generateNormalizationBatch(
       reason: NORMALIZATION_OUTSIDE_DELEGATION,
       dependency: normalizationScopeGap(state, sorted),
     });
-  let sourceBytes = 0;
+  const compiler = await createProcessDocumentNormalizationCompiler({
+    provider: context.provider,
+    ...(context.executable === undefined ? {} : { executable: context.executable }),
+    timeoutMs: 600_000,
+  });
+  const sizes = new Map<string, number>();
+  const packed = packNormalizationDocuments({
+    paths: scoped,
+    maximumDocuments: admission.fresh.length ? delegation.resourceCeilings.maximumDocuments : 1,
+    maximumBytes: delegation.resourceCeilings.maximumSourceBytes,
+    size: (path) => {
+      const size = convergenceSourceBytes(root, path).byteLength;
+      sizes.set(path, size);
+      return size;
+    },
+  });
+  const costKey = normalizationCostKey(
+    compiler.descriptor,
+    Math.max(0, ...packed.map((path) => sizes.get(path)!)),
+  );
   const documentLimit = normalizationDocumentLimit(
     state,
-    delegation.resourceCeilings.maximumDocuments,
+    await normalizationLearnedLimit(root, costKey, delegation.resourceCeilings.maximumDocuments),
   );
   // A regeneration carries one document's reasons, so its review isolates that document.
-  const selected = scoped.slice(0, admission.fresh.length ? documentLimit : 1).filter((path) => {
-    sourceBytes += convergenceSourceBytes(root, path).byteLength;
-    return sourceBytes <= delegation.resourceCeilings.maximumSourceBytes;
-  });
+  const selected = packed.slice(0, admission.fresh.length ? documentLimit : 1);
   if (!selected.length)
     return waitingConvergenceStage({
       artifacts: context.storage.artifacts,
@@ -153,11 +175,6 @@ export async function generateNormalizationBatch(
         delegationHash: state.baseline.delegationHash,
       },
     });
-  const compiler = await createProcessDocumentNormalizationCompiler({
-    provider: context.provider,
-    ...(context.executable === undefined ? {} : { executable: context.executable }),
-    timeoutMs: 600_000,
-  });
   const bounded = await selectNormalizationBatchWithinCallBudget({
     repositoryRoot: root,
     paths: selected,
@@ -165,6 +182,13 @@ export async function generateNormalizationBatch(
     maximumSourceBytes: delegation.resourceCeilings.maximumSourceBytes,
     maximumProviderCalls: delegation.resourceCeilings.maximumProviderCalls,
   });
+  if (bounded.length === 0)
+    return waitingConvergenceStage({
+      artifacts: context.storage.artifacts,
+      state,
+      reason: "knowledge_authority_unavailable",
+      dependency: normalizationScopeGap(state, selected),
+    });
   return withConvergenceAssignment({
     storage: context.storage,
     provider: context.provider,
@@ -182,6 +206,7 @@ export async function generateNormalizationBatch(
           }),
         ),
         parkedSources: admission.parked,
+        costKey,
       }),
   });
 }
@@ -195,6 +220,7 @@ async function generate(
   regeneration: {
     feedback: ReadonlyMap<string, DocumentNormalizationReviewFeedback>;
     parkedSources: ParkedConvergenceSource[];
+    costKey: string;
   },
 ): Promise<KnowledgeConvergenceStageResult> {
   const root = context.storage.paths.repositoryRoot;
@@ -205,7 +231,7 @@ async function generate(
     if (!pathWithinConvergenceRoots(path, authority.delegation.normalizationRoots)) continue;
     const size = convergenceSourceBytes(root, path).byteLength;
     if (selected.length >= ceilings.maximumDocuments || bytes + size > ceilings.maximumSourceBytes)
-      break;
+      continue;
     selected.push(path);
     bytes += size;
   }
@@ -275,6 +301,7 @@ async function generate(
     paths: selected,
     generatedInputHash: sha256(canonicalJson(state)),
     maximumCalls: ceilings.maximumProviderCalls,
+    costKey: regeneration.costKey,
   };
   return completeConvergenceStage({
     repositoryRoot: root,

@@ -1,3 +1,4 @@
+import { knowledgeMaintenanceEventTypes } from "./knowledge-maintenance-event.js";
 import type { FromSchema } from "json-schema-to-ts";
 
 import {
@@ -157,7 +158,8 @@ export const eventTypesV4 = [
   "knowledge.publication.repaired",
   "knowledge.integration_target.absorbed",
 ] as const;
-export const eventTypes = eventTypesV4;
+export const eventTypesV5 = [...eventTypesV4, ...knowledgeMaintenanceEventTypes] as const;
+export const eventTypes = eventTypesV5;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -272,6 +274,14 @@ export const eventEnvelopeSchema = {
         schemaVersion: { type: "integer", const: 4 },
       },
     },
+    {
+      ...eventEnvelopeV2Schema,
+      properties: {
+        ...eventEnvelopeV2Schema.properties,
+        type: { type: "string", enum: eventTypesV5 },
+        schemaVersion: { type: "integer", const: 5 },
+      },
+    },
   ],
 } as const;
 
@@ -285,9 +295,13 @@ export type EventEnvelopeV4 = Omit<EventEnvelopeV3, "schemaVersion" | "type"> & 
   schemaVersion: 4;
   type: (typeof eventTypesV4)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV4, "schemaVersion"> & {
-  schemaVersion: EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4;
+export type EventEnvelopeV5 = Omit<EventEnvelopeV4, "schemaVersion" | "type"> & {
+  schemaVersion: 5;
+  type: (typeof eventTypesV5)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV5, "schemaVersion"> & {
+  schemaVersion: EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4 | 5;
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV4)[number];
+export type EventType = (typeof eventTypesV5)[number];

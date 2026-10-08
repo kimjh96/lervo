@@ -368,9 +368,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:537b6b61d99cbf041d44f2fa2abcac1a4c4927688b8495914941663e2a3b2dab",
+      "contentHash": "sha256:49da12d480697afe2b8ba253af75397e62f2b3f4715317c6070695c654ec2255",
       "responsibility": "Repository schema validator registry",
-      "rationale": "The module declaratively compiles one schema registry. Dedicated event schema modules own the additive validators, including ADR-0463 freshness, ADR-0467 capture, ADR-0469 continuation, ADR-0473 publication repair, and ADR-0477 definition installation payloads; privacy, durable decisions, source inspection and persistence remain outside this registry.",
+      "rationale": "The module compiles one declarative schema registry. Dedicated event schema modules own additive validators, including schema-5 maintenance receipts; privacy, freshness decisions, source inspection, projections, and writer activation stay outside this registry. The new entries add no orchestration or I/O responsibility.",
       "disposition": "cohesive"
     },
     {

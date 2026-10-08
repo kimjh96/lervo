@@ -11,6 +11,7 @@ import { recordKnowledgeWorkerMeasurement } from "./knowledge-worker-measurement
 import type { SemanticReviewContextDocument } from "./review-context.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { readProviderReviewCache, storeProviderReviewCache } from "./provider-review-cache.js";
 
 export async function withKnowledgeProviderAdmission<T>(input: {
   context: ConvergenceRuntimeContext;
@@ -20,6 +21,8 @@ export async function withKnowledgeProviderAdmission<T>(input: {
   run(observationHash: string, signal: AbortSignal): Promise<T>;
 }): Promise<T> {
   const { context } = input;
+  if (context.providerQuantum !== undefined && context.providerQuantum.remaining <= 0)
+    throw new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
   await input.authority.assertCurrent();
   context.assertSource(input.state);
   const admission = await acquireKnowledgeProviderAdmission({
@@ -56,6 +59,7 @@ export async function withKnowledgeProviderAdmission<T>(input: {
       events: context.storage.events,
       ...input.budget,
     });
+    if (context.providerQuantum !== undefined) context.providerQuantum.remaining -= 1;
     return await input.run(admission.observationHash, controller.signal);
   } catch (error) {
     if (error instanceof KnowledgeProviderAvailabilityError)
@@ -97,7 +101,40 @@ export async function reviewKnowledgeJson(input: {
   admissionObservationHash: string;
   observationArtifactHash: string;
 }> {
-  return withKnowledgeProviderAdmission({
+  await input.authority.assertCurrent();
+  input.context.assertSource(input.state);
+  const cache = {
+    root: input.context.storage.paths.repositoryRoot,
+    artifacts: input.context.storage.artifacts,
+    key: sha256(
+      canonicalJson([
+        input.context.provider,
+        input.context.executable ?? null,
+        input.state.obligationId,
+        input.state.snapshotHash,
+        input.state.baseline.delegationHash,
+        input.state.stageData,
+        input.task,
+        input.prompt,
+        input.schema,
+        input.untrustedSourceData,
+        input.contextDocuments,
+      ]),
+    ),
+  };
+  const prior = (await readProviderReviewCache(cache)) as {
+    value: unknown;
+    usage: unknown;
+    admissionObservationHash: string;
+    observationArtifactHash: string;
+  } | null;
+  if (
+    prior !== null &&
+    typeof prior.admissionObservationHash === "string" &&
+    typeof prior.observationArtifactHash === "string"
+  )
+    return prior;
+  const result = await withKnowledgeProviderAdmission({
     ...input,
     run: async (admissionObservationHash, signal) => {
       const runner = await createNoCapabilityProviderJsonRunner({
@@ -147,4 +184,6 @@ export async function reviewKnowledgeJson(input: {
       return { ...result, admissionObservationHash, observationArtifactHash: proof.contentHash };
     },
   });
+  await storeProviderReviewCache({ ...cache, value: result });
+  return result;
 }

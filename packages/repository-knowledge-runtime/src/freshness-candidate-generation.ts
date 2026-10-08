@@ -24,11 +24,22 @@ import {
   type FreshnessGenerationContext,
 } from "./freshness-generation.js";
 import { writeFreshnessCandidate } from "./freshness-state-store.js";
+import {
+  captureFreshnessDependencies,
+  freshnessDependenciesCurrent,
+} from "./freshness-dependencies.js";
+import { settleFreshnessAssessment } from "./freshness-assessment.js";
 
 const MAXIMUM_INBOUND_DOCUMENTS = 8_192;
 
 export type FreshnessFindingOutcome =
   | { status: "deferred"; reason: string }
+  | {
+      status: "evidence_deferred";
+      reason: "freshness_evidence_unavailable" | "freshness_evidence_incomplete";
+      receiptHash: string;
+      nextCursor: string | null;
+    }
   | { status: "candidate"; candidate: DocumentFreshnessCandidateV1; tokensObserved: number };
 
 /** Tracked Markdown documents other than the archived one, read only for an archive proposal. */
@@ -65,6 +76,9 @@ export async function generateFreshnessCandidate(input: {
   attempt: number;
   policy: DocumentFreshnessPolicy;
   mandateKinds: readonly string[];
+  autoApply?: boolean;
+  evidenceCursor?: string;
+  predecessorCandidateId?: string;
 }): Promise<FreshnessFindingOutcome> {
   const { context, entry } = input;
   const storage = context.storage;
@@ -95,13 +109,54 @@ export async function generateFreshnessCandidate(input: {
       }),
       bundleHash: entry.finding.findingDigest,
     });
+    const dependencyWitness = await captureFreshnessDependencies({
+      root,
+      finding: entry.finding,
+      evidence: [],
+    });
+    if (dependencyWitness !== null && entry.finding.references.every((ref) => ref.resolved)) {
+      candidate = { ...candidate, dependencyWitness };
+      candidate = await settleFreshnessAssessment({
+        context,
+        candidate,
+        revision: entry.finding.currentRevision,
+        reviewerIdentity: "lervo/deterministic-reference-and-interval/v1",
+      });
+    }
   } else {
     const { bundle, evidence } = await buildFreshnessEvidenceBundle({
       repositoryRoot: root,
       finding: entry.finding,
       content: input.content,
+      ...(input.evidenceCursor === undefined ? {} : { cursor: input.evidenceCursor }),
     });
+    const dependencyWitness = await captureFreshnessDependencies({
+      root,
+      finding: entry.finding,
+      evidence: bundle.evidence,
+    });
+    if (dependencyWitness !== null) bundle.dependencyWitness = dependencyWitness;
     const stored = await storage.artifacts.put(freshnessBundleBytes(bundle));
+    if (bundle.coverage.status !== "ready")
+      return {
+        status: "evidence_deferred",
+        reason:
+          bundle.coverage.status === "unavailable"
+            ? "freshness_evidence_unavailable"
+            : "freshness_evidence_incomplete",
+        receiptHash: stored.contentHash,
+        nextCursor: bundle.coverage.nextCursor,
+      };
+    if (
+      dependencyWitness === null ||
+      !(await freshnessDependenciesCurrent(root, dependencyWitness))
+    )
+      return {
+        status: "evidence_deferred",
+        reason: "freshness_evidence_unavailable",
+        receiptHash: stored.contentHash,
+        nextCursor: null,
+      };
     const generationId = stableId("kfg", {
       finding: entry.finding.findingDigest,
       bundle: stored.contentHash,
@@ -121,8 +176,28 @@ export async function generateFreshnessCandidate(input: {
         generated.status === "generated" ? parseDocumentFreshnessProposal(generated.value) : null,
       evidence,
       evidenceTruncated: bundle.evidenceTruncated,
-      tokensObserved: generated.usage?.totalTokens ?? 0,
+      tokensObserved,
     });
+    candidate = {
+      ...candidate,
+      dependencyWitness,
+      ...(input.predecessorCandidateId === undefined
+        ? {}
+        : { predecessorCandidateId: input.predecessorCandidateId }),
+      ...(candidate.operation === "no_change_needed" && candidate.state === "verified"
+        ? { state: "generated" as const }
+        : {}),
+    };
+    if (!(await freshnessDependenciesCurrent(root, dependencyWitness)))
+      candidate = {
+        ...candidate,
+        state: "superseded",
+        rejection: {
+          reasonCode: "source_changed",
+          rejectorKind: "deterministic",
+          contestedHunkIds: [],
+        },
+      };
   }
   await writeFreshnessCandidate(root, candidate);
   recordFreshnessCandidateOutcome({
@@ -132,7 +207,12 @@ export async function generateFreshnessCandidate(input: {
     occurredAt: now,
   });
   const automatic = documentFreshnessAutoApplicableHunks(candidate);
-  if (candidate.state === "verified" && candidate.operation === "edit" && automatic.length > 0)
+  if (
+    input.autoApply !== false &&
+    candidate.state === "verified" &&
+    candidate.operation === "edit" &&
+    automatic.length > 0
+  )
     candidate = await applyLervoManagedFreshnessHunks({
       storage,
       candidate,

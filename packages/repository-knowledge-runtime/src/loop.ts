@@ -152,6 +152,7 @@ export function startAutonomousKnowledgeWorker(input: {
       if (healthState !== "running") report("running", null);
       return await runAutonomousKnowledgeWorker({
         ...input,
+        maximumProviderCallsPerTurn: 1,
         shouldYield: () => admission.contended(),
         signal: cycleSignal,
         ...(observed === null ? {} : { owner: async () => observed }),

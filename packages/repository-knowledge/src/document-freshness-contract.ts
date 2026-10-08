@@ -178,6 +178,10 @@ export interface DocumentFreshnessCandidateV1 {
   generationId: string;
   findingDigest: string;
   bundleHash: string;
+  /** Additive reader contract. Legacy candidates have no complete dependency witness. */
+  dependencyWitness?: import("./document-freshness-assessment.js").DocumentFreshnessDependencyWitness;
+  assessmentReceiptHash?: string;
+  predecessorCandidateId?: string;
   documentPath: string;
   sourceHash: string;
   priorityClass: DocumentFreshnessPriorityClass;

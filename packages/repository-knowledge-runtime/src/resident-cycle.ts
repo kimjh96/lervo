@@ -21,6 +21,11 @@ export function classifyResidentCycle(result: WorkerResult): ResidentCycleResult
       : "attention";
   if (result.status === "busy" || result.outcomes.length > 0) return "processed";
   if (
+    result.freshness?.status === "completed" &&
+    (result.freshness.candidateCount > 0 || result.freshness.verifiedCount > 0)
+  )
+    return "processed";
+  if (
     result.ownerTurns?.instructionCapture.status === "completed" &&
     result.ownerTurns.instructionCapture.assessedCount > 0
   )

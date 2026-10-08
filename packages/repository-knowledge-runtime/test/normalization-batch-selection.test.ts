@@ -37,6 +37,9 @@ it("narrows an eight-document miss-heavy batch before provider work", async () =
   preflight.mockImplementation(
     async ({ sourcePaths }) =>
       ({
+        selection: {
+          documents: sourcePaths!.map((path) => ({ path, byteCount: 100, cache: "miss" })),
+        },
         blockers:
           sourcePaths!.length > 5
             ? [{ code: "provider_calls_exceeded", observed: 12, limit: 7 }]
@@ -53,5 +56,5 @@ it("narrows an eight-document miss-heavy batch before provider work", async () =
   });
 
   expect(selected).toEqual(paths.slice(0, 5));
-  expect(preflight.mock.calls.map(([input]) => input.sourcePaths?.length)).toEqual([8, 7, 6, 5]);
+  expect(preflight).toHaveBeenCalledOnce();
 });

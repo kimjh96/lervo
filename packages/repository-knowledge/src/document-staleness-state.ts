@@ -9,6 +9,9 @@ import {
   type DocumentStalenessReport,
 } from "./document-staleness-evaluation.js";
 import { canonicalJson, sha256 } from "./integrity.js";
+import { readDocumentFreshnessAssessments } from "./document-freshness-assessment-store.js";
+import { loadRepositoryKnowledgePolicy } from "./policy.js";
+import { currentWorkingFreshnessAssessments } from "./document-freshness-assessment-working-state.js";
 
 /** Rebuildable projection; never canonical and never tracked. */
 export const documentStalenessStatePath = ".lervo/state/knowledge/document-staleness.json";
@@ -27,10 +30,14 @@ function observationCoordinate(input: {
   now: Date;
   documents: DocumentStalenessInput["documents"];
   normalizationRecords: DocumentStalenessInput["normalizationRecords"];
+  assessmentHashes: string[];
+  assessmentPolicyHash: string;
 }): string {
   return sha256(
     canonicalJson({
       evaluator: DOCUMENT_STALENESS_EVALUATOR,
+      assessmentHashes: input.assessmentHashes,
+      assessmentPolicyHash: input.assessmentPolicyHash,
       head: input.head,
       // The review-interval signal depends on the UTC evaluation day.
       day: input.now.toISOString().slice(0, 10),
@@ -92,6 +99,13 @@ export async function observeRepositoryDocumentStaleness(
   input: DocumentStalenessInput & { root: string; mode: DocumentStalenessObservationMode },
 ): Promise<DocumentStalenessReport> {
   const head = await input.git.headRevision().catch(() => null);
+  const assessmentRecords = await currentWorkingFreshnessAssessments(
+    input.root,
+    await readDocumentFreshnessAssessments(input.root),
+  );
+  const assessmentPolicyHash = sha256(
+    canonicalJson(await loadRepositoryKnowledgePolicy(input.root)),
+  );
   const coordinate =
     head === null
       ? null
@@ -100,12 +114,18 @@ export async function observeRepositoryDocumentStaleness(
           now: input.now,
           documents: input.documents,
           normalizationRecords: input.normalizationRecords,
+          assessmentHashes: assessmentRecords.map((item) => item.receiptHash).sort(),
+          assessmentPolicyHash,
         });
   if (coordinate !== null) {
     const state = await readState(input.root);
     if (state?.coordinate === coordinate) return state.report;
   }
-  const report = await evaluateRepositoryDocumentStaleness(input);
+  const report = await evaluateRepositoryDocumentStaleness({
+    ...input,
+    assessments: assessmentRecords.map((item) => item.assessment),
+    assessmentPolicyHash,
+  });
   if (input.mode === "evaluate_and_record" && coordinate !== null && report.status === "observed")
     await writeState(input.root, { schemaVersion: 1, coordinate, report }).catch(() => undefined);
   return report;

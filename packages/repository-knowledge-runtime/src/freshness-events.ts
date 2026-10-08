@@ -69,29 +69,32 @@ export function recordFreshnessCandidateOutcome(input: {
   candidate: DocumentFreshnessCandidateV1;
   documentHash: string;
   occurredAt: string;
+  created?: boolean;
 }): void {
   const { candidate } = input;
-  appendFreshnessEvent({
-    storage: input.storage,
-    type: "document.freshness.candidate.created",
-    correlationId: candidate.candidateId,
-    coordinate: null,
-    occurredAt: input.occurredAt,
-    payload: {
-      candidateId: candidate.candidateId,
-      findingDigest: candidate.findingDigest,
-      documentPath: candidate.documentPath,
-      documentHash: input.documentHash,
-      operation: candidate.operation,
-      priorityClass: candidate.priorityClass,
-      changeClasses: changeClassesOf(candidate),
-      hunkCount: candidate.hunks.length,
-      evidenceCount: candidate.evidenceCount,
-      evidenceTruncated: candidate.evidenceTruncated,
-      usageObserved: candidate.tokensObserved,
+  if (input.created !== false)
+    appendFreshnessEvent({
+      storage: input.storage,
+      type: "document.freshness.candidate.created",
+      correlationId: candidate.candidateId,
+      coordinate: null,
       occurredAt: input.occurredAt,
-    },
-  });
+      payload: {
+        candidateId: candidate.candidateId,
+        findingDigest: candidate.findingDigest,
+        documentPath: candidate.documentPath,
+        documentHash: input.documentHash,
+        operation: candidate.operation,
+        priorityClass: candidate.priorityClass,
+        changeClasses: changeClassesOf(candidate),
+        hunkCount: candidate.hunks.length,
+        evidenceCount: candidate.evidenceCount,
+        evidenceTruncated: candidate.evidenceTruncated,
+        usageObserved: candidate.tokensObserved,
+        occurredAt: input.occurredAt,
+      },
+    });
+  if (candidate.state === "generated") return;
   if (candidate.state === "rejected") {
     recordFreshnessRejection({ storage: input.storage, candidate, occurredAt: input.occurredAt });
     return;

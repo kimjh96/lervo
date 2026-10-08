@@ -8,12 +8,18 @@ import {
   sha256,
   type DocumentFreshnessEvidenceItem,
   type DocumentFreshnessFindingV1,
+  type DocumentFreshnessDependencyWitness,
 } from "@lervo/repository-knowledge";
+
+import {
+  expandFreshnessPathChanges,
+  type FreshnessDirectoryWitness,
+} from "./freshness-directory-evidence.js";
+import { freshnessBlob, freshnessExcerpt } from "./freshness-git-evidence.js";
 
 const execute = promisify(execFile);
 const MAXIMUM_DIFF_BYTES = 16 * 1024;
-const MAXIMUM_TOTAL_DIFF_BYTES = 64 * 1024;
-const MAXIMUM_EXCERPT_LINES = 40;
+const MAXIMUM_TOTAL_EVIDENCE_BYTES = 64 * 1024;
 const MAXIMUM_REPLACEMENTS = 8;
 const MAXIMUM_RELATED_DOCUMENTS = 3;
 const definitionPattern = (symbol: string) =>
@@ -29,6 +35,8 @@ const definitionPattern = (symbol: string) =>
  */
 export interface FreshnessEvidenceBundleV1 {
   schemaVersion: 1;
+  dependencyWitness?: DocumentFreshnessDependencyWitness;
+  assessmentDependencyDigest?: string;
   kind: "document_freshness.evidence_bundle";
   document: { path: string; hash: string; text: string };
   reasons: DocumentFreshnessFindingV1["reasons"];
@@ -52,6 +60,13 @@ export interface FreshnessEvidenceBundleV1 {
   /** Every `{ path, hash }` a claim may cite. */
   evidence: Array<{ path: string; hash: string }>;
   evidenceTruncated: boolean;
+  directories: FreshnessDirectoryWitness[];
+  coverage: {
+    status: "ready" | "incomplete" | "unavailable";
+    selectedCount: number;
+    omittedCount: number;
+    nextCursor: string | null;
+  };
   writingContract: { writingPolicyId: string; contractHash: string };
   instructions: string;
 }
@@ -69,36 +84,6 @@ async function git(root: string, args: string[], maxBuffer = 4 * 1024 * 1024): P
   } catch {
     return "";
   }
-}
-
-async function blob(root: string, spec: string): Promise<Buffer | null> {
-  try {
-    const { stdout } = await execute("git", ["-C", root, "cat-file", "blob", spec], {
-      encoding: "buffer",
-      maxBuffer: 4 * 1024 * 1024,
-    });
-    return stdout;
-  } catch {
-    return null;
-  }
-}
-
-function excerptAround(text: string, needles: readonly string[]): string[] {
-  const lines = text.split(/\r?\n/u);
-  const hits = lines.flatMap((line, index) =>
-    needles.some((needle) => line.includes(needle)) ? [index] : [],
-  );
-  const selected = new Set<number>();
-  for (const hit of hits)
-    for (let index = Math.max(0, hit - 3); index <= Math.min(lines.length - 1, hit + 3); index += 1)
-      if (selected.size < MAXIMUM_EXCERPT_LINES) selected.add(index);
-  if (selected.size === 0)
-    lines
-      .slice(0, Math.min(MAXIMUM_EXCERPT_LINES, lines.length))
-      .forEach((_, index) => selected.add(index));
-  return [...selected]
-    .sort((left, right) => left - right)
-    .map((index) => `${index + 1}: ${lines[index]}`);
 }
 
 async function symbolReplacements(
@@ -138,11 +123,23 @@ export async function buildFreshnessEvidenceBundle(input: {
   repositoryRoot: string;
   finding: DocumentFreshnessFindingV1;
   content: Buffer;
+  cursor?: string;
 }): Promise<{ bundle: FreshnessEvidenceBundleV1; evidence: DocumentFreshnessEvidenceItem[] }> {
   const root = input.repositoryRoot;
   const { finding } = input;
+  const blob = (path: string, revision = finding.currentRevision) =>
+    freshnessBlob(root, revision, path);
+  const expanded = await expandFreshnessPathChanges(input);
+  let evidenceBytes = 0;
+  let truncated = expanded.directories.some((item) => item.omitted > 0) || expanded.unavailable;
   const evidence = new Map<string, DocumentFreshnessEvidenceItem>();
   const addEvidence = (path: string, hash: string, text: string) => {
+    const bytes = Buffer.byteLength(text);
+    if (evidenceBytes + bytes > MAXIMUM_TOTAL_EVIDENCE_BYTES) {
+      truncated = true;
+      return false;
+    }
+    evidenceBytes += bytes;
     const key = `${path}\0${hash}`;
     const existing = evidence.get(key);
     evidence.set(key, {
@@ -150,9 +147,9 @@ export async function buildFreshnessEvidenceBundle(input: {
       hash,
       text: existing === undefined ? text : `${existing.text}\n${text}`,
     });
+    return true;
   };
   let diffBytes = 0;
-  let truncated = false;
   const changedPaths: FreshnessEvidenceBundleV1["changedPaths"] = [];
   const deletedPaths: FreshnessEvidenceBundleV1["deletedPaths"] = [];
   const replacementPaths = new Set<string>();
@@ -163,10 +160,9 @@ export async function buildFreshnessEvidenceBundle(input: {
         ...(symbolsByTarget.get(reference.target) ?? []),
         reference.symbol,
       ]);
-  for (const change of finding.connectedPathChanges) {
+  for (const change of expanded.changes) {
     const current = change.renamedTo ?? change.path;
-    const currentBytes =
-      change.disposition === "deleted" ? null : await blob(root, `HEAD:${current}`);
+    const currentBytes = change.disposition === "deleted" ? null : await blob(current);
     if (
       change.disposition === "modified" ||
       change.disposition === "renamed" ||
@@ -188,22 +184,27 @@ export async function buildFreshnessEvidenceBundle(input: {
         ]);
         if (
           Buffer.byteLength(raw) <= MAXIMUM_DIFF_BYTES &&
-          diffBytes + Buffer.byteLength(raw) <= MAXIMUM_TOTAL_DIFF_BYTES
+          diffBytes + Buffer.byteLength(raw) <= MAXIMUM_TOTAL_EVIDENCE_BYTES
         ) {
           diff = raw;
           diffBytes += Buffer.byteLength(raw);
         } else truncated = true;
       }
       if (diff === null && currentBytes !== null)
-        excerpts = excerptAround(currentBytes.toString("utf8"), [
+        excerpts = freshnessExcerpt(currentBytes.toString("utf8"), [
           ...(symbolsByTarget.get(change.path) ?? []),
           ...(change.renamedTo === null ? [] : [change.renamedTo]),
         ]);
-      changedPaths.push({ ...change, diff, excerpts });
       if (currentBytes !== null) {
         if (change.renamedTo !== null) replacementPaths.add(change.renamedTo);
-        addEvidence(current, sha256(currentBytes), [current, diff ?? "", ...excerpts].join("\n"));
+        if (
+          !addEvidence(current, sha256(currentBytes), [current, diff ?? "", ...excerpts].join("\n"))
+        ) {
+          diff = null;
+          excerpts = [];
+        }
       }
+      changedPaths.push({ ...change, diff, excerpts });
       if (change.disposition !== "renamed") continue;
     }
     const deletedIn = (
@@ -220,8 +221,7 @@ export async function buildFreshnessEvidenceBundle(input: {
     const lastRevision = /^[a-f0-9]{40,64}$/u.test(deletedIn)
       ? `${deletedIn}^`
       : finding.verifiedRevision;
-    const lastBytes =
-      lastRevision === null ? null : await blob(root, `${lastRevision}:${change.path}`);
+    const lastBytes = lastRevision === null ? null : await blob(change.path, lastRevision);
     addEvidence(
       change.path,
       lastBytes === null ? sha256(`deleted\0${change.path}\0${deletedIn}`) : sha256(lastBytes),
@@ -233,13 +233,14 @@ export async function buildFreshnessEvidenceBundle(input: {
     // are matched against, around the symbols the document attached to the deleted path.
     const pushReplacement = async (path: string, reason: string) => {
       if (replacements.some((item) => item.path === path)) return;
-      const bytes = await blob(root, `HEAD:${path}`);
+      const bytes = await blob(path);
       if (bytes === null) return;
       const hash = sha256(bytes);
-      const excerpt = excerptAround(bytes.toString("utf8"), symbols).join("\n");
-      replacements.push({ path, hash, reason, excerpt });
-      replacementPaths.add(path);
-      addEvidence(path, hash, `${path}\n${excerpt}`);
+      const excerpt = freshnessExcerpt(bytes.toString("utf8"), symbols).join("\n");
+      if (addEvidence(path, hash, `${path}\n${excerpt}`)) {
+        replacements.push({ path, hash, reason, excerpt });
+        replacementPaths.add(path);
+      }
     };
     if (change.renamedTo !== null) await pushReplacement(change.renamedTo, "git_rename");
     for (const hit of await symbolReplacements(root, symbols))
@@ -258,12 +259,12 @@ export async function buildFreshnessEvidenceBundle(input: {
     if (relatedDocuments.length >= MAXIMUM_RELATED_DOCUMENTS || path === finding.documentPath)
       return;
     if (relatedDocuments.some((item) => item.path === path)) return;
-    const bytes = await blob(root, `HEAD:${path}`);
+    const bytes = await blob(path);
     if (bytes === null) return;
-    const excerpt = excerptAround(bytes.toString("utf8"), needles).slice(0, 10).join("\n");
+    const excerpt = freshnessExcerpt(bytes.toString("utf8"), needles).slice(0, 10).join("\n");
     const hash = sha256(bytes);
-    relatedDocuments.push({ path, hash, excerpt });
-    addEvidence(path, hash, `${path}\n${excerpt}`);
+    if (addEvidence(path, hash, `${path}\n${excerpt}`))
+      relatedDocuments.push({ path, hash, excerpt });
   };
   if (finding.supersededBy !== null) await addRelated(finding.supersededBy, [finding.documentPath]);
   for (const replacement of [...replacementPaths].sort()) {
@@ -308,6 +309,22 @@ export async function buildFreshnessEvidenceBundle(input: {
     relatedDocuments,
     evidence: items.map((item) => ({ path: item.path, hash: item.hash })),
     evidenceTruncated: truncated,
+    directories: expanded.directories,
+    coverage: {
+      status: expanded.unavailable
+        ? "unavailable"
+        : items.length === 0 ||
+            expanded.changes.some(
+              (change) => !items.some((item) => item.path === (change.renamedTo ?? change.path)),
+            ) ||
+            expanded.directories.some((directory) => directory.omitted > 0)
+          ? "incomplete"
+          : "ready",
+      selectedCount: items.length,
+      omittedCount: expanded.directories.reduce((sum, directory) => sum + directory.omitted, 0),
+      nextCursor:
+        expanded.directories.find((directory) => directory.nextCursor !== null)?.nextCursor ?? null,
+    },
     writingContract: documentFreshnessWritingContract(),
     instructions: documentFreshnessGenerationInstruction,
   };

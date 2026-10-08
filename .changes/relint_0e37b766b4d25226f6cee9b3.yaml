@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0e37b766b4d25226f6cee9b3"
+"package": "@lervo/cli"
+"impact": "major"
+"summary": "Recover bounded knowledge evidence and add independently reviewed freshness assessments. Status now returns version-2 metadata observations; use inspect for authoritative verification. Improve resident scheduling and retain normalization cost limits."

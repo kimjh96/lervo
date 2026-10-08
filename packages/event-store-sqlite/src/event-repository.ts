@@ -27,7 +27,7 @@ export class SQLiteEventRepository {
   constructor(
     private readonly database: DatabaseSync,
     private readonly projectId: string,
-    private readonly writableEventSchemaVersion: 1 | 2 | 3 | 4,
+    private readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5,
   ) {}
 
   append(draft: EventDraft): AppendEventResult {

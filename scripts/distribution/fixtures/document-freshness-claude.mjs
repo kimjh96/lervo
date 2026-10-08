@@ -24,7 +24,9 @@ appendFileSync(
   logPath,
   `${JSON.stringify({ task: request.task, document: request.untrustedSourceData?.document?.path ?? null })}\n`,
 );
-if (request.task !== "document_freshness_candidate")
+if (
+  !["document_freshness_candidate", "document_freshness_assessment_review"].includes(request.task)
+)
   throw new Error(`Unexpected fixture task ${request.task}`);
 const bundle = request.untrustedSourceData;
 const plan = existsSync(planPath) ? JSON.parse(readFileSync(planPath, "utf8")) : {};
@@ -38,22 +40,30 @@ const cite = (path) => {
   if (item === undefined) throw new Error(`The bundle has no evidence for ${path}`);
   return { path: item.path, hash: item.hash };
 };
-const response = {
-  operation: entry.operation,
-  hunks: (entry.hunks ?? []).map((hunk) => ({
-    before: hunk.before,
-    after: hunk.after,
-    claims: [
-      {
-        text: hunk.claim ?? `The cited evidence supports replacing "${hunk.before}".`,
-        evidence: hunk.evidencePaths.map(cite),
-      },
-    ],
-  })),
-  archiveName: entry.archiveName ?? null,
-  currentDocumentPath: entry.currentDocumentPath ?? null,
-  explanation: entry.explanation ?? "",
-};
+const response =
+  request.task === "document_freshness_assessment_review"
+    ? {
+        agrees: entry.assessmentAgrees ?? true,
+        documentHash: bundle.document.hash,
+        dependencyDigest: bundle.assessmentDependencyDigest,
+        explanation: "The complete supplied change leaves the cited document claim unchanged.",
+      }
+    : {
+        operation: entry.operation,
+        hunks: (entry.hunks ?? []).map((hunk) => ({
+          before: hunk.before,
+          after: hunk.after,
+          claims: [
+            {
+              text: hunk.claim ?? `The cited evidence supports replacing "${hunk.before}".`,
+              evidence: hunk.evidencePaths.map(cite),
+            },
+          ],
+        })),
+        archiveName: entry.archiveName ?? null,
+        currentDocumentPath: entry.currentDocumentPath ?? null,
+        explanation: entry.explanation ?? "",
+      };
 console.log(
   JSON.stringify({
     is_error: false,

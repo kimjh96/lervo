@@ -25,6 +25,7 @@ export async function fixture(
   canonical = false,
   multipleSuites = false,
   invalidAssessmentCalls = 0,
+  writableEventSchemaVersion: 4 | 5 = 4,
 ) {
   const directory = await mkdtemp(resolve(tmpdir(), "lervo-autonomous-knowledge-"));
   const root = resolve(directory, "repository");
@@ -83,7 +84,7 @@ export async function fixture(
   const events = await SQLiteEventStore.open({
     path: paths.eventDatabase,
     projectId: manifest.projectId,
-    writableEventSchemaVersion: 4,
+    writableEventSchemaVersion,
   });
   const artifacts = await FileSystemCas.open(paths.cas);
   const storage: ProjectStorage = {
@@ -91,7 +92,7 @@ export async function fixture(
     paths,
     events,
     artifacts,
-    writableEventSchemaVersion: 4,
+    writableEventSchemaVersion,
     close: async () => events.close(),
   };
   let delegation: ConvergenceDelegation | null = null;

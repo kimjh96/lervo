@@ -10,6 +10,7 @@ Lervo groups decisions by bounded semantic domain. Numeric ADR prefixes are stab
 - [Managed providers](execution/providers/)
 - [Execution verification](execution/verification/)
 - [Knowledge documents](knowledge/documents/)
+- [Knowledge maintenance](knowledge/maintenance/)
 - [Knowledge semantics](knowledge/semantics/)
 - [Repository knowledge](knowledge/repository/)
 - [Search](search/)

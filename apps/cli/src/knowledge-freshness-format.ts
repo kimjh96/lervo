@@ -13,6 +13,11 @@ export function formatDocumentFreshnessStatus(status: DocumentFreshnessStatusRep
     `Document freshness: ${status.enabled ? "enabled" : "disabled"} · stale ${status.summary.staleCount} · awaiting review ${status.summary.awaitingReviewCount}${status.summary.blocked ? " · blocked" : ""}`,
     `candidates by state: ${counts(status.counts.byState)}`,
     `candidates by priority: ${counts(status.counts.byPriority)}`,
+    ...(status.technicalRecovery === undefined
+      ? []
+      : [
+          `evidence recovery: pending ${status.technicalRecovery.pending} · exhausted ${status.technicalRecovery.exhausted} · ${counts(status.technicalRecovery.reasonCounts)}`,
+        ]),
     `budget ${status.budget.day || "today"}: ${status.budget.tokensUsed} of ${status.budget.maximumTokensPerDay} tokens · attempts ${status.budget.attempts} · verified ${status.budget.verified}`,
     status.oldestOpen === null
       ? "oldest open candidate: none"

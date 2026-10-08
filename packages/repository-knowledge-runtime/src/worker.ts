@@ -26,6 +26,9 @@ import {
 import { materializationTransactionState } from "./materialization-transaction.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import { inspectConvergenceDebt } from "./status.js";
+import { recordMaintenanceObservation } from "./maintenance-observation.js";
+import { reserveFreshnessPreparation } from "./maintenance-schedule.js";
+import { readMaintenanceObservation } from "./maintenance-observation.js";
 
 /** A live materialization owns the repository; the cycle yields like a held worker lock. */
 const MATERIALIZATION_BUSY = Symbol("materialization_busy");
@@ -52,6 +55,8 @@ export async function runAutonomousKnowledgeWorker(input: {
   executable?: string;
   signal?: AbortSignal;
   maximumStages?: number;
+  /** Residents yield after one provider call; explicit one-shot workers retain their stage ceiling. */
+  maximumProviderCallsPerTurn?: number;
   admissionDirectory?: string;
   liveWorkPending?: () => Promise<boolean>;
   /** ADR-0485: another repository waits for the host's full-cycle admission; yield between stages. */
@@ -109,10 +114,19 @@ export async function runAutonomousKnowledgeWorker(input: {
     const ownerTurns = pending
       ? await withRepositoryKnowledgeWorkerLock(root, ownerTurnWork)
       : null;
+    const inspected = await inspectConvergenceDebt(input.storage);
+    await recordMaintenanceObservation({
+      root,
+      projectId: input.storage.manifest.projectId,
+      status: inspected.status,
+      baselineCurrent: inspected.baselineCurrent,
+      owner,
+      source: "inspection",
+    });
     return {
       status: "waiting_owner",
       owner,
-      convergence: (await inspectConvergenceDebt(input.storage)).status,
+      convergence: inspected.status,
       ownerTurns: ownerTurns === null || ownerTurns.status === "busy" ? null : ownerTurns.result,
     };
   }
@@ -126,12 +140,47 @@ export async function runAutonomousKnowledgeWorker(input: {
     signal,
     liveWorkPending,
     assertSource: (state) => assertConvergenceSource(context, state),
+    providerQuantum: { remaining: input.maximumProviderCallsPerTurn ?? Number.MAX_SAFE_INTEGER },
+  };
+  const freshnessContext = {
+    storage: input.storage,
+    provider: input.provider,
+    ...(input.executable === undefined ? {} : { executable: input.executable }),
+    ...(input.admissionDirectory === undefined
+      ? {}
+      : { admissionDirectory: input.admissionDirectory }),
+    signal: context.signal,
+    liveWorkPending: context.liveWorkPending,
+    now: () => new Date(),
+    providerQuantum: context.providerQuantum!,
   };
   const result = await withRepositoryKnowledgeWorkerLock(root, async () => {
+    const turnStartedAt = Date.now();
     const transaction = await materializationTransactionState(root);
     if (transaction === "busy") return MATERIALIZATION_BUSY;
     if (transaction === "recovery_required")
       return { outcomes: [], convergence: convergenceRecoveryStatus(input.storage) };
+    if (await reserveFreshnessPreparation(root)) {
+      const prepared = await runDocumentFreshnessCycle({
+        context: freshnessContext,
+        effects: "prepare",
+        maximumCandidates: 1,
+      });
+      if (
+        prepared.status === "completed" &&
+        (context.providerQuantum!.remaining <= 0 ||
+          prepared.candidateCount > 0 ||
+          prepared.verifiedCount > 0 ||
+          prepared.deferred !== null)
+      ) {
+        const observed = await readMaintenanceObservation(root, input.storage.manifest.projectId);
+        return {
+          outcomes: [],
+          convergence: observed?.status ?? (await inspectConvergenceDebt(input.storage)).status,
+          freshness: prepared,
+        };
+      }
+    }
     await compactConvergenceWorkspaces(input.storage, input.provider);
     await compactConvergenceWorkforce(input.storage);
     await requeueStalledRepositoryKnowledgeJobs({
@@ -149,7 +198,7 @@ export async function runAutonomousKnowledgeWorker(input: {
           events: input.storage.events,
           artifacts: input.storage.artifacts,
           workerId: input.workerId,
-          maximumJobs: 8,
+          maximumJobs: 1,
           host: createChangeReviewHost(context),
         });
     const delegation = await loadConvergenceDelegation(root);
@@ -165,7 +214,10 @@ export async function runAutonomousKnowledgeWorker(input: {
           input.maximumStages ?? 8,
           delegation?.delegation.resourceCeilings.maximumStages ?? 8,
         ),
-        ...(input.shouldYield === undefined ? {} : { shouldYield: input.shouldYield }),
+        shouldYield: async () =>
+          context.providerQuantum!.remaining <= 0 ||
+          Date.now() - turnStartedAt >= 30_000 ||
+          ((await input.shouldYield?.()) ?? false),
       });
     } catch (error) {
       // Another process's transaction can begin while discovery reads knowledge currency.
@@ -182,21 +234,18 @@ export async function runAutonomousKnowledgeWorker(input: {
     // so its commit never lands inside an ADR-0465 batch boundary; its failure never blocks them.
     const freshness: DocumentFreshnessCycleResult = documentFreshnessMayRun(convergence)
       ? await runDocumentFreshnessCycle({
-          context: {
-            storage: input.storage,
-            provider: input.provider,
-            ...(input.executable === undefined ? {} : { executable: input.executable }),
-            ...(input.admissionDirectory === undefined
-              ? {}
-              : { admissionDirectory: input.admissionDirectory }),
-            signal: context.signal,
-            liveWorkPending: context.liveWorkPending,
-            now: () => new Date(),
-          },
+          context: freshnessContext,
         }).catch((): DocumentFreshnessCycleResult => ({ status: "unavailable" }))
       : { status: "yielded" };
     return { outcomes, convergence, freshness, ownerTurns };
   });
   if (result.status === "busy" || result.result === MATERIALIZATION_BUSY) return { status: "busy" };
+  await recordMaintenanceObservation({
+    root,
+    projectId: input.storage.manifest.projectId,
+    status: result.result.convergence,
+    owner,
+    source: "worker",
+  });
   return { status: "processed", ...result.result };
 }

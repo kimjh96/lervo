@@ -41,7 +41,7 @@ async function healthDatabase(root: string, create: boolean): Promise<DatabaseSy
     if (!create) return null;
   }
   const db = new DatabaseSync(path, { readOnly: !create });
-  db.exec("PRAGMA busy_timeout=5000");
+  db.exec(create ? "PRAGMA busy_timeout=5000" : "PRAGMA busy_timeout=100");
   if (create) {
     await chmod(path, 0o600);
     db.exec(

@@ -31,6 +31,7 @@ export interface FreshnessGenerationContext {
   signal: AbortSignal;
   liveWorkPending(): Promise<boolean>;
   now(): Date;
+  providerQuantum?: { remaining: number };
 }
 
 export type FreshnessGenerationResult =
@@ -118,8 +119,13 @@ export async function generateFreshnessProposal(input: {
   context: FreshnessGenerationContext;
   bundle: FreshnessEvidenceBundleV1;
   generationId: string;
+  task?: string;
+  responseSchema?: unknown;
+  prompt?: string;
 }): Promise<FreshnessGenerationResult> {
   const { context } = input;
+  if (context.providerQuantum !== undefined && context.providerQuantum.remaining <= 0)
+    return { status: "deferred", reason: "knowledge_capacity_unavailable" };
   try {
     await knowledgeReviewCallCeiling({
       storage: context.storage,
@@ -145,19 +151,23 @@ export async function generateFreshnessProposal(input: {
     throw error;
   }
   if (admission === null) return { status: "deferred", reason: "knowledge_capacity_unavailable" };
+  if (context.providerQuantum !== undefined) context.providerQuantum.remaining -= 1;
   try {
     let result: { value: unknown; usage: ProviderJsonUsage | null };
     try {
       const runner = await createNoCapabilityProviderJsonRunner({
         provider: context.provider,
         ...(context.executable === undefined ? {} : { executable: context.executable }),
-        systemPrompt: documentFreshnessGenerationInstruction,
+        systemPrompt: input.prompt ?? documentFreshnessGenerationInstruction,
         timeoutMs: GENERATION_TIMEOUT_MILLISECONDS,
       });
       const request = {
         schemaVersion: 1,
-        task: DOCUMENT_FRESHNESS_TASK,
-        responseContract: { schemaVersion: 1, schema: documentFreshnessResponseSchema },
+        task: input.task ?? DOCUMENT_FRESHNESS_TASK,
+        responseContract: {
+          schemaVersion: 1,
+          schema: input.responseSchema ?? documentFreshnessResponseSchema,
+        },
         untrustedSourceData: input.bundle,
       };
       result =

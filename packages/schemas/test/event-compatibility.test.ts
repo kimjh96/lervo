@@ -29,7 +29,38 @@ describe("reader-first event envelope compatibility", () => {
     expect(validateSchema("event", envelope({ schemaVersion: 2 })).valid).toBe(true);
     expect(validateSchema("event", envelope({ schemaVersion: 3 })).valid).toBe(true);
     expect(validateSchema("event", envelope({ schemaVersion: 4 })).valid).toBe(true);
-    expect(validateSchema("event", envelope({ schemaVersion: 5 })).valid).toBe(false);
+    expect(validateSchema("event", envelope({ schemaVersion: 5 })).valid).toBe(true);
+    expect(validateSchema("event", envelope({ schemaVersion: 6 })).valid).toBe(false);
+  });
+
+  it("reserves maintenance receipts for schema 5 and enforces hash-only payloads", () => {
+    for (const schemaVersion of [1, 2, 3, 4, 5])
+      expect(
+        validateSchema(
+          "event",
+          envelope({ schemaVersion, type: "document.freshness.assessment.recorded" }),
+        ).valid,
+      ).toBe(schemaVersion === 5);
+    const payload = {
+      projectId: "prj_compatibility_01",
+      findingDigest: hash,
+      documentHash: hash,
+      evidenceContractHash: hash,
+      receiptHash: hash,
+      occurredAt: "2026-10-08T01:00:00Z",
+      outcome: "verified_no_change",
+      dependencyDigest: hash,
+      verificationContractHash: hash,
+    };
+    expect(validateSchema("documentFreshnessAssessmentRecordedEventPayload", payload).valid).toBe(
+      true,
+    );
+    expect(
+      validateSchema("documentFreshnessAssessmentRecordedEventPayload", {
+        ...payload,
+        sourceText: "private source",
+      }).valid,
+    ).toBe(false);
   });
 
   it("reserves supervision event types for v3 envelopes", () => {
