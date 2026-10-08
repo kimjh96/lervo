@@ -2,7 +2,7 @@
 
 As of: 2026-10-08
 Task base: `d66c98274a8302e0e857b1c4fe860c9dcebc48c0`
-Status: first source delivery; installed and complete protocol acceptance pending
+Status: first delivery installed on Mac and WSL; complete protocol and seven-day acceptance pending
 
 ## Result and source boundaries
 
@@ -47,12 +47,48 @@ The [100-sample benchmark](knowledge-maintenance-status-cold-process-v1.json) us
 
 OS caches were warm. This is an unpaired metadata measurement, not a cold-machine result, equivalent authoritative inspection, task-base CPU comparison, installed p95, or proof of faster independently reviewed settlement. Those roadmap gates remain open.
 
+## Installed deployment
+
+The owner authorized deployment after implementation. The installed delivery uses the existing development version 0.20.0; reviewed release intent remains pending. Source delivery is `e591f2962e4f2ace59f87a9f330d3eefbd0f88c8`, clean-build metadata is `7f5272e4926193b726555d226ad87eb39eb661d2`, health fixtures are `5e1549964a3701229bc26c2a9b99a86eb190c882`, and Hub event labels are `aabf0acfae1d76ad74590c58a8723697f891c20e`.
+
+| Installed artifact                  | SHA-256                                                            |
+| ----------------------------------- | ------------------------------------------------------------------ |
+| CLI package archive                 | `898c88657eaa388d879b5310101970c1248a8dabd5c191ce7e974df6b807973f` |
+| CLI executable bundle               | `ba021e2b59f9c0d04a6e22726e2d676bd1d0eeb6ada3f25022abb83a990db077` |
+| Node executable bundle              | `3d5faf231905fefd86e8c53dfd7c580530d68b144d75aa8bc6d7513dae54ce06` |
+| Generated terminal-hook reader      | `68d7013e32e966e0f648f3826712bf7dc96f9a933f368fa3dc105cab8691343d` |
+| Linux Hub archive, including labels | `51fcfad1a4bc10136de70da6beb92b06370b714bdaf3c5b7c83c941f2d182cc0` |
+| Hub executable bundle               | `dce3bd5b546d6651b8980e291796ec21dd649b4b969c2bae046fb4083a470e4b` |
+| Served Hub trace-label asset        | `a53fc9d8aac40ebd16c08ebfbda100096d9c91072c2af9d3526442129e0b20c0` |
+
+All thirteen configured checkouts completed the official safe upgrade with `current` receipts and no skipped or pending stages: seven on Mac (Lervo, AXLI, Plen, Flemo, Digimon, Shiflo, Argo) and six on WSL (all except Argo). Both global CLI paths execute the rebuilt CLI. The managed Mac host resident and replica runtime pointer were upgraded through the normal stages.
+
+Actual process observations, rather than build directories, established the new Node bundle in all seven services. Six WSL Nodes and the Mac Argo Node advertise readable event schemas 1 through 5. WSL services remained active with zero restarts after the upgrade, and their sync, checkpoint replication, remote control, and conversation components were ready. Mac Argo was ready with conversation disabled by its existing configuration. AXLI retains the previously observed `supervision_attention_required` / `preflight_repair_requires_review`; the standard guarded transition carried this owner decision and did not resolve it.
+
+The Hub upgrade used verified archive installation, exact previous service bytes, and the normal service manager. Live, ready, and capability HTTP endpoints returned 200 with the existing Hub identity and schema-5 reader capability. The actual served label asset has the digest above and includes both new event labels. Old installations and exact predecessor definitions remain available for guarded rollback.
+
+Lervo writer activation is scoped to its Mac and WSL checkouts. Each activation requires fresh exact configured-reader evidence, a ready content-bound plan, and a consistent event database and previous-coordinate backup. Existing writers and history remain compatible; other repositories retain their selected writer version. Activation does not prove that a freshness receipt was produced or that installed warnings have settled.
+
+Both Lervo activations completed with schema-5 selection. Mac plan `evplan_47171fccb4f4cd681ce0d212` applied activation `evact_d6870779e692d1d6a8aba7c3`; WSL plan `evplan_deed0316a6c4d388a8b87ff1` applied activation `evact_24ea8123ac06a784b60e0b99`. Each retained a consistent database and previous-coordinate backup. Full mixed-history integrity was valid for 20,086 Mac events and 81,053 WSL events at activation. An ordinary managed workstream append and replay passed on Mac; shared lifecycle drafts retain their existing envelope versions, so this is not evidence of a new schema-5 freshness receipt.
+
+The Mac host resident was restarted through exact-definition service management while holding host cycle admission. WSL admission waited for existing cycles to yield; only the identity-bound Lervo knowledge child received graceful termination after activation. Its owning Node stayed running. The ordinary supervisor reopened the child as PID 1530054 under Node PID 1488423, using the deployed Node bundle; fresh owner health was running. Final six-Node process and capability verification at 03:08 UTC retained all parent processes and the existing AXLI attention.
+
+The two exact legacy-empty candidates, `kfresh_73cd716ad064fc1cc4afbfdd` and `kfresh_a3aa09a4b35093561f3a1ec8`, were observed as `superseded` without an owner bookkeeping action. Freshness status at 03:07 UTC contained no owner holds, one explicitly exhausted technical recovery, 60 stale findings, and 14 safety findings. This proves the mistaken indefinite owner hold was removed, not complete evidence recovery, document currency, or a schema-5 assessment receipt. The installed candidate-recovery acceptance gate remains open until the replacement outcomes are fully established.
+
+The installed Mac CLI was measured in 20 fresh processes against observed metadata, with warm OS caches: median 547.575 ms, p95 584.582 ms, maximum 617.485 ms. This supports fast metadata reads on the observed installation, not authoritative inspection or a paired speedup in independently reviewed settlement. The Mac worker still correctly waits for the WSL owner.
+
+Argo application source protection was independently checked: all 92 Mac application files under `v3` and `v4` retained their exact hashes. The WSL collector and live services retained their PID, active state, restart count, and start timestamp. The history service's last start changed during deployment because its existing hourly timer fired at 02:05 UTC; the timer's last-trigger observation matches that start. No Argo application service was operated by this deployment, and the separate VHD compaction remains pending approved downtime.
+
+Deployment review fixed the exhaustive Hub label test for the two new events; its focused label and HTTP suites passed (five tests). Local quality, documentation lifecycle, generated hook syntax/hash equality, manifest, SBOM, packed-consumer smoke, and task-base release completion passed. The previous full CI run passed three test shards and failed the fourth only on the now-corrected missing-label assertion. The latest main CI and release preparation did not start jobs: GitHub reported failed account payments or a spending limit requiring attention. No latest full CI pass, prepared-release merge, public tag, or npm publication is claimed.
+
+Deployment receipts and timing samples are owner-only operational evidence on the two hosts. The installed rollout earns reader deployment only; the two legacy-candidate recovery proof, full protocol, phase-wide measurements, and seven-day canary remain separate acceptance work.
+
 ## Remaining bounded scopes
 
 1. Complete page-by-page semantic assessments for directory changes larger than one evidence bundle. Bind every page to the same tree and verify omission/rename/privacy cases; the current implementation stops with technical evidence reasons rather than treating partial coverage as complete.
 2. Reconcile freshness calls interrupted between provider start, usage, and receipt settlement. Persist exact spend reservations and outcomes; prove restart cannot repeat uncertain spend or drop usage. Current source tests do not establish that crash boundary.
 3. Release capture locks before provider execution and implement exclusive apply, journal, checkpoint, and rebind. Prove owner loss and crashes around each effect; retain the current effect gate until then.
-4. Add anchored incremental observation components, authoritative inspection deadlines/partial coverage, and phase-wide metrics. Verify cached/full equivalence and run paired task-base CPU/inspection and finite-backlog benchmarks. The metadata timing below does not earn these gates.
-5. Install compatible readers on Mac and WSL, validate configured peers before writer activation, recover the two installed legacy candidates, and run the seven-day canary. No service deployment, writer activation, or installed warning clearance is claimed by this source delivery.
+4. Add anchored incremental observation components, authoritative inspection deadlines/partial coverage, and phase-wide metrics. Profile full-upgrade history replay and materialization verification separately from metadata reads; installed full upgrades still spent minutes on their knowledge stage. Verify cached/full equivalence and run paired task-base CPU/inspection and finite-backlog benchmarks. The metadata timing below does not earn these gates.
+5. Complete the two installed legacy-candidate recovery proof and seven-day canary on the deployed schema-5 reader fleet. Keep exact owner fencing and genuine owner-held decisions; installation and activation alone do not clear warnings.
 
 The [roadmap](../../roadmap/knowledge/maintenance-recovery-and-speed.md) keeps grouped acceptance gates open wherever these exact proofs are missing.

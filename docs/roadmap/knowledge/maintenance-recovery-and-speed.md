@@ -2,7 +2,7 @@
 
 Status: `in_progress`
 As of: 2026-10-08
-Scope: first source implementation delivered; complete protocol and installed acceptance pending
+Scope: first delivery installed on Mac and WSL; complete protocol and seven-day acceptance pending
 
 ## Outcome and decisions
 
@@ -10,7 +10,7 @@ Make automatic maintenance advance despite unrelated queued work, recover missin
 
 The [investigation](../../evidence/quality/knowledge-maintenance-recovery-and-speed-design.md) reproduced directory evidence loss and measured one 22.147-second local convergence status read. Proposed decisions are [ADR-0493 scheduling and safe effects](../../decisions/knowledge/maintenance/0493-schedule-knowledge-maintenance-by-ready-work-and-safe-effects.md), [ADR-0494 evidence recovery](../../decisions/knowledge/maintenance/0494-recover-missing-document-evidence-before-requesting-owner-input.md), and [ADR-0495 observations and processing cost](../../decisions/knowledge/maintenance/0495-separate-fast-maintenance-status-from-expensive-verification.md). The first implementation follows their bounded preparation, evidence, and observation boundaries; the complete scheduling and incremental-inspection proposals remain open.
 
-This work extends [autonomous background convergence](autonomous-background-convergence.md) and [document freshness](../../specifications/knowledge/document-freshness.md). It does not widen principal authority or establish fleet deployment.
+This work extends [autonomous background convergence](autonomous-background-convergence.md) and [document freshness](../../specifications/knowledge/document-freshness.md). It does not widen principal authority. Installed reader deployment is recorded in the implementation evidence; complete protocol and canary acceptance remain open.
 
 ## Responsibility and dependency boundaries
 
@@ -29,7 +29,7 @@ Before source edits, resolve canonical instructions and inspect each target's re
 
 Implemented bounded file/tree evidence and preflight, exact legacy-empty-candidate recovery, independently reviewed no-change receipts, dependency and dirty-source invalidation, reader-first event schema 5, metadata-only status, resident provider quanta, single normalization preflight, byte packing, exact review continuation, and retained timeout learning. See the [implementation evidence](../../evidence/quality/knowledge-maintenance-recovery-and-speed-implementation.md) for checks and limits.
 
-The resident reserves a preparation turn after two convergence turns. This counter is a bounded initial scheduler, not proof of the proposed eligible-provider-turn latency gate. Existing repository and host cycle locks remain around each bounded turn; apply retains the parked-convergence gate. Complete directory-page assessments, uncertain freshness-call reconciliation, exclusive apply/rebind crash proof, anchored incremental inspection, phase-wide metrics, and Mac/WSL rollout remain bounded next scopes.
+The resident reserves a preparation turn after two convergence turns. This counter is a bounded initial scheduler, not proof of the proposed eligible-provider-turn latency gate. Existing repository and host cycle locks remain around each bounded turn; apply retains the parked-convergence gate. Complete directory-page assessments, uncertain freshness-call reconciliation, exclusive apply/rebind crash proof, anchored incremental inspection, phase-wide metrics, and the installed seven-day canary remain bounded next scopes.
 
 ## Delivery order
 
@@ -67,7 +67,7 @@ Run a seven-day installed canary with ongoing developer commits, foreground acti
 
 Source verification for the first delivery is recorded in the [implementation evidence](../../evidence/quality/knowledge-maintenance-recovery-and-speed-implementation.md). Grouped gates remain unchecked where installed, crash, performance, or full protocol evidence is still missing.
 
-- [ ] Compatible event/state readers pass old/new and rollback fixtures before writer activation.
+- [x] Compatible event/state readers pass old/new and rollback fixtures before writer activation. Source transition fixtures passed, and actual Mac/WSL Node and Hub readers through schema 5 were observed before the scoped Lervo activation.
 - [ ] Small and oversized directory changes, renames, deletion, shallow history, unusual path bytes, and sensitive exclusions produce exact bounded evidence or a named recoverable failure. Empty coverage makes zero generation calls.
 - [ ] The two installed evidence-empty candidates recover without owner bookkeeping. Genuine ambiguity and verified owner-held patches retain their authority.
 - [ ] Valid no-change witnesses settle only the matching stale finding; dependency edits restore it. Normalization mismatch and broken links remain visible until independently resolved.
