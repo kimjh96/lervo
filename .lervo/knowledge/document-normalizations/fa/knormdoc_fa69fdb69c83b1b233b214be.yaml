@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_de03aa1e999969c005556d97
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_78facf1dea033db99089f518
+outputLanguage: en
+outputs:
+  - byteCount: 3695
+    contentHash: sha256:df28f299c91d2974cb222ebca54bf2fa9528ab4a289b619f7b029f94488c92e1
+    path: docs/decisions/operations/services/0492-install-and-verify-node-runtime-dependency-closures.md
+    userRegionHash: sha256:df28f299c91d2974cb222ebca54bf2fa9528ab4a289b619f7b029f94488c92e1
+profile: decision_record
+recordId: knormdoc_fa69fdb69c83b1b233b214be
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:45d102be02e7a835dcc160f02cabbbb79c7ec1e14d5b94eff85d0b51b21f822c
+sourcePath: docs/decisions/operations/services/0492-install-and-verify-node-runtime-dependency-closures.md
+sourceUnitVersionIds:
+  - uv_2d62b85e4ea4e681b6485a8e
+  - uv_65a68e22d09b366dcf2947e4
+  - uv_aeb98fb74d3710a2f9bfe5e9
+  - uv_bee365f0f4ffc4d47e58585e
+  - uv_d876e48aa1d52ae7d6d7a511

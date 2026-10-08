@@ -14,4 +14,6 @@ node dist/bin.js --check-config <config.json>
 
 Preflight performs no network or repository work.
 
-Both commands first check every executable that the Node needs to start, such as each `deliberation.cliExecutable`. A missing executable fails with `configured_executable_unavailable`, and the message names the configuration field and the path. A configuration that `lervo upgrade` migrated names the host's stable CLI pointer, `<runtimes>/cli/current/dist/bin.js`, so removing an old CLI install does not break it ([ADR-0488](../../../../decisions/operations/services/0488-point-node-configurations-at-one-current-cli.md)).
+Both commands first check every executable the Node needs to start, including each `deliberation.cliExecutable`. A missing executable fails with `configured_executable_unavailable`; the message names the configuration field and path.
+
+Configurations migrated by `lervo upgrade` name the host's stable CLI pointer, `<runtimes>/cli/current/dist/bin.js`, so removing an old CLI install does not break them ([ADR-0488](../../../../decisions/operations/services/0488-point-node-configurations-at-one-current-cli.md)).
