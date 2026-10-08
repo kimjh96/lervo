@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_addfb7022842e3a4915afc25
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_859778710ceaf95cc4d50b00
+outputLanguage: en
+outputs:
+  - byteCount: 15671
+    contentHash: sha256:37c96bc103d6a67b2c3f9ecd5034e5500fa9684a1c8e3c29a6c6392738e076a4
+    path: docs/decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md
+    userRegionHash: sha256:37c96bc103d6a67b2c3f9ecd5034e5500fa9684a1c8e3c29a6c6392738e076a4
+profile: decision_record
+recordId: knormdoc_02e4c5b474972adf3507ad27
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2c64cafb1107417e9590c6dcaa2f9e51f591fe1b67d1ba68e23277d87bd4415d
+sourcePath: docs/decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md
+sourceUnitVersionIds:
+  - uv_0f89ac49b22bce087585fe2d
+  - uv_2f7d4cf08a1169103c15f4a8
+  - uv_35a06aae0a22d25f1b93c687
+  - uv_3d8548607ad4cd012f27e36d
+  - uv_513d4ea97d9161c2c39fc2e6
+  - uv_6895de41a1f966a7ec92c700
+  - uv_71d0bc85d1958df59eff619d
+  - uv_7372b57253cc10acaa168421
+  - uv_819e9f23302485fc1a5fd056
+  - uv_aeaeb14ee7e488a9eec9a1f9
+  - uv_df20b97d60296b120b02323a
+  - uv_f5916cb48431c765b5591c3e

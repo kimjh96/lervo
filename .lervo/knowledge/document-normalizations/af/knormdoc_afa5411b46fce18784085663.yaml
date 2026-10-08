@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_addfb7022842e3a4915afc25
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8ce31ee46548eb827c8dcba4
+outputLanguage: en
+outputs:
+  - byteCount: 11971
+    contentHash: sha256:133b62cd28130dd2e30405c755d4708c47bb8ba9dbb802df6140cd73494f2bb1
+    path: docs/decisions/knowledge/maintenance/0495-separate-fast-maintenance-status-from-expensive-verification.md
+    userRegionHash: sha256:133b62cd28130dd2e30405c755d4708c47bb8ba9dbb802df6140cd73494f2bb1
+profile: decision_record
+recordId: knormdoc_afa5411b46fce18784085663
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:abbbb51eca6bff8d06baf82fae6559af74563fb1a56df3dd6c03b317a3e2cd14
+sourcePath: docs/decisions/knowledge/maintenance/0495-separate-fast-maintenance-status-from-expensive-verification.md
+sourceUnitVersionIds:
+  - uv_1373d7d90fc32bb4fa3030b6
+  - uv_1f8501f468970f12112beaec
+  - uv_427047b55885723e4578ba90
+  - uv_43508b8b8775001cc4ed27b5
+  - uv_746d121315e704e13b5bb262
+  - uv_86210f48718e57c2a4fb74bd
+  - uv_8d2f01f07e9a529b5c529f93
+  - uv_caf9e7adfb73c392aacec8bf
+  - uv_e01cd6c917a530479ce3ee0e
+  - uv_e667aea870c5ba393bef30cc
