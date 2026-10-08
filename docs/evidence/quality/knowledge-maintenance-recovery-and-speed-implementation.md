@@ -30,7 +30,7 @@ Reader fixtures cover mixed v1/v5 history, rejecting new events on a v4 writer, 
 Observed source checks:
 
 - Expanded runtime, event, schema, project storage, provider compiler, Codex/Claude adapter, and document contract suites: 121 files, 860 tests passed.
-- CLI, sync, and diagnostics compatibility: 24 tests passed; built CLI command journeys: 28 tests passed. The broader sync suites previously passed with the updated reader catalog.
+- CLI, sync, and diagnostics compatibility: 24 tests passed; built CLI command journeys: 28 tests passed. Hub HTTP and Node health capability fixtures were updated for schema 5, and their 13 tests passed. The broader sync suites previously passed with the updated reader catalog.
 - `pnpm typecheck`, `pnpm build`, `pnpm architecture:check`, `pnpm quality:check`, `pnpm docs:check`, and `pnpm smoke:built-cli` passed. Built CLI smoke exercised the local development 0.20.0 artifact; it is not evidence of a fleet installation.
 - `pnpm lervo migrate knowledge --json` produced a ready plan with 1,702 operations and zero blockers; this was planning, not application of a repository-wide rewrite. Subsequent lint was valid with 123 warnings (54 document staleness, 37 normalization, 21 source-unit, one materialization, ten missing links). Installed warnings were not cleared by this test.
 - Deployment review replaced the initial minor intent with reviewed major intent `.changes/relint_0e37b766b4d25226f6cee9b3.yaml`: status returns version-2 metadata observations, and clients needing authoritative verification must use `inspect`. Before 1.0, the reviewed major impact advances the minor version. `pnpm release:completion:check --base d66c98274a8302e0e857b1c4fe860c9dcebc48c0` passed with `intent_pending`; publication and installed rollout are not established by these source checks.
@@ -38,6 +38,8 @@ Observed source checks:
 These checks prove the source delivery only; a successful terminal turn does not prove installed release readiness.
 
 Deployment preparation found that the first committed release manifest did not match the clean CI build. Formatting had changed two dependency sources after their package outputs were built. A complete workspace rebuild reproduced CI's exact CLI, Node, and terminal-hook hashes; the manifest and SBOM owners then regenerated their metadata. The correction changes generated release metadata, not the event contract. Installed acceptance must identify the fully rebuilt artifact rather than the earlier package.
+
+The fully rebuilt package passed packed-consumer installation, native SDK selection, capability activation, live webhook routing, unattended scheduling, dynamic topology, cross-provider continuation, and the product-host protocol. This verifies the installed scratch consumer, not fleet readiness or real external message delivery.
 
 ## Metadata measurement
 
