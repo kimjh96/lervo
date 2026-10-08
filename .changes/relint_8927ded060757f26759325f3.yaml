@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8927ded060757f26759325f3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Node upgrades wait up to 15 minutes for a running supervision cycle or admitted work instead of refusing at the first collision."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c1396e2fee91f91da8b35b73"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "lervo upgrade --apply --safe plans and applies an approval-free upgrade in one exclusive window, and a stale --approval names the current plan ID and what changed."

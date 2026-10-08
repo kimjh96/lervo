@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1b9177ed24a6d8d4780ee022"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Carry delegation-bound verification suites, repository roles, and asset manifests across hosts through the Hub, so a host that lacks them installs the exact reviewed bytes and seeds a peer's delegation instead of reporting delegation_missing."
