@@ -7,9 +7,9 @@ Related: [ADR-0491](../semantics/0491-never-pin-tool-generated-files-as-assets-a
 
 ## Context
 
-One read-only Mac measurement on October 8 took 22.147 seconds for convergence status, compared with 0.558 seconds for owner status and 0.591 seconds for freshness status. This is a diagnostic sample, not a benchmark distribution. Source inspection explains why: CLI `status` and `inspect` both call complete baseline discovery, capture sources, inspect normalization/currency, and replay historical evidence. The in-memory discovery reuse from ADR-0486 does not survive a new CLI process or independently provide a cheap status path.
+One read-only Mac measurement during the October 8 pre-delivery investigation took 22.147 seconds for convergence status, compared with 0.558 seconds for owner status and 0.591 seconds for freshness status. This is a diagnostic sample, not a benchmark distribution. Source inspection at that snapshot explained why: CLI `status` and `inspect` both called complete baseline discovery, captured sources, inspected normalization/currency, and replayed historical evidence. The in-memory discovery reuse from ADR-0486 did not survive a new CLI process or independently provide a cheap status path.
 
-Normalization batch selection also rebuilds preflight while reducing the document prefix. Timeout-driven batch halving lives only in an obligation and resets with a new baseline. Generation and independent review have different costs: a batch that fits generation call ceilings may still be too large to review within its deadline. Increasing timers, call concurrency, or token budgets does not address these repeated costs.
+At that snapshot, normalization batch selection also rebuilt preflight while reducing the document prefix. Timeout-driven batch halving lived only in an obligation and reset with a new baseline. Generation and independent review have different costs: a batch that fits generation call ceilings may still be too large to review within its deadline. Increasing timers, call concurrency, or token budgets does not address these repeated costs.
 
 ## Decision proposal
 
@@ -75,6 +75,8 @@ Test fairness when a large document precedes small ones, retained adaptive limit
 
 ## First delivery boundary
 
-The [source implementation evidence](../../../evidence/quality/knowledge-maintenance-recovery-and-speed-implementation.md) records the implemented subset, verification, and remaining protocol work. This proposal's full acceptance gates are not implied by those source changes. Installed writer activation, fleet recovery, and the seven-day latency proof remain pending in the [delivery plan](../../../roadmap/knowledge/maintenance-recovery-and-speed.md).
+The [implementation evidence](../../../evidence/quality/knowledge-maintenance-recovery-and-speed-implementation.md) records the implemented subset, verification, and installed reader deployment. Schema-5 writer activation completed for the Lervo checkouts on Mac and WSL; other repositories retain their selected writer versions. This scoped activation does not establish a schema-5 freshness assessment receipt, complete evidence recovery, fleet recovery, or document currency. Full protocol acceptance and the seven-day latency proof remain pending in the [delivery plan](../../../roadmap/knowledge/maintenance-recovery-and-speed.md).
 
 The first delivery's CLI status surface is version 2 (`kind: knowledge_maintenance.status`). Its observation member is a bounded version-1 as-of summary with owner generation, capture age, historical verification time, and `unknown | observed | stale` coverage. It deliberately has no repository digest or event cursor and is never reused for currency or effects. Missing counts are null and the conservative legacy `baselineCurrent` field is false. `inspect` preserves full verification for clients requiring the previous status semantics. Anchored component caches and partial authoritative inspection require a subsequent contract and remain unimplemented by this summary record.
+
+The implementation evidence reports fast metadata reads on the observed Mac installation with warm OS caches. Those measurements do not establish authoritative-inspection performance, a paired CPU reduction, or faster independently reviewed settlement. The paired benchmarks and seven-day acceptance above remain required.
