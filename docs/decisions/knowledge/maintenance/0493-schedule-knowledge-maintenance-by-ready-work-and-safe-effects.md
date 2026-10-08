@@ -7,9 +7,9 @@ Related: [ADR-0466](../../coordination/sync/0466-coordinate-cross-host-knowledge
 
 ## Context
 
-The [October 8 investigation](../../../evidence/quality/knowledge-maintenance-recovery-and-speed-design.md) found a healthy WSL owner with 74 normalization documents pending at `normalization_review`. The freshness stage had not completed since October 6. The current worker runs freshness only when convergence is `idle`, `current`, `waiting_authority`, or `attention_required`. A queued normalization stage therefore blocks even unrelated freshness observation and candidate preparation.
+The [October 8 investigation](../../../evidence/quality/knowledge-maintenance-recovery-and-speed-design.md) found a healthy WSL owner with 74 normalization documents pending at `normalization_review`. The freshness stage had not completed since October 6. At that pre-delivery snapshot, the worker ran freshness only when convergence was `idle`, `current`, `waiting_authority`, or `attention_required`. A queued normalization stage therefore blocked even unrelated freshness observation and candidate preparation.
 
-The worker also holds the repository worker lock while processing change intake, up to eight convergence stages, and freshness. Generation can take up to 25 minutes for a normalization batch. Host admission yields between stages, but a stage can contain several long calls. These are source-level scheduling risks; the investigation did not measure their complete installed latency distribution.
+The observed worker also held the repository worker lock while processing change intake, up to eight convergence stages, and freshness. Generation could take up to 25 minutes for a normalization batch. Host admission yielded between stages, but a stage could contain several long calls. These were source-level scheduling risks; the investigation did not measure their complete installed latency distribution.
 
 Removing the freshness gate alone would violate the batch-boundary HEAD fence. A freshness commit could invalidate a generated normalization candidate before independent review or apply. The remedy must separate preparation from consequential effects.
 
@@ -79,4 +79,6 @@ The [delivery plan](../../../roadmap/knowledge/maintenance-recovery-and-speed.md
 
 ## First delivery boundary
 
-The [source implementation evidence](../../../evidence/quality/knowledge-maintenance-recovery-and-speed-implementation.md) records the implemented subset, verification, and remaining protocol work. This proposal's full acceptance gates are not implied by those source changes. Installed writer activation, fleet recovery, and the seven-day latency proof remain pending in the [delivery plan](../../../roadmap/knowledge/maintenance-recovery-and-speed.md).
+The [implementation evidence](../../../evidence/quality/knowledge-maintenance-recovery-and-speed-implementation.md) records the implemented subset, verification, and installed reader deployment. Schema-5 writer activation completed for the Lervo checkouts on Mac and WSL; other repositories retain their selected writer versions. This scoped activation does not establish a schema-5 freshness assessment receipt, complete evidence recovery, fleet recovery, or document currency. Full protocol acceptance and the seven-day latency proof remain pending in the [delivery plan](../../../roadmap/knowledge/maintenance-recovery-and-speed.md).
+
+The first delivery reserves preparation after two convergence turns but retains repository and host cycle locks around each bounded turn and the parked-convergence effect gate. Releasing capture locks before provider execution and proving exclusive apply, journal recovery, checkpoint, and rebind remain required work. Installed activation does not earn those scheduling or effect-safety gates.
