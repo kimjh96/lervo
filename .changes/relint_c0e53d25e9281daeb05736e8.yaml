@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c0e53d25e9281daeb05736e8"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Keep background convergence moving after deploy: bind generated projections by hash in lifecycle plan review, move a squash-absorbed knowledge integration ref to the base with a backup and an event, and report verification suites that rewrite tracked files with their exact paths."

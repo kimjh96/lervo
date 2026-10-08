@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9b239276135e60058a4eb0a3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Publish repository Node readiness without waiting for the conversation knowledge index, refresh a starting Node's health heartbeat, and count that heartbeat as readiness progress so a slow but live startup is not rolled back."

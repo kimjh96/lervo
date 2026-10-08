@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b55620f38e9610fcbd56c73a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Install and verify the complete SDK dependency closure for fleet Node runtimes so conversation replies survive upgrades."

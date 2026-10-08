@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3245ee0b0d8431df85355040"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep an atomic current Node runtime pointer, run the replica coordinator and its peer commands through it, refuse mixed capture semantics, and reject unknown replica config keys."

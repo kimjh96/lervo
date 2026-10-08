@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_de499173d4978515485aba4a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Accept a repository Node replacement whose only non-ready components keep their exact pre-upgrade state, extend readiness while startup progresses, and name the blocking component when readiness or recovery fails."

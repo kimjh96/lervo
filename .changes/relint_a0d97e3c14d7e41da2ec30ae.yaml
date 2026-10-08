@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a0d97e3c14d7e41da2ec30ae"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Report knowledge_normalization_outside_delegation with the excluded normalization roots when every pending normalization document lies outside the delegation, instead of an opaque knowledge_authority_unavailable."

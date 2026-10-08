@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e6a6afa61f3547f547704469"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Synchronize repository checkpoints from CLI-only hosts and explicitly reconcile divergent continuations without rewriting their histories."

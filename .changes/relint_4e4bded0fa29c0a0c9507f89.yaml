@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4e4bded0fa29c0a0c9507f89"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Publish background knowledge within the delegated write scope, never rewrite tool-generated documents such as release-please changelogs, repair knowledge commits that changed them automatically, and derive the publication base from the remote's advertised default branch."

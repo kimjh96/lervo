@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f4bb896c03fd312dc4d95334"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Accept terminal hook runtimes up to 8 MiB so lervo upgrade no longer blocks terminal integration with runtime_invalid."

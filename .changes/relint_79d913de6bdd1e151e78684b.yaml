@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_79d913de6bdd1e151e78684b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Renew each convergence delegation only on the convergence owner with deterministic bytes, let followers adopt the owner's term or bytes, and stop replica apply, merge, and rollback from resetting a renewed tracked delegation to HEAD."
