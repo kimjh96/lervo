@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { eventLabel, fieldLabel } from "../assets/trace-labels.js";
 
 describe("Hub trace web labels", () => {
-  it("gives every current event type a human-readable Korean label", () => {
+  it("gives every current event type a human-readable English label", () => {
     for (const type of eventTypes) {
       expect(eventLabel(type), type).not.toBe(type);
       expect(eventLabel(type), type).toMatch(/[A-Za-z]/);

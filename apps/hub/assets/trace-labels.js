@@ -90,6 +90,8 @@ const eventLabels = {
   "document.freshness.candidate.rejected": "Document freshness candidate rejected",
   "document.freshness.candidate.reverted": "Document freshness candidate reverted",
   "document.freshness.cycle.completed": "Document freshness cycle completed",
+  "document.freshness.evidence.recovered": "Document evidence recovery recorded",
+  "document.freshness.assessment.recorded": "Document freshness assessment recorded",
   "knowledge.instruction_candidate.captured": "Owner rule captured for review",
   "conversation.knowledge_candidate.recorded": "Conversation knowledge candidate recorded",
   "knowledge.instruction_capture.cycle.completed": "Owner-turn capture cycle completed",
