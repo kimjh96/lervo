@@ -9,7 +9,7 @@ Checked gates have implementation evidence and focused tests. Shared provider co
 - [Independent review and canonical context](acceptance/independent-review.md)
 - [Integration, ownership, and resource limits](acceptance/integration.md)
 - [Installed concurrency and canary verification](acceptance/installed-concurrency.md)
-- [Maintenance recovery and speed](../maintenance-recovery-and-speed.md): additional proposed gates for evidence recovery, freshness fairness, exact assessment settlement, bounded status, and installed latency. All remain unchecked pending implementation.
+- [Maintenance recovery and speed](../maintenance-recovery-and-speed.md): first delivery is installed on Mac and WSL, and the reader-compatibility gate is checked. Complete evidence recovery, freshness fairness, exact assessment settlement, safe-effect protocols, paired performance measurements, and seven-day installed acceptance remain open.
 
 ## References
 
