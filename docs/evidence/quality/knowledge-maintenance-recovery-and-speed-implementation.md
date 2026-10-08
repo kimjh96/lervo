@@ -37,9 +37,11 @@ Observed source checks:
 
 These checks prove the source delivery only; a successful terminal turn does not prove installed release readiness.
 
+Deployment preparation found that the first committed release manifest did not match the clean CI build. Formatting had changed two dependency sources after their package outputs were built. A complete workspace rebuild reproduced CI's exact CLI, Node, and terminal-hook hashes; the manifest and SBOM owners then regenerated their metadata. The correction changes generated release metadata, not the event contract. Installed acceptance must identify the fully rebuilt artifact rather than the earlier package.
+
 ## Metadata measurement
 
-The [100-sample benchmark](knowledge-maintenance-status-cold-process-v1.json) used the final development CLI on Darwin arm64, Node v26.5.1, with five warmups followed by 100 fresh processes against the existing repository and a missing observation. Every response was version 2, explicitly unknown, with conservative `baselineCurrent: false`. Median was 556.105 ms, p95 654.232 ms, and maximum 714.515 ms.
+The [100-sample benchmark](knowledge-maintenance-status-cold-process-v1.json) used the recorded development CLI on Darwin arm64, Node v26.5.1, with five warmups followed by 100 fresh processes against the existing repository and a missing observation. Every response was version 2, explicitly unknown, with conservative `baselineCurrent: false`. Median was 556.105 ms, p95 654.232 ms, and maximum 714.515 ms.
 
 OS caches were warm. This is an unpaired metadata measurement, not a cold-machine result, equivalent authoritative inspection, task-base CPU comparison, installed p95, or proof of faster independently reviewed settlement. Those roadmap gates remain open.
 
