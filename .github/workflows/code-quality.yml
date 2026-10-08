@@ -4,6 +4,18 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact revision to verify; a moved branch is rejected
+        type: string
+        required: false
+      base_sha:
+        description: Exact comparison base for generated release verification
+        type: string
+        required: false
+  schedule:
+    - cron: "17 4 * * *"
 
 permissions:
   contents: read
@@ -15,6 +27,12 @@ concurrency:
 jobs:
   quality:
     name: ESLint and Prettier
+    if: github.event_name != 'pull_request' || github.head_ref != 'lervo/release-cli' || github.event.pull_request.head.repo.full_name != github.repository
+    outputs:
+      coverage: ${{ steps.plan.outputs.coverage }}
+      revision: ${{ steps.plan.outputs.revision }}
+      base: ${{ steps.plan.outputs.baseRevision }}
+      distribution: ${{ steps.distribution.outputs.required }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -32,14 +50,43 @@ jobs:
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Plan exact verification scope
+        id: plan
+        env:
+          EXPECTED_REVISION: ${{ inputs.expected_sha }}
+        run: node scripts/quality/ci-plan.mjs
+      - name: Plan distribution verification
+        id: distribution
+        shell: bash
+        run: |
+          required=false
+          if [ '${{ steps.plan.outputs.coverage }}' = full ]; then
+            if [ '${{ github.event_name }}' = workflow_dispatch ] || [ '${{ github.event_name }}' = schedule ] || { [ '${{ github.event_name }}' = push ] && ! compgen -G '.changes/*.yaml' > /dev/null; }; then
+              required=true
+            fi
+          fi
+          echo "required=${required}" >>"${GITHUB_OUTPUT}"
+      - name: Check introduced commits
+        env:
+          BASE_SHA: ${{ steps.plan.outputs.baseRevision }}
+          HEAD_SHA: ${{ steps.plan.outputs.commitHead }}
+        run: pnpm commit:lint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
       - name: Check code quality
         run: pnpm quality:check
       - name: Check types against the supported Node minimum
+        if: steps.plan.outputs.coverage == 'full'
         run: pnpm typecheck
       - name: Check architecture boundaries
         run: pnpm architecture:check
       - name: Check documentation lifecycle
         run: pnpm docs:check
+      - name: Check branding and natural-language contracts
+        run: pnpm brand:check && pnpm evaluation:natural-language:check
+      - name: Check explicit verification release completion
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+        env:
+          BASE_SHA: ${{ steps.plan.outputs.baseRevision }}
+        run: pnpm release:completion:check --base "$BASE_SHA"
       - name: Check pull-request release completion
         if: github.event_name == 'pull_request'
         run: pnpm release:completion:check --base "${{ github.event.pull_request.base.sha }}"
@@ -49,6 +96,8 @@ jobs:
 
   release-artifacts:
     name: Release manifest and SBOM
+    needs: quality
+    if: needs.quality.outputs.coverage == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -71,9 +120,21 @@ jobs:
         run: pnpm release:manifest:check
       - name: Verify release SBOM
         run: pnpm release:sbom:check
+      - name: Archive exact build outputs
+        run: node scripts/quality/ci-build.mjs create "${RUNNER_TEMP}/lervo-ci-build"
+      - name: Share exact build with test consumers
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: workspace-build
+          path: ${{ runner.temp }}/lervo-ci-build
+          if-no-files-found: error
+          retention-days: 3
+          overwrite: true
 
   test:
     name: Tests (shard ${{ matrix.shard }}/4)
+    needs: [quality, release-artifacts]
+    if: needs.quality.outputs.coverage == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -100,7 +161,72 @@ jobs:
           git config --global init.defaultBranch main
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build workspace
-        run: pnpm build
+      - name: Download exact build outputs
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: workspace-build
+          path: ${{ runner.temp }}/lervo-ci-build
+      - name: Restore and validate exact build outputs
+        run: node scripts/quality/ci-build.mjs restore "${RUNNER_TEMP}/lervo-ci-build"
       - name: Run tests
-        run: pnpm test --maxWorkers=2 --testTimeout=30000 --shard=${{ matrix.shard }}/4
+        run: pnpm test --maxWorkers=2 --testTimeout=30000 --config=scripts/quality/ci-vitest.config.mjs --shard=${{ matrix.shard }}/4
+
+  distribution:
+    name: Distribution smoke checks
+    needs: [quality, release-artifacts]
+    if: needs.quality.outputs.distribution == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.13.0
+          package-manager-cache: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Download exact build outputs
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: workspace-build
+          path: ${{ runner.temp }}/lervo-ci-build
+      - name: Restore and validate exact build outputs
+        run: node scripts/quality/ci-build.mjs restore "${RUNNER_TEMP}/lervo-ci-build"
+      - name: Verify distributions and packed consumers
+        run: |
+          pnpm release:attestation:check
+          pnpm smoke:built-cli
+          pnpm smoke:built-hub
+          pnpm smoke:hub-distribution
+          pnpm smoke:built-node
+          pnpm smoke:node-distribution
+          pnpm smoke:packed-cli
+          pnpm smoke:registry-publish
+          pnpm lervo knowledge lint --json
+
+  verification:
+    name: CI verification (lervo-ci-v1)
+    needs: [quality, release-artifacts, test, distribution]
+    if: ${{ always() && (github.event_name != 'pull_request' || github.head_ref != 'lervo/release-cli' || github.event.pull_request.head.repo.full_name != github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.13.0
+          package-manager-cache: false
+      - name: Record complete verification disposition
+        env:
+          CI_JOBS: ${{ toJSON(needs) }}
+        run: node scripts/quality/ci-result.mjs

@@ -31,6 +31,8 @@ The tag hands off to release-note publication, artifacts, SBOMs, attestations, a
 
 ## Completion criteria
 
+The criteria below record the original release-automation delivery. The [CI cost and duration redesign](../operations/ci-cost-and-duration.md) and [ADR-0496](../../decisions/operations/services/0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md) add current gates: successful exact-main admission, reviewable generation with pending candidate checks, explicit exact-candidate full CI, predecessor-bound ref updates, and full exact-main verification before tags. Hosted redesign acceptance remains open until its separate roadmap evidence is recorded.
+
 - An accepted ADR fixes the versioning model, pre-1.0 rules, tool, public-package scope, intent schema, bounded current-note format, history retention, and authority boundaries.
 - Configuration and CI reject missing, malformed, stale, duplicate, conflicting, or unnecessary intent, with publishable and exempt fixtures.
 - Deterministic release-pull-request tests cover initial creation, repeated no-op reconciliation, added intent, patch/minor/major aggregation, bounded-note replacement, conflict recovery, and exact generated-file ownership.

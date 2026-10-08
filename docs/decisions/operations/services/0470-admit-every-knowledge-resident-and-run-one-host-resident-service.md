@@ -99,6 +99,8 @@ Never advise a held or unserved checkout to "register a Node or run worker --wat
 
 ### Continuous integration
 
+[ADR-0496](0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md) supersedes the per-shard build and unconditional heavy-verification configuration below. It retains full source-change tests while sharing exact build outputs, admitting a conservative documentation-only path, and requiring an aggregate result plus full manual/daily fallbacks.
+
 The code-quality workflow adds two jobs for pull requests and `main`, on `ubuntu-latest` with Node 22.13.0:
 
 - `release-artifacts`: `pnpm build`, `pnpm release:manifest:check`, and `pnpm release:sbom:check`.

@@ -28,16 +28,24 @@ describe("code-quality workflow", () => {
     assert.match(directMain.run, /github\.event\.before/u);
   });
 
-  it("builds and checks the release manifest and SBOM on every pull request", async () => {
+  it("builds once and shares exact outputs with every full-test consumer", async () => {
     const workflow = parse(await readFile(workflowPath, "utf8"));
     const job = workflow.jobs["release-artifacts"];
     assert.equal(job["runs-on"], "ubuntu-latest");
-    assert.deepEqual(job.steps.map(({ run }) => run).filter(Boolean), [
-      "pnpm install --frozen-lockfile",
-      "pnpm build",
-      "pnpm release:manifest:check",
-      "pnpm release:sbom:check",
-    ]);
+    assert.equal(job.needs, "quality");
+    assert.equal(job.if, "needs.quality.outputs.coverage == 'full'");
+    const commands = job.steps.map(({ run }) => run).filter(Boolean);
+    assert.ok(commands.includes("pnpm build"));
+    assert.ok(commands.includes("pnpm release:manifest:check"));
+    assert.ok(commands.includes("pnpm release:sbom:check"));
+    const upload = job.steps.find(({ uses }) => uses?.startsWith("actions/upload-artifact@"));
+    assert.equal(upload.with["retention-days"], 3);
+    for (const consumer of [workflow.jobs.test, workflow.jobs.distribution]) {
+      assert.ok(consumer.needs.includes("release-artifacts"));
+      assert.ok(consumer.steps.some(({ uses }) => uses?.startsWith("actions/download-artifact@")));
+      assert.ok(consumer.steps.some(({ run }) => run?.includes("ci-build.mjs restore")));
+      assert.ok(!consumer.steps.some(({ run }) => run === "pnpm build"));
+    }
   });
 
   it("runs the whole test suite in bounded shards after a build", async () => {
@@ -47,10 +55,13 @@ describe("code-quality workflow", () => {
     assert.equal(job.strategy["fail-fast"], false);
     assert.ok(job["timeout-minutes"] <= 60);
     const runs = job.steps.map(({ run }) => run).filter(Boolean);
-    assert.ok(runs.indexOf("pnpm build") < runs.findIndex((run) => run.startsWith("pnpm test")));
+    assert.ok(
+      runs.findIndex((run) => run.includes("ci-build.mjs restore")) <
+        runs.findIndex((run) => run.startsWith("pnpm test")),
+    );
     assert.equal(
       runs.at(-1),
-      "pnpm test --maxWorkers=2 --testTimeout=30000 --shard=${{ matrix.shard }}/4",
+      "pnpm test --maxWorkers=2 --testTimeout=30000 --config=scripts/quality/ci-vitest.config.mjs --shard=${{ matrix.shard }}/4",
     );
   });
 
@@ -75,4 +86,21 @@ describe("code-quality workflow", () => {
     assert.ok(typecheck > install, "typecheck must run after dependency installation");
     assert.equal(steps[typecheck].run, "pnpm typecheck");
   });
+});
+
+it("keeps a full daily/manual fallback and rejects stale explicit candidates", async () => {
+  const workflow = parse(await readFile(workflowPath, "utf8"));
+  assert.ok(workflow.on.schedule.length > 0);
+  assert.ok(workflow.on.workflow_dispatch.inputs.expected_sha);
+  assert.ok(
+    workflow.jobs.quality.steps.some(({ run }) => run === "node scripts/quality/ci-plan.mjs"),
+  );
+  assert.ok(workflow.jobs.quality.if.includes("head.repo.full_name != github.repository"));
+  assert.deepEqual(workflow.jobs.verification.needs, [
+    "quality",
+    "release-artifacts",
+    "test",
+    "distribution",
+  ]);
+  assert.ok(workflow.jobs.verification.if.includes("always()"));
 });

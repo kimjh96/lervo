@@ -3,6 +3,7 @@
 These scopes do not reopen v0 acceptance; each follows its linked ADR and roadmap.
 
 - [Product outcome convergence](../product-outcome-convergence.md): truth ledger for outcomes, evidence, and gaps.
+- [CI cost and duration](../operations/ci-cost-and-duration.md): approved shared-build and release-verification redesign; local and hosted acceptance are tracked separately.
 - [Foundation hardening](../foundation-hardening.md): completed event compatibility, causal work, resource evidence, adverse-condition proof, and enhancement handoff.
 - [Governed loop and assignment graph](../governed-loop-assignment-graph.md): completed bounded headless decisions and the packed product-host protocol over canonical assignments and managed evidence, with no second task or graph authority.
 - [Extensible retrieval](../../decisions/search/engines/0328-make-qualified-lexical-v2-the-product-default.md): qualified lexical-v2 and its reviewed projection plan are the repository-independent default. [Surface convergence](../../decisions/search/engines/0413-close-product-default-lexical-v2-surface-gaps.md) closes prior CLI, managed-work, supervision, fallback, and conversation gaps while preserving explicit reviewed alternatives. External composition remains behind provider-neutral boundaries.

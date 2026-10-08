@@ -31,6 +31,8 @@ The local default uses the configured upstream merge base, then the latest reach
 
 On `main`, `.github/workflows/release-preparation.yml` aggregates pending intent into the fixed `lervo/release-cli` branch. Review the public version, sorted summaries in `.changes/current-release.md`, lockfile, release artifact manifest, SBOM, consumed intent, and exact source revision. New intent updates the same pull request.
 
+Preparation now follows successful verification of the exact current main push, rather than every push immediately. It generates a reviewable candidate and explicitly dispatches full CI for that exact candidate. The PR leaves verification pending until those checks pass. Generation no longer repeats `pnpm check`; source-main success does not prove the generated candidate passed. Manual preparation retries require current main and exact successful CI evidence. See [ADR-0496](../decisions/operations/services/0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md).
+
 Preparation consumes every pending item. Creation and loading fail closed above the 128-item bound. The queue is transient, not history. The current release-note projection is replaced, never appended. No cumulative changelog or directory receives one file per release; immutable Git revisions and GitHub Releases retain historical notes.
 
 Preparation may consume intent only into the version calculated by the reviewed impact policy. The completion checker reconstructs intent from bounded Git ancestry and requires exact release-note, manifest, and SBOM versions. Deleting intent and manually editing a package version does not satisfy completion.
@@ -40,6 +42,8 @@ Generated files retain their owners. The workflow runs frozen-lockfile installat
 ## Tag handoff and recovery
 
 After the release pull request merges, the workflow verifies clean `main`, the versioned current release note, matching generated metadata, no remaining intent, and tag absence. It creates and pushes the annotated `v<version>` tag, then ensures one exact-revision, tag-bound run exists for the three-platform packed-consumer pipeline, supported attestation work, and idempotent GitHub Release creation. Explicit dispatch is required because GitHub does not emit another workflow trigger for a tag pushed with the repository workflow token.
+
+The tag effect also requires full successful Code quality evidence for the exact merged main revision, including all four test shards, manifest/SBOM, distribution smokes, and aggregate verification. A successful candidate or documentation-only run cannot substitute for that evidence. Superseded main or unavailable CI stops the effect; retry after the current full verification completes.
 
 If tag creation or matrix dispatch has an uncertain result, rerun the workflow. An exact annotated tag at the planned revision and an existing matrix run for that revision are recoverable replays. A lightweight tag or a tag at another revision is a conflict. Do not move or delete it automatically; resolve Git authority separately, then rerun the exact plan.
 

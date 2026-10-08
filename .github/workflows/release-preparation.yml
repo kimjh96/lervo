@@ -1,8 +1,10 @@
 name: CLI release preparation
 
 on:
-  push:
+  workflow_run:
+    workflows: [Code quality]
     branches: [main]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -14,19 +16,28 @@ concurrency:
   group: cli-release-preparation
   cancel-in-progress: false
 
+env:
+  RELEASE_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+  RELEASE_CI_RUN_ID: ${{ github.event.workflow_run.id }}
+  GH_TOKEN: ${{ github.token }}
+
 jobs:
   reconcile:
     name: Reconcile release PR or exact tag
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
-    # `pnpm check` runs the full Vitest suite, which alone took 46.5 minutes in run 37199673882
-    # and was still running after 49 minutes in run 37243985571 on the hosted runner. Install,
-    # quality, typecheck, and build steps take about ten more minutes before it, and the smoke
-    # checks and knowledge lint run after it, so 60 minutes cannot cover a passing run.
-    timeout-minutes: 120
+    timeout-minutes: 30
     steps:
       - name: Check out exact main revision
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          ref: ${{ env.RELEASE_SOURCE_SHA }}
           fetch-depth: 0
           persist-credentials: true
       - name: Set up Node
@@ -34,122 +45,31 @@ jobs:
         with:
           node-version: 22.13.0
           package-manager-cache: false
+      - name: Admit exact successful current main
+        id: admission
+        run: node scripts/release/commands/check-release-ci.mjs --plan
       - name: Set up pnpm
+        if: steps.admission.outputs.status == 'ready'
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
       - name: Install dependencies
+        if: steps.admission.outputs.status == 'ready'
         run: pnpm install --frozen-lockfile
-      - name: Check direct-main release completion
-        if: github.event_name == 'push'
-        run: pnpm release:completion:check --base "${{ github.event.before }}"
+      - name: Check source release completion
+        if: steps.admission.outputs.status == 'ready'
+        shell: bash
+        run: |
+          git switch -C main "${RELEASE_SOURCE_SHA}"
+          git branch --set-upstream-to=origin/main main
+          base="$(git rev-parse "${RELEASE_SOURCE_SHA}^")"
+          pnpm release:completion:check --base "${base}"
       - name: Prepare or update the release pull request
+        if: steps.admission.outputs.status == 'ready'
         id: prepare
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if compgen -G '.changes/*.yaml' > /dev/null; then
-            git switch -C lervo/release-cli "${GITHUB_SHA}"
-            git branch --set-upstream-to=origin/main lervo/release-cli
-            test "$(git merge-base HEAD '@{upstream}')" = "${GITHUB_SHA}"
-            plan="$(pnpm release:prepare --json)"
-            plan_id="$(jq -r '.planId' <<<"${plan}")"
-            pnpm release:prepare --apply --approval "${plan_id}" --json
-            git add apps/cli/package.json apps/cli/release-artifact-manifest.json apps/cli/release-sbom.cdx.json pnpm-lock.yaml .changes
-            git -c user.name='lervo-release[bot]' -c user.email='lervo-release[bot]@users.noreply.github.com' commit -m 'chore(cli): prepare release'
-            pnpm check
-            pnpm lervo knowledge lint --json
-            while IFS= read -r changed_path; do
-              case "${changed_path}" in
-                apps/cli/package.json|apps/cli/release-artifact-manifest.json|apps/cli/release-sbom.cdx.json|pnpm-lock.yaml|.changes/current-release.md|.changes/relint_*.yaml) ;;
-                *) echo "Unexpected release preparation path: ${changed_path}" >&2; exit 1 ;;
-              esac
-            done < <(git diff --name-only "${GITHUB_SHA}" HEAD)
-            release_commit="$(git rev-parse HEAD)"
-            evidence_checked='[x]'
-            release_ref='heads/lervo/release-cli'
-            if gh api "repos/${GITHUB_REPOSITORY}/git/ref/${release_ref}" >/dev/null 2>&1; then
-              gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/${release_ref}" \
-                -f sha="${GITHUB_SHA}" -F force=true >/dev/null
-            else
-              gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
-                -f ref="refs/${release_ref}" -f sha="${GITHUB_SHA}" >/dev/null
-            fi
-            git push origin lervo/release-cli
-            body_file="${RUNNER_TEMP}/lervo-release-pr.md"
-            cat >"${body_file}" <<EOF
-          ## Summary
-
-          Prepare the reviewed \`@lervo/cli\` release version and current release notes from plan \`${plan_id}\` at commit \`${release_commit}\`.
-
-          ## Scope and authority
-
-          The release plan changed only the CLI package version, lockfile, current release note, release manifest, software bill of materials, and consumed intent files. The exact changed-path check passed against \`${GITHUB_SHA}\`. This workflow has no npm staging or publication authority. The workflow cannot attest that an agent read \`AGENTS.md\`; that checklist item remains open for review.
-
-          ## Contract and architecture
-
-          The release-preparation command applied plan \`${plan_id}\` and generated version-bound files. N/A: The checked diff contains no source module, so this pull request requires no new module split.
-
-          ## Release impact
-
-          The consumed intent records and plan \`${plan_id}\` bind the release impact. This pull request prepares the version; it does not authorize npm publication.
-
-          ## Verification
-
-          On exact release commit \`${release_commit}\`, \`pnpm check\` and \`pnpm lervo knowledge lint --json\` both exited successfully in [workflow run ${GITHUB_RUN_ID}](https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}). The changed-path check passed. These observations support the checked generated-file and verification items below; they do not attest to source pull-request review.
-
-          ## Knowledge and documentation
-
-          The generated current release note is the documentation changed here. N/A: This generated-only release aggregation changes no repository-wide knowledge lifecycle source, so migration is not required. N/A: Release aggregation does not change roadmap criteria. Canonical source documentation and roadmap evidence remain the responsibility of the aggregated source pull requests.
-
-          ## Risk and recovery
-
-          The fixed branch ref was aligned to exact \`main\` revision \`${GITHUB_SHA}\` before the generated commit was pushed. A stale source, changed intent, failed command, or concurrent branch change stops this run; the next run replans from current \`main\`. No dedicated secret scan ran here, so that checklist item remains open for review.
-
-          ## Checklist
-
-          - [ ] I read \`AGENTS.md\` and the relevant linked entrypoints before changing bytes.
-          - ${evidence_checked} I reviewed every touched source against \`docs/foundation/code-convention.md\`.
-          - ${evidence_checked} Repository-authored state is bounded; this change adds neither an append-only file nor a one-file-per-operation archive.
-          - ${evidence_checked} Lervo-managed, generated, and user-owned bytes retain distinct owners.
-          - ${evidence_checked} Affected documentation and roadmap completion criteria are current.
-          - ${evidence_checked} Relevant tests, \`pnpm quality:check\`, and required Lervo migration/lint checks pass.
-          - [ ] No secret, mutable credential, or unsupported authority is included.
-          EOF
-            open_pr_number="$(gh pr list --base main --head lervo/release-cli --state open --json number --jq '.[0].number // empty')"
-            if [ -z "${open_pr_number}" ]; then
-              gh pr create --base main --head lervo/release-cli --title 'chore(cli): prepare release' --body-file "${body_file}"
-            else
-              gh pr edit "${open_pr_number}" --title 'chore(cli): prepare release' --body-file "${body_file}"
-            fi
-            echo 'disposition=release_pr' >>"${GITHUB_OUTPUT}"
-          else
-            echo 'disposition=tag_check' >>"${GITHUB_OUTPUT}"
-          fi
+        run: node scripts/release/commands/reconcile-release-workflow.mjs candidate
       - name: Create and push the exact annotated tag
-        if: steps.prepare.outputs.disposition == 'tag_check'
+        if: steps.admission.outputs.status == 'ready' && steps.prepare.outputs.disposition == 'tag_check'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name 'lervo-release[bot]'
-          git config user.email 'lervo-release[bot]@users.noreply.github.com'
-          plan="$(node scripts/release/commands/tag-cli-release.mjs --json || true)"
-          tag="$(jq -r '.tag // empty' <<<"${plan}")"
-          if [ "$(jq -r '.status // "blocked"' <<<"${plan}")" = 'ready' ]; then
-            plan_id="$(jq -r '.planId' <<<"${plan}")"
-            pnpm release:tag --apply --approval "${plan_id}" --json
-            git push origin "${tag}"
-          fi
-          if [ -n "${tag}" ] && [ "$(jq -r '.status // "blocked"' <<<"${plan}")" != 'blocked' ]; then
-            matrix_runs="$(
-              gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/cli-release-matrix.yml/runs" \
-                -f branch="${tag}" -F per_page=100
-            )"
-            matching_runs="$(
-              jq --arg sha "${GITHUB_SHA}" \
-                '[.workflow_runs[] | select(.head_sha == $sha)] | length' <<<"${matrix_runs}"
-            )"
-            if [ "${matching_runs}" -eq 0 ]; then
-              gh workflow run cli-release-matrix.yml --ref "${tag}"
-            fi
-          fi
+        run: node scripts/release/commands/reconcile-release-workflow.mjs tag

@@ -1,67 +1,31 @@
 # Code quality and commit CI execution
 
-## Evidence correction
+## Current source contract
 
-The workflow YAML, package manifests, alignment test, and CI execution receipts were not supplied for this assessment. The retained source description below is not independently verified workflow evidence. Its assertions must not be used as operational guarantees or proof of execution. This correction governs every section under “Retained source description — unverified.” Existing text is preserved for reconciliation.
+[ADR-0496](../decisions/operations/services/0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md) amends the CI portion of [ADR-0470](../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md). The checked-in `.github/workflows/code-quality.yml` configures PRs, main pushes, explicit dispatch, and a daily full audit. Configuration establishes required behavior; hosted execution and savings require separate run receipts.
 
-The supplied canonical context supports these narrower statements:
+Every ordinary change retains frozen dependency installation, quality, commit, architecture, documentation, branding, natural-language, and base-bound release-completion checks. Only a completely observed diff of Markdown under `docs/`, excluding test and fixture directories, admits the documentation-only path. Unknown paths, missing ancestry, excessive input, packaged documentation, scripts, configuration, and release metadata select full coverage. Rename detection is disabled so both changed sides are classified. Explicit dispatch and daily audit always select full coverage.
 
-- The [code convention](code-convention.md) states that `pnpm check` includes `pnpm quality:check` and that pull requests and pushes to `main` run the dedicated code-quality workflow.
-- The [commit convention](commit-convention.md) requires CI validation of every introduced pull-request commit and every commit pushed to `main`. The claimed last-commit fallback below is unverified and does not currently qualify that canonical policy.
-- [ADR-0470](../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) specifies pull-request and `main` artifact and test jobs on `ubuntu-latest` with Node 22.13.0. Artifact checking builds before checking the manifest and SBOM. Testing builds before `pnpm test`, with four runners, two workers each, a 30-second default test deadline, and a 45-minute timeout per shard. It also specifies per-process temporary user-state isolation. These are documented configuration requirements, not observed run results.
+## Shared build and full verification
 
-The additional workflow pins, permissions, cancellation controls, checkout settings, installation settings, precise command order and arguments, twenty-minute artifact timeout, matrix triggers, and commit-range fallback require exact workflow bytes before confirmation. Source-based type resolution and the Node engine/type/workflow alignment rule require the corresponding configuration and test bytes. The claimed first-run shard durations and `DatabaseSync.isOpen` incident require execution or incident evidence; neither outcome is established here. No successful CI run, packed smoke, release, or publication is established by this document.
+All jobs use Node 22.13.0 on Ubuntu. Full coverage adds source typechecking and one artifact producer running `pnpm build`, manifest verification, and SBOM verification. The producer shares only workspace `dist` directories through a run-local archive retained for three days.
 
-## Retained source description — unverified
+Four test shards restore the exact build after validating revision, workflow/run identity, Node version, OS, architecture, digest, allowed paths, regular-file types, and destination parents. Failed-consumer retries may reuse a successful producer from an earlier attempt of the same run; future-attempt or different-run artifacts are rejected. A rerun producer replaces its same-run artifact. Restore removes stale output files only after validation. macOS and Windows release checks build independently.
 
-All following sections reproduce the prior source description. Statements extending beyond the supported baseline above remain unverified, including statements phrased as facts or instructions.
+Tests retain two workers, the 30-second default deadline, a 45-minute shard timeout, and per-process temporary user-state isolation. The bounded timing profile and CI-specific sequencer change placement only. Every discovered file is assigned exactly once; new files are included. Test assertions, pool, and isolation remain intact.
 
-This reference describes the supplied `.github/workflows/code-quality.yml` and `.github/workflows/commit-convention.yml`. Read with the [code convention](code-convention.md), [commit convention](commit-convention.md), and [CLI version and release management](../distribution/cli-version-management.md).
+Distribution checks use the same build on explicit dispatch, daily audit, and full main pushes without pending release intent. They cover unsigned attestation, built CLI/Hub/Node, standalone distributions, packed CLI, isolated registry publication fixtures, and knowledge lint. Generated release candidates receive these checks through their explicit dispatch. Ordinary PRs retain full tests and metadata checks without adding the distribution suite.
 
-## Shared workflow controls
+## Aggregate, events, and release effects
 
-Both workflows run on pull requests and pushes to `main`, grant `contents: read`, and run their quality and commit jobs on `ubuntu-latest` with a ten-minute timeout. Code quality also runs the release-artifact and test jobs described below. Concurrency groups include workflow and ref, prefixed by `code-quality-` and `commit-convention-`, respectively. A replacement run cancels an in-progress run in its group.
+`CI verification (lervo-ci-v1)` always evaluates the required job results. Its versioned receipt distinguishes `full` and `documentation_only`; failed, cancelled, skipped-required, and unknown results cannot become success. Hosted required-check configuration must be reconciled with this aggregate during rollout; local source checks do not establish that branch protection was changed.
 
-Both check out full history (`fetch-depth: 0`) and disable persisted credentials. Shared action pins:
+Explicit candidate dispatch binds both the expected candidate SHA and its source base. A moved branch fails planning. Same-repository `lervo/release-cli` PR events delegate to this dispatch to avoid duplicate heavy verification. A fork with the same branch name retains ordinary PR verification.
 
-- `actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd` (commented v6.0.2).
-- `actions/setup-node@820762786026740c76f36085b0efc47a31fe5020` (commented v7.0.0).
-- `pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9` (commented v6.0.8).
+Read-only verification cancels superseded runs by workflow and ref. Release generation and tag effects remain serialized and non-cancellable. [Release preparation evidence](../distribution/release-preparation-workflow-evidence.md) defines their exact successful-current-main gates. The separate commit workflow remains unchanged; code quality also validates its exact introduced range. No last-commit fallback in the separate workflow proves validation of an unavailable full range.
 
-Node is pinned to 22.13.0, package-manager caching is disabled, and dependencies install with `pnpm install --frozen-lockfile`. Neither YAML specifies a pnpm version; the setup action's version is not the package manager's version.
+## Node compatibility and evidence
 
-## Quality and release completion
+Root `engines.node`, workflow Node versions, and the tilde `@types/node` range stay aligned with the supported minimum. The alignment regression test remains required. Raising the minimum requires reviewed release intent under [CLI version management](../distribution/cli-version-management.md).
 
-The `quality` job (`ESLint and Prettier`) runs `pnpm quality:check`, then `pnpm typecheck`, then `pnpm architecture:check`. Typecheck resolves workspace packages from source through `tsconfig.json` path aliases and needs no prior build. Subsequent event-specific release completion steps run:
-
-- Pull requests: `pnpm release:completion:check --base "${{ github.event.pull_request.base.sha }}"`.
-- Pushes: `pnpm release:completion:check --base "${{ github.event.before }}"`.
-
-Bases are explicitly event-bound. The workflow declares neither a fallback base nor continue-on-error behavior. The YAML establishes invocation and sequence, not successful completion or the checker's internal handling of unavailable Git objects.
-
-## Release artifacts and tests
-
-Under [ADR-0470](../decisions/operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md), the code-quality workflow runs two more jobs on every pull request and push to `main`. They use the same pins, Node 22.13.0, and frozen install:
-
-- `release-artifacts` (`Release manifest and SBOM`, 20 minutes): `pnpm build`, then `pnpm release:manifest:check` and `pnpm release:sbom:check`. A stale `apps/cli/release-artifact-manifest.json` or `apps/cli/release-sbom.cdx.json` fails the pull request, not only the release branch. The packed-CLI matrix still runs only for `lervo/release-cli`, tags, and manual dispatch.
-- `test` (`Tests (shard n/4)`, four shards, 45 minutes each, no fail-fast): a Git identity for repository fixtures, `pnpm build`, then `pnpm test --maxWorkers=2 --testTimeout=30000 --shard=<n>/4`. Two workers match the hosted runner's cores. As in [ADR-0356](../decisions/execution/verification/0356-bound-test-deadlines-for-busy-host-shards.md), the default deadline is wider than the 5-second Vitest default, because CPU-bound tests that take 4 seconds on a developer machine exceeded it on the two-core runners. Per-test deadlines still take precedence, and assertions are unchanged. Each shard took 15 to 22 minutes on the first run.
-
-The vitest setup file `scripts/quality/lib/test-user-state-isolation.mjs` points `LERVO_USER_STATE_DIRECTORY` at a per-process temporary directory. No test can then read or change a developer's host registry, continuity policy, host resident status, or user services.
-
-## Node API baseline
-
-Root `engines.node` declares the oldest supported Node release; every repository workflow runs that release. The `@types/node` development dependency uses a tilde range on the same major and minor version, allowing typecheck to reject APIs absent from the minimum's type definitions. Newer definitions can accept APIs that fail at runtime on the minimum: this mismatch once allowed code reading `DatabaseSync.isOpen`, absent in Node 22.13, to pass typecheck and fail release preparation.
-
-Code requiring a newer Node API must raise `engines.node`, workflow Node versions, and the `@types/node` range together. Raising the minimum drops support for existing installations and requires reviewed `minor` or `major` release intent under [CLI version and release management](../distribution/cli-version-management.md). `scripts/quality/test/code-quality-workflow.test.mjs` verifies alignment of all three values.
-
-## Commit ranges and fallback
-
-The `commitlint` job (`Conventional Commits`) validates pull requests using `github.event.pull_request.base.sha` and `github.event.pull_request.head.sha`, passed through `BASE_SHA` and `HEAD_SHA`. It runs `pnpm commit:lint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose`.
-
-For pushes, `BASE_SHA` is `github.event.before` and `HEAD_SHA` is `github.sha`. The workflow checks whether the base resolves as a commit with `git cat-file -e "${BASE_SHA}^{commit}"`. If it resolves, the same range command runs; otherwise, it runs `pnpm commit:lint --last --verbose`.
-
-This fallback qualifies the commit convention's claim that CI validates every commit pushed to `main`: an unresolvable base limits the check to the last commit. Full-history checkout does not remove the fallback. A successful fallback run must not be reported as proof that all commits in the push were validated.
-
-## Evidence boundary
-
-These files establish configured checks, inputs, permissions, and cancellation behavior. They do not establish that a run occurred, every step executed, or quality, release completion, or commit validation passed. Historical lifecycle failure identifiers alone neither establish earlier workflow contents nor resolve missing execution evidence.
+See the [implementation evidence](../evidence/quality/ci-cost-and-duration-implementation.md) for local results and the [roadmap](../roadmap/operations/ci-cost-and-duration.md) for hosted acceptance. Historical narrative without matching workflow bytes or execution receipts is not operational evidence. This reference does not establish a hosted pass, publication, or observed bill reduction.

@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 import { parse } from "yaml";
+import { renderReleasePrBody } from "../lib/release-pr-body.mjs";
 
 const workflowPath = resolve(
   import.meta.dirname,
@@ -22,54 +25,62 @@ describe("CLI release preparation workflow", () => {
       contents: "write",
       "pull-requests": "write",
     });
-    assert.deepEqual(Object.keys(workflow.on).sort(), ["push", "workflow_dispatch"]);
+    assert.deepEqual(Object.keys(workflow.on).sort(), ["workflow_dispatch", "workflow_run"]);
     const source = await readFile(workflowPath, "utf8");
     assert.doesNotMatch(source, /NODE_AUTH_TOKEN|NPM_TOKEN|npm publish|release:stage/u);
   });
 
   it("reconciles one release branch through exact plan approval and hands off one tag", async () => {
     const workflow = await readWorkflow();
-    assert.equal(workflow.jobs.reconcile["timeout-minutes"], 120);
+    assert.equal(workflow.jobs.reconcile["timeout-minutes"], 30);
     const steps = workflow.jobs.reconcile.steps;
     const install = steps.find(({ name }) => name === "Install dependencies");
-    const completion = steps.find(({ name }) => name === "Check direct-main release completion");
-    const prepare = steps.find(({ id }) => id === "prepare");
+    const completion = steps.find(({ name }) => name === "Check source release completion");
+    const prepareStep = steps.find(({ id }) => id === "prepare");
+    assert.equal(
+      prepareStep.run,
+      "node scripts/release/commands/reconcile-release-workflow.mjs candidate",
+    );
+    const prepare = {
+      run: await readFile(
+        resolve(import.meta.dirname, "../lib/reconcile-release-candidate.sh"),
+        "utf8",
+      ),
+    };
     assert.equal(install.run, "pnpm install --frozen-lockfile");
-    assert.equal(completion.if, "github.event_name == 'push'");
+    assert.equal(completion.if, "steps.admission.outputs.status == 'ready'");
     assert.match(completion.run, /release:completion:check --base/u);
-    assert.match(completion.run, /github\.event\.before/u);
+    assert.match(completion.run, /RELEASE_SOURCE_SHA/u);
     assert.match(prepare.run, /pnpm release:prepare --json/u);
-    assert.match(prepare.run, /git switch -C lervo\/release-cli "\$\{GITHUB_SHA\}"/u);
+    assert.match(prepare.run, /git switch -C lervo\/release-cli "\$\{RELEASE_SOURCE_SHA\}"/u);
     assert.match(prepare.run, /git branch --set-upstream-to=origin\/main lervo\/release-cli/u);
     assert.match(
       prepare.run,
-      /test "\$\(git merge-base HEAD '@\{upstream\}'\)" = "\$\{GITHUB_SHA\}"/u,
+      /test "\$\(git merge-base HEAD '@\{upstream\}'\)" = "\$\{RELEASE_SOURCE_SHA\}"/u,
     );
-    assert.ok(prepare.run.indexOf("git switch -C") < prepare.run.indexOf("pnpm release:prepare"));
-    assert.ok(prepare.run.indexOf("commit -m") < prepare.run.indexOf("pnpm check"));
-    assert.ok(prepare.run.indexOf("pnpm check") < prepare.run.indexOf("gh api"));
     assert.match(prepare.run, /pnpm release:prepare --apply --approval "\$\{plan_id\}" --json/u);
-    assert.match(prepare.run, /pnpm check/u);
-    assert.match(prepare.run, /pnpm lervo knowledge lint --json/u);
+    assert.doesNotMatch(prepare.run, /pnpm check/u);
+    assert.match(prepare.run, /pnpm release:manifest:check/u);
+    assert.match(prepare.run, /pnpm release:sbom:check/u);
+    assert.match(prepare.run, /pnpm release:completion:check --base/u);
+    assert.match(prepare.run, /check-release-ci\.mjs/u);
     assert.match(
       prepare.run,
-      /gh api --method PATCH "repos\/\$\{GITHUB_REPOSITORY\}\/git\/refs\/\$\{release_ref\}"/u,
+      /git push --force-with-lease="refs\/heads\/lervo\/release-cli:\$\{previous_sha\}"/u,
     );
-    assert.match(prepare.run, /-f sha="\$\{GITHUB_SHA\}" -F force=true/u);
-    assert.match(prepare.run, /git switch -C lervo\/release-cli/u);
-    assert.match(prepare.run, /git push origin lervo\/release-cli/u);
-    assert.doesNotMatch(prepare.run, /git push --force/u);
-    assert.doesNotMatch(prepare.run, /force-with-lease/u);
+    assert.doesNotMatch(prepare.run, /-F force=true|git push --force /u);
     assert.match(prepare.run, /gh pr list .*--state open/u);
     assert.match(prepare.run, /gh pr create .*--body-file "\$\{body_file\}"/u);
     assert.match(prepare.run, /gh pr edit .*--body-file "\$\{body_file\}"/u);
-    assert.doesNotMatch(prepare.run, /gh pr view lervo\/release-cli/u);
-    assert.match(prepare.run, /evidence_checked='\[x\]'/u);
-    assert.ok(prepare.run.indexOf("pnpm check") < prepare.run.indexOf("evidence_checked='[x]'"));
-    assert.match(prepare.run, /\$\{evidence_checked\} Relevant tests, \\`pnpm quality:check\\`/u);
-    assert.match(prepare.run, /fixed branch ref/iu);
-    assert.doesNotMatch(prepare.run, /Pending pull-request CI/u);
-    assert.doesNotMatch(prepare.run, /—/u);
+    assert.match(prepare.run, /render-release-pr\.mjs/u);
+    assert.match(prepare.run, /gh workflow run code-quality\.yml .*expected_sha/u);
+    const body = renderReleasePrBody({
+      repository: "owner/repo",
+      sourceRevision: "a".repeat(40),
+      releaseRevision: "b".repeat(40),
+      planId: `relprep_${"c".repeat(24)}`,
+      runId: 7,
+    });
     for (const heading of [
       "Summary",
       "Scope and authority",
@@ -80,10 +91,19 @@ describe("CLI release preparation workflow", () => {
       "Risk and recovery",
       "Checklist",
     ])
-      assert.match(prepare.run, new RegExp(`^## ${heading}$`, "mu"));
+      assert.match(body, new RegExp(`^## ${heading}$`, "mu"));
     assert.doesNotMatch(prepare.run, /CHANGELOG\.md/u);
-    const tag = steps.find(({ name }) => name === "Create and push the exact annotated tag");
-    assert.equal(tag.if, "steps.prepare.outputs.disposition == 'tag_check'");
+    const tagStep = steps.find(({ name }) => name === "Create and push the exact annotated tag");
+    assert.equal(tagStep.run, "node scripts/release/commands/reconcile-release-workflow.mjs tag");
+    const tag = {
+      ...tagStep,
+      run: await readFile(resolve(import.meta.dirname, "../lib/reconcile-release-tag.sh"), "utf8"),
+    };
+    assert.equal(
+      tag.if,
+      "steps.admission.outputs.status == 'ready' && steps.prepare.outputs.disposition == 'tag_check'",
+    );
+    assert.ok(tag.run.indexOf("check-release-ci.mjs --full") < tag.run.indexOf("pnpm release:tag"));
     assert.match(tag.run, /git config user\.name 'lervo-release\[bot\]'/u);
     assert.match(
       tag.run,
@@ -96,9 +116,93 @@ describe("CLI release preparation workflow", () => {
     assert.doesNotMatch(tag.run, /plan="\$\(pnpm release:tag --json/u);
     assert.match(tag.run, /pnpm release:tag --apply --approval "\$\{plan_id\}" --json/u);
     assert.match(tag.run, /git push origin "\$\{tag\}"/u);
-    assert.deepEqual(tag.env, { GH_TOKEN: "${{ github.token }}" });
+    assert.equal(workflow.env.GH_TOKEN, "${{ github.token }}");
     assert.match(tag.run, /actions\/workflows\/cli-release-matrix\.yml\/runs/u);
     assert.match(tag.run, /select\(\.head_sha == \$sha\)/u);
     assert.match(tag.run, /gh workflow run cli-release-matrix\.yml --ref "\$\{tag\}"/u);
   });
+});
+
+it("admits only same-repository successful push evidence and serializes effects", async () => {
+  const workflow = await readWorkflow();
+  assert.deepEqual(workflow.on.workflow_run, {
+    workflows: ["Code quality"],
+    branches: ["main"],
+    types: ["completed"],
+  });
+  assert.equal(workflow.concurrency["cancel-in-progress"], false);
+  assert.match(workflow.jobs.reconcile.if, /head_repository.full_name == github.repository/u);
+  assert.match(workflow.jobs.reconcile.if, /workflow_run.event == 'push'/u);
+  assert.ok(
+    workflow.jobs.reconcile.steps.some(
+      ({ run }) => run === "node scripts/release/commands/check-release-ci.mjs --plan",
+    ),
+  );
+});
+
+it("stops candidate publication when current-main admission fails after generation", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-release-ci-stop-"));
+  try {
+    await mkdir(resolve(root, "bin"));
+    await mkdir(resolve(root, ".changes"));
+    await writeFile(resolve(root, ".changes/fixture.yaml"), "pending fixture");
+    const fakes = {
+      git: `#!/bin/bash
+printf '%s\\n' "$*" >>"$CI_FIXTURE_TRACE"
+case "$*" in
+  'merge-base HEAD @{upstream}') echo "$RELEASE_SOURCE_SHA" ;;
+  'rev-parse HEAD') echo bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb ;;
+  'diff --name-only '*) echo apps/cli/package.json ;;
+esac
+`,
+      pnpm: `#!/bin/bash
+if [ "$*" = 'release:prepare --json' ]; then
+  echo '{"planId":"relprep_cccccccccccccccccccccccc"}'
+fi
+`,
+      node: `#!/bin/bash
+if [ "$1" = 'scripts/release/commands/check-release-ci.mjs' ]; then
+  echo main_admission_blocked >>"$CI_FIXTURE_TRACE"
+  exit 1
+fi
+if [ "$1" = 'scripts/release/commands/render-release-pr.mjs' ]; then echo '## Summary'; exit 0; fi
+echo unexpected_node >&2
+exit 2
+`,
+      gh: `#!/bin/bash
+if [ "$1 $2" = 'pr list' ]; then exit 0; fi
+echo unexpected_remote_write >>"$CI_FIXTURE_TRACE"
+exit 2
+`,
+    };
+    for (const [name, content] of Object.entries(fakes)) {
+      const path = resolve(root, "bin", name);
+      await writeFile(path, content);
+      await chmod(path, 0o755);
+    }
+    const trace = resolve(root, "effects.log");
+    const result = spawnSync(
+      "bash",
+      [resolve(import.meta.dirname, "../lib/reconcile-release-candidate.sh")],
+      {
+        cwd: root,
+        env: {
+          ...process.env,
+          PATH: `${root}/bin:${process.env.PATH}`,
+          RELEASE_SOURCE_SHA: "a".repeat(40),
+          RUNNER_TEMP: root,
+          CI_FIXTURE_TRACE: trace,
+        },
+        timeout: 5000,
+        encoding: "utf8",
+      },
+    );
+    assert.equal(result.status, 1, result.stderr);
+    const effects = await readFile(trace, "utf8");
+    assert.match(effects, /commit /u);
+    assert.match(effects, /main_admission_blocked/u);
+    assert.doesNotMatch(effects, /^push |unexpected_remote_write/mu);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

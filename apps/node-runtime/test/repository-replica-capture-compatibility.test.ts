@@ -146,8 +146,9 @@ describe("replica capture compatibility (ADR-0483)", () => {
     await expect(current.captureVersion()).resolves.toBe(REPOSITORY_REPLICA_CAPTURE_VERSION);
 
     // An older runtime throws its usage error uncaught; Node prints a long source line first.
+    // Let stderr drain: immediate process.exit truncates the usage line on piped Node 22.
     const legacy = await peer(
-      `process.stderr.write("file:///runtime/dist/bin.js:1\\n" + "x".repeat(20000) + "\\n\\nError: Usage: lervo-node repository-replica <snapshot|bundle|apply|adopt|receipt|knowledge-supersession|reconcile|watch> ...\\n    at file:///runtime/dist/bin.js:1:1\\n"); process.exit(1);\n`,
+      `process.stderr.write("file:///runtime/dist/bin.js:1\\n" + "x".repeat(20000) + "\\n\\nError: Usage: lervo-node repository-replica <snapshot|bundle|apply|adopt|receipt|knowledge-supersession|reconcile|watch> ...\\n    at file:///runtime/dist/bin.js:1:1\\n"); process.exitCode = 1;\n`,
     );
     await expect(legacy.captureVersion()).resolves.toBe(LEGACY_REPOSITORY_REPLICA_CAPTURE_VERSION);
 
