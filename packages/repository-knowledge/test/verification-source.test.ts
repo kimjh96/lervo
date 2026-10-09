@@ -11,7 +11,7 @@ import {
   verificationSha256,
   verificationSuiteHash,
 } from "@lervo/verification-contract";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { defaultRepositoryKnowledgePolicy } from "../src/policy.js";
 import { scanRepositoryKnowledge } from "../src/scanner.js";
@@ -127,10 +127,13 @@ afterEach(async () => {
 describe("verification result knowledge source", () => {
   it("binds a canonical completed event and CAS original as one supplemental unit", async () => {
     const { suite, result, bytes, event } = fixture();
+    const observeEvent = vi.fn();
     const sources = await collectVerificationResultSources({
       ...ports(event, bytes),
       loadSuite: async () => suite,
+      observeEvent,
     });
+    expect(observeEvent).toHaveBeenCalledExactlyOnceWith(event);
     expect(sources).toEqual([
       expect.objectContaining({
         path: `@verification/${result.verificationId}`,

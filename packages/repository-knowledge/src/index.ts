@@ -81,7 +81,10 @@ export * from "./generated-durable-instructions.js";
 export * from "./instruction-capture-contract.js";
 export * from "./execution-event-source.js";
 export { collectExecutionEventSourcePages } from "./paged-execution-event-source.js";
-export { collectRecentExecutionEventSources } from "./recent-execution-event-source.js";
+export {
+  collectRecentExecutionEventSources,
+  RecentExecutionEventProjection,
+} from "./recent-execution-event-source.js";
 export * from "./git-revision-source.js";
 export * from "./impact.js";
 export * from "./incremental-reconciliation.js";

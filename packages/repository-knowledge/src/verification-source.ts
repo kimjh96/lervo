@@ -1,4 +1,4 @@
-import type { VerificationResult, VerificationSuite } from "@lervo/schemas";
+import type { EventEnvelope, VerificationResult, VerificationSuite } from "@lervo/schemas";
 import { visitEventSnapshot, type ArtifactStore, type EventStore } from "@lervo/storage-contract";
 import {
   validateHistoricalVerificationResult,
@@ -31,6 +31,8 @@ export async function collectVerificationResultSources(input: {
   events: Pick<EventStore, "latest" | "list" | "verifyIntegrity">;
   artifacts: Pick<ArtifactStore, "get">;
   loadSuite: LoadVerificationSuite;
+  /** Projections must remain local until this entire snapshot and its artifacts pass validation. */
+  observeEvent?(event: EventEnvelope): void;
 }): Promise<RepositorySupplementalSource[]> {
   let latest;
   try {
@@ -50,6 +52,7 @@ export async function collectVerificationResultSources(input: {
       events: input.events,
       throughSeq: latest.seq,
       visit: (event) => {
+        input.observeEvent?.(event);
         if (event.type !== "verification.completed") return;
         const verificationId = event.payload.verificationId;
         if (typeof verificationId !== "string") return fail();

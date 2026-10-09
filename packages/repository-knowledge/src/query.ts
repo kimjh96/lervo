@@ -11,6 +11,11 @@ import { analyzeRepositoryKnowledgeImpact } from "./impact.js";
 import { assertNoKnowledgeMaterializationTransaction } from "./materialization-owner.js";
 import { sha256 } from "./integrity.js";
 import { loadRepositoryKnowledgePolicy } from "./policy.js";
+import { readKnowledgeQueryPublications } from "./query-publications.js";
+import { mapKnowledgeReads } from "./knowledge-read-scheduling.js";
+import { readPreparationCache, writePreparationCache } from "./preparation-cache-file.js";
+import { SourceUnitCache } from "./source-unit-cache.js";
+import { ConceptSidecarCache } from "./concept-sidecar-cache.js";
 import { generatedKnowledgePaths, readSafePublication } from "./repository-publication-files.js";
 import { projectKnowledgeRelations, type RelationConceptCoordinate } from "./relation-query.js";
 import { scanRepositoryKnowledge } from "./scanner.js";
@@ -76,17 +81,24 @@ export class RepositoryKnowledgeQueryIndex {
     supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
     sourceUnitFailureMode?: RepositoryKnowledgeScanOptions["sourceUnitFailureMode"];
     ranker?: RepositoryKnowledgeQueryRanker;
+    /** Recompute all projections when disabled; source bytes are read freshly in both modes. */
+    preparationCache?: "reuse" | "disabled";
   }): Promise<RepositoryKnowledgeQueryIndex> {
     const root = resolve(input.repositoryRoot);
     await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
     const project = await loadProjectManifest(root);
     const policy = await loadRepositoryKnowledgePolicy(root);
     const generated = await generatedKnowledgePaths(root);
+    const sourceUnitCache =
+      input.preparationCache === "disabled"
+        ? undefined
+        : new SourceUnitCache(await readPreparationCache(root, "source-units"));
     const scan = await scanRepositoryKnowledge({
       repositoryRoot: root,
       projectId: project.projectId,
       policy,
       generatedPaths: generated,
+      ...(sourceUnitCache === undefined ? {} : { sourceUnitCache }),
       ...(input.sourceUnitFailureMode === undefined
         ? {}
         : { sourceUnitFailureMode: input.sourceUnitFailureMode }),
@@ -94,6 +106,9 @@ export class RepositoryKnowledgeQueryIndex {
         ? {}
         : { supplementalSources: input.supplementalSources }),
     });
+    const cacheSnapshot = sourceUnitCache?.snapshot();
+    // Unchanged packed units need not stay alive during impact analysis and index construction.
+    sourceUnitCache?.release();
     const currentUnits = new Set(scan.units.map((unit) => unit.unitVersionId));
     const impact = await analyzeRepositoryKnowledgeImpact({ repositoryRoot: root, scan });
     const conceptImpact = new Map(
@@ -110,26 +125,19 @@ export class RepositoryKnowledgeQueryIndex {
       claimsByConcept.set(stored.value.conceptId, values);
     }
     const archiveScopePaths = archiveScopes(await loadDecisionTaxonomy(root).catch(() => null));
-    const storedConcepts = await loadStoredConcepts(root);
+    const conceptCache =
+      input.preparationCache === "disabled"
+        ? undefined
+        : new ConceptSidecarCache(await readPreparationCache(root, "concept-sidecars"));
+    const storedConcepts = await loadStoredConcepts(root, conceptCache);
     const storedRelations = await loadStoredRelations(root);
     const entries: PreparedKnowledgeEntry[] = [];
-    for (const stored of storedConcepts) {
-      const concept = stored.value;
-      if (concept === null || concept.publicationStatus === "deprecated") continue;
-      let content: string;
-      let contentHash: string;
-      try {
-        const bytes = await readSafePublication(
-          root,
-          concept.path,
-          Math.min(policy.limits.maxFileBytes, 131_072),
-        );
-        if (bytes === null) continue;
-        content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-        contentHash = sha256(bytes);
-      } catch {
-        continue;
-      }
+    const publications = await readKnowledgeQueryPublications(
+      root,
+      storedConcepts,
+      Math.min(policy.limits.maxFileBytes, 131_072),
+    );
+    for (const { concept, content, contentHash } of publications) {
       const linkedClaims = claimsByConcept.get(concept.conceptId) ?? [];
       const assurance =
         linkedClaims.length > 0 || concept.assurance === "human_reviewed"
@@ -176,22 +184,18 @@ export class RepositoryKnowledgeQueryIndex {
     }
     const conceptSidecarSetHash = sha256(
       JSON.stringify(
-        await Promise.all(
-          storedConcepts.map(async (stored) => {
-            const bytes = await readSafePublication(root, stored.file, 256 * 1024);
-            return [stored.file, bytes === null ? "unreadable" : sha256(bytes)] as const;
-          }),
-        ),
+        await mapKnowledgeReads(storedConcepts, async (stored) => {
+          const bytes = await readSafePublication(root, stored.file, 256 * 1024);
+          return [stored.file, bytes === null ? "unreadable" : sha256(bytes)] as const;
+        }),
       ),
     );
     const relationSidecarSetHash = sha256(
       JSON.stringify(
-        await Promise.all(
-          storedRelations.map(async (stored) => {
-            const bytes = await readSafePublication(root, stored.file, 256 * 1024);
-            return [stored.file, bytes === null ? "unreadable" : sha256(bytes)] as const;
-          }),
-        ),
+        await mapKnowledgeReads(storedRelations, async (stored) => {
+          const bytes = await readSafePublication(root, stored.file, 256 * 1024);
+          return [stored.file, bytes === null ? "unreadable" : sha256(bytes)] as const;
+        }),
       ),
     );
     const ranker = await input.ranker?.prepare(
@@ -208,7 +212,18 @@ export class RepositoryKnowledgeQueryIndex {
         ],
         text: entry.searchText,
       })),
+      input.preparationCache === "disabled"
+        ? undefined
+        : {
+            previousProjection: await readPreparationCache(root, "ranker"),
+          },
     );
+    if (cacheSnapshot != null) await writePreparationCache(root, "source-units", cacheSnapshot);
+    const conceptSnapshot = conceptCache?.snapshot();
+    if (conceptSnapshot != null)
+      await writePreparationCache(root, "concept-sidecars", conceptSnapshot);
+    if (input.preparationCache !== "disabled" && ranker?.preparationProjection !== undefined)
+      await writePreparationCache(root, "ranker", ranker.preparationProjection);
     return new RepositoryKnowledgeQueryIndex({
       sourceSnapshotId: scan.snapshotId,
       impactReportId: impact.reportId,

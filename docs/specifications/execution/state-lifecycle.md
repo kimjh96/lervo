@@ -23,6 +23,10 @@ Direct terminal lifecycle inspection may replace one `.lervo/state/terminal-inte
 
 Canonical claims and relations carry stable source-unit IDs. Changed or missing current units remain observable without historical cache files. Legacy version-only evidence becomes `unknown` after cache deletion; Lervo does not promote a derived cache into canonical evidence.
 
+Read-only query preparation owns three current projections under `.lervo/state/knowledge/indexes/query-preparation/`: source-unit extraction, concept decoding, and adapter field analysis. Each is checksummed, runtime/build bound, pruned to the current inventory, and at most 128 MiB. Oversized or invalid caches cause full computation without reducing coverage. Files are atomically replaced, temporary remnants are swept by the producer, and the existing `knowledge/indexes/` route makes them eligible for `rebuildable_cache` pruning. See [ADR-0499](../../decisions/knowledge/maintenance/0499-reuse-content-bound-knowledge-preparation-projections.md).
+
+[ADR-0500](../../decisions/knowledge/maintenance/0500-avoid-duplicate-knowledge-cache-representations.md) changes the cache envelope to schema 2 binary serialization and native lexical frequency maps to avoid duplicate in-memory representations. Old JSON and incompatible binary state are misses and rebuild on successful preparation; stable paths, canonical authority, retention, and privacy are unchanged.
+
 ## Reset and reconstruction
 
 `lervo state status` performs non-approval inspection and counts paths and bytes without content hashing. It never presents a reset plan ID. `lervo state reset` hashes files by stream only when producing an exact approval plan, rechecks the plan before applying it, atomically detaches the state tree, and removes it while preserving `.lervo/data`.

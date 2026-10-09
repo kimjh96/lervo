@@ -521,4 +521,25 @@ describe("SQLite append-only event store", () => {
       code: "integrity_failed",
     });
   });
+
+  it("detects external corruption after warming the same open handle", async () => {
+    const path = await databasePath();
+    const store = await SQLiteEventStore.open({ path, projectId });
+    const raw = new DatabaseSync(path);
+    try {
+      store.append(draft());
+      expect(store.verifyIntegrity().eventCount).toBe(1);
+      expect(store.verifyIntegrity().eventCount).toBe(1);
+      raw.exec("DROP TRIGGER events_no_update");
+      raw
+        .prepare("UPDATE events SET payload_json = ? WHERE event_id = ?")
+        .run('{"role":"tampered"}', "evt_01234567");
+      expect(() => store.verifyIntegrity()).toThrowError(
+        expect.objectContaining({ code: "integrity_failed" }),
+      );
+    } finally {
+      raw.close();
+      store.close();
+    }
+  });
 });

@@ -12,6 +12,10 @@ The scanner classifies documentation, instructions, code, configuration, schemas
 
 Ordinary bytes may enter structural extraction. Sensitive log bytes never enter publication or external compilation. Secret candidates are excluded before reading. Discovery proves presence only, not loading, trust, injection, or use.
 
+Each scan attempt compiles its current exclusion patterns once. All admitted files are still read afresh, and all source-unit extraction and snapshot identities retain their existing semantics. The matcher has no cross-scan lifetime; policy changes take effect on the next scan.
+
+Read-only query preparation can explicitly supply an exact-content-bound extraction projection. Reuse applies only after current admission and safe reads, and binds project, policy, extractor build, and source identity. Only successful extraction is cached; a file-only parser fallback is always recomputed and still fails in strict mode. Cross-file skill contracts, sensitive sources, revision metadata, and event/verification sources retain fresh construction. Authoritative lifecycle scans use complete extraction by default; see [ADR-0499](../../../../decisions/knowledge/maintenance/0499-reuse-content-bound-knowledge-preparation-projections.md).
+
 ## Source units
 
 Sources have stable IDs and content-bound versions. Adapters may emit bounded Markdown sections; structured-data keys; code declarations and members; CSS rules, named at-rules, and custom properties; Git `HEAD`; verification; privacy-valid events; and validated skill contracts.

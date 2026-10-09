@@ -1,0 +1,964 @@
+{
+  "base": "8cb3e0a759a7f6dd1b55204ba26b4348ebeea943",
+  "protocol": {
+    "warmupPairs": 5,
+    "recordedPairs": 30,
+    "queriesPerPreparation": 3,
+    "ordering": "alternating",
+    "process": "shared",
+    "osCaches": "warm",
+    "competingWorkloads": "uncontrolled"
+  },
+  "runtime": "v26.5.1",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "equalPairs": 30,
+  "summary": {
+    "baseline": {
+      "collectionMs": {
+        "p50": 2136.558416999993,
+        "p95": 2303.863624999998
+      },
+      "preparationMs": {
+        "p50": 2534.032166000019,
+        "p95": 2768.643959000008
+      },
+      "queryMs": {
+        "p50": 21.321292000007816,
+        "p95": 24.105249999993248
+      },
+      "totalMs": {
+        "p50": 4711.99525,
+        "p95": 5071.362625000009
+      },
+      "cpuMs": {
+        "p50": 5108.397,
+        "p95": 5745.745
+      }
+    },
+    "candidate": {
+      "collectionMs": {
+        "p50": 953.107124999995,
+        "p95": 990.3398330000055
+      },
+      "preparationMs": {
+        "p50": 2518.4139159999977,
+        "p95": 2703.5034999999916
+      },
+      "queryMs": {
+        "p50": 21.370458000019426,
+        "p95": 24.41316700002062
+      },
+      "totalMs": {
+        "p50": 3492.9252080000006,
+        "p95": 3723.12591599999
+      },
+      "cpuMs": {
+        "p50": 3867.879,
+        "p95": 4276.277
+      }
+    }
+  },
+  "observations": [
+    {
+      "pair": 1,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2139.9111249999987,
+          "preparationMs": 2569.181958000001,
+          "queryMs": 21.97133400000166,
+          "totalMs": 4731.064417000001,
+          "cpuMs": 5118.395
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 974.6511669999963,
+          "preparationMs": 2486.1349580000024,
+          "queryMs": 20.40183299999626,
+          "totalMs": 3481.187957999995,
+          "cpuMs": 3789.384
+        }
+      ]
+    },
+    {
+      "pair": 2,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 951.9802090000012,
+          "preparationMs": 2518.4139159999977,
+          "queryMs": 22.684042000000773,
+          "totalMs": 3493.0781669999997,
+          "cpuMs": 3867.879
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2147.5700419999994,
+          "preparationMs": 2542.9082080000007,
+          "queryMs": 21.516999999999825,
+          "totalMs": 4711.99525,
+          "cpuMs": 5107.339
+        }
+      ]
+    },
+    {
+      "pair": 3,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2155.90783299999,
+          "preparationMs": 2563.4307920000138,
+          "queryMs": 24.105249999993248,
+          "totalMs": 4743.443874999997,
+          "cpuMs": 5140.994
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 953.107124999995,
+          "preparationMs": 2479.0098750000034,
+          "queryMs": 18.85374999999476,
+          "totalMs": 3450.970749999993,
+          "cpuMs": 3762.906
+        }
+      ]
+    },
+    {
+      "pair": 4,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 948.8610839999892,
+          "preparationMs": 2468.839915999997,
+          "queryMs": 22.87595900001179,
+          "totalMs": 3440.576958999998,
+          "cpuMs": 3813.472
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2092.5051250000106,
+          "preparationMs": 2500.4649999999965,
+          "queryMs": 24.128790999995545,
+          "totalMs": 4617.098916000003,
+          "cpuMs": 5108.397
+        }
+      ]
+    },
+    {
+      "pair": 5,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2090.7672090000124,
+          "preparationMs": 2619.509957999995,
+          "queryMs": 20.2065419999999,
+          "totalMs": 4730.483709000007,
+          "cpuMs": 5638.603
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 940.8132500000065,
+          "preparationMs": 2482.9733330000017,
+          "queryMs": 22.104542000000947,
+          "totalMs": 3445.891125000009,
+          "cpuMs": 3937.221
+        }
+      ]
+    },
+    {
+      "pair": 6,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 925.9646249999932,
+          "preparationMs": 2481.352792000005,
+          "queryMs": 19.924582999999984,
+          "totalMs": 3427.2419999999984,
+          "cpuMs": 3806.141
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2083.7284579999978,
+          "preparationMs": 2514.286082999999,
+          "queryMs": 21.12629200000083,
+          "totalMs": 4619.140832999998,
+          "cpuMs": 5027.08
+        }
+      ]
+    },
+    {
+      "pair": 7,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2091.851416999998,
+          "preparationMs": 2477.3458329999994,
+          "queryMs": 19.99124999999185,
+          "totalMs": 4589.188499999989,
+          "cpuMs": 4990.864
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 925.3325000000041,
+          "preparationMs": 2432.800749999995,
+          "queryMs": 21.099665999994613,
+          "totalMs": 3379.2329159999936,
+          "cpuMs": 3774.514
+        }
+      ]
+    },
+    {
+      "pair": 8,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 934.1552919999958,
+          "preparationMs": 2398.8203749999957,
+          "queryMs": 19.930292000004556,
+          "totalMs": 3352.905958999996,
+          "cpuMs": 3661.231
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2095.2264999999898,
+          "preparationMs": 2478.983791999999,
+          "queryMs": 22.328083000000333,
+          "totalMs": 4596.538374999989,
+          "cpuMs": 5017.582
+        }
+      ]
+    },
+    {
+      "pair": 9,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2085.123041999992,
+          "preparationMs": 2456.5137079999986,
+          "queryMs": 20.630709000004572,
+          "totalMs": 4562.267458999995,
+          "cpuMs": 4928.065
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 948.3446669999976,
+          "preparationMs": 2505.581625000006,
+          "queryMs": 20.9605409999931,
+          "totalMs": 3474.886832999997,
+          "cpuMs": 3868.145
+        }
+      ]
+    },
+    {
+      "pair": 10,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 927.6676250000019,
+          "preparationMs": 2483.8570000000036,
+          "queryMs": 20.06266599999799,
+          "totalMs": 3431.5872910000035,
+          "cpuMs": 3787.038
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2125.725542,
+          "preparationMs": 2482.955166999993,
+          "queryMs": 20.550040999994962,
+          "totalMs": 4629.230749999988,
+          "cpuMs": 5029.685
+        }
+      ]
+    },
+    {
+      "pair": 11,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2103.51062500001,
+          "preparationMs": 2425.53108299998,
+          "queryMs": 20.024167000025045,
+          "totalMs": 4549.065875000015,
+          "cpuMs": 4882.652
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 928.2321660000016,
+          "preparationMs": 2478.4876669999794,
+          "queryMs": 21.370458000019426,
+          "totalMs": 3428.0902910000004,
+          "cpuMs": 3811.627
+        }
+      ]
+    },
+    {
+      "pair": 12,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 925.8270840000187,
+          "preparationMs": 2455.863874999981,
+          "queryMs": 20.029208000021754,
+          "totalMs": 3401.7201670000213,
+          "cpuMs": 3708.526
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2092.670542000007,
+          "preparationMs": 2612.912249999994,
+          "queryMs": 20.936165999999503,
+          "totalMs": 4726.518958000001,
+          "cpuMs": 5745.745
+        }
+      ]
+    },
+    {
+      "pair": 13,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2110.960374999995,
+          "preparationMs": 2479.9934579999826,
+          "queryMs": 20.987625000008848,
+          "totalMs": 4611.941457999987,
+          "cpuMs": 5054.375
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 937.3715000000084,
+          "preparationMs": 2522.668082999997,
+          "queryMs": 21.858708999992814,
+          "totalMs": 3481.898291999998,
+          "cpuMs": 3928.88
+        }
+      ]
+    },
+    {
+      "pair": 14,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 941.6750830000092,
+          "preparationMs": 2566.373458999995,
+          "queryMs": 21.292749999993248,
+          "totalMs": 3529.3412919999973,
+          "cpuMs": 3838.963
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2144.8402500000084,
+          "preparationMs": 2514.95883399999,
+          "queryMs": 20.67066600001999,
+          "totalMs": 4680.469750000018,
+          "cpuMs": 5116.586
+        }
+      ]
+    },
+    {
+      "pair": 15,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2158.319957999978,
+          "preparationMs": 2508.45329200002,
+          "queryMs": 22.37920799999847,
+          "totalMs": 4689.152457999997,
+          "cpuMs": 5040.051
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 953.274207999988,
+          "preparationMs": 2567.1935839999933,
+          "queryMs": 20.705916000006255,
+          "totalMs": 3541.1737079999875,
+          "cpuMs": 3928.44
+        }
+      ]
+    },
+    {
+      "pair": 16,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 950.536832999991,
+          "preparationMs": 2520.829625000013,
+          "queryMs": 21.558749999996508,
+          "totalMs": 3492.9252080000006,
+          "cpuMs": 3826.084
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2123.9673750000075,
+          "preparationMs": 2518.5703330000106,
+          "queryMs": 21.59245899997768,
+          "totalMs": 4664.130166999996,
+          "cpuMs": 5108.877
+        }
+      ]
+    },
+    {
+      "pair": 17,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2171.7402920000022,
+          "preparationMs": 2541.150290999998,
+          "queryMs": 22.952542000013636,
+          "totalMs": 4735.843125000014,
+          "cpuMs": 5122.86
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 955.8392500000191,
+          "preparationMs": 2510.2916659999755,
+          "queryMs": 21.517709000007017,
+          "totalMs": 3487.6486250000016,
+          "cpuMs": 3820.166
+        }
+      ]
+    },
+    {
+      "pair": 18,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 958.6557500000054,
+          "preparationMs": 2703.5034999999916,
+          "queryMs": 21.815500000026077,
+          "totalMs": 3683.974750000023,
+          "cpuMs": 4643.926
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2136.558416999993,
+          "preparationMs": 2512.461791000009,
+          "queryMs": 23.48566700000083,
+          "totalMs": 4672.505875000003,
+          "cpuMs": 5256.779
+        }
+      ]
+    },
+    {
+      "pair": 19,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2167.3539170000004,
+          "preparationMs": 2750.3023329999996,
+          "queryMs": 22.448124999995343,
+          "totalMs": 4940.104374999995,
+          "cpuMs": 5298.68
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 979.0880420000176,
+          "preparationMs": 2737.1944999999832,
+          "queryMs": 24.41316700002062,
+          "totalMs": 3740.6957090000215,
+          "cpuMs": 4276.277
+        }
+      ]
+    },
+    {
+      "pair": 20,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 976.2250829999975,
+          "preparationMs": 2538.220917000028,
+          "queryMs": 21.188999999983935,
+          "totalMs": 3535.6350000000093,
+          "cpuMs": 3903.963
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2134.2454169999983,
+          "preparationMs": 2590.486707999982,
+          "queryMs": 22.641499999997905,
+          "totalMs": 4747.373624999978,
+          "cpuMs": 5197.491
+        }
+      ]
+    },
+    {
+      "pair": 21,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2196.516249999986,
+          "preparationMs": 2534.032166000019,
+          "queryMs": 20.42141700000502,
+          "totalMs": 4750.96983300001,
+          "cpuMs": 5100.566
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 969.1049579999817,
+          "preparationMs": 2570.033792000002,
+          "queryMs": 23.331208000017796,
+          "totalMs": 3562.4699580000015,
+          "cpuMs": 3964.702
+        }
+      ]
+    },
+    {
+      "pair": 22,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 968.9407500000088,
+          "preparationMs": 2514.6511670000036,
+          "queryMs": 19.975915999995777,
+          "totalMs": 3503.5678330000082,
+          "cpuMs": 3837.252
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2160.818540999986,
+          "preparationMs": 2746.9193340000056,
+          "queryMs": 23.041625000012573,
+          "totalMs": 4930.779500000004,
+          "cpuMs": 5294.443
+        }
+      ]
+    },
+    {
+      "pair": 23,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2142.496791999991,
+          "preparationMs": 2570.1521249999932,
+          "queryMs": 21.703166000021156,
+          "totalMs": 4734.352083000005,
+          "cpuMs": 5072.104
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 966.6007499999832,
+          "preparationMs": 2611.0286250000063,
+          "queryMs": 21.595375000004424,
+          "totalMs": 3599.224749999994,
+          "cpuMs": 3994.965
+        }
+      ]
+    },
+    {
+      "pair": 24,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 962.2866250000079,
+          "preparationMs": 2670.5380000000005,
+          "queryMs": 21.71829200000502,
+          "totalMs": 3654.5429170000134,
+          "cpuMs": 4056.124
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2303.863624999998,
+          "preparationMs": 2768.643959000008,
+          "queryMs": 21.792249999998603,
+          "totalMs": 5094.299834000005,
+          "cpuMs": 5413.684
+        }
+      ]
+    },
+    {
+      "pair": 25,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2146.9023330000055,
+          "preparationMs": 2624.2686669999966,
+          "queryMs": 19.389666000002762,
+          "totalMs": 4790.560666000005,
+          "cpuMs": 5092.416
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 990.3398330000055,
+          "preparationMs": 2568.3982079999987,
+          "queryMs": 32.80641699998523,
+          "totalMs": 3591.5444579999894,
+          "cpuMs": 3994.082
+        }
+      ]
+    },
+    {
+      "pair": 26,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 976.2096670000174,
+          "preparationMs": 2548.870041999995,
+          "queryMs": 19.547415999986697,
+          "totalMs": 3544.627124999999,
+          "cpuMs": 3867.834
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2306.0099169999885,
+          "preparationMs": 2573.5013749999925,
+          "queryMs": 20.4028330000001,
+          "totalMs": 4899.914124999981,
+          "cpuMs": 5287.509
+        }
+      ]
+    },
+    {
+      "pair": 27,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2121.7899170000164,
+          "preparationMs": 2528.864292000013,
+          "queryMs": 20.959165999956895,
+          "totalMs": 4671.613374999986,
+          "cpuMs": 5087.295
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 984.818499999994,
+          "preparationMs": 2470.496709000028,
+          "queryMs": 21.507915999973193,
+          "totalMs": 3476.8231249999953,
+          "cpuMs": 3972.976
+        }
+      ]
+    },
+    {
+      "pair": 28,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 965.461083000002,
+          "preparationMs": 2527.3303749999614,
+          "queryMs": 20.92541700002039,
+          "totalMs": 3513.7168749999837,
+          "cpuMs": 3871.213
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2126.3920420000213,
+          "preparationMs": 2508.023999999976,
+          "queryMs": 21.321292000007816,
+          "totalMs": 4655.737334000005,
+          "cpuMs": 4994.864
+        }
+      ]
+    },
+    {
+      "pair": 29,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2159.7777079999796,
+          "preparationMs": 2535.090499999991,
+          "queryMs": 22.82862500002375,
+          "totalMs": 4717.6968329999945,
+          "cpuMs": 5222.516
+        },
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 949.6383749999804,
+          "preparationMs": 2582.964333000011,
+          "queryMs": 23.899542000028305,
+          "totalMs": 3556.5022500000196,
+          "cpuMs": 3896.124
+        }
+      ]
+    },
+    {
+      "pair": 30,
+      "equal": true,
+      "rows": [
+        {
+          "arm": "candidate",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 1048.93841599999,
+          "preparationMs": 2650.731958999997,
+          "queryMs": 23.455541000002995,
+          "totalMs": 3723.12591599999,
+          "cpuMs": 4127.424
+        },
+        {
+          "arm": "baseline",
+          "sourceCount": 4154,
+          "sourceHash": "367f39b09a5092d11fd40cf3a6b10cf3631a679cf5bdf1d0a41ea5039a6a56da",
+          "resultHash": "2bb1462c248539c07a6c6be66287adba8d0244a75a6369fd9c0a8a4636a31120",
+          "snapshot": "ksnap_d62e0c6651d718bcc6829959",
+          "collectionMs": 2266.5208749999874,
+          "preparationMs": 2783.724166000029,
+          "queryMs": 21.11758399999235,
+          "totalMs": 5071.362625000009,
+          "cpuMs": 5925.736
+        }
+      ]
+    }
+  ]
+}

@@ -4,7 +4,6 @@ import {
   canonicalJson,
   computeEventHash,
   eventIdentity,
-  eventWithoutHash,
   sanitizeEventPayload,
   type EventDraft,
   type EventHashInput,
@@ -16,19 +15,23 @@ import {
   type ListEventsOptions,
 } from "@lervo/storage-contract";
 
+import { SQLiteEventChainVerifier } from "./chain-verifier.js";
 import { EventStoreError } from "./errors.js";
 import { requireString, rowToEvent } from "./row-codec.js";
 import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
-const integrityPageSize = 1000;
 const maximumListedTypes = 64;
 
 export class SQLiteEventRepository {
+  private readonly chainVerifier: SQLiteEventChainVerifier;
+
   constructor(
     private readonly database: DatabaseSync,
     private readonly projectId: string,
     private readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5,
-  ) {}
+  ) {
+    this.chainVerifier = new SQLiteEventChainVerifier(database, projectId);
+  }
 
   append(draft: EventDraft): AppendEventResult {
     if (draft.projectId !== this.projectId) {
@@ -192,32 +195,6 @@ export class SQLiteEventRepository {
   }
 
   verifyIntegrity(): EventChainReport {
-    let previousHash: string | null = null;
-    let eventCount = 0;
-    const page = this.database.prepare(
-      "SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?",
-    );
-    while (true) {
-      const rows = sqliteRows(page.all(this.projectId, eventCount, integrityPageSize));
-      if (rows.length === 0) break;
-      for (const row of rows) {
-        const event = rowToEvent(row);
-        eventCount += 1;
-        if (event.seq !== eventCount || event.previousHash !== previousHash) {
-          throw new EventStoreError(
-            "integrity_failed",
-            `The event chain coordinates break at ${event.eventId}.`,
-          );
-        }
-        if (event.eventHash !== computeEventHash(eventWithoutHash(event))) {
-          throw new EventStoreError(
-            "integrity_failed",
-            `The event hash does not match at ${event.eventId}.`,
-          );
-        }
-        previousHash = event.eventHash;
-      }
-    }
-    return { valid: true, eventCount, headHash: previousHash };
+    return this.chainVerifier.verify();
   }
 }

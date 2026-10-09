@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d1f33c9f223056552b23fcac"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reduce repeated knowledge-query event preparation while preserving full-history validation and identical retrieval coverage."
