@@ -9,24 +9,24 @@ Contract: [Document freshness specification](../../../specifications/knowledge/d
 
 ## Context
 
-The owner required automatic detection and correction of stale documents. ADR-0464 wires detection: `lervo knowledge lint` reports `document_stale`, `markdown_link_target_missing`, `entrypoint_reference_missing`, and `document_role_target_missing`; `readRecordedDocumentStalenessReport` returns bounded `stale` and `unknown` lists. Before this decision, only style normalization (ADR-0434, ADR-0457) wrote automatically, changing form rather than facts.
+The owner required automatic detection and correction of stale documents. ADR-0464 wires detection: `lervo knowledge lint` reports `document_stale`, `markdown_link_target_missing`, `entrypoint_reference_missing`, and `document_role_target_missing`; `readRecordedDocumentStalenessReport` returns bounded `stale` and `unknown` lists. Previously, only style normalization (ADR-0434, ADR-0457) wrote automatically, changing form rather than facts.
 
 Verified in Argo's `git log` (times in +0900):
 
 - `AGENTS.md` said "Hard risk limits live in `v2/argo_v2/live/engine.py: Limits`" for 7 h 24 min after v4 replaced v2 (`5da8133`, 2026-10-04 20:52, to `c543a46`, 2026-10-05 04:16). The correct target, `v4/argo4/live/engine.py: class Limits`, existed throughout.
 - `README.md` named v2 as the running implementation and said "learning every 6 hours" for 13 h 42 min after v4 landed, and 6 h 18 min after `AGENTS.md` was fixed (`d0c956e`, 10:34).
 - Root `FINAL-DESIGN.md` appeared current for 24 h 26 min after v1 was removed (`2e2798e` to `d0c956e`). Its eventual move to `docs/archive/` broke nine relative links.
-- At the last edit, `AGENTS.md` still said "every 6 hours", thirteen minutes after `d5dffc8` made learning daily. This defect remained open.
+- At its last edit, `AGENTS.md` still said "every 6 hours", thirteen minutes after `d5dffc8` made learning daily. This defect remained open.
 
-These factual references—paths, component names, and cadences—had byte-exact evidence in connected-path changes but depended on a human noticing. Meanwhile, compact terminal context injected pending workstream approvals whose evidence had changed, steering agents with both stale instructions and stale approvals.
+These paths, component names, and cadences had byte-exact evidence in connected-path changes but depended on a human noticing. Compact terminal context also injected pending workstream approvals whose evidence had changed, steering agents with stale instructions and approvals.
 
 ## Decision
 
-Close the loop from stale finding to fresh document through the open-by-default edge feature `features.document_freshness.enabled`. Produce candidates for every stale document, verify them deterministically and by cross-check, apply Lervo-managed changes, and surface user-owned changes for approval. Check authority at the consequential effect: writing user-owned bytes. Every apply is reversible with one command. Edit only lines invalidated by a cited change; never rewrite the document.
+Close the loop from stale finding to fresh document through the open-by-default edge feature `features.document_freshness.enabled`. Produce candidates for every stale document, verify them deterministically and by cross-check, apply Lervo-managed changes, and surface user-owned changes for approval. Check authority at the consequential effect: writing user-owned bytes. Every apply must be reversible with one command. Edit only lines invalidated by a cited change; never rewrite the document.
 
 ### 1. Trigger and scheduling
 
-Freshness runs in the knowledge resident after per-change intake (ADR-0457), inside the ADR-0461 fenced cycle, without a timer. Add `freshnessFindingsDigest` to the source fingerprint so a cycle runs when the detection report, a connected path or document, or a candidate's authority state changes.
+Run freshness in the knowledge resident after per-change intake (ADR-0457), inside the ADR-0461 fenced cycle, without a timer. Add `freshnessFindingsDigest` to the source fingerprint so a cycle runs when the detection report, a connected path or document, or a candidate's authority state changes.
 
 Input is ADR-0464's recorded staleness report when `currentRevision` equals HEAD, plus `entrypoint_reference_missing` and `markdown_link_target_missing` findings. A pure function maps each document, with detection-side Git enrichment, to `DocumentFreshnessFindingV1`; the freshness stage infers no fields.
 
@@ -44,7 +44,7 @@ Measure budgets under ADR-0459 with `channel: knowledge_worker`, `stage: documen
 The provider receives one `FreshnessEvidenceBundle` containing:
 
 - Stale document bytes and hash.
-- For each changed connected path, a bounded unified diff between verified and current revisions; if the diff exceeds its bound, current lines around referenced symbols with `evidenceTruncated`.
+- For each changed connected path, a bounded unified diff between verified and current revisions; if it exceeds its bound, current lines around referenced symbols with `evidenceTruncated`.
 - For each deleted path, its last revision, deleting commit, and replacement candidates found by rename similarity and symbol search.
 - The top three related canonical documents from the prepared retrieval snapshot (ADR-0459).
 - The writing contract.
@@ -138,7 +138,7 @@ Report metrics weekly from events:
 4. `contract-only`: Tier 0 and the `document_freshness` signal await ADR-0460 Slice 1; metrics projection is deferred.
 5. `wired`: `archive` operation.
 6. Deferred by owner decision: `document_freshness` mandate kind.
-7. `wired`; installed proof pending: the [document freshness specification's correction](../../../specifications/knowledge/document-freshness.md#installed-journey-completion) reports one local fixture-provider run on a copy of the Lervo repository. That result does not establish real-provider installed completion. A real-provider run and its evidence document under `docs/evidence/quality/` remain open. This replaces the former `installed-proven` label.
+7. `wired`; installed proof pending: the [document freshness specification's correction](../../../specifications/knowledge/document-freshness.md#installed-journey-completion) reports one local fixture-provider run on a copy of the Lervo repository. This does not establish real-provider installed completion. A real-provider run and its evidence document under `docs/evidence/quality/` remain open, replacing the former `installed-proven` label.
 
 Also deferred: freshness of pending workstream approvals in compact context (recorded follow-up: a stale-hit marker under ADR-0459), non-Markdown sources, edits above the 25 percent bound, cross-repository evidence, and languages outside the English boundary (invariant 8).
 

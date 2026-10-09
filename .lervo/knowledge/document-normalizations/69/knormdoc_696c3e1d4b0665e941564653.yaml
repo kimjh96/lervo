@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_addfb7022842e3a4915afc25
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_140f8ef3f094763970e00340
+outputLanguage: en
+outputs:
+  - byteCount: 10367
+    contentHash: sha256:be81f2910e5b1140ae46c5f3452535f876d8cab2125cc2199646d1f79cbba60e
+    path: docs/decisions/knowledge/maintenance/0494-recover-missing-document-evidence-before-requesting-owner-input.md
+    userRegionHash: sha256:be81f2910e5b1140ae46c5f3452535f876d8cab2125cc2199646d1f79cbba60e
+profile: decision_record
+recordId: knormdoc_696c3e1d4b0665e941564653
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5cfbe1e4a50e7b02b0a125d3a6b32406d8fb8c9e1d9a13e6bdc78f1c5396fff6
+sourcePath: docs/decisions/knowledge/maintenance/0494-recover-missing-document-evidence-before-requesting-owner-input.md
+sourceUnitVersionIds:
+  - uv_0525d07c1db5043973326c3a
+  - uv_125f04af370c04ec11690d22
+  - uv_2f0ad32f58593f98dc51a6c1
+  - uv_4849847ba00aea8d539cc3e3
+  - uv_7f0fafd0200c3e8e5fe2bab4
+  - uv_9d35c3ac7a6751babc725433
+  - uv_a3199e353f538098170aeba8
+  - uv_b58c0affe7bef5361a57637e
+  - uv_dcb01cc232c6c0be0cf4d2ad
+  - uv_f0069de4d6cff5c01f9a3bef

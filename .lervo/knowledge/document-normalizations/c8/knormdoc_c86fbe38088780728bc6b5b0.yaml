@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_addfb7022842e3a4915afc25
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_be38bf621ada8f6e6e1a1123
+outputLanguage: en
+outputs:
+  - byteCount: 7774
+    contentHash: sha256:b4e7ccf485e53a6707aafa4ad21e8ce59d7f3ec044caaae0c1dd744853faf3ed
+    path: docs/decisions/operations/services/0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md
+    userRegionHash: sha256:b4e7ccf485e53a6707aafa4ad21e8ce59d7f3ec044caaae0c1dd744853faf3ed
+profile: decision_record
+recordId: knormdoc_c86fbe38088780728bc6b5b0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3f465aaa7bf30745a3356150b939548ca3c8eed534d36684e8febc635ac67932
+sourcePath: docs/decisions/operations/services/0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md
+sourceUnitVersionIds:
+  - uv_110c3e59fbef8e60a7d6c247
+  - uv_3eeb98daf7d0f678c39f7e92
+  - uv_70b869b6b43fa4a0c7377487
+  - uv_93ed5b7ec37d71b11eccaec4
+  - uv_956b0119b31f282e939d05bf
+  - uv_95f2248dea3a156e8f286c0d
+  - uv_bd02bda3c5a063b19716d095
+  - uv_e0d44804ca6d089475debc81

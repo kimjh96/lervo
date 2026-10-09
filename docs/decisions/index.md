@@ -1,6 +1,6 @@
 # Architecture decisions
 
-Lervo groups decisions by bounded semantic domain. Numeric ADR prefixes are stable chronological identities; directories provide navigation, not identity. Allowed routes and leaf limits are defined by [the repository decision taxonomy](../../.lervo/knowledge/document-layout.yaml).
+Lervo groups decisions by bounded semantic domain. Numeric ADR prefixes are stable chronological identities; directories provide navigation, not identity. [The repository decision taxonomy](../../.lervo/knowledge/document-layout.yaml) defines allowed routes and leaf limits.
 
 ## Domains
 
@@ -29,4 +29,4 @@ Lervo groups decisions by bounded semantic domain. Numeric ADR prefixes are stab
 - [Operations services](operations/services/)
 - [Operations storage](operations/storage/)
 
-The tracked taxonomy limits each leaf to 24 decision documents. Add a meaningful route before exceeding that limit. `foundation` is an explicit domain, not a fallback for unmatched decisions.
+Each leaf is limited to 24 decision documents. Add a meaningful route before exceeding that limit. `foundation` is an explicit domain, not a fallback for unmatched decisions.

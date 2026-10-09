@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_addfb7022842e3a4915afc25
+compiler:
+  compilerBuildId: sha256:e4d14e8a33b0325af12092a6d23ca31816637b7a5e5c0a87262aa3857195e1a4
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0d496d83cc08a9569391e757
+outputLanguage: en
+outputs:
+  - byteCount: 11105
+    contentHash: sha256:48d8b1c7086e62612e8f9363e4585345e217082997c8ad396ab9d6f9e3cfb52f
+    path: docs/decisions/knowledge/maintenance/0493-schedule-knowledge-maintenance-by-ready-work-and-safe-effects.md
+    userRegionHash: sha256:48d8b1c7086e62612e8f9363e4585345e217082997c8ad396ab9d6f9e3cfb52f
+profile: decision_record
+recordId: knormdoc_b9038fe940f6679032669932
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9b36cb6e1b4a5424105e9bbefef8928fe8fa9a8f5cffc72fa95787279963283a
+sourcePath: docs/decisions/knowledge/maintenance/0493-schedule-knowledge-maintenance-by-ready-work-and-safe-effects.md
+sourceUnitVersionIds:
+  - uv_073cf2f67be16a96ff3a3e2e
+  - uv_275c1f425aeb71871340ff27
+  - uv_4276bed7950c094c0d5dd00d
+  - uv_574bcf8594168d57d10fb795
+  - uv_660645bf13fcae0a292d382a
+  - uv_6afb8df70046d6c1689b1559
+  - uv_a1bbf58c37783b454eb096db
+  - uv_bf5ee04a44762c11abf10ed3
+  - uv_c03f9b0e1a679820cce230e4
+  - uv_f6699d4f079b4900c8fed514
