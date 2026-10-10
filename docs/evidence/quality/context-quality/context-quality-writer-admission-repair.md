@@ -3,7 +3,7 @@
 Status: `implemented_source_resource_gates_open`
 As of: 2026-10-10
 
-The [CPU follow-up](context-quality-recording-cpu-followup-v1.json) found repeated preliminary writer inspection on retained quality-recording handles. Its scratch retained-handle hint was not authoritative and had mixed performance. This repair moves the required-writer decision into the storage pool’s fresh admission observations. The [storage specification](../../specifications/execution/context-quality/recording-storage-reuse.md) defines the lifecycle and failure contract.
+The [CPU follow-up](../context-quality-recording-cpu-followup-v1.json) found repeated preliminary writer inspection on retained quality-recording handles. Its scratch retained-handle hint was not authoritative and had mixed performance. This repair moves the required-writer decision into the storage pool’s fresh admission observations. The [storage specification](../../../specifications/execution/context-quality/recording-storage-reuse.md) defines the lifecycle and failure contract.
 
 ## Change and boundaries
 
@@ -15,7 +15,7 @@ Responsibility remains local: the pool owns storage admission/lifetime, the bind
 
 ## Frozen measurement
 
-The [v12 protocol](../../../benchmarks/context-quality/recording-repair-v12.json) was registered before measurement on build `sha256:6edc57d7c0a9230efcfa6a1bf9b41eb1f613b8c1607e845577caf78f63213499`. All 380 processes completed from `2026-10-09T20:30:22.748Z` to `2026-10-09T20:35:00.115Z`, without exclusions, replacements, or overlapping agent builds, tests or knowledge scans. Shared-workstation background activity remains uncontrolled. The [complete report](context-quality-recording-repair-v12.json) preserves all samples and host observations.
+The [v12 protocol](../../../../benchmarks/context-quality/recording-repair-v12.json) was registered before measurement on build `sha256:6edc57d7c0a9230efcfa6a1bf9b41eb1f613b8c1607e845577caf78f63213499`. All 380 processes completed from `2026-10-09T20:30:22.748Z` to `2026-10-09T20:35:00.115Z`, without exclusions, replacements, or overlapping agent builds, tests or knowledge scans. Shared-workstation background activity remains uncontrolled. The [complete report](../context-quality-recording-repair-v12.json) preserves all samples and host observations.
 
 Profiles, workloads, sample counts, timing boundaries, provider-call ceiling and all gates are unchanged. Every group passes fixture semantic parity, evidence, integrity, RSS and storage checks. Maximum cold storage remains 119,130 bytes/request. These are deterministic fixture results, not human-reviewed task quality or installed acceptance.
 

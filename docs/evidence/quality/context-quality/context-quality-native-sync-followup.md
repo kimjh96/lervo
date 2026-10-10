@@ -3,7 +3,7 @@
 Status: `diagnostic_only`
 As of: 2026-10-10
 
-The production candidate remains [v12 writer admission](context-quality-writer-admission-repair.md), build `sha256:6edc57d7c0a9230efcfa6a1bf9b41eb1f613b8c1607e845577caf78f63213499`. This follow-up retains three phase workers, 135 comparison workers and native lifecycle/failure observations in the [complete diagnostic report](context-quality-native-sync-followup-v1.json). No native dependency, production writer activation or changed resource gate is selected.
+The production candidate remains [v12 writer admission](context-quality-writer-admission-repair.md), build `sha256:6edc57d7c0a9230efcfa6a1bf9b41eb1f613b8c1607e845577caf78f63213499`. This follow-up retains three phase workers, 135 comparison workers and native lifecycle/failure observations in the [complete diagnostic report](../context-quality-native-sync-followup-v1.json). No native dependency, production writer activation or changed resource gate is selected.
 
 ## Measured direction
 
@@ -13,7 +13,7 @@ Thirty workers testing synchronous binding path stats show mixed results: concur
 
 ## Durability evidence and prototype repair
 
-The [pinned Apple XNU manual](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/man/man2/fcntl.2#L229) explicitly specifies that `F_FULLFSYNC` persists previously fsynced data on the same device and performs fsync for its own descriptor. This narrows the uncertainty recorded in the [earlier sync diagnosis](context-quality-recording-sync-diagnosis-v1.json): a group may fsync its first N−1 files, then use F_FULLFSYNC for its final file, subject to the documented device/filesystem conditions. This API contract does not certify hardware power-loss behavior, every APFS topology, or a particular packaged implementation. Barrier-only synchronization is not selected.
+The [pinned Apple XNU manual](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/man/man2/fcntl.2#L229) explicitly specifies that `F_FULLFSYNC` persists previously fsynced data on the same device and performs fsync for its own descriptor. This narrows the uncertainty recorded in the [earlier sync diagnosis](../context-quality-recording-sync-diagnosis-v1.json): a group may fsync its first N−1 files, then use F_FULLFSYNC for its final file, subject to the documented device/filesystem conditions. This API contract does not certify hardware power-loss behavior, every APFS topology, or a particular packaged implementation. Barrier-only synchronization is not selected.
 
 The original scratch addon accepted fractional and overflowing descriptor numbers after integer conversion. This is consistent with the documented [Node-API conversion behavior](https://nodejs.org/api/n-api.html#napi_get_value_int32). The corrected prototype rejects nonfinite, fractional, negative and out-of-range numbers before acquiring descriptors. All duplicated descriptors are retained through asynchronous work and closed on completion or rejected acquisition. A second revision removes the redundant standalone fsync of the final descriptor.
 

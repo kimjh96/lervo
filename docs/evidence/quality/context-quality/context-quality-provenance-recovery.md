@@ -7,7 +7,7 @@ The [earlier case audit](context-quality-priority4-evaluation.md) found four rev
 
 ## Recovered evidence
 
-The [bounded audit coordinates](../../../benchmarks/context-quality/historical-provenance-v1.json) and [redacted result](context-quality-provenance-audit-v1.json) bind the unchanged reviewed suite, exact runtime/harness bytes, and a local event-chain head. The read-only storage owner verified complete event integrity. The audit inspected 2,853 relevant events beneath that head: 129 managed requests, 1,490 terminal preparations and 1,234 workstream snapshots. It resolved four exact historical event/CAS pairs:
+The [bounded audit coordinates](../../../../benchmarks/context-quality/historical-provenance-v1.json) and [redacted result](../context-quality-provenance-audit-v1.json) bind the unchanged reviewed suite, exact runtime/harness bytes, and a local event-chain head. The read-only storage owner verified complete event integrity. The audit inspected 2,853 relevant events beneath that head: 129 managed requests, 1,490 terminal preparations and 1,234 workstream snapshots. It resolved four exact historical event/CAS pairs:
 
 | Revision | Recovered role                    | What it proves                                                           |
 | -------- | --------------------------------- | ------------------------------------------------------------------------ |
@@ -18,7 +18,7 @@ The [bounded audit coordinates](../../../benchmarks/context-quality/historical-p
 
 Every snapshot was verified against its CAS digest, schema, event ID/hash, workstream identity, revision, status and artifact coordinate. An imported copy does not replace the explicitly named historical event. Snapshot contents and private task text are excluded from this report.
 
-These are historical candidates, not proof of which snapshot the old provider measurement actually consumed. The two historical report hashes declared by [the original measurement](../search/lexical-v2/lexical-v2-reviewed-real-use-projection-v1.md) are absent at their declared hashes in this local CAS. No terminal preparation matches the exact query digest of any of the four reviewed inputs. Consequently the three context-dependent cases still lack an exact original request-to-context binding. The original corpus coordinates are retained but its exact corpus is not reconstructed. Neither current workstream substitution nor expected-path-assisted query construction is allowed to fill these gaps.
+These are historical candidates, not proof of which snapshot the old provider measurement actually consumed. The two historical report hashes declared by [the original measurement](../../search/lexical-v2/lexical-v2-reviewed-real-use-projection-v1.md) are absent at their declared hashes in this local CAS. No terminal preparation matches the exact query digest of any of the four reviewed inputs. Consequently the three context-dependent cases still lack an exact original request-to-context binding. The original corpus coordinates are retained but its exact corpus is not reconstructed. Neither current workstream substitution nor expected-path-assisted query construction is allowed to fill these gaps.
 
 ## Population limitation
 

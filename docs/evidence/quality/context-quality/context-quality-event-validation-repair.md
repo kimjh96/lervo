@@ -7,7 +7,7 @@ The [v6 cohort](context-quality-preparing-batch-repair.md) still failed every la
 
 ## Diagnosis and source boundary
 
-The [retained diagnosis](context-quality-event-validation-diagnosis-v1.json) includes current-build instrumentation and five alternating fresh-process prototype pairs per cold, warm and concurrent workload. A warm writer-coordinate observation averaged about 0.24 ms; removing a fresh observation would not explain or repair the remaining recording cost. Inclusive phase times overlap and cannot be added. Separate CPU sampling pointed to event-chain work, while earlier CAS observations retained file synchronization as a material cost.
+The [retained diagnosis](../context-quality-event-validation-diagnosis-v1.json) includes current-build instrumentation and five alternating fresh-process prototype pairs per cold, warm and concurrent workload. A warm writer-coordinate observation averaged about 0.24 ms; removing a fresh observation would not explain or repair the remaining recording cost. Inclusive phase times overlap and cannot be added. Separate CPU sampling pointed to event-chain work, while earlier CAS observations retained file synchronization as a material cost.
 
 A schema-only prototype reduced cold recorded mean latency from 46.542 to 44.460 ms and CPU from 60.862 to 55.811 ms. Warm and concurrent gains were smaller. These diagnostic 4 KiB observations are not qualification evidence and do not establish a physical lower bound for durable recording.
 
@@ -17,7 +17,7 @@ Five new differential tests compare against an exact pre-repair schema fixture, 
 
 ## Frozen cohort
 
-The [v7 protocol](../../../benchmarks/context-quality/recording-repair-v7.json) binds artifact build `sha256:02d84e849c498e16cf7e2d755cabee5b44bac54bec6ba29d6cee3b79f7745359`. The [complete report](context-quality-recording-repair-v7.json) retains all 380 completed fresh processes from 2026-10-09 17:06:58.273 through 17:11:46.786 UTC, with no replacements or exclusions. The first invocation was rejected before any worker admission because the new protocol ID was absent from the runner allowlist. The rejection is retained in the diagnosis; after registration and its test, the first measured cohort ran. No thresholds, workloads or sample counts changed. No agent builds, tests, installations or knowledge scans overlapped that cohort.
+The [v7 protocol](../../../../benchmarks/context-quality/recording-repair-v7.json) binds artifact build `sha256:02d84e849c498e16cf7e2d755cabee5b44bac54bec6ba29d6cee3b79f7745359`. The [complete report](../context-quality-recording-repair-v7.json) retains all 380 completed fresh processes from 2026-10-09 17:06:58.273 through 17:11:46.786 UTC, with no replacements or exclusions. The first invocation was rejected before any worker admission because the new protocol ID was absent from the runner allowlist. The rejection is retained in the diagnosis; after registration and its test, the first measured cohort ran. No thresholds, workloads or sample counts changed. No agent builds, tests, installations or knowledge scans overlapped that cohort.
 
 All eight groups pass semantic parity, current-source rejection, exact event counts, chain integrity, RSS and storage. All eight additional-latency gates fail. The 4 KiB cold CPU upper bound is 1.240 and passes 1.25; the other seven CPU gates fail. Both concurrent process-time gates fail 1.20. The whole candidate remains rejected.
 
@@ -46,7 +46,7 @@ Continue diagnosis of durable recording and concurrent cost under the same gates
 
 ## Subsequent CAS contention diagnosis
 
-The [bounded follow-up](context-quality-cas-contention-diagnosis-v1.json) retains 141 fresh diagnostic processes against the unchanged v7 runtime. These are candidate comparisons and isolated phase probes, not new qualification cohorts. No production source, storage format, default thread count or writer selection changed.
+The [bounded follow-up](../context-quality-cas-contention-diagnosis-v1.json) retains 141 fresh diagnostic processes against the unchanged v7 runtime. These are candidate comparisons and isolated phase probes, not new qualification cohorts. No production source, storage format, default thread count or writer selection changed.
 
 Increasing the I/O pool from four threads to eight or sixteen did not materially improve concurrent latency: means were 44.387, 44.491 and 44.117 ms, while CPU rose from 31.754 to 32.414/32.404 ms. A separate prototype overlapped prefix-directory preparation with file synchronization, draining both operations before publishing. Concurrent mean latency rose from 43.849 to 50.902 ms and cold from 44.826 to 49.671 ms. Neither strategy is retained in production.
 

@@ -3,7 +3,7 @@
 Status: `partial`
 As of: 2026-10-10
 
-This record advances [ADR-0502](../../decisions/distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) and the [remaining delivery scope](../../roadmap/natural-language-grounding-quality/context-quality-parity.md). The owner authorized continued implementation, verification and fleet deployment. Isolated installation evidence does not establish production activation or context-quality acceptance.
+This record advances [ADR-0502](../../../decisions/distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) and the [remaining delivery scope](../../../roadmap/natural-language-grounding-quality/context-quality-parity.md). The owner authorized continued implementation, verification and fleet deployment. Isolated installation evidence does not establish production activation or context-quality acceptance.
 
 ## Preserved state and live inventory
 
@@ -40,7 +40,7 @@ The first diagnostic incorrectly assumed identical writer state after ordinary i
 
 ## Standalone Node and installed hook journeys
 
-The [target-consumer record](context-quality-target-consumers-v1.json) now binds complete installed Node and hook checks on both targets. Each Node archive is assembled by the unchanged distribution owner on its target OS, using pnpm 11.18.0 and the exact frozen dependency lockfile. Dependency installation disables scripts and uses isolated user state; the Linux archive assembly uses the warmed offline store. The Windows builder retains its existing prefer-offline policy. Neither archive is a public release.
+The [target-consumer record](../context-quality-target-consumers-v1.json) now binds complete installed Node and hook checks on both targets. Each Node archive is assembled by the unchanged distribution owner on its target OS, using pnpm 11.18.0 and the exact frozen dependency lockfile. Dependency installation disables scripts and uses isolated user state; the Linux archive assembly uses the warmed offline store. The Windows builder retains its existing prefer-offline policy. Neither archive is a public release.
 
 | Target           | Node version | Archive SHA-256                                                    | Archive bytes | Manifest entries |
 | ---------------- | ------------ | ------------------------------------------------------------------ | ------------: | ---------------: |

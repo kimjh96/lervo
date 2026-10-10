@@ -3,7 +3,7 @@
 Status: `source_implemented_full_consumer_smokes_blocked`
 As of: 2026-10-10
 
-[ADR-0502](../../decisions/distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) connects the [native synchronization source](context-quality-native-sync-implementation.md) to standalone Hub and Node bundle/distribution owners. CLI npm and repository-installed terminal-hook integration remain unfinished.
+[ADR-0502](../../../decisions/distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) connects the [native synchronization source](context-quality-native-sync-implementation.md) to standalone Hub and Node bundle/distribution owners. CLI npm and repository-installed terminal-hook integration remain unfinished.
 
 ## Implemented boundaries
 

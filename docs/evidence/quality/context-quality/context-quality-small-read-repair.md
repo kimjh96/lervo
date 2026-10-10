@@ -3,9 +3,9 @@
 Status: `source_verified_resource_rejected`
 As of: 2026-10-10
 
-The [previous commit-grouping candidate](context-quality-commit-repair.md) remained above the recording resource limits. The [new bounded read adapter](../../specifications/execution/context-quality/recording-storage-reuse.md) reads small project manifests and writer coordinates freshly with fewer asynchronous filesystem transitions. It does not cache file results, change writer activation, omit integrity checks or weaken CAS/SQLite durability.
+The [previous commit-grouping candidate](context-quality-commit-repair.md) remained above the recording resource limits. The [new bounded read adapter](../../../specifications/execution/context-quality/recording-storage-reuse.md) reads small project manifests and writer coordinates freshly with fewer asynchronous filesystem transitions. It does not cache file results, change writer activation, omit integrity checks or weaken CAS/SQLite durability.
 
-The [registered v4 protocol](../../../benchmarks/context-quality/recording-repair-v4.json) and [all 380 process observations](context-quality-recording-repair-v4.json) are retained. The cohort ran 2026-10-09 15:18:01.560–15:23:32.143 UTC using unchanged build `sha256:07210188d8552c335fa0c1e72a1299372608e47bc5252e5e0ce7f09a3c03f652`. No agent tests, builds, installations or knowledge scans overlapped it. All processes completed; correctness, exact source checks, event counts, integrity, RSS and storage pass. All eight added-latency and CPU groups, and both concurrent process-time groups, still fail. The original 20 percent warm/changed/concurrent practical target remains unmet.
+The [registered v4 protocol](../../../../benchmarks/context-quality/recording-repair-v4.json) and [all 380 process observations](../context-quality-recording-repair-v4.json) are retained. The cohort ran 2026-10-09 15:18:01.560–15:23:32.143 UTC using unchanged build `sha256:07210188d8552c335fa0c1e72a1299372608e47bc5252e5e0ce7f09a3c03f652`. No agent tests, builds, installations or knowledge scans overlapped it. All processes completed; correctness, exact source checks, event counts, integrity, RSS and storage pass. All eight added-latency and CPU groups, and both concurrent process-time groups, still fail. The original 20 percent warm/changed/concurrent practical target remains unmet.
 
 ## Observations
 
@@ -26,9 +26,9 @@ Cold latency is 2.5–6.1 percent lower than v3, and warm latency is 4.4–7.4 p
 
 ## Diagnosis and rejected alternatives
 
-[The retained file-operation and strategy probes](context-quality-small-read-diagnosis-v1.json) record every sample and the executable instrumentation. Two cold CAS file synchronizations used about 7.2 ms cumulatively. Limiting simultaneous CAS writes to one, two or three worsened concurrent latency compared with the current four-caller workload; that strategy was rejected without changing production code. A bounded-read prototype improved the local diagnostic means and justified the full v4 cohort, but the prototype itself was not acceptance evidence.
+[The retained file-operation and strategy probes](../context-quality-small-read-diagnosis-v1.json) record every sample and the executable instrumentation. Two cold CAS file synchronizations used about 7.2 ms cumulatively. Limiting simultaneous CAS writes to one, two or three worsened concurrent latency compared with the current four-caller workload; that strategy was rejected without changing production code. A bounded-read prototype improved the local diagnostic means and justified the full v4 cohort, but the prototype itself was not acceptance evidence.
 
-After v4, [a further small CAS I/O probe](context-quality-cas-small-io-diagnosis-v1.json) kept file synchronization asynchronous while making surrounding small filesystem operations synchronous. Warm latency was modestly lower but concurrent latency increased from about 48.6 to 56.0 ms, so this strategy was also rejected. Its lower CPU did not compensate for the latency regression. These same-process diagnostics use separate disposable roots, have overlapping spans and are not independent cold or installed acceptance.
+After v4, [a further small CAS I/O probe](../context-quality-cas-small-io-diagnosis-v1.json) kept file synchronization asynchronous while making surrounding small filesystem operations synchronous. Warm latency was modestly lower but concurrent latency increased from about 48.6 to 56.0 ms, so this strategy was also rejected. Its lower CPU did not compensate for the latency regression. These same-process diagnostics use separate disposable roots, have overlapping spans and are not independent cold or installed acceptance.
 
 ## Source contracts and verification
 

@@ -37,4 +37,4 @@ Reports expose observed counts, per-artifact verification and recording status, 
 
 Existing event envelopes, CAS retention, redaction, writer inventory, and rollback contracts own persistence. Default writer 1 and maintenance activation target 5 remain unchanged. Automatic recording is inactive until an exact reader-reviewed writer-6 activation. Rolling back suppresses new quality events while retaining existing history. Events contain digests and bounded statuses, not task or artifact text; verification bodies use the existing private CAS.
 
-The [source evidence](../../../evidence/quality/context-quality-source-verification.md) records tests and completion checks. Active-writer performance, human-reviewed real tasks, installed Codex/Claude/Discord operation, and the seven-day cohort remain separate acceptance gates.
+The [source evidence](../../../evidence/quality/context-quality/context-quality-source-verification.md) records tests and completion checks. Active-writer performance, human-reviewed real tasks, installed Codex/Claude/Discord operation, and the seven-day cohort remain separate acceptance gates.

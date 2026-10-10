@@ -7,7 +7,7 @@ The owner resumed work after restarting WSL. The registered Windows target is on
 
 ## Implemented boundaries
 
-[ADR-0502](../../decisions/distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) extends the terminal runtime installer with the exact native pair. The CLI reads its packaged assets; installation checks bounded regular files, exact native manifest coordinates and the binary digest without loading code. Release verification still owns source-build and universal Mach-O qualification. Ordinary non-Darwin source builds may retain the existing no-native fallback when the optional directory is absent; released archives must contain the pair.
+[ADR-0502](../../../decisions/distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) extends the terminal runtime installer with the exact native pair. The CLI reads its packaged assets; installation checks bounded regular files, exact native manifest coordinates and the binary digest without loading code. Release verification still owns source-build and universal Mach-O qualification. Ordinary non-Darwin source builds may retain the existing no-native fallback when the optional directory is absent; released archives must contain the pair.
 
 The repository runtime manifest uses schema 2 and binds both fixed native paths, byte counts and SHA-256 hashes alongside JavaScript. A generated-only plan includes desired asset hashes, observed prior asset hashes and the prior outer-manifest hash. Native-only changes are therefore independently bound even when JavaScript is unchanged. Serializable plans exclude all binary payloads. User-owned provider settings keep their existing exact-approval boundary.
 

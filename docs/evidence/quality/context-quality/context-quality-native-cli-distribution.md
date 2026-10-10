@@ -3,7 +3,7 @@
 Status: `source_implemented_generated_metadata_and_hosted_acceptance_pending`
 As of: 2026-10-10
 
-[ADR-0502](../../decisions/distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) now covers CLI packaging and same-workflow native artifact transfer in addition to the [standalone integration](context-quality-native-standalone-distribution.md). Repository-installed terminal-hook copying and full resource qualification remain open.
+[ADR-0502](../../../decisions/distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) now covers CLI packaging and same-workflow native artifact transfer in addition to the [standalone integration](context-quality-native-standalone-distribution.md). Repository-installed terminal-hook copying and full resource qualification remain open.
 
 ## Implemented contracts
 

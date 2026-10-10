@@ -5,7 +5,7 @@ Decision date: 2026-10-10
 
 ## Context
 
-The [context-quality implementation](../../evidence/quality/context-quality-native-sync-implementation.md) uses an optional Darwin file synchronization adapter. Copying only the bundled JavaScript silently selects ordinary synchronization, so source performance evidence does not establish distributed behavior. Native files also introduce architecture, source identity and inventory obligations that the JavaScript bundle metafile cannot prove.
+The [context-quality implementation](../../evidence/quality/context-quality/context-quality-native-sync-implementation.md) uses an optional Darwin file synchronization adapter. Copying only the bundled JavaScript silently selects ordinary synchronization, so source performance evidence does not establish distributed behavior. Native files also introduce architecture, source identity and inventory obligations that the JavaScript bundle metafile cannot prove.
 
 ## Decision
 

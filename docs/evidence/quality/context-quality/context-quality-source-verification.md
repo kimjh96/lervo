@@ -3,11 +3,11 @@
 Status: `source_subset_verified; inactive_writer_controlled_cohort_qualified; fleet_not_deployed`
 As of: 2026-10-09
 
-This evidence covers the [outcome and event rollout source slice](../../specifications/execution/context-quality/outcome-and-event-rollout.md), following owner work items 1–5. It does not complete ADR-0501 or owner items 6–9 as a whole. The task base is `53eec5565af89eae2a18acd2d39cd99d78358a61`.
+This evidence covers the [outcome and event rollout source slice](../../../specifications/execution/context-quality/outcome-and-event-rollout.md), following owner work items 1–5. It does not complete ADR-0501 or owner items 6–9 as a whole. The task base is `53eec5565af89eae2a18acd2d39cd99d78358a61`.
 
 ## Implemented boundary
 
-Read-only artifact observations bind current local preparation, exact artifact and protected baseline bytes, writing definition, and evaluator identity. Existing writing checks run through their common evaluator port. The public CLI exposes deterministic/freshness diagnosis and reports missing semantic verification as unavailable. The subsequent [priority-2 slice](../../specifications/execution/context-quality/task-outcome-correction.md) adds task-specific verification, explicit scoped language exceptions, and bounded correction. The subsequent [priority-3 integration](../../specifications/execution/context-quality/host-outcome-integration.md) connects actual host completion boundaries.
+Read-only artifact observations bind current local preparation, exact artifact and protected baseline bytes, writing definition, and evaluator identity. Existing writing checks run through their common evaluator port. The public CLI exposes deterministic/freshness diagnosis and reports missing semantic verification as unavailable. The subsequent [priority-2 slice](../../../specifications/execution/context-quality/task-outcome-correction.md) adds task-specific verification, explicit scoped language exceptions, and bounded correction. The subsequent [priority-3 integration](../../../specifications/execution/context-quality/host-outcome-integration.md) connects actual host completion boundaries.
 
 Event readers support versions 1–6. Version-6 quality events use bounded schemas, strict payload validation, existing CAS and append-only storage, explicit writer activation, and supported rollback. Query, direct-hook, and managed/conversation composition now request quality recording automatically alongside their existing evidence paths. Recording remains inactive under older writer selections.
 
@@ -29,7 +29,7 @@ All 103 paths in the final items-1–5 backup still exist. Before final document
 
 ## Frozen performance result
 
-The [protocol](../../../benchmarks/context-quality/recording-overhead-v1.json) compares the same candidate with optional recording disabled/enabled while writer 1 is selected. The [complete final cohort](context-quality-recording-overhead-v1.json) retains all 30 fresh-process warm pairs, five application-cold pairs, warmups, CPU/memory/time observations, and failure dispositions. Operating-system caches and background workstation load were not isolated. No provider call was made.
+The [protocol](../../../../benchmarks/context-quality/recording-overhead-v1.json) compares the same candidate with optional recording disabled/enabled while writer 1 is selected. The [complete final cohort](../context-quality-recording-overhead-v1.json) retains all 30 fresh-process warm pairs, five application-cold pairs, warmups, CPU/memory/time observations, and failure dispositions. Operating-system caches and background workstation load were not isolated. No provider call was made.
 
 The exact package artifact set was unchanged during measurement: `sha256:49194c8817c08a42956450ee6c174c1ec244ca9c005e790af64d9ebf9fc2f020`. All 70 processes completed; semantic plans were identical, and recording correctly remained inactive in the candidate arm.
 
@@ -43,7 +43,7 @@ The cold preparation-time gate failed, so this cohort is rejected. Shared workst
 
 ## Cold recording diagnosis
 
-Priority 1 is complete for the inactive-writer fixture. The [registered diagnostic protocol](../../../benchmarks/context-quality/cold-recording-diagnosis-v1.json) and [complete observations](context-quality-cold-recording-diagnosis-v1.json) retain one fixed cohort of 30 warm and 30 application-cold pairs plus ten separate phase probes. The exact package build above is unchanged. No runtime source, source coverage, retrieval limit, writer activation, or numeric acceptance threshold changed.
+Priority 1 is complete for the inactive-writer fixture. The [registered diagnostic protocol](../../../../benchmarks/context-quality/cold-recording-diagnosis-v1.json) and [complete observations](../context-quality-cold-recording-diagnosis-v1.json) retain one fixed cohort of 30 warm and 30 application-cold pairs plus ten separate phase probes. The exact package build above is unchanged. No runtime source, source coverage, retrieval limit, writer activation, or numeric acceptance threshold changed.
 
 The earlier run overlapped this agent's test suite, packed installation, and knowledge checks. The diagnostic excludes those agent workloads during its measurement window; user and resident services continue running. Quality checks finished by 12:17:51.088 UTC, before the first pair at 12:17:51.248 UTC. Measurement ended at 12:19:18.182 UTC on 2026-10-09. Per-process host load averages and cumulative CPU counters are retained. A lossless storage encoding replaces repeated CPU field names with column names and numeric rows; `storageEncoding.decodedJsonSha256` verifies reconstruction of the complete original report. This avoids exceeding the canonical JSON source-unit bound without removing a measurement or weakening scanner coverage. These conditions do not establish an isolated machine or prove that contention alone caused the earlier failure.
 
@@ -61,7 +61,7 @@ The benchmark entrypoint now delegates orchestration, worker measurement, and pu
 
 ## Priority-2 source verification
 
-The [task outcome and correction slice](../../specifications/execution/context-quality/task-outcome-correction.md) adds exact task-definition verdicts, scoped language exceptions with current authority checks, and bounded correction through an existing effect owner. Schema-1 observations remain readable; schema 2 carries task-check and exception evidence. The CLI can load a bounded definition but does not invent a semantic evaluator or exception authority. Missing evidence remains unavailable.
+The [task outcome and correction slice](../../../specifications/execution/context-quality/task-outcome-correction.md) adds exact task-definition verdicts, scoped language exceptions with current authority checks, and bounded correction through an existing effect owner. Schema-1 observations remain readable; schema 2 carries task-check and exception evidence. The CLI can load a bounded definition but does not invent a semantic evaluator or exception authority. Missing evidence remains unavailable.
 
 The relevant suite passed 267 tests in 38 files, including both-provider parity, context preparation, task/writing evaluation, observation compatibility, version-6 recording, correction, repository composition, CLI diagnosis, and performance-evidence decoding. A final bound-check review added oversized/invalid replacement-text and exception-policy-identity cases; the three affected files passed all 26 tests. The latter is a focused follow-up, not an additional independent 26-case acceptance population.
 
@@ -71,7 +71,7 @@ Release intent `relint_b289d403ed0e1a6918279b39` records the compatible new beha
 
 ## Priority-3 host integration
 
-The [host integration contract](../../specifications/execution/context-quality/host-outcome-integration.md) is implemented at managed CLI, managed remote, conversation reply/structured-turn, Node native repository-work, direct terminal Stop, query, and managed owner-reasoning boundaries. Default task verdicts remain unavailable without an admitted evaluator. Required policies stop completion on unavailable checks or recording; no host fabricates a semantic task pass from provider exit or project-suite success. Exact CAS reads and current local plans also apply to cached replies.
+The [host integration contract](../../../specifications/execution/context-quality/host-outcome-integration.md) is implemented at managed CLI, managed remote, conversation reply/structured-turn, Node native repository-work, direct terminal Stop, query, and managed owner-reasoning boundaries. Default task verdicts remain unavailable without an admitted evaluator. Required policies stop completion on unavailable checks or recording; no host fabricates a semantic task pass from provider exit or project-suite success. Exact CAS reads and current local plans also apply to cached replies.
 
 The shared operation retains failed pre-correction evidence, uses the existing effect owner, refreshes project verification, and rechecks final bytes. Read-only hosts cannot acquire correction authority. Managed isolated workspaces use their execution root; missing project/policy bindings remain unavailable. Language-exception integration exposed a redaction consistency defect: a valid passed exception observation was rejected because its diagnostic reason was treated as a failure. The event validator now permits only the known exception diagnostic on passed observations; failed-verdict reasons still fail closed.
 

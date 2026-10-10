@@ -3,11 +3,11 @@
 Status: `source_verified_resource_rejected`
 As of: 2026-10-10
 
-The [v10 CPU diagnosis](context-quality-recording-cpu-diagnosis-v1.json) found repeated project path calculation among recording costs. This repair normalizes each caller root once and expands the fixed catalog using native-separator suffixes. Filesystem reads, writer/path binding checks, event integrity, CAS synchronization and SQLite durability remain unchanged. The [storage contract](../../specifications/execution/context-quality/recording-storage-reuse.md) defines the finite representation boundary.
+The [v10 CPU diagnosis](../context-quality-recording-cpu-diagnosis-v1.json) found repeated project path calculation among recording costs. This repair normalizes each caller root once and expands the fixed catalog using native-separator suffixes. Filesystem reads, writer/path binding checks, event integrity, CAS synchronization and SQLite durability remain unchanged. The [storage contract](../../../specifications/execution/context-quality/recording-storage-reuse.md) defines the finite representation boundary.
 
 ## Diagnosis and implementation
 
-The [follow-up diagnosis](context-quality-path-expansion-diagnosis-v1.json) retains sixty three-arm workers: ten cold sets and five each for warm and concurrent workloads. Arm order rotates and reverses. Every worker passes fixture semantics, exact event counts and final integrity. No agent build, test or scan overlaps measurement. These exploratory runs use ten noncold samples, rather than the frozen five-sample protocol.
+The [follow-up diagnosis](../context-quality-path-expansion-diagnosis-v1.json) retains sixty three-arm workers: ten cold sets and five each for warm and concurrent workloads. Arm order rotates and reverses. Every worker passes fixture semantics, exact event counts and final integrity. No agent build, test or scan overlaps measurement. These exploratory runs use ten noncold samples, rather than the frozen five-sample protocol.
 
 The earlier direct concatenation prototype still converted fifty separators on every call. A guarded suffix map performs that invariant conversion once at module initialization. Cold CPU means are 56.695 ms for current v10, 57.310 for direct concatenation and 56.890 for the map. The map's 0.35 percent increase does not establish cold CPU improvement; its cold latency and process means are lower. Warm CPU changes from 18.347 to 17.849 ms, concurrent CPU from 28.648 to 27.773 ms. These observations justify source validation and a new qualification cohort, not acceptance by themselves.
 
@@ -21,7 +21,7 @@ There are 448 passing tests in 46 files: 423 project, storage, context, both-pro
 
 ## Frozen v11 cohort
 
-The [registered protocol](../../../benchmarks/context-quality/recording-repair-v11.json) binds build `sha256:813b2e1f96ac399a6db7b1ba8ddf5f695f7d4996f16b49b1a6b41af52c083007`. The [report](context-quality-recording-repair-v11.json) retains all 380 completed processes from 2026-10-09T19:58:13.879Z to 20:02:51.776Z. No process is excluded or replaced, and no agent build, test or scan overlaps measurement. Both arms use the new path calculation and unchanged v10 observation ordering; only the candidate records preparation and verification. Whole-process timing includes suffix-map initialization.
+The [registered protocol](../../../../benchmarks/context-quality/recording-repair-v11.json) binds build `sha256:813b2e1f96ac399a6db7b1ba8ddf5f695f7d4996f16b49b1a6b41af52c083007`. The [report](../context-quality-recording-repair-v11.json) retains all 380 completed processes from 2026-10-09T19:58:13.879Z to 20:02:51.776Z. No process is excluded or replaced, and no agent build, test or scan overlaps measurement. Both arms use the new path calculation and unchanged v10 observation ordering; only the candidate records preparation and verification. Whole-process timing includes suffix-map initialization.
 
 | Profile | Workload   | Recorded mean ms | Recorded CPU ms | Added ms upper 95% | CPU ratio upper 95% | Process ratio upper 95% |
 | ------- | ---------- | ---------------: | --------------: | -----------------: | ------------------: | ----------------------: |
@@ -42,7 +42,7 @@ Continue from the remaining recording CPU and durable-write costs. The native gr
 
 ## Recording CPU alternatives
 
-The [subsequent CPU follow-up](context-quality-recording-cpu-followup-v1.json) retains 192 fixture workers against the unchanged v11 runtime: three identity-phase probes, 45 identity comparisons, 24 thread-CPU observations and 120 CAS/preflight comparisons. Every observed fixture semantic, event-count and integrity check passes. No agent build, test or scan overlaps measurement. These are exploratory observations, not another frozen cohort.
+The [subsequent CPU follow-up](../context-quality-recording-cpu-followup-v1.json) retains 192 fixture workers against the unchanged v11 runtime: three identity-phase probes, 45 identity comparisons, 24 thread-CPU observations and 120 CAS/preflight comparisons. Every observed fixture semantic, event-count and integrity check passes. No agent build, test or scan overlaps measurement. These are exploratory observations, not another frozen cohort.
 
 The two preliminary event-identity serializations cost only about 0.023 ms per warm request and 0.072 ms per concurrent batch, including warmups. Reusing one identity or deferring both gives no consistent full-operation gain; neither is adopted. Thread-CPU observations attribute roughly 2.16 of 3.87 additional warm CPU milliseconds to the main thread and 1.71 to other process threads. Concurrent additional CPU is about 5.47 ms on the main thread and 5.75 elsewhere. These counters include native calls and runtime/JIT/GC work, and their snapshot intervals differ slightly; the residual is not an exclusive filesystem measurement.
 
