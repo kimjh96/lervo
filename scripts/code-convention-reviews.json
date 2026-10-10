@@ -346,17 +346,17 @@
       "disposition": "cohesive"
     },
     {
+      "path": "packages/schemas/src/schema-catalog.ts",
+      "contentHash": "sha256:2183f5e1afcae686ff01e69803e124195ae2daaf4401d69d4d2e6a035b8b3f25",
+      "responsibility": "Declarative schema registration catalog",
+      "rationale": "The module declares the unchanged schema-name mapping and forward-reference catalog used by build-time generation and public type names. It contains no compiler initialization, runtime validation, filesystem access, provider policy or artifact publication. Those responsibilities live in separate owners.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/schemas/src/terminal-observation-event.ts",
       "contentHash": "sha256:ebbffbb6be465b464e95dbb908e52e0f9a890541410556e21b1e86dd3875493e",
       "responsibility": "Declarative terminal observation event schemas",
       "rationale": "The module contains only the bounded JSON Schema declarations and inferred payload types for one terminal observation lifecycle; runtime validation, redaction, persistence, and orchestration remain in their owning modules.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:ea5ce886884be7afe631e910209d4da8a3a75f5327bfb3b47fc70856b496c3d0",
-      "responsibility": "Repository schema validator registry",
-      "rationale": "The module is the cohesive schema validator registration catalog. Context-quality verification and event definitions live in dedicated schema modules; registration introduces no source observation, outcome evaluation, persistence, or rollout policy.",
       "disposition": "cohesive"
     },
     {

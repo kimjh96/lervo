@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:fb693979-f6f8-5d6a-b6fb-228afa213a4c",
+  "serialNumber": "urn:uuid:d250ef76-5310-50f9-ae65-231646646a10",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "27e6912dec1b1a19779164b1233d1bc86585461b74158164ca6b7ebb4d9cc675"
+          "content": "0aa7d8f714ff144560d2916a16bcd793d89cdadabcf0c4b41f3ac29b9d390774"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:cf641d92e7777ba24534c7e00ffec43988364551f786b7e714d832a3c2cfcc8e"
+          "value": "sha256:c28614fef79c909080c83c524f35bf6c1416e12fc0f01cd258fdb5a28615434c"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:917ff6459ab28480d42f77dec915457440771908f26535a11411e4a187426cbf"
+          "value": "sha256:1ef4603371fcd8feeaeabe1f95fe46d643171ab8591d72b1b93d261ab966a656"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -2343,10 +2343,6 @@
       ],
       "properties": [
         {
-          "name": "lervo:release:bundled",
-          "value": "true"
-        },
-        {
           "name": "lervo:release:locked",
           "value": "true"
         }
@@ -2746,10 +2742,6 @@
         }
       ],
       "properties": [
-        {
-          "name": "lervo:release:bundled",
-          "value": "true"
-        },
         {
           "name": "lervo:release:locked",
           "value": "true"
@@ -4462,8 +4454,6 @@
         "pkg:npm/character-entities@2.0.2",
         "pkg:npm/decode-named-character-reference@1.3.0",
         "pkg:npm/fast-deep-equal@3.1.3",
-        "pkg:npm/fast-uri@3.1.5",
-        "pkg:npm/json-schema-traverse@1.0.0",
         "pkg:npm/jsonc-parser@3.3.1",
         "pkg:npm/mdast-util-from-markdown@2.0.3",
         "pkg:npm/mdast-util-to-string@4.0.0",

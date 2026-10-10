@@ -1,4 +1,5 @@
 import { cliReleaseFiles } from "../../shared/cli-release-files.mjs";
+import { verifySchemaValidatorArtifact } from "../../shared/schema-validator-artifact.mjs";
 import {
   readNativeFileSyncArtifact,
   nativeFileSyncSourceHash,
@@ -139,7 +140,7 @@ async function createBundleSnapshot() {
         .filter(Boolean),
     ),
   ].sort();
-  const externalPackages = (
+  const directBundledPackages = (
     await Promise.all(
       externalPackageRoots.map(async (packageRoot) => {
         const manifest = await readJson(resolve(repositoryRoot, packageRoot, "package.json"));
@@ -147,6 +148,10 @@ async function createBundleSnapshot() {
       }),
     )
   ).sort();
+  const generated = await verifySchemaValidatorArtifact(repositoryRoot);
+  const externalPackages = [
+    ...new Set([...directBundledPackages, ...generated.runtimeDependencies]),
+  ].sort();
   const externalImports = [
     ...new Set(
       output.imports

@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { build } from "esbuild";
+import { verifySchemaValidatorArtifact } from "../../../scripts/shared/schema-validator-artifact.mjs";
 
 import {
   copyNativeFileSyncArtifact,
@@ -14,6 +15,7 @@ const runtimeRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(runtimeRoot, "../..");
 const outputDirectory = resolve(runtimeRoot, "dist");
 
+await verifySchemaValidatorArtifact(repositoryRoot);
 await mkdir(outputDirectory, { recursive: true });
 
 const result = await build({

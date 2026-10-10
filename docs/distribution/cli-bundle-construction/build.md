@@ -4,13 +4,15 @@
 
 `apps/cli/package.json` registers two `bin` commands, `lervo` and `lervo-node`. The terminal hook is the third shipped JavaScript file, but is not a package `bin` command.
 
-| Source entrypoint | CLI package output |
-| --- | --- |
-| `apps/cli/src/bin.ts` | `dist/bin.js` |
+| Source entrypoint                   | CLI package output      |
+| ----------------------------------- | ----------------------- |
+| `apps/cli/src/bin.ts`               | `dist/bin.js`           |
 | `apps/cli/src/terminal-hook-bin.ts` | `dist/terminal-hook.js` |
-| `apps/node-runtime/src/bin.ts` | `dist/node-runtime.js` |
+| `apps/node-runtime/src/bin.ts`      | `dist/node-runtime.js`  |
 
 All three builds bundle for Node with target `node22.13`, emit ESM, prefer `module` before `main`, omit legal comments, and use silent esbuild logging. Each adds a banner creating a local `require` through `node:module`'s `createRequire(import.meta.url)` and registers `nodeSqliteBundlePlugin`. The plugin's internal behavior is outside this script's evidence.
+
+Before bundling, the owner verifies the current generated schema validators against their source, compiler options and output manifest. The schemas package build creates this pair; a direct bundle build rejects missing or stale generation. Validators are embedded into the existing bundles. The terminal-hook build alone enables minification to remain below the unchanged 8 MiB limit. See [ADR-0503](../../decisions/execution/verification/0503-compile-schema-validators-at-build-time.md) for ownership, clean-build resolution and error compatibility.
 
 The CLI and packaged Node-runtime builds explicitly keep `@anthropic-ai/claude-agent-sdk` external. The terminal-hook build supplies no explicit external-package list; this alone does not establish which dependencies it imports. [ADR-0215](../../decisions/release/packaging/0215-supported-runtime-release-portability.md) defines consumer-platform selection and SQLite compatibility contracts.
 

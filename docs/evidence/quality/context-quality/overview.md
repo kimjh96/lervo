@@ -28,9 +28,32 @@ The profiles identify eager compilation of all 209 schema validators as a substa
 
 An [Ajv standalone-code](https://ajv.js.org/standalone.html) feasibility prototype moves compilation to a temporary build tool while retaining runtime validation. Straight generation produces a minified terminal prototype of 9,653,523 bytes, exceeding the unchanged 8 MiB limit. Shared references and enum loops alone still exceed it. Shared references, an enum-loop threshold of 32 and a required-property-loop threshold of 3 produce a 7,501,825-byte minified prototype. Across 2,573 bounded comparisons against the current validator, including three actual structured results and field mutations, observed validity and error arrays match. This is feasibility evidence, not the full schema contract suite or an accepted production artifact.
 
-Next implement a generated-validator owner with exact schema/options binding, preserved date-time semantics, clean-build and source-test support, deterministic output, full schema/adverse differential coverage and runtime artifact identity. Verify terminal size, minimum-runtime consumers and both core and installed performance before adoption. No production source or runtime changed during this diagnosis.
+No production source or runtime changed during this diagnosis. The subsequent implementation is described below; these historical measurements retain their original bytes and scope.
 
 Owner-local evidence is retained under `/tmp/lervo-bundled-query-6XxX4i/`. The corrected four-process protocol hash is `sha256:e95f427f3005deb16e8579f264af196b1b1eca9993322df4652816c031626353`; `summary.json` has hash `sha256:6ab6c3b28ee47c84739751413fe8482a299c56c5f65c805b18943ef670856d77`. The first offline package installation could not resolve an uncached transitive archive; the frozen deployment path succeeded. A first profile remains rejected because its Python SQLite URI checker could not open the database; the corrected diagnostic uses the runtime's read-only SQLite API. Neither failure was discarded or counted as a passing observation.
+
+## Build-time schema validation
+
+[ADR-0503](../../../decisions/execution/verification/0503-compile-schema-validators-at-build-time.md) moves validator compilation to the schemas build while retaining runtime validation. All 209 schema-name mappings match the previous facade. The first extended differential suite rejected shared references because four fixtures changed `schemaPath` errors. The corrected settings retain inline references, strict/all-errors behavior and the original date-time format; enum and required-property loop thresholds are 3 and 1.
+
+The corrected focused suite passes 387 tests, including existing schema fixtures, exact-error differential comparisons, artifact drift and release inventory tests. A clean temporary copy typechecks before generation, builds and executes with string-based code generation disabled, and reproduces both generated files exactly. Generated validators occupy 6,072,182 bytes; the minified terminal bundle occupies 8,356,983 bytes against the unchanged 8,388,608-byte limit. Its remaining 31,625-byte margin is small and remains checked on every build.
+
+The full workspace build and code-quality checks pass. Release metadata initially failed because the outer bundle could no longer identify embedded runtime helpers. The generated manifest now carries their observed package coordinates into the release snapshot and SBOM, preserving the exact dependency check. Full regression passes 5,761 tests in 1,101 files, with eight existing live tests skipped. A subsequent staging-ownership correction passes the 387 focused tests and quality checks; its generated validator hash remains `sha256:2c8318091093a2b4425884569a4b68732ad864a5033acda7145289a06d8c8c08`. An exclusive fixed stage prevents simultaneous generators from deleting each other's temporary files.
+
+Built CLI, Hub and Node consumers, standalone Hub/Node archives and the packed CLI consumer pass on Darwin arm64. Node 22.13.0 also passes public validation with string-based code generation disabled and the installed CLI smoke. Release inventory, SBOM and local unsigned-statement checks pass. These fixture journeys do not establish actual provider or Discord acceptance. No production service, CLI or hook has been upgraded.
+
+### Paired startup diagnosis
+
+A finite eight-process comparison restores the same migrated writer-6 fixture for both old and new deployed CLI bytes. Each arm executes preparation twice and artifact verification twice in a fixed interleaved order, with CPU profiling enabled. All eight observations preserve the passage, complete rule, expected unavailable semantic verification, exact event counts and SQLite integrity. No sample is retried or removed.
+
+| Arm                   | Mean elapsed time | Mean process CPU | Elapsed range    |
+| --------------------- | ----------------- | ---------------- | ---------------- |
+| Previous bundled CLI  | 651.73 ms         | 837.70 ms        | 649.33–654.49 ms |
+| Build-time validators | 385.96 ms         | 344.92 ms        | 291.73–647.02 ms |
+
+Observed mean elapsed time falls 40.8% and process CPU falls 58.8%. The first candidate preparation takes 647.02 ms and remains included. Four observations per arm with uncontrolled operating-system caches support a startup diagnosis, not statistical acceptance or the separate recording-resource gates. Both arms always record, and whole-process timing includes startup, retrieval, rendering and profiler overhead.
+
+The owner-local evidence directory is `/var/folders/0q/n1zzqlr11v78pn8x5yvs8nl80000gn/T/lervo-schema-startup-vojm7v98`. Its protocol, result and summary hashes are respectively `sha256:b79495e6a2c463a74465363e0be48079bdc0442b09c281998987744dde7814ce`, `sha256:c30c24abf39cae3edb281e455f24066a55110f3fe2b56354df6326b316af80a2` and `sha256:0b669059214e4c612b8e99900c17cb38f137d35ca721429a109017f67f1a8464`. It retains exactly eight profiles, bounded raw logs, the deployed candidate and the registered protocol/results until review. Prior profiles and frozen benchmark artifacts remain unchanged.
 
 ## Source and real-task evidence
 

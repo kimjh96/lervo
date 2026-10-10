@@ -2,6 +2,7 @@ import {
   copyNativeFileSyncArtifact,
   nativeFileSyncSourceHash,
 } from "../../../scripts/shared/native-file-sync-artifact.mjs";
+import { verifySchemaValidatorArtifact } from "../../../scripts/shared/schema-validator-artifact.mjs";
 import { chmod, mkdir, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -15,6 +16,7 @@ const cliRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(cliRoot, "../..");
 const outputDirectory = resolve(cliRoot, "dist");
 
+await verifySchemaValidatorArtifact(repositoryRoot);
 await mkdir(outputDirectory, { recursive: true });
 
 const result = await build({
@@ -41,6 +43,7 @@ await build({
   entryPoints: ["apps/cli/src/terminal-hook-bin.ts"],
   outfile: "apps/cli/dist/terminal-hook.js",
   bundle: true,
+  minify: true,
   banner: {
     js: 'import { createRequire as __lervoCreateRequire } from "node:module"; var require = __lervoCreateRequire(import.meta.url);',
   },

@@ -128,8 +128,6 @@ export function validateReleaseArtifactManifest(manifest) {
         "character-entities@2.0.2",
         "decode-named-character-reference@1.3.0",
         "fast-deep-equal@3.1.3",
-        "fast-uri@3.1.5",
-        "json-schema-traverse@1.0.0",
         "jsonc-parser@3.3.1",
         "mdast-util-from-markdown@2.0.3",
         "mdast-util-to-string@4.0.0",

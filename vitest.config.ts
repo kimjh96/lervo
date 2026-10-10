@@ -119,6 +119,7 @@ export default defineConfig({
     },
   },
   test: {
+    globalSetup: ["./packages/schemas/scripts/generate-validators.mjs"],
     include: ["apps/**/*.test.ts", "packages/**/*.test.ts", "scripts/**/*.test.mjs"],
     setupFiles: ["./scripts/quality/lib/test-user-state-isolation.mjs"],
   },
