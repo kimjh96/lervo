@@ -1,9 +1,9 @@
 # Context-quality native sync source implementation
 
-Status: `source_implemented_distribution_pending`
+Status: `implemented_resource_qualification_pending`
 As of: 2026-10-10
 
-This slice implements the adapter and CAS integration described by the [native sync follow-up](context-quality-native-sync-followup.md). It does not yet qualify a distributed candidate or replace the latest frozen v12 resource result. Native assets are built inside the filesystem-durability package. The [standalone distribution integration](context-quality-native-standalone-distribution.md) now copies them into Hub/Node bundles and extends their archive contracts; CLI, terminal-hook and complete packaged-consumer qualification remain open. A separately labeled source-build diagnostic can evaluate this implementation before committing to a release-format expansion.
+The adapter and content-addressed storage (CAS) integration described by the [native sync follow-up](context-quality-native-sync-followup.md) now have source and distribution implementations. The [current overview](overview.md) records passing local distribution and isolated target-consumer checks. Frozen recording-resource qualification remains open. Earlier source-stage observations below retain their original build identities and distribution limits.
 
 ## Implemented boundaries
 
@@ -66,10 +66,43 @@ Fresh-row prefix serialization and sealed initial-borrow checks have mixed small
 
 A separate comparison isolates CAS metadata, reads and temporary writes. Reads alone move concurrent latency from 23.728 to 23.221 ms and CPU from 27.278 to 26.292 ms, but cold latency rises from 40.015 to 41.008 ms. Those scratch reads also lack production qualification for file growth, slow filesystems and general streams. No candidate is selected. All original durability, freshness, timed-scope and resource thresholds remain unchanged; neither statistical qualification nor a new performance pass is claimed. Further work must explain recording CPU and durable-write admission, rather than repeat these substitutions without new evidence.
 
+## Current recording diagnosis
+
+After build-time schema compilation and target requalification, 88 additional source workers test the remaining recording cost on unchanged runtime `sha256:ffc7008453af030577345549bef9dd7ae80b8c03449a91ef2487cb3edb9aa1b5`. The finite protocols were registered before their respective measurements. All workers complete with valid fixture semantics, exact event counts and integrity. Changed-source workers also reject stale source hashes. The two comparisons also preserve every paired semantic signature. No agent builds, tests or scans overlap the samples. No observation is removed or replaced, and no provider is called.
+
+Eight workers profile recording enabled and disabled across cold, warm, changed-source and concurrent workloads at 12 KiB. Sampling covers the final measured batch, but the profiler also captures its own start/stop overhead outside the explicit batch timers. Raw profile totals therefore cannot represent timed CPU. The cold recorded observation uses 72.96 ms process CPU versus 52.98 ms without recording. Main-thread observations are 38.50 and 27.84 ms. Remaining CPU includes runtime work as well as filesystem I/O; these samples cannot attribute it all to disk operations. SQLite initialization, cloning and file operations remain visible, without one proven removable cause.
+
+Two unprofiled comparisons then use forty fresh processes each. Both arms record every event, restore the same fixture and alternate reference/candidate order within five pairs per workload. Each retains two warmups and five measured batches, except cold with one measured batch and no warmup; concurrency remains four. Means below describe those small comparisons and do not establish statistical acceptance.
+
+| Scratch change              | Workload   | Reference elapsed / CPU ms | Candidate elapsed / CPU ms |
+| --------------------------- | ---------- | -------------------------: | -------------------------: |
+| One public input snapshot   | Cold       |            40.078 / 66.044 |            40.350 / 67.300 |
+| One public input snapshot   | Warm       |            18.613 / 17.833 |            18.636 / 17.717 |
+| One public input snapshot   | Changed    |            18.781 / 18.000 |            18.938 / 18.163 |
+| One public input snapshot   | Concurrent |            22.369 / 27.003 |            22.702 / 27.955 |
+| Group initial borrow checks | Cold       |            39.614 / 64.168 |            39.219 / 59.699 |
+| Group initial borrow checks | Warm       |            18.586 / 17.963 |            18.819 / 18.084 |
+| Group initial borrow checks | Changed    |            19.071 / 18.438 |            18.978 / 18.258 |
+| Group initial borrow checks | Concurrent |            22.624 / 27.213 |            22.742 / 26.731 |
+
+The snapshot variant removes the second copy of an already validated observation while retaining a public-entry snapshot. It provides no consistent improvement and remains unselected. The admission variant revisits the previously rejected next-turn grouping on the current runtime: only borrowers present before the fresh observation starts share it; later arrivals require another observation, invalidation is rechecked and final guards stay independent. Concurrent CPU falls about 1.8% while latency rises about 0.5%; warm results also worsen. This does not justify changing the storage contract. Neither scratch variant is copied into product source or installed artifacts.
+
+The original ten-millisecond added-latency, 1.25 CPU, 1.25 RSS, 1.20 process-time and 128 KiB/request limits remain unchanged. Both cold latency groups and all eight CPU groups still require qualification on exact distributed bytes. Do not repeat these substitutions without a newly demonstrated cause. Continue the consolidated source, retention and privacy review while resolving the independent release and reviewed-case requirements.
+
+### Retained diagnostic bytes
+
+Each owner-local directory contains its registered protocol, raw results, runner and finite profiles or scratch module copies. Git retains this bounded summary; no new per-run canonical JSON is added. The following hashes bind the actual on-disk protocol and result bytes.
+
+| Directory under `/var/folders/0q/n1zzqlr11v78pn8x5yvs8nl80000gn/T/` | Protocol SHA-256                                                   | Result SHA-256                                                     |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `lervo-recording-profile-dpEdcH`                                    | `9c717e914d18c4a8cdffc6c6f98aef31dc7054533a41fb2c39583db11bd28e8a` | `a96f1dc215418552295f7e7ea85d921f48a90129d04b63b7e3608b8b453b3cff` |
+| `lervo-recording-snapshot-GWdNfE`                                   | `7072234817933a0b11c22cd72c42341b791c05319c63a6dec67d031f5e5e879e` | `3a755ad7017a1ae17effc33a7f6ba05c97febd3fa7c3515d30fb3584d4f9dd23` |
+| `lervo-admission-batch-I0DaMa`                                      | `c1f8cc73dbfd27b6654345e7f2d8a619cee5c7d0d3ed25f71466ef72f14f1d73` | `432a0477ea4deb043f4eb6b99428598891e5b7217f53d0977d37c7ee213638eb` |
+
+The profile result's embedded `protocolHash` binds compact JSON serialization rather than the pretty-printed file. The file digest above independently identifies the retained bytes; neither representation is rewritten to conceal that distinction. The comparison summaries record matching before/after runtime hashes. Existing frozen benchmark results and private-review expiry remain unchanged.
+
 ## Remaining integration
 
-The [CLI native distribution integration](context-quality-native-cli-distribution.md) now extends the release archive to include the exact native pair and implements schema-6 manifest/SBOM/consumer validation. The [standalone integration](context-quality-native-standalone-distribution.md) now implements native asset copying and archive/SBOM validation for Hub and Node; full consumer smokes remain blocked by the recorded local environment constraints. Complete generated release metadata and installed terminal-hook asset ownership, and verify identical reviewed release bytes across hosted platform builds. A source-only native optimization must not be presented as shipped when a bundle silently takes fallback.
+The [CLI native distribution integration](context-quality-native-cli-distribution.md) includes the native pair in the release archive and schema-6 manifest/SBOM checks. The [standalone integration](context-quality-native-standalone-distribution.md) includes the same assets in Hub and Node archives. Current Darwin arm64, minimum-Node and [isolated Linux/Windows consumers](context-quality-platform-qualification.md#current-candidate-requalification) pass. Actual Darwin x64 execution and identical reviewed assets across hosted platform builds remain required.
 
-Before expanding release packaging, the [source-only protocol](../../../../benchmarks/context-quality/native-source-v1.json) freezes the current complete artifact and all existing resource gates for 380 workers. This bounded diagnostic tests whether the source implementation addresses the remaining costs; its result cannot establish distributed performance.
-
-After packaged-consumer and supported-platform verification, register a new exact-artifact cohort with both profiles and unchanged latency/CPU/process/RSS/storage gates. The complete objective also retains the reviewed-family population, both-provider outcomes and reader-first installed recovery/cohort requirements.
+Register any further resource cohort against exact distributed artifacts, both profiles and unchanged latency/CPU/process/RSS/storage gates. The complete objective also retains the reviewed-family population, both-provider outcomes and reader-first installed recovery/cohort requirements. Passing fixture journeys alone does not authorize a completion claim.

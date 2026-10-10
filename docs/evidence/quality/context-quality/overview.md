@@ -57,6 +57,12 @@ Observed mean elapsed time falls 40.8% and process CPU falls 58.8%. The first ca
 
 The owner-local evidence directory is `/var/folders/0q/n1zzqlr11v78pn8x5yvs8nl80000gn/T/lervo-schema-startup-vojm7v98`. Its protocol, result and summary hashes are respectively `sha256:b79495e6a2c463a74465363e0be48079bdc0442b09c281998987744dde7814ce`, `sha256:c30c24abf39cae3edb281e455f24066a55110f3fe2b56354df6326b316af80a2` and `sha256:0b669059214e4c612b8e99900c17cb38f137d35ca721429a109017f67f1a8464`. It retains exactly eight profiles, bounded raw logs, the deployed candidate and the registered protocol/results until review. Prior profiles and frozen benchmark artifacts remain unchanged.
 
+## Current recording cost
+
+The [current recording diagnosis](context-quality-native-sync-implementation.md#current-recording-diagnosis) retains 88 additional source workers after build-time validator compilation. Every worker passes fixture semantics, source checks, event counts and integrity. Removing a duplicate observation snapshot gives no consistent gain. Rechecking next-turn initial-borrow grouping yields a small concurrent CPU decrease with increased latency, so it also remains unselected. Product runtime and installed artifact bytes stay unchanged.
+
+These finite diagnostics do not qualify the distributed recording gates. Both cold latency groups and all eight CPU groups remain open. Further performance work needs a new measured cause; the immediate independent work is the consolidated source, retention and privacy review. Hosted release verification, reviewed real-task cases and production acceptance remain required.
+
 ## Source and real-task evidence
 
 | Record                                                                   | Evidence boundary                                                                  |
