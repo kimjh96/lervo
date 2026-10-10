@@ -4,26 +4,14 @@ import { createFileSyncBatch } from "@lervo/filesystem-durability";
 import { resolve } from "node:path";
 
 import { type ArtifactStore } from "@lervo/storage-contract";
+import { CasError } from "./cas-error.js";
+import { loadNativeCas, type NativeCasOperation, type NativeCasResult } from "./native-cas.js";
+import { createNativeCasBatch } from "./native-cas-batch.js";
+import { nativeCasError } from "./native-cas-error.js";
+
+export { CasError, type CasErrorCode } from "./cas-error.js";
 
 const uriPattern = /^lervo-cas:\/\/sha256\/([a-f0-9]{64})$/;
-
-export type CasErrorCode =
-  | "capacity_exceeded"
-  | "corrupt_object"
-  | "invalid_uri"
-  | "not_found"
-  | "unsafe_path"
-  | "read_only";
-
-export class CasError extends Error {
-  constructor(
-    readonly code: CasErrorCode,
-    message: string,
-  ) {
-    super(message);
-    this.name = "CasError";
-  }
-}
 
 export interface CasPutResult {
   uri: string;
@@ -52,6 +40,7 @@ export class FileSystemCas implements ArtifactStore {
   readonly root: string;
   private sharedPuts = 0;
   private readonly syncFiles: ReturnType<typeof createFileSyncBatch> | undefined;
+  private readonly nativeIo: ReturnType<typeof createNativeCasBatch> | undefined;
   private readonly pendingPuts = new Map<
     string,
     { bytes: Buffer; result: Promise<CasPutResult> }
@@ -63,6 +52,8 @@ export class FileSystemCas implements ArtifactStore {
   ) {
     this.root = root;
     this.syncFiles = readOnly ? undefined : createFileSyncBatch();
+    const native = loadNativeCas();
+    this.nativeIo = native ? createNativeCasBatch(native) : undefined;
   }
 
   static async open(root: string): Promise<FileSystemCas> {
@@ -100,7 +91,19 @@ export class FileSystemCas implements ArtifactStore {
     return hash;
   }
 
-  private async verifyObject(hash: string): Promise<Uint8Array> {
+  private async verifyObject(hash: string, observed?: NativeCasResult): Promise<Uint8Array> {
+    const path = this.objectPath(hash);
+    const operation: NativeCasOperation = [path];
+    const result = observed ?? (this.nativeIo ? await this.nativeIo(operation) : undefined);
+    if (result?.status === "failed") throw nativeCasError(operation, result, uriForDigest(hash));
+    const bytes = result?.status === "complete" ? result.bytes : await this.readOrdinary(hash);
+    if (digest(bytes) !== hash) {
+      throw new CasError("corrupt_object", `CAS object hash mismatch: ${uriForDigest(hash)}`);
+    }
+    return bytes;
+  }
+
+  private async readOrdinary(hash: string): Promise<Buffer> {
     const path = this.objectPath(hash);
     let stats;
     try {
@@ -114,11 +117,42 @@ export class FileSystemCas implements ArtifactStore {
     if (!stats.isFile() || stats.isSymbolicLink()) {
       throw new CasError("unsafe_path", "A CAS object must be a regular file.");
     }
-    const bytes = await readFile(path);
-    if (digest(bytes) !== hash) {
-      throw new CasError("corrupt_object", `CAS object hash mismatch: ${uriForDigest(hash)}`);
+    return readFile(path);
+  }
+
+  private async publishObject(
+    temporary: string,
+    hash: string,
+    nativeAllowed: boolean,
+  ): Promise<boolean> {
+    const prefix = resolve(this.root, "sha256", hash.slice(0, 2));
+    const target = this.objectPath(hash);
+    const operation: NativeCasOperation = [temporary, prefix, target];
+    const result = nativeAllowed && this.nativeIo ? await this.nativeIo(operation) : undefined;
+    if (result?.status === "failed") {
+      const error = nativeCasError(operation, result, uriForDigest(hash));
+      // mkdir failed before linking. Preserve the existing recursive-parent behavior.
+      if (!(
+        result.syscall === "mkdir" &&
+        result.pathIndex === 1 &&
+        !result.created &&
+        (error as NodeJS.ErrnoException).code === "ENOENT"
+      ))
+        throw error;
+    } else if (result) {
+      await this.verifyObject(hash, result);
+      return result.created;
     }
-    return bytes;
+    await ensureRealDirectory(prefix);
+    let created = false;
+    try {
+      await link(temporary, target);
+      created = true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
+    await this.verifyObject(hash);
+    return created;
   }
 
   async put(content: string | Uint8Array): Promise<CasPutResult> {
@@ -183,7 +217,6 @@ export class FileSystemCas implements ArtifactStore {
     let handle: FileHandle | undefined;
     const hashState = createHash("sha256");
     let byteCount = 0;
-    let created = false;
     const prepare = async () => {
       handle = await open(temporary, "wx");
       for await (const chunk of chunks) {
@@ -214,18 +247,7 @@ export class FileSystemCas implements ArtifactStore {
       }
       await handle.close();
       const hash = hashState.digest("hex");
-      const prefixDirectory = resolve(this.root, "sha256", hash.slice(0, 2));
-      await ensureRealDirectory(prefixDirectory);
-      const target = this.objectPath(hash);
-      try {
-        await link(temporary, target);
-        created = true;
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
-          throw error;
-        }
-      }
-      await this.verifyObject(hash);
+      const created = await this.publishObject(temporary, hash, synchronize !== undefined);
       return {
         uri: uriForDigest(hash),
         contentHash: `sha256:${hash}`,
