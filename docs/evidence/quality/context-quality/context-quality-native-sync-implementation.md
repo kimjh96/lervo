@@ -157,40 +157,47 @@ The finite evidence roots below retain protocols, raw results and copied harness
 | `lervo-enum-profile-qnzezX`                                         | `5c408d39f757aec63d4cd7ecac48e026ee369a7afe100798a4a51c60d9df4340` | `b900a40a6b3ab48bba6c0021ae47a926dd85a12e3036c56fe8b0e6c25d6c28c3` |
 | `lervo-enum-sqlite-timing-5CCy0g`                                   | `ac568c961d53a26ee0ec464fadaf0517680de2d12f7c6f3830ed5866824f210a` | `7a220dffee04df61e2e0da9b1eeb5f07f8eef4026fd426d07cbf46663e077769` |
 
-### Filesystem dispatch follow-up
+### Current recording cost attribution
 
-This subsection is a replaceable summary of the latest filesystem-dispatch diagnosis. Git preserves previous summaries.
+This replaceable summary retains the latest attribution work; Git preserves previous summaries. The [earlier filesystem-dispatch diagnosis](https://github.com/kimjh96/lervo/blob/e379192d1eea457bd9742a3f67d0ba530a02f4a9/docs/evidence/quality/context-quality/context-quality-native-sync-implementation.md#filesystem-dispatch-follow-up) retains its 92 workers, missing V8 batch markers and rejected native metadata candidate. That candidate reduced concurrent CPU means only 2.52% and regressed one cold latency mean 2.11%; it remains rejected.
 
-Six instrumented source workers count filesystem entrypoints without omitting any check. A recorded four-request batch adds 124 asynchronous `lstat` calls relative to its control. Ten fresh storage-binding observations account for eighty of those calls. Counts exclude internal runtime and native-addon syscalls; numeric descriptors cannot be assigned to a path. Wrappers change scheduling, so their timing is not qualification evidence. All six workers retain correct semantics, event counts and integrity.
+The next four separately registered diagnostics retain 47 workers. All use finite synthetic inputs, no providers, no retries or replacements, and no overlapping agent builds, tests or scans. The product runtime remains `sha256:0bda5bc2b06b761f0da56ad7bf9c5e8a836dc92dc154cf517824f5516a2de991`. The temporary native observer has its own source/binary hashes; it is not a shipped artifact or performance candidate.
 
-Six further workers trace V8 optimization and garbage collection. Compiler completion logs appear in both arms; they do not identify a distinct recording-only compilation bottleneck. The trace files contain no requested batch timing marks, so they cannot align garbage collection to the frozen timer. Explicit standard-output batch markers support only ordered compilation observations. Compiler durations can overlap or cross those boundaries and are not exclusive CPU. This instrumentation limitation remains retained.
+Six source workers instrument event-identity serialization without removing calls. Recorded cold and warm batches make four calls, taking 0.040 and 0.025 ms respectively. A concurrent batch makes sixteen calls, taking 0.067 ms. All fixture semantics, exact events and integrity pass. The source performs redundant requested/effective identity serialization, but this measured total is too small to explain the CPU gap. No event identity, validation-order or replay behavior changes.
 
-The resulting scratch candidate executes the same eight fresh storage-path `lstat` calls in one native asynchronous job. It retains project/writer reads, identity and type comparisons, durable synchronization and event integrity. A local eight-path check matches Node's device, inode, birth-time and entry-type results. The candidate has no metadata cache and does not move file operations onto the main thread. Its worker teardown, adversarial races, portable behavior and production distribution remain unqualified.
+Six further source workers observe native synchronization using Mach thread CPU accounting around the unchanged kernel. Recorded cold, warm and concurrent batches each have two synchronization groups. Their observed worker CPU totals average 0.065, 0.053 and 0.087 ms; summed worker elapsed times are 8.218, 7.891 and 7.898 ms. Concurrent groups contain an average of 5.2 descriptors per batch. All accounting observations are available, and every fixture retains semantics, event counts and integrity. These timings exclude queueing, descriptor duplication/cleanup and other file operations. Observer overhead and different process/thread measurement boundaries prevent treating them as complete process CPU.
 
-Before the comparison, the diagnostic protocol required at least 5% lower concurrent CPU means in both profiles, with no group exceeding 2% latency regression, to justify further candidate work. Eighty unprofiled workers retain five alternating pairs for every profile/workload, two warmups and five measured batches; cold retains one batch without warmup and concurrency remains four. Both arms record every event. All workers retain correct semantics, exact event counts and integrity; paired signatures match. The complete runtime hash stays unchanged, and no agent build, test or scan overlaps measurement.
+Twenty isolated workers then compare the original native adapter with that observer in five alternating pairs per descriptor count. Each uses two warmups and five measured calls. Fresh 3,110-byte writes finish before each timer; final exact readback follows measurement. All workers preserve readback, and the kernel source/header copies match the production source exactly.
 
-| Profile | Workload   | Reference elapsed / CPU ms | Batched elapsed / CPU ms |
-| ------- | ---------- | -------------------------: | -----------------------: |
-| 4 KiB   | Cold       |            40.957 / 73.943 |          41.117 / 73.151 |
-| 4 KiB   | Warm       |            18.636 / 17.914 |          18.697 / 17.779 |
-| 4 KiB   | Changed    |            18.992 / 18.417 |          19.023 / 18.011 |
-| 4 KiB   | Concurrent |            22.451 / 26.337 |          22.198 / 25.673 |
-| 12 KiB  | Cold       |            41.457 / 73.264 |          42.330 / 76.156 |
-| 12 KiB  | Warm       |            19.192 / 18.622 |          18.866 / 17.952 |
-| 12 KiB  | Changed    |            19.197 / 18.145 |          19.301 / 18.241 |
-| 12 KiB  | Concurrent |            22.400 / 26.766 |          22.620 / 26.091 |
+| Descriptors | Native adapter | Mean elapsed ms | Process CPU ms | Main-thread CPU ms | Observed kernel CPU ms |
+| ----------- | -------------- | --------------: | -------------: | -----------------: | ---------------------: |
+| 1           | Original       |           4.113 |          0.051 |              0.022 |                    N/A |
+| 1           | Instrumented   |           3.966 |          0.055 |              0.024 |                  0.025 |
+| 4           | Original       |           3.945 |          0.084 |              0.025 |                    N/A |
+| 4           | Instrumented   |           3.909 |          0.103 |              0.028 |                  0.045 |
 
-Concurrent CPU means fall about 2.52% in both profiles, below the registered 5% criterion. The 12 KiB cold latency mean rises 2.11%, and its CPU mean also rises. The candidate is rejected. These small diagnostic comparisons do not establish frozen acceptance, but they show that combining these metadata dispatches alone is not a sufficient repair. Continue attribution of repeated event serialization and durable recording; do not repeat this native candidate without a new cause. No product source, native asset, storage contract or installed runtime changes.
+These isolated calls show little process CPU despite several milliseconds of elapsed time. They exclude writes, initialization and readback, so they cannot replace the frozen recording scope or prove a hardware lower bound. Synchronization strength and the original syscall sequence remain unchanged.
 
-The three finite evidence sets remain under the same owner-local temporary root:
+Fifteen workers isolate the existing public CAS put-and-reverify path through `FileSystemCas` and `storeVerificationBytes`. Five fresh processes run each condition, with two warmups and five measured batches. Every batch has two sequential stages: distinct 3,110-byte preparation bodies, then 1,156-byte verification bodies. Verification bodies are either shared or distinct within the concurrent group. Inputs exist before timing and store initialization is excluded. Every receipt matches its expected hash/size; final object counts equal the expected distinct bodies.
 
-| Directory                       | Protocol SHA-256                                                   | Result SHA-256                                                     |
-| ------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| `lervo-enum-fs-counts-rUykMF`   | `fb961c0cad4e7b3cf406de6b44cce846a72d4ea2cd331bd8751090c10e8ebb18` | `1a0a76455d8594d2354817bdf89c4be8b207b8d7a9f0a9d193b6eb042fec0526` |
-| `lervo-enum-v8-trace-15EGJd`    | `6ac27e843e4d4c70da143d98ed1cfd3a55161fe422dc3df5ed9386aaf3f1a5fe` | `be7804a407cf50d6f6f7663f1780e3b396c9774211b3343eb1cce557f2a8c90c` |
-| `lervo-batch-stat-probe-rqo5fK` | `40e70944d4369b2997b4ec738cb4c70fa5b51007b77f115b2373700f37bdf3d5` | `b004086dfee2ff7524b82bbb44deed9fc88f2a2f385ce9775390562103e239a1` |
+| Concurrent requests | Verification bodies | Mean elapsed ms | Process CPU ms | Main-thread CPU ms |
+| ------------------- | ------------------- | --------------: | -------------: | -----------------: |
+| 1                   | Distinct            |           9.918 |          1.612 |              0.428 |
+| 4                   | Shared              |           9.938 |          6.685 |              0.996 |
+| 4                   | Distinct            |          10.154 |          9.897 |              1.087 |
 
-Prototype directory `lervo-batch-stat-prototype-ciots557` retains the C source, arm64 binary, substituted binding module and metadata check. The source, binary and module SHA-256 digests are respectively `b1af0fd0ee1852a4ecf2d186d87804bf265731ba6d980088dcb413b3d2515bd3`, `38980fa2ec15033f8b2dcc0e63ef522244133259b50480d297bf8e05aec43730` and `d53156e0c6e272574d1eeaf0b8ea42cf578b6237ddcb3b78e3508f527930888c`. The immutable comparison protocol inherits the misnamed `candidateValidatorHash` field; its value binds the storage-binding module, not a schema validator. The actual loader target, hypothesis and independently rechecked hashes identify the correct artifact. No recorded bytes are rewritten to hide that naming error. Existing canonical JSON evidence and private-review retention remain unchanged.
+The CAS publication and readback path now provides a concrete target for further attribution. These source-only phase measurements do not prove filesystem lock contention or an improvement. A bounded asynchronous I/O-concurrency comparison may test that hypothesis while retaining raw CAS files, complete rereads, synchronization groups and fresh storage bindings. It must not repeat the rejected main-thread synchronous-I/O substitution, change the CAS representation or remove durability checks. No product change is selected. Full frozen-resource qualification and installed acceptance remain open.
+
+The finite roots below live under `/var/folders/0q/n1zzqlr11v78pn8x5yvs8nl80000gn/T/` and retain exact protocols, runners, raw results and synthetic fixtures. Hashes identify the on-disk protocol/result bytes; embedded compact protocol hashes remain separate where used.
+
+| Directory                        | Workers | Protocol SHA-256                                                   | Result SHA-256                                                     |
+| -------------------------------- | ------: | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `lervo-identity-timing-1OFnWC`   |       6 | `30c5ae4fe887b544b5a2f5bfde6af4edf6bf227fb1d8f23619f52e3530ebf965` | `cb1397c841bc983246507a91a22fb709d12e561f8882f05bc3b954fed5adc661` |
+| `lervo-native-cpu-timing-LrpGB3` |       6 | `50ca7a9b8878a5055c3fc27043f11c8c080de14d995edff24083551afadf521b` | `0e8d847e990376f4f274258345e68a7cbc5a0ffc809eb67c219ce0827247d0e5` |
+| `lervo-native-phase-8ePGpb`      |      20 | `3da2fbfdd31a6a925b5bdee5a7471878b5d00a3c5c520257d65d2cd418043fe8` | `e1f75b6eebc57440f6fa0e8e7e6a34baa5ecbd34726c320f0339b41e831616d7` |
+| `lervo-cas-phase-gPcXjG`         |      15 | `5c432c1ced85f588821af3256106cddd8c39a07f9d55baa66f6002daf2b96c88` | `619ee60d8f108c343ca6f1ab72cacc8de6295c617771edfbb2a77db69b296bf4` |
+
+Observer root `lervo-native-cpu-prototype-lpyh13qg` retains its modified binding, binary and unchanged kernel/header. Binding source SHA-256 is `056c9865ffc80dd7103072c1c1878d8bc5d76e9fd18a04b3c642c88ffbb7787d`; binary SHA-256 is `36a5c3365840196f37bd36c58a77cbdcfe317c51b7612d181e6d5179877c7e2d`. `/tmp/lervo-recording-cost-current.json` binds the finite set. Existing canonical JSON evidence, original runtime assets and private-review retention remain unchanged.
 
 ## Remaining integration
 
