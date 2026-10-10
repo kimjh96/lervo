@@ -1,9 +1,36 @@
 # Context quality target-platform qualification
 
 Status: `partial`
-As of: 2026-10-10
+As of: 2026-10-11
 
 This record advances [ADR-0502](../../../decisions/distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) and the [remaining delivery scope](../../../roadmap/natural-language-grounding-quality/context-quality-parity.md). The owner authorized continued implementation, verification and fleet deployment. Isolated installation evidence does not establish production activation or context-quality acceptance.
+
+## Current candidate requalification
+
+Candidate `198f0973de773a9477408405bb1c6ae0a5bf6cc1` includes [build-time schema validation](../../../decisions/execution/verification/0503-compile-schema-validators-at-build-time.md). Its new CLI, Hub, Node and minified terminal bytes now pass isolated installed-consumer checks on WSL Linux x64 with Node 26.5.1 and native Windows x64 with Node 22.13.0. The earlier qualification below remains bound to its original artifacts.
+
+Both targets use the same CLI archive, SHA-256 `408090d6ad13f4cf6413c16c21c8842272b39c1e5c6473c60297fe3496cbcfc9`. All seven installed files match that archive. Installation disables scripts and preserves every transitive entry in the existing consumer dependency lock. Node distribution assembly uses pnpm 11.18.0 and the candidate's unchanged frozen lockfile. The ordinary platform-specific distribution owners create and verify the following archives; installers execute their configured smoke checks on each target.
+
+| Target      | Artifact | Archive bytes | Archive SHA-256                                                    |
+| ----------- | -------- | ------------: | ------------------------------------------------------------------ |
+| Linux x64   | Node     |    99,626,675 | `836dff7aae4e1b32ed97dda85de4aff1af5821cf296a7bfc5aa65b451e3f938b` |
+| Linux x64   | Hub      |       768,308 | `6fa8cd78964051eedb07a356cd69b5fd5a010698bde3301370b9a431cd074c44` |
+| Windows x64 | Node     |    98,217,465 | `ce334197fb2d49e6857d30499db072dee38b700d0402c84fc26787e478629a37` |
+| Windows x64 | Hub      |       766,197 | `ad6425d5dc5b96c5ab5a2af2a0e030193bd4a686bcc9f09449914a763741aad9` |
+
+The Node bundle hash is `sha256:58330cb9ff2cf9fabcf473d53f147308e8d87dc5aff7ecc4bf2d956433035513`; the Hub bundle hash is `sha256:789478340288f9cde50cdf83aa9eee4b54883fd4888093a3063a5d4cd4abf128`. Both target archives retain manifest schema 2, exact inventories and software bills of materials. All four archives were copied back to the Mac and independently rehashed.
+
+Each fresh fixture uses minimal initialization and an explicit isolated user-state directory. The installed Node synchronizes a real workstream event over loopback TLS, restarts without duplicating it, synchronizes a second event, reports degraded health during a Hub outage and returns to ready after Hub restart. Both databases pass integrity checks, and their complete ordered event sequences and hashes agree. Wrong-digest and duplicate installations are rejected. Linux shutdown is graceful; Windows exercises forced native termination and recovery.
+
+Separate isolated repositories activate writer 6 through the public evidence and activation commands. On both targets, a public query prepares one passage and the complete synthetic owner rule, records one preparation event, and then records preparation plus artifact verification for the second query. All three new events use schema 6, exact event-count increments pass and SQLite integrity is valid. Verification correctly returns unavailable with exit 2 because the public command has no semantic task evaluator. This exercises the generated validators on actual quality-event writes without changing a production writer.
+
+The installed CLI applies the exact structural, bridge and terminal plans. Both provider entries run from a nested working directory, reject a modified native file and succeed after byte-exact restoration: twelve hook checks across the targets. These calls use the Stop recursion guard. They prove installed execution and integrity behavior, not a real provider session, prompt injection, model use or Darwin native execution.
+
+Four harness failures remain recorded. The Linux archive builder selected an empty default offline store; that isolated store was warmed from the prior qualified cache. The source transport omitted static Hub assets; a separately hashed supplement supplied the exact candidate files. The Mac Python extractor lacked the requested API, so a bounded whitelist of regular archive entries was extracted explicitly. A Linux evidence transfer ended on an SSH timeout; its partial bytes were retained, remote results were rechecked, and individual files were fetched and rehashed. No product source or acceptance threshold changed to resolve these setup failures.
+
+Owner-local evidence is retained in `/var/folders/0q/n1zzqlr11v78pn8x5yvs8nl80000gn/T/lervo-schema-target-nk81ow8n`. Its `summary.json` hash is `sha256:7412ed3990214ba17ec87dbda26ba5e4ce946e904fbdbc63d1e789d094253358`. The finite set contains one source transport and static-asset supplement, two target archive pairs, raw results, failed setup logs and the runners. It excludes production credentials and the private conversation review packet. Update this current-candidate section for later qualification instead of adding a canonical file for every run.
+
+All seven production WSL services remain active with the same PIDs, executable/configuration hashes and zero automatic restarts. No production CLI, hook, service or writer changed. Actual provider/Discord acceptance, Darwin x64, hosted reproducibility, frozen recording-resource gates, reviewed task quality and the operational cohort remain open. The following sections retain the earlier candidate's history.
 
 ## Preserved state and live inventory
 

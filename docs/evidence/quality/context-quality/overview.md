@@ -42,6 +42,8 @@ The full workspace build and code-quality checks pass. Release metadata initiall
 
 Built CLI, Hub and Node consumers, standalone Hub/Node archives and the packed CLI consumer pass on Darwin arm64. Node 22.13.0 also passes public validation with string-based code generation disabled and the installed CLI smoke. Release inventory, SBOM and local unsigned-statement checks pass. These fixture journeys do not establish actual provider or Discord acceptance. No production service, CLI or hook has been upgraded.
 
+The same candidate now passes [Linux and Windows requalification](context-quality-platform-qualification.md#current-candidate-requalification), including native Windows Node 22.13.0. Fresh installed Node/Hub pairs synchronize matching events, restart without duplicates and recover from a Hub outage. All twelve installed hook execution, tamper and restoration checks pass. Exact new archives and seven CLI files are verified; production WSL service PIDs and executable/configuration hashes remain unchanged. Darwin x64 and hosted reproducibility remain open.
+
 ### Paired startup diagnosis
 
 A finite eight-process comparison restores the same migrated writer-6 fixture for both old and new deployed CLI bytes. Each arm executes preparation twice and artifact verification twice in a fixed interleaved order, with CPU profiling enabled. All eight observations preserve the passage, complete rule, expected unavailable semantic verification, exact event counts and SQLite integrity. No sample is retried or removed.
