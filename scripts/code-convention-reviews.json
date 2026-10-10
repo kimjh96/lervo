@@ -235,9 +235,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/durable-apply.ts",
-      "contentHash": "sha256:74311a961e828efefe447e3e72b008180af3fbcdb4fc0a4065cfb579f640f52f",
+      "contentHash": "sha256:aca81b5b20485b5b0efac94852430ab7174b0638304dbe10c56a6a57fe9ae4d1",
       "responsibility": "Durable knowledge filesystem transaction",
-      "rationale": "One durable filesystem transaction owns staging, exact before/after bindings, publication, rollback and crash settlement. Binary generated-file payloads are copied before awaited effects and use the same byte hashes, journal, sync and recovery lifecycle as text. Terminal asset policy and validation remain in the terminal runtime owner; no provider or artifact policy enters the transaction.",
+      "rationale": "One durable filesystem transaction owns staging, exact before/after bindings, publication, rollback and crash settlement. Apply snapshots operations, byte payloads and the document permit before acquiring its source gate; recovery captures the same root used for its gate. Terminal asset policy and validation remain in the runtime owner. Receipt interpretation stays with the caller; no provider or artifact policy enters the transaction.",
       "disposition": "cohesive"
     },
     {

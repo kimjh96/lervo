@@ -299,8 +299,9 @@ type RecoveryResult = {
 };
 
 export function recoverKnowledgeMaterialization(input: RecoveryInput): Promise<RecoveryResult> {
-  return withKnowledgeSourceWrite(input.repositoryRoot, () =>
-    recoverMaterializationUnderGate(input),
+  const snapshot = { ...input };
+  return withKnowledgeSourceWrite(snapshot.repositoryRoot, () =>
+    recoverMaterializationUnderGate(snapshot),
   );
 }
 
@@ -353,36 +354,42 @@ type DurableApplyInput<T> = {
 };
 
 export function applyDurableKnowledgeOperations<T>(input: DurableApplyInput<T>): Promise<T> {
-  return withKnowledgeSourceWrite(input.repositoryRoot, () => applyOperationsUnderGate(input));
+  const snapshot: DurableApplyInput<T> = {
+    ...input,
+    operations: input.operations.map((operation) =>
+      "mediaType" in operation && operation.mediaType === "application/octet-stream"
+        ? { ...operation, content: Uint8Array.from(operation.content) }
+        : { ...operation },
+    ),
+  };
+  if (snapshot.documentLayoutPermit != null)
+    snapshot.documentLayoutPermit = { ...snapshot.documentLayoutPermit };
+  return withKnowledgeSourceWrite(snapshot.repositoryRoot, () =>
+    applyOperationsUnderGate(snapshot),
+  );
 }
 
 async function applyOperationsUnderGate<T>(input: DurableApplyInput<T>): Promise<T> {
   const root = resolve(input.repositoryRoot);
   const transaction = transactionRoot(root);
-  const changed = input.operations
-    .map((operation): DurableApplyInput<T>["operations"][number] =>
-      "mediaType" in operation && operation.mediaType === "application/octet-stream"
-        ? { ...operation, content: Uint8Array.from(operation.content) }
-        : operation,
-    )
-    .filter(
-      (
-        operation,
-      ): operation is
-        | ((KnowledgeFileOperation | DurableKnowledgeUserFileOperation) & {
-            action: "create" | "update";
-            content: string;
-          })
-        | DurableKnowledgeBinaryFileOperation
-        | DurableKnowledgeDeleteOperation
-        | DurableKnowledgeMoveOperation
-        | DurableKnowledgeMoveUpdateOperation =>
-        operation.action === "delete" ||
-        operation.action === "move" ||
-        operation.action === "move_update" ||
-        ((operation.action === "create" || operation.action === "update") &&
-          operation.content !== undefined),
-    );
+  const changed = input.operations.filter(
+    (
+      operation,
+    ): operation is
+      | ((KnowledgeFileOperation | DurableKnowledgeUserFileOperation) & {
+          action: "create" | "update";
+          content: string;
+        })
+      | DurableKnowledgeBinaryFileOperation
+      | DurableKnowledgeDeleteOperation
+      | DurableKnowledgeMoveOperation
+      | DurableKnowledgeMoveUpdateOperation =>
+      operation.action === "delete" ||
+      operation.action === "move" ||
+      operation.action === "move_update" ||
+      ((operation.action === "create" || operation.action === "update") &&
+        operation.content !== undefined),
+  );
   if (changed.length > 20_000) {
     throw new RepositoryKnowledgeError(
       "knowledge_source_limit_exceeded",

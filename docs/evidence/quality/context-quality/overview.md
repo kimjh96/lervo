@@ -7,9 +7,9 @@ This collection records implementation and evaluation of [ADR-0501](../../../dec
 
 ## Current candidate
 
-The [consolidated source review](context-quality-source-verification.md#current-consolidated-review) has covered 100 of the 225 changed source/script files. It repaired task-verdict rebinding, transitive instruction exclusion through an ineligible rule and writer activation using changed plan bytes. The current storage and activation suite passes 521 tests in 63 files, including exact-plan publication and interrupted recovery. The other 125 source/script files, configuration, collections and full privacy review remain open.
+The [consolidated source review](context-quality-source-verification.md#current-consolidated-review) has covered 129 of the 225 changed source/script files. It repaired task-verdict rebinding, transitive instruction exclusion through an ineligible rule and writer activation using changed plan bytes. The latest correction also prevents caller mutation from redirecting durable file operations or changing the recovery root after admission. Five regressions failed before the fix; 775 tests in 108 files pass afterward, including transaction, recovery, cache, search and both provider adapter contracts. The other 96 source/script files, configuration, collections and full privacy review remain open.
 
-The corrected product bytes require final candidate build and consumer evidence. Earlier full-suite, resource and Linux/Windows results retain their original identities; they cannot establish exact-byte qualification for this fix. No production installation has changed.
+The corrected bytes pass the Darwin arm64 build and built CLI, Hub, Node and packed CLI consumer checks. Final full regression and target qualification remain required. Earlier full-suite, resource and Linux/Windows results retain their original identities; they cannot establish exact-byte qualification for this fix. No production installation has changed.
 
 ### Preserved implementation baseline
 
