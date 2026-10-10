@@ -93,4 +93,78 @@ describe("structured instruction conditions", () => {
     a.conditions!.supersedes = ["missing"];
     expect(resolveInstructionPrecedence([a])[0]!.applicability).toBe("unresolved");
   });
+
+  it.each(["not_applicable", "unresolved", "conflict"] as const)(
+    "does not traverse a %s intermediate replacement",
+    (applicability) => {
+      const ruleC = `rule_${"c".repeat(24)}`;
+      const a = rule(ruleA, `    supersedes: [${ruleB}]`);
+      const b = rule(ruleB, `    supersedes: [${ruleC}]`);
+      const c = rule(ruleC, "");
+      b.applicability = applicability;
+      for (const sources of [
+        [a, b, c],
+        [c, b, a],
+      ]) {
+        const result = resolveInstructionPrecedence(sources);
+        expect(result.find((source) => source.path === c.path)?.applicability).toBe("applicable");
+      }
+    },
+  );
+
+  it("does not traverse an intermediate replacement with an unresolved reference", () => {
+    const ruleC = `rule_${"c".repeat(24)}`;
+    const a = rule(ruleA, `    supersedes: [${ruleB}]`);
+    const b = rule(ruleB, `    supersedes: [${ruleC}, missing]`);
+    const c = rule(ruleC, "");
+    for (const sources of [
+      [a, b, c],
+      [c, b, a],
+    ]) {
+      const result = resolveInstructionPrecedence(sources);
+      expect(result.find((source) => source.path === b.path)?.applicability).toBe("unresolved");
+      expect(result.find((source) => source.path === c.path)?.applicability).toBe("applicable");
+    }
+  });
+
+  it("retains transitive acyclic replacements independently of input order", () => {
+    const ruleC = `rule_${"c".repeat(24)}`;
+    const a = rule(ruleA, `    supersedes: [${ruleB}]`);
+    const b = rule(ruleB, `    supersedes: [${ruleC}]`);
+    const c = rule(ruleC, "");
+    for (const sources of [
+      [a, b, c],
+      [c, b, a],
+      [b, a, c],
+    ]) {
+      const result = resolveInstructionPrecedence(sources);
+      expect(result.find((source) => source.path === a.path)?.applicability).toBe("applicable");
+      expect(result.find((source) => source.path === b.path)?.applicability).toBe("not_applicable");
+      expect(result.find((source) => source.path === c.path)?.applicability).toBe("not_applicable");
+    }
+  });
+
+  it("limits cycle detection to applicable replacements and marks every active cycle member", () => {
+    const a = rule(ruleA, `    supersedes: [${ruleB}]`);
+    const b = rule(ruleB, `    supersedes: [${ruleA}]`);
+    b.applicability = "not_applicable";
+    expect(resolveInstructionPrecedence([a, b]).map((source) => source.applicability)).toEqual([
+      "applicable",
+      "not_applicable",
+    ]);
+    b.applicability = "applicable";
+    const ruleC = `rule_${"c".repeat(24)}`;
+    b.conditions!.supersedes = [ruleC];
+    const c = rule(ruleC, `    supersedes: [${ruleA}]`);
+    for (const sources of [
+      [a, b, c],
+      [c, b, a],
+      [b, a, c],
+    ])
+      expect(resolveInstructionPrecedence(sources).map((source) => source.applicability)).toEqual([
+        "conflict",
+        "conflict",
+        "conflict",
+      ]);
+  });
 });

@@ -13,16 +13,20 @@ export function resolveInstructionPrecedence(
   const reachable = (
     from: InstructionSource,
     target: InstructionSource,
+    replacements: ReadonlySet<InstructionSource>,
     visited = new Set<InstructionSource>(),
   ): boolean => {
-    if (visited.has(from)) return false;
+    if (!replacements.has(from) || visited.has(from)) return false;
     visited.add(from);
     return (from.conditions?.supersedes ?? []).some((id) => {
       const next = byId.get(id);
-      return next !== undefined && (next === target || reachable(next, target, visited));
+      return (
+        next !== undefined && (next === target || reachable(next, target, replacements, visited))
+      );
     });
   };
   const active = sources.filter((source) => source.applicability === "applicable");
+  const initialReplacements = new Set(active);
   for (const source of active) {
     if (!isGeneratedInstructionPath(source.path) && source.conditions?.supersedes.length) {
       source.applicability = "unresolved";
@@ -30,14 +34,16 @@ export function resolveInstructionPrecedence(
     }
     if ((source.conditions?.supersedes ?? []).some((id) => !byId.has(id)))
       source.applicability = "unresolved";
-    if (reachable(source, source)) source.applicability = "conflict";
+    if (reachable(source, source, initialReplacements)) source.applicability = "conflict";
   }
+  // Freeze eligible edges before exclusion so valid transitive chains do not depend on input order.
+  const replacements = new Set(active.filter((source) => source.applicability === "applicable"));
   for (const source of active) {
     if (source.applicability !== "applicable") continue;
     if (
       active.some(
         (other) =>
-          other !== source && other.applicability === "applicable" && reachable(other, source),
+          other !== source && replacements.has(other) && reachable(other, source, replacements),
       )
     )
       source.applicability = "not_applicable";

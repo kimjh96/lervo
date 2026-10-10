@@ -27,7 +27,7 @@ import {
 
 export const repositoryQualityBuild = canonicalHash({
   id: "repository_quality_local_read",
-  version: 1,
+  version: 2,
 });
 export interface RepositoryQualityInput {
   repositoryRoot: string;

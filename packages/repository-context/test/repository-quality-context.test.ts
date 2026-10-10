@@ -85,6 +85,34 @@ describe("production repository quality composition", () => {
       reasonCodes: ["context_binding_unavailable"],
     });
   });
+  it("retains an applicable owner clause behind an out-of-scope replacement", async () => {
+    const { input, root, rulePath } = await fixture();
+    const ruleB = `rule_${"b".repeat(24)}`;
+    const ruleC = `rule_${"c".repeat(24)}`;
+    const descriptor = (metadata: string, body: string) =>
+      `---\nlervo:\n  contextScope:\n    schemaVersion: 1\n${metadata}\n---\n${body}\n`;
+    await writeFile(
+      resolve(root, rulePath),
+      descriptor(`    supersedes: [${ruleB}]`, "Retain the current owner clause."),
+    );
+    await writeFile(
+      resolve(root, `docs/instructions/generated/${ruleB}.md`),
+      descriptor(
+        `    when:\n      paths: [\"docs/**\"]\n    supersedes: [${ruleC}]`,
+        "Apply only to documentation.",
+      ),
+    );
+    await writeFile(
+      resolve(root, `docs/instructions/generated/${ruleC}.md`),
+      "Keep exact source hashes.\n## Exceptions\nPreserve unavailable observations.\n",
+    );
+    const prepared = await prepareRepositoryQualityContext(input);
+    expect(prepared.instructions?.context).toContain("Retain the current owner clause.");
+    expect(prepared.instructions?.context).toContain("Keep exact source hashes.");
+    expect(prepared.instructions?.context).toContain("Preserve unavailable observations.");
+    expect(prepared.instructions?.context).not.toContain("Apply only to documentation.");
+    expect(prepared.result.reasonCodes).not.toContain("context_rule_conflict");
+  });
   it("changes bindings for a target edit and reevaluates canonical action exceptions", async () => {
     const { input, root, rulePath } = await fixture();
     await writeFile(
