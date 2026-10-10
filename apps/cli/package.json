@@ -20,6 +20,8 @@
   "files": [
     "README.md",
     "dist/bin.js",
+    "dist/native/cas-io-darwin.node",
+    "dist/native/cas-io.json",
     "dist/native/file-sync-darwin.node",
     "dist/native/file-sync.json",
     "dist/node-runtime.js",

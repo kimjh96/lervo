@@ -204,3 +204,116 @@ it.each(["corruption", "missing", "directory-link", "file-link", "undeclared", "
     expect((await inspectTerminalIntegration(root)).status).toBe("blocked");
   },
 );
+
+function completeAssets(value = 1): TerminalRuntimeAsset[] {
+  const cas = assets(value).map((asset) => ({
+    ...asset,
+    path: asset.path.replace("file-sync", "cas-io") as TerminalRuntimeAsset["path"],
+  }));
+  return [...cas, ...assets(value)];
+}
+it("upgrades schema 2 to the complete schema 3 set and refuses an undeclared downgrade", async () => {
+  const root = await repository();
+  await install(root, assets());
+  const first = await install(root, completeAssets());
+  expect(first.runtime.assets).toHaveLength(4);
+  const manifest = JSON.parse(
+    await readFile(resolve(root, ".lervo/generated/terminal-hooks/runtime-v2.json"), "utf8"),
+  );
+  expect(manifest.schemaVersion).toBe(3);
+  expect(await verifyTerminalHookRuntimeArtifact(resolve(root, runtimePath))).toBe(true);
+  const changed = completeAssets();
+  changed[0]!.content = completeAssets(2)[0]!.content;
+  changed[1]!.content = completeAssets(2)[1]!.content;
+  const plan = await createTerminalIntegrationPlan(root, content, null, changed);
+  expect(plan.runtime.afterHash).toBe(first.runtime.afterHash);
+  expect(plan.planId).not.toBe(first.planId);
+  expect(await createTerminalIntegrationPlan(root, content, null, assets())).toMatchObject({
+    status: "blocked",
+    operations: [],
+    blockers: [{ code: "runtime_invalid" }],
+  });
+  expect(await verifyTerminalHookRuntimeArtifact(resolve(root, runtimePath))).toBe(true);
+});
+it.each(["published:0", "published:1", "published:2", "published:3", "published:4"] as const)(
+  "restores all four assets and the outer manifest after %s",
+  async (checkpoint) => {
+    const root = await repository(),
+      before = completeAssets();
+    await install(root, before);
+    const next = completeAssets(2),
+      plan = await createTerminalIntegrationPlan(root, content, null, next);
+    await expect(
+      applyTerminalIntegrationPlan({
+        plan,
+        runtimeContent: content,
+        runtimeAssets: next,
+        now: new Date(),
+        recordApplied: () => undefined,
+        failureInjector: (current) => {
+          if (current === checkpoint) throw Error("injected");
+        },
+      }),
+    ).rejects.toThrow();
+    for (const asset of before)
+      expect(await readFile(resolve(root, ".lervo/generated/terminal-hooks", asset.path))).toEqual(
+        Buffer.from(asset.content),
+      );
+    expect(await verifyTerminalHookRuntimeArtifact(resolve(root, runtimePath))).toBe(true);
+  },
+);
+it.each(["missing", "changed", "linked", "undeclared"])(
+  "rejects a %s CAS asset before hook input",
+  async (kind) => {
+    const root = await repository();
+    await install(root, completeAssets());
+    const directory = resolve(root, ".lervo/generated/terminal-hooks"),
+      binary = resolve(directory, "native/cas-io-darwin.node");
+    if (kind === "missing") await rm(resolve(directory, "native/cas-io.json"));
+    if (kind === "changed") await writeFile(binary, "changed");
+    if (kind === "linked") {
+      await rm(binary);
+      await symlink(resolve(directory, "native/file-sync-darwin.node"), binary);
+    }
+    if (kind === "undeclared") {
+      const path = resolve(directory, "runtime-v2.json"),
+        manifest = JSON.parse(await readFile(path, "utf8"));
+      manifest.schemaVersion = 2;
+      manifest.assets = manifest.assets.filter((asset: { path: string }) =>
+        asset.path.includes("file-sync"),
+      );
+      await writeFile(path, JSON.stringify(manifest));
+    }
+    expect(await verifyTerminalHookRuntimeArtifact(resolve(root, runtimePath))).toBe(false);
+  },
+);
+
+it.each(["published:3", "event_recorded"] as KnowledgeMaterializationCheckpoint[])(
+  "recovers the complete four-file transaction interrupted at %s",
+  async (checkpoint) => {
+    const root = await repository(),
+      before = completeAssets(),
+      next = completeAssets(2);
+    await install(root, before);
+    const plan = await createTerminalIntegrationPlan(root, content, null, next);
+    let recorded = false;
+    await expect(
+      applyTerminalIntegrationPlan({
+        plan,
+        runtimeContent: content,
+        runtimeAssets: next,
+        now: new Date(),
+        recordApplied: () => {
+          recorded = true;
+        },
+        failureInjector: (current) => (current === checkpoint ? "interrupt" : undefined),
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_recovery_required" });
+    await recoverKnowledgeMaterialization({ repositoryRoot: root, eventRecorded: () => recorded });
+    for (const asset of recorded ? next : before)
+      expect(await readFile(resolve(root, ".lervo/generated/terminal-hooks", asset.path))).toEqual(
+        Buffer.from(asset.content),
+      );
+    expect(await verifyTerminalHookRuntimeArtifact(resolve(root, runtimePath))).toBe(true);
+  },
+);

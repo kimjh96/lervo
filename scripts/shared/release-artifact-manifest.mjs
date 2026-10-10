@@ -64,7 +64,7 @@ export function validateReleaseArtifactManifest(manifest) {
   const { artifact, archive, bundle, dependencies } = manifest;
   const expectedFiles = cliReleaseFilesForSchema(manifest.schemaVersion);
   if (
-    ![5, 6].includes(manifest.schemaVersion) ||
+    ![5, 6, 7].includes(manifest.schemaVersion) ||
     artifact?.name !== "@lervo/cli" ||
     typeof artifact.version !== "string" ||
     !semanticVersionPattern.test(artifact.version) ||

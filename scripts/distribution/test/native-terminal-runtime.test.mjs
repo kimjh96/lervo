@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
 import { importBuiltWorkspacePackage, repositoryRoot } from "../lib/installed-cli.mjs";
+import { smokeNativeCas } from "../../shared/native-cas-smoke.mjs";
 import { smokeNativeFileSync } from "../../shared/native-file-sync-smoke.mjs";
 
 function hook(entry, provider, root) {
@@ -64,13 +65,16 @@ it("installs the real hook and native bytes, runs both provider entries, and rej
     const directory = resolve(root, ".lervo/generated/terminal-hooks"),
       entry = resolve(directory, "runtime-v2.mjs");
     expect(await knowledge.verifyTerminalHookRuntimeArtifact(entry)).toBe(true);
-    if (process.platform === "darwin")
+    if (process.platform === "darwin") {
       expect(await smokeNativeFileSync(resolve(directory, "native"))).toBe("native");
+      expect(await smokeNativeCas(resolve(directory, "native"))).toBe("native");
+    }
+    expect(runtimeAssets).toHaveLength(4);
     const child = resolve(root, "nested");
     await mkdir(child);
     for (const provider of ["codex", "claude"])
       expect(await hook(entry, provider, child)).toMatchObject({ code: 0, stdout: "{}\n" });
-    const binary = resolve(directory, "native/file-sync-darwin.node"),
+    const binary = resolve(directory, "native/cas-io-darwin.node"),
       bytes = await readFile(binary);
     bytes[bytes.length - 1] ^= 1;
     await writeFile(binary, bytes);

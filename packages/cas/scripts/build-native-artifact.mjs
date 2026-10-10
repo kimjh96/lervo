@@ -17,11 +17,13 @@ export async function buildNativeCasArtifact({
   const root = resolve(repositoryRoot, "packages/cas"),
     output = resolve(root, "dist");
   const stage = resolve(output, ".cas-native-build");
-  try {
-    await lstat(stage);
-    throw new Error("native_cas_build_or_recovery_pending");
-  } catch (error) {
-    if (error.code !== "ENOENT") throw error;
+  for (const pending of [stage, resolve(output, ".native-runtime-transfer")]) {
+    try {
+      await lstat(pending);
+      throw new Error("native_cas_build_or_recovery_pending");
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
   }
   const sourceHash = await nativeCasSourceHash(repositoryRoot);
   const existing = await readNativeCasArtifact(resolve(output, "native"));

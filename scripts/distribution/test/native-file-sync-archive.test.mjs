@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { expect, it } from "vitest";
 import { nativeFileSyncFixture } from "./native-file-sync-fixture.mjs";
 import { canonicalJson, sha256 } from "../../shared/release-artifact-manifest.mjs";
-import { readNativeFileSyncArtifact } from "../../shared/native-file-sync-artifact.mjs";
+import { readNativeRuntimeArtifact } from "../../shared/native-runtime-artifact.mjs";
 import { collectDistributionEntries } from "../lib/node-runtime-distribution.mjs";
 import * as hub from "../lib/hub-runtime-distribution.mjs";
 import * as node from "../lib/node-runtime-distribution.mjs";
@@ -30,7 +30,7 @@ it.each(["hub", "node"])(
       await writeFile(resolve(payload, path), bytes);
     }
     async function packageFixture({
-      legacy = false,
+      schemaVersion = 3,
       corruptNative = false,
       omitNativeSbom = false,
     } = {}) {
@@ -48,7 +48,7 @@ it.each(["hub", "node"])(
               omitNativeSbom ? undefined : native,
             );
       await put("sbom.cdx.json", canonicalJson(sbom));
-      if (corruptNative) await put("dist/native/file-sync-darwin.node", Buffer.from("modified"));
+      if (corruptNative) await put("dist/native/cas-io-darwin.node", Buffer.from("modified"));
       const files = await collectDistributionEntries(payload, new Set([manifestName]));
       const manifest = owner[`create${prefix}DistributionManifest`]({
         runtimeVersion: "0.1.0",
@@ -57,7 +57,7 @@ it.each(["hub", "node"])(
         dependencies,
         sbomSha256: sha256(canonicalJson(sbom)),
       });
-      if (legacy) manifest.schemaVersion = 1;
+      manifest.schemaVersion = schemaVersion;
       const bytes = canonicalJson(manifest);
       await put(manifestName, bytes);
       await run("tar", ["-czf", archive, "-C", payload, "."], {
@@ -101,15 +101,27 @@ it.each(["hub", "node"])(
       }
       await put("dist/native/file-sync-darwin.node", fixture.binary);
       await put("dist/native/file-sync.json", JSON.stringify(fixture.manifest));
-      native = await readNativeFileSyncArtifact(resolve(payload, "dist/native"), {
+      await put("dist/native/cas-io-darwin.node", fixture.binary);
+      await put("dist/native/cas-io.json", JSON.stringify(fixture.manifest));
+      native = await readNativeRuntimeArtifact(resolve(payload, "dist/native"), {
         required: true,
       });
       const good = await verify(await packageFixture());
-      expect(good.manifest.schemaVersion).toBe(2);
+      expect(good.manifest.schemaVersion).toBe(3);
       expect(
         await readFile(resolve(good.payloadRoot, "dist/native/file-sync-darwin.node")),
       ).toEqual(fixture.binary);
       await rm(good.temporaryRoot, { recursive: true, force: true });
+      await expect(verify(await packageFixture({ schemaVersion: 2 }))).rejects.toThrow();
+      for (const name of ["cas-io.json", "cas-io-darwin.node"])
+        await rm(resolve(payload, "dist/native", name));
+      native = await readNativeRuntimeArtifact(resolve(payload, "dist/native"));
+      await expect(verify(await packageFixture())).rejects.toThrow();
+      const legacyPair = await verify(await packageFixture({ schemaVersion: 2 }));
+      await rm(legacyPair.temporaryRoot, { recursive: true, force: true });
+      await put("dist/native/cas-io-darwin.node", fixture.binary);
+      await put("dist/native/cas-io.json", JSON.stringify(fixture.manifest));
+      native = await readNativeRuntimeArtifact(resolve(payload, "dist/native"));
       await expect(verify(await packageFixture({ omitNativeSbom: true }))).rejects.toThrow(
         "sbom_invalid",
       );
@@ -119,7 +131,7 @@ it.each(["hub", "node"])(
       await rm(resolve(payload, "dist/native"), { recursive: true });
       native = undefined;
       await expect(verify(await packageFixture())).rejects.toThrow();
-      const legacy = await verify(await packageFixture({ legacy: true }));
+      const legacy = await verify(await packageFixture({ schemaVersion: 1 }));
       expect(legacy.manifest.schemaVersion).toBe(1);
       await rm(legacy.temporaryRoot, { recursive: true, force: true });
     } finally {

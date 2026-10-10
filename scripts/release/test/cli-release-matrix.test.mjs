@@ -79,7 +79,7 @@ describe("CLI release matrix workflow", () => {
     const commands = workflow.jobs["packed-cli"].steps.map(({ run }) => run).filter(Boolean);
     assert.deepEqual(commands, [
       "pnpm install --frozen-lockfile",
-      'node scripts/distribution/native-file-sync-transfer.mjs restore "${{ runner.temp }}/native-file-sync"',
+      'node scripts/distribution/native-runtime-transfer.mjs restore "${{ runner.temp }}/native-runtime"',
       "pnpm build",
       "pnpm release:manifest:check",
       "pnpm release:sbom:check",
@@ -96,7 +96,7 @@ describe("CLI release matrix workflow", () => {
       job.if,
       "github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && (github.event.repository.private != true || github.event.repository.owner.type != 'User')",
     );
-    assert.deepEqual(job.needs, ["packed-cli", "native-file-sync"]);
+    assert.deepEqual(job.needs, ["packed-cli", "native-runtime"]);
     assert.equal(job["runs-on"], "ubuntu-latest");
     assert.deepEqual(job.permissions, {
       contents: "read",

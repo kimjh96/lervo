@@ -24,6 +24,7 @@ async function fixture() {
     "scripts/shared/native-addon-contract.mjs",
     "scripts/shared/native-addon-artifact.mjs",
     "scripts/shared/native-runtime-artifact.mjs",
+    "scripts/shared/native-runtime-contract.mjs",
   ]) {
     const target = resolve(root, path);
     await mkdir(dirname(target), { recursive: true });
@@ -102,4 +103,11 @@ it("keeps unsupported builders ordinary but rejects a stale transferred pair", a
     "source_changed",
   );
   expect(run).toHaveBeenCalledTimes(1);
+});
+
+it("blocks a retained transfer stage even when the compiled pair matches current sources", async () => {
+  const { output, input } = await fixture();
+  await buildNativeCasArtifact(input);
+  await mkdir(resolve(output, ".native-runtime-transfer"));
+  await expect(buildNativeCasArtifact(input)).rejects.toThrow("build_or_recovery_pending");
 });

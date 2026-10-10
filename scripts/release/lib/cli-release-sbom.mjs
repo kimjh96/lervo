@@ -210,7 +210,12 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
           {
             type: "application",
             name: "lervo-release-sbom",
-            version: releaseManifest.schemaVersion === 6 ? "2" : "1",
+            version:
+              releaseManifest.schemaVersion === 7
+                ? "3"
+                : releaseManifest.schemaVersion === 6
+                  ? "2"
+                  : "1",
           },
         ],
       },
@@ -222,7 +227,7 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
       {
         name: "lervo:release:inventory-source",
         value:
-          releaseManifest.schemaVersion === 6
+          releaseManifest.schemaVersion >= 6
             ? "pnpm-lock-esbuild-metafile-and-native-archive"
             : "pnpm-lock-and-esbuild-metafile",
       },

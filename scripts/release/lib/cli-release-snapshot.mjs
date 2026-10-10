@@ -1,9 +1,8 @@
+import { readNativeRuntimeArtifact } from "../../shared/native-runtime-artifact.mjs";
+import { nativeCasSourceHash } from "../../shared/native-cas-artifact.mjs";
 import { cliReleaseFiles } from "../../shared/cli-release-files.mjs";
 import { verifySchemaValidatorArtifact } from "../../shared/schema-validator-artifact.mjs";
-import {
-  readNativeFileSyncArtifact,
-  nativeFileSyncSourceHash,
-} from "../../shared/native-file-sync-artifact.mjs";
+import { nativeFileSyncSourceHash } from "../../shared/native-file-sync-artifact.mjs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -44,9 +43,11 @@ async function readPackFileList() {
 }
 
 async function createArchiveSnapshot(paths) {
-  await readNativeFileSyncArtifact(resolve(cliRoot, "dist/native"), {
+  await readNativeRuntimeArtifact(resolve(cliRoot, "dist/native"), {
     required: true,
-    expectedSourceHash: await nativeFileSyncSourceHash(repositoryRoot),
+    casRequired: true,
+    expectedSyncHash: await nativeFileSyncSourceHash(repositoryRoot),
+    expectedCasHash: await nativeCasSourceHash(repositoryRoot),
   });
   if (JSON.stringify(paths) !== JSON.stringify([...cliReleaseFiles, "package.json"]))
     throw new ReleaseArtifactManifestError(
@@ -208,7 +209,7 @@ export async function createCliReleaseManifest(
     platformSpecificFamilies: classified.platformSpecificFamilies,
   };
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     artifact,
     directDependencies,
     bundle,

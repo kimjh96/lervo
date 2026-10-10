@@ -1,3 +1,4 @@
+import { nativeRuntimeInventoryValid } from "../../shared/native-runtime-contract.mjs";
 import { nativeFileSyncInventoryValid } from "../../shared/native-file-sync-contract.mjs";
 import { basename, isAbsolute } from "node:path";
 import { canonicalDigest } from "../../shared/release-artifact-manifest.mjs";
@@ -67,7 +68,7 @@ export function createHubDistributionManifest(input) {
     left.path < right.path ? -1 : left.path > right.path ? 1 : 0,
   );
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: "lervo_hub_distribution",
     runtimeVersion: input.runtimeVersion,
     platform: input.platform,
@@ -99,7 +100,7 @@ export function validateHubDistributionManifest(value) {
       "contentDigest",
       "claims",
     ]) ||
-    ![1, 2].includes(value.schemaVersion) ||
+    ![1, 2, 3].includes(value.schemaVersion) ||
     value.kind !== "lervo_hub_distribution" ||
     !versionPattern.test(value.runtimeVersion) ||
     value.node !== ">=22.13" ||
@@ -171,10 +172,14 @@ export function validateHubDistributionManifest(value) {
   if (
     paths.some((path, index) => index > 0 && paths[index - 1] >= path) ||
     value.contentDigest !== canonicalDigest(value.files) ||
-    !nativeFileSyncInventoryValid(
-      value.files,
-      value.schemaVersion === 2 && value.platform.os === "darwin",
-    ) ||
+    !(value.schemaVersion === 3
+      ? value.platform.os === "darwin"
+        ? nativeRuntimeInventoryValid(value.files, true)
+        : !value.files.some((entry) => entry.path.startsWith("dist/native/"))
+      : nativeFileSyncInventoryValid(
+          value.files,
+          value.schemaVersion === 2 && value.platform.os === "darwin",
+        )) ||
     !paths.includes("dist/bin.js") ||
     !paths.includes("package.json") ||
     !paths.includes("README.md") ||

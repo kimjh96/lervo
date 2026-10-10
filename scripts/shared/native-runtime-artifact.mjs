@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { lstat, readdir } from "node:fs/promises";
 import { nativeAddonArtifactDigest } from "./native-addon-contract.mjs";
 import { publishNativeAddonFiles, readNativeAddonFiles } from "./native-addon-artifact.mjs";
@@ -8,8 +9,9 @@ import {
 import { nativeCasNames, validateNativeCasArtifact } from "./native-cas-contract.mjs";
 import { readNativeFileSyncArtifact } from "./native-file-sync-artifact.mjs";
 import { readNativeCasArtifact } from "./native-cas-artifact.mjs";
+import { nativeRuntimeNames } from "./native-runtime-contract.mjs";
 
-export const nativeRuntimeNames = [...nativeFileSyncNames, ...nativeCasNames].sort();
+export { nativeRuntimeNames } from "./native-runtime-contract.mjs";
 const contract = { names: nativeRuntimeNames, errorPrefix: "native_runtime" };
 export const nativeRuntimeArtifactDigest = (artifact) =>
   nativeAddonArtifactDigest(artifact, Object.keys(artifact.files).sort());
@@ -57,11 +59,33 @@ export async function readNativeRuntimeArtifact(
   return { sync, cas, files };
 }
 
+/** Copy an admitted aggregate without reopening its source after digest verification. */
+export async function copyNativeRuntimeArtifact(sourceDirectory, outputDirectory, options = {}) {
+  const { expectedArtifactDigest, ...readOptions } = options;
+  const artifact = await readNativeRuntimeArtifact(sourceDirectory, readOptions);
+  if (
+    expectedArtifactDigest !== undefined &&
+    (!artifact || nativeRuntimeArtifactDigest(artifact) !== expectedArtifactDigest)
+  )
+    throw new Error("native_runtime_digest_mismatch");
+  await publishNativeAddonFiles(artifact?.files, outputDirectory, {
+    ...contract,
+    names: artifact ? Object.keys(artifact.files).sort() : nativeRuntimeNames,
+  });
+  return artifact;
+}
+
 export async function copyNativeRuntimeArtifacts(
   { syncDirectory, casDirectory },
   outputDirectory,
   { required = false, expectedSyncHash, expectedCasHash, expectedArtifactDigest } = {},
 ) {
+  try {
+    await lstat(resolve(casDirectory, "../.native-runtime-transfer"));
+    throw new Error("native_runtime_recovery_or_copy_pending");
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
   const sync = await readNativeFileSyncArtifact(syncDirectory, {
     required,
     expectedSourceHash: expectedSyncHash,

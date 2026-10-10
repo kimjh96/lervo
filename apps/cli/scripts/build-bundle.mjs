@@ -1,7 +1,6 @@
-import {
-  copyNativeFileSyncArtifact,
-  nativeFileSyncSourceHash,
-} from "../../../scripts/shared/native-file-sync-artifact.mjs";
+import { copyNativeRuntimeArtifacts } from "../../../scripts/shared/native-runtime-artifact.mjs";
+import { nativeCasSourceHash } from "../../../scripts/shared/native-cas-artifact.mjs";
+import { nativeFileSyncSourceHash } from "../../../scripts/shared/native-file-sync-artifact.mjs";
 import { verifySchemaValidatorArtifact } from "../../../scripts/shared/schema-validator-artifact.mjs";
 import { chmod, mkdir, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -94,11 +93,15 @@ await writeFile(
   "utf8",
 );
 
-await copyNativeFileSyncArtifact(
-  resolve(repositoryRoot, "packages/filesystem-durability/dist/native"),
+await copyNativeRuntimeArtifacts(
+  {
+    syncDirectory: resolve(repositoryRoot, "packages/filesystem-durability/dist/native"),
+    casDirectory: resolve(repositoryRoot, "packages/cas/dist/native"),
+  },
   outputDirectory,
   {
     required: process.platform === "darwin",
-    expectedSourceHash: await nativeFileSyncSourceHash(repositoryRoot),
+    expectedSyncHash: await nativeFileSyncSourceHash(repositoryRoot),
+    expectedCasHash: await nativeCasSourceHash(repositoryRoot),
   },
 );

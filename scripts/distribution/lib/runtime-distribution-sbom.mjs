@@ -1,5 +1,5 @@
 import { NodeRuntimeDistributionError } from "./node-runtime-distribution-contract.mjs";
-import { nativeFileSyncSbomComponents } from "../../shared/native-file-sync-contract.mjs";
+import { nativeRuntimeSbomComponents } from "../../shared/native-runtime-contract.mjs";
 
 function packageIdentity(coordinate) {
   const separator = coordinate.lastIndexOf("@");
@@ -19,7 +19,7 @@ function packageIdentity(coordinate) {
 }
 
 export function createNodeDistributionSbom(version, coordinates, bundleSha256, artifact) {
-  const native = nativeFileSyncSbomComponents(artifact);
+  const native = nativeRuntimeSbomComponents(artifact);
   const rootRef = `pkg:generic/lervo-node@${version}`;
   return {
     $schema: "https://cyclonedx.org/schema/bom-1.7.schema.json",
@@ -67,7 +67,7 @@ export function createNodeDistributionSbom(version, coordinates, bundleSha256, a
 }
 
 export function createHubDistributionSbom(version, bundleSha256, artifact) {
-  const native = nativeFileSyncSbomComponents(artifact);
+  const native = nativeRuntimeSbomComponents(artifact);
   const rootRef = `pkg:generic/lervo-hub@${version}`;
   return {
     $schema: "https://cyclonedx.org/schema/bom-1.7.schema.json",

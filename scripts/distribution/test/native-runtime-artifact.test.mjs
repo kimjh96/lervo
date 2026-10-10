@@ -129,3 +129,33 @@ it("publishes captured buffers if source files change after admission", async ()
   );
   expect(await readNativeRuntimeArtifact(resolve(f.output, "native"))).toEqual(prior);
 });
+
+it("copies aggregate inputs from captured bytes and rejects changed admission digests", async () => {
+  const { copyNativeRuntimeArtifact } = await import("../../shared/native-runtime-artifact.mjs");
+  const f = await fixture(),
+    artifact = await copyNativeRuntimeArtifacts(f, f.output);
+  const target = resolve(f.root, "single-copy");
+  await mkdir(target);
+  const options = {
+    casRequired: true,
+    expectedArtifactDigest: nativeRuntimeArtifactDigest(artifact),
+  };
+  expect(await copyNativeRuntimeArtifact(resolve(f.output, "native"), target, options)).toEqual(
+    artifact,
+  );
+  await expect(
+    copyNativeRuntimeArtifact(resolve(f.output, "native"), target, {
+      ...options,
+      expectedArtifactDigest: `sha256:${"0".repeat(64)}`,
+    }),
+  ).rejects.toThrow("digest_mismatch");
+  expect(await readNativeRuntimeArtifact(resolve(target, "native"))).toEqual(artifact);
+});
+
+it("blocks a retained transfer stage before publishing a mixed pair set", async () => {
+  const f = await fixture(),
+    before = await copyNativeRuntimeArtifacts(f, f.output);
+  await mkdir(resolve(f.casDirectory, "../.native-runtime-transfer"));
+  await expect(copyNativeRuntimeArtifacts(f, f.output)).rejects.toThrow("recovery_or_copy_pending");
+  expect(await readNativeRuntimeArtifact(resolve(f.output, "native"))).toEqual(before);
+});

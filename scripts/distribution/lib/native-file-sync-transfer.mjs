@@ -1,25 +1,15 @@
-import { execFileSync } from "node:child_process";
-import { lstat, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  nativeTransferIdentity as identity,
+  readNativeTransferReceipt,
+  nativeTransferCoordinatesMatch,
+} from "./native-transfer-identity.mjs";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   copyNativeFileSyncArtifact,
   nativeFileSyncSourceHash,
 } from "../../shared/native-file-sync-artifact.mjs";
 import { nativeFileSyncArtifactDigest } from "../../shared/native-file-sync-contract.mjs";
-
-function identity(root) {
-  const revision = execFileSync("git", ["rev-parse", "HEAD"], {
-    cwd: root,
-    encoding: "utf8",
-  }).trim();
-  if (!/^[a-f0-9]{40}$/u.test(revision)) throw new Error("native_transfer_revision_invalid");
-  return {
-    revision,
-    workflow: process.env.GITHUB_WORKFLOW ?? "local",
-    runId: process.env.GITHUB_RUN_ID ?? "local",
-    runAttempt: process.env.GITHUB_RUN_ATTEMPT ?? "local",
-  };
-}
 
 export async function createNativeFileSyncTransfer({ repositoryRoot, artifactDirectory }) {
   const sourceHash = await nativeFileSyncSourceHash(repositoryRoot);
@@ -49,16 +39,7 @@ export async function createNativeFileSyncTransfer({ repositoryRoot, artifactDir
 }
 
 export async function restoreNativeFileSyncTransfer({ repositoryRoot, artifactDirectory }) {
-  const info = await lstat(artifactDirectory);
-  if (!info.isDirectory() || info.isSymbolicLink())
-    throw new Error("native_transfer_directory_invalid");
-  const path = resolve(artifactDirectory, "receipt.json");
-  const stat = await lstat(path);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 4096)
-    throw new Error("native_transfer_receipt_invalid");
-  const bytes = await readFile(path);
-  if (bytes.length > 4096) throw new Error("native_transfer_receipt_invalid");
-  const receipt = JSON.parse(bytes.toString("utf8"));
+  const receipt = await readNativeTransferReceipt(artifactDirectory);
   if (
     !receipt ||
     Object.keys(receipt).sort().join(",") !==
@@ -69,17 +50,10 @@ export async function restoreNativeFileSyncTransfer({ repositoryRoot, artifactDi
   )
     throw new Error("native_transfer_receipt_invalid");
   const expected = identity(repositoryRoot);
-  const attemptValid =
-    expected.runAttempt === "local"
-      ? receipt.runAttempt === "local"
-      : /^\d+$/u.test(receipt.runAttempt) &&
-        Number(receipt.runAttempt) >= 1 &&
-        Number(receipt.runAttempt) <= Number(expected.runAttempt);
   if (
     receipt.schemaVersion !== 1 ||
     receipt.kind !== "lervo_native_file_sync_transfer" ||
-    !attemptValid ||
-    ["revision", "workflow", "runId"].some((key) => receipt[key] !== expected[key]) ||
+    !nativeTransferCoordinatesMatch(receipt, expected) ||
     receipt.sourceHash !== (await nativeFileSyncSourceHash(repositoryRoot))
   )
     throw new Error("native_transfer_identity_mismatch");

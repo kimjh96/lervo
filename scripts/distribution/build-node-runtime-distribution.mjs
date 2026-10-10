@@ -1,7 +1,6 @@
-import {
-  copyNativeFileSyncArtifact,
-  nativeFileSyncSourceHash,
-} from "../shared/native-file-sync-artifact.mjs";
+import { copyNativeRuntimeArtifact } from "../shared/native-runtime-artifact.mjs";
+import { nativeCasSourceHash } from "../shared/native-cas-artifact.mjs";
+import { nativeFileSyncSourceHash } from "../shared/native-file-sync-artifact.mjs";
 import { execFile } from "node:child_process";
 import {
   chmod,
@@ -134,10 +133,15 @@ async function buildDistribution(outputArgument) {
     await ensureExecutable(resolve(payloadRoot, "dist/bin.js"));
     const native =
       platform.os === "darwin"
-        ? await copyNativeFileSyncArtifact(
+        ? await copyNativeRuntimeArtifact(
             resolve(repositoryRoot, "apps/node-runtime/dist/native"),
             resolve(payloadRoot, "dist"),
-            { required: true, expectedSourceHash: await nativeFileSyncSourceHash(repositoryRoot) },
+            {
+              required: true,
+              casRequired: true,
+              expectedSyncHash: await nativeFileSyncSourceHash(repositoryRoot),
+              expectedCasHash: await nativeCasSourceHash(repositoryRoot),
+            },
           )
         : undefined;
     await copyFile(

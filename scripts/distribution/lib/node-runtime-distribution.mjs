@@ -1,6 +1,7 @@
+import { smokeNativeCas } from "../../shared/native-cas-smoke.mjs";
 import { smokeNativeFileSync } from "../../shared/native-file-sync-smoke.mjs";
-import { readNativeFileSyncArtifact } from "../../shared/native-file-sync-artifact.mjs";
-import { validateNativeFileSyncSbom } from "../../shared/native-file-sync-contract.mjs";
+import { readNativeRuntimeArtifact } from "../../shared/native-runtime-artifact.mjs";
+import { validateNativeRuntimeSbom } from "../../shared/native-runtime-contract.mjs";
 import {
   NodeRuntimeDistributionError,
   maximumFiles,
@@ -256,10 +257,11 @@ export async function verifyNodeDistributionArchive(input) {
         "node_distribution_native_runtime_mismatch",
         "The Claude native runtime for the target platform is missing.",
       );
-    const native = await readNativeFileSyncArtifact(resolve(payloadRoot, "dist/native"), {
-      required: manifest.schemaVersion === 2 && manifest.platform.os === "darwin",
+    const native = await readNativeRuntimeArtifact(resolve(payloadRoot, "dist/native"), {
+      required: manifest.schemaVersion >= 2 && manifest.platform.os === "darwin",
+      casRequired: manifest.schemaVersion === 3 && manifest.platform.os === "darwin",
     });
-    validateNativeFileSyncSbom(JSON.parse(sbomBytes.toString("utf8")), native);
+    validateNativeRuntimeSbom(JSON.parse(sbomBytes.toString("utf8")), native);
     await access(resolve(payloadRoot, manifest.entrypoint), constants.X_OK);
     if (
       input.requireCurrentPlatform &&
@@ -274,8 +276,10 @@ export async function verifyNodeDistributionArchive(input) {
       input.smoke &&
       native &&
       canonicalJson(manifest.platform) === canonicalJson(currentDistributionPlatform())
-    )
+    ) {
       await smokeNativeFileSync(resolve(payloadRoot, "dist/native"));
+      if (native.cas) await smokeNativeCas(resolve(payloadRoot, "dist/native"));
+    }
     if (input.smoke) {
       const result = await execFileAsync(
         process.execPath,

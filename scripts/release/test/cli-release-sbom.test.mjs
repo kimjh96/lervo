@@ -178,10 +178,12 @@ describe("CLI release SBOM", () => {
   });
 });
 
-it("binds native file components and application dependency edges for schema 6", () => {
+it.each([6, 7])("binds native components and application edges for schema %s", (schemaVersion) => {
   const { releaseManifest, lockfile } = fixture();
-  releaseManifest.schemaVersion = 6;
+  releaseManifest.schemaVersion = schemaVersion;
   const paths = ["dist/native/file-sync-darwin.node", "dist/native/file-sync.json"];
+  if (schemaVersion === 7)
+    paths.unshift("dist/native/cas-io-darwin.node", "dist/native/cas-io.json");
   releaseManifest.archive.files.push(
     ...paths.map((path) => ({ path, size: 128, sha256: `sha256:${"e".repeat(64)}` })),
   );

@@ -158,8 +158,14 @@ it.each(["Hub", "Node"])(
     const artifact = await readNativeFileSyncArtifact(source);
     const sbom =
       kind === "Hub"
-        ? createHubDistributionSbom("0.1.0", manifest.contentHash, artifact)
-        : createNodeDistributionSbom("0.1.0", ["package@1.0.0"], manifest.contentHash, artifact);
+        ? createHubDistributionSbom("0.1.0", manifest.contentHash, {
+            sync: artifact,
+            files: artifact.files,
+          })
+        : createNodeDistributionSbom("0.1.0", ["package@1.0.0"], manifest.contentHash, {
+            sync: artifact,
+            files: artifact.files,
+          });
     expect(() => validateNativeFileSyncSbom(sbom, artifact)).not.toThrow();
     sbom.dependencies[0].dependsOn.shift();
     expect(() => validateNativeFileSyncSbom(sbom, artifact)).toThrow("sbom_invalid");

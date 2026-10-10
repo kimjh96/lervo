@@ -28,5 +28,6 @@ export function nativeCasSourceHash(repositoryRoot) {
     "scripts/shared/native-addon-contract.mjs",
     "scripts/shared/native-addon-artifact.mjs",
     "scripts/shared/native-runtime-artifact.mjs",
+    "scripts/shared/native-runtime-contract.mjs",
   ]);
 }

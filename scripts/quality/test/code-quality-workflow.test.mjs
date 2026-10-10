@@ -32,20 +32,20 @@ describe("code-quality workflow", () => {
     const workflow = parse(await readFile(workflowPath, "utf8"));
     const job = workflow.jobs["release-artifacts"];
     assert.equal(job["runs-on"], "ubuntu-latest");
-    assert.deepEqual(job.needs, ["quality", "native-file-sync"]);
+    assert.deepEqual(job.needs, ["quality", "native-runtime"]);
     assert.equal(job.if, "needs.quality.outputs.coverage == 'full'");
     const commands = job.steps.map(({ run }) => run).filter(Boolean);
     assert.ok(commands.includes("pnpm build"));
     assert.ok(commands.includes("pnpm release:manifest:check"));
     assert.ok(commands.includes("pnpm release:sbom:check"));
     const nativeRestore = commands.findIndex((run) =>
-      run.includes("native-file-sync-transfer.mjs restore"),
+      run.includes("native-runtime-transfer.mjs restore"),
     );
     assert.ok(nativeRestore >= 0 && nativeRestore < commands.indexOf("pnpm build"));
-    assert.equal(workflow.jobs["native-file-sync"]["runs-on"], "macos-latest");
+    assert.equal(workflow.jobs["native-runtime"]["runs-on"], "macos-latest");
     const nativeDownload = job.steps.find(
       ({ uses, with: options }) =>
-        uses?.startsWith("actions/download-artifact@") && options?.name === "native-file-sync",
+        uses?.startsWith("actions/download-artifact@") && options?.name === "native-runtime",
     );
     assert.ok(nativeDownload);
     const upload = job.steps.find(({ uses }) => uses?.startsWith("actions/upload-artifact@"));

@@ -1,3 +1,4 @@
+import { nativeRuntimeInventoryValid } from "../../shared/native-runtime-contract.mjs";
 import { nativeFileSyncInventoryValid } from "../../shared/native-file-sync-contract.mjs";
 import { basename, isAbsolute } from "node:path";
 import { canonicalDigest } from "../../shared/release-artifact-manifest.mjs";
@@ -47,7 +48,7 @@ export function createNodeDistributionManifest(input) {
   );
   const dependencies = [...input.dependencies].sort();
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: "lervo_node_distribution",
     runtimeVersion: input.runtimeVersion,
     platform: input.platform,
@@ -83,7 +84,7 @@ export function validateNodeDistributionManifest(value) {
       "dependencyDigest",
       "claims",
     ]) ||
-    ![1, 2].includes(value.schemaVersion) ||
+    ![1, 2, 3].includes(value.schemaVersion) ||
     value.kind !== "lervo_node_distribution" ||
     !versionPattern.test(value.runtimeVersion) ||
     value.node !== ">=22.13" ||
@@ -158,10 +159,14 @@ export function validateNodeDistributionManifest(value) {
   if (
     paths.some((path, index) => index > 0 && paths[index - 1] >= path) ||
     value.contentDigest !== canonicalDigest(value.files) ||
-    !nativeFileSyncInventoryValid(
-      value.files,
-      value.schemaVersion === 2 && value.platform.os === "darwin",
-    ) ||
+    !(value.schemaVersion === 3
+      ? value.platform.os === "darwin"
+        ? nativeRuntimeInventoryValid(value.files, true)
+        : !value.files.some((entry) => entry.path.startsWith("dist/native/"))
+      : nativeFileSyncInventoryValid(
+          value.files,
+          value.schemaVersion === 2 && value.platform.os === "darwin",
+        )) ||
     value.dependencies.some(
       (coordinate, index) =>
         typeof coordinate !== "string" ||

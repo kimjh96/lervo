@@ -94,8 +94,8 @@ jobs:
         if: github.event_name == 'push'
         run: pnpm release:completion:check --base "${{ github.event.before }}"
 
-  native-file-sync:
-    name: Native file synchronization artifact
+  native-runtime:
+    name: Native runtime artifacts
     needs: quality
     if: needs.quality.outputs.coverage == 'full'
     runs-on: macos-latest
@@ -110,22 +110,24 @@ jobs:
         with:
           node-version: 22.13.0
           package-manager-cache: false
-      - name: Compile universal native synchronization artifact
-        run: node packages/filesystem-durability/scripts/build-native.mjs
+      - name: Compile universal native runtime artifacts
+        run: |
+          node packages/filesystem-durability/scripts/build-native.mjs
+          node packages/cas/scripts/build-native.mjs
       - name: Bind artifact to this source and workflow
-        run: node scripts/distribution/native-file-sync-transfer.mjs create "${{ runner.temp }}/native-file-sync"
+        run: node scripts/distribution/native-runtime-transfer.mjs create "${{ runner.temp }}/native-runtime"
       - name: Share exact native artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: native-file-sync
-          path: ${{ runner.temp }}/native-file-sync
+          name: native-runtime
+          path: ${{ runner.temp }}/native-runtime
           if-no-files-found: error
           retention-days: 3
           overwrite: true
 
   release-artifacts:
     name: Release manifest and SBOM
-    needs: [quality, native-file-sync]
+    needs: [quality, native-runtime]
     if: needs.quality.outputs.coverage == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -146,10 +148,10 @@ jobs:
       - name: Download exact native artifact
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
-          name: native-file-sync
-          path: ${{ runner.temp }}/native-file-sync
+          name: native-runtime
+          path: ${{ runner.temp }}/native-runtime
       - name: Validate native artifact before build
-        run: node scripts/distribution/native-file-sync-transfer.mjs restore "${{ runner.temp }}/native-file-sync"
+        run: node scripts/distribution/native-runtime-transfer.mjs restore "${{ runner.temp }}/native-runtime"
       - name: Build release artifact
         run: pnpm build
       - name: Verify release manifest

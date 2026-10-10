@@ -27,7 +27,11 @@ export interface TerminalIntegrationBlocker {
 }
 
 export interface TerminalRuntimeAsset {
-  path: "native/file-sync-darwin.node" | "native/file-sync.json";
+  path:
+    | "native/file-sync-darwin.node"
+    | "native/file-sync.json"
+    | "native/cas-io-darwin.node"
+    | "native/cas-io.json";
   content: Uint8Array;
 }
 

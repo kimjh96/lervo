@@ -94,7 +94,7 @@ describe("standalone Hub runtime distribution contract", () => {
   });
 });
 
-for (const schemaVersion of [1, 2]) {
+for (const schemaVersion of [1, 2, 3]) {
   it(`validates Darwin native inventory for manifest schema ${schemaVersion}`, () => {
     const manifest = manifestFixture();
     manifest.schemaVersion = schemaVersion;

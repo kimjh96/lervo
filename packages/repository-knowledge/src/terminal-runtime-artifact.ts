@@ -27,7 +27,7 @@ function validRuntimeContent(content: string): boolean {
 function runtimeManifest(content: string, assets: readonly TerminalRuntimeAsset[]): string {
   const bindings = terminalRuntimeAssetBindings(assets);
   return `${canonicalJson({
-    schemaVersion: bindings.length ? 2 : 1,
+    schemaVersion: bindings.length === 4 ? 3 : bindings.length ? 2 : 1,
     kind: "lervo_terminal_hook_runtime",
     contractId: CONTRACT_ID,
     runtimePath: RUNTIME_PATH,
@@ -110,7 +110,7 @@ export async function runtimeTarget(
     );
   const bindings = terminalRuntimeAssetBindings(assets);
   const existing = await existingRuntime(resolve(root, RUNTIME_PATH));
-  if (!assets.length && existing.assets.length)
+  if (existing.assets.some((previous) => !assets.some((asset) => asset.path === previous.path)))
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
       "A legacy runtime cannot silently retain undeclared native assets.",
