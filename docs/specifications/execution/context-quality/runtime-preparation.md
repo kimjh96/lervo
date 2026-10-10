@@ -1,7 +1,7 @@
 # Shared runtime context preparation
 
 Status: `implemented`
-As of: 2026-10-09
+As of: 2026-10-11
 
 This source implementation covers the owner's remaining-work items 1–5: runtime composition, structured applicability, exact sections, bounded preparation resources, and local task/language projection. These item numbers differ from the earlier delivery-slice table. Artifact verification, new event writers, broad reviewed quality/performance acceptance, and installed rollout remain separate work under [ADR-0501](../../../decisions/execution/grounding/0501-share-context-quality-contracts-across-product-surfaces.md).
 
@@ -59,6 +59,8 @@ Exact preparation shares in-flight immutable results only for matching canonical
 Waiter deadlines include queue time. One cancellation detaches only that waiter. The final waiter aborts underlying work; its slot/reservation remains until non-cooperative work actually settles. Queue or byte overflow returns `context_budget_exceeded`; cancellation returns `context_cancelled`. A late result cannot become current. Final-reader retirement eagerly evicts the result, so no completed per-task cache or predecessor generation is retained. The host is process-local, not a cross-process machine scheduler.
 
 The local preparation deadline is three seconds; on-demand/managed retrieval admission defaults to thirty seconds, and terminal retrieval uses three seconds. Provider budget is zero. The budget port checks and charges an optional call before execution; these implementations never invoke a provider. This host does not replace budgets for existing separately owned provider query projection.
+
+The terminal knowledge-snapshot cache retains one current identity bound to the exact repository revision, project and policy. Reads require a regular repository file, strict UTF-8 and at most 8 KiB. Persistence checks the cache ancestors, creates a private exclusive temporary file, syncs it and replaces the current file. It removes its temporary file on failure and sweeps recognized regular temporary files from current and previous naming schemes before writing; unrelated entries remain untouched. A racing producer can lose its disposable temporary file without changing the computed result. Unsafe paths, oversized bytes and persistence failures leave the freshly scanned identity available. These rules govern this cache, not every repository snapshot or search cache.
 
 ## Task/language projection and evidence
 

@@ -175,8 +175,8 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 19185140,
-        "sha256": "sha256:276ff9720897271511ecc758c26c6fd800c8b904c36afdccf6d5248b992489ca"
+        "size": 19187031,
+        "sha256": "sha256:5c7353210091b104cdeda5376d482e9803a41c6371ed88ee8cd51222bd77a030"
       },
       {
         "path": "dist/native/file-sync-darwin.node",
@@ -195,12 +195,12 @@
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 8357177,
-        "sha256": "sha256:602980a8316229e0ad183ba35d441477041175b1652104e39206a354161df1ba"
+        "size": 8358138,
+        "sha256": "sha256:fa7c71c5cee400a1c1ccb9b5d412cc87832f54b9dad0798e53556f61779bab28"
       }
     ],
     "fileCount": 7,
-    "contentDigest": "sha256:2845dddae8f459a2a488c2e08bdf0dfcf6c4a57c492cbe1311201cf214c270ab"
+    "contentDigest": "sha256:1e7162a559d9f740b7e922393e8b221610d79536b815929bdba27dc0c7cb980b"
   },
   "dependencies": {
     "portable": [
@@ -313,5 +313,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:59a71f26a8a0dc9da7c98fbc3c887c8333e8df22e2d9bbe8cf761f36c36850f9"
+  "artifactDigest": "sha256:9287de6b8917e9a74a038595f2d1a4593e582573fb0ab7c916d2576326908d40"
 }
