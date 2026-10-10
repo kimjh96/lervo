@@ -7,7 +7,28 @@ This record advances [ADR-0502](../../../decisions/distribution/0502-bind-native
 
 ## Current candidate requalification
 
-Candidate `c81e47a8ef28fc48b9e799f30365f956a2525595` now passes rebuilt isolated CLI, Hub, Node, terminal-hook and quality-event checks on WSL Linux x64 with Node 26.5.1 and native Windows x64 with Node 22.13.0. The original Windows failure and its correction remain explicit below.
+Candidate `c45a962c93054e6433ec8845931fd24863fc9885` passes fresh isolated CLI, Hub, Node, terminal-hook and quality-event checks on WSL Linux x64 with Node 26.5.1 and native Windows x64 with Node 22.13.0. These are the enum-validation artifacts, with complete runtime identity `sha256:0bda5bc2b06b761f0da56ad7bf9c5e8a836dc92dc154cf517824f5516a2de991`. The local artifact hash remains unchanged after packaging and target verification.
+
+Both targets install CLI archive SHA-256 `af1174ed554a251a0560f9ca1ceab21d5fb0c82c06161945e2c302b114614b65` with scripts disabled. All seven installed files match the archive, the frozen workspace lockfile is unchanged, and every transitive CLI dependency-lock entry matches the preceding isolated consumer. The distribution owners assemble and verify these target archives; all four were retrieved and independently rehashed on the Mac.
+
+| Target      | Artifact | Archive bytes | Archive SHA-256                                                    |
+| ----------- | -------- | ------------: | ------------------------------------------------------------------ |
+| Linux x64   | Node     |    99,619,713 | `42d4a849c79c75bdb1b48bd4702db1926f104b71373fb28a3c5dce9a2e2eab72` |
+| Linux x64   | Hub      |       755,811 | `7a0b1b958f574061960fb1d23e4ff9929bb584f73d3a2c60494184574d4c4494` |
+| Windows x64 | Node     |    98,204,509 | `e534cfe8e24326ceb026e5af1fe6c23eda10a6f2ab41b3a4db38222c7f3ebc65` |
+| Windows x64 | Hub      |       753,257 | `6998dfc453b2a5908b2bca53c40d4dc4e4dbf8658d4a4dc0512a60ff7fd3d26f` |
+
+The Node and Hub bundle hashes are `sha256:4117dd6ecfe973a9948baef0b812ed45fda0fe58e3c2949360207fa38c80eafe` and `sha256:713f1af6832df0dfc67122bd14b544c1f6971d4882dc4f32b8be086bdd59dc31`. Each Node advertises readers 1–6, synchronizes an initial event, restarts without duplication, synchronizes a second event and recovers after a Hub outage. Complete event sequences and hashes agree, and both SQLite integrity checks pass. Duplicate installation and an incorrect expected digest are rejected. Linux shutdown is graceful; Windows proves forced termination and restart recovery.
+
+Both CLIs complete structural, bridge and terminal migration. Twelve installed-hook checks cover both providers, nested directories, native-byte tampering and exact restoration. Two isolated writer-6 fixtures each record the expected three quality events, retain one exact passage and a complete rule, and pass SQLite integrity. Artifact verification reports unavailable with exit 2 because these public queries have no semantic evaluator. These fixtures do not establish real provider or Discord journeys, resource qualification or production writer acceptance.
+
+The finite evidence set is `/var/folders/0q/n1zzqlr11v78pn8x5yvs8nl80000gn/T/lervo-enum-target-hhkzlel9`; summary SHA-256 is `sha256:c9d6944019ca422c3d74c460f2da6175c5f76830d57ef5f0bdf4de4dfff6fa6f`. It retains exact runners, transport identity, both target results and four verified archives. Source transport contains 215 selected repository build files and the CLI package; no production credential or private review packet is copied. Final service observation matches the initial Hub, six Nodes and forwarding service by identity, state, PID and zero restart count. No production installation changes.
+
+Hosted Code quality run `38079865664` for this source commit fails before executing steps. Jobs `114294382692` and `114294390334` have zero steps; the first job's annotation reports failed account payments or a spending limit. Dependent jobs skip, commit convention fails and the release matrix skips. No billing change or unchanged retry is performed. Complete Darwin x64 package acceptance, hosted asset transfer/reproducibility, frozen resource gates, reviewed real-task quality and installed operational observation remain open.
+
+### SQLite compatibility correction
+
+Earlier candidate `c81e47a8ef28fc48b9e799f30365f956a2525595` passed rebuilt isolated CLI, Hub, Node, terminal-hook and quality-event checks on the same runtime versions. The original Windows failure and its correction remain explicit below.
 
 Requalification of reviewed source `6fd60b5fd51d5270b4dca85508504f5db5f57d2f` found a supported-runtime defect. Linux x64 with Node 26.5.1 passed isolated CLI, Hub, Node, installed-hook and quality-event checks. Native Windows x64 with Node 22.13.0 passed installation, Node/Hub synchronization and restart recovery, plus public writer-6 quality recording. Its subsequent terminal migration failed with `knowledge_evidence_source_invalid`; it is not a complete Windows pass.
 
