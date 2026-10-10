@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { inspectEventWriterCoordinate } from "@lervo/project";
 import { openPooledProjectStorage } from "./bootstrap.js";
+import { createStorageBindingBatch } from "./storage-binding-batch.js";
 import { assertRequiredWriterVersion, observeStorageBinding } from "./storage-pool-binding.js";
 import { ProjectStorageError, type ProjectStorage } from "./types.js";
 
@@ -42,6 +43,9 @@ export function createProjectStoragePool(
   )
     throw new TypeError("The required event writer version is unsupported.");
   const entries = new Map<string, Entry>();
+  const observeTogether = createStorageBindingBatch((storage, required) =>
+    observeStorageBinding(storage, required),
+  );
   let closed = false;
   async function discard(entry: Entry) {
     if (entry.transition) return entry.transition;
@@ -169,7 +173,8 @@ export function createProjectStoragePool(
         lease = await acquire(root, held);
         const borrowed = lease;
         const checkCurrent = async (required?: ProjectStorage["writableEventSchemaVersion"]) => {
-          const binding = await observeStorageBinding(borrowed.storage, required);
+          const observe = held.pending > 1 ? observeTogether : observeStorageBinding;
+          const binding = await observe(borrowed.storage, required);
           if (borrowed.invalid || binding !== borrowed.binding)
             throw new ProjectStorageError(
               "storage_binding_changed",

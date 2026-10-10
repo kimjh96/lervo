@@ -32,6 +32,37 @@ async function fixture() {
   pools.push(pool);
   return { root, pool, open, closes };
 }
+it("shares only fresh binding observations for an already admitted group", async () => {
+  const { root, pool } = await fixture();
+  const observations = vi.spyOn(binding, "observeStorageBinding");
+  let admitted = 0;
+  let release!: () => void;
+  const together = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await Promise.all(
+    Array.from({ length: 4 }, () =>
+      pool.run(root, async (_storage, current) => {
+        if (++admitted === 4) release();
+        await together;
+        await current();
+      }),
+    ),
+  );
+  // Initial binding, then one fresh observation for each fixed borrower/commit group.
+  expect(observations).toHaveBeenCalledTimes(3);
+});
+
+it("does not defer a lone borrower's current-binding observation to another turn", async () => {
+  const { root, pool } = await fixture();
+  await pool.run(root, async () => undefined);
+  const observations = vi.spyOn(binding, "observeStorageBinding");
+  const operation = pool.run(root, async () => undefined);
+  await Promise.resolve();
+  expect(observations).toHaveBeenCalledTimes(1);
+  await operation;
+});
+
 it("shares overlapping operations, retains committed records and closes exactly once after idle", async () => {
   const { root, pool, open, closes } = await fixture();
   let active = 0;
