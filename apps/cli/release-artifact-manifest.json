@@ -186,7 +186,7 @@
       {
         "path": "dist/native/file-sync.json",
         "size": 320,
-        "sha256": "sha256:099996450f4993ee6585eea2551769558b10bdaafae351704bfce073ba2d2124"
+        "sha256": "sha256:51a24891c74f1a61eac58d342fc7f91c24513a0cd7b3de10a14e6e1b305d3047"
       },
       {
         "path": "dist/node-runtime.js",
@@ -200,7 +200,7 @@
       }
     ],
     "fileCount": 7,
-    "contentDigest": "sha256:1e7162a559d9f740b7e922393e8b221610d79536b815929bdba27dc0c7cb980b"
+    "contentDigest": "sha256:433cd4ba100bc485922cebd003e1d7cb27ba06b15a0d2c2ccf27d41360942c4f"
   },
   "dependencies": {
     "portable": [
@@ -313,5 +313,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:9287de6b8917e9a74a038595f2d1a4593e582573fb0ab7c916d2576326908d40"
+  "artifactDigest": "sha256:912bba9dc6ec55e95958014238ba2b0f4958360e100315c39cbf068c702e37a7"
 }

@@ -3,7 +3,7 @@
 Status: `proposed`
 As of: 2026-10-09
 
-This design makes applicable obligations, relevant evidence, exact delivery, and verified outcomes consistent across direct provider terminals, managed execution, Discord, and future product hosts. [ADR-0501](../../decisions/execution/grounding/0501-share-context-quality-contracts-across-product-surfaces.md) records the accepted architecture decision. The [preparation-observation slice](context-quality/preparation-observations.md) is implemented locally; [request/plan validation](context-quality/request-plan-validation.md) is also implemented locally. [Shared runtime preparation](context-quality/runtime-preparation.md) now binds current local read scope and implements owner items 1–5. Complete corpus/token observation, outcome verification and installed acceptance remain pending.
+This design makes applicable obligations, relevant evidence, exact delivery and verified outcomes consistent across direct provider terminals, managed execution, Discord and future product hosts. [ADR-0501](../../decisions/execution/grounding/0501-share-context-quality-contracts-across-product-surfaces.md) records the accepted architecture decision. The [preparation-observation slice](context-quality/preparation-observations.md), [request/plan validation](context-quality/request-plan-validation.md) and [shared runtime preparation](context-quality/runtime-preparation.md) are implemented in source. [Host outcome integration](context-quality/host-outcome-integration.md) also connects task and writing observations, bounded correction and optional quality recording. Complete corpus/token observation, reviewed quality, recording-resource qualification and installed acceptance remain pending.
 
 ## Contract topics
 
@@ -80,6 +80,6 @@ Apply the existing structural checklist to every touched source file. At two sem
 
 ## Runtime adoption through owner items 1–5
 
-[Shared runtime preparation](context-quality/runtime-preparation.md) documents the implemented local read-scope composition, structured rule conditions, exact sections, process-local admission, and task/language projection. It preserves unknown corpus/token observations and separate managed delivery evidence. Artifact verification, new event writers, reviewed broad acceptance, and installed rollout remain open.
+[Shared runtime preparation](context-quality/runtime-preparation.md) documents the implemented local read-scope composition, structured rule conditions, exact sections, process-local admission and task/language projection. It preserves unknown corpus/token observations and separate managed delivery evidence. The subsequent outcome and host slices add source-level verification and event recording; reviewed broad acceptance and installed rollout remain open.
 
 The [outcome and event rollout slice](context-quality/outcome-and-event-rollout.md) adds read-only artifact observations, explicit query recording, version-6 readers and activation support, and a bounded diagnostic performance protocol. Production acceptance and installed rollout remain separate.

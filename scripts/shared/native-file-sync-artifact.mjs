@@ -2,6 +2,7 @@ import { lstat, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/
 import { resolve } from "node:path";
 
 import {
+  nativeFileSyncArtifactDigest,
   nativeFileSyncDigest,
   nativeFileSyncNames,
   validateNativeFileSyncArtifact,
@@ -69,7 +70,13 @@ export async function readNativeFileSyncArtifact(
 
 /** Replace only the owned pair, preserving the prior directory if staging or publication fails. */
 export async function copyNativeFileSyncArtifact(sourceDirectory, outputDirectory, options = {}) {
-  const artifact = await readNativeFileSyncArtifact(sourceDirectory, options);
+  const { expectedArtifactDigest, ...readOptions } = options;
+  const artifact = await readNativeFileSyncArtifact(sourceDirectory, readOptions);
+  if (
+    expectedArtifactDigest !== undefined &&
+    (!artifact || nativeFileSyncArtifactDigest(artifact) !== expectedArtifactDigest)
+  )
+    throw new Error("native_file_sync_digest_mismatch");
   const output = await lstat(outputDirectory);
   if (!output.isDirectory() || output.isSymbolicLink())
     throw new Error("native_file_sync_destination_invalid");

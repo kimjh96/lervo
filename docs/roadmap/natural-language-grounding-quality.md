@@ -79,7 +79,7 @@ The exact four-query [reviewed real-use suite](../../benchmarks/search/lexical-v
 
 ## Context quality and surface parity
 
-The local terminal correction prepares the configured English publication instruction independently of retrieval; installed writing compliance and general Hit uplift remain unverified. The [context-quality delivery roadmap](natural-language-grounding-quality/context-quality-parity.md) preserves the reliability findings and owns proposed shared contracts, module boundaries, performance evaluation, and completion criteria for Codex/Claude terminals, Discord, and a future first-party host under ADR-0501. The architecture is accepted and the bounded preparation-observation slice is implemented locally; full request/plan contracts, quality evaluation, and installed acceptance remain open.
+The local terminal correction prepares the configured English publication instruction independently of retrieval; installed writing compliance and general Hit uplift remain unverified. The [context-quality delivery roadmap](natural-language-grounding-quality/context-quality-parity.md) preserves the reliability findings and owns shared contracts, module boundaries, performance evaluation and completion criteria for Codex/Claude terminals, Discord and a future first-party host under ADR-0501. Source implementation now includes request/plan validation, local preparation, task and writing observations, bounded correction, host composition and reader-first event support. Complete corpus/token observations, reviewed real-task quality, recording-resource qualification and installed acceptance remain open.
 
 ## Current boundaries
 

@@ -66,7 +66,14 @@ function releasedToolingPath(path) {
       "scripts/distribution/lib/hub-runtime-distribution.mjs",
       "scripts/distribution/lib/node-runtime-distribution.mjs",
       "scripts/distribution/lib/product-release-version.mjs",
-    ].includes(path) || path.startsWith("apps/hub/assets/")
+      "packages/filesystem-durability/scripts/build-native.mjs",
+      "scripts/shared/native-file-sync-artifact.mjs",
+      "scripts/shared/native-file-sync-contract.mjs",
+      "scripts/distribution/native-file-sync-transfer.mjs",
+      "scripts/distribution/lib/native-file-sync-transfer.mjs",
+    ].includes(path) ||
+    path.startsWith("apps/hub/assets/") ||
+    path.startsWith("packages/filesystem-durability/native/")
   );
 }
 

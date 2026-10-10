@@ -4,12 +4,8 @@ import { resolve } from "node:path";
 import {
   copyNativeFileSyncArtifact,
   nativeFileSyncSourceHash,
-  readNativeFileSyncArtifact,
 } from "../../shared/native-file-sync-artifact.mjs";
-import {
-  nativeFileSyncDigest,
-  nativeFileSyncNames,
-} from "../../shared/native-file-sync-contract.mjs";
+import { nativeFileSyncArtifactDigest } from "../../shared/native-file-sync-contract.mjs";
 
 function identity(root) {
   const revision = execFileSync("git", ["rev-parse", "HEAD"], {
@@ -24,12 +20,6 @@ function identity(root) {
     runAttempt: process.env.GITHUB_RUN_ATTEMPT ?? "local",
   };
 }
-const artifactDigest = (artifact) =>
-  nativeFileSyncDigest(
-    JSON.stringify(
-      nativeFileSyncNames.map((name) => [name, nativeFileSyncDigest(artifact.files[name])]),
-    ),
-  );
 
 export async function createNativeFileSyncTransfer({ repositoryRoot, artifactDirectory }) {
   const sourceHash = await nativeFileSyncSourceHash(repositoryRoot);
@@ -46,7 +36,7 @@ export async function createNativeFileSyncTransfer({ repositoryRoot, artifactDir
       kind: "lervo_native_file_sync_transfer",
       ...coordinates,
       sourceHash,
-      artifactDigest: artifactDigest(artifact),
+      artifactDigest: nativeFileSyncArtifactDigest(artifact),
     };
     await writeFile(resolve(artifactDirectory, "receipt.json"), JSON.stringify(receipt) + "\n", {
       flag: "wx",
@@ -73,7 +63,9 @@ export async function restoreNativeFileSyncTransfer({ repositoryRoot, artifactDi
     !receipt ||
     Object.keys(receipt).sort().join(",") !==
       "artifactDigest,kind,revision,runAttempt,runId,schemaVersion,sourceHash,workflow" ||
-    typeof receipt.runAttempt !== "string"
+    typeof receipt.runAttempt !== "string" ||
+    typeof receipt.artifactDigest !== "string" ||
+    !/^sha256:[a-f0-9]{64}$/u.test(receipt.artifactDigest)
   )
     throw new Error("native_transfer_receipt_invalid");
   const expected = identity(repositoryRoot);
@@ -92,18 +84,19 @@ export async function restoreNativeFileSyncTransfer({ repositoryRoot, artifactDi
   )
     throw new Error("native_transfer_identity_mismatch");
   const source = resolve(artifactDirectory, "native");
-  const artifact = await readNativeFileSyncArtifact(source, {
-    required: true,
-    expectedSourceHash: receipt.sourceHash,
-  });
-  if (artifactDigest(artifact) !== receipt.artifactDigest)
-    throw new Error("native_transfer_digest_mismatch");
   const output = resolve(repositoryRoot, "packages/filesystem-durability/dist");
   await mkdir(output, { recursive: true });
-  // Validate all transfer coordinates before replacing any destination artifact.
-  await copyNativeFileSyncArtifact(source, output, {
-    required: true,
-    expectedSourceHash: receipt.sourceHash,
-  });
+  try {
+    // The copy validates the private bytes it will publish, without reopening admitted files.
+    await copyNativeFileSyncArtifact(source, output, {
+      required: true,
+      expectedSourceHash: receipt.sourceHash,
+      expectedArtifactDigest: receipt.artifactDigest,
+    });
+  } catch (error) {
+    if (error?.message === "native_file_sync_digest_mismatch")
+      throw new Error("native_transfer_digest_mismatch", { cause: error });
+    throw error;
+  }
   return receipt;
 }

@@ -3,6 +3,12 @@ import { createHash } from "node:crypto";
 export const nativeFileSyncNames = ["file-sync-darwin.node", "file-sync.json"];
 export const nativeFileSyncDigest = (bytes) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+export const nativeFileSyncArtifactDigest = (artifact) =>
+  nativeFileSyncDigest(
+    JSON.stringify(
+      nativeFileSyncNames.map((name) => [name, nativeFileSyncDigest(artifact.files[name])]),
+    ),
+  );
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 
 /** Distribution validation is stricter than optional runtime capability discovery. */

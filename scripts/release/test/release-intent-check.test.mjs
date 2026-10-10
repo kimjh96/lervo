@@ -74,6 +74,31 @@ async function writeIntent(root, impact, summary) {
 }
 
 describe("release intent change classification", () => {
+  it.each([
+    "packages/filesystem-durability/native/binding.c",
+    "packages/filesystem-durability/native/sync-group.c",
+    "packages/filesystem-durability/native/sync-group.h",
+    "packages/filesystem-durability/scripts/build-native.mjs",
+    "scripts/shared/native-file-sync-artifact.mjs",
+    "scripts/shared/native-file-sync-contract.mjs",
+    "scripts/distribution/native-file-sync-transfer.mjs",
+    "scripts/distribution/lib/native-file-sync-transfer.mjs",
+  ])("requires reviewed intent for native distribution owner %s", async (path) => {
+    const root = await fixture(false);
+    const input = { repositoryRoot: root, changedPaths: [path] };
+    await expect(inspectReleaseIntent(input)).resolves.toMatchObject({
+      valid: false,
+      publishablePathCount: 1,
+      diagnostics: ["missing_release_intent"],
+    });
+    await writeIntent(root, "patch", "Bind native transfer publication to its reviewed artifact.");
+    await expect(inspectReleaseIntent(input)).resolves.toMatchObject({
+      valid: true,
+      publishablePathCount: 1,
+      diagnostics: [],
+    });
+  });
+
   it("requires intent for CLI and bundled-private source, but not unrelated private source", async () => {
     const without = await fixture(false);
     expect(

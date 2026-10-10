@@ -8,6 +8,10 @@ vi.mock("node:child_process", async (original) => ({
   ...(await original()),
   execFileSync: vi.fn(() => "a".repeat(40)),
 }));
+vi.mock("node:fs/promises", async (original) => {
+  const fs = await original();
+  return { ...fs, mkdir: vi.fn(fs.mkdir) };
+});
 import { nativeFileSyncFixture } from "./native-file-sync-fixture.mjs";
 import { nativeFileSyncSourceHash } from "../../shared/native-file-sync-artifact.mjs";
 import { nativeFileSyncDigest } from "../../shared/native-file-sync-contract.mjs";
@@ -44,10 +48,60 @@ beforeEach(async () => {
   await writeFile(resolve(output, "file-sync-darwin.node"), native.binary);
 });
 afterEach(async () => {
+  vi.mocked(mkdir).mockReset();
+  vi.mocked(mkdir).mockImplementation((await vi.importActual("node:fs/promises")).mkdir);
   vi.unstubAllEnvs();
   await rm(root, { recursive: true, force: true });
 });
 const input = () => ({ repositoryRoot, artifactDirectory });
+it.each(["binary", "manifest-bytes"])(
+  "rejects changed %s between transfer admission and copy without replacing prior bytes",
+  async (kind) => {
+    await createNativeFileSyncTransfer(input());
+    const output = resolve(repositoryRoot, "packages/filesystem-durability/dist");
+    const priorManifest = await readFile(resolve(output, "native/file-sync.json"));
+    const actual = await vi.importActual("node:fs/promises");
+    let changed = false;
+    vi.mocked(mkdir).mockImplementation(async (path, options) => {
+      if (path === output && !changed) {
+        changed = true;
+        const binary = Buffer.from(native.binary);
+        if (kind === "binary") binary[111] = 7;
+        await writeFile(resolve(artifactDirectory, "native/file-sync-darwin.node"), binary);
+        await writeFile(
+          resolve(artifactDirectory, "native/file-sync.json"),
+          JSON.stringify({ ...native.manifest, contentHash: nativeFileSyncDigest(binary) }) + "\n",
+        );
+      }
+      return actual.mkdir(path, options);
+    });
+    await expect(restoreNativeFileSyncTransfer(input())).rejects.toThrow(
+      "native_transfer_digest_mismatch",
+    );
+    expect(changed).toBe(true);
+    expect(await readFile(resolve(output, "native/file-sync-darwin.node"))).toEqual(native.binary);
+    expect(await readFile(resolve(output, "native/file-sync.json"))).toEqual(priorManifest);
+  },
+);
+it("publishes the admitted pair if transfer files change after the copy reads them", async () => {
+  const receipt = await createNativeFileSyncTransfer(input());
+  const output = resolve(repositoryRoot, "packages/filesystem-durability/dist");
+  const priorManifest = await readFile(resolve(output, "native/file-sync.json"));
+  const actual = await vi.importActual("node:fs/promises");
+  let changed = false;
+  vi.mocked(mkdir).mockImplementation(async (path, options) => {
+    if (path === resolve(output, ".native-copy")) {
+      changed = true;
+      await writeFile(resolve(artifactDirectory, "native/file-sync-darwin.node"), "changed");
+      await writeFile(resolve(artifactDirectory, "native/file-sync.json"), "changed");
+    }
+    return actual.mkdir(path, options);
+  });
+  expect(await restoreNativeFileSyncTransfer(input())).toEqual(receipt);
+  expect(changed).toBe(true);
+  expect(await readFile(resolve(output, "native/file-sync-darwin.node"))).toEqual(native.binary);
+  expect(await readFile(resolve(output, "native/file-sync.json"))).toEqual(priorManifest);
+});
 it("restores the exact pair and permits a producer from an earlier attempt of the same run", async () => {
   const created = await createNativeFileSyncTransfer(input());
   await rm(resolve(repositoryRoot, "packages/filesystem-durability/dist/native"), {
