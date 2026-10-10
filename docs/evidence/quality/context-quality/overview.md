@@ -7,7 +7,7 @@ This collection records implementation and evaluation of [ADR-0501](../../../dec
 
 ## Current candidate
 
-The [consolidated source review](context-quality-source-verification.md#current-consolidated-review) has covered 70 of the 225 changed source/script files. It found and repaired task-verdict rebinding during caller mutation and instruction exclusion through an inactive or unresolved intermediate rule. The current focused suite passes 798 tests in 62 files, including a repository preparation regression that preserves the complete original clause and its exception. The other 155 source/script files, configuration, collections and full privacy review remain open.
+The [consolidated source review](context-quality-source-verification.md#current-consolidated-review) has covered 100 of the 225 changed source/script files. It repaired task-verdict rebinding, transitive instruction exclusion through an ineligible rule and writer activation using changed plan bytes. The current storage and activation suite passes 521 tests in 63 files, including exact-plan publication and interrupted recovery. The other 125 source/script files, configuration, collections and full privacy review remain open.
 
 The corrected product bytes require final candidate build and consumer evidence. Earlier full-suite, resource and Linux/Windows results retain their original identities; they cannot establish exact-byte qualification for this fix. No production installation has changed.
 
