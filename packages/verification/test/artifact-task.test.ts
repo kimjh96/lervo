@@ -78,3 +78,28 @@ it("does not pass tampered content or an empty definition", async () => {
     evaluateArtifactTask({ ...input, definition: { ...input.definition, checks: [] } }),
   ).rejects.toThrow();
 });
+
+it.each(["artifactDigest", "planDigest"] as const)(
+  "retains the evaluated coordinates when the caller changes %s while awaiting a verdict",
+  async (coordinate) => {
+    const expected = await evaluateArtifactTask({ ...input, evaluator });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const mutable = {
+      ...input,
+      evaluator: {
+        ...evaluator,
+        async evaluate(request: Parameters<ArtifactTaskEvaluator["evaluate"]>[0]) {
+          await gate;
+          return evaluator.evaluate(request);
+        },
+      },
+    };
+    const pending = evaluateArtifactTask(mutable);
+    mutable[coordinate] = `sha256:${"b".repeat(64)}`;
+    release();
+    expect(await pending).toEqual(expected);
+  },
+);

@@ -7,6 +7,12 @@ This collection records implementation and evaluation of [ADR-0501](../../../dec
 
 ## Current candidate
 
+The [consolidated source review](context-quality-source-verification.md#current-consolidated-review) has covered 34 of the 225 changed source/script files and found a task-verification binding defect. The current fix keeps an accepted verdict bound to the artifact and plan actually evaluated when the caller mutates its input while waiting. Both reproductions now pass within a 326-test focused suite. The other source owners, configuration, collections and full privacy review remain open.
+
+The corrected product bytes require final candidate build and consumer evidence. Earlier full-suite, resource and Linux/Windows results retain their original identities; they cannot establish exact-byte qualification for this fix. No production installation has changed.
+
+### Preserved implementation baseline
+
 Commit `fc94d015105f8ffc618c04a5f7dab4f04c5f2f69` preserves the 424-path implementation snapshot in [draft PR #108](https://github.com/kimjh96/lervo/pull/108). Its source previously passed 5,599 tests, with eight existing live tests skipped. Fresh worktree quality checks, the built CLI consumer, release manifest and software bill of materials checks pass. These results do not establish resource qualification or release readiness.
 
 The fresh build contains 2,594 runtime files, each byte-identical to the corresponding file in the earlier build. The earlier output directory contains another 17 obsolete JavaScript files. The complete fresh-build hash is `sha256:dba3e9d9b3efd95ef7d4bbf9ac226518ec591da1a66b7da720a2b4e33606b9ca`; the historical directory hash remains `sha256:4a91efb4fb1470ecdfa0102cc70031eedb6de74bc7dd9ad5f72baa21076df889`. Native files and CLI, Hub and Node bundles match exactly. Historical measurements retain their original identities; a new distributed-artifact cohort must bind the actual measured files.

@@ -127,8 +127,8 @@ export async function evaluateArtifactTask(input: {
     disposition,
     evaluationDigest: digest({
       ...body,
-      artifactDigest: input.artifactDigest,
-      planDigest: input.planDigest,
+      artifactDigest: request.artifactDigest,
+      planDigest: request.planDigest,
     }),
   };
 }

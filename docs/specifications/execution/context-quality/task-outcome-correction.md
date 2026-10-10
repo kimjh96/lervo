@@ -11,6 +11,8 @@ This priority-2 slice extends [artifact observations](outcome-and-event-rollout.
 
 `@lervo/verification` owns the `ArtifactTaskEvaluator` port. Its request contains exact artifact content and artifact, plan, and definition hashes. Its response must echo all three hashes and supply exactly one `passed`, `failed`, or `unavailable` result per check. Missing, duplicate, unknown, malformed, or stale responses are unavailable. A valid failed check remains failed even if another check is unavailable. Evaluator identity is a required SHA-256 build coordinate. The caller owns evaluator admission; the library starts no command or provider implicitly. Existing project suites and owner acceptance remain independently required where applicable.
 
+The evaluation digest uses the private request's artifact and plan coordinates captured before calling the evaluator. Later mutation of the caller's input cannot rebind an accepted verdict to a different artifact or plan. The evaluator receives a detached request, and its echoed coordinates are checked against that same private request. This preserves the existing evidence schema and introduces no effect authority.
+
 Writing verification continues through `@lervo/writing`, with all required deterministic and semantic checks. Task verification applies to non-publication artifacts too. Without a task definition, the observation retains its narrower publication scope. Without an evaluator, a required semantic task or writing check stays unavailable. A failed task, writing check, or protected-material comparison cannot be erased by another unavailable check. Changed bindings override the whole disposition to unavailable.
 
 ## Explicit language exceptions
