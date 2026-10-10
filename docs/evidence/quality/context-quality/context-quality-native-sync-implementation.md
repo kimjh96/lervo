@@ -157,6 +157,41 @@ The finite evidence roots below retain protocols, raw results and copied harness
 | `lervo-enum-profile-qnzezX`                                         | `5c408d39f757aec63d4cd7ecac48e026ee369a7afe100798a4a51c60d9df4340` | `b900a40a6b3ab48bba6c0021ae47a926dd85a12e3036c56fe8b0e6c25d6c28c3` |
 | `lervo-enum-sqlite-timing-5CCy0g`                                   | `ac568c961d53a26ee0ec464fadaf0517680de2d12f7c6f3830ed5866824f210a` | `7a220dffee04df61e2e0da9b1eeb5f07f8eef4026fd426d07cbf46663e077769` |
 
+### Filesystem dispatch follow-up
+
+This subsection is a replaceable summary of the latest filesystem-dispatch diagnosis. Git preserves previous summaries.
+
+Six instrumented source workers count filesystem entrypoints without omitting any check. A recorded four-request batch adds 124 asynchronous `lstat` calls relative to its control. Ten fresh storage-binding observations account for eighty of those calls. Counts exclude internal runtime and native-addon syscalls; numeric descriptors cannot be assigned to a path. Wrappers change scheduling, so their timing is not qualification evidence. All six workers retain correct semantics, event counts and integrity.
+
+Six further workers trace V8 optimization and garbage collection. Compiler completion logs appear in both arms; they do not identify a distinct recording-only compilation bottleneck. The trace files contain no requested batch timing marks, so they cannot align garbage collection to the frozen timer. Explicit standard-output batch markers support only ordered compilation observations. Compiler durations can overlap or cross those boundaries and are not exclusive CPU. This instrumentation limitation remains retained.
+
+The resulting scratch candidate executes the same eight fresh storage-path `lstat` calls in one native asynchronous job. It retains project/writer reads, identity and type comparisons, durable synchronization and event integrity. A local eight-path check matches Node's device, inode, birth-time and entry-type results. The candidate has no metadata cache and does not move file operations onto the main thread. Its worker teardown, adversarial races, portable behavior and production distribution remain unqualified.
+
+Before the comparison, the diagnostic protocol required at least 5% lower concurrent CPU means in both profiles, with no group exceeding 2% latency regression, to justify further candidate work. Eighty unprofiled workers retain five alternating pairs for every profile/workload, two warmups and five measured batches; cold retains one batch without warmup and concurrency remains four. Both arms record every event. All workers retain correct semantics, exact event counts and integrity; paired signatures match. The complete runtime hash stays unchanged, and no agent build, test or scan overlaps measurement.
+
+| Profile | Workload   | Reference elapsed / CPU ms | Batched elapsed / CPU ms |
+| ------- | ---------- | -------------------------: | -----------------------: |
+| 4 KiB   | Cold       |            40.957 / 73.943 |          41.117 / 73.151 |
+| 4 KiB   | Warm       |            18.636 / 17.914 |          18.697 / 17.779 |
+| 4 KiB   | Changed    |            18.992 / 18.417 |          19.023 / 18.011 |
+| 4 KiB   | Concurrent |            22.451 / 26.337 |          22.198 / 25.673 |
+| 12 KiB  | Cold       |            41.457 / 73.264 |          42.330 / 76.156 |
+| 12 KiB  | Warm       |            19.192 / 18.622 |          18.866 / 17.952 |
+| 12 KiB  | Changed    |            19.197 / 18.145 |          19.301 / 18.241 |
+| 12 KiB  | Concurrent |            22.400 / 26.766 |          22.620 / 26.091 |
+
+Concurrent CPU means fall about 2.52% in both profiles, below the registered 5% criterion. The 12 KiB cold latency mean rises 2.11%, and its CPU mean also rises. The candidate is rejected. These small diagnostic comparisons do not establish frozen acceptance, but they show that combining these metadata dispatches alone is not a sufficient repair. Continue attribution of repeated event serialization and durable recording; do not repeat this native candidate without a new cause. No product source, native asset, storage contract or installed runtime changes.
+
+The three finite evidence sets remain under the same owner-local temporary root:
+
+| Directory                       | Protocol SHA-256                                                   | Result SHA-256                                                     |
+| ------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `lervo-enum-fs-counts-rUykMF`   | `fb961c0cad4e7b3cf406de6b44cce846a72d4ea2cd331bd8751090c10e8ebb18` | `1a0a76455d8594d2354817bdf89c4be8b207b8d7a9f0a9d193b6eb042fec0526` |
+| `lervo-enum-v8-trace-15EGJd`    | `6ac27e843e4d4c70da143d98ed1cfd3a55161fe422dc3df5ed9386aaf3f1a5fe` | `be7804a407cf50d6f6f7663f1780e3b396c9774211b3343eb1cce557f2a8c90c` |
+| `lervo-batch-stat-probe-rqo5fK` | `40e70944d4369b2997b4ec738cb4c70fa5b51007b77f115b2373700f37bdf3d5` | `b004086dfee2ff7524b82bbb44deed9fc88f2a2f385ce9775390562103e239a1` |
+
+Prototype directory `lervo-batch-stat-prototype-ciots557` retains the C source, arm64 binary, substituted binding module and metadata check. The source, binary and module SHA-256 digests are respectively `b1af0fd0ee1852a4ecf2d186d87804bf265731ba6d980088dcb413b3d2515bd3`, `38980fa2ec15033f8b2dcc0e63ef522244133259b50480d297bf8e05aec43730` and `d53156e0c6e272574d1eeaf0b8ea42cf578b6237ddcb3b78e3508f527930888c`. The immutable comparison protocol inherits the misnamed `candidateValidatorHash` field; its value binds the storage-binding module, not a schema validator. The actual loader target, hypothesis and independently rechecked hashes identify the correct artifact. No recorded bytes are rewritten to hide that naming error. Existing canonical JSON evidence and private-review retention remain unchanged.
+
 ## Remaining integration
 
 The [CLI native distribution integration](context-quality-native-cli-distribution.md) includes the native pair in the release archive and schema-6 manifest/SBOM checks. The [standalone integration](context-quality-native-standalone-distribution.md) includes the same assets in Hub and Node archives. The preceding candidate passes Darwin arm64, minimum-Node and [isolated Linux/Windows consumers](context-quality-platform-qualification.md#current-candidate-requalification). Rosetta executes its x64 native path, but the complete packed consumer check times out in the bundled Claude executable. The changed enum-validation artifacts pass Darwin arm64 built, standalone, packed and isolated-registry checks, plus 400 focused tests on minimum Node 22.13.0. Their [exact Linux/Windows installed checks](context-quality-platform-qualification.md#current-candidate-requalification) now pass Node–Hub recovery, all twelve hook integrity checks and both writer-6 fixtures. All four target archives were retrieved and rehashed; production service identities and PIDs remain unchanged. Complete x64 package acceptance and identical reviewed assets across hosted platform builds remain required.
