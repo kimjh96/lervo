@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cd2cc2ee78f77b5438a939d9"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Retain SQLite statements throughout streamed iteration on supported Node runtimes."

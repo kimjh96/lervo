@@ -134,9 +134,8 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     }
     const pattern = `%"sourceEventKeyHash":"${sourceEventKeyHash}"%`;
     for (const row of iterateSqliteRows(
-      this.database
-        .prepare("SELECT * FROM conversation_inbox WHERE event_json LIKE ?")
-        .iterate(pattern),
+      this.database.prepare("SELECT * FROM conversation_inbox WHERE event_json LIKE ?"),
+      pattern,
     )) {
       if (inbound(row).sourceEventKeyHash === sourceEventKeyHash) return true;
     }

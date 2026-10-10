@@ -61,9 +61,7 @@ export function checkConversationDeliberationQueueIntegrity(input: {
   }
   const required = new Set(input.requiredSchema);
   for (const row of iterateSqliteRows(
-    input.database
-      .prepare("SELECT name FROM sqlite_schema WHERE type IN ('trigger', 'index')")
-      .iterate(),
+    input.database.prepare("SELECT name FROM sqlite_schema WHERE type IN ('trigger', 'index')"),
   )) {
     if (typeof row.name === "string") required.delete(row.name);
   }
@@ -74,9 +72,7 @@ export function checkConversationDeliberationQueueIntegrity(input: {
     );
   }
   let count = 0;
-  for (const row of iterateSqliteRows(
-    input.database.prepare(`SELECT * FROM ${input.table}`).iterate(),
-  )) {
+  for (const row of iterateSqliteRows(input.database.prepare(`SELECT * FROM ${input.table}`))) {
     count += 1;
     if (count > input.maximumRecords) {
       throw new ConversationDeliberationSQLiteError(

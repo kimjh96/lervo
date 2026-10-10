@@ -84,9 +84,8 @@ export async function inspectExistingEventStore(input: {
     let eventCount = 0;
     let previousHash: string | null = null;
     const rows = iterateSqliteRows(
-      database
-        .prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq")
-        .iterate(input.projectId),
+      database.prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq"),
+      input.projectId,
     );
     for (const row of rows) {
       const event = rowToEvent(row);
