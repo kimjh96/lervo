@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { schemaValidatorCompilerOptions } from "../../../scripts/shared/schema-validator-contract.mjs";
+import { installPrimitiveEnumIndex } from "./primitive-enum-keyword.mjs";
 
 /** Build-only compiler. No runtime validation imports or initializes Ajv. */
 export async function compileSchemaValidators(packageRoot) {
@@ -36,9 +37,10 @@ export async function compileSchemaValidators(packageRoot) {
     code: {
       ...schemaValidatorCompilerOptions.code,
       source: true,
-      formats: _`require("lervo-schema-formats").formats`,
+      formats: _`require("lervo-schema-runtime").formats`,
     },
   });
+  installPrimitiveEnumIndex(ajv);
   for (const [name, format] of Object.entries(formats)) ajv.addFormat(name, format);
   for (const schema of schemaReferences) ajv.addSchema(schema);
   const ids = {};
@@ -48,9 +50,15 @@ export async function compileSchemaValidators(packageRoot) {
     if (!schema.$id) ajv.addSchema(schema, id);
     ids[name] = id;
   }
-  const formatBuild = await build({
+  const runtimeBuild = await build({
     ...base,
-    entryPoints: ["src/validation-format.ts"],
+    stdin: {
+      contents:
+        'export {formats} from "./src/validation-format.ts";' +
+        'export {enumContains} from "./src/validation-enum.ts";',
+      resolveDir: packageRoot,
+      loader: "ts",
+    },
     format: "cjs",
   });
   const generated = standaloneCode(ajv, ids);
@@ -62,14 +70,14 @@ export async function compileSchemaValidators(packageRoot) {
     stdin: { contents: generated, sourcefile: "validators.cjs", resolveDir: packageRoot },
     plugins: [
       {
-        name: "schema-validation-formats",
+        name: "schema-validation-runtime",
         setup(context) {
-          context.onResolve({ filter: /^lervo-schema-formats$/ }, () => ({
-            path: "formats",
-            namespace: "schema-validation-formats",
+          context.onResolve({ filter: /^lervo-schema-runtime$/ }, () => ({
+            path: "runtime",
+            namespace: "schema-validation-runtime",
           }));
-          context.onLoad({ filter: /.*/, namespace: "schema-validation-formats" }, () => ({
-            contents: formatBuild.outputFiles[0].contents,
+          context.onLoad({ filter: /.*/, namespace: "schema-validation-runtime" }, () => ({
+            contents: runtimeBuild.outputFiles[0].contents,
             loader: "js",
           }));
         },

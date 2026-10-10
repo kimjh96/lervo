@@ -83,7 +83,12 @@ describe("release intent change classification", () => {
     "scripts/shared/native-file-sync-contract.mjs",
     "scripts/distribution/native-file-sync-transfer.mjs",
     "scripts/distribution/lib/native-file-sync-transfer.mjs",
-  ])("requires reviewed intent for native distribution owner %s", async (path) => {
+    "packages/schemas/scripts/compile-validators.mjs",
+    "packages/schemas/scripts/primitive-enum-keyword.mjs",
+    "packages/schemas/scripts/generate-validators.mjs",
+    "scripts/shared/schema-validator-artifact.mjs",
+    "scripts/shared/schema-validator-contract.mjs",
+  ])("requires reviewed intent for generated artifact owner %s", async (path) => {
     const root = await fixture(false);
     const input = { repositoryRoot: root, changedPaths: [path] };
     await expect(inspectReleaseIntent(input)).resolves.toMatchObject({
@@ -91,7 +96,7 @@ describe("release intent change classification", () => {
       publishablePathCount: 1,
       diagnostics: ["missing_release_intent"],
     });
-    await writeIntent(root, "patch", "Bind native transfer publication to its reviewed artifact.");
+    await writeIntent(root, "patch", "Bind generated runtime behavior to its reviewed artifact.");
     await expect(inspectReleaseIntent(input)).resolves.toMatchObject({
       valid: true,
       publishablePathCount: 1,

@@ -12,7 +12,7 @@ export function validSchemaValidatorManifest(manifest) {
     manifest !== null &&
     typeof manifest === "object" &&
     manifest.schemaVersion === 1 &&
-    manifest.generatorVersion === 1 &&
+    manifest.generatorVersion === 2 &&
     Number.isSafeInteger(manifest.schemaCount) &&
     manifest.schemaCount >= 1 &&
     manifest.schemaCount <= 1024 &&

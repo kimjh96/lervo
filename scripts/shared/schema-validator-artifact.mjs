@@ -12,6 +12,7 @@ export async function schemaValidatorSourceIdentity(repositoryRoot) {
     "pnpm-lock.yaml",
     "packages/schemas/package.json",
     "packages/schemas/scripts/compile-validators.mjs",
+    "packages/schemas/scripts/primitive-enum-keyword.mjs",
     "packages/schemas/scripts/generate-validators.mjs",
     "scripts/shared/schema-validator-artifact.mjs",
     "scripts/shared/schema-validator-contract.mjs",

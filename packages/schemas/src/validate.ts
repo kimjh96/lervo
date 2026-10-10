@@ -10,5 +10,5 @@ export type ValidationResult =
 export function validateSchema(name: SchemaName, value: unknown): ValidationResult {
   const validator = validators[name];
   if (validator(value)) return { valid: true, errors: [] };
-  return { valid: false, errors: validator.errors ? [...validator.errors] : [] };
+  return { valid: false, errors: validator.errors ? structuredClone(validator.errors) : [] };
 }

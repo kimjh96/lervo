@@ -22,6 +22,7 @@ async function fixture() {
     "packages/schemas/package.json",
     "packages/schemas/src/schema-catalog.ts",
     "packages/schemas/scripts/compile-validators.mjs",
+    "packages/schemas/scripts/primitive-enum-keyword.mjs",
     "packages/schemas/scripts/generate-validators.mjs",
     "scripts/shared/schema-validator-artifact.mjs",
     "scripts/shared/schema-validator-contract.mjs",
@@ -35,7 +36,7 @@ async function fixture() {
   const bytes = Buffer.from("export default {};");
   const manifest = {
     schemaVersion: 1,
-    generatorVersion: 1,
+    generatorVersion: 2,
     ...(await schemaValidatorSourceIdentity(root)),
     schemaCount: 1,
     toolchain: { ajv: "8.0.0", esbuild: "0.28.2" },
@@ -70,6 +71,22 @@ it("rejects changed output, missing files and linked output", async () => {
   await symlink(resolve(root, "pnpm-lock.yaml"), path);
   await expect(verifySchemaValidatorArtifact(root)).rejects.toThrow(
     "schema_validator_artifact_invalid",
+  );
+});
+
+it("binds the enum compiler and rejects a prior generator manifest", async () => {
+  const { root, directory, manifest } = await fixture();
+  await writeFile(
+    resolve(directory, "manifest.json"),
+    JSON.stringify({ ...manifest, generatorVersion: 1 }),
+  );
+  await expect(verifySchemaValidatorArtifact(root)).rejects.toThrow(
+    "schema_validator_artifact_stale",
+  );
+  await writeFile(resolve(directory, "manifest.json"), JSON.stringify(manifest));
+  await writeFile(resolve(root, "packages/schemas/scripts/primitive-enum-keyword.mjs"), "changed");
+  await expect(verifySchemaValidatorArtifact(root)).rejects.toThrow(
+    "schema_validator_artifact_stale",
   );
 });
 

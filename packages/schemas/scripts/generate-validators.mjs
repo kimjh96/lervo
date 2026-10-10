@@ -18,7 +18,7 @@ async function generatePair(directory, staging) {
   if (compiled.bytes.length > 16 * 1024 * 1024) throw new Error("schema_validator_artifact_limit");
   const manifest = {
     schemaVersion: 1,
-    generatorVersion: 1,
+    generatorVersion: 2,
     ...identity,
     schemaCount: compiled.schemaCount,
     toolchain: compiled.toolchain,
