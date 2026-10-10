@@ -1,4 +1,9 @@
 import {
+  contextQualityPayloadAllowlists,
+  contextQualityPayloadSchemas,
+  validateContextQualityPayload,
+} from "./context-quality-payload.js";
+import {
   convergenceAssignmentPayloadFields,
   validateConvergenceAssignmentPayload,
 } from "./convergence-assignment-payload.js";
@@ -41,6 +46,7 @@ export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 export const eventPayloadAllowlists = {
+  ...contextQualityPayloadAllowlists,
   ...knowledgeConvergencePayloadAllowlists,
   ...documentFreshnessPayloadAllowlists,
   ...instructionCapturePayloadAllowlists,
@@ -1315,6 +1321,7 @@ export function sanitizeEventPayload(
         ))
     )
       throw new TypeError("The managed execution reservation is invalid.");
+    validateContextQualityPayload(type, sanitized);
     validateSupervisionPayload(type, sanitized);
     if (type === "role.input.bound") validateRoleInputPayload(sanitized);
     validateTopologyPolicyPayload(type, sanitized);
@@ -1419,6 +1426,7 @@ export function sanitizeEventPayload(
 }
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
+  ...contextQualityPayloadSchemas,
   ...documentFreshnessPayloadSchemas,
   ...instructionCapturePayloadSchemas,
   "assignment.convergence.archived": "convergenceAssignmentArchivedEventPayload",

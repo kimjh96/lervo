@@ -27,7 +27,7 @@ export type EventReaderAuthority = "local" | "repository_node_absent" | "reposit
 export interface EventWriterStage {
   disposition: StageDisposition;
   reason: string;
-  currentSchemaVersion: 1 | 2 | 3 | 4 | 5;
+  currentSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6;
   targetSchemaVersion: typeof TARGET_EVENT_SCHEMA_VERSION;
   /** Which reader inventory authority the evidence came from; null before evidence exists. */
   authority: EventReaderAuthority | null;

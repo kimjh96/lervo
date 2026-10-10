@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:875c9679-6784-504c-a47c-74e9e7f491b9",
+  "serialNumber": "urn:uuid:fb693979-f6f8-5d6a-b6fb-228afa213a4c",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -15,7 +15,7 @@
         {
           "type": "application",
           "name": "lervo-release-sbom",
-          "version": "1"
+          "version": "2"
         }
       ]
     },
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "ba021e2b59f9c0d04a6e22726e2d676bd1d0eeb6ada3f25022abb83a990db077"
+          "content": "27e6912dec1b1a19779164b1233d1bc86585461b74158164ca6b7ebb4d9cc675"
         }
       ],
       "licenses": [
@@ -42,7 +42,7 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:8211fa3ca22bb8450162d415ae9ef024033a15c815c8083af45d43e574f3a33f"
+          "value": "sha256:cf641d92e7777ba24534c7e00ffec43988364551f786b7e714d832a3c2cfcc8e"
         },
         {
           "name": "lervo:release:bundle-digest",
@@ -56,6 +56,28 @@
     }
   },
   "components": [
+    {
+      "type": "file",
+      "bom-ref": "lervo:native-file-sync:file-sync-darwin.node",
+      "name": "dist/native/file-sync-darwin.node",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "72f477a8f4c4f88c859519e78a8a75b6a409d35a52ef7667cd18a0abeb810f75"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "lervo:native-file-sync:file-sync.json",
+      "name": "dist/native/file-sync.json",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "099996450f4993ee6585eea2551769558b10bdaafae351704bfce073ba2d2124"
+        }
+      ]
+    },
     {
       "type": "library",
       "bom-ref": "pkg:npm/%40anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.226",
@@ -4269,6 +4291,14 @@
   ],
   "dependencies": [
     {
+      "ref": "lervo:native-file-sync:file-sync-darwin.node",
+      "dependsOn": []
+    },
+    {
+      "ref": "lervo:native-file-sync:file-sync.json",
+      "dependsOn": []
+    },
+    {
       "ref": "pkg:npm/%40anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.226",
       "dependsOn": []
     },
@@ -4337,6 +4367,8 @@
     {
       "ref": "pkg:npm/%40lervo/cli@0.21.0",
       "dependsOn": [
+        "lervo:native-file-sync:file-sync-darwin.node",
+        "lervo:native-file-sync:file-sync.json",
         "pkg:npm/%40anthropic-ai/claude-agent-sdk@0.3.226",
         "pkg:npm/%40anthropic-ai/sdk@0.117.1",
         "pkg:npm/%40babel/parser@7.29.8",
@@ -5054,7 +5086,7 @@
   "properties": [
     {
       "name": "lervo:release:inventory-source",
-      "value": "pnpm-lock-and-esbuild-metafile"
+      "value": "pnpm-lock-esbuild-metafile-and-native-archive"
     },
     {
       "name": "lervo:release:workspace-relationships",

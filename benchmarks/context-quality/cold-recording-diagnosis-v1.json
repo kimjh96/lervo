@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "protocolId": "context-quality-cold-recording-diagnosis-v1",
+  "registeredAt": "2026-10-09T12:16:36.106401+00:00",
+  "scope": "Diagnostic qualification of inactive-writer observation overhead only; no retrieval-quality, production rollout, or provider parity claim.",
+  "control": "Same candidate build, prepareRepositoryQualityContext with recordObservation false",
+  "candidate": "Same candidate build, recordObservation true, selected event writer 1",
+  "fixture": "One fixed initialized local repository, one 32 KiB Markdown candidate, one complete owner clause, no provider calls",
+  "warmPairs": 30,
+  "coldPairs": 30,
+  "warmupCallsPerWarmProcess": 2,
+  "measuredCallsPerWarmProcess": 5,
+  "coldDefinition": "Fresh application process with no prior preparation; operating-system caches are not flushed",
+  "order": "Alternate control/candidate and candidate/control within pairs",
+  "minimumPracticalImprovement": null,
+  "noninferiority": {
+    "meanPreparationAddedMsUpper95": 10,
+    "meanProcessTimeRatioUpper95": 1.2,
+    "meanPeakRssRatioUpper95": 1.25
+  },
+  "confidence": "Paired percentile bootstrap, 10000 resamples, fixed xorshift32 seed 501, two-sided 95 percent interval",
+  "costCeilings": {
+    "providerCalls": 0,
+    "processDeadlineMs": 30000,
+    "samplesPerProcess": 7
+  },
+  "stopRules": [
+    "Any changed semantic plan digest rejects the candidate",
+    "Any failed or cancelled process remains in the output and rejects qualification",
+    "Any privacy, unauthorized effect, stale-source success, or false evidence promotion stops rollout"
+  ],
+  "unavailable": [
+    "Provider tokens and usage",
+    "Machine-cold measurements",
+    "Human-reviewed relevance labels",
+    "Seven-day installed cohort",
+    "Changed-source and concurrent-consumer performance"
+  ],
+  "phaseProbeProcesses": 10,
+  "expectedArtifactBuildHash": "sha256:49194c8817c08a42956450ee6c174c1ec244ca9c005e790af64d9ebf9fc2f020",
+  "priorProtocolHash": "sha256:34595bc9b66759cdcc2ab983a94cbcb232e7581b5b9fb7822d27e7e60c764ae1",
+  "priorRejectedEvidence": "docs/evidence/quality/context-quality-recording-overhead-v1.json",
+  "measurementConditions": "Shared developer workstation. This agent runs no builds, tests, package installation or knowledge scans during this single cohort. User and resident workloads remain running; CPU counters and load are observed, not controlled. OS caches are not flushed.",
+  "phaseProbeScope": "Ten separate fresh-process diagnostics after the qualification cohort: core preparation without recording, structured clone of its exact report and bindings, then public writer-coordinate inspection. This is not a direct timer of the complete recording operation. Probe failures are retained and reject diagnostic completion.",
+  "cohortPolicy": "One fixed 30 warm / 30 cold pair cohort, no adaptive retry or sample exclusion. Gates unchanged. No production optimization without measured phase evidence."
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "auditId": "context-quality-historical-provenance-v1",
+  "maximumEvents": 100000,
+  "workstreamId": "wks_715d83744a212f47e5c6555c",
+  "snapshotCandidates": [
+    {
+      "eventId": "evt_05ab052ece4143889a564247d6396388",
+      "revision": 282,
+      "snapshotHash": "sha256:db873bda3081d455d3f06e518e468cc0fa9831f926a1b2a32b8d3d465925d3ce",
+      "role": "approval_packet"
+    },
+    {
+      "eventId": "evt_aec321d2117d4d978d332807a6210105",
+      "revision": 283,
+      "snapshotHash": "sha256:4aa9aca207e1cc8c2868c914756337718f75e39f2883d4ac6c4b996230f93efb",
+      "role": "post_approval_checkpoint"
+    },
+    {
+      "eventId": "evt_eaa6e9024498486eb954b14285571c37",
+      "revision": 285,
+      "snapshotHash": "sha256:8e771874ba242d01b75c28a554e0567c71f72d28aceeb17baeb4df6324b736f7",
+      "role": "pre_measurement_context_candidate"
+    },
+    {
+      "eventId": "evt_8a802b1a39034c07825c2bcb5c86dfb1",
+      "revision": 286,
+      "snapshotHash": "sha256:230abb2b386aba95326d4948f7e3921ad266cab75ffd2e8729e3b3e96c1a0196",
+      "role": "post_measurement_checkpoint"
+    }
+  ],
+  "historicalReports": [
+    {
+      "provider": "codex",
+      "reportId": "lv2real_c6b0589ba60941018882cc44",
+      "contentHash": "sha256:786fcd7dccd4cf32da0366e09cf2eb068c1ebf628e58b558a5fa45df8940dec5"
+    },
+    {
+      "provider": "claude",
+      "reportId": "lv2real_b7b50e5c8b1af1b4289e6bdf",
+      "contentHash": "sha256:2ec33c4c0485b2df3dcfa483a2c2c71c8016bbbd36785f96e161fee9dec9b579"
+    }
+  ],
+  "historicalCorpus": {
+    "sourceSnapshotId": "ksnap_471a56e5f34e7c088ea3b75b",
+    "digest": "sha256:c82f1ed06fe5af9fc06e7dfe3f415baa032bff1b0bb87ffb9919308531f17bb5",
+    "documentCount": 455,
+    "byteCount": 1851497
+  },
+  "sourceDocument": "docs/evidence/search/lexical-v2/lexical-v2-reviewed-real-use-projection-v1.md",
+  "interpretation": "Candidate snapshots do not prove the exact original projection context. Hash-only event records do not supply task text or new human-reviewed families. No provider call, oracle query, or production-quality acceptance is permitted by this audit."
+}

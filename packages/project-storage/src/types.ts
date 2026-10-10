@@ -8,7 +8,10 @@ export type ProjectStorageErrorCode =
   | "coordination_home_invalid"
   | "coordination_migration_conflict"
   | "coordination_state_conflict"
-  | "storage_layout_invalid";
+  | "storage_layout_invalid"
+  | "storage_binding_changed"
+  | "storage_writer_not_active"
+  | "storage_busy";
 
 export class ProjectStorageError extends Error {
   constructor(
@@ -29,7 +32,7 @@ export interface ProjectStorageBackends {
   openEventStore(options: {
     path: string;
     projectId: string;
-    writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5;
+    writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6;
   }): Promise<OutboxStore>;
   openArtifactStore(root: string): Promise<CloseableArtifactStore>;
 }
@@ -38,7 +41,7 @@ export interface ProjectStorage {
   readonly readOnly?: boolean;
   readonly manifest: ProjectManifest;
   readonly paths: LervoProjectPaths;
-  readonly writableEventSchemaVersion?: 1 | 2 | 3 | 4 | 5;
+  readonly writableEventSchemaVersion?: 1 | 2 | 3 | 4 | 5 | 6;
   readonly events: OutboxStore;
   readonly artifacts: CloseableArtifactStore;
   close(): Promise<void>;

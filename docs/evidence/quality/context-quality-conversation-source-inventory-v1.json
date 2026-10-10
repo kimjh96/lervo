@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "auditId": "context-quality-conversation-source-inventory-v1",
+  "purpose": "Locate provenance-bound retained inputs without exporting private bodies or claiming task-family review.",
+  "transport": {
+    "targetId": "tgt_always_on_lervo_host",
+    "environmentObservedAt": "2026-10-09T16:35:38.081Z",
+    "resolutionStatus": "resolved",
+    "sshVerified": true,
+    "wslCommandCompleted": true,
+    "remoteRepositoryBytesWritten": false,
+    "serviceChanges": false
+  },
+  "repositoryObservation": {
+    "observedAt": "2026-10-09T16:19:10.586004+00:00",
+    "head": "53eec5565af89eae2a18acd2d39cd99d78358a61",
+    "trackedDirtyLines": 92
+  },
+  "executionBundleHash": "sha256:b0d14ae77a8e4af3654ccf52d855a232890d07cc45a5bed108f168541d96f841",
+  "harnessHashes": [
+    [
+      "scripts/evaluation/lib/context-quality-conversation-source-report.mjs",
+      "sha256:54c5842b4144c09adf26c404707cfcdbf40e09481d11cb3ae20d74021b53ae15"
+    ],
+    [
+      "scripts/evaluation/lib/context-quality-conversation-source-reader.mjs",
+      "sha256:141c4a653229c5cc593c05009b8ffc815b0f3665f190561884c3a410eaf5d824"
+    ],
+    [
+      "scripts/evaluation/run-context-quality-conversation-source-audit.mjs",
+      "sha256:1c79e9fd9fd6823ae83d924ee80f7fc0e56e898ca87041c0c7d671f98adaab9c"
+    ]
+  ],
+  "result": {
+    "schemaVersion": 1,
+    "auditId": "context-quality-remote-conversation-source-v1",
+    "observedAt": "2026-10-09T16:35:39.575Z",
+    "nodeVersion": "v26.5.1",
+    "projectId": "prj_ab094111596346d7",
+    "ownerBuild": {
+      "fileCount": 168,
+      "digest": "sha256:9449061a286ecf98532fe2cc8ffec4c748ec728102c6bb821964ac160c317998"
+    },
+    "validationScope": "Normalized inbound schema/hash and row coordinates, SQLite quick/foreign-key checks, exact body hash/size/UTF-8. Not full interaction lifecycle validation or human task review.",
+    "limits": {
+      "maximumRows": 20000,
+      "maximumMetadataBytes": 67108864,
+      "maximumAcceptedBodyBytes": 65536
+    },
+    "stores": [
+      {
+        "integrationId": "itg_discord01",
+        "schemaVersion": 2,
+        "quickCheck": "ok",
+        "foreignKeyViolations": 0,
+        "rows": 10862
+      },
+      {
+        "integrationId": "itg_discord_elio01",
+        "schemaVersion": 1,
+        "quickCheck": "ok",
+        "foreignKeyViolations": 0,
+        "rows": 32
+      },
+      {
+        "integrationId": "itg_discord_elio02",
+        "schemaVersion": 2,
+        "quickCheck": "ok",
+        "foreignKeyViolations": 0,
+        "rows": 1097
+      }
+    ],
+    "complete": true,
+    "unchangedOwnerBuild": true,
+    "rows": 11991,
+    "metadataBytes": 15854403,
+    "invalidRows": 0,
+    "duplicateEventCopies": 32,
+    "normalizedHumanEvents": 1068,
+    "verifiedHumanBodies": 1068,
+    "unavailableHumanBodies": 0,
+    "bodyByteBuckets": {
+      "under40": 719,
+      "from40to199": 315,
+      "atLeast200": 34
+    },
+    "metadataDigest": "sha256:7c1e65eb7ccb206e8f8d1d26e5fa3317dd4bc8b325dbb42a18e10cb386539dad",
+    "uniqueValidatedEvents": 11959,
+    "uniqueHumanBodyDigests": 779,
+    "humanTimeRange": ["2026-09-07T12:15:35.590Z", "2026-10-07T17:04:58.194Z"],
+    "humanReplyLinks": 0,
+    "humanRepliesResolvedInObservedInbox": 0,
+    "qualifiedFamilies": 0,
+    "reviewedLabelSets": 0,
+    "heldOutFamilies": 0,
+    "providerCalls": 0,
+    "privateBodiesEmitted": false
+  },
+  "limitations": [
+    "Normalized human messages are not classified real task families, reviewed labels or unseen held-out cases.",
+    "Body byte limits govern admission and verified size; CAS uses the existing owner read contract, not a new atomic filesystem snapshot.",
+    "Each SQLite source is read in its own transaction, not a fleet-wide atomic snapshot.",
+    "Owner build identity covers compiled JavaScript in five named workspace packages, not every transitive runtime dependency.",
+    "No private body, participant identity, endpoint or credential is emitted.",
+    "No provider calls, deployment, writer activation, original corpus reconstruction or installed acceptance."
+  ],
+  "historicalReportAvailability": [
+    {
+      "hash": "sha256:786fcd7dccd4cf32da0366e09cf2eb068c1ebf628e58b558a5fa45df8940dec5",
+      "present": false
+    },
+    {
+      "hash": "sha256:2ec33c4c0485b2df3dcfa483a2c2c71c8016bbbd36785f96e161fee9dec9b579",
+      "present": false
+    }
+  ]
+}

@@ -1,3 +1,7 @@
+import {
+  copyNativeFileSyncArtifact,
+  nativeFileSyncSourceHash,
+} from "../shared/native-file-sync-artifact.mjs";
 import { execFile } from "node:child_process";
 import {
   chmod,
@@ -128,6 +132,14 @@ async function buildDistribution(outputArgument) {
     await mkdir(resolve(payloadRoot, "dist"));
     await copyFile(bundlePath, resolve(payloadRoot, "dist/bin.js"));
     await ensureExecutable(resolve(payloadRoot, "dist/bin.js"));
+    const native =
+      platform.os === "darwin"
+        ? await copyNativeFileSyncArtifact(
+            resolve(repositoryRoot, "apps/node-runtime/dist/native"),
+            resolve(payloadRoot, "dist"),
+            { required: true, expectedSourceHash: await nativeFileSyncSourceHash(repositoryRoot) },
+          )
+        : undefined;
     await copyFile(
       resolve(repositoryRoot, "docs/distribution/node-runtime-distribution.md"),
       resolve(payloadRoot, "README.md"),
@@ -157,7 +169,12 @@ async function buildDistribution(outputArgument) {
       );
     }
     const bundleBytes = await readFile(resolve(payloadRoot, "dist/bin.js"));
-    const sbom = createNodeDistributionSbom(runtimeVersion, dependencies, sha256(bundleBytes));
+    const sbom = createNodeDistributionSbom(
+      runtimeVersion,
+      dependencies,
+      sha256(bundleBytes),
+      native,
+    );
     await writeFile(resolve(payloadRoot, "sbom.cdx.json"), canonicalJson(sbom), {
       encoding: "utf8",
       mode: 0o644,

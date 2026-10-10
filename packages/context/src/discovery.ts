@@ -1,8 +1,8 @@
-import { readdir } from "node:fs/promises";
-import { resolve } from "node:path";
-
+import { resolveInstructionPrecedence } from "./instruction-precedence.js";
+import type { InstructionTargets } from "./instruction-conditions.js";
 import type { DocumentRegistry } from "@lervo/schemas";
 
+import { generatedInstructionPaths, readInstructionSource } from "./instruction-sources.js";
 import { repositoryFileExists } from "./filesystem.js";
 import { compareCanonicalText, documentIdForPath, instructionPathsFor } from "./paths.js";
 import { type ContextDocumentCandidate, ContextPreparationError } from "./types.js";
@@ -35,41 +35,45 @@ export function candidatesFromRegistry(registry: DocumentRegistry): ContextDocum
   );
 }
 
-/** Applied owner rules (ADR-0467) are repository instructions every managed turn receives. */
-export const GENERATED_INSTRUCTION_DIRECTORY = "docs/instructions/generated";
-const GENERATED_RULE_FILE = /^rule_[a-f0-9]{24}\.md$/u;
-const MAXIMUM_GENERATED_INSTRUCTIONS = 16;
-
-export function isGeneratedInstructionPath(path: string): boolean {
-  const prefix = `${GENERATED_INSTRUCTION_DIRECTORY}/`;
-  return path.startsWith(prefix) && GENERATED_RULE_FILE.test(path.slice(prefix.length));
-}
-
-async function generatedInstructionPaths(repositoryRoot: string): Promise<string[]> {
-  try {
-    return (await readdir(resolve(repositoryRoot, GENERATED_INSTRUCTION_DIRECTORY)))
-      .filter((name) => GENERATED_RULE_FILE.test(name))
-      .sort(compareCanonicalText)
-      .slice(0, MAXIMUM_GENERATED_INSTRUCTIONS)
-      .map((name) => `${GENERATED_INSTRUCTION_DIRECTORY}/${name}`);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw error;
-  }
-}
+export {
+  GENERATED_INSTRUCTION_DIRECTORY,
+  isGeneratedInstructionPath,
+} from "./instruction-sources.js";
 
 export async function discoverInstructionDocuments(input: {
   repositoryRoot: string;
   registry: DocumentRegistry;
   expectedPaths: readonly string[];
+  instructionTargets?: InstructionTargets;
 }): Promise<ContextDocumentCandidate[]> {
   const candidates = registryCandidates(input.registry);
   const discovered: ContextDocumentCandidate[] = [];
+  const sources = [];
   for (const path of [
     ...instructionPathsFor(input.expectedPaths),
     ...(await generatedInstructionPaths(input.repositoryRoot)),
   ]) {
     if (!(await repositoryFileExists(input.repositoryRoot, path))) continue;
+    sources.push(
+      await readInstructionSource(
+        input.repositoryRoot,
+        path,
+        input.expectedPaths,
+        input.instructionTargets,
+      ),
+    );
+  }
+  for (const source of resolveInstructionPrecedence(sources)) {
+    const path = source.path;
+    if (
+      source.applicability === "conflict" ||
+      (source.conditions && source.applicability === "unresolved")
+    )
+      throw new ContextPreparationError(
+        "required_rule_unresolved",
+        "Instruction conditions require resolution before managed preparation.",
+      );
+    if (source.applicability === "not_applicable") continue;
     const registered = candidates.get(path);
     discovered.push({
       ...(registered ?? {
@@ -82,6 +86,7 @@ export async function discoverInstructionDocuments(input: {
       }),
       documentRole: "governance_context",
       referenceEligible: false,
+      expectedContentHash: source.contentHash,
     });
   }
   return discovered;

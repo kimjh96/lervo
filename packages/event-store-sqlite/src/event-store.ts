@@ -24,7 +24,7 @@ import {
 import { bindDatabaseMetadata, ensureDatabasePath } from "./database-lifecycle.js";
 import { EventStoreError } from "./errors.js";
 import { SQLiteEventRepository } from "./event-repository.js";
-import { configureDatabase, migrateDatabase } from "./migrations.js";
+import { configureDatabase, migrateDatabase, storageSchemaVersion } from "./migrations.js";
 import { SQLiteOutboxRepository } from "./outbox.js";
 import { openReadOnlyEventDatabase } from "./read-only-database.js";
 import { sqliteRow } from "./sqlite-row.js";
@@ -32,7 +32,8 @@ import { sqliteRow } from "./sqlite-row.js";
 export interface OpenEventStoreOptions {
   path: string;
   projectId: ProjectManifest["projectId"];
-  writableEventSchemaVersion?: 1 | 2 | 3 | 4 | 5;
+  writableEventSchemaVersion?: 1 | 2 | 3 | 4 | 5 | 6;
+  checkpointEachCommit?: boolean;
 }
 
 function isThenable(value: unknown): value is PromiseLike<unknown> {
@@ -56,7 +57,7 @@ export class SQLiteEventStore implements OutboxStore {
     path: string,
     projectId: string,
     private readonly database: DatabaseSync,
-    writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5,
+    writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6,
     private readonly readOnly = false,
   ) {
     this.path = path;
@@ -66,7 +67,7 @@ export class SQLiteEventStore implements OutboxStore {
   }
 
   static async open(options: OpenEventStoreOptions): Promise<SQLiteEventStore> {
-    if (![1, 2, 3, 4, 5].includes(options.writableEventSchemaVersion ?? 1)) {
+    if (![1, 2, 3, 4, 5, 6].includes(options.writableEventSchemaVersion ?? 1)) {
       throw new EventStoreError(
         "event_schema_unsupported",
         "The writer activation version is unsupported.",
@@ -79,6 +80,8 @@ export class SQLiteEventStore implements OutboxStore {
     });
     try {
       configureDatabase(database);
+      if (options.checkpointEachCommit)
+        database.exec("PRAGMA wal_autocheckpoint = 1; PRAGMA journal_size_limit = 0;");
       migrateDatabase(database);
       bindDatabaseMetadata(database, options.projectId);
       const store = new SQLiteEventStore(
@@ -222,6 +225,14 @@ export class SQLiteEventStore implements OutboxStore {
 
   verifyIntegrity(): EventChainReport {
     this.assertOpen();
+    const metadata = this.database.prepare("SELECT value FROM store_meta WHERE key = ?");
+    if (
+      sqliteRow(this.database.prepare("PRAGMA user_version").get())?.user_version !==
+        storageSchemaVersion ||
+      sqliteRow(metadata.get("project_id"))?.value !== this.projectId ||
+      sqliteRow(metadata.get("storage_schema_version"))?.value !== String(storageSchemaVersion)
+    )
+      throw new EventStoreError("integrity_failed", "The event store binding changed.");
     const quickCheck = sqliteRow(this.database.prepare("PRAGMA quick_check;").get())?.quick_check;
     if (quickCheck !== "ok") {
       throw new EventStoreError(

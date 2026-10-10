@@ -177,3 +177,25 @@ describe("CLI release SBOM", () => {
     assert.notEqual(after.serialNumber, before.serialNumber);
   });
 });
+
+it("binds native file components and application dependency edges for schema 6", () => {
+  const { releaseManifest, lockfile } = fixture();
+  releaseManifest.schemaVersion = 6;
+  const paths = ["dist/native/file-sync-darwin.node", "dist/native/file-sync.json"];
+  releaseManifest.archive.files.push(
+    ...paths.map((path) => ({ path, size: 128, sha256: `sha256:${"e".repeat(64)}` })),
+  );
+  const sbom = createCliReleaseSbom(releaseManifest, lockfile);
+  const native = sbom.components.filter((component) => component.type === "file");
+  assert.deepEqual(
+    native.map((component) => component.name),
+    paths,
+  );
+  const root = sbom.dependencies.find((entry) => entry.ref === sbom.metadata.component["bom-ref"]);
+  for (const component of native) assert(root.dependsOn.includes(component["bom-ref"]));
+  validateCliReleaseSbom(sbom, releaseManifest, lockfile);
+  native[0].hashes[0].content = "f".repeat(64);
+  assert.throws(() => validateCliReleaseSbom(sbom, releaseManifest, lockfile), {
+    code: "release_sbom_mismatch",
+  });
+});

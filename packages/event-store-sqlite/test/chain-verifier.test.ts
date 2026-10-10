@@ -52,7 +52,7 @@ describe("exact-byte event-chain verification receipts", () => {
     append(1_002);
     decode.mockClear();
     const appended = verifier.verify();
-    expect(decode).toHaveBeenCalledTimes(3);
+    expect(decode).toHaveBeenCalledTimes(1);
     expect(appended).toEqual(new SQLiteEventChainVerifier(database, projectId).verify());
     expect(appended.eventCount).toBe(1_003);
   });
@@ -110,6 +110,28 @@ describe("exact-byte event-chain verification receipts", () => {
     expect(verifier.verify().eventCount).toBe(1_000);
     database.exec("DELETE FROM events WHERE seq = 1");
     expect(() => verifier.verify()).toThrow(/chain coordinates break/);
+  });
+
+  it("rechecks a modified cached prefix even when new rows extend the page", () => {
+    const { database, append, verifier } = fixture(20);
+    verifier.verify();
+    append(20);
+    database.exec("DROP TRIGGER events_no_update");
+    database
+      .prepare("UPDATE events SET payload_json = ? WHERE seq = 1")
+      .run(JSON.stringify({ requestDigest: `sha256:${"d".repeat(64)}`, role: "developer" }));
+    expect(() => verifier.verify()).toThrow(/hash does not match/);
+  });
+
+  it("validates the new suffix across a page boundary without redecoding its exact prefix", () => {
+    const { database, append, verifier } = fixture(999);
+    verifier.verify();
+    append(999);
+    append(1000);
+    const decode = vi.spyOn(codec, "rowToEvent");
+    const result = verifier.verify();
+    expect(decode).toHaveBeenCalledTimes(2);
+    expect(result).toEqual(new SQLiteEventChainVerifier(database, projectId).verify());
   });
 
   it("never exposes its cached receipt through a mutable report", () => {

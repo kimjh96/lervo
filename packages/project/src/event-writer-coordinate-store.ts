@@ -1,7 +1,8 @@
 import type { EventWriterCoordinate } from "@lervo/schemas";
 
 import { loadProjectManifest } from "./config.js";
-import { contentHash, readEntry } from "./filesystem.js";
+import { contentHash } from "./filesystem.js";
+import { readSmallEntry } from "./small-entry.js";
 import {
   createEventWriterActivationPlan,
   createEventWriterRollbackPlan,
@@ -26,7 +27,7 @@ async function readCoordinateFile(
   contentHash: string | null;
   source: "implicit_default" | "managed_file";
 }> {
-  const entry = await readEntry(path, maximumEventWriterCoordinateBytes);
+  const entry = await readSmallEntry(path, maximumEventWriterCoordinateBytes);
   if (entry.kind === "missing") {
     return {
       coordinate: defaultEventWriterCoordinate(projectId),
@@ -71,7 +72,7 @@ export async function inspectEventWriterCoordinate(repositoryRoot: string) {
 export async function planEventWriterActivation(input: {
   repositoryRoot: string;
   evidence: unknown;
-  targetEventSchemaVersion?: 2 | 3 | 4 | 5;
+  targetEventSchemaVersion?: 2 | 3 | 4 | 5 | 6;
 }): Promise<EventWriterActivationPlan> {
   const manifest = await loadProjectManifest(input.repositoryRoot);
   const paths = resolveProjectPaths(input.repositoryRoot);

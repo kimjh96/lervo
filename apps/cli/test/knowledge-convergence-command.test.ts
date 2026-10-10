@@ -8,7 +8,10 @@ const ports = vi.hoisted(() => ({
   read: vi.fn(),
   manifest: vi.fn(),
 }));
-vi.mock("@lervo/project-storage", () => ({ openReadOnlyProjectStorage: ports.open }));
+vi.mock("@lervo/project-storage", async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  openReadOnlyProjectStorage: ports.open,
+}));
 vi.mock("@lervo/project", async (original) => ({
   ...(await original<Record<string, unknown>>()),
   loadProjectManifest: ports.manifest,

@@ -31,7 +31,7 @@ export interface EventWriterActivationReceipt {
   receiptKind: "event_writer_activation_applied" | "event_writer_rollback_applied";
   planId: string;
   projectId: string;
-  selectedEventSchemaVersion: 1 | 2 | 3 | 4 | 5;
+  selectedEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6;
   coordinateHash: string;
   activationId: string | null;
 }

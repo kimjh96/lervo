@@ -1,0 +1,3631 @@
+{
+  "schemaVersion": 1,
+  "scope": "Diagnostic only; production v12 unchanged. No frozen resource, installed, power-loss or reviewed-task qualification.",
+  "observedAt": "2026-10-09T20:47:22.002633+00:00",
+  "artifactBuildHash": "sha256:6edc57d7c0a9230efcfa6a1bf9b41eb1f613b8c1607e845577caf78f63213499",
+  "phaseObservation": {
+    "harness": "/tmp/lervo-v12-record-phases.mjs",
+    "harnessHash": "sha256:0cb3a3c752aee0b36467f0dde3a99b7308db53a370e2db9643b257511af5dd7c",
+    "resultPath": "/tmp/lervo-v12-record-phases.json",
+    "resultHash": "sha256:b122e159d687cdade0cf1106e2ae56e10a8de89938f265b16b356f0ebc1d07a8",
+    "result": {
+      "diagnosticOnly": true,
+      "results": [
+        {
+          "workload": "cold",
+          "replacements": 12,
+          "phases": {
+            "inspectEventWriterCoordinate": {
+              "calls": 9,
+              "ms": 6.2766240000000835
+            },
+            "loadProjectManifest": {
+              "calls": 20,
+              "ms": 4.3657499999999345
+            },
+            "resolveProjectPaths": {
+              "calls": 31,
+              "ms": 0.2719540000006191
+            },
+            "record": {
+              "calls": 2,
+              "ms": 23.663583000000017
+            },
+            "SQLiteEventStore.open": {
+              "calls": 2,
+              "ms": 2.0942090000000917
+            },
+            "SQLiteEventStore.verifyIntegrity": {
+              "calls": 5,
+              "ms": 0.7921250000001692
+            },
+            "FileSystemCas.open": {
+              "calls": 2,
+              "ms": 0.44983300000001236
+            },
+            "observeStorageBinding": {
+              "calls": 5,
+              "ms": 1.2291660000000775
+            },
+            "FileSystemCas.put": {
+              "calls": 2,
+              "ms": 13.965958
+            },
+            "FileSystemCas.putStream": {
+              "calls": 2,
+              "ms": 13.898375999999985
+            },
+            "FileSystemCas.verifyObject": {
+              "calls": 4,
+              "ms": 0.4434159999998428
+            },
+            "SQLiteEventStore.transact": {
+              "calls": 2,
+              "ms": 1.9334579999999733
+            }
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "samples": [[38.52170799999999, 56.62]]
+        },
+        {
+          "workload": "warm",
+          "replacements": 12,
+          "phases": {
+            "inspectEventWriterCoordinate": {
+              "calls": 53,
+              "ms": 13.635212999999908
+            },
+            "loadProjectManifest": {
+              "calls": 163,
+              "ms": 12.588280000000509
+            },
+            "resolveProjectPaths": {
+              "calls": 218,
+              "ms": 0.643537000000606
+            },
+            "record": {
+              "calls": 24,
+              "ms": 163.44262599999968
+            },
+            "SQLiteEventStore.open": {
+              "calls": 2,
+              "ms": 2.350041000000033
+            },
+            "SQLiteEventStore.verifyIntegrity": {
+              "calls": 27,
+              "ms": 4.673041999999668
+            },
+            "FileSystemCas.open": {
+              "calls": 2,
+              "ms": 0.5030420000000504
+            },
+            "observeStorageBinding": {
+              "calls": 49,
+              "ms": 8.779583000000002
+            },
+            "FileSystemCas.put": {
+              "calls": 24,
+              "ms": 132.06545900000003
+            },
+            "FileSystemCas.putStream": {
+              "calls": 24,
+              "ms": 131.86083700000052
+            },
+            "FileSystemCas.verifyObject": {
+              "calls": 48,
+              "ms": 9.067000999999891
+            },
+            "SQLiteEventStore.transact": {
+              "calls": 24,
+              "ms": 11.729502000000025
+            }
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "samples": [
+            [18.88945799999999, 20.826],
+            [18.816584000000034, 16.476],
+            [18.215584000000035, 17.762],
+            [18.580416000000014, 18.082],
+            [17.127915999999914, 16.307],
+            [19.39866600000005, 16.817],
+            [18.993125000000077, 15.392],
+            [18.021792000000005, 16.162],
+            [17.637875000000008, 15.625],
+            [17.982833000000028, 18.523]
+          ]
+        },
+        {
+          "workload": "concurrent",
+          "replacements": 12,
+          "phases": {
+            "inspectEventWriterCoordinate": {
+              "calls": 128,
+              "ms": 58.618380000000116
+            },
+            "loadProjectManifest": {
+              "calls": 347,
+              "ms": 66.72912700000097
+            },
+            "resolveProjectPaths": {
+              "calls": 478,
+              "ms": 1.0211750000007669
+            },
+            "record": {
+              "calls": 96,
+              "ms": 1122.9847519999998
+            },
+            "SQLiteEventStore.open": {
+              "calls": 3,
+              "ms": 4.526667999999972
+            },
+            "SQLiteEventStore.verifyIntegrity": {
+              "calls": 28,
+              "ms": 11.718040000000315
+            },
+            "FileSystemCas.open": {
+              "calls": 3,
+              "ms": 0.6294579999999996
+            },
+            "observeStorageBinding": {
+              "calls": 122,
+              "ms": 53.35161699999992
+            },
+            "FileSystemCas.put": {
+              "calls": 96,
+              "ms": 865.7607849999994
+            },
+            "FileSystemCas.putStream": {
+              "calls": 64,
+              "ms": 677.4502129999998
+            },
+            "FileSystemCas.verifyObject": {
+              "calls": 192,
+              "ms": 34.019664000000716
+            },
+            "SQLiteEventStore.transact": {
+              "calls": 24,
+              "ms": 23.26399999999967
+            }
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "samples": [
+            [33.5071660000001, 26.393],
+            [29.494041999999922, 25.953],
+            [28.918416999999977, 23.256],
+            [37.760374999999954, 28.055],
+            [32.88270799999998, 25.646],
+            [29.56662499999993, 24.786],
+            [37.78020900000001, 27.176],
+            [35.03233399999999, 25.044],
+            [33.058625000000006, 24.545],
+            [32.899, 27.397]
+          ]
+        }
+      ]
+    },
+    "limits": "Includes setup, warmups and final checks; inclusive elapsed phases overlap and are not additive CPU or isolated hardware costs."
+  },
+  "experiments": [
+    {
+      "id": "binding_sync",
+      "harness": "/tmp/lervo-binding-stat-probe.mjs",
+      "harnessHash": "sha256:3e83c423a82a70509169c912163e791a9b56bad3232433c1b9844f4abbb0c04c",
+      "resultPath": "/tmp/lervo-binding-stat-4096-results.json",
+      "resultHash": "sha256:1fadd0ca8898ce24d343984992145afe3547eb8743ef6e28cfa321516a5ac6ca",
+      "summary": [
+        {
+          "workload": "cold",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 39.12480860000001,
+          "meanCpuMs": 56.141600000000004
+        },
+        {
+          "workload": "cold",
+          "mode": "sync",
+          "workers": 5,
+          "meanElapsedMs": 41.360083200000005,
+          "meanCpuMs": 59.8474
+        },
+        {
+          "workload": "warm",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 18.219865879999997,
+          "meanCpuMs": 17.59804
+        },
+        {
+          "workload": "warm",
+          "mode": "sync",
+          "workers": 5,
+          "meanElapsedMs": 18.56330166,
+          "meanCpuMs": 17.41146
+        },
+        {
+          "workload": "concurrent",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 32.89249916,
+          "meanCpuMs": 26.2167
+        },
+        {
+          "workload": "concurrent",
+          "mode": "sync",
+          "workers": 5,
+          "meanElapsedMs": 32.007582500000005,
+          "meanCpuMs": 25.38926
+        }
+      ],
+      "results": [
+        {
+          "cycle": 0,
+          "processMs": 592.3797500000001,
+          "mode": "current",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.16529200000002, 55.621]]
+        },
+        {
+          "cycle": 0,
+          "processMs": 588.721333,
+          "mode": "sync",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.585500000000025, 55.915]]
+        },
+        {
+          "cycle": 0,
+          "processMs": 788.8995000000002,
+          "mode": "current",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.834958999999913, 22.932],
+            [18.78049999999996, 16.426],
+            [17.117083999999977, 15.733],
+            [18.809375000000045, 19.902],
+            [17.047458000000006, 16.395],
+            [18.153042000000028, 15.545],
+            [17.94895800000006, 16.103],
+            [18.036000000000058, 16.258],
+            [17.187332999999967, 14.737],
+            [17.65391699999998, 19.19]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processMs": 794.5324579999997,
+          "mode": "sync",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.925457999999935, 22.774],
+            [18.827125000000024, 17.035],
+            [18.21779099999992, 15.7],
+            [18.710458000000017, 20.177],
+            [18.067750000000046, 16.418],
+            [17.953250000000025, 15.579],
+            [17.916167000000087, 16.01],
+            [18.05483300000003, 16.125],
+            [18.02774999999997, 14.56],
+            [17.87141699999995, 18.725]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processMs": 971.2258750000005,
+          "mode": "current",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 502232,
+          "samples": [
+            [33.868208000000095, 26.941],
+            [33.08787499999994, 24.446],
+            [31.11504100000002, 25.742],
+            [29.082333000000062, 26.552],
+            [33.8722919999999, 28.054],
+            [30.28970800000002, 24.557],
+            [40.68491699999993, 29.42],
+            [30.480041999999912, 26.304],
+            [35.07537500000001, 25.672],
+            [28.951749999999947, 28.332]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processMs": 1000.9415840000001,
+          "mode": "sync",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 503388,
+          "samples": [
+            [30.303250000000048, 24.822],
+            [34.889332999999965, 24.914],
+            [37.80787499999997, 24.13],
+            [29.218999999999937, 26.506],
+            [33.774167000000034, 25.76],
+            [29.444582999999966, 22.696],
+            [38.58100000000002, 28.507],
+            [34.01354100000003, 25.013],
+            [33.19583399999999, 24.483],
+            [37.99858399999994, 29.348]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processMs": 610.8912919999993,
+          "mode": "sync",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[49.88820799999996, 71.186]]
+        },
+        {
+          "cycle": 1,
+          "processMs": 591.6458750000002,
+          "mode": "current",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.32274999999993, 55.898]]
+        },
+        {
+          "cycle": 1,
+          "processMs": 803.7920839999997,
+          "mode": "sync",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.846374999999966, 21.136],
+            [20.053250000000048, 19.589],
+            [19.015499999999975, 15.962],
+            [18.739749999999958, 18.761],
+            [19.02475000000004, 18.25],
+            [18.108167000000094, 15.95],
+            [17.896833000000015, 15.782],
+            [18.895958000000064, 18.095],
+            [18.125791999999933, 15.263],
+            [17.908833000000072, 18.771]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processMs": 798.4819579999994,
+          "mode": "current",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.869625000000042, 22.584],
+            [19.14529200000004, 17.324],
+            [18.766624999999976, 16.215],
+            [18.96358399999997, 20.5],
+            [18.098791000000006, 16.924],
+            [18.025292000000036, 15.911],
+            [17.764041999999904, 16.837],
+            [18.245625000000018, 16.992],
+            [17.934708999999998, 16.004],
+            [17.892375000000015, 19.467]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processMs": 968.6745420000007,
+          "mode": "sync",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 501076,
+          "samples": [
+            [33.01279199999999, 25.172],
+            [33.66858300000001, 23.809],
+            [29.55879200000004, 25.217],
+            [33.582874999999945, 26.408],
+            [33.11874999999998, 26.13],
+            [30.164416999999958, 23.692],
+            [33.700041000000056, 28.136],
+            [33.018249999999966, 25.158],
+            [30.222999999999956, 24.279],
+            [29.996249999999918, 27.324]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processMs": 979.6986249999991,
+          "mode": "current",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 503388,
+          "samples": [
+            [34.23887500000001, 26.356],
+            [34.834542000000056, 24.826],
+            [35.99104199999999, 26.39],
+            [32.224249999999984, 26.858],
+            [33.61225000000002, 26.384],
+            [32.31975, 24.303],
+            [30.089291000000003, 29.626],
+            [28.116915999999947, 24.774],
+            [33.15216699999996, 25.512],
+            [37.69241699999998, 27.201]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processMs": 603.2875839999997,
+          "mode": "current",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[42.474917000000005, 57.04]]
+        },
+        {
+          "cycle": 2,
+          "processMs": 602.9786249999997,
+          "mode": "sync",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.49716699999999, 59.286]]
+        },
+        {
+          "cycle": 2,
+          "processMs": 794.0734999999986,
+          "mode": "current",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.80295799999999, 22.733],
+            [17.738542000000052, 16.192],
+            [17.40333300000009, 15.699],
+            [18.913249999999948, 19.879],
+            [17.625999999999976, 16.447],
+            [17.55600000000004, 15.452],
+            [17.609916999999996, 16.035],
+            [18.17366699999991, 16.316],
+            [16.91050000000007, 14.799],
+            [16.811207999999965, 18.856]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processMs": 795.9383749999997,
+          "mode": "sync",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.708167000000003, 22.434],
+            [19.065582999999947, 16.493],
+            [18.02079100000003, 15.403],
+            [18.741708000000017, 19.625],
+            [18.047458000000006, 16.129],
+            [20.283957999999984, 15.789],
+            [17.674999999999955, 15.892],
+            [18.003000000000043, 15.984],
+            [16.871250000000032, 14.346],
+            [18.29141699999991, 18.994]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processMs": 980.4779579999995,
+          "mode": "current",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 496956,
+          "samples": [
+            [29.871584000000098, 25.437],
+            [33.367166999999995, 25.674],
+            [33.60633300000006, 24.517],
+            [38.26679200000001, 27.474],
+            [29.970416, 26.897],
+            [33.9664580000001, 23.512],
+            [35.85004200000003, 28.499],
+            [30.332875000000058, 26.4],
+            [30.320749999999975, 24.558],
+            [38.19837499999994, 28.606]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processMs": 950.5018340000006,
+          "mode": "sync",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 495800,
+          "samples": [
+            [37.806917, 25.616],
+            [33.203291000000036, 26.129],
+            [27.946749999999952, 22.87],
+            [29.214875000000006, 26.041],
+            [29.814292000000023, 25.417],
+            [28.034541999999988, 22.553],
+            [29.873166999999967, 26.73],
+            [28.280958000000055, 24.53],
+            [32.759791000000064, 24.136],
+            [28.430582999999956, 26.594]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processMs": 600.1172500000011,
+          "mode": "sync",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.31166600000006, 56.432]]
+        },
+        {
+          "cycle": 3,
+          "processMs": 588.7828329999993,
+          "mode": "current",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.06595900000002, 55.921]]
+        },
+        {
+          "cycle": 3,
+          "processMs": 798.1613340000004,
+          "mode": "sync",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.853917000000024, 23.32],
+            [18.704417000000035, 16.684],
+            [18.476291999999944, 15.678],
+            [18.526875000000018, 19.898],
+            [18.123959000000013, 16.305],
+            [18.313207999999918, 15.576],
+            [18.68208400000003, 16.199],
+            [17.89016700000002, 16.087],
+            [18.162000000000035, 14.709],
+            [17.86687500000005, 19.012]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processMs": 798.9088330000013,
+          "mode": "current",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.830874999999992, 22.998],
+            [18.806332999999995, 16.68],
+            [18.242875000000026, 16.067],
+            [18.695459000000028, 20.326],
+            [18.202042000000006, 17.12],
+            [17.93683299999998, 15.528],
+            [17.926958000000013, 16.276],
+            [17.862167, 16.456],
+            [17.19441699999993, 14.999],
+            [18.026207999999997, 19.433]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processMs": 962.6548749999965,
+          "mode": "sync",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499920,
+          "samples": [
+            [37.488666999999964, 26.824],
+            [30.37270799999999, 24.324],
+            [32.84800000000007, 24.774],
+            [32.74183299999993, 26.37],
+            [29.538417000000095, 26.294],
+            [29.92254200000002, 23.266],
+            [30.030167000000006, 27.288],
+            [30.611749999999915, 24.454],
+            [29.39283300000011, 23.585],
+            [32.777333, 26.783]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processMs": 970.1294999999991,
+          "mode": "current",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 496956,
+          "samples": [
+            [29.885500000000093, 25.795],
+            [32.41262500000005, 25.557],
+            [28.645208000000025, 23.743],
+            [38.73874999999998, 27.35],
+            [33.11354099999994, 26.298],
+            [31.99791599999992, 22.79],
+            [33.24320799999998, 28.934],
+            [29.109583999999927, 25.317],
+            [34.077499999999986, 24.744],
+            [31.97874999999999, 28.017]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processMs": 603.3380419999994,
+          "mode": "current",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.59512500000005, 56.228]]
+        },
+        {
+          "cycle": 4,
+          "processMs": 599.1705829999992,
+          "mode": "sync",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.517875000000004, 56.418]]
+        },
+        {
+          "cycle": 4,
+          "processMs": 802.9657499999994,
+          "mode": "current",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.787165999999957, 23.274],
+            [18.82008399999995, 17.082],
+            [18.17791699999998, 16.16],
+            [18.774291000000062, 20.658],
+            [19.13354199999992, 17.306],
+            [17.953374999999937, 16.112],
+            [17.90658300000007, 16.69],
+            [18.080916000000002, 16.953],
+            [18.139999999999986, 15.423],
+            [17.675292000000013, 19.974]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processMs": 806.4132919999975,
+          "mode": "sync",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.956125000000043, 23.051],
+            [19.07083399999999, 16.754],
+            [17.91883299999995, 15.98],
+            [18.904667000000018, 20.12],
+            [18.345290999999975, 16.7],
+            [18.73570799999993, 15.917],
+            [18.83916700000009, 16.342],
+            [18.09279200000003, 16.452],
+            [17.90433299999995, 14.903],
+            [18.90199999999993, 19.135]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processMs": 977.5346659999996,
+          "mode": "current",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 501076,
+          "samples": [
+            [30.662624999999935, 28.142],
+            [29.01008300000001, 23.656],
+            [27.866916999999944, 24.493],
+            [33.10054200000002, 27.277],
+            [31.918959000000086, 26.422],
+            [30.49425000000008, 23.486],
+            [37.76529199999993, 28.313],
+            [37.849624999999946, 26.607],
+            [33.028625000000034, 24.126],
+            [37.19562499999995, 29.944]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processMs": 965.2547909999994,
+          "mode": "sync",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499920,
+          "samples": [
+            [33.56550000000004, 26.377],
+            [29.062667000000033, 24.609],
+            [28.087999999999965, 23.375],
+            [30.265667000000008, 25.724],
+            [33.765333000000055, 25.978],
+            [33.60679200000004, 23.067],
+            [31.635125000000016, 27.686],
+            [32.53366600000004, 24.818],
+            [38.22229200000004, 24.694],
+            [29.273750000000064, 27.053]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "metadata_guards",
+      "harness": "/tmp/lervo-metadata-guard-probe.mjs",
+      "harnessHash": "sha256:be44a6bb4625f28a64f78b48c7bee49428fe98f565d1c0fb56c578e74b0a5aec",
+      "resultPath": "/tmp/lervo-metadata-guard-4096-results.json",
+      "resultHash": "sha256:ce1aa22bc90e1498f7b4603dd5a778b013fb1920c5eabb06d0b67e8c73128824",
+      "summary": [
+        {
+          "workload": "cold",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 38.84610000000002,
+          "meanCpuMs": 57.3574
+        },
+        {
+          "workload": "cold",
+          "mode": "entry",
+          "workers": 5,
+          "meanElapsedMs": 38.143733399999974,
+          "meanCpuMs": 56.3618
+        },
+        {
+          "workload": "cold",
+          "mode": "combined",
+          "workers": 5,
+          "meanElapsedMs": 38.819700200000014,
+          "meanCpuMs": 55.0524
+        },
+        {
+          "workload": "warm",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 18.178539239999996,
+          "meanCpuMs": 17.51838
+        },
+        {
+          "workload": "warm",
+          "mode": "entry",
+          "workers": 5,
+          "meanElapsedMs": 18.070220799999987,
+          "meanCpuMs": 17.22724
+        },
+        {
+          "workload": "warm",
+          "mode": "combined",
+          "workers": 5,
+          "meanElapsedMs": 18.88405414,
+          "meanCpuMs": 17.66864
+        },
+        {
+          "workload": "concurrent",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 32.41208996,
+          "meanCpuMs": 26.27096
+        },
+        {
+          "workload": "concurrent",
+          "mode": "entry",
+          "workers": 5,
+          "meanElapsedMs": 33.35281506,
+          "meanCpuMs": 26.20628
+        },
+        {
+          "workload": "concurrent",
+          "mode": "combined",
+          "workers": 5,
+          "meanElapsedMs": 33.953108359999995,
+          "meanCpuMs": 25.86326
+        }
+      ],
+      "results": [
+        {
+          "cycle": 0,
+          "processMs": 585.5118750000001,
+          "mode": "current",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.00529199999994, 55.447]]
+        },
+        {
+          "cycle": 0,
+          "processMs": 584.2997089999999,
+          "mode": "entry",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.16041700000005, 58.421]]
+        },
+        {
+          "cycle": 0,
+          "processMs": 586.4126669999998,
+          "mode": "combined",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.84345799999994, 54.958]]
+        },
+        {
+          "cycle": 0,
+          "processMs": 788.4412910000001,
+          "mode": "current",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.905583000000092, 22.275],
+            [19.070749999999975, 16.806],
+            [17.981709000000023, 15.648],
+            [18.771209, 19.593],
+            [18.08495800000003, 16.396],
+            [16.960874999999987, 15.404],
+            [17.92983300000003, 15.827],
+            [18.051791999999978, 16.264],
+            [17.031791999999996, 14.895],
+            [17.896958999999924, 19.072]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processMs": 794.6030840000003,
+          "mode": "entry",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [18.773916999999983, 20.427],
+            [19.059708, 16.513],
+            [19.133375, 17.648],
+            [18.46779099999992, 17.966],
+            [17.391457999999943, 16.336],
+            [16.892333000000008, 15.192],
+            [18.085375, 15.938],
+            [21.46787500000005, 15.806],
+            [17.46841699999993, 13.976],
+            [17.868209000000093, 18.547]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processMs": 810.8874579999997,
+          "mode": "combined",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.903125000000045, 20.821],
+            [19.992875000000026, 19.157],
+            [20.006458000000066, 18.248],
+            [20.746667000000002, 20.301],
+            [21.074291000000017, 20.454],
+            [19.146084000000087, 17.962],
+            [19.009000000000015, 16.783],
+            [20.818874999999935, 20.14],
+            [19.16141700000003, 16.037],
+            [18.818875000000048, 19.127]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processMs": 951.2843329999996,
+          "mode": "current",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 495800,
+          "samples": [
+            [33.38970900000004, 26.827],
+            [30.22083299999997, 24.634],
+            [32.273667000000046, 26.307],
+            [29.738917000000015, 26.781],
+            [30.887499999999932, 25.996],
+            [33.50254199999995, 24.032],
+            [35.10816699999998, 28.654],
+            [28.569417000000044, 25.109],
+            [29.923625000000015, 24.793],
+            [28.884874999999965, 27.773]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processMs": 978.9869170000002,
+          "mode": "entry",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 500424,
+          "samples": [
+            [33.995750000000044, 26.527],
+            [37.34979200000009, 25.997],
+            [34.0067499999999, 26.034],
+            [33.42562499999997, 27.495],
+            [32.196750000000065, 26.252],
+            [28.596541000000002, 23.039],
+            [36.28133300000002, 28.379],
+            [28.751750000000015, 24.706],
+            [34.691082999999935, 25.701],
+            [33.94687499999998, 28.232]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processMs": 993.836542,
+          "mode": "combined",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 506856,
+          "samples": [
+            [32.548542, 24.366],
+            [33.31433399999992, 25.539],
+            [39.84833299999991, 24.56],
+            [34.888874999999985, 26.937],
+            [33.10750000000007, 25.774],
+            [32.97270900000001, 23.775],
+            [38.04141599999991, 28.287],
+            [37.153542000000016, 25.003],
+            [33.92120799999998, 24.907],
+            [34.26091700000006, 27.891]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processMs": 584.6248749999995,
+          "mode": "combined",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.934999999999945, 54.863]]
+        },
+        {
+          "cycle": 1,
+          "processMs": 587.0380420000001,
+          "mode": "entry",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.79766699999993, 55.875]]
+        },
+        {
+          "cycle": 1,
+          "processMs": 593.1139999999996,
+          "mode": "current",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[41.272875, 61.957]]
+        },
+        {
+          "cycle": 1,
+          "processMs": 805.5885419999995,
+          "mode": "combined",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.72550000000001, 22.685],
+            [19.067750000000046, 16.238],
+            [19.936374999999998, 15.556],
+            [18.91554199999996, 20.041],
+            [18.065833999999995, 16.416],
+            [18.026500000000055, 15.539],
+            [17.95825000000002, 16.032],
+            [18.06412499999999, 16.052],
+            [18.009042000000022, 14.831],
+            [18.815875000000005, 19.081]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processMs": 801.8692499999997,
+          "mode": "entry",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.012374999999906, 22.938],
+            [17.78637500000002, 16.999],
+            [18.314374999999927, 16.108],
+            [18.639082999999914, 20.256],
+            [18.126082999999994, 16.819],
+            [17.977999999999952, 15.888],
+            [17.83787499999994, 16.299],
+            [17.054666999999995, 16.417],
+            [17.057249999999954, 14.992],
+            [18.213666999999987, 19.611]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processMs": 795.921624999999,
+          "mode": "current",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.851791999999932, 23.516],
+            [18.00441699999999, 16.926],
+            [17.990833000000066, 16.228],
+            [18.77020899999991, 20.457],
+            [18.15416700000003, 17.379],
+            [17.784374999999955, 15.878],
+            [18.017791999999986, 16.569],
+            [17.908957999999984, 16.648],
+            [17.200041000000056, 15.294],
+            [17.8198339999999, 19.569]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processMs": 982.2628329999989,
+          "mode": "combined",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 502736,
+          "samples": [
+            [33.71379200000001, 26.245],
+            [34.004125000000045, 24.868],
+            [33.77395799999999, 26.161],
+            [33.17095900000004, 27.687],
+            [29.589875000000006, 27.044],
+            [34.419624999999996, 23.862],
+            [34.180708000000095, 29.02],
+            [29.14312499999994, 25.085],
+            [30.093124999999986, 24.862],
+            [30.000249999999937, 27.9]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processMs": 989.0511669999996,
+          "mode": "entry",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499772,
+          "samples": [
+            [28.32487500000002, 25.58],
+            [36.86620800000003, 23.684],
+            [38.8605, 26.292],
+            [33.33108399999992, 27.417],
+            [38.002624999999966, 26.909],
+            [38.16833399999996, 24.054],
+            [33.877166999999986, 29.822],
+            [33.70166699999993, 25.867],
+            [29.497959000000037, 26.527],
+            [28.948832999999922, 27.127]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processMs": 987.122292,
+          "mode": "current",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [30.088666000000103, 25.385],
+            [34.301665999999955, 25.526],
+            [28.71495900000002, 23.232],
+            [35.84308299999998, 27.776],
+            [30.330250000000092, 26.884],
+            [29.995958000000087, 22.987],
+            [36.73250000000007, 28.716],
+            [37.513915999999995, 25.64],
+            [37.75658299999998, 25.247],
+            [32.992000000000075, 28.61]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processMs": 590.89725,
+          "mode": "current",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.18904100000009, 56.069]]
+        },
+        {
+          "cycle": 2,
+          "processMs": 590.3728329999994,
+          "mode": "entry",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.09649999999999, 55.335]]
+        },
+        {
+          "cycle": 2,
+          "processMs": 590.8747079999994,
+          "mode": "combined",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.24512500000003, 54.161]]
+        },
+        {
+          "cycle": 2,
+          "processMs": 794.1551250000011,
+          "mode": "current",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.761209000000008, 23.113],
+            [18.988707999999974, 16.391],
+            [18.154541999999992, 15.841],
+            [19.686792000000082, 20.169],
+            [19.07883400000003, 16.464],
+            [16.986834000000044, 15.504],
+            [17.830208999999968, 16.142],
+            [18.247124999999983, 16.253],
+            [16.912665999999945, 14.537],
+            [16.928749999999923, 18.419]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processMs": 791.6314170000005,
+          "mode": "entry",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.83179199999995, 22.338],
+            [18.91066699999999, 16.301],
+            [17.20108300000004, 15.724],
+            [18.717415999999957, 19.683],
+            [17.111500000000092, 16.167],
+            [17.04958399999998, 15.338],
+            [17.710959000000003, 15.84],
+            [17.246666000000005, 16.008],
+            [17.042791999999963, 14.629],
+            [17.581957999999986, 18.584]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processMs": 796.9689590000016,
+          "mode": "combined",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.88083299999994, 22.31],
+            [17.878124999999955, 16.033],
+            [20.252250000000004, 15.51],
+            [18.717207999999914, 19.433],
+            [18.20108300000004, 16.369],
+            [16.901708999999983, 14.851],
+            [17.96266700000001, 15.837],
+            [18.082374999999956, 15.962],
+            [18.047249999999963, 14.696],
+            [17.71787500000005, 18.494]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processMs": 960.0255419999994,
+          "mode": "current",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499920,
+          "samples": [
+            [32.64533299999994, 26.049],
+            [31.949041999999963, 23.584],
+            [29.02841699999999, 25.966],
+            [28.192957999999976, 26.2],
+            [32.59254099999998, 25.956],
+            [32.35287500000004, 23.81],
+            [29.99750000000006, 27.826],
+            [28.149625000000015, 25.334],
+            [33.003832999999986, 23.491],
+            [32.69425000000001, 27.068]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processMs": 989.4272919999967,
+          "mode": "entry",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498616,
+          "samples": [
+            [37.03616699999998, 27.106],
+            [38.85562500000003, 28.084],
+            [29.34050000000002, 24.577],
+            [33.184833000000026, 27.707],
+            [33.472083999999995, 26.807],
+            [32.2902499999999, 23.546],
+            [30.50562500000001, 29.125],
+            [32.27075000000002, 25.635],
+            [32.15787499999999, 25.67],
+            [38.98299999999995, 28.027]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processMs": 1003.0150410000024,
+          "mode": "combined",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 506856,
+          "samples": [
+            [30.34441700000002, 26.557],
+            [34.11304099999995, 26.096],
+            [32.70104100000003, 23.151],
+            [32.98554200000001, 26.679],
+            [33.902333999999996, 26.825],
+            [29.229499999999916, 23.237],
+            [39.123666999999955, 28.742],
+            [35.04783299999997, 25.652],
+            [37.64141699999993, 26.326],
+            [38.244542000000024, 28.567]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processMs": 594.9971670000014,
+          "mode": "combined",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.028334000000086, 54.853]]
+        },
+        {
+          "cycle": 3,
+          "processMs": 590.0869999999995,
+          "mode": "entry",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.21295799999996, 55.564]]
+        },
+        {
+          "cycle": 3,
+          "processMs": 591.7265420000003,
+          "mode": "current",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.21733400000005, 56.34]]
+        },
+        {
+          "cycle": 3,
+          "processMs": 813.3122919999987,
+          "mode": "combined",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.877250000000004, 22.254],
+            [18.78583399999991, 16.49],
+            [18.192000000000007, 15.967],
+            [18.72758299999998, 19.713],
+            [18.095375000000104, 16.516],
+            [18.096874999999955, 15.437],
+            [17.734249999999975, 15.98],
+            [18.127250000000004, 16.172],
+            [18.211416999999983, 14.764],
+            [18.93795799999998, 19.778]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processMs": 816.1235420000012,
+          "mode": "entry",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.964833, 22.689],
+            [18.882999999999925, 16.577],
+            [18.081125000000043, 15.946],
+            [19.820458999999914, 20.063],
+            [18.41258300000004, 16.54],
+            [17.64358299999992, 15.422],
+            [17.895125000000007, 16.17],
+            [17.999082999999928, 15.831],
+            [17.074208, 14.95],
+            [17.920625000000086, 18.954]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processMs": 797.7743330000012,
+          "mode": "current",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.96225000000004, 23.408],
+            [18.76237500000002, 17.39],
+            [18.16341699999998, 16.383],
+            [18.66995799999995, 20.721],
+            [20.227292000000034, 17.054],
+            [16.841875000000073, 15.765],
+            [17.921082999999953, 16.631],
+            [18.28991700000006, 17.112],
+            [17.972083999999995, 15.372],
+            [18.793166000000042, 19.573]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processMs": 999.8347920000015,
+          "mode": "combined",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 505700,
+          "samples": [
+            [29.764625000000024, 24.822],
+            [32.84566700000005, 23.91],
+            [38.01099999999997, 25.302],
+            [36.03487499999994, 26.598],
+            [30.42908399999999, 25.723],
+            [29.67679099999998, 22.01],
+            [34.713457999999946, 27.676],
+            [32.22399999999993, 24.589],
+            [33.26420799999994, 24.89],
+            [40.91937500000006, 27.635]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processMs": 990.924167000001,
+          "mode": "entry",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 502232,
+          "samples": [
+            [30.060542000000055, 25.146],
+            [36.830082999999945, 24.99],
+            [37.860000000000014, 25.803],
+            [32.30929200000003, 26.767],
+            [29.148833999999965, 26.488],
+            [36.63620900000001, 23.688],
+            [35.23462500000005, 28.111],
+            [31.972958000000062, 25.612],
+            [33.23049999999989, 25.177],
+            [33.10562500000003, 28.369]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processMs": 986.7121670000015,
+          "mode": "current",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [29.709833000000003, 25.61],
+            [36.86129200000005, 24.371],
+            [30.110957999999982, 26.031],
+            [33.884207999999944, 27.899],
+            [32.97029199999997, 26.528],
+            [32.14408300000002, 23.391],
+            [38.33958400000006, 29.889],
+            [32.63079200000004, 25.426],
+            [36.42958399999998, 24.796],
+            [28.904583000000002, 27.901]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processMs": 598.968541000002,
+          "mode": "current",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.54595800000004, 56.974]]
+        },
+        {
+          "cycle": 4,
+          "processMs": 597.4114580000023,
+          "mode": "entry",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.451124999999934, 56.614]]
+        },
+        {
+          "cycle": 4,
+          "processMs": 600.8171670000011,
+          "mode": "combined",
+          "workload": "cold",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[42.04658400000005, 56.427]]
+        },
+        {
+          "cycle": 4,
+          "processMs": 795.5153750000027,
+          "mode": "current",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [18.92820800000004, 22.26],
+            [17.858749999999986, 16.507],
+            [17.181666999999948, 15.919],
+            [18.68754100000001, 19.88],
+            [17.097832999999923, 16.615],
+            [17.032625000000053, 15.666],
+            [17.792790999999966, 16.065],
+            [18.078250000000025, 16.418],
+            [17.131415999999945, 14.517],
+            [17.77091699999994, 19.186]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processMs": 793.2981670000008,
+          "mode": "entry",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.140957999999955, 22.308],
+            [17.849249999999984, 16.783],
+            [16.97429199999999, 15.622],
+            [17.732375000000047, 19.822],
+            [17.146292000000017, 16.432],
+            [17.201666000000046, 15.658],
+            [17.867958000000044, 16.411],
+            [17.981374999999957, 16.302],
+            [17.0122080000001, 14.835],
+            [16.877416999999923, 18.759]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processMs": 812.4361669999998,
+          "mode": "combined",
+          "workload": "warm",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.62291599999992, 23.588],
+            [18.946916999999985, 16.897],
+            [19.200958000000014, 16.621],
+            [19.825916000000007, 20.193],
+            [19.175791000000004, 17.232],
+            [19.006457999999952, 15.986],
+            [18.7694580000001, 17.231],
+            [17.93241599999999, 16.624],
+            [18.225166999999942, 15.12],
+            [18.807083000000034, 19.873]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processMs": 989.7749160000021,
+          "mode": "current",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499268,
+          "samples": [
+            [37.835958000000005, 27.144],
+            [33.80962499999998, 27.215],
+            [29.829207999999994, 25.485],
+            [40.66708300000005, 38.214],
+            [32.93770800000004, 27.205],
+            [27.904916999999955, 23.15],
+            [37.12454200000002, 28.671],
+            [28.081957999999986, 25.357],
+            [34.07395799999995, 25.258],
+            [28.979124999999954, 27.814]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processMs": 978.9332090000025,
+          "mode": "entry",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 2,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 500424,
+          "samples": [
+            [33.04637500000001, 25.857],
+            [27.871792000000028, 23.098],
+            [28.88129200000003, 24.243],
+            [32.38591599999995, 26.176],
+            [32.827083000000016, 25.892],
+            [27.993833999999993, 22.574],
+            [41.203040999999985, 28.43],
+            [28.862124999999992, 24.637],
+            [34.22558300000003, 28.057],
+            [33.036834, 29.274]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processMs": 1002.8682079999999,
+          "mode": "combined",
+          "workload": "concurrent",
+          "profile": 4096,
+          "replacements": 3,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 503892,
+          "samples": [
+            [33.53758300000004, 26.595],
+            [34.44841700000006, 26.101],
+            [32.20950000000005, 22.474],
+            [37.21249999999998, 27.89],
+            [36.513958, 25.908],
+            [32.12312499999996, 23.275],
+            [37.18125000000009, 27.345],
+            [33.797416, 25.186],
+            [30.46104200000002, 25.996],
+            [36.80729199999996, 27.633]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "native_strict_inputs",
+      "harness": "/tmp/lervo-admitted-sync-group-v3-cas-probe.mjs",
+      "harnessHash": "sha256:fd430921402ec9baf99b0409d571d393e91016d284fcbb24ed00341c1fb20d2c",
+      "resultPath": "/tmp/lervo-admitted-sync-group-v3-cas-probe.json",
+      "resultHash": "sha256:85985efb0e9596e7f44381dcdffe3f6ea22bb549726fef7b81cc3c0dfac0e685",
+      "summary": [
+        {
+          "workload": "cold",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 38.424966999999995,
+          "meanCpuMs": 56.3532
+        },
+        {
+          "workload": "cold",
+          "mode": "admitted-sync-group-v3",
+          "workers": 5,
+          "meanElapsedMs": 38.0885082,
+          "meanCpuMs": 56.7992
+        },
+        {
+          "workload": "warm",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 18.33895076,
+          "meanCpuMs": 17.52382
+        },
+        {
+          "workload": "warm",
+          "mode": "admitted-sync-group-v3",
+          "workers": 5,
+          "meanElapsedMs": 18.401561639999994,
+          "meanCpuMs": 17.67014
+        },
+        {
+          "workload": "concurrent",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 32.19344579999999,
+          "meanCpuMs": 26.14902
+        },
+        {
+          "workload": "concurrent",
+          "mode": "admitted-sync-group-v3",
+          "workers": 5,
+          "meanElapsedMs": 23.0233458,
+          "meanCpuMs": 27.11712
+        }
+      ],
+      "results": [
+        {
+          "cycle": 0,
+          "processElapsedMs": 581.0572499999998,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.786208999999985, 55.912]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 583.760959,
+          "mode": "admitted-sync-group-v3",
+          "workload": "cold",
+          "replacements": 1,
+          "groupedSyncSizes": [1, 1],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.322167000000036, 57.74]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 784.3574169999999,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.062124999999924, 22.699],
+            [18.913875000000075, 16.346],
+            [18.14829199999997, 15.728],
+            [18.744041999999922, 19.922],
+            [18.129167000000052, 16.725],
+            [18.058625000000006, 15.631],
+            [17.840333999999984, 16.159],
+            [17.924916999999937, 16.196],
+            [17.223208999999997, 14.839],
+            [17.675416999999925, 19.082]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 783.5716670000002,
+          "mode": "admitted-sync-group-v3",
+          "workload": "warm",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.05595799999992, 22.81],
+            [18.830666000000065, 16.293],
+            [17.19608400000004, 15.773],
+            [18.675374999999917, 20.189],
+            [17.17983300000003, 16.426],
+            [16.934665999999993, 15.45],
+            [17.86129200000005, 16.224],
+            [18.28479100000004, 16.423],
+            [16.952249999999935, 14.644],
+            [17.75070800000003, 19.02]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 962.4224999999997,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [36.22225000000003, 26.031],
+            [34.142791999999986, 25.563],
+            [33.325917000000004, 24.072],
+            [34.08645799999999, 28.134],
+            [33.13495799999998, 28.749],
+            [29.883166999999958, 25.485],
+            [32.65204199999994, 31.326],
+            [35.188125000000014, 28.836],
+            [30.358916000000022, 25.301],
+            [30.177082999999925, 27.521]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 847.757584,
+          "mode": "admitted-sync-group-v3",
+          "workload": "concurrent",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            4, 2, 4, 1, 4, 1, 4, 2, 4, 2, 4, 1, 4, 1, 4, 2, 4, 1, 4, 2, 4, 1, 1, 4, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [22.01770799999997, 25.955],
+            [23.280417000000057, 27.109],
+            [21.919374999999945, 24.851],
+            [22.082457999999974, 27.116],
+            [22.88549999999998, 26.608],
+            [22.14874999999995, 24.268],
+            [24.719375000000014, 29.306],
+            [22.1512919999999, 26.418],
+            [25.827583000000004, 24.252],
+            [21.035665999999992, 26.866]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 585.4942499999997,
+          "mode": "admitted-sync-group-v3",
+          "workload": "cold",
+          "replacements": 1,
+          "groupedSyncSizes": [1, 1],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.39166599999999, 56.01]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 584.7002910000001,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.678709000000026, 56.542]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 798.7844160000004,
+          "mode": "admitted-sync-group-v3",
+          "workload": "warm",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.207208000000037, 23.214],
+            [19.550791000000004, 17.124],
+            [18.092333000000053, 16.214],
+            [19.72758399999998, 20.514],
+            [18.108375000000024, 16.578],
+            [18.096874999999955, 15.919],
+            [18.899915999999962, 16.852],
+            [17.99345900000003, 16.5],
+            [18.123125000000073, 15.529],
+            [17.96658400000001, 19.416]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 787.824834,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.740666000000033, 22.65],
+            [18.962375000000065, 16.627],
+            [18.08216600000003, 15.678],
+            [18.710707999999954, 20.431],
+            [17.169874999999934, 16.616],
+            [17.024999999999977, 15.312],
+            [17.95554100000004, 16.101],
+            [17.973541999999952, 16.215],
+            [16.92937500000005, 14.831],
+            [16.923332999999957, 19.003]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 839.247875,
+          "mode": "admitted-sync-group-v3",
+          "workload": "concurrent",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            4, 2, 4, 1, 4, 1, 4, 2, 4, 1, 4, 1, 4, 1, 4, 1, 4, 2, 4, 2, 4, 1, 4, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 491680,
+          "samples": [
+            [22.887749999999983, 26.574],
+            [23.061000000000035, 27.291],
+            [21.027207999999973, 24.719],
+            [20.92233299999998, 25.93],
+            [22.075333, 26.522],
+            [21.040958000000046, 23.051],
+            [23.933915999999954, 28.944],
+            [20.885082999999895, 24.817],
+            [22.37474999999995, 24.286],
+            [20.906000000000063, 27.76]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 957.4837919999991,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498764,
+          "samples": [
+            [28.729165999999964, 25.903],
+            [31.84704099999999, 23.423],
+            [29.189666999999986, 24.865],
+            [32.82283300000006, 26.473],
+            [29.138791999999967, 26.286],
+            [31.781292000000008, 23.247],
+            [30.290499999999952, 27.455],
+            [36.787874999999985, 25.719],
+            [29.222875000000045, 25.031],
+            [29.329625000000078, 28.114]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 585.1247920000005,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.12862499999994, 56.031]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 588.8727920000001,
+          "mode": "admitted-sync-group-v3",
+          "workload": "cold",
+          "replacements": 1,
+          "groupedSyncSizes": [1, 1],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.80312499999991, 57.885]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 792.7165839999998,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.524875000000065, 22.956],
+            [19.224749999999972, 16.472],
+            [18.10262499999999, 15.858],
+            [18.771540999999957, 20.102],
+            [18.219333000000006, 16.602],
+            [17.86429200000009, 15.739],
+            [17.98283399999991, 16.333],
+            [17.97158300000001, 16.576],
+            [16.972415999999953, 15.347],
+            [17.951416999999992, 19.493]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 796.313791999999,
+          "mode": "admitted-sync-group-v3",
+          "workload": "warm",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.825958000000014, 22.863],
+            [18.971499999999992, 16.849],
+            [17.86200000000008, 15.791],
+            [20.037124999999946, 20.77],
+            [18.039625, 16.804],
+            [17.069374999999923, 15.893],
+            [17.741040999999996, 16.257],
+            [18.112582999999972, 16.705],
+            [17.049540999999977, 14.787],
+            [18.967916999999943, 19.593]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 972.9309999999987,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 501580,
+          "samples": [
+            [33.82249999999999, 26.338],
+            [33.01324999999997, 26.25],
+            [31.94391600000006, 24.302],
+            [29.571459000000004, 26.688],
+            [31.77466599999991, 26.361],
+            [32.60987499999999, 23.828],
+            [37.182000000000016, 28.837],
+            [36.842708000000016, 26.363],
+            [33.173625000000015, 25.293],
+            [29.469291, 27.832]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 870.1766250000001,
+          "mode": "admitted-sync-group-v3",
+          "workload": "concurrent",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            4, 2, 4, 2, 4, 2, 4, 2, 4, 2, 4, 1, 4, 2, 4, 1, 4, 1, 4, 1, 4, 2, 4, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 503388,
+          "samples": [
+            [27.85291600000005, 27.355],
+            [23.124082999999928, 26.711],
+            [21.881167000000005, 24.658],
+            [21.97437500000001, 27.181],
+            [22.078750000000014, 26.98],
+            [20.893709000000058, 23.527],
+            [24.177332999999976, 27.919],
+            [21.879042000000027, 25.049],
+            [22.152708000000075, 25.779],
+            [21.004791999999952, 28.091]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 589.1509999999998,
+          "mode": "admitted-sync-group-v3",
+          "workload": "cold",
+          "replacements": 1,
+          "groupedSyncSizes": [1, 1],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.15604200000007, 56.164]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 596.8147910000007,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.58641699999998, 56.539]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 800.5198340000006,
+          "mode": "admitted-sync-group-v3",
+          "workload": "warm",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.92320799999993, 23.292],
+            [18.868291999999997, 17.128],
+            [18.149374999999964, 16.359],
+            [19.76374999999996, 21.024],
+            [18.112792000000013, 16.987],
+            [18.002666999999974, 16.313],
+            [17.98687499999994, 16.761],
+            [17.86175000000003, 16.901],
+            [17.135625000000005, 15.466],
+            [17.671875, 19.508]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 802.1917080000021,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.958375000000046, 23.015],
+            [18.74437499999999, 16.923],
+            [18.290415999999937, 16.15],
+            [19.67429100000004, 20.46],
+            [18.0775000000001, 17.082],
+            [17.101374999999962, 15.843],
+            [18.854000000000042, 16.678],
+            [18.09375, 16.739],
+            [18.039249999999925, 15.16],
+            [17.86166700000001, 19.921]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 853.609333999997,
+          "mode": "admitted-sync-group-v3",
+          "workload": "concurrent",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            4, 3, 4, 2, 4, 2, 4, 1, 4, 2, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 501076,
+          "samples": [
+            [23.280958000000055, 28.154],
+            [22.604417000000012, 27.323],
+            [22.13104199999998, 25.423],
+            [22.057667000000038, 28.234],
+            [21.986167000000023, 27.121],
+            [20.89416600000004, 23.281],
+            [24.07395800000006, 29.317],
+            [21.79308400000002, 26.032],
+            [22.33800000000008, 25.975],
+            [22.003416000000016, 28.574]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 988.681875000002,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 493992,
+          "samples": [
+            [31.284167000000025, 26.099],
+            [29.908500000000004, 25.929],
+            [33.67370900000003, 23.777],
+            [32.355249999999955, 26.464],
+            [33.96312499999999, 26.815],
+            [33.69724999999994, 23.659],
+            [35.12849999999992, 28.686],
+            [29.435625000000073, 26.084],
+            [33.94500000000005, 24.403],
+            [34.630957999999964, 28.127]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 590.4156670000011,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.944875000000025, 56.742]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 590.36175,
+          "mode": "admitted-sync-group-v3",
+          "workload": "cold",
+          "replacements": 1,
+          "groupedSyncSizes": [1, 1],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.769541000000004, 56.197]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 794.8907919999983,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.858749999999986, 22.915],
+            [22.59129100000007, 16.615],
+            [18.357166000000007, 15.913],
+            [19.70670800000005, 20.276],
+            [18.057583000000022, 16.793],
+            [18.017333000000008, 15.825],
+            [17.90854200000001, 16.312],
+            [17.849666999999954, 16.585],
+            [17.19591600000001, 15.188],
+            [17.931332999999995, 19.529]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 799.3188750000008,
+          "mode": "admitted-sync-group-v3",
+          "workload": "warm",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.805334000000016, 23.168],
+            [19.176707999999962, 17.159],
+            [17.924624999999992, 16.29],
+            [19.77125000000001, 20.303],
+            [18.022624999999948, 16.791],
+            [18.029458999999974, 15.729],
+            [18.84137499999997, 16.473],
+            [18.093124999999986, 16.288],
+            [16.97787500000004, 14.885],
+            [17.79495899999995, 19.258]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 959.6372919999994,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 496956,
+          "samples": [
+            [32.038832999999954, 25.643],
+            [32.73320799999999, 25.506],
+            [28.41816700000004, 23.044],
+            [32.625625000000014, 27.332],
+            [29.233375000000024, 26.038],
+            [32.89108399999998, 23.303],
+            [36.02604199999996, 28.937],
+            [28.37866699999995, 25.677],
+            [29.17116599999997, 23.888],
+            [32.41937500000006, 28.414]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 887.8012089999975,
+          "mode": "admitted-sync-group-v3",
+          "workload": "concurrent",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            4, 3, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 2, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498764,
+          "samples": [
+            [26.013750000000073, 32.237],
+            [24.747124999999983, 27.703],
+            [25.101833000000056, 30.52],
+            [23.783667000000037, 29.474],
+            [24.24204199999997, 29.087],
+            [22.986084000000005, 24.845],
+            [26.00249999999994, 31.177],
+            [22.89858300000003, 26.545],
+            [25.58970899999997, 29.369],
+            [32.437791999999945, 39.572]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "native_no_duplicate_final_fsync",
+      "harness": "/tmp/lervo-admitted-sync-group-v4-cas-probe.mjs",
+      "harnessHash": "sha256:89798f45c68f57ae5d7f06b0fabef870c27f7efea5e791b798e1e79ffdb457ba",
+      "resultPath": "/tmp/lervo-admitted-sync-group-v4-cas-probe.json",
+      "resultHash": "sha256:f89df8b34e16b64a75cbd0acaab725e4fa61ed40ee2a549661f0ee9e1465a90b",
+      "summary": [
+        {
+          "workload": "cold",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 38.727800200000026,
+          "meanCpuMs": 57.1578
+        },
+        {
+          "workload": "cold",
+          "mode": "admitted-sync-group-v4",
+          "workers": 5,
+          "meanElapsedMs": 38.12495039999999,
+          "meanCpuMs": 56.1274
+        },
+        {
+          "workload": "warm",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 18.049648299999994,
+          "meanCpuMs": 17.5214
+        },
+        {
+          "workload": "warm",
+          "mode": "admitted-sync-group-v4",
+          "workers": 5,
+          "meanElapsedMs": 18.244444099999996,
+          "meanCpuMs": 17.5327
+        },
+        {
+          "workload": "concurrent",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 32.417960840000006,
+          "meanCpuMs": 26.3773
+        },
+        {
+          "workload": "concurrent",
+          "mode": "admitted-sync-group-v4",
+          "workers": 5,
+          "meanElapsedMs": 22.365043379999996,
+          "meanCpuMs": 26.52126
+        }
+      ],
+      "results": [
+        {
+          "cycle": 0,
+          "processElapsedMs": 585.4188340000001,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.42312500000003, 56.67]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 584.9560840000001,
+          "mode": "admitted-sync-group-v4",
+          "workload": "cold",
+          "replacements": 1,
+          "groupedSyncSizes": [1, 1],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.694834000000014, 56.164]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 785.5305839999999,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [18.98016700000005, 22.759],
+            [17.855500000000006, 16.573],
+            [18.140750000000025, 15.749],
+            [18.689666999999986, 20.226],
+            [17.03058400000009, 16.527],
+            [17.088291000000027, 15.29],
+            [17.899165999999923, 15.955],
+            [18.100082999999927, 15.983],
+            [17.03679199999999, 14.83],
+            [17.75070900000003, 18.941]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 790.2022919999999,
+          "mode": "admitted-sync-group-v4",
+          "workload": "warm",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.867208000000005, 22.993],
+            [18.995499999999993, 16.633],
+            [20.051666999999952, 15.922],
+            [18.972833000000037, 20.275],
+            [18.03283399999998, 16.536],
+            [16.81600000000003, 15.566],
+            [18.109332999999992, 16.019],
+            [17.96462500000007, 16.686],
+            [16.95729199999994, 15.01],
+            [17.846292000000062, 19.254]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 971.9232499999998,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499268,
+          "samples": [
+            [38.78308300000003, 28.895],
+            [32.150375000000054, 24.587],
+            [32.942833000000064, 25.621],
+            [33.137958000000026, 28.311],
+            [30.18674999999996, 26.33],
+            [31.59729200000004, 23.277],
+            [37.845707999999945, 28.765],
+            [34.393208999999956, 26.332],
+            [30.460417000000007, 24.949],
+            [33.266042000000084, 28.197]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 849.0290000000005,
+          "mode": "admitted-sync-group-v4",
+          "workload": "concurrent",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            4, 2, 4, 1, 4, 2, 4, 1, 4, 2, 4, 1, 4, 2, 4, 1, 4, 2, 4, 1, 4, 1, 4, 1, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 502232,
+          "samples": [
+            [22.032167000000072, 26.829],
+            [22.046041999999943, 25.944],
+            [21.017375000000015, 24.115],
+            [22.170999999999935, 27.081],
+            [23.069999999999936, 27.404],
+            [20.772166000000084, 23.513],
+            [24.24908300000004, 29.235],
+            [21.76291600000002, 26.177],
+            [21.269542, 24.213],
+            [25.566584000000034, 28.47]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 588.2182499999999,
+          "mode": "admitted-sync-group-v4",
+          "workload": "cold",
+          "replacements": 1,
+          "groupedSyncSizes": [1, 1],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.190083999999956, 56.065]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 586.8625000000002,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.13270899999998, 56.067]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 793.2913330000001,
+          "mode": "admitted-sync-group-v4",
+          "workload": "warm",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.84420799999998, 22.998],
+            [18.767582999999945, 16.567],
+            [18.000125000000025, 15.884],
+            [18.939166, 20.278],
+            [18.240790999999945, 16.751],
+            [17.978541999999948, 15.792],
+            [17.89270799999997, 16.53],
+            [18.048000000000002, 16.585],
+            [16.993541999999934, 14.825],
+            [17.816874999999982, 19.249]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 788.5717080000004,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.974500000000035, 22.855],
+            [17.924333000000047, 16.844],
+            [17.118125000000077, 15.856],
+            [18.723666999999978, 19.975],
+            [18.172166999999945, 16.751],
+            [16.90391599999998, 15.384],
+            [17.956375000000094, 16.483],
+            [18.109959000000003, 16.6],
+            [16.927208000000064, 14.77],
+            [18.057125000000042, 19.553]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 857.0509160000001,
+          "mode": "admitted-sync-group-v4",
+          "workload": "concurrent",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            4, 2, 4, 1, 4, 2, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 2, 4, 1, 4, 1, 4, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498764,
+          "samples": [
+            [23.22758399999998, 26.857],
+            [22.892665999999963, 26.196],
+            [20.979125000000067, 22.54],
+            [21.020291000000043, 26.512],
+            [22.004500000000007, 25.438],
+            [21.085749999999962, 22.399],
+            [26.02441699999997, 33.401],
+            [23.92483399999992, 28.95],
+            [24.160708, 28.434],
+            [23.86333300000001, 31.342]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 959.2574170000007,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499268,
+          "samples": [
+            [33.05975000000001, 26.267],
+            [30.41304200000002, 24.165],
+            [37.647542000000044, 29.141],
+            [33.039916999999946, 29.191],
+            [31.038667000000032, 28.087],
+            [29.358833000000004, 24.163],
+            [33.68262500000003, 29.14],
+            [29.403167000000053, 24.757],
+            [30.028583000000026, 24.101],
+            [32.66991699999994, 27.206]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 591.8737079999992,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[40.386750000000006, 60.758]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 591.3472500000007,
+          "mode": "admitted-sync-group-v4",
+          "workload": "cold",
+          "replacements": 1,
+          "groupedSyncSizes": [1, 1],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.249374999999986, 56.574]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 800.7032080000008,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.88995799999998, 22.941],
+            [17.925624999999968, 16.586],
+            [18.225000000000023, 16.242],
+            [18.718999999999937, 20.458],
+            [18.0759579999999, 16.594],
+            [17.127250000000004, 15.778],
+            [17.939416999999935, 16.816],
+            [18.961791999999946, 16.75],
+            [18.03845799999999, 15.223],
+            [17.837582999999995, 19.942]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 795.127375,
+          "mode": "admitted-sync-group-v4",
+          "workload": "warm",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.897666999999956, 22.823],
+            [18.965624999999932, 16.699],
+            [18.11545799999999, 16.191],
+            [18.79220900000007, 20.855],
+            [18.07945799999993, 16.797],
+            [17.017875000000004, 15.703],
+            [17.733416000000034, 16.294],
+            [18.222791999999913, 16.325],
+            [16.95679199999995, 14.937],
+            [19.98970900000006, 19.033]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 956.794167,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 497608,
+          "samples": [
+            [29.167124999999942, 26.089],
+            [33.14133300000003, 23.935],
+            [32.448083, 25.661],
+            [28.63499999999999, 26.16],
+            [29.933832999999936, 26.498],
+            [32.98804099999995, 23.452],
+            [30.085500000000025, 28.527],
+            [32.89212500000008, 25.38],
+            [32.960958000000005, 25.171],
+            [29.40725000000009, 27.629]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 854.1252089999998,
+          "mode": "admitted-sync-group-v4",
+          "workload": "concurrent",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            4, 2, 4, 2, 4, 2, 4, 1, 4, 1, 4, 1, 4, 1, 4, 2, 4, 2, 4, 2, 4, 1, 4, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [22.938125000000014, 27.012],
+            [23.107708000000002, 26.925],
+            [21.794500000000085, 24.122],
+            [22.095957999999996, 27.311],
+            [22.057042000000024, 26.887],
+            [20.93349999999998, 23.644],
+            [24.030666999999994, 29.178],
+            [21.00075000000004, 26.005],
+            [22.10304199999996, 24.744],
+            [22.000541999999996, 28.783]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 593.6149999999998,
+          "mode": "admitted-sync-group-v4",
+          "workload": "cold",
+          "replacements": 1,
+          "groupedSyncSizes": [1, 1],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.364959, 55.469]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 591.3599169999998,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.984500000000025, 55.927]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 794.2429999999986,
+          "mode": "admitted-sync-group-v4",
+          "workload": "warm",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.704042000000072, 22.219],
+            [20.04012499999999, 16.965],
+            [18.163583000000017, 16.165],
+            [18.762166999999977, 20.384],
+            [18.25262500000008, 16.784],
+            [16.697666000000027, 15.432],
+            [18.073540999999977, 16.473],
+            [16.995416999999975, 16.006],
+            [17.039125000000013, 14.832],
+            [17.927165999999943, 19.414]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 794.3562920000004,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.732167000000004, 22.98],
+            [18.152207999999973, 16.842],
+            [18.030708000000004, 15.791],
+            [18.688125000000014, 20.296],
+            [17.20441699999992, 16.732],
+            [18.09166700000003, 15.846],
+            [17.599959000000013, 16.391],
+            [17.123041000000057, 16.368],
+            [17.130999999999972, 14.824],
+            [17.94633299999998, 19.121]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 855.4652500000011,
+          "mode": "admitted-sync-group-v4",
+          "workload": "concurrent",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            4, 2, 4, 1, 4, 1, 4, 1, 4, 1, 4, 2, 4, 1, 4, 1, 4, 1, 4, 2, 4, 1, 4, 2
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 495800,
+          "samples": [
+            [21.879999999999995, 26.426],
+            [21.927415999999994, 25.073],
+            [22.095249999999965, 25.899],
+            [22.125290999999947, 28.681],
+            [22.921875, 26.718],
+            [20.964417000000026, 23.737],
+            [23.989874999999984, 29.491],
+            [22.143708999999944, 26.186],
+            [21.937084000000027, 24.6],
+            [22.03645800000004, 28.962]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 987.2079999999987,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [32.807709000000045, 25.794],
+            [31.769209000000046, 24.999],
+            [32.14854200000002, 23.629],
+            [29.31133299999999, 27.125],
+            [28.947708000000034, 25.99],
+            [28.73304200000007, 23.565],
+            [31.503499999999917, 27.978],
+            [40.427374999999984, 36.069],
+            [32.21916699999997, 24.353],
+            [36.855999999999995, 27.881]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 606.2690829999992,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.711917000000085, 56.367]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 594.760209,
+          "mode": "admitted-sync-group-v4",
+          "workload": "cold",
+          "replacements": 1,
+          "groupedSyncSizes": [1, 1],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.12549999999999, 56.365]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 798.1002079999998,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.950207999999975, 23.068],
+            [17.87987499999997, 16.462],
+            [18.06574999999998, 16.147],
+            [18.650040999999987, 20.197],
+            [18.10795799999994, 16.822],
+            [17.190417000000025, 15.552],
+            [17.737792000000013, 16.319],
+            [18.136040999999977, 16.636],
+            [16.99974999999995, 14.977],
+            [17.885832999999934, 19.465]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 796.1095410000016,
+          "mode": "admitted-sync-group-v4",
+          "workload": "warm",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.865707999999927, 22.966],
+            [18.96083299999998, 16.789],
+            [17.77079100000003, 15.902],
+            [18.160999999999945, 20.259],
+            [17.87129099999993, 16.565],
+            [17.181459000000018, 15.717],
+            [17.789541999999983, 16.422],
+            [18.090167000000065, 16.813],
+            [16.8364160000001, 15.036],
+            [18.13341600000001, 19.482]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 981.1535839999997,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "groupedSyncSizes": [],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 501076,
+          "samples": [
+            [29.014290999999957, 25.834],
+            [34.74083299999995, 24.242],
+            [33.06470899999999, 25.387],
+            [37.86858300000006, 28.422],
+            [33.446916999999985, 26.033],
+            [28.93987500000003, 23.77],
+            [38.566208000000074, 29.119],
+            [33.13295800000003, 25.851],
+            [31.844334000000003, 25.346],
+            [28.790791000000013, 27.494]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 860.7761250000003,
+          "mode": "admitted-sync-group-v4",
+          "workload": "concurrent",
+          "replacements": 1,
+          "groupedSyncSizes": [
+            4, 2, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 2, 4, 1, 4, 1, 4, 1
+          ],
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 493488,
+          "samples": [
+            [21.967208000000028, 25.761],
+            [22.158500000000004, 24.721],
+            [20.65691700000002, 24.179],
+            [21.22316699999999, 27.102],
+            [22.00395900000001, 26.991],
+            [21.094083999999953, 22.935],
+            [25.81174999999996, 29.453],
+            [22.339166999999975, 25.576],
+            [21.843999999999937, 24.902],
+            [21.930124999999975, 29.009]
+          ]
+        }
+      ]
+    }
+  ],
+  "nativeIdentity": {
+    "hashes": {
+      "/tmp/lervo-diagnostic-sync-group.c": "sha256:e1b23c42b69da8bca220f64a7513bf0585c262e7b64e926e6f87546f001e7a4e",
+      "/tmp/lervo-diagnostic-sync-group.node": "sha256:a327729dd1621d4ecb25e5f1ab6b805801e951d25b21baf6d1fbd4874f8bed3c",
+      "/tmp/lervo-diagnostic-sync-group-v2.c": "sha256:720be8c76cb21bcb5e4e715e36d8aeea78594644e59ea34eb5406a72d1d78a57",
+      "/tmp/lervo-diagnostic-sync-group-v2.node": "sha256:0a74cf56b54cba6737180d83bb2dd77f94144ddb76f91b44a42775daf8461cc3",
+      "/tmp/lervo-diagnostic-sync-group-v3.c": "sha256:336feded608ab3aabfda64eb6fe058153f711126e681ec6e7ddde921b0b58e44",
+      "/tmp/lervo-diagnostic-sync-group-v3.node": "sha256:1f61ee2aef6a20d88fb4d9de9ac61a0254dd1cd9a5592958fb4cd9396081699b",
+      "/tmp/lervo-diagnostic-sync-group-delayed.c": "sha256:9c8ce1aa6b9485700fbc760a0c39f90ac2ffb28ba653d2e3f6d2825a256fe5bc",
+      "/tmp/lervo-diagnostic-sync-group-delayed.node": "sha256:094e79a10e4831b27b8632391cb21918ffbfc299aabd4f72cc0051e1f4f34b0d",
+      "/tmp/lervo-diagnostic-sync-group-faults.c": "sha256:2fcaebdbc841ccff9a13b044a45594c86ae7acab8cdf25cb7ace98b5398c8d64",
+      "/tmp/lervo-diagnostic-sync-group-faults.node": "sha256:aa83fd6c2d14a262bd2743058ba197da4dacd6aaafa0119451d86193d57c99b0",
+      "/tmp/lervo-diagnostic-admitted-group-cas-io-v3.mjs": "sha256:d6fae5a33d394c63fd135853371bab7a7d58c3879bc131914cf288efe6edaf62",
+      "/tmp/lervo-diagnostic-admitted-group-cas-io-v4.mjs": "sha256:6f63bd1a22d7cd6728f67e22cdb13cbc8daa1b67ba81ce925c4a9272e5f4d7e7"
+    },
+    "compiler": "Apple clang21.0.0 clang-2100.1.1.101 arm64-apple-darwin25.5.0",
+    "node": "26.5.1",
+    "commandTemplate": "xcrun clang -O2 -Wall -Wextra -Werror -bundle -undefined dynamic_lookup -I /Users/jonghyeok/.nvm/versions/node/v26.5.1/include/node <source.c> -o <binary.node>",
+    "limits": "Exact scratch artifacts only. JS build hash excludes native bytes. No packaged cross-platform or minimum-Node ABI claim."
+  },
+  "checks": [
+    {
+      "harness": "/tmp/lervo-native-lifetime-probe.mjs",
+      "harnessHash": "sha256:ff58c004dd66de5bcc4319fa559bcc70650cf790974117d1e212653afc165667",
+      "resultPath": "/tmp/lervo-native-lifetime-results.json",
+      "resultHash": "sha256:ea1eed48ed2bf9f02de7f5d25199ae5db5b35e8e899d10ca902863d55990dcdf",
+      "result": [
+        {
+          "kind": "numbers",
+          "status": 0,
+          "signal": null,
+          "stdout": "{\"kind\":\"numbers\",\"results\":[{\"input\":11.5,\"accepted\":true,\"error\":null},{\"input\":4294967307,\"accepted\":true,\"error\":null},{\"input\":\"NaN\",\"accepted\":false,\"error\":\"Scratch group sync failed: errno 22\"},{\"input\":\"Infinity\",\"accepted\":false,\"error\":\"Scratch group sync failed: errno 22\"}]}\n",
+          "stderr": ""
+        },
+        {
+          "kind": "termination",
+          "status": 0,
+          "signal": null,
+          "stdout": "{\"kind\":\"termination\",\"before\":12,\"counts\":[13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13],\"after\":13}\n",
+          "stderr": ""
+        }
+      ]
+    },
+    {
+      "harness": "/tmp/lervo-native-lifetime-v2-probe.mjs",
+      "harnessHash": "sha256:c97bef9aa83a4071264a1df6527af1ecd6eba232e55a87f3954a0f29a121c775",
+      "resultPath": "/tmp/lervo-native-lifetime-v2-results.json",
+      "resultHash": "sha256:24948b45cd74131ef032a8a02e7578557c7ec691a9578375dd29b81e9cd61ac7",
+      "result": [
+        {
+          "kind": "numbers",
+          "status": 0,
+          "signal": null,
+          "stdout": "{\"kind\":\"numbers\",\"results\":[{\"input\":11.5,\"accepted\":false,\"error\":\"Descriptor acquisition failed\"},{\"input\":4294967307,\"accepted\":false,\"error\":\"Descriptor acquisition failed\"},{\"input\":\"NaN\",\"accepted\":false,\"error\":\"Descriptor acquisition failed\"},{\"input\":\"Infinity\",\"accepted\":false,\"error\":\"Descriptor acquisition failed\"}]}\n",
+          "stderr": ""
+        },
+        {
+          "kind": "termination",
+          "status": 0,
+          "signal": null,
+          "stdout": "{\"kind\":\"termination\",\"before\":12,\"counts\":[13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13],\"after\":13}\n",
+          "stderr": ""
+        }
+      ]
+    },
+    {
+      "harness": "/tmp/lervo-native-lifetime-v2-warmed-probe.mjs",
+      "harnessHash": "sha256:31fe6f45b1e6eee75b4910c1358f689fe5543eaa99ae26a2c8107ee53f6ae6ea",
+      "resultPath": "/tmp/lervo-native-lifetime-v2-warmed-results.json",
+      "resultHash": "sha256:eeb0918274e1a317ddced2e819af91fc2269294a5440e9c0c5198d9dd1fd074a",
+      "result": [
+        {
+          "kind": "numbers",
+          "status": 0,
+          "signal": null,
+          "stdout": "{\"kind\":\"numbers\",\"results\":[{\"input\":11.5,\"accepted\":false,\"error\":\"Descriptor acquisition failed\"},{\"input\":4294967307,\"accepted\":false,\"error\":\"Descriptor acquisition failed\"},{\"input\":\"NaN\",\"accepted\":false,\"error\":\"Descriptor acquisition failed\"},{\"input\":\"Infinity\",\"accepted\":false,\"error\":\"Descriptor acquisition failed\"}]}\n",
+          "stderr": ""
+        },
+        {
+          "kind": "termination",
+          "status": 0,
+          "signal": null,
+          "stdout": "{\"kind\":\"termination\",\"before\":13,\"counts\":[13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13],\"after\":13}\n",
+          "stderr": ""
+        }
+      ]
+    },
+    {
+      "harness": "/tmp/lervo-native-lifetime-delayed-probe.mjs",
+      "harnessHash": "sha256:1687e77e32a6ab8ce7ab1210950fbcf129f93746c9a31cd9867025d538d84fcd",
+      "resultPath": "/tmp/lervo-native-lifetime-delayed-results.json",
+      "resultHash": "sha256:d2207eb1fa744cd87cb885623423968f7b5edaa23054184d8b16dbf94f2847fa",
+      "result": [
+        {
+          "kind": "numbers",
+          "status": 0,
+          "signal": null,
+          "stdout": "{\"kind\":\"numbers\",\"results\":[{\"input\":11.5,\"accepted\":false,\"error\":\"Descriptor acquisition failed\"},{\"input\":4294967307,\"accepted\":false,\"error\":\"Descriptor acquisition failed\"},{\"input\":\"NaN\",\"accepted\":false,\"error\":\"Descriptor acquisition failed\"},{\"input\":\"Infinity\",\"accepted\":false,\"error\":\"Descriptor acquisition failed\"}]}\n",
+          "stderr": ""
+        },
+        {
+          "kind": "termination",
+          "status": 0,
+          "signal": null,
+          "stdout": "{\"kind\":\"termination\",\"before\":13,\"counts\":[13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13],\"after\":13,\"activeAtTermination\":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}\n",
+          "stderr": ""
+        }
+      ]
+    },
+    {
+      "harness": "/tmp/lervo-group-sync-v2-adverse.mjs",
+      "harnessHash": "sha256:12792574fe36e258d21026bde0fae42d5fab950e7bbf25803bfff8cbae72ae20",
+      "resultPath": "/tmp/lervo-group-sync-v2-adverse.json",
+      "resultHash": "sha256:89fe7221b5c93db6b1974dc1ff00abc274929906129ed2c034004e02076d17c3",
+      "result": {
+        "diagnosticOnly": true,
+        "observations": [
+          {
+            "name": "native exact raw bytes and descriptor ownership",
+            "status": "passed"
+          },
+          {
+            "name": "native invalid cardinality and descriptor reject",
+            "status": "passed"
+          },
+          {
+            "name": "drain prepared members and wait for full native completion",
+            "status": "passed"
+          },
+          {
+            "name": "failed preparation drains all members without native sync",
+            "status": "passed"
+          },
+          {
+            "name": "native failure rejects every member and queue can retire",
+            "status": "passed"
+          },
+          {
+            "name": "late arrival is a separate group",
+            "status": "passed"
+          },
+          {
+            "name": "overflow uses ordinary per-file sync while sixteen admitted files drain",
+            "status": "passed"
+          },
+          {
+            "name": "open failure rejects its batch after peers drain and frees admission",
+            "status": "passed"
+          }
+        ],
+        "limits": "Native two-file APFS call and selected scheduler error/lifetime cases only; No power-loss, actual mixed-device, platform fallback or distribution qualification. Queue cases use a controlled native stub; two-file native check uses the exact v2 binary."
+      }
+    },
+    {
+      "harness": "/tmp/lervo-group-sync-v3-adverse.mjs",
+      "harnessHash": "sha256:aa0207cba629efcfed4fbb24a2d53f26805168a3420c9e0ac26c7e9079b01c1f",
+      "resultPath": "/tmp/lervo-group-sync-v3-adverse.json",
+      "resultHash": "sha256:7c77874169f63e5f976b8c69e42b84c941e0936475f418b1979bd68118c625e9",
+      "result": {
+        "diagnosticOnly": true,
+        "observations": [
+          {
+            "name": "native exact raw bytes and descriptor ownership",
+            "status": "passed"
+          },
+          {
+            "name": "native invalid cardinality and descriptor reject",
+            "status": "passed"
+          },
+          {
+            "name": "drain prepared members and wait for full native completion",
+            "status": "passed"
+          },
+          {
+            "name": "failed preparation drains all members without native sync",
+            "status": "passed"
+          },
+          {
+            "name": "native failure rejects every member and queue can retire",
+            "status": "passed"
+          },
+          {
+            "name": "late arrival is a separate group",
+            "status": "passed"
+          },
+          {
+            "name": "overflow uses ordinary per-file sync while sixteen admitted files drain",
+            "status": "passed"
+          },
+          {
+            "name": "open failure rejects its batch after peers drain and frees admission",
+            "status": "passed"
+          }
+        ],
+        "limits": "Native two-file APFS call and selected scheduler error/lifetime cases only; No power-loss, actual mixed-device, platform fallback or distribution qualification. Queue cases use a controlled native stub; two-file native check uses the exact v3 binary."
+      }
+    },
+    {
+      "harness": "/tmp/lervo-native-order-probe.mjs",
+      "harnessHash": "sha256:7583e4a6a781d89155fb3b90a1cede6fb838f5b7a29c47a293c817ab38ae39fa",
+      "resultPath": "/tmp/lervo-native-order-results.json",
+      "resultHash": "sha256:4c1e2e3e611ecfae13629e9e1f4801f54e10abcbdce9f2e11f5015091a52660b",
+      "result": {
+        "diagnosticOnly": true,
+        "scope": "Real descriptors and regular-file validation; sync syscalls replaced by deterministic counters/failures. Not persistence or mixed-device evidence.",
+        "results": [
+          {
+            "name": "singleton",
+            "counts": [1, 0, 1],
+            "status": "passed"
+          },
+          {
+            "name": "four members",
+            "counts": [4, 3, 1],
+            "status": "passed"
+          },
+          {
+            "name": "first fsync fails",
+            "counts": [1, 1, 0],
+            "status": "passed"
+          },
+          {
+            "name": "third fsync fails",
+            "counts": [3, 3, 0],
+            "status": "passed"
+          },
+          {
+            "name": "final full sync fails",
+            "counts": [4, 3, 1],
+            "status": "passed"
+          },
+          {
+            "name": "reject nonregular member before all sync calls",
+            "counts": [0, 0, 0],
+            "status": "passed"
+          },
+          {
+            "name": "partial descriptor acquisition cleans up on invalid numeric input",
+            "before": 16,
+            "after": 16,
+            "status": "passed"
+          }
+        ]
+      }
+    }
+  ],
+  "primarySources": [
+    {
+      "url": "https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/man/man2/fcntl.2#L229",
+      "localCopy": "/tmp/lervo-native-apple-fcntl.2",
+      "contentHash": "sha256:cbb0c4e1e2778eb1c7be8ccca7bbdb7c4e5e73c41b5823118992441d540fd205",
+      "finding": "Pinned Apple XNU explicitly documents persistence of previously fsynced data on the same device after F_FULLFSYNC returns; it also includes fsync of the final descriptor. This supports the ordering contract under stated filesystem/device assumptions, not a hardware power-loss certification."
+    },
+    {
+      "url": "https://nodejs.org/api/n-api.html#napi_get_value_int32",
+      "finding": "Integer conversion truncates out-of-range values and maps nonfinite values to zero; validate finite integer range before conversion."
+    }
+  ],
+  "decision": "Reject metadata-only candidates as inconsistent. Native prototype narrows the durability API uncertainty, fixes numeric descriptor admission, verifies live-worker termination and selected queue/failure ordering, and shows substantial concurrent latency improvement. Production adoption remains pending explicit native owner/distribution/binary-inclusive identity, platform fallback, topology/mixed-device and full frozen resource qualification. Preserve fsync/FULL and v12 runtime."
+}

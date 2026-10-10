@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_79c6d1fbf4a3a51f6d2e9310"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Expose bounded context preparation diagnostics for terminal and managed search without claiming provider delivery or rule compliance."

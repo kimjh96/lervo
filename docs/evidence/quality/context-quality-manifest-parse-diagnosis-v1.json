@@ -1,0 +1,1982 @@
+{
+  "schemaVersion": 1,
+  "diagnosticOnly": true,
+  "providerCalls": 0,
+  "baselineArtifactBuildHash": "sha256:07210188d8552c335fa0c1e72a1299372608e47bc5252e5e0ce7f09a3c03f652",
+  "limitations": [
+    "Sequential diagnostic runs, not a registered acceptance cohort.",
+    "Instrumented phase durations overlap and are not additive.",
+    "The broad lstat monkeypatch changes more than the storage-binding owner; only the subsequent module-specific load hook isolates that candidate.",
+    "Parsed-manifest prototype holds one value; production uses separately tested bounded expiry and eviction.",
+    "Fresh processes do not imply cold OS caches; resident workloads remain uncontrolled."
+  ],
+  "probes": [
+    {
+      "name": "recording-io",
+      "scriptHash": "sha256:b3c1c85025b391c604eec4157b373314de12a635d97d13330a15890e9bb02e2c",
+      "script": "import fs from 'node:fs/promises';\nimport {syncBuiltinESMExports} from 'node:module';\nimport {resolve} from 'node:path';\nimport {tmpdir} from 'node:os';\nconst repo=process.cwd();\nconst {initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\nconst {activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\nconst parent=await fs.mkdtemp(resolve(tmpdir(),'lervo-io-probe-'));\nconst results=[];\nfunction category(path){const p=String(path);return p.includes('/cas/')?'cas':p.endsWith('project.yaml')?'manifest':p.endsWith('event-contract.json')||p.includes('event-contract-activation')?'writer':p.includes('.sqlite')?'sqlite':'other'}\ntry{\n for(const workload of ['cold','warm','concurrent']){\n  const root=resolve(parent,workload);await initializeActiveFixture(root);const phases={};const restorers=[];\n  function timed(obj,key,label,after){const orig=obj[key];obj[key]=async function(...args){const start=performance.now();const result=phases[label(...args)]??={calls:0,ms:0};result.calls++;try{const value=await orig.apply(this,args);after?.(value,args);return value}finally{result.ms+=performance.now()-start}};restorers.push(()=>obj[key]=orig)}\n  for(const name of ['lstat','mkdir','readFile','link','unlink','open'])timed(fs,name,(p)=>category(p)+'.'+name,name==='open'?(handle,args)=>{for(const key of ['write','sync','close','readFile','stat'])timed(handle,key,()=>category(args[0])+'.handle.'+key)}:undefined);\n  syncBuiltinESMExports();let r;\n  try{r=await activeWorker(root,'candidate',workload,4096,{warmups:2,samples:10,concurrency:4})}finally{for(const restore of restorers.reverse())restore();syncBuiltinESMExports()}\n  results.push({workload,phases,samples:r.samples.map(s=>s.slice(0,2)),semanticValid:r.semanticValid});\n }\n await fs.writeFile('/tmp/lervo-recording-io-probe.json',JSON.stringify({diagnosticOnly:true,results},null,2));\n}finally{await fs.rm(parent,{recursive:true,force:true})}\n",
+      "result": {
+        "diagnosticOnly": true,
+        "results": [
+          {
+            "workload": "cold",
+            "phases": {
+              "other.lstat": {
+                "calls": 196,
+                "ms": 8.892079000001104
+              },
+              "writer.lstat": {
+                "calls": 10,
+                "ms": 0.25774900000021717
+              },
+              "other.readFile": {
+                "calls": 7,
+                "ms": 0.46437600000012935
+              },
+              "other.open": {
+                "calls": 14,
+                "ms": 0.38504399999976613
+              },
+              "other.handle.stat": {
+                "calls": 28,
+                "ms": 0.29771199999981945
+              },
+              "other.handle.close": {
+                "calls": 14,
+                "ms": 0.13616899999988163
+              },
+              "other.mkdir": {
+                "calls": 10,
+                "ms": 0.30499899999972513
+              },
+              "cas.lstat": {
+                "calls": 28,
+                "ms": 2.252120999999761
+              },
+              "sqlite.lstat": {
+                "calls": 45,
+                "ms": 1.86258099999975
+              },
+              "cas.mkdir": {
+                "calls": 6,
+                "ms": 0.2521679999998696
+              },
+              "cas.open": {
+                "calls": 2,
+                "ms": 0.1445410000000038
+              },
+              "cas.handle.write": {
+                "calls": 2,
+                "ms": 0.09970800000007785
+              },
+              "cas.handle.sync": {
+                "calls": 2,
+                "ms": 8.065623999999957
+              },
+              "cas.handle.close": {
+                "calls": 4,
+                "ms": 0.043501000000105705
+              },
+              "cas.link": {
+                "calls": 2,
+                "ms": 0.6431670000001759
+              },
+              "cas.readFile": {
+                "calls": 4,
+                "ms": 0.25308399999994435
+              },
+              "cas.unlink": {
+                "calls": 2,
+                "ms": 0.10474999999996726
+              }
+            },
+            "samples": [[45.55979100000002, 61.212]],
+            "semanticValid": true
+          },
+          {
+            "workload": "warm",
+            "phases": {
+              "other.lstat": {
+                "calls": 1835,
+                "ms": 53.633378000003745
+              },
+              "writer.lstat": {
+                "calls": 76,
+                "ms": 1.2973699999998871
+              },
+              "other.readFile": {
+                "calls": 84,
+                "ms": 4.048086999999782
+              },
+              "other.open": {
+                "calls": 168,
+                "ms": 3.6767039999998588
+              },
+              "other.handle.stat": {
+                "calls": 336,
+                "ms": 2.8577909999992244
+              },
+              "other.handle.close": {
+                "calls": 168,
+                "ms": 1.3793719999996483
+              },
+              "other.mkdir": {
+                "calls": 10,
+                "ms": 0.2695850000000064
+              },
+              "cas.lstat": {
+                "calls": 182,
+                "ms": 14.489708000000405
+              },
+              "sqlite.lstat": {
+                "calls": 89,
+                "ms": 7.233669000000418
+              },
+              "cas.mkdir": {
+                "calls": 28,
+                "ms": 1.5357519999998885
+              },
+              "cas.open": {
+                "calls": 24,
+                "ms": 1.4338720000001786
+              },
+              "cas.handle.write": {
+                "calls": 24,
+                "ms": 0.864877999999976
+              },
+              "cas.handle.sync": {
+                "calls": 24,
+                "ms": 97.76354400000037
+              },
+              "cas.handle.close": {
+                "calls": 48,
+                "ms": 0.36345899999969333
+              },
+              "cas.link": {
+                "calls": 24,
+                "ms": 8.717249000000379
+              },
+              "cas.readFile": {
+                "calls": 48,
+                "ms": 3.0320019999998067
+              },
+              "cas.unlink": {
+                "calls": 24,
+                "ms": 1.1116680000000088
+              }
+            },
+            "samples": [
+              [25.515749999999912, 21.568],
+              [24.14462500000002, 17.576],
+              [25.897166999999968, 24.558],
+              [23.93533400000001, 22.5],
+              [24.139167000000043, 18.071],
+              [24.029125000000022, 17.355],
+              [24.721708000000035, 18.498],
+              [24.182749999999942, 16.848],
+              [27.01654199999996, 27.592],
+              [23.941875000000095, 17.771]
+            ],
+            "semanticValid": true
+          },
+          {
+            "workload": "concurrent",
+            "phases": {
+              "other.lstat": {
+                "calls": 3091,
+                "ms": 411.9509860000046
+              },
+              "writer.lstat": {
+                "calls": 289,
+                "ms": 66.19280500000036
+              },
+              "other.readFile": {
+                "calls": 84,
+                "ms": 11.31874900000048
+              },
+              "other.open": {
+                "calls": 240,
+                "ms": 13.088364000003367
+              },
+              "other.handle.stat": {
+                "calls": 480,
+                "ms": 17.407546999996157
+              },
+              "other.handle.close": {
+                "calls": 240,
+                "ms": 14.611320999997815
+              },
+              "other.mkdir": {
+                "calls": 15,
+                "ms": 0.9409140000000207
+              },
+              "cas.lstat": {
+                "calls": 684,
+                "ms": 185.69150500000205
+              },
+              "sqlite.lstat": {
+                "calls": 249,
+                "ms": 59.80366300000105
+              },
+              "cas.mkdir": {
+                "calls": 102,
+                "ms": 85.46520399999986
+              },
+              "cas.open": {
+                "calls": 96,
+                "ms": 26.07796099999996
+              },
+              "cas.handle.write": {
+                "calls": 96,
+                "ms": 61.203332000000955
+              },
+              "cas.handle.sync": {
+                "calls": 96,
+                "ms": 741.1477110000014
+              },
+              "cas.handle.close": {
+                "calls": 192,
+                "ms": 3.2409190000009858
+              },
+              "cas.link": {
+                "calls": 96,
+                "ms": 184.08153899999866
+              },
+              "cas.readFile": {
+                "calls": 192,
+                "ms": 87.60991100000024
+              },
+              "cas.unlink": {
+                "calls": 96,
+                "ms": 122.44116600000143
+              }
+            },
+            "samples": [
+              [49.04899999999998, 47.143],
+              [50.49179200000003, 35.025],
+              [50.78341699999987, 39.479],
+              [49.25429200000008, 48.648],
+              [54.293874999999844, 44.544],
+              [51.92366700000002, 35.853],
+              [65.00016699999992, 42.289],
+              [51.81958300000019, 37.189],
+              [49.944790999999896, 35.633],
+              [50.98649999999998, 38.306]
+            ],
+            "semanticValid": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "binding-stat",
+      "scriptHash": "sha256:b7e96f08a1147d84b0bc870936cecfc50b10aca95e46c102e118823fcbece13f",
+      "script": "import fs from 'node:fs/promises';\nimport sync from 'node:fs';\nimport {syncBuiltinESMExports} from 'node:module';\nimport {resolve} from 'node:path';\nimport {tmpdir} from 'node:os';\nconst repo=process.cwd();\nconst {initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\nconst {activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\nconst parent=await fs.mkdtemp(resolve(tmpdir(),'lervo-binding-stat-'));const results=[];\nconst original=fs.lstat;\ntry{\n for(let cycle=0;cycle<5;cycle++)for(const mode of cycle%2?['sync-binding','current']:['current','sync-binding'])for(const workload of ['cold','warm','concurrent']){\n  const root=resolve(parent,`${cycle}-${mode}-${workload}`);await initializeActiveFixture(root);\n  const bindingPaths=new Set([root,...['.lervo','.lervo/data','.lervo/state','.lervo/data/cas','.lervo/data/cas/sha256','.lervo/data/cas/.tmp','.lervo/data/events.sqlite'].map(p=>resolve(root,p))]);\n  let calls=0,ms=0;\n  fs.lstat=async(p,options)=>{const eligible=options?.bigint===true&&bindingPaths.has(String(p));const start=performance.now();try{return eligible&&mode==='sync-binding'?sync.lstatSync(p,options):await original(p,options)}finally{if(eligible){calls++;ms+=performance.now()-start}}};\n  syncBuiltinESMExports();\n  const r=await activeWorker(root,'candidate',workload,4096,{warmups:2,samples:10,concurrency:4});\n  fs.lstat=original;syncBuiltinESMExports();results.push({cycle,mode,workload,calls,ms,semanticValid:r.semanticValid,integrity:r.integrity,eventCount:r.eventCount,expectedEventCount:r.expectedEventCount,samples:r.samples.map(s=>s.slice(0,2))});\n }\n await fs.writeFile('/tmp/lervo-binding-stat-probe.json',JSON.stringify({diagnosticOnly:true,results},null,2));\n}finally{fs.lstat=original;syncBuiltinESMExports();await fs.rm(parent,{recursive:true,force:true})}\n",
+      "result": {
+        "diagnosticOnly": true,
+        "results": [
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "cold",
+            "calls": 52,
+            "ms": 8.558459999999855,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[46.58725000000004, 66.053]]
+          },
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "warm",
+            "calls": 470,
+            "ms": 57.52976399999898,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [23.61500000000001, 21.352],
+              [23.897833000000105, 17.854],
+              [24.382165999999984, 23.542],
+              [23.40204200000005, 22.967],
+              [24.212833000000046, 16.641],
+              [24.21474999999998, 17.833],
+              [23.774332999999956, 17.761],
+              [24.058625000000006, 16.868],
+              [23.931749999999965, 25.949],
+              [22.93195800000001, 17.978]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "concurrent",
+            "calls": 1768,
+            "ms": 484.20552100000066,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [51.957541999999876, 48.879],
+              [49.87087499999984, 36.422],
+              [52.06670800000006, 38.467],
+              [54.21370900000011, 46.355],
+              [52.15166599999998, 44.298],
+              [49.56050000000005, 36.37],
+              [49.4881670000002, 42.655],
+              [51.16687499999989, 38.914],
+              [50.94654199999991, 34.821],
+              [50.18662500000005, 36.255]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "sync-binding",
+            "workload": "cold",
+            "calls": 52,
+            "ms": 0.13204099999916252,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[27.829541999999947, 22.685]]
+          },
+          {
+            "cycle": 0,
+            "mode": "sync-binding",
+            "workload": "warm",
+            "calls": 470,
+            "ms": 0.9199580000013157,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [23.77495799999997, 16.223],
+              [22.9693749999999, 15.83],
+              [24.049166999999898, 16.737],
+              [24.031750000000102, 15.892],
+              [23.925458000000162, 16.375],
+              [24.00954200000001, 15.197],
+              [23.916458000000148, 15.706],
+              [24.151583999999957, 19.041],
+              [24.022249999999985, 16.235],
+              [24.815417000000025, 15.068]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "sync-binding",
+            "workload": "concurrent",
+            "calls": 1813,
+            "ms": 6.909206999979233,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [39.00254099999984, 30.907],
+              [44.10729199999969, 36.992],
+              [54.402665999999954, 32.801],
+              [47.6840830000001, 30.968],
+              [50.713292000000365, 33.208],
+              [47.59641699999975, 40.671],
+              [53.69658300000037, 35.437],
+              [50.765542000000096, 38.814],
+              [51.3285420000002, 35.811],
+              [51.40866599999981, 33.834]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "sync-binding",
+            "workload": "cold",
+            "calls": 52,
+            "ms": 0.1413779999993494,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[28.052291999999852, 19.762]]
+          },
+          {
+            "cycle": 1,
+            "mode": "sync-binding",
+            "workload": "warm",
+            "calls": 470,
+            "ms": 0.8802020000011908,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [23.664540999999645, 14.766],
+              [23.934000000000196, 15.595],
+              [23.425541000000067, 15.503],
+              [24.459000000000287, 18.746],
+              [23.417124999999942, 15.781],
+              [23.935167000000092, 15.17],
+              [23.87716599999976, 16.069],
+              [24.028333000000202, 18.069],
+              [24.150416999999834, 18.065],
+              [23.777583999999933, 14.94]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "sync-binding",
+            "workload": "concurrent",
+            "calls": 1795,
+            "ms": 6.748111999991124,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [47.33537500000011, 30.605],
+              [48.506124999999884, 33.395],
+              [49.35029200000008, 30.838],
+              [43.585749999999734, 29.754],
+              [40.04154100000005, 35.56],
+              [50.61466700000028, 30.347],
+              [52.78862499999968, 39.628],
+              [45.80645800000002, 39.511],
+              [57.5473750000001, 39.607],
+              [49.70258299999978, 33.628]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "cold",
+            "calls": 52,
+            "ms": 5.040910000001531,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[25.805250000000342, 20.26]]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "warm",
+            "calls": 470,
+            "ms": 50.94795100000056,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [22.61499999999978, 15.024],
+              [22.007249999999658, 16.807],
+              [22.36541699999998, 15.103],
+              [22.699625000000196, 15.449],
+              [22.298083000000133, 15.141],
+              [21.789124999999785, 14.37],
+              [21.97833300000002, 18.143],
+              [22.07320800000025, 17.293],
+              [22.796916999999667, 15.569],
+              [22.054541999999856, 14.841]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "concurrent",
+            "calls": 1777,
+            "ms": 488.834751999997,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [46.710416000000805, 32.67],
+              [64.23704199999975, 44.919],
+              [44.49787500000002, 31.731],
+              [53.133874999999534, 31.45],
+              [49.640166999999565, 31.837],
+              [49.79649999999947, 33.52],
+              [52.100499999999556, 35.6],
+              [50.25474999999915, 31.945],
+              [56.57625000000007, 33.335],
+              [55.78220800000054, 39.461]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "cold",
+            "calls": 52,
+            "ms": 4.903165000001536,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[26.7001250000003, 19.57]]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "warm",
+            "calls": 470,
+            "ms": 48.904948000011245,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [25.085290999999415, 18.09],
+              [27.82679199999984, 19.976],
+              [21.817042000000583, 15.226],
+              [23.04162499999984, 16.181],
+              [22.132541999999376, 14.365],
+              [22.00841700000001, 15.309],
+              [21.97216599999956, 14.42],
+              [21.966707999999926, 14.633],
+              [23.035624999999527, 17.065],
+              [21.94312500000069, 17.009]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "concurrent",
+            "calls": 1795,
+            "ms": 476.32280600001104,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [49.658792000000176, 31.785],
+              [52.24499999999989, 32.559],
+              [47.144874999999956, 31.363],
+              [50.96541700000034, 32.946],
+              [50.65320900000006, 33.588],
+              [49.00487499999963, 32.721],
+              [57.21754199999941, 35.466],
+              [47.09362500000043, 31.786],
+              [51.42741699999988, 33.277],
+              [51.185457999999926, 35.194]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "sync-binding",
+            "workload": "cold",
+            "calls": 52,
+            "ms": 0.10317100000156643,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[27.952000000000226, 19.52]]
+          },
+          {
+            "cycle": 2,
+            "mode": "sync-binding",
+            "workload": "warm",
+            "calls": 470,
+            "ms": 0.877453000000969,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [22.790415999999823, 14.545],
+              [23.95441699999992, 15.423],
+              [22.894999999999527, 19.068],
+              [23.9267090000003, 16.208],
+              [22.251166000000012, 14.377],
+              [24.064624999999978, 15.877],
+              [23.51445800000056, 14.776],
+              [22.38695799999914, 15.072],
+              [25.033292000000074, 15.825],
+              [23.614166999999725, 14.256]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "sync-binding",
+            "workload": "concurrent",
+            "calls": 1813,
+            "ms": 3.8325360000044384,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [46.82404199999928, 30.461],
+              [49.154999999999745, 30.942],
+              [49.824124999999185, 31.151],
+              [39.75770800000009, 33.263],
+              [42.366917000000285, 32.195],
+              [42.58795900000041, 39.372],
+              [48.87129199999981, 33.393],
+              [50.571624999999585, 32.888],
+              [52.04016599999977, 32.25],
+              [49.263458000000355, 31.6]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "sync-binding",
+            "workload": "cold",
+            "calls": 52,
+            "ms": 0.10299700000268786,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[26.902916000000005, 18.984]]
+          },
+          {
+            "cycle": 3,
+            "mode": "sync-binding",
+            "workload": "warm",
+            "calls": 470,
+            "ms": 0.8244139999897016,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [23.68054200000006, 14.887],
+              [23.940291999999317, 15.528],
+              [22.198749999999563, 14.456],
+              [23.803375000000415, 14.879],
+              [22.246874999999818, 14.396],
+              [23.923124999999345, 16.855],
+              [23.870999999999185, 15.687],
+              [22.9779580000004, 14.46],
+              [24.937709000000723, 15.21],
+              [24.068624999999884, 16.954]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "sync-binding",
+            "workload": "concurrent",
+            "calls": 1804,
+            "ms": 10.324927000022399,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [51.40949999999975, 53.75],
+              [51.39679100000012, 29.797],
+              [54.17516700000033, 31.27],
+              [44.070833000000675, 30.727],
+              [50.9092499999997, 34.677],
+              [45.63054199999988, 30.902],
+              [50.74687499999982, 34.93],
+              [49.814790999999786, 34.482],
+              [52.80524999999943, 33.769],
+              [49.421166999999514, 32.751]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "cold",
+            "calls": 52,
+            "ms": 5.555751000001692,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[25.97150000000056, 18.864]]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "warm",
+            "calls": 470,
+            "ms": 47.35695100001158,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [23.55829199999971, 14.949],
+              [21.889334000000417, 15.403],
+              [22.203332999999475, 14.863],
+              [21.954165999999532, 15.313],
+              [22.137832999999773, 14.666],
+              [21.950708999999733, 15.395],
+              [21.945834000000104, 14.478],
+              [25.156708999999864, 16.586],
+              [21.923083000000588, 14.707],
+              [21.75395800000024, 17.409]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "concurrent",
+            "calls": 1759,
+            "ms": 464.4838449999752,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [46.279874999998356, 37.311],
+              [46.875207999999475, 31.342],
+              [49.247708000000785, 63.744],
+              [50.57337499999994, 31.265],
+              [48.632292000000234, 31.721],
+              [52.30912499999977, 31.935],
+              [55.472915999998804, 36.412],
+              [52.209249999999884, 33.873],
+              [52.50958300000093, 33.355],
+              [53.65262499999881, 38.035]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "cold",
+            "calls": 52,
+            "ms": 5.015878000003795,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[26.753249999999753, 18.972]]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "warm",
+            "calls": 470,
+            "ms": 50.08337800000663,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [23.625750000001062, 15.531],
+              [21.83374999999978, 14.504],
+              [22.31629199999952, 15.219],
+              [21.81145800000013, 14.167],
+              [22.12750000000051, 15.104],
+              [22.067290999999386, 14.206],
+              [22.926917000000685, 14.236],
+              [26.154167000000598, 15.103],
+              [25.850416999999652, 14.691],
+              [22.494958999999653, 15.08]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "concurrent",
+            "calls": 1804,
+            "ms": 472.129231000059,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [48.83849999999984, 31.618],
+              [48.760457999998835, 32.657],
+              [50.76116700000057, 34.501],
+              [51.327792000000045, 38.133],
+              [59.51145799999904, 70.223],
+              [50.74024999999892, 32.536],
+              [48.28395900000032, 36.481],
+              [53.36854200000016, 32.396],
+              [51.46125000000029, 33.357],
+              [51.15916599999946, 32.193]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "sync-binding",
+            "workload": "cold",
+            "calls": 52,
+            "ms": 0.10488099999929545,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[27.956500000000233, 18.579]]
+          },
+          {
+            "cycle": 4,
+            "mode": "sync-binding",
+            "workload": "warm",
+            "calls": 470,
+            "ms": 0.8704649999908725,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [23.790666999999303, 15.606],
+              [23.877333000000363, 14.64],
+              [23.952250000000276, 15.724],
+              [23.986791000001176, 14.61],
+              [24.108374999999796, 15.251],
+              [23.20800000000054, 14.668],
+              [23.627667000000656, 14.277],
+              [24.18354200000067, 15.55],
+              [25.903707999999824, 14.503],
+              [24.084249999999884, 15.257]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "sync-binding",
+            "workload": "concurrent",
+            "calls": 1813,
+            "ms": 7.855694999931075,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [47.37666700000045, 29.815],
+              [49.615333999998256, 30.621],
+              [51.21416700000009, 31.278],
+              [49.01483299999927, 31.134],
+              [42.48466699999881, 30.457],
+              [46.965541999999914, 57.284],
+              [55.95537499999955, 34.936],
+              [55.27049999999872, 34.24],
+              [49.48545899999954, 32.389],
+              [50.76370799999859, 33.023]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "binding-isolated",
+      "scriptHash": "sha256:96a8a6e07335c2039ea135817c53ff1f85449f90aac7322939f6977f4a223c84",
+      "script": "import { registerHooks } from 'node:module';\nimport { spawnSync } from 'node:child_process';\nimport { mkdtemp, rm, writeFile } from 'node:fs/promises';\nimport { resolve } from 'node:path';\nimport { tmpdir } from 'node:os';\nconst repo=process.cwd();\nconst worker=process.argv[2]==='worker';\nif(worker){\n const [mode,root,workload]=process.argv.slice(3);\n let replacements=0;\n if(mode==='sync-binding')registerHooks({load(url,context,next){const result=next(url,context);if(!url.endsWith('/packages/project-storage/dist/storage-pool-binding.js'))return result;let source=String(result.source);const before=source;source=source.replace('import { lstat } from \"node:fs/promises\";','import { lstatSync } from \"node:fs\";').replace('await lstat(path, { bigint: true })','lstatSync(path, { bigint: true })');if(source===before||source.includes('await lstat('))throw Error('Prototype transform failed');replacements++;return {...result,source}}});\n const {activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\n const r=await activeWorker(root,'candidate',workload,4096,{warmups:2,samples:10,concurrency:4});\n process.stdout.write(JSON.stringify({mode,workload,replacements,semanticValid:r.semanticValid,integrity:r.integrity,eventCount:r.eventCount,expectedEventCount:r.expectedEventCount,samples:r.samples.map(s=>s.slice(0,2))}));\n}else{\n const {initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\n const parent=await mkdtemp(resolve(tmpdir(),'lervo-binding-isolated-'));const results=[];\n try{\n  for(let cycle=0;cycle<5;cycle++)for(const workload of ['cold','warm','concurrent'])for(const mode of cycle%2?['sync-binding','current']:['current','sync-binding']){\n   const root=resolve(parent,`${cycle}-${mode}-${workload}`);await initializeActiveFixture(root);\n   const child=spawnSync(process.execPath,[process.argv[1],'worker',mode,root,workload],{encoding:'utf8',timeout:30000,maxBuffer:1048576});\n   if(child.status!==0)throw Error(child.stderr||String(child.error));results.push({cycle,...JSON.parse(child.stdout)});\n  }\n  await writeFile('/tmp/lervo-binding-isolated-probe.json',JSON.stringify({diagnosticOnly:true,results},null,2));\n }finally{await rm(parent,{recursive:true,force:true})}\n}\n",
+      "result": {
+        "diagnosticOnly": true,
+        "results": [
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[48.14883300000008, 66.646]]
+          },
+          {
+            "cycle": 0,
+            "mode": "sync-binding",
+            "workload": "cold",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[47.59216600000002, 65.953]]
+          },
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [25.590291999999977, 22.637],
+              [25.992541999999958, 19.643],
+              [24.229041000000052, 20.337],
+              [24.504542000000015, 24.25],
+              [25.429957999999942, 22.509],
+              [24.855999999999995, 20.083],
+              [24.702499999999986, 17.601],
+              [26.259500000000003, 19.372],
+              [24.101957999999968, 16.938],
+              [24.829833000000008, 28.417]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "sync-binding",
+            "workload": "warm",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.558791000000042, 24.031],
+              [25.147875, 18.178],
+              [26.078957999999943, 21.605],
+              [25.90908300000001, 22.691],
+              [26.008207999999968, 23.055],
+              [25.048209000000043, 18.556],
+              [25.809208000000012, 18.919],
+              [24.940958000000023, 18.07],
+              [24.969499999999925, 17.573],
+              [25.2115, 26.891]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [49.79054099999996, 40.932],
+              [53.727542000000085, 40.811],
+              [51.02324999999996, 39.087],
+              [51.881958000000054, 40.176],
+              [54.36712499999999, 47.534],
+              [54.05741699999999, 41.198],
+              [51.25420800000006, 47.184],
+              [48.99262500000009, 44.945],
+              [48.55083300000001, 40.858],
+              [56.756624999999985, 38.582]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "sync-binding",
+            "workload": "concurrent",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [48.22979099999998, 39.908],
+              [53.581458999999995, 39.006],
+              [47.06287499999996, 38.186],
+              [47.68312500000002, 38.613],
+              [49.26999999999998, 47.363],
+              [48.391583999999966, 38.489],
+              [55.534041000000116, 45.043],
+              [53.506000000000085, 42.591],
+              [53.305624999999964, 42.435],
+              [54.70808399999987, 38.299]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "sync-binding",
+            "workload": "cold",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[49.39295900000002, 66.133]]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[48.84495900000002, 66.48]]
+          },
+          {
+            "cycle": 1,
+            "mode": "sync-binding",
+            "workload": "warm",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [28.92379200000005, 24.689],
+              [29.005250000000046, 20.867],
+              [26.04754200000002, 22.105],
+              [25.572416999999973, 23.076],
+              [26.460583000000042, 23.245],
+              [23.643542000000025, 18.256],
+              [25.00812499999995, 18.462],
+              [25.266875000000027, 18.062],
+              [25.908707999999933, 17.55],
+              [25.214457999999922, 26.991]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [27.613958000000025, 25.505],
+              [28.32404100000008, 23.083],
+              [26.739791999999966, 23.224],
+              [27.042041999999924, 26.339],
+              [25.064707999999996, 23.089],
+              [25.844583000000057, 20.446],
+              [25.024874999999952, 17.856],
+              [25.143583000000035, 19.732],
+              [24.00725, 17.01],
+              [25.252749999999992, 28.693]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "sync-binding",
+            "workload": "concurrent",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [50.05604200000005, 40.239],
+              [56.22770800000001, 40.736],
+              [53.40987499999994, 39.769],
+              [52.40645800000004, 39.763],
+              [48.437625000000025, 48.154],
+              [51.015791000000036, 39.853],
+              [55.84750000000008, 45.685],
+              [50.34512500000005, 44.99],
+              [53.345833000000084, 40.564],
+              [57.74175000000014, 36.806]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [47.873875, 43.888],
+              [52.46245899999997, 40.75],
+              [51.72529199999997, 40.241],
+              [56.53295800000001, 41.931],
+              [53.495457999999985, 46.995],
+              [51.96808299999998, 39.835],
+              [49.97945800000002, 45.832],
+              [52.520500000000084, 45.433],
+              [47.686541000000034, 41.865],
+              [52.655125, 37.673]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[46.88779199999999, 64.573]]
+          },
+          {
+            "cycle": 2,
+            "mode": "sync-binding",
+            "workload": "cold",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[50.47950000000003, 70.973]]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [27.876333000000045, 24.248],
+              [25.848124999999982, 18.141],
+              [25.309750000000008, 21.68],
+              [24.68837499999995, 23.357],
+              [25.17620899999997, 23.693],
+              [23.893084000000044, 19.103],
+              [24.987500000000068, 18.934],
+              [24.961875000000077, 18.409],
+              [25.08345799999995, 18.069],
+              [24.838959000000045, 27.238]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "sync-binding",
+            "workload": "warm",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [27.008292000000097, 22.712],
+              [24.857250000000022, 18.671],
+              [26.384750000000054, 22.064],
+              [26.744041999999922, 23.87],
+              [26.03358300000002, 23.769],
+              [26.129290999999967, 19.112],
+              [25.704415999999924, 19.283],
+              [25.20783300000005, 18.7],
+              [26.08699999999999, 18.089],
+              [25.70825000000002, 27.404]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [48.99062500000002, 42.479],
+              [46.755499999999984, 38.58],
+              [49.392875000000004, 39.81],
+              [54.19687499999998, 39.852],
+              [48.12787500000002, 48.231],
+              [48.807707999999934, 39.553],
+              [55.114000000000146, 47.879],
+              [53.12566600000014, 46.168],
+              [56.15033399999993, 42.932],
+              [55.106207999999924, 38.226]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "sync-binding",
+            "workload": "concurrent",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [52.67995899999994, 40.067],
+              [47.33112500000004, 38.632],
+              [50.34475000000009, 38.138],
+              [51.773708000000056, 39.388],
+              [46.588708, 45.395],
+              [54.62566700000002, 39.777],
+              [58.13608299999987, 47.79],
+              [47.36187499999983, 45.427],
+              [53.28491699999995, 40.845],
+              [59.054584000000204, 38.17]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "sync-binding",
+            "workload": "cold",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[48.61099999999999, 63.984]]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[47.641000000000076, 64.866]]
+          },
+          {
+            "cycle": 3,
+            "mode": "sync-binding",
+            "workload": "warm",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.767875000000004, 22.465],
+              [26.715832999999975, 19.859],
+              [27.181290999999987, 20.905],
+              [25.791166999999973, 24.503],
+              [26.243041999999946, 22.853],
+              [25.809625000000096, 19.951],
+              [25.0218339999999, 17.818],
+              [26.015833999999927, 19.155],
+              [25.117582999999968, 16.661],
+              [26.259249999999952, 27.721]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.94870800000001, 23.152],
+              [26.93837499999995, 18.699],
+              [24.17158299999994, 21.85],
+              [24.647624999999948, 23.515],
+              [26.26420900000005, 23.656],
+              [26.079207999999994, 18.94],
+              [25.632916000000023, 18.967],
+              [25.02049999999997, 18.283],
+              [25.361541999999986, 17.879],
+              [24.807583000000022, 27.353]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "sync-binding",
+            "workload": "concurrent",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [52.506125, 41.479],
+              [49.07891700000005, 39.161],
+              [46.95175000000006, 38.076],
+              [53.56899999999996, 39.058],
+              [47.20166699999993, 46.028],
+              [53.37479199999996, 38.725],
+              [55.598208, 46.235],
+              [43.973458000000164, 44.505],
+              [56.59258299999988, 40.905],
+              [64.7595839999999, 38.49]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [52.07416599999999, 41.075],
+              [47.25199999999995, 39.036],
+              [55.239874999999984, 39.777],
+              [49.64300000000003, 41.859],
+              [47.644416999999976, 52.317],
+              [46.55845799999997, 41.722],
+              [56.470500000000015, 48.72],
+              [43.01754200000005, 44.969],
+              [49.92620799999986, 42.143],
+              [57.308500000000095, 38.225]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[47.688458999999966, 64.927]]
+          },
+          {
+            "cycle": 4,
+            "mode": "sync-binding",
+            "workload": "cold",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[50.12208399999997, 66.597]]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.327249999999935, 24.772],
+              [25.215082999999936, 18.055],
+              [24.91700000000003, 21.642],
+              [24.001958999999943, 23.299],
+              [26.051958000000013, 23.524],
+              [23.778374999999983, 18.58],
+              [26.074707999999987, 19.32],
+              [25.064208000000008, 18.155],
+              [25.136125000000106, 17.814],
+              [23.90041599999995, 27.392]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "sync-binding",
+            "workload": "warm",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.76120800000001, 22.664],
+              [26.09404100000006, 19.653],
+              [25.950249999999983, 20.537],
+              [25.668083000000024, 23.128],
+              [27.295583999999963, 23.568],
+              [24.960124999999948, 18.875],
+              [25.796958000000018, 18.831],
+              [24.90620899999999, 18.159],
+              [26.291165999999976, 17.569],
+              [25.649583000000007, 27.042]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [47.50770799999998, 41.401],
+              [47.81545900000003, 39.498],
+              [49.150667, 38.366],
+              [52.81270799999993, 40.117],
+              [52.821292000000085, 47.471],
+              [52.40929199999994, 39.681],
+              [60.58437500000002, 47.744],
+              [48.33208300000001, 48.05],
+              [46.721416999999974, 41.446],
+              [47.85804200000007, 36.255]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "sync-binding",
+            "workload": "concurrent",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [47.867458000000056, 39.798],
+              [52.48462500000005, 38.545],
+              [52.174833000000035, 39.529],
+              [51.14570800000001, 38.724],
+              [48.591458999999986, 46.118],
+              [53.68500000000006, 41.904],
+              [53.53174999999999, 49.225],
+              [51.79920799999991, 45.476],
+              [53.54220899999996, 40.992],
+              [59.73624999999993, 37.559]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "manifest-parse",
+      "scriptHash": "sha256:1e2ffe41de04d4f1054a8737525bce48354b47b2090feb3f2e14041e7b956b37",
+      "script": "import { registerHooks } from 'node:module';\nimport { spawnSync } from 'node:child_process';\nimport { mkdtemp, rm, writeFile } from 'node:fs/promises';\nimport { resolve } from 'node:path';\nimport { tmpdir } from 'node:os';\nconst repo=process.cwd();\nconst worker=process.argv[2]==='worker';\nif(worker){\n const [mode,root,workload]=process.argv.slice(3);\n let replacements=0;\n if(mode==='parsed-manifest')registerHooks({load(url,context,next){const result=next(url,context);if(!url.endsWith('/packages/project/dist/yaml-contract.js'))return result;let source=String(result.source);source='let priorContent; let priorValue;\\n'+source.replace('value = parse(content);',`if (schema === \"project\" && content === priorContent) value = structuredClone(priorValue); else { value = parse(content); if(schema === \"project\" && Buffer.byteLength(content) <= 65536) { priorContent = content; priorValue = structuredClone(value); } }`);replacements++;return {...result,source}}});\n const {activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\n const r=await activeWorker(root,'candidate',workload,4096,{warmups:2,samples:10,concurrency:4});\n process.stdout.write(JSON.stringify({mode,workload,replacements,semanticValid:r.semanticValid,integrity:r.integrity,eventCount:r.eventCount,expectedEventCount:r.expectedEventCount,samples:r.samples.map(s=>s.slice(0,2))}));\n}else{\n const {initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\n const parent=await mkdtemp(resolve(tmpdir(),'lervo-manifest-parse-'));const results=[];\n try{\n  for(let cycle=0;cycle<5;cycle++)for(const workload of ['cold','warm','concurrent'])for(const mode of cycle%2?['parsed-manifest','current']:['current','parsed-manifest']){\n   const root=resolve(parent,`${cycle}-${mode}-${workload}`);await initializeActiveFixture(root);\n   const child=spawnSync(process.execPath,[process.argv[1],'worker',mode,root,workload],{encoding:'utf8',timeout:30000,maxBuffer:1048576});\n   if(child.status!==0)throw Error(child.stderr||String(child.error));results.push({cycle,...JSON.parse(child.stdout)});\n  }\n  await writeFile('/tmp/lervo-manifest-parse-probe.json',JSON.stringify({diagnosticOnly:true,results},null,2));\n }finally{await rm(parent,{recursive:true,force:true})}\n}\n",
+      "result": {
+        "diagnosticOnly": true,
+        "results": [
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[50.125541999999996, 67.462]]
+          },
+          {
+            "cycle": 0,
+            "mode": "parsed-manifest",
+            "workload": "cold",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[45.127958000000035, 58.565]]
+          },
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [29.94783300000006, 24.635],
+              [25.55658399999993, 18.468],
+              [24.50854199999992, 21.816],
+              [23.64391599999999, 23.189],
+              [23.99654099999998, 23.326],
+              [24.123207999999977, 18.513],
+              [23.865957999999978, 18.569],
+              [25.22195899999997, 18.13],
+              [25.018749999999955, 17.739],
+              [24.812625000000025, 27.33]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "parsed-manifest",
+            "workload": "warm",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.758790999999974, 24.404],
+              [25.034582999999998, 17.729],
+              [24.13970800000004, 20.042],
+              [24.674792000000025, 20.673],
+              [24.173208000000045, 18.471],
+              [24.025125000000003, 17.308],
+              [23.78970800000002, 16.797],
+              [24.077042000000006, 17.67],
+              [24.136750000000006, 17.454],
+              [23.702958999999964, 19.521]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [45.81012499999997, 39.293],
+              [50.69962499999997, 44.848],
+              [58.22279200000003, 42.848],
+              [51.91995799999995, 39.684],
+              [53.25075000000004, 47.239],
+              [51.71920799999998, 37.952],
+              [55.65375000000006, 46.917],
+              [52.11200000000008, 42.873],
+              [53.66704099999993, 43.395],
+              [53.46629200000007, 37.65]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "parsed-manifest",
+            "workload": "concurrent",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [47.078750000000014, 35.56],
+              [50.14175, 32.475],
+              [48.61004200000002, 35.755],
+              [51.65241600000002, 38.321],
+              [50.746458000000075, 33.585],
+              [53.89716699999997, 37.555],
+              [54.66924999999992, 45.813],
+              [52.73374999999987, 38.123],
+              [50.022166999999854, 34.077],
+              [42.233375000000024, 39.364]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "parsed-manifest",
+            "workload": "cold",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[45.23133300000006, 58.728]]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[48.528542000000016, 67.193]]
+          },
+          {
+            "cycle": 1,
+            "mode": "parsed-manifest",
+            "workload": "warm",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [25.661666999999966, 22.495],
+              [24.77291600000001, 19.807],
+              [25.308875000000057, 20.279],
+              [23.807290999999964, 20.348],
+              [24.105709000000047, 18.238],
+              [23.024874999999952, 15.983],
+              [23.67558400000007, 17.732],
+              [23.16941600000007, 17.125],
+              [24.164457999999968, 17.174],
+              [23.815292, 19.682]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.771333000000027, 24.476],
+              [24.964459000000033, 17.991],
+              [24.057541000000015, 21.629],
+              [23.773832999999968, 23.026],
+              [25.007082999999966, 23.411],
+              [24.059334000000035, 18.728],
+              [25.011582999999973, 18.513],
+              [24.932458999999994, 18.038],
+              [24.169083, 17.8],
+              [23.860082999999918, 27.224]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "parsed-manifest",
+            "workload": "concurrent",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [52.888958, 37.679],
+              [50.72066700000005, 34.333],
+              [48.20150000000001, 36.763],
+              [51.07487500000002, 39.931],
+              [51.726875000000064, 34.406],
+              [50.670792000000006, 36.718],
+              [54.948291999999924, 45.445],
+              [51.368875000000116, 36.473],
+              [53.696750000000065, 33.962],
+              [51.15108299999997, 39.79]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [48.27079099999992, 40.538],
+              [50.48658399999999, 39.597],
+              [48.30387500000006, 38.234],
+              [57.57191599999999, 40.192],
+              [55.449499999999944, 47.769],
+              [51.99137500000006, 39.788],
+              [56.21383300000002, 46.221],
+              [48.778249999999844, 43.876],
+              [51.99495899999988, 40.979],
+              [51.12575000000015, 37.561]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[47.20324999999991, 66.008]]
+          },
+          {
+            "cycle": 2,
+            "mode": "parsed-manifest",
+            "workload": "cold",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[46.488833, 60.169]]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.916916000000015, 24.621],
+              [28.72174999999993, 22.735],
+              [24.995083999999906, 21.058],
+              [24.792291999999975, 24.953],
+              [25.133375, 22.718],
+              [32.21945800000003, 20.475],
+              [25.79133300000001, 18.401],
+              [25.038999999999987, 19.612],
+              [23.977874999999926, 16.9],
+              [25.485541000000012, 28.362]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "parsed-manifest",
+            "workload": "warm",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [25.802165999999943, 22.63],
+              [25, 19.663],
+              [22.990999999999985, 19.956],
+              [24.899791999999934, 20.668],
+              [25.15691700000002, 18.347],
+              [22.730709000000047, 16.193],
+              [25.069082999999978, 18.013],
+              [23.983875000000012, 17.269],
+              [24.24483399999997, 17.355],
+              [23.700666999999953, 19.849]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [50.814250000000015, 40.613],
+              [57.95808299999999, 40.463],
+              [52.79154099999994, 40.204],
+              [53.14625000000001, 39.759],
+              [49.77591600000005, 46.722],
+              [52.010749999999916, 39.17],
+              [57.31750000000011, 47.154],
+              [54.728165999999874, 45.778],
+              [52.01583400000004, 41.495],
+              [54.06970799999999, 38.406]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "parsed-manifest",
+            "workload": "concurrent",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [47.73204099999998, 35.371],
+              [44.60733300000004, 35.424],
+              [49.785708, 35.767],
+              [56.64350000000002, 40.754],
+              [56.488292, 36.254],
+              [46.560833, 37.653],
+              [54.24083299999995, 46.27],
+              [52.70916699999998, 39.574],
+              [51.54237499999999, 34.87],
+              [51.32400000000007, 41.514]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "parsed-manifest",
+            "workload": "cold",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[45.83479199999999, 61.446]]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[50.37845800000002, 67.062]]
+          },
+          {
+            "cycle": 3,
+            "mode": "parsed-manifest",
+            "workload": "warm",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [25.142958999999905, 23.095],
+              [26.260459000000083, 21.009],
+              [24.022583000000054, 20.831],
+              [24.628708999999958, 21.164],
+              [24.144999999999982, 18.912],
+              [22.98087499999997, 16.12],
+              [23.78541699999994, 17.613],
+              [23.955791999999974, 17.369],
+              [24.261333000000036, 17.221],
+              [22.71291599999995, 19.603]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.696707999999944, 24.778],
+              [26.066333999999983, 18.297],
+              [24.104708000000073, 21.885],
+              [23.611041999999998, 23.238],
+              [23.98199999999997, 23.599],
+              [24.27004199999999, 18.575],
+              [24.85966700000006, 18.756],
+              [25.1701250000001, 18.066],
+              [24.112290999999914, 17.705],
+              [23.695249999999987, 27.084]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "parsed-manifest",
+            "workload": "concurrent",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [48.86883399999999, 36.355],
+              [49.448375000000055, 32.981],
+              [48.96662499999991, 35.555],
+              [48.439707999999996, 38.465],
+              [49.716125000000034, 34.583],
+              [49.67791700000009, 37.735],
+              [52.25720899999999, 44.545],
+              [55.053874999999834, 36.712],
+              [50.842124999999896, 34.442],
+              [50.798917000000074, 39.428]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [47.036834, 40.947],
+              [59.41920900000002, 39.955],
+              [52.211915999999974, 38.199],
+              [51.25137500000005, 39.984],
+              [62.65708299999994, 63.756],
+              [50.28520800000001, 39.278],
+              [56.563084, 46.501],
+              [59.86699999999996, 46.108],
+              [58.647666999999956, 43.732],
+              [58.18320900000003, 39.343]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[49.53837500000009, 67.346]]
+          },
+          {
+            "cycle": 4,
+            "mode": "parsed-manifest",
+            "workload": "cold",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[46.90062499999999, 60.994]]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [27.502417000000037, 24.112],
+              [26.184541999999965, 18.587],
+              [25.127208999999993, 21.969],
+              [23.680791999999997, 23.406],
+              [26.279750000000035, 23.731],
+              [24.79083300000002, 18.94],
+              [24.868541999999934, 18.891],
+              [25.309041999999977, 18.47],
+              [23.915500000000065, 17.802],
+              [25.819208000000003, 27.412]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "parsed-manifest",
+            "workload": "warm",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [27.898209000000065, 25.275],
+              [25.502166999999986, 18.471],
+              [24.51962500000002, 22.15],
+              [24.670625000000086, 19.928],
+              [24.35454100000004, 18.753],
+              [23.666541999999936, 17.799],
+              [24.035541999999964, 16.902],
+              [23.054458000000068, 18.733],
+              [23.125125000000025, 16.021],
+              [25.698875000000044, 19.764]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [51.007375000000025, 41.856],
+              [52.669958000000065, 41.032],
+              [51.746332999999936, 40.125],
+              [52.998042000000055, 41.921],
+              [54.12225000000001, 48.739],
+              [56.07024999999999, 41.657],
+              [53.12737500000003, 47.751],
+              [51.25675000000001, 46.393],
+              [52.91599999999994, 42.056],
+              [51.40174999999999, 39.639]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "parsed-manifest",
+            "workload": "concurrent",
+            "replacements": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [44.28120799999999, 35.719],
+              [50.27291700000001, 35.44],
+              [45.27166699999998, 36.262],
+              [53.20416599999999, 38.155],
+              [48.853374999999915, 37.804],
+              [46.11466599999994, 37.971],
+              [51.920124999999985, 47.208],
+              [48.840124999999944, 36.233],
+              [51.81166699999994, 35.184],
+              [46.106624999999894, 40.757]
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

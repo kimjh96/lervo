@@ -1,3 +1,4 @@
+import { cliNativeFiles, cliReleaseFilesForSchema } from "./cli-release-files.mjs";
 import { createHash } from "node:crypto";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/;
@@ -61,8 +62,9 @@ export function validateReleaseArtifactManifest(manifest) {
     );
   }
   const { artifact, archive, bundle, dependencies } = manifest;
+  const expectedFiles = cliReleaseFilesForSchema(manifest.schemaVersion);
   if (
-    manifest.schemaVersion !== 5 ||
+    ![5, 6].includes(manifest.schemaVersion) ||
     artifact?.name !== "@lervo/cli" ||
     typeof artifact.version !== "string" ||
     !semanticVersionPattern.test(artifact.version) ||
@@ -81,8 +83,7 @@ export function validateReleaseArtifactManifest(manifest) {
     artifact.type !== "module" ||
     artifact.node !== ">=22.13" ||
     artifact.bin !== "dist/bin.js" ||
-    canonicalJson(artifact.files) !==
-      canonicalJson(["README.md", "dist/bin.js", "dist/node-runtime.js", "dist/terminal-hook.js"])
+    canonicalJson(artifact.files) !== canonicalJson(expectedFiles)
   ) {
     fail("release_artifact_identity_invalid", "The release artifact identity is invalid.");
   }
@@ -165,17 +166,17 @@ export function validateReleaseArtifactManifest(manifest) {
   }
   const archiveFilesValid =
     Array.isArray(archive?.files) &&
-    archive.files.length === 4 &&
+    archive.files.length === expectedFiles.length &&
     archive.files.every(
       (entry) =>
         entry !== null &&
         typeof entry === "object" &&
         typeof entry.path === "string" &&
-        ["README.md", "dist/bin.js", "dist/node-runtime.js", "dist/terminal-hook.js"].includes(
-          entry.path,
-        ) &&
+        expectedFiles.includes(entry.path) &&
         Number.isSafeInteger(entry.size) &&
         entry.size >= 0 &&
+        (!cliNativeFiles.includes(entry.path) ||
+          (entry.size > 0 && entry.size <= (entry.path.endsWith(".node") ? 1048576 : 4096))) &&
         typeof entry.sha256 === "string" &&
         digestPattern.test(entry.sha256),
     );
@@ -184,13 +185,7 @@ export function validateReleaseArtifactManifest(manifest) {
     archive.rootFiles.length !== 1 ||
     archive.rootFiles[0] !== "package.json" ||
     !archiveFilesValid ||
-    canonicalJson(archive.files.map((entry) => entry.path)) !==
-      canonicalJson([
-        "README.md",
-        "dist/bin.js",
-        "dist/node-runtime.js",
-        "dist/terminal-hook.js",
-      ]) ||
+    canonicalJson(archive.files.map((entry) => entry.path)) !== canonicalJson(expectedFiles) ||
     !isSortedUnique(archive.files.map((entry) => entry.path)) ||
     archive.fileCount !== archive.files.length + archive.rootFiles.length ||
     archive.contentDigest !== canonicalDigest(archive.files)

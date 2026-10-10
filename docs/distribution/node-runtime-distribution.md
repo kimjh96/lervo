@@ -19,3 +19,7 @@ The [Discord service decision](../decisions/coordination/conversations/0382-node
 ## Release identity
 
 Private workspace package versions are implementation coordinates, not operational Node release identifiers. The embedded package manifest, SBOM root, distribution manifest, and artifact sidecar must all match the public Lervo product version.
+
+## Native synchronization assets
+
+Darwin archives include the source-bound universal addon and its manifest in `dist/native/`. Both files are covered by the archive inventory and SBOM. Other targets retain ordinary synchronization. Version-2 archives require the updated verifier/installer, which continues to read version-1 archives. See [ADR-0502](../decisions/distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) for ownership, failure handling and reader-first rollout. Compilation and downloads never occur at runtime or installation.

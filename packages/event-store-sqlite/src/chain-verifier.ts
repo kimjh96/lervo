@@ -48,7 +48,23 @@ export class SQLiteEventChainVerifier {
           verified.set(afterSeq, cached);
           continue;
         }
-        for (const row of rows) {
+        const cachedLength = cached === undefined ? 0 : cached.eventCount - afterSeq;
+        let reused = 0;
+        if (
+          cached &&
+          cached.previousHash === predecessor &&
+          cachedLength > 0 &&
+          cachedLength < rows.length &&
+          createHash("sha256")
+            .update(JSON.stringify(rows.slice(0, cachedLength)))
+            .digest("hex") === cached.bytesHash
+        ) {
+          // A growing tail page can reuse only its freshly read exact prefix.
+          eventCount = cached.eventCount;
+          previousHash = cached.headHash;
+          reused = cachedLength;
+        }
+        for (const row of rows.slice(reused)) {
           const event = rowToEvent(row);
           eventCount += 1;
           if (event.seq !== eventCount || event.previousHash !== previousHash) {

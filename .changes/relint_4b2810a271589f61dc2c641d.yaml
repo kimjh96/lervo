@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4b2810a271589f61dc2c641d"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add exact artifact quality observations, explicit query recording, and reader-first context-quality event compatibility."

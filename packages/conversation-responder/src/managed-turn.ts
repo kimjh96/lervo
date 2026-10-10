@@ -1,3 +1,4 @@
+import { verifyConversationOutcome } from "./outcome-boundary.js";
 import { ManagedConversationArtifactRunner } from "./managed-artifact-runner.js";
 import {
   managedConversationTurnInstructions,
@@ -73,11 +74,14 @@ export class ManagedConversationTurnResolver implements ManagedConversationTurnR
         { cause: error instanceof Error ? error : undefined },
       );
     }
+    const replyArtifact =
+      body.reply === null ? null : await storeManagedConversationReply(this.options, body.reply);
+    await verifyConversationOutcome(plan, replyArtifact ?? generated.artifact);
     const replyCandidate =
-      body.reply === null
+      replyArtifact === null
         ? null
         : await publishConversationResponse({
-            artifact: await storeManagedConversationReply(this.options, body.reply),
+            artifact: replyArtifact,
             writingContract: plan.writingContract,
             artifactStore: this.options.artifactStore,
             ...(this.options.semanticEvaluator === undefined

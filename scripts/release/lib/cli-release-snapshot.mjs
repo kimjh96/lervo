@@ -1,3 +1,8 @@
+import { cliReleaseFiles } from "../../shared/cli-release-files.mjs";
+import {
+  readNativeFileSyncArtifact,
+  nativeFileSyncSourceHash,
+} from "../../shared/native-file-sync-artifact.mjs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -20,12 +25,7 @@ const cliRoot = resolve(repositoryRoot, "apps/cli");
 const cliManifestPath = resolve(cliRoot, "package.json");
 const bundleMetafilePath = resolve(cliRoot, "dist/bin.metafile.json");
 const bundleOutputPath = "apps/cli/dist/bin.js";
-const publicContentPaths = new Set([
-  "README.md",
-  "dist/bin.js",
-  "dist/node-runtime.js",
-  "dist/terminal-hook.js",
-]);
+const publicContentPaths = new Set(cliReleaseFiles);
 export function normalizeBundleMetadataPath(path) {
   return path.replaceAll("\\", "/");
 }
@@ -43,6 +43,15 @@ async function readPackFileList() {
 }
 
 async function createArchiveSnapshot(paths) {
+  await readNativeFileSyncArtifact(resolve(cliRoot, "dist/native"), {
+    required: true,
+    expectedSourceHash: await nativeFileSyncSourceHash(repositoryRoot),
+  });
+  if (JSON.stringify(paths) !== JSON.stringify([...cliReleaseFiles, "package.json"]))
+    throw new ReleaseArtifactManifestError(
+      "release_artifact_file_set_invalid",
+      "The CLI archive file set is incomplete or unexpected.",
+    );
   if (!paths.includes("package.json")) {
     throw new ReleaseArtifactManifestError(
       "release_artifact_package_manifest_missing",
@@ -194,7 +203,7 @@ export async function createCliReleaseManifest(
     platformSpecificFamilies: classified.platformSpecificFamilies,
   };
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     artifact,
     directDependencies,
     bundle,

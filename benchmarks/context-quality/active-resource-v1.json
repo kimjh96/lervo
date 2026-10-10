@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "protocolId": "context-quality-active-resource-v1",
+  "registeredAt": "2026-10-09T13:21:35.356Z",
+  "scope": "Same-build isolated fixture qualification of active preparation and exact task-outcome recording; not full-corpus, human-quality or installed acceptance.",
+  "profiles": [4096, 12288],
+  "pairs": {
+    "warm": 30,
+    "cold": 5,
+    "changed": 30,
+    "concurrent": 30
+  },
+  "warmups": 2,
+  "samples": 5,
+  "concurrency": 4,
+  "maximumProviderCalls": 0,
+  "processDeadlineMs": 30000,
+  "control": "Writer6 enabled in an isolated repository; common preparation plus exact task verification with recording disabled.",
+  "candidate": "Identical bytes, root, manifest and initial durable state; record both preparation and task verification through the existing writer6 operations.",
+  "expectedArtifactBuildHash": "sha256:6a9d5daf36b14fb29ed84565eec7c68607b0a2b01ce688b9fab20b9e05fe7664",
+  "gates": {
+    "meanAddedMsUpper95": 10,
+    "processRatioUpper95": 1.2,
+    "rssRatioUpper95": 1.25,
+    "cpuRatioUpper95": 1.25,
+    "maximumStateBytesPerRequest": 131072
+  },
+  "minimumPracticalImprovement": null,
+  "gateBasis": "Retain historical 10ms, 1.20 process and 1.25 RSS noninferiority floors. Add CPU1.25 and128KiB/request storage caps. Added latency is per measured batch, including all four concurrent callers; no division to conceal queue or storage contention.",
+  "confidence": "Paired percentile bootstrap of per-process means,10000 draws,xorshift32 seed501,two-sided95percent; report each workload/profile independently.",
+  "fixture": "Fixed32KiB Markdown candidate, one complete generated owner clause, exact4byte task result, deterministic non-provider task evaluator. Native instruction delivery remains unobserved. Corpus limits unchanged.",
+  "schedule": "Alternate arm order per pair; restore identical scratch baseline before each arm. Cold means fresh application process, not flushed OS caches. Warmups2 and samples5 retained. Changed-source writes new same-length bytes before each measured batch. Concurrent launches4 identical consumers together. Stale-selection probe after changed samples is outside batch timers but inside process timing.",
+  "stopRules": [
+    "Any failed/cancelled/missing process rejects the cohort; retain it without retry or replacement.",
+    "Any accepted stale source, false task pass, unknown recording failure or integrity mismatch rejects correctness.",
+    "No threshold changes after observing the cohort; any repair is a new candidate and retains this report."
+  ],
+  "conditions": "Shared workstation. During this cohort the agent runs no tests, builds, installations or knowledge scans; resident/user workloads remain uncontrolled and host load/CPU counters are retained.",
+  "limitations": [
+    "No real-task or human-reviewed quality inference",
+    "No stochastic provider calls, tokens or task-completion estimate",
+    "No full-repository scan cost",
+    "No machine-cold evidence",
+    "No multi-process concurrent writers: concurrent consumers share one process",
+    "No fleet deployment or writer activation outside disposable fixtures"
+  ]
+}

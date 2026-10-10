@@ -1,0 +1,1635 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.lervo.dev/v0/event.schema.json",
+  "title": "Lervo readable append-only event envelope",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "pattern": "^evt_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^run_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "sessionId": {
+          "type": "string",
+          "pattern": "^ses_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "actor": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["user", "agent", "system", "provider"]
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9_-]*$"
+            }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        "policyVersion": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "previousHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eventHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "run.requested",
+            "run.resolved",
+            "run.completed",
+            "run.failed",
+            "context.recommended",
+            "context.selected",
+            "document.loaded",
+            "context.injected",
+            "adapter.result.captured",
+            "context.referenced",
+            "context.invalidated",
+            "context.published",
+            "handoff.created",
+            "adapter.started",
+            "adapter.stopped",
+            "capability.requested",
+            "capability.decided",
+            "capability.activated",
+            "capability.recommended",
+            "capability.selected",
+            "capability.loaded",
+            "capability.invoked",
+            "capability.completed",
+            "tool.called",
+            "command.executed",
+            "file.changed",
+            "skill.resolved",
+            "skill.invoked",
+            "skill.completed",
+            "verification.started",
+            "verification.completed",
+            "deliberation.started",
+            "deliberation.artifact.recorded",
+            "deliberation.artifact.publication_failed",
+            "deliberation.completed",
+            "development.pattern.observed",
+            "development.pattern.transitioned",
+            "development.pattern.evaluation.registered",
+            "development.pattern.effect.observed",
+            "knowledge.candidate.created",
+            "knowledge.candidate.reviewed",
+            "knowledge.reconciliation.reviewed",
+            "knowledge.verified",
+            "knowledge.stale.detected",
+            "knowledge.materialization.applied",
+            "state.pruned",
+            "terminal.integration.applied",
+            "terminal.context.prepared",
+            "terminal.turn.declared",
+            "terminal.reference.observed",
+            "terminal.turn.observed",
+            "workstream.snapshot.recorded",
+            "agent.registered",
+            "agent.identity.changed",
+            "agent.status.changed",
+            "assignment.created",
+            "assignment.claimed",
+            "assignment.lease.renewed",
+            "assignment.handoff.recorded",
+            "assignment.handoff.acknowledged",
+            "assignment.cancelled",
+            "assignment.completion.prepared",
+            "assignment.completion.reconciled",
+            "assignment.completed",
+            "assignment.role.binding.changed",
+            "assignment.amended",
+            "assignment.reopened",
+            "public_readme.improvement.applied",
+            "document.stale.detected",
+            "document.migration.applied",
+            "project.identity.migrated",
+            "unmanaged_change.detected",
+            "sync.acknowledged",
+            "organization.team.bound",
+            "organization.team.kind.changed",
+            "organization.agent.identity.changed",
+            "organization.agent.membership.changed",
+            "organization.external_agent.deployment.bound",
+            "organization.external_agent.deployment.retired",
+            "organization.channel.membership.changed",
+            "organization.deliberation.participant.bound",
+            "organization.deliberation.participant.released",
+            "agent.context.promoted",
+            "agent.context.handoff.recorded"
+          ]
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        }
+      },
+      "required": [
+        "eventId",
+        "projectId",
+        "runId",
+        "sessionId",
+        "seq",
+        "type",
+        "occurredAt",
+        "actor",
+        "schemaVersion",
+        "policyVersion",
+        "payload",
+        "previousHash",
+        "eventHash"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "seq": {
+                "const": 1
+              }
+            },
+            "required": ["seq"]
+          },
+          "then": {
+            "properties": {
+              "previousHash": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "previousHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "enum": ["agent", "provider"]
+                  }
+                },
+                "required": ["kind"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9_-]*$"
+                  }
+                },
+                "required": ["kind", "provider"]
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "pattern": "^evt_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^run_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "sessionId": {
+          "type": "string",
+          "pattern": "^ses_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "actor": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["user", "agent", "system", "provider"]
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9_-]*$"
+            }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        "policyVersion": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "previousHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eventHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "run.requested",
+            "run.resolved",
+            "run.completed",
+            "run.failed",
+            "context.recommended",
+            "context.selected",
+            "document.loaded",
+            "context.injected",
+            "adapter.result.captured",
+            "context.referenced",
+            "context.invalidated",
+            "context.published",
+            "handoff.created",
+            "adapter.started",
+            "adapter.stopped",
+            "capability.requested",
+            "capability.decided",
+            "capability.activated",
+            "capability.recommended",
+            "capability.selected",
+            "capability.loaded",
+            "capability.invoked",
+            "capability.completed",
+            "tool.called",
+            "command.executed",
+            "file.changed",
+            "skill.resolved",
+            "skill.invoked",
+            "skill.completed",
+            "verification.started",
+            "verification.completed",
+            "deliberation.started",
+            "deliberation.artifact.recorded",
+            "deliberation.artifact.publication_failed",
+            "deliberation.completed",
+            "development.pattern.observed",
+            "development.pattern.transitioned",
+            "development.pattern.evaluation.registered",
+            "development.pattern.effect.observed",
+            "knowledge.candidate.created",
+            "knowledge.candidate.reviewed",
+            "knowledge.reconciliation.reviewed",
+            "knowledge.verified",
+            "knowledge.stale.detected",
+            "knowledge.materialization.applied",
+            "state.pruned",
+            "terminal.integration.applied",
+            "terminal.context.prepared",
+            "terminal.turn.declared",
+            "terminal.reference.observed",
+            "terminal.turn.observed",
+            "workstream.snapshot.recorded",
+            "agent.registered",
+            "agent.identity.changed",
+            "agent.status.changed",
+            "assignment.created",
+            "assignment.claimed",
+            "assignment.lease.renewed",
+            "assignment.handoff.recorded",
+            "assignment.handoff.acknowledged",
+            "assignment.cancelled",
+            "assignment.completion.prepared",
+            "assignment.completion.reconciled",
+            "assignment.completed",
+            "assignment.role.binding.changed",
+            "assignment.amended",
+            "assignment.reopened",
+            "public_readme.improvement.applied",
+            "document.stale.detected",
+            "document.migration.applied",
+            "project.identity.migrated",
+            "unmanaged_change.detected",
+            "sync.acknowledged",
+            "organization.team.bound",
+            "organization.team.kind.changed",
+            "organization.agent.identity.changed",
+            "organization.agent.membership.changed",
+            "organization.external_agent.deployment.bound",
+            "organization.external_agent.deployment.retired",
+            "organization.channel.membership.changed",
+            "organization.deliberation.participant.bound",
+            "organization.deliberation.participant.released",
+            "agent.context.promoted",
+            "agent.context.handoff.recorded",
+            "conversation.repository_work.completed",
+            "agent.liveness.observed",
+            "provider.process.observed",
+            "work.causality.recorded",
+            "resource.usage.recorded",
+            "execution.stages.observed",
+            "role.profile.activated"
+          ]
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "const": 2
+        }
+      },
+      "required": [
+        "eventId",
+        "projectId",
+        "runId",
+        "sessionId",
+        "seq",
+        "type",
+        "occurredAt",
+        "actor",
+        "schemaVersion",
+        "policyVersion",
+        "payload",
+        "previousHash",
+        "eventHash"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "seq": {
+                "const": 1
+              }
+            },
+            "required": ["seq"]
+          },
+          "then": {
+            "properties": {
+              "previousHash": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "previousHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "enum": ["agent", "provider"]
+                  }
+                },
+                "required": ["kind"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9_-]*$"
+                  }
+                },
+                "required": ["kind", "provider"]
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "pattern": "^evt_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^run_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "sessionId": {
+          "type": "string",
+          "pattern": "^ses_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "actor": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["user", "agent", "system", "provider"]
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9_-]*$"
+            }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        "policyVersion": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "previousHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eventHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "run.requested",
+            "run.resolved",
+            "run.completed",
+            "run.failed",
+            "context.recommended",
+            "context.selected",
+            "document.loaded",
+            "context.injected",
+            "adapter.result.captured",
+            "context.referenced",
+            "context.invalidated",
+            "context.published",
+            "handoff.created",
+            "adapter.started",
+            "adapter.stopped",
+            "capability.requested",
+            "capability.decided",
+            "capability.activated",
+            "capability.recommended",
+            "capability.selected",
+            "capability.loaded",
+            "capability.invoked",
+            "capability.completed",
+            "tool.called",
+            "command.executed",
+            "file.changed",
+            "skill.resolved",
+            "skill.invoked",
+            "skill.completed",
+            "verification.started",
+            "verification.completed",
+            "deliberation.started",
+            "deliberation.artifact.recorded",
+            "deliberation.artifact.publication_failed",
+            "deliberation.completed",
+            "development.pattern.observed",
+            "development.pattern.transitioned",
+            "development.pattern.evaluation.registered",
+            "development.pattern.effect.observed",
+            "knowledge.candidate.created",
+            "knowledge.candidate.reviewed",
+            "knowledge.reconciliation.reviewed",
+            "knowledge.verified",
+            "knowledge.stale.detected",
+            "knowledge.materialization.applied",
+            "state.pruned",
+            "terminal.integration.applied",
+            "terminal.context.prepared",
+            "terminal.turn.declared",
+            "terminal.reference.observed",
+            "terminal.turn.observed",
+            "workstream.snapshot.recorded",
+            "agent.registered",
+            "agent.identity.changed",
+            "agent.status.changed",
+            "assignment.created",
+            "assignment.claimed",
+            "assignment.lease.renewed",
+            "assignment.handoff.recorded",
+            "assignment.handoff.acknowledged",
+            "assignment.cancelled",
+            "assignment.completion.prepared",
+            "assignment.completion.reconciled",
+            "assignment.completed",
+            "assignment.role.binding.changed",
+            "assignment.amended",
+            "assignment.reopened",
+            "public_readme.improvement.applied",
+            "document.stale.detected",
+            "document.migration.applied",
+            "project.identity.migrated",
+            "unmanaged_change.detected",
+            "sync.acknowledged",
+            "organization.team.bound",
+            "organization.team.kind.changed",
+            "organization.agent.identity.changed",
+            "organization.agent.membership.changed",
+            "organization.external_agent.deployment.bound",
+            "organization.external_agent.deployment.retired",
+            "organization.channel.membership.changed",
+            "organization.deliberation.participant.bound",
+            "organization.deliberation.participant.released",
+            "agent.context.promoted",
+            "agent.context.handoff.recorded",
+            "conversation.repository_work.completed",
+            "agent.liveness.observed",
+            "provider.process.observed",
+            "work.causality.recorded",
+            "resource.usage.recorded",
+            "execution.stages.observed",
+            "role.profile.activated",
+            "conversation.repository_knowledge.resolved",
+            "repository.change.completed",
+            "repository.knowledge.resolved",
+            "work.supervision.mandate.installed",
+            "work.supervision.mandate.revoked",
+            "work.supervision.bound",
+            "work.responsibility.bound",
+            "work.supervision.decision.recorded",
+            "work.supervision.decision.superseded",
+            "work.supervision.owner_reasoning.interruption_reconciled",
+            "work.supervision.effect.observed",
+            "work.supervision.readiness.failed",
+            "work.supervision.preflight.blocked",
+            "work.supervision.preflight.resolved",
+            "work.supervision.review.recorded",
+            "work.supervision.workspace.prepared",
+            "work.supervision.delivery.queued",
+            "work.supervision.delivery.observed",
+            "work.supervision.escalation.recorded",
+            "work.supervision.handoff.offered",
+            "work.supervision.handoff.accepted",
+            "work.supervision.peer.observed",
+            "managed.execution.reserved",
+            "role.input.bound"
+          ]
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "const": 3
+        }
+      },
+      "required": [
+        "eventId",
+        "projectId",
+        "runId",
+        "sessionId",
+        "seq",
+        "type",
+        "occurredAt",
+        "actor",
+        "schemaVersion",
+        "policyVersion",
+        "payload",
+        "previousHash",
+        "eventHash"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "seq": {
+                "const": 1
+              }
+            },
+            "required": ["seq"]
+          },
+          "then": {
+            "properties": {
+              "previousHash": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "previousHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "enum": ["agent", "provider"]
+                  }
+                },
+                "required": ["kind"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9_-]*$"
+                  }
+                },
+                "required": ["kind", "provider"]
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "pattern": "^evt_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^run_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "sessionId": {
+          "type": "string",
+          "pattern": "^ses_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "actor": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["user", "agent", "system", "provider"]
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9_-]*$"
+            }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        "policyVersion": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "previousHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eventHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "run.requested",
+            "run.resolved",
+            "run.completed",
+            "run.failed",
+            "context.recommended",
+            "context.selected",
+            "document.loaded",
+            "context.injected",
+            "adapter.result.captured",
+            "context.referenced",
+            "context.invalidated",
+            "context.published",
+            "handoff.created",
+            "adapter.started",
+            "adapter.stopped",
+            "capability.requested",
+            "capability.decided",
+            "capability.activated",
+            "capability.recommended",
+            "capability.selected",
+            "capability.loaded",
+            "capability.invoked",
+            "capability.completed",
+            "tool.called",
+            "command.executed",
+            "file.changed",
+            "skill.resolved",
+            "skill.invoked",
+            "skill.completed",
+            "verification.started",
+            "verification.completed",
+            "deliberation.started",
+            "deliberation.artifact.recorded",
+            "deliberation.artifact.publication_failed",
+            "deliberation.completed",
+            "development.pattern.observed",
+            "development.pattern.transitioned",
+            "development.pattern.evaluation.registered",
+            "development.pattern.effect.observed",
+            "knowledge.candidate.created",
+            "knowledge.candidate.reviewed",
+            "knowledge.reconciliation.reviewed",
+            "knowledge.verified",
+            "knowledge.stale.detected",
+            "knowledge.materialization.applied",
+            "state.pruned",
+            "terminal.integration.applied",
+            "terminal.context.prepared",
+            "terminal.turn.declared",
+            "terminal.reference.observed",
+            "terminal.turn.observed",
+            "workstream.snapshot.recorded",
+            "agent.registered",
+            "agent.identity.changed",
+            "agent.status.changed",
+            "assignment.created",
+            "assignment.claimed",
+            "assignment.lease.renewed",
+            "assignment.handoff.recorded",
+            "assignment.handoff.acknowledged",
+            "assignment.cancelled",
+            "assignment.completion.prepared",
+            "assignment.completion.reconciled",
+            "assignment.completed",
+            "assignment.role.binding.changed",
+            "assignment.amended",
+            "assignment.reopened",
+            "public_readme.improvement.applied",
+            "document.stale.detected",
+            "document.migration.applied",
+            "project.identity.migrated",
+            "unmanaged_change.detected",
+            "sync.acknowledged",
+            "organization.team.bound",
+            "organization.team.kind.changed",
+            "organization.agent.identity.changed",
+            "organization.agent.membership.changed",
+            "organization.external_agent.deployment.bound",
+            "organization.external_agent.deployment.retired",
+            "organization.channel.membership.changed",
+            "organization.deliberation.participant.bound",
+            "organization.deliberation.participant.released",
+            "agent.context.promoted",
+            "agent.context.handoff.recorded",
+            "conversation.repository_work.completed",
+            "agent.liveness.observed",
+            "provider.process.observed",
+            "work.causality.recorded",
+            "resource.usage.recorded",
+            "execution.stages.observed",
+            "role.profile.activated",
+            "conversation.repository_knowledge.resolved",
+            "repository.change.completed",
+            "repository.knowledge.resolved",
+            "work.supervision.mandate.installed",
+            "work.supervision.mandate.revoked",
+            "work.supervision.bound",
+            "work.responsibility.bound",
+            "work.supervision.decision.recorded",
+            "work.supervision.decision.superseded",
+            "work.supervision.owner_reasoning.interruption_reconciled",
+            "work.supervision.effect.observed",
+            "work.supervision.readiness.failed",
+            "work.supervision.preflight.blocked",
+            "work.supervision.preflight.resolved",
+            "work.supervision.review.recorded",
+            "work.supervision.workspace.prepared",
+            "work.supervision.delivery.queued",
+            "work.supervision.delivery.observed",
+            "work.supervision.escalation.recorded",
+            "work.supervision.handoff.offered",
+            "work.supervision.handoff.accepted",
+            "work.supervision.peer.observed",
+            "managed.execution.reserved",
+            "role.input.bound",
+            "repository.knowledge.baseline.requested",
+            "repository.knowledge.stage.recorded",
+            "repository.knowledge.convergence.recorded",
+            "assignment.convergence.archived",
+            "repository.replica.diverged",
+            "repository.replica.reconciled",
+            "document.freshness.candidate.created",
+            "document.freshness.candidate.verified",
+            "document.freshness.candidate.applied",
+            "document.freshness.candidate.rejected",
+            "document.freshness.candidate.reverted",
+            "document.freshness.cycle.completed",
+            "knowledge.instruction_candidate.captured",
+            "conversation.knowledge_candidate.recorded",
+            "knowledge.instruction_capture.cycle.completed",
+            "knowledge.instruction_candidate.exchanged",
+            "knowledge.convergence.owner.changed",
+            "knowledge.convergence.delegation.continued",
+            "knowledge.convergence.definitions.installed",
+            "knowledge.publication.repaired",
+            "knowledge.integration_target.absorbed"
+          ]
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "const": 4
+        }
+      },
+      "required": [
+        "eventId",
+        "projectId",
+        "runId",
+        "sessionId",
+        "seq",
+        "type",
+        "occurredAt",
+        "actor",
+        "schemaVersion",
+        "policyVersion",
+        "payload",
+        "previousHash",
+        "eventHash"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "seq": {
+                "const": 1
+              }
+            },
+            "required": ["seq"]
+          },
+          "then": {
+            "properties": {
+              "previousHash": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "previousHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "enum": ["agent", "provider"]
+                  }
+                },
+                "required": ["kind"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9_-]*$"
+                  }
+                },
+                "required": ["kind", "provider"]
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "pattern": "^evt_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^run_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "sessionId": {
+          "type": "string",
+          "pattern": "^ses_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "actor": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["user", "agent", "system", "provider"]
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9_-]*$"
+            }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        "policyVersion": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "previousHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eventHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "run.requested",
+            "run.resolved",
+            "run.completed",
+            "run.failed",
+            "context.recommended",
+            "context.selected",
+            "document.loaded",
+            "context.injected",
+            "adapter.result.captured",
+            "context.referenced",
+            "context.invalidated",
+            "context.published",
+            "handoff.created",
+            "adapter.started",
+            "adapter.stopped",
+            "capability.requested",
+            "capability.decided",
+            "capability.activated",
+            "capability.recommended",
+            "capability.selected",
+            "capability.loaded",
+            "capability.invoked",
+            "capability.completed",
+            "tool.called",
+            "command.executed",
+            "file.changed",
+            "skill.resolved",
+            "skill.invoked",
+            "skill.completed",
+            "verification.started",
+            "verification.completed",
+            "deliberation.started",
+            "deliberation.artifact.recorded",
+            "deliberation.artifact.publication_failed",
+            "deliberation.completed",
+            "development.pattern.observed",
+            "development.pattern.transitioned",
+            "development.pattern.evaluation.registered",
+            "development.pattern.effect.observed",
+            "knowledge.candidate.created",
+            "knowledge.candidate.reviewed",
+            "knowledge.reconciliation.reviewed",
+            "knowledge.verified",
+            "knowledge.stale.detected",
+            "knowledge.materialization.applied",
+            "state.pruned",
+            "terminal.integration.applied",
+            "terminal.context.prepared",
+            "terminal.turn.declared",
+            "terminal.reference.observed",
+            "terminal.turn.observed",
+            "workstream.snapshot.recorded",
+            "agent.registered",
+            "agent.identity.changed",
+            "agent.status.changed",
+            "assignment.created",
+            "assignment.claimed",
+            "assignment.lease.renewed",
+            "assignment.handoff.recorded",
+            "assignment.handoff.acknowledged",
+            "assignment.cancelled",
+            "assignment.completion.prepared",
+            "assignment.completion.reconciled",
+            "assignment.completed",
+            "assignment.role.binding.changed",
+            "assignment.amended",
+            "assignment.reopened",
+            "public_readme.improvement.applied",
+            "document.stale.detected",
+            "document.migration.applied",
+            "project.identity.migrated",
+            "unmanaged_change.detected",
+            "sync.acknowledged",
+            "organization.team.bound",
+            "organization.team.kind.changed",
+            "organization.agent.identity.changed",
+            "organization.agent.membership.changed",
+            "organization.external_agent.deployment.bound",
+            "organization.external_agent.deployment.retired",
+            "organization.channel.membership.changed",
+            "organization.deliberation.participant.bound",
+            "organization.deliberation.participant.released",
+            "agent.context.promoted",
+            "agent.context.handoff.recorded",
+            "conversation.repository_work.completed",
+            "agent.liveness.observed",
+            "provider.process.observed",
+            "work.causality.recorded",
+            "resource.usage.recorded",
+            "execution.stages.observed",
+            "role.profile.activated",
+            "conversation.repository_knowledge.resolved",
+            "repository.change.completed",
+            "repository.knowledge.resolved",
+            "work.supervision.mandate.installed",
+            "work.supervision.mandate.revoked",
+            "work.supervision.bound",
+            "work.responsibility.bound",
+            "work.supervision.decision.recorded",
+            "work.supervision.decision.superseded",
+            "work.supervision.owner_reasoning.interruption_reconciled",
+            "work.supervision.effect.observed",
+            "work.supervision.readiness.failed",
+            "work.supervision.preflight.blocked",
+            "work.supervision.preflight.resolved",
+            "work.supervision.review.recorded",
+            "work.supervision.workspace.prepared",
+            "work.supervision.delivery.queued",
+            "work.supervision.delivery.observed",
+            "work.supervision.escalation.recorded",
+            "work.supervision.handoff.offered",
+            "work.supervision.handoff.accepted",
+            "work.supervision.peer.observed",
+            "managed.execution.reserved",
+            "role.input.bound",
+            "repository.knowledge.baseline.requested",
+            "repository.knowledge.stage.recorded",
+            "repository.knowledge.convergence.recorded",
+            "assignment.convergence.archived",
+            "repository.replica.diverged",
+            "repository.replica.reconciled",
+            "document.freshness.candidate.created",
+            "document.freshness.candidate.verified",
+            "document.freshness.candidate.applied",
+            "document.freshness.candidate.rejected",
+            "document.freshness.candidate.reverted",
+            "document.freshness.cycle.completed",
+            "knowledge.instruction_candidate.captured",
+            "conversation.knowledge_candidate.recorded",
+            "knowledge.instruction_capture.cycle.completed",
+            "knowledge.instruction_candidate.exchanged",
+            "knowledge.convergence.owner.changed",
+            "knowledge.convergence.delegation.continued",
+            "knowledge.convergence.definitions.installed",
+            "knowledge.publication.repaired",
+            "knowledge.integration_target.absorbed",
+            "document.freshness.evidence.recovered",
+            "document.freshness.assessment.recorded"
+          ]
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "const": 5
+        }
+      },
+      "required": [
+        "eventId",
+        "projectId",
+        "runId",
+        "sessionId",
+        "seq",
+        "type",
+        "occurredAt",
+        "actor",
+        "schemaVersion",
+        "policyVersion",
+        "payload",
+        "previousHash",
+        "eventHash"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "seq": {
+                "const": 1
+              }
+            },
+            "required": ["seq"]
+          },
+          "then": {
+            "properties": {
+              "previousHash": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "previousHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "enum": ["agent", "provider"]
+                  }
+                },
+                "required": ["kind"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9_-]*$"
+                  }
+                },
+                "required": ["kind", "provider"]
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "pattern": "^evt_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^run_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "sessionId": {
+          "type": "string",
+          "pattern": "^ses_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "actor": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["user", "agent", "system", "provider"]
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9_-]*$"
+            }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        "policyVersion": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "previousHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eventHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "run.requested",
+            "run.resolved",
+            "run.completed",
+            "run.failed",
+            "context.recommended",
+            "context.selected",
+            "document.loaded",
+            "context.injected",
+            "adapter.result.captured",
+            "context.referenced",
+            "context.invalidated",
+            "context.published",
+            "handoff.created",
+            "adapter.started",
+            "adapter.stopped",
+            "capability.requested",
+            "capability.decided",
+            "capability.activated",
+            "capability.recommended",
+            "capability.selected",
+            "capability.loaded",
+            "capability.invoked",
+            "capability.completed",
+            "tool.called",
+            "command.executed",
+            "file.changed",
+            "skill.resolved",
+            "skill.invoked",
+            "skill.completed",
+            "verification.started",
+            "verification.completed",
+            "deliberation.started",
+            "deliberation.artifact.recorded",
+            "deliberation.artifact.publication_failed",
+            "deliberation.completed",
+            "development.pattern.observed",
+            "development.pattern.transitioned",
+            "development.pattern.evaluation.registered",
+            "development.pattern.effect.observed",
+            "knowledge.candidate.created",
+            "knowledge.candidate.reviewed",
+            "knowledge.reconciliation.reviewed",
+            "knowledge.verified",
+            "knowledge.stale.detected",
+            "knowledge.materialization.applied",
+            "state.pruned",
+            "terminal.integration.applied",
+            "terminal.context.prepared",
+            "terminal.turn.declared",
+            "terminal.reference.observed",
+            "terminal.turn.observed",
+            "workstream.snapshot.recorded",
+            "agent.registered",
+            "agent.identity.changed",
+            "agent.status.changed",
+            "assignment.created",
+            "assignment.claimed",
+            "assignment.lease.renewed",
+            "assignment.handoff.recorded",
+            "assignment.handoff.acknowledged",
+            "assignment.cancelled",
+            "assignment.completion.prepared",
+            "assignment.completion.reconciled",
+            "assignment.completed",
+            "assignment.role.binding.changed",
+            "assignment.amended",
+            "assignment.reopened",
+            "public_readme.improvement.applied",
+            "document.stale.detected",
+            "document.migration.applied",
+            "project.identity.migrated",
+            "unmanaged_change.detected",
+            "sync.acknowledged",
+            "organization.team.bound",
+            "organization.team.kind.changed",
+            "organization.agent.identity.changed",
+            "organization.agent.membership.changed",
+            "organization.external_agent.deployment.bound",
+            "organization.external_agent.deployment.retired",
+            "organization.channel.membership.changed",
+            "organization.deliberation.participant.bound",
+            "organization.deliberation.participant.released",
+            "agent.context.promoted",
+            "agent.context.handoff.recorded",
+            "conversation.repository_work.completed",
+            "agent.liveness.observed",
+            "provider.process.observed",
+            "work.causality.recorded",
+            "resource.usage.recorded",
+            "execution.stages.observed",
+            "role.profile.activated",
+            "conversation.repository_knowledge.resolved",
+            "repository.change.completed",
+            "repository.knowledge.resolved",
+            "work.supervision.mandate.installed",
+            "work.supervision.mandate.revoked",
+            "work.supervision.bound",
+            "work.responsibility.bound",
+            "work.supervision.decision.recorded",
+            "work.supervision.decision.superseded",
+            "work.supervision.owner_reasoning.interruption_reconciled",
+            "work.supervision.effect.observed",
+            "work.supervision.readiness.failed",
+            "work.supervision.preflight.blocked",
+            "work.supervision.preflight.resolved",
+            "work.supervision.review.recorded",
+            "work.supervision.workspace.prepared",
+            "work.supervision.delivery.queued",
+            "work.supervision.delivery.observed",
+            "work.supervision.escalation.recorded",
+            "work.supervision.handoff.offered",
+            "work.supervision.handoff.accepted",
+            "work.supervision.peer.observed",
+            "managed.execution.reserved",
+            "role.input.bound",
+            "repository.knowledge.baseline.requested",
+            "repository.knowledge.stage.recorded",
+            "repository.knowledge.convergence.recorded",
+            "assignment.convergence.archived",
+            "repository.replica.diverged",
+            "repository.replica.reconciled",
+            "document.freshness.candidate.created",
+            "document.freshness.candidate.verified",
+            "document.freshness.candidate.applied",
+            "document.freshness.candidate.rejected",
+            "document.freshness.candidate.reverted",
+            "document.freshness.cycle.completed",
+            "knowledge.instruction_candidate.captured",
+            "conversation.knowledge_candidate.recorded",
+            "knowledge.instruction_capture.cycle.completed",
+            "knowledge.instruction_candidate.exchanged",
+            "knowledge.convergence.owner.changed",
+            "knowledge.convergence.delegation.continued",
+            "knowledge.convergence.definitions.installed",
+            "knowledge.publication.repaired",
+            "knowledge.integration_target.absorbed",
+            "document.freshness.evidence.recovered",
+            "document.freshness.assessment.recorded",
+            "context.quality.prepared",
+            "context.quality.verified"
+          ]
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "const": 6
+        }
+      },
+      "required": [
+        "eventId",
+        "projectId",
+        "runId",
+        "sessionId",
+        "seq",
+        "type",
+        "occurredAt",
+        "actor",
+        "schemaVersion",
+        "policyVersion",
+        "payload",
+        "previousHash",
+        "eventHash"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "seq": {
+                "const": 1
+              }
+            },
+            "required": ["seq"]
+          },
+          "then": {
+            "properties": {
+              "previousHash": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "previousHash": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "enum": ["agent", "provider"]
+                  }
+                },
+                "required": ["kind"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "actor": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9_-]*$"
+                  }
+                },
+                "required": ["kind", "provider"]
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

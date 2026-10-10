@@ -1,46 +1,27 @@
-import { createHash, randomUUID } from "node:crypto";
+import { observeManagedRunOutcomes } from "./managed-run-outcomes.js";
+import { captureHostOutcomeBaselines } from "@lervo/repository-context";
+import { createHash } from "node:crypto";
 import { isAbsolute } from "node:path";
 import { reserveManagedExecution } from "./managed-execution-reservation.js";
 import {
   admitSupervisedManagedRun,
   guardSupervisedProviderStart,
 } from "./supervised-managed-run.js";
-import {
-  resolveSupervisedManagedWorkspace,
-  type SupervisedManagedInvocation,
-} from "@lervo/node-runtime";
+import { resolveSupervisedManagedWorkspace } from "@lervo/node-runtime";
 
-import type { ProviderAdapter } from "@lervo/adapter-contract";
 import { assertAssignmentExecutionAuthority } from "@lervo/agent-workforce";
 import type { WorkforceAgent } from "@lervo/agent-workforce";
-import { ClaudeAdapter } from "@lervo/adapter-claude";
-import { CodexAdapter } from "@lervo/adapter-codex";
 import { documentIdForPath, type ManagedLinkedEvidenceSelection } from "@lervo/context";
 import { writingContractForLanguage } from "@lervo/core";
-import {
-  ManagedProviderRunCoordinator,
-  type ManagedFileChangeEvidence,
-  type ManagedProviderResultArtifact,
-  type ManagedProjectVerification,
-  type ManagedWorkCausalityInput,
-} from "@lervo/orchestrator";
+import { ManagedProviderRunCoordinator } from "@lervo/orchestrator";
 import { loadDocumentRegistry } from "@lervo/project";
-import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
+import { type ProjectStorage } from "@lervo/project-storage";
 import { recordManagedRunRepositoryChange } from "./managed-run-repository-change.js";
 import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
-import type { AdapterCapabilityActivationReceipt } from "@lervo/schemas";
 import { resolveRoleContract } from "@lervo/roles";
-import {
-  evaluateWritingPublication,
-  type WritingPublicationResult,
-  type WritingSemanticEvaluator,
-} from "@lervo/writing";
+import { evaluateWritingPublication } from "@lervo/writing";
 
 import { createDeveloperRole, createDeveloperTurnInstructions } from "./developer-role.js";
-import {
-  createLocalProviderWritingEvaluator,
-  type LocalProviderWritingEvaluatorInput,
-} from "./managed-writing-evaluator.js";
 import { finalizeImmediateManagedAssignment } from "./managed-run-assignment-finalization.js";
 import { prepareManagedRunWritingPolicy } from "./managed-run-writing-policy.js";
 import { prepareManagedResearchContext } from "./managed-research-context.js";
@@ -49,177 +30,43 @@ import {
   executeManagedLinkedEvidenceCanary,
   recordManagedLinkedEvidenceCanaryCompletion,
   recordManagedLinkedEvidenceCanaryFailure,
-  type ManagedLinkedEvidenceCanaryAuthorization,
   type ManagedLinkedEvidenceCanaryOutcome,
 } from "./managed-linked-evidence-canary.js";
 import { resolveDeterministicManagedLinkedEvidenceSelection } from "./managed-linked-evidence-deterministic-selection.js";
-import type { resolveDefaultManagedLinkedEvidenceSelection } from "./managed-linked-evidence-default-selection.js";
 import {
   prepareManagedSearchContext,
   productDefaultSearchEngine,
   summarizeManagedSearchContext,
-  type ManagedSearchContextSummary,
 } from "./repository-context.js";
-import { resolveRunSkills, type ResolvedRunSkill } from "./run-skills.js";
-import { resolveRunCapabilities } from "./run-capabilities.js";
-import type { ResolvedCapability } from "@lervo/capabilities";
+import { resolveRunSkills } from "./run-skills.js";
+import {
+  prepareManagedRunCapabilities,
+  capabilitySelectionReason,
+} from "./managed-run-capabilities.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
-import { prepareRunVerification, type PreparedRunVerification } from "./run-verification.js";
-import { groundProductionRequest, type GroundProductionRequest } from "./semantic-grounding.js";
+import { prepareRunVerification } from "./run-verification.js";
 import { resolveManagedRunCausality } from "./managed-run-causality.js";
 import { resolveManagedRunExpectedPaths } from "./managed-run-request.js";
 
-export type RunProvider = "codex" | "claude";
-
-export interface ManagedRunRequest {
-  repositoryRoot: string;
-  provider: RunProvider;
-  expectedPath?: string;
-  expectedPaths?: readonly string[];
-  instructions: string;
-  executionKey?: string;
-  providerExecutable?: string;
-  supervisedInvocation?: SupervisedManagedInvocation;
-  risk: string;
-  skillIds?: readonly string[];
-  capabilityIds?: readonly string[];
-  verificationSuiteIds: readonly string[];
-  workforce?: { assignmentId: string; agentId: string; leaseId: string };
-  workCausality?: ManagedWorkCausalityInput;
-  assignmentFinalization?: "immediate" | "governed";
-  roleId?: string;
-  linkedEvidenceCanaryAuthorization?: ManagedLinkedEvidenceCanaryAuthorization;
-}
-
-export interface ManagedRunOutcome {
-  provider: RunProvider;
-  roleId: string;
-  roleVersion: string;
-  roleContractHash: string;
-  projectId: string;
-  runId: string;
-  sessionId: string;
-  resultArtifact: ManagedProviderResultArtifact;
-  writingPublication: WritingPublicationResult;
-  managedChanges: ManagedFileChangeEvidence[];
-  verificationStatus: "passed" | "failed" | "not_run";
-  verifications: readonly ManagedProjectVerification[];
-  resolvedSkills: readonly ResolvedRunSkill[];
-  resolvedCapabilities: readonly ResolvedCapability[];
-  activatedCapabilities: readonly AdapterCapabilityActivationReceipt[];
-  searchContext: ManagedSearchContextSummary;
-}
-
-export interface ManagedRunDependencies {
-  openStorage(root: string): Promise<ProjectStorage>;
-  createAdapter(input: {
-    provider: RunProvider;
-    repositoryRoot: string;
-    resolveArtifact: (uri: string) => Promise<Uint8Array>;
-    structuredOutputSchema?: Record<string, unknown>;
-    selectionBoundary?: "read_only_no_tools";
-    executable?: string;
-  }): ProviderAdapter;
-  createId(prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn"): string;
-  userSkillRoot?: string;
-  userCapabilityRoot?: string;
-  semanticEvaluator?: WritingSemanticEvaluator;
-  createSemanticEvaluator?: (input: LocalProviderWritingEvaluatorInput) => WritingSemanticEvaluator;
-  now?: () => Date;
-  createSearchNonce?: () => string;
-  prepareVerification?(input: {
-    repositoryRoot: string;
-    suiteIds: readonly string[];
-    artifactStore: ProjectStorage["artifacts"];
-    research?: { inputArtifactHash: string; casRoot: string };
-    now?: () => Date;
-  }): Promise<PreparedRunVerification>;
-  groundProductionRequest?: GroundProductionRequest;
-  /** Internal paired-evaluation seam; ordinary application composition leaves this undefined. */
-  resolveExperimentalLinkedEvidenceSelection?: typeof resolveDefaultManagedLinkedEvidenceSelection;
-}
-
-export type ExecuteManagedRun = (request: ManagedRunRequest) => Promise<ManagedRunOutcome>;
-
-export class ManagedRunCommandError extends Error {
-  constructor(
-    readonly code: "cleanup_failed",
-    message: string,
-    options?: ErrorOptions,
-  ) {
-    super(message, options);
-    this.name = "ManagedRunCommandError";
-  }
-}
+export { ManagedRunCommandError } from "./managed-run-types.js";
+export type {
+  RunProvider,
+  ManagedRunRequest,
+  ManagedRunOutcome,
+  ManagedRunDependencies,
+  ExecuteManagedRun,
+} from "./managed-run-types.js";
+import {
+  ManagedRunCommandError,
+  type ManagedRunDependencies,
+  type ExecuteManagedRun,
+  type ManagedRunOutcome,
+} from "./managed-run-types.js";
+import { defaultDependencies } from "./managed-run-composition.js";
 
 function digest(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
-
-function capabilitySelectionReason(input: {
-  capabilityId: string;
-  authoritativeCapabilityIds: readonly string[];
-  explicitlyRequestedCapabilityIds: readonly string[];
-  recommendedCapabilityIds: ReadonlySet<string>;
-}): "explicit" | "role_default" | "natural_language" | "dependency" {
-  if (input.authoritativeCapabilityIds.includes(input.capabilityId)) {
-    return input.explicitlyRequestedCapabilityIds.length > 0 ? "explicit" : "role_default";
-  }
-  if (
-    input.authoritativeCapabilityIds.length === 0 &&
-    input.recommendedCapabilityIds.has(input.capabilityId)
-  ) {
-    return "natural_language";
-  }
-  return "dependency";
-}
-
-const defaultDependencies: ManagedRunDependencies = {
-  openStorage: openProjectStorage,
-  createAdapter: ({
-    provider,
-    repositoryRoot,
-    resolveArtifact,
-    structuredOutputSchema,
-    selectionBoundary,
-    executable,
-  }) =>
-    provider === "codex"
-      ? new CodexAdapter({
-          ...(executable === undefined ? {} : { executable }),
-          repositoryRoot,
-          resolveArtifact,
-          ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
-          ...(selectionBoundary === "read_only_no_tools"
-            ? {
-                sandbox: "read-only",
-                approvalPolicy: "never",
-                transport: {
-                  kind: "responses_api_no_tools",
-                  ...(process.env.OPENAI_API_KEY === undefined
-                    ? {}
-                    : { apiKey: process.env.OPENAI_API_KEY }),
-                  ...(process.env.LERVO_CODEX_NO_TOOL_MODEL === undefined
-                    ? {}
-                    : { model: process.env.LERVO_CODEX_NO_TOOL_MODEL }),
-                } as const,
-              }
-            : {}),
-        })
-      : new ClaudeAdapter({
-          ...(executable === undefined ? {} : { executable }),
-          repositoryRoot,
-          resolveArtifact,
-          ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
-          ...(selectionBoundary === "read_only_no_tools"
-            ? { permissionMode: "plan", tools: [] }
-            : {}),
-        }),
-  createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
-  now: () => new Date(),
-  createSemanticEvaluator: createLocalProviderWritingEvaluator,
-  groundProductionRequest,
-};
 
 export function createManagedRunExecutor(
   dependencies: ManagedRunDependencies = defaultDependencies,
@@ -338,82 +185,15 @@ export function createManagedRunExecutor(
         now: () => (dependencies.now?.() ?? new Date()).toISOString(),
       });
       if (research !== null) registry = research.registry;
-      const capabilityIds =
-        requestedCapabilityIds.length === 0
-          ? [...(role.defaultCapabilityPackages ?? [])]
-          : requestedCapabilityIds;
-      if (request.supervisedInvocation !== undefined && capabilityIds.length > 0)
-        throw new TypeError(
-          "Supervised execution requires explicitly reviewed capability packages.",
-        );
-      const runCapabilities = await resolveRunCapabilities({
-        repositoryRoot: storage.paths.repositoryRoot,
-        projectId: storage.manifest.projectId,
-        provider: request.provider,
+      const { capabilityIds, runCapabilities } = await prepareManagedRunCapabilities({
+        storage,
+        request,
+        dependencies,
+        instructions,
+        requestedCapabilityIds,
         role,
-        capabilityIds,
-        query: instructions,
-        selectGroundedCapabilityIds: async (candidates) => {
-          if (request.supervisedInvocation !== undefined) return [];
-          const grounded = await (
-            dependencies.groundProductionRequest ?? defaultDependencies.groundProductionRequest!
-          )({
-            request: instructions,
-            provider: request.provider,
-            resolutionContext: {
-              priorTurns: [],
-              currentWorkstream: null,
-              pendingAuthorityIds: [],
-              repositoryCondition: "current",
-            },
-            availableCapabilityIds: candidates.map((candidate) => candidate.capabilityId),
-            grantedAuthorities: ["repository_write"],
-            semanticCatalog: {
-              capabilityCandidates: candidates.map((candidate) => ({
-                capabilityId: candidate.capabilityId,
-                kind: candidate.kind,
-                version: candidate.version,
-              })),
-              structuredWorkflowSelection: "managed.run",
-            },
-            workflows: [
-              {
-                workflowId: "managed.run",
-                supportedIntents: ["inspect", "explain", "change", "continue"],
-                supportedDispositions: ["execute", "answer"],
-                effectIds: ["managed.run"],
-                requiredSourceClasses: ["repository_state"],
-                authority: "repository_write",
-                allowedCapabilityIds: candidates.map((candidate) => candidate.capabilityId),
-                crossProviderAllowed: false,
-              },
-            ],
-          });
-          return grounded.decision.status === "ready" ? grounded.decision.capabilityIds : [];
-        },
-        generatedAt: (dependencies.now?.() ?? new Date()).toISOString(),
-        ...(dependencies.userCapabilityRoot === undefined
-          ? {}
-          : { userRoot: dependencies.userCapabilityRoot }),
+        ...(workforceAgent ? { workforceAgent } : {}),
       });
-      if (request.workforce !== undefined) {
-        const bound = new Map(
-          (workforceAgent?.capabilityPackages ?? []).map((item) => [item.capabilityId, item]),
-        );
-        if (
-          runCapabilities.capabilities.some((item) => {
-            const exact = bound.get(item.capabilityId);
-            return (
-              exact === undefined ||
-              exact.version !== item.version ||
-              exact.contentHash !== item.contentHash
-            );
-          })
-        )
-          throw new TypeError(
-            "The managed run capability package set exceeds or differs from the hired agent contract.",
-          );
-      }
       skillIds = [...new Set([...skillIds, ...runCapabilities.skillIds])].sort();
       role.defaultSkills = [...skillIds];
       const workCausality = resolveManagedRunCausality({
@@ -482,6 +262,7 @@ export function createManagedRunExecutor(
       const runId = identity?.runId ?? dependencies.createId("run");
       const sessionId = identity?.sessionId ?? dependencies.createId("ses");
       const searchContext = await prepareManagedSearchContext({
+        recordingCoordinates: { runId, sessionId },
         repositoryRoot: storage.paths.repositoryRoot,
         projectId: storage.manifest.projectId,
         observedAt: dependencies.now?.() ?? new Date(),
@@ -583,6 +364,11 @@ export function createManagedRunExecutor(
       });
       const recommendedCapabilityIds = new Set(
         runCapabilities.recommendations.map((recommendation) => recommendation.capabilityId),
+      );
+      const outcomeBaselines = await captureHostOutcomeBaselines(
+        executionRepositoryRoot,
+        expectedPaths,
+        dependencies.resolveOutcomePolicy !== undefined,
       );
       const result = await coordinator.run({
         repositoryRoot: executionRepositoryRoot,
@@ -692,6 +478,15 @@ export function createManagedRunExecutor(
           recordedAt: dependencies.now?.() ?? new Date(),
         });
       }
+      const outcomePolicy = await dependencies.resolveOutcomePolicy?.({ request, result, storage });
+      const contextQuality = await observeManagedRunOutcomes({
+        storage,
+        executionRepositoryRoot,
+        run: result,
+        instructions,
+        baselines: outcomeBaselines,
+        ...(outcomePolicy ? { policy: outcomePolicy } : {}),
+      });
       const writingPublication = await evaluateWritingPublication(
         {
           artifact: result.resultArtifact,
@@ -717,6 +512,7 @@ export function createManagedRunExecutor(
         dependencies.now === undefined ? {} : { now: dependencies.now },
       );
       outcome = {
+        contextQuality,
         provider: request.provider,
         roleId,
         roleVersion: roleContract.version,

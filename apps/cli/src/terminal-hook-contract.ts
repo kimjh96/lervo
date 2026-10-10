@@ -1,3 +1,4 @@
+import type { ContextPreparationReport } from "@lervo/schemas";
 import type { TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 
 import type {
@@ -45,6 +46,7 @@ export interface TerminalActivationReceipt {
   queryDigest?: string;
   queryProjectionReceiptId?: string;
   sourceSnapshotId?: string;
+  preparationQuality?: ContextPreparationReport;
   recommendationCount?: number;
   loadedDocumentCount?: number;
   contextHash?: string;

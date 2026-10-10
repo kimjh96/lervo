@@ -1,3 +1,7 @@
+import {
+  copyNativeFileSyncArtifact,
+  nativeFileSyncSourceHash,
+} from "../shared/native-file-sync-artifact.mjs";
 import { execFile } from "node:child_process";
 import {
   chmod,
@@ -135,6 +139,14 @@ async function buildDistribution(input) {
     await mkdir(resolve(payloadRoot, "dist"), { recursive: true });
     await copyFile(bundlePath, resolve(payloadRoot, "dist/bin.js"));
     await ensureExecutable(resolve(payloadRoot, "dist/bin.js"));
+    const native =
+      platform.os === "darwin"
+        ? await copyNativeFileSyncArtifact(
+            resolve(repositoryRoot, "apps/hub-runtime/dist/native"),
+            resolve(payloadRoot, "dist"),
+            { required: true, expectedSourceHash: await nativeFileSyncSourceHash(repositoryRoot) },
+          )
+        : undefined;
     await cp(resolve(repositoryRoot, "apps/hub/assets"), resolve(payloadRoot, "assets"), {
       recursive: true,
       errorOnExist: true,
@@ -160,7 +172,7 @@ async function buildDistribution(input) {
       { encoding: "utf8", mode: 0o644, flag: "wx" },
     );
     const bundleBytes = await readFile(resolve(payloadRoot, "dist/bin.js"));
-    const sbom = createHubDistributionSbom(runtimeVersion, sha256(bundleBytes));
+    const sbom = createHubDistributionSbom(runtimeVersion, sha256(bundleBytes), native);
     await writeFile(resolve(payloadRoot, "sbom.cdx.json"), canonicalJson(sbom), {
       encoding: "utf8",
       mode: 0o644,
@@ -205,8 +217,7 @@ async function buildDistribution(input) {
       archive: stagedArchive,
       artifact: stagedArtifact,
       expectedSha256: artifact.sha256,
-      // The Hub bundle has no external or native imports. A configured local smoke
-      // proves the same bytes before a target host verifies its declared platform.
+      // Cross-host smoke covers JS behavior; target-side verification still owns platform acceptance.
       requireCurrentPlatform: false,
       smoke: true,
     });

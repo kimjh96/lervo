@@ -236,3 +236,30 @@ describe("release artifact manifest", () => {
     ]);
   });
 });
+
+it("binds both native files in schema 6 while retaining schema 5 reads", async () => {
+  const { cliReleaseFiles, cliNativeFiles } = await import("../../shared/cli-release-files.mjs");
+  const { releaseArtifactDigest } = await import("../../shared/release-artifact-manifest.mjs");
+  const manifest = fixture();
+  manifest.schemaVersion = 6;
+  manifest.artifact.files = [...cliReleaseFiles];
+  manifest.archive.files.push(
+    ...cliNativeFiles.map((path) => ({ path, size: 128, sha256: `sha256:${"a".repeat(64)}` })),
+  );
+  manifest.archive.files.sort((a, b) => (a.path < b.path ? -1 : 1));
+  const rebind = () => {
+    manifest.archive.fileCount = manifest.archive.files.length + 1;
+    manifest.archive.contentDigest = canonicalDigest(manifest.archive.files);
+    manifest.artifactDigest = releaseArtifactDigest(manifest);
+  };
+  rebind();
+  assert.equal(validateReleaseArtifactManifest(manifest), manifest);
+  manifest.archive.files = manifest.archive.files.filter(
+    (entry) => entry.path !== cliNativeFiles[0],
+  );
+  rebind();
+  assert.throws(() => validateReleaseArtifactManifest(manifest), {
+    code: "release_artifact_archive_invalid",
+  });
+  assert.equal(validateReleaseArtifactManifest(fixture()).schemaVersion, 5);
+});

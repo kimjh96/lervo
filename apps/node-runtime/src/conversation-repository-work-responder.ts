@@ -1,3 +1,5 @@
+import type { HostOutcomePolicy } from "@lervo/repository-context";
+import { verifyConversationWorkOutcome } from "./conversation-work-outcome.js";
 import { readKnowledgeAssignments } from "./conversation-canonicalization-assignment.js";
 import type { NormalizationCandidatePreparer } from "./conversation-normalization-candidate.js";
 import { executionInstructions, fitDiscord } from "./conversation-repository-work-writing.js";
@@ -79,6 +81,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       knowledgeMode?: "synchronous" | "pending_background";
       /** Records the ADR-0459 context receipt and attributed usage; defaults to the project store. */
       measurement?: ConversationRepositoryWorkMeasurement;
+      outcomePolicy?: HostOutcomePolicy;
       /** Generates normalization candidates outside the provider sandbox for turns to review. */
       normalization?: NormalizationCandidatePreparer;
       authorizedEffectRequesters?: readonly {
@@ -208,6 +211,15 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
     }
     if (turn.completed !== null) {
       const content = await readStoredResult(this.options.artifactStore, turn.completed);
+      await verifyConversationWorkOutcome({
+        repositoryRoot: this.options.repositoryRoot,
+        request,
+        sourceEventId: input.event.eventId,
+        changedPaths: [],
+        result: turn.completed,
+        artifacts: this.options.artifactStore,
+        ...(this.options.outcomePolicy ? { policy: this.options.outcomePolicy } : {}),
+      });
       return createVerifiedConversationControlReply({
         artifactStore: this.options.artifactStore,
         writingContract: realtimeConversationWritingContract,
@@ -317,6 +329,15 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           occurredAt: result.completedAt,
         }),
       );
+      await verifyConversationWorkOutcome({
+        repositoryRoot: this.options.repositoryRoot,
+        request,
+        sourceEventId: input.event.eventId,
+        changedPaths: repositoryChange.changedPaths,
+        result: stored,
+        artifacts: this.options.artifactStore,
+        ...(this.options.outcomePolicy ? { policy: this.options.outcomePolicy } : {}),
+      });
       const checkpointDisposition =
         (await completionLifecycle.reconcile?.({
           repositoryRoot: this.options.repositoryRoot,

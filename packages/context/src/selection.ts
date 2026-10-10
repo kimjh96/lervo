@@ -172,6 +172,9 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
     const candidate = candidates.get(instruction.documentId) ?? instruction;
     accumulator.select({
       candidate,
+      ...(instruction.expectedContentHash === undefined
+        ? {}
+        : { expectedContentHash: instruction.expectedContentHash }),
       reason: {
         reasonCode:
           instruction.path === "AGENTS.md" ? "explicit_instruction" : "parent_instruction",

@@ -1,0 +1,137 @@
+{
+  "diagnosticOnly": true,
+  "method": "Node inspector CPU samples plus wrapped public SQLiteEventStore open/integrity; concurrent4,2warmups,30samples,control first,isolated different roots; timings overlap and cannot be added or used as acceptance",
+  "results": [
+    {
+      "arm": "control",
+      "requests": 128,
+      "opens": 1,
+      "openMs": 1.700749999999971,
+      "integrityCalls": 2,
+      "integrityMs": 0.23125000000004547,
+      "semanticValid": true,
+      "events": 0,
+      "integrity": true,
+      "sampledFrames": 572,
+      "topSelfSamples": [
+        ["(idle)", "runtime", 0, 114],
+        [
+          "consume",
+          "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+          239,
+          32
+        ],
+        ["(program)", "runtime", 0, 27],
+        [
+          "main",
+          "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+          203,
+          24
+        ],
+        [
+          "go",
+          "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+          232,
+          23
+        ],
+        ["compileSourceTextModule", "node:internal/modules/esm/utils", 338, 16],
+        ["fstat", "runtime", 0, 12],
+        [
+          "data",
+          "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/text.js",
+          58,
+          12
+        ],
+        ["lstat", "runtime", 0, 10],
+        ["serializeCanonical", "packages/event-contract/dist/canonical-json.js", 1, 10],
+        [
+          "chunkInside",
+          "node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/content.js",
+          79,
+          9
+        ],
+        ["terms", "packages/context/dist/evidence-sections.js", 5, 9],
+        [
+          "write",
+          "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+          134,
+          8
+        ],
+        ["update", "runtime", 0, 8],
+        ["fstat", "node:internal/fs/promises", 1775, 8],
+        ["structuredClone", "node:internal/worker/js_transferable", 113, 8],
+        [
+          "atBreak",
+          "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/text.js",
+          75,
+          7
+        ],
+        ["open", "runtime", 0, 6],
+        ["normalizeString", "node:path", 92, 6],
+        ["(garbage collector)", "runtime", 0, 6],
+        ["validateSchema", "packages/schemas/dist/validate.js", 362, 6],
+        ["realpath", "node:internal/fs/promises", 2007, 6],
+        ["lstat", "node:internal/fs/promises", 1784, 6],
+        ["getPackageScopeConfig", "node:internal/modules/package_json_reader", 192, 5],
+        ["internalModuleStat", "runtime", 0, 5]
+      ]
+    },
+    {
+      "arm": "candidate",
+      "requests": 128,
+      "opens": 257,
+      "openMs": 1216.3047939999988,
+      "integrityCalls": 258,
+      "integrityMs": 564.0497449999996,
+      "semanticValid": true,
+      "events": 256,
+      "integrity": true,
+      "sampledFrames": 1805,
+      "topSelfSamples": [
+        ["(idle)", "runtime", 0, 660],
+        ["validate40", "runtime", 3, 118],
+        ["exec", "runtime", 0, 66],
+        ["serializeCanonical", "packages/event-contract/dist/canonical-json.js", 1, 65],
+        ["(program)", "runtime", 0, 63],
+        ["validateSchema", "packages/schemas/dist/validate.js", 362, 61],
+        ["update", "runtime", 0, 46],
+        ["verify", "packages/event-store-sqlite/dist/chain-verifier.js", 16, 38],
+        ["", "packages/event-contract/dist/canonical-json.js", 36, 36],
+        ["lstat", "runtime", 0, 35],
+        [
+          "consume",
+          "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+          239,
+          33
+        ],
+        ["close", "runtime", 0, 30],
+        ["fstat", "runtime", 0, 24],
+        ["normalizeString", "node:path", 92, 23],
+        ["get", "runtime", 0, 21],
+        ["validate", "packages/schemas/dist/validate.js", 110, 21],
+        ["lstat", "node:internal/fs/promises", 1784, 20],
+        ["all", "runtime", 0, 19],
+        [
+          "go",
+          "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+          232,
+          18
+        ],
+        ["parseJsonObject", "packages/event-store-sqlite/dist/row-codec.js", 17, 18],
+        [
+          "main",
+          "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+          203,
+          17
+        ],
+        ["structuredClone", "node:internal/worker/js_transferable", 113, 14],
+        ["(garbage collector)", "runtime", 0, 14],
+        ["prepare", "runtime", 0, 13],
+        ["openFileHandle", "runtime", 0, 13]
+      ]
+    }
+  ],
+  "reproductionScript": "import { Session } from 'node:inspector/promises';\nimport { mkdtemp, rm, writeFile } from 'node:fs/promises';\nimport { tmpdir } from 'node:os';\nimport { resolve } from 'node:path';\nconst repo = process.cwd();\nconst { initializeActiveFixture } = await import(resolve(repo, 'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\nconst { activeWorker } = await import(resolve(repo, 'scripts/evaluation/lib/context-quality-active-worker.mjs'));\nconst { SQLiteEventStore } = await import(resolve(repo, 'packages/event-store-sqlite/dist/index.js'));\nconst parent = await mkdtemp(resolve(tmpdir(), 'lervo-recording-profile-'));\nconst results = [];\ntry {\n for (const arm of ['control', 'candidate']) {\n  const root=resolve(parent,arm); await initializeActiveFixture(root);\n  let opens=0,openMs=0,integrityCalls=0,integrityMs=0;\n  const originalOpen=SQLiteEventStore.open, originalVerify=SQLiteEventStore.prototype.verifyIntegrity;\n  SQLiteEventStore.open=async function(...args) { const start=performance.now(); opens++; try {return await originalOpen.apply(this,args);} finally {openMs+=performance.now()-start;} };\n  SQLiteEventStore.prototype.verifyIntegrity=function(...args) {const start=performance.now(); integrityCalls++;try{return originalVerify.apply(this,args);}finally{integrityMs+=performance.now()-start;}};\n  const session = new Session(); session.connect(); await session.post('Profiler.enable');await session.post('Profiler.start');\n  let worker, profile;\n  try {worker=await activeWorker(root,arm,'concurrent',4096,{warmups:2,samples:30,concurrency:4}); ({profile}=await session.post('Profiler.stop'));}\n  finally {SQLiteEventStore.open=originalOpen;SQLiteEventStore.prototype.verifyIntegrity=originalVerify;session.disconnect();}\n  const nodes=new Map(profile.nodes.map(n=>[n.id,n])); const counts=new Map();\n  for(const id of profile.samples ?? []) {const f=nodes.get(id).callFrame;const url=f.url.startsWith('file://'+repo+'/')?f.url.slice(repo.length+8):f.url.startsWith('node:')?f.url:'runtime';const key=JSON.stringify([f.functionName,url,f.lineNumber+1]);counts.set(key,(counts.get(key)??0)+1);}\n  results.push({arm,requests:128,opens,openMs,integrityCalls,integrityMs,semanticValid:worker.semanticValid,events:worker.eventCount,integrity:worker.integrity,sampledFrames:profile.samples?.length,topSelfSamples:[...counts].sort((a,b)=>b[1]-a[1]).slice(0,25).map(([key,count])=>[...JSON.parse(key),count])});\n }\n await writeFile('/tmp/lervo-priority4-recording-profile.json',JSON.stringify({diagnosticOnly:true,method:'Node inspector CPU samples plus wrapped public SQLiteEventStore open/integrity; concurrent4,2warmups,30samples,control first,isolated different roots; timings overlap and cannot be added or used as acceptance',results},null,2));\n}finally{await rm(parent,{recursive:true,force:true});}\n",
+  "reproductionScriptHash": "sha256:9900661e1c233a33652e7aef52680d673e6d85c609d25347fd26fe3bdc07610a",
+  "artifactBuildHash": "sha256:6a9d5daf36b14fb29ed84565eec7c68607b0a2b01ce688b9fab20b9e05fe7664"
+}

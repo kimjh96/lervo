@@ -1,4 +1,16 @@
 import {
+  contextQualityPreparedEventPayloadSchema,
+  contextQualityVerifiedEventPayloadSchema,
+} from "./context-quality-event.js";
+import { contextQualityVerificationSchema } from "./context-quality-verification.js";
+import {
+  contextQualityIngressSchema,
+  contextQualityBindingsSchema,
+  contextQualityRequestSchema,
+} from "./context-quality-request.js";
+import { contextQualityEvidenceSchema, contextQualityPlanSchema } from "./context-quality-plan.js";
+import { contextPreparationReportSchema } from "./context-preparation-report.js";
+import {
   documentFreshnessEvidenceRecoveredEventPayloadSchema,
   documentFreshnessAssessmentRecordedEventPayloadSchema,
 } from "./knowledge-maintenance-event.js";
@@ -305,6 +317,10 @@ ajv.addSchema(signedRemoteCommandSchema);
 ajv.addSchema(remoteCommandExecutionReceiptSchema);
 ajv.addSchema(deliberationPolicySchema);
 ajv.addSchema(managedContextCoverageReportSchema);
+ajv.addSchema(contextPreparationReportSchema);
+ajv.addSchema(contextQualityIngressSchema);
+ajv.addSchema(contextQualityRequestSchema);
+ajv.addSchema(contextQualityPlanSchema);
 ajv.addSchema(organizationDeploymentPolicySchema);
 ajv.addSchema(signedOrganizationDeploymentPolicySchema);
 ajv.addSchema(organizationFleetRolloutPlanSchema);
@@ -546,6 +562,15 @@ const validators = {
   terminalCoverageReport: ajv.compile(terminalCoverageReportSchema),
   terminalBudgetPolicy: ajv.compile(terminalBudgetPolicySchema),
   terminalBudgetReport: ajv.compile(terminalBudgetReportSchema),
+  contextQualityIngress: ajv.getSchema(contextQualityIngressSchema.$id)!,
+  contextQualityBindings: ajv.compile(contextQualityBindingsSchema),
+  contextQualityRequest: ajv.getSchema(contextQualityRequestSchema.$id)!,
+  contextQualityEvidence: ajv.compile(contextQualityEvidenceSchema),
+  contextQualityPlan: ajv.getSchema(contextQualityPlanSchema.$id)!,
+  contextQualityVerification: ajv.compile(contextQualityVerificationSchema),
+  contextQualityPreparedEventPayload: ajv.compile(contextQualityPreparedEventPayloadSchema),
+  contextQualityVerifiedEventPayload: ajv.compile(contextQualityVerifiedEventPayloadSchema),
+  contextPreparationReport: ajv.getSchema(contextPreparationReportSchema.$id)!,
   managedContextCoverageReport: ajv.getSchema(managedContextCoverageReportSchema.$id)!,
   managedContextInjectedEventPayload: ajv.compile(managedContextInjectedEventPayloadSchema),
   adapterResultCapturedEventPayload: ajv.compile(adapterResultCapturedEventPayloadSchema),

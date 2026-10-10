@@ -87,6 +87,7 @@ async function searchCandidates(repositoryRoot: string, projectId: string, reque
     repositoryRoot,
     projectId,
     query: request,
+    origin: "conversation" as const,
     fallbackQuery: "repository work context",
     observedAt: new Date(),
     productDefault: productDefaultSearchEngine,

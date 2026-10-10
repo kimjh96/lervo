@@ -91,6 +91,32 @@ afterEach(async () => {
 });
 
 describe("event writer activation", () => {
+  it("activates schema 6 only after every reader supports the complete history and rolls back explicitly", async () => {
+    const root = await fixture();
+    await expect(
+      planEventWriterActivation({
+        repositoryRoot: root,
+        evidence: evidence([1, 2, 3, 4, 5]),
+        targetEventSchemaVersion: 6,
+      }),
+    ).rejects.toMatchObject({ code: "event_writer_activation_blocked" });
+    const readers = evidence([1, 2, 3, 4, 5, 6]);
+    const plan = await planEventWriterActivation({
+      repositoryRoot: root,
+      evidence: readers,
+      targetEventSchemaVersion: 6,
+    });
+    expect(plan.desiredCoordinate).toMatchObject({
+      schemaVersion: 5,
+      selectedEventSchemaVersion: 6,
+    });
+    await applyEventWriterActivationPlan({ plan, approval: plan.planId, currentEvidence: readers });
+    const rollback = await planEventWriterRollback(root);
+    await applyEventWriterActivationPlan({ plan: rollback, approval: rollback.planId });
+    expect((await inspectEventWriterCoordinate(root)).coordinate.selectedEventSchemaVersion).toBe(
+      1,
+    );
+  });
   it("activates schema 5 only after every reader supports the complete history and rolls back explicitly", async () => {
     const root = await fixture();
     await expect(

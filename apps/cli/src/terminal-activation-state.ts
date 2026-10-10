@@ -1,3 +1,4 @@
+import { isContextPreparationReport } from "@lervo/context";
 import { constants } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
@@ -75,8 +76,15 @@ export async function readTerminalActivationReceipts(
           value.provider === provider &&
           value.hookEvent === event &&
           typeof value.occurredAt === "string"
-        )
+        ) {
+          if (
+            value.preparationQuality !== undefined &&
+            !isContextPreparationReport(value.preparationQuality)
+          ) {
+            delete value.preparationQuality;
+          }
           receipts.push(value);
+        }
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== "ENOENT" && !(error instanceof SyntaxError))
           throw error;

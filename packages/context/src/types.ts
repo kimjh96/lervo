@@ -26,6 +26,7 @@ export interface ContextDocumentCandidate {
   documentRole: AdapterContextDocumentRole;
   referenceEligible: boolean;
   knowledgeContext?: KnowledgeContextMetadata;
+  expectedContentHash?: string;
 }
 
 export interface GraphDocumentRecommendation {
@@ -119,6 +120,7 @@ export interface LoadedContext {
 
 export interface PrepareContextInput extends Omit<CreateContextPlanInput, "instructionDocuments"> {
   repositoryRoot: string;
+  instructionTargets?: import("./instruction-conditions.js").InstructionTargets;
   sourceRevision: string;
 }
 
@@ -165,6 +167,7 @@ export type ContextPreparationErrorCode =
   | "invalid_search_recommendation"
   | "invalid_graph_recommendation"
   | "receipt_id_conflict"
+  | "instruction_catalog_overflow"
   | "required_rule_unresolved"
   | "shared_context_document_missing"
   | "unsafe_document_path";

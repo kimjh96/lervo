@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_de11572be96067f365ea4258"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reuse fresh storage-borrow writer checks for quality recording while preserving inactive-writer rejection and rollback detection."

@@ -1,3 +1,4 @@
+import { runKnowledgeQuery } from "./knowledge-query-command.js";
 import { runKnowledgeConvergenceCommand } from "./knowledge-convergence-command.js";
 import { resolve } from "node:path";
 import { runHostKnowledgeResidentsCommand } from "./knowledge-host-resident-command.js";
@@ -8,14 +9,9 @@ import {
   createKnowledgeReconciliationPlan,
   createKnowledgeRefreshReviewCandidate,
   lintRepositoryKnowledge,
-  queryRepositoryKnowledge,
   scanConfiguredRepositoryKnowledge,
 } from "@lervo/repository-knowledge";
-import { productDefaultRepositoryKnowledgeRanker } from "@lervo/repository-context";
-import {
-  collectInteractiveLocalKnowledgeSources,
-  collectLocalKnowledgeSources,
-} from "./knowledge-sources.js";
+import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { runKnowledgeCompilationCommand } from "./knowledge-compilation-command.js";
 import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
 import { runDevelopmentPatternCommand } from "./development-pattern-command.js";
@@ -235,35 +231,7 @@ export async function runKnowledgeCommand(
       return 1;
     }
   }
-  if (subcommand === "query") {
-    try {
-      const parsed = parseArgs({
-        args: args.slice(1),
-        strict: true,
-        allowPositionals: true,
-        options: { root: { type: "string" }, json: { type: "boolean" } },
-      });
-      const query = parsed.positionals.join(" ").trim();
-      if (query === "") throw new Error("A query sentence is required.");
-      const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
-      const supplementalSources = await collectInteractiveLocalKnowledgeSources(repositoryRoot);
-      const result = await queryRepositoryKnowledge({
-        repositoryRoot,
-        query,
-        supplementalSources,
-        ranker: productDefaultRepositoryKnowledgeRanker,
-      });
-      io.stdout(
-        parsed.values.json
-          ? `${JSON.stringify(result, null, 2)}\n`
-          : `Repository knowledge recommendations (${result.hits.length}; not evidence of loaded, injected, or used)\n${result.hits.map((hit) => `  ${hit.score.toString().padStart(2)}  ${hit.title} · ${hit.path} · ${hit.freshness}`).join("\n")}${result.hits.length === 0 ? "" : "\n"}`,
-      );
-      return 0;
-    } catch (error) {
-      io.stderr(`${error instanceof Error ? error.message : String(error)}\n${knowledgeUsage}\n`);
-      return 1;
-    }
-  }
+  if (subcommand === "query") return runKnowledgeQuery(args.slice(1), io);
   io.stderr(`Specify a supported knowledge subcommand.\n${knowledgeUsage}\n`);
   return 1;
 }

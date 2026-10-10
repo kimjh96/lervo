@@ -8,6 +8,9 @@ export async function prepareContext(input: PrepareContextInput): Promise<Loaded
     repositoryRoot: input.repositoryRoot,
     registry: input.registry,
     expectedPaths: input.expectedPaths,
+    ...(input.instructionTargets === undefined
+      ? {}
+      : { instructionTargets: input.instructionTargets }),
   });
   const plan = createContextPlan({
     coordinates: input.coordinates,

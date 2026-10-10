@@ -1,13 +1,11 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { loadProjectManifest } from "@lervo/project";
+import { prepareTerminalInstructionPreamble } from "./terminal-instruction-context.js";
+import { observeContextPreparation } from "@lervo/context";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
   canonicalJson,
   documentFreshnessCompactLine,
   listCanonicalizationCandidates,
   loadRepositoryKnowledgePolicy,
-  scanConfiguredRepositoryKnowledge,
   sha256,
   workstreamFreshnessPolicy,
   type TerminalIntegrationProvider,
@@ -35,8 +33,12 @@ import type { TerminalStageObservationPort } from "./terminal-stage-observation.
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
 import { observeWorkstreamFreshness } from "./workstream-repository-head.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
+import { terminalKnowledgeSnapshotId } from "./terminal-knowledge-snapshot.js";
 
-const KNOWLEDGE_SNAPSHOT_CACHE = ".lervo/state/cache/terminal-knowledge-snapshot.json";
+export {
+  terminalKnowledgeSnapshotId,
+  prefetchTerminalPromptContext,
+} from "./terminal-knowledge-snapshot.js";
 
 /** Compact prompts never project queries; this deterministic projector truthfully emits none. */
 const compactQueryProjector = {
@@ -44,74 +46,6 @@ const compactQueryProjector = {
   version: 1,
   buildId: searchQueryProjectorBuildId("lervo.terminal-compact-projector.v1"),
 };
-
-interface CachedKnowledgeSnapshot {
-  schemaVersion: 1;
-  repositoryRevision: string;
-  projectId: string;
-  policyId: string;
-  sourceSnapshotId: string;
-}
-
-async function readKnowledgeSnapshotCache(root: string): Promise<CachedKnowledgeSnapshot | null> {
-  try {
-    const value = JSON.parse(
-      await readFile(resolve(root, KNOWLEDGE_SNAPSHOT_CACHE), "utf8"),
-    ) as CachedKnowledgeSnapshot;
-    return value?.schemaVersion === 1 && /^ksnap_[a-f0-9]{24}$/u.test(value.sourceSnapshotId)
-      ? value
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Knowledge snapshot identity is a pure function of repository bytes and policy, so it is cached by
- * the exact repository revision. Stop prefetches it for the post-turn bytes; a revision mismatch
- * recomputes it, and a concurrent edit during the scan is never cached.
- */
-export async function terminalKnowledgeSnapshotId(
-  root: string,
-  repositoryRevision: string,
-): Promise<string> {
-  const [cached, manifest, policy] = await Promise.all([
-    readKnowledgeSnapshotCache(root),
-    loadProjectManifest(root),
-    loadRepositoryKnowledgePolicy(root),
-  ]);
-  if (
-    cached?.repositoryRevision === repositoryRevision &&
-    cached.projectId === manifest.projectId &&
-    cached.policyId === policy.policyId
-  )
-    return cached.sourceSnapshotId;
-  const { scan } = await scanConfiguredRepositoryKnowledge(root);
-  if ((await captureTerminalRepositorySnapshot(root)).revision === repositoryRevision) {
-    const value: CachedKnowledgeSnapshot = {
-      schemaVersion: 1,
-      repositoryRevision,
-      projectId: manifest.projectId,
-      policyId: policy.policyId,
-      sourceSnapshotId: scan.snapshotId,
-    };
-    try {
-      const target = resolve(root, KNOWLEDGE_SNAPSHOT_CACHE);
-      await mkdir(dirname(target), { recursive: true, mode: 0o700 });
-      await writeFile(`${target}.${process.pid}.tmp`, JSON.stringify(value), { mode: 0o600 });
-      await rename(`${target}.${process.pid}.tmp`, target);
-    } catch {
-      // The cache only saves time on the next prompt.
-    }
-  }
-  return scan.snapshotId;
-}
-
-/** Stop runs this detached so the next prompt finds the post-turn knowledge snapshot ready. */
-export async function prefetchTerminalPromptContext(root: string): Promise<void> {
-  const snapshot = await captureTerminalRepositorySnapshot(root);
-  await terminalKnowledgeSnapshotId(root, snapshot.revision);
-}
 
 /**
  * Compact terminal context keeps every prompt fast and small: the continuation headline, decisions
@@ -169,6 +103,7 @@ export async function prepareCompactTerminalPromptContext(input: {
           status: "empty",
         });
         return {
+          publicationLanguage: policy.publication.language,
           queryProjection,
           currentWorkstream,
           workstreamFreshness,
@@ -184,7 +119,10 @@ export async function prepareCompactTerminalPromptContext(input: {
     ),
     inspectKnowledgeResidentHealth(input.root),
     documentFreshnessSummary(input.root, observedAt).then(documentFreshnessCompactLine, () => null),
-    readInstructionCaptureAttention(input.root).then(instructionCaptureCompactLines, () => []),
+    readInstructionCaptureAttention(input.root).then(
+      (attention) => instructionCaptureCompactLines(attention, false),
+      () => [],
+    ),
   ]);
   const attention = createOperatingAttentionReport({
     projectId: query.projectId,
@@ -195,6 +133,7 @@ export async function prepareCompactTerminalPromptContext(input: {
     observedAt,
   });
   const preamble = formatCompactTerminalPreamble({
+    publicationLanguage: query.publicationLanguage,
     attention,
     declarationInstruction: input.declarationInstruction,
     backgroundKnowledgeActive:
@@ -208,13 +147,32 @@ export async function prepareCompactTerminalPromptContext(input: {
     documentFreshnessLine,
     instructionCaptureLines,
   });
-  const { additionalContext, workstream } = assembleCompactTerminalContext(
+  const instructions = await prepareTerminalInstructionPreamble({
+    root: input.root,
     preamble,
+    maximumBytes: 4096,
+    prompt: input.prompt,
+    sourceSnapshotId,
+  });
+  const { additionalContext, workstream } = assembleCompactTerminalContext(
+    instructions.preamble,
     query.currentWorkstream === null || query.workstreamFreshness === null
       ? null
       : formatCompactWorkstreamContext(query.currentWorkstream, query.workstreamFreshness),
   );
   return {
+    quality: instructions.quality,
+    preparationQuality: {
+      ...observeContextPreparation({
+        requestDigest,
+        sourceSnapshotId,
+        retrieval: "not_run",
+        candidateCount: null,
+        selected: [],
+        loads: [],
+      }),
+      instructions: instructions.report,
+    },
     additionalContext,
     sourceSnapshotId,
     recommendationCount: 0,

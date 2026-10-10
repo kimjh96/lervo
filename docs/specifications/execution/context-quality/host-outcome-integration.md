@@ -1,0 +1,40 @@
+# Host outcome integration
+
+Status: `implemented_subset`
+As of: 2026-10-09
+
+[ADR-0501](../../../decisions/execution/grounding/0501-share-context-quality-contracts-across-product-surfaces.md) shares outcome verification across host completion boundaries. This source slice composes the [task and correction contract](task-outcome-correction.md); it does not qualify installed operation or human-reviewed task quality.
+
+## Completion boundaries
+
+| Host                                          | Actual integration                                                                                                                                    | Effect boundary                                                                                                                                                                  |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI managed run                               | Capture bounded pre-turn baselines; inspect every returned managed change and final CAS result before writing publication and assignment finalization | An explicitly supplied admitted policy may use its existing correction owner; corrected completion also requires refreshed project verification at the final repository revision |
+| Managed remote provider host                  | Inspect changed paths and final CAS result before existing completion validation                                                                      | Read-only verification; existing remote approval, continuation, and project-suite checks remain authoritative                                                                    |
+| Managed conversation and native-chat contract | Inspect exact reply CAS bytes before publication, including cached responses and structured turns with no reply                                       | Read-only verification; no provider or publication authority is inferred from a quality report                                                                                   |
+| Node native repository work                   | Inspect changed paths and final CAS result before completion; recheck stored replies before reuse                                                     | Read-only verification; native provider effects remain independently governed                                                                                                    |
+| Direct terminal Stop                          | Inspect full changed paths from the existing repository-change manifest                                                                               | Observation only; original task acceptance remains unavailable; root-hook availability and worker isolation retain their existing owners                                         |
+| Direct knowledge query                        | Automatically request preparation and requested artifact-verification recording                                                                       | Read-only diagnosis; `--record` remains accepted for compatibility                                                                                                               |
+| Managed owner reasoning                       | Inspect the returned immutable decision artifact                                                                                                      | Read-only observation; existing decision admission remains authoritative                                                                                                         |
+
+Managed search and terminal prompt preparation request recording through the same common operation. Actual run/session coordinates correlate completion records where the host owns those coordinates. Local preparation remains `unmanaged`; no quality event upgrades selected or loaded material to injected or used.
+
+## Verification and authority
+
+`observeHostContextOutcomes` prepares a fresh current local plan after the turn. This is a completion-time plan, not retroactive proof of the context that produced the output. Repository artifacts are safely read within the root; expected result digests, when supplied, are checked. Immutable CAS artifacts are read and hash/byte-count checked twice. Missing/deleted/oversized artifacts and stale plans remain unavailable. Managed isolated workspaces are checked at their actual execution root; missing local project/policy bindings remain unavailable rather than borrowing a verdict from the parent checkout.
+
+The default contract records task acceptance as unavailable because a provider exit or successful project command cannot establish every natural-language requirement. Repository Markdown additionally uses the existing publication-writing contract. Protected-material checks need the actual pre-turn baseline; missing baselines are never fabricated. Existing chat writing permits, project suites, owner reviews, and assignment finalization keep their separate completion authority.
+
+Admitted composition can provide exact task definitions and evaluator identities, writing evaluation, and the current scoped language-exception authority through `HostOutcomePolicy`. Required policies block completion when owner-clause packing, evaluation, or durable recording is unavailable. Missing provider-native delivery evidence remains a separate observation and is never promoted to managed coverage. No host starts an additional model call or grants a language exception by default. English repository publication remains the configured default.
+
+Only the managed CLI boundary exposes owner-controlled correction. Its admitted policy must provide the existing exact-byte correction effect owner and a callback that refreshes project verification and completion evidence. The common operation records the failed original verdict before correction, uses bounded attempts/ranges, waits for the effect receipt, runs the owner's refreshed project checks, and verifies final artifact bytes again. A failed refresh, changed artifact, uncertain effect, or stale completion revision prevents completion. Remote, conversation, and direct terminal boundaries cannot use a correction port to gain write authority.
+
+## Bounds, storage, and failure
+
+One observation accepts at most 64 artifacts, each at most 1 MiB. It does not silently truncate larger sets. Baseline capture retains at most 8 MiB for one turn, then releases it; unknown future native-work paths have no claimed baseline. Preparation keeps its existing capacity, source coverage, and deadline contracts. Injected evaluators remain owned by their admitted caller; this adapter introduces no model scheduler or retry loop.
+
+Reports expose observed counts, per-artifact verification and recording status, correction receipts, and whether the configured completion gate passed. An observed report can contain unavailable or failed verdicts. Empty required artifact sets fail. Optional instrumentation failures do not convert root terminal hooks into a new execution gate.
+
+Existing event envelopes, CAS retention, redaction, writer inventory, and rollback contracts own persistence. Default writer 1 and maintenance activation target 5 remain unchanged. Automatic recording is inactive until an exact reader-reviewed writer-6 activation. Rolling back suppresses new quality events while retaining existing history. Events contain digests and bounded statuses, not task or artifact text; verification bodies use the existing private CAS.
+
+The [source evidence](../../../evidence/quality/context-quality-source-verification.md) records tests and completion checks. Active-writer performance, human-reviewed real tasks, installed Codex/Claude/Discord operation, and the seven-day cohort remain separate acceptance gates.

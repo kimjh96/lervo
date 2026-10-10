@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b289d403ed0e1a6918279b39"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Verify exact artifacts against task requirements and scoped language exceptions, and offer bounded corrections through authorized effect owners."

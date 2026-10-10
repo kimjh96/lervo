@@ -30,7 +30,8 @@ describe("reader-first event envelope compatibility", () => {
     expect(validateSchema("event", envelope({ schemaVersion: 3 })).valid).toBe(true);
     expect(validateSchema("event", envelope({ schemaVersion: 4 })).valid).toBe(true);
     expect(validateSchema("event", envelope({ schemaVersion: 5 })).valid).toBe(true);
-    expect(validateSchema("event", envelope({ schemaVersion: 6 })).valid).toBe(false);
+    expect(validateSchema("event", envelope({ schemaVersion: 6 })).valid).toBe(true);
+    expect(validateSchema("event", envelope({ schemaVersion: 7 })).valid).toBe(false);
   });
 
   it("reserves maintenance receipts for schema 5 and enforces hash-only payloads", () => {
@@ -479,4 +480,12 @@ describe("reader-first event envelope compatibility", () => {
       }).valid,
     ).toBe(false);
   });
+});
+
+it("reserves context-quality events for schema 6", () => {
+  for (const type of ["context.quality.prepared", "context.quality.verified"])
+    for (const schemaVersion of [1, 2, 3, 4, 5, 6])
+      expect(validateSchema("event", envelope({ type, schemaVersion })).valid).toBe(
+        schemaVersion === 6,
+      );
 });

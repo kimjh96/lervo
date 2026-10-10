@@ -1,3 +1,5 @@
+import { verifyCliNativeArtifact } from "./lib/cli-native-artifact.mjs";
+import { cliReleaseFiles } from "../shared/cli-release-files.mjs";
 import assert from "node:assert/strict";
 import { execFile, spawn } from "node:child_process";
 import { access, appendFile, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
@@ -45,6 +47,7 @@ async function readExpectedManifest() {
 
 async function verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, expectedManifest) {
   const deployedManifest = await readJson(resolve(deploymentRoot, "package.json"));
+  await verifyCliNativeArtifact(deploymentRoot, { smoke: true });
   assert.equal(deployedManifest.name, expectedManifest.name);
   assert.equal(deployedManifest.version, expectedManifest.version);
   assert.equal(
@@ -61,12 +64,7 @@ async function verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, ex
     lervo: "./dist/bin.js",
     "lervo-node": "./dist/node-runtime.js",
   });
-  assert.deepEqual(deployedManifest.files, [
-    "README.md",
-    "dist/bin.js",
-    "dist/node-runtime.js",
-    "dist/terminal-hook.js",
-  ]);
+  assert.deepEqual(deployedManifest.files, cliReleaseFiles);
   assert.deepEqual(Object.keys(deployedManifest.dependencies).sort(), [
     "@anthropic-ai/claude-agent-sdk",
     "@anthropic-ai/sdk",

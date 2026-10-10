@@ -1,3 +1,4 @@
+import { cliReleaseFiles } from "../../shared/cli-release-files.mjs";
 import assert from "node:assert/strict";
 import { access } from "node:fs/promises";
 import { basename, relative } from "node:path";
@@ -17,10 +18,7 @@ export async function packCliArtifact(archiveRoot, expectedVersion) {
   assert.equal(report.name, "@lervo/cli");
   assert.equal(report.version, expectedVersion);
   assert.deepEqual(report.files.map(({ path }) => path).sort(), [
-    "README.md",
-    "dist/bin.js",
-    "dist/node-runtime.js",
-    "dist/terminal-hook.js",
+    ...cliReleaseFiles,
     "package.json",
   ]);
   assert.equal(basename(report.filename), `lervo-cli-${expectedVersion}.tgz`);

@@ -12,6 +12,6 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json"
+    "build": "tsc --project tsconfig.json && node scripts/build-native.mjs"
   }
 }

@@ -1,3 +1,7 @@
+import {
+  copyNativeFileSyncArtifact,
+  nativeFileSyncSourceHash,
+} from "../../../scripts/shared/native-file-sync-artifact.mjs";
 import { chmod, mkdir, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -85,4 +89,13 @@ await writeFile(
   resolve(outputDirectory, "bin.metafile.json"),
   `${JSON.stringify(result.metafile, null, 2)}\n`,
   "utf8",
+);
+
+await copyNativeFileSyncArtifact(
+  resolve(repositoryRoot, "packages/filesystem-durability/dist/native"),
+  outputDirectory,
+  {
+    required: process.platform === "darwin",
+    expectedSourceHash: await nativeFileSyncSourceHash(repositoryRoot),
+  },
 );

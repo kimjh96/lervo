@@ -54,7 +54,7 @@ class OpenedProjectStorage implements ProjectStorage {
   constructor(
     readonly manifest: ProjectStorage["manifest"],
     readonly paths: ProjectStorage["paths"],
-    readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5,
+    readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6,
     readonly events: OutboxStore,
     readonly artifacts: CloseableArtifactStore,
     readonly readOnly = false,
@@ -111,6 +111,12 @@ export function createProjectStorageOpener(
 }
 
 export const openProjectStorage = createProjectStorageOpener(defaultBackends);
+
+/** Short-lived pooled writers reclaim WAL frames at commit without weakening FULL synchronization. */
+export const openPooledProjectStorage = createProjectStorageOpener({
+  ...defaultBackends,
+  openEventStore: (options) => SQLiteEventStore.open({ ...options, checkpointEachCommit: true }),
+});
 
 /** Observes a peer repository with existing stores; the owning Node retains every write and migration. */
 export async function openReadOnlyProjectStorage(root: string): Promise<ProjectStorage> {

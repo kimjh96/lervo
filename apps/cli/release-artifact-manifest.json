@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "artifact": {
     "name": "@lervo/cli",
     "version": "0.21.0",
@@ -21,6 +21,8 @@
     "files": [
       "README.md",
       "dist/bin.js",
+      "dist/native/file-sync-darwin.node",
+      "dist/native/file-sync.json",
       "dist/node-runtime.js",
       "dist/terminal-hook.js"
     ]
@@ -175,22 +177,32 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 10478319,
-        "sha256": "sha256:ba021e2b59f9c0d04a6e22726e2d676bd1d0eeb6ada3f25022abb83a990db077"
+        "size": 10703670,
+        "sha256": "sha256:27e6912dec1b1a19779164b1233d1bc86585461b74158164ca6b7ebb4d9cc675"
+      },
+      {
+        "path": "dist/native/file-sync-darwin.node",
+        "size": 85192,
+        "sha256": "sha256:72f477a8f4c4f88c859519e78a8a75b6a409d35a52ef7667cd18a0abeb810f75"
+      },
+      {
+        "path": "dist/native/file-sync.json",
+        "size": 320,
+        "sha256": "sha256:099996450f4993ee6585eea2551769558b10bdaafae351704bfce073ba2d2124"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 7165090,
-        "sha256": "sha256:3d5faf231905fefd86e8c53dfd7c580530d68b144d75aa8bc6d7513dae54ce06"
+        "size": 7342908,
+        "sha256": "sha256:deae892edfda596c1a7b107418a144a66fb6507e64f8a220a1d31e1858e206d4"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 4478468,
-        "sha256": "sha256:68d7013e32e966e0f648f3826712bf7dc96f9a933f368fa3dc105cab8691343d"
+        "size": 4666583,
+        "sha256": "sha256:c1f3610fce65418690aae83679ab748307d510f6461a023d2a30e14047cba819"
       }
     ],
-    "fileCount": 5,
-    "contentDigest": "sha256:f577cb11b0c24df339a24e946536eb663df44a7174e7d88ce7255c83e40e1bd1"
+    "fileCount": 7,
+    "contentDigest": "sha256:cbb18070f380273ebb7cb4f1256fcc152bd69439cffdc074498ece1220f26942"
   },
   "dependencies": {
     "portable": [
@@ -303,5 +315,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:8211fa3ca22bb8450162d415ae9ef024033a15c815c8083af45d43e574f3a33f"
+  "artifactDigest": "sha256:cf641d92e7777ba24534c7e00ffec43988364551f786b7e714d832a3c2cfcc8e"
 }

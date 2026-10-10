@@ -93,3 +93,13 @@ describe("standalone Hub runtime distribution contract", () => {
     assert.deepEqual(sbom.dependencies, [{ ref: "pkg:generic/lervo-hub@0.1.0", dependsOn: [] }]);
   });
 });
+
+for (const schemaVersion of [1, 2]) {
+  it(`validates Darwin native inventory for manifest schema ${schemaVersion}`, () => {
+    const manifest = manifestFixture();
+    manifest.schemaVersion = schemaVersion;
+    manifest.platform = { os: "darwin", arch: "arm64", libc: "none" };
+    if (schemaVersion === 1) assert.equal(validateHubDistributionManifest(manifest), manifest);
+    else assert.throws(() => validateHubDistributionManifest(manifest));
+  });
+}

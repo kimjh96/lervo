@@ -787,6 +787,12 @@ importers:
       '@lervo/search':
         specifier: workspace:*
         version: link:../search
+      mdast-util-from-markdown:
+        specifier: 2.0.3
+        version: 2.0.3
+      yaml:
+        specifier: 2.9.0
+        version: 2.9.0
 
   packages/context-coverage:
     dependencies:
@@ -1425,6 +1431,9 @@ importers:
       '@lervo/remote-command':
         specifier: workspace:*
         version: link:../remote-command
+      '@lervo/repository-context':
+        specifier: workspace:*
+        version: link:../repository-context
       '@lervo/repository-knowledge':
         specifier: workspace:*
         version: link:../repository-knowledge
@@ -1676,6 +1685,9 @@ importers:
       '@lervo/context':
         specifier: workspace:*
         version: link:../context
+      '@lervo/core':
+        specifier: workspace:*
+        version: link:../core
       '@lervo/project':
         specifier: workspace:*
         version: link:../project
@@ -1703,6 +1715,9 @@ importers:
       '@lervo/verification':
         specifier: workspace:*
         version: link:../verification
+      '@lervo/writing':
+        specifier: workspace:*
+        version: link:../writing
 
   packages/repository-knowledge:
     dependencies:

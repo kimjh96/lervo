@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
-import { link, lstat, mkdir, open, readFile, unlink } from "node:fs/promises";
+import { link, lstat, mkdir, open, readFile, unlink, type FileHandle } from "node:fs/promises";
+import { createFileSyncBatch } from "@lervo/filesystem-durability";
 import { resolve } from "node:path";
 
 import { type ArtifactStore } from "@lervo/storage-contract";
@@ -49,12 +50,19 @@ async function ensureRealDirectory(path: string): Promise<void> {
 
 export class FileSystemCas implements ArtifactStore {
   readonly root: string;
+  private sharedPuts = 0;
+  private readonly syncFiles: ReturnType<typeof createFileSyncBatch> | undefined;
+  private readonly pendingPuts = new Map<
+    string,
+    { bytes: Buffer; result: Promise<CasPutResult> }
+  >();
 
   private constructor(
     root: string,
     private readonly readOnly = false,
   ) {
     this.root = root;
+    this.syncFiles = readOnly ? undefined : createFileSyncBatch();
   }
 
   static async open(root: string): Promise<FileSystemCas> {
@@ -114,25 +122,70 @@ export class FileSystemCas implements ArtifactStore {
   }
 
   async put(content: string | Uint8Array): Promise<CasPutResult> {
-    return this.putStream(
+    const byteCount = typeof content === "string" ? Buffer.byteLength(content) : content.byteLength;
+    if (byteCount > 65536 || this.sharedPuts >= 16) return this.putUnshared(content);
+    const bytes = typeof content === "string" ? Buffer.from(content, "utf8") : Buffer.from(content);
+    const hash = digest(bytes);
+    this.sharedPuts += 1;
+    try {
+      const pending = this.pendingPuts.get(hash);
+      if (pending) {
+        if (!pending.bytes.equals(bytes))
+          throw new CasError("corrupt_object", "Concurrent CAS inputs disagree at one digest.");
+        const result = await pending.result;
+        const prefix = await lstat(resolve(this.root, "sha256", hash.slice(0, 2)));
+        if (!prefix.isDirectory() || prefix.isSymbolicLink())
+          throw new CasError("unsafe_path", "A shared CAS prefix must remain a real directory.");
+        const current = await this.verifyObject(hash);
+        if (!bytes.equals(current))
+          throw new CasError(
+            "corrupt_object",
+            "The shared CAS object no longer matches its input.",
+          );
+        return { ...result, created: false };
+      }
+      const result = this.putUnshared(bytes);
+      this.pendingPuts.set(hash, { bytes, result });
+      try {
+        return { ...(await result) };
+      } finally {
+        this.pendingPuts.delete(hash);
+      }
+    } finally {
+      this.sharedPuts -= 1;
+    }
+  }
+
+  private putUnshared(content: string | Uint8Array): Promise<CasPutResult> {
+    const bytes = typeof content === "string" ? Buffer.byteLength(content) : content.byteLength;
+    return this.writeStream(
       (async function* (): AsyncIterable<string | Uint8Array> {
         yield content;
       })(),
+      bytes <= 65536 ? this.syncFiles : undefined,
     );
   }
 
-  async putStream(chunks: AsyncIterable<string | Uint8Array>): Promise<CasPutResult> {
+  putStream(chunks: AsyncIterable<string | Uint8Array>): Promise<CasPutResult> {
+    return this.writeStream(chunks);
+  }
+
+  private async writeStream(
+    chunks: AsyncIterable<string | Uint8Array>,
+    synchronize?: ReturnType<typeof createFileSyncBatch>,
+  ): Promise<CasPutResult> {
     if (this.readOnly)
       throw new CasError(
         "read_only",
         "This artifact handle cannot mutate the observed repository.",
       );
     const temporary = resolve(this.root, ".tmp", `${randomUUID()}.tmp`);
-    const handle = await open(temporary, "wx");
+    let handle: FileHandle | undefined;
     const hashState = createHash("sha256");
     let byteCount = 0;
     let created = false;
-    try {
+    const prepare = async () => {
+      handle = await open(temporary, "wx");
       for await (const chunk of chunks) {
         const bytes = typeof chunk === "string" ? Buffer.from(chunk, "utf8") : Buffer.from(chunk);
         hashState.update(bytes);
@@ -151,7 +204,14 @@ export class FileSystemCas implements ArtifactStore {
           offset += bytesWritten;
         }
       }
-      await handle.sync();
+      return handle;
+    };
+    try {
+      if (synchronize) handle = await synchronize(prepare);
+      else {
+        handle = await prepare();
+        await handle.sync();
+      }
       await handle.close();
       const hash = hashState.digest("hex");
       const prefixDirectory = resolve(this.root, "sha256", hash.slice(0, 2));
@@ -173,10 +233,12 @@ export class FileSystemCas implements ArtifactStore {
         created,
       };
     } finally {
-      await handle.close().catch(() => undefined);
-      await unlink(temporary).catch((error: NodeJS.ErrnoException) => {
-        if (error.code !== "ENOENT") throw error;
-      });
+      if (handle) {
+        await handle.close().catch(() => undefined);
+        await unlink(temporary).catch((error: NodeJS.ErrnoException) => {
+          if (error.code !== "ENOENT") throw error;
+        });
+      }
     }
   }
 

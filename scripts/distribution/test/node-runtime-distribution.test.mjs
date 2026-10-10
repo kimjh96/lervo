@@ -136,3 +136,13 @@ describe("standalone Node runtime distribution contract", () => {
     assert.equal((await stat(resolve(destination, "payload.txt"))).mode & 0o777, 0o664);
   });
 });
+
+for (const schemaVersion of [1, 2]) {
+  it(`validates Darwin native inventory for manifest schema ${schemaVersion}`, () => {
+    const manifest = manifestFixture();
+    manifest.schemaVersion = schemaVersion;
+    manifest.platform = { os: "darwin", arch: "arm64", libc: "none" };
+    if (schemaVersion === 1) assert.equal(validateNodeDistributionManifest(manifest), manifest);
+    else assert.throws(() => validateNodeDistributionManifest(manifest));
+  });
+}

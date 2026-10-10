@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fa0e63f7a0ec65fe2f880437"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add source-bound native synchronization assets and versioned verification to standalone macOS Hub and Node distributions."

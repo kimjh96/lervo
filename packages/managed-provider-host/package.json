@@ -27,7 +27,8 @@
     "@lervo/skills": "workspace:*",
     "@lervo/storage-contract": "workspace:*",
     "@lervo/sync-contract": "workspace:*",
-    "@lervo/verification": "workspace:*"
+    "@lervo/verification": "workspace:*",
+    "@lervo/repository-context": "workspace:*"
   },
   "devDependencies": {
     "@lervo/adapter-codex": "workspace:*",

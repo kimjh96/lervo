@@ -94,9 +94,38 @@ jobs:
         if: github.event_name == 'push'
         run: pnpm release:completion:check --base "${{ github.event.before }}"
 
+  native-file-sync:
+    name: Native file synchronization artifact
+    needs: quality
+    if: needs.quality.outputs.coverage == 'full'
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.13.0
+          package-manager-cache: false
+      - name: Compile universal native synchronization artifact
+        run: node packages/filesystem-durability/scripts/build-native.mjs
+      - name: Bind artifact to this source and workflow
+        run: node scripts/distribution/native-file-sync-transfer.mjs create "${{ runner.temp }}/native-file-sync"
+      - name: Share exact native artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-file-sync
+          path: ${{ runner.temp }}/native-file-sync
+          if-no-files-found: error
+          retention-days: 3
+          overwrite: true
+
   release-artifacts:
     name: Release manifest and SBOM
-    needs: quality
+    needs: [quality, native-file-sync]
     if: needs.quality.outputs.coverage == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -114,6 +143,13 @@ jobs:
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Download exact native artifact
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: native-file-sync
+          path: ${{ runner.temp }}/native-file-sync
+      - name: Validate native artifact before build
+        run: node scripts/distribution/native-file-sync-transfer.mjs restore "${{ runner.temp }}/native-file-sync"
       - name: Build release artifact
         run: pnpm build
       - name: Verify release manifest

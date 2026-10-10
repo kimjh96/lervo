@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { verifyTerminalHookRuntimeArtifact } from "@lervo/repository-knowledge";
+
 import { fileURLToPath } from "node:url";
 
 import { runKnowledgeWorkerCommand } from "./knowledge-worker-command.js";
@@ -11,27 +10,7 @@ import { projectProductionSearchQueries } from "./provider-query-projector.js";
 import { createTerminalStageObservation } from "./terminal-stage-observation.js";
 import { prefetchTerminalPromptContext } from "./terminal-compact-context.js";
 
-async function verifiedRuntime(): Promise<boolean> {
-  try {
-    const runtimePath = fileURLToPath(import.meta.url);
-    const manifest = JSON.parse(
-      await readFile(resolve(dirname(runtimePath), "runtime-v2.json"), "utf8"),
-    ) as Record<string, unknown>;
-    const content = await readFile(runtimePath);
-    return (
-      manifest.schemaVersion === 1 &&
-      manifest.kind === "lervo_terminal_hook_runtime" &&
-      manifest.contractId === "lervo_terminal_hooks_v2" &&
-      manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" &&
-      manifest.byteCount === content.byteLength &&
-      manifest.contentHash === `sha256:${createHash("sha256").update(content).digest("hex")}`
-    );
-  } catch {
-    return false;
-  }
-}
-
-if (!(await verifiedRuntime())) {
+if (!(await verifyTerminalHookRuntimeArtifact(fileURLToPath(import.meta.url)))) {
   process.stderr.write("Lervo terminal hook runtime integrity verification failed.\n");
   process.exitCode = 2;
 } else if (process.argv[2] === "prefetch-context") {

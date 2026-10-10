@@ -1,3 +1,6 @@
+import type { HostOutcomePolicy } from "@lervo/repository-context";
+import { hostOutcomeTask, observeHostContextOutcomes } from "@lervo/repository-context";
+import type { WritingArtifactCoordinate } from "@lervo/writing";
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
@@ -111,6 +114,7 @@ export async function openManagedConversationReadResponder(input: {
     NodeRepositoryWorkExecutionProfilePolicy
   >;
   repositoryResources?: ManagedConversationRepositoryResources | undefined;
+  outcomePolicy?: HostOutcomePolicy;
 }): Promise<{
   responder: ConversationResponder;
   turnResolver: ManagedConversationTurnResolver;
@@ -237,12 +241,14 @@ export async function openManagedConversationReadResponder(input: {
       structuredOutputSchema?: Record<string, unknown>,
     ) => {
       const runId = id("run");
+      const sessionId = id("ses");
       const sourceSnapshot = await captureSnapshot(input.repositoryRoot);
       const repositoryContext = await prepareConversationRepositoryContext({
         repositoryRoot: input.repositoryRoot,
         projectId: input.projectId,
         event: request.event,
         runId,
+        sessionId,
         artifactStore: input.artifactStore,
         registry: provisioned.registry,
         baseRole,
@@ -285,7 +291,26 @@ export async function openManagedConversationReadResponder(input: {
         participationRoleId: input.participationRoleId,
         maximumResponseCharacters: 2_000,
         runId,
-        sessionId: id("ses"),
+        sessionId,
+        contextQuality: {
+          planDigest: repositoryContext.quality?.plan?.planDigest ?? null,
+          observe: (artifact: WritingArtifactCoordinate) =>
+            observeHostContextOutcomes({
+              repositoryRoot: input.repositoryRoot,
+              origin: "conversation",
+              effects: "read_only",
+              coordinates: { runId, sessionId },
+              ...(input.outcomePolicy ? { policy: input.outcomePolicy } : {}),
+              task: hostOutcomeTask(repositoryContext.query, []),
+              artifacts: [
+                {
+                  kind: "immutable",
+                  ...artifact,
+                  readBytes: () => input.artifactStore.get(artifact.uri),
+                },
+              ],
+            }),
+        },
         targetTurnId: id("turn"),
         role: repositoryContext.role,
         registry: provisioned.registry,

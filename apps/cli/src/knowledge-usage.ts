@@ -49,4 +49,4 @@ export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--rebu
   lervo knowledge okf query <bundle-path> <query> [--json]
   lervo knowledge okf re-export <candidate-id> --output <new-path> [--root <path>] [--json]
   lervo knowledge lint [--root <path>] [--json]
-  lervo knowledge query [--root <path>] [--json] <query>`;
+  lervo knowledge query [--record] [--verify-artifact <path> --expected-plan <sha256> [--baseline <path>] [--verification-definition <path>]] [--root <path>] [--path <target-path>] [--artifact <kind>] [--action <action>] [--continuation <text>] [--json] <query>`;

@@ -139,6 +139,7 @@ describe("stale workstream attention", () => {
   it("excludes stale items from the compact preamble and shows only a count", () => {
     const attention = report(stale);
     const preamble = formatCompactTerminalPreamble({
+      publicationLanguage: "en",
       attention,
       declarationInstruction: "Declare.",
       backgroundKnowledgeActive: true,
@@ -159,6 +160,7 @@ describe("stale workstream attention", () => {
   it("caps the whole compact context with a deterministic marker and honest byte counts", () => {
     const preambleWith = (declarationInstruction: string) =>
       formatCompactTerminalPreamble({
+        publicationLanguage: "en",
         attention: report(current),
         declarationInstruction,
         backgroundKnowledgeActive: false,
@@ -180,12 +182,22 @@ describe("stale workstream attention", () => {
       MAXIMUM_COMPACT_CONTEXT_BYTES,
     );
     expect(first.additionalContext).toContain("[Lervo context truncated at");
+    expect(first.additionalContext).toContain(
+      "publication.language=en; writingPolicyId=writing_en-human",
+    );
     expect(first.workstream?.deliveredByteCount).toBe(
       Buffer.byteLength(first.workstream?.context ?? ""),
     );
     expect(first.additionalContext.endsWith(first.workstream?.context ?? "")).toBe(true);
     const oversized = assembleCompactTerminalContext("P".repeat(10_000), workstreamContext);
     expect(oversized.workstream).toBeNull();
+    const crowded = assembleCompactTerminalContext(
+      preambleWith("D".repeat(10_000)),
+      workstreamContext,
+    );
+    expect(crowded.additionalContext).toContain(
+      "Write new or revised repository documentation in English",
+    );
     expect(Buffer.byteLength(oversized.additionalContext)).toBeLessThanOrEqual(
       MAXIMUM_COMPACT_CONTEXT_BYTES,
     );

@@ -3,6 +3,10 @@ import { resolve } from "node:path";
 
 import { build } from "esbuild";
 
+import {
+  copyNativeFileSyncArtifact,
+  nativeFileSyncSourceHash,
+} from "../../../scripts/shared/native-file-sync-artifact.mjs";
 import { nodeSqliteBundlePlugin } from "../../../scripts/distribution/lib/node-sqlite-bundle.mjs";
 import { normalizeGeneratedTextFile } from "../../../scripts/quality/lib/generated-text.mjs";
 
@@ -35,4 +39,13 @@ await writeFile(
   resolve(outputDirectory, "bin.metafile.json"),
   `${JSON.stringify(result.metafile, null, 2)}\n`,
   "utf8",
+);
+
+await copyNativeFileSyncArtifact(
+  resolve(repositoryRoot, "packages/filesystem-durability/dist/native"),
+  outputDirectory,
+  {
+    required: process.platform === "darwin",
+    expectedSourceHash: await nativeFileSyncSourceHash(repositoryRoot),
+  },
 );

@@ -211,6 +211,7 @@ export function managedConversationTurnRequestDigest(input: {
       eventId: input.request.event.eventId,
       policyId: input.request.policy.policyId,
       policyVersion: input.policyVersion,
+      contextQualityPlanDigest: input.plan.contextQuality?.planDigest ?? null,
       messageHash: input.request.event.content.contentHash,
       actorKind: input.request.event.actor.kind,
       mentioned: input.request.mentioned,

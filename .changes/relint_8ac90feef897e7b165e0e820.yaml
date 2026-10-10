@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8ac90feef897e7b165e0e820"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reuse bounded exact-content project manifest decoding while preserving fresh file and writer validation."

@@ -20,6 +20,8 @@
   "files": [
     "README.md",
     "dist/bin.js",
+    "dist/native/file-sync-darwin.node",
+    "dist/native/file-sync.json",
     "dist/node-runtime.js",
     "dist/terminal-hook.js"
   ],

@@ -486,50 +486,56 @@ describe("terminal integration CLI", () => {
     }
   });
 
-  it("returns bounded local-scope context when query projection fails", async () => {
-    const root = await initializedRepository();
-    const messages: string[] = [];
-    const errors: string[] = [];
-    expect(
-      await runCli(
-        ["terminal", "hook", "--provider", "codex", "--contract", "2"],
-        {
-          cwd: root,
-          stdout: (message) => messages.push(message),
-          stderr: (message) => errors.push(message),
-          stdin: async () =>
-            JSON.stringify({
-              hook_event_name: "UserPromptSubmit",
-              session_id: "invalid-provider-proposal-session",
-              turn_id: "invalid-provider-proposal-turn",
-              prompt: "뭐가 문제일까요",
-            }),
-        },
-        {
-          projectSearchQueries: async (input) => projectedQueries(input, [], "failed"),
-        },
-      ),
-      errors.join(""),
-    ).toBe(0);
-    expect(errors).toEqual([]);
-    const result = JSON.parse(messages.join("")) as {
-      decision?: string;
-      hookSpecificOutput?: { additionalContext: string };
-    };
-    expect(result.decision).toBeUndefined();
-    expect(result.hookSpecificOutput?.additionalContext).toContain(
-      "effectGroundingStatus: abstain; workflowId: none; reasons: unmanaged_terminal_retrieval_only",
-    );
-    expect(result.hookSpecificOutput?.additionalContext).toContain(
-      "No current-repository publication was selected because query projection was unavailable.",
-    );
-    expect(result.hookSpecificOutput?.additionalContext).toContain(
-      "selectionDisposition: query_projection_missing; candidates: 0; selected: 0",
-    );
-    expect(result.hookSpecificOutput?.additionalContext).toContain(
-      "not evidence that content is absent from another repository",
-    );
-  });
+  it.each(["codex", "claude"] as const)(
+    "returns bounded policy and local-scope context when query projection fails for %s",
+    async (provider) => {
+      const root = await initializedRepository();
+      const messages: string[] = [];
+      const errors: string[] = [];
+      expect(
+        await runCli(
+          ["terminal", "hook", "--provider", provider, "--contract", "2"],
+          {
+            cwd: root,
+            stdout: (message) => messages.push(message),
+            stderr: (message) => errors.push(message),
+            stdin: async () =>
+              JSON.stringify({
+                hook_event_name: "UserPromptSubmit",
+                session_id: "invalid-provider-proposal-session",
+                turn_id: "invalid-provider-proposal-turn",
+                prompt: "뭐가 문제일까요",
+              }),
+          },
+          {
+            projectSearchQueries: async (input) => projectedQueries(input, [], "failed"),
+          },
+        ),
+        errors.join(""),
+      ).toBe(0);
+      expect(errors).toEqual([]);
+      const result = JSON.parse(messages.join("")) as {
+        decision?: string;
+        hookSpecificOutput?: { additionalContext: string };
+      };
+      expect(result.decision).toBeUndefined();
+      expect(result.hookSpecificOutput?.additionalContext).toContain(
+        "publication.language=en; writingPolicyId=writing_en-human",
+      );
+      expect(result.hookSpecificOutput?.additionalContext).toContain(
+        "effectGroundingStatus: abstain; workflowId: none; reasons: unmanaged_terminal_retrieval_only",
+      );
+      expect(result.hookSpecificOutput?.additionalContext).toContain(
+        "No current-repository publication was selected because query projection was unavailable.",
+      );
+      expect(result.hookSpecificOutput?.additionalContext).toContain(
+        "selectionDisposition: query_projection_missing; candidates: 0; selected: 0",
+      );
+      expect(result.hookSpecificOutput?.additionalContext).toContain(
+        "not evidence that content is absent from another repository",
+      );
+    },
+  );
 
   it("keeps retrieval available and marks attention coverage unavailable for an unsafe candidate registry", async () => {
     const root = await initializedRepository();
@@ -1196,6 +1202,13 @@ describe("terminal integration CLI", () => {
       hookEvent: "UserPromptSubmit",
       result: "context_prepared",
       loadedDocumentCount: expect.any(Number),
+      preparationQuality: {
+        retrieval: "completed",
+        loading: "observed",
+        delivery: "unobserved",
+        applicability: "unobserved",
+        internalUse: "unknown",
+      },
       observationEventId: expect.stringMatching(/^evt_/u),
     });
     expect(activation.queryDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
@@ -1254,7 +1267,7 @@ describe("terminal integration CLI", () => {
     expect(errors).toEqual([]);
   }, 30_000);
 
-  it("bounds provider context by UTF-8 bytes without splitting a multibyte character", async () => {
+  it("bounds provider context without substituting a truncated required passage", async () => {
     const root = await initializedRepository();
     await writeFile(
       resolve(root, "README.md"),
@@ -1286,7 +1299,10 @@ describe("terminal integration CLI", () => {
     expect(Buffer.byteLength(output.hookSpecificOutput.additionalContext)).toBeLessThanOrEqual(
       28 * 1024,
     );
-    expect(output.hookSpecificOutput.additionalContext).toContain("[Lervo content truncated]");
+    expect(output.hookSpecificOutput.additionalContext).not.toContain("[Lervo content truncated]");
+    expect(output.hookSpecificOutput.additionalContext).toContain(
+      "Some selected evidence was omitted",
+    );
     expect(output.hookSpecificOutput.additionalContext).not.toContain("�");
     expect(errors).toEqual([]);
   });
@@ -2113,81 +2129,125 @@ describe("compact terminal prompt context", () => {
     process.env.LERVO_TERMINAL_CONTEXT = "retrieval";
   });
 
-  it("injects only the continuation headline without provider query projection", async () => {
-    const root = await initializedRepository();
-    await writeFile(
-      resolve(root, "HANDOFF.md"),
-      "# Active launch handoff\n\n## Current objective\n\nFinish the cobalt launch gate.\n\n## Next actions\n\n- Verify the device build.\n",
-    );
-    const migrationOutput: string[] = [];
-    const quiet = { cwd: root, stdout: () => undefined, stderr: () => undefined };
-    expect(
-      await runCli(["migrate", "knowledge", "--json"], {
-        ...quiet,
-        stdout: (message) => migrationOutput.push(message),
-      }),
-    ).toBe(0);
-    const migration = JSON.parse(migrationOutput.join("")) as {
-      planId: string;
-      operationId: string;
-      approvalHash: string;
-    };
-    expect(
-      await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          migration.planId,
-          "--approve-item",
-          `${migration.operationId}=${migration.approvalHash}`,
-        ],
-        quiet,
-      ),
-    ).toBe(0);
-    const messages: string[] = [];
-    expect(
-      await runCli(
-        ["terminal", "hook", "--provider", "claude", "--contract", "2"],
-        {
+  it.each(["codex", "claude"] as const)(
+    "delivers publication policy and continuation without query projection for %s",
+    async (provider) => {
+      const root = await initializedRepository();
+      await writeFile(
+        resolve(root, "HANDOFF.md"),
+        "# Active launch handoff\n\n## Current objective\n\nFinish the cobalt launch gate.\n\n## Next actions\n\n- Verify the device build.\n",
+      );
+      const migrationOutput: string[] = [];
+      const quiet = { cwd: root, stdout: () => undefined, stderr: () => undefined };
+      expect(
+        await runCli(["migrate", "knowledge", "--json"], {
           ...quiet,
-          stdout: (message) => messages.push(message),
-          stdin: async () =>
-            JSON.stringify({
-              hook_event_name: "UserPromptSubmit",
-              session_id: "compact-session",
-              turn_id: "turn-compact",
-              prompt: "What is the immutable blue envelope atlas cache?",
-            }),
-        },
-        {
-          projectSearchQueries: async () => {
-            throw new Error("Compact prompts must not invoke a provider query projector.");
+          stdout: (message) => migrationOutput.push(message),
+        }),
+      ).toBe(0);
+      const migration = JSON.parse(migrationOutput.join("")) as {
+        planId: string;
+        operationId: string;
+        approvalHash: string;
+      };
+      expect(
+        await runCli(
+          [
+            "migrate",
+            "knowledge",
+            "--apply",
+            migration.planId,
+            "--approve-item",
+            `${migration.operationId}=${migration.approvalHash}`,
+          ],
+          quiet,
+        ),
+      ).toBe(0);
+      await mkdir(resolve(root, "docs/instructions/generated"), { recursive: true });
+      await writeFile(
+        resolve(root, `docs/instructions/generated/rule_${"d".repeat(24)}.md`),
+        "# Preserve examples\n\nRequired clause: preserve quoted source.\n\n## Exceptions\n\nTranslate only when explicitly requested.\n",
+      );
+      const messages: string[] = [];
+      expect(
+        await runCli(
+          ["terminal", "hook", "--provider", provider, "--contract", "2"],
+          {
+            ...quiet,
+            stdout: (message) => messages.push(message),
+            stdin: async () =>
+              JSON.stringify({
+                hook_event_name: "UserPromptSubmit",
+                session_id: "compact-session",
+                turn_id: "turn-compact",
+                prompt: "변경 내용을 문서로 정리해줘",
+              }),
           },
+          {
+            projectSearchQueries: async () => {
+              throw new Error("Compact prompts must not invoke a provider query projector.");
+            },
+          },
+        ),
+      ).toBe(0);
+      const context = JSON.parse(messages.join("")).hookSpecificOutput.additionalContext as string;
+      expect(context).toContain("Lervo compact terminal context");
+      expect(context).toContain("publication.language=en; writingPolicyId=writing_en-human");
+      expect(context).toContain("Write new or revised repository documentation in English");
+      expect(context).toContain("does not choose the chat response language");
+      expect(context).toContain("Verify the device build.");
+      expect(context).toContain("Required clause: preserve quoted source.");
+      expect(context).toContain("Translate only when explicitly requested.");
+      expect(context).not.toContain("## Lervo current workstream");
+      expect(context).not.toContain("immutable blue envelopes");
+      expect(Buffer.byteLength(context)).toBeLessThan(6 * 1024);
+      const activation = JSON.parse(
+        await readFile(
+          resolve(root, `.lervo/state/terminal-integration/${provider}-user-prompt-submit.json`),
+          "utf8",
+        ),
+      );
+      expect(activation.preparationQuality).toMatchObject({
+        instructions: {
+          scope: "applied_owner_rules",
+          status: "complete",
+          preparedCount: 1,
+          omittedCount: 0,
+          delivery: "unobserved",
         },
-      ),
-    ).toBe(0);
-    const context = JSON.parse(messages.join("")).hookSpecificOutput.additionalContext as string;
-    expect(context).toContain("Lervo compact terminal context");
-    expect(context).toContain("Verify the device build.");
-    expect(context).not.toContain("## Lervo current workstream");
-    expect(context).not.toContain("immutable blue envelopes");
-    expect(Buffer.byteLength(context)).toBeLessThan(6 * 1024);
-    const activation = JSON.parse(
-      await readFile(
-        resolve(root, ".lervo/state/terminal-integration/claude-user-prompt-submit.json"),
-        "utf8",
-      ),
-    );
-    const recorded = await openProjectStorage(root);
-    try {
-      expect(recorded.events.get(activation.observationEventId)?.payload).toMatchObject({
-        workstreamScope: "prefix",
+        retrieval: "not_run",
+        candidateCount: null,
+        selectedCount: 0,
+        fullCount: 0,
+        reasonCodes: ["retrieval_not_run"],
+        planningReadiness: {
+          status: "unavailable",
+          reasonCode: "context_binding_unavailable",
+          missingBindings: expect.arrayContaining([
+            "authority_scope",
+            "applicable_policy",
+            "normalized_task",
+          ]),
+        },
+        corpusCoverage: "unobserved",
+        delivery: "unobserved",
       });
-    } finally {
-      await recorded.close();
-    }
-  });
+      const recorded = await openProjectStorage(root);
+      try {
+        expect(recorded.events.get(activation.observationEventId)?.payload).toMatchObject({
+          workstreamScope: "prefix",
+          selectionStatus: "not_selected",
+          loadingStatus: "not_run",
+          providerInjectionStatus: "unobserved",
+          providerUseStatus: "unknown",
+          recommendationCount: 0,
+          loadedDocuments: [],
+        });
+      } finally {
+        await recorded.close();
+      }
+    },
+  );
 
   it("caches the knowledge snapshot identity by exact repository revision", async () => {
     const root = await initializedRepository();

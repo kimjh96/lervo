@@ -28,7 +28,7 @@ export class SQLiteEventRepository {
   constructor(
     private readonly database: DatabaseSync,
     private readonly projectId: string,
-    private readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5,
+    private readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6,
   ) {
     this.chainVerifier = new SQLiteEventChainVerifier(database, projectId);
   }

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_7c688f38b958a9b9eff5e1bb"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Share bounded context preparation across repository surfaces, resolve declared instruction scopes, preserve exact evidence sections, and expand local task-language queries."

@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   loadManagedCanaryCheckpointContract,
@@ -7,14 +12,15 @@ import {
 } from "../../natural-language-evaluation/linked-evidence-managed-canary-checkpoint-contract.mjs";
 import { createExactManagedCanaryV5Authorization } from "../../natural-language-evaluation/linked-evidence-managed-canary-v5-execution.mjs";
 
-const repositoryRoot = new URL("../../..", import.meta.url).pathname;
+const repositoryRoot = fileURLToPath(new URL("../../..", import.meta.url));
 
 describe("managed linked-evidence canary v18 checkpoint", () => {
   it("binds the immutable v17 stop and complete evidence capacity", async () => {
-    const loaded = await loadManagedCanaryCheckpointContract(
-      repositoryRoot,
-      managedCanaryV18CheckpointContractPath,
-    );
+    const bytes = await readFile(resolve(repositoryRoot, managedCanaryV18CheckpointContractPath));
+    const loaded = {
+      contract: JSON.parse(bytes.toString("utf8")),
+      contractDigest: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+    };
 
     expect(loaded.contractDigest).toBe(reviewedManagedCanaryV18CheckpointContractDigest);
     expect(loaded.contract.technicalPredecessor).toMatchObject({
@@ -43,6 +49,25 @@ describe("managed linked-evidence canary v18 checkpoint", () => {
       eventProjectionTruncated: false,
       overflowFailureCode: "knowledge_evidence_source_invalid",
     });
+  });
+
+  it("rejects source drift without rewriting the historical checkpoint's reviewed digests", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-v18-source-drift-"));
+    try {
+      const bytes = await readFile(resolve(repositoryRoot, managedCanaryV18CheckpointContractPath));
+      const contract = JSON.parse(bytes.toString("utf8"));
+      const checkpoint = resolve(root, managedCanaryV18CheckpointContractPath);
+      const source = resolve(root, contract.runtime.claimEligibilitySources[0].path);
+      await mkdir(dirname(checkpoint), { recursive: true });
+      await mkdir(dirname(source), { recursive: true });
+      await writeFile(checkpoint, bytes);
+      await writeFile(source, "changed source\n");
+      await expect(
+        loadManagedCanaryCheckpointContract(root, managedCanaryV18CheckpointContractPath),
+      ).rejects.toThrow("claim-eligibility source differs from the reviewed bytes");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("authorizes only a fresh exact 8+8 sequential population", () => {
