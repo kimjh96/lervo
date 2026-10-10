@@ -67,6 +67,13 @@ function releasedToolingPath(path) {
       "scripts/distribution/lib/node-runtime-distribution.mjs",
       "scripts/distribution/lib/product-release-version.mjs",
       "packages/filesystem-durability/scripts/build-native.mjs",
+      "packages/cas/scripts/build-native.mjs",
+      "packages/cas/scripts/build-native-artifact.mjs",
+      "scripts/shared/native-cas-contract.mjs",
+      "scripts/shared/native-cas-artifact.mjs",
+      "scripts/shared/native-addon-contract.mjs",
+      "scripts/shared/native-addon-artifact.mjs",
+      "scripts/shared/native-runtime-artifact.mjs",
       "scripts/shared/native-file-sync-artifact.mjs",
       "scripts/shared/native-file-sync-contract.mjs",
       "scripts/distribution/native-file-sync-transfer.mjs",
@@ -78,7 +85,8 @@ function releasedToolingPath(path) {
       "scripts/shared/schema-validator-contract.mjs",
     ].includes(path) ||
     path.startsWith("apps/hub/assets/") ||
-    path.startsWith("packages/filesystem-durability/native/")
+    path.startsWith("packages/filesystem-durability/native/") ||
+    path.startsWith("packages/cas/native/")
   );
 }
 

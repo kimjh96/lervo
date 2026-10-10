@@ -11,7 +11,8 @@ export async function artifactBuildHash(repository) {
       else if (
         entry.name.endsWith(".js") ||
         entry.name.endsWith(".node") ||
-        entry.name === "file-sync.json"
+        entry.name === "file-sync.json" ||
+        entry.name === "cas-io.json"
       )
         entries.push([child.slice(repository.length + 1), digest(await readFile(child))]);
     }

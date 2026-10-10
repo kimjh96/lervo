@@ -21,6 +21,16 @@ The existing runtime fallback remains valid for unsupported hosts and filesystem
 
 Archive verification decodes native Windows tar line endings before applying the existing path checks. POSIX carriage returns remain untrusted path bytes. After extraction, POSIX hosts compare every permission bit; Windows compares the observable read-only attribute because its Node filesystem API does not expose POSIX execution or owner/group distinctions. The authenticated archive and manifest retain their complete original modes. File names, types, sizes, hashes, link targets and inventory membership still match exactly on every platform. This comparison does not certify Windows ACLs or replace owner-only runtime configuration checks.
 
+## CAS asset composition
+
+CAS now owns a separate universal Darwin publication/readback addon and schema-1 manifest, with the same API-1, Node-API-8, architecture and size bounds. Its source digest binds the CAS C sources, build owner and shared artifact owners; the producer checks source stability after compilation. Filesystem-durability continues to own synchronization only. Runtime loading never compiles either addon.
+
+Common validation and filesystem adapters serve both pairs while preserving the existing synchronization facade and error meanings. A separate aggregate adapter reads the legacy synchronization pair and complete four-file sets. New aggregate output requires both source-bound pairs and replaces the entire owned directory from captured buffers. It restores the prior directory on publication failure and retains one fixed recovery stage if rollback fails. A pair-specific writer rejects the aggregate directory; foreign entries are preserved. Native CAS and shared artifact owners require reviewed release intent, and measurement identity includes the CAS manifest.
+
+This producer/adapter step does not change the application archive, SBOM, transfer or terminal manifest versions described below. Their existing writers still carry the synchronization pair. Complete four-file integration must advance those contracts with compatible readers before packaged CAS activation. Actual universal binary execution and a bundled fixture are recorded in [source verification](../../evidence/quality/context-quality/context-quality-source-verification.md#native-cas-runtime-composition); full distributed and performance acceptance remains required.
+
+CAS artifact failures use the bounded `native_cas_*` family. Aggregate `native_runtime_*` failures distinguish incomplete input, missing CAS capability, digest drift, unsafe directories, pending recovery, and rollback failure. These build errors contain no object bodies or credentials and create no event or persistent queue. Recovery follows the fixed staging contract below.
+
 ## Compatibility and rollout
 
 Version 2 archives require the updated verifier/installer. Upgrade readers first; do not use an old installer rejection as permission to bypass verification. Existing version 1 archives remain readable by the new tools. The current product release version still comes solely from `@lervo/cli`, with reviewed release intent.

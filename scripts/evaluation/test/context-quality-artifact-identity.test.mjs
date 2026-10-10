@@ -26,6 +26,11 @@ it("binds native runtime bytes and their manifest along with JavaScript", async 
     expect(changedManifest).not.toBe(withManifest);
     await writeFile(resolve(native, "../index.d.ts"), "export declare const version: 1;");
     expect(await artifactBuildHash(root)).toBe(changedManifest);
+    await writeFile(resolve(native, "cas-io.json"), '{"schemaVersion":1}');
+    const withCasManifest = await artifactBuildHash(root);
+    expect(withCasManifest).not.toBe(changedManifest);
+    await writeFile(resolve(native, "cas-io.json"), '{"schemaVersion":2}');
+    expect(await artifactBuildHash(root)).not.toBe(withCasManifest);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

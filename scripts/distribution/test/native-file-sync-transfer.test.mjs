@@ -35,6 +35,9 @@ beforeEach(async () => {
     "packages/filesystem-durability/scripts/build-native.mjs",
     "scripts/shared/native-file-sync-contract.mjs",
     "scripts/shared/native-file-sync-artifact.mjs",
+    "scripts/shared/native-addon-contract.mjs",
+    "scripts/shared/native-addon-artifact.mjs",
+    "scripts/shared/native-runtime-artifact.mjs",
   ]) {
     const target = resolve(repositoryRoot, path);
     await mkdir(dirname(target), { recursive: true });
