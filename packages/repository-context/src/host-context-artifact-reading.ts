@@ -1,5 +1,6 @@
 import { canonicalHash } from "@lervo/search";
 import { verifyHostArtifact } from "./host-context-artifact.js";
+import { snapshotHostArtifact, snapshotHostContract } from "./host-context-admission.js";
 import type { RepositoryQualityInput } from "./repository-quality-context.js";
 import type { HostContextOutcomeInput, HostOutcomeContract } from "./host-context-outcome-types.js";
 
@@ -13,11 +14,21 @@ export async function readHostContextArtifact(
 ) {
   let required = Boolean(input.policy);
   try {
-    const contract: HostOutcomeContract = input.policy
+    const resolved: HostOutcomeContract = input.policy
       ? await input.policy.resolve({
           planDigest,
-          artifact,
-          preparation: { ...preparation, task: structuredClone(preparation.task) },
+          artifact: snapshotHostArtifact(artifact),
+          preparation: {
+            ...preparation,
+            task: structuredClone(preparation.task),
+            candidates: structuredClone(preparation.candidates),
+            ...(preparation.projectedQueries
+              ? { projectedQueries: [...preparation.projectedQueries] }
+              : {}),
+            ...(preparation.recordingCoordinates
+              ? { recordingCoordinates: { ...preparation.recordingCoordinates } }
+              : {}),
+          },
         })
       : {
           definition: {
@@ -39,7 +50,8 @@ export async function readHostContextArtifact(
           isPublication: artifact.kind === "repository" && /\.md$/iu.test(artifact.path),
           requirePassed: false,
         };
-    required = contract.requirePassed;
+    required = resolved.requirePassed;
+    const contract = snapshotHostContract(resolved);
     const observation = await verifyHostArtifact({
       preparation,
       planDigest,

@@ -10,6 +10,7 @@ import { correctRepositoryContextOutcome } from "./repository-context-correction
 import { recordContextQualityVerification } from "./context-quality-recording.js";
 import { verifyHostArtifact } from "./host-context-artifact.js";
 import { readHostContextArtifact } from "./host-context-artifact-reading.js";
+import { snapshotHostArtifact, snapshotHostPolicy } from "./host-context-admission.js";
 import type {
   HostContextOutcomeInput,
   HostContextOutcomeReport,
@@ -31,13 +32,9 @@ export async function observeHostContextOutcomes(
   const input = {
     ...source,
     ...(source.coordinates ? { coordinates: { ...source.coordinates } } : {}),
+    ...(source.policy ? { policy: snapshotHostPolicy(source.policy) } : {}),
     task: structuredClone(source.task),
-    artifacts: source.artifacts.map((artifact) => ({
-      ...artifact,
-      ...(artifact.kind === "repository" && artifact.baselineBytes
-        ? { baselineBytes: new Uint8Array(artifact.baselineBytes) }
-        : {}),
-    })),
+    artifacts: source.artifacts.map(snapshotHostArtifact),
   };
   const report: HostContextOutcomeReport = {
     status: "unavailable",

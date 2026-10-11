@@ -177,8 +177,8 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 19108011,
-        "sha256": "sha256:34021a2de2708d1bd032edbace5a312bb669879abc1e67ca0045ebd24165c10d"
+        "size": 19109853,
+        "sha256": "sha256:f5a5e4879ab64916b3cf220bd12e6d78911fdf88a39eabdb4f019b56f13a5364"
       },
       {
         "path": "dist/native/cas-io-darwin.node",
@@ -202,17 +202,17 @@
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 15359345,
-        "sha256": "sha256:f659f92fa7ec24654795cd95222d28ab54b5c39b380d6ecf782feec25e36cc12"
+        "size": 15360976,
+        "sha256": "sha256:18ca1c5a8e49aa281a80daa52fe7ae224594519e794c9ddd28f592b5c83d26c8"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 8339443,
-        "sha256": "sha256:e975c335fc70b15dde4edc55baf4122dc959beaf3af703124ea20091f0b3a720"
+        "size": 8340353,
+        "sha256": "sha256:7ac30cfa26b382106e3ec401c3199131883bd825982a72b52e83beb385906376"
       }
     ],
     "fileCount": 9,
-    "contentDigest": "sha256:c254ba4724ea989a0945a55fc950f4e67703573cc058c2b96d8acda326f064cf"
+    "contentDigest": "sha256:e743a2d0e8e47bcb28045587d30c634ff3fcb7321cd42ad2e428d1fcb905c8a1"
   },
   "dependencies": {
     "portable": [
@@ -325,5 +325,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:01eda04935b972373d55199d5eb494ad12ebb8b79e5cae0c5f81d725495b2038"
+  "artifactDigest": "sha256:42ad7319e80d89512df57016f3e3ce244e890128c9491deebf754bc9d44bb38a"
 }
