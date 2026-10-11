@@ -36,6 +36,16 @@ The Hub published sequence 6 with the exact sequence-5 predecessor, unchanged si
 
 All eight service identities, PIDs, executable/configuration and unit-file hashes remain unchanged with zero restarts. Five Nodes are now ready; AXLI remains degraded under its existing `preflight_repair_requires_review` boundary. Lervo still advertises readers 1–5 from its existing installation. This recovery is neither candidate deployment nor writer-6 acceptance. `/tmp/lervo-policy-recovery-current.json` binds the exact plan, publication receipt, before/after observations and service comparison; the publication-result SHA-256 is `75894a7af4052c645fc96545b0d00b6b5280f03c63b7e288e54e705069a8ad27`. No provider or Discord task was submitted.
 
+### Existing AXLI supervision condition
+
+AXLI's pending product review is not an unconditional Node replacement blocker. [ADR-0475](../../../decisions/operations/services/0475-judge-node-replacement-readiness-by-regression.md) already permits an unchanged, pre-existing failure in a non-delivery component when a fresh predecessor baseline proves the same status and failure code. It never carries a failure in synchronization or workstream replication. This changes no approval, verification or deployment rule.
+
+The read-only observation at 2026-10-11T01:36:30.068874Z finds the existing AXLI process 351 running with zero restarts. Synchronization, workstream replication, remote control and conversation are ready; workspace coordination is disabled. Only supervision reports `unavailable:supervision_attention_required`, with reason `preflight_repair_requires_review`. Its health snapshot is less than fourteen seconds old, and the executable, configuration and service-file identities remain unchanged.
+
+Replaying that exact snapshot through the current readiness policy accepts the one supervision condition and reports it in `carried`. Ten explicit checks also retain rejection of absent/stale/unavailable baselines, delivery-component failures, a changed failure code, pending components and a starting process. Eighteen existing readiness and upgrade tests pass across three files. These are source-policy and observation checks, not a replacement or rollback receipt. `/tmp/lervo-axli-readiness-observation.json` and `/tmp/lervo-axli-readiness-replay.json` retain the source hashes, observed snapshot and replay results.
+
+At deployment, capture a new baseline no older than two minutes, then require the existing three consecutive fresh observations from the replacement process. Preserve the supervision condition in `carriedConditions` if it remains eligible; any new failure still blocks replacement. Keep the AXLI product decision pending and do not dispatch its assignment or normalize its user-owned vision document to clear a runtime status. Candidate resource, quality, platform, release and installed-journey gates remain open.
+
 ### Process birth implementation
 
 The admission store now binds new sessions and upgrade freezes to versioned process-birth evidence. Proven absence or changed birth permits cleanup; live, unknown, legacy-null and incomparable-version observations retain ownership. Work acquisition and frozen-configuration replacement require matching ownership. Two nullable columns preserve the preceding schema and writers. No event, sidecar or per-process archive is added.
