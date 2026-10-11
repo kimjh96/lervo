@@ -150,13 +150,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/node-work-admission/src/store.ts",
-      "contentHash": "sha256:03b81ccaa7ea6b41763e32ed810352d5afc3fc40ef6be7e02b8bea7f5349990c",
-      "responsibility": "SQLite Node work session, claim and upgrade freeze adapter",
-      "rationale": "One SQLite adapter owns the bounded session, claim, and freeze lifecycle. Its exact digest check reports a distinct config_mismatch refusal, and dead-session cleanup and the retained scope participation record permit inactive recovery only when the service manager explicitly verifies that state. Configuration bytes, predecessor discovery, service status, rollback, and provider behavior remain outside the store.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
       "contentHash": "sha256:09ee509473da7036d6b52171d266a027e7f0077d342512232d46515c1d5c3adb",
       "responsibility": "Managed provider-run coordinator",

@@ -71,8 +71,14 @@ async function fixture() {
   const path = nodeWorkAdmissionDatabasePath(root);
   const scope = nodeWorkAdmissionScope(config);
   const alive = new Set([process.pid]);
-  const isAlive = (pid) => alive.has(pid);
-  const node = await SQLiteNodeWorkAdmission.open({ path, isAlive });
+  const observeProcess = (pid) =>
+    alive.has(pid)
+      ? {
+          status: "present",
+          identity: `proc_linux_ticks_v1:sha256:${String(pid).padStart(64, "0")}`,
+        }
+      : { status: "absent" };
+  const node = await SQLiteNodeWorkAdmission.open({ path, observeProcess });
   let nextPid = 4000;
   let session = null;
   const startNode = async () => {
@@ -113,7 +119,7 @@ async function fixture() {
     runCommand: run,
     wait: async () => {},
     openNodeWorkAdmission: async () => ({
-      store: await SQLiteNodeWorkAdmission.open({ path, isAlive }),
+      store: await SQLiteNodeWorkAdmission.open({ path, observeProcess }),
       scope,
     }),
   };

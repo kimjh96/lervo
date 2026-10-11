@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1821d2188e90645547ec4c6a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Recover Node work admission after observed process replacement or reboot while preserving live owners, upgrade freezes and unknown legacy identities."
