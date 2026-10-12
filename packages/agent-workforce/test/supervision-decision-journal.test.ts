@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { FileSystemCas } from "@lervo/cas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { operatingContractHash, reviewOperatingAction } from "@lervo/work-controller";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SupervisionDecisionJournal, SQLiteSupervisionOwnerLeaseStore } from "../src/index.js";
 import { hash, mandate, now, plan, snapshot } from "./supervision.fixture.js";
 import {
@@ -154,11 +154,21 @@ describe("canonical preflight non-start evidence", () => {
     const receipt = await f.journal.recordDecision(f.action, f.review);
     const first = await f.journal.recordPreflightBlocked(receipt, f.action, inspection);
     expect(await f.journal.recordPreflightBlocked(receipt, f.action, inspection)).toBe(first);
+    const list = vi.spyOn(f.events, "list");
     expect(f.journal.findUnresolvedPreflightBlock()).toEqual({
       eventId: first,
       decisionId: receipt.decisionId,
       reasonCode: inspection.reasonCode,
     });
+    // Block state is read from its own event types, never from unrelated project history.
+    expect(list.mock.calls.map(([options]) => options?.types)).toEqual([
+      [
+        "work.supervision.preflight.blocked",
+        "work.supervision.preflight.resolved",
+        "work.supervision.effect.observed",
+      ],
+    ]);
+    list.mockRestore();
     const event = f.events.get(first)!;
     expect(event.payload).toMatchObject({
       planHash: receipt.planHash,
@@ -303,6 +313,31 @@ describe("canonical supervision decision recovery", () => {
     f.journal.recordEffect(confirmed);
     expect(await f.journal.findPendingPlan()).toBeNull();
     expect(() => f.journal.recordEffect({ ...receipt, status: "uncertain" })).toThrow();
+  });
+
+  it("scans the run history once for every recorded decision when finding a pending plan", async () => {
+    const f = await fixture();
+    const receipt = await f.journal.recordDecision(f.action, f.review);
+    const evidence = f.events.append({
+      eventId: `evt_${"c".repeat(32)}`,
+      projectId: f.action.projectId,
+      runId: "run_fixture_effect",
+      sessionId: "ses_fixture_effect",
+      type: "run.requested",
+      occurredAt: now,
+      schemaVersion: 1,
+      policyVersion: hash(),
+      actor: { kind: "system" },
+      payload: {},
+    }).event;
+    f.journal.recordEffect({
+      ...receipt,
+      status: "effect_confirmed",
+      effectEventIds: [evidence.eventId],
+    });
+    const list = vi.spyOn(f.events, "list");
+    expect(await f.journal.findPendingPlan()).toBeNull();
+    expect(list).toHaveBeenCalledTimes(1);
   });
 
   it("rejects corrupted review binding and unavailable plan artifacts", async () => {

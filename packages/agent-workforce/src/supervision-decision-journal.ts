@@ -3,30 +3,16 @@ import type {
   OperatingPolicyReviewV1,
   SupervisionDecisionReceipt,
   SupervisionPreflightInspectionV1,
-  SupervisedResponsibilityClaimV1,
-  SupervisedWorkspacePreparationV1,
 } from "@lervo/application-contract";
 import { canonicalJson } from "@lervo/event-contract";
 import { isDecisionBoundSupervisionEffectEvidence } from "./supervision-effect-evidence.js";
+import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
+import type { EventEnvelope } from "@lervo/schemas";
+import { assertSupersededDecisionProof } from "./supervision-supersession-proof.js";
 import {
-  collectRunEventsBounded,
-  type ArtifactStore,
-  type EventStore,
-} from "@lervo/storage-contract";
-import {
-  isManagedExecutionAbsence,
-  managedExecutionAbsenceEventsMatch,
-  managedExecutionIdentity,
   assertOperatingActionPlan,
   operatingContractHash,
   operatingDecisionId,
-  isOwnerReasoningAbsence,
-  ownerControlSupersession,
-  isResultDeliveryAbsence,
-  isResponsibilityClaimAbsence,
-  isWorkspacePreparationAbsence,
-  supervisedResponsibilityClaimFields,
-  supervisedWorkspacePreparationFields,
 } from "@lervo/work-controller";
 
 import type {
@@ -111,7 +97,10 @@ export class SupervisionDecisionJournal {
     return this.findDecision(review.decisionId)!;
   }
 
-  findDecision(decisionId: string): SupervisionDecisionReceipt | null {
+  findDecision(
+    decisionId: string,
+    history: readonly EventEnvelope[] = this.journal.history(),
+  ): SupervisionDecisionReceipt | null {
     const event = this.events.get(
       this.journal.eventId("work.supervision.decision.recorded", decisionId),
     );
@@ -123,7 +112,7 @@ export class SupervisionDecisionJournal {
       status: "recorded",
       effectEventIds: [],
     };
-    for (const observation of this.journal.history()) {
+    for (const observation of history) {
       if (
         observation.type === "work.supervision.decision.superseded" &&
         observation.payload.decisionId === decisionId
@@ -159,91 +148,19 @@ export class SupervisionDecisionJournal {
 
   /** Includes old-source unresolved decisions: a source change cannot discard an uncertain effect. */
   async findPendingPlan(): Promise<OperatingActionPlanV1 | null> {
-    for (const event of this.journal.history()) {
+    // One verified snapshot serves every decision; rereading it per decision is quadratic.
+    const history = this.journal.history();
+    for (const event of history) {
       if (event.type !== "work.supervision.decision.recorded") continue;
-      const receipt = this.findDecision(String(event.payload.decisionId));
+      const receipt = this.findDecision(String(event.payload.decisionId), history);
       if (receipt?.status === "effect_confirmed") continue;
       if (receipt?.status === "superseded") {
-        const supersession = this.events.get(
-          this.journal.eventId("work.supervision.decision.superseded", receipt.decisionId),
-        );
-        if (supersession === null)
-          throw new Error("The superseded decision has no inspection record.");
-        const inspection = (await this.journal.read(
-          String(supersession.payload.inspectionArtifactHash),
-        )) as Record<string, unknown>;
-        const plan = await this.readPlan(String(event.payload.planArtifactHash));
-        // An owner control proves only that its receipt, such as an escalation, never took effect.
-        const control = ownerControlSupersession(
-          inspection,
-          plan,
-          supersession.payload,
-          (id) => this.events.get(id) !== null,
-        );
-        if (control !== null) {
-          if (!control || operatingContractHash(plan) !== receipt.planHash)
-            throw new Error("The superseded decision inspection is inconsistent.");
-          continue;
-        }
-        if (
-          inspection.kind !== "work.effect_absence" ||
-          inspection.decisionId !== receipt.decisionId ||
-          inspection.planHash !== receipt.planHash ||
-          operatingContractHash(plan) !== receipt.planHash ||
-          inspection.effectHash !== plan.effectHash ||
-          inspection.sourceRevisionDigest !== supersession.payload.sourceRevisionDigest ||
-          !(inspection.schemaVersion === 1
-            ? plan.effectContract === "assignment.topology.materialize.v1" &&
-              inspection.assignmentAbsent === true &&
-              inspection.creationEventAbsent === true
-            : inspection.schemaVersion === 4 || inspection.schemaVersion === 5
-              ? isManagedExecutionAbsence(
-                  inspection,
-                  plan,
-                  String(supersession.payload.sourceRevisionDigest),
-                ) &&
-                managedExecutionAbsenceEventsMatch(
-                  inspection,
-                  plan,
-                  collectRunEventsBounded({
-                    events: this.events,
-                    runId: managedExecutionIdentity(plan.projectId, operatingContractHash(plan))
-                      .runId,
-                    maximumEvents: 4096,
-                  }),
-                )
-              : inspection.schemaVersion === 7
-                ? isResponsibilityClaimAbsence(
-                    inspection,
-                    plan,
-                    String(supersession.payload.sourceRevisionDigest),
-                    await this.claimStartDeadline(plan),
-                  )
-                : inspection.schemaVersion === 8
-                  ? isResultDeliveryAbsence(
-                      inspection,
-                      plan,
-                      String(supersession.payload.sourceRevisionDigest),
-                    ) && this.events.get(String(inspection.queueEventId)) === null
-                  : inspection.schemaVersion === 3
-                    ? await this.validWorkspaceAbsence(
-                        inspection,
-                        plan,
-                        String(supersession.payload.sourceRevisionDigest),
-                      )
-                    : isOwnerReasoningAbsence(
-                        inspection,
-                        plan,
-                        String(supersession.payload.sourceRevisionDigest),
-                      ) &&
-                      collectRunEventsBounded({
-                        events: this.events,
-                        runId: managedExecutionIdentity(plan.projectId, operatingContractHash(plan))
-                          .runId,
-                        maximumEvents: 4096,
-                      }).length === 0)
-        )
-          throw new Error("The superseded decision inspection is inconsistent.");
+        await assertSupersededDecisionProof({
+          journal: this.journal,
+          events: this.events,
+          receipt,
+          readPlan: () => this.readPlan(String(event.payload.planArtifactHash)),
+        });
         continue;
       }
       this.journal.assertEventBinding(event);
@@ -253,28 +170,6 @@ export class SupervisionDecisionJournal {
       return plan;
     }
     return null;
-  }
-
-  private async validWorkspaceAbsence(
-    inspection: Record<string, unknown>,
-    plan: OperatingActionPlanV1,
-    sourceRevisionDigest: string,
-  ): Promise<boolean> {
-    if (plan.effectContract !== "work.workspace_preparation.v1") return false;
-    const effect = (await this.journal.read(plan.effectHash)) as SupervisedWorkspacePreparationV1;
-    const fields = supervisedWorkspacePreparationFields(effect);
-    if (
-      fields.effectHash !== plan.effectHash ||
-      fields.responsibilityArtifactHash !== plan.responsibilityArtifactHash
-    )
-      return false;
-    const provision = (await this.journal.read(effect.provisionPlanHash)) as {
-      workspace?: { workspaceId?: unknown };
-    };
-    return isWorkspacePreparationAbsence(inspection, plan, sourceRevisionDigest, {
-      workspaceId: provision?.workspace?.workspaceId,
-      provisionPlanHash: effect.provisionPlanHash,
-    });
   }
 
   recordEffect(receipt: SupervisionDecisionReceipt): void {
@@ -354,14 +249,6 @@ export class SupervisionDecisionJournal {
     const plan = (await this.journal.read(hash)) as OperatingActionPlanV1;
     assertOperatingActionPlan(plan);
     return plan;
-  }
-
-  /** The exact claim effect's start deadline; its absence may be proven once that window closes. */
-  private async claimStartDeadline(plan: OperatingActionPlanV1): Promise<string> {
-    const effect = (await this.journal.read(plan.effectHash)) as SupervisedResponsibilityClaimV1;
-    if (supervisedResponsibilityClaimFields(effect).effectHash !== plan.effectHash)
-      throw new Error("The superseded claim effect differs from its plan.");
-    return effect.responsibility.startDeadline;
   }
 
   private common(plan: OperatingActionPlanV1): Record<string, unknown> {
