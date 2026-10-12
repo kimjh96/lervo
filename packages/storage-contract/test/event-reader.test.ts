@@ -2,6 +2,7 @@ import type { EventEnvelope } from "@lervo/schemas";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  collectEventsOfTypesBounded,
   collectProjectEventsBounded,
   collectRunEventsBounded,
   visitEventSnapshot,
@@ -71,6 +72,49 @@ describe("bounded event reader contract", () => {
         pageSize: 1,
       }),
     ).toThrow(expect.objectContaining({ code: "event_limit_exceeded" }));
+  });
+
+  it("collects only the requested types in order with the same overflow distinction", () => {
+    const typed = (seq: number, type: string) => ({ ...event(seq), type }) as EventEnvelope;
+    const values = [typed(1, "a"), typed(2, "b"), typed(3, "a"), typed(4, "c")];
+    const store = {
+      list: vi.fn((options: ListEventsOptions = {}) =>
+        values
+          .filter(
+            (item) =>
+              item.seq > (options.afterSeq ?? 0) &&
+              (options.types === undefined || options.types.includes(item.type)),
+          )
+          .slice(0, options.limit ?? 100),
+      ),
+    };
+    expect(
+      collectEventsOfTypesBounded({
+        events: store,
+        types: ["a", "c"],
+        maximumEvents: 3,
+        pageSize: 1,
+      }).map((item) => item.seq),
+    ).toEqual([1, 3, 4]);
+    expect(store.list).toHaveBeenCalledTimes(4);
+    expect(store.list.mock.calls.every(([options]) => options?.types?.join() === "a,c")).toBe(true);
+    expect(() =>
+      collectEventsOfTypesBounded({ events: store, types: ["a", "c"], maximumEvents: 2 }),
+    ).toThrow(expect.objectContaining({ code: "event_limit_exceeded" }));
+    expect(() =>
+      collectEventsOfTypesBounded({
+        events: { list: () => [typed(1, "b")] },
+        types: ["a"],
+        maximumEvents: 3,
+      }),
+    ).toThrow(expect.objectContaining({ code: "event_sequence_invalid" }));
+    expect(() =>
+      collectEventsOfTypesBounded({
+        events: { list: () => [typed(2, "a"), typed(1, "a")] },
+        types: ["a"],
+        maximumEvents: 3,
+      }),
+    ).toThrow(expect.objectContaining({ code: "event_sequence_invalid" }));
   });
 
   it("rejects a non-forward page and a page from another run", () => {

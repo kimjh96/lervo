@@ -3,7 +3,7 @@ import type {
   SupervisionDecisionReceipt,
   SupervisionPreflightInspectionV1,
 } from "@lervo/application-contract";
-import { collectProjectEventsBounded, type EventStore } from "@lervo/storage-contract";
+import { collectEventsOfTypesBounded, type EventStore } from "@lervo/storage-contract";
 import { lineageRootId, operatingContractHash, operatingDecisionId } from "@lervo/work-controller";
 import type {
   SupervisionEventJournal,
@@ -124,7 +124,12 @@ export function listUnresolvedSupervisionPreflightBlocks(input: {
 }): UnresolvedSupervisionPreflightBlock[] {
   const { events, coordinates } = input;
   const unresolved = new Map<string, UnresolvedSupervisionPreflightBlock>();
-  for (const event of collectProjectEventsBounded({ events, maximumEvents: 100_000 })) {
+  // Only these types change a block's state; reading them alone keeps the scan off unrelated history.
+  for (const event of collectEventsOfTypesBounded({
+    events,
+    types: [BLOCKED, RESOLVED, "work.supervision.effect.observed"],
+    maximumEvents: 100_000,
+  })) {
     if (
       event.projectId !== coordinates.projectId ||
       event.payload.ownerAgentId !== coordinates.ownerAgentId ||
