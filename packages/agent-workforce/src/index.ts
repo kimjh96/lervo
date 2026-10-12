@@ -39,3 +39,4 @@ export { topologyAssignmentObservation } from "./assignment-topology-observation
 export { nextAssignmentLeaseGeneration } from "./assignment-lease-generation.js";
 export { createConvergenceAssignment } from "./assignment-convergence-creation.js";
 export { archiveConvergenceAssignment } from "./assignment-convergence-archive.js";
+export * from "./workforce-source-paths.js";
