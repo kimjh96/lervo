@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import type { AgentWorkspace, WorkforceAssignment } from "@lervo/agent-workforce";
+import type { ProjectStorage } from "@lervo/project-storage";
 import * as retention from "../src/supervision-unstarted-workspace.js";
 import { observeUnstartedSupervisionWorkspaces } from "../src/supervision-unstarted-workspaces.js";
 
@@ -74,7 +75,7 @@ it("gives every proof over one store a single shared read of its evidence", asyn
     observed.push(await input.sources!(), await input.sources!());
     return null;
   });
-  const storage = {} as Parameters<typeof observeUnstartedSupervisionWorkspaces>[0]["storage"];
+  const storage = {} as ProjectStorage;
   await observeUnstartedSupervisionWorkspaces({
     repositoryRoot: "/repository",
     binding: {
