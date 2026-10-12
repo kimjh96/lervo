@@ -33,6 +33,7 @@ export interface NodeSupervisionResultDeliveryConfiguration {
 export class SupervisionResultDelivery {
   private readonly tasks: SupervisionTaskSource;
   private readonly origin: NodeSupervisionResultDeliveryConfiguration["origin"];
+  private retryAt: number | null = null;
   constructor(
     private readonly storage: ProjectStorage,
     private readonly binding: NodeSupervisionBinding,
@@ -187,7 +188,13 @@ export class SupervisionResultDelivery {
     });
     return { eventIds: [receipt.eventId] };
   }
+  /** When the last pending check found a failed delivery waiting for its next attempt. */
+  nextRetryAt(): number | null {
+    return this.retryAt;
+  }
+
   async runPending(owner: NodeSupervisionSession) {
+    this.retryAt = null;
     const source = await this.tasks.read();
     const queued = source.supervisionEvents.findLast(
       (event) => event.type === "work.supervision.delivery.queued",
@@ -212,10 +219,13 @@ export class SupervisionResultDelivery {
       state.status === "not_started" ||
       state.status === "delivered" ||
       state.attempt >= 4 ||
-      state.nextCheckAt === null ||
-      Date.parse(state.nextCheckAt) > Date.parse(this.now())
+      state.nextCheckAt === null
     )
       return;
+    if (Date.parse(state.nextCheckAt) > Date.parse(this.now())) {
+      this.retryAt = Date.parse(state.nextCheckAt);
+      return;
+    }
     const authority = await owner.readAuthority();
     const { outbound, source: admittedSource } = await this.publication(plan);
     const current = await owner.readAuthority();

@@ -212,16 +212,45 @@ function resolveRoleRegistry(
   return [...resolved.values()].sort((left, right) => left.roleId.localeCompare(right.roleId));
 }
 
+function findRoleContract(
+  contracts: readonly ResolvedRoleContract[],
+  roleId: string,
+): ResolvedRoleContract {
+  if (!ROLE_ID.test(roleId) || roleId.length > 100)
+    fail("role_not_found", "The requested role ID is invalid.");
+  const contract = contracts.find((item) => item.roleId === roleId);
+  if (contract === undefined)
+    fail("role_not_found", `Role ${roleId} does not exist in the built-in or repository registry.`);
+  return contract;
+}
+
 export async function resolveRoleContract(
   repositoryRoot: string,
   roleId: string,
 ): Promise<ResolvedRoleContract> {
   if (!ROLE_ID.test(roleId) || roleId.length > 100)
     fail("role_not_found", "The requested role ID is invalid.");
-  const contract = (await listRoleContracts(repositoryRoot)).find((item) => item.roleId === roleId);
-  if (contract === undefined)
-    fail("role_not_found", `Role ${roleId} does not exist in the built-in or repository registry.`);
-  return contract;
+  return findRoleContract(await listRoleContracts(repositoryRoot), roleId);
+}
+
+/** Resolves roles against one read of the role sources; resolution matches `resolveRoleContract`. */
+export type RoleContractResolver = (roleId: string) => Promise<ResolvedRoleContract>;
+
+/**
+ * A resolver for one operation that checks many records against the same roles. The role sources
+ * are read on first use and shared by every later resolution; a new operation creates a new
+ * resolver and so observes current sources.
+ */
+export function createRoleContractResolver(repositoryRoot: string): RoleContractResolver {
+  let contracts: Promise<ResolvedRoleContract[]> | undefined;
+  return async (roleId) => {
+    if (!ROLE_ID.test(roleId) || roleId.length > 100)
+      fail("role_not_found", "The requested role ID is invalid.");
+    // Like `resolveRoleContract`, every resolution hands out a private copy.
+    return structuredClone(
+      findRoleContract(await (contracts ??= listRoleContracts(repositoryRoot)), roleId),
+    );
+  };
 }
 
 export function roleContractCoordinate(contract: ResolvedRoleContract): RoleContractCoordinate {

@@ -1,18 +1,26 @@
-import { listWorkspaceCoordinationEvents, readWorkspace } from "@lervo/agent-workforce";
+import {
+  listWorkspaceCoordinationEvents,
+  readWorkspace,
+  type WorkspaceCoordinationEvent,
+} from "@lervo/agent-workforce";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { WorkspaceProvisionPlan } from "@lervo/orchestrator";
 import { operatingContractHash } from "@lervo/work-controller";
 
-/** Reads exact preparation history, including a legacy receipt failure after host readiness. */
+/**
+ * Reads exact preparation history, including a legacy receipt failure after host readiness.
+ * `workspaceEvents` lets a caller that checks many workspaces read the coordination events once.
+ */
 export async function readPreparedWorkspaceState(
   storage: ProjectStorage,
   provision: WorkspaceProvisionPlan,
+  workspaceEvents?: readonly WorkspaceCoordinationEvent[],
 ) {
   const stored = await readWorkspace(storage.paths.repositoryRoot, provision.workspace.workspaceId);
   if (stored === null || stored.workspace.host.nativeInstanceDigest === null) return null;
-  const coordinates = (await listWorkspaceCoordinationEvents(storage.paths.repositoryRoot)).filter(
-    (event) => event.workspaceId === provision.workspace.workspaceId,
-  );
+  const coordinates = (
+    workspaceEvents ?? (await listWorkspaceCoordinationEvents(storage.paths.repositoryRoot))
+  ).filter((event) => event.workspaceId === provision.workspace.workspaceId);
   const created = coordinates.find((event) => event.eventId === provision.provisionEventId);
   const ready = coordinates.find((event) => event.eventId === provision.readyEventId);
   const recovery = coordinates.find((event) => event.eventId === provision.recoveryEventId);

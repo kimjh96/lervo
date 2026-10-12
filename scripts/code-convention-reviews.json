@@ -60,16 +60,16 @@
     },
     {
       "path": "apps/node-runtime/src/outcome-supervision-runtime.ts",
-      "contentHash": "sha256:c9076a82b67339bf33dd2f26a0f4415657570551b254aa833b0adfdbf3cc1700",
+      "contentHash": "sha256:058903c037bf6be39faa208a915d58765c52e104fa9069751912495ef155d665",
       "responsibility": "Node outcome-supervision port composition",
-      "rationale": "The module composes one provider-neutral supervision runtime from storage, admission, reasoning, execution, and evidence ports. Request-origin evaluation, resource policy, provider effects, supersession, leases, and snapshot projection remain in dedicated modules; this boundary only wires their ordered lifecycle and cleanup.",
+      "rationale": "The module composes one provider-neutral supervision runtime from storage, admission, reasoning, execution, and evidence ports. Request-origin evaluation, resource policy, provider effects, supersession, leases, snapshot projection, and wake scheduling with its observation gate remain in dedicated modules; this boundary only wires their ordered lifecycle and cleanup.",
       "disposition": "cohesive"
     },
     {
       "path": "apps/node-runtime/src/supervision-task-source.ts",
-      "contentHash": "sha256:373c2274a75f364e1e1a2bcd4d8dbafb29010ed72817de71ce97a3823deae73f",
+      "contentHash": "sha256:64e25c7f1ddcec9babc21cbbdec1dfc5910eb40e1667a201f8a785b1413a8e7a",
       "responsibility": "Canonical supervised task observation",
-      "rationale": "The class observes one bound goal for task, admission, owner-control, and cycle snapshots. It composes dedicated workforce, execution, authority, result, and handoff readers; effect execution, persistence, provider transport, domain policy, and runtime scheduling remain in separate modules. The two history projections share a canonical event chain but retain distinct task and authority scopes.",
+      "rationale": "The class observes one bound goal for task, admission, owner-control, and cycle snapshots, and audits its history projection's tail for the wake schedule. It composes dedicated workforce, execution, authority, result, and handoff readers; effect execution, persistence, provider transport, domain policy, and runtime scheduling remain in separate modules. The two history projections share a canonical event chain but retain distinct task and authority scopes.",
       "disposition": "cohesive"
     },
     {

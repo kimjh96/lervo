@@ -25,7 +25,7 @@ import {
 } from "@lervo/work-controller";
 import { NodeSupervisionError } from "./supervision-authority.js";
 import { NodeSupervisionStore, type NodeSupervisionSession } from "./supervision-store.js";
-import { createSupervisionChangeLoop } from "./supervision-change-loop.js";
+import { createNodeSupervisionWakeSchedule } from "./supervision-wake-schedule.js";
 import { prepareNodeSupervisionEffect } from "./supervision-execution-preflight.js";
 import { supersedeNodeSupervisionEffect } from "./supervision-supersession-routing.js";
 import { observeSupervisionResourceBudget } from "./supervision-resource-budget.js";
@@ -371,40 +371,25 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     },
   });
   const runCycle = () => runtime.runCycle(binding.supervisionId);
-  let loop: ReturnType<typeof createSupervisionChangeLoop> | null = null;
+  const createLoop = createNodeSupervisionWakeSchedule({
+    repositoryRoot: input.repositoryRoot,
+    runCycle,
+    store,
+    peers,
+    delivery,
+    events: peerStorage.events,
+    nextCheckAt: () => runtime.nextCheckAt(binding.supervisionId),
+    mandateExpiresAt: () => mandateExpiresAt,
+    now: ports.now,
+  });
+  let loop: ReturnType<typeof createLoop> | null = null;
   let closed = false;
   return {
     runCycle,
-    start(
-      options: Pick<Parameters<typeof createSupervisionChangeLoop>[0], "onFailure" | "onCycle">,
-    ): void {
+    start(options: Parameters<typeof createLoop>[0]): void {
       if (closed) throw new NodeSupervisionError("supervision_session_closed");
       if (loop !== null) return;
-      loop = createSupervisionChangeLoop({
-        ...options,
-        runCycle,
-        subscribe: (notify) => {
-          const stopLocal = store.subscribe(notify);
-          const stopPeers = peers.subscribe(notify);
-          return () => {
-            stopLocal();
-            stopPeers();
-          };
-        },
-        nextAuthorityCheckAt: () => {
-          const futureExpiry =
-            mandateExpiresAt !== null && mandateExpiresAt > Date.parse(ports.now())
-              ? mandateExpiresAt
-              : null;
-          const candidates = [
-            futureExpiry,
-            runtime.nextCheckAt(binding.supervisionId),
-            store.nextAuthorityAuditAt(),
-            peers.nextAuditAt(),
-          ].filter((value): value is number => value !== null);
-          return candidates.length === 0 ? null : Math.min(...candidates);
-        },
-      });
+      loop = createLoop(options);
       loop.start();
     },
     close: async () => {

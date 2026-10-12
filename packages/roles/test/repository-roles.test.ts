@@ -4,7 +4,11 @@ import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { listRoleContracts, resolveRoleContract } from "../src/index.js";
+import {
+  createRoleContractResolver,
+  listRoleContracts,
+  resolveRoleContract,
+} from "../src/index.js";
 
 const roots: string[] = [];
 
@@ -25,6 +29,56 @@ async function source(root: string, value: Record<string, unknown>): Promise<voi
 afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
 );
+
+const legalResearcher = {
+  schemaVersion: 1,
+  kind: "lervo_repository_role",
+  roleId: "legal-researcher",
+  version: "1.2.0",
+  extends: [{ roleId: "researcher", version: "1.0.0" }],
+  profile: {
+    name: "Legal Researcher",
+    description: "Specializes the verified researcher contract for legal source analysis.",
+    requestTypes: ["legal.research"],
+    handoff: {
+      allowedRoleIds: ["writer"],
+      evidenceLinksRequired: true,
+      sharedContextRequired: true,
+    },
+  },
+  checks: [],
+};
+
+describe("role contract resolver", () => {
+  it("reads the role sources once, matches direct resolution and hands out private copies", async () => {
+    const root = await repository();
+    await source(root, legalResearcher);
+    const resolveRole = createRoleContractResolver(root);
+    const first = await resolveRole("legal-researcher");
+    expect(first).toEqual(await resolveRoleContract(root, "legal-researcher"));
+    expect(await resolveRole("writer")).toEqual(await resolveRoleContract(root, "writer"));
+    first.definition.profile.requestTypes.push("mutated");
+    await rm(resolve(root, ".lervo/roles/legal-researcher.json"));
+    // The resolver keeps the sources it read; a new operation observes the removal.
+    expect((await resolveRole("legal-researcher")).definition.profile.requestTypes).not.toContain(
+      "mutated",
+    );
+    await expect(resolveRoleContract(root, "legal-researcher")).rejects.toMatchObject({
+      code: "role_not_found",
+    });
+    await expect(createRoleContractResolver(root)("legal-researcher")).rejects.toMatchObject({
+      code: "role_not_found",
+    });
+  });
+
+  it("rejects an invalid role ID without reading the role sources", async () => {
+    const root = await repository();
+    await writeFile(resolve(root, ".lervo/roles/broken.json"), "not json");
+    const resolveRole = createRoleContractResolver(root);
+    await expect(resolveRole("Not A Role")).rejects.toMatchObject({ code: "role_not_found" });
+    await expect(resolveRole("writer")).rejects.toMatchObject({ code: "role_profile_invalid" });
+  });
+});
 
 describe("repository role contracts", () => {
   it("keeps seven built-in templates including CEO and researcher versioned and hash-bound", async () => {

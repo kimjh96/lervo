@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1a9fe354c5b7fade9b64355d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Standing supervision observes its full source only when it can differ: an idle wake-up runs the history tail audit and an input stamp check instead of a full cycle, and role sources and retained-workspace evidence are read once per listing instead of once per record."

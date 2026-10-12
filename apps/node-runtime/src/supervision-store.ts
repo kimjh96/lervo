@@ -93,6 +93,17 @@ export class NodeSupervisionStore {
     return times.length === 0 ? null : Math.min(...times);
   }
 
+  /**
+   * The history audit a skipped observation still performs. It never runs beside an owner
+   * operation, whose reads advance the same history.
+   */
+  async auditHistory(): Promise<void> {
+    if (this.closing) throw new NodeSupervisionError("supervision_session_closed");
+    if (this.active !== null) throw new Error("The supervision store is in use.");
+    await this.authorityHistory.read();
+    await this.tasks.auditHistory();
+  }
+
   async withOwner<T>(
     operation: (session: NodeSupervisionSession) => Promise<T>,
   ): Promise<T | null> {

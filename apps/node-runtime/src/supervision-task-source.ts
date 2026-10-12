@@ -227,6 +227,11 @@ export class SupervisionTaskSource {
     };
   }
 
+  /** Checks the history anchor and tail without observing the task source. */
+  async auditHistory(): Promise<void> {
+    await this.history.read();
+  }
+
   nextAuditAt() {
     const audits = [this.history.nextAuditAt(), this.authorityHistory.nextAuditAt()].filter(
       (value): value is number => value !== null,

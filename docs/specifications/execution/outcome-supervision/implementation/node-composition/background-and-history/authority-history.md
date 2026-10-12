@@ -4,7 +4,7 @@
 
 The existing 100,000-source-event bound remains. Retained authority bytes are limited to 32 MiB. The reader adds no timer or durable projection.
 
-A tail audit is due 60 seconds after each verified read and participates in background deadline calculation. It checks the anchor and reads and chain-verifies every appended event, observing every revocation or other authority change appended since the last read.
+A tail audit is due 60 seconds after each verified read and participates in background deadline calculation. It checks the anchor and reads and chain-verifies every appended event, observing every revocation or other authority change appended since the last read. When the [observation gate](event-history-cursors/observation-gate.md) skips a wake-up, `NodeSupervisionStore.auditHistory` still runs this audit; an appended event then forces a full observation.
 
 A full history audit re-reads and re-hashes every historical byte 900 seconds after the previous full audit ([ADR-0461](../../../../../../decisions/operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md)). Clock rollback, invalid anchors, or read failure clear the projection and force a full audit.
 

@@ -4,3 +4,4 @@ Standing supervision reads event history through in-memory cursors instead of fu
 
 - [Verified event tail and users](event-history-cursors/verified-event-tail.md): cursor verification, scan consumers, storage lifetime, and validation.
 - [Lapsed deadline backoff](event-history-cursors/lapsed-deadline-backoff.md): retry timing, reset conditions, and authority checks.
+- [Observation gate](event-history-cursors/observation-gate.md): when a wake-up skips a full observation, its stamped inputs, and its bounds.

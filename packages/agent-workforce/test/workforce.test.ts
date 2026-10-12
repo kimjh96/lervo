@@ -44,6 +44,22 @@ vi.mock("@lervo/capabilities", async (importOriginal) => {
   };
 });
 
+const roleResolvers = vi.hoisted(() => ({ created: 0, resolved: 0 }));
+vi.mock("@lervo/roles", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@lervo/roles")>();
+  return {
+    ...actual,
+    createRoleContractResolver: (root: string) => {
+      roleResolvers.created += 1;
+      const resolveRole = actual.createRoleContractResolver(root);
+      return (roleId: string) => {
+        roleResolvers.resolved += 1;
+        return resolveRole(roleId);
+      };
+    },
+  };
+});
+
 const roots: string[] = [];
 const execute = promisify(execFile);
 
@@ -656,6 +672,27 @@ describe("repository agent workforce", () => {
       code: "capability_not_found",
     });
     expect(inventoryReads.count).toBe(1);
+  });
+
+  it("reads role sources once per agent or assignment listing", async () => {
+    const root = await repository();
+    for (let index = 0; index < 3; index += 1)
+      await registerAgent({ repositoryRoot: root, roleId: "researcher", provider: "codex" });
+    for (const path of ["alpha", "beta"])
+      await createAssignment({
+        repositoryRoot: root,
+        taskType: "implementation",
+        roleId: "developer",
+        acceptanceCriteria: [`${path} passes.`],
+        verificationSuiteIds: ["project.quick"],
+        expectedPaths: [`src/${path}`],
+      });
+    Object.assign(roleResolvers, { created: 0, resolved: 0 });
+    expect(await listAgents(root, { readOnly: true })).toHaveLength(3);
+    expect(roleResolvers).toEqual({ created: 1, resolved: 3 });
+    Object.assign(roleResolvers, { created: 0, resolved: 0 });
+    expect(await listAssignments(root)).toHaveLength(2);
+    expect(roleResolvers).toEqual({ created: 1, resolved: 2 });
   });
 
   it("restores state when canonical event recording fails", async () => {
