@@ -9,16 +9,16 @@ lervo event-contract --help
 lervo event-contract -h
 lervo event-contract status [--root <path>] [--json]
 lervo event-contract evidence [--root <path>] [--json]
-lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3|4|5>] [--apply <plan-id>] [--root <path>] [--json]
+lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3|4|5|6>] [--apply <plan-id>] [--root <path>] [--json]
 lervo event-contract rollback [--apply <plan-id>] [--root <path>] [--json]
 lervo event-contract recover [--root <path>] [--json]
 ```
 
 Argument parsing is strict. After successful parsing, `--help` or `-h` prints the five action usage lines above to stdout, followed by a newline, and returns 0. Help runs before positional-count, action-validity, schema-version-applicability, and action-specific-option checks, so it requires no action. Parser errors can still fail before help is handled.
 
-Without help, exactly one positional action is required. `--schema-version` accepts only 2, 3, 4, or 5, applies only to activation, and defaults to 2. `--root` resolves relative to the CLI working directory and defaults to `.`.
+Without help, exactly one positional action is required. `--schema-version` accepts only 2, 3, 4, 5, or 6, applies only to activation, and defaults to 2. `--root` resolves relative to the CLI working directory and defaults to `.`.
 
-Version 5 enables the evidence-recovery and independently reviewed freshness-assessment receipt events. Install every configured reader through schema 5 before activation. Default writer selection remains version 1, and automatic repository upgrades still target version 4.
+Version 5 enables the evidence-recovery and independently reviewed freshness-assessment receipt events. Version 6 adds the `context.quality.prepared` and `context.quality.verified` recording events. Install every configured reader through the target schema before activation. Default writer selection remains version 1, and automatic repository upgrades still target version 4.
 
 ## Inspection and evidence
 
@@ -26,7 +26,7 @@ Version 5 enables the evidence-recovery and independently reviewed freshness-ass
 
 Activation requires exactly one of `--from` and `--stdin`. File paths resolve from the CLI working directory; stdin must be available. The command rejects UTF-8 content above 64 KiB, invalid JSON, and evidence rejected by the project evidence reader.
 
-For a Hub-sync-enabled project or an activation target of 3, 4, or 5, the command collects current authoritative evidence and compares it with supplied evidence using `eventWriterActivationObservationHash`. A mismatch fails with `event_writer_plan_stale` before planning. For sync-disabled activation targeting 2, the command does not collect this additional observation.
+For a Hub-sync-enabled project or an activation target of 3 or higher, the command collects current authoritative evidence and compares it with supplied evidence using `eventWriterActivationObservationHash`. A mismatch fails with `event_writer_plan_stale` before planning. For sync-disabled activation targeting 2, the command does not collect this additional observation.
 
 ## Planning, application, and recovery
 
