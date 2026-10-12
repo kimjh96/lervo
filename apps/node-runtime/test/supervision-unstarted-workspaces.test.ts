@@ -61,3 +61,32 @@ it("observes retained workspaces four at a time and keeps input order", async ()
   ]);
   expect(peak).toBe(4);
 });
+
+it("gives every proof over one store a single shared read of its evidence", async () => {
+  const candidates = Array.from({ length: 6 }, (_, index) => ({
+    assignment: { assignmentId: `asg_${index}` } as WorkforceAssignment,
+    workspace: { workspaceId: `wsp_${index}` } as AgentWorkspace,
+  }));
+  const sources = { head: null, supervisionHistory: [], workspaceEvents: [] };
+  const read = vi.spyOn(retention, "readUnstartedWorkspaceSources").mockResolvedValue(sources);
+  const observed: unknown[] = [];
+  vi.spyOn(retention, "observeUnstartedSupervisionWorkspace").mockImplementation(async (input) => {
+    observed.push(await input.sources!(), await input.sources!());
+    return null;
+  });
+  const storage = {} as Parameters<typeof observeUnstartedSupervisionWorkspaces>[0]["storage"];
+  await observeUnstartedSupervisionWorkspaces({
+    repositoryRoot: "/repository",
+    binding: {
+      supervisionId: "supervision.fixture",
+      workstreamId: `wks_${"a".repeat(24)}`,
+      ownerAgentId: `agt_${"b".repeat(24)}`,
+      mandateHash: `sha256:${"c".repeat(64)}`,
+    },
+    storage,
+    candidates,
+  });
+  expect(read).toHaveBeenCalledTimes(1);
+  expect(observed).toHaveLength(12);
+  expect(observed.every((value) => value === sources)).toBe(true);
+});

@@ -1,5 +1,9 @@
-import type { AgentWorkspace, WorkforceAssignment } from "@lervo/agent-workforce";
-import { readWorkspace } from "@lervo/agent-workforce";
+import type {
+  AgentWorkspace,
+  WorkforceAssignment,
+  WorkspaceCoordinationEvent,
+} from "@lervo/agent-workforce";
+import { listWorkspaceCoordinationEvents, readWorkspace } from "@lervo/agent-workforce";
 import type {
   OperatingActionPlanV1,
   SupervisedManagedExecution,
@@ -25,6 +29,36 @@ import {
 import { readSupervisionJsonArtifact as readJson } from "./supervision-artifact-json.js";
 import { readPreparedWorkspaceState } from "./supervision-workspace-prepared-state.js";
 
+/**
+ * The repository evidence every retained-workspace proof starts from. The head is read first, so
+ * each proof's final check for relevant events after it covers everything read later.
+ */
+export interface UnstartedWorkspaceSources {
+  head: EventEnvelope | null;
+  supervisionHistory: EventEnvelope[];
+  workspaceEvents: WorkspaceCoordinationEvent[];
+}
+
+export async function readUnstartedWorkspaceSources(
+  storage: ProjectStorage,
+  binding: NodeSupervisionBinding,
+): Promise<UnstartedWorkspaceSources> {
+  const head = storage.events.latest();
+  return {
+    head,
+    supervisionHistory: collectRunEventsBounded({
+      events: storage.events,
+      runId: supervisionRunIdFor(binding),
+      maximumEvents: 4096,
+    }),
+    workspaceEvents: await listWorkspaceCoordinationEvents(storage.paths.repositoryRoot),
+  };
+}
+
+function supervisionRunIdFor(binding: NodeSupervisionBinding): string {
+  return `run_${operatingContractHash({ supervisionId: binding.supervisionId }).slice(7, 39)}`;
+}
+
 /** Retains a never-used checkout; this observation grants no authority to write or remove it. */
 export async function observeUnstartedSupervisionWorkspace(input: {
   repositoryRoot: string;
@@ -33,6 +67,8 @@ export async function observeUnstartedSupervisionWorkspace(input: {
   workspace: AgentWorkspace;
   now?: () => string;
   storage?: ProjectStorage;
+  /** Shared evidence for a batch over `storage`; omitted, this proof reads its own. */
+  sources?: () => Promise<UnstartedWorkspaceSources>;
 }) {
   const { assignment, workspace, binding } = input;
   const now = input.now ?? (() => new Date().toISOString());
@@ -61,14 +97,13 @@ export async function observeUnstartedSupervisionWorkspace(input: {
       storage.manifest.projectId !== assignment.projectId
     )
       throw new Error("Retained workspace evidence belongs to another repository.");
-    const head = storage.events.latest();
-    const supervisionRunId = `run_${operatingContractHash({ supervisionId: binding.supervisionId }).slice(7, 39)}`;
+    const sources =
+      input.storage !== undefined && input.sources !== undefined
+        ? await input.sources()
+        : await readUnstartedWorkspaceSources(storage, binding);
+    const { head, supervisionHistory: history } = sources;
+    const supervisionRunId = supervisionRunIdFor(binding);
     const dispatchRunIds = new Set<string>();
-    const history = collectRunEventsBounded({
-      events: storage.events,
-      runId: supervisionRunId,
-      maximumEvents: 4096,
-    });
     const prepared = history.filter(
       (event) =>
         event.type === "work.supervision.workspace.prepared" &&
@@ -91,7 +126,11 @@ export async function observeUnstartedSupervisionWorkspace(input: {
       effect.provisionPlanHash,
     )) as WorkspaceProvisionPlan;
     const { contentHash, ...provisionContent } = provision;
-    const preparedState = await readPreparedWorkspaceState(storage, provision);
+    const preparedState = await readPreparedWorkspaceState(
+      storage,
+      provision,
+      sources.workspaceEvents,
+    );
     if (
       preparedState === null ||
       operatingContractHash(preparedState.stored.workspace) !== operatingContractHash(workspace) ||
