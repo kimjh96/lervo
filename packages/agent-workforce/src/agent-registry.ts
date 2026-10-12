@@ -1,7 +1,11 @@
 import { type WorkforceAgent } from "./types.js";
 import { resolveRoleContract, roleProfileHash, assertRoleContractBinding } from "@lervo/roles";
 import { digest, stableJson, fail, validAgent } from "./workforce-state-validation.js";
-import { resolveCapabilities } from "@lervo/capabilities";
+import {
+  discoverCapabilityInventory,
+  resolveCapabilities,
+  type DiscoveredCapability,
+} from "@lervo/capabilities";
 import { withAgentDisplayIdentity } from "./agent-display-identity.js";
 import { state, readBounded } from "./workforce-state-io.js";
 import { resolve } from "node:path";
@@ -56,9 +60,18 @@ export async function readAgentRegistryState(
   };
 }
 
+/** Loads the local capability packages for one registry read, at most once. */
+type CapabilityInventoryLoader = () => Promise<readonly DiscoveredCapability[]>;
+
+function capabilityInventoryLoader(root: string): CapabilityInventoryLoader {
+  let inventory: Promise<readonly DiscoveredCapability[]> | undefined;
+  return () => (inventory ??= discoverCapabilityInventory({ repositoryRoot: root }));
+}
+
 export async function normalizeAgentRole(
   root: string,
   agent: WorkforceAgent,
+  loadInventory: CapabilityInventoryLoader = capabilityInventoryLoader(root),
 ): Promise<WorkforceAgent> {
   // Retirement is terminal; removed role sources must not erase inspectable historical identities.
   if (
@@ -100,6 +113,7 @@ export async function normalizeAgentRole(
   }
   const current = await resolveCapabilities({
     repositoryRoot: root,
+    inventory: await loadInventory(),
     projectId: agent.projectId,
     capabilityIds: agent.capabilityPackages.map((item) => item.capabilityId),
     provider: agent.provider,
@@ -135,8 +149,12 @@ export async function normalizeAgentRole(
   return agent;
 }
 
-export function normalizeAgent(root: string, agent: WorkforceAgent): Promise<WorkforceAgent> {
-  return normalizeAgentRole(root, withAgentDisplayIdentity(agent));
+export function normalizeAgent(
+  root: string,
+  agent: WorkforceAgent,
+  loadInventory?: CapabilityInventoryLoader,
+): Promise<WorkforceAgent> {
+  return normalizeAgentRole(root, withAgentDisplayIdentity(agent), loadInventory);
 }
 
 export async function registry(
@@ -151,7 +169,11 @@ export async function registry(
 }> {
   const current = await readAgentRegistryState(root, options);
   const value = current.value;
-  const normalized = await Promise.all(value.agents.map((agent) => normalizeAgent(root, agent)));
+  // Every agent in one registry read is checked against the same package snapshot.
+  const loadInventory = capabilityInventoryLoader(root);
+  const normalized = await Promise.all(
+    value.agents.map((agent) => normalizeAgent(root, agent, loadInventory)),
+  );
   return {
     path: current.path,
     lockPath: current.lockPath,

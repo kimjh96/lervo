@@ -97,6 +97,23 @@ export async function discoverCapabilityRoot(
   return result;
 }
 
+/**
+ * Reads every local project and user package once. Callers that resolve several requests
+ * for one decision share this snapshot instead of re-reading identical packages.
+ */
+export async function discoverCapabilityInventory(input: {
+  repositoryRoot: string;
+  userRoot?: string;
+}): Promise<readonly DiscoveredCapability[]> {
+  return [
+    ...(await discoverCapabilityRoot(capabilityRoot(input.repositoryRoot, "project"), "project")),
+    ...(await discoverCapabilityRoot(
+      capabilityRoot(input.repositoryRoot, "user", input.userRoot),
+      "user",
+    )),
+  ];
+}
+
 function providerCompatible(candidate: DiscoveredCapability, provider: string): boolean {
   const contract = candidate.manifest.compatibility.providers;
   return contract.mode === "any" || contract.providers.includes(provider as never);
@@ -111,6 +128,8 @@ export async function resolveCapabilities(input: {
   generatedAt: string;
   userRoot?: string;
   allowedPermissions?: readonly string[];
+  /** A snapshot from `discoverCapabilityInventory`; omitted, the packages are read now. */
+  inventory?: readonly DiscoveredCapability[];
 }): Promise<CapabilityResolution> {
   const requested = [...new Set(input.capabilityIds)].sort();
   if (
@@ -118,13 +137,7 @@ export async function resolveCapabilities(input: {
     requested.some((id) => !/^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u.test(id) || id.length > 150)
   )
     fail("capability_invalid", "A requested capability ID is invalid.");
-  const candidates = [
-    ...(await discoverCapabilityRoot(capabilityRoot(input.repositoryRoot, "project"), "project")),
-    ...(await discoverCapabilityRoot(
-      capabilityRoot(input.repositoryRoot, "user", input.userRoot),
-      "user",
-    )),
-  ];
+  const candidates = input.inventory ?? (await discoverCapabilityInventory(input));
   const selected = new Map<string, ResolvedCapability>();
   const activationPackages = new Map<string, ResolvedCapabilityPackage>();
   const resolving = new Set<string>();
