@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:0f60b5b2-55b7-5c36-860b-5ad795f11cf9",
+  "serialNumber": "urn:uuid:fc0ce99c-ff93-5d33-96f4-303478e8d7a1",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -15,7 +15,7 @@
         {
           "type": "application",
           "name": "lervo-release-sbom",
-          "version": "3"
+          "version": "5"
         }
       ]
     },
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "f5a5e4879ab64916b3cf220bd12e6d78911fdf88a39eabdb4f019b56f13a5364"
+          "content": "38a3547b685482a0c7a0f8b29e100201e4262d7ea9ae100b147822faaf3a47e4"
         }
       ],
       "licenses": [
@@ -42,7 +42,7 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:42ad7319e80d89512df57016f3e3ce244e890128c9491deebf754bc9d44bb38a"
+          "value": "sha256:c5ef40bc84196910d61f0b1106d67cb5ee27687ccef98bada25478acca0a10b9"
         },
         {
           "name": "lervo:release:bundle-digest",
@@ -97,6 +97,17 @@
         {
           "alg": "SHA-256",
           "content": "523d37d413403b0262e3a3fe1f4a400f3b8e9ffafc49f2e73298334e70e8aa74"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "lervo:repository-runtime",
+      "name": "dist/repository-runtime.json",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e8ad3b1c8a33b47f62a3117c029d1908c315c60e99817d2341689b95832183af"
         }
       ]
     },
@@ -4321,6 +4332,10 @@
       "dependsOn": []
     },
     {
+      "ref": "lervo:repository-runtime",
+      "dependsOn": []
+    },
+    {
       "ref": "pkg:npm/%40anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.226",
       "dependsOn": []
     },
@@ -4393,6 +4408,7 @@
         "lervo:native-cas:cas-io.json",
         "lervo:native-file-sync:file-sync-darwin.node",
         "lervo:native-file-sync:file-sync.json",
+        "lervo:repository-runtime",
         "pkg:npm/%40anthropic-ai/claude-agent-sdk@0.3.226",
         "pkg:npm/%40anthropic-ai/sdk@0.117.1",
         "pkg:npm/%40babel/parser@7.29.8",

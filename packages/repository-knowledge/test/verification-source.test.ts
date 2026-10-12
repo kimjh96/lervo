@@ -82,6 +82,8 @@ function fixture(): {
   const resultContentHash = verificationSha256(bytes);
   const event = {
     seq: 1,
+    previousHash: null,
+    eventHash: `sha256:${"b".repeat(64)}`,
     type: "verification.completed",
     occurredAt: result.completedAt,
     payload: {
@@ -102,7 +104,7 @@ function ports(
   event: EventEnvelope,
   bytes: Uint8Array,
 ): {
-  events: Pick<EventStore, "latest" | "list" | "verifyIntegrity">;
+  events: Pick<EventStore, "latest" | "list">;
   artifacts: Pick<ArtifactStore, "get">;
 } {
   return {
@@ -110,11 +112,6 @@ function ports(
       latest: () => event,
       list: (options) =>
         event.seq > (options?.afterSeq ?? 0) ? [event].slice(0, options?.limit) : [],
-      verifyIntegrity: () => ({
-        valid: true,
-        eventCount: 1,
-        headHash: event.eventHash ?? `sha256:${"b".repeat(64)}`,
-      }),
     },
     artifacts: { get: async () => bytes },
   };

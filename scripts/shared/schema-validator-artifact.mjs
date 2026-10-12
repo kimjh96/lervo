@@ -12,9 +12,11 @@ export async function schemaValidatorSourceIdentity(repositoryRoot) {
     "pnpm-lock.yaml",
     "packages/schemas/package.json",
     "packages/schemas/scripts/compile-validators.mjs",
+    "packages/schemas/scripts/coordinate-data-validators.mjs",
     "packages/schemas/scripts/primitive-enum-keyword.mjs",
     "packages/schemas/scripts/generate-validators.mjs",
     "scripts/shared/schema-validator-artifact.mjs",
+    "scripts/shared/schema-validator-contract.mjs",
     "scripts/shared/schema-validator-contract.mjs",
   ];
   async function visit(path) {
@@ -59,8 +61,20 @@ export async function verifySchemaValidatorArtifact(
     (await artifactFile(resolve(directory, "manifest.json"), 262144)).toString("utf8"),
   );
   const bytes = await artifactFile(resolve(directory, "validators.js"), 16 * 1024 * 1024);
+  const selectedBytes = await artifactFile(
+    resolve(directory, "selected-validators.js"),
+    16 * 1024 * 1024,
+  );
+  const coordinateDataBytes = await artifactFile(
+    resolve(directory, "coordinate-data-validators.js"),
+    16 * 1024 * 1024,
+  );
   if (
     !validSchemaValidatorManifest(manifest) ||
+    manifest.coordinateData.contentHash !== schemaValidatorDigest(coordinateDataBytes) ||
+    manifest.coordinateData.byteLength !== coordinateDataBytes.length ||
+    manifest.selected.contentHash !== schemaValidatorDigest(selectedBytes) ||
+    manifest.selected.byteLength !== selectedBytes.length ||
     manifest.sourceHash !== identity.sourceHash ||
     JSON.stringify(manifest.inputs) !== JSON.stringify(identity.inputs) ||
     manifest.contentHash !== schemaValidatorDigest(bytes) ||

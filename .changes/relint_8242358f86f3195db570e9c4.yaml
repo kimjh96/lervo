@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8242358f86f3195db570e9c4"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Group overlapping quality observations and reduce initial report database overhead without weakening durable recording."

@@ -1,3 +1,8 @@
+import {
+  buildRepositoryRuntime,
+  repositoryRuntimeEntrypointPlugin,
+  mergeRepositoryRuntimeMetadata,
+} from "../../../scripts/distribution/lib/repository-runtime-bundle.mjs";
 import { copyNativeRuntimeArtifacts } from "../../../scripts/shared/native-runtime-artifact.mjs";
 import { nativeCasSourceHash } from "../../../scripts/shared/native-cas-artifact.mjs";
 import { nativeFileSyncSourceHash } from "../../../scripts/shared/native-file-sync-artifact.mjs";
@@ -18,6 +23,13 @@ const outputDirectory = resolve(cliRoot, "dist");
 await verifySchemaValidatorArtifact(repositoryRoot);
 await mkdir(outputDirectory, { recursive: true });
 
+const runtime = await buildRepositoryRuntime(
+  build,
+  repositoryRoot,
+  outputDirectory,
+  true,
+  normalizeGeneratedTextFile,
+);
 const result = await build({
   absWorkingDir: repositoryRoot,
   entryPoints: ["apps/cli/src/bin.ts"],
@@ -33,7 +45,7 @@ const result = await build({
   mainFields: ["module", "main"],
   metafile: true,
   platform: "node",
-  plugins: [nodeSqliteBundlePlugin],
+  plugins: [repositoryRuntimeEntrypointPlugin, nodeSqliteBundlePlugin],
   target: "node22.13",
 });
 
@@ -55,7 +67,7 @@ await build({
   target: "node22.13",
 });
 
-await build({
+const nodeResult = await build({
   absWorkingDir: repositoryRoot,
   entryPoints: ["apps/node-runtime/src/bin.ts"],
   outfile: "apps/cli/dist/node-runtime.js",
@@ -68,13 +80,14 @@ await build({
   legalComments: "none",
   logLevel: "silent",
   mainFields: ["module", "main"],
+  metafile: true,
   platform: "node",
-  plugins: [nodeSqliteBundlePlugin],
+  plugins: [repositoryRuntimeEntrypointPlugin, nodeSqliteBundlePlugin],
   target: "node22.13",
 });
 
 await Promise.all(
-  ["bin.js", "node-runtime.js", "terminal-hook.js"].map((fileName) =>
+  ["bin.js", "node-runtime.js", "terminal-hook.js", "repository-runtime.js"].map((fileName) =>
     normalizeGeneratedTextFile(resolve(outputDirectory, fileName)),
   ),
 );
@@ -89,7 +102,7 @@ if (terminalHookBytes > TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES)
 
 await writeFile(
   resolve(outputDirectory, "bin.metafile.json"),
-  `${JSON.stringify(result.metafile, null, 2)}\n`,
+  `${JSON.stringify(mergeRepositoryRuntimeMetadata([result.metafile, nodeResult.metafile], runtime.metafile), null, 2)}\n`,
   "utf8",
 );
 

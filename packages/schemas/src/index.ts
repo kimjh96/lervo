@@ -96,6 +96,7 @@ export * from "./terminal-budget-report.js";
 export * from "./terminal-observation-event.js";
 export * from "./terminal-turn-declaration-event.js";
 export * from "./validate.js";
+export * from "./parse-event-writer-coordinate.js";
 export * from "./verification.js";
 export * from "./verification-event.js";
 export * from "./writing.js";

@@ -1,3 +1,5 @@
+import { readRuntimeModuleArtifact } from "../../../packages/runtime-security/dist/index.js";
+import { validateRepositoryRuntimeSbom } from "../../shared/repository-runtime-contract.mjs";
 import { smokeNativeCas } from "../../shared/native-cas-smoke.mjs";
 import { smokeNativeFileSync } from "../../shared/native-file-sync-smoke.mjs";
 import { readNativeRuntimeArtifact } from "../../shared/native-runtime-artifact.mjs";
@@ -259,9 +261,17 @@ export async function verifyNodeDistributionArchive(input) {
       );
     const native = await readNativeRuntimeArtifact(resolve(payloadRoot, "dist/native"), {
       required: manifest.schemaVersion >= 2 && manifest.platform.os === "darwin",
-      casRequired: manifest.schemaVersion === 3 && manifest.platform.os === "darwin",
+      casRequired: manifest.schemaVersion >= 3 && manifest.platform.os === "darwin",
     });
     validateNativeRuntimeSbom(JSON.parse(sbomBytes.toString("utf8")), native);
+    if (manifest.schemaVersion >= 4)
+      validateRepositoryRuntimeSbom(
+        JSON.parse(sbomBytes.toString("utf8")),
+        manifest.schemaVersion >= 5
+          ? (await readRuntimeModuleArtifact(resolve(payloadRoot, "dist"))).hash
+          : await sha256File(resolve(payloadRoot, "dist/repository-runtime.js")),
+        manifest.schemaVersion >= 5 ? "inventory" : "single_file",
+      );
     await access(resolve(payloadRoot, manifest.entrypoint), constants.X_OK);
     if (
       input.requireCurrentPlatform &&

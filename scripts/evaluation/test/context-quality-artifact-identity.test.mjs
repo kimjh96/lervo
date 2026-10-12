@@ -31,6 +31,12 @@ it("binds native runtime bytes and their manifest along with JavaScript", async 
     expect(withCasManifest).not.toBe(changedManifest);
     await writeFile(resolve(native, "cas-io.json"), '{"schemaVersion":2}');
     expect(await artifactBuildHash(root)).not.toBe(withCasManifest);
+    const beforeGraph = await artifactBuildHash(root);
+    await writeFile(resolve(native, "../repository-runtime-fallback.cjs"), "module.exports = {};");
+    const withFallback = await artifactBuildHash(root);
+    expect(withFallback).not.toBe(beforeGraph);
+    await writeFile(resolve(native, "../repository-runtime.json"), "{}");
+    expect(await artifactBuildHash(root)).not.toBe(withFallback);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

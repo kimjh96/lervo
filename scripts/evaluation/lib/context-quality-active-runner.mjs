@@ -1,3 +1,7 @@
+import {
+  packagedArtifactHash,
+  validatePackagedExecution,
+} from "./context-quality-packaged-artifact.mjs";
 import { execFile } from "node:child_process";
 import { cp, mkdtemp, readFile, rm } from "node:fs/promises";
 import { cpus, loadavg, tmpdir, totalmem } from "node:os";
@@ -33,9 +37,15 @@ export function validateActiveProtocol(p) {
       "context-quality-recording-repair-v11",
       "context-quality-recording-repair-v12",
       "context-quality-native-source-v1",
+      "context-quality-packaged-resource-v1",
+      "context-quality-packaged-resource-v2",
+      "context-quality-packaged-resource-v3",
     ].includes(p.protocolId) ||
     JSON.stringify(p.profiles) !== "[4096,12288]" ||
-    JSON.stringify(p.pairs) !== '{"warm":30,"cold":5,"changed":30,"concurrent":30}' ||
+    JSON.stringify(p.pairs) !==
+      (p.protocolId === "context-quality-packaged-resource-v3"
+        ? '{"warm":30,"cold":30,"changed":30,"concurrent":30}'
+        : '{"warm":30,"cold":5,"changed":30,"concurrent":30}') ||
     p.warmups !== 2 ||
     p.samples !== 5 ||
     p.concurrency !== 4 ||
@@ -50,18 +60,35 @@ export function validateActiveProtocol(p) {
     !Number.isFinite(Date.parse(p.registeredAt))
   )
     throw new Error("Invalid or weakened active-resource protocol.");
+  // Only v2 and v3 subtract the fixed platform allowance for each required strong commit.
+  const allowance = [
+    "context-quality-packaged-resource-v2",
+    "context-quality-packaged-resource-v3",
+  ].includes(p.protocolId)
+    ? 5
+    : undefined;
+  if (p.gates.durableCommitAllowanceMs !== allowance)
+    throw new Error("Invalid or weakened active-resource protocol.");
+  if (p.protocolId.startsWith("context-quality-packaged-resource-"))
+    validatePackagedExecution(p.execution);
+  else if (p.execution !== undefined)
+    throw new Error("Source protocol cannot select another execution artifact.");
 }
 
 export async function runActive(protocolPath, script) {
   const bytes = await readFile(resolve(repository, protocolPath)),
     protocol = JSON.parse(bytes);
   validateActiveProtocol(protocol);
-  const build = await artifactBuildHash(repository);
+  const currentBuild = () =>
+    protocol.execution ? packagedArtifactHash(protocol.execution) : artifactBuildHash(repository);
+  const build = await currentBuild();
   if (build !== protocol.expectedArtifactBuildHash)
     throw new Error("Build drift; no cohort started.");
   const harnessFiles = [
     script,
     resolve(import.meta.dirname, "context-quality-artifact-identity.mjs"),
+    resolve(import.meta.dirname, "context-quality-packaged-artifact.mjs"),
+    resolve(import.meta.dirname, "context-quality-durable-commits.mjs"),
     ...["fixture", "worker", "report", "runner"].map((part) =>
       resolve(import.meta.dirname, `context-quality-active-${part}.mjs`),
     ),
@@ -135,7 +162,7 @@ export async function runActive(protocolPath, script) {
           `Completed profile ${profile}, workload ${workload}, ${count} pairs.\n`,
         );
       }
-    const finalBuild = await artifactBuildHash(repository);
+    const finalBuild = await currentBuild();
     return {
       schemaVersion: 1,
       protocol,

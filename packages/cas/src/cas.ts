@@ -39,8 +39,10 @@ async function ensureRealDirectory(path: string): Promise<void> {
 export class FileSystemCas implements ArtifactStore {
   readonly root: string;
   private sharedPuts = 0;
-  private readonly syncFiles: ReturnType<typeof createFileSyncBatch> | undefined;
-  private readonly nativeIo: ReturnType<typeof createNativeCasBatch> | undefined;
+  private syncFilesValue: ReturnType<typeof createFileSyncBatch> | undefined;
+  private syncFilesInitialized = false;
+  private nativeIoValue: ReturnType<typeof createNativeCasBatch> | undefined;
+  private nativeIoInitialized = false;
   private readonly pendingPuts = new Map<
     string,
     { bytes: Buffer; result: Promise<CasPutResult> }
@@ -51,9 +53,24 @@ export class FileSystemCas implements ArtifactStore {
     private readonly readOnly = false,
   ) {
     this.root = root;
-    this.syncFiles = readOnly ? undefined : createFileSyncBatch();
-    const native = loadNativeCas();
-    this.nativeIo = native ? createNativeCasBatch(native) : undefined;
+  }
+
+  private get syncFiles(): ReturnType<typeof createFileSyncBatch> | undefined {
+    if (this.readOnly) return undefined;
+    if (!this.syncFilesInitialized) {
+      this.syncFilesValue = createFileSyncBatch();
+      this.syncFilesInitialized = true;
+    }
+    return this.syncFilesValue;
+  }
+
+  private get nativeIo(): ReturnType<typeof createNativeCasBatch> | undefined {
+    if (!this.nativeIoInitialized) {
+      const native = loadNativeCas();
+      this.nativeIoValue = native ? createNativeCasBatch(native) : undefined;
+      this.nativeIoInitialized = true;
+    }
+    return this.nativeIoValue;
   }
 
   static async open(root: string): Promise<FileSystemCas> {

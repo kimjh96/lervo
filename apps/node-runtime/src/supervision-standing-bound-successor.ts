@@ -137,8 +137,6 @@ export async function recordUnselectedStandingSuccessor(input: {
   now(): string;
 }): Promise<{ workstreamId: string; startEvent: { eventId: string; eventHash: string } }> {
   const { storage, predecessor } = input;
-  if (!storage.events.verifyIntegrity().valid)
-    throw new Error("The successor event history is invalid.");
   if (hasInstalledSuccessor(storage, predecessor, input.supervisionId))
     throw new Error("The standing lineage already has an installed successor.");
   const prepared = await preparedSuccessor(input);

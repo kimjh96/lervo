@@ -9,7 +9,12 @@ import {
 } from "../src/index.js";
 
 function event(seq: number, runId = "run_reader_0001"): EventEnvelope {
-  return { seq, runId } as EventEnvelope;
+  return {
+    seq,
+    runId,
+    previousHash: seq === 1 ? null : `hash_${seq - 1}`,
+    eventHash: `hash_${seq}`,
+  } as EventEnvelope;
 }
 
 function reader(values: readonly EventEnvelope[]) {
@@ -103,6 +108,36 @@ describe("bounded event reader contract", () => {
         events: reader([event(1)]),
         throughSeq: 2,
         visit: () => undefined,
+      }),
+    ).toThrow(expect.objectContaining({ code: "event_sequence_invalid" }));
+  });
+
+  it("verifies every predecessor link and the observed head of a project snapshot", () => {
+    const visit = () => undefined;
+    expect(() =>
+      visitEventSnapshot({
+        events: reader([event(1), event(2)]),
+        throughSeq: 2,
+        throughHash: "hash_2",
+        visit,
+      }),
+    ).not.toThrow();
+    const broken = [event(1), { ...event(2), previousHash: "hash_other" }, event(3)];
+    const gap = [event(1), event(3)];
+    for (const values of [broken, gap]) {
+      expect(() =>
+        visitEventSnapshot({ events: reader(values), throughSeq: 3, visit, pageSize: 1 }),
+      ).toThrow(expect.objectContaining({ code: "event_sequence_invalid" }));
+      expect(() =>
+        collectProjectEventsBounded({ events: reader(values), maximumEvents: 3, pageSize: 1 }),
+      ).toThrow(expect.objectContaining({ code: "event_sequence_invalid" }));
+    }
+    expect(() =>
+      visitEventSnapshot({
+        events: reader([event(1), event(2)]),
+        throughSeq: 2,
+        throughHash: "hash_x",
+        visit,
       }),
     ).toThrow(expect.objectContaining({ code: "event_sequence_invalid" }));
   });

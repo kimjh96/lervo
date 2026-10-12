@@ -1,3 +1,5 @@
+import { repositoryRuntimeInventory } from "../../shared/repository-runtime-inventory.mjs";
+import { repositoryRuntimeComponent } from "../../shared/repository-runtime-contract.mjs";
 import { cliNativeComponents } from "./cli-native-components.mjs";
 import { createHash } from "node:crypto";
 
@@ -150,7 +152,21 @@ export function releaseSbomSerialNumber(sbom) {
 export function createCliReleaseSbom(releaseManifest, lockfile) {
   const graph = createPnpmProductionGraph(lockfile);
   assertSourceConsistency(releaseManifest, graph, lockfile);
-  const native = cliNativeComponents(releaseManifest);
+  const native = [
+    ...cliNativeComponents(releaseManifest),
+    ...(releaseManifest.schemaVersion >= 8
+      ? [
+          repositoryRuntimeComponent(
+            releaseManifest.schemaVersion >= 9
+              ? repositoryRuntimeInventory(releaseManifest.archive.files).hash
+              : releaseManifest.archive.files.find(
+                  (entry) => entry.path === "dist/repository-runtime.js",
+                )?.sha256,
+            releaseManifest.schemaVersion >= 9 ? "inventory" : "single_file",
+          ),
+        ]
+      : []),
+  ];
   const bundled = new Set(releaseManifest.bundle.externalPackages);
   const graphCoordinates = new Set(graph.nodes.map(({ coordinate }) => coordinate));
   const bundledOnly = releaseManifest.bundle.externalPackages.filter(
@@ -211,11 +227,15 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
             type: "application",
             name: "lervo-release-sbom",
             version:
-              releaseManifest.schemaVersion === 7
-                ? "3"
-                : releaseManifest.schemaVersion === 6
-                  ? "2"
-                  : "1",
+              releaseManifest.schemaVersion >= 9
+                ? "5"
+                : releaseManifest.schemaVersion === 8
+                  ? "4"
+                  : releaseManifest.schemaVersion === 7
+                    ? "3"
+                    : releaseManifest.schemaVersion === 6
+                      ? "2"
+                      : "1",
           },
         ],
       },

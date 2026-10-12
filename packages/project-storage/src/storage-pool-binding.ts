@@ -1,6 +1,6 @@
 import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { inspectEventWriterCoordinate } from "@lervo/project";
+import { inspectProjectStorageCoordinates } from "@lervo/project";
 import { ProjectStorageError, type ProjectStorage } from "./types.js";
 
 export function assertRequiredWriterVersion(
@@ -20,8 +20,8 @@ export async function observeStorageBinding(
   requiredEventSchemaVersion?: ProjectStorage["writableEventSchemaVersion"],
 ): Promise<string> {
   const paths = storage.paths;
-  const [writer, identities] = await Promise.all([
-    inspectEventWriterCoordinate(paths.repositoryRoot),
+  const [{ writer, reports }, identities] = await Promise.all([
+    inspectProjectStorageCoordinates(paths.repositoryRoot),
     Promise.all(
       [
         paths.repositoryRoot,
@@ -49,6 +49,8 @@ export async function observeStorageBinding(
     requiredEventSchemaVersion,
   );
   if (
+    reports.projectId !== storage.manifest.projectId ||
+    reports.contentHash !== (storage.reportStorageCoordinateHash ?? null) ||
     writer.projectId !== storage.manifest.projectId ||
     writer.coordinate.selectedEventSchemaVersion !== storage.writableEventSchemaVersion
   )
@@ -56,5 +58,5 @@ export async function observeStorageBinding(
       "storage_binding_changed",
       "The retained storage binding changed.",
     );
-  return JSON.stringify([writer.projectId, writer.contentHash, identities]);
+  return JSON.stringify([writer.projectId, writer.contentHash, reports.contentHash, identities]);
 }

@@ -49,8 +49,8 @@ it("shares only fresh binding observations for an already admitted group", async
       }),
     ),
   );
-  // Initial binding, then one fresh observation for each fixed borrower/commit group.
-  expect(observations).toHaveBeenCalledTimes(3);
+  // The first admitted group establishes the binding; its commit group observes it again.
+  expect(observations).toHaveBeenCalledTimes(2);
 });
 
 it("does not defer a lone borrower's current-binding observation to another turn", async () => {
@@ -316,4 +316,79 @@ it("rejects a borrower invalidated while its current-binding observation was in 
   await delay(20);
   release();
   await Promise.all([failed, rejected]);
+});
+
+it("opens once for overlapping hints and releases its slot before later borrowers", async () => {
+  const { root, pool, open, closes } = await fixture();
+  const opening = pool.startOpening(root);
+  expect(opening).toBeInstanceOf(Promise);
+  const sharedOpening = pool.startOpening(root);
+  expect(sharedOpening).toBe(opening);
+  expect(await sharedOpening).toEqual({ reportWriting: false });
+  await opening;
+  const observations = vi.spyOn(binding, "observeStorageBinding");
+  let entered = 0;
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const pending = Array.from({ length: 16 }, () =>
+    pool.run(root, async () => {
+      if (++entered === 16) release();
+      await gate;
+    }),
+  );
+  await Promise.all(pending);
+  expect(observations).toHaveBeenCalledOnce();
+  expect(open).toHaveBeenCalledOnce();
+  expect(await pool.startOpening(root)).toEqual({ reportWriting: false });
+  expect(observations).toHaveBeenCalledOnce();
+  await pool.close();
+  expect(closes).toHaveBeenCalledOnce();
+  await expect(pool.startOpening(root)).rejects.toMatchObject({ code: "storage_busy" });
+});
+
+it("bounds opening hints and drains accepted opens before close even on failure", async () => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const failure = new Error("opening failed");
+  const open = vi.fn(async () => {
+    await gate;
+    throw failure;
+  });
+  const pool = createProjectStoragePool(open);
+  pools.push(pool);
+  const pending = Array.from({ length: 8 }, (_, index) =>
+    pool.startOpening(`/opening-${index}`)!.catch((error: unknown) => error),
+  );
+  await expect(pool.startOpening("/opening-overflow")).rejects.toMatchObject({
+    code: "storage_busy",
+  });
+  let closed = false;
+  const closing = pool.close().then(() => {
+    closed = true;
+  });
+  await Promise.resolve();
+  expect(closed).toBe(false);
+  release();
+  expect(await Promise.all(pending)).toEqual(Array.from({ length: 8 }, () => failure));
+  await closing;
+  expect(closed).toBe(true);
+  expect(open).toHaveBeenCalledTimes(8);
+});
+
+it("checks required writer activation before an opening hint reaches a backend", async () => {
+  const { root } = await fixture();
+  const open = vi.fn(openProjectStorage);
+  const pool = createProjectStoragePool(open, { requiredEventSchemaVersion: 6 });
+  pools.push(pool);
+  await expect(pool.startOpening(root)).rejects.toMatchObject({
+    code: "storage_writer_not_active",
+  });
+  expect(open).not.toHaveBeenCalled();
+  await expect(stat(resolve(root, ".lervo/data/events.sqlite"))).rejects.toMatchObject({
+    code: "ENOENT",
+  });
 });

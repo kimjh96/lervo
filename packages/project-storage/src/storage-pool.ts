@@ -7,7 +7,8 @@ import { ProjectStorageError, type ProjectStorage } from "./types.js";
 
 interface Lease {
   storage: ProjectStorage;
-  binding: string;
+  binding?: Promise<string>;
+  bindingConfirmed: boolean;
   openedAt: number;
   uses: number;
   active: number;
@@ -15,6 +16,7 @@ interface Lease {
   drained?: () => void;
 }
 interface Entry {
+  opening?: Promise<{ reportWriting: boolean }>;
   pending: number;
   lease?: Lease;
   transition?: Promise<void>;
@@ -89,29 +91,14 @@ export function createProjectStoragePool(
             );
           }
           const storage = await open(root);
-          try {
-            const binding = await observeStorageBinding(storage);
-            entry.lease = {
-              storage,
-              binding,
-              openedAt: performance.now(),
-              uses: 0,
-              active: 0,
-              invalid: false,
-            };
-          } catch (error) {
-            try {
-              await storage.close();
-            } catch (cleanupError) {
-              entry.failure = new ProjectStorageError(
-                "cleanup_failed",
-                "Storage binding and cleanup failed.",
-                { cause: new AggregateError([error, cleanupError]) },
-              );
-              throw entry.failure;
-            }
-            throw error;
-          }
+          entry.lease = {
+            storage,
+            bindingConfirmed: false,
+            openedAt: performance.now(),
+            uses: 0,
+            active: 0,
+            invalid: false,
+          };
         })();
         try {
           await entry.transition;
@@ -147,7 +134,30 @@ export function createProjectStoragePool(
     })();
     return entry.closing;
   }
-  return {
+  const pool = {
+    startOpening(root: string): Promise<{ reportWriting: boolean }> {
+      root = resolve(root);
+      const entry = entries.get(root);
+      if (!closed && entry?.opening) return entry.opening;
+      // A capability hint chooses scheduling only; every effect still needs a fresh borrow.
+      if (!closed && entry?.lease && !entry.closing && !entry.failure)
+        return Promise.resolve({
+          reportWriting: entry.lease.storage.events.reportWriter !== undefined,
+        });
+      const opening = pool.run(root, async (storage) => ({
+        reportWriting: storage.events.reportWriter !== undefined,
+      }));
+      const held = entries.get(root);
+      if (held) {
+        held.opening = opening;
+        void opening
+          .finally(() => {
+            if (held.opening === opening) delete held.opening;
+          })
+          .catch(() => undefined);
+      }
+      return opening;
+    },
     async run<T>(
       root: string,
       work: (storage: ProjectStorage, assertCurrent: () => Promise<void>) => Promise<T>,
@@ -174,12 +184,20 @@ export function createProjectStoragePool(
         const borrowed = lease;
         const checkCurrent = async (required?: ProjectStorage["writableEventSchemaVersion"]) => {
           const observe = held.pending > 1 ? observeTogether : observeStorageBinding;
-          const binding = await observe(borrowed.storage, required);
-          if (borrowed.invalid || binding !== borrowed.binding)
+          const initial = !borrowed.bindingConfirmed;
+          const observation = observe(borrowed.storage, initial ? undefined : required);
+          // A later observation cannot establish the baseline while the first one is in flight.
+          borrowed.binding ??= observation;
+          const [binding, baseline] = await Promise.all([observation, borrowed.binding]);
+          if (borrowed.invalid || binding !== baseline)
             throw new ProjectStorageError(
               "storage_binding_changed",
               "The retained storage binding changed.",
             );
+          // A new handle must match the live writer before its activation requirement is checked.
+          if (initial)
+            assertRequiredWriterVersion(borrowed.storage.writableEventSchemaVersion, required);
+          borrowed.bindingConfirmed = true;
         };
         await checkCurrent(requiredEventSchemaVersion);
         return await work(borrowed.storage, () => checkCurrent());
@@ -232,4 +250,5 @@ export function createProjectStoragePool(
         });
     },
   };
+  return pool;
 }

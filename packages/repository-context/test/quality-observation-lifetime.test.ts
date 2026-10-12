@@ -1,8 +1,9 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
+import * as snapshots from "../src/repository-quality-snapshot.js";
 import * as recording from "../src/context-quality-recording.js";
 import {
   prepareRepositoryQualityContext,
@@ -30,6 +31,10 @@ const receipt = {
   artifactHash: `sha256:${"a".repeat(64)}`,
 } satisfies recording.ContextQualityRecording;
 async function fixture(): Promise<RepositoryQualityInput> {
+  vi.spyOn(recording, "beginContextQualityStorageOpening").mockResolvedValue({
+    status: "available",
+    reportWriting: false,
+  });
   const root = await mkdtemp(resolve(tmpdir(), "lervo-quality-lifetime-"));
   roots.push(root);
   await applyInitPlan(await createInitPlan({ root, projectId: "prj_lifetime" }));
@@ -148,6 +153,7 @@ it("keeps disabled recording inert and preserves an unavailable receipt", async 
   );
   expect(disabled.preparation.recording).toBeNull();
   expect(write).not.toHaveBeenCalled();
+  expect(recording.beginContextQualityStorageOpening).not.toHaveBeenCalled();
   const unavailable = await withRepositoryQualityObservation(input, async () => "read");
   expect(unavailable.preparation.recording).toEqual({ status: "unavailable" });
 });
@@ -174,4 +180,80 @@ it("retains the original awaited API and snapshots recording coordinates before 
   });
   gate.resolve(receipt);
   expect((await pending).recording).toEqual(receipt);
+  expect(recording.beginContextQualityStorageOpening).not.toHaveBeenCalled();
+});
+
+it("overlaps the first source read with opening and drains opening before recording", async () => {
+  const input = await fixture(),
+    opening = deferred<{ status: "available"; reportWriting: boolean }>(),
+    source = deferred<void>();
+  vi.mocked(recording.beginContextQualityStorageOpening).mockReturnValue(opening.promise);
+  const original = snapshots.readRepositoryQualitySnapshot;
+  vi.spyOn(snapshots, "readRepositoryQualitySnapshot").mockImplementation(async (...args) => {
+    source.resolve();
+    return original(...args);
+  });
+  const write = vi.spyOn(recording, "recordContextQualityPreparation").mockResolvedValue(receipt);
+  const observe = vi.fn(async () => "read");
+  const pending = withRepositoryQualityObservation(input, observe);
+  await source.promise;
+  expect(recording.beginContextQualityStorageOpening).toHaveBeenCalledExactlyOnceWith(
+    input.repositoryRoot,
+  );
+  expect(write).not.toHaveBeenCalled();
+  expect(observe).not.toHaveBeenCalled();
+  opening.resolve({ status: "available", reportWriting: false });
+  const result = await pending;
+  expect(result.value).toBe("read");
+  expect(result.preparation.recording).toEqual(receipt);
+});
+
+it.each(["writer_not_active", "unavailable"] as const)(
+  "retains an opening failure of %s without retrying the preparation recording",
+  async (status) => {
+    const input = await fixture();
+    vi.mocked(recording.beginContextQualityStorageOpening).mockResolvedValue({ status });
+    const write = vi.spyOn(recording, "recordContextQualityPreparation");
+    const result = await withRepositoryQualityObservation(input, async () => "read");
+    expect(result.value).toBe("read");
+    expect(result.preparation.recording).toEqual({ status });
+    expect(write).not.toHaveBeenCalled();
+  },
+);
+
+it("drains opening when source preparation returns a failure", async () => {
+  const input = await fixture(),
+    opening = deferred<{ status: "available"; reportWriting: boolean }>();
+  vi.mocked(recording.beginContextQualityStorageOpening).mockReturnValue(opening.promise);
+  const write = vi.spyOn(recording, "recordContextQualityPreparation").mockResolvedValue(receipt);
+  const observe = vi.fn(async () => "read");
+  let completed = false;
+  const pending = withRepositoryQualityObservation(
+    { ...input, retrievalBuildId: "" },
+    observe,
+  ).then((result) => {
+    completed = true;
+    return result;
+  });
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(completed).toBe(false);
+  expect(write).not.toHaveBeenCalled();
+  opening.resolve({ status: "available", reportWriting: false });
+  expect((await pending).preparation.result.status).toBe("unavailable");
+  expect(write).toHaveBeenCalledOnce();
+});
+
+it("maps real opening failures without initializing an inactive writer database", async () => {
+  const input = await fixture();
+  vi.mocked(recording.beginContextQualityStorageOpening).mockRestore();
+  expect(await recording.beginContextQualityStorageOpening(input.repositoryRoot)).toEqual({
+    status: "writer_not_active",
+  });
+  await expect(
+    stat(resolve(input.repositoryRoot, ".lervo/data/events.sqlite")),
+  ).rejects.toMatchObject({ code: "ENOENT" });
+  expect(
+    await recording.beginContextQualityStorageOpening(resolve(input.repositoryRoot, "absent")),
+  ).toEqual({ status: "unavailable" });
 });

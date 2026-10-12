@@ -1,6 +1,8 @@
 import { readNativeRuntimeArtifact } from "../../shared/native-runtime-artifact.mjs";
 import { nativeCasSourceHash } from "../../shared/native-cas-artifact.mjs";
-import { cliReleaseFiles } from "../../shared/cli-release-files.mjs";
+import { repositoryRuntimeInventory } from "../../shared/repository-runtime-inventory.mjs";
+import { readRuntimeModuleArtifact } from "../../../packages/runtime-security/dist/index.js";
+import { cliReleaseFilesForSchema } from "../../shared/cli-release-files.mjs";
 import { verifySchemaValidatorArtifact } from "../../shared/schema-validator-artifact.mjs";
 import { nativeFileSyncSourceHash } from "../../shared/native-file-sync-artifact.mjs";
 import { readFile } from "node:fs/promises";
@@ -25,7 +27,6 @@ const cliRoot = resolve(repositoryRoot, "apps/cli");
 const cliManifestPath = resolve(cliRoot, "package.json");
 const bundleMetafilePath = resolve(cliRoot, "dist/bin.metafile.json");
 const bundleOutputPath = "apps/cli/dist/bin.js";
-const publicContentPaths = new Set(cliReleaseFiles);
 export function normalizeBundleMetadataPath(path) {
   return path.replaceAll("\\", "/");
 }
@@ -43,6 +44,14 @@ async function readPackFileList() {
 }
 
 async function createArchiveSnapshot(paths) {
+  const runtime = await readRuntimeModuleArtifact(resolve(cliRoot, "dist"));
+  const cliReleaseFiles = cliReleaseFilesForSchema(
+    9,
+    [...runtime.files.keys()]
+      .filter((name) => name !== "repository-runtime.json")
+      .map((name) => `dist/${name}`),
+  );
+  const publicContentPaths = new Set(cliReleaseFiles);
   await readNativeRuntimeArtifact(resolve(cliRoot, "dist/native"), {
     required: true,
     casRequired: true,
@@ -72,6 +81,7 @@ async function createArchiveSnapshot(paths) {
     const contents = await readFile(resolve(cliRoot, path));
     files.push({ path, size: contents.byteLength, sha256: sha256(contents) });
   }
+  repositoryRuntimeInventory(files);
   return {
     rootFiles: ["package.json"],
     files,
@@ -102,9 +112,12 @@ export function bundledPackageRoot(path) {
 }
 
 export function bundleOutputMetadata(metafile) {
-  return Object.entries(metafile.outputs ?? {}).find(
-    ([path]) => normalizeBundleMetadataPath(path) === bundleOutputPath,
-  )?.[1];
+  return (Object.entries(metafile.outputs ?? {}).find(
+    ([path]) => normalizeBundleMetadataPath(path) === "apps/cli/dist/repository-runtime.js",
+  ) ??
+    Object.entries(metafile.outputs ?? {}).find(
+      ([path]) => normalizeBundleMetadataPath(path) === bundleOutputPath,
+    ))?.[1];
 }
 
 async function createBundleSnapshot() {
@@ -155,8 +168,19 @@ async function createBundleSnapshot() {
   ].sort();
   const externalImports = [
     ...new Set(
-      output.imports
-        .filter(({ external, path }) => external && !isBuiltinModuleSpecifier(path))
+      Object.entries(metafile.outputs)
+        .flatMap(([outputPath, entry]) =>
+          entry.imports.map((dependency) => ({ ...dependency, outputPath })),
+        )
+        .filter(
+          ({ external, path, outputPath }) =>
+            external &&
+            !isBuiltinModuleSpecifier(path) &&
+            !Object.keys(metafile.outputs).some(
+              (output) =>
+                resolve(repositoryRoot, output) === resolve(repositoryRoot, outputPath, "..", path),
+            ),
+        )
         .map(({ path }) => externalPackageName(path)),
     ),
   ].sort();
@@ -209,7 +233,7 @@ export async function createCliReleaseManifest(
     platformSpecificFamilies: classified.platformSpecificFamilies,
   };
   return {
-    schemaVersion: 7,
+    schemaVersion: 9,
     artifact,
     directDependencies,
     bundle,

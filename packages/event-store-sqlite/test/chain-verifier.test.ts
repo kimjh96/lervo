@@ -39,8 +39,8 @@ afterEach(() => {
   for (const database of databases.splice(0)) database.close();
 });
 
-describe("exact-byte event-chain verification receipts", () => {
-  it("reuses unchanged pages and validates an appended tail with the same full-chain result", () => {
+describe("explicit complete event-chain verification", () => {
+  it("rechecks every row on each explicit verification, including an appended tail", () => {
     const { database, append, verifier } = fixture(1_002);
     const decode = vi.spyOn(codec, "rowToEvent");
     const initial = verifier.verify();
@@ -48,11 +48,11 @@ describe("exact-byte event-chain verification receipts", () => {
     expect(decode).toHaveBeenCalledTimes(1_002);
     decode.mockClear();
     expect(verifier.verify()).toEqual(initial);
-    expect(decode).not.toHaveBeenCalled();
+    expect(decode).toHaveBeenCalledTimes(1_002);
     append(1_002);
     decode.mockClear();
     const appended = verifier.verify();
-    expect(decode).toHaveBeenCalledTimes(1);
+    expect(decode).toHaveBeenCalledTimes(1_003);
     expect(appended).toEqual(new SQLiteEventChainVerifier(database, projectId).verify());
     expect(appended.eventCount).toBe(1_003);
   });
@@ -123,18 +123,16 @@ describe("exact-byte event-chain verification receipts", () => {
     expect(() => verifier.verify()).toThrow(/hash does not match/);
   });
 
-  it("validates the new suffix across a page boundary without redecoding its exact prefix", () => {
+  it("links the chain across a page boundary", () => {
     const { database, append, verifier } = fixture(999);
-    verifier.verify();
     append(999);
     append(1000);
-    const decode = vi.spyOn(codec, "rowToEvent");
     const result = verifier.verify();
-    expect(decode).toHaveBeenCalledTimes(2);
+    expect(result.eventCount).toBe(1_001);
     expect(result).toEqual(new SQLiteEventChainVerifier(database, projectId).verify());
   });
 
-  it("never exposes its cached receipt through a mutable report", () => {
+  it("returns an independent report for each verification", () => {
     const { verifier } = fixture(1);
     const report = verifier.verify();
     report.eventCount = 999;

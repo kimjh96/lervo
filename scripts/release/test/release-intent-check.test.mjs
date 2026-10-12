@@ -110,6 +110,7 @@ describe("release intent change classification", () => {
     "scripts/distribution/native-file-sync-transfer.mjs",
     "scripts/distribution/lib/native-file-sync-transfer.mjs",
     "packages/schemas/scripts/compile-validators.mjs",
+    "packages/schemas/scripts/coordinate-data-validators.mjs",
     "packages/schemas/scripts/primitive-enum-keyword.mjs",
     "packages/schemas/scripts/generate-validators.mjs",
     "scripts/shared/schema-validator-artifact.mjs",

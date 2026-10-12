@@ -128,6 +128,21 @@ it("rechecks a writer changed between preflight and opening before allowing work
   expect(closes).toHaveBeenCalledTimes(1);
 });
 
+it("rejects writer drift after opening before establishing the first binding", async () => {
+  const { root, pool, open, closes, activate, rollback } = await fixture();
+  await activate();
+  const original = open.getMockImplementation()!;
+  open.mockImplementationOnce(async (path) => {
+    const storage = await original(path);
+    await rollback();
+    return storage;
+  });
+  const work = vi.fn(async () => undefined);
+  await expect(pool.run(root, work)).rejects.toMatchObject({ code: "storage_binding_changed" });
+  expect(work).not.toHaveBeenCalled();
+  expect(closes).toHaveBeenCalledTimes(1);
+});
+
 it.each(["uses", "age", "idle"])(
   "checks inactivity before reopening after %s retirement",
   async (kind) => {

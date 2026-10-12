@@ -42,6 +42,29 @@ function assertForwardPage(
   }
 }
 
+interface ChainPosition {
+  seq: number;
+  eventHash: string | null;
+}
+
+/**
+ * Project snapshots are read from the first event without filters, so each event must extend
+ * the previous one. A complete traversal therefore verifies the whole chain it returns.
+ */
+function assertChainedPage(page: readonly EventEnvelope[], position: ChainPosition): ChainPosition {
+  let current = position;
+  for (const event of page) {
+    if (event.seq !== current.seq + 1 || event.previousHash !== current.eventHash) {
+      throw new EventReadError(
+        "event_sequence_invalid",
+        "The event store returned a project snapshot that does not extend its predecessor.",
+      );
+    }
+    current = { seq: event.seq, eventHash: event.eventHash };
+  }
+  return current;
+}
+
 /**
  * Collects one run's immutable originals with an explicit memory bound.
  * The extra read after an exact-size final page distinguishes EOF from overflow.
@@ -93,13 +116,14 @@ export function collectProjectEventsBounded(input: {
 
   const events: EventEnvelope[] = [];
   let afterSeq = 0;
+  let position: ChainPosition = { seq: 0, eventHash: null };
   while (true) {
     const remaining = input.maximumEvents - events.length;
     const page = input.events.list({
       afterSeq,
       limit: Math.min(pageSize, remaining + 1),
     });
-    assertForwardPage(page, afterSeq);
+    position = assertChainedPage(page, position);
     if (page.length > remaining) {
       throw new EventReadError(
         "event_limit_exceeded",
@@ -114,11 +138,14 @@ export function collectProjectEventsBounded(input: {
 
 /**
  * Visits a project event snapshot without retaining the full project history.
- * Events appended after throughSeq are never observed by this scan.
+ * Events appended after throughSeq are never observed by this scan. Visiting through the
+ * head verifies every predecessor link up to that head.
  */
 export function visitEventSnapshot(input: {
   events: Pick<EventStore, "list">;
   throughSeq: number;
+  /** When supplied, the visited head must be exactly this observed event. */
+  throughHash?: string;
   visit(event: EventEnvelope): void;
   pageSize?: number;
 }): void {
@@ -130,10 +157,11 @@ export function visitEventSnapshot(input: {
   if (pageSize > maximumPageSize) throw new TypeError("pageSize must not exceed 1,000.");
 
   let afterSeq = 0;
+  let position: ChainPosition = { seq: 0, eventHash: null };
   while (afterSeq < input.throughSeq) {
     const page = input.events.list({ afterSeq, limit: pageSize });
     const snapshotPage = page.filter((event) => event.seq <= input.throughSeq);
-    assertForwardPage(snapshotPage, afterSeq);
+    position = assertChainedPage(snapshotPage, position);
     const next = snapshotPage.at(-1)?.seq;
     if (next === undefined) {
       throw new EventReadError(
@@ -143,5 +171,11 @@ export function visitEventSnapshot(input: {
     }
     snapshotPage.forEach(input.visit);
     afterSeq = next;
+  }
+  if (input.throughHash !== undefined && position.eventHash !== input.throughHash) {
+    throw new EventReadError(
+      "event_sequence_invalid",
+      "The event snapshot does not end at the observed head.",
+    );
   }
 }

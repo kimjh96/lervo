@@ -1,4 +1,9 @@
-import { assertReadableEventEnvelope, EventContractError } from "@lervo/event-contract";
+import {
+  assertReadableEventEnvelope,
+  computeEventHash,
+  EventContractError,
+  eventWithoutHash,
+} from "@lervo/event-contract";
 import { type EventEnvelope } from "@lervo/schemas";
 
 import { EventStoreError } from "./errors.js";
@@ -33,6 +38,11 @@ function parseJsonObject(value: string, field: string): Record<string, unknown> 
   return parsed as Record<string, unknown>;
 }
 
+/**
+ * Decodes one stored event and proves that its content still matches its stored hash.
+ * Every event the store returns passes through this boundary, so a modified row is
+ * rejected when it is read rather than only during a complete-history scan.
+ */
 export function rowToEvent(row: SqliteRow): EventEnvelope {
   const previousHash = row.previous_hash;
   if (previousHash !== null && typeof previousHash !== "string") {
@@ -64,5 +74,10 @@ export function rowToEvent(row: SqliteRow): EventEnvelope {
       "The stored event does not satisfy a readable event schema.",
     );
   }
+  if (candidate.eventHash !== computeEventHash(eventWithoutHash(candidate)))
+    throw new EventStoreError(
+      "integrity_failed",
+      `The event hash does not match at ${candidate.eventId}.`,
+    );
   return candidate;
 }

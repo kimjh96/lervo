@@ -10,11 +10,10 @@ export const EXECUTION_EVENT_SOURCE_MAX_EVENTS = 32_768;
 const MAX_TOTAL_EVENT_BYTES = 16 * 1024 * 1024;
 
 export function collectExecutionEventSources(input: {
-  events: Pick<EventStore, "latest" | "list" | "verifyIntegrity">;
+  events: Pick<EventStore, "latest" | "list">;
 }): RepositorySupplementalSource[] {
   let latest: EventEnvelope | null;
   try {
-    if (!input.events.verifyIntegrity().valid) return executionEvidenceFailure();
     latest = input.events.latest();
   } catch {
     return executionEvidenceFailure();
@@ -30,6 +29,7 @@ export function collectExecutionEventSources(input: {
     visitEventSnapshot({
       events: input.events,
       throughSeq: latest.seq,
+      throughHash: latest.eventHash,
       visit: (event) => {
         const source = executionEventSource(event);
         if (source === null) return;
@@ -42,7 +42,6 @@ export function collectExecutionEventSources(input: {
         sources.push(source);
       },
     });
-    if (!input.events.verifyIntegrity().valid) return executionEvidenceFailure();
   } catch {
     return executionEvidenceFailure();
   }

@@ -1,6 +1,8 @@
+import { pathToFileURL } from "node:url";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fixtureText, stateBytes } from "./context-quality-active-fixture.mjs";
+import { observeDurableCommits } from "./context-quality-durable-commits.mjs";
 
 import { digest } from "./context-quality-artifact-identity.mjs";
 
@@ -18,15 +20,36 @@ export const sampleColumns = [
   "signature",
 ];
 export async function activeWorker(root, arm, workload, profile, protocol) {
+  // Allowance-bearing protocols must count the strong commits each arm actually performs.
+  const commits =
+    protocol.gates?.durableCommitAllowanceMs === undefined ? null : observeDurableCommits();
+  try {
+    return await measure(root, arm, workload, profile, protocol, commits);
+  } finally {
+    commits?.restore();
+  }
+}
+
+async function measure(root, arm, workload, profile, protocol, commits) {
+  if (protocol.execution !== undefined && protocol.execution.kind !== "packed_cli")
+    throw new Error("Unsupported execution artifact; no source fallback.");
+  const runtime =
+    protocol.execution?.kind === "packed_cli"
+      ? await import(
+          pathToFileURL(resolve(protocol.execution.packageRoot, "dist/repository-runtime.js")).href
+        )
+      : null;
   const {
     prepareRepositoryQualityContext,
     withRepositoryQualityObservation,
     verifyRepositoryContextOutcome,
     recordContextQualityVerification,
-  } = await import("../../../packages/repository-context/dist/index.js");
-  const { canonicalHash } = await import("../../../packages/search/dist/index.js");
-  const { openProjectStorage } = await import("../../../packages/project-storage/dist/index.js");
-  const { inspectEventWriterCoordinate } = await import("../../../packages/project/dist/index.js");
+  } = runtime ?? (await import("../../../packages/repository-context/dist/index.js"));
+  const { canonicalHash } = runtime ?? (await import("../../../packages/search/dist/index.js"));
+  const { openProjectStorage } =
+    runtime ?? (await import("../../../packages/project-storage/dist/index.js"));
+  const { inspectEventWriterCoordinate } =
+    runtime ?? (await import("../../../packages/project/dist/index.js"));
   if ((await inspectEventWriterCoordinate(root)).coordinate.selectedEventSchemaVersion !== 6)
     throw new Error("Inactive fixture writer.");
   const record = arm === "candidate";
@@ -205,5 +228,6 @@ export async function activeWorker(root, arm, workload, profile, protocol) {
     expectedEventCount: record ? count * concurrency * 2 : 0,
     stateGrowthBytes: (await stateBytes(root)) - beforeBytes,
     resourceUsage: process.resourceUsage(),
+    ...(commits ? { durableCommits: commits.count() } : {}),
   };
 }

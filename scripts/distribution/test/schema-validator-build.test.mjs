@@ -52,7 +52,12 @@ it("typechecks and builds without existing outputs and reproduces the validator 
       'const {validateSchema}=await import("./packages/schemas/dist/index.js"); if(validateSchema("event",null).valid) throw new Error("invalid event accepted"); console.log("validated");',
     ]);
     expect(result.stdout.trim()).toBe("validated");
-    for (const name of ["validators.js", "manifest.json"]) {
+    for (const name of [
+      "validators.js",
+      "selected-validators.js",
+      "coordinate-data-validators.js",
+      "manifest.json",
+    ]) {
       const path = `packages/schemas/dist/generated/${name}`;
       expect(await readFile(resolve(root, path))).toEqual(
         await readFile(resolve(repository, path)),

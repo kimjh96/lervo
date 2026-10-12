@@ -1,4 +1,8 @@
-import { recordContextQualityPreparation } from "./context-quality-recording.js";
+import {
+  recordContextQualityPreparation,
+  beginContextQualityObservationScope,
+  beginContextQualityStorageOpening,
+} from "./context-quality-recording.js";
 import { randomUUID } from "node:crypto";
 import { realpath } from "node:fs/promises";
 import {
@@ -237,23 +241,42 @@ async function prepareWithoutRecording(input: RepositoryQualityInput) {
   }
 }
 
-async function beginQualityObservation(input: RepositoryQualityInput) {
+async function beginQualityObservation(input: RepositoryQualityInput, scoped = false) {
   const { repositoryRoot, origin, recordObservation } = input;
   const coordinates = input.recordingCoordinates ? { ...input.recordingCoordinates } : undefined;
-  const prepared = await prepareWithoutRecording(input);
-  const recording = recordObservation
-    ? recordContextQualityPreparation({
-        repositoryRoot,
-        result: prepared.result,
-        bindings: prepared.observationBindings,
-        originKind: origin,
-        adapterBuildId: repositoryQualityBuild,
-        ...(coordinates ? { coordinates } : {}),
-      })
-    : Promise.resolve(null);
+  const opening =
+    scoped && recordObservation ? beginContextQualityStorageOpening(repositoryRoot) : null;
+  let prepared: Awaited<ReturnType<typeof prepareWithoutRecording>>;
+  let opened: Awaited<ReturnType<typeof beginContextQualityStorageOpening>> | null;
+  try {
+    prepared = await prepareWithoutRecording(input);
+  } finally {
+    opened = opening ? await opening : null;
+  }
+  const seal =
+    scoped && recordObservation
+      ? beginContextQualityObservationScope(
+          repositoryRoot,
+          prepared.result.requestId,
+          opened?.status === "available" && opened.reportWriting,
+        )
+      : undefined;
+  const recording =
+    opened && opened.status !== "available"
+      ? Promise.resolve(opened)
+      : recordObservation
+        ? recordContextQualityPreparation({
+            repositoryRoot,
+            result: prepared.result,
+            bindings: prepared.observationBindings,
+            originKind: origin,
+            adapterBuildId: repositoryQualityBuild,
+            ...(coordinates ? { coordinates } : {}),
+          })
+        : Promise.resolve(null);
   // The observation owner drains this promise even when its read continuation fails.
   void recording.catch(() => undefined);
-  return { prepared, recording };
+  return { prepared, recording, seal };
 }
 
 export async function prepareRepositoryQualityContext(input: RepositoryQualityInput) {
@@ -266,9 +289,11 @@ export async function withRepositoryQualityObservation<T>(
   input: RepositoryQualityInput,
   observe: (prepared: Awaited<ReturnType<typeof prepareWithoutRecording>>) => Promise<T>,
 ) {
-  const { prepared, recording } = await beginQualityObservation(input);
+  const { prepared, recording, seal } = await beginQualityObservation(input, true);
   const [readResult, recordingResult] = await Promise.allSettled([
-    Promise.resolve().then(() => observe(structuredClone(prepared))),
+    Promise.resolve()
+      .then(() => observe(structuredClone(prepared)))
+      .finally(() => seal?.()),
     recording,
   ]);
   if (readResult.status === "rejected") {

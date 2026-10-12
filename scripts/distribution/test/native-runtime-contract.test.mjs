@@ -1,3 +1,4 @@
+import { validateRepositoryRuntimeSbom } from "../../shared/repository-runtime-contract.mjs";
 import { expect, it } from "vitest";
 import {
   nativeRuntimeNames,
@@ -74,14 +75,16 @@ it.each(["hub", "node"])(
       mode: 0o644,
       sha256: sha256("fixture"),
     }));
-    const make = (os) =>
-      owner[`create${prefix}DistributionManifest`]({
+    const make = (os) => ({
+      ...owner[`create${prefix}DistributionManifest`]({
         runtimeVersion: "0.1.0",
         platform: { os, arch: "arm64", libc: os === "linux" ? "glibc" : "none" },
         files: structuredClone(files),
         sbomSha256: sha256("sbom"),
         dependencies: ["package@1.0.0"],
-      });
+      }),
+      schemaVersion: 3,
+    });
     const validate = owner[`validate${prefix}DistributionManifest`];
     expect(() => validate(make("linux"))).not.toThrow();
     expect(() => validate(make("darwin"))).toThrow();
@@ -115,3 +118,26 @@ it.each(["hub", "node"])(
     }
   },
 );
+
+it("binds the Node shared module SBOM hash, component and root dependency exactly", () => {
+  const hash = sha256("module");
+  const make = () =>
+    createNodeDistributionSbom("0.1.0", ["package@1.0.0"], sha256("entry"), undefined, hash);
+  expect(() => validateRepositoryRuntimeSbom(make(), hash)).not.toThrow();
+  for (const mutation of ["hash", "component", "edge", "duplicate"]) {
+    const sbom = make();
+    const ref = "lervo:repository-runtime";
+    if (mutation === "hash")
+      sbom.components.find((entry) => entry["bom-ref"] === ref).hashes[0].content = "0".repeat(64);
+    if (mutation === "component")
+      sbom.components = sbom.components.filter((entry) => entry["bom-ref"] !== ref);
+    if (mutation === "edge")
+      sbom.dependencies[0].dependsOn = sbom.dependencies[0].dependsOn.filter(
+        (entry) => entry !== ref,
+      );
+    if (mutation === "duplicate") sbom.dependencies[0].dependsOn.push(ref);
+    expect(() => validateRepositoryRuntimeSbom(sbom, hash)).toThrow(
+      "repository_runtime_sbom_invalid",
+    );
+  }
+});

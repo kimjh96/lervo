@@ -4,6 +4,8 @@ const average = (row, column) =>
   row.samples.reduce((sum, sample) => sum + sample[column], 0) / row.samples.length;
 
 export function qualifyActive(rows, protocol, unchangedBuild) {
+  // Each sample must durably commit at least once; only that one required commit is allowed.
+  const allowance = protocol.gates.durableCommitAllowanceMs;
   const groups = [];
   for (const profile of protocol.profiles)
     for (const [workload, pairs] of Object.entries(protocol.pairs)) {
@@ -25,6 +27,7 @@ export function qualifyActive(rows, protocol, unchangedBuild) {
             r.processMs > 0 &&
             finite(r.resourceUsage?.maxRSS) &&
             r.resourceUsage.maxRSS > 0 &&
+            (allowance === undefined || Number.isSafeInteger(r.durableCommits)) &&
             r.samples?.length === expectedSamples &&
             r.warmups?.length === expectedWarmups &&
             [...r.samples, ...r.warmups].every(
@@ -62,13 +65,29 @@ export function qualifyActive(rows, protocol, unchangedBuild) {
               ? (expectedSamples + expectedWarmups) *
                 (workload === "concurrent" ? protocol.concurrency : 1) *
                 2
-              : 0),
+              : 0) &&
+          (allowance === undefined ||
+            (r.arm === "candidate"
+              ? r.durableCommits >= expectedSamples + expectedWarmups
+              : r.durableCommits === 0)),
+      );
+      const rawAddedMs = paired.map(
+        ({ control, candidate }) => average(candidate, 0) - average(control, 0),
+      );
+      const rawProcessRatios = paired.map(
+        ({ control, candidate }) => candidate.processMs / control.processMs,
       );
       const elapsedAddedMs = interval(
-        paired.map(({ control, candidate }) => average(candidate, 0) - average(control, 0)),
+        allowance === undefined ? rawAddedMs : rawAddedMs.map((added) => added - allowance),
       );
       const processRatio = interval(
-        paired.map(({ control, candidate }) => candidate.processMs / control.processMs),
+        allowance === undefined
+          ? rawProcessRatios
+          : paired.map(
+              ({ control, candidate }) =>
+                (candidate.processMs - allowance * (expectedSamples + expectedWarmups)) /
+                control.processMs,
+            ),
       );
       const rssRatio = interval(
         paired.map(
@@ -93,6 +112,12 @@ export function qualifyActive(rows, protocol, unchangedBuild) {
         processRatio,
         rssRatio,
         cpuRatio,
+        ...(allowance === undefined
+          ? {}
+          : {
+              rawElapsedAddedMs: interval(rawAddedMs),
+              rawProcessRatio: interval(rawProcessRatios),
+            }),
         maximumStateBytesPerRequest: Math.max(...storagePerRequest),
         storageBounded,
         passed:

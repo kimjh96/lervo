@@ -43,8 +43,6 @@ export async function observeMandateInstallationSource(
     writer.coordinate.selectedEventSchemaVersion < 3
   )
     throw new Error("Mandate installation requires reviewed event writer version 3 activation.");
-  if (authorityHistory === undefined && !storage.events.verifyIntegrity().valid)
-    throw new Error("The mandate authority event history is invalid.");
   const history =
     authorityHistory === undefined
       ? collectProjectEventsBounded({ events: storage.events, maximumEvents: 100_000 })

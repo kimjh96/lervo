@@ -22,6 +22,10 @@
     "esbuild": "0.28.2"
   },
   "imports": {
+    "#coordinate-data-validation": {
+      "types": "./src/coordinate-data-validation.ts",
+      "default": "./dist/coordinate-data-validation.js"
+    },
     "#compiled-validators": {
       "types": "./src/compiled-validators.d.ts",
       "default": "./dist/generated/validators.js"

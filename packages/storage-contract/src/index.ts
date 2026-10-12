@@ -116,6 +116,10 @@ export interface OutboxTransaction extends EventStoreTransaction {
 /**
  * The callback must be synchronous. A provider may extend the transaction with
  * outbox operations while preserving one commit boundary.
+ *
+ * Every returned event has content matching its stored hash, adjacent sequences in one
+ * result are linked, and an append extends only a hash-valid predecessor. Opening a store
+ * does not scan history; `verifyIntegrity` is the explicit complete check.
  */
 export interface EventStore<TTransaction extends EventStoreTransaction = EventStoreTransaction> {
   append(draft: EventDraft): AppendEventResult;
@@ -123,11 +127,29 @@ export interface EventStore<TTransaction extends EventStoreTransaction = EventSt
   get(eventId: string): EventEnvelope | null;
   latest(): EventEnvelope | null;
   list(options?: ListEventsOptions): EventEnvelope[];
+  /** Complete structural, outbox and chain verification; proportional to history size. */
   verifyIntegrity(): EventChainReport;
   close(): void;
 }
 
+export interface ReportReader {
+  /** Returns complete verified bytes, or null only when the report is absent. */
+  getReport(contentHash: string): Uint8Array | null;
+}
+
+export interface ReportTransaction extends EventStoreTransaction {
+  /** Verified in-transaction bytes; this result is not a durable receipt. */
+  putReport(content: Uint8Array): ArtifactPutResult;
+}
+
+export interface ReportWriter {
+  /** Synchronous callback; returns only after commit and a fresh full read of every report. */
+  transact<T>(work: (transaction: ReportTransaction) => T): T;
+}
+
 export interface OutboxStore extends EventStore<OutboxTransaction> {
+  readonly reportWriter?: ReportWriter;
+  readonly reports?: ReportReader;
   enqueue(request: EnqueueOutboxRequest): EnqueueOutboxResult;
   outstandingCount(destinationId: string): number;
   claim(request: ClaimOutboxRequest): OutboxDelivery[];

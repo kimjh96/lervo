@@ -25,6 +25,10 @@
     "dist/native/file-sync-darwin.node",
     "dist/native/file-sync.json",
     "dist/node-runtime.js",
+    "dist/repository-runtime-*.cjs",
+    "dist/repository-runtime-*.js",
+    "dist/repository-runtime.js",
+    "dist/repository-runtime.json",
     "dist/terminal-hook.js"
   ],
   "publishConfig": {

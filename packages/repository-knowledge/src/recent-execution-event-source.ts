@@ -53,21 +53,20 @@ export class RecentExecutionEventProjection {
 
 /** A bounded interactive projection; it never establishes complete-history coverage. */
 export function collectRecentExecutionEventSources(input: {
-  events: Pick<EventStore, "latest" | "list" | "verifyIntegrity">;
+  events: Pick<EventStore, "latest" | "list">;
   maximumEvents: number;
 }): RepositorySupplementalSource[] {
   const projection = new RecentExecutionEventProjection(input.maximumEvents);
   try {
-    if (!input.events.verifyIntegrity().valid) return executionEvidenceFailure();
     const latest = input.events.latest();
     if (latest === null) return [];
     if (!Number.isSafeInteger(latest.seq) || latest.seq < 1) return executionEvidenceFailure();
     visitEventSnapshot({
       events: input.events,
       throughSeq: latest.seq,
+      throughHash: latest.eventHash,
       visit: (event) => projection.observe(event),
     });
-    if (!input.events.verifyIntegrity().valid) return executionEvidenceFailure();
     return projection.sources();
   } catch {
     return executionEvidenceFailure();

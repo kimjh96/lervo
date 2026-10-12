@@ -1,5 +1,6 @@
 import { verifyCliNativeArtifact } from "../../distribution/lib/cli-native-artifact.mjs";
-import { cliReleaseFiles } from "../../shared/cli-release-files.mjs";
+import { readRuntimeModuleArtifact } from "../../../packages/runtime-security/dist/index.js";
+import { cliGraphPackageFiles, cliReleaseFilesForSchema } from "../../shared/cli-release-files.mjs";
 import { verifyInstalledContextQuality } from "../../distribution/lib/installed-context-quality.mjs";
 import assert from "node:assert/strict";
 import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
@@ -80,7 +81,7 @@ async function verifyInstalledPackage(consumerRoot, expectedManifest) {
     lervo: "./dist/bin.js",
     "lervo-node": "./dist/node-runtime.js",
   });
-  assert.deepEqual(manifest.files, cliReleaseFiles);
+  assert.deepEqual(manifest.files, cliGraphPackageFiles);
   assert.deepEqual(manifest.dependencies, {
     "@anthropic-ai/claude-agent-sdk": "0.3.226",
     "@anthropic-ai/sdk": "0.117.1",
@@ -95,6 +96,13 @@ async function verifyInstalledPackage(consumerRoot, expectedManifest) {
       Object.hasOwn(manifest.scripts ?? {}, name),
     ),
     false,
+  );
+  const runtime = await readRuntimeModuleArtifact(resolve(packageRoot, "dist"));
+  const cliReleaseFiles = cliReleaseFilesForSchema(
+    9,
+    [...runtime.files.keys()]
+      .filter((name) => name !== "repository-runtime.json")
+      .map((name) => `dist/${name}`),
   );
   assert.deepEqual(await collectFiles(packageRoot), [...cliReleaseFiles, "package.json"]);
   assert.deepEqual((await readdir(resolve(consumerRoot, "node_modules/@lervo"))).sort(), ["cli"]);

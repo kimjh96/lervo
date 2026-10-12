@@ -1,3 +1,4 @@
+import { repositoryRuntimeComponent } from "../../shared/repository-runtime-contract.mjs";
 import { NodeRuntimeDistributionError } from "./node-runtime-distribution-contract.mjs";
 import { nativeRuntimeSbomComponents } from "../../shared/native-runtime-contract.mjs";
 
@@ -18,8 +19,18 @@ function packageIdentity(coordinate) {
   return { fullName, version, ...(group === undefined ? {} : { group }), name, purl };
 }
 
-export function createNodeDistributionSbom(version, coordinates, bundleSha256, artifact) {
-  const native = nativeRuntimeSbomComponents(artifact);
+export function createNodeDistributionSbom(
+  version,
+  coordinates,
+  bundleSha256,
+  artifact,
+  runtimeHash,
+  runtimeLayout = "single_file",
+) {
+  const native = [
+    ...nativeRuntimeSbomComponents(artifact),
+    ...(runtimeHash ? [repositoryRuntimeComponent(runtimeHash, runtimeLayout)] : []),
+  ];
   const rootRef = `pkg:generic/lervo-node@${version}`;
   return {
     $schema: "https://cyclonedx.org/schema/bom-1.7.schema.json",

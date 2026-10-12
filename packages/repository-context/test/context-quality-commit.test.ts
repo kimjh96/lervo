@@ -1,3 +1,6 @@
+import { createQualityRecordingScopes } from "../src/context-quality-scope.js";
+import { createHash } from "node:crypto";
+import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -10,6 +13,7 @@ import { createContextQualityCommitQueue } from "../src/context-quality-commit.j
 const roots: string[] = [];
 const stores: ProjectStorage[] = [];
 afterEach(async () => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   for (const storage of stores.splice(0)) await storage.close();
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
@@ -64,7 +68,8 @@ it("checks a ready batch once and returns every receipt only after a durable com
   current.release();
   await Promise.all(pending);
   expect(transaction).toHaveBeenCalledTimes(1);
-  expect(verify).toHaveBeenCalledTimes(1);
+  // Appends verify their predecessor; publication no longer rescans the whole history.
+  expect(verify).not.toHaveBeenCalled();
   expect(storage.events.list()).toHaveLength(4);
   const reopened = await openProjectStorage(storage.paths.repositoryRoot);
   try {
@@ -266,4 +271,241 @@ it("rejects excess admission before invoking its preparation effect", async () =
   artifact.release();
   await Promise.all(pending);
   expect(storage.events.verifyIntegrity().eventCount).toBe(16);
+});
+
+async function sqlFixture() {
+  const storage = await fixture();
+  const events = await SQLiteEventStore.open({
+    path: storage.paths.eventDatabase,
+    projectId: storage.manifest.projectId,
+    writableEventSchemaVersion: 6,
+    reportStorage: "sqlite_v1",
+  });
+  const selected = {
+    ...storage,
+    events,
+    close: async () => {
+      events.close();
+    },
+  };
+  stores.push(selected);
+  return selected;
+}
+function pendingReport(value = "complete private report") {
+  const bytes = Buffer.from(value);
+  return { bytes, contentHash: `sha256:${createHash("sha256").update(bytes).digest("hex")}` };
+}
+
+it("snapshots SQL report bytes at admission and waits for the final current-binding guard", async () => {
+  const storage = await sqlFixture();
+  const commit = createContextQualityCommitQueue();
+  const current = gate();
+  const check = vi.fn(() => current.promise);
+  const report = pendingReport();
+  const original = Buffer.from(report.bytes);
+  const pending = commit(storage, check, async () => draft(0), report);
+  report.bytes.fill(0);
+  await nextTurn();
+  await nextTurn();
+  expect(check).toHaveBeenCalledTimes(1);
+  expect(storage.events.reports.getReport(report.contentHash)).toBeNull();
+  current.release();
+  await pending;
+  expect(storage.events.reports.getReport(report.contentHash)).toEqual(original);
+  expect(storage.events.list()).toHaveLength(1);
+});
+
+it("publishes no SQL bytes or event after a rejected final guard or mismatched report hash", async () => {
+  const storage = await sqlFixture();
+  const commit = createContextQualityCommitQueue();
+  const report = pendingReport();
+  await expect(
+    commit(
+      storage,
+      async () => {
+        throw new Error("binding changed");
+      },
+      async () => draft(0),
+      report,
+    ),
+  ).rejects.toThrow("binding changed");
+  await expect(
+    commit(
+      storage,
+      async () => {},
+      async () => draft(0),
+      { ...report, contentHash: `sha256:${"0".repeat(64)}` },
+    ),
+  ).rejects.toThrow("does not match");
+  expect(storage.events.reports.getReport(report.contentHash)).toBeNull();
+  expect(storage.events.list()).toHaveLength(0);
+});
+
+it("drains every admitted SQL preparation after one fails without starting publication", async () => {
+  const storage = await sqlFixture();
+  const commit = createContextQualityCommitQueue();
+  const slow = gate();
+  const guard = vi.fn(async () => {});
+  const report = pendingReport();
+  let settled = false;
+  const results = Promise.allSettled([
+    commit(
+      storage,
+      guard,
+      async () => {
+        throw new Error("preparation failed");
+      },
+      report,
+    ),
+    commit(
+      storage,
+      guard,
+      async () => {
+        await slow.promise;
+        return draft(1);
+      },
+      report,
+    ),
+  ]).then((results) => {
+    settled = true;
+    return results;
+  });
+  await nextTurn();
+  await nextTurn();
+  expect(settled).toBe(false);
+  expect(guard).not.toHaveBeenCalled();
+  slow.release();
+  expect((await results).map((result) => result.status)).toEqual(["rejected", "rejected"]);
+  expect(storage.events.reports.getReport(report.contentHash)).toBeNull();
+  expect(storage.events.list()).toHaveLength(0);
+});
+
+it("commits both admitted scope reports together after they arrive on different turns", async () => {
+  const storage = await sqlFixture();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const scopes = createQualityRecordingScopes();
+  scopes.begin("/scope", "request");
+  const commit = createContextQualityCommitQueue();
+  const transaction = vi.spyOn(storage.events, "transact");
+  const first = commit(
+    storage,
+    async () => {},
+    async () => draft(0),
+    pendingReport("first"),
+    scopes.admission("/scope", "request", "prepared"),
+  );
+  await nextTurn();
+  await nextTurn();
+  expect(transaction).not.toHaveBeenCalled();
+  const second = commit(
+    storage,
+    async () => {},
+    async () => draft(1),
+    pendingReport("second"),
+    scopes.admission("/scope", "request", "verified"),
+  );
+  await Promise.all([first, second]);
+  expect(transaction).toHaveBeenCalledTimes(1);
+  expect(storage.events.list()).toHaveLength(2);
+  expect(vi.getTimerCount()).toBe(0);
+});
+it("does not let an unsealed SQL scope hold an unrelated ready report", async () => {
+  const storage = await sqlFixture();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const scopes = createQualityRecordingScopes();
+  const seal = scopes.begin("/scope", "request")!;
+  const commit = createContextQualityCommitQueue();
+  let firstSettled = false;
+  const first = commit(
+    storage,
+    async () => {},
+    async () => draft(0),
+    pendingReport("held"),
+    scopes.admission("/scope", "request", "prepared"),
+  ).then(() => {
+    firstSettled = true;
+  });
+  await commit(
+    storage,
+    async () => {},
+    async () => draft(1),
+    pendingReport("independent"),
+  );
+  expect(firstSettled).toBe(false);
+  expect(storage.events.list()).toHaveLength(1);
+  seal();
+  await first;
+  expect(storage.events.list()).toHaveLength(2);
+});
+it("drains a failed scoped preparation and its admitted sibling before rejecting both", async () => {
+  const storage = await sqlFixture();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const scopes = createQualityRecordingScopes();
+  scopes.begin("/scope", "request");
+  const commit = createContextQualityCommitQueue(),
+    slow = gate();
+  let finished = false;
+  const first = commit(
+    storage,
+    async () => {},
+    async () => {
+      throw new Error("first failed");
+    },
+    pendingReport("first"),
+    scopes.admission("/scope", "request", "prepared"),
+  );
+  const second = commit(
+    storage,
+    async () => {},
+    async () => {
+      await slow.promise;
+      return draft(1);
+    },
+    pendingReport("second"),
+    scopes.admission("/scope", "request", "verified"),
+  );
+  const drained = Promise.allSettled([first, second]).then((results) => {
+    finished = true;
+    return results;
+  });
+  await nextTurn();
+  expect(finished).toBe(false);
+  slow.release();
+  expect((await drained).map((result) => result.status)).toEqual(["rejected", "rejected"]);
+  expect(storage.events.list()).toHaveLength(0);
+  expect(storage.events.reports.getReport(pendingReport("second").contentHash)).toBeNull();
+});
+
+it("holds a fixed group of overlapping observations until all eight reports can commit", async () => {
+  const storage = await sqlFixture();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const scopes = createQualityRecordingScopes();
+  for (let index = 0; index < 4; index++) scopes.begin("/group", String(index));
+  const commit = createContextQualityCommitQueue();
+  const transaction = vi.spyOn(storage.events, "transact");
+  const pending: Promise<void>[] = [];
+  let receipts = 0;
+  for (let index = 0; index < 4; index++) {
+    for (const [offset, kind] of ["prepared", "verified"].entries())
+      pending.push(
+        commit(
+          storage,
+          async () => {},
+          async () => draft(index * 2 + offset),
+          pendingReport(`group-${index}-${kind}`),
+          scopes.admission("/group", String(index), kind as "prepared" | "verified"),
+        ).then(() => {
+          receipts++;
+        }),
+      );
+    await nextTurn();
+    if (index < 3) {
+      expect(transaction).not.toHaveBeenCalled();
+      expect(receipts).toBe(0);
+    }
+  }
+  await Promise.all(pending);
+  expect(transaction).toHaveBeenCalledTimes(1);
+  expect(receipts).toBe(8);
+  expect(storage.events.verifyIntegrity().eventCount).toBe(8);
 });

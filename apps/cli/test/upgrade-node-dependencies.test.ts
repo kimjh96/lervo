@@ -7,6 +7,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // @ts-expect-error The production service renderer is plain ESM.
 import { formatRuntimeServiceDefinition } from "../../../scripts/distribution/render-runtime-service.mjs";
+import { runtimeModuleHash } from "@lervo/runtime-security";
+
+import {
+  materializeNodeRuntimeModule,
+  readNodeRuntimeModule,
+  type NodeRuntimeModule,
+} from "../src/node-fleet-runtime-module.js";
 import { describeRuntimeDependencies } from "../src/runtime-dependency-closure.js";
 import { materializeRuntimeDependencies } from "../src/runtime-dependency-materialization.js";
 import { inspectRegisteredNodeUpgrade, applyRegisteredNodeUpgrade } from "../src/upgrade-node.js";
@@ -61,6 +68,26 @@ beforeEach(async () => {
     resolve(root, "source/consumer.js"),
     "fixture-sdk",
   );
+  // An installed launcher always carries the exact repository runtime module it serves.
+  const moduleSource = resolve(root, "module-source");
+  await mkdir(moduleSource);
+  const moduleBytes = Buffer.from("export const identity = 1;\n");
+  await writeFile(resolve(moduleSource, "repository-runtime.js"), moduleBytes);
+  await writeFile(
+    resolve(moduleSource, "repository-runtime.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      entry: "repository-runtime.js",
+      files: [
+        {
+          name: "repository-runtime.js",
+          size: moduleBytes.length,
+          sha256: runtimeModuleHash(moduleBytes),
+        },
+      ],
+    }) + "\n",
+  );
+  const runtimeModule = await readNodeRuntimeModule(moduleSource);
   const runtime = resolve(root, "runtime");
   await mkdir(runtime);
   const launcher = resolve(runtime, "launcher");
@@ -75,6 +102,7 @@ beforeEach(async () => {
     payloadBytes,
     launcherContent,
     dependencies,
+    runtimeModule,
     hash: `sha256:${"a".repeat(64)}`,
   };
   fixture.config = resolve(root, "config.json");
@@ -127,6 +155,10 @@ describe("Node upgrade installed dependency readiness", () => {
     await materializeRuntimeDependencies(
       resolve(root, "runtime"),
       fixture.launcher.dependencies as Awaited<ReturnType<typeof describeRuntimeDependencies>>,
+    );
+    await materializeNodeRuntimeModule(
+      resolve(root, "runtime"),
+      fixture.launcher.runtimeModule as NodeRuntimeModule,
     );
     expect(
       (await inspectRegisteredNodeUpgrade(root, "prj_dependency", "0.20.0")).stage,

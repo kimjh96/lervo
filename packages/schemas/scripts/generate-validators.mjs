@@ -2,7 +2,11 @@ import { lstat, mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compileSchemaValidators } from "./compile-validators.mjs";
-import { schemaValidatorCompilerOptions } from "../../../scripts/shared/schema-validator-contract.mjs";
+import {
+  sharedRuntimeSchemaNames,
+  coordinateDataVersions,
+  schemaValidatorCompilerOptions,
+} from "../../../scripts/shared/schema-validator-contract.mjs";
 import {
   schemaValidatorDigest,
   schemaValidatorSourceIdentity,
@@ -15,10 +19,28 @@ const repositoryRoot = resolve(packageRoot, "../..");
 async function generatePair(directory, staging) {
   const identity = await schemaValidatorSourceIdentity(repositoryRoot);
   const compiled = await compileSchemaValidators(packageRoot);
-  if (compiled.bytes.length > 16 * 1024 * 1024) throw new Error("schema_validator_artifact_limit");
+  if (
+    Math.max(
+      compiled.bytes.length,
+      compiled.selectedBytes.length,
+      compiled.coordinateDataBytes.length,
+    ) >
+    16 * 1024 * 1024
+  )
+    throw new Error("schema_validator_artifact_limit");
   const manifest = {
     schemaVersion: 1,
-    generatorVersion: 2,
+    generatorVersion: 4,
+    coordinateData: {
+      versions: coordinateDataVersions,
+      contentHash: schemaValidatorDigest(compiled.coordinateDataBytes),
+      byteLength: compiled.coordinateDataBytes.length,
+    },
+    selected: {
+      names: sharedRuntimeSchemaNames,
+      contentHash: schemaValidatorDigest(compiled.selectedBytes),
+      byteLength: compiled.selectedBytes.length,
+    },
     ...identity,
     schemaCount: compiled.schemaCount,
     toolchain: compiled.toolchain,
@@ -27,9 +49,11 @@ async function generatePair(directory, staging) {
     contentHash: schemaValidatorDigest(compiled.bytes),
     byteLength: compiled.bytes.length,
   };
-  // A stale or interrupted pair fails verification; a later generation replaces these fixed names.
+  // A stale or interrupted set fails verification; a later generation replaces these fixed names.
   const outputs = [
     ["validators.js", compiled.bytes],
+    ["selected-validators.js", compiled.selectedBytes],
+    ["coordinate-data-validators.js", compiled.coordinateDataBytes],
     ["manifest.json", `${JSON.stringify(manifest, null, 2)}\n`],
   ];
   for (const [name, bytes] of outputs)

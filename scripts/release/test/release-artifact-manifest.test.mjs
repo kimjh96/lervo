@@ -235,7 +235,7 @@ describe("release artifact manifest", () => {
   });
 });
 
-it.each([6, 7])(
+it.each([6, 7, 8])(
   "binds the exact native set in schema %s while retaining schema 5 reads",
   async (schemaVersion) => {
     const { cliReleaseFilesForSchema } = await import("../../shared/cli-release-files.mjs");
@@ -248,6 +248,12 @@ it.each([6, 7])(
     manifest.archive.files.push(
       ...cliNativeFiles.map((path) => ({ path, size: 128, sha256: `sha256:${"a".repeat(64)}` })),
     );
+    if (schemaVersion === 8)
+      manifest.archive.files.push({
+        path: "dist/repository-runtime.js",
+        size: 256,
+        sha256: `sha256:${"b".repeat(64)}`,
+      });
     manifest.archive.files.sort((a, b) => (a.path < b.path ? -1 : 1));
     const rebind = () => {
       manifest.archive.fileCount = manifest.archive.files.length + 1;
@@ -266,3 +272,51 @@ it.each([6, 7])(
     assert.equal(validateReleaseArtifactManifest(fixture()).schemaVersion, 5);
   },
 );
+
+it("binds all graph members in schema 9 even when outer digests are recomputed", async () => {
+  const { cliGraphPackageFiles, cliNativeFiles } =
+    await import("../../shared/cli-release-files.mjs");
+  const { sha256, releaseArtifactDigest } =
+    await import("../../shared/release-artifact-manifest.mjs");
+  const manifest = fixture();
+  manifest.schemaVersion = 9;
+  manifest.artifact.files = [...cliGraphPackageFiles];
+  const graph = [
+    "repository-runtime-core.js",
+    "repository-runtime-fallback.cjs",
+    "repository-runtime.js",
+  ].map((name) => ({ name, size: 128, sha256: sha256(name) }));
+  const bytes = Buffer.from(
+    JSON.stringify({ schemaVersion: 1, entry: "repository-runtime.js", files: graph }, null, 2) +
+      "\n",
+  );
+  manifest.archive.files.push(
+    ...cliNativeFiles.map((path) => ({ path, size: 128, sha256: sha256(path) })),
+    ...graph.map(({ name, ...entry }) => ({ path: `dist/${name}`, ...entry })),
+    { path: "dist/repository-runtime.json", size: bytes.length, sha256: sha256(bytes) },
+  );
+  const rebind = (value) => {
+    value.archive.files.sort((a, b) => (a.path < b.path ? -1 : 1));
+    value.archive.fileCount = value.archive.files.length + 1;
+    value.archive.contentDigest = canonicalDigest(value.archive.files);
+    value.artifactDigest = releaseArtifactDigest(value);
+  };
+  rebind(manifest);
+  assert.equal(validateReleaseArtifactManifest(manifest), manifest);
+  for (const member of graph) {
+    for (const mutation of ["missing", "hash", "size"]) {
+      const changed = structuredClone(manifest),
+        path = `dist/${member.name}`;
+      if (mutation === "missing")
+        changed.archive.files = changed.archive.files.filter((entry) => entry.path !== path);
+      else
+        changed.archive.files.find((entry) => entry.path === path)[
+          mutation === "hash" ? "sha256" : "size"
+        ] = mutation === "hash" ? sha256("changed") : 129;
+      rebind(changed);
+      assert.throws(() => validateReleaseArtifactManifest(changed), {
+        code: "release_artifact_archive_invalid",
+      });
+    }
+  }
+});

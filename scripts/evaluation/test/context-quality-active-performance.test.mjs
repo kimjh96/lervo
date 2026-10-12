@@ -1,11 +1,13 @@
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { expect, it } from "vitest";
+import { DatabaseSync } from "node:sqlite";
+import { describe, expect, it } from "vitest";
 import { qualifyActive } from "../lib/context-quality-active-report.mjs";
 import { validateActiveProtocol } from "../lib/context-quality-active-runner.mjs";
 import { initializeActiveFixture } from "../lib/context-quality-active-fixture.mjs";
 import { activeWorker } from "../lib/context-quality-active-worker.mjs";
+import { observeDurableCommits } from "../lib/context-quality-durable-commits.mjs";
 
 const p = {
   profiles: [4096],
@@ -119,4 +121,95 @@ it.each([
   expect(() => validateActiveProtocol(protocol)).not.toThrow();
   protocol.gates.meanAddedMsUpper95++;
   expect(() => validateActiveProtocol(protocol)).toThrow();
+});
+
+describe("durable-commit allowance", () => {
+  const allowed = { ...p, gates: { ...p.gates, durableCommitAllowanceMs: 5 } };
+  const committed = () =>
+    rows().map((row) => {
+      const durableCommits = row.arm === "candidate" ? 7 : 0;
+      if (row.arm === "candidate") {
+        row.samples.forEach((s) => (s[0] = 14));
+        row.processMs = 150;
+      }
+      return { ...row, durableCommits };
+    });
+  it("subtracts one allowance per sample and retains raw values", () => {
+    const [group] = qualifyActive(committed(), allowed, true).groups;
+    expect(group.passed).toBe(true);
+    expect(group.elapsedAddedMs.mean).toBe(4);
+    expect(group.rawElapsedAddedMs.mean).toBe(9);
+    expect(group.processRatio.mean).toBeCloseTo(1.15);
+    expect(group.rawProcessRatio.mean).toBe(1.5);
+    expect(qualifyActive(committed(), p, true).passed).toBe(false);
+  });
+  it.each([0, 6, undefined])("rejects %s observed candidate commits", (count) => {
+    const r = committed();
+    r[1].durableCommits = count;
+    expect(qualifyActive(r, allowed, true).passed).toBe(false);
+  });
+  it("charges split publication commits in full instead of allowing them", () => {
+    const r = committed();
+    r[1].durableCommits = 9;
+    const [group] = qualifyActive(r, allowed, true).groups;
+    expect(group.evidence).toBe(true);
+    expect(group.processRatio.mean).toBeCloseTo(1.15);
+  });
+  it("rejects strong commits in the control arm", () => {
+    const r = committed();
+    r[0].durableCommits = 1;
+    expect(qualifyActive(r, allowed, true).passed).toBe(false);
+  });
+  it("binds the fixed allowance to the packaged v2 protocol only", async () => {
+    const v1 = JSON.parse(
+      await readFile("benchmarks/context-quality/recording-repair-v12.json", "utf8"),
+    );
+    expect(() =>
+      validateActiveProtocol({ ...v1, gates: { ...v1.gates, durableCommitAllowanceMs: 5 } }),
+    ).toThrow();
+    const v2 = {
+      ...v1,
+      protocolId: "context-quality-packaged-resource-v2",
+      execution: { kind: "packed_cli", packageRoot: resolve(tmpdir(), "installed") },
+    };
+    expect(() => validateActiveProtocol(v2)).toThrow();
+    v2.gates = { ...v1.gates, durableCommitAllowanceMs: 5 };
+    expect(() => validateActiveProtocol(v2)).not.toThrow();
+    const v3 = { ...v2, protocolId: "context-quality-packaged-resource-v3" };
+    expect(() => validateActiveProtocol(v3)).toThrow();
+    v3.pairs = { ...v2.pairs, cold: 30 };
+    expect(() => validateActiveProtocol(v3)).not.toThrow();
+    expect(() => validateActiveProtocol({ ...v2, pairs: v3.pairs })).toThrow();
+    expect(() => validateActiveProtocol({ ...v3, pairs: { ...v3.pairs, warm: 29 } })).toThrow();
+    for (const weakened of [6, 10, 0]) {
+      expect(() =>
+        validateActiveProtocol({
+          ...v2,
+          gates: { ...v2.gates, durableCommitAllowanceMs: weakened },
+        }),
+      ).toThrow();
+    }
+  });
+  it("counts only commits on fully synchronized connections", async () => {
+    const parent = await mkdtemp(resolve(tmpdir(), "lervo-durable-commits-"));
+    const observer = observeDurableCommits();
+    try {
+      const plain = new DatabaseSync(resolve(parent, "plain.sqlite")),
+        strong = new DatabaseSync(resolve(parent, "strong.sqlite"));
+      for (const database of [plain, strong]) database.exec("CREATE TABLE t(v);");
+      strong.exec("PRAGMA synchronous = FULL; PRAGMA fullfsync = ON;");
+      for (const database of [plain, strong]) {
+        database.exec("BEGIN IMMEDIATE;");
+        database.exec("INSERT INTO t VALUES (1);");
+        database.exec("COMMIT;");
+      }
+      strong.exec("BEGIN; ROLLBACK;");
+      expect(observer.count()).toBe(1);
+      plain.close();
+      strong.close();
+    } finally {
+      observer.restore();
+      await rm(parent, { recursive: true, force: true });
+    }
+  });
 });

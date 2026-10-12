@@ -1,3 +1,8 @@
+import {
+  buildRepositoryRuntime,
+  repositoryRuntimeEntrypointPlugin,
+  mergeRepositoryRuntimeMetadata,
+} from "../../../scripts/distribution/lib/repository-runtime-bundle.mjs";
 import { copyNativeRuntimeArtifacts } from "../../../scripts/shared/native-runtime-artifact.mjs";
 import { nativeCasSourceHash } from "../../../scripts/shared/native-cas-artifact.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -17,6 +22,13 @@ const outputDirectory = resolve(runtimeRoot, "dist");
 await verifySchemaValidatorArtifact(repositoryRoot);
 await mkdir(outputDirectory, { recursive: true });
 
+const runtime = await buildRepositoryRuntime(
+  build,
+  repositoryRoot,
+  outputDirectory,
+  false,
+  normalizeGeneratedTextFile,
+);
 const result = await build({
   absWorkingDir: repositoryRoot,
   entryPoints: ["apps/node-runtime/src/bin.ts"],
@@ -32,15 +44,16 @@ const result = await build({
   mainFields: ["module", "main"],
   metafile: true,
   platform: "node",
-  plugins: [nodeSqliteBundlePlugin],
+  plugins: [repositoryRuntimeEntrypointPlugin, nodeSqliteBundlePlugin],
   target: "node22.13",
 });
 
 await normalizeGeneratedTextFile(resolve(outputDirectory, "bin.js"));
+await normalizeGeneratedTextFile(resolve(outputDirectory, "repository-runtime.js"));
 
 await writeFile(
   resolve(outputDirectory, "bin.metafile.json"),
-  `${JSON.stringify(result.metafile, null, 2)}\n`,
+  `${JSON.stringify(mergeRepositoryRuntimeMetadata([result.metafile], runtime.metafile), null, 2)}\n`,
   "utf8",
 );
 

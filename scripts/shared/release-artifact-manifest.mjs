@@ -1,4 +1,13 @@
-import { cliNativeFiles, cliReleaseFilesForSchema } from "./cli-release-files.mjs";
+import {
+  repositoryRuntimePath,
+  repositoryRuntimeMaximumBytes,
+} from "./repository-runtime-contract.mjs";
+import { repositoryRuntimeInventory } from "./repository-runtime-inventory.mjs";
+import {
+  cliGraphPackageFiles,
+  cliNativeFiles,
+  cliReleaseFilesForSchema,
+} from "./cli-release-files.mjs";
 import { createHash } from "node:crypto";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/;
@@ -62,9 +71,19 @@ export function validateReleaseArtifactManifest(manifest) {
     );
   }
   const { artifact, archive, bundle, dependencies } = manifest;
-  const expectedFiles = cliReleaseFilesForSchema(manifest.schemaVersion);
+  let runtimeFiles;
+  if (manifest.schemaVersion === 9) {
+    try {
+      runtimeFiles = repositoryRuntimeInventory(archive?.files)
+        .files.filter((entry) => entry.path !== "dist/repository-runtime.json")
+        .map((entry) => entry.path);
+    } catch {
+      fail("release_artifact_archive_invalid", "The runtime graph inventory is invalid.");
+    }
+  }
+  const expectedFiles = cliReleaseFilesForSchema(manifest.schemaVersion, runtimeFiles);
   if (
-    ![5, 6, 7].includes(manifest.schemaVersion) ||
+    ![5, 6, 7, 8, 9].includes(manifest.schemaVersion) ||
     artifact?.name !== "@lervo/cli" ||
     typeof artifact.version !== "string" ||
     !semanticVersionPattern.test(artifact.version) ||
@@ -83,7 +102,8 @@ export function validateReleaseArtifactManifest(manifest) {
     artifact.type !== "module" ||
     artifact.node !== ">=22.13" ||
     artifact.bin !== "dist/bin.js" ||
-    canonicalJson(artifact.files) !== canonicalJson(expectedFiles)
+    canonicalJson(artifact.files) !==
+      canonicalJson(manifest.schemaVersion === 9 ? cliGraphPackageFiles : expectedFiles)
   ) {
     fail("release_artifact_identity_invalid", "The release artifact identity is invalid.");
   }
@@ -173,6 +193,8 @@ export function validateReleaseArtifactManifest(manifest) {
         expectedFiles.includes(entry.path) &&
         Number.isSafeInteger(entry.size) &&
         entry.size >= 0 &&
+        (entry.path !== repositoryRuntimePath ||
+          (entry.size > 0 && entry.size <= repositoryRuntimeMaximumBytes)) &&
         (!cliNativeFiles.includes(entry.path) ||
           (entry.size > 0 && entry.size <= (entry.path.endsWith(".node") ? 1048576 : 4096))) &&
         typeof entry.sha256 === "string" &&

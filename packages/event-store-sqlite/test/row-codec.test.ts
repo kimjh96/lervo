@@ -1,10 +1,11 @@
+import { computeEventHash, type EventHashInput } from "@lervo/event-contract";
 import { describe, expect, it } from "vitest";
 
 import { rowToEvent } from "../src/row-codec.js";
 import { type SqliteRow } from "../src/sqlite-row.js";
 
 function row(schemaVersion: number): SqliteRow {
-  return {
+  const stored = {
     event_id: "evt_stored_compatibility_01",
     project_id: "prj_stored_compatibility_01",
     run_id: "run_stored_compatibility_01",
@@ -31,8 +32,26 @@ function row(schemaVersion: number): SqliteRow {
         : {},
     ),
     previous_hash: null,
-    event_hash: `sha256:${"c".repeat(64)}`,
   };
+  // Supported rows carry their real hash; an unsupported version is rejected before hashing.
+  const eventHash =
+    schemaVersion > 6
+      ? `sha256:${"c".repeat(64)}`
+      : computeEventHash({
+          eventId: stored.event_id,
+          projectId: stored.project_id,
+          runId: stored.run_id,
+          sessionId: stored.session_id,
+          seq: stored.seq,
+          type: stored.type,
+          occurredAt: stored.occurred_at,
+          actor: JSON.parse(stored.actor_json),
+          schemaVersion,
+          policyVersion: stored.policy_version,
+          payload: JSON.parse(stored.payload_json),
+          previousHash: null,
+        } as EventHashInput);
+  return { ...stored, event_hash: eventHash };
 }
 
 describe("SQLite event row compatibility", () => {
@@ -42,6 +61,13 @@ describe("SQLite event row compatibility", () => {
       type: "work.causality.recorded",
       payload: { relationship: "root" },
     });
+  });
+
+  it("rejects stored content that no longer matches its hash", () => {
+    const changed = { ...row(2), occurred_at: "2026-09-02T00:00:00.000Z" };
+    expect(() => rowToEvent(changed)).toThrowError(
+      expect.objectContaining({ code: "integrity_failed" }),
+    );
   });
 
   it("reports an unsupported stored version distinctly", () => {

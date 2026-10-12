@@ -1,5 +1,4 @@
 import { lstat } from "node:fs/promises";
-import { computeEventHash, eventWithoutHash } from "@lervo/event-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
 
@@ -58,8 +57,7 @@ export class SupervisionAuthorityHistory {
         if (
           event.projectId !== this.projectId ||
           event.seq !== (this.cursor?.seq ?? 0) + 1 ||
-          event.previousHash !== (this.cursor?.eventHash ?? null) ||
-          computeEventHash(eventWithoutHash(event)) !== event.eventHash
+          event.previousHash !== (this.cursor?.eventHash ?? null)
         )
           throw new Error("The supervision authority event chain is invalid.");
         if (
@@ -110,8 +108,7 @@ export class SupervisionAuthorityHistory {
         tail === null ||
         tail.seq < this.cursor.seq ||
         anchor.seq !== this.cursor.seq ||
-        anchor.eventHash !== this.cursor.eventHash ||
-        computeEventHash(eventWithoutHash(anchor)) !== this.cursor.eventHash
+        anchor.eventHash !== this.cursor.eventHash
       )
         this.reset();
     }

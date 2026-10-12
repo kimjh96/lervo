@@ -1,3 +1,7 @@
+import {
+  readRuntimeModuleArtifact,
+  publishRuntimeModuleArtifact,
+} from "../../packages/runtime-security/dist/index.js";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { copyFile, mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -15,6 +19,10 @@ const entrypoint = resolve(repositoryRoot, "apps/node-runtime/dist/bin.js");
 const isolatedRoot = await mkdtemp(resolve(tmpdir(), "lervo-built-node-runtime-"));
 const isolatedEntrypoint = resolve(isolatedRoot, "node-runtime.js");
 await copyFile(resolve(repositoryRoot, "apps/cli/dist/node-runtime.js"), isolatedEntrypoint);
+await publishRuntimeModuleArtifact(
+  isolatedRoot,
+  await readRuntimeModuleArtifact(resolve(repositoryRoot, "apps/cli/dist")),
+);
 
 try {
   for (const candidate of [entrypoint, isolatedEntrypoint]) {

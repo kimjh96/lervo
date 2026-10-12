@@ -1,11 +1,17 @@
 # Context-quality evidence
 
 Status: `partial`
-As of: 2026-10-11
+As of: 2026-10-12
 
 This collection records implementation and evaluation of [ADR-0501](../../../decisions/execution/grounding/0501-share-context-quality-contracts-across-product-surfaces.md) and [ADR-0502](../../../decisions/distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md). The [delivery roadmap](../../../roadmap/natural-language-grounding-quality/context-quality-parity.md) defines the remaining acceptance requirements. Historical documents describe their measured source revision and stage; their status lines do not describe the current release.
 
 ## Current candidate
+
+The [current installed report-storage lifecycle record](installed-report-recovery.md) covers the internal CLI/Node aggregate artifacts on Node 22.13.0 and 26.5.1. All 96 isolated process-interruption/retry cases and twelve independent installed quota cases pass on Darwin arm64. Quota checks preserve atomic rollback, referenced reports, duplicate retries and usable plans when recording is unavailable. Performance, owner-retention operations, power-loss and other-platform requirements remain open.
+
+[ADR-0506](../../../decisions/execution/verification/0506-separate-platform-commit-cost-from-recording-gates.md) separates the platform commit cost from the latency and whole-process gates. The [commit-allowance qualification](installed-commit-allowance-qualification.md) adds per-connection statement reuse. Its thirty-pair cohorts pass 7/8 groups on Node 26.5.1 and 6/8 on Node 22.13.0; cold recording cost and one load-affected concurrent group remain. Process-crash and capacity cases pass on the new artifact. The [recording-cost evidence](installed-recording-cost.md) keeps the frozen v1 result at 3/8. The shared CLI/Node runtime integrates canonical selected validation, parsed coordinate validation and duplicate compression removal. Current packed artifacts pass [96 process-crash/retry and twelve capacity cases](installed-report-recovery.md), including 66,064 complete stored-body audits. Those lifecycle results do not establish a performance repair. Owner retention, power loss and other-platform qualification remain open.
+
+The [compiler and payload investigations](installed-compiler-function-cost.md) retain the rejected candidates and exact evidence. Most recently, private boolean payload validation at both copied-data boundaries preserves behavior and full reads but fails its 96-worker resource comparison. Removing ordinary selected definitions without routing the earlier event-builder validation also loads the full fallback and is rejected. Product artifacts remain unchanged. Native observation then showed one `F_FULLFSYNC` per publication commit, which led to ADR-0506. Do not rerun unchanged failed cohorts or weaken complete reads, fresh authority checks, durability or whole-process accounting.
 
 The [latest host-admission correction](context-quality-source-verification.md#current-consolidated-review) prevents policy and artifact callbacks from changing admitted verification coordinates, definitions, evaluator references or correction bounds. Five reproduced failures now pass, with two further scope/receiver checks. Runtime `sha256:64ad6db621441b68b10be2f391804af7d19fe569238e4443423035821a747118` replaces the prior process-birth build. Earlier resource cohorts and target receipts retain their original identities; they do not qualify this rebuild. All seven Darwin arm64 consumer commands and fresh Linux/Windows installed fixtures pass on the rebuild. Full regression passes 5,962 tests in 1,122 files, with eight existing live tests skipped across seven files. Production deployment remains pending.
 

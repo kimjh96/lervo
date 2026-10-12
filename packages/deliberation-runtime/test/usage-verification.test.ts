@@ -104,7 +104,12 @@ describe("deliberation usage verification", () => {
         },
       }) as unknown as EventEnvelope;
     const store = (events: EventEnvelope[]) => {
-      const sequenced = events.map((event, index) => ({ ...event, seq: index + 1 }));
+      const sequenced = events.map((event, index) => ({
+        ...event,
+        seq: index + 1,
+        previousHash: index === 0 ? null : `hash_${index}`,
+        eventHash: `hash_${index + 1}`,
+      }));
       return {
         latest: () => sequenced.at(-1) ?? null,
         list: (options?: { afterSeq?: number; limit?: number }) =>

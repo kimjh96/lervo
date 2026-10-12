@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6644afbea5ce83f5ae6b6829"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Amortize SQLite report checkpoints while preserving strong durable commits and ordinary event checkpoint behavior."

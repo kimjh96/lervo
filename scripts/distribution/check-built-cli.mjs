@@ -1,5 +1,5 @@
 import { verifyCliNativeArtifact } from "./lib/cli-native-artifact.mjs";
-import { cliReleaseFiles } from "../shared/cli-release-files.mjs";
+import { cliGraphPackageFiles } from "../shared/cli-release-files.mjs";
 import assert from "node:assert/strict";
 import { execFile, spawn } from "node:child_process";
 import { access, appendFile, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
@@ -64,7 +64,7 @@ async function verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, ex
     lervo: "./dist/bin.js",
     "lervo-node": "./dist/node-runtime.js",
   });
-  assert.deepEqual(deployedManifest.files, cliReleaseFiles);
+  assert.deepEqual(deployedManifest.files, cliGraphPackageFiles);
   assert.deepEqual(Object.keys(deployedManifest.dependencies).sort(), [
     "@anthropic-ai/claude-agent-sdk",
     "@anthropic-ai/sdk",

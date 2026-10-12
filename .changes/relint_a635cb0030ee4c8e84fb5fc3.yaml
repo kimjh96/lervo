@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a635cb0030ee4c8e84fb5fc3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Observe writer and report storage coordinates from one fresh manifest and reject project changes before backend opening."

@@ -28,7 +28,7 @@ function fail(): never {
 }
 
 export async function collectVerificationResultSources(input: {
-  events: Pick<EventStore, "latest" | "list" | "verifyIntegrity">;
+  events: Pick<EventStore, "latest" | "list">;
   artifacts: Pick<ArtifactStore, "get">;
   loadSuite: LoadVerificationSuite;
   /** Projections must remain local until this entire snapshot and its artifacts pass validation. */
@@ -36,8 +36,6 @@ export async function collectVerificationResultSources(input: {
 }): Promise<RepositorySupplementalSource[]> {
   let latest;
   try {
-    const integrity = input.events.verifyIntegrity();
-    if (!integrity.valid) return fail();
     latest = input.events.latest();
   } catch {
     return fail();
@@ -51,6 +49,7 @@ export async function collectVerificationResultSources(input: {
     visitEventSnapshot({
       events: input.events,
       throughSeq: latest.seq,
+      throughHash: latest.eventHash,
       visit: (event) => {
         input.observeEvent?.(event);
         if (event.type !== "verification.completed") return;
@@ -66,7 +65,6 @@ export async function collectVerificationResultSources(input: {
         if (completed.size > MAX_RESULTS) return fail();
       },
     });
-    if (!input.events.verifyIntegrity().valid) return fail();
   } catch {
     return fail();
   }

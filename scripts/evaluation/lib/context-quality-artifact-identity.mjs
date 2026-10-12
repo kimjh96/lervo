@@ -10,6 +10,8 @@ export async function artifactBuildHash(repository) {
       if (entry.isDirectory()) await visit(child);
       else if (
         entry.name.endsWith(".js") ||
+        entry.name.endsWith(".cjs") ||
+        entry.name === "repository-runtime.json" ||
         entry.name.endsWith(".node") ||
         entry.name === "file-sync.json" ||
         entry.name === "cas-io.json"

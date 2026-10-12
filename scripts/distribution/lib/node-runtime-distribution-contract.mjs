@@ -1,3 +1,8 @@
+import { repositoryRuntimeInventory } from "../../shared/repository-runtime-inventory.mjs";
+import {
+  repositoryRuntimePath,
+  repositoryRuntimeMaximumBytes,
+} from "../../shared/repository-runtime-contract.mjs";
 import { nativeRuntimeInventoryValid } from "../../shared/native-runtime-contract.mjs";
 import { nativeFileSyncInventoryValid } from "../../shared/native-file-sync-contract.mjs";
 import { basename, isAbsolute } from "node:path";
@@ -48,7 +53,7 @@ export function createNodeDistributionManifest(input) {
   );
   const dependencies = [...input.dependencies].sort();
   return {
-    schemaVersion: 3,
+    schemaVersion: 5,
     kind: "lervo_node_distribution",
     runtimeVersion: input.runtimeVersion,
     platform: input.platform,
@@ -84,7 +89,7 @@ export function validateNodeDistributionManifest(value) {
       "dependencyDigest",
       "claims",
     ]) ||
-    ![1, 2, 3].includes(value.schemaVersion) ||
+    ![1, 2, 3, 4, 5].includes(value.schemaVersion) ||
     value.kind !== "lervo_node_distribution" ||
     !versionPattern.test(value.runtimeVersion) ||
     value.node !== ">=22.13" ||
@@ -159,7 +164,7 @@ export function validateNodeDistributionManifest(value) {
   if (
     paths.some((path, index) => index > 0 && paths[index - 1] >= path) ||
     value.contentDigest !== canonicalDigest(value.files) ||
-    !(value.schemaVersion === 3
+    !(value.schemaVersion >= 3
       ? value.platform.os === "darwin"
         ? nativeRuntimeInventoryValid(value.files, true)
         : !value.files.some((entry) => entry.path.startsWith("dist/native/"))
@@ -174,6 +179,14 @@ export function validateNodeDistributionManifest(value) {
     ) ||
     value.dependencyDigest !== canonicalDigest(value.dependencies) ||
     !paths.includes("dist/bin.js") ||
+    (value.schemaVersion === 4 &&
+      !value.files.some(
+        (entry) =>
+          entry.path === repositoryRuntimePath &&
+          entry.kind === "file" &&
+          entry.size > 0 &&
+          entry.size <= repositoryRuntimeMaximumBytes,
+      )) ||
     !paths.includes("package.json") ||
     !paths.includes("sbom.cdx.json")
   ) {
@@ -181,6 +194,16 @@ export function validateNodeDistributionManifest(value) {
       "node_distribution_manifest_invalid",
       "The Node distribution manifest digest, ordering, or required files are invalid.",
     );
+  }
+  if (value.schemaVersion === 5) {
+    try {
+      repositoryRuntimeInventory(value.files);
+    } catch {
+      nodeDistributionFailure(
+        "node_distribution_manifest_invalid",
+        "The runtime graph inventory is invalid.",
+      );
+    }
   }
   return value;
 }

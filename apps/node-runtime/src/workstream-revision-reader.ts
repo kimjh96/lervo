@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { lstat } from "node:fs/promises";
-import { canonicalJson, computeEventHash, eventWithoutHash } from "@lervo/event-contract";
+import { canonicalJson } from "@lervo/event-contract";
 import type { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
 import {
@@ -85,8 +85,7 @@ export class WorkstreamRevisionReader {
         tail === null ||
         tail.seq < this.cursor.seq ||
         anchor.seq !== this.cursor.seq ||
-        anchor.eventHash !== this.cursor.eventHash ||
-        computeEventHash(eventWithoutHash(anchor)) !== this.cursor.eventHash
+        anchor.eventHash !== this.cursor.eventHash
       )
         this.reset();
     }
@@ -153,8 +152,7 @@ export class WorkstreamRevisionReader {
       for (const event of page) {
         if (
           event.seq !== (this.cursor?.seq ?? 0) + 1 ||
-          event.previousHash !== (this.cursor?.eventHash ?? null) ||
-          computeEventHash(eventWithoutHash(event)) !== event.eventHash
+          event.previousHash !== (this.cursor?.eventHash ?? null)
         )
           throw new Error("The local workstream event chain is invalid.");
         if (event.type === "workstream.snapshot.recorded") {

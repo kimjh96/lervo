@@ -17,10 +17,25 @@ import {
 
 import { SQLiteEventChainVerifier } from "./chain-verifier.js";
 import { EventStoreError } from "./errors.js";
-import { requireString, rowToEvent } from "./row-codec.js";
+import { rowToEvent } from "./row-codec.js";
 import { sqliteRow, sqliteRows } from "./sqlite-row.js";
+import { preparedStatement } from "./statement-cache.js";
 
 const maximumListedTypes = 64;
+
+/** Adjacent sequences in one result must form the stored predecessor chain. */
+function linkedEvents(events: EventEnvelope[]): EventEnvelope[] {
+  for (let index = 1; index < events.length; index++) {
+    const previous = events[index - 1]!,
+      event = events[index]!;
+    if (event.seq === previous.seq + 1 && event.previousHash !== previous.eventHash)
+      throw new EventStoreError(
+        "integrity_failed",
+        `The event chain coordinates break at ${event.eventId}.`,
+      );
+  }
+  return events;
+}
 
 export class SQLiteEventRepository {
   private readonly chainVerifier: SQLiteEventChainVerifier;
@@ -53,7 +68,9 @@ export class SQLiteEventRepository {
         : draft;
     const effectiveIdentity = eventIdentity(effectiveDraft, sanitized.payload);
     const existingRow = sqliteRow(
-      this.database.prepare("SELECT * FROM events WHERE event_id = ?").get(draft.eventId),
+      preparedStatement(this.database, "SELECT * FROM events WHERE event_id = ?").get(
+        draft.eventId,
+      ),
     );
     if (existingRow) {
       const existing = rowToEvent(existingRow);
@@ -73,25 +90,9 @@ export class SQLiteEventRepository {
       );
     }
 
-    const tailRow = sqliteRow(
-      this.database
-        .prepare(
-          "SELECT seq, event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1",
-        )
-        .get(this.projectId),
-    );
-    const seqValue = tailRow?.seq;
-    if (
-      seqValue !== undefined &&
-      (typeof seqValue !== "number" || !Number.isSafeInteger(seqValue))
-    ) {
-      throw new EventStoreError(
-        "integrity_failed",
-        "The event tail sequence is not a safe integer.",
-      );
-    }
-    const seq = typeof seqValue === "number" ? seqValue + 1 : 1;
-    const previousHash = tailRow ? requireString(tailRow, "event_hash") : null;
+    const tail = this.verifiedTail();
+    const seq = tail === null ? 1 : tail.seq + 1;
+    const previousHash = tail === null ? null : tail.eventHash;
     const withoutHash: EventHashInput = {
       ...effectiveDraft,
       payload: sanitized.payload,
@@ -111,45 +112,70 @@ export class SQLiteEventRepository {
           .join("; "),
       );
     }
-    this.database
-      .prepare(
-        `
+    preparedStatement(
+      this.database,
+      `
       INSERT INTO events (
         event_id, project_id, seq, run_id, session_id, type, occurred_at,
         actor_json, schema_version, policy_version, payload_json, previous_hash, event_hash
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
-      )
-      .run(
-        event.eventId,
-        event.projectId,
-        event.seq,
-        event.runId,
-        event.sessionId,
-        event.type,
-        event.occurredAt,
-        canonicalJson(event.actor),
-        event.schemaVersion,
-        event.policyVersion,
-        canonicalJson(event.payload),
-        event.previousHash,
-        event.eventHash,
-      );
+    ).run(
+      event.eventId,
+      event.projectId,
+      event.seq,
+      event.runId,
+      event.sessionId,
+      event.type,
+      event.occurredAt,
+      canonicalJson(event.actor),
+      event.schemaVersion,
+      event.policyVersion,
+      canonicalJson(event.payload),
+      event.previousHash,
+      event.eventHash,
+    );
     return { event, inserted: true, redactions: sanitized.redactions };
+  }
+
+  /**
+   * A new event extends only a predecessor whose content matches its hash and whose own
+   * link reaches the event before it. Older history is checked when read or verified.
+   */
+  private verifiedTail(): EventEnvelope | null {
+    const tail = this.latest();
+    if (tail === null) return null;
+    let predecessorHash: string | null | undefined = null;
+    if (tail.seq > 1) {
+      const row = sqliteRow(
+        preparedStatement(
+          this.database,
+          "SELECT * FROM events WHERE project_id = ? AND seq = ?",
+        ).get(this.projectId, tail.seq - 1),
+      );
+      predecessorHash = row === undefined ? undefined : rowToEvent(row).eventHash;
+    }
+    if (tail.previousHash !== predecessorHash)
+      throw new EventStoreError(
+        "integrity_failed",
+        `The event chain coordinates break at ${tail.eventId}.`,
+      );
+    return tail;
   }
 
   get(eventId: string): EventEnvelope | null {
     const row = sqliteRow(
-      this.database.prepare("SELECT * FROM events WHERE event_id = ?").get(eventId),
+      preparedStatement(this.database, "SELECT * FROM events WHERE event_id = ?").get(eventId),
     );
     return row ? rowToEvent(row) : null;
   }
 
   latest(): EventEnvelope | null {
     const row = sqliteRow(
-      this.database
-        .prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1")
-        .get(this.projectId),
+      preparedStatement(
+        this.database,
+        "SELECT * FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1",
+      ).get(this.projectId),
     );
     return row ? rowToEvent(row) : null;
   }
@@ -191,7 +217,7 @@ export class SQLiteEventRepository {
         .prepare(`SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY seq LIMIT ?`)
         .all(...parameters),
     );
-    return rows.map(rowToEvent);
+    return linkedEvents(rows.map(rowToEvent));
   }
 
   verifyIntegrity(): EventChainReport {

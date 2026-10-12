@@ -1,10 +1,13 @@
+import { prepareQualityEvent, type QualityRecordInput } from "./context-quality-event.js";
+import { createQualityRecordingAdmission } from "./context-quality-admission.js";
+import { createQualityRecordingScopes } from "./context-quality-scope.js";
+import { createHash } from "node:crypto";
 import { createContextQualityCommitQueue } from "./context-quality-commit.js";
 import { validContextOutcomeObservation } from "./context-outcome-observation.js";
 import { createProjectStoragePool, ProjectStorageError } from "@lervo/project-storage";
 import { canonicalHash } from "@lervo/search";
 import { storeVerificationBytes } from "@lervo/verification";
 import {
-  validateSchema,
   type ContextQualityPreparedEventPayload,
   type ContextQualityRequest,
   type ContextQualityVerification,
@@ -13,6 +16,18 @@ import type { ContextQualityPreparationResult } from "./context-quality-preparat
 
 const recordingStorage = createProjectStoragePool(undefined, { requiredEventSchemaVersion: 6 });
 const commitQualityEvent = createContextQualityCommitQueue();
+const recordingScopes = createQualityRecordingScopes();
+const recordingAdmission = createQualityRecordingAdmission((root, work) =>
+  recordingStorage.run(root, work),
+);
+
+export function beginContextQualityObservationScope(
+  repositoryRoot: string,
+  requestId: string,
+  beforeStorage = false,
+) {
+  return recordingScopes.begin(repositoryRoot, requestId, beforeStorage);
+}
 
 type Bindings = Pick<
   ContextQualityRequest,
@@ -27,71 +42,92 @@ export type ContextQualityRecording =
   | { status: "recorded"; eventId: string; artifactHash: string }
   | { status: "writer_not_active" | "unavailable" };
 
-/** Existing CAS and append-only stores own retention. Failure never becomes a durable success receipt. */
-async function record(input: {
-  repositoryRoot: string;
-  requestId: string;
-  coordinates?: { runId: string; sessionId: string };
-  projectId?: string;
-  identity: string;
-  type: "context.quality.prepared" | "context.quality.verified";
-  policyVersion: string;
-  report: unknown;
-  payload: Record<string, unknown>;
-}): Promise<ContextQualityRecording> {
+type RecordingFailure = Exclude<ContextQualityRecording, { status: "recorded" }>;
+function recordingFailure(error: unknown): RecordingFailure {
+  return {
+    status:
+      error instanceof ProjectStorageError && error.code === "storage_writer_not_active"
+        ? "writer_not_active"
+        : "unavailable",
+  };
+}
+
+/** Opening is drained by the observation owner and never grants a recording receipt. */
+export async function beginContextQualityStorageOpening(
+  repositoryRoot: string,
+): Promise<RecordingFailure | { status: "available"; reportWriting: boolean }> {
+  try {
+    return { status: "available", ...(await recordingStorage.startOpening(repositoryRoot)) };
+  } catch (error) {
+    return recordingFailure(error);
+  }
+}
+
+/** Storage adapters own retention. Failure never becomes a durable success receipt. */
+async function record(input: QualityRecordInput): Promise<ContextQualityRecording> {
   const snapshot = structuredClone(input);
   input = snapshot;
   try {
     const bytes = Buffer.from(JSON.stringify(input.report));
     if (bytes.byteLength > 1048576) throw new TypeError("Quality report exceeds storage bound.");
     input.report = undefined;
-    return await recordingStorage.run(
+    const scope = recordingScopes.admission(
+      input.repositoryRoot,
+      input.requestId,
+      input.type === "context.quality.prepared" ? "prepared" : "verified",
+    );
+    if (scope?.beforeStorage) {
+      const contentHash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+      const receipt = await recordingAdmission.admit(
+        input.repositoryRoot,
+        {
+          bytes,
+          contentHash,
+          draft: prepareQualityEvent(input, contentHash),
+          ...(input.projectId === undefined ? {} : { projectId: input.projectId }),
+        },
+        scope,
+      );
+      return receipt ? { status: "recorded", ...receipt } : { status: "unavailable" };
+    }
+    return await recordingAdmission.runLegacy(
       input.repositoryRoot,
       async (storage, assertCurrent): Promise<ContextQualityRecording> => {
         if (input.projectId !== undefined && input.projectId !== storage.manifest.projectId)
           return { status: "unavailable" };
         if (storage.writableEventSchemaVersion !== 6) return { status: "writer_not_active" };
-        const eventId = `evt_${canonicalHash({ type: input.type, identity: input.identity }).slice(7, 39)}`;
+        let eventId!: string;
+        const report = storage.events.reportWriter
+          ? {
+              bytes,
+              contentHash: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+            }
+          : undefined;
         let artifactHash!: string;
-        await commitQualityEvent(storage, assertCurrent, async () => {
-          const artifact = await storeVerificationBytes(storage.artifacts, bytes);
-          artifactHash = artifact.contentHash;
-          const payload = {
-            ...input.payload,
-            [input.type === "context.quality.prepared"
-              ? "reportArtifactHash"
-              : "verificationArtifactHash"]: artifact.contentHash,
-          };
-          if (
-            !validateSchema(
-              input.type === "context.quality.prepared"
-                ? "contextQualityPreparedEventPayload"
-                : "contextQualityVerifiedEventPayload",
-              payload,
-            ).valid
-          )
-            throw new TypeError("Invalid quality event.");
-          return {
-            eventId,
-            projectId: storage.manifest.projectId,
-            runId: input.coordinates?.runId ?? `run_${canonicalHash(input.requestId).slice(7, 39)}`,
-            sessionId:
-              input.coordinates?.sessionId ?? `ses_${canonicalHash(input.requestId).slice(7, 39)}`,
-            type: input.type,
-            schemaVersion: 6,
-            actor: { kind: "system" },
-            occurredAt: new Date().toISOString(),
-            policyVersion: input.policyVersion,
-            payload,
-          };
-        });
+        await commitQualityEvent(
+          storage,
+          assertCurrent,
+          async () => {
+            const artifact = report ?? (await storeVerificationBytes(storage.artifacts, bytes));
+            artifactHash = artifact.contentHash;
+            const draft = prepareQualityEvent(input, artifactHash);
+            eventId = draft.eventId;
+            return { ...draft, projectId: storage.manifest.projectId };
+          },
+          report,
+          report
+            ? recordingScopes.admission(
+                input.repositoryRoot,
+                input.requestId,
+                input.type === "context.quality.prepared" ? "prepared" : "verified",
+              )
+            : undefined,
+        );
         return { status: "recorded", eventId, artifactHash };
       },
     );
   } catch (error) {
-    if (error instanceof ProjectStorageError && error.code === "storage_writer_not_active")
-      return { status: "writer_not_active" };
-    return { status: "unavailable" };
+    return recordingFailure(error);
   }
 }
 export function recordContextQualityPreparation(input: {

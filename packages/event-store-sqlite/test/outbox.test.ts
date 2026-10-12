@@ -538,7 +538,7 @@ describe("SQLite transactional outbox", () => {
     raw.close();
   });
 
-  it("refuses to open an outbox whose delivery coordinates were tampered with", async () => {
+  it("rejects tampered delivery coordinates when they are read or explicitly verified", async () => {
     const path = await databasePath();
     const store = await SQLiteEventStore.open({ path, projectId });
     const event = store.append(draft()).event;
@@ -551,8 +551,22 @@ describe("SQLite transactional outbox", () => {
       .run("invalid destination", event.eventId);
     raw.close();
 
-    await expect(SQLiteEventStore.open({ path, projectId })).rejects.toMatchObject({
-      code: "integrity_failed",
-    });
+    // Opening checks only the store binding; the tampered row is rejected wherever it is used.
+    const reopened = await SQLiteEventStore.open({ path, projectId });
+    try {
+      for (const read of [
+        () => reopened.listOutbox(),
+        () =>
+          reopened.claim({
+            workerId: "worker-1",
+            claimedAt: "2026-08-18T00:02:00Z",
+            leaseDurationMs: 1_000,
+          }),
+        () => reopened.verifyIntegrity(),
+      ])
+        expect(read).toThrowError(expect.objectContaining({ code: "integrity_failed" }));
+    } finally {
+      reopened.close();
+    }
   });
 });
