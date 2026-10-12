@@ -8,6 +8,8 @@ import { expect, it } from "vitest";
 const execute = promisify(execFile);
 const repository = resolve(import.meta.dirname, "../../..");
 
+// A clean schema build typechecks twice and compiles every validator; shared two-core CI runners
+// take about 90 s for work that finishes in about 12 s on a developer machine.
 it("typechecks and builds without existing outputs and reproduces the validator bytes", async () => {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-schema-clean-build-"));
   try {
@@ -26,7 +28,7 @@ it("typechecks and builds without existing outputs and reproduces the validator 
     }
     for (const path of ["node_modules", "packages/schemas/node_modules"])
       await symlink(resolve(repository, path), resolve(root, path), "junction");
-    const run = (args) => execute(process.execPath, args, { cwd: root, timeout: 45000 });
+    const run = (args) => execute(process.execPath, args, { cwd: root, timeout: 120_000 });
     const tsc = resolve(repository, "node_modules/typescript/bin/tsc");
     await run([tsc, "--project", "packages/schemas/tsconfig.json", "--noEmit"]);
     await expect(
@@ -66,4 +68,4 @@ it("typechecks and builds without existing outputs and reproduces the validator 
   } finally {
     await rm(root, { recursive: true, force: true });
   }
-}, 60000);
+}, 300_000);

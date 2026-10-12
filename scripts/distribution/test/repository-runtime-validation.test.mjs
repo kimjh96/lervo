@@ -18,6 +18,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
+// Compiles the complete validator catalog; shared CI runners take about 50 s for 6 s of local work.
 it("keeps selected generated function bodies exactly equal to the full canonical compiler", async () => {
   const compiled = await compileSchemaValidators(resolve(repository, "packages/schemas"));
   function functions(source) {
@@ -50,7 +51,7 @@ it("keeps selected generated function bodies exactly equal to the full canonical
   expect(compiled.selectedBytes).toEqual(
     await readFile(resolve(repository, "packages/schemas/dist/generated/selected-validators.js")),
   );
-}, 30000);
+}, 180_000);
 
 it("never retries invalid selected values and loads the complete map once on an unselected name", () => {
   let loads = 0;
