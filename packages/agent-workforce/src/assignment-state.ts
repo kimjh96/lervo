@@ -2,7 +2,7 @@ import { ASSIGNMENT_ID, fail, validAssignment } from "./workforce-state-validati
 import { state, readBounded } from "./workforce-state-io.js";
 import { resolve } from "node:path";
 import { type WorkforceAssignment } from "./types.js";
-import { resolveRoleContract } from "@lervo/roles";
+import { createRoleContractResolver, type RoleContractResolver } from "@lervo/roles";
 import { readdir } from "node:fs/promises";
 import { workforceLimits } from "./limits.js";
 
@@ -25,20 +25,20 @@ export async function readAssignmentState(
   assignmentId: string,
 ): Promise<{ value: WorkforceAssignment; source: string }> {
   const target = await assignmentPath(root, assignmentId);
-  return readAssignmentAt(root, assignmentId, target);
+  return readAssignmentAt(assignmentId, target, createRoleContractResolver(root));
 }
 
 async function readAssignmentAt(
-  root: string,
   assignmentId: string,
   target: { path: string; projectId: string },
+  resolveRole: RoleContractResolver,
 ): Promise<{ value: WorkforceAssignment; source: string }> {
   const source = await readBounded(target.path);
   if (source === null) fail("assignment_not_found", "The assignment does not exist.");
   const value = JSON.parse(source) as WorkforceAssignment;
   if (!validAssignment(value, target.projectId) || value.assignmentId !== assignmentId)
     fail("workforce_state_invalid", "The assignment state is invalid.");
-  const contract = await resolveRoleContract(root, value.roleId);
+  const contract = await resolveRole(value.roleId);
   if (value.roleVersion === undefined || value.roleContractHash === undefined) {
     if (contract.sourceKind !== "built_in")
       fail("workforce_state_invalid", "A legacy assignment cannot bind to a repository role.");
@@ -113,14 +113,20 @@ export async function listAssignments(root: string): Promise<WorkforceAssignment
     .sort();
   if (names.length > workforceLimits.maximumAssignments)
     fail("workforce_state_invalid", "The assignment limit was exceeded.");
+  // Every assignment in one listing is checked against the same read of the role sources.
+  const resolveRole = createRoleContractResolver(root);
   return Promise.all(
     names.map(
       async (name) =>
         (
-          await readAssignmentAt(root, name.slice(0, -5), {
-            path: resolve(current.base, "assignments", name),
-            projectId: current.manifest.projectId,
-          })
+          await readAssignmentAt(
+            name.slice(0, -5),
+            {
+              path: resolve(current.base, "assignments", name),
+              projectId: current.manifest.projectId,
+            },
+            resolveRole,
+          )
         ).value,
     ),
   );
