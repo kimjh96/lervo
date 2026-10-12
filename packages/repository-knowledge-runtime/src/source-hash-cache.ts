@@ -1,6 +1,7 @@
 import { chmodSync, lstatSync, rmSync, type BigIntStats } from "node:fs";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
@@ -57,10 +58,9 @@ function privateDirectory(root: string): string | null {
 }
 
 function openDatabase(path: string): DatabaseSync {
-  const db = new DatabaseSync(path);
+  const db = openSqliteDatabase(path, { busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS });
   try {
     chmodSync(path, 0o600);
-    db.exec("PRAGMA busy_timeout=5000");
     const version = Number(sqliteRow(db.prepare("PRAGMA user_version").get())?.user_version ?? 0);
     if (version !== SCHEMA_VERSION) {
       db.exec("DROP TABLE IF EXISTS sources");

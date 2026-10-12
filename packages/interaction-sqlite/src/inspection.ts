@@ -1,6 +1,7 @@
 import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import type { ConversationDeliveryReceipt, ConversationOutboundMessage } from "@lervo/schemas";
 import { validateSchema } from "@lervo/schemas";
@@ -87,7 +88,8 @@ export async function inspectConversationOutboundDeliveries(input: {
       "The read-only interaction source must be an existing regular file.",
     );
   }
-  const database = new DatabaseSync(path, {
+  const database = openSqliteDatabase(path, {
+    busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
     readOnly: true,
     allowExtension: false,
     enableForeignKeyConstraints: true,

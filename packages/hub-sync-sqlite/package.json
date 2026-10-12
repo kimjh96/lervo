@@ -25,6 +25,7 @@
     "@lervo/policy-contract": "workspace:*",
     "@lervo/remote-command-contract": "workspace:*",
     "@lervo/schemas": "workspace:*",
+    "@lervo/sqlite-connection": "workspace:*",
     "@lervo/sync-contract": "workspace:*"
   },
   "devDependencies": {

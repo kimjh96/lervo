@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import {
   AssignmentConnectorPortError,
@@ -53,7 +54,10 @@ export class SqliteSlackAssignmentConnectorState implements SlackAssignmentConne
     options: SqliteSlackAssignmentConnectorStateOptionsV1 = {},
   ): SqliteSlackAssignmentConnectorState {
     mkdirSync(dirname(path), { recursive: true });
-    return new SqliteSlackAssignmentConnectorState(new DatabaseSync(path), options);
+    return new SqliteSlackAssignmentConnectorState(
+      openSqliteDatabase(path, { busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS }),
+      options,
+    );
   }
 
   async reserve(input: {

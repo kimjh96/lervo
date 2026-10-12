@@ -1,6 +1,6 @@
 import { mkdir, lstat, chmod } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { WorkforceAssignment } from "@lervo/agent-workforce";
 import { canonicalJson, sha256, stableId } from "@lervo/repository-knowledge";
@@ -30,10 +30,10 @@ export async function convergenceEffectCheckpoint<T>(input: {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
-  const db = new DatabaseSync(path);
+  const db = openSqliteDatabase(path, { busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS });
   await chmod(path, 0o600);
   db.exec(
-    "PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS checkpoints (coordinate_hash TEXT PRIMARY KEY, obligation_id TEXT NOT NULL, artifact_hash TEXT NOT NULL, assignment_id TEXT, input_hash TEXT, effect TEXT, lease_generation INTEGER)",
+    "CREATE TABLE IF NOT EXISTS checkpoints (coordinate_hash TEXT PRIMARY KEY, obligation_id TEXT NOT NULL, artifact_hash TEXT NOT NULL, assignment_id TEXT, input_hash TEXT, effect TEXT, lease_generation INTEGER)",
   );
   const columns = sqliteRows(db.prepare("PRAGMA table_info(checkpoints)").all()).map(
     (row) => row.name,
@@ -125,7 +125,7 @@ export async function readConvergenceEffectCheckpoint<T>(input: {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw error;
   }
-  const db = new DatabaseSync(path, { readOnly: true });
+  const db = openSqliteDatabase(path, { busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS, readOnly: true });
   try {
     if (
       !sqliteRows(db.prepare("PRAGMA table_info(checkpoints)").all()).some(

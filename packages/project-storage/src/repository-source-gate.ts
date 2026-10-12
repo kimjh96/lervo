@@ -1,7 +1,8 @@
 import { constants } from "node:fs";
 import { lstat, mkdir, open } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase } from "@lervo/sqlite-connection";
 
 import { resolveProjectPaths } from "@lervo/project";
 
@@ -85,7 +86,6 @@ async function databasePath(repositoryRoot: string): Promise<string> {
 }
 
 function initialize(database: DatabaseSync): void {
-  database.exec("PRAGMA busy_timeout = 100;");
   if (sourceGateRow(database.prepare("PRAGMA journal_mode").get())?.journal_mode !== "delete")
     throw new RepositorySourceGateError(
       "repository_source_gate_invalid",
@@ -152,7 +152,10 @@ async function acquire(
 ): Promise<RepositorySourceLease> {
   let database: DatabaseSync | undefined;
   try {
-    database = new DatabaseSync(await databasePath(repositoryRoot), { allowExtension: false });
+    database = openSqliteDatabase(await databasePath(repositoryRoot), {
+      busyTimeoutMs: 100,
+      allowExtension: false,
+    });
     initialize(database);
     database.exec(mode === "read" ? "BEGIN" : "BEGIN EXCLUSIVE");
     if (

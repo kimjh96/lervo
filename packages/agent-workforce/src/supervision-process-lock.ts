@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { lstatSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase } from "@lervo/sqlite-connection";
 
 function fileIdentity(path: string): string {
   const info = lstatSync(path, { bigint: true });
@@ -73,9 +74,9 @@ export class SupervisionProcessLock {
         if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       }
     }
-    const database = new DatabaseSync(this.path, { allowExtension: false });
+    const database = openSqliteDatabase(this.path, { busyTimeoutMs: 0, allowExtension: false });
     try {
-      database.exec("PRAGMA busy_timeout = 0; BEGIN IMMEDIATE;");
+      database.exec("BEGIN IMMEDIATE;");
       if (this.identity() !== identity) throw new Error("The supervision process lock changed.");
       this.database = database;
       this.transactionOpen = true;

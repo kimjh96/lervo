@@ -227,6 +227,9 @@ importers:
       '@lervo/skills':
         specifier: workspace:*
         version: link:../../packages/skills
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../../packages/sqlite-connection
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../../packages/storage-contract
@@ -548,6 +551,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../../packages/sqlite-connection
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../../packages/storage-contract
@@ -687,6 +693,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
@@ -739,6 +748,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
@@ -866,6 +878,9 @@ importers:
       '@lervo/conversation-deliberation-contract':
         specifier: workspace:*
         version: link:../conversation-deliberation-contract
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
     devDependencies:
       '@lervo/conversation-control':
         specifier: workspace:*
@@ -898,6 +913,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
 
   packages/conversation-responder:
     dependencies:
@@ -1095,6 +1113,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
@@ -1214,6 +1235,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
       '@lervo/sync-contract':
         specifier: workspace:*
         version: link:../sync-contract
@@ -1336,6 +1360,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
     devDependencies:
       '@lervo/adapter-native-chat':
         specifier: workspace:*
@@ -1407,6 +1434,9 @@ importers:
       '@lervo/runtime-security':
         specifier: workspace:*
         version: link:../runtime-security
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
 
   packages/managed-provider-host:
     dependencies:
@@ -1460,7 +1490,11 @@ importers:
         specifier: workspace:*
         version: link:../remote-command-contract
 
-  packages/node-work-admission: {}
+  packages/node-work-admission:
+    dependencies:
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
 
   packages/orchestrator:
     dependencies:
@@ -1549,6 +1583,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
     devDependencies:
       '@lervo/repository-registry':
         specifier: workspace:*
@@ -1592,6 +1629,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
 
   packages/product-surface-projection:
     dependencies:
@@ -1637,6 +1677,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
@@ -1679,6 +1722,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
 
   packages/repository-context:
     dependencies:
@@ -1781,6 +1827,9 @@ importers:
       '@lervo/repository-knowledge':
         specifier: workspace:*
         version: link:../repository-knowledge
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
 
   packages/repository-knowledge-runtime:
     dependencies:
@@ -1823,6 +1872,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
@@ -1931,6 +1983,8 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+
+  packages/sqlite-connection: {}
 
   packages/storage-contract:
     dependencies:

@@ -1,6 +1,7 @@
 import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import type {
   ConversationDeliberationJob,
@@ -47,7 +48,8 @@ async function openExisting(path: string): Promise<DatabaseSync | null> {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw error;
   }
-  const database = new DatabaseSync(absolute, {
+  const database = openSqliteDatabase(absolute, {
+    busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
     readOnly: true,
     allowExtension: false,
     enableForeignKeyConstraints: true,

@@ -18,7 +18,8 @@
     "@lervo/conversation-contract": "workspace:*",
     "@lervo/event-contract": "workspace:*",
     "@lervo/interaction": "workspace:*",
-    "@lervo/schemas": "workspace:*"
+    "@lervo/schemas": "workspace:*",
+    "@lervo/sqlite-connection": "workspace:*"
   },
   "devDependencies": {
     "@lervo/adapter-native-chat": "workspace:*",

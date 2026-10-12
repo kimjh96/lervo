@@ -1,7 +1,8 @@
 import { copyFile, lstat, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import { EventStoreError } from "./errors.js";
 import { rowToEvent } from "./row-codec.js";
@@ -50,7 +51,11 @@ export async function inspectExistingEventStore(input: {
   let database: DatabaseSync | undefined;
   try {
     await copyFile(path, inspectionPath);
-    database = new DatabaseSync(inspectionPath, { readOnly: true, allowExtension: false });
+    database = openSqliteDatabase(inspectionPath, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
+      readOnly: true,
+      allowExtension: false,
+    });
     const quickCheck = sqliteRow(database.prepare("PRAGMA quick_check;").get())?.quick_check;
     if (quickCheck !== "ok") {
       throw new EventStoreError("integrity_failed", "SQLite quick_check failed.");

@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lervo/conversation-platform": "workspace:*",
-    "@lervo/schemas": "workspace:*"
+    "@lervo/schemas": "workspace:*",
+    "@lervo/sqlite-connection": "workspace:*"
   }
 }

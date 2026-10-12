@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import {
   type RemoteCommandReplayCoordinate,
@@ -52,7 +53,8 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
       );
     }
     const path = await ensureRemoteCommandDatabasePath(options.path);
-    const database = new DatabaseSync(path, {
+    const database = openSqliteDatabase(path, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
       enableForeignKeyConstraints: true,
       allowExtension: false,
     });

@@ -1,6 +1,6 @@
 import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 import { EventStoreError } from "./errors.js";
 import { protectReportFiles } from "./report-file-permissions.js";
 import { readStorageFormat } from "./report-schema.js";
@@ -15,7 +15,8 @@ export async function openReadOnlyEventDatabase(input: { path: string; projectId
       "integrity_failed",
       "A read-only event store must be an existing regular file.",
     );
-  const database = new DatabaseSync(path, {
+  const database = openSqliteDatabase(path, {
+    busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
     readOnly: true,
     allowExtension: false,
     enableForeignKeyConstraints: true,
