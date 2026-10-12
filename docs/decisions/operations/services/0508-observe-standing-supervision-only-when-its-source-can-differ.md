@@ -43,6 +43,8 @@ Two changes, neither of which alters what an observation concludes.
 - A stamp of every file the agent and assignment listings read is unchanged. `workforceSourcePaths` lists the project manifest, `agents.json`, and the assignment, role, and capability package trees; the stamp records each entry's device, inode, mode, size, and nanosecond modification and change times.
 - The last full observation is less than 900 seconds old, the cadence of full history audits.
 
+An unresolved preflight block also ends in an unchanged skip. That block holds new proposals until an event resolves it, but the resolution is not part of the source digest. So the orchestrator never remembered this blocked state and re-evaluated it on every wake-up; the axli supervision has waited in it since a preflight block was recorded. `supervisionCursorDigest` now adds the latest unresolved block's event ID to what an unchanged skip compares, and the blocked path remembers its cursor like other blocked waits. Recording or resolving a block changes that identity, so the next cycle evaluates again. The orchestrator port is now `findUnresolvedPreflightBlock`, which returns that event ID.
+
 A skipped wake-up still runs the tail audit through `NodeSupervisionStore.auditHistory`. That audit checks the anchor and reads appended events, so a missed hint is still found within 60 seconds. If any check fails, if the stamp exceeds 4,096 entries, or if the store is busy, the full cycle runs. A result delivery waiting for a retry exposes its time through `nextRetryAt`, which now also wakes the loop. Before, the retry depended on the 60-second wake-up.
 
 ## Consequences

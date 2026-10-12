@@ -4,7 +4,7 @@
 
 The supervision loop uses `{ baseMs: 5_000, ceilingMs: 300_000 }`. A cycle counts as unchanged when it is:
 
-- An unchanged skip.
+- An unchanged skip. The skip compares the source digest and, when one exists, the event ID of the latest unresolved preflight block (`supervisionCursorDigest`).
 - An `idle` or `blocked` evaluation with the same source digest and blocked state as the previous evaluation.
 
 `busy`, `changed`, `effect_confirmed`, and `uncertain` cycles retain the five-second retry. A lapsed progress deadline therefore re-evaluates within 300 seconds. Local and peer event hints wake the owner immediately.
