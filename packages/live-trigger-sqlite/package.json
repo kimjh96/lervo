@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lervo/live-trigger-contract": "workspace:*",
-    "@lervo/runtime-security": "workspace:*"
+    "@lervo/runtime-security": "workspace:*",
+    "@lervo/sqlite-connection": "workspace:*"
   }
 }

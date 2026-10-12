@@ -1,6 +1,7 @@
 import { chmod, lstat, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import type {
   ManagedConversationGeneratedArtifact,
@@ -86,12 +87,11 @@ export class SQLiteConversationResponseArtifactStore implements ManagedConversat
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
-    const database = new DatabaseSync(absolute);
+    const database = openSqliteDatabase(absolute, { busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS });
     try {
       database.exec(`
         PRAGMA journal_mode = WAL;
         PRAGMA synchronous = FULL;
-        PRAGMA busy_timeout = 5000;
         CREATE TABLE IF NOT EXISTS response_artifacts (
           request_digest TEXT PRIMARY KEY,
           artifact_json TEXT NOT NULL,

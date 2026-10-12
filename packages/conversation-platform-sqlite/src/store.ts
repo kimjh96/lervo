@@ -1,6 +1,7 @@
 import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import type {
   ConversationPlatformDeliveryReplayPort,
@@ -51,7 +52,8 @@ export class SQLiteConversationPlatformStore
     options: SQLiteConversationPlatformStoreOptions,
   ): Promise<SQLiteConversationPlatformStore> {
     const path = await ensureConversationPlatformDatabasePath(options.path);
-    const database = new DatabaseSync(path, {
+    const database = openSqliteDatabase(path, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
       enableForeignKeyConstraints: true,
       allowExtension: false,
     });
@@ -85,7 +87,8 @@ export class SQLiteConversationPlatformStore
         "Delivery reconciliation requires an existing real platform store.",
       );
     }
-    const database = new DatabaseSync(absolute, {
+    const database = openSqliteDatabase(absolute, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
       enableForeignKeyConstraints: true,
       allowExtension: false,
     });

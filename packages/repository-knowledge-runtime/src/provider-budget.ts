@@ -1,7 +1,7 @@
 import type { OutboxStore } from "@lervo/storage-contract";
 import { mkdir, chmod, lstat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 import { sha256, stableId } from "@lervo/repository-knowledge";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { sqliteRow, sqliteRows } from "./sqlite-row.js";
@@ -24,10 +24,10 @@ export async function reserveConvergenceProviderCall(input: {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
-  const db = new DatabaseSync(path);
+  const db = openSqliteDatabase(path, { busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS });
   await chmod(path, 0o600);
   db.exec(
-    "PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS budgets (batch_hash TEXT PRIMARY KEY, calls INTEGER NOT NULL, obligation_id TEXT)",
+    "CREATE TABLE IF NOT EXISTS budgets (batch_hash TEXT PRIMARY KEY, calls INTEGER NOT NULL, obligation_id TEXT)",
   );
   if (
     !sqliteRows(db.prepare("PRAGMA table_info(budgets)").all()).some(

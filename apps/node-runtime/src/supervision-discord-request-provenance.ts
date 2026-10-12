@@ -1,6 +1,6 @@
 import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import { FileSystemCas } from "@lervo/cas";
 import { assertConversationInboundEvent } from "@lervo/conversation-contract";
@@ -21,7 +21,11 @@ export interface VerifiedDiscordGoalRequester {
 }
 
 function hasNaturalGoalIntent(path: string, event: ConversationInboundEvent): boolean {
-  const database = new DatabaseSync(path, { readOnly: true, allowExtension: false });
+  const database = openSqliteDatabase(path, {
+    busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
+    readOnly: true,
+    allowExtension: false,
+  });
   try {
     const row = database
       .prepare(
@@ -78,7 +82,11 @@ export async function readDiscordGoalRequesterProvenance(
   }
   if (!metadata.isFile() || metadata.isSymbolicLink())
     throw new Error("The Discord ingress store is unsafe.");
-  const database = new DatabaseSync(path, { readOnly: true, allowExtension: false });
+  const database = openSqliteDatabase(path, {
+    busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
+    readOnly: true,
+    allowExtension: false,
+  });
   let row: Record<string, unknown> | undefined;
   try {
     row = database

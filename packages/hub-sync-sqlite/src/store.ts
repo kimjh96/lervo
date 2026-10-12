@@ -1,7 +1,8 @@
 import { RuntimeChangeNotifications } from "./runtime-change-notifications.js";
 import { HubRuntimeChangeError, type HubRuntimeChangeSource } from "@lervo/hub-sync";
 
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import {
   type HubCommandArtifactLifecycleRepository,
@@ -203,7 +204,8 @@ export class HubSyncSQLiteStore
 
   static async open(options: { path: string }): Promise<HubSyncSQLiteStore> {
     const path = await ensureDatabasePath(options.path);
-    const database = new DatabaseSync(path, {
+    const database = openSqliteDatabase(path, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
       enableForeignKeyConstraints: true,
       allowExtension: false,
     });

@@ -1,6 +1,7 @@
 import { beginConversationRepositoryWork } from "./conversation-repository-work-admission.js";
 import { migrateConversationRepositoryWorkSessions } from "./conversation-repository-work-session-migration.js";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import type { RepositoryWorkProvider } from "@lervo/adapter-contract";
 
@@ -33,7 +34,10 @@ export class SQLiteConversationRepositoryWorkStore {
   private constructor(private readonly database: DatabaseSync) {}
 
   static open(path: string): SQLiteConversationRepositoryWorkStore {
-    const database = new DatabaseSync(path, { allowExtension: false });
+    const database = openSqliteDatabase(path, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
+      allowExtension: false,
+    });
     database.exec(`
       PRAGMA journal_mode = WAL;
       PRAGMA synchronous = FULL;

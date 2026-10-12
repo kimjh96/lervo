@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import { mkdir, lstat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 function alive(pid: number): boolean {
   try {
@@ -46,10 +46,10 @@ function serialized<T>(path: string, run: () => T): T {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
-  const db = new DatabaseSync(path);
+  const db = openSqliteDatabase(path, { busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS });
   chmodSync(path, 0o600);
   try {
-    db.exec("PRAGMA busy_timeout=5000; BEGIN IMMEDIATE");
+    db.exec("BEGIN IMMEDIATE");
     const value = run();
     db.exec("COMMIT");
     return value;

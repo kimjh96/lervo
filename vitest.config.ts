@@ -64,6 +64,7 @@ export default defineConfig({
       "@lervo/knowledge-okf": fromRoot("./packages/knowledge-okf/src/index.ts"),
       "@lervo/knowledge-graph": fromRoot("./packages/knowledge-graph/src/index.ts"),
       "@lervo/live-trigger-contract": fromRoot("./packages/live-trigger-contract/src/index.ts"),
+      "@lervo/sqlite-connection": fromRoot("./packages/sqlite-connection/src/index.ts"),
       "@lervo/live-trigger-sqlite": fromRoot("./packages/live-trigger-sqlite/src/index.ts"),
       "@lervo/managed-provider-host": fromRoot("./packages/managed-provider-host/src/index.ts"),
       "@lervo/node-runtime": fromRoot("./apps/node-runtime/src/index.ts"),

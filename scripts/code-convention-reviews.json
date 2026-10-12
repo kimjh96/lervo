@@ -130,14 +130,14 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/migrations.ts",
-      "contentHash": "sha256:cc7f18cb303ab0ed3e51883fcd0ac34847b3103a151c913741005160b06df9bc",
+      "contentHash": "sha256:b6e2c45b33f134e8417dfdc3290c6329f8cf95e06f0395a44140179d5e1dfaa0",
       "responsibility": "Hub synchronization SQLite schema migration",
       "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy. The ADR-0466 owner lease, ADR-0467 instruction candidate, ADR-0469 host continuity, and ADR-0477 delegation-bound definition tables are additive migrations.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:8b514f0240ea6ed5e0ba583c3fa2b96ed968718a6d23703444a28e7759d39c23",
+      "contentHash": "sha256:0b2cfceadee313a0e6e22f4dc47f96af84b4465ae82978d5c5f40bb175b776cb",
       "responsibility": "Hub synchronization SQLite store",
       "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store. Owner-lease, instruction-candidate, ADR-0469 host-record, and ADR-0477 definition methods only open a transaction around their own repositories.",
       "disposition": "cohesive"
@@ -158,14 +158,14 @@
     },
     {
       "path": "packages/organization-deployment-sqlite/src/rollback-store.ts",
-      "contentHash": "sha256:aebf88cc4a65a6c2e01ac6060e3b33788788d2ccae0ed0dd50a683df887e8da4",
+      "contentHash": "sha256:c208f990c80f078f6f01cddc034fa98f3f3960eb3bf4afb9ae50e35472b22d24",
       "responsibility": "Organization rollback replay SQLite persistence",
       "rationale": "Reservation, completion, recovery projection, target binding, and integrity checks all operate on one immutable rollback replay table and transaction lifecycle; authorization and rollback policy remain outside the adapter.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/policy-sqlite/src/store.ts",
-      "contentHash": "sha256:b8f56aeaba8429889095ff0c6837535974032a9243ba9c8aa5a149e2172d3973",
+      "contentHash": "sha256:b4212fc8561c058f4cc236d40bcf02c4ceaa9a03996c0be71c878cfbfec050e2",
       "responsibility": "Policy state SQLite adapter",
       "rationale": "The class owns one SQLite policy persistence boundary and its approval, verification, transaction, and query operations.",
       "disposition": "cohesive"

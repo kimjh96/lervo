@@ -17,6 +17,7 @@
   "dependencies": {
     "@lervo/policy": "workspace:*",
     "@lervo/policy-contract": "workspace:*",
-    "@lervo/schemas": "workspace:*"
+    "@lervo/schemas": "workspace:*",
+    "@lervo/sqlite-connection": "workspace:*"
   }
 }

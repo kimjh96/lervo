@@ -1,7 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { chmod, lstat, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import { canonicalJson } from "@lervo/event-contract";
 import { validateSchema } from "@lervo/schemas";
@@ -59,7 +60,8 @@ export class SQLiteConversationResultStore implements ConversationResultStore {
       throw new NodeRuntimeError("startup_failed", "Conversation result capacity is invalid.");
     }
     const absolute = await secureDatabasePath(path);
-    const database = new DatabaseSync(absolute, {
+    const database = openSqliteDatabase(absolute, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
       enableForeignKeyConstraints: true,
       allowExtension: false,
     });
@@ -67,7 +69,6 @@ export class SQLiteConversationResultStore implements ConversationResultStore {
       database.exec(`
         PRAGMA journal_mode = WAL;
         PRAGMA synchronous = FULL;
-        PRAGMA busy_timeout = 5000;
         CREATE TABLE IF NOT EXISTS conversation_execution_results (
           delivery_id TEXT PRIMARY KEY,
           command_id TEXT NOT NULL UNIQUE,

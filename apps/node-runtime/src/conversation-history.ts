@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import { canonicalJson } from "@lervo/event-contract";
 import { validateSchema, type ConversationInboundEvent } from "@lervo/schemas";
@@ -108,7 +108,11 @@ export class SQLiteConversationHistory implements ConversationHistoryPort {
   ): Promise<ConversationHistoryEvidenceTurn[]> {
     const cutoff = Date.parse(event.occurredAt);
     if (!Number.isSafeInteger(cutoff)) throw new Error("The conversation event time is invalid.");
-    const database = new DatabaseSync(this.path, { readOnly: true, allowExtension: false });
+    const database = openSqliteDatabase(this.path, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
+      readOnly: true,
+      allowExtension: false,
+    });
     try {
       const rows = database
         .prepare(
@@ -184,7 +188,11 @@ export class SQLiteConversationHistory implements ConversationHistoryPort {
   ): Promise<void> {
     const cutoff = Date.parse(event.occurredAt);
     if (!Number.isSafeInteger(cutoff)) throw new Error("The conversation event time is invalid.");
-    const database = new DatabaseSync(this.path, { readOnly: true, allowExtension: false });
+    const database = openSqliteDatabase(this.path, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
+      readOnly: true,
+      allowExtension: false,
+    });
     try {
       for (const evidence of turns) {
         const row =

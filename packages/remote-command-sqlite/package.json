@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lervo/remote-command": "workspace:*",
-    "@lervo/schemas": "workspace:*"
+    "@lervo/schemas": "workspace:*",
+    "@lervo/sqlite-connection": "workspace:*"
   }
 }

@@ -1,7 +1,8 @@
 import { constants } from "node:fs";
 import { lstat, mkdir, open } from "node:fs/promises";
 import { dirname, isAbsolute, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase } from "@lervo/sqlite-connection";
 import { NodeWorkAdmissionError } from "./contract.js";
 
 type Row = Record<string, unknown>;
@@ -44,13 +45,12 @@ async function ensureDatabasePath(path: string): Promise<string> {
 }
 
 export async function openAdmissionDatabase(path: string): Promise<DatabaseSync> {
-  const database = new DatabaseSync(await ensureDatabasePath(path));
+  const database = openSqliteDatabase(await ensureDatabasePath(path), { busyTimeoutMs: 100 });
   try {
     database.exec(`
         PRAGMA journal_mode = WAL;
         PRAGMA synchronous = FULL;
         PRAGMA foreign_keys = ON;
-        PRAGMA busy_timeout = 100;
       `);
     database.exec("BEGIN IMMEDIATE;");
     try {

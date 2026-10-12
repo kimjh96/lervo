@@ -1,6 +1,7 @@
 import { chmod, lstat, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import type { ConversationInboundEvent } from "@lervo/schemas";
 
@@ -61,7 +62,8 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
 
   static async open(path: string): Promise<SQLiteConversationIntentResolutionStore> {
     const absolute = await securePath(path);
-    const database = new DatabaseSync(absolute, {
+    const database = openSqliteDatabase(absolute, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
       enableForeignKeyConstraints: true,
       allowExtension: false,
     });
@@ -69,7 +71,6 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       database.exec(`
         PRAGMA journal_mode = WAL;
         PRAGMA synchronous = FULL;
-        PRAGMA busy_timeout = 5000;
         CREATE TABLE IF NOT EXISTS conversation_intent_resolutions (
           event_id TEXT PRIMARY KEY,
           message_hash TEXT NOT NULL,

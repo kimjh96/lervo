@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@lervo/organization-deployment-contract": "workspace:*",
-    "@lervo/schemas": "workspace:*"
+    "@lervo/schemas": "workspace:*",
+    "@lervo/sqlite-connection": "workspace:*"
   },
   "devDependencies": {
     "@lervo/repository-registry": "workspace:*"

@@ -1,4 +1,5 @@
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import type {
   OrganizationExecutiveEffectReceipt,
@@ -17,7 +18,8 @@ export class SQLiteOrganizationExecutiveEffectReplay implements OrganizationExec
   private constructor(private readonly database: DatabaseSync) {}
 
   static async open(path: string): Promise<SQLiteOrganizationExecutiveEffectReplay> {
-    const database = new DatabaseSync(await prepareOwnerOnlyDatabasePath(path), {
+    const database = openSqliteDatabase(await prepareOwnerOnlyDatabasePath(path), {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
       enableForeignKeyConstraints: true,
       allowExtension: false,
     });

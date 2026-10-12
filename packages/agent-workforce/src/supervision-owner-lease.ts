@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { watch, type FSWatcher } from "node:fs";
 import { basename, dirname } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 import { SupervisionProcessLock } from "./supervision-process-lock.js";
 
 const PROCESS_LOCK_TOKEN_PREFIX = "sop1:";
@@ -54,12 +55,14 @@ export class SQLiteSupervisionOwnerLeaseStore {
   ) {}
 
   static open(path: string): SQLiteSupervisionOwnerLeaseStore {
-    const database = new DatabaseSync(path, { allowExtension: false });
+    const database = openSqliteDatabase(path, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
+      allowExtension: false,
+    });
     try {
       database.exec(`
         PRAGMA journal_mode = WAL;
         PRAGMA synchronous = FULL;
-        PRAGMA busy_timeout = 5000;
         CREATE TABLE IF NOT EXISTS supervision_owner_leases (
           supervision_id TEXT PRIMARY KEY,
           owner_agent_id TEXT NOT NULL,

@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import type {
   LiveTriggerAdmissionPlanV1,
@@ -43,7 +44,8 @@ export class SQLiteLiveTriggerReservationStore implements LiveTriggerReservation
       throw new LiveTriggerSQLiteError("integrity_failed", "Invalid live-trigger capacity.");
     }
     const path = await ensureLiveTriggerDatabasePath(options.path);
-    const database = new DatabaseSync(path, {
+    const database = openSqliteDatabase(path, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
       enableForeignKeyConstraints: true,
       allowExtension: false,
     });

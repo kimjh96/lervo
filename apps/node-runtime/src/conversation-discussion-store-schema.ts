@@ -1,6 +1,7 @@
 import { chmod, lstat, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import { sqliteRow } from "./sqlite-row.js";
 
@@ -24,7 +25,8 @@ export async function openConversationDiscussionDatabase(
   path: string,
 ): Promise<{ path: string; database: DatabaseSync }> {
   const absolute = await securePath(path);
-  const database = new DatabaseSync(absolute, {
+  const database = openSqliteDatabase(absolute, {
+    busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
     enableForeignKeyConstraints: true,
     allowExtension: false,
   });
@@ -32,7 +34,6 @@ export async function openConversationDiscussionDatabase(
     database.exec(`
       PRAGMA journal_mode = WAL;
       PRAGMA synchronous = FULL;
-      PRAGMA busy_timeout = 5000;
       BEGIN IMMEDIATE;
     `);
     try {

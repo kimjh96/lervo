@@ -1,4 +1,5 @@
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import {
   configureConversationDeliberationDatabase,
@@ -30,7 +31,8 @@ export async function openConversationDeliberationQueueDatabase(input: {
   migrate(database: DatabaseSync): void;
 }): Promise<{ path: string; database: DatabaseSync }> {
   const path = await prepareConversationDeliberationDatabasePath(input.path);
-  const database = new DatabaseSync(path, {
+  const database = openSqliteDatabase(path, {
+    busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
     enableForeignKeyConstraints: true,
     allowExtension: false,
   });

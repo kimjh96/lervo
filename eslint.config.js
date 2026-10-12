@@ -101,6 +101,21 @@ export default defineConfig(
     },
   },
   {
+    // A connection must install its busy handler before any statement that can need a lock.
+    name: "lervo/sqlite-connection-owner",
+    files: ["apps/*/src/**/*.ts", "packages/*/src/**/*.ts"],
+    ignores: ["packages/sqlite-connection/src/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "NewExpression[callee.name='DatabaseSync']",
+          message: "Open SQLite connections with openSqliteDatabase from @lervo/sqlite-connection.",
+        },
+      ],
+    },
+  },
+  {
     name: "lervo/test-fixtures",
     files: ["**/*.test.{js,mjs,cjs,ts}", "**/test/**/*.{js,mjs,cjs,ts}"],
     rules: {

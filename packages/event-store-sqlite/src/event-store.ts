@@ -1,4 +1,5 @@
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import { type EventDraft } from "@lervo/event-contract";
 import { type ProjectManifest } from "@lervo/schemas";
@@ -135,7 +136,8 @@ export class SQLiteEventStore implements OutboxStore {
       );
     validateCheckpointOptions(options);
     const path = await ensureDatabasePath(options.path);
-    const database = new DatabaseSync(path, {
+    const database = openSqliteDatabase(path, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
       enableForeignKeyConstraints: true,
       allowExtension: false,
     });

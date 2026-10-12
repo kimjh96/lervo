@@ -15,7 +15,8 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@lervo/conversation-deliberation-contract": "workspace:*"
+    "@lervo/conversation-deliberation-contract": "workspace:*",
+    "@lervo/sqlite-connection": "workspace:*"
   },
   "devDependencies": {
     "@lervo/conversation-control": "workspace:*"

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { chmod, copyFile, lstat, mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import { resolveProjectPaths } from "@lervo/project";
 
@@ -51,9 +51,11 @@ export async function createEventWriterActivationBackup(input: {
     const database = (await exists(paths.eventDatabase)) ? "copied" : "absent";
     if (database === "copied") {
       const target = resolve(preparing, "events.sqlite");
-      const source = new DatabaseSync(paths.eventDatabase, { readOnly: true });
+      const source = openSqliteDatabase(paths.eventDatabase, {
+        busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
+        readOnly: true,
+      });
       try {
-        source.exec("PRAGMA busy_timeout=5000");
         source.prepare("VACUUM INTO ?").run(target);
       } finally {
         source.close();

@@ -1,4 +1,5 @@
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
 import {
   assertConversationInboundEvent,
@@ -73,7 +74,8 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
       throw new InteractionSQLiteError("integrity_failed", "Interaction maxRecords is invalid.");
     }
     const path = await ensureInteractionDatabasePath(options.path);
-    const database = new DatabaseSync(path, {
+    const database = openSqliteDatabase(path, {
+      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
       enableForeignKeyConstraints: true,
       allowExtension: false,
     });

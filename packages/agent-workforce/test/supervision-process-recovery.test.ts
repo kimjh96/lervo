@@ -51,15 +51,20 @@ async function stop(child: ChildProcess) {
 
 async function startOwner(root: string, path: string) {
   // Execute the source under test in a separate process without using stale build output.
-  for (const name of ["supervision-owner-lease", "supervision-process-lock"]) {
-    const source = await readFile(
-      fileURLToPath(new URL(`../src/${name}.ts`, import.meta.url)),
-      "utf8",
-    );
+  const sources = {
+    "supervision-owner-lease": "../src/supervision-owner-lease.ts",
+    "supervision-process-lock": "../src/supervision-process-lock.ts",
+    "sqlite-connection": "../../sqlite-connection/src/index.ts",
+  };
+  for (const [name, path] of Object.entries(sources)) {
+    const source = await readFile(fileURLToPath(new URL(path, import.meta.url)), "utf8");
     const compiled = transpileModule(source, {
       compilerOptions: { target: ScriptTarget.ES2022, module: ModuleKind.ES2022 },
     });
-    await writeFile(resolve(root, `${name}.js`), compiled.outputText);
+    await writeFile(
+      resolve(root, `${name}.js`),
+      compiled.outputText.replaceAll('"@lervo/sqlite-connection"', '"./sqlite-connection.js"'),
+    );
   }
   await writeFile(resolve(root, "package.json"), JSON.stringify({ type: "module" }));
   const entry = resolve(root, "owner.mjs");

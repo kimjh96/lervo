@@ -1,6 +1,7 @@
 import { mkdir, lstat, chmod } from "node:fs/promises";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 import { sha256 } from "@lervo/repository-knowledge";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { sqliteRow, sqliteRows } from "./sqlite-row.js";
@@ -40,8 +41,10 @@ async function healthDatabase(root: string, create: boolean): Promise<DatabaseSy
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     if (!create) return null;
   }
-  const db = new DatabaseSync(path, { readOnly: !create });
-  db.exec(create ? "PRAGMA busy_timeout=5000" : "PRAGMA busy_timeout=100");
+  const db = openSqliteDatabase(path, {
+    busyTimeoutMs: create ? SQLITE_BUSY_TIMEOUT_MS : 100,
+    readOnly: !create,
+  });
   if (create) {
     await chmod(path, 0o600);
     db.exec(
