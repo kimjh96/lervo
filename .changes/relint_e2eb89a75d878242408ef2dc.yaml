@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e2eb89a75d878242408ef2dc"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A standing supervision waiting on an unresolved preflight block remembers that state like other blocked waits, keyed on the block's identity, instead of re-evaluating its whole source on every wake-up."

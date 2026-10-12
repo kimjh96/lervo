@@ -1,4 +1,18 @@
 import type { OutcomeSupervisionReportV1 } from "@lervo/application-contract";
+import { operatingContractHash } from "@lervo/work-controller";
+
+/**
+ * What an unchanged skip compares. An unresolved preflight block holds new proposals until an
+ * event resolves it; that event is not part of the source digest, so the block's identity joins it.
+ */
+export function supervisionCursorDigest(
+  sourceRevisionDigest: string,
+  preflightBlock: string | null,
+): string {
+  return preflightBlock === null
+    ? sourceRevisionDigest
+    : operatingContractHash({ source: sourceRevisionDigest, preflightBlock });
+}
 
 type Cursor = { digest: string; nextCheckAt: string | null; blocked: boolean };
 
@@ -39,14 +53,16 @@ export class SupervisionCycleCursors {
     });
   }
 
+  /** `digest` is what later cycles compare; it defaults to the report's source digest. */
   remember(
     supervisionId: string,
     report: OutcomeSupervisionReportV1,
     expiresAt: string,
     blocked = false,
+    digest = report.sourceRevisionDigest,
   ): void {
     this.set(supervisionId, {
-      digest: report.sourceRevisionDigest,
+      digest,
       blocked,
       nextCheckAt:
         report.nextCheckAt !== null && Date.parse(report.nextCheckAt) < Date.parse(expiresAt)

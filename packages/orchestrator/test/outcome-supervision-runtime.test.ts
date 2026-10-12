@@ -240,13 +240,32 @@ describe("serialized causal owner decisions", () => {
       inspection,
     );
     f.ports.findPendingPlan = async () => null;
-    f.ports.hasUnresolvedPreflightBlock = async () => true;
-    expect(
-      (await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId)).disposition,
-    ).toBe("blocked");
+    let block: string | null = `evt_${"1".repeat(32)}`;
+    f.ports.findUnresolvedPreflightBlock = async () => block;
+    const runtime = new OutcomeSupervisionRuntime(f.ports);
+    const blocked = await runtime.runCycle(f.state.supervisionId);
+    expect(blocked.disposition).toBe("blocked");
+    expect(blocked.report).not.toBeNull();
     expect(f.propose).toHaveBeenCalledOnce();
     expect(f.execute).toHaveBeenCalledOnce();
     expect(f.attention).toHaveBeenCalledWith(expect.anything(), [
+      "preflight_repair_requires_review",
+    ]);
+    // The unchanged block is remembered; a later cycle repeats it without evaluating again.
+    const attention = f.attention.mock.calls.length;
+    expect(await runtime.runCycle(f.state.supervisionId)).toEqual({
+      disposition: "blocked",
+      report: null,
+    });
+    expect(f.attention).toHaveBeenCalledTimes(attention);
+    // Another block, or its resolution, changes what the skip compares although the digest does not.
+    block = `evt_${"2".repeat(32)}`;
+    expect((await runtime.runCycle(f.state.supervisionId)).report).not.toBeNull();
+    expect(f.attention).toHaveBeenCalledTimes(attention + 1);
+    block = null;
+    const resolved = await runtime.runCycle(f.state.supervisionId);
+    expect(resolved.report).not.toBeNull();
+    expect(f.attention).not.toHaveBeenLastCalledWith(expect.anything(), [
       "preflight_repair_requires_review",
     ]);
   });

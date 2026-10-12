@@ -302,7 +302,8 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
         ports,
       }),
     findPendingPlan: async () => session().findPendingPlan(),
-    hasUnresolvedPreflightBlock: async () => session().findUnresolvedPreflightBlock() !== null,
+    findUnresolvedPreflightBlock: async () =>
+      session().findUnresolvedPreflightBlock()?.eventId ?? null,
     recordDecision: async (plan, review) => {
       if (sourceBinding === null)
         throw new NodeSupervisionError("supervision_authority_unavailable");

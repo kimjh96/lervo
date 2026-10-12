@@ -67,8 +67,11 @@ export interface OutcomeSupervisionPorts {
   ): Promise<{ eventIds: string[] } | null>;
   /** Includes unresolved old-source decisions; revision changes never erase uncertain effects. */
   findPendingPlan(supervisionId: string): Promise<OperatingActionPlanV1 | null>;
-  /** A canonical preflight block survives source-change supersession until its exact effect settles. */
-  hasUnresolvedPreflightBlock?(supervisionId: string): Promise<boolean>;
+  /**
+   * The event ID of the latest unresolved canonical preflight block, or null. A block survives
+   * source-change supersession until its exact effect settles.
+   */
+  findUnresolvedPreflightBlock?(supervisionId: string): Promise<string | null>;
   /** Durable content-addressed decision record. Same identity with different bytes rejects. */
   recordDecision(
     plan: OperatingActionPlanV1,
