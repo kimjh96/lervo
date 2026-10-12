@@ -208,6 +208,9 @@ async function main() {
   const expectedManifest = await readExpectedManifest();
 
   const fixtureRoot = await mkdtemp(resolve(tmpdir(), "lervo-installed-cli-"));
+  // Every CLI the smoke check starts inherits this, so it never registers its fixture in the
+  // host's repository registry or touches other user state (ADR-0470).
+  process.env.LERVO_USER_STATE_DIRECTORY = resolve(fixtureRoot, "user-state");
   try {
     const deploymentRoot = resolve(fixtureRoot, "installation");
     const projectRoot = resolve(fixtureRoot, "project");
