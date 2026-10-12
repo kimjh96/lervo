@@ -11,10 +11,10 @@ Lervo opened its SQLite stores in 40 places. Most ran `PRAGMA journal_mode = WAL
 
 A two-process reproduction on Node 26.5.1 and 22.13.0 held a WAL database exclusively for 400 ms:
 
-| Statement order | Result |
-| --- | --- |
+| Statement order                             | Result                                       |
+| ------------------------------------------- | -------------------------------------------- |
 | `journal_mode` first, `busy_timeout` second | Failed within 1 ms with `database is locked` |
-| `busy_timeout` first | Waited about 470 ms, then succeeded |
+| `busy_timeout` first                        | Waited about 470 ms, then succeeded          |
 
 Node's `DatabaseSync` `timeout` option sets the wait at construction. However, `@types/node` for the supported minimum, Node 22.13, does not declare it.
 
@@ -24,11 +24,11 @@ Node's `DatabaseSync` `timeout` option sets the wait at construction. However, `
 
 Every production connection uses it. Callers that treat a held lock as an answer keep their wait:
 
-| Caller | Wait |
-| --- | ---: |
-| Supervision process lock | 0 ms |
-| Node work admission | 100 ms |
-| Repository source gate | 100 ms |
+| Caller                                                |   Wait |
+| ----------------------------------------------------- | -----: |
+| Supervision process lock                              |   0 ms |
+| Node work admission                                   | 100 ms |
+| Repository source gate                                | 100 ms |
 | Resident health, when it does not create the database | 100 ms |
 
 Later `busy_timeout` statements were removed, so each connection's wait is set in one place. An ESLint rule rejects `new DatabaseSync` in application and package sources outside this package. Tests, evaluation scripts and distribution pilots may still construct connections directly.
