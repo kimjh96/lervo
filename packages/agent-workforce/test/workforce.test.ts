@@ -11,7 +11,7 @@ import {
   readCapabilityPackage,
 } from "@lervo/capabilities";
 import type { CapabilityPackageManifest } from "@lervo/schemas";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   cancelAssignment,
@@ -29,6 +29,20 @@ import {
   registerAgent,
   renewAssignmentLease,
 } from "../src/index.js";
+
+const inventoryReads = vi.hoisted(() => ({ count: 0 }));
+vi.mock("@lervo/capabilities", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@lervo/capabilities")>();
+  return {
+    ...actual,
+    discoverCapabilityInventory: (
+      input: Parameters<typeof actual.discoverCapabilityInventory>[0],
+    ) => {
+      inventoryReads.count += 1;
+      return actual.discoverCapabilityInventory(input);
+    },
+  };
+});
 
 const roots: string[] = [];
 const execute = promisify(execFile);
@@ -621,6 +635,27 @@ describe("repository agent workforce", () => {
         capabilityPackageIds: ["tools/research", "tools/extra"],
       }),
     ).rejects.toMatchObject({ code: "agent_state_conflict" });
+  });
+
+  it("reads local capability packages once per registry read for every bound agent", async () => {
+    const root = await repository();
+    await installCapability(root, "tools/research");
+    for (let index = 0; index < 3; index += 1)
+      await registerAgent({
+        repositoryRoot: root,
+        roleId: "researcher",
+        provider: "codex",
+        capabilityPackageIds: ["tools/research"],
+      });
+    inventoryReads.count = 0;
+    expect(await listAgents(root, { readOnly: true })).toHaveLength(3);
+    expect(inventoryReads.count).toBe(1);
+    await rm(resolve(root, ".lervo/capabilities/packages"), { recursive: true });
+    inventoryReads.count = 0;
+    await expect(listAgents(root, { readOnly: true })).rejects.toMatchObject({
+      code: "capability_not_found",
+    });
+    expect(inventoryReads.count).toBe(1);
   });
 
   it("restores state when canonical event recording fails", async () => {

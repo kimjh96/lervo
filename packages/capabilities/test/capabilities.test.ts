@@ -16,6 +16,7 @@ import {
   encodeCapabilityPackage,
   FileSystemCapabilityRegistry,
   createCapabilityActivationRequests,
+  discoverCapabilityInventory,
   hashCapabilityFiles,
   installCapabilityPackage,
   recommendCapabilities,
@@ -150,6 +151,37 @@ it("verifies, envelopes, installs, and resolves an immutable local capability", 
       }),
     }),
   ]);
+});
+
+it("resolves several requests from one inventory snapshot without rereading packages", async () => {
+  const repositoryRoot = await root();
+  const userRoot = resolve(repositoryRoot, "user");
+  await installCapabilityPackage({
+    repositoryRoot,
+    scope: "project",
+    package: await readCapabilityPackage(await packageAt(resolve(await root(), "package"))),
+  });
+  const request = {
+    repositoryRoot,
+    projectId: "prj_0123456789abcdef01234567",
+    capabilityIds: ["research/web-search"],
+    provider: "codex",
+    platform: "darwin",
+    generatedAt: "2026-08-25T00:00:00.000Z",
+    userRoot,
+  } as const;
+  const direct = await resolveCapabilities(request);
+  const inventory = await discoverCapabilityInventory({ repositoryRoot, userRoot });
+  await rm(capabilityRoot(repositoryRoot, "project"), { recursive: true });
+  const first = await resolveCapabilities({ ...request, inventory });
+  const second = await resolveCapabilities({ ...request, inventory });
+  expect(first).toEqual(direct);
+  expect(second).toEqual(direct);
+  first.activationPackages[0]!.manifest.version = "9.9.9";
+  expect((await resolveCapabilities({ ...request, inventory })).selected[0]!.version).toBe("1.2.0");
+  await expect(resolveCapabilities(request)).rejects.toMatchObject({
+    code: "capability_not_found",
+  });
 });
 
 it("migrates a loose project skill and recommends it from declared natural-language intent", async () => {
