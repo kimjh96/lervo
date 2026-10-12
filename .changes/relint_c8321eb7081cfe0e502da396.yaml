@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c8321eb7081cfe0e502da396"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reduce repeated project path calculation while preserving native path semantics and fresh storage validation."

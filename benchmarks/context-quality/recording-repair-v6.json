@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "protocolId": "context-quality-recording-repair-v6",
+  "registeredAt": "2026-10-09T16:08:01.123Z",
+  "scope": "Same-build qualification of admitting bounded report preparation before CAS and grouping all members frozen on the next event-loop turn after the first preparation settles. Drain all included effects before a fresh binding observation and one synchronous durable transaction. Failure drains before rejection; later arrivals observe separately. All existing floors and workload definitions retained.",
+  "profiles": [4096, 12288],
+  "pairs": {
+    "warm": 30,
+    "cold": 5,
+    "changed": 30,
+    "concurrent": 30
+  },
+  "warmups": 2,
+  "samples": 5,
+  "concurrency": 4,
+  "maximumProviderCalls": 0,
+  "processDeadlineMs": 30000,
+  "control": "Writer6 enabled in an isolated repository; common preparation plus exact task verification with recording disabled.",
+  "candidate": "Identical bytes, root, manifest and initial durable state; record both preparation and task verification through the existing writer6 operations.",
+  "expectedArtifactBuildHash": "sha256:8077bcb0d1c6be1e2d2745f4c2a1f487de01e380513c77b5b41a250c3955ca0d",
+  "gates": {
+    "meanAddedMsUpper95": 10,
+    "processRatioUpper95": 1.2,
+    "rssRatioUpper95": 1.25,
+    "cpuRatioUpper95": 1.25,
+    "maximumStateBytesPerRequest": 131072
+  },
+  "minimumPracticalImprovement": "Target at least 20 percent lower mean recorded warm, changed and concurrent batch latency against retained v1; historical comparison is descriptive and cannot substitute for current-build noninferiority gates.",
+  "gateBasis": "Retain historical 10ms, 1.20 process and 1.25 RSS noninferiority floors. Add CPU1.25 and128KiB/request storage caps. Added latency is per measured batch, including all four concurrent callers; no division to conceal queue or storage contention.",
+  "confidence": "Paired percentile bootstrap of per-process means,10000 draws,xorshift32 seed501,two-sided95percent; report each workload/profile independently.",
+  "fixture": "Fixed32KiB Markdown candidate, one complete generated owner clause, exact4byte task result, deterministic non-provider task evaluator. Native instruction delivery remains unobserved. Corpus limits unchanged.",
+  "schedule": "Alternate arm order per pair; restore identical scratch baseline before each arm. Cold means fresh application process, not flushed OS caches. Warmups2 and samples5 retained. Changed-source writes new same-length bytes before each measured batch. Concurrent launches4 identical consumers together. Stale-selection probe after changed samples is outside batch timers but inside process timing.",
+  "stopRules": [
+    "Any failed/cancelled/missing process rejects the cohort; retain it without retry or replacement.",
+    "Any accepted stale source, false task pass, unknown recording failure or integrity mismatch rejects correctness.",
+    "No threshold changes after observing the cohort; any repair is a new candidate and retains this report."
+  ],
+  "conditions": "Shared workstation. During this cohort the agent runs no tests, builds, installations or knowledge scans; resident/user workloads remain uncontrolled and host load/CPU counters are retained.",
+  "limitations": [
+    "No real-task or human-reviewed quality inference",
+    "No stochastic provider calls, tokens or task-completion estimate",
+    "No full-repository scan cost",
+    "No machine-cold evidence",
+    "No multi-process concurrent writers: concurrent consumers share one process",
+    "No fleet deployment or writer activation outside disposable fixtures"
+  ],
+  "priorRejectedReport": {
+    "path": "docs/evidence/quality/context-quality-active-resource-v1.json",
+    "contentHash": "sha256:96e5925151ef8d7325693737265ef8daa353667ac12dc505350bb80209a73c3c"
+  },
+  "rejectedRepairReport": {
+    "path": "docs/evidence/quality/context-quality-recording-repair-v1.json",
+    "contentHash": "sha256:41a644f7349e0d154560902e94279c44edc9b461521e866d2aac45e26fe610ab"
+  },
+  "rejectedOverlappingRepairReport": {
+    "path": "docs/evidence/quality/context-quality-recording-repair-v2.json",
+    "contentHash": "sha256:334e71d7e821cfe4873a4fb99869cf7c6000b9659b5a19ff8cee0d3fe79a345b"
+  },
+  "rejectedGroupedRepairReport": {
+    "path": "docs/evidence/quality/context-quality-recording-repair-v3.json",
+    "contentHash": "sha256:70bb02566b6b89aa0d1519449e080f407ef2e523f1615d212822916e17ec1de3"
+  },
+  "rejectedSmallReadRepairReport": {
+    "path": "docs/evidence/quality/context-quality-recording-repair-v4.json",
+    "contentHash": "sha256:5f209135e7b06705492d1a97ccd474d3ac93240cfb2e97b5e310e1ec7921d582"
+  },
+  "rejectedManifestRepairReport": {
+    "path": "docs/evidence/quality/context-quality-recording-repair-v5.json",
+    "contentHash": "sha256:f926b1f847f523ae30f44f96ab501ddf16e90eb98021c40b2b83aabf69e98c3b"
+  }
+}

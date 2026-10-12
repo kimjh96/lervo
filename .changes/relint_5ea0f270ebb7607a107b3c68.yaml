@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5ea0f270ebb7607a107b3c68"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Deliver the configured English documentation policy in direct terminal context independently of retrieval results."

@@ -18,8 +18,26 @@ async function fixture() {
   const scope = nodeWorkAdmissionScope(resolve(root, "node.json"));
   const configDigest = `sha256:${"a".repeat(64)}`;
   const live = new Set([1001, 2001, 3001]);
-  const first = await SQLiteNodeWorkAdmission.open({ path, isAlive: (pid) => live.has(pid) });
-  const second = await SQLiteNodeWorkAdmission.open({ path, isAlive: (pid) => live.has(pid) });
+  const first = await SQLiteNodeWorkAdmission.open({
+    path,
+    observeProcess: (pid) =>
+      live.has(pid)
+        ? {
+            status: "present",
+            identity: `proc_linux_ticks_v1:sha256:${String(pid).padStart(64, "0")}`,
+          }
+        : { status: "absent" },
+  });
+  const second = await SQLiteNodeWorkAdmission.open({
+    path,
+    observeProcess: (pid) =>
+      live.has(pid)
+        ? {
+            status: "present",
+            identity: `proc_linux_ticks_v1:sha256:${String(pid).padStart(64, "0")}`,
+          }
+        : { status: "absent" },
+  });
   return { first, second, scope, configDigest, live };
 }
 

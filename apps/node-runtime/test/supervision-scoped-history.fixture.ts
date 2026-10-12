@@ -29,6 +29,12 @@ export async function scopedHistoryFixture(roots: string[]) {
     rows.push(value);
     return value;
   };
+  // Like the SQLite store, this port returns only events whose content matches their hash.
+  const verified = <T extends ReturnType<typeof event> | null>(row: T): T => {
+    if (row !== null && computeEventHash(eventWithoutHash(row)) !== row.eventHash)
+      throw new Error(`The event hash does not match at ${row.eventId}.`);
+    return structuredClone(row);
+  };
   const events: EventStore = {
     append() {
       throw new Error("Read-only projection must not append events");
@@ -36,15 +42,14 @@ export async function scopedHistoryFixture(roots: string[]) {
     transact() {
       throw new Error("Read-only projection must not write a transaction");
     },
-    get: (id) => structuredClone(rows.find((row) => row.eventId === id) ?? null),
-    latest: () => structuredClone(rows.at(-1) ?? null),
+    get: (id) => verified(rows.find((row) => row.eventId === id) ?? null),
+    latest: () => verified(rows.at(-1) ?? null),
     list: (options) =>
-      structuredClone(
-        rows
-          .slice(options?.afterSeq ?? 0)
-          .filter((row) => options?.runId === undefined || row.runId === options.runId)
-          .slice(0, options?.limit),
-      ),
+      rows
+        .slice(options?.afterSeq ?? 0)
+        .filter((row) => options?.runId === undefined || row.runId === options.runId)
+        .slice(0, options?.limit)
+        .map(verified),
     verifyIntegrity: () => ({
       valid: true,
       eventCount: rows.length,

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d60862c0d5f98ea574872909"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Bind native transfer publication to the exact pair digest in its receipt."

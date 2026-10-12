@@ -914,3 +914,69 @@ describe("applied owner rules (ADR-0467)", () => {
     );
   });
 });
+
+describe("instruction scope freshness", () => {
+  it("uses target scope and rejects a changed rule between discovery and loading", async () => {
+    const fixture = await fixtureRepository();
+    const rulePath = `docs/instructions/generated/rule_${"b".repeat(24)}.md`;
+    await mkdir(resolve(fixture.root, "docs/instructions/generated"), { recursive: true });
+    const content =
+      '---\npaths: ["packages/api/**"]\n---\n# API policy\nVerify API behavior.\n## Exceptions\nKeep generated clients unchanged.\n';
+    await writeFile(resolve(fixture.root, rulePath), content);
+    const other = await discoverInstructionDocuments({
+      repositoryRoot: fixture.root,
+      registry: fixture.registry,
+      expectedPaths: ["packages/other/file.ts"],
+    });
+    expect(other.map((item) => item.path)).not.toContain(rulePath);
+    const instructions = await discoverInstructionDocuments({
+      repositoryRoot: fixture.root,
+      registry: fixture.registry,
+      expectedPaths: ["packages/api/src/handler.ts"],
+    });
+    const plan = createContextPlan({ ...planInput(fixture), instructionDocuments: instructions });
+    expect(plan.documents.find((item) => item.path === rulePath)?.expectedContentHash).toBe(
+      hash(content),
+    );
+    await writeFile(
+      resolve(fixture.root, rulePath),
+      content.replace("packages/api/**", "packages/other/**"),
+    );
+    await expect(
+      loadContextPlan({
+        repositoryRoot: fixture.root,
+        plan,
+        sourceRevision: "git:current",
+        recordedAt: new Date("2026-08-18T01:02:01Z"),
+      }),
+    ).rejects.toMatchObject({ code: "content_hash_mismatch" });
+  });
+});
+
+it("requires structured task coordinates before managed discovery admits a scoped owner rule", async () => {
+  const root = await temporaryDirectory();
+  await mkdir(resolve(root, "docs/instructions/generated"), { recursive: true });
+  const path = `docs/instructions/generated/rule_${"c".repeat(24)}.md`;
+  await writeFile(
+    resolve(root, path),
+    "---\nlervo:\n  contextScope:\n    schemaVersion: 1\n    when:\n      requestedActions: [repository.write]\n---\nVerify authorized changes.\n",
+  );
+  const input = {
+    repositoryRoot: root,
+    registry: { schemaVersion: 1 as const, documents: {} },
+    expectedPaths: ["src/a.ts"],
+  };
+  await expect(discoverInstructionDocuments(input)).rejects.toMatchObject({
+    code: "required_rule_unresolved",
+  });
+  const matching = await discoverInstructionDocuments({
+    ...input,
+    instructionTargets: { requestedActions: ["repository.write"] },
+  });
+  expect(matching.map((candidate) => candidate.path)).toContain(path);
+  const changed = await discoverInstructionDocuments({
+    ...input,
+    instructionTargets: { requestedActions: ["repository.read"] },
+  });
+  expect(changed.map((candidate) => candidate.path)).not.toContain(path);
+});

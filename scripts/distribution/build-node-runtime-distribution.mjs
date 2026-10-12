@@ -1,3 +1,10 @@
+import {
+  readRuntimeModuleArtifact,
+  publishRuntimeModuleArtifact,
+} from "../../packages/runtime-security/dist/index.js";
+import { copyNativeRuntimeArtifact } from "../shared/native-runtime-artifact.mjs";
+import { nativeCasSourceHash } from "../shared/native-cas-artifact.mjs";
+import { nativeFileSyncSourceHash } from "../shared/native-file-sync-artifact.mjs";
 import { execFile } from "node:child_process";
 import {
   chmod,
@@ -76,7 +83,12 @@ async function assertBundle(bundlePath, metafilePath) {
   }
   const externalImports = Object.values(metafile.outputs ?? {})
     .flatMap((output) => output.imports ?? [])
-    .filter((entry) => entry.external && !isBuiltinModuleSpecifier(entry.path))
+    .filter(
+      (entry) =>
+        entry.external &&
+        entry.path !== "./repository-runtime.js" &&
+        !isBuiltinModuleSpecifier(entry.path),
+    )
     .map((entry) => entry.path)
     .sort()
     .filter((path, index, paths) => index === 0 || paths[index - 1] !== path);
@@ -127,7 +139,24 @@ async function buildDistribution(outputArgument) {
     await removeDeploymentMetadata(payloadRoot);
     await mkdir(resolve(payloadRoot, "dist"));
     await copyFile(bundlePath, resolve(payloadRoot, "dist/bin.js"));
+    const runtimeModule = await readRuntimeModuleArtifact(
+      resolve(repositoryRoot, "apps/node-runtime/dist"),
+    );
+    await publishRuntimeModuleArtifact(resolve(payloadRoot, "dist"), runtimeModule);
     await ensureExecutable(resolve(payloadRoot, "dist/bin.js"));
+    const native =
+      platform.os === "darwin"
+        ? await copyNativeRuntimeArtifact(
+            resolve(repositoryRoot, "apps/node-runtime/dist/native"),
+            resolve(payloadRoot, "dist"),
+            {
+              required: true,
+              casRequired: true,
+              expectedSyncHash: await nativeFileSyncSourceHash(repositoryRoot),
+              expectedCasHash: await nativeCasSourceHash(repositoryRoot),
+            },
+          )
+        : undefined;
     await copyFile(
       resolve(repositoryRoot, "docs/distribution/node-runtime-distribution.md"),
       resolve(payloadRoot, "README.md"),
@@ -157,7 +186,14 @@ async function buildDistribution(outputArgument) {
       );
     }
     const bundleBytes = await readFile(resolve(payloadRoot, "dist/bin.js"));
-    const sbom = createNodeDistributionSbom(runtimeVersion, dependencies, sha256(bundleBytes));
+    const sbom = createNodeDistributionSbom(
+      runtimeVersion,
+      dependencies,
+      sha256(bundleBytes),
+      native,
+      runtimeModule.hash,
+      "inventory",
+    );
     await writeFile(resolve(payloadRoot, "sbom.cdx.json"), canonicalJson(sbom), {
       encoding: "utf8",
       mode: 0o644,

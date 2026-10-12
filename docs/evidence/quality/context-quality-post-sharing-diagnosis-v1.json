@@ -1,0 +1,1056 @@
+{
+  "schemaVersion": 1,
+  "diagnosticOnly": true,
+  "artifactBuildHash": "sha256:e81f0207a4e351c622f5912a314d381a3c2a7849b1d2a69b6f8f21473edd0499",
+  "observedAt": "2026-10-09T18:17:11.172151+00:00",
+  "harnessHashes": {
+    "/tmp/lervo-v9-record-phases.mjs": "sha256:622aa498f580d222c02e2c964d90ada511e92313ee02256e47a7fccdbbcf2c29",
+    "/tmp/lervo-v9-record-cpu.mjs": "sha256:732f6bb501fb12e9503692a75c7db9df4d5e634d21f5d3c974899ad0a74f701b",
+    "/tmp/lervo-diagnostic-statement-reuse.mjs": "sha256:c40e464a29ea622cfcd316030fd04af0074e2ca54b59968ae08b2a642d293071",
+    "/tmp/lervo-statement-reuse-probe.mjs": "sha256:deca3ff2e9e10b24c44c7ca444176a41ffc2963f351a3410feb35e6d89ed1418"
+  },
+  "phases": {
+    "diagnosticOnly": true,
+    "results": [
+      {
+        "workload": "cold",
+        "replacements": 12,
+        "phases": {
+          "inspectEventWriterCoordinate": {
+            "calls": 10,
+            "ms": 6.341293999999721
+          },
+          "loadProjectManifest": {
+            "calls": 21,
+            "ms": 4.497122999999988
+          },
+          "resolveProjectPaths": {
+            "calls": 33,
+            "ms": 0.8458779999999706
+          },
+          "record": {
+            "calls": 2,
+            "ms": 19.1641239999999
+          },
+          "SQLiteEventStore.open": {
+            "calls": 2,
+            "ms": 2.153666000000044
+          },
+          "SQLiteEventStore.verifyIntegrity": {
+            "calls": 5,
+            "ms": 0.832416999999964
+          },
+          "FileSystemCas.open": {
+            "calls": 2,
+            "ms": 0.2922080000000733
+          },
+          "observeStorageBinding": {
+            "calls": 5,
+            "ms": 1.2885829999999032
+          },
+          "FileSystemCas.put": {
+            "calls": 2,
+            "ms": 10.723998999999935
+          },
+          "FileSystemCas.putStream": {
+            "calls": 2,
+            "ms": 10.657833000000096
+          },
+          "FileSystemCas.verifyObject": {
+            "calls": 4,
+            "ms": 0.41366699999980483
+          },
+          "SQLiteEventStore.transact": {
+            "calls": 2,
+            "ms": 1.8593329999999924
+          }
+        },
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 2,
+        "expectedEventCount": 2,
+        "samples": [[45.736999999999966, 58.145]]
+      },
+      {
+        "workload": "warm",
+        "replacements": 12,
+        "phases": {
+          "inspectEventWriterCoordinate": {
+            "calls": 76,
+            "ms": 17.682829999998944
+          },
+          "loadProjectManifest": {
+            "calls": 186,
+            "ms": 16.018785999999977
+          },
+          "resolveProjectPaths": {
+            "calls": 264,
+            "ms": 4.952254999999013
+          },
+          "record": {
+            "calls": 24,
+            "ms": 146.811961
+          },
+          "SQLiteEventStore.open": {
+            "calls": 2,
+            "ms": 2.5651659999999765
+          },
+          "SQLiteEventStore.verifyIntegrity": {
+            "calls": 27,
+            "ms": 4.938541000000214
+          },
+          "FileSystemCas.open": {
+            "calls": 2,
+            "ms": 0.2949589999999489
+          },
+          "observeStorageBinding": {
+            "calls": 49,
+            "ms": 8.997709999999643
+          },
+          "FileSystemCas.put": {
+            "calls": 24,
+            "ms": 113.0324989999998
+          },
+          "FileSystemCas.putStream": {
+            "calls": 24,
+            "ms": 112.82379100000014
+          },
+          "FileSystemCas.verifyObject": {
+            "calls": 48,
+            "ms": 4.128372000000354
+          },
+          "SQLiteEventStore.transact": {
+            "calls": 24,
+            "ms": 12.285373000000163
+          }
+        },
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 24,
+        "expectedEventCount": 24,
+        "samples": [
+          [25.054666999999995, 22.939],
+          [23.979375000000005, 16.778],
+          [23.023458000000005, 20.486],
+          [23.75999999999999, 18.71],
+          [23.24429100000009, 17.527],
+          [24.00512500000002, 17.034],
+          [22.70333299999993, 16.206],
+          [23.137708999999973, 17.022],
+          [23.285792000000015, 16.18],
+          [22.642833999999993, 19.333]
+        ]
+      },
+      {
+        "workload": "concurrent",
+        "replacements": 12,
+        "phases": {
+          "inspectEventWriterCoordinate": {
+            "calls": 222,
+            "ms": 118.04945899999882
+          },
+          "loadProjectManifest": {
+            "calls": 441,
+            "ms": 100.25904900000103
+          },
+          "resolveProjectPaths": {
+            "calls": 666,
+            "ms": 11.813202999999817
+          },
+          "record": {
+            "calls": 96,
+            "ms": 1130.6924179999996
+          },
+          "SQLiteEventStore.open": {
+            "calls": 3,
+            "ms": 4.7381249999998545
+          },
+          "SQLiteEventStore.verifyIntegrity": {
+            "calls": 28,
+            "ms": 11.870664999999917
+          },
+          "FileSystemCas.open": {
+            "calls": 3,
+            "ms": 0.3872080000001006
+          },
+          "observeStorageBinding": {
+            "calls": 122,
+            "ms": 59.538458000001356
+          },
+          "FileSystemCas.put": {
+            "calls": 96,
+            "ms": 827.3419180000001
+          },
+          "FileSystemCas.putStream": {
+            "calls": 64,
+            "ms": 630.00533
+          },
+          "FileSystemCas.verifyObject": {
+            "calls": 192,
+            "ms": 26.550291000000243
+          },
+          "SQLiteEventStore.transact": {
+            "calls": 24,
+            "ms": 24.157042000000047
+          }
+        },
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 96,
+        "expectedEventCount": 96,
+        "samples": [
+          [48.45595800000001, 40.148],
+          [38.93983400000002, 26.31],
+          [36.13362500000005, 25.958],
+          [36.197542, 30.304],
+          [36.00020800000004, 27.194],
+          [30.82133299999998, 25.197],
+          [38.91958299999999, 30.361],
+          [39.91216700000007, 29.85],
+          [36.00433300000009, 25.361],
+          [31.578457999999955, 35.112]
+        ]
+      }
+    ]
+  },
+  "cpuProfileSummary": {
+    "semanticValid": true,
+    "integrity": true,
+    "samples": 100,
+    "top": [
+      {
+        "fn": "(idle)",
+        "file": "",
+        "line": 0,
+        "ms": 1301.74
+      },
+      {
+        "fn": "(program)",
+        "file": "",
+        "line": 0,
+        "ms": 95.434
+      },
+      {
+        "fn": "terms",
+        "file": "file:///Users/jonghyeok/orca/lervo/packages/context/dist/evidence-sections.js",
+        "line": 5,
+        "ms": 58.603
+      },
+      {
+        "fn": "exec",
+        "file": "",
+        "line": 0,
+        "ms": 49.634
+      },
+      {
+        "fn": "post",
+        "file": "node:inspector",
+        "line": 115,
+        "ms": 46.598
+      },
+      {
+        "fn": "verify",
+        "file": "file:///Users/jonghyeok/orca/lervo/packages/event-store-sqlite/dist/chain-verifier.js",
+        "line": 16,
+        "ms": 44.922
+      },
+      {
+        "fn": "consume",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 239,
+        "ms": 37.278
+      },
+      {
+        "fn": "go",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 232,
+        "ms": 36.07
+      },
+      {
+        "fn": "go",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 232,
+        "ms": 27.057
+      },
+      {
+        "fn": "data",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/content.js",
+        "line": 62,
+        "ms": 27.042
+      },
+      {
+        "fn": "update",
+        "file": "",
+        "line": 0,
+        "ms": 25.453
+      },
+      {
+        "fn": "consume",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 239,
+        "ms": 22.521
+      },
+      {
+        "fn": "main",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 203,
+        "ms": 22.52
+      },
+      {
+        "fn": "main",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 203,
+        "ms": 22.505
+      },
+      {
+        "fn": "close",
+        "file": "",
+        "line": 0,
+        "ms": 22.445
+      },
+      {
+        "fn": "chunkInside",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/content.js",
+        "line": 79,
+        "ms": 21.038
+      },
+      {
+        "fn": "go",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 232,
+        "ms": 21.03
+      },
+      {
+        "fn": "main",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 203,
+        "ms": 18.023
+      },
+      {
+        "fn": "fstat",
+        "file": "",
+        "line": 0,
+        "ms": 17.988
+      },
+      {
+        "fn": "write",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 134,
+        "ms": 16.434
+      },
+      {
+        "fn": "consume",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 239,
+        "ms": 15.024
+      },
+      {
+        "fn": "all",
+        "file": "",
+        "line": 0,
+        "ms": 14.721
+      },
+      {
+        "fn": "data",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/text.js",
+        "line": 58,
+        "ms": 13.519
+      },
+      {
+        "fn": "lstat",
+        "file": "node:internal/fs/promises",
+        "line": 1784,
+        "ms": 12.721
+      },
+      {
+        "fn": "fstat",
+        "file": "",
+        "line": 0,
+        "ms": 12.506
+      },
+      {
+        "fn": "write",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 134,
+        "ms": 12.025
+      },
+      {
+        "fn": "atBreak",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/text.js",
+        "line": 75,
+        "ms": 12.022
+      },
+      {
+        "fn": "write",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+        "line": 134,
+        "ms": 10.369
+      },
+      {
+        "fn": "update",
+        "file": "",
+        "line": 0,
+        "ms": 10.034
+      },
+      {
+        "fn": "inspectPath",
+        "file": "file:///Users/jonghyeok/orca/lervo/packages/context/dist/filesystem.js",
+        "line": 44,
+        "ms": 9.793
+      },
+      {
+        "fn": "open",
+        "file": "",
+        "line": 0,
+        "ms": 9.24
+      },
+      {
+        "fn": "(garbage collector)",
+        "file": "",
+        "line": 0,
+        "ms": 9.054
+      },
+      {
+        "fn": "selectEvidenceSections",
+        "file": "file:///Users/jonghyeok/orca/lervo/packages/context/dist/evidence-sections.js",
+        "line": 7,
+        "ms": 9.015
+      },
+      {
+        "fn": "fstat",
+        "file": "node:internal/fs/promises",
+        "line": 1775,
+        "ms": 8.857
+      },
+      {
+        "fn": "next",
+        "file": "file:///Users/jonghyeok/orca/lervo/node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/parser.js",
+        "line": 176,
+        "ms": 8.783
+      }
+    ]
+  },
+  "statementReuse": {
+    "diagnosticOnly": true,
+    "scope": "Scratch-only bounded reuse of SELECT and read-only PRAGMA statement objects in event-store/repository/chain verifier; every call executes against fresh database rows. No row/validation result cache and no skipped checks. Not qualification; schema/parameter/failure lifetime conformance remains unproved",
+    "results": [
+      {
+        "cycle": 0,
+        "processElapsedMs": 589.4304999999999,
+        "mode": "current",
+        "workload": "cold",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 2,
+        "expectedEventCount": 2,
+        "stateGrowthBytes": 119130,
+        "samples": [[43.92420900000002, 55.708]]
+      },
+      {
+        "cycle": 0,
+        "processElapsedMs": 590.779084,
+        "mode": "statement-reuse",
+        "workload": "cold",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 2,
+        "expectedEventCount": 2,
+        "stateGrowthBytes": 119130,
+        "samples": [[45.212541999999985, 56.706]]
+      },
+      {
+        "cycle": 0,
+        "processElapsedMs": 860.4717500000002,
+        "mode": "current",
+        "workload": "warm",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 24,
+        "expectedEventCount": 24,
+        "stateGrowthBytes": 198824,
+        "samples": [
+          [23.692207999999937, 21.242],
+          [23.979540999999926, 17.277],
+          [25.207625000000007, 21.403],
+          [24.675917000000027, 19.567],
+          [22.27637500000003, 17.763],
+          [23.798832999999945, 17.41],
+          [24.97362499999997, 19.072],
+          [25.038916000000086, 20.078],
+          [24.257124999999974, 18.193],
+          [23.73791600000004, 21.262]
+        ]
+      },
+      {
+        "cycle": 0,
+        "processElapsedMs": 854.2262919999998,
+        "mode": "statement-reuse",
+        "workload": "warm",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 24,
+        "expectedEventCount": 24,
+        "stateGrowthBytes": 198824,
+        "samples": [
+          [23.713500000000067, 21.031],
+          [25.18004099999996, 19.38],
+          [23.13933300000008, 19.792],
+          [23.673832999999945, 19.19],
+          [23.235457999999994, 18.133],
+          [22.93912499999999, 16.499],
+          [23.737750000000005, 17.16],
+          [25.147082999999952, 17.579],
+          [22.230790999999954, 16.235],
+          [23.544415999999956, 20.431]
+        ]
+      },
+      {
+        "cycle": 0,
+        "processElapsedMs": 1013.8764160000005,
+        "mode": "current",
+        "workload": "concurrent",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 96,
+        "expectedEventCount": 96,
+        "stateGrowthBytes": 504544,
+        "samples": [
+          [36.06666699999994, 31.212],
+          [34.23195800000008, 26.95],
+          [34.59945799999991, 27.527],
+          [37.01887499999998, 30.961],
+          [37.154540999999995, 28.954],
+          [35.02970899999991, 26.125],
+          [41.963499999999954, 32.844],
+          [36.044459000000074, 29.297],
+          [36.01408300000003, 26.964],
+          [34.03054099999997, 36.83]
+        ]
+      },
+      {
+        "cycle": 0,
+        "processElapsedMs": 994.6694580000003,
+        "mode": "statement-reuse",
+        "workload": "concurrent",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 96,
+        "expectedEventCount": 96,
+        "stateGrowthBytes": 497608,
+        "samples": [
+          [33.22954200000004, 29.535],
+          [34.924999999999955, 25.27],
+          [30.011625000000095, 25.312],
+          [33.09137499999997, 29.719],
+          [31.282500000000027, 26.915],
+          [35.914625, 24.662],
+          [37.86895800000002, 29.86],
+          [35.08525000000009, 27.982],
+          [36.101541, 25.46],
+          [35.867166999999995, 35.394]
+        ]
+      },
+      {
+        "cycle": 1,
+        "processElapsedMs": 587.9471670000003,
+        "mode": "statement-reuse",
+        "workload": "cold",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 2,
+        "expectedEventCount": 2,
+        "stateGrowthBytes": 119130,
+        "samples": [[44.96308299999998, 57.701]]
+      },
+      {
+        "cycle": 1,
+        "processElapsedMs": 590.2747920000002,
+        "mode": "current",
+        "workload": "cold",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 2,
+        "expectedEventCount": 2,
+        "stateGrowthBytes": 119130,
+        "samples": [[46.580332999999996, 55.372]]
+      },
+      {
+        "cycle": 1,
+        "processElapsedMs": 856.7917499999994,
+        "mode": "statement-reuse",
+        "workload": "warm",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 24,
+        "expectedEventCount": 24,
+        "stateGrowthBytes": 198824,
+        "samples": [
+          [24.781375000000025, 20.737],
+          [24.94799999999998, 19.705],
+          [25.167707999999948, 20.968],
+          [24.693957999999952, 21.145],
+          [25.13737500000002, 19.688],
+          [23.93908399999998, 18.183],
+          [23.80737499999998, 17.648],
+          [22.137833, 16.995],
+          [23.168457999999987, 15.411],
+          [22.674416000000065, 19.992]
+        ]
+      },
+      {
+        "cycle": 1,
+        "processElapsedMs": 852.3085000000001,
+        "mode": "current",
+        "workload": "warm",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 24,
+        "expectedEventCount": 24,
+        "stateGrowthBytes": 198824,
+        "samples": [
+          [23.789040999999997, 20.884],
+          [24.08745900000008, 16.857],
+          [24.037374999999997, 21.343],
+          [23.786959000000024, 18.552],
+          [22.174333000000047, 17.568],
+          [24.05345900000009, 16.912],
+          [22.71758299999999, 16.037],
+          [27.13549999999998, 17.715],
+          [23.171832999999992, 15.584],
+          [21.672000000000025, 19.226]
+        ]
+      },
+      {
+        "cycle": 1,
+        "processElapsedMs": 1002.3515419999985,
+        "mode": "statement-reuse",
+        "workload": "concurrent",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 96,
+        "expectedEventCount": 96,
+        "stateGrowthBytes": 495800,
+        "samples": [
+          [36.58791700000006, 29.769],
+          [39.16995799999995, 26.015],
+          [35.097999999999956, 25.579],
+          [36.10391599999991, 29.146],
+          [35.91137499999991, 27.508],
+          [35.03170900000009, 25.665],
+          [38.11204100000009, 31.023],
+          [34.77920899999992, 27.609],
+          [39.17979100000002, 26.24],
+          [32.21041699999989, 35.532]
+        ]
+      },
+      {
+        "cycle": 1,
+        "processElapsedMs": 1016.5324999999993,
+        "mode": "current",
+        "workload": "concurrent",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 96,
+        "expectedEventCount": 96,
+        "stateGrowthBytes": 498112,
+        "samples": [
+          [36.94204100000002, 30.029],
+          [37.18720900000005, 27.121],
+          [35.113624999999956, 27.255],
+          [35.038374999999974, 28.895],
+          [34.723791000000006, 27.744],
+          [34.18404199999998, 24.722],
+          [42.99620900000002, 32.482],
+          [36.255957999999964, 28.154],
+          [36.12008300000002, 27.371],
+          [39.587041, 35.955]
+        ]
+      },
+      {
+        "cycle": 2,
+        "processElapsedMs": 594.0543339999986,
+        "mode": "current",
+        "workload": "cold",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 2,
+        "expectedEventCount": 2,
+        "stateGrowthBytes": 119130,
+        "samples": [[43.85487499999999, 55.483]]
+      },
+      {
+        "cycle": 2,
+        "processElapsedMs": 603.9485829999994,
+        "mode": "statement-reuse",
+        "workload": "cold",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 2,
+        "expectedEventCount": 2,
+        "stateGrowthBytes": 119130,
+        "samples": [[45.412250000000085, 56.278]]
+      },
+      {
+        "cycle": 2,
+        "processElapsedMs": 862.0366250000006,
+        "mode": "current",
+        "workload": "warm",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 24,
+        "expectedEventCount": 24,
+        "stateGrowthBytes": 198824,
+        "samples": [
+          [26.940665999999965, 25.135],
+          [23.76191700000004, 17.101],
+          [23.261334000000033, 20.974],
+          [23.852999999999952, 18.604],
+          [22.795374999999922, 17.171],
+          [23.229874999999993, 16.878],
+          [23.948792000000026, 16.169],
+          [24.062291999999957, 16.942],
+          [23.06716700000004, 16.093],
+          [21.71920799999998, 19.158]
+        ]
+      },
+      {
+        "cycle": 2,
+        "processElapsedMs": 868.399374999999,
+        "mode": "statement-reuse",
+        "workload": "warm",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 24,
+        "expectedEventCount": 24,
+        "stateGrowthBytes": 198824,
+        "samples": [
+          [24.70387500000004, 20.465],
+          [24.872916000000032, 19.176],
+          [23.18054099999995, 19.667],
+          [24.962541999999985, 18.912],
+          [23.969082999999955, 18.218],
+          [23.121083, 16.406],
+          [23.825707999999963, 16.044],
+          [24.176250000000095, 17.851],
+          [22.96320800000001, 15.389],
+          [22.663250000000062, 19.363]
+        ]
+      },
+      {
+        "cycle": 2,
+        "processElapsedMs": 1031.2268749999985,
+        "mode": "current",
+        "workload": "concurrent",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 96,
+        "expectedEventCount": 96,
+        "stateGrowthBytes": 503388,
+        "samples": [
+          [37.185292000000004, 28.332],
+          [40.354499999999916, 28.537],
+          [42.08308299999999, 27.353],
+          [45.213957999999934, 31.049],
+          [33.9085409999999, 28.723],
+          [32.565833, 26.145],
+          [37.573332999999934, 30.424],
+          [37.72079199999996, 28.716],
+          [32.89654099999996, 27.614],
+          [34.499124999999935, 36.837]
+        ]
+      },
+      {
+        "cycle": 2,
+        "processElapsedMs": 1010.2221249999984,
+        "mode": "statement-reuse",
+        "workload": "concurrent",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 96,
+        "expectedEventCount": 96,
+        "stateGrowthBytes": 496956,
+        "samples": [
+          [32.031124999999975, 30.066],
+          [38.50300000000004, 26.428],
+          [35.26537500000006, 26.043],
+          [34.32783400000005, 30.434],
+          [39.729124999999954, 28.117],
+          [32.35629099999994, 25.748],
+          [37.753124999999955, 30.985],
+          [38.04529100000002, 29.306],
+          [34.790500000000065, 26.378],
+          [34.22966699999995, 36.004]
+        ]
+      },
+      {
+        "cycle": 3,
+        "processElapsedMs": 597.3857919999991,
+        "mode": "statement-reuse",
+        "workload": "cold",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 2,
+        "expectedEventCount": 2,
+        "stateGrowthBytes": 119130,
+        "samples": [[45.11266599999999, 58.126]]
+      },
+      {
+        "cycle": 3,
+        "processElapsedMs": 597.5292079999999,
+        "mode": "current",
+        "workload": "cold",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 2,
+        "expectedEventCount": 2,
+        "stateGrowthBytes": 119130,
+        "samples": [[44.03641700000003, 55.941]]
+      },
+      {
+        "cycle": 3,
+        "processElapsedMs": 873.369666999999,
+        "mode": "statement-reuse",
+        "workload": "warm",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 24,
+        "expectedEventCount": 24,
+        "stateGrowthBytes": 198824,
+        "samples": [
+          [23.672040999999922, 20.877],
+          [24.907457999999906, 19.355],
+          [25.36129200000005, 19.822],
+          [25.535167, 19.453],
+          [23.28754200000003, 18.717],
+          [23.013958000000002, 16.513],
+          [23.79662499999995, 16.625],
+          [23.073709000000008, 18.282],
+          [23.18029100000001, 15.929],
+          [23.520666000000006, 20.041]
+        ]
+      },
+      {
+        "cycle": 3,
+        "processElapsedMs": 867.1599580000002,
+        "mode": "current",
+        "workload": "warm",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 24,
+        "expectedEventCount": 24,
+        "stateGrowthBytes": 198824,
+        "samples": [
+          [25.730291999999963, 23.057],
+          [24.186042000000043, 17.504],
+          [24.26212499999997, 21.838],
+          [23.501292000000035, 18.716],
+          [23.139042000000018, 17.264],
+          [23.085624999999936, 17.188],
+          [23.76633400000003, 16.556],
+          [24.12237499999992, 17.495],
+          [23.105957999999987, 16.403],
+          [22.623249999999985, 19.296]
+        ]
+      },
+      {
+        "cycle": 3,
+        "processElapsedMs": 1011.5383330000004,
+        "mode": "statement-reuse",
+        "workload": "concurrent",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 96,
+        "expectedEventCount": 96,
+        "stateGrowthBytes": 495800,
+        "samples": [
+          [31.867458000000056, 29.338],
+          [35.759416999999985, 25.202],
+          [38.73066700000004, 26.408],
+          [36.38208399999996, 29.393],
+          [34.00774999999999, 26.147],
+          [36.007791999999995, 25.179],
+          [43.049041999999986, 31.784],
+          [34.8605, 28.923],
+          [35.453250000000025, 26.542],
+          [35.57974999999999, 35.814]
+        ]
+      },
+      {
+        "cycle": 3,
+        "processElapsedMs": 1031.4468329999982,
+        "mode": "current",
+        "workload": "concurrent",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 96,
+        "expectedEventCount": 96,
+        "stateGrowthBytes": 493992,
+        "samples": [
+          [32.96220800000003, 29.827],
+          [35.91579200000001, 25.581],
+          [39.72312499999998, 27.008],
+          [37.98041599999999, 30.433],
+          [36.29445800000008, 28.737],
+          [35.96691699999997, 25.211],
+          [39.308291000000054, 31.699],
+          [32.94741699999997, 28.518],
+          [35.89224999999999, 25.902],
+          [38.68995800000005, 36]
+        ]
+      },
+      {
+        "cycle": 4,
+        "processElapsedMs": 608.5702079999974,
+        "mode": "current",
+        "workload": "cold",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 2,
+        "expectedEventCount": 2,
+        "stateGrowthBytes": 119130,
+        "samples": [[43.95716699999991, 56.536]]
+      },
+      {
+        "cycle": 4,
+        "processElapsedMs": 613.3159169999999,
+        "mode": "statement-reuse",
+        "workload": "cold",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 2,
+        "expectedEventCount": 2,
+        "stateGrowthBytes": 119130,
+        "samples": [[48.353500000000054, 58.516]]
+      },
+      {
+        "cycle": 4,
+        "processElapsedMs": 866.4946660000023,
+        "mode": "current",
+        "workload": "warm",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 24,
+        "expectedEventCount": 24,
+        "stateGrowthBytes": 198824,
+        "samples": [
+          [24.626250000000027, 22.941],
+          [23.885874999999942, 17.077],
+          [23.12854200000004, 21.154],
+          [22.757292000000007, 19.021],
+          [22.215915999999993, 17.58],
+          [22.829167000000098, 17.003],
+          [21.996250000000032, 16.025],
+          [22.92100000000005, 17.077],
+          [23.280917000000045, 16.375],
+          [22.662958000000003, 19.51]
+        ]
+      },
+      {
+        "cycle": 4,
+        "processElapsedMs": 867.1542919999993,
+        "mode": "statement-reuse",
+        "workload": "warm",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 24,
+        "expectedEventCount": 24,
+        "stateGrowthBytes": 198824,
+        "samples": [
+          [23.89691599999992, 20.676],
+          [25.005042000000003, 19.264],
+          [22.152708000000075, 19.498],
+          [23.936833999999976, 19.762],
+          [26.83979199999999, 17.74],
+          [24.162916999999993, 16.256],
+          [24.768083000000047, 17.176],
+          [23.075958000000014, 17.245],
+          [23.118916000000013, 15.434],
+          [22.774208000000044, 20.194]
+        ]
+      },
+      {
+        "cycle": 4,
+        "processElapsedMs": 1035.5562079999982,
+        "mode": "current",
+        "workload": "concurrent",
+        "replacements": 0,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 96,
+        "expectedEventCount": 96,
+        "stateGrowthBytes": 498112,
+        "samples": [
+          [36.9894579999999, 28.709],
+          [36.07566700000007, 27.3],
+          [33.60633299999995, 25.554],
+          [39.36704199999997, 30.258],
+          [41.10662500000001, 27.981],
+          [39.741499999999974, 26.411],
+          [38.40420899999992, 31.476],
+          [44.62179200000003, 28.308],
+          [38.49762499999997, 26.701],
+          [35.698541999999975, 35.293]
+        ]
+      },
+      {
+        "cycle": 4,
+        "processElapsedMs": 1051.4512920000016,
+        "mode": "statement-reuse",
+        "workload": "concurrent",
+        "replacements": 12,
+        "semanticValid": true,
+        "integrity": true,
+        "eventCount": 96,
+        "expectedEventCount": 96,
+        "stateGrowthBytes": 504544,
+        "samples": [
+          [36.045875000000024, 30.183],
+          [35.82716700000003, 26.063],
+          [37.368541999999934, 27.394],
+          [38.54729199999997, 30.878],
+          [39.53783400000009, 28.01],
+          [37.22954200000004, 25.81],
+          [44.399625000000015, 31.177],
+          [37.54525000000001, 28.949],
+          [43.03933400000005, 26.155],
+          [37.888041000000044, 36.512]
+        ]
+      }
+    ]
+  },
+  "decision": "Do not adopt statement reuse: cold and warm latency regress; concurrent improvement is small and does not qualify unchanged resource gates. Keep current v9 runtime.",
+  "limitations": [
+    "Inclusive phase timers overlap; counts include setup and final verification; do not add phase totals.",
+    "CPU profiler itself has overhead and uses100warm measured requests with growing history, unlike qualification.",
+    "Statement prototype retains at most32SELECT/read-onlyPRAGMA statements per connection, reexecutes each query, and never caches rows; schema/parameter/lifetime adverse tests not completed because candidate was not adopted.",
+    "All30comparison workers preserve observed semantic/event/integrity fixture checks; no power-loss, provider or installed evidence."
+  ]
+}

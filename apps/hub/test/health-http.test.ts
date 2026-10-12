@@ -56,7 +56,7 @@ describe("Hub health HTTP API", () => {
     expect(await capabilities.json()).toEqual({
       schemaVersion: 1,
       capability: "event_reader",
-      readableEventSchemaVersions: [1, 2, 3, 4, 5],
+      readableEventSchemaVersions: [1, 2, 3, 4, 5, 6],
     });
     expect(checkReady).toHaveBeenCalledOnce();
   });

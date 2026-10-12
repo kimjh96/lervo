@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_775b48956b922952e0c16f30"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Bind durable knowledge writes and recovery to private operation inputs before source gate acquisition."

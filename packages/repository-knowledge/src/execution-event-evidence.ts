@@ -1,10 +1,5 @@
-import {
-  canonicalJson as canonicalEventJson,
-  computeEventHash,
-  eventWithoutHash,
-  sanitizeEventPayload,
-} from "@lervo/event-contract";
-import { validateSchema, type EventEnvelope, type EventType } from "@lervo/schemas";
+import { canonicalJson as canonicalEventJson, sanitizeEventPayload } from "@lervo/event-contract";
+import { type EventEnvelope, type EventType } from "@lervo/schemas";
 
 import type { RepositorySupplementalSource } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
@@ -59,9 +54,8 @@ function fail(): never {
   return executionEvidenceFailure();
 }
 
+/** Store reads already prove schema and hash validity; this checks privacy canonicality. */
 function canonicalExecutionEvent(event: EventEnvelope): string {
-  if (!validateSchema("event", event).valid) return fail();
-  if (computeEventHash(eventWithoutHash(event)) !== event.eventHash) return fail();
   let sanitized;
   try {
     sanitized = sanitizeEventPayload(event.type, event.payload);

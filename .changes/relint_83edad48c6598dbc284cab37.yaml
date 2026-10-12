@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_83edad48c6598dbc284cab37"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep task verification receipts bound to the evaluated artifact and plan when a caller changes its input while an evaluator is pending."

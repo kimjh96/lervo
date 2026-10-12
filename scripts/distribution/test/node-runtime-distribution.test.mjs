@@ -14,7 +14,7 @@ import {
   validateNodeDistributionArtifact,
   validateNodeDistributionManifest,
 } from "../lib/node-runtime-distribution.mjs";
-import { sha256 } from "../../shared/release-artifact-manifest.mjs";
+import { canonicalDigest, sha256 } from "../../shared/release-artifact-manifest.mjs";
 import { extractTarGzipArchive } from "../../shared/tar-archive.mjs";
 
 const execFileAsync = promisify(execFile);
@@ -42,16 +42,60 @@ function manifestFixture() {
       sha256: `sha256:${"c".repeat(64)}`,
     },
   ];
+  const runtimeFile = {
+    name: "repository-runtime.js",
+    size: 256,
+    sha256: `sha256:${"d".repeat(64)}`,
+  };
+  const runtimeManifest = Buffer.from(
+    JSON.stringify(
+      { schemaVersion: 1, entry: "repository-runtime.js", files: [runtimeFile] },
+      null,
+      2,
+    ) + "\n",
+  );
   return createNodeDistributionManifest({
     runtimeVersion: "0.1.0",
     platform: { os: "linux", arch: "x64", libc: "glibc" },
-    files,
+    files: [
+      ...files,
+      {
+        path: "dist/repository-runtime.json",
+        kind: "file",
+        size: runtimeManifest.length,
+        mode: 0o644,
+        sha256: sha256(runtimeManifest),
+      },
+      {
+        path: "dist/repository-runtime.js",
+        kind: "file",
+        size: 256,
+        mode: 0o644,
+        sha256: `sha256:${"d".repeat(64)}`,
+      },
+    ],
     dependencies: ["@anthropic-ai/claude-agent-sdk-linux-x64@0.3.226"],
     sbomSha256: files[2].sha256,
   });
 }
 
 describe("standalone Node runtime distribution contract", () => {
+  it("rejects a missing or invalid internal module even with a matching inventory digest", () => {
+    for (const invalid of [null, 0, 64 * 1024 * 1024 + 1]) {
+      const manifest = manifestFixture();
+      if (invalid === null)
+        manifest.files = manifest.files.filter(
+          (entry) => entry.path !== "dist/repository-runtime.js",
+        );
+      else
+        manifest.files.find((entry) => entry.path === "dist/repository-runtime.js").size = invalid;
+      manifest.contentDigest = canonicalDigest(manifest.files);
+      assert.throws(() => validateNodeDistributionManifest(manifest), {
+        code: "node_distribution_manifest_invalid",
+      });
+    }
+  });
+
   it("accepts a self-consistent provider-neutral runtime manifest", () => {
     const manifest = manifestFixture();
     assert.equal(validateNodeDistributionManifest(manifest), manifest);
@@ -136,3 +180,13 @@ describe("standalone Node runtime distribution contract", () => {
     assert.equal((await stat(resolve(destination, "payload.txt"))).mode & 0o777, 0o664);
   });
 });
+
+for (const schemaVersion of [1, 2, 3]) {
+  it(`validates Darwin native inventory for manifest schema ${schemaVersion}`, () => {
+    const manifest = manifestFixture();
+    manifest.schemaVersion = schemaVersion;
+    manifest.platform = { os: "darwin", arch: "arm64", libc: "none" };
+    if (schemaVersion === 1) assert.equal(validateNodeDistributionManifest(manifest), manifest);
+    else assert.throws(() => validateNodeDistributionManifest(manifest));
+  });
+}

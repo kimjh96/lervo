@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { DatabaseSync } from "node:sqlite";
 import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -943,9 +944,16 @@ describe("runtime user service management", () => {
     admission.registerSession({
       scope: nodeWorkAdmissionScope(previous.config),
       configDigest: `sha256:${createHash("sha256").update(source).digest("hex")}`,
-      ownerPid: 2147483000,
     });
     admission.close();
+    const stale = new DatabaseSync(nodeWorkAdmissionDatabasePath(previous.root));
+    try {
+      stale
+        .prepare("UPDATE node_work_session SET owner_pid = ?, owner_identity = NULL")
+        .run(2147483000);
+    } finally {
+      stale.close();
+    }
     await manager.run("systemctl", [
       "--user",
       "stop",

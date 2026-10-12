@@ -2,13 +2,14 @@ import { FileSystemCas } from "@lervo/cas";
 import { mkdir } from "node:fs/promises";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import {
-  inspectEventWriterCoordinate,
+  inspectProjectStorageCoordinates,
   loadProjectManifest,
   resolveProjectPaths,
 } from "@lervo/project";
 import { type OutboxStore } from "@lervo/storage-contract";
 
 import { validateProjectStorageLayout, validateRepositoryRoot } from "./layout.js";
+import { withReportReader } from "./report-artifact-reader.js";
 import { migrateLegacyDurableState } from "./durable-layout.js";
 import {
   type CloseableArtifactStore,
@@ -54,16 +55,25 @@ class OpenedProjectStorage implements ProjectStorage {
   constructor(
     readonly manifest: ProjectStorage["manifest"],
     readonly paths: ProjectStorage["paths"],
-    readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5,
+    readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6,
     readonly events: OutboxStore,
     readonly artifacts: CloseableArtifactStore,
     readonly readOnly = false,
+    readonly reportStorageCoordinateHash: string | null = null,
   ) {}
 
   close(): Promise<void> {
     this.closePromise ??= closeResources(this.events, this.artifacts);
     return this.closePromise;
   }
+}
+
+function assertOpeningProject(openingProjectId: string, currentProjectId: string): void {
+  if (openingProjectId !== currentProjectId)
+    throw new ProjectStorageError(
+      "storage_binding_changed",
+      "The project changed during storage opening.",
+    );
 }
 
 export function createProjectStorageOpener(
@@ -80,20 +90,36 @@ export function createProjectStorageOpener(
     await validateProjectStorageLayout(paths);
     await migrateLegacyDurableState(paths, manifest.projectId);
     await validateProjectStorageLayout(paths);
-    const writerCoordinate = await inspectEventWriterCoordinate(paths.repositoryRoot);
+    const { writer: writerCoordinate, reports: reportSelection } =
+      await inspectProjectStorageCoordinates(paths.repositoryRoot);
+    assertOpeningProject(manifest.projectId, writerCoordinate.projectId);
     const events = await backends.openEventStore({
       path: paths.eventDatabase,
       projectId: manifest.projectId,
       writableEventSchemaVersion: writerCoordinate.coordinate.selectedEventSchemaVersion,
+      ...(reportSelection.coordinate && writerCoordinate.coordinate.selectedEventSchemaVersion === 6
+        ? { reportStorage: "sqlite_v1" as const }
+        : {}),
     });
     try {
+      if (
+        reportSelection.coordinate &&
+        writerCoordinate.coordinate.selectedEventSchemaVersion === 6 &&
+        !events.reportWriter
+      )
+        throw new ProjectStorageError(
+          "storage_layout_invalid",
+          "The backend cannot honor the selected report storage contract.",
+        );
       const artifacts = await backends.openArtifactStore(paths.cas);
       return new OpenedProjectStorage(
         manifest,
         paths,
         writerCoordinate.coordinate.selectedEventSchemaVersion,
         events,
-        artifacts,
+        withReportReader(artifacts, events.reports),
+        false,
+        reportSelection.contentHash,
       );
     } catch (openError) {
       try {
@@ -112,13 +138,29 @@ export function createProjectStorageOpener(
 
 export const openProjectStorage = createProjectStorageOpener(defaultBackends);
 
+/** Selected report writers amortize checkpoints; ordinary pooled event writers checkpoint each commit. */
+export const openPooledProjectStorage = createProjectStorageOpener({
+  ...defaultBackends,
+  openEventStore: (options) =>
+    SQLiteEventStore.open({
+      ...options,
+      checkpointPolicy: "report_batches",
+      ...(!options.reportStorage && options.writableEventSchemaVersion === 6
+        ? { reportStorage: "existing_sqlite_v1" as const }
+        : {}),
+    }),
+});
+
 /** Observes a peer repository with existing stores; the owning Node retains every write and migration. */
 export async function openReadOnlyProjectStorage(root: string): Promise<ProjectStorage> {
   const paths = resolveProjectPaths(root);
   await validateRepositoryRoot(paths);
   const manifest = await loadProjectManifest(paths.repositoryRoot);
   await validateProjectStorageLayout(paths);
-  const writer = await inspectEventWriterCoordinate(paths.repositoryRoot);
+  const { writer, reports: reportSelection } = await inspectProjectStorageCoordinates(
+    paths.repositoryRoot,
+  );
+  assertOpeningProject(manifest.projectId, writer.projectId);
   const events = await SQLiteEventStore.openReadOnly({
     path: paths.eventDatabase,
     projectId: manifest.projectId,
@@ -130,8 +172,9 @@ export async function openReadOnlyProjectStorage(root: string): Promise<ProjectS
       paths,
       writer.coordinate.selectedEventSchemaVersion,
       events,
-      artifacts,
+      withReportReader(artifacts, events.reports),
       true,
+      reportSelection.contentHash,
     );
   } catch (openError) {
     try {

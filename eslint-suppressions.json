@@ -314,11 +314,6 @@
       "count": 1
     }
   },
-  "packages/project/src/config.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
   "packages/project/src/decision-taxonomy.ts": {
     "lervo/require-caught-error-cause": {
       "count": 2
@@ -465,11 +460,6 @@
     }
   },
   "packages/repository-knowledge/src/source-lineage.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "packages/repository-knowledge/src/terminal-integration.ts": {
     "lervo/require-caught-error-cause": {
       "count": 1
     }

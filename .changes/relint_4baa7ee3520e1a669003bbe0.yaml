@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4baa7ee3520e1a669003bbe0"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Validate parsed event-writer coordinates with generated version-specific schemas while preserving public validation errors."

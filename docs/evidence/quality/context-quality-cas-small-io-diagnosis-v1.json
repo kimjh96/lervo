@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 1,
+  "artifactBuildHash": "sha256:07210188d8552c335fa0c1e72a1299372608e47bc5252e5e0ce7f09a3c03f652",
+  "scope": "Diagnostic-only same-process alternating prototype with fixed fixture. No provider calls or production mutations. Uncontrolled workstation and separate roots; no independent cold inference.",
+  "script": "import fs from 'node:fs/promises';import sync from 'node:fs';import {syncBuiltinESMExports} from 'node:module';import{resolve}from'node:path';import{tmpdir}from'node:os';\nconst repo=process.cwd();const{initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));const{activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\nconst parent=await fs.mkdtemp(resolve(tmpdir(),'lervo-cas-smallio-'));const results=[];const names=['open','mkdir','lstat','readFile','link','unlink'];const originals=Object.fromEntries(names.map(k=>[k,fs[k]]));const eligible=p=>String(p).includes('/cas/');\ntry{for(let cycle=0;cycle<3;cycle++)for(const mode of cycle%2?['small','async']:['async','small'])for(const workload of ['warm','concurrent']){\n const root=resolve(parent,`${cycle}-${mode}-${workload}`);await initializeActiveFixture(root);\n if(mode==='small'){\n  for(const name of names.filter(n=>n!=='open'))fs[name]=async(p,...args)=>eligible(p)?sync[name+'Sync'](p,...args):originals[name](p,...args);\n  fs.open=async(p,...args)=>{if(!eligible(p))return originals.open(p,...args);const fd=sync.openSync(p,...args);let closed=false;return{write:async(b,off,len,pos)=>({bytesWritten:sync.writeSync(fd,b,off,len,pos)}),sync:()=>new Promise((resolve,reject)=>sync.fsync(fd,e=>e?reject(e):resolve())),close:async()=>{if(!closed){closed=true;sync.closeSync(fd)}}}};syncBuiltinESMExports();\n }\n const r=await activeWorker(root,'candidate',workload,4096,{warmups:2,samples:10,concurrency:4});Object.assign(fs,originals);syncBuiltinESMExports();results.push({cycle,mode,workload,semanticValid:r.semanticValid,integrity:r.integrity,samples:r.samples.map(s=>s.slice(0,2))});\n}\nawait fs.writeFile('/tmp/lervo-cas-small-io-probe.json',JSON.stringify({diagnosticOnly:true,results},null,2));}finally{Object.assign(fs,originals);syncBuiltinESMExports();await fs.rm(parent,{recursive:true,force:true})}\n",
+  "scriptHash": "sha256:d952e97c7098bc4d7ba6bf8e6fdb27e9c77b3e41cac298da8173db51f0284570",
+  "observations": {
+    "diagnosticOnly": true,
+    "results": [
+      {
+        "cycle": 0,
+        "mode": "async",
+        "workload": "warm",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [26.147000000000048, 25.422],
+          [24.853417000000036, 19.167],
+          [25.23112500000002, 21.958],
+          [26.744290999999976, 24.696],
+          [25.857833000000028, 23.983],
+          [25.264332999999965, 20.811],
+          [23.777791999999977, 18.219],
+          [26.13900000000001, 19.639],
+          [26.162083000000052, 18.037],
+          [24.922207999999955, 28.033]
+        ]
+      },
+      {
+        "cycle": 0,
+        "mode": "async",
+        "workload": "concurrent",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [53.13679100000013, 37.788],
+          [49.244042000000036, 46.621],
+          [43.979666999999836, 35.455],
+          [53.25908299999992, 38.488],
+          [47.64195799999993, 44.054],
+          [46.50183300000003, 46.146],
+          [55.9792910000001, 50.724],
+          [43.68379099999993, 34.524],
+          [44.871875000000045, 39.96],
+          [50.42512499999998, 38.642]
+        ]
+      },
+      {
+        "cycle": 0,
+        "mode": "small",
+        "workload": "warm",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [22.93708300000003, 16.189],
+          [24.213707999999997, 20.184],
+          [24.00066700000002, 17.315],
+          [21.89737500000001, 16.584],
+          [21.948499999999967, 17.641],
+          [23.183917000000065, 18.223],
+          [22.815500000000156, 16.431],
+          [23.072791999999936, 17.435],
+          [22.992334000000028, 16.65],
+          [23.83962500000007, 19.776]
+        ]
+      },
+      {
+        "cycle": 0,
+        "mode": "small",
+        "workload": "concurrent",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [55.90724999999975, 33.264],
+          [53.683583, 28.223],
+          [52.694582999999966, 32.386],
+          [53.96550000000025, 29.587],
+          [55.28874999999971, 29.966],
+          [53.30033400000002, 29.401],
+          [57.284791999999925, 31.648],
+          [63.299125000000004, 31.163],
+          [54.781958999999915, 28.464],
+          [57.621583999999984, 37.135]
+        ]
+      },
+      {
+        "cycle": 1,
+        "mode": "small",
+        "workload": "warm",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [22.95791700000018, 22.208],
+          [21.98050000000012, 15.674],
+          [25.258374999999887, 19.617],
+          [24.753291999999874, 17.516],
+          [25.254833999999846, 20.457],
+          [23.005458999999973, 17.153],
+          [24.057374999999865, 21.46],
+          [23.81224999999995, 18.476],
+          [22.153249999999844, 15.896],
+          [22.456708000000162, 16.059]
+        ]
+      },
+      {
+        "cycle": 1,
+        "mode": "small",
+        "workload": "concurrent",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [52.03233299999965, 26.91],
+          [53.97645800000009, 27.787],
+          [54.31945799999994, 28.503],
+          [54.100374999999985, 28.505],
+          [54.11762500000032, 30.661],
+          [55.31233299999985, 31.431],
+          [61.01362500000005, 33.432],
+          [58.01054199999999, 32.061],
+          [58.81429200000002, 31.179],
+          [59.034209000000374, 35.132]
+        ]
+      },
+      {
+        "cycle": 1,
+        "mode": "async",
+        "workload": "warm",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [23.58133399999997, 16.701],
+          [26.576792000000296, 17.896],
+          [23.548874999999953, 17.302],
+          [23.999249999999847, 20.874],
+          [24.0512090000002, 19.516],
+          [22.98174999999992, 15.614],
+          [23.655166999999892, 15.825],
+          [23.013832999999977, 15.519],
+          [23.192457999999988, 16.768],
+          [22.014250000000175, 16.045]
+        ]
+      },
+      {
+        "cycle": 1,
+        "mode": "async",
+        "workload": "concurrent",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [48.08704099999977, 34.227],
+          [52.59387500000048, 33.506],
+          [44.10487499999999, 33.815],
+          [46.24383300000045, 32.289],
+          [50.069124999999985, 32.894],
+          [47.91425000000072, 33.727],
+          [50.02191599999969, 38.282],
+          [53.26441700000032, 33.972],
+          [49.116541999999754, 34.608],
+          [44.39137499999924, 35.396]
+        ]
+      },
+      {
+        "cycle": 2,
+        "mode": "async",
+        "workload": "warm",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [22.045624999999745, 16.449],
+          [23.265916999999718, 17.664],
+          [24.164084000000003, 17.351],
+          [24.786458999999923, 17.727],
+          [23.659958000000188, 16.64],
+          [21.87116700000024, 16.332],
+          [21.950333000000683, 15.374],
+          [24.89508300000034, 16.068],
+          [22.21087499999976, 16.906],
+          [22.478916000000027, 16.262]
+        ]
+      },
+      {
+        "cycle": 2,
+        "mode": "async",
+        "workload": "concurrent",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [42.91749999999956, 36.012],
+          [50.622834000000694, 34.131],
+          [46.03583400000025, 39.004],
+          [44.347874999999476, 34.669],
+          [50.84970799999974, 34.377],
+          [49.25458400000025, 33.138],
+          [49.062707999999475, 36.107],
+          [54.89787499999966, 33.924],
+          [47.818749999999454, 35.353],
+          [48.97712500000034, 35.348]
+        ]
+      },
+      {
+        "cycle": 2,
+        "mode": "small",
+        "workload": "warm",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [22.631208000000697, 16.189],
+          [24.98583299999973, 15.621],
+          [22.12212500000078, 16.061],
+          [22.828042000000096, 15.214],
+          [22.953291000000718, 15.983],
+          [22.24041699999998, 15.231],
+          [24.64808399999947, 15.729],
+          [22.212000000000444, 16.042],
+          [28.15137500000037, 51.197],
+          [22.69574999999986, 16.014]
+        ]
+      },
+      {
+        "cycle": 2,
+        "mode": "small",
+        "workload": "concurrent",
+        "semanticValid": true,
+        "integrity": true,
+        "samples": [
+          [52.61387500000001, 27.141],
+          [54.477875000000495, 27.648],
+          [55.747959000000264, 29.283],
+          [62.00608300000022, 31.203],
+          [57.05137500000001, 31.5],
+          [53.760291999999936, 29.346],
+          [61.545250000000124, 38.648],
+          [53.781833000000006, 27.557],
+          [54.27183399999922, 29.5],
+          [55.03987500000039, 28.105]
+        ]
+      }
+    ]
+  },
+  "decision": "Rejected: concurrent latency regression despite lower CPU; no CAS production implementation adopted."
+}

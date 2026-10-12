@@ -37,15 +37,10 @@ function history(count: number, documentBytes = 0): EventEnvelope[] {
   });
 }
 
-function store(rows: EventEnvelope[]): Pick<EventStore, "latest" | "list" | "verifyIntegrity"> {
+function store(rows: EventEnvelope[]): Pick<EventStore, "latest" | "list"> {
   return {
     latest: () => rows.at(-1) ?? null,
     list: (options) => rows.slice(options?.afterSeq ?? 0).slice(0, options?.limit),
-    verifyIntegrity: () => ({
-      valid: true,
-      eventCount: rows.length,
-      headHash: rows.at(-1)?.eventHash ?? null,
-    }),
   };
 }
 
@@ -154,7 +149,7 @@ describe("complete paged execution evidence", () => {
     }
   });
 
-  it("checks the pinned anchor, sequence bound, final integrity and per-event bytes", () => {
+  it("checks the pinned anchor, sequence bound, predecessor links and per-event bytes", () => {
     const rows = history(2);
     const events = store(rows);
     expect(() =>
@@ -175,18 +170,9 @@ describe("complete paged execution evidence", () => {
         limits,
       }),
     ).toThrowError(invalid);
-    let checks = 0;
+    const unlinked = [rows[0]!, { ...rows[1]!, previousHash: `sha256:${"d".repeat(64)}` }];
     expect(() =>
-      collectExecutionEventSourcePages({
-        events: {
-          ...events,
-          verifyIntegrity: () => {
-            if (++checks !== 1) throw new Error("private final integrity failure");
-            return { valid: true, eventCount: 2, headHash: rows[1]!.eventHash };
-          },
-        },
-        limits,
-      }),
+      collectExecutionEventSourcePages({ events: store(unlinked), limits }),
     ).toThrowError(invalid);
     expect(() =>
       collectExecutionEventSourcePages({ events: store(history(1, 256 * 1024)), limits }),

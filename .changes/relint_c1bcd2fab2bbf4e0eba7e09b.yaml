@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c1bcd2fab2bbf4e0eba7e09b"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Group concurrent context-quality event commits while retaining fresh writer checks, full integrity verification and durable receipts."

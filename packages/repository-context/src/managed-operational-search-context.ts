@@ -1,3 +1,5 @@
+import { withRetrievalPreparationBudget } from "./retrieval-preparation-budget.js";
+import { observeSearchPreparation } from "./search-preparation-observation.js";
 import { randomBytes } from "node:crypto";
 
 import { createSearchAttempt, createSearchRecommendationBatch } from "@lervo/search";
@@ -21,14 +23,16 @@ export async function prepareManagedOperationalSearchContext(input: {
   runId?: string;
 }) {
   const query = managedSearchQuery(input.query, input.fallbackQuery);
-  const operational = await runLocalOperationalSearch({
-    repositoryRoot: input.repositoryRoot,
-    projectId: input.projectId,
-    registry: input.registry ?? searchCandidateRegistry,
-    ...(input.productDefault === undefined ? {} : { productDefault: input.productDefault }),
-    query,
-    limit: 5,
-  });
+  const operational = await withRetrievalPreparationBudget(() =>
+    runLocalOperationalSearch({
+      repositoryRoot: input.repositoryRoot,
+      projectId: input.projectId,
+      registry: input.registry ?? searchCandidateRegistry,
+      ...(input.productDefault === undefined ? {} : { productDefault: input.productDefault }),
+      query,
+      limit: 5,
+    }),
+  );
   const attempt = createSearchAttempt({
     projectId: input.projectId,
     observedAt: input.observedAt,
@@ -56,6 +60,13 @@ export async function prepareManagedOperationalSearchContext(input: {
     });
   }
   return {
+    preparationQuality: observeSearchPreparation({
+      query,
+      sourceSnapshotId: null,
+      corpusCoverage: "incomplete",
+      recommendationBatches: [batch],
+      graphRecommendations: [],
+    }),
     recommendationBatches: [batch],
     additionalCandidates: [],
     graphRecommendations: [],

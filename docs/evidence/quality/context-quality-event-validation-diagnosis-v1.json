@@ -1,0 +1,734 @@
+{
+  "schemaVersion": 1,
+  "diagnosticOnly": true,
+  "sourceRuntimeBuildHash": "sha256:8077bcb0d1c6be1e2d2745f4c2a1f487de01e380513c77b5b41a250c3955ca0d",
+  "completedAt": "2026-10-09T16:56:18.636884+00:00",
+  "scope": "Inclusive instrumented phase costs and five alternating fresh-process prototype pairs per workload. Prototype factors common envelope properties/invariants before version/type branches. Not a qualification cohort, not a durability change.",
+  "phaseMeasurements": [
+    {
+      "workload": "cold",
+      "replacements": 5,
+      "phases": {
+        "inspectEventWriterCoordinate": {
+          "calls": 10,
+          "ms": 6.35349900000017
+        },
+        "loadProjectManifest": {
+          "calls": 21,
+          "ms": 5.0830010000003085
+        },
+        "resolveProjectPaths": {
+          "calls": 33,
+          "ms": 0.8643309999997655
+        },
+        "record": {
+          "calls": 2,
+          "ms": 19.138500000000022
+        },
+        "observeStorageBinding": {
+          "calls": 5,
+          "ms": 1.350292000000195
+        }
+      },
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "samples": [[46.588250000000016, 62.529]]
+    },
+    {
+      "workload": "warm",
+      "replacements": 5,
+      "phases": {
+        "inspectEventWriterCoordinate": {
+          "calls": 76,
+          "ms": 18.09666799999968
+        },
+        "loadProjectManifest": {
+          "calls": 186,
+          "ms": 16.726793999999927
+        },
+        "resolveProjectPaths": {
+          "calls": 264,
+          "ms": 5.199030999999536
+        },
+        "record": {
+          "calls": 24,
+          "ms": 162.43241499999965
+        },
+        "observeStorageBinding": {
+          "calls": 49,
+          "ms": 9.284212999999909
+        }
+      },
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "samples": [
+        [25.846457999999984, 25.396],
+        [25.777166999999963, 17.948],
+        [24.464833, 20.182],
+        [25.354790999999977, 21.191],
+        [24.153832999999963, 18.033],
+        [24.117500000000064, 18.357],
+        [23.757791999999995, 16.85],
+        [24.06033400000001, 17.461],
+        [24.23345800000004, 17.492],
+        [23.62637499999994, 19.619]
+      ]
+    },
+    {
+      "workload": "concurrent",
+      "replacements": 5,
+      "phases": {
+        "inspectEventWriterCoordinate": {
+          "calls": 222,
+          "ms": 125.44036900000106
+        },
+        "loadProjectManifest": {
+          "calls": 441,
+          "ms": 114.22104399999785
+        },
+        "resolveProjectPaths": {
+          "calls": 666,
+          "ms": 13.333177000000092
+        },
+        "record": {
+          "calls": 96,
+          "ms": 1518.957716999999
+        },
+        "observeStorageBinding": {
+          "calls": 122,
+          "ms": 62.83891899999969
+        }
+      },
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "samples": [
+        [44.97287499999993, 32.232],
+        [43.79566699999998, 31.241],
+        [46.248750000000086, 30.971],
+        [44.89458400000001, 33.093],
+        [55.052415999999994, 33.316],
+        [45.98387500000001, 29.448],
+        [49.157332999999994, 36.399],
+        [45.92274999999995, 33.852],
+        [44.990291999999954, 29.581],
+        [45.02758299999982, 39.958]
+      ]
+    }
+  ],
+  "prototypePairs": [
+    {
+      "cycle": 0,
+      "processElapsedMs": 618.20775,
+      "mode": "current",
+      "workload": "cold",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "samples": [[46.86833300000001, 62.438]]
+    },
+    {
+      "cycle": 0,
+      "processElapsedMs": 593.1947499999999,
+      "mode": "factored",
+      "workload": "cold",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "samples": [[43.027624999999944, 55.411]]
+    },
+    {
+      "cycle": 0,
+      "processElapsedMs": 892.6975419999999,
+      "mode": "current",
+      "workload": "warm",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "samples": [
+        [26.70433300000002, 24.874],
+        [25.038875000000075, 17.8],
+        [24.13474999999994, 20.085],
+        [24.69962499999997, 20.791],
+        [23.948000000000093, 17.97],
+        [25.197874999999954, 18.579],
+        [23.669167000000016, 16.823],
+        [24.330124999999953, 17.952],
+        [24.07441700000004, 17.77],
+        [23.628749999999968, 19.901]
+      ]
+    },
+    {
+      "cycle": 0,
+      "processElapsedMs": 850.3583330000001,
+      "mode": "factored",
+      "workload": "warm",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "samples": [
+        [26.023500000000013, 23.308],
+        [23.863875000000007, 17.446],
+        [23.155749999999898, 21.234],
+        [24.54733299999998, 18.835],
+        [23.271375000000035, 17.331],
+        [24.022499999999923, 17.322],
+        [23.798124999999914, 16.233],
+        [24.131124999999997, 17.275],
+        [23.192250000000058, 16.478],
+        [22.68591600000002, 19.525]
+      ]
+    },
+    {
+      "cycle": 0,
+      "processElapsedMs": 1162.9783749999997,
+      "mode": "current",
+      "workload": "concurrent",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "samples": [
+        [50.04383399999995, 32.706],
+        [45.90045799999996, 31.514],
+        [45.29000000000008, 30.008],
+        [45.72045800000001, 35.08],
+        [47.088167, 33.492],
+        [45.04995800000006, 28.725],
+        [47.04991600000005, 35.942],
+        [47.25937500000009, 34.765],
+        [46.045250000000124, 31.103],
+        [49.59679200000005, 42.485]
+      ]
+    },
+    {
+      "cycle": 0,
+      "processElapsedMs": 1104.0645410000006,
+      "mode": "factored",
+      "workload": "concurrent",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "samples": [
+        [47.54075, 31.94],
+        [43.533250000000066, 28.152],
+        [43.83954199999994, 29.238],
+        [51.26354200000003, 32.491],
+        [41.000332999999955, 31.792],
+        [46.936958000000004, 27.728],
+        [47.1015000000001, 35.882],
+        [39.030666999999994, 31.743],
+        [44.17937500000005, 28.768],
+        [44.64625000000001, 38.65]
+      ]
+    },
+    {
+      "cycle": 1,
+      "processElapsedMs": 588.2743329999994,
+      "mode": "factored",
+      "workload": "cold",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "samples": [[43.79054199999996, 55.481]]
+    },
+    {
+      "cycle": 1,
+      "processElapsedMs": 627.9322920000004,
+      "mode": "current",
+      "workload": "cold",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "samples": [[44.849624999999946, 58.745]]
+    },
+    {
+      "cycle": 1,
+      "processElapsedMs": 882.6300000000001,
+      "mode": "factored",
+      "workload": "warm",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "samples": [
+        [25.106124999999906, 23.892],
+        [23.85679200000004, 17.513],
+        [23.43183399999998, 19.628],
+        [24.574375000000032, 20.52],
+        [23.146082999999976, 17.634],
+        [24.066082999999935, 17.935],
+        [23.68141700000001, 16.717],
+        [24.132000000000062, 17.724],
+        [34.87024999999994, 27.253],
+        [24.038374999999974, 20.34]
+      ]
+    },
+    {
+      "cycle": 1,
+      "processElapsedMs": 893.4207500000002,
+      "mode": "current",
+      "workload": "warm",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "samples": [
+        [25.680624999999964, 24.823],
+        [24.11333400000001, 17.663],
+        [24.130999999999972, 20.094],
+        [25.54433300000005, 20.776],
+        [24.291708000000085, 18.482],
+        [24.025125000000003, 18.004],
+        [23.879125000000045, 16.82],
+        [23.926249999999982, 17.695],
+        [24.098916999999915, 17.555],
+        [25.964709000000084, 19.965]
+      ]
+    },
+    {
+      "cycle": 1,
+      "processElapsedMs": 1121.7974169999998,
+      "mode": "factored",
+      "workload": "concurrent",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "samples": [
+        [44.925208, 32.334],
+        [45.83283300000005, 31.007],
+        [49.270417000000066, 28.897],
+        [41.20237499999996, 34.446],
+        [45.66704100000004, 32.629],
+        [45.00016700000003, 29.633],
+        [55.04270800000006, 35.888],
+        [46.20691599999998, 33.993],
+        [44.991874999999936, 31.654],
+        [46.07291699999996, 40.461]
+      ]
+    },
+    {
+      "cycle": 1,
+      "processElapsedMs": 1141.177708000001,
+      "mode": "current",
+      "workload": "concurrent",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "samples": [
+        [44.835375, 31.753],
+        [46.94100000000003, 32.477],
+        [45.84870799999999, 28.873],
+        [46.093166999999994, 35.62],
+        [49.170792000000006, 32.467],
+        [40.674125000000004, 29.338],
+        [44.22337500000003, 36.575],
+        [46.151792000000114, 34.001],
+        [45.13791600000013, 30.863],
+        [45.002959000000146, 41.93]
+      ]
+    },
+    {
+      "cycle": 2,
+      "processElapsedMs": 631.683500000001,
+      "mode": "current",
+      "workload": "cold",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "samples": [[46.88741700000003, 61.333]]
+    },
+    {
+      "cycle": 2,
+      "processElapsedMs": 593.3877090000005,
+      "mode": "factored",
+      "workload": "cold",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "samples": [[43.738958000000025, 56.087]]
+    },
+    {
+      "cycle": 2,
+      "processElapsedMs": 892.7649169999986,
+      "mode": "current",
+      "workload": "warm",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "samples": [
+        [25.609833000000094, 24.631],
+        [24.99716699999999, 17.717],
+        [24.24558300000001, 21.453],
+        [24.355583000000024, 19.806],
+        [24.272624999999948, 18.022],
+        [24.206290999999965, 18.737],
+        [23.603500000000054, 16.996],
+        [24.195875, 19.07],
+        [24.172665999999936, 16.53],
+        [23.70670800000005, 20.065]
+      ]
+    },
+    {
+      "cycle": 2,
+      "processElapsedMs": 871.7362080000003,
+      "mode": "factored",
+      "workload": "warm",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "samples": [
+        [25.516666999999984, 24.252],
+        [23.985167000000047, 17.85],
+        [25.961250000000064, 21.183],
+        [24.086624999999913, 19.188],
+        [23.985791999999947, 17.816],
+        [24.009832999999958, 18.035],
+        [23.672959000000105, 16.723],
+        [23.33120800000006, 19.084],
+        [23.228917000000024, 16.156],
+        [23.450874999999996, 19.532]
+      ]
+    },
+    {
+      "cycle": 2,
+      "processElapsedMs": 1154.2457909999994,
+      "mode": "current",
+      "workload": "concurrent",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "samples": [
+        [46.68124999999998, 33.471],
+        [43.89645800000005, 32.949],
+        [46.33087499999999, 32.242],
+        [41.964166999999975, 33.424],
+        [50.93745799999999, 33.787],
+        [48.75633299999993, 29.978],
+        [50.149208000000044, 36.954],
+        [45.87941699999999, 34.66],
+        [41.06925000000001, 30.438],
+        [40.89187500000003, 41.374]
+      ]
+    },
+    {
+      "cycle": 2,
+      "processElapsedMs": 1125.5313330000008,
+      "mode": "factored",
+      "workload": "concurrent",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "samples": [
+        [44.94062500000007, 32.025],
+        [45.72666600000002, 32.263],
+        [46.15716700000007, 30.509],
+        [49.050915999999916, 37.838],
+        [47.213040999999976, 35.922],
+        [44.81316700000002, 31.821],
+        [46.86929199999997, 36.369],
+        [45.528542000000016, 32.846],
+        [44.66379099999995, 28.423],
+        [41.04120899999998, 39.551]
+      ]
+    },
+    {
+      "cycle": 3,
+      "processElapsedMs": 591.7089169999999,
+      "mode": "factored",
+      "workload": "cold",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "samples": [[45.78791699999999, 55.84]]
+    },
+    {
+      "cycle": 3,
+      "processElapsedMs": 619.5414170000004,
+      "mode": "current",
+      "workload": "cold",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "samples": [[48.948125000000005, 61.201]]
+    },
+    {
+      "cycle": 3,
+      "processElapsedMs": 861.7207080000007,
+      "mode": "factored",
+      "workload": "warm",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "samples": [
+        [25.141959000000043, 21.04],
+        [23.842667000000006, 16.883],
+        [23.343375000000037, 20.923],
+        [23.610625000000027, 18.781],
+        [23.133499999999913, 17.138],
+        [22.90829199999996, 16.791],
+        [24.01166699999999, 15.95],
+        [24.19324999999992, 16.928],
+        [22.886166000000003, 16.207],
+        [21.906791999999996, 19.098]
+      ]
+    },
+    {
+      "cycle": 3,
+      "processElapsedMs": 895.4739169999993,
+      "mode": "current",
+      "workload": "warm",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "samples": [
+        [25.805083999999965, 24.698],
+        [24.90787499999999, 17.436],
+        [23.22670800000003, 19.79],
+        [23.856540999999993, 20.463],
+        [23.962916999999948, 17.819],
+        [24.061624999999935, 18.208],
+        [23.792041999999924, 16.783],
+        [27.06154099999992, 17.707],
+        [23.246291000000042, 17.593],
+        [23.69541599999991, 19.887]
+      ]
+    },
+    {
+      "cycle": 3,
+      "processElapsedMs": 1107.4540420000012,
+      "mode": "factored",
+      "workload": "concurrent",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "samples": [
+        [44.751125, 33.821],
+        [40.31691599999999, 28.877],
+        [43.84087499999998, 29.638],
+        [39.99599999999998, 32.967],
+        [47.09974999999997, 31.132],
+        [44.003832999999986, 28.089],
+        [48.16466700000001, 35.628],
+        [41.212125000000015, 32.139],
+        [48.85637500000007, 29.836],
+        [44.02358299999992, 40.111]
+      ]
+    },
+    {
+      "cycle": 3,
+      "processElapsedMs": 1148.7335409999978,
+      "mode": "current",
+      "workload": "concurrent",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "samples": [
+        [46.95129199999997, 31.916],
+        [45.80495799999994, 31.227],
+        [40.87412500000005, 28.502],
+        [43.20233399999995, 33.658],
+        [45.152874999999995, 31.586],
+        [44.861666000000014, 28.968],
+        [49.83445800000004, 36.22],
+        [48.515249999999924, 35.444],
+        [41.18641700000012, 29.843],
+        [44.574333000000024, 41.569]
+      ]
+    },
+    {
+      "cycle": 4,
+      "processElapsedMs": 619.0517499999987,
+      "mode": "current",
+      "workload": "cold",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "samples": [[45.15425000000005, 60.591]]
+    },
+    {
+      "cycle": 4,
+      "processElapsedMs": 601.0780830000003,
+      "mode": "factored",
+      "workload": "cold",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "samples": [[45.95395799999994, 56.237]]
+    },
+    {
+      "cycle": 4,
+      "processElapsedMs": 884.3268750000025,
+      "mode": "current",
+      "workload": "warm",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "samples": [
+        [24.715124999999944, 24.698],
+        [24.005915999999957, 18.156],
+        [24.136333000000036, 19.861],
+        [23.644250000000056, 20.76],
+        [23.148957999999993, 17.627],
+        [23.12099999999998, 17.936],
+        [23.64804199999992, 16.738],
+        [23.20191699999998, 17.588],
+        [23.139499999999998, 17.342],
+        [22.645582999999988, 19.618]
+      ]
+    },
+    {
+      "cycle": 4,
+      "processElapsedMs": 868.760083000001,
+      "mode": "factored",
+      "workload": "warm",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "samples": [
+        [25.559082999999987, 23.982],
+        [24.01145800000006, 17.655],
+        [23.128082999999947, 19.778],
+        [23.712375000000065, 20.615],
+        [23.13666699999999, 17.834],
+        [23.16674999999998, 18.331],
+        [23.56895899999995, 16.869],
+        [25.08604200000002, 17.846],
+        [24.060292000000004, 17.526],
+        [22.777624999999944, 19.817]
+      ]
+    },
+    {
+      "cycle": 4,
+      "processElapsedMs": 1151.714333,
+      "mode": "current",
+      "workload": "concurrent",
+      "replacements": 0,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "samples": [
+        [49.727499999999964, 32.272],
+        [45.06995799999993, 31.325],
+        [45.33158299999991, 30.307],
+        [48.02095899999995, 35.925],
+        [46.72220800000002, 33.337],
+        [43.176791000000094, 30.047],
+        [45.910999999999945, 35.426],
+        [46.881624999999985, 34.543],
+        [46.334125000000085, 29.986],
+        [37.30991700000004, 42.673]
+      ]
+    },
+    {
+      "cycle": 4,
+      "processElapsedMs": 1113.3182089999973,
+      "mode": "factored",
+      "workload": "concurrent",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "samples": [
+        [44.149584000000004, 32.629],
+        [48.57083299999999, 28.673],
+        [39.90629200000001, 29.663],
+        [45.07729100000006, 32.15],
+        [45.02741600000002, 30.882],
+        [44.82216699999992, 27.744],
+        [47.18162499999994, 34.708],
+        [44.042084000000045, 30.799],
+        [36.344625000000065, 29.59],
+        [47.57966699999997, 38.114]
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "name": "lervo-single-record-phases.mjs",
+      "contentHash": "sha256:b6eb12892cefda5803dba8bd8c6da480c1c66371c7e316f1280af6bcb3607c97"
+    },
+    {
+      "name": "lervo-single-record-cpu.mjs",
+      "contentHash": "sha256:219d6d11b513c3cb1d93eca37ed3ea79450178454fee86aaa4ff788ba95d8493"
+    },
+    {
+      "name": "lervo-event-schema-probe.mjs",
+      "contentHash": "sha256:63ff45f6e59b209cf2248cfa8a5b01db786fbcad5b0a17c2cea268dc572b5746"
+    }
+  ],
+  "limitations": [
+    "Phase durations are inclusive and overlapping; do not sum nested observations.",
+    "Timing instrumentation and CPU sampling perturb runtime.",
+    "Prototype pairs use4KiB only and do not replace fixed qualification gates.",
+    "No provider calls, deployment, writer activation outside fixtures or real-task quality inference."
+  ],
+  "decision": "Implement declarative common-envelope factoring with exact previous-schema differential tests; retain fresh writer/path/integrity observations and all durable CAS/event effects.",
+  "qualificationPreflight": {
+    "status": "rejected_before_worker_admission",
+    "reason": "new_protocol_id_not_in_runner_allowlist",
+    "workerProcessesStarted": 0,
+    "logHash": "sha256:1be45cb1bf1d82b22bd6194f040fc4342ccb407a8d59744159019cfbf4f0617d",
+    "resolution": "Register exact v7 protocol ID, test acceptance and unchanged gate rejection, then start the first measured cohort. No measured worker failed or was replaced."
+  }
+}

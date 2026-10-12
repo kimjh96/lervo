@@ -146,7 +146,7 @@ export function checkConversationDeliberationNotificationIntegrity(input: {
   maximumRecords: number;
 }): void {
   let count = 0;
-  for (const row of iterateSqliteRows(input.database.prepare(`SELECT * FROM ${table}`).iterate())) {
+  for (const row of iterateSqliteRows(input.database.prepare(`SELECT * FROM ${table}`))) {
     count += 1;
     if (count > input.maximumRecords) {
       throw new ConversationDeliberationSQLiteError(

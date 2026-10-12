@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d87c739122776e3265221c3c"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Share the CLI and Node internal runtime and bind its installed artifacts."

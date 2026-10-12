@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5241bc6cc148b592f33e8393"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reduce repeated event-envelope validation while preserving accepted versions, payload boundaries and durable recording."

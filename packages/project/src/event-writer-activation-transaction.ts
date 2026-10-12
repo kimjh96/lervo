@@ -1,7 +1,7 @@
 import { chmod, lstat, mkdtemp, rename, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import type { EventWriterActivationEvidence, EventWriterCoordinate } from "@lervo/schemas";
+import { canonicalJson } from "@lervo/event-contract";
 
 import type { EventWriterActivationPlan } from "./event-writer-activation-plan.js";
 import {
@@ -31,24 +31,9 @@ export interface EventWriterActivationReceipt {
   receiptKind: "event_writer_activation_applied" | "event_writer_rollback_applied";
   planId: string;
   projectId: string;
-  selectedEventSchemaVersion: 1 | 2 | 3 | 4 | 5;
+  selectedEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6;
   coordinateHash: string;
   activationId: string | null;
-}
-
-function coordinateEvidence(coordinate: EventWriterCoordinate): EventWriterActivationEvidence {
-  if (coordinate.selectedEventSchemaVersion === 1) {
-    throw new EventWriterActivationError(
-      "event_writer_plan_stale",
-      "The activation plan has no higher-version evidence.",
-    );
-  }
-  return {
-    schemaVersion: 1,
-    projectId: coordinate.projectId,
-    observedAt: coordinate.activationEvidence.observedAt,
-    readers: coordinate.activationEvidence.readers,
-  };
 }
 
 export async function applyEventWriterActivationPlan(input: {
@@ -59,22 +44,24 @@ export async function applyEventWriterActivationPlan(input: {
     checkpoint: EventWriterActivationCheckpoint,
   ) => "interrupt" | void | Promise<"interrupt" | void>;
 }): Promise<EventWriterActivationReceipt> {
-  if (input.approval !== input.plan.planId) {
+  const plan = structuredClone(input.plan);
+  const { approval, failureInjector } = input;
+  if (approval !== plan.planId) {
     throw new EventWriterActivationError(
       "event_writer_plan_stale",
       "Approval must equal the current event writer activation plan ID.",
     );
   }
-  if (input.plan.status !== "ready") {
+  if (plan.status !== "ready") {
     throw new EventWriterActivationError(
       "event_writer_activation_blocked",
       "Only a ready event writer activation plan can be applied.",
     );
   }
-  const plannedEvidence = input.plan.activationEvidence;
+  const plannedEvidence = plan.activationEvidence;
   if (
     plannedEvidence?.schemaVersion === 2 ||
-    input.plan.desiredCoordinate.selectedEventSchemaVersion >= 3
+    plan.desiredCoordinate.selectedEventSchemaVersion >= 3
   ) {
     if (input.currentEvidence === undefined) {
       throw new EventWriterActivationError(
@@ -96,25 +83,20 @@ export async function applyEventWriterActivationPlan(input: {
     }
   }
   const current =
-    input.plan.desiredCoordinate.selectedEventSchemaVersion !== 1
+    plan.desiredCoordinate.selectedEventSchemaVersion !== 1
       ? await planEventWriterActivation({
-          repositoryRoot: input.plan.repositoryRoot,
-          targetEventSchemaVersion: input.plan.desiredCoordinate.selectedEventSchemaVersion,
-          evidence:
-            input.plan.activationEvidence ?? coordinateEvidence(input.plan.desiredCoordinate),
+          repositoryRoot: plan.repositoryRoot,
+          targetEventSchemaVersion: plan.desiredCoordinate.selectedEventSchemaVersion,
+          evidence: plan.activationEvidence,
         })
-      : await planEventWriterRollback(input.plan.repositoryRoot);
-  if (
-    current.planId !== input.plan.planId ||
-    current.desiredContentHash !== input.plan.desiredContentHash ||
-    current.status !== "ready"
-  ) {
+      : await planEventWriterRollback(plan.repositoryRoot);
+  if (current.status !== "ready" || canonicalJson(current) !== canonicalJson(plan)) {
     throw new EventWriterActivationError(
       "event_writer_plan_stale",
       "The event writer activation inputs changed after planning.",
     );
   }
-  const paths = resolveProjectPaths(input.plan.repositoryRoot);
+  const paths = resolveProjectPaths(current.repositoryRoot);
   await ensureEventWriterDataDirectory(paths.data);
   const transaction = resolve(paths.data, eventWriterActivationTransactionName);
   try {
@@ -131,17 +113,17 @@ export async function applyEventWriterActivationPlan(input: {
   const journal: EventWriterActivationJournal = {
     schemaVersion: 1,
     transactionKind: "event_writer_selection",
-    planId: input.plan.planId,
-    projectId: input.plan.projectId,
-    beforeHash: input.plan.currentContentHash,
-    afterHash: input.plan.desiredContentHash,
+    planId: current.planId,
+    projectId: current.projectId,
+    beforeHash: current.currentContentHash,
+    afterHash: current.desiredContentHash,
   };
   try {
     await writeDurableEventWriterFile(
       resolve(preparing, "journal.json"),
       `${JSON.stringify(journal, null, 2)}\n`,
     );
-    await writeDurableEventWriterFile(resolve(preparing, "next.json"), input.plan.desiredContent);
+    await writeDurableEventWriterFile(resolve(preparing, "next.json"), current.desiredContent);
     await rename(preparing, transaction);
     await syncEventWriterDirectory(paths.data);
   } catch (error) {
@@ -150,14 +132,14 @@ export async function applyEventWriterActivationPlan(input: {
   }
   let interrupted = false;
   const checkpoint = async (name: EventWriterActivationCheckpoint) => {
-    if ((await input.failureInjector?.(name)) === "interrupt") {
+    if ((await failureInjector?.(name)) === "interrupt") {
       interrupted = true;
       throw new Error("simulated interruption");
     }
   };
   try {
     await checkpoint("staged");
-    if (input.plan.currentContentHash !== null) {
+    if (current.currentContentHash !== null) {
       await rename(paths.eventContract, resolve(transaction, "before.json"));
       await syncEventWriterDirectory(paths.data);
       await syncEventWriterDirectory(transaction);
@@ -181,8 +163,8 @@ export async function applyEventWriterActivationPlan(input: {
     if (recovery.status !== "completed") throw error;
   }
   const coordinate = readEventWriterCoordinate(
-    JSON.parse(input.plan.desiredContent),
-    input.plan.projectId,
+    JSON.parse(current.desiredContent),
+    current.projectId,
   );
   return {
     schemaVersion: 1,
@@ -190,10 +172,10 @@ export async function applyEventWriterActivationPlan(input: {
       coordinate.selectedEventSchemaVersion !== 1
         ? "event_writer_activation_applied"
         : "event_writer_rollback_applied",
-    planId: input.plan.planId,
-    projectId: input.plan.projectId,
+    planId: current.planId,
+    projectId: current.projectId,
     selectedEventSchemaVersion: coordinate.selectedEventSchemaVersion,
-    coordinateHash: input.plan.desiredContentHash,
+    coordinateHash: current.desiredContentHash,
     activationId:
       coordinate.selectedEventSchemaVersion !== 1
         ? coordinate.activationEvidence.activationId

@@ -1,0 +1,6320 @@
+{
+  "schemaVersion": 1,
+  "status": "diagnostic_only_no_runtime_change",
+  "observedAt": "2026-10-09T20:18:58.111970+00:00",
+  "baselineArtifactBuildHash": "sha256:813b2e1f96ac399a6db7b1ba8ddf5f695f7d4996f16b49b1a6b41af52c083007",
+  "baselineProtocol": "benchmarks/context-quality/recording-repair-v11.json",
+  "runtime": {
+    "node": "v26.5.1",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "scope": "192 disposable synthetic fixture workers:3identity phase,45identity comparison,24threadCPU and120CAS/preflight comparison. All fixture semantics, exact event counts and final integrity pass. No agent build/test/scan overlaps measurement; unchanged runtime independently hashed before and after. No production source, native module, durability, gate, activation or installed change.",
+  "limits": [
+    "Exploratory4KiB comparison workloads only:five rotated/alternating fresh-process sets,2warmups/10noncold samples,1cold sample,concurrency4. Not frozen30pair qualification.",
+    "Thread CPU uses Node26 diagnostic API, three alternating pairs perworkload. Main-thread CPU includes native synchronous calls and runtime work; process-minus-main includes other runtime/JIT/GC threads as well as filesystem workers and is not exclusive filesystem attribution. Thread snapshot surrounds a slightly wider interval than process CPU snapshot; differences are approximate.",
+    "CAS small readers retain current raw-file synchronization and full digest verification but scratch errors,large inputs,concurrent mutation,platform behavior and adverse lifecycle remain unqualified. Intermediate first-read variant lacks the final explicit lstat link guards. None is a production candidate.",
+    "Retained-lease preflight hint is not authority. Existing initial borrow and post-CAS binding observations remain, but inactive status precedence,rotation/opening and concurrent rebinding behavior are not qualified. Do not promote the hint implementation; a pool-owned fresh pre-open/initial-borrow contract would require source design and adverse tests."
+  ],
+  "attempts": [
+    {
+      "id": "event-identity",
+      "scope": "single reuses requested identity when effectiveDraft is identical; lazy computes identities only on stored-row retries. Existing hashing/schema checks remain. Lazy malformed-input/error precedence is not qualified.",
+      "decision": "Not selected:phase cost0.040ms/cold request,0.023ms/warm request,0.072ms/concurrent batch includingwarmups is too small to explain remaining budgets. Neither candidate consistently improves complete operations.",
+      "rows": [
+        {
+          "cycle": 0,
+          "processElapsedMs": 584.500333,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.590958, 57.246]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 594.1292920000001,
+          "mode": "single",
+          "workload": "cold",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.045792000000006, 56.363]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 589.8911249999992,
+          "mode": "lazy",
+          "workload": "cold",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.59733399999993, 57.267]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 796.0976659999997,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.87120799999991, 22.513],
+            [19.955124999999953, 17.259],
+            [18.12291700000003, 16.121],
+            [19.7733750000001, 20.335],
+            [18.065624999999955, 16.754],
+            [17.665000000000077, 15.732],
+            [18.164957999999956, 16.517],
+            [18.033667000000037, 16.635],
+            [18.220291999999972, 14.766],
+            [18.63258399999995, 20.001]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 791.9805830000005,
+          "mode": "single",
+          "workload": "warm",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.886708, 22.492],
+            [18.83070799999996, 16.797],
+            [18.205874999999992, 16.212],
+            [18.853166999999985, 20.045],
+            [17.93570800000009, 16.757],
+            [18.164292000000046, 15.51],
+            [18.83158400000002, 16.175],
+            [18.11399999999992, 16.536],
+            [17.101499999999987, 14.664],
+            [17.73849999999993, 19.958]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 794.7799999999997,
+          "mode": "lazy",
+          "workload": "warm",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.041375000000016, 22.662],
+            [18.847041999999988, 16.672],
+            [18.08949999999993, 16.387],
+            [18.71524999999997, 20.071],
+            [18.204707999999982, 17.226],
+            [18.16983300000004, 15.943],
+            [18.26750000000004, 16.894],
+            [18.55687499999999, 16.57],
+            [17.910624999999982, 15.053],
+            [17.873708999999963, 19.286]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 982.564957999999,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498764,
+          "samples": [
+            [31.23129199999994, 26.495],
+            [30.414416999999958, 26.99],
+            [29.413333999999963, 23.947],
+            [41.637666999999965, 30.661],
+            [30.666082999999958, 27.034],
+            [35.69287499999996, 25.976],
+            [38.598749999999995, 31.557],
+            [35.175250000000005, 27.049],
+            [33.96691699999997, 25.02],
+            [35.827833000000055, 34.793]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 994.4107910000002,
+          "mode": "single",
+          "workload": "concurrent",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [33.64604099999997, 27.213],
+            [32.43491700000004, 30.285],
+            [34.69237499999997, 28.286],
+            [34.92237499999999, 32.18],
+            [36.79220800000007, 27.648],
+            [36.19479200000001, 24.133],
+            [36.35149999999999, 30.708],
+            [29.714917000000014, 26.765],
+            [30.32566600000007, 25.093],
+            [41.62799999999993, 35.924]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 969.9721659999996,
+          "mode": "lazy",
+          "workload": "concurrent",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 501076,
+          "samples": [
+            [36.05454199999997, 26.892],
+            [29.753166999999962, 26.521],
+            [32.64554200000009, 24.517],
+            [33.915707999999995, 27.806],
+            [33.30204100000003, 28.134],
+            [29.20508300000006, 23.59],
+            [35.353875000000016, 29.94],
+            [30.879500000000007, 27.039],
+            [30.67191600000001, 24.938],
+            [32.58329200000003, 33.737]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 590.3869579999991,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[40.23320899999999, 56.103]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 588.1307919999999,
+          "mode": "lazy",
+          "workload": "cold",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.36733400000003, 55.985]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 588.6646249999994,
+          "mode": "single",
+          "workload": "cold",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.12454200000002, 56.116]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 794.6247500000009,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.729708000000073, 22.861],
+            [18.800583999999958, 16.735],
+            [18.29845899999998, 16.066],
+            [19.710749999999962, 20.027],
+            [18.208499999999958, 16.749],
+            [17.945375000000013, 15.893],
+            [17.71433300000001, 16.385],
+            [18.26208399999996, 16.736],
+            [17.866166999999905, 14.942],
+            [18.07787499999995, 19.814]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 797.7171249999992,
+          "mode": "lazy",
+          "workload": "warm",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.885999999999967, 22.584],
+            [18.71687499999996, 16.781],
+            [18.451833999999963, 16.139],
+            [19.524208000000044, 20.431],
+            [18.12804099999994, 16.838],
+            [18.084541999999942, 15.892],
+            [17.897166999999968, 16.288],
+            [17.928833999999938, 16.911],
+            [17.288166000000047, 14.905],
+            [17.649541, 19.594]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 802.113374999999,
+          "mode": "single",
+          "workload": "warm",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.716541000000007, 22.4],
+            [18.980625000000032, 16.774],
+            [18.08208400000001, 16.727],
+            [18.80925000000002, 20.138],
+            [18.220541000000026, 16.83],
+            [17.947250000000054, 15.917],
+            [17.838207999999895, 16.158],
+            [18.07583299999999, 16.744],
+            [17.044708999999898, 14.911],
+            [17.7538330000001, 19.693]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 966.744999999999,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 495800,
+          "samples": [
+            [30.144541000000004, 27.079],
+            [33.80841699999996, 26.017],
+            [32.93187499999999, 24.8],
+            [34.34304199999997, 28.503],
+            [33.777874999999995, 27.652],
+            [28.249500000000012, 23.533],
+            [32.74420799999996, 30.483],
+            [29.239291999999978, 26.291],
+            [29.68958299999997, 24.298],
+            [36.00733300000002, 35.274]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 982.4717500000006,
+          "mode": "lazy",
+          "workload": "concurrent",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 495800,
+          "samples": [
+            [30.102791000000025, 26.697],
+            [31.095749999999953, 26.529],
+            [33.878708000000074, 25.158],
+            [30.15533300000004, 27.245],
+            [37.82358399999998, 28.321],
+            [33.9586250000001, 24.252],
+            [34.051124999999956, 29.832],
+            [30.320791999999983, 27.279],
+            [34.5106659999999, 25.546],
+            [33.29933300000005, 34.042]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 968.6780419999996,
+          "mode": "single",
+          "workload": "concurrent",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 494644,
+          "samples": [
+            [30.180584000000067, 26.027],
+            [33.887291000000005, 26.078],
+            [30.023500000000013, 25.277],
+            [38.03079100000002, 28.496],
+            [31.093917000000033, 27.413],
+            [30.073375000000055, 24.243],
+            [31.501208999999903, 29.958],
+            [30.479250000000093, 26.489],
+            [33.86099999999999, 25.09],
+            [33.01566700000001, 33.753]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 589.7484169999989,
+          "mode": "lazy",
+          "workload": "cold",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.61841699999991, 55.885]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 592.3241660000022,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.199749999999995, 56.286]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 596.7297919999983,
+          "mode": "single",
+          "workload": "cold",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.72883300000001, 55.289]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 795.068124999998,
+          "mode": "lazy",
+          "workload": "warm",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.673083999999903, 22.741],
+            [18.967084, 16.865],
+            [18.098125000000095, 15.927],
+            [18.68754100000001, 20.109],
+            [18.197625000000016, 16.642],
+            [17.061166999999955, 15.565],
+            [17.78658299999995, 16.265],
+            [18.012249999999995, 16.491],
+            [17.093458000000055, 14.727],
+            [17.831000000000017, 19.188]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 797.2383330000011,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.898167000000058, 23.151],
+            [18.71220799999992, 16.627],
+            [18.132624999999962, 16.144],
+            [19.045834000000013, 20.475],
+            [17.82158400000003, 16.767],
+            [17.199208, 15.617],
+            [17.789792000000034, 16.38],
+            [18.22641699999997, 16.804],
+            [17.955917, 15.006],
+            [17.96312499999999, 20.091]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 818.0811670000003,
+          "mode": "single",
+          "workload": "warm",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.73079199999995, 21.68],
+            [21.105125000000044, 19.879],
+            [19.18754100000001, 17.105],
+            [19.545124999999985, 19.776],
+            [20.352082999999993, 19.002],
+            [18.650625000000105, 16.613],
+            [19.006166000000007, 17.544],
+            [18.89975000000004, 17.372],
+            [20.19766699999991, 16.36],
+            [20.06504199999995, 21.177]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 997.3694160000014,
+          "mode": "lazy",
+          "workload": "concurrent",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498764,
+          "samples": [
+            [33.373416999999904, 26.365],
+            [38.253791999999976, 25.34],
+            [34.82083399999999, 26.211],
+            [33.17670799999996, 27.089],
+            [38.26379199999997, 28.48],
+            [33.46654100000001, 24.676],
+            [36.57604100000003, 30.891],
+            [33.727709000000004, 26.988],
+            [35.12120900000002, 25.189],
+            [32.910124999999994, 34.309]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 988.9417080000021,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499268,
+          "samples": [
+            [35.73279100000002, 30.674],
+            [31.203083000000106, 29.839],
+            [38.671334, 27.361],
+            [36.36229100000003, 29.895],
+            [35.63404200000002, 29.7],
+            [30.32583299999999, 26.878],
+            [35.682500000000005, 33.18],
+            [31.431083000000058, 30.09],
+            [34.59187499999996, 25.684],
+            [32.24591699999996, 33.84]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 969.8630419999972,
+          "mode": "single",
+          "workload": "concurrent",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 495800,
+          "samples": [
+            [37.23000000000002, 27.224],
+            [34.06254100000001, 26.586],
+            [28.812583000000018, 24.482],
+            [30.462041999999997, 27.848],
+            [29.748166999999967, 26.795],
+            [33.75512499999991, 23.974],
+            [35.22204199999999, 31.032],
+            [34.99520800000005, 27.818],
+            [30.05820899999992, 25.006],
+            [29.259042000000022, 34.887]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 605.6199589999997,
+          "mode": "lazy",
+          "workload": "cold",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.26908300000002, 59.802]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 592.2298340000016,
+          "mode": "single",
+          "workload": "cold",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.23795800000005, 57.684]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 593.0058339999996,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.08812499999999, 56.436]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 805.4831670000021,
+          "mode": "lazy",
+          "workload": "warm",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.72124999999994, 23.024],
+            [18.968582999999967, 16.867],
+            [18.07949999999994, 16.42],
+            [19.71104200000002, 20.499],
+            [18.235750000000053, 17.565],
+            [17.92191600000001, 16.408],
+            [18.88216699999998, 16.979],
+            [18.922000000000025, 17.376],
+            [18.305207999999993, 15.806],
+            [17.689499999999953, 19.596]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 804.1313750000008,
+          "mode": "single",
+          "workload": "warm",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.91904199999999, 22.861],
+            [18.76858399999992, 16.919],
+            [19.190165999999977, 16.638],
+            [19.634374999999977, 20.149],
+            [18.517417000000023, 17.349],
+            [17.70229100000006, 15.852],
+            [18.925291000000016, 16.689],
+            [17.920541999999955, 17.009],
+            [17.230042000000026, 15.187],
+            [17.88666699999999, 20.108]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 809.8349170000001,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.79766600000005, 23.063],
+            [18.801832999999988, 16.874],
+            [18.356415999999967, 16.617],
+            [19.847875000000045, 20.566],
+            [19.014167000000043, 17.636],
+            [18.040416999999934, 15.779],
+            [18.757791999999995, 16.702],
+            [18.03449999999998, 16.666],
+            [18.164790999999923, 15.145],
+            [17.607958000000053, 20.088]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 997.4387920000008,
+          "mode": "lazy",
+          "workload": "concurrent",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 493992,
+          "samples": [
+            [32.99120800000003, 26.959],
+            [30.122375000000034, 25.583],
+            [33.86420899999996, 25.146],
+            [37.93545800000004, 27.899],
+            [40.001957999999945, 28.223],
+            [38.463874999999916, 25.321],
+            [32.26537499999995, 30.318],
+            [33.44024999999999, 27.073],
+            [33.197333999999955, 25.035],
+            [30.17108399999995, 34.958]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 996.8754170000029,
+          "mode": "single",
+          "workload": "concurrent",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 493992,
+          "samples": [
+            [30.59887500000002, 28.231],
+            [34.72558300000003, 26.303],
+            [34.41208299999994, 27.001],
+            [32.43420800000001, 30.941],
+            [37.62583299999994, 27.474],
+            [40.09608300000002, 26.724],
+            [34.13458300000002, 30.148],
+            [36.89433400000007, 28.313],
+            [29.063541999999984, 24.66],
+            [29.21737500000006, 34.187]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 992.6557920000014,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 495800,
+          "samples": [
+            [38.00041699999997, 27.267],
+            [33.80229100000008, 27.09],
+            [29.065292, 24.763],
+            [33.05312500000002, 28.195],
+            [34.04891699999996, 28.4],
+            [31.970332999999982, 23.44],
+            [35.785582999999974, 31.457],
+            [33.21170799999993, 26.913],
+            [30.333499999999958, 25.356],
+            [36.59091699999999, 36.059]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 594.5002080000013,
+          "mode": "single",
+          "workload": "cold",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.361749999999915, 56.644]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 604.198209000002,
+          "mode": "lazy",
+          "workload": "cold",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.404499999999985, 56.396]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 604.7518750000017,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.672416, 57.22]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 811.056500000006,
+          "mode": "single",
+          "workload": "warm",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.774291999999946, 22.834],
+            [20.90787499999999, 17.07],
+            [19.141791000000012, 16.29],
+            [19.751957999999945, 20.351],
+            [18.081916999999976, 17.203],
+            [18.035624999999982, 15.801],
+            [18.856708000000026, 16.565],
+            [18.17908299999999, 16.652],
+            [17.978541999999948, 15.09],
+            [17.815249999999992, 19.931]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 799.4043749999983,
+          "mode": "lazy",
+          "workload": "warm",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.80108299999995, 22.71],
+            [18.934624999999983, 16.714],
+            [18.12566700000002, 16.108],
+            [19.559584000000086, 20.456],
+            [17.482666999999992, 16.629],
+            [17.939958000000047, 15.769],
+            [17.662750000000074, 16.438],
+            [18.238124999999968, 16.591],
+            [16.845500000000015, 14.982],
+            [18.08304099999998, 19.175]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 804.2145409999939,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.04429200000004, 22.782],
+            [18.868124999999964, 16.992],
+            [17.911125000000084, 16.304],
+            [18.953833999999915, 20.369],
+            [17.87295800000004, 16.848],
+            [18.1969170000001, 15.703],
+            [18.837834000000043, 16.403],
+            [18.021209, 16.521],
+            [17.098082999999974, 14.997],
+            [17.858833000000004, 20.183]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 986.3322499999995,
+          "mode": "single",
+          "workload": "concurrent",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 501076,
+          "samples": [
+            [32.777333, 26.535],
+            [34.229917, 26.277],
+            [33.91933400000005, 24.69],
+            [34.19375000000002, 28.259],
+            [34.99541700000009, 28.439],
+            [30.77054099999998, 24.46],
+            [38.87804099999994, 30.857],
+            [33.36120800000003, 26.982],
+            [30.06837500000006, 25.214],
+            [32.95512499999995, 34.616]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 990.198000000004,
+          "mode": "lazy",
+          "workload": "concurrent",
+          "replacements": 1,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 495800,
+          "samples": [
+            [34.861875000000055, 27.077],
+            [30.364666000000057, 26.673],
+            [32.86749999999995, 24.388],
+            [34.25745800000004, 27.881],
+            [35.835207999999966, 28.058],
+            [29.090167000000065, 23.787],
+            [35.108499999999935, 35.577],
+            [35.74766599999998, 30.45],
+            [36.274, 29.758],
+            [34.76749999999993, 37.411]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 990.5389589999977,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "identityMetrics": {
+            "calls": 0,
+            "elapsedMs": 0
+          },
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [33.8125, 27.184],
+            [37.90654100000006, 26.567],
+            [36.964583999999945, 25.393],
+            [34.25945899999999, 28.571],
+            [34.09795800000006, 28.111],
+            [33.04620799999998, 24.186],
+            [31.402958000000012, 30.654],
+            [30.43354199999999, 26.186],
+            [35.065667000000076, 26.231],
+            [29.382041999999956, 34.622]
+          ]
+        }
+      ],
+      "summary": [
+        {
+          "workload": "cold",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 38.756891599999996,
+          "meanCpuMs": 56.6582,
+          "meanProcessMs": 592.9938332000005
+        },
+        {
+          "workload": "cold",
+          "mode": "lazy",
+          "workers": 5,
+          "meanElapsedMs": 38.45133359999998,
+          "meanCpuMs": 57.06699999999999,
+          "meanProcessMs": 595.5177004
+        },
+        {
+          "workload": "cold",
+          "mode": "single",
+          "workers": 5,
+          "meanElapsedMs": 38.099775,
+          "meanCpuMs": 56.419200000000004,
+          "meanProcessMs": 593.2507502000001
+        },
+        {
+          "workload": "concurrent",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 33.553487499999996,
+          "meanCpuMs": 28.14476,
+          "meanProcessMs": 984.2892833999998
+        },
+        {
+          "workload": "concurrent",
+          "mode": "lazy",
+          "workers": 5,
+          "meanElapsedMs": 33.69758413999999,
+          "meanCpuMs": 27.822560000000006,
+          "meanProcessMs": 987.4900248000013
+        },
+        {
+          "workload": "concurrent",
+          "mode": "single",
+          "workers": 5,
+          "meanElapsedMs": 33.35611748,
+          "meanCpuMs": 27.94044000000001,
+          "meanProcessMs": 983.2319083999998
+        },
+        {
+          "workload": "warm",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 18.519001759999995,
+          "meanCpuMs": 17.72282,
+          "meanProcessMs": 800.4020413999991
+        },
+        {
+          "workload": "warm",
+          "mode": "lazy",
+          "workers": 5,
+          "meanElapsedMs": 18.394989159999994,
+          "meanCpuMs": 17.67518,
+          "meanProcessMs": 798.4905583999995
+        },
+        {
+          "workload": "warm",
+          "mode": "single",
+          "workers": 5,
+          "meanElapsedMs": 18.781765799999995,
+          "meanCpuMs": 17.88988,
+          "meanProcessMs": 805.4726000000013
+        }
+      ]
+    },
+    {
+      "id": "cas-small-read",
+      "scope": "Keeps original async lstat then attempts bounded synchronous verification bytes; all writes and synchronization unchanged.",
+      "decision": "Not selected:mixed latency/CPU.",
+      "rows": [
+        {
+          "cycle": 0,
+          "processElapsedMs": 585.4175000000001,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.55549999999994, 56.181]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 589.0932499999999,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.16354200000001, 56.677]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 790.6174580000002,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.85704099999998, 22.533],
+            [18.876999999999953, 16.633],
+            [18.03054199999997, 16.077],
+            [18.854874999999993, 19.997],
+            [18.1328749999999, 16.754],
+            [17.026624999999967, 15.587],
+            [17.90533300000004, 16.419],
+            [17.968833000000018, 16.539],
+            [17.128291999999988, 15.048],
+            [17.817499999999995, 19.812]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 801.6162920000002,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.827042000000006, 22.399],
+            [17.94358299999999, 16.404],
+            [17.871375000000057, 15.922],
+            [18.93399999999997, 19.857],
+            [20.119958999999994, 16.636],
+            [16.91466600000001, 15.221],
+            [17.803584, 16.197],
+            [17.139584000000013, 16.201],
+            [17.183416999999963, 14.673],
+            [18.77825000000007, 19.588]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 1005.7505829999996,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 505700,
+          "samples": [
+            [34.10858300000007, 27.465],
+            [34.85295800000006, 26.738],
+            [37.472999999999956, 25.761],
+            [33.04149999999993, 28.226],
+            [31.065708000000086, 27.19],
+            [32.86612500000001, 24.344],
+            [40.005207999999925, 30.982],
+            [38.76825000000008, 27.687],
+            [38.21170799999993, 25.975],
+            [37.01837499999999, 36.308]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 988.651167,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [33.75599999999997, 26.389],
+            [38.92595800000004, 27.271],
+            [30.19729200000006, 24.417],
+            [33.917625000000044, 28.389],
+            [34.210083000000054, 27.334],
+            [29.05087500000002, 23.702],
+            [39.77129100000002, 30.716],
+            [29.149374999999964, 26.056],
+            [42.69262500000002, 25.541],
+            [35.10341699999992, 34.519]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 588.0859170000003,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.31654200000003, 56.189]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 585.2447919999995,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.34299999999996, 56.275]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 806.0097919999998,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.793249999999944, 23.901],
+            [20.024208000000044, 17.14],
+            [18.703291000000036, 16.743],
+            [19.144542, 20.726],
+            [19.142875000000004, 17.255],
+            [17.765667000000008, 16.194],
+            [19.13708399999996, 17.535],
+            [18.016917000000035, 17.071],
+            [18.01329199999998, 15.414],
+            [20.64908300000002, 20.791]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 798.0046660000007,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [22.053083000000015, 23.691],
+            [18.75350000000003, 16.986],
+            [18.16495800000007, 16.075],
+            [18.858249999999998, 19.98],
+            [17.949375000000032, 16.977],
+            [17.150333000000046, 15.727],
+            [17.797416, 16.31],
+            [18.02116699999999, 16.469],
+            [17.085750000000075, 14.725],
+            [17.945749999999975, 19.7]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 968.7691249999989,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 496452,
+          "samples": [
+            [30.076083999999923, 26.801],
+            [29.97275000000002, 25.887],
+            [28.999459, 23.591],
+            [35.30549999999994, 27.423],
+            [30.773791999999958, 26.672],
+            [32.91391699999997, 23.391],
+            [35.06337499999995, 29.451],
+            [30.96104200000002, 25.902],
+            [34.007833000000005, 23.962],
+            [34.12637500000005, 33.827]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 984.9961660000008,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [35.78408400000001, 27.06],
+            [34.990542000000005, 26.36],
+            [32.63254099999995, 25.152],
+            [31.560499999999934, 28.856],
+            [34.522249999999985, 28.07],
+            [36.01141599999994, 24.412],
+            [31.139249999999947, 30.42],
+            [34.023416, 27.626],
+            [37.76858400000003, 25.547],
+            [34.05325000000005, 35.665]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 592.0647499999995,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.79849999999999, 56.089]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 589.3879580000012,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.70520799999997, 55.7]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 793.0772500000003,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.649999999999977, 22.657],
+            [18.060874999999896, 16.631],
+            [17.987209000000007, 16.06],
+            [18.825624999999945, 19.863],
+            [20.22479199999998, 16.717],
+            [17.873500000000035, 15.576],
+            [17.760625000000005, 16.354],
+            [18.12266599999998, 16.636],
+            [17.094791999999984, 14.849],
+            [17.838250000000016, 19.546]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 818.2653750000009,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.933209000000033, 23.104],
+            [22.993165999999974, 22.423],
+            [19.89312499999994, 18.295],
+            [20.943374999999946, 21.228],
+            [19.883000000000038, 19.807],
+            [18.24812499999996, 16.279],
+            [18.700874999999996, 16.288],
+            [19.218291999999906, 18.325],
+            [18.858416000000034, 15.495],
+            [19.014291999999955, 20.613]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 1006.0590420000008,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [35.886916999999926, 27.23],
+            [38.54916700000001, 27.846],
+            [37.321083000000044, 24.753],
+            [34.23845899999992, 29.042],
+            [32.893291999999974, 27.561],
+            [33.99562500000002, 24.465],
+            [37.17604200000005, 30.392],
+            [37.605125000000044, 27.443],
+            [31.45470899999998, 25.575],
+            [36.64083399999993, 34.573]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 1010.7668749999993,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499268,
+          "samples": [
+            [34.16904199999999, 26.674],
+            [37.90350000000001, 27.106],
+            [33.82279099999994, 25.017],
+            [39.25841700000001, 28.655],
+            [33.1875, 26.479],
+            [37.957874999999945, 24.022],
+            [38.929125, 31.102],
+            [37.80704199999991, 27.144],
+            [34.45275000000004, 24.666],
+            [32.87804199999994, 33.281]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 590.7540410000001,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.43745899999999, 56.53]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 593.4604589999981,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.21545800000001, 56.693]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 796.9220830000013,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.794750000000022, 22.576],
+            [18.22524999999996, 16.594],
+            [17.835290999999984, 15.842],
+            [17.891457999999943, 19.925],
+            [18.022749999999974, 16.675],
+            [18.160082999999986, 15.574],
+            [17.751499999999965, 16.259],
+            [18.247999999999934, 16.456],
+            [16.932958999999983, 14.628],
+            [17.718250000000012, 19.723]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 808.5071250000001,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.87991700000009, 24.826],
+            [19.872416000000044, 17.758],
+            [19.016208000000006, 17.965],
+            [20.847374999999943, 21.859],
+            [20.123334, 17.183],
+            [18.208082999999988, 16.162],
+            [17.701499999999896, 16.459],
+            [18.14874999999995, 16.841],
+            [17.862666999999988, 15.043],
+            [19.042625000000044, 20.02]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 990.469000000001,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 495800,
+          "samples": [
+            [30.4452500000001, 26.428],
+            [34.89437500000008, 26.719],
+            [33.89937500000008, 24.736],
+            [35.07929200000001, 28.16],
+            [36.86916699999995, 27.89],
+            [31.041917000000012, 24.221],
+            [35.09816599999999, 30.393],
+            [30.24158399999999, 26.351],
+            [39.61470900000006, 25.141],
+            [29.172124999999937, 33.901]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 979.5327500000021,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 493992,
+          "samples": [
+            [29.102082999999993, 26.614],
+            [33.672000000000025, 26.75],
+            [34.06925000000001, 24.923],
+            [33.30083300000001, 27.782],
+            [33.715959, 28.072],
+            [32.19262500000002, 23.56],
+            [34.75845800000002, 31.157],
+            [30.554208000000017, 26.672],
+            [29.93791699999997, 24.639],
+            [33.910166000000004, 34.341]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 592.5316669999993,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.59133299999996, 56.403]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 594.5269169999992,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.887040999999954, 56.442]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 807.9343330000011,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.79329199999995, 21.88],
+            [18.713250000000016, 17.452],
+            [19.09216600000002, 19.519],
+            [19.98795800000005, 19.376],
+            [18.038375000000087, 17.66],
+            [19.067458999999985, 18.461],
+            [17.766791000000012, 16.463],
+            [18.245000000000005, 17.569],
+            [19.11454200000003, 17.443],
+            [18.652958000000012, 19.76]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 808.5878339999981,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.729959000000008, 24.523],
+            [20.04045899999994, 18.171],
+            [19.983334000000013, 18.11],
+            [20.814333000000033, 22.21],
+            [19.2080840000001, 18.238],
+            [18.008959000000004, 16.297],
+            [17.924166000000014, 16.679],
+            [17.923749999999927, 16.614],
+            [18.102250000000026, 15.028],
+            [18.887707999999975, 19.861]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 1005.2769579999986,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 500424,
+          "samples": [
+            [37.78691700000002, 27.809],
+            [39.187875000000076, 27.302],
+            [31.218500000000063, 24.533],
+            [33.43116699999996, 28.535],
+            [34.24862500000006, 27.907],
+            [41.7991669999999, 25.223],
+            [39.24920799999995, 31.218],
+            [29.153791999999953, 27.008],
+            [32.93212500000004, 25.381],
+            [31.730542000000014, 35.16]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 988.6794169999994,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499920,
+          "samples": [
+            [30.884708000000046, 26.626],
+            [31.17533400000002, 26.167],
+            [37.745457999999985, 25.087],
+            [38.37695800000006, 28.211],
+            [34.881624999999985, 27.481],
+            [32.488707999999974, 24.147],
+            [35.52229199999999, 30.337],
+            [30.785375000000045, 25.878],
+            [30.051917000000003, 24.811],
+            [34.28229099999999, 33.888]
+          ]
+        }
+      ],
+      "summary": [
+        {
+          "workload": "cold",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 38.300758199999976,
+          "meanCpuMs": 56.3282,
+          "meanProcessMs": 589.7438335999993
+        },
+        {
+          "workload": "cold",
+          "mode": "small",
+          "workers": 5,
+          "meanElapsedMs": 38.50195839999999,
+          "meanCpuMs": 56.3076,
+          "meanProcessMs": 590.3696166000002
+        },
+        {
+          "workload": "concurrent",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 34.632198360000004,
+          "meanCpuMs": 27.8662,
+          "meanProcessMs": 996.3230998000003
+        },
+        {
+          "workload": "concurrent",
+          "mode": "small",
+          "workers": 5,
+          "meanElapsedMs": 34.037827560000004,
+          "meanCpuMs": 27.239199999999997,
+          "meanProcessMs": 989.4671167999998
+        },
+        {
+          "workload": "warm",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 18.579829959999998,
+          "meanCpuMs": 17.932539999999996,
+          "meanProcessMs": 799.6281664000005
+        },
+        {
+          "workload": "warm",
+          "mode": "small",
+          "workers": 5,
+          "meanElapsedMs": 18.895896739999994,
+          "meanCpuMs": 18.154160000000005,
+          "meanProcessMs": 806.2802752
+        }
+      ]
+    },
+    {
+      "id": "cas-small-first-read",
+      "scope": "Moves small descriptor read before the original async lstat;large objects fall back. Bounded read,descriptor metadata/reopen checks and digest verification remain.",
+      "decision": "Not selected:missing explicit path-link guards; exploratory upper estimate only.",
+      "rows": [
+        {
+          "cycle": 0,
+          "processElapsedMs": 588.6130420000002,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.4362910000001, 56.621]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 589.516167,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.19766600000003, 55.977]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 804.3782080000001,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.64325000000008, 22.796],
+            [18.96829200000002, 16.704],
+            [18.159166000000027, 16.19],
+            [18.767000000000053, 20.249],
+            [18.08716699999991, 16.654],
+            [17.98412499999995, 15.63],
+            [17.78049999999996, 16.445],
+            [18.241958000000068, 16.895],
+            [17.062749999999937, 15.09],
+            [17.737499999999955, 19.786]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 791.9501250000003,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [18.769708000000037, 20.365],
+            [19.013958000000002, 16.547],
+            [17.976125000000025, 17.678],
+            [17.862375000000043, 17.868],
+            [18.06533300000001, 16.711],
+            [17.96758299999999, 15.958],
+            [17.774166000000037, 15.348],
+            [17.042416000000003, 16.299],
+            [17.128582999999935, 15.176],
+            [17.792459000000008, 18.904]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 985.5446660000002,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499920,
+          "samples": [
+            [36.75304200000005, 27.333],
+            [38.25300000000004, 27.004],
+            [32.94599999999991, 25.182],
+            [33.078666, 28.272],
+            [33.03429199999994, 27.762],
+            [28.953082999999992, 23.902],
+            [34.076374999999985, 29.988],
+            [30.02254199999993, 26.475],
+            [33.17991699999993, 24.679],
+            [31.68845799999997, 33.563]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 966.2659160000003,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 493488,
+          "samples": [
+            [33.867209, 26.247],
+            [32.14929200000006, 25.506],
+            [29.818084, 23.449],
+            [33.97412500000007, 27.246],
+            [34.162417000000005, 26.841],
+            [32.77133299999991, 23.359],
+            [30.289083000000005, 28.744],
+            [29.849333, 24.996],
+            [30.176833999999985, 22.979],
+            [27.950624999999945, 32.538]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 586.6947500000006,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.69375000000002, 56.367]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 589.5210829999996,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.25841700000001, 56.548]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 806.0580829999999,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.813540999999987, 22.519],
+            [18.962041, 16.724],
+            [17.837750000000028, 16.19],
+            [18.96941599999991, 20.337],
+            [18.133707999999956, 16.835],
+            [16.909374999999955, 15.479],
+            [17.955959000000007, 16.32],
+            [17.98945900000001, 16.655],
+            [16.955749999999966, 14.465],
+            [17.97966699999995, 19.708]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 792.1417920000004,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.813707999999906, 22.79],
+            [19.07904199999996, 16.749],
+            [17.868749999999977, 15.957],
+            [18.006042000000093, 19.877],
+            [17.856333000000063, 16.933],
+            [17.257875000000013, 15.537],
+            [17.779416999999967, 16.41],
+            [18.016124999999988, 16.632],
+            [17.126790999999912, 14.81],
+            [17.700667000000067, 19.883]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 978.8485000000001,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498764,
+          "samples": [
+            [34.12962499999992, 26.374],
+            [31.021792000000005, 25.865],
+            [32.87699999999995, 23.924],
+            [38.147875, 27.345],
+            [33.649291999999946, 27.034],
+            [30.34308400000009, 23.54],
+            [34.091958999999974, 29.566],
+            [33.765750000000025, 26.705],
+            [38.23741600000005, 25.488],
+            [30.223375000000033, 33.268]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 984.3148339999989,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 492836,
+          "samples": [
+            [32.864165999999955, 26.7],
+            [38.001249999999914, 27.153],
+            [38.00287500000002, 25.044],
+            [30.41270899999995, 28.423],
+            [34.82045799999992, 27.883],
+            [36.76400000000001, 24.757],
+            [33.18775000000005, 30.049],
+            [32.80200000000002, 27.269],
+            [29.41766599999994, 24.647],
+            [29.053250000000048, 33.481]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 590.2340409999997,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.77979199999993, 56.301]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 597.4977919999983,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.05333299999995, 56.415]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 806.6191669999989,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.82245899999998, 22.824],
+            [18.906624999999963, 16.881],
+            [18.122584000000074, 16.281],
+            [18.736666000000014, 20.357],
+            [18.10058300000003, 16.948],
+            [18.07083399999999, 16.037],
+            [18.776707999999985, 16.61],
+            [18.309083999999984, 16.634],
+            [17.850916000000097, 15.153],
+            [17.906207999999992, 19.78]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 801.2514999999985,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.721208000000047, 22.425],
+            [18.80204200000003, 16.729],
+            [20.204582999999957, 16.171],
+            [18.72754199999997, 20.206],
+            [18.071915999999987, 16.922],
+            [18.088792000000012, 15.747],
+            [17.81758400000001, 16.336],
+            [18.17233299999998, 16.566],
+            [17.068250000000035, 14.562],
+            [17.762083000000075, 19.615]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 984.3653749999994,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 496956,
+          "samples": [
+            [29.827541999999994, 26.602],
+            [33.85112499999991, 26.807],
+            [37.247749999999996, 26.259],
+            [34.02825000000007, 28.656],
+            [35.06054199999994, 27.845],
+            [32.87483299999997, 23.984],
+            [38.99091599999997, 30.808],
+            [35.29554099999996, 27.24],
+            [30.02320899999995, 25.391],
+            [32.87116600000002, 34.89]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 989.6991249999992,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 496956,
+          "samples": [
+            [35.01862500000004, 26.989],
+            [30.807083000000034, 25.775],
+            [31.19170799999995, 24.02],
+            [31.930791999999997, 27.597],
+            [34.083999999999946, 27.095],
+            [33.978207999999995, 24.443],
+            [35.11004200000002, 29.564],
+            [39.02291700000001, 27.066],
+            [31.089417000000026, 24.517],
+            [37.860874999999965, 34.519]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 593.7460410000003,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.17324999999994, 56.342]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 593.9047090000004,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.36041599999999, 56.827]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 807.1986660000002,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.965165999999954, 22.99],
+            [17.930624999999964, 16.706],
+            [18.00025000000005, 16.356],
+            [18.965125000000057, 20.211],
+            [18.046249999999986, 17.012],
+            [17.955124999999953, 15.72],
+            [17.70283299999994, 16.624],
+            [18.35958400000004, 16.88],
+            [16.988166999999976, 14.936],
+            [17.747833000000014, 19.772]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 804.4358750000029,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.73195899999996, 23.406],
+            [18.785083999999983, 17.008],
+            [18.28045899999995, 16.549],
+            [19.831999999999994, 20.938],
+            [17.94150000000002, 16.927],
+            [17.10683400000005, 15.961],
+            [18.875999999999976, 17.182],
+            [18.216625000000022, 17.021],
+            [18.066125000000056, 15.522],
+            [18.78800000000001, 20.473]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 985.2793329999986,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 496956,
+          "samples": [
+            [29.138667000000055, 25.99],
+            [37.47687499999995, 26.532],
+            [28.22124999999994, 23.856],
+            [34.218166999999994, 27.527],
+            [34.01612499999999, 26.894],
+            [29.96791600000006, 23.45],
+            [35.077042000000006, 29.795],
+            [33.88354199999992, 25.926],
+            [34.855166000000054, 24.401],
+            [34.39525000000003, 33.817]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 972.6458330000023,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 493488,
+          "samples": [
+            [30.05479200000002, 27.011],
+            [33.90762500000005, 26.232],
+            [29.257124999999974, 25.262],
+            [31.170624999999973, 29.216],
+            [37.556332999999995, 27.454],
+            [29.21966599999996, 23.515],
+            [36.05224999999996, 30.639],
+            [32.92795899999999, 27.008],
+            [30.28245800000002, 24.564],
+            [27.700917000000004, 34]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 599.1207499999982,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.300792, 56.266]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 594.2522089999984,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.42591700000003, 56.437]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 806.2011669999993,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.961457999999993, 23.121],
+            [18.883375, 17.097],
+            [18.13474999999994, 16.717],
+            [19.602250000000026, 20.4],
+            [18.328457999999955, 17.393],
+            [17.811374999999998, 15.813],
+            [17.907584000000043, 16.8],
+            [17.16554199999996, 16.425],
+            [16.893500000000017, 14.912],
+            [17.85708299999999, 19.915]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 800.8836250000022,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.767458000000033, 22.789],
+            [18.064624999999978, 16.561],
+            [18.043249999999944, 16.213],
+            [18.784917000000064, 20.333],
+            [18.081874999999968, 16.707],
+            [17.993165999999974, 15.549],
+            [17.93324999999993, 16.285],
+            [18.00608299999999, 16.429],
+            [17.108916999999906, 14.73],
+            [17.800207999999998, 19.585]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 986.4370000000017,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 494644,
+          "samples": [
+            [31.03637500000002, 27.134],
+            [34.88679100000002, 26.584],
+            [36.772500000000036, 25.175],
+            [38.06562500000007, 29.355],
+            [35.154709000000025, 27.889],
+            [29.983249999999998, 24.288],
+            [30.49416700000006, 31.204],
+            [34.550666999999976, 27.209],
+            [30.099666999999954, 25.471],
+            [29.253458000000023, 34.882]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 975.0759169999983,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 492332,
+          "samples": [
+            [30.868333000000007, 26.222],
+            [32.108957999999916, 25.058],
+            [34.93833299999994, 24.107],
+            [35.34170800000004, 28.567],
+            [31.885834000000045, 26.262],
+            [29.699333000000024, 23.341],
+            [32.10029200000008, 29.277],
+            [34.99920899999995, 26.364],
+            [30.26270800000009, 23.797],
+            [29.770040999999992, 33.22]
+          ]
+        }
+      ],
+      "summary": [
+        {
+          "workload": "cold",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 38.427141600000006,
+          "meanCpuMs": 56.512600000000006,
+          "meanProcessMs": 592.2787249999996
+        },
+        {
+          "workload": "cold",
+          "mode": "small",
+          "workers": 5,
+          "meanElapsedMs": 38.70878319999999,
+          "meanCpuMs": 56.3076,
+          "meanProcessMs": 592.3413917999994
+        },
+        {
+          "workload": "concurrent",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 33.116186639999995,
+          "meanCpuMs": 27.642799999999998,
+          "meanProcessMs": 982.6615416000004
+        },
+        {
+          "workload": "concurrent",
+          "mode": "small",
+          "workers": 5,
+          "meanElapsedMs": 32.896278380000005,
+          "meanCpuMs": 26.740040000000004,
+          "meanProcessMs": 979.0337581999993
+        },
+        {
+          "workload": "warm",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 18.31418172,
+          "meanCpuMs": 17.78204,
+          "meanProcessMs": 802.7552418000002
+        },
+        {
+          "workload": "warm",
+          "mode": "small",
+          "workers": 5,
+          "meanElapsedMs": 18.171608239999994,
+          "meanCpuMs": 17.47506,
+          "meanProcessMs": 801.4683998000003
+        }
+      ]
+    },
+    {
+      "id": "cas-small-guarded-read",
+      "scope": "Adds initial and post-read lstat link/regular-file checks to first-read prototype;all original durable writes remain.",
+      "decision": "Not selected:guarded candidate slightly regresses cold/warm/concurrent latency and coldCPU,despite lower warm/concurrentCPU.",
+      "rows": [
+        {
+          "cycle": 0,
+          "processElapsedMs": 584.724125,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.614416000000006, 55.367]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 585.282125,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.098333000000025, 55.668]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 791.7149580000003,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.89195799999993, 22.841],
+            [17.965749999999957, 16.632],
+            [18.151333000000022, 16.085],
+            [18.639042000000018, 20.255],
+            [17.18233299999997, 16.741],
+            [17.038082999999915, 15.533],
+            [17.89562500000011, 16.274],
+            [18.093417000000045, 16.493],
+            [16.958582999999976, 15.068],
+            [17.78658299999995, 19.902]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 792.7522910000002,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.609916999999996, 22.873],
+            [19.119416, 17.015],
+            [18.02770799999996, 16.416],
+            [18.700375000000008, 20.475],
+            [16.943750000000023, 16.62],
+            [17.093916000000036, 15.427],
+            [17.918957999999975, 16.285],
+            [17.197207999999932, 16.491],
+            [17.029209000000037, 14.713],
+            [18.813582999999994, 19.618]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 965.9249580000001,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 494644,
+          "samples": [
+            [29.98508400000003, 26.466],
+            [33.87850000000003, 26.877],
+            [33.599624999999946, 24.866],
+            [33.544958000000065, 28.57],
+            [30.079541000000063, 27.448],
+            [32.68400000000008, 24.045],
+            [32.682541000000015, 30.681],
+            [37.24183400000004, 27.187],
+            [29.635084000000006, 25.384],
+            [30.873291999999992, 33.797]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 961.9047920000003,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498764,
+          "samples": [
+            [30.053584, 26.242],
+            [34.567333000000076, 26.573],
+            [30.200375000000008, 23.408],
+            [30.342874999999935, 27.044],
+            [30.85424999999998, 25.928],
+            [29.154457999999977, 23.338],
+            [33.86387500000001, 29.761],
+            [30.851416000000086, 25.373],
+            [36.329834000000005, 24.223],
+            [31.78316600000005, 32.723]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 597.0302919999995,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.86841700000002, 56.312]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 590.8467089999995,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.230166000000054, 55.783]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 794.4362499999997,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.734459000000015, 22.311],
+            [18.97645799999998, 17.077],
+            [17.915665999999987, 16.032],
+            [18.00604199999998, 19.883],
+            [18.06133299999999, 16.714],
+            [17.873041000000057, 15.443],
+            [18.026749999999993, 16.139],
+            [18.129542000000015, 16.757],
+            [16.91395799999998, 14.744],
+            [19.82666699999993, 19.577]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 792.2785000000003,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.87204200000008, 22.943],
+            [18.012292000000002, 16.578],
+            [18.03804200000002, 16.165],
+            [18.783166999999935, 20.048],
+            [18.228334000000018, 16.813],
+            [16.897917000000007, 15.47],
+            [17.842750000000024, 16.459],
+            [17.145083, 16.439],
+            [16.992500000000064, 15.18],
+            [17.846916999999962, 19.72]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 987.3966249999994,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 502232,
+          "samples": [
+            [37.66116699999998, 27.295],
+            [31.297250000000076, 25.986],
+            [34.78954199999998, 23.79],
+            [37.67062499999997, 28.491],
+            [34.44774999999993, 26.944],
+            [25.96404199999995, 23.052],
+            [40.658957999999984, 30.681],
+            [34.42104200000006, 26.266],
+            [34.004792000000066, 24.824],
+            [29.411958000000027, 33.623]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 985.4301250000008,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 502232,
+          "samples": [
+            [30.86304199999995, 27.098],
+            [30.079582999999957, 26.966],
+            [29.65979100000004, 24.027],
+            [35.220500000000015, 28.813],
+            [33.544250000000034, 26.691],
+            [32.30166699999995, 24.456],
+            [35.15216699999996, 31.136],
+            [37.77829100000008, 27.633],
+            [37.35308299999997, 26.799],
+            [37.04399999999998, 35.568]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 599.7044999999998,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.43595800000003, 56.637]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 594.6527499999993,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.894416999999976, 57.169]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 804.0443329999998,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [22.959040999999957, 23.372],
+            [18.999834000000078, 16.664],
+            [17.978624999999965, 16.274],
+            [19.773458000000005, 20.172],
+            [18.22920799999997, 17.274],
+            [17.76695799999993, 15.836],
+            [17.903584000000023, 16.681],
+            [17.011124999999993, 16.526],
+            [17.217083000000002, 15.185],
+            [17.849667000000068, 19.724]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 802.4698750000007,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.99445800000001, 22.898],
+            [23.435208000000102, 16.853],
+            [17.640499999999975, 16.009],
+            [18.958374999999933, 19.711],
+            [17.78729199999998, 16.844],
+            [17.239582999999925, 15.552],
+            [18.90620899999999, 16.555],
+            [17.968917000000033, 16.49],
+            [17.068417000000068, 14.654],
+            [17.89433299999996, 19.711]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 978.2366669999992,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 490524,
+          "samples": [
+            [30.206458999999995, 26.613],
+            [38.677125000000046, 27.441],
+            [31.03083300000003, 24.367],
+            [34.14704100000006, 28.526],
+            [34.69429099999991, 27.916],
+            [30.726374999999962, 24.136],
+            [33.73799999999994, 30.27],
+            [30.90650000000005, 26.251],
+            [33.97220800000002, 24.959],
+            [28.036291000000006, 34.269]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 999.7152909999986,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 496956,
+          "samples": [
+            [34.058459000000084, 27.182],
+            [30.83787499999994, 26.069],
+            [34.005874999999946, 24.973],
+            [30.265292000000045, 27.632],
+            [38.49970900000005, 27.657],
+            [38.196500000000015, 24.442],
+            [35.32804199999998, 30.195],
+            [37.481583, 27.234],
+            [34.35349999999994, 24.396],
+            [33.953874999999925, 34.196]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 603.1281669999989,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.37970799999994, 56.934]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 593.5235829999983,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.03283399999998, 56.117]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 795.1799580000006,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.648957999999993, 22.591],
+            [18.106249999999932, 16.656],
+            [17.96579100000008, 16.104],
+            [18.78054199999997, 20.333],
+            [18.368542000000048, 16.82],
+            [17.714042000000063, 15.335],
+            [17.979917, 16.409],
+            [18.153291999999965, 16.695],
+            [16.873040999999944, 14.873],
+            [17.94962499999997, 19.706]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 796.354292,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.715542000000028, 23.095],
+            [18.055666000000087, 16.749],
+            [18.10374999999999, 16.143],
+            [18.801917000000003, 20.234],
+            [18.147750000000087, 17.075],
+            [17.974042000000054, 15.729],
+            [19.66945899999996, 16.218],
+            [18.31325000000004, 16.843],
+            [16.96504200000004, 15.029],
+            [17.99304099999995, 19.776]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 981.8896249999998,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 494644,
+          "samples": [
+            [31.17816700000003, 26.564],
+            [33.55045800000005, 26.036],
+            [34.20012499999996, 23.774],
+            [33.982709, 28.198],
+            [35.20316700000001, 27.35],
+            [32.88341700000001, 23.731],
+            [30.845542000000023, 29.059],
+            [29.09291600000006, 25.626],
+            [34.18462499999998, 24.172],
+            [38.593665999999985, 33.338]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 982.3533750000024,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498764,
+          "samples": [
+            [33.9804170000001, 27.543],
+            [29.949749999999995, 26.611],
+            [36.89129199999991, 25.244],
+            [34.17450000000008, 27.969],
+            [30.846374999999966, 27.056],
+            [31.045541999999955, 24.137],
+            [31.25541700000008, 29.408],
+            [36.63925000000006, 27.258],
+            [35.24595800000009, 26.09],
+            [34.050457999999935, 34.723]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 599.961457999998,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.40437499999996, 57.111]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 597.2640839999985,
+          "mode": "small",
+          "workload": "cold",
+          "replacements": 1,
+          "smallReads": 4,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.58004200000005, 56.197]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 816.3845420000034,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.786207999999988, 21.783],
+            [21.04666700000007, 20.516],
+            [18.72245900000007, 17.14],
+            [20.11429200000009, 19.458],
+            [18.947667000000024, 19.019],
+            [19.152458000000024, 16.909],
+            [17.658000000000015, 16.394],
+            [19.11033299999997, 18.64],
+            [18.029249999999934, 15.568],
+            [17.821041000000037, 19.284]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 804.9642920000006,
+          "mode": "small",
+          "workload": "warm",
+          "replacements": 1,
+          "smallReads": 48,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.670749999999998, 23.699],
+            [20.13345800000002, 17.423],
+            [18.052333999999973, 16.719],
+            [19.66504199999997, 20.662],
+            [18.037124999999946, 17.456],
+            [19.174999999999955, 16.153],
+            [18.951374999999985, 17.993],
+            [18.98233300000004, 17.482],
+            [18.086332999999968, 15.705],
+            [18.71062500000005, 20.041]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 986.9783749999988,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "smallReads": 0,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 491680,
+          "samples": [
+            [33.904083000000014, 27.24],
+            [32.845957999999996, 27.552],
+            [37.397459000000026, 25.884],
+            [33.86308400000007, 28.742],
+            [36.24037499999997, 28.336],
+            [32.74508300000002, 24.551],
+            [35.06333399999994, 31.195],
+            [37.868499999999926, 28.459],
+            [30.254083000000037, 25.78],
+            [29.01724999999999, 34.539]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 986.2930830000005,
+          "mode": "small",
+          "workload": "concurrent",
+          "replacements": 1,
+          "smallReads": 192,
+          "largeFallbacks": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [35.08541700000001, 26.895],
+            [34.80945900000006, 26.886],
+            [30.263000000000034, 24.033],
+            [31.37179100000003, 27.732],
+            [35.65987499999994, 27.288],
+            [39.91679199999999, 24.455],
+            [32.558708000000024, 32.931],
+            [31.51049999999998, 26.221],
+            [31.495582999999897, 24.494],
+            [29.794250000000034, 33.352]
+          ]
+        }
+      ],
+      "summary": [
+        {
+          "workload": "cold",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 38.343549800000005,
+          "meanCpuMs": 56.202999999999996,
+          "meanProcessMs": 593.7520749999991
+        },
+        {
+          "workload": "cold",
+          "mode": "small",
+          "workers": 5,
+          "meanElapsedMs": 38.564183400000005,
+          "meanCpuMs": 56.455999999999996,
+          "meanProcessMs": 595.4714835999991
+        },
+        {
+          "workload": "concurrent",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 33.252282480000005,
+          "meanCpuMs": 27.751459999999994,
+          "meanProcessMs": 979.7847000000002
+        },
+        {
+          "workload": "concurrent",
+          "mode": "small",
+          "workers": 5,
+          "meanElapsedMs": 33.42978337999999,
+          "meanCpuMs": 27.033519999999996,
+          "meanProcessMs": 983.4398831999997
+        },
+        {
+          "workload": "warm",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 18.401563360000008,
+          "meanCpuMs": 17.818980000000003,
+          "meanProcessMs": 800.1553250000009
+        },
+        {
+          "workload": "warm",
+          "mode": "small",
+          "workers": 5,
+          "meanElapsedMs": 18.456312459999996,
+          "meanCpuMs": 17.69484000000001,
+          "meanProcessMs": 797.9605332000003
+        }
+      ]
+    },
+    {
+      "id": "recording-preflight",
+      "scope": "A scratch retained-lease hint bypasses only preliminary writer inspection while all existing borrow and post-CAS binding observations remain. Rotation/inactive status/rebinding must be resolved before any source repair.",
+      "decision": "Not selected as implementation:CPU improves but cold/concurrent latency regresses and authority/error lifecycle is unqualified.",
+      "rows": [
+        {
+          "cycle": 0,
+          "processElapsedMs": 593.6344590000001,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.57670800000005, 56.149]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 585.1237920000001,
+          "mode": "retained",
+          "workload": "cold",
+          "replacements": 2,
+          "skippedPreflights": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.09691699999996, 56.144]]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 791.4309999999998,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.78895799999998, 22.732],
+            [17.763208000000077, 16.56],
+            [18.37958399999991, 16.865],
+            [19.576625000000035, 20.29],
+            [18.343208000000004, 17.034],
+            [17.874416999999994, 15.829],
+            [17.962875000000054, 16.9],
+            [17.917083000000048, 16.435],
+            [17.06929100000002, 15.009],
+            [17.76995899999997, 19.764]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 783.0975000000003,
+          "mode": "retained",
+          "workload": "warm",
+          "replacements": 2,
+          "skippedPreflights": 23,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [18.908333999999968, 20.336],
+            [18.176791000000094, 16.453],
+            [17.834707999999978, 17.385],
+            [17.754791999999952, 18.259],
+            [17.216834000000063, 16.314],
+            [17.940375000000017, 16.294],
+            [16.92741699999999, 15.067],
+            [18.024374999999964, 16.461],
+            [17.15370800000005, 15.451],
+            [17.768749999999955, 18.519]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 964.0333329999999,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499920,
+          "samples": [
+            [32.932916999999975, 27.2],
+            [30.17999999999995, 26.523],
+            [32.86916700000006, 24.182],
+            [30.3062910000001, 28.306],
+            [34.74791700000003, 28.202],
+            [36.85624999999993, 24.926],
+            [35.02200000000005, 30.633],
+            [29.142999999999915, 27.195],
+            [33.727666, 25.431],
+            [32.840374999999995, 34.063]
+          ]
+        },
+        {
+          "cycle": 0,
+          "processElapsedMs": 983.8768339999997,
+          "mode": "retained",
+          "workload": "concurrent",
+          "replacements": 2,
+          "skippedPreflights": 88,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 501580,
+          "samples": [
+            [36.88079199999993, 26.417],
+            [34.86408300000005, 26.725],
+            [36.21020899999996, 25.071],
+            [33.92495800000006, 28.658],
+            [28.269957999999974, 25.428],
+            [36.505499999999984, 23.971],
+            [39.10050000000001, 29.029],
+            [32.083167, 25.639],
+            [38.42375000000004, 25.475],
+            [30.20474999999999, 29.685]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 592.9829579999996,
+          "mode": "retained",
+          "workload": "cold",
+          "replacements": 2,
+          "skippedPreflights": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.16562500000009, 56.167]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 590.1710830000002,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[39.395167000000015, 57.711]]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 790.4494159999995,
+          "mode": "retained",
+          "workload": "warm",
+          "replacements": 2,
+          "skippedPreflights": 23,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [18.810292000000004, 20.454],
+            [17.955540999999926, 16.447],
+            [18.054125, 17.505],
+            [17.82995900000003, 18.132],
+            [18.121999999999957, 16.573],
+            [17.92558299999996, 16.228],
+            [17.915958000000046, 15.308],
+            [18.038125000000036, 15.996],
+            [17.053916000000072, 15.508],
+            [16.78091699999993, 18.016]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 791.3796249999996,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.24808299999995, 22.958],
+            [17.79645800000003, 16.626],
+            [18.155000000000086, 16.176],
+            [18.688833000000045, 20.204],
+            [18.168083000000024, 16.961],
+            [18.829165999999987, 15.624],
+            [17.99679100000003, 16.31],
+            [17.08029099999999, 16.446],
+            [18.07183299999997, 15.106],
+            [18.156834000000003, 19.702]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 980.7350829999996,
+          "mode": "retained",
+          "workload": "concurrent",
+          "replacements": 2,
+          "skippedPreflights": 88,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 499268,
+          "samples": [
+            [34.35987499999999, 28.808],
+            [36.150125, 24.912],
+            [33.766958000000045, 24.98],
+            [29.642207999999982, 26.5],
+            [33.436333000000104, 26.308],
+            [28.694375000000036, 23.989],
+            [35.70595900000001, 29.088],
+            [37.85804100000007, 25.857],
+            [28.13712499999997, 23.43],
+            [30.31766700000003, 30.01]
+          ]
+        },
+        {
+          "cycle": 1,
+          "processElapsedMs": 974.2126669999998,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 494644,
+          "samples": [
+            [29.775292000000036, 26.478],
+            [29.144457999999986, 25.896],
+            [30.212832999999932, 24.381],
+            [33.99874999999997, 28.291],
+            [33.83050000000003, 27.215],
+            [30.12312499999996, 23.84],
+            [34.95679199999995, 30.736],
+            [30.252459000000044, 26.55],
+            [36.294374999999945, 25.452],
+            [36.445959000000016, 34.682]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 587.8215,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.15795800000001, 56.453]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 589.0858749999989,
+          "mode": "retained",
+          "workload": "cold",
+          "replacements": 2,
+          "skippedPreflights": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[37.93570799999998, 56.161]]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 793.1116249999995,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.826582999999914, 23.174],
+            [18.864417000000003, 16.742],
+            [18.106415999999967, 16.242],
+            [18.87804200000005, 20.443],
+            [18.01604199999997, 17.193],
+            [17.066666000000055, 15.915],
+            [17.705959000000007, 16.326],
+            [17.849583000000052, 16.39],
+            [17.19316600000002, 15.261],
+            [18.077749999999924, 20.077]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 789.6212500000001,
+          "mode": "retained",
+          "workload": "warm",
+          "replacements": 2,
+          "skippedPreflights": 23,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.758666999999946, 22.278],
+            [17.780041000000097, 16.383],
+            [18.477041999999983, 17.843],
+            [17.57912500000009, 18.128],
+            [17.184583999999973, 16.404],
+            [16.976374999999962, 15.358],
+            [16.830874999999992, 15.922],
+            [17.014167000000043, 16.125],
+            [17.274833000000058, 14.682],
+            [17.973459000000048, 19.248]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 985.356416999999,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 496956,
+          "samples": [
+            [32.890041, 27.664],
+            [34.836541999999895, 27.423],
+            [36.721000000000004, 24.958],
+            [37.05379099999993, 28.527],
+            [32.203040999999985, 27.224],
+            [29.067000000000007, 24.141],
+            [35.006167000000005, 30.627],
+            [29.385582999999997, 27.101],
+            [32.76020900000003, 24.99],
+            [34.013874999999985, 34.136]
+          ]
+        },
+        {
+          "cycle": 2,
+          "processElapsedMs": 987.1932089999991,
+          "mode": "retained",
+          "workload": "concurrent",
+          "replacements": 2,
+          "skippedPreflights": 88,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 502232,
+          "samples": [
+            [33.69799999999998, 26.553],
+            [31.899875000000065, 24.436],
+            [33.173917000000074, 25.659],
+            [31.56166600000006, 27.476],
+            [28.752542000000062, 25.513],
+            [31.24045799999999, 23.683],
+            [37.82291699999996, 29.448],
+            [33.82312499999989, 26.3],
+            [49.90999999999997, 26.474],
+            [30.564624999999978, 29.966]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 589.8530410000003,
+          "mode": "retained",
+          "workload": "cold",
+          "replacements": 2,
+          "skippedPreflights": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.502166999999986, 56.28]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 592.0259999999998,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.65987499999994, 56.829]]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 808.5849999999991,
+          "mode": "retained",
+          "workload": "warm",
+          "replacements": 2,
+          "skippedPreflights": 23,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [18.910291999999913, 20.883],
+            [18.74154199999998, 16.843],
+            [18.132041000000072, 17.758],
+            [18.901207999999997, 18.216],
+            [18.31016699999998, 16.674],
+            [17.77404100000001, 16.442],
+            [18.075000000000045, 15.69],
+            [17.82733399999995, 16.502],
+            [21.751542000000086, 15.88],
+            [17.116040999999996, 18.491]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 796.7638750000006,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [20.668542000000002, 22.788],
+            [17.938916999999947, 16.844],
+            [18.14854200000002, 16.174],
+            [18.83766700000001, 20.26],
+            [18.06325000000004, 16.953],
+            [17.883709000000067, 16.156],
+            [17.80408299999999, 16.796],
+            [18.217499999999973, 17.183],
+            [17.819999999999936, 15.424],
+            [18.078250000000025, 19.891]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 998.5932500000017,
+          "mode": "retained",
+          "workload": "concurrent",
+          "replacements": 2,
+          "skippedPreflights": 88,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 495148,
+          "samples": [
+            [30.950750000000085, 29.354],
+            [33.61474999999996, 25.149],
+            [30.4128750000001, 26.633],
+            [33.525499999999965, 28.13],
+            [37.06591700000001, 27.961],
+            [30.326542000000018, 24.139],
+            [39.691167000000064, 31.383],
+            [33.875, 27.273],
+            [35.57791699999996, 27.409],
+            [34.92591699999991, 31.415]
+          ]
+        },
+        {
+          "cycle": 3,
+          "processElapsedMs": 985.6699589999989,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 503388,
+          "samples": [
+            [30.34462499999995, 27.976],
+            [37.672874999999976, 27.223],
+            [33.03499999999997, 24.722],
+            [30.340541999999914, 28.839],
+            [39.71004100000005, 28.412],
+            [32.72737500000005, 24.516],
+            [33.41695800000002, 30.204],
+            [29.836834000000067, 26.739],
+            [29.311041000000046, 24.659],
+            [33.927458, 34.262]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 592.203042000001,
+          "mode": "current",
+          "workload": "cold",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[38.20037500000001, 55.992]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 595.6274159999994,
+          "mode": "retained",
+          "workload": "cold",
+          "replacements": 2,
+          "skippedPreflights": 1,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 2,
+          "expectedEventCount": 2,
+          "stateGrowthBytes": 119130,
+          "samples": [[40.074542000000065, 56.725]]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 793.7588749999995,
+          "mode": "current",
+          "workload": "warm",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.864874999999984, 23.159],
+            [17.81112500000006, 16.656],
+            [18.14808299999993, 16.352],
+            [18.86824999999999, 21.324],
+            [18.053166999999917, 17.364],
+            [17.907790999999975, 16.099],
+            [18.041791999999987, 16.791],
+            [17.989874999999984, 16.803],
+            [17.188916999999947, 15.147],
+            [17.800292000000013, 19.92]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 794.9162920000017,
+          "mode": "retained",
+          "workload": "warm",
+          "replacements": 2,
+          "skippedPreflights": 23,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 24,
+          "expectedEventCount": 24,
+          "stateGrowthBytes": 198824,
+          "samples": [
+            [19.807000000000016, 23.034],
+            [17.943167000000017, 16.697],
+            [17.856707999999912, 16.067],
+            [18.05720800000006, 20.225],
+            [18.03591700000004, 16.839],
+            [17.014792000000057, 15.623],
+            [17.92345899999998, 16.436],
+            [17.067999999999984, 16.306],
+            [18.092583000000104, 15.267],
+            [17.621125000000006, 19.25]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 1001.8859999999986,
+          "mode": "current",
+          "workload": "concurrent",
+          "replacements": 0,
+          "skippedPreflights": 0,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 498112,
+          "samples": [
+            [37.71199999999999, 27.702],
+            [33.47020900000007, 26.179],
+            [29.87408300000004, 24.434],
+            [37.375541999999996, 28.964],
+            [33.66904099999999, 28.501],
+            [32.95291599999996, 23.929],
+            [33.97500000000002, 30.311],
+            [34.74766699999998, 27.511],
+            [31.525332999999932, 25.646],
+            [36.78266700000006, 34.447]
+          ]
+        },
+        {
+          "cycle": 4,
+          "processElapsedMs": 993.5206670000007,
+          "mode": "retained",
+          "workload": "concurrent",
+          "replacements": 2,
+          "skippedPreflights": 88,
+          "semanticValid": true,
+          "integrity": true,
+          "eventCount": 96,
+          "expectedEventCount": 96,
+          "stateGrowthBytes": 504544,
+          "samples": [
+            [31.344249999999988, 26.005],
+            [36.492665999999986, 26.502],
+            [28.507375000000025, 23.351],
+            [33.71279199999992, 28.868],
+            [36.795792000000006, 26.073],
+            [36.01441699999998, 24.883],
+            [34.58629099999996, 29.286],
+            [33.625999999999976, 25.851],
+            [34.04987500000004, 25.595],
+            [33.253832999999986, 29.562]
+          ]
+        }
+      ],
+      "summary": [
+        {
+          "workload": "cold",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 38.398016600000005,
+          "meanCpuMs": 56.6268,
+          "meanProcessMs": 591.1712168000001
+        },
+        {
+          "workload": "cold",
+          "mode": "retained",
+          "workers": 5,
+          "meanElapsedMs": 38.75499180000001,
+          "meanCpuMs": 56.29540000000001,
+          "meanProcessMs": 590.5346163999997
+        },
+        {
+          "workload": "concurrent",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 33.200091640000004,
+          "meanCpuMs": 27.642979999999998,
+          "meanProcessMs": 982.2316751999991
+        },
+        {
+          "workload": "concurrent",
+          "mode": "retained",
+          "workers": 5,
+          "meanElapsedMs": 33.90666168000001,
+          "meanCpuMs": 26.80620000000001,
+          "meanProcessMs": 988.7838086000002
+        },
+        {
+          "workload": "warm",
+          "mode": "current",
+          "workers": 5,
+          "meanElapsedMs": 18.26711662,
+          "meanCpuMs": 17.78756,
+          "meanProcessMs": 793.2889999999998
+        },
+        {
+          "workload": "warm",
+          "mode": "retained",
+          "workers": 5,
+          "meanElapsedMs": 17.960016700000008,
+          "meanCpuMs": 17.244000000000007,
+          "meanProcessMs": 793.3338916000001
+        }
+      ]
+    }
+  ],
+  "hashes": {
+    "lervo-event-identity-probe.mjs": "sha256:38fccabda5fa5845bbcb50117d817eed2c9dab9844000023e4d805a7d673d46c",
+    "lervo-event-identity-results.json": "sha256:4bdc2598d32ccf1648044b767b50a019d11604ebdaab447f349636a0dc9568c2",
+    "lervo-recording-thread-cpu.mjs": "sha256:b891c4ba393bffa55c1e2426c7a0f27da7de7e33dd9afabec14475e484433c8c",
+    "lervo-recording-thread-cpu-results.json": "sha256:e8b358a856b2663c29e2e7d1f87bc2294f04be29c9269040fe37ae8402e97330",
+    "lervo-cas-small-verification.mjs": "sha256:dc25430fb06decb49690320b19a6305d17947cd8641d3e8dbf98887489d9f181",
+    "lervo-cas-small-verification-guarded.mjs": "sha256:80a336dbc770062e52ac6640c4de1761745912d8d8762e34502c914b2e7cd97a",
+    "lervo-cas-small-read-probe.mjs": "sha256:d9906220ed228dc6bd57f000923683c7d387f81f867b46da39c29595a138fe5a",
+    "lervo-cas-small-read-results.json": "sha256:f8839f6abf4b8b438d895cba580a3ff0ec8cd0c95d1a9efab8d2981545e3b521",
+    "lervo-cas-small-first-read-probe.mjs": "sha256:d81fb206fa0aed8bf758b15129c3258e980ea64d34208a84fcd64cb6ff4a487b",
+    "lervo-cas-small-first-read-results.json": "sha256:e635886ae9d10814d5ac83c747eb38f7eb9c8d24a11ae42aaab96538ab9ebc59",
+    "lervo-cas-small-guarded-read-probe.mjs": "sha256:3b24138b12055e99fd6a23d509c74a675f06e80899d4be3b54ce388a1f6608b0",
+    "lervo-cas-small-guarded-read-results.json": "sha256:51f174732d4e94977b848f94793dd1d2c255f4345c9b8c9f833edcf166ab6703",
+    "lervo-recording-preflight-probe.mjs": "sha256:9a138f24896ae90427584023c6fc9a2aebd2011dc132d655c033a3ba54a4a0c2",
+    "lervo-recording-preflight-results.json": "sha256:c1cd8917a32c766b6a11319c4f8bf67276d9624f5579082f63c23c7b30c8e48e"
+  },
+  "identityPhases": [
+    {
+      "cycle": -1,
+      "mode": "phase",
+      "workload": "cold",
+      "replacements": 1,
+      "identityMetrics": {
+        "calls": 4,
+        "elapsedMs": 0.04016700000011042
+      },
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "stateGrowthBytes": 119130,
+      "samples": [[38.57349999999997, 56.508]]
+    },
+    {
+      "cycle": -1,
+      "mode": "phase",
+      "workload": "warm",
+      "replacements": 1,
+      "identityMetrics": {
+        "calls": 48,
+        "elapsedMs": 0.2739190000003191
+      },
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "stateGrowthBytes": 198824,
+      "samples": [
+        [20.865167000000042, 22.974],
+        [19.008249999999975, 17.058],
+        [18.210000000000036, 16.422],
+        [19.581916000000092, 20.801],
+        [18.129042000000027, 17.505],
+        [17.841499999999996, 16.229],
+        [18.185333000000014, 17.101],
+        [17.901250000000005, 16.719],
+        [17.70970800000009, 15.459],
+        [17.871250000000032, 20.057]
+      ]
+    },
+    {
+      "cycle": -1,
+      "mode": "phase",
+      "workload": "concurrent",
+      "replacements": 1,
+      "identityMetrics": {
+        "calls": 192,
+        "elapsedMs": 0.8629200000003721
+      },
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "stateGrowthBytes": 491680,
+      "samples": [
+        [36.98458300000004, 28.606],
+        [30.440666999999962, 27.963],
+        [33.593916000000036, 26.318],
+        [30.602792000000022, 28.387],
+        [37.35704200000009, 26.926],
+        [33.01979200000005, 23.614],
+        [30.003874999999994, 29.591],
+        [34.00470799999994, 27.429],
+        [30.442083000000025, 24.627],
+        [30.071124999999938, 34.087]
+      ]
+    }
+  ],
+  "threadWorkers": [
+    {
+      "cycle": 0,
+      "arm": "control",
+      "workload": "cold",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": false,
+          "elapsedMs": 27.61708299999998,
+          "cpuUserMs": 44.67,
+          "cpuSystemMs": 3.387,
+          "mainUserMs": 24.351,
+          "mainSystemMs": 1.122
+        }
+      ]
+    },
+    {
+      "cycle": 0,
+      "arm": "candidate",
+      "workload": "cold",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "threadSamples": [
+        {
+          "warmup": false,
+          "elapsedMs": 39.236875000000055,
+          "cpuUserMs": 49.098,
+          "cpuSystemMs": 7.233,
+          "mainUserMs": 28.878,
+          "mainSystemMs": 2.94
+        }
+      ]
+    },
+    {
+      "cycle": 0,
+      "arm": "control",
+      "workload": "warm",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 26.16508299999998,
+          "cpuUserMs": 41.369,
+          "cpuSystemMs": 3.246,
+          "mainUserMs": 23.013,
+          "mainSystemMs": 1.1
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 13.49066700000003,
+          "cpuUserMs": 17.096,
+          "cpuSystemMs": 2.614,
+          "mainUserMs": 10.894,
+          "mainSystemMs": 0.829
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.877292000000011,
+          "cpuUserMs": 14.87,
+          "cpuSystemMs": 2.42,
+          "mainUserMs": 10.426,
+          "mainSystemMs": 0.777
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 17.712083000000007,
+          "cpuUserMs": 15.16,
+          "cpuSystemMs": 4.156,
+          "mainUserMs": 12.769,
+          "mainSystemMs": 1.424
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 17.09091699999999,
+          "cpuUserMs": 14.322,
+          "cpuSystemMs": 3.789,
+          "mainUserMs": 12.58,
+          "mainSystemMs": 1.331
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.451750000000061,
+          "cpuUserMs": 14.056,
+          "cpuSystemMs": 2.711,
+          "mainUserMs": 9.822,
+          "mainSystemMs": 0.967
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.308208000000036,
+          "cpuUserMs": 11.205,
+          "cpuSystemMs": 2.356,
+          "mainUserMs": 8.849,
+          "mainSystemMs": 0.743
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 10.988292000000001,
+          "cpuUserMs": 9.217,
+          "cpuSystemMs": 2.16,
+          "mainUserMs": 8.671,
+          "mainSystemMs": 0.683
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 10.86870799999997,
+          "cpuUserMs": 10.148,
+          "cpuSystemMs": 2.205,
+          "mainUserMs": 8.526,
+          "mainSystemMs": 0.697
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.254292000000078,
+          "cpuUserMs": 10.993,
+          "cpuSystemMs": 2.317,
+          "mainUserMs": 8.81,
+          "mainSystemMs": 0.733
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 10.930707999999981,
+          "cpuUserMs": 9.065,
+          "cpuSystemMs": 2.324,
+          "mainUserMs": 8.471,
+          "mainSystemMs": 0.781
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 10.790250000000015,
+          "cpuUserMs": 11.935,
+          "cpuSystemMs": 2.239,
+          "mainUserMs": 8.4,
+          "mainSystemMs": 0.718
+        }
+      ]
+    },
+    {
+      "cycle": 0,
+      "arm": "candidate",
+      "workload": "warm",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 38.234709000000066,
+          "cpuUserMs": 48.835,
+          "cpuSystemMs": 7.557,
+          "mainUserMs": 28.741,
+          "mainSystemMs": 2.927
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 19.957292000000052,
+          "cpuUserMs": 19.491,
+          "cpuSystemMs": 4.99,
+          "mainUserMs": 12.658,
+          "mainSystemMs": 1.591
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 20.84450000000004,
+          "cpuUserMs": 18.382,
+          "cpuSystemMs": 4.67,
+          "mainUserMs": 12.22,
+          "mainSystemMs": 1.479
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.922708000000057,
+          "cpuUserMs": 12.242,
+          "cpuSystemMs": 4.398,
+          "mainUserMs": 10.852,
+          "mainSystemMs": 1.471
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.182458999999994,
+          "cpuUserMs": 11.596,
+          "cpuSystemMs": 4.447,
+          "mainUserMs": 10.288,
+          "mainSystemMs": 1.411
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.699958000000038,
+          "cpuUserMs": 15.676,
+          "cpuSystemMs": 4.699,
+          "mainUserMs": 10.974,
+          "mainSystemMs": 1.46
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.153332999999975,
+          "cpuUserMs": 12.316,
+          "cpuSystemMs": 4.381,
+          "mainUserMs": 10.232,
+          "mainSystemMs": 1.458
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 17.918708000000038,
+          "cpuUserMs": 11.13,
+          "cpuSystemMs": 4.37,
+          "mainUserMs": 9.885,
+          "mainSystemMs": 1.438
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 17.85354200000006,
+          "cpuUserMs": 11.846,
+          "cpuSystemMs": 4.314,
+          "mainUserMs": 10.156,
+          "mainSystemMs": 1.358
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 17.857834000000025,
+          "cpuUserMs": 12.173,
+          "cpuSystemMs": 4.449,
+          "mainUserMs": 10.179,
+          "mainSystemMs": 1.472
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 17.065250000000106,
+          "cpuUserMs": 10.652,
+          "cpuSystemMs": 4.341,
+          "mainUserMs": 9.84,
+          "mainSystemMs": 1.411
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.026292000000012,
+          "cpuUserMs": 15.187,
+          "cpuSystemMs": 4.47,
+          "mainUserMs": 10.35,
+          "mainSystemMs": 1.381
+        }
+      ]
+    },
+    {
+      "cycle": 0,
+      "arm": "control",
+      "workload": "changed",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 26.686166999999955,
+          "cpuUserMs": 41.747,
+          "cpuSystemMs": 3.467,
+          "mainUserMs": 23.286,
+          "mainSystemMs": 1.118
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 14.124459000000002,
+          "cpuUserMs": 17.758,
+          "cpuSystemMs": 2.937,
+          "mainUserMs": 11.266,
+          "mainSystemMs": 0.881
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.020332999999937,
+          "cpuUserMs": 14.644,
+          "cpuSystemMs": 2.608,
+          "mainUserMs": 10.401,
+          "mainSystemMs": 0.789
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.866624999999999,
+          "cpuUserMs": 11.01,
+          "cpuSystemMs": 2.42,
+          "mainUserMs": 9.346,
+          "mainSystemMs": 0.732
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.53920800000003,
+          "cpuUserMs": 10.195,
+          "cpuSystemMs": 2.473,
+          "mainUserMs": 8.975,
+          "mainSystemMs": 0.776
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.070167000000083,
+          "cpuUserMs": 13.922,
+          "cpuSystemMs": 2.578,
+          "mainUserMs": 9.44,
+          "mainSystemMs": 0.79
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.541707999999971,
+          "cpuUserMs": 11.327,
+          "cpuSystemMs": 2.523,
+          "mainUserMs": 8.933,
+          "mainSystemMs": 0.776
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.017166999999972,
+          "cpuUserMs": 9.102,
+          "cpuSystemMs": 2.327,
+          "mainUserMs": 8.55,
+          "mainSystemMs": 0.716
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 10.967291000000046,
+          "cpuUserMs": 10.139,
+          "cpuSystemMs": 2.346,
+          "mainUserMs": 8.508,
+          "mainSystemMs": 0.701
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.541958000000022,
+          "cpuUserMs": 11.085,
+          "cpuSystemMs": 2.485,
+          "mainUserMs": 8.914,
+          "mainSystemMs": 0.785
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 10.954999999999927,
+          "cpuUserMs": 8.991,
+          "cpuSystemMs": 2.407,
+          "mainUserMs": 8.408,
+          "mainSystemMs": 0.754
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 10.941374999999994,
+          "cpuUserMs": 12.012,
+          "cpuSystemMs": 2.346,
+          "mainUserMs": 8.457,
+          "mainSystemMs": 0.737
+        }
+      ]
+    },
+    {
+      "cycle": 0,
+      "arm": "candidate",
+      "workload": "changed",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 39.99458400000003,
+          "cpuUserMs": 52.712,
+          "cpuSystemMs": 7.693,
+          "mainUserMs": 30.01,
+          "mainSystemMs": 2.882
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 21.858499999999935,
+          "cpuUserMs": 23.243,
+          "cpuSystemMs": 5.009,
+          "mainUserMs": 14.057,
+          "mainSystemMs": 1.568
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 20.619542000000024,
+          "cpuUserMs": 17.087,
+          "cpuSystemMs": 4.746,
+          "mainUserMs": 12.323,
+          "mainSystemMs": 1.511
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 20.964042000000063,
+          "cpuUserMs": 15.368,
+          "cpuSystemMs": 4.656,
+          "mainUserMs": 12.358,
+          "mainSystemMs": 1.491
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.09345799999994,
+          "cpuUserMs": 12.462,
+          "cpuSystemMs": 4.47,
+          "mainUserMs": 11.153,
+          "mainSystemMs": 1.386
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.814750000000004,
+          "cpuUserMs": 14.712,
+          "cpuSystemMs": 4.497,
+          "mainUserMs": 11.204,
+          "mainSystemMs": 1.434
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 21.053166000000033,
+          "cpuUserMs": 14.391,
+          "cpuSystemMs": 4.768,
+          "mainUserMs": 11.498,
+          "mainSystemMs": 1.554
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.027375000000006,
+          "cpuUserMs": 12.203,
+          "cpuSystemMs": 4.384,
+          "mainUserMs": 10.889,
+          "mainSystemMs": 1.408
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.878749999999968,
+          "cpuUserMs": 13.444,
+          "cpuSystemMs": 4.425,
+          "mainUserMs": 11.191,
+          "mainSystemMs": 1.374
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.765166999999906,
+          "cpuUserMs": 12.931,
+          "cpuSystemMs": 4.483,
+          "mainUserMs": 10.907,
+          "mainSystemMs": 1.451
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.099417000000017,
+          "cpuUserMs": 11.421,
+          "cpuSystemMs": 4.294,
+          "mainUserMs": 10.611,
+          "mainSystemMs": 1.363
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.03720899999996,
+          "cpuUserMs": 16.496,
+          "cpuSystemMs": 4.481,
+          "mainUserMs": 11.274,
+          "mainSystemMs": 1.386
+        }
+      ]
+    },
+    {
+      "cycle": 0,
+      "arm": "control",
+      "workload": "concurrent",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 27.77745900000002,
+          "cpuUserMs": 43.208,
+          "cpuSystemMs": 4.42,
+          "mainUserMs": 24.505,
+          "mainSystemMs": 1.396
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 14.667374999999993,
+          "cpuUserMs": 18.714,
+          "cpuSystemMs": 3.681,
+          "mainUserMs": 11.967,
+          "mainSystemMs": 1.137
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.878167000000076,
+          "cpuUserMs": 16.249,
+          "cpuSystemMs": 3.336,
+          "mainUserMs": 11.365,
+          "mainSystemMs": 1.03
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.676541000000043,
+          "cpuUserMs": 11.748,
+          "cpuSystemMs": 3.254,
+          "mainUserMs": 10.158,
+          "mainSystemMs": 0.993
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.664874999999938,
+          "cpuUserMs": 12.26,
+          "cpuSystemMs": 3.398,
+          "mainUserMs": 10.116,
+          "mainSystemMs": 1.041
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.422459000000003,
+          "cpuUserMs": 13.647,
+          "cpuSystemMs": 3.401,
+          "mainUserMs": 9.862,
+          "mainSystemMs": 1.013
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.155167000000006,
+          "cpuUserMs": 11.895,
+          "cpuSystemMs": 3.373,
+          "mainUserMs": 9.622,
+          "mainSystemMs": 1.015
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.805875000000015,
+          "cpuUserMs": 10.014,
+          "cpuSystemMs": 3.17,
+          "mainUserMs": 9.376,
+          "mainSystemMs": 0.951
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.126957999999945,
+          "cpuUserMs": 11.805,
+          "cpuSystemMs": 3.276,
+          "mainUserMs": 9.606,
+          "mainSystemMs": 0.978
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.044541000000095,
+          "cpuUserMs": 12.346,
+          "cpuSystemMs": 3.44,
+          "mainUserMs": 9.494,
+          "mainSystemMs": 1.022
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.859082999999941,
+          "cpuUserMs": 10.436,
+          "cpuSystemMs": 3.329,
+          "mainUserMs": 9.332,
+          "mainSystemMs": 1.021
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.273832999999968,
+          "cpuUserMs": 13.683,
+          "cpuSystemMs": 3.497,
+          "mainUserMs": 9.64,
+          "mainSystemMs": 1.049
+        }
+      ]
+    },
+    {
+      "cycle": 0,
+      "arm": "candidate",
+      "workload": "concurrent",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 55.81345799999997,
+          "cpuUserMs": 55.075,
+          "cpuSystemMs": 13.265,
+          "mainUserMs": 32.492,
+          "mainSystemMs": 4.119
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 41.05220899999995,
+          "cpuUserMs": 26.138,
+          "cpuSystemMs": 10.844,
+          "mainUserMs": 16.647,
+          "mainSystemMs": 2.722
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 30.18395799999996,
+          "cpuUserMs": 17.148,
+          "cpuSystemMs": 8.954,
+          "mainUserMs": 14.014,
+          "mainSystemMs": 2.437
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 38.56154200000003,
+          "cpuUserMs": 17.499,
+          "cpuSystemMs": 10.323,
+          "mainUserMs": 14.52,
+          "mainSystemMs": 2.625
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 34.29824999999994,
+          "cpuUserMs": 15.548,
+          "cpuSystemMs": 9.357,
+          "mainUserMs": 14.01,
+          "mainSystemMs": 2.411
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 30.066167000000064,
+          "cpuUserMs": 18.858,
+          "cpuSystemMs": 9.207,
+          "mainUserMs": 14.1,
+          "mainSystemMs": 2.636
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 37.506541000000084,
+          "cpuUserMs": 17.895,
+          "cpuSystemMs": 9.081,
+          "mainUserMs": 14.268,
+          "mainSystemMs": 2.516
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 33.383959000000004,
+          "cpuUserMs": 14.797,
+          "cpuSystemMs": 8.994,
+          "mainUserMs": 13.707,
+          "mainSystemMs": 2.444
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 36.94124999999997,
+          "cpuUserMs": 19.78,
+          "cpuSystemMs": 10.547,
+          "mainUserMs": 15.709,
+          "mainSystemMs": 3.172
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 33.85145899999998,
+          "cpuUserMs": 17.797,
+          "cpuSystemMs": 9.177,
+          "mainUserMs": 13.88,
+          "mainSystemMs": 2.446
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 33.315458000000035,
+          "cpuUserMs": 16.132,
+          "cpuSystemMs": 9.664,
+          "mainUserMs": 14.142,
+          "mainSystemMs": 2.533
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 30.25500000000011,
+          "cpuUserMs": 23.877,
+          "cpuSystemMs": 10.399,
+          "mainUserMs": 13.626,
+          "mainSystemMs": 2.704
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "arm": "candidate",
+      "workload": "cold",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "threadSamples": [
+        {
+          "warmup": false,
+          "elapsedMs": 37.700958000000014,
+          "cpuUserMs": 48.803,
+          "cpuSystemMs": 7.208,
+          "mainUserMs": 28.523,
+          "mainSystemMs": 2.801
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "arm": "control",
+      "workload": "cold",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": false,
+          "elapsedMs": 26.48112500000002,
+          "cpuUserMs": 41.571,
+          "cpuSystemMs": 3.278,
+          "mainUserMs": 23.293,
+          "mainSystemMs": 1.116
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "arm": "candidate",
+      "workload": "warm",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 38.554708000000005,
+          "cpuUserMs": 49.071,
+          "cpuSystemMs": 7.521,
+          "mainUserMs": 28.781,
+          "mainSystemMs": 2.923
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 21.815292,
+          "cpuUserMs": 19.97,
+          "cpuSystemMs": 4.744,
+          "mainUserMs": 12.934,
+          "mainSystemMs": 1.504
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.623874999999998,
+          "cpuUserMs": 18.164,
+          "cpuSystemMs": 4.57,
+          "mainUserMs": 12.328,
+          "mainSystemMs": 1.459
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.210500000000025,
+          "cpuUserMs": 12.583,
+          "cpuSystemMs": 4.438,
+          "mainUserMs": 11.145,
+          "mainSystemMs": 1.474
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.047500000000014,
+          "cpuUserMs": 11.772,
+          "cpuSystemMs": 4.3,
+          "mainUserMs": 10.515,
+          "mainSystemMs": 1.372
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.724666999999954,
+          "cpuUserMs": 15.923,
+          "cpuSystemMs": 4.434,
+          "mainUserMs": 11.17,
+          "mainSystemMs": 1.356
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.11283299999991,
+          "cpuUserMs": 12.377,
+          "cpuSystemMs": 4.369,
+          "mainUserMs": 10.29,
+          "mainSystemMs": 1.444
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.07883300000003,
+          "cpuUserMs": 11.426,
+          "cpuSystemMs": 4.37,
+          "mainUserMs": 10.126,
+          "mainSystemMs": 1.396
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.824250000000006,
+          "cpuUserMs": 12.063,
+          "cpuSystemMs": 4.214,
+          "mainUserMs": 10.403,
+          "mainSystemMs": 1.363
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 20.060416000000032,
+          "cpuUserMs": 12.427,
+          "cpuSystemMs": 4.554,
+          "mainUserMs": 10.341,
+          "mainSystemMs": 1.498
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.04208399999993,
+          "cpuUserMs": 10.894,
+          "cpuSystemMs": 4.297,
+          "mainUserMs": 10.059,
+          "mainSystemMs": 1.408
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 17.828292000000033,
+          "cpuUserMs": 15.213,
+          "cpuSystemMs": 4.251,
+          "mainUserMs": 10.315,
+          "mainSystemMs": 1.339
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "arm": "control",
+      "workload": "warm",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 26.43241599999999,
+          "cpuUserMs": 41.911,
+          "cpuSystemMs": 3.277,
+          "mainUserMs": 23.273,
+          "mainSystemMs": 1.135
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 13.893584000000033,
+          "cpuUserMs": 17.573,
+          "cpuSystemMs": 2.661,
+          "mainUserMs": 11.287,
+          "mainSystemMs": 0.833
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.101791000000048,
+          "cpuUserMs": 15.07,
+          "cpuSystemMs": 2.468,
+          "mainUserMs": 10.625,
+          "mainSystemMs": 0.796
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.862374999999929,
+          "cpuUserMs": 11.021,
+          "cpuSystemMs": 2.285,
+          "mainUserMs": 9.473,
+          "mainSystemMs": 0.723
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.519916999999964,
+          "cpuUserMs": 10.484,
+          "cpuSystemMs": 2.263,
+          "mainUserMs": 9.149,
+          "mainSystemMs": 0.72
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.00987500000008,
+          "cpuUserMs": 13.801,
+          "cpuSystemMs": 2.281,
+          "mainUserMs": 9.644,
+          "mainSystemMs": 0.718
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.350583000000029,
+          "cpuUserMs": 11.322,
+          "cpuSystemMs": 2.318,
+          "mainUserMs": 8.936,
+          "mainSystemMs": 0.724
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.15016700000001,
+          "cpuUserMs": 9.371,
+          "cpuSystemMs": 2.183,
+          "mainUserMs": 8.813,
+          "mainSystemMs": 0.712
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.118832999999995,
+          "cpuUserMs": 10.424,
+          "cpuSystemMs": 2.205,
+          "mainUserMs": 8.789,
+          "mainSystemMs": 0.689
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.483582999999953,
+          "cpuUserMs": 11.051,
+          "cpuSystemMs": 2.335,
+          "mainUserMs": 8.988,
+          "mainSystemMs": 0.76
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 10.862541999999962,
+          "cpuUserMs": 9.103,
+          "cpuSystemMs": 2.164,
+          "mainUserMs": 8.545,
+          "mainSystemMs": 0.673
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 10.94779200000005,
+          "cpuUserMs": 12.167,
+          "cpuSystemMs": 2.188,
+          "mainUserMs": 8.609,
+          "mainSystemMs": 0.695
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "arm": "candidate",
+      "workload": "changed",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 37.92937500000005,
+          "cpuUserMs": 48.749,
+          "cpuSystemMs": 7.33,
+          "mainUserMs": 28.727,
+          "mainSystemMs": 2.73
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 21.620000000000005,
+          "cpuUserMs": 20.084,
+          "cpuSystemMs": 5.084,
+          "mainUserMs": 13.027,
+          "mainSystemMs": 1.583
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.705208999999968,
+          "cpuUserMs": 18.37,
+          "cpuSystemMs": 4.659,
+          "mainUserMs": 12.184,
+          "mainSystemMs": 1.427
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.952833000000055,
+          "cpuUserMs": 12.437,
+          "cpuSystemMs": 4.479,
+          "mainUserMs": 10.991,
+          "mainSystemMs": 1.431
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.121083000000112,
+          "cpuUserMs": 11.895,
+          "cpuSystemMs": 4.528,
+          "mainUserMs": 10.638,
+          "mainSystemMs": 1.414
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.917833000000087,
+          "cpuUserMs": 16.097,
+          "cpuSystemMs": 4.621,
+          "mainUserMs": 11.333,
+          "mainSystemMs": 1.4
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.143166000000065,
+          "cpuUserMs": 12.504,
+          "cpuSystemMs": 4.685,
+          "mainUserMs": 10.454,
+          "mainSystemMs": 1.494
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 17.965374999999995,
+          "cpuUserMs": 11.277,
+          "cpuSystemMs": 4.526,
+          "mainUserMs": 10.003,
+          "mainSystemMs": 1.454
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.843707999999992,
+          "cpuUserMs": 12.309,
+          "cpuSystemMs": 4.551,
+          "mainUserMs": 10.519,
+          "mainSystemMs": 1.458
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.054125,
+          "cpuUserMs": 12.503,
+          "cpuSystemMs": 4.563,
+          "mainUserMs": 10.491,
+          "mainSystemMs": 1.45
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.08020799999997,
+          "cpuUserMs": 10.948,
+          "cpuSystemMs": 4.337,
+          "mainUserMs": 10.13,
+          "mainSystemMs": 1.357
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 17.878624999999943,
+          "cpuUserMs": 15.418,
+          "cpuSystemMs": 4.382,
+          "mainUserMs": 10.575,
+          "mainSystemMs": 1.348
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "arm": "control",
+      "workload": "changed",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 26.603332999999907,
+          "cpuUserMs": 41.676,
+          "cpuSystemMs": 3.434,
+          "mainUserMs": 23.202,
+          "mainSystemMs": 1.128
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 13.772417000000019,
+          "cpuUserMs": 17.308,
+          "cpuSystemMs": 2.77,
+          "mainUserMs": 11.036,
+          "mainSystemMs": 0.877
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.31899999999996,
+          "cpuUserMs": 15.17,
+          "cpuSystemMs": 2.607,
+          "mainUserMs": 10.641,
+          "mainSystemMs": 0.809
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.275082999999995,
+          "cpuUserMs": 11.084,
+          "cpuSystemMs": 2.592,
+          "mainUserMs": 9.511,
+          "mainSystemMs": 0.841
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.947250000000054,
+          "cpuUserMs": 10.494,
+          "cpuSystemMs": 2.692,
+          "mainUserMs": 9.187,
+          "mainSystemMs": 0.893
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.436541000000034,
+          "cpuUserMs": 14.174,
+          "cpuSystemMs": 2.709,
+          "mainUserMs": 9.623,
+          "mainSystemMs": 0.907
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.72970799999996,
+          "cpuUserMs": 11.415,
+          "cpuSystemMs": 2.637,
+          "mainUserMs": 9.053,
+          "mainSystemMs": 0.845
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.388291999999979,
+          "cpuUserMs": 9.393,
+          "cpuSystemMs": 2.417,
+          "mainUserMs": 8.844,
+          "mainSystemMs": 0.765
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.409000000000106,
+          "cpuUserMs": 10.527,
+          "cpuSystemMs": 2.385,
+          "mainUserMs": 8.881,
+          "mainSystemMs": 0.742
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.57816600000001,
+          "cpuUserMs": 11.158,
+          "cpuSystemMs": 2.383,
+          "mainUserMs": 9.057,
+          "mainSystemMs": 0.74
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.24558300000001,
+          "cpuUserMs": 9.328,
+          "cpuSystemMs": 2.36,
+          "mainUserMs": 8.737,
+          "mainSystemMs": 0.735
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.053999999999974,
+          "cpuUserMs": 12.112,
+          "cpuSystemMs": 2.31,
+          "mainUserMs": 8.602,
+          "mainSystemMs": 0.717
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "arm": "candidate",
+      "workload": "concurrent",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 52.04291699999999,
+          "cpuUserMs": 54.706,
+          "cpuSystemMs": 13.189,
+          "mainUserMs": 32.33,
+          "mainSystemMs": 4.279
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 37.229916,
+          "cpuUserMs": 25.854,
+          "cpuSystemMs": 10.325,
+          "mainUserMs": 16.521,
+          "mainSystemMs": 2.823
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 30.960790999999972,
+          "cpuUserMs": 17.548,
+          "cpuSystemMs": 9.86,
+          "mainUserMs": 14.347,
+          "mainSystemMs": 2.571
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 30.019666999999913,
+          "cpuUserMs": 17.121,
+          "cpuSystemMs": 9.366,
+          "mainUserMs": 14.158,
+          "mainSystemMs": 2.489
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 33.79770800000006,
+          "cpuUserMs": 15.1,
+          "cpuSystemMs": 9.609,
+          "mainUserMs": 13.505,
+          "mainSystemMs": 2.605
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 34.98908400000005,
+          "cpuUserMs": 18.726,
+          "cpuSystemMs": 9.968,
+          "mainUserMs": 13.977,
+          "mainSystemMs": 2.915
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 32.14625000000001,
+          "cpuUserMs": 17.685,
+          "cpuSystemMs": 10.067,
+          "mainUserMs": 14.055,
+          "mainSystemMs": 2.769
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 29.02404200000001,
+          "cpuUserMs": 14.608,
+          "cpuSystemMs": 10.063,
+          "mainUserMs": 13.483,
+          "mainSystemMs": 2.653
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 34.819458000000054,
+          "cpuUserMs": 19.299,
+          "cpuSystemMs": 11.756,
+          "mainUserMs": 15.177,
+          "mainSystemMs": 3.464
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 28.811707999999953,
+          "cpuUserMs": 17.206,
+          "cpuSystemMs": 9.271,
+          "mainUserMs": 13.415,
+          "mainSystemMs": 2.689
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 30.615916999999968,
+          "cpuUserMs": 15.74,
+          "cpuSystemMs": 9.741,
+          "mainUserMs": 13.781,
+          "mainSystemMs": 2.785
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 29.804374999999936,
+          "cpuUserMs": 23.866,
+          "cpuSystemMs": 10.278,
+          "mainUserMs": 13.69,
+          "mainSystemMs": 2.792
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "arm": "control",
+      "workload": "concurrent",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 28.509832999999958,
+          "cpuUserMs": 43.826,
+          "cpuSystemMs": 5.028,
+          "mainUserMs": 24.827,
+          "mainSystemMs": 1.627
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 15.168540999999891,
+          "cpuUserMs": 18.954,
+          "cpuSystemMs": 4.102,
+          "mainUserMs": 12.163,
+          "mainSystemMs": 1.295
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 14.55620799999997,
+          "cpuUserMs": 16.794,
+          "cpuSystemMs": 4.028,
+          "mainUserMs": 11.623,
+          "mainSystemMs": 1.262
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.089749999999981,
+          "cpuUserMs": 11.824,
+          "cpuSystemMs": 3.803,
+          "mainUserMs": 10.223,
+          "mainSystemMs": 1.212
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.696624999999926,
+          "cpuUserMs": 10.789,
+          "cpuSystemMs": 3.822,
+          "mainUserMs": 9.829,
+          "mainSystemMs": 1.221
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.751041999999984,
+          "cpuUserMs": 15.463,
+          "cpuSystemMs": 4.254,
+          "mainUserMs": 10.63,
+          "mainSystemMs": 1.338
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.669666000000007,
+          "cpuUserMs": 12.077,
+          "cpuSystemMs": 3.929,
+          "mainUserMs": 9.815,
+          "mainSystemMs": 1.204
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.327290999999946,
+          "cpuUserMs": 10.193,
+          "cpuSystemMs": 3.783,
+          "mainUserMs": 9.545,
+          "mainSystemMs": 1.188
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.904999999999973,
+          "cpuUserMs": 12.143,
+          "cpuSystemMs": 3.991,
+          "mainUserMs": 9.876,
+          "mainSystemMs": 1.23
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.600999999999999,
+          "cpuUserMs": 12.541,
+          "cpuSystemMs": 3.969,
+          "mainUserMs": 9.689,
+          "mainSystemMs": 1.248
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.410833000000025,
+          "cpuUserMs": 10.716,
+          "cpuSystemMs": 3.866,
+          "mainUserMs": 9.579,
+          "mainSystemMs": 1.202
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.633665999999948,
+          "cpuUserMs": 13.736,
+          "cpuSystemMs": 3.959,
+          "mainUserMs": 9.781,
+          "mainSystemMs": 1.213
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "arm": "control",
+      "workload": "cold",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": false,
+          "elapsedMs": 26.549332999999933,
+          "cpuUserMs": 41.387,
+          "cpuSystemMs": 3.607,
+          "mainUserMs": 23.136,
+          "mainSystemMs": 1.229
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "arm": "candidate",
+      "workload": "cold",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 2,
+      "expectedEventCount": 2,
+      "threadSamples": [
+        {
+          "warmup": false,
+          "elapsedMs": 39.51237500000002,
+          "cpuUserMs": 50.584,
+          "cpuSystemMs": 8.64,
+          "mainUserMs": 29.679,
+          "mainSystemMs": 3.295
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "arm": "control",
+      "workload": "warm",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 26.658166999999935,
+          "cpuUserMs": 41.62,
+          "cpuSystemMs": 3.705,
+          "mainUserMs": 23.161,
+          "mainSystemMs": 1.289
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 13.607208000000014,
+          "cpuUserMs": 16.895,
+          "cpuSystemMs": 2.957,
+          "mainUserMs": 10.762,
+          "mainSystemMs": 0.969
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.139583000000016,
+          "cpuUserMs": 14.821,
+          "cpuSystemMs": 2.847,
+          "mainUserMs": 10.34,
+          "mainSystemMs": 0.942
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.054750000000013,
+          "cpuUserMs": 10.919,
+          "cpuSystemMs": 2.644,
+          "mainUserMs": 9.362,
+          "mainSystemMs": 0.889
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.65670799999998,
+          "cpuUserMs": 10.238,
+          "cpuSystemMs": 2.64,
+          "mainUserMs": 8.977,
+          "mainSystemMs": 0.878
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.230625000000032,
+          "cpuUserMs": 14.068,
+          "cpuSystemMs": 2.678,
+          "mainUserMs": 9.524,
+          "mainSystemMs": 0.89
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.617083999999977,
+          "cpuUserMs": 11.269,
+          "cpuSystemMs": 2.674,
+          "mainUserMs": 8.913,
+          "mainSystemMs": 0.884
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.382166999999981,
+          "cpuUserMs": 9.224,
+          "cpuSystemMs": 2.604,
+          "mainUserMs": 8.68,
+          "mainSystemMs": 0.877
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.350957999999991,
+          "cpuUserMs": 10.252,
+          "cpuSystemMs": 2.636,
+          "mainUserMs": 8.678,
+          "mainSystemMs": 0.893
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.55558300000007,
+          "cpuUserMs": 10.948,
+          "cpuSystemMs": 2.653,
+          "mainUserMs": 8.834,
+          "mainSystemMs": 0.881
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.23762499999998,
+          "cpuUserMs": 9.125,
+          "cpuSystemMs": 2.59,
+          "mainUserMs": 8.556,
+          "mainSystemMs": 0.867
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.10125000000005,
+          "cpuUserMs": 11.988,
+          "cpuSystemMs": 2.597,
+          "mainUserMs": 8.442,
+          "mainSystemMs": 0.856
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "arm": "candidate",
+      "workload": "warm",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 38.98387500000001,
+          "cpuUserMs": 52.037,
+          "cpuSystemMs": 7.408,
+          "mainUserMs": 29.69,
+          "mainSystemMs": 2.875
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 22.23295799999994,
+          "cpuUserMs": 22.689,
+          "cpuSystemMs": 4.728,
+          "mainUserMs": 13.707,
+          "mainSystemMs": 1.521
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.826749999999947,
+          "cpuUserMs": 16.909,
+          "cpuSystemMs": 4.474,
+          "mainUserMs": 12.217,
+          "mainSystemMs": 1.401
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.68025,
+          "cpuUserMs": 15.324,
+          "cpuSystemMs": 4.512,
+          "mainUserMs": 12.315,
+          "mainSystemMs": 1.455
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.290791000000013,
+          "cpuUserMs": 12.545,
+          "cpuSystemMs": 4.455,
+          "mainUserMs": 11.263,
+          "mainSystemMs": 1.429
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.89037499999995,
+          "cpuUserMs": 14.67,
+          "cpuSystemMs": 4.369,
+          "mainUserMs": 11.174,
+          "mainSystemMs": 1.364
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.021792000000005,
+          "cpuUserMs": 14.687,
+          "cpuSystemMs": 4.738,
+          "mainUserMs": 11.682,
+          "mainSystemMs": 1.552
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.945249999999987,
+          "cpuUserMs": 12.182,
+          "cpuSystemMs": 4.46,
+          "mainUserMs": 10.909,
+          "mainSystemMs": 1.468
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.455041999999935,
+          "cpuUserMs": 13.331,
+          "cpuSystemMs": 5.171,
+          "mainUserMs": 11.12,
+          "mainSystemMs": 1.684
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.66158299999995,
+          "cpuUserMs": 12.983,
+          "cpuSystemMs": 4.822,
+          "mainUserMs": 10.922,
+          "mainSystemMs": 1.552
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.265667000000008,
+          "cpuUserMs": 11.513,
+          "cpuSystemMs": 4.814,
+          "mainUserMs": 10.71,
+          "mainSystemMs": 1.579
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.39833299999998,
+          "cpuUserMs": 16.393,
+          "cpuSystemMs": 4.927,
+          "mainUserMs": 11.34,
+          "mainSystemMs": 1.53
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "arm": "control",
+      "workload": "changed",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 26.805207999999993,
+          "cpuUserMs": 41.818,
+          "cpuSystemMs": 3.435,
+          "mainUserMs": 23.386,
+          "mainSystemMs": 1.137
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 13.947667000000024,
+          "cpuUserMs": 17.502,
+          "cpuSystemMs": 2.754,
+          "mainUserMs": 11.213,
+          "mainSystemMs": 0.834
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.380708000000027,
+          "cpuUserMs": 15.195,
+          "cpuSystemMs": 2.646,
+          "mainUserMs": 10.673,
+          "mainSystemMs": 0.813
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.256834000000026,
+          "cpuUserMs": 11.298,
+          "cpuSystemMs": 2.478,
+          "mainUserMs": 9.697,
+          "mainSystemMs": 0.764
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.604375000000005,
+          "cpuUserMs": 10.417,
+          "cpuSystemMs": 2.337,
+          "mainUserMs": 9.145,
+          "mainSystemMs": 0.735
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.224874999999997,
+          "cpuUserMs": 14.169,
+          "cpuSystemMs": 2.484,
+          "mainUserMs": 9.695,
+          "mainSystemMs": 0.773
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.579166999999984,
+          "cpuUserMs": 11.438,
+          "cpuSystemMs": 2.389,
+          "mainUserMs": 9.089,
+          "mainSystemMs": 0.733
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.279457999999977,
+          "cpuUserMs": 9.352,
+          "cpuSystemMs": 2.337,
+          "mainUserMs": 8.801,
+          "mainSystemMs": 0.744
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.232917000000043,
+          "cpuUserMs": 10.438,
+          "cpuSystemMs": 2.303,
+          "mainUserMs": 8.804,
+          "mainSystemMs": 0.697
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.917332999999985,
+          "cpuUserMs": 11.445,
+          "cpuSystemMs": 2.551,
+          "mainUserMs": 9.266,
+          "mainSystemMs": 0.819
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.23595899999998,
+          "cpuUserMs": 9.3,
+          "cpuSystemMs": 2.367,
+          "mainUserMs": 8.727,
+          "mainSystemMs": 0.727
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 11.129332999999974,
+          "cpuUserMs": 12.339,
+          "cpuSystemMs": 2.262,
+          "mainUserMs": 8.731,
+          "mainSystemMs": 0.704
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "arm": "candidate",
+      "workload": "changed",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 24,
+      "expectedEventCount": 24,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 38.82208400000002,
+          "cpuUserMs": 49.002,
+          "cpuSystemMs": 7.761,
+          "mainUserMs": 29.025,
+          "mainSystemMs": 3.019
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 21.79154099999994,
+          "cpuUserMs": 20.085,
+          "cpuSystemMs": 4.997,
+          "mainUserMs": 13.192,
+          "mainSystemMs": 1.628
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 20.864749999999958,
+          "cpuUserMs": 18.351,
+          "cpuSystemMs": 4.687,
+          "mainUserMs": 12.398,
+          "mainSystemMs": 1.455
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.90266699999995,
+          "cpuUserMs": 12.616,
+          "cpuSystemMs": 4.464,
+          "mainUserMs": 11.156,
+          "mainSystemMs": 1.458
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.24229099999991,
+          "cpuUserMs": 12.003,
+          "cpuSystemMs": 4.586,
+          "mainUserMs": 10.777,
+          "mainSystemMs": 1.485
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 19.600416999999993,
+          "cpuUserMs": 15.984,
+          "cpuSystemMs": 4.531,
+          "mainUserMs": 11.458,
+          "mainSystemMs": 1.395
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.19104200000004,
+          "cpuUserMs": 12.542,
+          "cpuSystemMs": 4.76,
+          "mainUserMs": 10.53,
+          "mainSystemMs": 1.589
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 17.96183300000007,
+          "cpuUserMs": 11.541,
+          "cpuSystemMs": 4.556,
+          "mainUserMs": 10.261,
+          "mainSystemMs": 1.465
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.83579199999997,
+          "cpuUserMs": 12.429,
+          "cpuSystemMs": 4.403,
+          "mainUserMs": 10.647,
+          "mainSystemMs": 1.417
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.924833000000035,
+          "cpuUserMs": 12.459,
+          "cpuSystemMs": 4.319,
+          "mainUserMs": 10.462,
+          "mainSystemMs": 1.39
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 18.071042000000034,
+          "cpuUserMs": 11.02,
+          "cpuSystemMs": 4.447,
+          "mainUserMs": 10.217,
+          "mainSystemMs": 1.406
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 17.858833000000004,
+          "cpuUserMs": 15.425,
+          "cpuSystemMs": 4.506,
+          "mainUserMs": 10.676,
+          "mainSystemMs": 1.372
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "arm": "control",
+      "workload": "concurrent",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 0,
+      "expectedEventCount": 0,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 29.674125000000004,
+          "cpuUserMs": 47.503,
+          "cpuSystemMs": 4.647,
+          "mainUserMs": 26.145,
+          "mainSystemMs": 1.531
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 16.031375000000025,
+          "cpuUserMs": 22.262,
+          "cpuSystemMs": 3.688,
+          "mainUserMs": 13.409,
+          "mainSystemMs": 1.092
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 14.262666999999965,
+          "cpuUserMs": 15.347,
+          "cpuSystemMs": 3.465,
+          "mainUserMs": 11.704,
+          "mainSystemMs": 1.077
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 14.586165999999935,
+          "cpuUserMs": 15.029,
+          "cpuSystemMs": 3.494,
+          "mainUserMs": 11.955,
+          "mainSystemMs": 1.044
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.212791000000038,
+          "cpuUserMs": 11.699,
+          "cpuSystemMs": 3.39,
+          "mainUserMs": 10.712,
+          "mainSystemMs": 1.001
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.618541999999934,
+          "cpuUserMs": 16.158,
+          "cpuSystemMs": 3.372,
+          "mainUserMs": 11.111,
+          "mainSystemMs": 1.021
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.124167000000057,
+          "cpuUserMs": 12.834,
+          "cpuSystemMs": 3.353,
+          "mainUserMs": 10.592,
+          "mainSystemMs": 1.023
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.776458000000048,
+          "cpuUserMs": 10.95,
+          "cpuSystemMs": 3.248,
+          "mainUserMs": 10.295,
+          "mainSystemMs": 0.988
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.294708000000014,
+          "cpuUserMs": 13.595,
+          "cpuSystemMs": 3.355,
+          "mainUserMs": 10.773,
+          "mainSystemMs": 0.997
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.063957999999957,
+          "cpuUserMs": 13.337,
+          "cpuSystemMs": 3.46,
+          "mainUserMs": 10.461,
+          "mainSystemMs": 1.076
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 12.75116700000001,
+          "cpuUserMs": 11.366,
+          "cpuSystemMs": 3.277,
+          "mainUserMs": 10.257,
+          "mainSystemMs": 0.993
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 13.544667000000004,
+          "cpuUserMs": 15.489,
+          "cpuSystemMs": 3.556,
+          "mainUserMs": 10.899,
+          "mainSystemMs": 1.066
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "arm": "candidate",
+      "workload": "concurrent",
+      "replacements": 1,
+      "semanticValid": true,
+      "integrity": true,
+      "eventCount": 96,
+      "expectedEventCount": 96,
+      "threadSamples": [
+        {
+          "warmup": true,
+          "elapsedMs": 49.952375000000075,
+          "cpuUserMs": 57.092,
+          "cpuSystemMs": 14.052,
+          "mainUserMs": 33.043,
+          "mainSystemMs": 4.22
+        },
+        {
+          "warmup": true,
+          "elapsedMs": 33.315624999999955,
+          "cpuUserMs": 26.019,
+          "cpuSystemMs": 9.642,
+          "mainUserMs": 16.629,
+          "mainSystemMs": 2.594
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 33.624124999999935,
+          "cpuUserMs": 17.295,
+          "cpuSystemMs": 9.711,
+          "mainUserMs": 14.109,
+          "mainSystemMs": 2.439
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 38.05741699999999,
+          "cpuUserMs": 17.37,
+          "cpuSystemMs": 9.666,
+          "mainUserMs": 14.617,
+          "mainSystemMs": 2.569
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 33.012292,
+          "cpuUserMs": 15.594,
+          "cpuSystemMs": 9.676,
+          "mainUserMs": 14.037,
+          "mainSystemMs": 2.469
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 34.06645800000001,
+          "cpuUserMs": 19.054,
+          "cpuSystemMs": 9.582,
+          "mainUserMs": 14.278,
+          "mainSystemMs": 2.598
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 40.04858300000001,
+          "cpuUserMs": 18.501,
+          "cpuSystemMs": 10.133,
+          "mainUserMs": 14.84,
+          "mainSystemMs": 2.559
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 31.081457999999998,
+          "cpuUserMs": 15.036,
+          "cpuSystemMs": 9.003,
+          "mainUserMs": 13.884,
+          "mainSystemMs": 2.467
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 31.348250000000007,
+          "cpuUserMs": 19.74,
+          "cpuSystemMs": 10.942,
+          "mainUserMs": 15.657,
+          "mainSystemMs": 3.396
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 33.760458000000085,
+          "cpuUserMs": 17.909,
+          "cpuSystemMs": 9.321,
+          "mainUserMs": 13.976,
+          "mainSystemMs": 2.516
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 33.86870900000008,
+          "cpuUserMs": 16.046,
+          "cpuSystemMs": 9.87,
+          "mainUserMs": 14.082,
+          "mainSystemMs": 2.663
+        },
+        {
+          "warmup": false,
+          "elapsedMs": 30.026749999999993,
+          "cpuUserMs": 23.682,
+          "cpuSystemMs": 9.676,
+          "mainUserMs": 13.771,
+          "mainSystemMs": 2.717
+        }
+      ]
+    }
+  ],
+  "threadSummary": [
+    {
+      "workload": "cold",
+      "arm": "control",
+      "workers": 3,
+      "elapsedMs": 26.882513666666643,
+      "cpuUserMs": 42.54266666666667,
+      "cpuSystemMs": 3.424,
+      "mainUserMs": 23.593333333333334,
+      "mainSystemMs": 1.1556666666666668,
+      "approximateOtherThreadCpuMs": 21.217666666666666
+    },
+    {
+      "workload": "cold",
+      "arm": "candidate",
+      "workers": 3,
+      "elapsedMs": 38.81673600000003,
+      "cpuUserMs": 49.495000000000005,
+      "cpuSystemMs": 7.693666666666666,
+      "mainUserMs": 29.026666666666667,
+      "mainSystemMs": 3.012,
+      "approximateOtherThreadCpuMs": 25.150000000000002
+    },
+    {
+      "workload": "warm",
+      "arm": "control",
+      "workers": 3,
+      "elapsedMs": 11.966876366666675,
+      "cpuUserMs": 11.5879,
+      "cpuSystemMs": 2.5309999999999997,
+      "mainUserMs": 9.3067,
+      "mainSystemMs": 0.8307000000000001,
+      "approximateOtherThreadCpuMs": 3.9815000000000005
+    },
+    {
+      "workload": "warm",
+      "arm": "candidate",
+      "workers": 3,
+      "elapsedMs": 18.717122233333335,
+      "cpuUserMs": 13.485966666666668,
+      "cpuSystemMs": 4.5026,
+      "mainUserMs": 10.844,
+      "mainSystemMs": 1.4487333333333334,
+      "approximateOtherThreadCpuMs": 5.695833333333335
+    },
+    {
+      "workload": "changed",
+      "arm": "control",
+      "workers": 3,
+      "elapsedMs": 11.722813800000003,
+      "cpuUserMs": 11.422433333333329,
+      "cpuSystemMs": 2.4586333333333337,
+      "mainUserMs": 9.15653333333333,
+      "mainSystemMs": 0.7686333333333333,
+      "approximateOtherThreadCpuMs": 3.9558999999999984
+    },
+    {
+      "workload": "changed",
+      "arm": "candidate",
+      "workers": 3,
+      "elapsedMs": 18.9822847,
+      "cpuUserMs": 13.62143333333333,
+      "cpuSystemMs": 4.526466666666667,
+      "mainUserMs": 10.976933333333331,
+      "mainSystemMs": 1.4341000000000002,
+      "approximateOtherThreadCpuMs": 5.736866666666665
+    },
+    {
+      "workload": "concurrent",
+      "arm": "control",
+      "workers": 3,
+      "elapsedMs": 12.926129033333325,
+      "cpuUserMs": 12.8721,
+      "cpuSystemMs": 3.5616,
+      "mainUserMs": 10.264000000000001,
+      "mainSystemMs": 1.090566666666667,
+      "approximateOtherThreadCpuMs": 5.07913333333333
+    },
+    {
+      "workload": "concurrent",
+      "arm": "candidate",
+      "workers": 3,
+      "elapsedMs": 33.074902800000004,
+      "cpuUserMs": 17.881899999999998,
+      "cpuSystemMs": 9.775399999999998,
+      "mainUserMs": 14.160499999999997,
+      "mainSystemMs": 2.6683000000000003,
+      "approximateOtherThreadCpuMs": 10.828499999999998
+    }
+  ],
+  "nextAction": "Investigate a pool-owned required-writer preflight that checks inactive writers before opening and uses the fresh initial-borrow observation for retained handles. Define inactive/failure meanings and test retirement,rotation,concurrent rebinding and post-CAS changes before selecting code. Never promote a retained-lease hint as authority. Preserve all original resource gates and real-family/installed requirements."
+}

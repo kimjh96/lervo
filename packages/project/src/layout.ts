@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { isAbsolute, resolve, sep } from "node:path";
 
 export const lervoRelativePaths = {
   root: ".lervo",
@@ -111,83 +111,77 @@ export interface LervoProjectPaths {
   workstreams: string;
 }
 
+// Only fixed, normalized catalog suffixes are reused; roots and filesystem observations are not.
+const nativeSuffixes = new Map<string, string>(
+  Object.values(lervoRelativePaths)
+    .filter(
+      (value) =>
+        !isAbsolute(value) &&
+        !value.includes("\\") &&
+        !value.includes(":") &&
+        value.split("/").every((part) => part !== "" && part !== "." && part !== ".."),
+    )
+    .map((value) => [value, value.replaceAll("/", sep)]),
+);
+
 export function resolveProjectPaths(root: string): LervoProjectPaths {
   const repositoryRoot = resolve(root);
+  const prefix = repositoryRoot.endsWith(sep) ? repositoryRoot : repositoryRoot + sep;
+  const resolveChild = (relativePath: string) => {
+    const suffix = nativeSuffixes.get(relativePath);
+    return suffix === undefined ? resolve(repositoryRoot, relativePath) : prefix + suffix;
+  };
   return {
     repositoryRoot,
-    lervoRoot: resolve(repositoryRoot, lervoRelativePaths.root),
-    projectManifest: resolve(repositoryRoot, lervoRelativePaths.projectManifest),
-    documents: resolve(repositoryRoot, lervoRelativePaths.documents),
-    verifications: resolve(repositoryRoot, lervoRelativePaths.verifications),
-    deliberations: resolve(repositoryRoot, lervoRelativePaths.deliberations),
-    legacyDocumentRegistry: resolve(repositoryRoot, lervoRelativePaths.legacyDocumentRegistry),
-    documentMigrationMarker: resolve(repositoryRoot, lervoRelativePaths.documentMigrationMarker),
-    gitignore: resolve(repositoryRoot, lervoRelativePaths.gitignore),
-    generated: resolve(repositoryRoot, lervoRelativePaths.generated),
-    generatedManifests: resolve(repositoryRoot, lervoRelativePaths.generatedManifests),
-    generatedSemanticManifests: resolve(
-      repositoryRoot,
-      lervoRelativePaths.generatedSemanticManifests,
-    ),
-    data: resolve(repositoryRoot, lervoRelativePaths.data),
-    state: resolve(repositoryRoot, lervoRelativePaths.state),
-    knowledge: resolve(repositoryRoot, lervoRelativePaths.knowledge),
-    knowledgePolicy: resolve(repositoryRoot, lervoRelativePaths.knowledgePolicy),
-    knowledgeDocumentLayout: resolve(repositoryRoot, lervoRelativePaths.knowledgeDocumentLayout),
-    knowledgeBundles: resolve(repositoryRoot, lervoRelativePaths.knowledgeBundles),
-    knowledgeConcepts: resolve(repositoryRoot, lervoRelativePaths.knowledgeConcepts),
-    knowledgeClaims: resolve(repositoryRoot, lervoRelativePaths.knowledgeClaims),
-    knowledgeRelations: resolve(repositoryRoot, lervoRelativePaths.knowledgeRelations),
-    knowledgeReviewPolicies: resolve(repositoryRoot, lervoRelativePaths.knowledgeReviewPolicies),
-    knowledgeSourceLineage: resolve(repositoryRoot, lervoRelativePaths.knowledgeSourceLineage),
-    knowledgeInstructionBridges: resolve(
-      repositoryRoot,
-      lervoRelativePaths.knowledgeInstructionBridges,
-    ),
-    knowledgeState: resolve(repositoryRoot, lervoRelativePaths.knowledgeState),
-    knowledgeInventory: resolve(repositoryRoot, lervoRelativePaths.knowledgeInventory),
-    knowledgeSourceUnits: resolve(repositoryRoot, lervoRelativePaths.knowledgeSourceUnits),
-    knowledgeImpacts: resolve(repositoryRoot, lervoRelativePaths.knowledgeImpacts),
-    knowledgeStructural: resolve(repositoryRoot, lervoRelativePaths.knowledgeStructural),
-    knowledgeStructuralBundles: resolve(
-      repositoryRoot,
-      lervoRelativePaths.knowledgeStructuralBundles,
-    ),
-    knowledgeStructuralConcepts: resolve(
-      repositoryRoot,
-      lervoRelativePaths.knowledgeStructuralConcepts,
-    ),
-    knowledgeStructuralManifests: resolve(
-      repositoryRoot,
-      lervoRelativePaths.knowledgeStructuralManifests,
-    ),
-    knowledgeCandidates: resolve(repositoryRoot, lervoRelativePaths.knowledgeCandidates),
-    knowledgeOkfImports: resolve(repositoryRoot, lervoRelativePaths.knowledgeOkfImports),
-    knowledgeIndexes: resolve(repositoryRoot, lervoRelativePaths.knowledgeIndexes),
-    eventDatabase: resolve(repositoryRoot, lervoRelativePaths.eventDatabase),
-    eventContract: resolve(repositoryRoot, lervoRelativePaths.eventContract),
-    cas: resolve(repositoryRoot, lervoRelativePaths.cas),
-    workforce: resolve(repositoryRoot, lervoRelativePaths.workforce),
-    searchEvaluations: resolve(repositoryRoot, lervoRelativePaths.searchEvaluations),
-    searchEnginePolicies: resolve(repositoryRoot, lervoRelativePaths.searchEnginePolicies),
-    searchRetrievalPlanBundles: resolve(
-      repositoryRoot,
-      lervoRelativePaths.searchRetrievalPlanBundles,
-    ),
-    searchRolloutPolicies: resolve(repositoryRoot, lervoRelativePaths.searchRolloutPolicies),
-    searchRolloutActionPolicies: resolve(
-      repositoryRoot,
-      lervoRelativePaths.searchRolloutActionPolicies,
-    ),
-    searchObservations: resolve(repositoryRoot, lervoRelativePaths.searchObservations),
-    skillsLock: resolve(repositoryRoot, lervoRelativePaths.skillsLock),
-    environmentSources: resolve(repositoryRoot, lervoRelativePaths.environmentSources),
-    environmentTargets: resolve(repositoryRoot, lervoRelativePaths.environmentTargets),
-    environmentAdmissionPolicy: resolve(
-      repositoryRoot,
-      lervoRelativePaths.environmentAdmissionPolicy,
-    ),
-    environmentObservations: resolve(repositoryRoot, lervoRelativePaths.environmentObservations),
-    workstreams: resolve(repositoryRoot, lervoRelativePaths.workstreams),
+    lervoRoot: resolveChild(lervoRelativePaths.root),
+    projectManifest: resolveChild(lervoRelativePaths.projectManifest),
+    documents: resolveChild(lervoRelativePaths.documents),
+    verifications: resolveChild(lervoRelativePaths.verifications),
+    deliberations: resolveChild(lervoRelativePaths.deliberations),
+    legacyDocumentRegistry: resolveChild(lervoRelativePaths.legacyDocumentRegistry),
+    documentMigrationMarker: resolveChild(lervoRelativePaths.documentMigrationMarker),
+    gitignore: resolveChild(lervoRelativePaths.gitignore),
+    generated: resolveChild(lervoRelativePaths.generated),
+    generatedManifests: resolveChild(lervoRelativePaths.generatedManifests),
+    generatedSemanticManifests: resolveChild(lervoRelativePaths.generatedSemanticManifests),
+    data: resolveChild(lervoRelativePaths.data),
+    state: resolveChild(lervoRelativePaths.state),
+    knowledge: resolveChild(lervoRelativePaths.knowledge),
+    knowledgePolicy: resolveChild(lervoRelativePaths.knowledgePolicy),
+    knowledgeDocumentLayout: resolveChild(lervoRelativePaths.knowledgeDocumentLayout),
+    knowledgeBundles: resolveChild(lervoRelativePaths.knowledgeBundles),
+    knowledgeConcepts: resolveChild(lervoRelativePaths.knowledgeConcepts),
+    knowledgeClaims: resolveChild(lervoRelativePaths.knowledgeClaims),
+    knowledgeRelations: resolveChild(lervoRelativePaths.knowledgeRelations),
+    knowledgeReviewPolicies: resolveChild(lervoRelativePaths.knowledgeReviewPolicies),
+    knowledgeSourceLineage: resolveChild(lervoRelativePaths.knowledgeSourceLineage),
+    knowledgeInstructionBridges: resolveChild(lervoRelativePaths.knowledgeInstructionBridges),
+    knowledgeState: resolveChild(lervoRelativePaths.knowledgeState),
+    knowledgeInventory: resolveChild(lervoRelativePaths.knowledgeInventory),
+    knowledgeSourceUnits: resolveChild(lervoRelativePaths.knowledgeSourceUnits),
+    knowledgeImpacts: resolveChild(lervoRelativePaths.knowledgeImpacts),
+    knowledgeStructural: resolveChild(lervoRelativePaths.knowledgeStructural),
+    knowledgeStructuralBundles: resolveChild(lervoRelativePaths.knowledgeStructuralBundles),
+    knowledgeStructuralConcepts: resolveChild(lervoRelativePaths.knowledgeStructuralConcepts),
+    knowledgeStructuralManifests: resolveChild(lervoRelativePaths.knowledgeStructuralManifests),
+    knowledgeCandidates: resolveChild(lervoRelativePaths.knowledgeCandidates),
+    knowledgeOkfImports: resolveChild(lervoRelativePaths.knowledgeOkfImports),
+    knowledgeIndexes: resolveChild(lervoRelativePaths.knowledgeIndexes),
+    eventDatabase: resolveChild(lervoRelativePaths.eventDatabase),
+    eventContract: resolveChild(lervoRelativePaths.eventContract),
+    cas: resolveChild(lervoRelativePaths.cas),
+    workforce: resolveChild(lervoRelativePaths.workforce),
+    searchEvaluations: resolveChild(lervoRelativePaths.searchEvaluations),
+    searchEnginePolicies: resolveChild(lervoRelativePaths.searchEnginePolicies),
+    searchRetrievalPlanBundles: resolveChild(lervoRelativePaths.searchRetrievalPlanBundles),
+    searchRolloutPolicies: resolveChild(lervoRelativePaths.searchRolloutPolicies),
+    searchRolloutActionPolicies: resolveChild(lervoRelativePaths.searchRolloutActionPolicies),
+    searchObservations: resolveChild(lervoRelativePaths.searchObservations),
+    skillsLock: resolveChild(lervoRelativePaths.skillsLock),
+    environmentSources: resolveChild(lervoRelativePaths.environmentSources),
+    environmentTargets: resolveChild(lervoRelativePaths.environmentTargets),
+    environmentAdmissionPolicy: resolveChild(lervoRelativePaths.environmentAdmissionPolicy),
+    environmentObservations: resolveChild(lervoRelativePaths.environmentObservations),
+    workstreams: resolveChild(lervoRelativePaths.workstreams),
   };
 }

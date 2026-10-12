@@ -159,7 +159,12 @@ export const eventTypesV4 = [
   "knowledge.integration_target.absorbed",
 ] as const;
 export const eventTypesV5 = [...eventTypesV4, ...knowledgeMaintenanceEventTypes] as const;
-export const eventTypes = eventTypesV5;
+export const eventTypesV6 = [
+  ...eventTypesV5,
+  "context.quality.prepared",
+  "context.quality.verified",
+] as const;
+export const eventTypes = eventTypesV6;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -255,31 +260,50 @@ export const eventEnvelopeSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://schemas.lervo.dev/v0/event.schema.json",
   title: "Lervo readable append-only event envelope",
+  type: "object",
+  properties: {
+    ...eventEnvelopeProperties,
+    type: { type: "string" },
+    schemaVersion: { type: "integer" },
+  },
+  required: eventEnvelopeRequired,
+  allOf: eventEnvelopeInvariants,
+  additionalProperties: false,
   oneOf: [
-    eventEnvelopeV1Schema,
-    eventEnvelopeV2Schema,
     {
-      ...eventEnvelopeV2Schema,
       properties: {
-        ...eventEnvelopeV2Schema.properties,
-        type: { type: "string", enum: eventTypesV3 },
-        schemaVersion: { type: "integer", const: 3 },
+        type: { enum: eventTypesV1 },
+        schemaVersion: { const: 1 },
       },
     },
     {
-      ...eventEnvelopeV2Schema,
       properties: {
-        ...eventEnvelopeV2Schema.properties,
-        type: { type: "string", enum: eventTypesV4 },
-        schemaVersion: { type: "integer", const: 4 },
+        type: { enum: eventTypesV2 },
+        schemaVersion: { const: 2 },
       },
     },
     {
-      ...eventEnvelopeV2Schema,
       properties: {
-        ...eventEnvelopeV2Schema.properties,
-        type: { type: "string", enum: eventTypesV5 },
-        schemaVersion: { type: "integer", const: 5 },
+        type: { enum: eventTypesV3 },
+        schemaVersion: { const: 3 },
+      },
+    },
+    {
+      properties: {
+        type: { enum: eventTypesV4 },
+        schemaVersion: { const: 4 },
+      },
+    },
+    {
+      properties: {
+        type: { enum: eventTypesV5 },
+        schemaVersion: { const: 5 },
+      },
+    },
+    {
+      properties: {
+        type: { enum: eventTypesV6 },
+        schemaVersion: { const: 6 },
       },
     },
   ],
@@ -299,9 +323,14 @@ export type EventEnvelopeV5 = Omit<EventEnvelopeV4, "schemaVersion" | "type"> & 
   schemaVersion: 5;
   type: (typeof eventTypesV5)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV5, "schemaVersion"> & {
-  schemaVersion: EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4 | 5;
+export type EventEnvelopeV6 = Omit<EventEnvelopeV5, "schemaVersion" | "type"> & {
+  schemaVersion: 6;
+  type: (typeof eventTypesV6)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV6, "schemaVersion"> & {
+  schemaVersion:
+    EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4 | 5 | 6;
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV5)[number];
+export type EventType = (typeof eventTypesV6)[number];

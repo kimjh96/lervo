@@ -1,0 +1,631 @@
+{
+  "schemaVersion": 1,
+  "realSuite": {
+    "path": "benchmarks/search/lexical-v2-real-use-reviewed-v1.json",
+    "sourceHash": "sha256:707f7f9cb42402f25419a0f7b98d8a417d455c72aa5a566eed28f0d913ed48e9",
+    "review": {
+      "approvalId": "wapr_ab432bcd3e9591b7",
+      "bindingHash": "sha256:ab432bcd3e9591b7dd94879ca6e8e7a314b4d6c7ae2cead153bf61512667be1d",
+      "status": "accepted_by_user_reply",
+      "caseRetention": "retain_all_without_replacement"
+    }
+  },
+  "realFamilies": [
+    {
+      "familyId": "actual_external_engine_extensibility",
+      "caseHash": "sha256:ec8b389bc3d20db222871f0826e9023c92d3d07fb5bd8269ca442a394a218815",
+      "queryHash": "sha256:5698045a7efcd2d5d12fe311e3b8aa03cd64bfff194d7f0f4af4048bba903ac1",
+      "historicalContextRequired": false,
+      "priorTuningExposure": true,
+      "newHeldOutEligible": false,
+      "priorReviewedScope": "retrieval_expected_paths",
+      "adr0501LabelStatus": "missing_clause_section_negative_and_artifact_labels"
+    },
+    {
+      "familyId": "actual_cross_provider_quality",
+      "caseHash": "sha256:83cee396881ef2e94ce1fb888ec01ccebd3a3d0a3c6c899d6779bce032eb44ec",
+      "queryHash": "sha256:951b9178e86cb6f77770f3ebfca30fe32307f9c0abbd7cc46e697a9d17f28ff7",
+      "historicalContextRequired": true,
+      "priorTuningExposure": true,
+      "newHeldOutEligible": false,
+      "priorReviewedScope": "retrieval_expected_paths",
+      "adr0501LabelStatus": "missing_clause_section_negative_and_artifact_labels"
+    },
+    {
+      "familyId": "actual_raise_v2_to_pass",
+      "caseHash": "sha256:539f1eaaa8758d83fb9caa399d8e2efa4526fab704ed2da39bb74afa094f8e29",
+      "queryHash": "sha256:e42e7f0b29a88ca345b9dc425e7c945945a7317281562a0b0f398b40b0ca94f9",
+      "historicalContextRequired": true,
+      "priorTuningExposure": true,
+      "newHeldOutEligible": false,
+      "priorReviewedScope": "retrieval_expected_paths",
+      "adr0501LabelStatus": "missing_clause_section_negative_and_artifact_labels"
+    },
+    {
+      "familyId": "actual_no_gate_weakening",
+      "caseHash": "sha256:253d07a779a9bb274df18f129eec089c585933ce96d2cbef089951e1ed483754",
+      "queryHash": "sha256:95428d1342a5b1985284c4b9f97703664e84cbd4150e27c77be16395dc9cf38c",
+      "historicalContextRequired": true,
+      "priorTuningExposure": true,
+      "newHeldOutEligible": false,
+      "priorReviewedScope": "retrieval_expected_paths",
+      "adr0501LabelStatus": "missing_clause_section_negative_and_artifact_labels"
+    }
+  ],
+  "retainedRegressions": [
+    {
+      "path": "benchmarks/search/marker-derived-paths-v6.json",
+      "sourceHash": "sha256:97203bcaffa2f52c45713b78fa82d71cfad66f462e1ffd208ebbbf47d497d118",
+      "declaredProvenance": "human_reviewed",
+      "caseIds": [
+        "drv6case_implementation_release",
+        "drv6case_terse_release",
+        "drv6case_rationale_hybrid_search",
+        "drv6case_status_node_fleet",
+        "drv6case_boundary_fuzzy_merge",
+        "drv6case_boundary_user_owned_block",
+        "drv6case_rationale_continuation_why",
+        "drv6case_rationale_continuation_conversation"
+      ],
+      "promotion": "retained_reviewed_regression_not_new_real_or_held_out_family"
+    },
+    {
+      "path": "benchmarks/search/staged-evidence-v7.json",
+      "sourceHash": "sha256:af170ae676d3ea9abe4f29e81d920622df178f8ab10bf611a6a8479dbeda8876",
+      "declaredProvenance": "human_reviewed",
+      "caseIds": [
+        "drv7case_implementation_release",
+        "drv7case_terse_release",
+        "drv7case_rationale_hybrid_search",
+        "drv7case_status_node_fleet",
+        "drv7case_boundary_fuzzy_merge",
+        "drv7case_boundary_user_owned_block",
+        "drv7case_rationale_continuation_why",
+        "drv7case_rationale_continuation_conversation"
+      ],
+      "promotion": "retained_reviewed_regression_not_new_real_or_held_out_family"
+    },
+    {
+      "path": "benchmarks/search/linked-evidence-reconciliation-v8.json",
+      "sourceHash": "sha256:28775d1126269ce42c961d15c3b7cd8deb5affe6f7e730678f223c0b6dfd2f20",
+      "declaredProvenance": "human_reviewed",
+      "caseIds": [
+        "drv8case_implementation_release",
+        "drv8case_terse_release",
+        "drv8case_rationale_hybrid_search",
+        "drv8case_status_node_fleet",
+        "drv8case_boundary_fuzzy_merge",
+        "drv8case_boundary_user_owned_block",
+        "drv8case_rationale_continuation_why",
+        "drv8case_rationale_continuation_conversation"
+      ],
+      "promotion": "retained_reviewed_regression_not_new_real_or_held_out_family"
+    },
+    {
+      "path": "benchmarks/search/linked-evidence-reconciliation-confirmation-v9.json",
+      "sourceHash": "sha256:9b99cbab17448b1daa078ad2538d9bdffcc557a0a5dd7602c7638885412236cb",
+      "declaredProvenance": "human_reviewed",
+      "caseIds": [
+        "drv8case_implementation_release",
+        "drv8case_terse_release",
+        "drv8case_rationale_hybrid_search",
+        "drv8case_status_node_fleet",
+        "drv8case_boundary_fuzzy_merge",
+        "drv8case_boundary_user_owned_block",
+        "drv8case_rationale_continuation_why",
+        "drv8case_rationale_continuation_conversation"
+      ],
+      "promotion": "retained_reviewed_regression_not_new_real_or_held_out_family"
+    }
+  ],
+  "readiness": {
+    "status": "not_qualified",
+    "minimumRealFamilies": 100,
+    "existingRealFamilies": 4,
+    "additionalRealFamiliesNeeded": 96,
+    "minimumHeldOutFamilies": 30,
+    "eligibleUnseenHeldOutFamilies": 0,
+    "fullyReviewedAdr0501Families": 0,
+    "stochasticProviderRuns": 0
+  },
+  "requiredReviewFields": [
+    "immutable task and original context reference",
+    "family identity before splitting",
+    "corpus version and authorized scope",
+    "mandatory clauses with complete conditions and exceptions",
+    "evidence roles and acceptable exact sections",
+    "irrelevant, stale and conflicting neighbors",
+    "artifact constraints and failure/abstention behavior",
+    "reviewer identity and exact label digest",
+    "prior tuning exposure and family-held-out assignment"
+  ],
+  "privacy": "No query, prior-turn, source-body or answer text is copied. Existing owner-readable suites keep their own retention and access boundary.",
+  "diagnosis": {
+    "observedAt": "2026-10-09T13:29:34.930Z",
+    "artifactBuildHash": "sha256:6a9d5daf36b14fb29ed84565eec7c68607b0a2b01ce688b9fab20b9e05fe7664",
+    "supplementalSourceCount": 4154,
+    "sourceObservation": "Fresh complete configured scan; existing file-only source-unit fallback retained. No corpus exclusion or source/result limit changed.",
+    "cases": [
+      {
+        "familyId": "actual_external_engine_extensibility",
+        "interpretation": "current_corpus_retrieval_diagnostic",
+        "acceptance": "unavailable",
+        "arms": [
+          {
+            "arm": "raw",
+            "queryHash": "sha256:5698045a7efcd2d5d12fe311e3b8aa03cd64bfff194d7f0f4af4048bba903ac1",
+            "sourceSnapshotId": "ksnap_34133b9ae1e273443cab997a",
+            "ranking": {
+              "engine": {
+                "id": "lexical",
+                "version": 2
+              },
+              "adapterBuildId": "sebuild_e9f2ac9398b0f58d03143e7a"
+            },
+            "returnedCandidateCount": 0,
+            "selectedCandidates": [],
+            "expected": [
+              {
+                "path": "docs/decisions/search/engines/0306-separate-search-engine-replacement-and-composition.md",
+                "currentContentHash": "sha256:e65d1ecaf37abc8eeeb965b198809c9cfb8f0b90b7bf6c05ae8c35e41663f9ce",
+                "rank": null,
+                "prepared": false
+              },
+              {
+                "path": "docs/research/extensible-search-engine-architecture.md",
+                "currentContentHash": "sha256:46d6b604ad3b1adf99d914161a91f4facd1ae9a62d5f5a47049d3ff17e034664",
+                "rank": null,
+                "prepared": false
+              }
+            ],
+            "allExpectedWithinReviewedRank": false,
+            "preparationStatus": "incomplete",
+            "reasons": [
+              "context_corpus_incomplete",
+              "context_required_section_missing",
+              "context_token_count_unavailable"
+            ],
+            "ownerInstructions": {
+              "schemaVersion": 1,
+              "scope": "applied_owner_rules",
+              "status": "complete",
+              "catalogDigest": "sha256:5642c3b10340f9210fd58e25580f87d878dd76e96966b00a92077cc7d6a2fb4d",
+              "targetDigest": "sha256:3dfbb8eb35d453cacd362550bb46cce5dc4a4b4aab883382e5901b0038194726",
+              "observedCount": 2,
+              "applicableCount": 2,
+              "excludedCount": 0,
+              "unresolvedCount": 0,
+              "preparedCount": 2,
+              "omittedCount": 0,
+              "preparedByteCount": 1208,
+              "reasonCodes": [],
+              "delivery": "unobserved"
+            },
+            "preparedEvidenceCount": 0,
+            "preparedBytes": 858,
+            "unlabelledContextBytes": 0,
+            "relevancePrecision": null,
+            "artifactCompliance": null
+          },
+          {
+            "arm": "task_projection",
+            "queryHash": "sha256:5698045a7efcd2d5d12fe311e3b8aa03cd64bfff194d7f0f4af4048bba903ac1",
+            "sourceSnapshotId": "ksnap_34133b9ae1e273443cab997a",
+            "ranking": {
+              "engine": {
+                "id": "lexical",
+                "version": 2
+              },
+              "adapterBuildId": "sebuild_e9f2ac9398b0f58d03143e7a"
+            },
+            "returnedCandidateCount": 0,
+            "selectedCandidates": [],
+            "expected": [
+              {
+                "path": "docs/decisions/search/engines/0306-separate-search-engine-replacement-and-composition.md",
+                "currentContentHash": "sha256:e65d1ecaf37abc8eeeb965b198809c9cfb8f0b90b7bf6c05ae8c35e41663f9ce",
+                "rank": null,
+                "prepared": false
+              },
+              {
+                "path": "docs/research/extensible-search-engine-architecture.md",
+                "currentContentHash": "sha256:46d6b604ad3b1adf99d914161a91f4facd1ae9a62d5f5a47049d3ff17e034664",
+                "rank": null,
+                "prepared": false
+              }
+            ],
+            "allExpectedWithinReviewedRank": false,
+            "preparationStatus": "incomplete",
+            "reasons": [
+              "context_corpus_incomplete",
+              "context_required_section_missing",
+              "context_token_count_unavailable"
+            ],
+            "ownerInstructions": {
+              "schemaVersion": 1,
+              "scope": "applied_owner_rules",
+              "status": "complete",
+              "catalogDigest": "sha256:5642c3b10340f9210fd58e25580f87d878dd76e96966b00a92077cc7d6a2fb4d",
+              "targetDigest": "sha256:3dfbb8eb35d453cacd362550bb46cce5dc4a4b4aab883382e5901b0038194726",
+              "observedCount": 2,
+              "applicableCount": 2,
+              "excludedCount": 0,
+              "unresolvedCount": 0,
+              "preparedCount": 2,
+              "omittedCount": 0,
+              "preparedByteCount": 1208,
+              "reasonCodes": [],
+              "delivery": "unobserved"
+            },
+            "preparedEvidenceCount": 0,
+            "preparedBytes": 858,
+            "unlabelledContextBytes": 0,
+            "relevancePrecision": null,
+            "artifactCompliance": null
+          }
+        ]
+      },
+      {
+        "familyId": "actual_cross_provider_quality",
+        "interpretation": "original_workstream_context_missing_raw_query_diagnostic_only",
+        "acceptance": "unavailable",
+        "arms": [
+          {
+            "arm": "raw",
+            "queryHash": "sha256:951b9178e86cb6f77770f3ebfca30fe32307f9c0abbd7cc46e697a9d17f28ff7",
+            "sourceSnapshotId": "ksnap_34133b9ae1e273443cab997a",
+            "ranking": {
+              "engine": {
+                "id": "lexical",
+                "version": 2
+              },
+              "adapterBuildId": "sebuild_e9f2ac9398b0f58d03143e7a"
+            },
+            "returnedCandidateCount": 0,
+            "selectedCandidates": [],
+            "expected": [
+              {
+                "path": "docs/evidence/search/lexical-v2/lexical-v2-activation-confirmation-v20.md",
+                "currentContentHash": "sha256:e9408bc445900f9cc09677d9684e610e31a1e987765eec2d58371fe41d1a0b30",
+                "rank": null,
+                "prepared": false
+              }
+            ],
+            "allExpectedWithinReviewedRank": false,
+            "preparationStatus": "incomplete",
+            "reasons": [
+              "context_corpus_incomplete",
+              "context_required_section_missing",
+              "context_token_count_unavailable"
+            ],
+            "ownerInstructions": {
+              "schemaVersion": 1,
+              "scope": "applied_owner_rules",
+              "status": "complete",
+              "catalogDigest": "sha256:5642c3b10340f9210fd58e25580f87d878dd76e96966b00a92077cc7d6a2fb4d",
+              "targetDigest": "sha256:0197acbebf01baf014a8a77f56d6596194198e955ac2fcd8bbcc33314734dc18",
+              "observedCount": 2,
+              "applicableCount": 2,
+              "excludedCount": 0,
+              "unresolvedCount": 0,
+              "preparedCount": 2,
+              "omittedCount": 0,
+              "preparedByteCount": 1208,
+              "reasonCodes": [],
+              "delivery": "unobserved"
+            },
+            "preparedEvidenceCount": 0,
+            "preparedBytes": 858,
+            "unlabelledContextBytes": 0,
+            "relevancePrecision": null,
+            "artifactCompliance": null
+          },
+          {
+            "arm": "task_projection",
+            "queryHash": "sha256:712c0b589e042bb1f097ef48eec6bd7eb9b0d33e3672e5a0764667559a646886",
+            "sourceSnapshotId": "ksnap_34133b9ae1e273443cab997a",
+            "ranking": {
+              "engine": {
+                "id": "lexical",
+                "version": 2
+              },
+              "adapterBuildId": "sebuild_e9f2ac9398b0f58d03143e7a"
+            },
+            "returnedCandidateCount": 20,
+            "selectedCandidates": [
+              {
+                "path": "docs/specifications/execution/stage-observation-and-performance.md",
+                "contentHash": "sha256:f80109bc7a6d2809693f139106bc6b819b65ccc23483248eb65ec229d7524b71"
+              },
+              {
+                "path": "docs/decisions/operations/trace/0357-fail-closed-on-unstable-performance-measurement-environments.md",
+                "contentHash": "sha256:ec983f494355639fdf5087e07fb1203deeb280bae6088a4e55d1084dcff3a947"
+              },
+              {
+                "path": "docs/specifications/execution/resource-and-performance-budgets.md",
+                "contentHash": "sha256:c2248e9501635534777bb1523d372e99ef40a7e036fd8cdb105443eb9ea95fef"
+              },
+              {
+                "path": "docs/decisions/operations/trace/0339-calibrate-short-profile-performance-measurement-floor.md",
+                "contentHash": "sha256:eded83620f8d11bdbf07a8fe0f6ed6c5f7eea519f05fdf294d17b8198d742391"
+              },
+              {
+                "path": "docs/evidence/foundation/terminal-hook-latency-requalification-v2.md",
+                "contentHash": "sha256:c72772549ead1a3beb97341c6fc09decc1a3fae6ed96d0bc37969992704a54db"
+              }
+            ],
+            "expected": [
+              {
+                "path": "docs/evidence/search/lexical-v2/lexical-v2-activation-confirmation-v20.md",
+                "currentContentHash": "sha256:e9408bc445900f9cc09677d9684e610e31a1e987765eec2d58371fe41d1a0b30",
+                "rank": null,
+                "prepared": false
+              }
+            ],
+            "allExpectedWithinReviewedRank": false,
+            "preparationStatus": "incomplete",
+            "reasons": [
+              "context_corpus_incomplete",
+              "context_required_section_missing",
+              "context_token_count_unavailable"
+            ],
+            "ownerInstructions": {
+              "schemaVersion": 1,
+              "scope": "applied_owner_rules",
+              "status": "complete",
+              "catalogDigest": "sha256:5642c3b10340f9210fd58e25580f87d878dd76e96966b00a92077cc7d6a2fb4d",
+              "targetDigest": "sha256:0197acbebf01baf014a8a77f56d6596194198e955ac2fcd8bbcc33314734dc18",
+              "observedCount": 2,
+              "applicableCount": 2,
+              "excludedCount": 0,
+              "unresolvedCount": 0,
+              "preparedCount": 2,
+              "omittedCount": 0,
+              "preparedByteCount": 1208,
+              "reasonCodes": [],
+              "delivery": "unobserved"
+            },
+            "preparedEvidenceCount": 5,
+            "preparedBytes": 12710,
+            "unlabelledContextBytes": 11856,
+            "relevancePrecision": null,
+            "artifactCompliance": null
+          }
+        ]
+      },
+      {
+        "familyId": "actual_raise_v2_to_pass",
+        "interpretation": "original_workstream_context_missing_raw_query_diagnostic_only",
+        "acceptance": "unavailable",
+        "arms": [
+          {
+            "arm": "raw",
+            "queryHash": "sha256:e42e7f0b29a88ca345b9dc425e7c945945a7317281562a0b0f398b40b0ca94f9",
+            "sourceSnapshotId": "ksnap_34133b9ae1e273443cab997a",
+            "ranking": {
+              "engine": {
+                "id": "lexical",
+                "version": 2
+              },
+              "adapterBuildId": "sebuild_e9f2ac9398b0f58d03143e7a"
+            },
+            "returnedCandidateCount": 0,
+            "selectedCandidates": [],
+            "expected": [
+              {
+                "path": "docs/decisions/search/engines/0308-pre-register-lexical-v2-pipeline-activation-gates.md",
+                "currentContentHash": "sha256:259de6dd014e418d33d3d9a3d4e76fd60e3c178596185e02474e1b7e8344ad1a",
+                "rank": null,
+                "prepared": false
+              },
+              {
+                "path": "docs/decisions/search/engines/0318-qualify-lexical-v2-after-v20-cross-provider-confirmation.md",
+                "currentContentHash": "sha256:7ac18d121e19567deaaef732c7a47a5201c9558840532cc584ae4ae8024bf275",
+                "rank": null,
+                "prepared": false
+              }
+            ],
+            "allExpectedWithinReviewedRank": false,
+            "preparationStatus": "incomplete",
+            "reasons": [
+              "context_corpus_incomplete",
+              "context_required_section_missing",
+              "context_token_count_unavailable"
+            ],
+            "ownerInstructions": {
+              "schemaVersion": 1,
+              "scope": "applied_owner_rules",
+              "status": "complete",
+              "catalogDigest": "sha256:5642c3b10340f9210fd58e25580f87d878dd76e96966b00a92077cc7d6a2fb4d",
+              "targetDigest": "sha256:81bd6cb474fcb08664105fb240e8fddc47a06fefea902720d11d08782b0c6321",
+              "observedCount": 2,
+              "applicableCount": 2,
+              "excludedCount": 0,
+              "unresolvedCount": 0,
+              "preparedCount": 2,
+              "omittedCount": 0,
+              "preparedByteCount": 1208,
+              "reasonCodes": [],
+              "delivery": "unobserved"
+            },
+            "preparedEvidenceCount": 0,
+            "preparedBytes": 858,
+            "unlabelledContextBytes": 0,
+            "relevancePrecision": null,
+            "artifactCompliance": null
+          },
+          {
+            "arm": "task_projection",
+            "queryHash": "sha256:e42e7f0b29a88ca345b9dc425e7c945945a7317281562a0b0f398b40b0ca94f9",
+            "sourceSnapshotId": "ksnap_34133b9ae1e273443cab997a",
+            "ranking": {
+              "engine": {
+                "id": "lexical",
+                "version": 2
+              },
+              "adapterBuildId": "sebuild_e9f2ac9398b0f58d03143e7a"
+            },
+            "returnedCandidateCount": 0,
+            "selectedCandidates": [],
+            "expected": [
+              {
+                "path": "docs/decisions/search/engines/0308-pre-register-lexical-v2-pipeline-activation-gates.md",
+                "currentContentHash": "sha256:259de6dd014e418d33d3d9a3d4e76fd60e3c178596185e02474e1b7e8344ad1a",
+                "rank": null,
+                "prepared": false
+              },
+              {
+                "path": "docs/decisions/search/engines/0318-qualify-lexical-v2-after-v20-cross-provider-confirmation.md",
+                "currentContentHash": "sha256:7ac18d121e19567deaaef732c7a47a5201c9558840532cc584ae4ae8024bf275",
+                "rank": null,
+                "prepared": false
+              }
+            ],
+            "allExpectedWithinReviewedRank": false,
+            "preparationStatus": "incomplete",
+            "reasons": [
+              "context_corpus_incomplete",
+              "context_required_section_missing",
+              "context_token_count_unavailable"
+            ],
+            "ownerInstructions": {
+              "schemaVersion": 1,
+              "scope": "applied_owner_rules",
+              "status": "complete",
+              "catalogDigest": "sha256:5642c3b10340f9210fd58e25580f87d878dd76e96966b00a92077cc7d6a2fb4d",
+              "targetDigest": "sha256:81bd6cb474fcb08664105fb240e8fddc47a06fefea902720d11d08782b0c6321",
+              "observedCount": 2,
+              "applicableCount": 2,
+              "excludedCount": 0,
+              "unresolvedCount": 0,
+              "preparedCount": 2,
+              "omittedCount": 0,
+              "preparedByteCount": 1208,
+              "reasonCodes": [],
+              "delivery": "unobserved"
+            },
+            "preparedEvidenceCount": 0,
+            "preparedBytes": 858,
+            "unlabelledContextBytes": 0,
+            "relevancePrecision": null,
+            "artifactCompliance": null
+          }
+        ]
+      },
+      {
+        "familyId": "actual_no_gate_weakening",
+        "interpretation": "original_workstream_context_missing_raw_query_diagnostic_only",
+        "acceptance": "unavailable",
+        "arms": [
+          {
+            "arm": "raw",
+            "queryHash": "sha256:95428d1342a5b1985284c4b9f97703664e84cbd4150e27c77be16395dc9cf38c",
+            "sourceSnapshotId": "ksnap_34133b9ae1e273443cab997a",
+            "ranking": {
+              "engine": {
+                "id": "lexical",
+                "version": 2
+              },
+              "adapterBuildId": "sebuild_e9f2ac9398b0f58d03143e7a"
+            },
+            "returnedCandidateCount": 0,
+            "selectedCandidates": [],
+            "expected": [
+              {
+                "path": "docs/decisions/search/engines/0308-pre-register-lexical-v2-pipeline-activation-gates.md",
+                "currentContentHash": "sha256:259de6dd014e418d33d3d9a3d4e76fd60e3c178596185e02474e1b7e8344ad1a",
+                "rank": null,
+                "prepared": false
+              }
+            ],
+            "allExpectedWithinReviewedRank": false,
+            "preparationStatus": "incomplete",
+            "reasons": [
+              "context_corpus_incomplete",
+              "context_required_section_missing",
+              "context_token_count_unavailable"
+            ],
+            "ownerInstructions": {
+              "schemaVersion": 1,
+              "scope": "applied_owner_rules",
+              "status": "complete",
+              "catalogDigest": "sha256:5642c3b10340f9210fd58e25580f87d878dd76e96966b00a92077cc7d6a2fb4d",
+              "targetDigest": "sha256:494f7cdefc58b904ecda51d879e95b7d987b8247747fdab2378157cc59c54db9",
+              "observedCount": 2,
+              "applicableCount": 2,
+              "excludedCount": 0,
+              "unresolvedCount": 0,
+              "preparedCount": 2,
+              "omittedCount": 0,
+              "preparedByteCount": 1208,
+              "reasonCodes": [],
+              "delivery": "unobserved"
+            },
+            "preparedEvidenceCount": 0,
+            "preparedBytes": 858,
+            "unlabelledContextBytes": 0,
+            "relevancePrecision": null,
+            "artifactCompliance": null
+          },
+          {
+            "arm": "task_projection",
+            "queryHash": "sha256:95428d1342a5b1985284c4b9f97703664e84cbd4150e27c77be16395dc9cf38c",
+            "sourceSnapshotId": "ksnap_34133b9ae1e273443cab997a",
+            "ranking": {
+              "engine": {
+                "id": "lexical",
+                "version": 2
+              },
+              "adapterBuildId": "sebuild_e9f2ac9398b0f58d03143e7a"
+            },
+            "returnedCandidateCount": 0,
+            "selectedCandidates": [],
+            "expected": [
+              {
+                "path": "docs/decisions/search/engines/0308-pre-register-lexical-v2-pipeline-activation-gates.md",
+                "currentContentHash": "sha256:259de6dd014e418d33d3d9a3d4e76fd60e3c178596185e02474e1b7e8344ad1a",
+                "rank": null,
+                "prepared": false
+              }
+            ],
+            "allExpectedWithinReviewedRank": false,
+            "preparationStatus": "incomplete",
+            "reasons": [
+              "context_corpus_incomplete",
+              "context_required_section_missing",
+              "context_token_count_unavailable"
+            ],
+            "ownerInstructions": {
+              "schemaVersion": 1,
+              "scope": "applied_owner_rules",
+              "status": "complete",
+              "catalogDigest": "sha256:5642c3b10340f9210fd58e25580f87d878dd76e96966b00a92077cc7d6a2fb4d",
+              "targetDigest": "sha256:494f7cdefc58b904ecda51d879e95b7d987b8247747fdab2378157cc59c54db9",
+              "observedCount": 2,
+              "applicableCount": 2,
+              "excludedCount": 0,
+              "unresolvedCount": 0,
+              "preparedCount": 2,
+              "omittedCount": 0,
+              "preparedByteCount": 1208,
+              "reasonCodes": [],
+              "delivery": "unobserved"
+            },
+            "preparedEvidenceCount": 0,
+            "preparedBytes": 858,
+            "unlabelledContextBytes": 0,
+            "relevancePrecision": null,
+            "artifactCompliance": null
+          }
+        ]
+      }
+    ],
+    "providerCalls": 0,
+    "limitations": [
+      "Historical reviewed context is not replaced with the current workstream.",
+      "Known paths do not label every delivered byte; precision remains unavailable.",
+      "No task artifacts or human-reviewed ADR0501 labels exist for this replay.",
+      "Current corpus includes historical evidence documents; this is not a contamination-free held-out experiment."
+    ]
+  }
+}

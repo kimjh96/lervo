@@ -4,6 +4,7 @@ import type { WorkstreamSnapshot } from "@lervo/schemas";
 
 import { isStaleWorkstreamItem, staleWorkstreamCountLine } from "./operating-attention-format.js";
 import { capContextBytes, MAXIMUM_COMPACT_CONTEXT_BYTES } from "./terminal-context-budget.js";
+import { terminalPublicationInstruction } from "./terminal-publication-instruction.js";
 
 const MAXIMUM_ITEM_BYTES = 360;
 const MAXIMUM_DECISIONS = 3;
@@ -68,6 +69,7 @@ export function staleWorkstreamEntryCount(
 }
 
 export function formatCompactTerminalPreamble(input: {
+  publicationLanguage: string;
   attention: OperatingAttentionReportV1;
   /** Synchronous declaration contract, used only while no background owner is running. */
   declarationInstruction: string;
@@ -84,6 +86,7 @@ export function formatCompactTerminalPreamble(input: {
     .slice(0, 5);
   return [
     'Lervo compact terminal context. Before changing repository bytes, run `lervo knowledge query "<purpose and paths>"` for applicable rules, as AGENTS.md requires.',
+    terminalPublicationInstruction(input.publicationLanguage),
     ...(blocking.length === 0
       ? []
       : [

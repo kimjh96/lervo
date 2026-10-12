@@ -1,4 +1,6 @@
 import { rename, rm, writeFile } from "node:fs/promises";
+import { DatabaseSync } from "node:sqlite";
+import { sqliteRow } from "../src/sqlite-row.js";
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SupervisionAuthorityHistory } from "../src/supervision-authority-history.js";
@@ -200,15 +202,22 @@ describe("incremental supervision authority history", () => {
       const f = await fixture();
       try {
         await f.reader.read();
-        const list = f.storage.events.list.bind(f.storage.events);
-        const spy = vi.spyOn(f.storage.events, "list").mockImplementation((options) => {
-          const rows = list(options);
-          if (options?.afterSeq === 0) rows[0]!.payload.changedHistory = true;
-          return rows;
-        });
-        f.advance(advance);
-        await expect(f.reader.read()).rejects.toThrow("chain is invalid");
-        spy.mockRestore();
+        const raw = new DatabaseSync(f.storage.paths.eventDatabase);
+        const original = sqliteRow(
+          raw.prepare("SELECT payload_json FROM events WHERE seq = 1").get(),
+        )!.payload_json;
+        const setPayload = (payload: unknown) =>
+          raw.prepare("UPDATE events SET payload_json = ? WHERE seq = 1").run(payload as string);
+        try {
+          raw.exec("DROP TRIGGER events_no_update");
+          setPayload(JSON.stringify({ ...JSON.parse(String(original)), changedHistory: true }));
+          f.advance(advance);
+          // The audit rereads history from the first event, where the store rejects the change.
+          await expect(f.reader.read()).rejects.toMatchObject({ code: "integrity_failed" });
+          setPayload(original);
+        } finally {
+          raw.close();
+        }
         expect((await f.reader.read()).length).toBeGreaterThan(0);
       } finally {
         await f.storage.close();

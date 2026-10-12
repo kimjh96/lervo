@@ -250,7 +250,9 @@ it(
         !interrupted &&
         input.operations.some(
           (item) =>
-            "content" in item && item.content?.includes("Background model calls are limited"),
+            "content" in item &&
+            typeof item.content === "string" &&
+            item.content.includes("Background model calls are limited"),
         )
       ) {
         interrupted = true;

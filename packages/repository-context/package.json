@@ -16,14 +16,16 @@
   },
   "dependencies": {
     "@lervo/context": "workspace:*",
+    "@lervo/core": "workspace:*",
+    "@lervo/project": "workspace:*",
     "@lervo/project-storage": "workspace:*",
     "@lervo/repository-knowledge": "workspace:*",
+    "@lervo/schemas": "workspace:*",
     "@lervo/search": "workspace:*",
     "@lervo/search-adapter-bm25f": "workspace:*",
     "@lervo/search-adapter-lexical-v2": "workspace:*",
     "@lervo/search-local": "workspace:*",
-    "@lervo/schemas": "workspace:*",
     "@lervo/verification": "workspace:*",
-    "@lervo/project": "workspace:*"
+    "@lervo/writing": "workspace:*"
   }
 }

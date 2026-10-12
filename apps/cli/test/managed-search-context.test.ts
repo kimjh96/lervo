@@ -11,7 +11,7 @@ describe("managed search query projection", () => {
   });
 
   it("uses the expected path only when the task has no searchable term", () => {
-    expect(managedSearchQuery("✨ ---", "src/result.ts")).toBe("src result ts");
+    expect(managedSearchQuery("✨ ---", "src/result.ts")).toBe("src/result.ts");
   });
 
   it("projects bounded referenced document IDs from canonical E4 evidence", () => {

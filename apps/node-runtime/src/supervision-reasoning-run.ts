@@ -1,3 +1,4 @@
+import { hostOutcomeTask, observeHostContextOutcomes } from "@lervo/repository-context";
 import { supervisionReasoningDecisionSchema } from "./supervision-reasoning-operations.js";
 import { ownerReasoningPromptContext } from "./supervision-reasoning-prompt.js";
 import { discoverInstructionDocuments } from "@lervo/context";
@@ -72,7 +73,7 @@ export async function runManagedOwnerReasoning(input: {
     registry,
     expectedPaths: [],
   });
-  return coordinator.run({
+  const run = await coordinator.run({
     executionMode: "read_only",
     repositoryRoot: storage.paths.repositoryRoot,
     requestDigest: plan.effectHash,
@@ -128,4 +129,19 @@ export async function runManagedOwnerReasoning(input: {
     signal: input.signal,
     workCausality: input.workCausality,
   });
+  await observeHostContextOutcomes({
+    repositoryRoot: storage.paths.repositoryRoot,
+    origin: "managed_run",
+    effects: "read_only",
+    coordinates: identity,
+    task: hostOutcomeTask("Review current owner reasoning decision against the admitted plan.", []),
+    artifacts: [
+      {
+        kind: "immutable",
+        ...run.resultArtifact,
+        readBytes: () => storage.artifacts.get(run.resultArtifact.uri),
+      },
+    ],
+  });
+  return run;
 }

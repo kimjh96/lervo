@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_79011b7935601697b1a3bb03"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reduce knowledge preparation memory by avoiding whole-cache JSON strings and sharing immutable lexical frequency maps."

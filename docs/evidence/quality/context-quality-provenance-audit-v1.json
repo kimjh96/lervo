@@ -1,0 +1,170 @@
+{
+  "protocolHash": "sha256:80a31a8abb066ed17c3a9f99b7b9fde42144c60ab94d9012ecdd6f01ff313300",
+  "artifactBuildHash": "sha256:07210188d8552c335fa0c1e72a1299372608e47bc5252e5e0ce7f09a3c03f652",
+  "harnessHashes": [
+    [
+      "scripts/evaluation/run-context-quality-provenance-audit.mjs",
+      "sha256:e37ca9a71aaebe51e79020bd3165102b5d18f1659214488a543b89ef4ebd4670"
+    ],
+    [
+      "scripts/evaluation/lib/context-quality-provenance.mjs",
+      "sha256:1f31fdf420520d54ff9017c848dc3432f97d8acb31df3c68bfd8ff253db1fb99"
+    ],
+    [
+      "scripts/evaluation/lib/context-quality-case-audit.mjs",
+      "sha256:30c48822b795be431ea5ef50ce77f49141824bbd7646fc34eeb4f595dfcab5f8"
+    ],
+    [
+      "scripts/natural-language-evaluation/lexical-v2-real-use-review-contract.mjs",
+      "sha256:8fce1b81936d3ca4ebcbb73f8dcf6576a84d9c93bca2a8a5b013ffa2ccc217bf"
+    ]
+  ],
+  "declaredHistoricalCorpus": {
+    "sourceSnapshotId": "ksnap_471a56e5f34e7c088ea3b75b",
+    "digest": "sha256:c82f1ed06fe5af9fc06e7dfe3f415baa032bff1b0bb87ffb9919308531f17bb5",
+    "documentCount": 455,
+    "byteCount": 1851497
+  },
+  "exactHistoricalCorpusRestored": false,
+  "reviewedSuite": {
+    "path": "benchmarks/search/lexical-v2-real-use-reviewed-v1.json",
+    "sourceHash": "sha256:707f7f9cb42402f25419a0f7b98d8a417d455c72aa5a566eed28f0d913ed48e9",
+    "review": {
+      "approvalId": "wapr_ab432bcd3e9591b7",
+      "bindingHash": "sha256:ab432bcd3e9591b7dd94879ca6e8e7a314b4d6c7ae2cead153bf61512667be1d",
+      "status": "accepted_by_user_reply",
+      "caseRetention": "retain_all_without_replacement"
+    }
+  },
+  "schemaVersion": 1,
+  "auditId": "context-quality-historical-provenance-v1",
+  "observedAt": "2026-10-09T15:39:20.264Z",
+  "complete": true,
+  "observedHead": {
+    "eventId": "evt_6d27f56a1a1f4feabae275b08df08fee",
+    "seq": 20205,
+    "eventHash": "sha256:e4a8738ee1979997f9a5ea88d4e40ecf5d90367fc29ec893e067c9fd01045cba"
+  },
+  "integrityValid": true,
+  "scan": {
+    "selectedEventTypes": [
+      "run.requested",
+      "terminal.context.prepared",
+      "workstream.snapshot.recorded"
+    ],
+    "scannedEvents": 2853,
+    "maximumEvents": 100000,
+    "managedRequestEvents": 129,
+    "terminalRequestEvents": 1490,
+    "uniqueRequestDigests": 1224,
+    "bodiesAtRequestHash": 0,
+    "interpretation": "Artifact presence alone does not establish a real-task family, human labels or held-out eligibility."
+  },
+  "candidates": [
+    {
+      "eventId": "evt_05ab052ece4143889a564247d6396388",
+      "revision": 282,
+      "snapshotHash": "sha256:db873bda3081d455d3f06e518e468cc0fa9831f926a1b2a32b8d3d465925d3ce",
+      "role": "approval_packet",
+      "presentAndBound": true,
+      "eventHash": "sha256:c344032e6954f304524fefe0ad91c06337a4b7d18be2bee85b9e12a1f3cc1ace",
+      "pendingReviewBinding": true,
+      "exactMeasurementContext": false
+    },
+    {
+      "eventId": "evt_aec321d2117d4d978d332807a6210105",
+      "revision": 283,
+      "snapshotHash": "sha256:4aa9aca207e1cc8c2868c914756337718f75e39f2883d4ac6c4b996230f93efb",
+      "role": "post_approval_checkpoint",
+      "presentAndBound": true,
+      "eventHash": "sha256:03ae0e5a80c7d56142ebd6071dbf0f9eea1cf64d3aea27fa489dc81d940d3a02",
+      "pendingReviewBinding": false,
+      "exactMeasurementContext": false
+    },
+    {
+      "eventId": "evt_eaa6e9024498486eb954b14285571c37",
+      "revision": 285,
+      "snapshotHash": "sha256:8e771874ba242d01b75c28a554e0567c71f72d28aceeb17baeb4df6324b736f7",
+      "role": "pre_measurement_context_candidate",
+      "presentAndBound": true,
+      "eventHash": "sha256:f71840ebeb26fd26d3820ef707fc2043222115faa5693840c4fb2f6ddb5d5c45",
+      "pendingReviewBinding": false,
+      "exactMeasurementContext": false
+    },
+    {
+      "eventId": "evt_8a802b1a39034c07825c2bcb5c86dfb1",
+      "revision": 286,
+      "snapshotHash": "sha256:230abb2b386aba95326d4948f7e3921ad266cab75ffd2e8729e3b3e96c1a0196",
+      "role": "post_measurement_checkpoint",
+      "presentAndBound": true,
+      "eventHash": "sha256:b4dc9cebe70084c04045ff783548c8501dd68471698ffeee9762d23a50e17c07",
+      "pendingReviewBinding": false,
+      "exactMeasurementContext": false
+    }
+  ],
+  "historicalReports": [
+    {
+      "provider": "codex",
+      "reportId": "lv2real_c6b0589ba60941018882cc44",
+      "contentHash": "sha256:786fcd7dccd4cf32da0366e09cf2eb068c1ebf628e58b558a5fa45df8940dec5",
+      "presentAtDeclaredCasHash": false,
+      "exactContextCoordinate": null
+    },
+    {
+      "provider": "claude",
+      "reportId": "lv2real_b7b50e5c8b1af1b4289e6bdf",
+      "contentHash": "sha256:2ec33c4c0485b2df3dcfa483a2c2c71c8016bbbd36785f96e161fee9dec9b579",
+      "presentAtDeclaredCasHash": false,
+      "exactContextCoordinate": null
+    }
+  ],
+  "cases": [
+    {
+      "familyId": "actual_external_engine_extensibility",
+      "queryHash": "sha256:5698045a7efcd2d5d12fe311e3b8aa03cd64bfff194d7f0f4af4048bba903ac1",
+      "contextRequirement": "none",
+      "matchingTerminalEventCount": 0,
+      "maximumDetailedMatches": 32,
+      "matchingTerminalEvents": [],
+      "originalContext": "not_required",
+      "newHeldOutEligible": false,
+      "fullAdr0501HumanLabels": false
+    },
+    {
+      "familyId": "actual_cross_provider_quality",
+      "queryHash": "sha256:951b9178e86cb6f77770f3ebfca30fe32307f9c0abbd7cc46e697a9d17f28ff7",
+      "contextRequirement": "current_workstream",
+      "matchingTerminalEventCount": 0,
+      "maximumDetailedMatches": 32,
+      "matchingTerminalEvents": [],
+      "originalContext": "exact_binding_unavailable",
+      "newHeldOutEligible": false,
+      "fullAdr0501HumanLabels": false
+    },
+    {
+      "familyId": "actual_raise_v2_to_pass",
+      "queryHash": "sha256:e42e7f0b29a88ca345b9dc425e7c945945a7317281562a0b0f398b40b0ca94f9",
+      "contextRequirement": "current_workstream",
+      "matchingTerminalEventCount": 0,
+      "maximumDetailedMatches": 32,
+      "matchingTerminalEvents": [],
+      "originalContext": "exact_binding_unavailable",
+      "newHeldOutEligible": false,
+      "fullAdr0501HumanLabels": false
+    },
+    {
+      "familyId": "actual_no_gate_weakening",
+      "queryHash": "sha256:95428d1342a5b1985284c4b9f97703664e84cbd4150e27c77be16395dc9cf38c",
+      "contextRequirement": "current_workstream",
+      "matchingTerminalEventCount": 0,
+      "maximumDetailedMatches": 32,
+      "matchingTerminalEvents": [],
+      "originalContext": "exact_binding_unavailable",
+      "newHeldOutEligible": false,
+      "fullAdr0501HumanLabels": false
+    }
+  ],
+  "qualityQualified": false,
+  "providerCalls": 0,
+  "privacy": "No task, conversation, workstream body, provider output or derived private query text is emitted."
+}

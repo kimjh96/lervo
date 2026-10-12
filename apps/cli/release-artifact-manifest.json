@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 9,
   "artifact": {
     "name": "@lervo/cli",
     "version": "0.21.0",
@@ -21,7 +21,15 @@
     "files": [
       "README.md",
       "dist/bin.js",
+      "dist/native/cas-io-darwin.node",
+      "dist/native/cas-io.json",
+      "dist/native/file-sync-darwin.node",
+      "dist/native/file-sync.json",
       "dist/node-runtime.js",
+      "dist/repository-runtime-*.cjs",
+      "dist/repository-runtime-*.js",
+      "dist/repository-runtime.js",
+      "dist/repository-runtime.json",
       "dist/terminal-hook.js"
     ]
   },
@@ -127,8 +135,6 @@
       "character-entities@2.0.2",
       "decode-named-character-reference@1.3.0",
       "fast-deep-equal@3.1.3",
-      "fast-uri@3.1.5",
-      "json-schema-traverse@1.0.0",
       "jsonc-parser@3.3.1",
       "mdast-util-from-markdown@2.0.3",
       "mdast-util-to-string@4.0.0",
@@ -161,7 +167,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:917ff6459ab28480d42f77dec915457440771908f26535a11411e4a187426cbf"
+    "bundleDigest": "sha256:1ef4603371fcd8feeaeabe1f95fe46d643171ab8591d72b1b93d261ab966a656"
   },
   "archive": {
     "rootFiles": [
@@ -175,22 +181,57 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 10478319,
-        "sha256": "sha256:ba021e2b59f9c0d04a6e22726e2d676bd1d0eeb6ada3f25022abb83a990db077"
+        "size": 967,
+        "sha256": "sha256:38a3547b685482a0c7a0f8b29e100201e4262d7ea9ae100b147822faaf3a47e4"
+      },
+      {
+        "path": "dist/native/cas-io-darwin.node",
+        "size": 86256,
+        "sha256": "sha256:9a06065acd41df50b9e7f3a5eab421b91ab97d0d19d8f2af8d1e755902f525b9"
+      },
+      {
+        "path": "dist/native/cas-io.json",
+        "size": 320,
+        "sha256": "sha256:11eef65c82348b667ae4885c925ea1c3c34b826fd3db89e0e1b4b21ae2a7a382"
+      },
+      {
+        "path": "dist/native/file-sync-darwin.node",
+        "size": 85192,
+        "sha256": "sha256:72f477a8f4c4f88c859519e78a8a75b6a409d35a52ef7667cd18a0abeb810f75"
+      },
+      {
+        "path": "dist/native/file-sync.json",
+        "size": 320,
+        "sha256": "sha256:523d37d413403b0262e3a3fe1f4a400f3b8e9ffafc49f2e73298334e70e8aa74"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 7165090,
-        "sha256": "sha256:3d5faf231905fefd86e8c53dfd7c580530d68b144d75aa8bc6d7513dae54ce06"
+        "size": 381,
+        "sha256": "sha256:b0f54b86c7a00bec875adc78b6036c3d5a9d435d27621380e1353b6a038fd9b6"
+      },
+      {
+        "path": "dist/repository-runtime-validators.cjs",
+        "size": 8552587,
+        "sha256": "sha256:2e8ff9e4956cbdd3142c90759c132e6fcb52b43eb39ed52a607061716c100979"
+      },
+      {
+        "path": "dist/repository-runtime.js",
+        "size": 12314736,
+        "sha256": "sha256:55b9e5795ac48b4e21ff22c0c26dd6864eec5a1b64b9908ba9bf63f4d830da91"
+      },
+      {
+        "path": "dist/repository-runtime.json",
+        "size": 421,
+        "sha256": "sha256:e8ad3b1c8a33b47f62a3117c029d1908c315c60e99817d2341689b95832183af"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 4478468,
-        "sha256": "sha256:68d7013e32e966e0f648f3826712bf7dc96f9a933f368fa3dc105cab8691343d"
+        "size": 8360789,
+        "sha256": "sha256:6e6ec88a843d85427b7e44c396127c76fbf180727ee4ffac4e23c00e9fb4da88"
       }
     ],
-    "fileCount": 5,
-    "contentDigest": "sha256:f577cb11b0c24df339a24e946536eb663df44a7174e7d88ce7255c83e40e1bd1"
+    "fileCount": 12,
+    "contentDigest": "sha256:a05fda8637e6eafb0d1579065e2e105a7e2b556da6b3c4d4f32c2d197fa3e87e"
   },
   "dependencies": {
     "portable": [
@@ -303,5 +344,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:8211fa3ca22bb8450162d415ae9ef024033a15c815c8083af45d43e574f3a33f"
+  "artifactDigest": "sha256:c5ef40bc84196910d61f0b1106d67cb5ee27687ccef98bada25478acca0a10b9"
 }

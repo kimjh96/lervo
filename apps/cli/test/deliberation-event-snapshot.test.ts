@@ -25,6 +25,8 @@ function event(input: {
     runId: input.runId,
     type,
     payload,
+    previousHash: input.seq === 1 ? null : `hash_${input.seq - 1}`,
+    eventHash: `hash_${input.seq}`,
   } as EventEnvelope;
 }
 

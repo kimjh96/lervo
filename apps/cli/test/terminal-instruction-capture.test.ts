@@ -282,9 +282,8 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
       ),
       errors.join(""),
     ).toBe(0);
-    expect(await readFile(resolve(root, candidate.targetPath), "utf8")).toContain(
-      instruction.statement!,
-    );
+    const appliedRule = await readFile(resolve(root, candidate.targetPath), "utf8");
+    expect(appliedRule).toContain(instruction.statement!);
     for (const provider of ["claude", "codex"] as const) {
       const context = promptContext(
         await hook(root, provider, {
@@ -293,9 +292,8 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
           prompt: "Continue.",
         }),
       );
-      expect(context).toContain(
-        "Applied owner rules (follow them; full text in docs/instructions/generated/): Resolve host conflicts at the mechanism.",
-      );
+      expect(context).toContain(appliedRule.trim());
+      expect(context).toContain("complete clauses prepared; provider delivery unobserved.");
       expect(context).not.toContain("Instruction capture:");
     }
   });

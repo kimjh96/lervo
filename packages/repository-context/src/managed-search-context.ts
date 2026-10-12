@@ -1,6 +1,10 @@
+import { withRetrievalPreparationBudget } from "./retrieval-preparation-budget.js";
+import { prepareRepositoryQualityContext } from "./repository-quality-context.js";
+import type { ContextQualityPreparationResult } from "./context-quality-preparation.js";
 import { createHash, randomBytes } from "node:crypto";
 
 import {
+  projectTaskQuery,
   documentIdForPath,
   instructionPathsFor,
   readRepositoryFile,
@@ -13,14 +17,15 @@ import {
   createSearchAttempt,
   createSearchRecommendationBatch,
   LexicalSearchIndex,
-  normalizeSearchText,
   type SearchAttempt,
   type SearchCandidateEngineResolver,
   type ProductDefaultSearchEngine,
   type SearchRecommendationBatch,
 } from "@lervo/search";
 import { LocalSearchObservationStore, runLocalOperationalSearch } from "@lervo/search-local";
-import type { DocumentRegistry } from "@lervo/schemas";
+import type { ContextPreparationReport, DocumentRegistry } from "@lervo/schemas";
+
+import { observeSearchPreparation } from "./search-preparation-observation.js";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { observeManagedLinkedEvidenceShadow } from "./managed-linked-evidence-shadow.js";
@@ -28,6 +33,8 @@ import { searchCandidateRegistry } from "./search-candidate-registry.js";
 import { productDefaultRepositoryKnowledgeRanker } from "./repository-knowledge-ranker.js";
 
 export interface PreparedManagedSearchContext {
+  preparationQuality: ContextPreparationReport;
+  quality: ContextQualityPreparationResult;
   attempt: SearchAttempt;
   recommendationBatch: SearchRecommendationBatch;
   attempts: readonly SearchAttempt[];
@@ -57,26 +64,7 @@ function derivedNonce(nonce: string): string {
 }
 
 export function managedSearchQuery(query: string, fallbackQuery: string): string {
-  const terms =
-    normalizeSearchText(query).match(/[\p{L}\p{N}]+/gu) ??
-    normalizeSearchText(fallbackQuery).match(/[\p{L}\p{N}]+/gu) ??
-    [];
-  const selected: string[] = [];
-  for (const term of terms.slice(0, 32)) {
-    const candidate = [...selected, term].join(" ");
-    if (candidate.length <= 500) {
-      selected.push(term);
-      continue;
-    }
-    if (selected.length === 0) selected.push(term.slice(0, 500).replace(/[\uD800-\uDBFF]$/u, ""));
-    break;
-  }
-  if (selected.length === 0 || selected[0]!.length === 0) {
-    throw new TypeError(
-      "No searchable alphanumeric terms were found in the task request and expected path.",
-    );
-  }
-  return selected.join(" ");
+  return projectTaskQuery({ intent: /[\p{L}\p{N}]/u.test(query) ? query : fallbackQuery }).query;
 }
 
 export async function prepareManagedSearchContext(input: {
@@ -91,18 +79,29 @@ export async function prepareManagedSearchContext(input: {
   documentRegistry?: DocumentRegistry;
   expectedPaths?: readonly string[];
   runId?: string;
+  recordingCoordinates?: { runId: string; sessionId: string };
   knowledgeQuery?: ManagedRepositoryKnowledgeQuery;
+  continuation?: string;
+  origin?: "managed_run" | "conversation" | "native_chat";
+  artifactKinds?: readonly string[];
+  requestedActions?: readonly string[];
 }): Promise<PreparedManagedSearchContext> {
-  const query = managedSearchQuery(input.query, input.fallbackQuery);
+  const query = projectTaskQuery({
+    intent: /[\p{L}\p{N}]/u.test(input.query) ? input.query : input.fallbackQuery,
+    continuation: input.continuation ?? "",
+    targetPaths: input.expectedPaths ?? [],
+  }).query;
   const nonce = input.nonce ?? randomBytes(16).toString("hex");
-  const operational = await runLocalOperationalSearch({
-    repositoryRoot: input.repositoryRoot,
-    projectId: input.projectId,
-    registry: input.registry ?? searchCandidateRegistry,
-    ...(input.productDefault === undefined ? {} : { productDefault: input.productDefault }),
-    query,
-    limit: 5,
-  });
+  const operational = await withRetrievalPreparationBudget(() =>
+    runLocalOperationalSearch({
+      repositoryRoot: input.repositoryRoot,
+      projectId: input.projectId,
+      registry: input.registry ?? searchCandidateRegistry,
+      ...(input.productDefault === undefined ? {} : { productDefault: input.productDefault }),
+      query,
+      limit: 5,
+    }),
+  );
   const attempt = createSearchAttempt({
     projectId: input.projectId,
     observedAt: input.observedAt,
@@ -123,12 +122,14 @@ export async function prepareManagedSearchContext(input: {
         ranker: productDefaultRepositoryKnowledgeRanker,
       });
     });
-  const knowledge = await knowledgeQuery({
-    repositoryRoot: input.repositoryRoot,
-    query,
-    limit: 20,
-    ...(input.documentRegistry === undefined ? {} : { documentRegistry: input.documentRegistry }),
-  });
+  const knowledge = await withRetrievalPreparationBudget(() =>
+    knowledgeQuery({
+      repositoryRoot: input.repositoryRoot,
+      query,
+      limit: 20,
+      ...(input.documentRegistry === undefined ? {} : { documentRegistry: input.documentRegistry }),
+    }),
+  );
   const documentIdByPath = new Map(
     Object.entries(input.documentRegistry?.documents ?? {}).map(([documentId, document]) => [
       document.path,
@@ -261,7 +262,37 @@ export async function prepareManagedSearchContext(input: {
       graphRecommendations,
     });
   }
+  const quality = await prepareRepositoryQualityContext({
+    recordObservation: true,
+    ...(input.recordingCoordinates ? { recordingCoordinates: input.recordingCoordinates } : {}),
+    repositoryRoot: input.repositoryRoot,
+    origin: input.origin ?? "managed_run",
+    task: {
+      intent: input.query || input.fallbackQuery,
+      continuation: input.continuation ?? "",
+      targetPaths: [...(input.expectedPaths ?? [])],
+      artifactKinds: [...(input.artifactKinds ?? [])],
+      requestedActions: [...(input.requestedActions ?? [])],
+      conversationLocale: null,
+      publicationLocale: null,
+      retrievalLanguages: ["en"],
+    },
+    instructionMaximumBytes: 12 * 1024,
+    evidenceMaximumBytes: 12 * 1024,
+    retrieval: "completed",
+    candidates: knowledge.hits.slice(0, 5),
+    sourceSnapshotId: knowledge.sourceSnapshotId,
+    retrievalBuildId: knowledge.ranking?.adapterBuildId ?? "",
+    projectedQueries: [query],
+  });
   return {
+    quality: quality.result,
+    preparationQuality: observeSearchPreparation({
+      query,
+      sourceSnapshotId: knowledge.sourceSnapshotId,
+      recommendationBatches: [recommendationBatch, knowledgeRecommendationBatch],
+      graphRecommendations,
+    }),
     attempt,
     recommendationBatch,
     attempts: [attempt, knowledgeAttempt],

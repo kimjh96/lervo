@@ -1,3 +1,4 @@
+import { materializationEventRecorded } from "./knowledge-materialization-history.js";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { randomUUID } from "node:crypto";
@@ -36,14 +37,7 @@ export async function runKnowledgeSemanticMaterialize(args: string[], io: CliIo)
       try {
         const recovered = await recoverKnowledgeMaterialization({
           repositoryRoot: root,
-          eventRecorded: (planId) =>
-            storage.events
-              .list()
-              .some(
-                (event) =>
-                  event.type === "knowledge.materialization.applied" &&
-                  event.payload.planId === planId,
-              ),
+          eventRecorded: (planId) => materializationEventRecorded(storage.events, planId),
         });
         io.stdout(
           parsed.values.json

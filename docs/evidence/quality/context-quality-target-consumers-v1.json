@@ -1,0 +1,656 @@
+{
+  "schemaVersion": 1,
+  "status": "isolated_target_consumers_passed_production_acceptance_pending",
+  "observedAt": "2026-10-10T14:43:26.088362+00:00",
+  "runtimeBuildHash": "sha256:4a91efb4fb1470ecdfa0102cc70031eedb6de74bc7dd9ad5f72baa21076df889",
+  "sourceTransportSha256": "sha256:88cf5aff6e7d65009346322c9285d8e06736818aec481c16402593eea3b54a77",
+  "cliArchiveSha256": "sha256:b9e3a9ba682bedbed9470dcf93f7ff1eb6ea8a9d87ba622e240caf68eec78c74",
+  "dependencyPreparation": "Exact pnpm11.18.0, selected production closure with frozen original lockfile and disabled install scripts; target-specific registry material fetched into isolated stores before archive assembly. Linux builder deploys offline; Windows retains its existing prefer-offline policy. Original lockfile bytes remain unchanged.",
+  "targets": [
+    {
+      "platform": "linux",
+      "arch": "x64",
+      "node": "v26.5.1",
+      "artifact": {
+        "schemaVersion": 1,
+        "kind": "lervo_node_distribution_artifact",
+        "runtimeVersion": "0.21.0",
+        "platform": {
+          "os": "linux",
+          "arch": "x64",
+          "libc": "glibc"
+        },
+        "archiveFileName": "node-linux.tar.gz",
+        "byteCount": 99105379,
+        "sha256": "sha256:47723c32dc378ba0108eb78cd1be36526ca383a60db1b1cfa4413019d1fcda10",
+        "manifestSha256": "sha256:c11301c8d42c53ba49421b6a6590158a554a57a8752f4ac5a1e4918e64f8eb01"
+      },
+      "manifestSchemaVersion": 2,
+      "manifestEntries": 5826,
+      "dependencies": [
+        "@anthropic-ai/claude-agent-sdk-linux-x64@0.3.226",
+        "@anthropic-ai/claude-agent-sdk@0.3.226",
+        "@anthropic-ai/sdk@0.117.1",
+        "@babel/runtime@7.29.7",
+        "@hono/node-server@2.1.1",
+        "@modelcontextprotocol/sdk@1.30.0",
+        "@stablelib/base64@1.0.1",
+        "accepts@2.0.0",
+        "ajv-formats@3.0.1",
+        "ajv@8.20.0",
+        "body-parser@2.3.0",
+        "bytes@3.1.2",
+        "call-bind-apply-helpers@1.0.2",
+        "call-bound@1.0.4",
+        "content-disposition@1.1.0",
+        "content-type@1.0.5",
+        "content-type@2.1.0",
+        "cookie-signature@1.2.2",
+        "cookie@0.7.2",
+        "cors@2.8.6",
+        "cross-spawn@7.0.6",
+        "debug@4.4.3",
+        "depd@2.0.0",
+        "dunder-proto@1.0.1",
+        "ee-first@1.1.1",
+        "encodeurl@2.0.0",
+        "es-define-property@1.0.1",
+        "es-errors@1.3.0",
+        "es-object-atoms@1.1.2",
+        "escape-html@1.0.3",
+        "etag@1.8.1",
+        "eventsource-parser@3.1.1",
+        "eventsource@3.0.7",
+        "express-rate-limit@8.6.2",
+        "express@5.2.1",
+        "fast-deep-equal@3.1.3",
+        "fast-sha256@1.3.0",
+        "fast-uri@3.1.5",
+        "finalhandler@2.1.1",
+        "forwarded@0.2.0",
+        "fresh@2.0.0",
+        "function-bind@1.1.2",
+        "get-intrinsic@1.3.0",
+        "get-proto@1.0.1",
+        "gopd@1.2.0",
+        "has-symbols@1.1.0",
+        "hasown@2.0.4",
+        "hono@4.13.3",
+        "http-errors@2.0.1",
+        "iconv-lite@0.7.3",
+        "inherits@2.0.4",
+        "ip-address@10.5.0",
+        "ipaddr.js@1.9.1",
+        "is-promise@4.0.0",
+        "isexe@2.0.0",
+        "jose@6.2.10",
+        "json-schema-to-ts@3.1.1",
+        "json-schema-traverse@1.0.0",
+        "json-schema-typed@8.0.2",
+        "math-intrinsics@1.1.0",
+        "media-typer@1.1.1",
+        "merge-descriptors@2.0.0",
+        "mime-db@1.54.0",
+        "mime-types@3.0.2",
+        "ms@2.1.3",
+        "negotiator@1.1.0",
+        "object-assign@4.1.1",
+        "object-inspect@1.13.4",
+        "on-finished@2.4.1",
+        "once@1.4.0",
+        "parseurl@1.3.3",
+        "path-key@3.1.1",
+        "path-to-regexp@8.4.2",
+        "pkce-challenge@5.0.1",
+        "proxy-addr@2.0.7",
+        "qs@6.15.3",
+        "range-parser@1.3.0",
+        "raw-body@3.0.2",
+        "require-from-string@2.0.2",
+        "router@2.2.0",
+        "safer-buffer@2.1.2",
+        "send@1.2.1",
+        "serve-static@2.2.1",
+        "setprototypeof@1.2.0",
+        "shebang-command@2.0.0",
+        "shebang-regex@3.0.0",
+        "side-channel-list@1.0.1",
+        "side-channel-map@1.0.1",
+        "side-channel-weakmap@1.0.2",
+        "side-channel@1.1.1",
+        "standardwebhooks@1.0.0",
+        "statuses@2.0.2",
+        "toidentifier@1.0.1",
+        "ts-algebra@2.0.0",
+        "type-is@2.1.0",
+        "unpipe@1.0.0",
+        "vary@1.1.2",
+        "which@2.0.2",
+        "wrappy@1.0.2",
+        "zod-to-json-schema@3.25.2",
+        "zod@4.4.3"
+      ],
+      "nodeBundleSha256": "sha256:deae892edfda596c1a7b107418a144a66fb6507e64f8a220a1d31e1858e206d4",
+      "hubBundleSha256": "sha256:4e2f16d6bc4e41acd62a83ed8a5d939625fe33ba64c30849712eb16954b04f2e",
+      "cliFilesSha256": {
+        "dist/bin.js": "27e6912dec1b1a19779164b1233d1bc86585461b74158164ca6b7ebb4d9cc675",
+        "dist/node-runtime.js": "deae892edfda596c1a7b107418a144a66fb6507e64f8a220a1d31e1858e206d4",
+        "dist/terminal-hook.js": "c1f3610fce65418690aae83679ab748307d510f6461a023d2a30e14047cba819",
+        "dist/native/file-sync.json": "099996450f4993ee6585eea2551769558b10bdaafae351704bfce073ba2d2124",
+        "package.json": "826e75a37aeacccc5da9126828896a9abcf25ad91262ff64380af87a4f36167b",
+        "README.md": "83937ae705e94ef14f624da3f70da715fad32ef3e453ff9e06f74129ced45642",
+        "dist/native/file-sync-darwin.node": "72f477a8f4c4f88c859519e78a8a75b6a409d35a52ef7667cd18a0abeb810f75"
+      },
+      "journey": [
+        {
+          "name": "existing-installed-inventory",
+          "files": 5826,
+          "exact": true
+        },
+        {
+          "name": "duplicate-install",
+          "exitCode": 1
+        },
+        {
+          "name": "wrong-digest",
+          "exitCode": 1
+        },
+        {
+          "name": "init",
+          "exitCode": 0
+        },
+        {
+          "name": "workstream-start",
+          "exitCode": 0
+        },
+        {
+          "name": "node-preflight",
+          "exitCode": 0
+        },
+        {
+          "name": "initial-ready",
+          "status": "ready",
+          "eventReader": {
+            "schemaVersion": 1,
+            "capability": "event_reader",
+            "readableEventSchemaVersions": [1, 2, 3, 4, 5, 6]
+          },
+          "projects": 1,
+          "events": 1
+        },
+        {
+          "name": "node-1-stop",
+          "code": 0,
+          "signal": null,
+          "shutdown": "graceful_signal"
+        },
+        {
+          "name": "restart-ready",
+          "status": "ready",
+          "duplicateEvents": 0
+        },
+        {
+          "name": "workstream-update",
+          "exitCode": 0
+        },
+        {
+          "name": "post-restart-sync",
+          "projects": 1,
+          "events": 2
+        },
+        {
+          "name": "hub-1-stop",
+          "code": 0,
+          "signal": null,
+          "shutdown": "graceful_signal"
+        },
+        {
+          "name": "hub-outage",
+          "status": "degraded"
+        },
+        {
+          "name": "hub-recovery",
+          "status": "ready",
+          "projects": 1,
+          "events": 2
+        },
+        {
+          "name": "node-2-stop",
+          "code": 0,
+          "signal": null,
+          "shutdown": "graceful_signal"
+        },
+        {
+          "name": "hub-2-stop",
+          "code": 0,
+          "signal": null,
+          "shutdown": "graceful_signal"
+        },
+        {
+          "name": "exact-event-parity",
+          "events": 2,
+          "sqliteIntegrity": "ok"
+        }
+      ],
+      "terminal": {
+        "exactRuntimeAndNativeFiles": 3,
+        "transitions": [
+          {
+            "planId": "kbridgeplan_a95b8a6af0d31f5d379b0d4b"
+          },
+          {
+            "planId": "ktermplan_037cfdd74c53cd2f3294408b"
+          }
+        ],
+        "checks": [
+          {
+            "provider": "codex",
+            "label": "installed-nested-cwd",
+            "exitCode": 0
+          },
+          {
+            "provider": "claude",
+            "label": "installed-nested-cwd",
+            "exitCode": 0
+          },
+          {
+            "provider": "codex",
+            "label": "tampered-native-rejected",
+            "exitCode": 2
+          },
+          {
+            "provider": "claude",
+            "label": "tampered-native-rejected",
+            "exitCode": 2
+          },
+          {
+            "provider": "codex",
+            "label": "restored-native",
+            "exitCode": 0
+          },
+          {
+            "provider": "claude",
+            "label": "restored-native",
+            "exitCode": 0
+          }
+        ],
+        "limitation": "Direct installed hook process calls; no actual provider session, trust approval, model task or native Darwin execution."
+      },
+      "rawEvidence": [
+        {
+          "name": "linux-journey.json",
+          "sha256": "sha256:4e1d8489cab2b93ffcd80cc5105a9b60e057fdba85397fcf0524048db989e45c"
+        },
+        {
+          "name": "linux-terminal.json",
+          "sha256": "sha256:37268801a7864d1e370a38555df15e163650ad78bee3c0f4c0a30d3942a04e4d"
+        },
+        {
+          "name": "linux-manifest.json",
+          "sha256": "sha256:c11301c8d42c53ba49421b6a6590158a554a57a8752f4ac5a1e4918e64f8eb01"
+        },
+        {
+          "name": "linux-artifact.json",
+          "sha256": "sha256:c053d72176fbc695729280abdc43c485f9aeb3bfc41ff7c79e82a1401f96a37e"
+        }
+      ]
+    },
+    {
+      "platform": "win32",
+      "arch": "x64",
+      "node": "v22.13.0",
+      "artifact": {
+        "schemaVersion": 1,
+        "kind": "lervo_node_distribution_artifact",
+        "runtimeVersion": "0.21.0",
+        "platform": {
+          "os": "win32",
+          "arch": "x64",
+          "libc": "none"
+        },
+        "archiveFileName": "node-windows.tar.gz",
+        "byteCount": 97697918,
+        "sha256": "sha256:94c1ee292ae9797cf568633c514b951ed5914963ddd81a6e502d50e691c2ba88",
+        "manifestSha256": "sha256:d11c5361359e09410cbb7619e03c4a3e56f5ef348433682244e743ab13c0fe42"
+      },
+      "manifestSchemaVersion": 2,
+      "manifestEntries": 5834,
+      "dependencies": [
+        "@anthropic-ai/claude-agent-sdk-win32-x64@0.3.226",
+        "@anthropic-ai/claude-agent-sdk@0.3.226",
+        "@anthropic-ai/sdk@0.117.1",
+        "@babel/runtime@7.29.7",
+        "@hono/node-server@2.1.1",
+        "@modelcontextprotocol/sdk@1.30.0",
+        "@stablelib/base64@1.0.1",
+        "accepts@2.0.0",
+        "ajv-formats@3.0.1",
+        "ajv@8.20.0",
+        "body-parser@2.3.0",
+        "bytes@3.1.2",
+        "call-bind-apply-helpers@1.0.2",
+        "call-bound@1.0.4",
+        "content-disposition@1.1.0",
+        "content-type@1.0.5",
+        "content-type@2.1.0",
+        "cookie-signature@1.2.2",
+        "cookie@0.7.2",
+        "cors@2.8.6",
+        "cross-spawn@7.0.6",
+        "debug@4.4.3",
+        "depd@2.0.0",
+        "dunder-proto@1.0.1",
+        "ee-first@1.1.1",
+        "encodeurl@2.0.0",
+        "es-define-property@1.0.1",
+        "es-errors@1.3.0",
+        "es-object-atoms@1.1.2",
+        "escape-html@1.0.3",
+        "etag@1.8.1",
+        "eventsource-parser@3.1.1",
+        "eventsource@3.0.7",
+        "express-rate-limit@8.6.2",
+        "express@5.2.1",
+        "fast-deep-equal@3.1.3",
+        "fast-sha256@1.3.0",
+        "fast-uri@3.1.5",
+        "finalhandler@2.1.1",
+        "forwarded@0.2.0",
+        "fresh@2.0.0",
+        "function-bind@1.1.2",
+        "get-intrinsic@1.3.0",
+        "get-proto@1.0.1",
+        "gopd@1.2.0",
+        "has-symbols@1.1.0",
+        "hasown@2.0.4",
+        "hono@4.13.3",
+        "http-errors@2.0.1",
+        "iconv-lite@0.7.3",
+        "inherits@2.0.4",
+        "ip-address@10.5.0",
+        "ipaddr.js@1.9.1",
+        "is-promise@4.0.0",
+        "isexe@2.0.0",
+        "jose@6.2.10",
+        "json-schema-to-ts@3.1.1",
+        "json-schema-traverse@1.0.0",
+        "json-schema-typed@8.0.2",
+        "math-intrinsics@1.1.0",
+        "media-typer@1.1.1",
+        "merge-descriptors@2.0.0",
+        "mime-db@1.54.0",
+        "mime-types@3.0.2",
+        "ms@2.1.3",
+        "negotiator@1.1.0",
+        "object-assign@4.1.1",
+        "object-inspect@1.13.4",
+        "on-finished@2.4.1",
+        "once@1.4.0",
+        "parseurl@1.3.3",
+        "path-key@3.1.1",
+        "path-to-regexp@8.4.2",
+        "pkce-challenge@5.0.1",
+        "proxy-addr@2.0.7",
+        "qs@6.15.3",
+        "range-parser@1.3.0",
+        "raw-body@3.0.2",
+        "require-from-string@2.0.2",
+        "router@2.2.0",
+        "safer-buffer@2.1.2",
+        "send@1.2.1",
+        "serve-static@2.2.1",
+        "setprototypeof@1.2.0",
+        "shebang-command@2.0.0",
+        "shebang-regex@3.0.0",
+        "side-channel-list@1.0.1",
+        "side-channel-map@1.0.1",
+        "side-channel-weakmap@1.0.2",
+        "side-channel@1.1.1",
+        "standardwebhooks@1.0.0",
+        "statuses@2.0.2",
+        "toidentifier@1.0.1",
+        "ts-algebra@2.0.0",
+        "type-is@2.1.0",
+        "unpipe@1.0.0",
+        "vary@1.1.2",
+        "which@2.0.2",
+        "wrappy@1.0.2",
+        "zod-to-json-schema@3.25.2",
+        "zod@4.4.3"
+      ],
+      "nodeBundleSha256": "sha256:deae892edfda596c1a7b107418a144a66fb6507e64f8a220a1d31e1858e206d4",
+      "hubBundleSha256": "sha256:4e2f16d6bc4e41acd62a83ed8a5d939625fe33ba64c30849712eb16954b04f2e",
+      "cliFilesSha256": {
+        "dist/bin.js": "27e6912dec1b1a19779164b1233d1bc86585461b74158164ca6b7ebb4d9cc675",
+        "dist/node-runtime.js": "deae892edfda596c1a7b107418a144a66fb6507e64f8a220a1d31e1858e206d4",
+        "dist/terminal-hook.js": "c1f3610fce65418690aae83679ab748307d510f6461a023d2a30e14047cba819",
+        "dist/native/file-sync.json": "099996450f4993ee6585eea2551769558b10bdaafae351704bfce073ba2d2124",
+        "package.json": "826e75a37aeacccc5da9126828896a9abcf25ad91262ff64380af87a4f36167b",
+        "README.md": "83937ae705e94ef14f624da3f70da715fad32ef3e453ff9e06f74129ced45642",
+        "dist/native/file-sync-darwin.node": "72f477a8f4c4f88c859519e78a8a75b6a409d35a52ef7667cd18a0abeb810f75"
+      },
+      "journey": [
+        {
+          "name": "existing-installed-inventory",
+          "files": 5834,
+          "exact": true
+        },
+        {
+          "name": "duplicate-install",
+          "exitCode": 1
+        },
+        {
+          "name": "wrong-digest",
+          "exitCode": 1
+        },
+        {
+          "name": "init",
+          "exitCode": 0
+        },
+        {
+          "name": "workstream-start",
+          "exitCode": 0
+        },
+        {
+          "name": "node-preflight",
+          "exitCode": 0
+        },
+        {
+          "name": "initial-ready",
+          "status": "ready",
+          "eventReader": {
+            "schemaVersion": 1,
+            "capability": "event_reader",
+            "readableEventSchemaVersions": [1, 2, 3, 4, 5, 6]
+          },
+          "projects": 1,
+          "events": 1
+        },
+        {
+          "name": "node-1-stop",
+          "code": null,
+          "signal": "SIGTERM",
+          "shutdown": "forced_native_windows_termination"
+        },
+        {
+          "name": "restart-ready",
+          "status": "ready",
+          "duplicateEvents": 0
+        },
+        {
+          "name": "workstream-update",
+          "exitCode": 0
+        },
+        {
+          "name": "post-restart-sync",
+          "projects": 1,
+          "events": 2
+        },
+        {
+          "name": "hub-1-stop",
+          "code": null,
+          "signal": "SIGTERM",
+          "shutdown": "forced_native_windows_termination"
+        },
+        {
+          "name": "hub-outage",
+          "status": "degraded"
+        },
+        {
+          "name": "hub-recovery",
+          "status": "ready",
+          "projects": 1,
+          "events": 2
+        },
+        {
+          "name": "node-2-stop",
+          "code": null,
+          "signal": "SIGTERM",
+          "shutdown": "forced_native_windows_termination"
+        },
+        {
+          "name": "hub-2-stop",
+          "code": null,
+          "signal": "SIGTERM",
+          "shutdown": "forced_native_windows_termination"
+        },
+        {
+          "name": "exact-event-parity",
+          "events": 2,
+          "sqliteIntegrity": "ok"
+        }
+      ],
+      "terminal": {
+        "exactRuntimeAndNativeFiles": 3,
+        "transitions": [
+          {
+            "planId": "kbridgeplan_b8e3f7e6b3aba0ebdb6e3b77"
+          },
+          {
+            "planId": "ktermplan_092618f408bebb6cb91f4590"
+          }
+        ],
+        "checks": [
+          {
+            "provider": "codex",
+            "label": "installed-nested-cwd",
+            "exitCode": 0
+          },
+          {
+            "provider": "claude",
+            "label": "installed-nested-cwd",
+            "exitCode": 0
+          },
+          {
+            "provider": "codex",
+            "label": "tampered-native-rejected",
+            "exitCode": 2
+          },
+          {
+            "provider": "claude",
+            "label": "tampered-native-rejected",
+            "exitCode": 2
+          },
+          {
+            "provider": "codex",
+            "label": "restored-native",
+            "exitCode": 0
+          },
+          {
+            "provider": "claude",
+            "label": "restored-native",
+            "exitCode": 0
+          }
+        ],
+        "limitation": "Direct installed hook process calls; no actual provider session, trust approval, model task or native Darwin execution."
+      },
+      "rawEvidence": [
+        {
+          "name": "windows-journey.json",
+          "sha256": "sha256:8919e101920fa90fe0529716427132e7c0c4af9808fb2f6397514103d83f94b7"
+        },
+        {
+          "name": "windows-terminal.json",
+          "sha256": "sha256:53f7509bd84306c357db9e715b50cc2792f40f5d6af77df6beb52580127e7032"
+        },
+        {
+          "name": "windows-manifest.json",
+          "sha256": "sha256:d11c5361359e09410cbb7619e03c4a3e56f5ef348433682244e743ab13c0fe42"
+        },
+        {
+          "name": "windows-artifact.json",
+          "sha256": "sha256:1e266733fc05ff42cdef21e68178ac2b94da6ef3f1534073ab1079480f60c9dd"
+        }
+      ]
+    }
+  ],
+  "productionServices": {
+    "observedCount": 7,
+    "allActive": true,
+    "samePidsExecutableAndConfigHashes": true,
+    "automaticRestarts": 0,
+    "evidenceSha256": "sha256:8c5579688cda7da875fe74ab92ef3ac129c9487f10cf8ad7bee18cd54ed4b5aa"
+  },
+  "retainedFailures": [
+    {
+      "kind": "diagnostic_windows_runner_placeholder_collision",
+      "meaning": "A broad placeholder replacement corrupted APPDATA in the scratch runner before dependency installation; corrected to replace only the exact payload expression.",
+      "logSha256": "sha256:5cbb8fdd592e70cf3b07afe1fff6f327af931f84b5eeacea24af2ac997fb4985"
+    },
+    {
+      "kind": "diagnostic_package_manifest_comparison",
+      "meaning": "The first consumer compared installed npm package metadata against the source package.json instead of the exact packed file. It rejected before installation; fixed the expected coordinate to all seven original archive files.",
+      "logSha256": "sha256:bffabf967c02cd0f8e2eb38dce02a4e5cf3b9f282cf31295ef5fc41251aa6f6f"
+    },
+    {
+      "kind": "linux_fixture_certificate_permissions",
+      "meaning": "The isolated Linux Hub rejected a non-owner-only TLS certificate. Both certificate and key were corrected to0600; secure-file validation remained enabled.",
+      "logSha256": "sha256:44d9369fb98ca834bb1e67bc98c4fb0dff7746d58c10c686e879b344319f56ab"
+    }
+  ],
+  "harnesses": [
+    {
+      "name": "lervo-target-node-stage.py",
+      "sha256": "sha256:d947980842b081c747d671550d8bd9bb6471f19136ee6e284277f02308befab6"
+    },
+    {
+      "name": "lervo-target-node-linux-run.py",
+      "sha256": "sha256:6119e6581d57a1608776504df049d0eb10c80bf366a07393740dd9ddf4d63019"
+    },
+    {
+      "name": "lervo-target-node-windows-run.py",
+      "sha256": "sha256:96cf23bc30fdd5bf85260405fef716dde6ae85aa1a22f989a62d6fc16dc5fce8"
+    },
+    {
+      "name": "lervo-target-consumer-journey.mjs",
+      "sha256": "sha256:1befd9047e27276e415e0e6256faaf0b65abbcab6482d0739ae84001065e5804"
+    },
+    {
+      "name": "lervo-target-consumer-run.py",
+      "sha256": "sha256:be7e64a288bd551aa3fcc8a2a66c020d148a0c5758bc3add43fce803ea918c6d"
+    },
+    {
+      "name": "lervo-target-terminal-ready.cjs",
+      "sha256": "sha256:639915f14ee807cb5443c17345efdaae8a535540d8e3f8785b524663c30f5303"
+    },
+    {
+      "name": "lervo-target-terminal-install.cjs",
+      "sha256": "sha256:e6dbd66299d9169fb1e069433b4468b949fb498333ea0c7b74076a8eb4c0cc52"
+    },
+    {
+      "name": "lervo-target-terminal-run.py",
+      "sha256": "sha256:69c473abb7d35f4aac0cc9d17d4c1754c24bd388dc2fff4e0a2a533d86577a14"
+    },
+    {
+      "name": "lervo-target-service-recheck.py",
+      "sha256": "sha256:48fcd590fc394bc7692084464ac7a5ff8dfa03c80c80674cc77a1d38c4c9adaf"
+    }
+  ],
+  "limits": [
+    "Processes run from exact isolated installed distributions on the actual target OS. These are synthetic loopback-TLS and hook-process journeys, not production rollout, model-task quality, Discord delivery or actual provider trust.",
+    "Windows child termination is forced OS termination, followed by startup and SQLite recovery. It is not evidence of graceful Windows service shutdown; supported service managers remain Linux systemd and macOS launchd.",
+    "Native Darwin asset hashes and rejection are checked on Linux/Windows hooks, but those targets do not execute the Darwin addon. Darwin x64 execution and hosted same-workflow/fresh-workflow reproducibility remain open.",
+    "Full resource gates,100 reviewed real-task families,30percent unseen family holdout, repeated both-provider outcomes and seven-day-plus-task-count observation remain incomplete.",
+    "No production service, CLI pointer, repository hook, writer activation, provider task, public publication or source commit changed."
+  ]
+}

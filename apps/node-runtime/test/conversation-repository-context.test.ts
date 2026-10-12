@@ -1,3 +1,5 @@
+import { prepareContext } from "@lervo/context";
+import { NativeChatConversationAdapter } from "@lervo/adapter-native-chat";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -60,10 +62,87 @@ describe("conversation repository context during knowledge materialization", () 
     );
     const context = await prepareConversationRepositoryContext(input);
     expect(context.recommendationBatches).toHaveLength(1);
+    expect(context.preparationQuality).toMatchObject({
+      retrieval: "completed",
+      sourceSnapshotId: null,
+      loading: "unobserved",
+      fullCount: null,
+      corpusCoverage: "incomplete",
+      reasonCodes: ["corpus_incomplete", "loading_unobserved"],
+      delivery: "unobserved",
+    });
     expect(
       context.additionalCandidates.every((candidate) => candidate.source !== "knowledge"),
     ).toBe(true);
     expect(context.graphRecommendations).toEqual([]);
+  });
+
+  it("uses the same preparation contract for a normalized native-chat event", async () => {
+    const input = await fixture();
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "context-quality-fixture",
+      delivery: {
+        send: async () => {
+          throw new Error("Read-only preparation must not send.");
+        },
+      },
+    });
+    const event = adapter.normalizeInbound({
+      sourceEventKey: "native-context-quality",
+      target: { projectId: input.projectId, conversationId: "cnv_general01", threadId: null },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+      content: {
+        ...input.event.content,
+        artifactId: "art_message01",
+        mediaType: "text/plain; charset=utf-8",
+      },
+      occurredAt: "2026-10-09T00:00:00Z",
+    });
+    const rulePath = `docs/instructions/generated/rule_${"e".repeat(24)}.md`;
+    await mkdir(resolve(input.repositoryRoot, "docs/instructions/generated"), { recursive: true });
+    await writeFile(
+      resolve(input.repositoryRoot, rulePath),
+      "# Current rule\nPreserve operative clauses.\n## Exceptions\nKeep quoted text unchanged.\n",
+    );
+    input.baseRole.contextPolicy.requiredDocumentRuleIds = ["repository.instructions"];
+    const existing = await prepareConversationRepositoryContext(input);
+    const native = await prepareConversationRepositoryContext({ ...input, event });
+    expect(native.preparationQuality).toEqual(existing.preparationQuality);
+    expect(native.additionalCandidates).toEqual(existing.additionalCandidates);
+    const prepared = await Promise.all(
+      [existing, native].map((context) =>
+        prepareContext({
+          ...context,
+          repositoryRoot: input.repositoryRoot,
+          registry: input.registry,
+          coordinates: {
+            projectId: input.projectId,
+            runId: input.runId,
+            sessionId: "ses_native001",
+            roleId: context.role.roleId,
+          },
+          expectedPaths: [],
+          publications: [],
+          handoffs: [],
+          sourceRevision: "fixture-current",
+          policyVersion: `sha256:${"a".repeat(64)}`,
+          recordedAt: new Date(),
+        }),
+      ),
+    );
+    const clauses = prepared.map((context) =>
+      Buffer.from(context.documents.find((document) => document.path === rulePath)!.bytes).toString(
+        "utf8",
+      ),
+    );
+    expect(clauses[0]).toBe(clauses[1]);
+    expect(clauses[0]).toContain("Keep quoted text unchanged.");
+    expect(native.preparationQuality).toMatchObject({
+      loading: "unobserved",
+      artifactCompliance: "unobserved",
+    });
   });
 
   it("retains failure for other unsafe knowledge errors", async () => {

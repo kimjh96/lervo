@@ -1,0 +1,834 @@
+{
+  "schemaVersion": 1,
+  "baselineArtifactBuildHash": "sha256:4a2eb5253e29da2659ef89f98784663ffb21316d41c0fc25ee4f1f6de2223414",
+  "scope": "Diagnostic-only same-process experiments, separate disposable roots, fixed fixture, no provider calls. All observations retained. Cumulative async spans overlap and cannot be summed; these measurements do not establish cold acceptance or production guarantees.",
+  "experiments": {
+    "fileOperations": {
+      "script": "import fs from 'node:fs/promises';\nimport {syncBuiltinESMExports} from 'node:module';\nimport {resolve} from 'node:path';\nimport {tmpdir} from 'node:os';\nconst repo=process.cwd();\nconst {initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\nconst {activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\nconst parent=await fs.mkdtemp(resolve(tmpdir(),'lervo-io-probe-'));\nconst results=[];\nfunction category(path){const p=String(path);return p.includes('/cas/')?'cas':p.endsWith('project.yaml')?'manifest':p.endsWith('event-contract.json')||p.includes('event-contract-activation')?'writer':p.includes('.sqlite')?'sqlite':'other'}\ntry{\n for(const workload of ['cold','warm','concurrent']){\n  const root=resolve(parent,workload);await initializeActiveFixture(root);const phases={};const restorers=[];\n  function timed(obj,key,label,after){const orig=obj[key];obj[key]=async function(...args){const start=performance.now();const result=phases[label(...args)]??={calls:0,ms:0};result.calls++;try{const value=await orig.apply(this,args);after?.(value,args);return value}finally{result.ms+=performance.now()-start}};restorers.push(()=>obj[key]=orig)}\n  for(const name of ['lstat','mkdir','readFile','link','unlink','open'])timed(fs,name,(p)=>category(p)+'.'+name,name==='open'?(handle,args)=>{for(const key of ['write','sync','close','readFile','stat'])timed(handle,key,()=>category(args[0])+'.handle.'+key)}:undefined);\n  syncBuiltinESMExports();let r;\n  try{r=await activeWorker(root,'candidate',workload,4096,{warmups:2,samples:10,concurrency:4})}finally{for(const restore of restorers.reverse())restore();syncBuiltinESMExports()}\n  results.push({workload,phases,samples:r.samples.map(s=>s.slice(0,2)),semanticValid:r.semanticValid});\n }\n await fs.writeFile('/tmp/lervo-recording-io-probe.json',JSON.stringify({diagnosticOnly:true,results},null,2));\n}finally{await fs.rm(parent,{recursive:true,force:true})}\n",
+      "scriptHash": "sha256:b3c1c85025b391c604eec4157b373314de12a635d97d13330a15890e9bb02e2c",
+      "observations": {
+        "diagnosticOnly": true,
+        "results": [
+          {
+            "workload": "cold",
+            "phases": {
+              "other.lstat": {
+                "calls": 196,
+                "ms": 3.890873999998803
+              },
+              "manifest.lstat": {
+                "calls": 42,
+                "ms": 0.48783599999956095
+              },
+              "manifest.open": {
+                "calls": 42,
+                "ms": 1.0689140000000634
+              },
+              "manifest.handle.stat": {
+                "calls": 63,
+                "ms": 0.6860830000003943
+              },
+              "manifest.handle.readFile": {
+                "calls": 21,
+                "ms": 0.5942070000003241
+              },
+              "manifest.handle.close": {
+                "calls": 42,
+                "ms": 0.39174600000046667
+              },
+              "writer.lstat": {
+                "calls": 30,
+                "ms": 0.6102059999998346
+              },
+              "writer.open": {
+                "calls": 20,
+                "ms": 0.5221690000000763
+              },
+              "writer.handle.stat": {
+                "calls": 30,
+                "ms": 0.3282489999998006
+              },
+              "writer.handle.readFile": {
+                "calls": 10,
+                "ms": 0.2319159999999556
+              },
+              "writer.handle.close": {
+                "calls": 20,
+                "ms": 0.2189589999998134
+              },
+              "other.readFile": {
+                "calls": 7,
+                "ms": 0.5968330000001743
+              },
+              "other.open": {
+                "calls": 14,
+                "ms": 0.4064589999998134
+              },
+              "other.handle.stat": {
+                "calls": 28,
+                "ms": 0.31512400000008256
+              },
+              "other.handle.close": {
+                "calls": 14,
+                "ms": 0.1315430000000788
+              },
+              "other.mkdir": {
+                "calls": 10,
+                "ms": 0.31616600000006656
+              },
+              "cas.lstat": {
+                "calls": 28,
+                "ms": 0.5387460000001738
+              },
+              "sqlite.lstat": {
+                "calls": 45,
+                "ms": 1.0442509999999174
+              },
+              "cas.mkdir": {
+                "calls": 6,
+                "ms": 0.30379100000004655
+              },
+              "cas.open": {
+                "calls": 2,
+                "ms": 0.16620899999998073
+              },
+              "cas.handle.write": {
+                "calls": 2,
+                "ms": 0.09383299999990413
+              },
+              "cas.handle.sync": {
+                "calls": 2,
+                "ms": 7.169541999999865
+              },
+              "cas.handle.close": {
+                "calls": 4,
+                "ms": 0.06295899999986432
+              },
+              "cas.link": {
+                "calls": 2,
+                "ms": 0.6718329999999924
+              },
+              "cas.readFile": {
+                "calls": 4,
+                "ms": 0.2853330000000369
+              },
+              "cas.unlink": {
+                "calls": 2,
+                "ms": 0.1161659999999074
+              }
+            },
+            "samples": [[54.359042000000045, 74.161]],
+            "semanticValid": true
+          },
+          {
+            "workload": "warm",
+            "phases": {
+              "other.lstat": {
+                "calls": 1835,
+                "ms": 27.144931000005954
+              },
+              "manifest.lstat": {
+                "calls": 372,
+                "ms": 3.619620999998915
+              },
+              "manifest.open": {
+                "calls": 372,
+                "ms": 8.154414999997357
+              },
+              "manifest.handle.stat": {
+                "calls": 558,
+                "ms": 4.674409999996442
+              },
+              "manifest.handle.readFile": {
+                "calls": 186,
+                "ms": 3.6139650000011443
+              },
+              "manifest.handle.close": {
+                "calls": 372,
+                "ms": 3.225738999998157
+              },
+              "writer.lstat": {
+                "calls": 228,
+                "ms": 2.9472970000011856
+              },
+              "writer.open": {
+                "calls": 152,
+                "ms": 3.2011239999991403
+              },
+              "writer.handle.stat": {
+                "calls": 228,
+                "ms": 1.8559230000012121
+              },
+              "writer.handle.readFile": {
+                "calls": 76,
+                "ms": 1.4027109999999539
+              },
+              "writer.handle.close": {
+                "calls": 152,
+                "ms": 1.2985370000014882
+              },
+              "other.readFile": {
+                "calls": 84,
+                "ms": 4.294702999999913
+              },
+              "other.open": {
+                "calls": 168,
+                "ms": 3.8061709999996083
+              },
+              "other.handle.stat": {
+                "calls": 336,
+                "ms": 2.84495300000151
+              },
+              "other.handle.close": {
+                "calls": 168,
+                "ms": 1.4277499999989232
+              },
+              "other.mkdir": {
+                "calls": 10,
+                "ms": 0.2982929999999442
+              },
+              "cas.lstat": {
+                "calls": 182,
+                "ms": 3.603961999999342
+              },
+              "sqlite.lstat": {
+                "calls": 89,
+                "ms": 1.8083369999995966
+              },
+              "cas.mkdir": {
+                "calls": 28,
+                "ms": 1.7669209999999111
+              },
+              "cas.open": {
+                "calls": 24,
+                "ms": 1.682081999999582
+              },
+              "cas.handle.write": {
+                "calls": 24,
+                "ms": 1.6474609999997938
+              },
+              "cas.handle.sync": {
+                "calls": 24,
+                "ms": 90.71845900000028
+              },
+              "cas.handle.close": {
+                "calls": 48,
+                "ms": 0.3257889999999861
+              },
+              "cas.link": {
+                "calls": 24,
+                "ms": 5.306627000000617
+              },
+              "cas.readFile": {
+                "calls": 48,
+                "ms": 3.152370999999107
+              },
+              "cas.unlink": {
+                "calls": 24,
+                "ms": 1.2574150000006057
+              }
+            },
+            "samples": [
+              [27.76912500000003, 24.445],
+              [27.8263750000001, 22.741],
+              [27.308417000000077, 27.956],
+              [27.509000000000015, 28.938],
+              [27.16204199999993, 20.518],
+              [27.052374999999984, 22.192],
+              [25.87041700000009, 21.112],
+              [26.952374999999847, 20.29],
+              [27.218041000000085, 31.283],
+              [28.801208000000088, 21.987]
+            ],
+            "semanticValid": true
+          },
+          {
+            "workload": "concurrent",
+            "phases": {
+              "other.lstat": {
+                "calls": 2899,
+                "ms": 110.63945500000818
+              },
+              "manifest.lstat": {
+                "calls": 952,
+                "ms": 32.13946299999952
+              },
+              "manifest.open": {
+                "calls": 952,
+                "ms": 41.83000299999844
+              },
+              "manifest.handle.stat": {
+                "calls": 1428,
+                "ms": 39.735252000001765
+              },
+              "manifest.handle.readFile": {
+                "calls": 476,
+                "ms": 16.0473370000027
+              },
+              "manifest.handle.close": {
+                "calls": 952,
+                "ms": 62.88955799999985
+              },
+              "writer.lstat": {
+                "calls": 771,
+                "ms": 31.94520900000134
+              },
+              "writer.open": {
+                "calls": 514,
+                "ms": 26.07745199999863
+              },
+              "writer.handle.stat": {
+                "calls": 771,
+                "ms": 17.03378800000246
+              },
+              "writer.handle.readFile": {
+                "calls": 257,
+                "ms": 9.19213099999888
+              },
+              "writer.handle.close": {
+                "calls": 514,
+                "ms": 18.29636899999582
+              },
+              "other.readFile": {
+                "calls": 84,
+                "ms": 6.173751999999695
+              },
+              "other.open": {
+                "calls": 240,
+                "ms": 6.8179990000001
+              },
+              "other.handle.stat": {
+                "calls": 480,
+                "ms": 6.217829000002666
+              },
+              "other.handle.close": {
+                "calls": 240,
+                "ms": 7.13571199999933
+              },
+              "other.mkdir": {
+                "calls": 15,
+                "ms": 0.6845000000000709
+              },
+              "cas.lstat": {
+                "calls": 620,
+                "ms": 51.67524100000173
+              },
+              "sqlite.lstat": {
+                "calls": 217,
+                "ms": 13.456790999999612
+              },
+              "cas.mkdir": {
+                "calls": 102,
+                "ms": 76.57783100000006
+              },
+              "cas.open": {
+                "calls": 96,
+                "ms": 69.37988199999995
+              },
+              "cas.handle.write": {
+                "calls": 96,
+                "ms": 65.81554200000005
+              },
+              "cas.handle.sync": {
+                "calls": 96,
+                "ms": 698.6884970000001
+              },
+              "cas.handle.close": {
+                "calls": 192,
+                "ms": 2.109995000000481
+              },
+              "cas.link": {
+                "calls": 96,
+                "ms": 241.64575100000138
+              },
+              "cas.readFile": {
+                "calls": 192,
+                "ms": 27.810167000000774
+              },
+              "cas.unlink": {
+                "calls": 96,
+                "ms": 123.83145799999943
+              }
+            },
+            "samples": [
+              [55.394000000000005, 52.123],
+              [53.47250000000008, 39.662],
+              [63.9943330000001, 54.487],
+              [51.19504099999995, 54.017],
+              [47.62362499999995, 43.911],
+              [56.11470899999995, 45.617],
+              [62.24654200000009, 47.775],
+              [53.94308299999989, 43.646],
+              [46.15433400000006, 41.635],
+              [50.300792, 44.313]
+            ],
+            "semanticValid": true
+          }
+        ]
+      }
+    },
+    "casConcurrency": {
+      "script": "import {mkdtemp,rm,writeFile} from 'node:fs/promises';\nimport {resolve} from 'node:path';\nimport {tmpdir} from 'node:os';\nconst repo=process.cwd();\nconst {initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\nconst {activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\nconst {FileSystemCas}=await import(resolve(repo,'packages/cas/dist/index.js'));\nconst original=FileSystemCas.prototype.putStream;\nconst parent=await mkdtemp(resolve(tmpdir(),'lervo-cas-limit-probe-'));const results=[];\ntry {\nfor(let cycle=0;cycle<3;cycle++)for(const limit of cycle%2?[3,2,1,4]:[4,1,2,3]){\n const root=resolve(parent,`${cycle}-${limit}`);await initializeActiveFixture(root);let active=0;const waiting=[];\n FileSystemCas.prototype.putStream=async function(...args){if(active>=limit)await new Promise(resolve=>waiting.push(resolve));else active++;try{return await original.apply(this,args)}finally{const next=waiting.shift();if(next)next();else active--}};\n const result=await activeWorker(root,'candidate','concurrent',4096,{warmups:2,samples:10,concurrency:4});\n results.push({cycle,limit,semanticValid:result.semanticValid,integrity:result.integrity,samples:result.samples.map(s=>s.slice(0,2))});\n FileSystemCas.prototype.putStream=original;\n}\nawait writeFile('/tmp/lervo-cas-concurrency-probe.json',JSON.stringify({diagnosticOnly:true,results},null,2));\n}finally{FileSystemCas.prototype.putStream=original;await rm(parent,{recursive:true,force:true})}\n",
+      "scriptHash": "sha256:da84033f4876cc7583aba8359e04b0968a39e3e8de2486d55ae2e1d3c6bd9aa9",
+      "observations": {
+        "diagnosticOnly": true,
+        "results": [
+          {
+            "cycle": 0,
+            "limit": 4,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [56.18674999999996, 46.661],
+              [49.427332999999976, 39.936],
+              [52.20637499999998, 43.915],
+              [48.35454100000004, 40.663],
+              [50.00737499999991, 46.207],
+              [55.33324999999991, 46.644],
+              [56.04299999999989, 50.623],
+              [52.274167000000034, 51.802],
+              [53.7795000000001, 52.617],
+              [60.06729199999995, 53.218]
+            ]
+          },
+          {
+            "cycle": 0,
+            "limit": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [68.14270799999986, 57.093],
+              [76.28891700000008, 63.454],
+              [69.93425000000002, 53.74],
+              [66.93162500000017, 53.288],
+              [67.98641700000007, 50.34],
+              [63.63741600000003, 53.131],
+              [71.18308300000012, 51.885],
+              [68.09341699999982, 51.238],
+              [65.86658399999988, 47.238],
+              [67.13862500000005, 50.85]
+            ]
+          },
+          {
+            "cycle": 0,
+            "limit": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [96.07495800000015, 52.866],
+              [75.66079100000024, 51.956],
+              [64.36170799999991, 40.883],
+              [54.53987499999994, 49.302],
+              [59.83583299999964, 46.773],
+              [65.02595800000017, 42.197],
+              [67.13500000000022, 51.311],
+              [74.26200000000017, 47.785],
+              [63.4131669999997, 41.535],
+              [67.05612500000007, 43.536]
+            ]
+          },
+          {
+            "cycle": 0,
+            "limit": 3,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [53.33745799999997, 39.712],
+              [64.12058400000024, 40.437],
+              [55.822083999999904, 45.976],
+              [57.044374999999945, 41.958],
+              [51.0029999999997, 44.748],
+              [51.095332999999755, 39.293],
+              [56.10966700000017, 45.847],
+              [55.85224999999991, 40.339],
+              [49.02170800000022, 40.083],
+              [55.16979199999969, 38.511]
+            ]
+          },
+          {
+            "cycle": 1,
+            "limit": 3,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [51.874415999999655, 40.211],
+              [59.21766700000035, 42.491],
+              [55.733999999999924, 39.51],
+              [56.66137500000059, 39.836],
+              [51.89104099999986, 39.234],
+              [52.05608299999949, 39.555],
+              [62.258458000000246, 44.639],
+              [51.533667000000605, 39.701],
+              [62.48700000000008, 41.067],
+              [58.12495899999976, 41.301]
+            ]
+          },
+          {
+            "cycle": 1,
+            "limit": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [63.644083999999566, 41.11],
+              [59.96766699999989, 42.06],
+              [62.69999999999982, 40.674],
+              [51.92320800000016, 41.008],
+              [62.20600000000013, 46.733],
+              [63.096708999999464, 40.84],
+              [65.98100000000068, 50.926],
+              [64.09791699999914, 44.327],
+              [65.19108299999971, 43.547],
+              [67.2759160000005, 44.826]
+            ]
+          },
+          {
+            "cycle": 1,
+            "limit": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [65.08737500000007, 43.85],
+              [64.18479200000002, 42.519],
+              [65.0284160000001, 44.476],
+              [70.07424999999967, 51.779],
+              [66.99687500000073, 45.644],
+              [71.00070899999992, 56.373],
+              [68.91191700000036, 49.796],
+              [66.90420900000026, 42.326],
+              [67.23024999999961, 43.154],
+              [66.03841700000066, 44.176]
+            ]
+          },
+          {
+            "cycle": 1,
+            "limit": 4,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [53.90308400000049, 38.344],
+              [42.95466699999997, 38.793],
+              [52.66283399999975, 37.775],
+              [60.96383400000013, 39.522],
+              [57.57716699999946, 41.623],
+              [49.6376250000003, 39.701],
+              [54.066915999999765, 42.605],
+              [50.956083000000035, 40.911],
+              [50.55687500000022, 39.728],
+              [53.5528749999994, 36.848]
+            ]
+          },
+          {
+            "cycle": 2,
+            "limit": 4,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [50.13183300000037, 38.311],
+              [48.39050000000043, 36.597],
+              [44.69116699999995, 36.679],
+              [55.20145799999955, 37.919],
+              [47.166667000000416, 35.151],
+              [56.26379199999974, 41.433],
+              [50.64400000000023, 47.479],
+              [49.5064169999996, 37.894],
+              [43.8129170000002, 38.097],
+              [53.07458399999996, 37.251]
+            ]
+          },
+          {
+            "cycle": 2,
+            "limit": 1,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [65.95270899999923, 43.979],
+              [65.66804199999933, 44.052],
+              [65.01187500000015, 42.937],
+              [63.27820799999972, 44.258],
+              [70.10699999999997, 43.501],
+              [65.95474999999988, 44.338],
+              [68.35808300000008, 70.767],
+              [67.86741699999948, 59.138],
+              [67.03691599999911, 44.02],
+              [65.83854200000133, 45.408]
+            ]
+          },
+          {
+            "cycle": 2,
+            "limit": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [60.821625000000495, 44.694],
+              [62.80987499999901, 38.912],
+              [57.566749999999956, 42.935],
+              [62.13987499999894, 38.968],
+              [63.957250000001295, 40.278],
+              [60.39500000000044, 41.026],
+              [61.684957999999824, 48.844],
+              [62.98937500000102, 41.262],
+              [64.4135839999999, 48.262],
+              [63.870709000000716, 41.855]
+            ]
+          },
+          {
+            "cycle": 2,
+            "limit": 3,
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [61.22899999999936, 40.12],
+              [56.95691699999952, 38.915],
+              [52.201624999999694, 45.236],
+              [60.18399999999929, 69.84],
+              [60.8039579999986, 39.53],
+              [62.15558400000009, 40.052],
+              [54.2338749999999, 48.469],
+              [58.46929199999977, 40.898],
+              [52.215916999999536, 40.879],
+              [58.02308400000038, 40.495]
+            ]
+          }
+        ]
+      }
+    },
+    "smallReadPrototype": {
+      "script": "import fs from 'node:fs/promises';\nimport sync from 'node:fs';\nimport {syncBuiltinESMExports} from 'node:module';\nimport {resolve} from 'node:path';\nimport {tmpdir} from 'node:os';\nconst repo=process.cwd();\nconst {initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\nconst {activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\nconst parent=await fs.mkdtemp(resolve(tmpdir(),'lervo-small-read-'));const results=[];\nconst originals={open:fs.open,lstat:fs.lstat};\nconst eligible=p=>String(p).endsWith('project.yaml')||String(p).endsWith('event-contract.json');\ntry{\n for(let cycle=0;cycle<3;cycle++)for(const mode of cycle%2?['sync','async']:['async','sync'])for(const workload of ['warm','concurrent']){\n  const root=resolve(parent,`${cycle}-${mode}-${workload}`);await initializeActiveFixture(root);\n  if(mode==='sync'){\n   fs.lstat=async(p,...args)=>eligible(p)?sync.lstatSync(p,...args):originals.lstat(p,...args);\n   fs.open=async(p,...args)=>{if(!eligible(p))return originals.open(p,...args);const fd=sync.openSync(p,...args);return{stat:async(...a)=>sync.fstatSync(fd,...a),readFile:async(...a)=>sync.readFileSync(fd,...a),close:async()=>sync.closeSync(fd)}};\n   syncBuiltinESMExports();\n  }\n  const r=await activeWorker(root,'candidate',workload,4096,{warmups:2,samples:10,concurrency:4});\n  Object.assign(fs,originals);syncBuiltinESMExports();results.push({cycle,mode,workload,semanticValid:r.semanticValid,integrity:r.integrity,samples:r.samples.map(s=>s.slice(0,2))});\n }\n await fs.writeFile('/tmp/lervo-small-read-probe.json',JSON.stringify({diagnosticOnly:true,results},null,2));\n}finally{Object.assign(fs,originals);syncBuiltinESMExports();await fs.rm(parent,{recursive:true,force:true})}\n",
+      "scriptHash": "sha256:904d87f8d81a39f4eab041de5e3ad695171f77d56cdaa709bf2ecc2318b5d88b",
+      "observations": {
+        "diagnosticOnly": true,
+        "results": [
+          {
+            "cycle": 0,
+            "mode": "async",
+            "workload": "warm",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [27.78166699999997, 26.315],
+              [28.21900000000005, 21.034],
+              [27.056125000000065, 23.076],
+              [27.936792000000082, 26.019],
+              [27.769124999999917, 24.983],
+              [25.995042000000012, 21.501],
+              [27.34491700000001, 20.296],
+              [26.66308300000003, 19.949],
+              [25.806042000000048, 18.313],
+              [29.058624999999893, 28.964]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "async",
+            "workload": "concurrent",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [52.73624999999993, 40.567],
+              [62.9373750000002, 54.259],
+              [49.739958000000115, 38.073],
+              [50.285167, 41.374],
+              [58.15604200000007, 53.242],
+              [58.120750000000044, 53.518],
+              [53.455458000000135, 46.806],
+              [59.052832999999964, 47.287],
+              [55.80341599999997, 42.651],
+              [63.53233300000011, 47.94]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "sync",
+            "workload": "warm",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [23.98412499999995, 19.249],
+              [23.958250000000135, 15.912],
+              [25.041000000000167, 20.894],
+              [23.904250000000047, 15.923],
+              [25.122208, 18.579],
+              [24.140916999999945, 18.08],
+              [24.363125000000082, 16.597],
+              [25.547292000000198, 17.206],
+              [23.436459000000013, 16.145],
+              [29.418041999999787, 20.45]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "sync",
+            "workload": "concurrent",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [48.44033300000001, 38.902],
+              [49.621000000000095, 33.691],
+              [45.28179200000022, 36.156],
+              [50.99170800000002, 35.869],
+              [46.297000000000025, 34.42],
+              [49.8212910000002, 33.471],
+              [54.282958999999664, 38.783],
+              [48.516208000000006, 34.762],
+              [46.52958400000034, 34.386],
+              [51.77812499999982, 42.94]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "sync",
+            "workload": "warm",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [24.894041000000016, 15.7],
+              [23.91408300000012, 16.162],
+              [21.974749999999858, 16.352],
+              [24.06545899999992, 18.652],
+              [22.252958000000035, 15.71],
+              [22.93237500000032, 16.437],
+              [23.791125000000193, 19.008],
+              [22.795791999999892, 15.996],
+              [22.317250000000058, 15.314],
+              [23.971290999999837, 16.426]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "sync",
+            "workload": "concurrent",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [44.151582999999846, 33.561],
+              [49.070250000000215, 31],
+              [44.12408400000004, 31.807],
+              [42.642833999999766, 34.715],
+              [49.890166000000136, 31.868],
+              [52.80254100000002, 36.22],
+              [59.08775000000014, 37.993],
+              [49.37595800000008, 35.212],
+              [50.30020800000011, 33.649],
+              [46.99537499999997, 37.108]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "async",
+            "workload": "warm",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [25.426332999999886, 17.501],
+              [24.998875000000226, 17.89],
+              [25.417875000000095, 17.949],
+              [25.847083999999995, 18.334],
+              [25.00066599999991, 17.768],
+              [25.01654099999996, 19.121],
+              [24.89166699999987, 18.012],
+              [26.258749999999964, 17.563],
+              [25.983083999999963, 18.282],
+              [24.82116700000006, 22.371]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "async",
+            "workload": "concurrent",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [52.360749999999825, 41.786],
+              [64.5547919999999, 38.841],
+              [46.23670800000036, 36.969],
+              [48.2841669999998, 35.457],
+              [52.68833300000006, 37.797],
+              [52.51808299999993, 39.002],
+              [58.1372080000001, 42.87],
+              [54.21733399999994, 38.775],
+              [54.68041599999924, 37.504],
+              [46.03675000000021, 38.105]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "async",
+            "workload": "warm",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [24.713416999999936, 17.397],
+              [24.021292000000358, 16.624],
+              [24.12104199999976, 17.112],
+              [25.81079200000022, 17.407],
+              [25.229166000000077, 16.998],
+              [24.923000000000684, 17.049],
+              [25.86804200000006, 16.839],
+              [27.16083299999991, 19.063],
+              [25.540500000000065, 17.153],
+              [26.446584000000257, 18.335]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "async",
+            "workload": "concurrent",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [51.14208400000007, 38.085],
+              [61.65558299999975, 45.311],
+              [48.635833000000275, 40.18],
+              [53.19233299999996, 36.666],
+              [57.67295800000011, 43.678],
+              [49.14783299999999, 38.566],
+              [49.42012500000055, 40.621],
+              [55.68775000000005, 36.971],
+              [49.96600000000035, 38.76],
+              [60.49329100000068, 40.604]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "sync",
+            "workload": "warm",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [22.791916999999557, 14.647],
+              [23.030791000000136, 14.786],
+              [23.04175000000032, 15.552],
+              [21.793916999999965, 14.592],
+              [23.258292000000438, 15.695],
+              [22.018083999999362, 14.928],
+              [22.936291999999412, 15.726],
+              [23.15020800000002, 16.508],
+              [23.054957999999715, 15.702],
+              [22.696249999999964, 15.016]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "sync",
+            "workload": "concurrent",
+            "semanticValid": true,
+            "integrity": true,
+            "samples": [
+              [52.48854200000005, 35.813],
+              [43.996124999999665, 31.81],
+              [51.08612499999981, 32.192],
+              [50.69420799999989, 32.914],
+              [46.53662500000064, 35.47],
+              [51.25633300000027, 41.822],
+              [54.3297079999993, 39.005],
+              [51.93604200000027, 47.968],
+              [51.24920800000018, 54.703],
+              [50.078959000000395, 33.831]
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "decision": "Reject CAS concurrency caps1-3: slower than existing concurrency4. Adopt bounded fresh small-file read candidate for full qualification; the prototype wrappers retained original readEntry checks but are not production code. No completed read cache or durability weakening."
+}

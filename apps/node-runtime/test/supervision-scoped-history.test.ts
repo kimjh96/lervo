@@ -153,7 +153,8 @@ it.each([60_000, -1])(
     await f.reader.read();
     f.rows[0]!.payload.documentId = "changed";
     f.advance(advance);
-    await expect(f.reader.read()).rejects.toThrow("chain is invalid");
+    // The audit rereads history from the first event, where the store rejects the changed row.
+    await expect(f.reader.read()).rejects.toThrow("hash does not match");
   },
 );
 

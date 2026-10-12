@@ -4,6 +4,8 @@ import { resolve } from "node:path";
 import { parse } from "yaml";
 
 import { sha256 } from "./integrity.js";
+import { mapKnowledgeReads } from "./knowledge-read-scheduling.js";
+import type { ConceptSidecarCache } from "./concept-sidecar-cache.js";
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
 import {
   legacyStructuralConceptDirectory,
@@ -55,7 +57,10 @@ export interface StoredValue<T> {
   error?: string;
 }
 
-export async function loadStoredConcepts(root: string): Promise<Array<StoredValue<StoredConcept>>> {
+export async function loadStoredConcepts(
+  root: string,
+  cache?: ConceptSidecarCache,
+): Promise<Array<StoredValue<StoredConcept>>> {
   const files = (
     await Promise.all(
       [structuralConceptDirectory, legacyStructuralConceptDirectory].map((directory) =>
@@ -63,53 +68,67 @@ export async function loadStoredConcepts(root: string): Promise<Array<StoredValu
       ),
     )
   ).flat();
+  const observations = await mapKnowledgeReads(
+    files,
+    async (file): Promise<StoredValue<StoredConcept>> => {
+      const name = file.split("/").at(-1)!;
+      try {
+        const bytes = await readFile(resolve(root, file), "utf8");
+        const parseAndValidate = (cached?: unknown): StoredConcept => {
+          const value = (cached === undefined ? parse(bytes) : cached) as Partial<StoredConcept>;
+          const directory = file.startsWith(`${structuralConceptDirectory}/`)
+            ? structuralConceptDirectory
+            : legacyStructuralConceptDirectory;
+          if (
+            value.schemaVersion !== 1 ||
+            typeof value.conceptId !== "string" ||
+            `${value.conceptId}.yaml` !== name ||
+            typeof value.title !== "string" ||
+            typeof value.path !== "string" ||
+            (value.ownership !== "user" && value.ownership !== "lervo_generated") ||
+            (value.publicationLanguage !== undefined && value.publicationLanguage !== "en") ||
+            (value.publicationStatus !== undefined &&
+              !["draft", "stable", "deprecated"].includes(value.publicationStatus)) ||
+            (value.freshness !== undefined &&
+              !["current", "stale", "unknown"].includes(value.freshness)) ||
+            (value.assurance !== undefined &&
+              value.assurance !== "unreviewed" &&
+              value.assurance !== "human_reviewed") ||
+            !Array.isArray(value.sourceUnitVersionIds) ||
+            !value.sourceUnitVersionIds.every((item) => typeof item === "string") ||
+            ((directory === structuralConceptDirectory || file.split("/").length > 4) &&
+              file !== shardedKnowledgeArtifactPath(directory, value.conceptId, "yaml"))
+          )
+            throw new Error("The concept sidecar contract is invalid.");
+          return value as StoredConcept;
+        };
+        return { file, value: cache?.decode(file, bytes, parseAndValidate) ?? parseAndValidate() };
+      } catch (error) {
+        return {
+          file,
+          value: null,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    },
+  );
   const results: Array<StoredValue<StoredConcept>> = [];
   const resultIndexById = new Map<string, number>();
-  for (const file of files) {
-    const name = file.split("/").at(-1)!;
-    try {
-      const value = parse(await readFile(resolve(root, file), "utf8")) as Partial<StoredConcept>;
-      const directory = file.startsWith(`${structuralConceptDirectory}/`)
-        ? structuralConceptDirectory
-        : legacyStructuralConceptDirectory;
-      if (
-        value.schemaVersion !== 1 ||
-        typeof value.conceptId !== "string" ||
-        `${value.conceptId}.yaml` !== name ||
-        typeof value.title !== "string" ||
-        typeof value.path !== "string" ||
-        (value.ownership !== "user" && value.ownership !== "lervo_generated") ||
-        (value.publicationLanguage !== undefined && value.publicationLanguage !== "en") ||
-        (value.publicationStatus !== undefined &&
-          !["draft", "stable", "deprecated"].includes(value.publicationStatus)) ||
-        (value.freshness !== undefined &&
-          !["current", "stale", "unknown"].includes(value.freshness)) ||
-        (value.assurance !== undefined &&
-          value.assurance !== "unreviewed" &&
-          value.assurance !== "human_reviewed") ||
-        !Array.isArray(value.sourceUnitVersionIds) ||
-        !value.sourceUnitVersionIds.every((item) => typeof item === "string") ||
-        ((directory === structuralConceptDirectory || file.split("/").length > 4) &&
-          file !== shardedKnowledgeArtifactPath(directory, value.conceptId, "yaml"))
-      )
-        throw new Error("The concept sidecar contract is invalid.");
-      const stored = { file, value: value as StoredConcept };
-      const existingIndex = resultIndexById.get(value.conceptId);
-      if (existingIndex === undefined) {
-        resultIndexById.set(value.conceptId, results.length);
-        results.push(stored);
-      } else {
-        const existing = results[existingIndex]!;
-        const existingReviewed = existing.value?.assurance === "human_reviewed";
-        const candidateReviewed = value.assurance === "human_reviewed";
-        if (candidateReviewed && !existingReviewed) results[existingIndex] = stored;
-      }
-    } catch (error) {
-      results.push({
-        file,
-        value: null,
-        error: error instanceof Error ? error.message : String(error),
-      });
+  for (const stored of observations) {
+    const value = stored.value;
+    if (value === null) {
+      results.push(stored);
+      continue;
+    }
+    const existingIndex = resultIndexById.get(value.conceptId);
+    if (existingIndex === undefined) {
+      resultIndexById.set(value.conceptId, results.length);
+      results.push(stored);
+    } else {
+      const existing = results[existingIndex]!;
+      const existingReviewed = existing.value?.assurance === "human_reviewed";
+      const candidateReviewed = value.assurance === "human_reviewed";
+      if (candidateReviewed && !existingReviewed) results[existingIndex] = stored;
     }
   }
   return results;

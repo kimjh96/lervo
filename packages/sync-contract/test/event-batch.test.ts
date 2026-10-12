@@ -38,7 +38,7 @@ describe("outbound event batch contract", () => {
     ).toThrowError(expect.objectContaining({ code: "invalid_event_batch" }));
   });
 
-  it("accepts a mixed v1/v2 chain and rejects unsupported versions distinctly", () => {
+  it("accepts mixed v1/v2 and v6 events and rejects unsupported versions distinctly", () => {
     const project = manifest();
     const events = eventChain(project.projectId, 2, (seq) =>
       seq === 1
@@ -61,13 +61,19 @@ describe("outbound event batch contract", () => {
     );
     const batch = createOutboundEventBatch({ registration: registration(project), events });
     expect(batch.events.map((event) => event.schemaVersion)).toEqual([1, 2]);
+    const { eventHash: _eventHash, ...source } = events[0]!;
+    const current = { ...source, schemaVersion: 6 as const };
+    const version6 = { ...current, eventHash: computeEventHash(current) };
+    expect(
+      createOutboundEventBatch({ registration: registration(project), events: [version6] }).events,
+    ).toEqual([version6]);
     expect(() =>
-      assertSyncableEvent({ ...events[1]!, schemaVersion: 6 } as unknown as EventEnvelope),
+      assertSyncableEvent({ ...events[1]!, schemaVersion: 7 } as unknown as EventEnvelope),
     ).toThrowError(expect.objectContaining({ code: "event_schema_unsupported" }));
     expect(() =>
       assertOutboundEventBatch({
         ...batch,
-        events: [events[0]!, { ...events[1]!, schemaVersion: 6 } as unknown as EventEnvelope],
+        events: [events[0]!, { ...events[1]!, schemaVersion: 7 } as unknown as EventEnvelope],
       }),
     ).toThrowError(expect.objectContaining({ code: "event_schema_unsupported" }));
   });

@@ -1,5 +1,7 @@
 # Semantic Compilation, Review, and Materialization
 
+This specification defines how Lervo compiles repository evidence, reviews proposed knowledge and applies approved changes through durable transactions.
+
 ## Semantic compilation
 
 `knowledge compile --provider codex|claude` runs the installed provider in a temporary directory with filesystem, shell, network, external actions, tools, provider rules, and persistence disabled. The envelope contains untrusted units, exact evidence IDs, and `outputLanguage: en`.
@@ -31,3 +33,5 @@ A completed direct-terminal result may instead propose a portable skill through 
 ## Durable materialization
 
 Validate the plan, stage outputs, back up originals, publish exact bytes and deletions, lint, record the event, and clean the transaction. Pre-event failure restores originals; post-event cleanup failure preserves outputs and requires recovery.
+
+Apply captures the repository root, operation list, operation fields, binary bytes and document-layout permit before acquiring the source write gate. Validation, staging, publication and rollback use that private input. Later caller mutation cannot redirect an admitted operation or remove it from the transaction. Recovery also captures its root and event lookup before gate acquisition, keeping the lease and recovery target aligned. The caller retains responsibility for receipt content and event recording.

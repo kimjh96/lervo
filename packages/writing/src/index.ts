@@ -5,3 +5,4 @@ export * from "./publication.js";
 export * from "./types.js";
 export * from "./provider-claim.js";
 export * from "./provider-claim-artifact.js";
+export * from "./publication-language-exception.js";

@@ -1,3 +1,4 @@
+import type { HostOutcomePolicy } from "@lervo/repository-context";
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import type { ManagedCapabilityApprovalVerifier } from "@lervo/orchestrator";
 import type { ManagedProviderRunResult } from "@lervo/execution-contract";
@@ -29,6 +30,7 @@ export interface ManagedProviderHostOptions {
   roleRegistry: ManagedProviderHostRoleRegistry;
   adapterFactory: ManagedProviderHostAdapterFactory;
   approvalVerifier: ManagedCapabilityApprovalVerifier;
+  outcomePolicy?: HostOutcomePolicy;
   now?: () => Date;
   createId?: (prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn") => string;
   openStorage?: (root: string) => Promise<ProjectStorage>;

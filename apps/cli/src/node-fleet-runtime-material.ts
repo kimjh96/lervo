@@ -1,3 +1,9 @@
+import {
+  readNodeRuntimeModule,
+  inspectNodeRuntimeModule,
+  materializeNodeRuntimeModule,
+  type NodeRuntimeModule,
+} from "./node-fleet-runtime-module.js";
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { access, chmod, lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
@@ -65,14 +71,20 @@ export interface InstalledNodeLauncher {
   payloadBytes: Buffer;
   launcherContent: string;
   dependencies: RuntimeDependencyClosure;
+  runtimeModule: NodeRuntimeModule;
 }
 
 export async function describeInstalledNodeLauncher(
   homeDirectory?: string,
 ): Promise<InstalledNodeLauncher> {
   const bytes = await readFile(defaultExecutablePath());
+  const runtimeModule = await readNodeRuntimeModule(dirname(defaultExecutablePath()));
   const dependencies = await describeRuntimeDependencies(defaultExecutablePath());
-  const hexadecimal = createHash("sha256").update(bytes).update(dependencies.hash).digest("hex");
+  const hexadecimal = createHash("sha256")
+    .update(bytes)
+    .update(runtimeModule.hash)
+    .update(dependencies.hash)
+    .digest("hex");
   const directory = resolve(nodeRuntimesDirectory(homeDirectory), hexadecimal.slice(0, 16));
   const payload = resolve(directory, "node-runtime.js");
   return {
@@ -81,6 +93,7 @@ export async function describeInstalledNodeLauncher(
     payload,
     payloadBytes: bytes,
     dependencies,
+    runtimeModule,
     launcherContent: `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(payload)} "$@"\n`,
   };
 }
@@ -100,7 +113,7 @@ export async function materializeInstalledNodeLauncher(homeDirectory?: string): 
       "The installed Node runtime payload is unsafe.",
     );
   }
-  const { payload, payloadBytes, launcher, launcherContent, dependencies } =
+  const { payload, payloadBytes, launcher, launcherContent, dependencies, runtimeModule } =
     await describeInstalledNodeLauncher(homeDirectory);
   await mkdir(dirname(payload), { recursive: true, mode: 0o700 });
   for (const [path, content, mode] of [
@@ -122,6 +135,7 @@ export async function materializeInstalledNodeLauncher(homeDirectory?: string): 
     }
     await chmod(path, mode);
   }
+  await materializeNodeRuntimeModule(dirname(payload), runtimeModule);
   await materializeRuntimeDependencies(dirname(payload), dependencies);
   return assertNodeFleetExecutable(launcher);
 }
@@ -129,5 +143,14 @@ export async function materializeInstalledNodeLauncher(homeDirectory?: string): 
 export async function inspectInstalledNodeDependencies(
   launcher: InstalledNodeLauncher,
 ): Promise<"current" | "missing" | "conflict"> {
-  return inspectRuntimeDependencies(dirname(launcher.payload), launcher.dependencies);
+  const moduleStatus = await inspectNodeRuntimeModule(
+    dirname(launcher.payload),
+    launcher.runtimeModule,
+  );
+  const dependencyStatus = await inspectRuntimeDependencies(
+    dirname(launcher.payload),
+    launcher.dependencies,
+  );
+  if (moduleStatus === "conflict" || dependencyStatus === "conflict") return "conflict";
+  return moduleStatus === "missing" || dependencyStatus === "missing" ? "missing" : "current";
 }

@@ -17,7 +17,7 @@ import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { handleConversationEvent } from "@lervo/interaction";
 import { SQLiteConversationInteractionStore } from "@lervo/interaction-sqlite";
 import type { DocumentRegistry, RoleProfile, SharedContextPublication } from "@lervo/schemas";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   ManagedConversationResponder,
@@ -239,6 +239,12 @@ describe("managed conversation responder", () => {
     } as const;
     const roles = { reviewer: role("reviewer"), planner: role("planner") };
     const responseArtifacts = new Map<string, ManagedConversationGeneratedArtifact>();
+    let completionAllowed = true;
+    const observeOutcome = vi.fn(async (artifact: { uri: string; contentHash: string }) => {
+      expect(hash(await artifacts.get(artifact.uri))).toBe(artifact.contentHash);
+      return { completionAllowed };
+    });
+    const contextQuality = { planDigest: hash("current-quality-plan"), observe: observeOutcome };
     const adapters = {
       reviewer: new CodexAdapter({
         repositoryRoot: root,
@@ -302,6 +308,7 @@ describe("managed conversation responder", () => {
         };
         return {
           adapter: adapters[roleId],
+          contextQuality,
           executionIdentity: {
             agentId:
               roleId === "reviewer"
@@ -409,6 +416,12 @@ describe("managed conversation responder", () => {
     expect(reviewerConcurrentRetry.content).toEqual(reviewer.content);
     expect(reviewerRetry.content).toEqual(reviewer.content);
     expect(responseArtifacts.size).toBe(2);
+    expect(observeOutcome).toHaveBeenCalledTimes(3);
+    completionAllowed = false;
+    await expect(responder.respond(reviewerRequest)).rejects.toMatchObject({
+      code: "managed_run_invalid",
+    });
+    completionAllowed = true;
     expect(planner.publicationPermit.surface).toBe("chat");
 
     const surfaceEffects = [
@@ -477,6 +490,7 @@ describe("managed conversation responder", () => {
         const roleDocument = roleDocuments.reviewer;
         return {
           adapter: turnAdapter,
+          contextQuality,
           executionIdentity: {
             agentId: "agt_111111111111111111111111",
             provider: "codex",
@@ -554,6 +568,11 @@ describe("managed conversation responder", () => {
     expect(turnClient.instructions).toContain("executionIdentity");
     expect(turnClient.closed).toBe(true);
     expect(responseArtifacts.size).toBe(3);
+    completionAllowed = false;
+    await expect(turnResolver.resolve(managedTurnRequest)).rejects.toMatchObject({
+      code: "managed_run_invalid",
+    });
+    completionAllowed = true;
 
     const tampered = structuredClone(reviewer);
     tampered.publicationEvidence.evaluationArtifact.contentHash = `sha256:${"f".repeat(64)}`;

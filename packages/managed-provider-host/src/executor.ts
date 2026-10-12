@@ -1,3 +1,8 @@
+import {
+  hostOutcomeTask,
+  observeHostContextOutcomes,
+  captureHostOutcomeBaselines,
+} from "@lervo/repository-context";
 import { createHash, randomUUID } from "node:crypto";
 
 import { normalizeRepositoryPath } from "@lervo/context";
@@ -222,6 +227,10 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
         projectVerifier: verification.verifier,
         now: this.now,
       });
+      const baselines = await captureHostOutcomeBaselines(
+        storage.paths.repositoryRoot,
+        expectedPaths,
+      );
       const run = await coordinator.run({
         repositoryRoot: storage.paths.repositoryRoot,
         requestDigest: command.action.request.contentHash,
@@ -259,6 +268,29 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
               },
             }),
       });
+      const outcome = await observeHostContextOutcomes({
+        repositoryRoot: storage.paths.repositoryRoot,
+        origin: "managed_run",
+        effects: "read_only",
+        coordinates: { runId, sessionId },
+        ...(this.options.outcomePolicy ? { policy: this.options.outcomePolicy } : {}),
+        task: hostOutcomeTask(input.request, expectedPaths),
+        artifacts: [
+          ...run.managedChanges.map((change) => ({
+            kind: "repository" as const,
+            path: change.path,
+            ...(change.afterHash ? { expectedDigest: change.afterHash } : {}),
+            ...(baselines.has(change.path) ? { baselineBytes: baselines.get(change.path)! } : {}),
+          })),
+          {
+            kind: "immutable",
+            ...run.resultArtifact,
+            readBytes: () => storage!.artifacts.get(run.resultArtifact.uri),
+          },
+        ],
+      });
+      if (!outcome.completionAllowed)
+        throw new Error("Required remote-run outcome verification did not pass.");
       await this.verifyCompletion({
         repositoryRoot: storage.paths.repositoryRoot,
         continuation: command.action.continuation,

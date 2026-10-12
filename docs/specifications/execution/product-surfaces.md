@@ -13,6 +13,7 @@ Lervo provides a Discord-visible reference product now and a first-party surface
 - [Deliberation integration](product-surfaces/deliberation.md): formal decision-workflow scope, origin and participant binding, budgets, search, canonicalization, and evolution.
 - [Search, knowledge, and compatibility](product-surfaces/search-knowledge-and-compatibility.md): Lexical v2, multi-corpus search, canonicalization, version evolution, migration, and rollback.
 - [Surface observability](product-surfaces/observability.md): existing document coverage and evidence, resource, token, cache, stage, result, completeness, and comparison meanings across hosts.
+- [Context quality](context-quality.md): shared policy, retrieval, section preparation and outcome contracts for terminals, Discord and a future host. Source implementation retains capability limits; real-provider quality, resource qualification and installed parity remain open.
 
 ## Product boundary
 

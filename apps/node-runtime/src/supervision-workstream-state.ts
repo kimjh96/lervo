@@ -22,8 +22,6 @@ export async function readBoundWorkstreamState(
 ): Promise<BoundWorkstreamState | null> {
   if (!/^wks_[a-f0-9]{24}$/u.test(workstreamId))
     throw new Error("The bound workstream identity is invalid.");
-  if (verifiedEvents === undefined && !storage.events.verifyIntegrity().valid)
-    throw new Error("The bound workstream event history is invalid.");
   const events =
     verifiedEvents ??
     collectProjectEventsBounded({ events: storage.events, maximumEvents: 100_000 });

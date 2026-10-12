@@ -8,6 +8,7 @@ Defines provider-neutral managed execution and evidence contracts. ADRs retain r
 ## Contract topics
 
 - [Managed lifecycle and context evidence](execution/lifecycle-and-context.md): lifecycle, direct hooks, continuation, E0–E4, roles, eligibility, and coverage.
+- [Context quality across product surfaces](execution/context-quality.md): shared preparation, exact sections, outcome observations and event compatibility are implemented in source. Reviewed quality, resource qualification and installed acceptance remain open.
 - [Authority and repository changes](execution/authority-and-repository.md): capabilities, approvals, snapshots, assignments, verification, knowledge, and publication.
 - [Operations and recovery](execution/operations-and-recovery.md): events, privacy, durable apply, remote execution, failures, and required verification.
 

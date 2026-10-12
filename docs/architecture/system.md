@@ -36,6 +36,8 @@ The local project is the execution authority. The Hub coordinates but cannot wea
 
 Contracts and schemas do not depend on provider adapters or applications. Domain packages depend on contracts; storage and provider packages implement ports; applications compose them. `scripts/quality/check-package-boundaries.mjs` enforces this graph.
 
+The schemas package compiles its validators during the build and exposes the same provider-neutral runtime validation facade. [ADR-0503](../decisions/execution/verification/0503-compile-schema-validators-at-build-time.md) defines generated artifact ownership and exact error compatibility; compiler and filesystem work stay outside runtime validation.
+
 The application contract is a contract package, not an application implementation. The work controller may depend on provider-neutral contracts and workforce snapshots, but cannot import CLI, storage adapters, or provider adapters. Product applications depend inward on that boundary.
 
 Discord and future first-party presentation remain adapters outside domain authority. [ADR-0455](../decisions/execution/applications/0455-ratchet-the-platform-adapter-boundary-on-neutral-seams.md) adds a ratchet guard and neutral seams for platform actions, provenance, speaker provisioning, and limits. Activity, operating, observability, and search views are rebuildable projections. Surface actions enter typed application commands; no surface owns a parallel task, chat, workflow, memory, or truth store.

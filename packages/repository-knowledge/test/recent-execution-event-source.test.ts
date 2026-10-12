@@ -1,7 +1,7 @@
 import { computeEventHash } from "@lervo/event-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { collectExecutionEventSources } from "../src/execution-event-source.js";
 
@@ -29,16 +29,19 @@ function event(
   return { ...withoutHash, eventHash: computeEventHash(withoutHash) };
 }
 
-function store(value: EventEnvelope): Pick<EventStore, "latest" | "list" | "verifyIntegrity"> {
+function store(value: EventEnvelope): Pick<EventStore, "latest" | "list"> {
   return {
     latest: () => value,
     list: (options) =>
       value.seq > (options?.afterSeq ?? 0) ? [value].slice(0, options?.limit) : [],
-    verifyIntegrity: () => ({ valid: true, eventCount: 1, headHash: value.eventHash }),
   };
 }
 
-import { collectRecentExecutionEventSources } from "../src/recent-execution-event-source.js";
+import {
+  collectRecentExecutionEventSources,
+  RecentExecutionEventProjection,
+} from "../src/recent-execution-event-source.js";
+import { collectVerificationResultSources } from "../src/verification-source.js";
 
 function history(count: number): EventEnvelope[] {
   let previousHash: string | null = null;
@@ -62,15 +65,67 @@ function historyStore(values: EventEnvelope[]) {
     latest: () => values.at(-1) ?? null,
     list: (options?: { afterSeq?: number; limit?: number }) =>
       values.filter((item) => item.seq > (options?.afterSeq ?? 0)).slice(0, options?.limit),
-    verifyIntegrity: () => ({
-      valid: true as const,
-      eventCount: values.length,
-      headHash: values.at(-1)?.eventHash ?? null,
-    }),
   };
 }
 
 describe("streaming recent execution evidence", () => {
+  it("shares a complete verification traversal without changing recent evidence", async () => {
+    const values = history(2_003);
+    const events = historyStore(values);
+    const expected = collectRecentExecutionEventSources({ events, maximumEvents: 4_096 });
+    const list = vi.spyOn(events, "list");
+    const recent = new RecentExecutionEventProjection(4_096);
+    const verification = await collectVerificationResultSources({
+      events,
+      artifacts: {
+        get: async () => {
+          throw new Error("No verification artifact expected.");
+        },
+      },
+      loadSuite: async () => {
+        throw new Error("No verification suite expected.");
+      },
+      observeEvent: (event) => recent.observe(event),
+    });
+    expect(verification).toEqual([]);
+    expect(recent.sources()).toEqual(expected);
+    // One verified traversal replaces separate whole-history checks before and after it.
+    expect(list).toHaveBeenCalledTimes(3);
+  });
+
+  it("fails the shared traversal for unsafe older bytes and an unreached observed head", async () => {
+    const values = history(4);
+    values[0] = event({
+      requestDigest: `sha256:${"a".repeat(64)}`,
+      role: "developer",
+      prompt: "private-old-source",
+    });
+    const input = {
+      artifacts: { get: async () => new Uint8Array() },
+      loadSuite: async () => {
+        throw new Error("No verification suite expected.");
+      },
+    };
+    const recent = new RecentExecutionEventProjection(2);
+    await expect(
+      collectVerificationResultSources({
+        ...input,
+        events: historyStore(values),
+        observeEvent: (event) => recent.observe(event),
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
+    const events = historyStore(history(4));
+    const head = events.latest()!;
+    vi.spyOn(events, "latest").mockReturnValue({ ...head, eventHash: `sha256:${"f".repeat(64)}` });
+    await expect(
+      collectVerificationResultSources({
+        ...input,
+        events,
+        observeEvent: (event) => new RecentExecutionEventProjection(2).observe(event),
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
+  });
+
   it("preserves a recent window after complete history exceeds its count and byte bounds", () => {
     const values = history(33_000);
     const events = historyStore(values);
@@ -102,14 +157,9 @@ describe("streaming recent execution evidence", () => {
     ).not.toThrow("private-old-source");
   });
 
-  it("rejects broken integrity and unavailable snapshot pages instead of returning a partial window", () => {
+  it("rejects a broken chain and unavailable snapshot pages instead of returning a partial window", () => {
     const value = event();
-    const invalid = {
-      ...store(value),
-      verifyIntegrity: () => {
-        throw new Error("private integrity diagnostic");
-      },
-    };
+    const invalid = store({ ...value, previousHash: `sha256:${"e".repeat(64)}` });
     expect(() =>
       collectRecentExecutionEventSources({ events: invalid, maximumEvents: 2 }),
     ).toThrowError(expect.objectContaining({ code: "knowledge_evidence_source_invalid" }));

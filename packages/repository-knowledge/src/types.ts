@@ -368,12 +368,16 @@ export interface RepositoryKnowledgeRankerEntry {
 export interface PreparedRepositoryKnowledgeQueryRanker {
   engine: { id: string; version: number };
   adapterBuildId: string;
+  /** Optional rebuildable adapter projection. Never evidence or a replacement for current inputs. */
+  preparationProjection?: unknown;
   rank(input: { query: string; limit: number }): Array<{ conceptId: string; score: number }>;
 }
 
 export interface RepositoryKnowledgeQueryRanker {
   prepare(
     entries: readonly RepositoryKnowledgeRankerEntry[],
+    /** Adapters validate their own format and fall back to analyzing all current entries. */
+    reuse?: { previousProjection: unknown },
   ): PreparedRepositoryKnowledgeQueryRanker | Promise<PreparedRepositoryKnowledgeQueryRanker>;
 }
 

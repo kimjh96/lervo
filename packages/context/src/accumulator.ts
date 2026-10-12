@@ -42,6 +42,16 @@ export class ContextSelectionAccumulator {
     sharedContextId?: string;
     expectedContentHash?: string;
   }): void {
+    const expectedContentHash = input.expectedContentHash ?? input.candidate.expectedContentHash;
+    if (
+      input.expectedContentHash !== undefined &&
+      input.candidate.expectedContentHash !== undefined &&
+      input.expectedContentHash !== input.candidate.expectedContentHash
+    )
+      throw new ContextPreparationError(
+        "content_expectation_conflict",
+        "Instruction source version conflicts with selected evidence.",
+      );
     this.discover(input.candidate);
     const document = this.selected.get(input.candidate.documentId) ?? {
       candidate: {
@@ -71,17 +81,17 @@ export class ContextSelectionAccumulator {
       document.candidate = { ...document.candidate, referenceEligible: true };
     }
     if (
-      input.expectedContentHash !== undefined &&
+      expectedContentHash !== undefined &&
       document.expectedContentHash !== undefined &&
-      document.expectedContentHash !== input.expectedContentHash
+      document.expectedContentHash !== expectedContentHash
     ) {
       throw new ContextPreparationError(
         "content_expectation_conflict",
         `Different content hashes were required for ${input.candidate.documentId}.`,
       );
     }
-    if (input.expectedContentHash !== undefined) {
-      document.expectedContentHash = input.expectedContentHash;
+    if (expectedContentHash !== undefined) {
+      document.expectedContentHash = expectedContentHash;
     }
     if (
       !document.reasons.some(

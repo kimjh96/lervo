@@ -9,7 +9,7 @@
         "apps/conversation/src/application.ts": { "lines": 16 },
         "apps/conversation/src/built-in-integrations.ts": { "lines": 28 },
         "apps/conversation/src/types.ts": { "lines": 18 },
-        "apps/node-runtime/src/bin.ts": { "lines": 3 },
+        "apps/node-runtime/src/entry.ts": { "lines": 3 },
         "apps/node-runtime/src/config-preflight.ts": { "lines": 7 },
         "apps/node-runtime/src/config-types.ts": { "lines": 3 },
         "apps/node-runtime/src/config.ts": { "lines": 23 },

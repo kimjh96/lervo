@@ -127,7 +127,10 @@ export function instructionCaptureAttentionItems(
  * The compact prompt lines: what waits for the owner, and the applied owner rules every provider
  * must follow. Titles are normalized rule titles from reviewed files, never prompt text.
  */
-export function instructionCaptureCompactLines(input: InstructionCaptureAttentionInput): string[] {
+export function instructionCaptureCompactLines(
+  input: InstructionCaptureAttentionInput,
+  includeAppliedRules = true,
+): string[] {
   const lines: string[] = [];
   if (input.authorityBlocked !== undefined && input.authorityBlocked !== null)
     lines.push(
@@ -157,7 +160,7 @@ export function instructionCaptureCompactLines(input: InstructionCaptureAttentio
       ),
     );
   }
-  if (input.applied.rules.length > 0) {
+  if (includeAppliedRules && input.applied.rules.length > 0) {
     const more = input.applied.totalCount - input.applied.rules.length;
     lines.push(
       boundedLine(

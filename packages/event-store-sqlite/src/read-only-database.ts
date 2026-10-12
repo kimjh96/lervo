@@ -2,7 +2,8 @@ import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { EventStoreError } from "./errors.js";
-import { storageSchemaVersion } from "./migrations.js";
+import { protectReportFiles } from "./report-file-permissions.js";
+import { readStorageFormat } from "./report-schema.js";
 import { sqliteRow } from "./sqlite-row.js";
 
 /** Opens an existing live WAL reader without creating, migrating or rebinding canonical data. */
@@ -20,14 +21,7 @@ export async function openReadOnlyEventDatabase(input: { path: string; projectId
     enableForeignKeyConstraints: true,
   });
   try {
-    if (
-      sqliteRow(database.prepare("PRAGMA user_version").get())?.user_version !==
-      storageSchemaVersion
-    )
-      throw new EventStoreError(
-        "integrity_failed",
-        "The existing event store requires an owner-managed schema migration.",
-      );
+    if (readStorageFormat(database) === 4) await protectReportFiles(path, "verify");
     if (
       sqliteRow(database.prepare("SELECT value FROM store_meta WHERE key = 'project_id'").get())
         ?.value !== input.projectId

@@ -1,3 +1,4 @@
+import { hostOutcomeTask, observeHostContextOutcomes } from "@lervo/repository-context";
 import { parseArgs } from "node:util";
 
 import { launchDetachedKnowledgeWorker } from "./knowledge-worker-command.js";
@@ -142,6 +143,7 @@ export async function runTerminalHookCommand(
               queryDigest: sha256(input.prompt!),
               queryProjectionReceiptId: context.grounding.queryProjectionReceipt.receiptId,
               sourceSnapshotId: context.sourceSnapshotId,
+              preparationQuality: context.preparationQuality,
               recommendationCount: context.recommendationCount,
               loadedDocumentCount: context.documents.length,
               contextHash: sha256(context.additionalContext),
@@ -233,6 +235,17 @@ export async function runTerminalHookCommand(
           occurredAt,
         }),
       );
+      await observeHostContextOutcomes({
+        repositoryRoot: root,
+        origin: "terminal",
+        effects: "read_only",
+        coordinates,
+        task: hostOutcomeTask(
+          "Inspect observed terminal outputs; original task acceptance is unavailable.",
+          observation.changedPaths,
+        ),
+        artifacts: observation.changedPaths.map((path) => ({ kind: "repository" as const, path })),
+      });
       const capture = await timing.measure("event_commit", () =>
         settleTerminalAgentTurn({
           root,

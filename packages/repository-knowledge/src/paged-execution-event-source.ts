@@ -1,5 +1,3 @@
-import { computeEventHash, eventWithoutHash } from "@lervo/event-contract";
-import { validateSchema } from "@lervo/schemas";
 import { visitEventSnapshot, type EventStore } from "@lervo/storage-contract";
 
 import { executionEventSource, executionEvidenceFailure } from "./execution-event-evidence.js";
@@ -10,9 +8,12 @@ const maximumPages = 4;
 const maximumPageSources = 32_768;
 const maximumPageBytes = 16 * 1024 * 1024;
 
-/** Pages become available only after the entire pinned canonical prefix is verified. */
+/**
+ * Pages become available only after the entire pinned canonical prefix is verified: the store
+ * hash-checks each returned event and the snapshot traversal checks every link to the head.
+ */
 export function collectExecutionEventSourcePages(input: {
-  events: Pick<EventStore, "latest" | "list" | "verifyIntegrity">;
+  events: Pick<EventStore, "latest" | "list">;
   limits: Pick<RepositoryKnowledgePolicy["limits"], "maxFiles" | "maxTotalBytes">;
 }): RepositorySupplementalSource[][] {
   for (const value of [input.limits.maxFiles, input.limits.maxTotalBytes])
@@ -25,10 +26,7 @@ export function collectExecutionEventSourcePages(input: {
   let pageBytes = 0;
   let totalBytes = 0;
   let sourceCount = 0;
-  let sequence = 0;
-  let previousHash: string | null = null;
   try {
-    if (!input.events.verifyIntegrity().valid) return executionEvidenceFailure();
     const head = input.events.latest();
     if (head === null) return [];
     const latest = { seq: head.seq, projectId: head.projectId, eventHash: head.eventHash };
@@ -37,19 +35,11 @@ export function collectExecutionEventSourcePages(input: {
     visitEventSnapshot({
       events: input.events,
       throughSeq: latest.seq,
+      throughHash: latest.eventHash,
       visit: (event) => {
-        if (
-          event.seq !== sequence + 1 ||
-          event.previousHash !== previousHash ||
-          event.projectId !== latest.projectId ||
-          ids.has(event.eventId) ||
-          !validateSchema("event", event).valid ||
-          computeEventHash(eventWithoutHash(event)) !== event.eventHash
-        )
+        if (event.projectId !== latest.projectId || ids.has(event.eventId))
           return executionEvidenceFailure();
         ids.add(event.eventId);
-        sequence = event.seq;
-        previousHash = event.eventHash;
         const source = executionEventSource(event);
         if (source === null) return;
         const bytes = Buffer.byteLength(source.content);
@@ -70,12 +60,6 @@ export function collectExecutionEventSourcePages(input: {
         pageBytes += bytes;
       },
     });
-    if (
-      sequence !== latest.seq ||
-      previousHash !== latest.eventHash ||
-      !input.events.verifyIntegrity().valid
-    )
-      return executionEvidenceFailure();
     if (page.length !== 0) pages.push(page);
     return pages;
   } catch {

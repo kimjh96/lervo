@@ -1,3 +1,4 @@
+import { verifyConversationOutcome } from "./outcome-boundary.js";
 import type { ConversationReplyCandidate } from "@lervo/interaction";
 
 import { ManagedConversationArtifactRunner } from "./managed-artifact-runner.js";
@@ -61,6 +62,7 @@ export class ManagedConversationResponder implements ManagedConversationResponde
       });
     }
     try {
+      await verifyConversationOutcome(plan, generated.artifact);
       return await publishConversationResponse({
         artifact: generated.artifact,
         writingContract: plan.writingContract,

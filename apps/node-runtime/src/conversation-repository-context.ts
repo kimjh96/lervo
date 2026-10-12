@@ -33,6 +33,7 @@ export async function prepareConversationRepositoryContext(input: {
   projectId: string;
   event: ConversationInboundEvent;
   runId: string;
+  sessionId?: string;
   artifactStore: ArtifactStore;
   registry: DocumentRegistry;
   baseRole: RoleProfile;
@@ -46,10 +47,15 @@ export async function prepareConversationRepositoryContext(input: {
     repositoryRoot: input.repositoryRoot,
     projectId: input.projectId,
     query: message,
+    origin: "conversation" as const,
+    continuation: currentWorkstream?.snapshot.objective ?? "",
     fallbackQuery: "repository conversation context",
     observedAt: new Date(),
     productDefault: productDefaultSearchEngine,
     runId: input.runId,
+    ...(input.sessionId
+      ? { recordingCoordinates: { runId: input.runId, sessionId: input.sessionId } }
+      : {}),
   };
   const search = await prepareManagedSearchContext({
     ...searchInput,
@@ -81,6 +87,8 @@ export async function prepareConversationRepositoryContext(input: {
     });
   }
   return {
+    preparationQuality: search.preparationQuality,
+    quality: "quality" in search ? search.quality : null,
     query: message,
     role,
     documentRules,

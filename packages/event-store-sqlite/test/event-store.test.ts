@@ -504,7 +504,7 @@ describe("SQLite append-only event store", () => {
     raw.close();
   });
 
-  it("detects a modified event during restart", async () => {
+  it("rejects a modified tail when it is read, extended or verified", async () => {
     const path = await databasePath();
     const store = await SQLiteEventStore.open({ path, projectId });
     store.append(draft());
@@ -517,8 +517,123 @@ describe("SQLite append-only event store", () => {
       .run('{"role":"tampered"}', "evt_01234567");
     raw.close();
 
-    await expect(SQLiteEventStore.open({ path, projectId })).rejects.toMatchObject({
-      code: "integrity_failed",
-    });
+    // Opening checks the store binding only; the modified row fails wherever it is used.
+    const reopened = await SQLiteEventStore.open({ path, projectId });
+    try {
+      for (const use of [
+        () => reopened.get("evt_01234567"),
+        () => reopened.latest(),
+        () => reopened.list(),
+        () => reopened.append(draft({ eventId: "evt_12345678", runId: "run_12345678" })),
+        () => reopened.verifyIntegrity(),
+      ])
+        expect(use).toThrowError(expect.objectContaining({ code: "integrity_failed" }));
+    } finally {
+      reopened.close();
+    }
+  });
+
+  it("keeps a valid tail writable while modified older history fails on use", async () => {
+    const path = await databasePath();
+    const store = await SQLiteEventStore.open({ path, projectId });
+    for (const id of ["01234567", "12345678", "23456789"])
+      store.append(draft({ eventId: `evt_${id}`, runId: `run_${id}` }));
+    store.close();
+
+    const raw = new DatabaseSync(path);
+    raw.exec("DROP TRIGGER events_no_update;");
+    raw
+      .prepare("UPDATE events SET occurred_at = ? WHERE event_id = ?")
+      .run("2026-08-19T00:00:00Z", "evt_01234567");
+    raw.close();
+
+    const reopened = await SQLiteEventStore.open({ path, projectId });
+    try {
+      expect(
+        reopened.append(draft({ eventId: "evt_34567890", runId: "run_34567890" })).event.seq,
+      ).toBe(4);
+      expect(reopened.get("evt_23456789")?.seq).toBe(3);
+      for (const use of [
+        () => reopened.get("evt_01234567"),
+        () => reopened.list(),
+        () => reopened.verifyIntegrity(),
+      ])
+        expect(use).toThrowError(expect.objectContaining({ code: "integrity_failed" }));
+    } finally {
+      reopened.close();
+    }
+  });
+
+  it("rejects a broken predecessor link even when each row hash is valid", async () => {
+    const path = await databasePath();
+    const store = await SQLiteEventStore.open({ path, projectId });
+    store.append(draft());
+    const forged = {
+      ...draft({ eventId: "evt_12345678", runId: "run_12345678" }),
+      payload: {
+        requestDigest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        role: "developer",
+      },
+      seq: 2,
+      previousHash: `sha256:${"d".repeat(64)}`,
+    };
+    const raw = new DatabaseSync(path);
+    try {
+      raw
+        .prepare(
+          `INSERT INTO events (event_id, project_id, seq, run_id, session_id, type, occurred_at,
+           actor_json, schema_version, policy_version, payload_json, previous_hash, event_hash)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          forged.eventId,
+          projectId,
+          2,
+          forged.runId,
+          forged.sessionId,
+          forged.type,
+          forged.occurredAt,
+          JSON.stringify(forged.actor),
+          forged.schemaVersion,
+          forged.policyVersion,
+          JSON.stringify(forged.payload),
+          forged.previousHash,
+          computeEventHash(forged),
+        );
+    } finally {
+      raw.close();
+    }
+    try {
+      expect(store.get("evt_12345678")?.seq).toBe(2);
+      for (const use of [
+        () => store.list(),
+        () => store.append(draft({ eventId: "evt_23456789", runId: "run_23456789" })),
+        () => store.verifyIntegrity(),
+      ])
+        expect(use).toThrowError(expect.objectContaining({ code: "integrity_failed" }));
+    } finally {
+      store.close();
+    }
+  });
+
+  it("detects external corruption after warming the same open handle", async () => {
+    const path = await databasePath();
+    const store = await SQLiteEventStore.open({ path, projectId });
+    const raw = new DatabaseSync(path);
+    try {
+      store.append(draft());
+      expect(store.verifyIntegrity().eventCount).toBe(1);
+      expect(store.verifyIntegrity().eventCount).toBe(1);
+      raw.exec("DROP TRIGGER events_no_update");
+      raw
+        .prepare("UPDATE events SET payload_json = ? WHERE event_id = ?")
+        .run('{"role":"tampered"}', "evt_01234567");
+      expect(() => store.verifyIntegrity()).toThrowError(
+        expect.objectContaining({ code: "integrity_failed" }),
+      );
+    } finally {
+      raw.close();
+      store.close();
+    }
   });
 });

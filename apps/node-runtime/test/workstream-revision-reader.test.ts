@@ -287,6 +287,7 @@ describe("incremental workstream verification", () => {
       db.close();
     }
     f.setTime(60_000);
-    await expect(f.reader.readRevisionChain()).rejects.toThrow("event chain is invalid");
+    // The store rejects the altered row when the audit reads it.
+    await expect(f.reader.readRevisionChain()).rejects.toMatchObject({ code: "integrity_failed" });
   });
 });

@@ -32,9 +32,9 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:43065d3061f3fb6b00166499d0639e9f7dd0ee224186cce24027f726dc817f05",
+      "contentHash": "sha256:ba3abf108d51bcea176b18e3f4e65d507b17e405f2f264d44cadf22b26e6c92f",
       "responsibility": "Managed provider run command orchestration",
-      "rationale": "The CLI composes one managed run from admission through writing publication and finalization. Research source capture and checker environment validation are delegated to dedicated CLI adapters; the entrypoint adds only ordered preparation and port coordinates. Capability, skill, provider and storage policies remain behind their existing boundaries.",
+      "rationale": "The module sequences one admitted run through context, execution, outcome checks, writing publication, finalization, and cleanup. Public command contracts, provider construction, grounded capability selection and package ceilings, and outcome verification are separate modules. Existing research, role, skill, workspace and project-verification owners retain their boundaries; the remaining lifecycle shares one ordered failure and storage-cleanup contract.",
       "disposition": "cohesive"
     },
     {
@@ -42,13 +42,6 @@
       "contentHash": "sha256:544b06b45ea239203a2b2247019ed4f9f02487db5a5da6f8f54a10c83e3a9022",
       "responsibility": "Versioned product-host capability catalog composition",
       "rationale": "The module owns the immutable v1 base route catalog and composes additive protocol upgrades. Version-specific v4 through v11 additions remain in dedicated modules; command parsing, product inspection, projection policy, and rendering are separate. Its length is declarative catalog data rather than mixed execution responsibility.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "apps/cli/src/terminal-turn-observation.ts",
-      "contentHash": "sha256:6a9d9a6a246adfcb2ce873034675f7875ba2668f93c4f0e910f514303e67c4cb",
-      "responsibility": "Terminal turn context preparation and Stop observation records",
-      "rationale": "The module records one prepared-context and Stop lifecycle. Exact Git pins are copied into the existing prepared snapshot; snapshot persistence, source validation, event coordinates, and background ownership stay in separate modules.",
       "disposition": "cohesive"
     },
     {
@@ -130,9 +123,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:8ca4a0264b4c648d0ecb8bd237079a335335e685329c4b57a9d65c8830c2c2e1",
+      "contentHash": "sha256:e77f26644180ffcf13ca6b67cd2b8baef77cb02e3b7cb7b91b13c725c8805e75",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "This pure privacy boundary composes canonical allowlists, schema dispatch and sanitized coordinate checks. Convergence, replica, archive, owner-lease, attribution, freshness, capture, delegation-continuation, publication-repair, and ADR-0477 definition-installation allowlists only map hash-only payloads to their schemas; the convergence, freshness, and capture lists live in their own modules, and none adds provider work, authority decisions or persistence.",
+      "rationale": "The module owns the event payload privacy boundary and its declarative registry. Context-quality field and semantic rules live in context-quality-payload.ts; adding that registry does not couple artifact storage, plan preparation, or writer activation into redaction.",
       "disposition": "cohesive"
     },
     {
@@ -154,13 +147,6 @@
       "contentHash": "sha256:b3fac31cbd1150edee5c7e51dc659cb2faa21cb8dba9ae0e184ccb9bd89b71df",
       "responsibility": "OKF v0.2 exchange adapter",
       "rationale": "Read, lint, query, export, import, and re-export are operations over one external OKF format boundary with shared safety, trust, and byte-preservation rules.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/node-work-admission/src/store.ts",
-      "contentHash": "sha256:03b81ccaa7ea6b41763e32ed810352d5afc3fc40ef6be7e02b8bea7f5349990c",
-      "responsibility": "SQLite Node work session, claim and upgrade freeze adapter",
-      "rationale": "One SQLite adapter owns the bounded session, claim, and freeze lifecycle. Its exact digest check reports a distinct config_mismatch refusal, and dead-session cleanup and the retained scope participation record permit inactive recovery only when the service manager explicitly verifies that state. Configuration bytes, predecessor discovery, service status, rollback, and provider behavior remain outside the store.",
       "disposition": "cohesive"
     },
     {
@@ -242,9 +228,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/durable-apply.ts",
-      "contentHash": "sha256:c75855ea755a5b4f99b443b3f8de1b9daff2d0c05fa80a8c9de0fe9080355907",
+      "contentHash": "sha256:aca81b5b20485b5b0efac94852430ab7174b0638304dbe10c56a6a57fe9ae4d1",
       "responsibility": "Durable knowledge filesystem transaction",
-      "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, and cleanup implement one atomic filesystem transaction protocol under the external source gate. Journal reading, read-only owner classification, and the foreground wait for a live owner live in separate materialization modules; SQLite mechanics, background retry policy, and the worker's busy-versus-recovery decision stay elsewhere.",
+      "rationale": "One durable filesystem transaction owns staging, exact before/after bindings, publication, rollback and crash settlement. Apply snapshots operations, byte payloads and the document permit before acquiring its source gate; recovery captures the same root used for its gate. Terminal asset policy and validation remain in the runtime owner. Receipt interpretation stays with the caller; no provider or artifact policy enters the transaction.",
       "disposition": "cohesive"
     },
     {
@@ -291,9 +277,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:8f2dd0f7ffb8605cc338bd91b574a1bb08a1ab9c8135872621b0ffabf1ba8ba4",
-      "responsibility": "Bounded repository knowledge scanner",
-      "rationale": "Classification, safe reads, transient-cache exclusion, source-unit extraction, scan construction, and immutable scan transforms own the canonical scanned-source aggregate; safe reads type a source or revision moving under the scan as source_bytes_changed, which a bounded read-only rescan absorbs. Inclusion matching and cache naming live in the intake policy, and nested working-tree detection in the filesystem metadata module; no transport or provider concern was added.",
+      "contentHash": "sha256:7028953464587bec1061df9c3837484cc97d8422ebfcc89fa96cb2d282e8eaba",
+      "responsibility": "Fresh repository scan orchestration",
+      "rationale": "Fresh filesystem discovery, safe reads, retries, lineage validation, supplemental evidence, and snapshot assembly own one scan. Pure classification, materialization, and transforms remain separate. Optional query-only source-unit reuse is supplied explicitly after fresh byte observation; the pure cache owns bindings and decoding, and a separate adapter owns persistence.",
       "disposition": "cohesive"
     },
     {
@@ -318,17 +304,10 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/repository-knowledge/src/terminal-integration.ts",
-      "contentHash": "sha256:2e60666d3469c9350e0159161129ad23a717a4044be78392676dbd31a531e09f",
-      "responsibility": "Provider terminal-hook installation lifecycle",
-      "rationale": "Provider configuration merge, runtime integrity, inspection, plan creation, and apply form one fail-closed terminal integration contract.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:968147f6a57ccb199c9f8c62675dd0b2a233bc25ff73a7d912bba39475f930a3",
+      "contentHash": "sha256:9aee9cdf2160eb6a4d6df5197a902ba9cbc0daba9b818fef2ac0239966466e6c",
       "responsibility": "Repository knowledge public contract types",
-      "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, policy, and typed domain failures without owning their implementations. The optional workstream freshness policy field references its owning freshness module rather than redefining it. The optional document freshness policy section references its owning freshness policy module rather than redefining it.",
+      "rationale": "One declarative package contract surface for scans, policy, lifecycle results, and typed failures. The optional ranker preparation projection is opaque and provider-neutral; validation belongs to the concrete adapter and persistence to query preparation. No implementation, filesystem, or concrete search adapter is imported into these contracts.",
       "disposition": "cohesive"
     },
     {
@@ -360,6 +339,13 @@
       "disposition": "cohesive"
     },
     {
+      "path": "packages/schemas/src/schema-catalog.ts",
+      "contentHash": "sha256:2183f5e1afcae686ff01e69803e124195ae2daaf4401d69d4d2e6a035b8b3f25",
+      "responsibility": "Declarative schema registration catalog",
+      "rationale": "The module declares the unchanged schema-name mapping and forward-reference catalog used by build-time generation and public type names. It contains no compiler initialization, runtime validation, filesystem access, provider policy or artifact publication. Those responsibilities live in separate owners.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/schemas/src/terminal-observation-event.ts",
       "contentHash": "sha256:ebbffbb6be465b464e95dbb908e52e0f9a890541410556e21b1e86dd3875493e",
       "responsibility": "Declarative terminal observation event schemas",
@@ -367,24 +353,10 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:49da12d480697afe2b8ba253af75397e62f2b3f4715317c6070695c654ec2255",
-      "responsibility": "Repository schema validator registry",
-      "rationale": "The module compiles one declarative schema registry. Dedicated event schema modules own additive validators, including schema-5 maintenance receipts; privacy, freshness decisions, source inspection, projections, and writer activation stay outside this registry. The new entries add no orchestration or I/O responsibility.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/search/src/performance-benchmark.ts",
       "contentHash": "sha256:d73e3bb3f80a88155c7ff08baa343345d6e31cd32436c226cdb271ed30956f13",
       "responsibility": "Search quality and latency benchmark",
       "rationale": "Case validation, paired timing, quality aggregation, latency statistics, environment capture, and reporting form one reproducible benchmark protocol.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "scripts/distribution/lib/node-runtime-distribution.mjs",
-      "contentHash": "sha256:2c2d66c83853913e7a21350b80e28b378a4f9f1a5582c1f4bc7c468f9c1ac580",
-      "responsibility": "Node runtime distribution builder",
-      "rationale": "Dependency inventory, manifest, SBOM, archive, platform validation, and verification are phases of one Node distribution artifact contract. Generic mode-preserving tar extraction is delegated to the shared archive boundary.",
       "disposition": "cohesive"
     },
     {

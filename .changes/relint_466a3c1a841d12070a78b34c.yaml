@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_466a3c1a841d12070a78b34c"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reuse content-bound knowledge extraction and search preparation across queries and processes while preserving fresh source verification and identical ranking."

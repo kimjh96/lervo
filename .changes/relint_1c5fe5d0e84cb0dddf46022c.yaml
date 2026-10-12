@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1c5fe5d0e84cb0dddf46022c"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep host outcome verification and correction bound to admitted artifacts, definitions and callbacks when caller-owned objects change."

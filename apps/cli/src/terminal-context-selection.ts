@@ -1,3 +1,4 @@
+import { withRetrievalPreparationBudget } from "@lervo/repository-context";
 import {
   loadStoredConcepts,
   queryRepositoryKnowledge,
@@ -129,6 +130,7 @@ async function selectOperationalPlanCandidates(input: {
     selected: candidates.slice(0, 6),
     disposition: candidates.length === 0 ? ("no_candidates" as const) : ("selected" as const),
     retrievalPlanId: plan.planId,
+    retrievalBuildId: engine.adapterBuildId,
     retrievalPlanTransitionId: operational.selectionTransitionId,
     productQualificationId: operational.productQualificationId,
   };
@@ -145,6 +147,10 @@ export async function selectTerminalContextCandidates(input: {
   supplementalSources: RepositorySupplementalSource[];
   preparedScan?: RepositoryKnowledgeScan;
 }) {
+  return withRetrievalPreparationBudget(() => selectCandidates(input), { deadlineMs: 3000 });
+}
+
+async function selectCandidates(input: Parameters<typeof selectTerminalContextCandidates>[0]) {
   const operational = await selectOperationalPlanCandidates(input);
   if (operational !== null) return operational;
   if (input.retrievalQueries.length === 0) {
@@ -154,6 +160,7 @@ export async function selectTerminalContextCandidates(input: {
       selected: [],
       disposition: "query_projection_missing" as const,
       retrievalPlanId: null,
+      retrievalBuildId: null,
       retrievalPlanTransitionId: null,
       productQualificationId: null,
     };
@@ -196,6 +203,7 @@ export async function selectTerminalContextCandidates(input: {
     selected: fusion.values,
     disposition: fusion.values.length === 0 ? ("no_candidates" as const) : ("selected" as const),
     retrievalPlanId: null,
+    retrievalBuildId: results[0]!.ranking?.adapterBuildId ?? null,
     retrievalPlanTransitionId: null,
     productQualificationId: null,
   };

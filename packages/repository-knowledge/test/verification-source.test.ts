@@ -11,7 +11,7 @@ import {
   verificationSha256,
   verificationSuiteHash,
 } from "@lervo/verification-contract";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { defaultRepositoryKnowledgePolicy } from "../src/policy.js";
 import { scanRepositoryKnowledge } from "../src/scanner.js";
@@ -82,6 +82,8 @@ function fixture(): {
   const resultContentHash = verificationSha256(bytes);
   const event = {
     seq: 1,
+    previousHash: null,
+    eventHash: `sha256:${"b".repeat(64)}`,
     type: "verification.completed",
     occurredAt: result.completedAt,
     payload: {
@@ -102,7 +104,7 @@ function ports(
   event: EventEnvelope,
   bytes: Uint8Array,
 ): {
-  events: Pick<EventStore, "latest" | "list" | "verifyIntegrity">;
+  events: Pick<EventStore, "latest" | "list">;
   artifacts: Pick<ArtifactStore, "get">;
 } {
   return {
@@ -110,11 +112,6 @@ function ports(
       latest: () => event,
       list: (options) =>
         event.seq > (options?.afterSeq ?? 0) ? [event].slice(0, options?.limit) : [],
-      verifyIntegrity: () => ({
-        valid: true,
-        eventCount: 1,
-        headHash: event.eventHash ?? `sha256:${"b".repeat(64)}`,
-      }),
     },
     artifacts: { get: async () => bytes },
   };
@@ -127,10 +124,13 @@ afterEach(async () => {
 describe("verification result knowledge source", () => {
   it("binds a canonical completed event and CAS original as one supplemental unit", async () => {
     const { suite, result, bytes, event } = fixture();
+    const observeEvent = vi.fn();
     const sources = await collectVerificationResultSources({
       ...ports(event, bytes),
       loadSuite: async () => suite,
+      observeEvent,
     });
+    expect(observeEvent).toHaveBeenCalledExactlyOnceWith(event);
     expect(sources).toEqual([
       expect.objectContaining({
         path: `@verification/${result.verificationId}`,

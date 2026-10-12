@@ -6,6 +6,7 @@ import {
   LEXICAL_V2_ADAPTER_BUILD_ID,
   LEXICAL_V2_SEARCH_ENGINE,
   LexicalV2SearchIndex,
+  LexicalV2FieldAnalysisCache,
   lexicalV2SearchEvaluationEngine,
 } from "../src/index.js";
 
@@ -91,5 +92,60 @@ describe("lexical v2 search evaluation adapter", () => {
     const index = new LexicalV2SearchIndex(sources);
     expect(() => index.search("runtime", 0)).toThrow(/result limit/);
     expect(() => index.search("runtime", 51)).toThrow(/result limit/);
+  });
+
+  it("reuses unchanged fields while preserving complete ranking, scores, metadata and negative results", () => {
+    const queries = [
+      "runtime recovery",
+      "searchAdapterBuildId",
+      "search_adapter_build_id",
+      "normalizing",
+      "Runtime  RECOVERY",
+      "배포 승인",
+      "qzxvnjkqzvnmqjkx",
+    ];
+    const full = new LexicalV2SearchIndex(sources);
+    const cold = new LexicalV2FieldAnalysisCache();
+    const first = new LexicalV2SearchIndex(sources, { fieldCache: cold });
+    const persisted = structuredClone(cold.snapshot()) as { entries: unknown[] };
+    expect(JSON.stringify(persisted)).not.toContain(sources[0]!.text);
+    const warm = new LexicalV2FieldAnalysisCache(persisted);
+    const second = new LexicalV2SearchIndex(sources, { fieldCache: warm });
+    for (const query of queries) {
+      expect(first.search(query)).toEqual(full.search(query));
+      expect(second.search(query)).toEqual(full.search(query));
+    }
+    expect(warm.statistics.analyzedFields).toBe(0);
+    expect(warm.snapshot()).toBeNull();
+    expect(second.search("qzxvnjkqzvnmqjkx").hits).toEqual([]);
+
+    const edited = [
+      { ...sources[0]!, title: "Changed runtime contract", text: "recovery ".repeat(100) },
+      sources[2]!,
+    ];
+    const incremental = new LexicalV2FieldAnalysisCache(persisted);
+    const changed = new LexicalV2SearchIndex(edited, { fieldCache: incremental });
+    const rebuilt = new LexicalV2SearchIndex(edited);
+    for (const query of queries) expect(changed.search(query)).toEqual(rebuilt.search(query));
+    expect(incremental.statistics.analyzedFields).toBe(2);
+    const compacted = incremental.snapshot() as { entries: unknown[] };
+    expect(compacted.entries.length).toBeLessThan(persisted.entries.length);
+  });
+
+  it("rebuilds malformed field data and incompatible builds from the current input", () => {
+    const cold = new LexicalV2FieldAnalysisCache();
+    const full = new LexicalV2SearchIndex(sources, { fieldCache: cold });
+    const broken = structuredClone(cold.snapshot()) as {
+      build: string;
+      entries: Array<[string, [Map<string, number>, Map<string, number>]]>;
+    };
+    const frequencies = broken.entries[0]![1][0];
+    frequencies.set(frequencies.keys().next().value!, 0);
+    for (const snapshot of [broken, { ...broken, build: "old-analysis" }, { build: "invalid" }]) {
+      const cache = new LexicalV2FieldAnalysisCache(snapshot);
+      const recovered = new LexicalV2SearchIndex(sources, { fieldCache: cache });
+      expect(recovered.search("runtime recovery")).toEqual(full.search("runtime recovery"));
+      expect(cache.statistics.analyzedFields).toBeGreaterThan(0);
+    }
   });
 });

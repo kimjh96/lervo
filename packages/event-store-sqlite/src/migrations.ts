@@ -1,6 +1,7 @@
 import { type DatabaseSync } from "node:sqlite";
 
 import { EventStoreError } from "./errors.js";
+import { reportStorageSchemaVersion } from "./report-schema.js";
 import { sqliteRow } from "./sqlite-row.js";
 
 const migrations = [
@@ -89,15 +90,18 @@ export function configureDatabase(database: DatabaseSync): void {
   `);
 }
 
-export function migrateDatabase(database: DatabaseSync): void {
-  database.exec("BEGIN IMMEDIATE;");
+export function migrateDatabase(
+  database: DatabaseSync,
+  transaction: "independent" | "nested" = "independent",
+): void {
+  database.exec(transaction === "nested" ? "SAVEPOINT migrate_schema;" : "BEGIN IMMEDIATE;");
   try {
     const row = sqliteRow(database.prepare("PRAGMA user_version;").get());
     const version = row?.user_version;
     if (typeof version !== "number" || !Number.isSafeInteger(version)) {
       throw new EventStoreError("integrity_failed", "The SQLite schema version cannot be read.");
     }
-    if (version > storageSchemaVersion) {
+    if (version > reportStorageSchemaVersion) {
       throw new EventStoreError("integrity_failed", `Unsupported event store schema: ${version}`);
     }
     for (let index = version; index < migrations.length; index += 1) {
@@ -105,9 +109,13 @@ export function migrateDatabase(database: DatabaseSync): void {
       database.exec(`PRAGMA user_version = ${index + 1};`);
     }
     database.exec(supplementalIndexes);
-    database.exec("COMMIT;");
+    database.exec(transaction === "nested" ? "RELEASE migrate_schema;" : "COMMIT;");
   } catch (error) {
-    database.exec("ROLLBACK;");
+    database.exec(
+      transaction === "nested"
+        ? "ROLLBACK TO migrate_schema; RELEASE migrate_schema;"
+        : "ROLLBACK;",
+    );
     throw error;
   }
 }

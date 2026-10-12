@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_120761b3c6d42005325b0de7"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Read opt-in SQLite quality reports alongside existing CAS artifacts without automatically migrating legacy stores."

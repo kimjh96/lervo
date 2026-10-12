@@ -6,3 +6,5 @@ export * from "./repository-source-gate.js";
 export * from "./types.js";
 
 export { watchProjectEventChanges } from "./event-wakeup.js";
+
+export { createProjectStoragePool } from "./storage-pool.js";

@@ -55,6 +55,18 @@ export function repositoryPathMatchesPatterns(path: string, patterns: readonly s
   });
 }
 
+/** One observation owns its compiled policy; no file observation or process-wide state is reused. */
+export function compileKnowledgeScannerExclusion(
+  policy: Pick<RepositoryKnowledgePolicy, "exclude">,
+): (path: string) => boolean {
+  const expressions = policy.exclude.flatMap((pattern) => [
+    globExpression(pattern),
+    ...(pattern.endsWith("/**") ? [globExpression(pattern.slice(0, -3))] : []),
+  ]);
+  return (path) =>
+    expressions.some((expression) => expression.test(path)) || isTransientToolCachePath(path);
+}
+
 /** True when the scanner leaves the path out of the repository inventory. */
 export function knowledgeScannerExcludes(
   path: string,

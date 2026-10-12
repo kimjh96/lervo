@@ -12,10 +12,23 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json"
+    "build": "node scripts/generate-validators.mjs && tsc --project tsconfig.json"
   },
   "dependencies": {
     "ajv": "^8.17.0",
     "json-schema-to-ts": "^3.1.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "imports": {
+    "#coordinate-data-validation": {
+      "types": "./src/coordinate-data-validation.ts",
+      "default": "./dist/coordinate-data-validation.js"
+    },
+    "#compiled-validators": {
+      "types": "./src/compiled-validators.d.ts",
+      "default": "./dist/generated/validators.js"
+    }
   }
 }

@@ -43,3 +43,5 @@ Verification covers release artifacts, the SBOM, installed and packed CLIs, subd
 - [Fail-closed provider terminal integration](0196-fail-closed-provider-terminal-integration.md)
 - [Codex hooks](https://learn.chatgpt.com/docs/hooks)
 - [Execution specification](../../../specifications/execution.md)
+
+[ADR-0502](../../distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) extends generated runtimes with the exact native synchronization pair and schema-2 integrity inventory. Native-only changes bind new plan coordinates and use the same byte-preserving durable journal. Startup verifies all declared assets before input; schema-1 runtimes without assets remain readable. Provider commands, trust review and unmanaged assurance are unchanged.

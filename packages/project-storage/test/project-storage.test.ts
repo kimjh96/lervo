@@ -1,3 +1,4 @@
+import * as projectCoordinates from "@lervo/project";
 import {
   lstat,
   mkdir,
@@ -631,4 +632,33 @@ describe("project storage bootstrap", () => {
     await expect(openProjectStorage(root)).rejects.toMatchObject({ code: "not_initialized" });
     expect(await readdir(root)).toEqual([]);
   });
+});
+
+it("rejects project replacement between opening preparation and fresh coordinates before backend effects", async () => {
+  const root = await initializedRepository();
+  const inspect = projectCoordinates.inspectProjectStorageCoordinates;
+  const observation = vi
+    .spyOn(projectCoordinates, "inspectProjectStorageCoordinates")
+    .mockImplementationOnce(async (path) => {
+      const manifestPath = resolve(path, ".lervo/project.yaml");
+      await writeFile(
+        manifestPath,
+        (await readFile(manifestPath, "utf8")).replace(projectId, "prj_replaced_project"),
+      );
+      return inspect(path);
+    });
+  const openEventStore = vi.fn(async () => {
+    throw new Error("backend must not open");
+  });
+  const openArtifactStore = vi.fn(async () => {
+    throw new Error("backend must not open");
+  });
+  try {
+    const open = createProjectStorageOpener({ openEventStore, openArtifactStore });
+    await expect(open(root)).rejects.toMatchObject({ code: "storage_binding_changed" });
+    expect(openEventStore).not.toHaveBeenCalled();
+    expect(openArtifactStore).not.toHaveBeenCalled();
+  } finally {
+    observation.mockRestore();
+  }
 });

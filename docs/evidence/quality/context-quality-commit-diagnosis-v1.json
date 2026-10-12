@@ -1,0 +1,611 @@
+{
+  "schemaVersion": 1,
+  "scope": "Instrumented diagnostics only; cold, warm and concurrent run sequentially in one process, so cold sample is not an independent fresh-process acceptance cohort. Inspector includes imports outside batch timers. Overlapping cumulative phase times are not additive; different roots and uncontrolled host conditions. No provider calls.",
+  "script": "import { Session } from 'node:inspector/promises';\nimport { mkdtemp, rm, writeFile } from 'node:fs/promises';\nimport { tmpdir } from 'node:os';\nimport { resolve } from 'node:path';\nconst repo=process.cwd();\nconst {initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\nconst {activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\nconst {SQLiteEventStore}=await import(resolve(repo,'packages/event-store-sqlite/dist/index.js'));\nconst {FileSystemCas}=await import(resolve(repo,'packages/cas/dist/index.js'));\nconst parent=await mkdtemp(resolve(tmpdir(),'lervo-recording-phases-'));\nconst results=[];\ntry {\n for (const workload of ['cold','warm','concurrent']) {\n  const root=resolve(parent,workload); await initializeActiveFixture(root);\n  const phases={},restore=[];\n  function wrap(obj,key,async) {\n   const original=obj[key], stat=phases[key]??={count:0,ms:0};\n   obj[key]=async? async function(...args){const start=performance.now();stat.count++;try{return await original.apply(this,args)}finally{stat.ms+=performance.now()-start}}:function(...args){const start=performance.now();stat.count++;try{return original.apply(this,args)}finally{stat.ms+=performance.now()-start}};\n   restore.push(()=>obj[key]=original);\n  }\n  wrap(SQLiteEventStore,'open',true);wrap(SQLiteEventStore.prototype,'transact',false);wrap(SQLiteEventStore.prototype,'verifyIntegrity',false);wrap(FileSystemCas.prototype,'putStream',true);\n  const session=new Session();session.connect();await session.post('Profiler.enable');await session.post('Profiler.start');\n  const worker=await activeWorker(root,'candidate',workload,4096,{warmups:2,samples:10,concurrency:4});\n  const {profile}=await session.post('Profiler.stop');session.disconnect();restore.forEach(fn=>fn());\n  const counts=new Map();const nodes=new Map(profile.nodes.map(n=>[n.id,n]));\n  for(const id of profile.samples??[]){const f=nodes.get(id).callFrame;const key=JSON.stringify([f.functionName,f.url.replace('file://'+repo+'/',''),f.lineNumber+1]);counts.set(key,(counts.get(key)??0)+1)}\n  results.push({workload,phases,semanticValid:worker.semanticValid,samples:worker.samples.map(x=>x.slice(0,2)),top:[...counts].sort((a,b)=>b[1]-a[1]).slice(0,30).map(([k,n])=>[...JSON.parse(k),n])});\n }\n await writeFile(process.argv[2],JSON.stringify({diagnosticOnly:true,results},null,2));\n}finally{await rm(parent,{recursive:true,force:true})}\n",
+  "scriptHash": "sha256:128629461e3eaa37437161945d4f31c665ed171d62280d6e6ea7938a40d1238b",
+  "before": {
+    "diagnosticOnly": true,
+    "results": [
+      {
+        "workload": "cold",
+        "phases": {
+          "open": {
+            "count": 2,
+            "ms": 2.2115009999999984
+          },
+          "transact": {
+            "count": 2,
+            "ms": 3.554625000000101
+          },
+          "verifyIntegrity": {
+            "count": 5,
+            "ms": 0.9935829999999441
+          },
+          "putStream": {
+            "count": 2,
+            "ms": 9.507540999999947
+          }
+        },
+        "semanticValid": true,
+        "samples": [[56.254916000000094, 78.072]],
+        "top": [
+          ["compileSourceTextModule", "node:internal/modules/esm/utils", 338, 15],
+          ["internalModuleStat", "", 0, 15],
+          ["read", "", 0, 13],
+          ["(idle)", "", 0, 12],
+          ["wrapSafe", "node:internal/modules/cjs/loader", 1824, 6],
+          [
+            "consume",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            239,
+            6
+          ],
+          ["validateSchema", "packages/schemas/dist/validate.js", 362, 6],
+          ["getPackageScopeConfig", "", 0, 5],
+          ["parse", "", 0, 5],
+          [
+            "chunkInside",
+            "node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/content.js",
+            79,
+            5
+          ],
+          [
+            "main",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            203,
+            4
+          ],
+          ["realpathSync", "node:fs", 3234, 3],
+          ["#getOrCreateModuleJobAfterResolve", "node:internal/modules/esm/loader", 529, 3],
+          ["", "packages/repository-knowledge/dist/integrity.js", 10, 3],
+          ["(program)", "", 0, 3],
+          ["lstat", "", 0, 2],
+          ["getPackageScopeConfig", "node:internal/modules/package_json_reader", 192, 2],
+          ["open", "", 0, 2],
+          ["readPackageJSON", "", 0, 2],
+          ["defaultResolve", "node:internal/modules/esm/resolve", 961, 2],
+          ["(garbage collector)", "", 0, 2],
+          ["normalizeString", "node:path", 92, 2],
+          ["parse", "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/parser.js", 165, 2],
+          [
+            "data",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/content.js",
+            62,
+            2
+          ],
+          ["post", "node:inspector", 115, 1],
+          ["defaultLoadSync", "node:internal/modules/esm/load", 136, 1],
+          ["", "node:internal/util/parse_args/utils", 1, 1],
+          ["ModuleWrap", "", 0, 1],
+          ["afterLoad", "node:internal/modules/esm/loader", 502, 1],
+          ["fileURLToPath", "node:internal/url", 1622, 1]
+        ]
+      },
+      {
+        "workload": "warm",
+        "phases": {
+          "open": {
+            "count": 2,
+            "ms": 2.1597090000000208
+          },
+          "transact": {
+            "count": 24,
+            "ms": 14.960790999999745
+          },
+          "verifyIntegrity": {
+            "count": 27,
+            "ms": 6.863248999999769
+          },
+          "putStream": {
+            "count": 24,
+            "ms": 104.94304400000044
+          }
+        },
+        "semanticValid": true,
+        "samples": [
+          [27.918083000000024, 24.502],
+          [27.19604199999992, 22.402],
+          [29.07629200000008, 28.891],
+          [27.920084000000088, 28.182],
+          [26.873291999999992, 21.898],
+          [26.898707999999942, 22.315],
+          [27.04124999999999, 22.47],
+          [27.05883300000005, 20.46],
+          [28.872499999999945, 33.206],
+          [28.732250000000022, 24.517]
+        ],
+        "top": [
+          ["(idle)", "", 0, 137],
+          ["(program)", "", 0, 13],
+          [
+            "go",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            232,
+            10
+          ],
+          [
+            "consume",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            239,
+            9
+          ],
+          [
+            "main",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            203,
+            8
+          ],
+          ["normalizeString", "node:path", 92, 5],
+          ["selectEvidenceSections", "packages/context/dist/evidence-sections.js", 7, 5],
+          ["exec", "", 0, 4],
+          ["lstat", "node:internal/fs/promises", 1784, 4],
+          ["(garbage collector)", "", 0, 4],
+          ["lstat", "", 0, 4],
+          ["fstat", "", 0, 3],
+          ["update", "", 0, 3],
+          [
+            "chunkInside",
+            "node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/content.js",
+            79,
+            3
+          ],
+          ["terms", "packages/context/dist/evidence-sections.js", 5, 3],
+          ["openFileHandle", "", 0, 2],
+          ["validateSchema", "packages/schemas/dist/validate.js", 362, 2],
+          ["realpath", "node:internal/fs/promises", 2007, 2],
+          ["FileHandle", "node:internal/fs/promises", 185, 2],
+          [
+            "write",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            134,
+            2
+          ],
+          ["structuredClone", "node:internal/worker/js_transferable", 113, 2],
+          [
+            "data",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/content.js",
+            62,
+            2
+          ],
+          ["storeVerificationBytes", "packages/verification/dist/artifact.js", 3, 2],
+          [
+            "markdownLineEnding",
+            "node_modules/.pnpm/micromark-util-character@2.1.1/node_modules/micromark-util-character/index.js",
+            143,
+            2
+          ],
+          ["inspectPath", "packages/context/dist/filesystem.js", 44, 2],
+          [
+            "atBreak",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/text.js",
+            75,
+            2
+          ],
+          ["post", "node:inspector", 115, 1],
+          ["resolve", "node:path", 1245, 1],
+          ["ensureRealDirectory", "packages/cas/dist/cas.js", 19, 1],
+          ["", "scripts/evaluation/lib/context-quality-active-worker.mjs", 69, 1]
+        ]
+      },
+      {
+        "workload": "concurrent",
+        "phases": {
+          "open": {
+            "count": 3,
+            "ms": 5.562375000000202
+          },
+          "transact": {
+            "count": 96,
+            "ms": 88.33650499999976
+          },
+          "verifyIntegrity": {
+            "count": 100,
+            "ms": 35.91833400000223
+          },
+          "putStream": {
+            "count": 96,
+            "ms": 1223.8526619999993
+          }
+        },
+        "semanticValid": true,
+        "samples": [
+          [51.81345800000008, 56.678],
+          [51.51279100000011, 43.495],
+          [47.37641600000006, 52.228],
+          [55.59750000000008, 51.491],
+          [55.76937500000008, 52.963],
+          [54.18070799999987, 45.149],
+          [51.953666999999996, 50.687],
+          [56.46329200000014, 44.602],
+          [57.78537499999993, 42.647],
+          [51.458665999999994, 52.383]
+        ],
+        "top": [
+          ["(idle)", "", 0, 272],
+          ["exec", "", 0, 24],
+          ["fstat", "", 0, 16],
+          ["(program)", "", 0, 16],
+          [
+            "consume",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            239,
+            11
+          ],
+          ["terms", "packages/context/dist/evidence-sections.js", 5, 9],
+          ["update", "", 0, 9],
+          ["next", "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/parser.js", 176, 8],
+          ["normalizeString", "node:path", 92, 6],
+          ["lstat", "", 0, 6],
+          [
+            "main",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            203,
+            6
+          ],
+          ["validate40", "", 3, 6],
+          [
+            "go",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            232,
+            6
+          ],
+          ["all", "", 0, 6],
+          ["serializeCanonical", "packages/event-contract/dist/canonical-json.js", 1, 6],
+          ["(garbage collector)", "", 0, 5],
+          [
+            "chunkInside",
+            "node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/content.js",
+            79,
+            5
+          ],
+          ["lstat", "node:internal/fs/promises", 1784, 5],
+          ["prepare", "", 0, 4],
+          ["verify", "packages/event-store-sqlite/dist/chain-verifier.js", 16, 4],
+          ["read", "", 0, 3],
+          ["validateSchema", "packages/schemas/dist/validate.js", 362, 3],
+          ["openFileHandle", "", 0, 3],
+          ["validate43", "", 3, 3],
+          [
+            "flowContinue",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/document.js",
+            204,
+            3
+          ],
+          [
+            "parseDocument",
+            "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/lexer.js",
+            319,
+            3
+          ],
+          ["get", "", 0, 3],
+          [
+            "parseLineStart",
+            "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/lexer.js",
+            287,
+            3
+          ],
+          ["selectEvidenceSections", "packages/context/dist/evidence-sections.js", 7, 2],
+          [
+            "data",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/text.js",
+            58,
+            2
+          ]
+        ]
+      }
+    ]
+  },
+  "batchPrototype": {
+    "diagnosticOnly": true,
+    "results": [
+      {
+        "workload": "cold",
+        "phases": {
+          "open": {
+            "count": 2,
+            "ms": 2.187208000000055
+          },
+          "transact": {
+            "count": 2,
+            "ms": 3.2569590000000517
+          },
+          "verifyIntegrity": {
+            "count": 5,
+            "ms": 0.9382909999999356
+          },
+          "putStream": {
+            "count": 2,
+            "ms": 8.967499999999859
+          }
+        },
+        "semanticValid": true,
+        "samples": [[55.14275000000009, 78.828]],
+        "top": [
+          ["(idle)", "", 0, 20],
+          ["compileSourceTextModule", "node:internal/modules/esm/utils", 338, 15],
+          [
+            "chunkInside",
+            "node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/content.js",
+            79,
+            6
+          ],
+          ["open", "", 0, 5],
+          ["internalModuleStat", "", 0, 5],
+          ["wrapSafe", "node:internal/modules/cjs/loader", 1824, 5],
+          [
+            "consume",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            239,
+            5
+          ],
+          ["realpathSync", "node:fs", 3234, 4],
+          ["#getOrCreateModuleJobAfterResolve", "node:internal/modules/esm/loader", 529, 4],
+          ["", "packages/repository-knowledge/dist/integrity.js", 10, 4],
+          ["validateSchema", "packages/schemas/dist/validate.js", 362, 4],
+          ["readPackageJSON", "", 0, 3],
+          ["parse", "", 0, 3],
+          [
+            "main",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            203,
+            3
+          ],
+          ["afterLoad", "node:internal/modules/esm/loader", 502, 2],
+          ["getPackageScopeConfig", "node:internal/modules/package_json_reader", 192, 2],
+          ["resolveSync", "node:internal/modules/esm/loader", 744, 2],
+          ["(garbage collector)", "", 0, 2],
+          ["exec", "", 0, 2],
+          [
+            "data",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/text.js",
+            58,
+            2
+          ],
+          ["post", "node:inspector", 115, 1],
+          ["get", "node:internal/modules/package_json_reader", 79, 1],
+          ["createWritableStdioStream", "node:internal/bootstrap/switches/is_main_thread", 50, 1],
+          ["finalizeResolution", "node:internal/modules/esm/resolve", 226, 1],
+          ["URL", "node:internal/url", 824, 1],
+          ["emitLegacyIndexDeprecation", "node:internal/modules/esm/resolve", 124, 1],
+          ["fileURLToPath", "node:internal/url", 1622, 1],
+          ["getCLIOptionsFromBinding", "node:internal/options", 32, 1],
+          ["getPackageScopeConfig", "", 0, 1],
+          ["legacyMainResolve", "", 0, 1]
+        ]
+      },
+      {
+        "workload": "warm",
+        "phases": {
+          "open": {
+            "count": 2,
+            "ms": 2.1903750000002447
+          },
+          "transact": {
+            "count": 24,
+            "ms": 13.757205999999883
+          },
+          "verifyIntegrity": {
+            "count": 27,
+            "ms": 6.366583999999648
+          },
+          "putStream": {
+            "count": 24,
+            "ms": 107.37558099999933
+          }
+        },
+        "semanticValid": true,
+        "samples": [
+          [26.964917000000014, 24.011],
+          [27.353583999999955, 21.705],
+          [27.80995800000005, 27.657],
+          [28.715458000000012, 28.813],
+          [26.964875000000006, 21.077],
+          [28.196166999999946, 22.008],
+          [25.670874999999796, 20.883],
+          [26.14629200000013, 20.026],
+          [26.984666999999945, 29.21],
+          [26.042374999999993, 21.663]
+        ],
+        "top": [
+          ["(idle)", "", 0, 133],
+          ["(program)", "", 0, 19],
+          [
+            "main",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            203,
+            8
+          ],
+          ["terms", "packages/context/dist/evidence-sections.js", 5, 7],
+          [
+            "consume",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            239,
+            7
+          ],
+          [
+            "go",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            232,
+            6
+          ],
+          ["fstat", "", 0, 6],
+          [
+            "write",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            134,
+            5
+          ],
+          ["fstat", "node:internal/fs/promises", 1775, 5],
+          [
+            "parseDocument",
+            "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/lexer.js",
+            319,
+            5
+          ],
+          ["lstat", "node:internal/fs/promises", 1784, 4],
+          [
+            "data",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/content.js",
+            62,
+            4
+          ],
+          ["exec", "", 0, 4],
+          [
+            "atBreak",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/text.js",
+            75,
+            3
+          ],
+          ["lstat", "", 0, 3],
+          ["next", "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/parser.js", 176, 3],
+          ["open", "node:internal/fs/promises", 1351, 3],
+          ["selectEvidenceSections", "packages/context/dist/evidence-sections.js", 7, 2],
+          [
+            "blockMap",
+            "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/parser.js",
+            484,
+            2
+          ],
+          [
+            "chunkInside",
+            "node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/content.js",
+            79,
+            2
+          ],
+          ["openFileHandle", "", 0, 2],
+          [
+            "pushSpaces",
+            "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/lexer.js",
+            701,
+            2
+          ],
+          ["realpath", "node:internal/fs/promises", 2007, 2],
+          ["serializeCanonical", "packages/event-contract/dist/canonical-json.js", 1, 2],
+          ["parse", "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/parser.js", 165, 2],
+          ["update", "", 0, 2],
+          ["validateSchema", "packages/schemas/dist/validate.js", 362, 2],
+          ["post", "node:inspector", 115, 1],
+          ["digest", "scripts/evaluation/lib/context-quality-artifact-identity.mjs", 4, 1],
+          ["DatabaseSync", "", 0, 1]
+        ]
+      },
+      {
+        "workload": "concurrent",
+        "phases": {
+          "open": {
+            "count": 3,
+            "ms": 8.336000000000013
+          },
+          "transact": {
+            "count": 56,
+            "ms": 47.38204400000018
+          },
+          "verifyIntegrity": {
+            "count": 60,
+            "ms": 26.455624999999145
+          },
+          "putStream": {
+            "count": 96,
+            "ms": 1278.600791999999
+          }
+        },
+        "semanticValid": true,
+        "samples": [
+          [48.62691599999994, 51.678],
+          [51.94970799999987, 40.299],
+          [54.86645800000019, 44.399],
+          [54.581333000000086, 53.871],
+          [54.94291700000008, 45.674],
+          [54.87254199999984, 49.058],
+          [77.32637499999987, 63.17],
+          [48.72708299999999, 41.712],
+          [48.425874999999905, 39.642],
+          [53.31575000000021, 44.102]
+        ],
+        "top": [
+          ["(idle)", "", 0, 308],
+          ["(program)", "", 0, 18],
+          ["exec", "", 0, 14],
+          ["serializeCanonical", "packages/event-contract/dist/canonical-json.js", 1, 12],
+          [
+            "go",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            232,
+            9
+          ],
+          ["terms", "packages/context/dist/evidence-sections.js", 5, 8],
+          ["openFileHandle", "", 0, 7],
+          ["next", "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/parser.js", 176, 7],
+          ["verify", "packages/event-store-sqlite/dist/chain-verifier.js", 16, 6],
+          ["close", "", 0, 6],
+          ["lstat", "", 0, 5],
+          ["(garbage collector)", "", 0, 5],
+          [
+            "main",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            203,
+            5
+          ],
+          ["validate40", "", 3, 5],
+          ["update", "", 0, 5],
+          ["fstat", "", 0, 5],
+          [
+            "chunkInside",
+            "node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/content.js",
+            79,
+            5
+          ],
+          ["normalizeString", "node:path", 92, 4],
+          [
+            "atBreak",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/text.js",
+            75,
+            4
+          ],
+          ["structuredClone", "node:internal/worker/js_transferable", 113, 4],
+          [
+            "consume",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            239,
+            4
+          ],
+          ["fstat", "node:internal/fs/promises", 1775, 3],
+          [
+            "foldLines",
+            "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/compose/resolve-flow-scalar.js",
+            76,
+            3
+          ],
+          ["prepare", "", 0, 3],
+          [
+            "data",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/text.js",
+            58,
+            3
+          ],
+          ["selectEvidenceSections", "packages/context/dist/evidence-sections.js", 7, 3],
+          [
+            "write",
+            "node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js",
+            134,
+            3
+          ],
+          ["Hash", "", 0, 2],
+          [
+            "parseDocument",
+            "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/lexer.js",
+            319,
+            2
+          ],
+          ["resolveProjectPaths", "packages/project/dist/layout.js", 57, 2]
+        ]
+      }
+    ]
+  },
+  "beforeArtifactBuildHash": "sha256:f1e7f9541b6c64c38ad6855afeac68836aa886665d78eda15af727ac0c20773b",
+  "limitations": [
+    "Batch prototype preceded the final post-observation lease-invalidation correction.",
+    "This diagnosis cannot qualify latency, CPU or cold regressions.",
+    "No original-control arm or repeated interleaved cross-build comparison."
+  ]
+}

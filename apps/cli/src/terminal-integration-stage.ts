@@ -4,15 +4,17 @@ import {
   applyTerminalIntegrationPlan,
   createTerminalIntegrationPlan,
   type TerminalIntegrationPlan,
+  type TerminalRuntimeAsset,
   type TerminalIntegrationReceipt,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
 
-import { loadTerminalHookRuntime } from "./terminal-runtime.js";
+import { loadTerminalHookRuntime, loadTerminalHookRuntimeAssets } from "./terminal-runtime.js";
 
 export interface PreparedTerminalIntegration {
   plan: TerminalIntegrationPlan;
   runtimeContent: string;
+  runtimeAssets: TerminalRuntimeAsset[];
 }
 
 function latestTerminalIntegrationApplicationEventId(
@@ -36,6 +38,7 @@ export async function planTerminalIntegrationStage(
   repositoryRoot: string,
 ): Promise<PreparedTerminalIntegration> {
   const runtimeContent = await loadTerminalHookRuntime();
+  const runtimeAssets = await loadTerminalHookRuntimeAssets();
   const historyStorage = await openProjectStorage(repositoryRoot);
   let priorApplicationEventId: string | null;
   try {
@@ -48,8 +51,10 @@ export async function planTerminalIntegrationStage(
       repositoryRoot,
       runtimeContent,
       priorApplicationEventId,
+      runtimeAssets,
     ),
     runtimeContent,
+    runtimeAssets,
   };
 }
 
@@ -64,7 +69,7 @@ export async function applyTerminalIntegrationStage(input: {
   approval: { operationId: string; approvalHash: string } | null;
   now: Date;
 }): Promise<TerminalIntegrationReceipt> {
-  const { plan, runtimeContent } = input.prepared;
+  const { plan, runtimeContent, runtimeAssets } = input.prepared;
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
     if (latestTerminalIntegrationApplicationEventId(storage) !== plan.priorApplicationEventId)
@@ -82,6 +87,7 @@ export async function applyTerminalIntegrationStage(input: {
     return await applyTerminalIntegrationPlan({
       plan,
       runtimeContent,
+      runtimeAssets,
       ...(input.approval === null
         ? {}
         : {

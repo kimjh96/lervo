@@ -3,10 +3,9 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { computeEventHash, eventWithoutHash } from "@lervo/event-contract";
-
 import { EventStoreError } from "./errors.js";
 import { rowToEvent } from "./row-codec.js";
+import { reportStorageSchemaVersion, verifyReportSchema } from "./report-schema.js";
 import { storageSchemaVersion } from "./migrations.js";
 import { iterateSqliteRows, sqliteRow } from "./sqlite-row.js";
 
@@ -64,13 +63,14 @@ export async function inspectExistingEventStore(input: {
       typeof version !== "number" ||
       !Number.isSafeInteger(version) ||
       version < 1 ||
-      version > storageSchemaVersion
+      version > reportStorageSchemaVersion
     ) {
       throw new EventStoreError(
         "integrity_failed",
         `Unsupported event store schema: ${String(version)}`,
       );
     }
+    if (version === reportStorageSchemaVersion) verifyReportSchema(database);
     const projectId = sqliteRow(
       database.prepare("SELECT value FROM store_meta WHERE key = 'project_id'").get(),
     )?.value;
@@ -84,18 +84,14 @@ export async function inspectExistingEventStore(input: {
     let eventCount = 0;
     let previousHash: string | null = null;
     const rows = iterateSqliteRows(
-      database
-        .prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq")
-        .iterate(input.projectId),
+      database.prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq"),
+      input.projectId,
     );
     for (const row of rows) {
+      // The row boundary rejects content that no longer matches its stored hash.
       const event = rowToEvent(row);
       eventCount += 1;
-      if (
-        event.seq !== eventCount ||
-        event.previousHash !== previousHash ||
-        event.eventHash !== computeEventHash(eventWithoutHash(event))
-      ) {
+      if (event.seq !== eventCount || event.previousHash !== previousHash) {
         throw new EventStoreError(
           "integrity_failed",
           `The event chain does not match at ${event.eventId}.`,

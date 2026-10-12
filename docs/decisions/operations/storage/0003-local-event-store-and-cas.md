@@ -11,6 +11,8 @@ Local execution evidence must remain complete without a Hub, with ordering and l
 
 ## Decision
 
+Local execution records events in SQLite, delivers them through a durable outbox and stores artifacts by content hash.
+
 ### SQLite event store
 
 - Store events in `.lervo/state/events.sqlite` with project identity and schema-version metadata. Use Node.js 22.13's built-in synchronous `node:sqlite` API and a single writer; review this choice when upgrading Node.js.
@@ -21,7 +23,7 @@ Local execution evidence must remain complete without a Hub, with ordering and l
 - Use `user_version` migrations. Version 2 preserves events and adds the outbox and indexes.
 - Event IDs are unique. Repeating an ID with the same sanitized event returns the existing record; different content fails with `event_id_conflict`.
 - Triggers prohibit event updates and deletion. Enable WAL, `FULL` synchronous mode, foreign keys, and a five-second busy timeout without extensions.
-- On open, run `quick_check` and validate complete schemas, sequence continuity, predecessor and event hashes, foreign keys, outbox coordinates, timestamps, leases, and failure fields. Integrity failure closes mutation paths.
+- [ADR-0507](../../execution/verification/0507-verify-event-history-at-the-point-of-use.md) supersedes open-time complete verification. Opening checks the store binding; returned rows, appended predecessors and snapshot traversals are verified when used. Explicit `verifyIntegrity` still runs `quick_check` and validates complete schemas, sequence continuity, predecessor and event hashes, foreign keys, outbox coordinates, timestamps, leases, and failure fields. Integrity failure closes mutation paths.
 
 ### Durable outbox
 
@@ -43,13 +45,13 @@ Local execution evidence must remain complete without a Hub, with ordering and l
 
 ### Failure semantics
 
-| Store code | Run meaning |
-| --- | --- |
+| Store code                                                                                                                                                                           | Run meaning                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
 | `closed`, `invalid_event`, `project_mismatch`, `event_id_conflict`, `nested_transaction`, `transaction_async`, `invalid_outbox_request`, `outbox_not_found`, `outbox_lease_conflict` | Stop with `contract_validation_failed` unless a narrower caller contract applies. |
-| `integrity_failed` | Stop with `telemetry_recording_failed` and close mutation paths. |
-| CAS storage or verification failure | Stop with `artifact_storage_failed`; do not claim the artifact exists. |
+| `integrity_failed`                                                                                                                                                                   | Stop with `telemetry_recording_failed` and close mutation paths.                  |
+| CAS storage or verification failure                                                                                                                                                  | Stop with `artifact_storage_failed`; do not claim the artifact exists.            |
 
-Errors and events contain only codes, digests, and bounded coordinates—never raw rows, document bodies, prompts, credentials, or provider payloads.
+Errors and events contain only codes, digests, and bounded coordinates. They never contain raw rows, document bodies, prompts, credentials, or provider payloads.
 
 ## Consequences
 

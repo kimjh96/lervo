@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_299431fa7eb4cf798a47c6bc"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Avoid recompressing verified duplicate context-quality reports while preserving complete readback and transaction failure checks."

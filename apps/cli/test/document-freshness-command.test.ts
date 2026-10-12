@@ -123,6 +123,7 @@ describe("document freshness owner surfaces", () => {
       observedAt: new Date("2026-10-05T01:00:00.000Z"),
     });
     const base = {
+      publicationLanguage: "en",
       attention,
       declarationInstruction: "Declare the turn.",
       backgroundKnowledgeActive: true,

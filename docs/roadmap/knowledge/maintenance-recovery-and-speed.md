@@ -1,7 +1,7 @@
 # Knowledge maintenance recovery and speed
 
 Status: `in_progress`
-As of: 2026-10-08
+As of: 2026-10-09
 Scope: first delivery installed on Mac and WSL; complete protocol and seven-day acceptance pending
 
 ## Outcome and decisions
@@ -53,6 +53,14 @@ Keep the old effect gate until the exclusive apply boundary, interrupted-journal
 
 ### 4. Incremental inspection and review-aware batching
 
+The knowledge-query preparation slice in [ADR-0497](../../decisions/operations/storage/0497-reuse-exact-event-page-verification.md) shares execution/verification traversal and reuses validation only after all raw event bytes are reread. Its [evidence](../../evidence/quality/knowledge-query-preparation-performance.md) is separate from the anchored incremental-observation and full-inspection gates below. It must preserve exact query results and source counts; reducing search or history coverage is not an optimization acceptance path.
+
+The next preparation slice in [ADR-0498](../../decisions/knowledge/maintenance/0498-prepare-fresh-knowledge-reads-in-order.md) compiles exclusion patterns per scan and overlaps fresh sidecar/publication reads while retaining registry order. Acceptance requires complete scan and query equivalence over 30 alternating pairs, safe-file regressions, policy refresh, and unchanged coverage. It does not authorize persistent observation reuse or establish installed latency.
+
+[ADR-0499](../../decisions/knowledge/maintenance/0499-reuse-content-bound-knowledge-preparation-projections.md) adds per-source extraction, per-sidecar decoding, and adapter field-analysis reuse across processes after fresh byte observation. Acceptance requires exact full/cached output equality, changed-file recomputation, cache deletion/corruption/concurrent-write recovery, and 30 alternating performance pairs with fresh-process and cold-cache costs reported. Whole-index ranking statistics remain current; lifecycle/write scans retain their full reference path.
+
+[ADR-0500](../../decisions/knowledge/maintenance/0500-avoid-duplicate-knowledge-cache-representations.md) removes intermediate whole-cache JSON strings and duplicated lexical frequency representations. Acceptance requires lower fresh-process peak RSS over 30 alternating pairs against ADR-0499, unchanged complete outputs and inventory, cold-create measurements, and legacy/binary failure recovery without forced GC, heap flags, or lower coverage.
+
 Share one prepared observation within a snapshot and persist bounded reconstructible components across processes. Validate event anchors and dependency invalidation. Use explicit deadlines and partial coverage for authoritative inspection. Cached/full outputs must be equivalent before reuse reaches write preparation.
 
 Build normalization preflight once. Select by byte, unit, call, review-output, and elapsed capacity with fair handling of oversized documents. Preserve measured cost limits across obligations and reuse only exact independently verified artifacts. A review timeout subdivides unchanged envelopes while uncertain calls reconcile before retry.
@@ -67,6 +75,10 @@ Run a seven-day installed canary with ongoing developer commits, foreground acti
 
 Source verification for the first delivery is recorded in the [implementation evidence](../../evidence/quality/knowledge-maintenance-recovery-and-speed-implementation.md). Grouped gates remain unchecked where installed, crash, performance, or full protocol evidence is still missing.
 
+- [x] Interactive knowledge preparation removes duplicate traversal and reuses only freshly byte-verified event pages. Thirty local alternating pairs preserve all 4,154 supplemental sources and exact query results, with lower median/p95 preparation time. [ADR-0497 evidence](../../evidence/quality/knowledge-query-preparation-performance.md) does not establish the broader incremental-inspection or installed gates.
+- [x] Fresh repository preparation compiles policy once per scan and overlaps independent reads without reducing inventory. Thirty local alternating pairs preserve all 10,309 sources, 80,158 units, and complete query results; preparation median/p95 improve. [ADR-0498 evidence](../../evidence/quality/knowledge-repository-preparation-performance.md) records timing exclusions and unchanged coverage; installed and persistent-reuse gates remain open.
+- [x] Query preparation reuses extraction and adapter analysis across fresh processes after reading current bytes. Thirty alternating pairs preserve complete responses; a full/cached scan preserves 10,320 sources and 81,505 units. [ADR-0499 evidence](../../evidence/quality/knowledge-incremental-preparation-performance.md) records the 38.44 percent median preparation reduction, cold and memory costs, exact mutation/failure recovery, and unchanged coverage. Installed, write-preparation reuse, Hit quality, and full-inspection gates remain open.
+- [x] Preparation removes duplicate cache representations without source/result limits or GC flags. Thirty fresh-process pairs preserve full-reference responses and reduce warm peak RSS median 15.95 percent; five cold pairs reduce median peak RSS 23.10 percent. [ADR-0500 evidence](../../evidence/quality/knowledge-preparation-memory-performance.md) records unchanged complete coverage, legacy/binary recovery, stable preparation median, and the observed p95 latency increase. Installed and Hit-quality gates remain open.
 - [x] Compatible event/state readers pass old/new and rollback fixtures before writer activation. Source transition fixtures passed, and actual Mac/WSL Node and Hub readers through schema 5 were observed before the scoped Lervo activation.
 - [ ] Small and oversized directory changes, renames, deletion, shallow history, unusual path bytes, and sensitive exclusions produce exact bounded evidence or a named recoverable failure. Empty coverage makes zero generation calls.
 - [ ] The two installed evidence-empty candidates recover without owner bookkeeping. Genuine ambiguity and verified owner-held patches retain their authority.

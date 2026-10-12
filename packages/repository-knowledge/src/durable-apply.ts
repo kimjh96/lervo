@@ -31,6 +31,16 @@ import { materializationOwnerAlive } from "./materialization-owner.js";
 import type { KnowledgeFileOperation } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
+export interface DurableKnowledgeBinaryFileOperation {
+  path: string;
+  action: "create" | "update";
+  ownership: "lervo_generated";
+  mediaType: "application/octet-stream";
+  content: Uint8Array;
+  expectedCurrentHash?: string;
+  desiredHash: string;
+}
+
 export type KnowledgeMaterializationCheckpoint =
   "staged" | `original_moved:${number}` | `published:${number}` | "event_recorded" | "committed";
 
@@ -113,7 +123,7 @@ async function pruneEmptyParents(root: string, start: string): Promise<void> {
   }
 }
 
-async function writeDurableExclusive(path: string, content: string): Promise<void> {
+async function writeDurableExclusive(path: string, content: string | Uint8Array): Promise<void> {
   let handle;
   try {
     handle = await open(
@@ -289,8 +299,9 @@ type RecoveryResult = {
 };
 
 export function recoverKnowledgeMaterialization(input: RecoveryInput): Promise<RecoveryResult> {
-  return withKnowledgeSourceWrite(input.repositoryRoot, () =>
-    recoverMaterializationUnderGate(input),
+  const snapshot = { ...input };
+  return withKnowledgeSourceWrite(snapshot.repositoryRoot, () =>
+    recoverMaterializationUnderGate(snapshot),
   );
 }
 
@@ -328,6 +339,7 @@ type DurableApplyInput<T> = {
   planId: string;
   operations: Array<
     | KnowledgeFileOperation
+    | DurableKnowledgeBinaryFileOperation
     | DurableKnowledgeDeleteOperation
     | DurableKnowledgeMoveOperation
     | DurableKnowledgeMoveUpdateOperation
@@ -342,7 +354,19 @@ type DurableApplyInput<T> = {
 };
 
 export function applyDurableKnowledgeOperations<T>(input: DurableApplyInput<T>): Promise<T> {
-  return withKnowledgeSourceWrite(input.repositoryRoot, () => applyOperationsUnderGate(input));
+  const snapshot: DurableApplyInput<T> = {
+    ...input,
+    operations: input.operations.map((operation) =>
+      "mediaType" in operation && operation.mediaType === "application/octet-stream"
+        ? { ...operation, content: Uint8Array.from(operation.content) }
+        : { ...operation },
+    ),
+  };
+  if (snapshot.documentLayoutPermit != null)
+    snapshot.documentLayoutPermit = { ...snapshot.documentLayoutPermit };
+  return withKnowledgeSourceWrite(snapshot.repositoryRoot, () =>
+    applyOperationsUnderGate(snapshot),
+  );
 }
 
 async function applyOperationsUnderGate<T>(input: DurableApplyInput<T>): Promise<T> {
@@ -356,6 +380,7 @@ async function applyOperationsUnderGate<T>(input: DurableApplyInput<T>): Promise
           action: "create" | "update";
           content: string;
         })
+      | DurableKnowledgeBinaryFileOperation
       | DurableKnowledgeDeleteOperation
       | DurableKnowledgeMoveOperation
       | DurableKnowledgeMoveUpdateOperation =>

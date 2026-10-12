@@ -26,7 +26,14 @@ export function readEventWriterCoordinate(
       "The event writer coordinate does not satisfy its versioned contract.",
     );
   }
-  const coordinate = value as EventWriterCoordinate;
+  return readValidatedEventWriterCoordinate(value as EventWriterCoordinate, expectedProjectId);
+}
+
+/** Internal continuation after either public validation or owned JSON parsing. */
+export function readValidatedEventWriterCoordinate(
+  coordinate: EventWriterCoordinate,
+  expectedProjectId?: string,
+): EventWriterCoordinate {
   if (expectedProjectId !== undefined && coordinate.projectId !== expectedProjectId) {
     failEventWriterActivation(
       "event_writer_coordinate_invalid",

@@ -9,11 +9,11 @@ Validate practical Korean and mixed-language repository requests while separatin
 
 ## Evaluation contract
 
-| Layer | Input | Required output | Activation authority |
-| --- | --- | --- | --- |
-| Engine retrieval | One deterministic query and reviewed expected paths | Top-10 success, recall, reciprocal rank, and per-task comparison | None; observation only |
-| Conversational grounding | Prompt, bounded prior turns, workstream availability, authority, and repository condition | Separate intent, reference, source-class, disposition, required-behavior, and prohibited-behavior verdicts | None; observation only |
-| Managed execution evidence | Canonical run and context events | Selected, loaded, injected, referenced, and missing stages without inferred use | Existing execution policy only |
+| Layer                      | Input                                                                                     | Required output                                                                                            | Activation authority           |
+| -------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Engine retrieval           | One deterministic query and reviewed expected paths                                       | Top-10 success, recall, reciprocal rank, and per-task comparison                                           | None; observation only         |
+| Conversational grounding   | Prompt, bounded prior turns, workstream availability, authority, and repository condition | Separate intent, reference, source-class, disposition, required-behavior, and prohibited-behavior verdicts | None; observation only         |
+| Managed execution evidence | Canonical run and context events                                                          | Selected, loaded, injected, referenced, and missing stages without inferred use                            | Existing execution policy only |
 
 The matrix contains 20 Korean-framed cases and 20 one-to-one English controls across four task types, exactly five per type, plus 32 grounding cases across eight categories, exactly four per category. Coverage includes positive, ambiguous, abstention, stale-binding, no-source, and unreviewed-relation cases; context-dependent dispositions for identical prompts; public fixture text; digest-only runtime events; and report redaction.
 
@@ -76,6 +76,10 @@ After retaining a v19 Codex duration failure, [v20 confirmation](../evidence/sea
 The exact four-query [reviewed real-use suite](../../benchmarks/search/lexical-v2-real-use-reviewed-v1.json) binds explicit user approval and cannot be trimmed or replaced. After the ADR-0319 failure, a provider-neutral projection port and deterministic independent-query fusion corrected the boundary without query-specific aliases or weaker thresholds. Fresh five-repetition runs passed lexical-v2 20/20 for Codex and 20/20 for Claude on the same 455-document corpus; all usage was observed and no projection failed. ADR-0320 accepted that retrieval evidence without manufacturing an engine transition. [ADR-0321](../decisions/search/engines/0321-activate-lexical-v2-through-retrieval-plan-selection.md) closes the gap through a content-bound complete-plan bundle, independent immutable selection and rollback chain, current-corpus validation, selected-engine execution, and fail-closed terminal routing.
 
 [ADR-0353](../decisions/execution/providers/hooks/0353-remove-redundant-terminal-query-admission.md) removed the result-free admission model turn before each direct-terminal query projection. The direct lifecycle opens one isolated provider runtime for the actual projection, reports it as `query_projection`, and preserves the provider-neutral schema and retrieval boundary. Fresh source-current reviewed runs passed 20/20 for each provider. The terminal receipt binds the sole pre-search model turn instead of omitting admission usage from measured projection cost. The superseded admitted lifecycle remains identifiable only for historical evidence and compatibility.
+
+## Context quality and surface parity
+
+The local terminal correction prepares the configured English publication instruction independently of retrieval; installed writing compliance and general Hit uplift remain unverified. The [context-quality delivery roadmap](natural-language-grounding-quality/context-quality-parity.md) preserves the reliability findings and owns shared contracts, module boundaries, performance evaluation and completion criteria for Codex/Claude terminals, Discord and a future first-party host under ADR-0501. Source implementation now includes request/plan validation, local preparation, task and writing observations, bounded correction, host composition and reader-first event support. Complete corpus/token observations, reviewed real-task quality, recording-resource qualification and installed acceptance remain open.
 
 ## Current boundaries
 

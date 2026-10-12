@@ -6,6 +6,9 @@ export type EventStoreErrorCode =
   | "integrity_failed"
   | "invalid_outbox_request"
   | "invalid_event"
+  | "invalid_report"
+  | "report_corrupt"
+  | "report_capacity_exceeded"
   | "nested_transaction"
   | "outbox_lease_conflict"
   | "outbox_not_found"
@@ -16,8 +19,9 @@ export class EventStoreError extends Error {
   constructor(
     readonly code: EventStoreErrorCode,
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "EventStoreError";
   }
 }

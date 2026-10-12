@@ -79,6 +79,7 @@ describe("CLI release matrix workflow", () => {
     const commands = workflow.jobs["packed-cli"].steps.map(({ run }) => run).filter(Boolean);
     assert.deepEqual(commands, [
       "pnpm install --frozen-lockfile",
+      'node scripts/distribution/native-runtime-transfer.mjs restore "${{ runner.temp }}/native-runtime"',
       "pnpm build",
       "pnpm release:manifest:check",
       "pnpm release:sbom:check",
@@ -95,7 +96,7 @@ describe("CLI release matrix workflow", () => {
       job.if,
       "github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && (github.event.repository.private != true || github.event.repository.owner.type != 'User')",
     );
-    assert.equal(job.needs, "packed-cli");
+    assert.deepEqual(job.needs, ["packed-cli", "native-runtime"]);
     assert.equal(job["runs-on"], "ubuntu-latest");
     assert.deepEqual(job.permissions, {
       contents: "read",
@@ -107,6 +108,7 @@ describe("CLI release matrix workflow", () => {
       "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
       "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
       "pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9",
+      "actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0",
       "actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d",
       "actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d",
       "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",

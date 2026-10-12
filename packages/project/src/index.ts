@@ -13,3 +13,5 @@ export * from "./state-retention-apply.js";
 export * from "./state-retention-plan.js";
 export * from "./state-retention-types.js";
 export * from "./types.js";
+export * from "./report-storage-selection.js";
+export { inspectProjectStorageCoordinates } from "./storage-coordinate-observation.js";

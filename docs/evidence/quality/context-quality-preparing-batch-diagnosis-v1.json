@@ -1,0 +1,1463 @@
+{
+  "schemaVersion": 1,
+  "diagnosticOnly": true,
+  "providerCalls": 0,
+  "baselineArtifactBuildHash": "sha256:36b729029bf84422ff3a761e1f1e5e2f8f2f96684f255a3b9d5d690a90c90e70",
+  "candidateArtifactBuildHash": "sha256:8077bcb0d1c6be1e2d2745f4c2a1f487de01e380513c77b5b41a250c3955ca0d",
+  "limitations": [
+    "Not a registered acceptance cohort. Phase durations overlap and cannot be summed.",
+    "Prototype uses two module load-hook replacements in fresh processes, five alternating pairs per workload.",
+    "Phase probes use one process and sequential fixtures; timing is diagnostic only.",
+    "Slow included preparations can delay healthy peers; bounded admission is not a hard I/O deadline."
+  ],
+  "prototype": {
+    "scriptHash": "sha256:26d172aa5e80b1e1439eb6ffb2937a5529ec27b8cb97d5505ff79a07f6696b60",
+    "script": "export function createContextQualityCommitQueue(){\n const queues=new WeakMap();\n async function flush(storage,queue){const batch=queue.pending.splice(0);try{\n  const results=await Promise.allSettled(batch.map(p=>p.prepared));\n  const failed=results.filter(r=>r.status==='rejected');if(failed.length)throw new AggregateError(failed.map(r=>r.reason),'Artifact preparation failed');\n  await batch[0].assertCurrent();storage.events.transact(transaction=>{storage.events.verifyIntegrity();for(const result of results){const draft=result.value;const existing=storage.events.get(draft.eventId);transaction.append({...draft,occurredAt:existing?.occurredAt??draft.occurredAt})}});\n  for(const p of batch)p.resolve();\n }catch(error){for(const p of batch)p.reject(error)}finally{queue.admitted-=batch.length;queue.scheduled=false;if(queue.pending.length)schedule(storage,queue)}}\n function schedule(storage,queue){if(queue.scheduled)return;queue.scheduled=true;setImmediate(()=>void flush(storage,queue))}\n return function commit(storage,assertCurrent,prepare){let queue=queues.get(storage);if(!queue){queue={pending:[],admitted:0,scheduled:false};queues.set(storage,queue)}if(queue.admitted>=16)return Promise.reject(Error('Quality commit admission exceeds bound'));queue.admitted++;\n  const prepared=Promise.resolve().then(prepare).then(draft=>structuredClone(draft));\n  const result=new Promise((resolve,reject)=>queue.pending.push({prepared,assertCurrent,resolve,reject}));prepared.then(()=>schedule(storage,queue),()=>schedule(storage,queue));return result;\n }\n}\n"
+  },
+  "probes": [
+    {
+      "name": "recording-phase-v5",
+      "scriptHash": "sha256:8c7376f002e3a1693a03cb62a6573b0f51b1100086c78a93d157d0a0b41e799d",
+      "script": "import {mkdtemp,rm,writeFile} from 'node:fs/promises';\nimport {resolve} from 'node:path';\nimport {tmpdir} from 'node:os';\nimport {DatabaseSync} from 'node:sqlite';\nconst repo=process.cwd();\nconst {initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\nconst {activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\nconst {SQLiteEventStore}=await import(resolve(repo,'packages/event-store-sqlite/dist/index.js'));\nconst {FileSystemCas}=await import(resolve(repo,'packages/cas/dist/index.js'));\nconst parent=await mkdtemp(resolve(tmpdir(),'lervo-phases-v5-'));const results=[];\ntry{\n for(const workload of ['cold','warm','concurrent']){\n  const root=resolve(parent,workload);await initializeActiveFixture(root);const phases={};const restore=[];\n  function wrap(obj,key,label,asyncMethod=false){const original=obj[key];obj[key]=function(...args){const k=typeof label==='function'?label(...args):label;const p=phases[k]??={calls:0,ms:0};p.calls++;const start=performance.now();if(asyncMethod)return (async()=>{try{return await original.apply(this,args)}finally{p.ms+=performance.now()-start}})();try{return original.apply(this,args)}finally{p.ms+=performance.now()-start}};restore.push(()=>obj[key]=original)}\n  wrap(DatabaseSync.prototype,'exec',sql=>'sql.exec.'+sql.trim().replace(/\\s+/g,' ').slice(0,90));\n  wrap(DatabaseSync.prototype,'prepare',sql=>'sql.prepare.'+sql.trim().replace(/\\s+/g,' ').slice(0,90));\n  for(const k of ['verifyIntegrity','get','transact','close'])wrap(SQLiteEventStore.prototype,k,'events.'+k);\n  wrap(SQLiteEventStore,'open','events.open',true);\n  for(const k of ['put','get'])wrap(FileSystemCas.prototype,k,'cas.'+k,true);\n  let r;try{r=await activeWorker(root,'candidate',workload,4096,{warmups:2,samples:20,concurrency:4})}finally{for(const f of restore.reverse())f()}\n  results.push({workload,phases,semanticValid:r.semanticValid,integrity:r.integrity,eventCount:r.eventCount,expectedEventCount:r.expectedEventCount,samples:r.samples.map(s=>s.slice(0,2))});\n }\n await writeFile('/tmp/lervo-recording-phase-v5.json',JSON.stringify({diagnosticOnly:true,results},null,2));\n}finally{await rm(parent,{recursive:true,force:true})}\n",
+      "result": {
+        "diagnosticOnly": true,
+        "results": [
+          {
+            "workload": "cold",
+            "phases": {
+              "events.open": {
+                "calls": 2,
+                "ms": 2.441208000000074
+              },
+              "sql.exec.PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON; PRAGMA bus": {
+                "calls": 2,
+                "ms": 0.4064170000000331
+              },
+              "sql.exec.PRAGMA wal_autocheckpoint = 1; PRAGMA journal_size_limit = 0;": {
+                "calls": 1,
+                "ms": 0.002040999999962878
+              },
+              "sql.exec.BEGIN IMMEDIATE;": {
+                "calls": 6,
+                "ms": 0.20750100000009297
+              },
+              "sql.prepare.PRAGMA user_version;": {
+                "calls": 2,
+                "ms": 0.00483299999996234
+              },
+              "sql.exec.CREATE TABLE IF NOT EXISTS store_meta ( key TEXT PRIMARY KEY, value TEXT NOT NULL ) STRICT": {
+                "calls": 1,
+                "ms": 0.10120800000004238
+              },
+              "sql.exec.PRAGMA user_version = 1;": {
+                "calls": 1,
+                "ms": 0.001040999999986525
+              },
+              "sql.exec.CREATE TABLE outbox ( event_id TEXT NOT NULL REFERENCES events(event_id), destination_id T": {
+                "calls": 1,
+                "ms": 0.03541600000005474
+              },
+              "sql.exec.PRAGMA user_version = 2;": {
+                "calls": 1,
+                "ms": 0.0007080000000314612
+              },
+              "sql.exec.CREATE UNIQUE INDEX events_one_work_causality_per_run ON events (project_id, run_id) WHERE": {
+                "calls": 1,
+                "ms": 0.02508299999999508
+              },
+              "sql.exec.PRAGMA user_version = 3;": {
+                "calls": 1,
+                "ms": 0.0007500000000391083
+              },
+              "sql.exec.CREATE INDEX IF NOT EXISTS events_type_seq ON events (project_id, type, seq);": {
+                "calls": 2,
+                "ms": 0.0105829999999969
+              },
+              "sql.exec.COMMIT;": {
+                "calls": 6,
+                "ms": 1.0172950000001038
+              },
+              "sql.prepare.SELECT value FROM store_meta WHERE key = ?": {
+                "calls": 7,
+                "ms": 0.03620700000010402
+              },
+              "sql.prepare.INSERT INTO store_meta (key, value) VALUES (?, ?)": {
+                "calls": 2,
+                "ms": 0.006749999999897227
+              },
+              "events.verifyIntegrity": {
+                "calls": 5,
+                "ms": 0.8641240000000607
+              },
+              "sql.prepare.PRAGMA user_version": {
+                "calls": 5,
+                "ms": 0.005790000000047257
+              },
+              "sql.prepare.PRAGMA quick_check;": {
+                "calls": 5,
+                "ms": 0.06575000000009368
+              },
+              "sql.prepare.PRAGMA foreign_key_check;": {
+                "calls": 5,
+                "ms": 0.00924999999983811
+              },
+              "sql.prepare.SELECT e.*, o.destination_id AS outbox_destination_id, o.enqueued_at AS outbox_enqueued_at": {
+                "calls": 5,
+                "ms": 0.12370800000007875
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?": {
+                "calls": 5,
+                "ms": 0.049291000000039276
+              },
+              "cas.put": {
+                "calls": 2,
+                "ms": 9.167999999999893
+              },
+              "cas.get": {
+                "calls": 2,
+                "ms": 0.23354200000005676
+              },
+              "events.transact": {
+                "calls": 2,
+                "ms": 2.818873999999937
+              },
+              "events.get": {
+                "calls": 2,
+                "ms": 0.022208999999975276
+              },
+              "sql.prepare.SELECT * FROM events WHERE event_id = ?": {
+                "calls": 4,
+                "ms": 0.020332999999936874
+              },
+              "sql.prepare.SELECT seq, event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1": {
+                "calls": 2,
+                "ms": 0.009792000000061307
+              },
+              "sql.prepare.INSERT INTO events ( event_id, project_id, seq, run_id, session_id, type, occurred_at, act": {
+                "calls": 2,
+                "ms": 0.026665999999863743
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND type IN (?, ?) AND seq > ? ORDER BY seq LIMI": {
+                "calls": 1,
+                "ms": 0.010708000000022366
+              },
+              "events.close": {
+                "calls": 1,
+                "ms": 0.02687500000001819
+              }
+            },
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[45.174125000000004, 59.975]]
+          },
+          {
+            "workload": "warm",
+            "phases": {
+              "events.open": {
+                "calls": 2,
+                "ms": 2.664250000000038
+              },
+              "sql.exec.PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON; PRAGMA bus": {
+                "calls": 2,
+                "ms": 0.3626259999998638
+              },
+              "sql.exec.PRAGMA wal_autocheckpoint = 1; PRAGMA journal_size_limit = 0;": {
+                "calls": 1,
+                "ms": 0.0016669999999976426
+              },
+              "sql.exec.BEGIN IMMEDIATE;": {
+                "calls": 48,
+                "ms": 0.4317139999994879
+              },
+              "sql.prepare.PRAGMA user_version;": {
+                "calls": 2,
+                "ms": 0.003083000000060565
+              },
+              "sql.exec.CREATE TABLE IF NOT EXISTS store_meta ( key TEXT PRIMARY KEY, value TEXT NOT NULL ) STRICT": {
+                "calls": 1,
+                "ms": 0.10050000000001091
+              },
+              "sql.exec.PRAGMA user_version = 1;": {
+                "calls": 1,
+                "ms": 0.0009999999999763531
+              },
+              "sql.exec.CREATE TABLE outbox ( event_id TEXT NOT NULL REFERENCES events(event_id), destination_id T": {
+                "calls": 1,
+                "ms": 0.0386670000000322
+              },
+              "sql.exec.PRAGMA user_version = 2;": {
+                "calls": 1,
+                "ms": 0.0006250000000136424
+              },
+              "sql.exec.CREATE UNIQUE INDEX events_one_work_causality_per_run ON events (project_id, run_id) WHERE": {
+                "calls": 1,
+                "ms": 0.026542000000063126
+              },
+              "sql.exec.PRAGMA user_version = 3;": {
+                "calls": 1,
+                "ms": 0.0006250000000136424
+              },
+              "sql.exec.CREATE INDEX IF NOT EXISTS events_type_seq ON events (project_id, type, seq);": {
+                "calls": 2,
+                "ms": 0.010333000000173342
+              },
+              "sql.exec.COMMIT;": {
+                "calls": 48,
+                "ms": 10.088879000000134
+              },
+              "sql.prepare.SELECT value FROM store_meta WHERE key = ?": {
+                "calls": 49,
+                "ms": 0.3489580000012893
+              },
+              "sql.prepare.INSERT INTO store_meta (key, value) VALUES (?, ?)": {
+                "calls": 2,
+                "ms": 0.0058750000001737135
+              },
+              "events.verifyIntegrity": {
+                "calls": 47,
+                "ms": 11.404084999999895
+              },
+              "sql.prepare.PRAGMA user_version": {
+                "calls": 47,
+                "ms": 0.06583099999932074
+              },
+              "sql.prepare.PRAGMA quick_check;": {
+                "calls": 47,
+                "ms": 0.6208349999999427
+              },
+              "sql.prepare.PRAGMA foreign_key_check;": {
+                "calls": 47,
+                "ms": 0.08312299999965944
+              },
+              "sql.prepare.SELECT e.*, o.destination_id AS outbox_destination_id, o.enqueued_at AS outbox_enqueued_at": {
+                "calls": 47,
+                "ms": 0.9887449999998807
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?": {
+                "calls": 47,
+                "ms": 0.4197490000002517
+              },
+              "cas.put": {
+                "calls": 44,
+                "ms": 204.86299700000063
+              },
+              "events.close": {
+                "calls": 2,
+                "ms": 0.47837600000002567
+              },
+              "cas.get": {
+                "calls": 44,
+                "ms": 4.048209000000725
+              },
+              "events.transact": {
+                "calls": 44,
+                "ms": 24.73162099999979
+              },
+              "events.get": {
+                "calls": 44,
+                "ms": 0.2766640000006646
+              },
+              "sql.prepare.SELECT * FROM events WHERE event_id = ?": {
+                "calls": 88,
+                "ms": 0.41779900000028647
+              },
+              "sql.prepare.SELECT seq, event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1": {
+                "calls": 44,
+                "ms": 0.20079400000008718
+              },
+              "sql.prepare.INSERT INTO events ( event_id, project_id, seq, run_id, session_id, type, occurred_at, act": {
+                "calls": 44,
+                "ms": 0.5249969999993027
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND type IN (?, ?) AND seq > ? ORDER BY seq LIMI": {
+                "calls": 1,
+                "ms": 0.013707999999951426
+              }
+            },
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 44,
+            "expectedEventCount": 44,
+            "samples": [
+              [23.99837500000001, 20.429],
+              [25.520250000000033, 17.109],
+              [24.158667000000037, 20.103],
+              [24.004583000000025, 17.42],
+              [22.14991699999996, 16.759],
+              [24.069166999999993, 17.859],
+              [23.803166000000033, 18.004],
+              [24.05737499999998, 16.356],
+              [23.043707999999924, 20.171],
+              [23.708541999999966, 23.522],
+              [22.34658300000001, 16.108],
+              [22.955625000000055, 16.69],
+              [23.86545799999999, 15.837],
+              [23.143125000000055, 17.14],
+              [23.058457999999973, 16.815],
+              [24.693083000000115, 21.442],
+              [25.164332999999942, 20.551],
+              [24.179417000000058, 17.558],
+              [24.921041999999943, 20.695],
+              [24.988375000000133, 18.434]
+            ]
+          },
+          {
+            "workload": "concurrent",
+            "phases": {
+              "events.open": {
+                "calls": 4,
+                "ms": 10.835832999999866
+              },
+              "sql.exec.PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON; PRAGMA bus": {
+                "calls": 4,
+                "ms": 0.7775409999997009
+              },
+              "sql.exec.PRAGMA wal_autocheckpoint = 1; PRAGMA journal_size_limit = 0;": {
+                "calls": 3,
+                "ms": 0.004750000000058208
+              },
+              "sql.exec.BEGIN IMMEDIATE;": {
+                "calls": 172,
+                "ms": 0.9228400000001784
+              },
+              "sql.prepare.PRAGMA user_version;": {
+                "calls": 4,
+                "ms": 0.005458000000089669
+              },
+              "sql.exec.CREATE TABLE IF NOT EXISTS store_meta ( key TEXT PRIMARY KEY, value TEXT NOT NULL ) STRICT": {
+                "calls": 1,
+                "ms": 0.10425000000009277
+              },
+              "sql.exec.PRAGMA user_version = 1;": {
+                "calls": 1,
+                "ms": 0.0010830000001078588
+              },
+              "sql.exec.CREATE TABLE outbox ( event_id TEXT NOT NULL REFERENCES events(event_id), destination_id T": {
+                "calls": 1,
+                "ms": 0.04316599999992832
+              },
+              "sql.exec.PRAGMA user_version = 2;": {
+                "calls": 1,
+                "ms": 0.0006249999998999556
+              },
+              "sql.exec.CREATE UNIQUE INDEX events_one_work_causality_per_run ON events (project_id, run_id) WHERE": {
+                "calls": 1,
+                "ms": 0.02666699999986122
+              },
+              "sql.exec.PRAGMA user_version = 3;": {
+                "calls": 1,
+                "ms": 0.0005000000001018634
+              },
+              "sql.exec.CREATE INDEX IF NOT EXISTS events_type_seq ON events (project_id, type, seq);": {
+                "calls": 4,
+                "ms": 0.015501000000085696
+              },
+              "sql.exec.COMMIT;": {
+                "calls": 172,
+                "ms": 113.62233800000058
+              },
+              "sql.prepare.SELECT value FROM store_meta WHERE key = ?": {
+                "calls": 173,
+                "ms": 0.9038809999992736
+              },
+              "sql.prepare.INSERT INTO store_meta (key, value) VALUES (?, ?)": {
+                "calls": 4,
+                "ms": 0.013416999999435575
+              },
+              "events.verifyIntegrity": {
+                "calls": 169,
+                "ms": 91.47549400000162
+              },
+              "sql.prepare.PRAGMA user_version": {
+                "calls": 169,
+                "ms": 0.2036569999988842
+              },
+              "sql.prepare.PRAGMA quick_check;": {
+                "calls": 169,
+                "ms": 2.10875599999963
+              },
+              "sql.prepare.PRAGMA foreign_key_check;": {
+                "calls": 169,
+                "ms": 0.2752430000016375
+              },
+              "sql.prepare.SELECT e.*, o.destination_id AS outbox_destination_id, o.enqueued_at AS outbox_enqueued_at": {
+                "calls": 169,
+                "ms": 3.3580399999998463
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?": {
+                "calls": 169,
+                "ms": 1.414127000001372
+              },
+              "cas.put": {
+                "calls": 176,
+                "ms": 2386.909004
+              },
+              "events.close": {
+                "calls": 4,
+                "ms": 4.629458000000113
+              },
+              "cas.get": {
+                "calls": 176,
+                "ms": 113.25445600000171
+              },
+              "events.transact": {
+                "calls": 164,
+                "ms": 213.58154300000092
+              },
+              "events.get": {
+                "calls": 176,
+                "ms": 1.1134970000009616
+              },
+              "sql.prepare.SELECT * FROM events WHERE event_id = ?": {
+                "calls": 352,
+                "ms": 1.7481739999991532
+              },
+              "sql.prepare.SELECT seq, event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1": {
+                "calls": 176,
+                "ms": 0.7593389999976807
+              },
+              "sql.prepare.INSERT INTO events ( event_id, project_id, seq, run_id, session_id, type, occurred_at, act": {
+                "calls": 176,
+                "ms": 1.8576639999987492
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND type IN (?, ?) AND seq > ? ORDER BY seq LIMI": {
+                "calls": 1,
+                "ms": 0.014415999999982887
+              }
+            },
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 176,
+            "expectedEventCount": 176,
+            "samples": [
+              [49.43687499999987, 38.272],
+              [47.07487500000002, 34.695],
+              [47.86787499999991, 32.476],
+              [57.07833299999993, 34.99],
+              [50.06095800000003, 32.963],
+              [46.762249999999995, 34.22],
+              [50.82404200000019, 38.344],
+              [50.58291700000018, 36.633],
+              [48.48958399999992, 36.259],
+              [47.36325000000011, 36.591],
+              [55.925207999999884, 39.313],
+              [48.627292000000125, 31.366],
+              [51.25458400000002, 39.534],
+              [49.79070799999977, 32.83],
+              [60.363042000000405, 43.072],
+              [52.6423749999999, 35.728],
+              [49.210791999999856, 33.448],
+              [51.231667000000016, 37.286],
+              [53.127292000000125, 41.802],
+              [51.95074999999997, 35.508]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "preparing-batch-probe",
+      "scriptHash": "sha256:9c0c6b0c4dec14844d2c7c15217c749b135cac7d038e9bdd972be919dacbf59b",
+      "script": "import {readFileSync} from 'node:fs';\nimport { registerHooks } from 'node:module';\nimport { spawnSync } from 'node:child_process';\nimport { mkdtemp, rm, writeFile } from 'node:fs/promises';\nimport { resolve } from 'node:path';\nimport { tmpdir } from 'node:os';\nconst repo=process.cwd();\nconst worker=process.argv[2]==='worker';\nif(worker){\n const [mode,root,workload]=process.argv.slice(3);\n let replacements=0;\n if(mode==='preparing-batch')registerHooks({load(url,context,next){const result=next(url,context);\nif(url.endsWith('/packages/repository-context/dist/context-quality-commit.js')) {replacements++;return {...result,source:readFileSync('/tmp/lervo-preparing-commit-prototype.mjs','utf8')}}\nif(!url.endsWith('/packages/repository-context/dist/context-quality-recording.js'))return result;\nlet source=String(result.source);\nsource=source.replace('const artifact = await storeVerificationBytes(storage.artifacts, bytes);','let artifact;\\nconst eventId = `evt_${canonicalHash({ type: input.type, identity: input.identity }).slice(7, 39)}`;\\nawait commitQualityEvent(storage, assertCurrent, async () => {\\nartifact = await storeVerificationBytes(storage.artifacts, bytes);');\nsource=source.replace('await commitQualityEvent(storage, assertCurrent, {','return {');\nsource=source.replace('                payload,\\n            });','                payload,\\n            }; });');\nreplacements++;return {...result,source}}});\n const {activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\n const r=await activeWorker(root,'candidate',workload,4096,{warmups:2,samples:10,concurrency:4});\n process.stdout.write(JSON.stringify({mode,workload,replacements,semanticValid:r.semanticValid,integrity:r.integrity,eventCount:r.eventCount,expectedEventCount:r.expectedEventCount,samples:r.samples.map(s=>s.slice(0,2))}));\n}else{\n const {initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\n const parent=await mkdtemp(resolve(tmpdir(),'lervo-preparing-batch-'));const results=[];\n try{\n  for(let cycle=0;cycle<5;cycle++)for(const workload of ['cold','warm','concurrent'])for(const mode of cycle%2?['preparing-batch','current']:['current','preparing-batch']){\n   const root=resolve(parent,`${cycle}-${mode}-${workload}`);await initializeActiveFixture(root);\n   const child=spawnSync(process.execPath,[process.argv[1],'worker',mode,root,workload],{encoding:'utf8',timeout:30000,maxBuffer:1048576});\n   if(child.status!==0)throw Error(child.stderr||String(child.error));results.push({cycle,...JSON.parse(child.stdout)});\n  }\n  await writeFile('/tmp/lervo-preparing-batch-probe.json',JSON.stringify({diagnosticOnly:true,results},null,2));\n }finally{await rm(parent,{recursive:true,force:true})}\n}\n",
+      "result": {
+        "diagnosticOnly": true,
+        "results": [
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[48.13599999999997, 63.067]]
+          },
+          {
+            "cycle": 0,
+            "mode": "preparing-batch",
+            "workload": "cold",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[46.32604100000003, 58.744]]
+          },
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.902750000000083, 24.326],
+              [25.751916999999935, 18.098],
+              [24.432207999999946, 20.083],
+              [25.681500000000028, 21.271],
+              [24.16770800000006, 18.107],
+              [24.858082999999965, 18.107],
+              [23.967084, 16.782],
+              [25.03125, 17.799],
+              [23.067999999999984, 17.4],
+              [23.909332999999947, 20.035]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "preparing-batch",
+            "workload": "warm",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [24.663333999999963, 24.447],
+              [23.881624999999985, 17.394],
+              [23.33974999999998, 19.762],
+              [25.67645899999991, 20.657],
+              [24.17958299999998, 17.84],
+              [23.955583000000047, 18.184],
+              [22.844084000000066, 16.628],
+              [25.03362500000003, 17.694],
+              [24.185292000000004, 17.312],
+              [23.770417000000066, 19.766]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [51.17150000000004, 36.289],
+              [50.189874999999915, 33.095],
+              [52.278708999999935, 35.151],
+              [55.19358399999999, 39.129],
+              [58.26820900000007, 35.384],
+              [46.72062499999993, 37.451],
+              [50.31154200000003, 45.627],
+              [48.13662499999987, 35.778],
+              [53.519874999999956, 34.468],
+              [52.284124999999904, 38.918]
+            ]
+          },
+          {
+            "cycle": 0,
+            "mode": "preparing-batch",
+            "workload": "concurrent",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [44.84012500000006, 31.583],
+              [42.126333000000045, 30.515],
+              [45.37941699999999, 30.645],
+              [46.71133299999997, 33.826],
+              [46.005250000000046, 32.854],
+              [45.89224999999999, 28.809],
+              [48.10816599999998, 36.649],
+              [46.14116699999988, 34.297],
+              [47.440624999999955, 30.121],
+              [43.737292000000025, 40.668]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "preparing-batch",
+            "workload": "cold",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[46.46358299999997, 58.898]]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[46.41804100000002, 60.654]]
+          },
+          {
+            "cycle": 1,
+            "mode": "preparing-batch",
+            "workload": "warm",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.550792, 24.685],
+              [25.242083999999977, 18.458],
+              [24.769874999999956, 21.229],
+              [25.866249999999923, 20.918],
+              [25.27724999999998, 18.777],
+              [24.962709000000018, 18.731],
+              [24.784666000000016, 17.459],
+              [25.161707999999976, 18.183],
+              [23.878000000000043, 17.622],
+              [23.82462499999997, 19.922]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [25.509042000000022, 24.674],
+              [24.080166000000077, 17.966],
+              [25.282832999999982, 21.608],
+              [25.618791999999985, 19.808],
+              [24.223250000000007, 18.352],
+              [23.933416999999963, 18.457],
+              [23.888458000000014, 16.849],
+              [25.09775000000002, 18.871],
+              [24.110666000000037, 16.255],
+              [23.73395800000003, 19.591]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "preparing-batch",
+            "workload": "concurrent",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [41.73637499999995, 31.128],
+              [41.134457999999995, 30.228],
+              [44.98508400000003, 29.809],
+              [37.042291999999975, 34.685],
+              [46.86500000000001, 32.239],
+              [45.06854200000009, 28.562],
+              [49.00383399999998, 36.551],
+              [45.98620900000003, 33.864],
+              [41.18304199999989, 29.059],
+              [42.947167000000036, 40.143]
+            ]
+          },
+          {
+            "cycle": 1,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [53.669624999999996, 36.982],
+              [51.14220799999998, 39.295],
+              [50.11400000000003, 38.212],
+              [53.59566599999994, 36.691],
+              [46.98062500000003, 35.511],
+              [46.50245799999993, 36.29],
+              [58.374374999999986, 45.839],
+              [50.42929200000003, 38.441],
+              [49.67920900000013, 33.703],
+              [49.20866699999988, 39.292]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[48.295792000000006, 61.885]]
+          },
+          {
+            "cycle": 2,
+            "mode": "preparing-batch",
+            "workload": "cold",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[44.74633400000005, 60.14]]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.647833000000105, 25.063],
+              [25.977250000000026, 18.394],
+              [24.168499999999995, 20.298],
+              [25.717166999999904, 20.929],
+              [23.96575000000007, 18.08],
+              [25.136249999999905, 18.126],
+              [23.859833999999978, 16.848],
+              [25.19591700000001, 17.701],
+              [23.918042000000014, 17.357],
+              [23.71016700000007, 19.938]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "preparing-batch",
+            "workload": "warm",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [26.51558399999999, 24.713],
+              [25.086457999999993, 17.717],
+              [26.271792000000005, 20.019],
+              [24.849040999999943, 21.198],
+              [23.94475, 17.841],
+              [24.03845799999999, 17.997],
+              [23.575333, 16.795],
+              [25.319417000000044, 17.617],
+              [24.144333000000074, 17.598],
+              [24.797166999999945, 19.823]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [45.79516699999999, 35.086],
+              [52.773459, 34.259],
+              [44.554709, 35.038],
+              [51.78374999999994, 37.082],
+              [54.25533399999995, 37.258],
+              [53.559875000000034, 36.45],
+              [53.16808400000002, 45.655],
+              [51.86566700000003, 36.009],
+              [47.22404099999994, 34.879],
+              [49.94287499999996, 39.781]
+            ]
+          },
+          {
+            "cycle": 2,
+            "mode": "preparing-batch",
+            "workload": "concurrent",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [40.892375000000015, 31.532],
+              [45.99437499999999, 31.088],
+              [44.971833999999944, 28.617],
+              [50.03525000000002, 35.079],
+              [52.10254199999997, 32.829],
+              [45.11566699999992, 29.545],
+              [52.84954199999993, 36.642],
+              [42.39366699999994, 34.476],
+              [46.905250000000024, 29.335],
+              [44.843000000000075, 40.887]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "preparing-batch",
+            "workload": "cold",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[46.230666999999926, 60.709]]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[46.16145800000004, 60.741]]
+          },
+          {
+            "cycle": 3,
+            "mode": "preparing-batch",
+            "workload": "warm",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [25.769542, 24.98],
+              [25.236625000000004, 18.437],
+              [24.01558399999999, 20.682],
+              [25.755209000000036, 20.795],
+              [24.117165999999997, 18.321],
+              [23.969125000000076, 18.521],
+              [23.95083299999999, 17.161],
+              [23.933666000000017, 18.072],
+              [24.05174999999997, 17.506],
+              [24.817332999999962, 19.619]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [28.085542000000032, 24.993],
+              [25.88245900000004, 17.942],
+              [24.355042000000026, 21.529],
+              [24.45566699999995, 19.534],
+              [24.56208300000003, 18.205],
+              [23.7885, 18.537],
+              [23.69020899999998, 17.006],
+              [25.019666999999913, 19.029],
+              [24.275750000000016, 16.498],
+              [23.600584000000026, 20.175]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "preparing-batch",
+            "workload": "concurrent",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [43.79308400000002, 36.59],
+              [51.24374999999998, 34.904],
+              [49.713542000000075, 30.38],
+              [43.843875000000025, 35.911],
+              [37.09779199999991, 32.745],
+              [41.93095799999992, 29.235],
+              [49.210249999999974, 37.758],
+              [45.85525000000007, 35.025],
+              [49.46262499999989, 30.703],
+              [40.743791999999985, 42.099]
+            ]
+          },
+          {
+            "cycle": 3,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [51.41912500000001, 35.971],
+              [43.90504199999998, 35.318],
+              [54.04979100000003, 35.122],
+              [51.458708, 38.994],
+              [50.52887499999997, 37.792],
+              [53.66691700000001, 37.561],
+              [54.562499999999886, 46.15],
+              [49.04449999999997, 36.093],
+              [50.06904200000008, 36.228],
+              [51.50437499999998, 40.162]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "cold",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[46.05308400000001, 60.766]]
+          },
+          {
+            "cycle": 4,
+            "mode": "preparing-batch",
+            "workload": "cold",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[46.397666999999956, 60.57]]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "warm",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [25.61037500000009, 24.44],
+              [25.127291999999898, 17.711],
+              [24.009707999999932, 21.232],
+              [24.94749999999999, 19.573],
+              [23.85687500000006, 18.042],
+              [24.34733300000005, 18.403],
+              [23.593165999999997, 16.718],
+              [25.34970899999996, 19.131],
+              [24.111792000000037, 16.657],
+              [23.870000000000005, 19.973]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "preparing-batch",
+            "workload": "warm",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 24,
+            "expectedEventCount": 24,
+            "samples": [
+              [27.587125000000015, 24.626],
+              [25.16208400000005, 17.739],
+              [24.22687499999995, 20.164],
+              [23.623417000000018, 20.395],
+              [24.257791999999995, 17.935],
+              [23.89604099999997, 18.063],
+              [23.79495799999995, 16.752],
+              [24.096624999999904, 17.666],
+              [23.18041699999992, 17.648],
+              [23.714291000000003, 19.905]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "current",
+            "workload": "concurrent",
+            "replacements": 0,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [48.62579200000005, 36.727],
+              [50.36579199999994, 33.415],
+              [47.65404100000001, 34.263],
+              [53.9453749999999, 38.404],
+              [52.32466599999998, 34.26],
+              [50.70900000000006, 36.294],
+              [52.91220899999996, 44.861],
+              [50.25824999999986, 36.089],
+              [50.8743750000001, 33.016],
+              [46.450250000000096, 37.504]
+            ]
+          },
+          {
+            "cycle": 4,
+            "mode": "preparing-batch",
+            "workload": "concurrent",
+            "replacements": 2,
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 96,
+            "expectedEventCount": 96,
+            "samples": [
+              [43.77608299999997, 32.347],
+              [40.638374999999996, 31.497],
+              [45.29141699999991, 30.906],
+              [45.99950000000001, 33.411],
+              [47.02354200000002, 33.506],
+              [48.96833400000003, 29.579],
+              [44.97804099999996, 36.41],
+              [46.06916700000011, 33.824],
+              [45.11024999999995, 29.594],
+              [41.95704099999989, 40.654]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "recording-phase-v6",
+      "scriptHash": "sha256:c1729018dc2b3471ac5c3a78becfde8daa85ab4086a3e9037158c561876698ca",
+      "script": "import {mkdtemp,rm,writeFile} from 'node:fs/promises';\nimport {resolve} from 'node:path';\nimport {tmpdir} from 'node:os';\nimport {DatabaseSync} from 'node:sqlite';\nconst repo=process.cwd();\nconst {initializeActiveFixture}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-fixture.mjs'));\nconst {activeWorker}=await import(resolve(repo,'scripts/evaluation/lib/context-quality-active-worker.mjs'));\nconst {SQLiteEventStore}=await import(resolve(repo,'packages/event-store-sqlite/dist/index.js'));\nconst {FileSystemCas}=await import(resolve(repo,'packages/cas/dist/index.js'));\nconst parent=await mkdtemp(resolve(tmpdir(),'lervo-phases-v6-'));const results=[];\ntry{\n for(const workload of ['cold','warm','concurrent']){\n  const root=resolve(parent,workload);await initializeActiveFixture(root);const phases={};const restore=[];\n  function wrap(obj,key,label,asyncMethod=false){const original=obj[key];obj[key]=function(...args){const k=typeof label==='function'?label(...args):label;const p=phases[k]??={calls:0,ms:0};p.calls++;const start=performance.now();if(asyncMethod)return (async()=>{try{return await original.apply(this,args)}finally{p.ms+=performance.now()-start}})();try{return original.apply(this,args)}finally{p.ms+=performance.now()-start}};restore.push(()=>obj[key]=original)}\n  wrap(DatabaseSync.prototype,'exec',sql=>'sql.exec.'+sql.trim().replace(/\\s+/g,' ').slice(0,90));\n  wrap(DatabaseSync.prototype,'prepare',sql=>'sql.prepare.'+sql.trim().replace(/\\s+/g,' ').slice(0,90));\n  for(const k of ['verifyIntegrity','get','transact','close'])wrap(SQLiteEventStore.prototype,k,'events.'+k);\n  wrap(SQLiteEventStore,'open','events.open',true);\n  for(const k of ['put','get'])wrap(FileSystemCas.prototype,k,'cas.'+k,true);\n  let r;try{r=await activeWorker(root,'candidate',workload,4096,{warmups:2,samples:20,concurrency:4})}finally{for(const f of restore.reverse())f()}\n  results.push({workload,phases,semanticValid:r.semanticValid,integrity:r.integrity,eventCount:r.eventCount,expectedEventCount:r.expectedEventCount,samples:r.samples.map(s=>s.slice(0,2))});\n }\n await writeFile('/tmp/lervo-recording-phase-v6.json',JSON.stringify({diagnosticOnly:true,results},null,2));\n}finally{await rm(parent,{recursive:true,force:true})}\n",
+      "result": {
+        "diagnosticOnly": true,
+        "results": [
+          {
+            "workload": "cold",
+            "phases": {
+              "events.open": {
+                "calls": 2,
+                "ms": 2.468417000000045
+              },
+              "sql.exec.PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON; PRAGMA bus": {
+                "calls": 2,
+                "ms": 0.6302930000000515
+              },
+              "sql.exec.PRAGMA wal_autocheckpoint = 1; PRAGMA journal_size_limit = 0;": {
+                "calls": 1,
+                "ms": 0.0025420000000622167
+              },
+              "sql.exec.BEGIN IMMEDIATE;": {
+                "calls": 6,
+                "ms": 0.15695899999991525
+              },
+              "sql.prepare.PRAGMA user_version;": {
+                "calls": 2,
+                "ms": 0.0059170000001813605
+              },
+              "sql.exec.CREATE TABLE IF NOT EXISTS store_meta ( key TEXT PRIMARY KEY, value TEXT NOT NULL ) STRICT": {
+                "calls": 1,
+                "ms": 0.10637500000007094
+              },
+              "sql.exec.PRAGMA user_version = 1;": {
+                "calls": 1,
+                "ms": 0.001082999999994172
+              },
+              "sql.exec.CREATE TABLE outbox ( event_id TEXT NOT NULL REFERENCES events(event_id), destination_id T": {
+                "calls": 1,
+                "ms": 0.03879099999994651
+              },
+              "sql.exec.PRAGMA user_version = 2;": {
+                "calls": 1,
+                "ms": 0.0007919999999330685
+              },
+              "sql.exec.CREATE UNIQUE INDEX events_one_work_causality_per_run ON events (project_id, run_id) WHERE": {
+                "calls": 1,
+                "ms": 0.028624999999919964
+              },
+              "sql.exec.PRAGMA user_version = 3;": {
+                "calls": 1,
+                "ms": 0.0010839999999916472
+              },
+              "sql.exec.CREATE INDEX IF NOT EXISTS events_type_seq ON events (project_id, type, seq);": {
+                "calls": 2,
+                "ms": 0.012042000000064945
+              },
+              "sql.exec.COMMIT;": {
+                "calls": 6,
+                "ms": 0.883085000000051
+              },
+              "sql.prepare.SELECT value FROM store_meta WHERE key = ?": {
+                "calls": 7,
+                "ms": 0.03833299999985229
+              },
+              "sql.prepare.INSERT INTO store_meta (key, value) VALUES (?, ?)": {
+                "calls": 2,
+                "ms": 0.006833000000028733
+              },
+              "events.verifyIntegrity": {
+                "calls": 5,
+                "ms": 0.8753329999998414
+              },
+              "sql.prepare.PRAGMA user_version": {
+                "calls": 5,
+                "ms": 0.006166999999891232
+              },
+              "sql.prepare.PRAGMA quick_check;": {
+                "calls": 5,
+                "ms": 0.07091799999989234
+              },
+              "sql.prepare.PRAGMA foreign_key_check;": {
+                "calls": 5,
+                "ms": 0.010082999999895037
+              },
+              "sql.prepare.SELECT e.*, o.destination_id AS outbox_destination_id, o.enqueued_at AS outbox_enqueued_at": {
+                "calls": 5,
+                "ms": 0.10904099999993377
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?": {
+                "calls": 5,
+                "ms": 0.052875999999855594
+              },
+              "cas.put": {
+                "calls": 2,
+                "ms": 9.661166999999978
+              },
+              "cas.get": {
+                "calls": 2,
+                "ms": 0.206250999999952
+              },
+              "events.transact": {
+                "calls": 2,
+                "ms": 2.8160409999999274
+              },
+              "events.get": {
+                "calls": 2,
+                "ms": 0.02212500000007367
+              },
+              "sql.prepare.SELECT * FROM events WHERE event_id = ?": {
+                "calls": 4,
+                "ms": 0.020251999999914005
+              },
+              "sql.prepare.SELECT seq, event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1": {
+                "calls": 2,
+                "ms": 0.00933199999997214
+              },
+              "sql.prepare.INSERT INTO events ( event_id, project_id, seq, run_id, session_id, type, occurred_at, act": {
+                "calls": 2,
+                "ms": 0.03079099999990831
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND type IN (?, ?) AND seq > ? ORDER BY seq LIMI": {
+                "calls": 1,
+                "ms": 0.020083999999997104
+              },
+              "events.close": {
+                "calls": 1,
+                "ms": 0.025541999999973086
+              }
+            },
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 2,
+            "expectedEventCount": 2,
+            "samples": [[43.79029200000002, 55.535]]
+          },
+          {
+            "workload": "warm",
+            "phases": {
+              "events.open": {
+                "calls": 2,
+                "ms": 2.552958999999987
+              },
+              "sql.exec.PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON; PRAGMA bus": {
+                "calls": 2,
+                "ms": 0.3594580000000178
+              },
+              "sql.exec.PRAGMA wal_autocheckpoint = 1; PRAGMA journal_size_limit = 0;": {
+                "calls": 1,
+                "ms": 0.0019999999999527063
+              },
+              "sql.exec.BEGIN IMMEDIATE;": {
+                "calls": 48,
+                "ms": 0.4137029999998276
+              },
+              "sql.prepare.PRAGMA user_version;": {
+                "calls": 2,
+                "ms": 0.003417000000126791
+              },
+              "sql.exec.CREATE TABLE IF NOT EXISTS store_meta ( key TEXT PRIMARY KEY, value TEXT NOT NULL ) STRICT": {
+                "calls": 1,
+                "ms": 0.09791699999993853
+              },
+              "sql.exec.PRAGMA user_version = 1;": {
+                "calls": 1,
+                "ms": 0.001042000000097687
+              },
+              "sql.exec.CREATE TABLE outbox ( event_id TEXT NOT NULL REFERENCES events(event_id), destination_id T": {
+                "calls": 1,
+                "ms": 0.03720799999996416
+              },
+              "sql.exec.PRAGMA user_version = 2;": {
+                "calls": 1,
+                "ms": 0.0006250000000136424
+              },
+              "sql.exec.CREATE UNIQUE INDEX events_one_work_causality_per_run ON events (project_id, run_id) WHERE": {
+                "calls": 1,
+                "ms": 0.025666999999998552
+              },
+              "sql.exec.PRAGMA user_version = 3;": {
+                "calls": 1,
+                "ms": 0.0005840000000034706
+              },
+              "sql.exec.CREATE INDEX IF NOT EXISTS events_type_seq ON events (project_id, type, seq);": {
+                "calls": 2,
+                "ms": 0.010374999999839929
+              },
+              "sql.exec.COMMIT;": {
+                "calls": 48,
+                "ms": 9.656251000000566
+              },
+              "sql.prepare.SELECT value FROM store_meta WHERE key = ?": {
+                "calls": 49,
+                "ms": 0.3421240000003536
+              },
+              "sql.prepare.INSERT INTO store_meta (key, value) VALUES (?, ?)": {
+                "calls": 2,
+                "ms": 0.006083000000103311
+              },
+              "events.verifyIntegrity": {
+                "calls": 47,
+                "ms": 11.324914000000035
+              },
+              "sql.prepare.PRAGMA user_version": {
+                "calls": 47,
+                "ms": 0.06541900000047463
+              },
+              "sql.prepare.PRAGMA quick_check;": {
+                "calls": 47,
+                "ms": 0.6029159999997091
+              },
+              "sql.prepare.PRAGMA foreign_key_check;": {
+                "calls": 47,
+                "ms": 0.08262299999944389
+              },
+              "sql.prepare.SELECT e.*, o.destination_id AS outbox_destination_id, o.enqueued_at AS outbox_enqueued_at": {
+                "calls": 47,
+                "ms": 0.9744169999996757
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?": {
+                "calls": 47,
+                "ms": 0.4226690000002691
+              },
+              "cas.put": {
+                "calls": 44,
+                "ms": 210.44340999999963
+              },
+              "events.close": {
+                "calls": 2,
+                "ms": 0.4429170000000795
+              },
+              "cas.get": {
+                "calls": 44,
+                "ms": 3.5438729999996212
+              },
+              "events.transact": {
+                "calls": 44,
+                "ms": 24.332626999999775
+              },
+              "events.get": {
+                "calls": 44,
+                "ms": 0.280001999999854
+              },
+              "sql.prepare.SELECT * FROM events WHERE event_id = ?": {
+                "calls": 88,
+                "ms": 0.41733300000032614
+              },
+              "sql.prepare.SELECT seq, event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1": {
+                "calls": 44,
+                "ms": 0.19604200000060246
+              },
+              "sql.prepare.INSERT INTO events ( event_id, project_id, seq, run_id, session_id, type, occurred_at, act": {
+                "calls": 44,
+                "ms": 0.5268749999996771
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND type IN (?, ?) AND seq > ? ORDER BY seq LIMI": {
+                "calls": 1,
+                "ms": 0.011582999999973254
+              }
+            },
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 44,
+            "expectedEventCount": 44,
+            "samples": [
+              [24.69445799999994, 21.971],
+              [23.88295800000003, 17.214],
+              [25.22924999999998, 19.929],
+              [25.67649999999992, 18.779],
+              [24.382959000000028, 16.944],
+              [24.725167000000056, 16.941],
+              [22.79779199999996, 17.754],
+              [22.82016699999997, 15.354],
+              [22.495832999999948, 19.542],
+              [22.453499999999963, 22.188],
+              [22.45404199999996, 15.078],
+              [22.72874999999999, 15.783],
+              [23.22766700000011, 15.552],
+              [24.88537499999984, 15.583],
+              [23.225417000000107, 16.586],
+              [22.551375000000007, 18.132],
+              [22.299749999999904, 17.744],
+              [22.975916000000097, 15.282],
+              [22.850458000000117, 17.32],
+              [22.00254199999995, 16.223]
+            ]
+          },
+          {
+            "workload": "concurrent",
+            "phases": {
+              "events.open": {
+                "calls": 4,
+                "ms": 10.536457999999811
+              },
+              "sql.exec.PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON; PRAGMA bus": {
+                "calls": 4,
+                "ms": 0.7238329999997859
+              },
+              "sql.exec.PRAGMA wal_autocheckpoint = 1; PRAGMA journal_size_limit = 0;": {
+                "calls": 3,
+                "ms": 0.00437499999998181
+              },
+              "sql.exec.BEGIN IMMEDIATE;": {
+                "calls": 52,
+                "ms": 0.539124000000129
+              },
+              "sql.prepare.PRAGMA user_version;": {
+                "calls": 4,
+                "ms": 0.005163999999922453
+              },
+              "sql.exec.CREATE TABLE IF NOT EXISTS store_meta ( key TEXT PRIMARY KEY, value TEXT NOT NULL ) STRICT": {
+                "calls": 1,
+                "ms": 0.09970900000007532
+              },
+              "sql.exec.PRAGMA user_version = 1;": {
+                "calls": 1,
+                "ms": 0.0009999999999763531
+              },
+              "sql.exec.CREATE TABLE outbox ( event_id TEXT NOT NULL REFERENCES events(event_id), destination_id T": {
+                "calls": 1,
+                "ms": 0.0388749999999618
+              },
+              "sql.exec.PRAGMA user_version = 2;": {
+                "calls": 1,
+                "ms": 0.0006670000000212895
+              },
+              "sql.exec.CREATE UNIQUE INDEX events_one_work_causality_per_run ON events (project_id, run_id) WHERE": {
+                "calls": 1,
+                "ms": 0.025542000000086773
+              },
+              "sql.exec.PRAGMA user_version = 3;": {
+                "calls": 1,
+                "ms": 0.0005000000001018634
+              },
+              "sql.exec.CREATE INDEX IF NOT EXISTS events_type_seq ON events (project_id, type, seq);": {
+                "calls": 4,
+                "ms": 0.015166000000135682
+              },
+              "sql.exec.COMMIT;": {
+                "calls": 52,
+                "ms": 13.304875000000493
+              },
+              "sql.prepare.SELECT value FROM store_meta WHERE key = ?": {
+                "calls": 53,
+                "ms": 0.5150869999988572
+              },
+              "sql.prepare.INSERT INTO store_meta (key, value) VALUES (?, ?)": {
+                "calls": 4,
+                "ms": 0.013333000000329776
+              },
+              "events.verifyIntegrity": {
+                "calls": 49,
+                "ms": 35.5983369999999
+              },
+              "sql.prepare.PRAGMA user_version": {
+                "calls": 49,
+                "ms": 0.08837299999936477
+              },
+              "sql.prepare.PRAGMA quick_check;": {
+                "calls": 49,
+                "ms": 0.734289000001354
+              },
+              "sql.prepare.PRAGMA foreign_key_check;": {
+                "calls": 49,
+                "ms": 0.10299800000052528
+              },
+              "sql.prepare.SELECT e.*, o.destination_id AS outbox_destination_id, o.enqueued_at AS outbox_enqueued_at": {
+                "calls": 49,
+                "ms": 1.1890020000009827
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?": {
+                "calls": 49,
+                "ms": 0.5064159999988078
+              },
+              "cas.put": {
+                "calls": 176,
+                "ms": 2093.0000890000006
+              },
+              "events.close": {
+                "calls": 4,
+                "ms": 5.3646239999998215
+              },
+              "cas.get": {
+                "calls": 176,
+                "ms": 20.9064669999982
+              },
+              "events.transact": {
+                "calls": 44,
+                "ms": 54.65878800000064
+              },
+              "events.get": {
+                "calls": 176,
+                "ms": 1.126002999999855
+              },
+              "sql.prepare.SELECT * FROM events WHERE event_id = ?": {
+                "calls": 352,
+                "ms": 1.7789240000035988
+              },
+              "sql.prepare.SELECT seq, event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1": {
+                "calls": 176,
+                "ms": 0.6643380000004981
+              },
+              "sql.prepare.INSERT INTO events ( event_id, project_id, seq, run_id, session_id, type, occurred_at, act": {
+                "calls": 176,
+                "ms": 1.5089589999990949
+              },
+              "sql.prepare.SELECT * FROM events WHERE project_id = ? AND type IN (?, ?) AND seq > ? ORDER BY seq LIMI": {
+                "calls": 1,
+                "ms": 0.017124999999850843
+              }
+            },
+            "semanticValid": true,
+            "integrity": true,
+            "eventCount": 176,
+            "expectedEventCount": 176,
+            "samples": [
+              [43.05062500000008, 27.179],
+              [44.850582999999915, 37.639],
+              [42.205417000000125, 26.419],
+              [46.08212500000013, 28.847],
+              [45.84866599999987, 30.203],
+              [41.933583, 29.917],
+              [45.45741700000008, 35.82],
+              [41.70495899999992, 33.317],
+              [44.210959, 28.966],
+              [43.975332999999864, 30.48],
+              [47.92616599999997, 33.142],
+              [43.12887500000011, 27.802],
+              [47.8743750000001, 32.91],
+              [44.24054100000012, 28.182],
+              [43.973792, 33.895],
+              [43.01391599999988, 30.811],
+              [43.084499999999935, 26.95],
+              [43.98854200000005, 30.721],
+              [45.097083999999995, 27.594],
+              [44.189750000000004, 29.19]
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

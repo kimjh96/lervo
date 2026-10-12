@@ -1,5 +1,5 @@
 import {
-  collectRecentExecutionEventSources,
+  RecentExecutionEventProjection,
   collectVerificationResultSources,
   type RepositorySupplementalSource,
 } from "@lervo/repository-knowledge";
@@ -13,18 +13,16 @@ export async function collectLocalKnowledgeSources(
 ): Promise<RepositorySupplementalSource[]> {
   const storage = await openProjectStorage(repositoryRoot);
   try {
+    const recent = new RecentExecutionEventProjection(LOCAL_KNOWLEDGE_EXECUTION_EVENT_LIMIT);
     const verificationSources = await collectVerificationResultSources({
       events: storage.events,
       artifacts: storage.artifacts,
       loadSuite: (suiteId) => loadVerificationSuite(repositoryRoot, suiteId),
+      observeEvent: (event) => recent.observe(event),
     });
-    return [
-      ...verificationSources,
-      ...collectRecentExecutionEventSources({
-        events: storage.events,
-        maximumEvents: LOCAL_KNOWLEDGE_EXECUTION_EVENT_LIMIT,
-      }),
-    ].sort((left, right) => left.path.localeCompare(right.path));
+    return [...verificationSources, ...recent.sources()].sort((left, right) =>
+      left.path.localeCompare(right.path),
+    );
   } finally {
     await storage.close();
   }

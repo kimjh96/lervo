@@ -1,3 +1,13 @@
+import {
+  repositoryRuntimePath,
+  repositoryRuntimeMaximumBytes,
+} from "./repository-runtime-contract.mjs";
+import { repositoryRuntimeInventory } from "./repository-runtime-inventory.mjs";
+import {
+  cliGraphPackageFiles,
+  cliNativeFiles,
+  cliReleaseFilesForSchema,
+} from "./cli-release-files.mjs";
 import { createHash } from "node:crypto";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/;
@@ -61,8 +71,19 @@ export function validateReleaseArtifactManifest(manifest) {
     );
   }
   const { artifact, archive, bundle, dependencies } = manifest;
+  let runtimeFiles;
+  if (manifest.schemaVersion === 9) {
+    try {
+      runtimeFiles = repositoryRuntimeInventory(archive?.files)
+        .files.filter((entry) => entry.path !== "dist/repository-runtime.json")
+        .map((entry) => entry.path);
+    } catch {
+      fail("release_artifact_archive_invalid", "The runtime graph inventory is invalid.");
+    }
+  }
+  const expectedFiles = cliReleaseFilesForSchema(manifest.schemaVersion, runtimeFiles);
   if (
-    manifest.schemaVersion !== 5 ||
+    ![5, 6, 7, 8, 9].includes(manifest.schemaVersion) ||
     artifact?.name !== "@lervo/cli" ||
     typeof artifact.version !== "string" ||
     !semanticVersionPattern.test(artifact.version) ||
@@ -82,7 +103,7 @@ export function validateReleaseArtifactManifest(manifest) {
     artifact.node !== ">=22.13" ||
     artifact.bin !== "dist/bin.js" ||
     canonicalJson(artifact.files) !==
-      canonicalJson(["README.md", "dist/bin.js", "dist/node-runtime.js", "dist/terminal-hook.js"])
+      canonicalJson(manifest.schemaVersion === 9 ? cliGraphPackageFiles : expectedFiles)
   ) {
     fail("release_artifact_identity_invalid", "The release artifact identity is invalid.");
   }
@@ -127,8 +148,6 @@ export function validateReleaseArtifactManifest(manifest) {
         "character-entities@2.0.2",
         "decode-named-character-reference@1.3.0",
         "fast-deep-equal@3.1.3",
-        "fast-uri@3.1.5",
-        "json-schema-traverse@1.0.0",
         "jsonc-parser@3.3.1",
         "mdast-util-from-markdown@2.0.3",
         "mdast-util-to-string@4.0.0",
@@ -165,17 +184,19 @@ export function validateReleaseArtifactManifest(manifest) {
   }
   const archiveFilesValid =
     Array.isArray(archive?.files) &&
-    archive.files.length === 4 &&
+    archive.files.length === expectedFiles.length &&
     archive.files.every(
       (entry) =>
         entry !== null &&
         typeof entry === "object" &&
         typeof entry.path === "string" &&
-        ["README.md", "dist/bin.js", "dist/node-runtime.js", "dist/terminal-hook.js"].includes(
-          entry.path,
-        ) &&
+        expectedFiles.includes(entry.path) &&
         Number.isSafeInteger(entry.size) &&
         entry.size >= 0 &&
+        (entry.path !== repositoryRuntimePath ||
+          (entry.size > 0 && entry.size <= repositoryRuntimeMaximumBytes)) &&
+        (!cliNativeFiles.includes(entry.path) ||
+          (entry.size > 0 && entry.size <= (entry.path.endsWith(".node") ? 1048576 : 4096))) &&
         typeof entry.sha256 === "string" &&
         digestPattern.test(entry.sha256),
     );
@@ -184,13 +205,7 @@ export function validateReleaseArtifactManifest(manifest) {
     archive.rootFiles.length !== 1 ||
     archive.rootFiles[0] !== "package.json" ||
     !archiveFilesValid ||
-    canonicalJson(archive.files.map((entry) => entry.path)) !==
-      canonicalJson([
-        "README.md",
-        "dist/bin.js",
-        "dist/node-runtime.js",
-        "dist/terminal-hook.js",
-      ]) ||
+    canonicalJson(archive.files.map((entry) => entry.path)) !== canonicalJson(expectedFiles) ||
     !isSortedUnique(archive.files.map((entry) => entry.path)) ||
     archive.fileCount !== archive.files.length + archive.rootFiles.length ||
     archive.contentDigest !== canonicalDigest(archive.files)

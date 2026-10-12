@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cfdec9b4e12bdfd1c434aeca"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Install native synchronization assets with repository terminal hooks, verify every runtime file before input, and recover interrupted binary updates through the existing durable journal."

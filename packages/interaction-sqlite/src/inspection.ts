@@ -56,7 +56,7 @@ function assertProtectiveSchema(database: DatabaseSync): void {
     "conversation_outbox_no_delete",
   ]);
   for (const row of iterateSqliteRows(
-    database.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'").iterate(),
+    database.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'"),
   )) {
     if (typeof row.name === "string") required.delete(row.name);
   }

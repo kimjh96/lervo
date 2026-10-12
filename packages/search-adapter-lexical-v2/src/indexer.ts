@@ -21,6 +21,7 @@ import {
   lexicalV2Trigrams,
   type LexicalV2IndexedField,
 } from "./features.js";
+import type { LexicalV2FieldAnalysisCache } from "./field-analysis-cache.js";
 export const LEXICAL_V2_SEARCH_ENGINE = { id: "lexical", version: 2 } as const;
 const LEXICAL_V2_ADAPTER_IMPLEMENTATION_REVISION = 6;
 const RRF_RANK_CONSTANT = 60;
@@ -94,15 +95,19 @@ export class LexicalV2SearchIndex implements SearchEvaluationIndexPort {
   private readonly vocabularyGrams = new Map<string, ReadonlySet<string>>();
   private readonly termGramCounts = new Map<string, number>();
 
-  constructor(inputs: readonly SearchSourceInput[]) {
+  constructor(
+    inputs: readonly SearchSourceInput[],
+    options: { fieldCache?: LexicalV2FieldAnalysisCache } = {},
+  ) {
+    const analyze = options.fieldCache?.analyze.bind(options.fieldCache) ?? analyzeLexicalV2Field;
     const corpus = prepareSearchCorpus(inputs);
     const vocabulary = new Set<string>();
     this.sources = corpus.sources.map((input) => {
       const fields = [
-        analyzeLexicalV2Field("title", input.title ?? "", 12),
-        analyzeLexicalV2Field("path", input.path ?? "", 8),
-        ...input.labels.map((label) => analyzeLexicalV2Field("label", label, 10)),
-        analyzeLexicalV2Field("text", input.text, 2),
+        analyze("title", input.title ?? "", 12),
+        analyze("path", input.path ?? "", 8),
+        ...input.labels.map((label) => analyze("label", label, 10)),
+        analyze("text", input.text, 2),
       ].filter((item): item is LexicalV2IndexedField => item !== null);
       let length = 0;
       for (const item of fields) {

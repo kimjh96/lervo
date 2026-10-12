@@ -74,6 +74,63 @@ async function writeIntent(root, impact, summary) {
 }
 
 describe("release intent change classification", () => {
+  it.each([
+    "packages/filesystem-durability/native/binding.c",
+    "packages/filesystem-durability/native/sync-group.c",
+    "packages/filesystem-durability/native/sync-group.h",
+    "packages/filesystem-durability/scripts/build-native.mjs",
+    "packages/cas/native/binding.c",
+    "packages/cas/native/cas-io.c",
+    "packages/cas/native/cas-io.h",
+    "packages/cas/scripts/build-native.mjs",
+    "packages/cas/scripts/build-native-artifact.mjs",
+    "scripts/shared/native-cas-contract.mjs",
+    "scripts/shared/native-cas-artifact.mjs",
+    "scripts/shared/native-addon-contract.mjs",
+    "scripts/shared/native-addon-artifact.mjs",
+    "scripts/shared/native-runtime-artifact.mjs",
+    "scripts/shared/native-runtime-contract.mjs",
+    "apps/cli/scripts/build-bundle.mjs",
+    "apps/hub-runtime/scripts/build-bundle.mjs",
+    "apps/node-runtime/scripts/build-bundle.mjs",
+    "scripts/distribution/lib/hub-runtime-distribution-contract.mjs",
+    "scripts/distribution/lib/node-runtime-distribution-contract.mjs",
+    "scripts/distribution/lib/runtime-distribution-sbom.mjs",
+    "scripts/shared/cli-release-files.mjs",
+    "scripts/shared/release-artifact-manifest.mjs",
+    "scripts/release/lib/cli-native-components.mjs",
+    "scripts/release/lib/cli-release-snapshot.mjs",
+    "scripts/release/lib/cli-release-sbom.mjs",
+    "scripts/distribution/native-runtime-transfer.mjs",
+    "scripts/distribution/lib/native-runtime-transfer.mjs",
+    "scripts/distribution/lib/native-runtime-restore.mjs",
+    "scripts/distribution/lib/native-transfer-identity.mjs",
+    "scripts/shared/native-file-sync-artifact.mjs",
+    "scripts/shared/native-file-sync-contract.mjs",
+    "scripts/distribution/native-file-sync-transfer.mjs",
+    "scripts/distribution/lib/native-file-sync-transfer.mjs",
+    "packages/schemas/scripts/compile-validators.mjs",
+    "packages/schemas/scripts/coordinate-data-validators.mjs",
+    "packages/schemas/scripts/primitive-enum-keyword.mjs",
+    "packages/schemas/scripts/generate-validators.mjs",
+    "scripts/shared/schema-validator-artifact.mjs",
+    "scripts/shared/schema-validator-contract.mjs",
+  ])("requires reviewed intent for generated artifact owner %s", async (path) => {
+    const root = await fixture(false);
+    const input = { repositoryRoot: root, changedPaths: [path] };
+    await expect(inspectReleaseIntent(input)).resolves.toMatchObject({
+      valid: false,
+      publishablePathCount: 1,
+      diagnostics: ["missing_release_intent"],
+    });
+    await writeIntent(root, "patch", "Bind generated runtime behavior to its reviewed artifact.");
+    await expect(inspectReleaseIntent(input)).resolves.toMatchObject({
+      valid: true,
+      publishablePathCount: 1,
+      diagnostics: [],
+    });
+  });
+
   it("requires intent for CLI and bundled-private source, but not unrelated private source", async () => {
     const without = await fixture(false);
     expect(

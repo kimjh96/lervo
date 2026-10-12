@@ -340,9 +340,9 @@ export class SQLiteOutboxRepository {
   verifyIntegrity(): number {
     let count = 0;
     const rows = iterateSqliteRows(
-      this.database
-        .prepare(`${outboxDeliverySelection} ORDER BY o.enqueued_at, o.event_id, o.destination_id`)
-        .iterate(),
+      this.database.prepare(
+        `${outboxDeliverySelection} ORDER BY o.enqueued_at, o.event_id, o.destination_id`,
+      ),
     );
     for (const row of rows) {
       rowToOutboxDelivery(row);

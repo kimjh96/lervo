@@ -1,0 +1,46 @@
+# Exact task outcomes and bounded correction
+
+Status: `source_implemented`
+As of: 2026-10-09
+
+This priority-2 slice extends [artifact observations](outcome-and-event-rollout.md) under [ADR-0501](../../../decisions/execution/grounding/0501-share-context-quality-contracts-across-product-surfaces.md). It implements callable repository operations and CLI definition loading. The subsequent [priority-3 host integration](host-outcome-integration.md) composes these operations at actual completion boundaries. Passing an observation does not grant publication, repository-write, or provider authority.
+
+## Task and writing verification
+
+`verifyRepositoryContextOutcome` resolves the current local plan before and after evaluation and reads final artifact bytes again. A definition may add `task`, containing `definitionId`, the exact preparation task's `taskDigest`, and one to 64 unique `{checkId, requirement}` entries within 16 KiB. Every declared check is required. The application binds the definition to the current task and configured publication language; changed task, targets, policy, source plan, or artifact invalidates the observation. A task definition states the accepted requirements; this operation does not infer completeness of an underspecified definition.
+
+`@lervo/verification` owns the `ArtifactTaskEvaluator` port. Its request contains exact artifact content and artifact, plan, and definition hashes. Its response must echo all three hashes and supply exactly one `passed`, `failed`, or `unavailable` result per check. Missing, duplicate, unknown, malformed, or stale responses are unavailable. A valid failed check remains failed even if another check is unavailable. Evaluator identity is a required SHA-256 build coordinate. The caller owns evaluator admission; the library starts no command or provider implicitly. Existing project suites and owner acceptance remain independently required where applicable.
+
+The evaluation digest uses the private request's artifact and plan coordinates captured before calling the evaluator. Later mutation of the caller's input cannot rebind an accepted verdict to a different artifact or plan. The evaluator receives a detached request, and its echoed coordinates are checked against that same private request. This preserves the existing evidence schema and introduces no effect authority.
+
+Writing verification continues through `@lervo/writing`, with all required deterministic and semantic checks. Task verification applies to non-publication artifacts too. Without a task definition, the observation retains its narrower publication scope. Without an evaluator, a required semantic task or writing check stays unavailable. A failed task, writing check, or protected-material comparison cannot be erased by another unavailable check. Changed bindings override the whole disposition to unavailable.
+
+## Explicit language exceptions
+
+The repository publication default remains English. An optional `languageException` binds `exceptionId`, `ruleId: writing_en-human`, exact plan digest, artifact path, outcome definition ID, requested language, and `authorityEvidenceDigest`. The application must supply a current authority resolver. Neither the exception object nor conversation language establishes permission. An absent, denied, revoked, or differently scoped authority result prevents a passing publication observation.
+
+An admitted exception changes only the writing locale and the natural-prose check's language. All other checks remain required. The exception and its full scope participate in the definition and writing-policy identities. Code, quotations, and identifiers must remain exact; a language exception grants no write permission. Authority is checked again after evaluation and inside the correction effect's freshness callback. Global policy, generated publications, and ordinary publication permits retain their existing owners.
+
+## Versioned evidence
+
+Current readers accept observation schemas 1 and 2. Schema 2 adds `writingRequired`, nullable `taskVerification`, and nullable `languageExceptionDigest`. Scope is `task_and_artifact` only when a task definition was requested; otherwise it remains `publication_writing_and_protected_material`. Task evidence carries definition and evaluator hashes, per-check IDs/statuses, derived disposition, and an evaluation digest bound to artifact and plan hashes. Its check set is nonempty, unique, and bounded. A task-scoped pass requires passed task evidence; a publication pass also requires writing evidence. `not_applicable` is reserved for a non-publication with no task definition.
+
+The overall observation retains exact baseline, definition, artifact, plan, evaluator-build and observation hashes. `context_language_exception` records an admitted scoped override; it is not a failure or a write permit. Existing failure codes retain their meanings. Version-6 verification events keep their current metadata-only payload and reference the complete schema-2 observation in private CAS. A schema-1-only observation consumer cannot validate a schema-2 CAS report; it must retain explicit unavailability until upgraded. No task requirement, artifact body, authorization identity, provider error, or correction text enters event payloads. Existing CAS/event retention applies; no per-turn tracked history is added.
+
+## Correction boundary
+
+`correctRepositoryContextOutcome` requires a full task definition, an initial artifact hash, one to 64 exact editable byte ranges, a proposal port, and an existing authorized effect owner. The declared limit is one to three attempts and at most 60 seconds. Cancellation and the deadline cover reading, planning, evaluation, and proposal work. The caller also bounds any admitted provider work. Failed drafts remain in memory; every proposal starts from the original artifact and must fit the original editable ranges. No retry expands authority.
+
+The application rejects overlapping or out-of-range edits, split UTF-8 characters, invalid text, output above 1 MiB, or any changed protected Markdown code/quotation multiset. It fully verifies each candidate before asking for a write. Missing verification stops correction. A failed candidate consumes an attempt; exhaustion writes nothing. Proposal input includes the exact definition and most recent verdict, while observations expose only bounded metadata.
+
+The `apply` port belongs to the existing effect owner. It must validate current authority, including user-owned bytes, take its write fence, invoke the supplied `assertCurrent` callback inside that fence, check cancellation immediately before commit, and compare-and-replace the exact original bytes. The callback rechecks task, plan, publication-exception authority, and artifact freshness. Editable ranges and a successful candidate observation are restrictions, not grants. This application introduces no generic filesystem writer and does not substitute a prior read for the effect owner's atomic comparison.
+
+The application awaits effect settlement rather than abandoning a write on a timeout. Ports must honor cancellation and settle their bounded effect. After an applied receipt, the application verifies the actual file again and requires its digest to equal the verified candidate. A changed context source may make the old plan stale after the write; that returns unavailable and requires a newly bound operation, not a reused pass. A failed final check never triggers an automatic overwrite or rollback of newer owner bytes.
+
+Correction results contain `status`, `reason`, attempt count, `applied`, the observed file verdict, and at most three candidate observations. Statuses are `unchanged`, `corrected`, `unavailable`, `rejected`, `exhausted`, and `cancelled`. Reasons distinguish initial success, missing task/verifier, stale scope, invalid proposal, protected changes, authority denial, conflict, exhausted attempts, cancellation/deadline, effect failure, and failed final verification. `applied: null` means an invoked effect did not return a conclusive receipt; it must not be reported as no write. Only `corrected` means exact applied bytes passed final verification. Results are returned to the existing host/retention owner, not appended to a new store.
+
+## CLI and acceptance
+
+`knowledge query --verify-artifact <path> --expected-plan <hash> --verification-definition <path>` reads a repository-relative definition of at most 32 KiB. Repeat the original query, target, artifact-kind, action, and continuation arguments. `--baseline` retains protected-source verification. This diagnostic entrypoint supplies no hidden semantic evaluator, exception-authority resolver, or write port. Missing evidence therefore returns exit status 2 and unavailable checks; malformed definitions or unsafe paths return an error. Controlled host composition supplies admitted ports separately.
+
+Focused contracts cover exact task identity, missing/malformed verdicts, known failure precedence, language scope/revocation, v1/v2 observation compatibility, UTF-8 and protected ranges, denied/conflicting writes, changed plans/files, final-byte mismatch, bounded retry/cancellation, and repository/CLI composition. Installed host adoption, provider-quality acceptance, active-writer performance, and fleet rollout remain separate gates.

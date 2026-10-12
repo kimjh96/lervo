@@ -1,3 +1,7 @@
+import { verifyCliNativeArtifact } from "../../distribution/lib/cli-native-artifact.mjs";
+import { readRuntimeModuleArtifact } from "../../../packages/runtime-security/dist/index.js";
+import { cliGraphPackageFiles, cliReleaseFilesForSchema } from "../../shared/cli-release-files.mjs";
+import { verifyInstalledContextQuality } from "../../distribution/lib/installed-context-quality.mjs";
 import assert from "node:assert/strict";
 import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -60,6 +64,7 @@ async function installTarball(consumerRoot, tarballPath) {
 async function verifyInstalledPackage(consumerRoot, expectedManifest) {
   const packageRoot = resolve(consumerRoot, "node_modules/@lervo/cli");
   const manifest = await readJson(resolve(packageRoot, "package.json"));
+  await verifyCliNativeArtifact(packageRoot, { smoke: true });
   assert.equal(manifest.name, "@lervo/cli");
   assert.equal(manifest.version, expectedManifest.version);
   assert.equal(
@@ -76,12 +81,7 @@ async function verifyInstalledPackage(consumerRoot, expectedManifest) {
     lervo: "./dist/bin.js",
     "lervo-node": "./dist/node-runtime.js",
   });
-  assert.deepEqual(manifest.files, [
-    "README.md",
-    "dist/bin.js",
-    "dist/node-runtime.js",
-    "dist/terminal-hook.js",
-  ]);
+  assert.deepEqual(manifest.files, cliGraphPackageFiles);
   assert.deepEqual(manifest.dependencies, {
     "@anthropic-ai/claude-agent-sdk": "0.3.226",
     "@anthropic-ai/sdk": "0.117.1",
@@ -97,13 +97,14 @@ async function verifyInstalledPackage(consumerRoot, expectedManifest) {
     ),
     false,
   );
-  assert.deepEqual(await collectFiles(packageRoot), [
-    "README.md",
-    "dist/bin.js",
-    "dist/node-runtime.js",
-    "dist/terminal-hook.js",
-    "package.json",
-  ]);
+  const runtime = await readRuntimeModuleArtifact(resolve(packageRoot, "dist"));
+  const cliReleaseFiles = cliReleaseFilesForSchema(
+    9,
+    [...runtime.files.keys()]
+      .filter((name) => name !== "repository-runtime.json")
+      .map((name) => `dist/${name}`),
+  );
+  assert.deepEqual(await collectFiles(packageRoot), [...cliReleaseFiles, "package.json"]);
   assert.deepEqual((await readdir(resolve(consumerRoot, "node_modules/@lervo"))).sort(), ["cli"]);
 
   const entry = await readFile(resolve(packageRoot, "dist/bin.js"), "utf8");
@@ -162,7 +163,7 @@ async function verifyConsumerCommands(consumerRoot, expectedVersion, eventContra
   assert.deepEqual(report.eventReader, {
     schemaVersion: 1,
     capability: "event_reader",
-    readableEventSchemaVersions: [1, 2, 3, 4, 5],
+    readableEventSchemaVersions: [1, 2, 3, 4, 5, 6],
   });
 
   const initialized = await runConsumerCli(consumerRoot, [
@@ -257,6 +258,7 @@ async function main() {
       cliManifest.version,
       eventContract,
     );
+    const contextQuality = await verifyInstalledContextQuality(consumerRoot);
     const capabilityJourney = await verifyInstalledCapabilityJourney(
       consumerRoot,
       capabilities.hashCapabilityFiles,
@@ -268,6 +270,9 @@ async function main() {
     const liveTrigger = await verifyInstalledLiveWebhookTrigger(consumerRoot);
     const unattendedScheduler = await verifyInstalledUnattendedScheduler(consumerRoot);
     const dynamicTopology = await verifyInstalledDynamicTopology(consumerRoot);
+    console.log(
+      `Installed context quality verified: ${contextQuality.preparedEventId} / ${contextQuality.verifiedEventId}`,
+    );
     console.log(`Claude native runtime verified: ${nativeRuntime.packageName}`);
     console.log(`Installed capability journey verified: ${capabilityJourney.runId}`);
     console.log(`Installed live webhook trigger verified: ${liveTrigger.assignmentId}`);

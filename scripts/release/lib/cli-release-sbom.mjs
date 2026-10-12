@@ -1,3 +1,6 @@
+import { repositoryRuntimeInventory } from "../../shared/repository-runtime-inventory.mjs";
+import { repositoryRuntimeComponent } from "../../shared/repository-runtime-contract.mjs";
+import { cliNativeComponents } from "./cli-native-components.mjs";
 import { createHash } from "node:crypto";
 
 import { canonicalJson } from "../../shared/release-artifact-manifest.mjs";
@@ -149,12 +152,28 @@ export function releaseSbomSerialNumber(sbom) {
 export function createCliReleaseSbom(releaseManifest, lockfile) {
   const graph = createPnpmProductionGraph(lockfile);
   assertSourceConsistency(releaseManifest, graph, lockfile);
+  const native = [
+    ...cliNativeComponents(releaseManifest),
+    ...(releaseManifest.schemaVersion >= 8
+      ? [
+          repositoryRuntimeComponent(
+            releaseManifest.schemaVersion >= 9
+              ? repositoryRuntimeInventory(releaseManifest.archive.files).hash
+              : releaseManifest.archive.files.find(
+                  (entry) => entry.path === "dist/repository-runtime.js",
+                )?.sha256,
+            releaseManifest.schemaVersion >= 9 ? "inventory" : "single_file",
+          ),
+        ]
+      : []),
+  ];
   const bundled = new Set(releaseManifest.bundle.externalPackages);
   const graphCoordinates = new Set(graph.nodes.map(({ coordinate }) => coordinate));
   const bundledOnly = releaseManifest.bundle.externalPackages.filter(
     (coordinate) => !graphCoordinates.has(coordinate),
   );
   const components = [
+    ...native,
     ...releaseManifest.bundle.workspacePackages.map((coordinate) =>
       componentFromCoordinate(coordinate, { bundled: true, scope: "required" }),
     ),
@@ -177,6 +196,7 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
   ].sort((left, right) => left["bom-ref"].localeCompare(right["bom-ref"]));
   const root = rootComponent(releaseManifest);
   const rootDependencies = [
+    ...native.map((component) => component["bom-ref"]),
     ...new Set(
       [
         ...graph.roots,
@@ -186,6 +206,7 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
     ),
   ].sort();
   const dependencies = [
+    ...native.map((component) => ({ ref: component["bom-ref"], dependsOn: [] })),
     { ref: root["bom-ref"], dependsOn: rootDependencies },
     ...graph.nodes.map((node) => ({
       ref: packageIdentity(node.coordinate).purl,
@@ -201,14 +222,35 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
     metadata: {
       lifecycles: [{ phase: "build" }],
       tools: {
-        components: [{ type: "application", name: "lervo-release-sbom", version: "1" }],
+        components: [
+          {
+            type: "application",
+            name: "lervo-release-sbom",
+            version:
+              releaseManifest.schemaVersion >= 9
+                ? "5"
+                : releaseManifest.schemaVersion === 8
+                  ? "4"
+                  : releaseManifest.schemaVersion === 7
+                    ? "3"
+                    : releaseManifest.schemaVersion === 6
+                      ? "2"
+                      : "1",
+          },
+        ],
       },
       component: root,
     },
     components,
     dependencies,
     properties: [
-      { name: "lervo:release:inventory-source", value: "pnpm-lock-and-esbuild-metafile" },
+      {
+        name: "lervo:release:inventory-source",
+        value:
+          releaseManifest.schemaVersion >= 6
+            ? "pnpm-lock-esbuild-metafile-and-native-archive"
+            : "pnpm-lock-and-esbuild-metafile",
+      },
       { name: "lervo:release:workspace-relationships", value: "not-asserted" },
     ],
   };

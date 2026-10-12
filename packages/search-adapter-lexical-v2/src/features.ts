@@ -49,7 +49,7 @@ export function analyzeLexicalV2Field(
 ): LexicalV2IndexedField | null {
   if (value.length === 0) return null;
   const canonical = value.normalize("NFKC");
-  const normalized = canonical.toLocaleLowerCase("und").replace(/\s+/gu, " ").trim();
+  const normalized = normalizeCanonicalField(canonical);
   const exactTerms = normalized.match(TERM_PATTERN) ?? [];
   const exactTermSet = new Set(exactTerms);
   return {
@@ -59,6 +59,14 @@ export function analyzeLexicalV2Field(
     identifierFrequencies: frequencyMap(identifierTerms(canonical, exactTermSet)),
     weight,
   };
+}
+
+export function normalizeLexicalV2Field(value: string): string {
+  return normalizeCanonicalField(value.normalize("NFKC"));
+}
+
+function normalizeCanonicalField(canonical: string): string {
+  return canonical.toLocaleLowerCase("und").replace(/\s+/gu, " ").trim();
 }
 
 export function lexicalV2Trigrams(term: string): string[] {

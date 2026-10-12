@@ -12,7 +12,13 @@ import {
   type CodexAppServerClient,
   type CodexThreadStartOptions,
 } from "@lervo/adapter-codex";
-import { applyInitPlan, createInitPlan } from "@lervo/project";
+import {
+  applyInitPlan,
+  createInitPlan,
+  planEventWriterActivation,
+  applyEventWriterActivationPlan,
+} from "@lervo/project";
+import { createEventReaderCapabilities } from "@lervo/event-contract";
 import { openProjectStorage } from "@lervo/project-storage";
 import { validateSchema, type SkillManifest } from "@lervo/schemas";
 import { hashSkillPackage } from "@lervo/skills";
@@ -745,6 +751,29 @@ describe("lervo run vertical slice", () => {
     "runs one managed %s change through project storage and the production adapter",
     async (provider) => {
       const root = await createRepository();
+      const qualityEvidence = {
+        schemaVersion: 1,
+        projectId: "prj_cli_run_0001",
+        observedAt: new Date().toISOString(),
+        readers: [
+          {
+            readerId: "reader_hostfixture",
+            readerKind: "local",
+            peerIdentityHash: null,
+            capabilities: createEventReaderCapabilities(),
+          },
+        ],
+      };
+      const qualityWriterPlan = await planEventWriterActivation({
+        repositoryRoot: root,
+        evidence: qualityEvidence,
+        targetEventSchemaVersion: 6,
+      });
+      await applyEventWriterActivationPlan({
+        plan: qualityWriterPlan,
+        approval: qualityWriterPlan.planId,
+        currentEvidence: qualityEvidence,
+      });
       await registerLinkedSearchContextDocuments(root);
       const client =
         provider === "codex" ? new ManagedCodexClient(root) : new ManagedClaudeClient(root);
@@ -815,6 +844,17 @@ describe("lervo run vertical slice", () => {
       const events = storage.events.list();
       await storage.close();
       expect(events.map((event) => event.type)).toContain("file.changed");
+      const qualityEvents = events.filter((event) => event.type === "context.quality.verified");
+      expect(qualityEvents).toHaveLength(2);
+      expect(qualityEvents.every((event) => event.payload.disposition === "unavailable")).toBe(
+        true,
+      );
+      const completion = events.find((event) => event.type === "run.completed")!;
+      expect(
+        qualityEvents.every(
+          (event) => event.runId === completion.runId && event.sessionId === completion.sessionId,
+        ),
+      ).toBe(true);
       expect(events.map((event) => event.type)).toContain("verification.started");
       expect(events.map((event) => event.type)).toContain("verification.completed");
       expect(events.map((event) => event.type)).toContain("run.completed");

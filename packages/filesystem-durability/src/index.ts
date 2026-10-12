@@ -18,3 +18,5 @@ export async function syncDirectory(
     await handle.close();
   }
 }
+
+export { createFileSyncBatch } from "./file-sync-batch.js";

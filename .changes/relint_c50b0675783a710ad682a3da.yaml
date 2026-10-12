@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c50b0675783a710ad682a3da"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Avoid a redundant storage binding read while preserving fresh admission and commit checks."

@@ -30,6 +30,10 @@ import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 import type { WritingArtifactCoordinate, WritingSemanticEvaluator } from "@lervo/writing";
 
 export interface ManagedConversationResponsePlan {
+  contextQuality?: {
+    planDigest: string | null;
+    observe(artifact: WritingArtifactCoordinate): Promise<{ completionAllowed: boolean }>;
+  };
   adapter: ProviderAdapter;
   deadlines?: Partial<ManagedProviderRunDeadlines>;
   executionIdentity: {

@@ -1,3 +1,8 @@
+import type { ContextQualityPreparationResult } from "@lervo/repository-context";
+import { prepareTerminalEvidence } from "./terminal-evidence-context.js";
+import { prepareTerminalInstructionPreamble } from "./terminal-instruction-context.js";
+import { observeContextPreparation } from "@lervo/context";
+import type { ContextPreparationReport } from "@lervo/schemas";
 import type { OperatingAttentionReportV1 } from "@lervo/application-contract";
 import type { RepositorySnapshot } from "@lervo/orchestrator";
 import type { SearchQueryProjectionReceipt } from "@lervo/search";
@@ -11,9 +16,7 @@ import {
 } from "@lervo/repository-knowledge";
 
 import { assembleTerminalHookContext } from "./terminal-context-assembly.js";
-import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
 import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
-import { formatTerminalAttentionContext } from "./operating-attention-format.js";
 import { prepareCompactTerminalPromptContext } from "./terminal-compact-context.js";
 import { readDocumentFreshnessAttention } from "./document-freshness-attention.js";
 import { readInstructionCaptureAttention } from "./instruction-capture-attention.js";
@@ -21,12 +24,15 @@ import { createOperatingAttentionReport } from "./operating-attention-projection
 import { readTerminalKnowledgeLifecycleCacheEntry } from "./terminal-knowledge-lifecycle-cache.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import { prepareTerminalPromptInputs } from "./terminal-prompt-preparation.js";
+import {
+  formatRetrievedTerminalPreamble,
+  terminalDeclarationInstruction,
+} from "./terminal-retrieval-format.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
 import type { CliServices } from "./types.js";
 import { observeWorkstreamFreshness } from "./workstream-repository-head.js";
 
 const MAXIMUM_CONTEXT_BYTES = 28 * 1024;
-const MAXIMUM_DOCUMENT_CONTEXT_BYTES = 12 * 1024;
 const MAXIMUM_WORKSTREAM_CONTEXT_BYTES = 8 * 1024;
 const TRUNCATION_NOTICE = "\n[Lervo content truncated]";
 
@@ -41,6 +47,8 @@ export interface PreparedTerminalDocument {
 }
 
 export interface PreparedTerminalPromptContext {
+  preparationQuality: ContextPreparationReport;
+  quality?: ContextQualityPreparationResult;
   additionalContext: string;
   sourceSnapshotId: string;
   recommendationCount: number;
@@ -79,12 +87,6 @@ export interface PreparedTerminalPromptContext {
     disposition: "query_projection_missing" | "no_candidates" | "selected";
     selectedCount: number;
   };
-}
-
-function evidenceMarker(
-  document: Pick<PreparedTerminalDocument, "conceptId" | "contentHash">,
-): string {
-  return `<!-- lervo-ref:${document.conceptId}:${document.contentHash} -->`;
 }
 
 function truncateUtf8(value: string, maximumBytes: number): string {
@@ -204,73 +206,39 @@ export async function prepareTerminalPromptContext(input: {
               context,
             };
           })();
-    const finalizationInstruction =
-      input.workspaceBinding?.executionKind === "worker"
-        ? [
-            `This direct provider turn is ${input.workspaceBinding.attachmentDisposition ?? "attached"} on worker workspace ${input.workspaceBinding.workspaceId} generation ${input.workspaceBinding.workspaceGeneration}; provider execution remains unmanaged, while checkout ownership, checkpointed pause, and Stop isolation are evidence-bound.`,
-            "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
-            "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes.",
-          ].join("\n\n")
-        : terminalDeclarationInstruction(input.provider, input.observationId);
-    const workstreamInstruction =
-      input.workspaceBinding?.executionKind === "worker"
-        ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping."
-        : workstream === null
-          ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint before completion with `lervo workstream start --actor agent --provider <current-provider> --stdin --apply-now`. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands."
-          : "If this turn changes repository-authored bytes, the agent must record the next bounded revision before completion with `lervo workstream update --actor agent --provider <current-provider> --patch <json> --apply-now`; the service sets revision, update time, and HEAD and preserves identity and origin. Replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
-    const preamble = [
-      "Lervo terminal integration v2 used a provider-neutral query projection only for read-only candidate retrieval in the current repository. It did not resolve effects, authority, execution, external systems, or cross-repository routing.",
-      `effectGroundingStatus: ${grounding.status}; workflowId: none; reasons: ${grounding.reasons.join(",")}`,
-      `selectionDisposition: ${selection.disposition}; candidates: ${selection.candidates.length}; selected: ${selection.selected.length}`,
-      `retrievalPlanId: ${selection.retrievalPlanId ?? "baseline"}; transition: ${selection.retrievalPlanTransitionId ?? "none"}`,
-      `queryProjectionStatus: ${queryProjection.receipt.status}; queries: ${queryProjection.receipt.projectedQueryCount}; receipt: ${queryProjection.receipt.receiptId}`,
-      `sourceSnapshotId: ${selection.sourceSnapshotId}`,
-      "This search covers only registered knowledge in the current repository. An empty or failed result is not evidence that content is absent from another repository or any external or shared service. Inspect those surfaces through their available tools and configured authority independently.",
-      "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
-      "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
-      `durableInstructionStatus: ${durableInstruction.status}; ruleId: none; targetPath: none; reasons: ${durableInstruction.reasonIds.join(",")}. Direct prompt preparation never materializes a repository rule. When the user explicitly adds a repository-long instruction, perform agent bookkeeping through \`lervo knowledge instruction intake --provider ${input.provider} --stdin\` with the exact request in {schemaVersion:1,request}; inspect the returned Markdown and candidate hash, then use \`lervo knowledge instruction review\` with the exact apply or reject decision. Never infer durability or approval, and never ask the user to run these commands.`,
-      formatTerminalAttentionContext(attention),
-      "If the final response explicitly relies on a supplied publication, append its exact Lervo evidence marker as a standalone Markdown HTML comment. Keep the marker out of prose and code. Markdown renderers hide the comment, while raw output retains verifiable evidence. A marker proves only an output reference, never understanding or internal use.",
-      finalizationInstruction,
-      workstreamInstruction,
-    ].join("\n\n");
-    const sections: string[] = [];
-    const documents: PreparedTerminalDocument[] = [];
-    let usedBytes =
-      Buffer.byteLength(preamble) +
-      (workstream === null ? 0 : Buffer.byteLength("\n\n") + workstream.deliveredByteCount);
-    for (const hit of selection.selected) {
-      const sectionPrefix = [
-        `## ${hit.path}`,
-        `Lervo recommendation: score=${hit.score}; freshness=${hit.freshness}; assurance=${hit.assurance}; contentHash=${hit.contentHash}`,
-        `Lervo evidence marker: ${evidenceMarker(hit)}`,
-        "",
-      ].join("\n");
-      const separatorBytes = Buffer.byteLength("\n\n");
-      const availableBytes =
-        MAXIMUM_CONTEXT_BYTES - usedBytes - separatorBytes - Buffer.byteLength(sectionPrefix);
-      const content = await input.timing.measureChild("exact_loading", "context_assembly", () =>
-        loadSelectedTerminalDocument({
-          repositoryRoot: input.root,
-          hit,
-          maximumBytes: Math.min(availableBytes, MAXIMUM_DOCUMENT_CONTEXT_BYTES),
-        }),
-      );
-      if (content === null) continue;
-      const section = `${sectionPrefix}${content.content}`;
-      sections.push(section);
-      documents.push({
-        conceptId: hit.conceptId,
-        path: hit.path,
-        contentHash: hit.contentHash,
-        scope: content.scope,
-        deliveredByteCount: Buffer.byteLength(content.content),
-        assurance: hit.assurance,
-        freshness: hit.freshness,
-      });
-      usedBytes += separatorBytes + Buffer.byteLength(section);
-      if (MAXIMUM_CONTEXT_BYTES - usedBytes <= 512) break;
-    }
+    const basePreamble = formatRetrievedTerminalPreamble({
+      provider: input.provider,
+      observationId: input.observationId,
+      workspaceBinding: input.workspaceBinding,
+      workstreamPresent: workstream !== null,
+      publicationLanguage: preparedKnowledge.policy.publication.language,
+      grounding,
+      durableInstruction,
+      queryProjection,
+      attention,
+      selection,
+    });
+    const instructions = await prepareTerminalInstructionPreamble({
+      root: input.root,
+      preamble: basePreamble,
+      maximumBytes: MAXIMUM_CONTEXT_BYTES - MAXIMUM_WORKSTREAM_CONTEXT_BYTES - 1024,
+      prompt: input.prompt,
+      sourceSnapshotId: selection.sourceSnapshotId,
+    });
+    const preamble = instructions.preamble;
+    const preparedEvidence = await prepareTerminalEvidence({
+      root: input.root,
+      prompt: input.prompt,
+      instructionMaximumBytes: instructions.report.preparedByteCount,
+      instructionCatalogDigest: instructions.report.catalogDigest,
+      remainingBytes:
+        MAXIMUM_CONTEXT_BYTES -
+        Buffer.byteLength(preamble) -
+        (workstream === null ? 0 : Buffer.byteLength("\n\n") + workstream.deliveredByteCount),
+      selection,
+      projectorBuildId: queryProjection.receipt.projector.buildId,
+      projectedQueries: queryProjection.queries,
+    });
     const fallback =
       selection.disposition === "query_projection_missing"
         ? "No current-repository publication was selected because query projection was unavailable. This says nothing about other repositories or external surfaces. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes."
@@ -280,13 +248,37 @@ export async function prepareTerminalPromptContext(input: {
     const additionalContext = assembleTerminalHookContext({
       preamble,
       workstreamContext: workstream?.context ?? null,
-      documentSections: sections,
+      documentSections: preparedEvidence.sections,
       fallback,
       maximumBytes: MAXIMUM_CONTEXT_BYTES,
     });
-    return { additionalContext, documents, workstream };
+    return {
+      additionalContext,
+      documents: preparedEvidence.documents,
+      workstream,
+      loads: preparedEvidence.loads,
+      quality: preparedEvidence.quality,
+      instructions: instructions.report,
+    };
   });
   return {
+    quality: assembled.quality,
+    preparationQuality: {
+      ...observeContextPreparation({
+        requestDigest,
+        sourceSnapshotId: selection.sourceSnapshotId,
+        retrieval:
+          selection.disposition === "query_projection_missing" ? "unavailable" : "completed",
+        candidateCount:
+          selection.disposition === "query_projection_missing" ? null : selection.candidates.length,
+        selected: selection.selected.map((hit) => ({
+          sourceId: hit.conceptId,
+          contentHash: hit.contentHash,
+        })),
+        loads: assembled.loads,
+      }),
+      instructions: assembled.instructions,
+    },
     additionalContext: assembled.additionalContext,
     sourceSnapshotId: selection.sourceSnapshotId,
     recommendationCount: selection.candidates.length,
@@ -321,8 +313,4 @@ export async function prepareTerminalPromptContext(input: {
 /** Prompt context stays compact unless a developer opts into per-prompt retrieval. */
 function terminalPromptContextMode(): "compact" | "retrieval" {
   return process.env.LERVO_TERMINAL_CONTEXT === "retrieval" ? "retrieval" : "compact";
-}
-
-function terminalDeclarationInstruction(provider: string, observationId: string): string {
-  return `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; canonicalizationOutcome as one exact v1 object; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. The outcome must bind every changed noncanonical source path exactly once: use kind=canonical_update with summary and targets[{path,contentHash,sourcePaths}] when canonical bytes changed; kind=no_durable_change with summary, reasonCode=implementation_only|verification_only|already_canonical|transient, and sourcePaths when review should reject durable promotion; kind=review_draft with summary and drafts[{targetPath,sourcePaths,proposedMarkdown,proposedContentHash}] when exact Markdown review is required; or kind=portable_skill_candidate with summary, sourcePaths, and a bounded development-pattern proposal only when at least two independent groups bind distinct current passed verification events plus exact source, skill, resource, input, output, tool, and permission contracts. Retrieval selection and provider agreement never satisfy that gate. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, verification, and deliberation evidence; proposal bodies remain local candidate state and are not event content or truth. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
 }

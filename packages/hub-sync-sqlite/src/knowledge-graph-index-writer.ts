@@ -9,8 +9,8 @@ import type { HubProjectCoordinate } from "@lervo/hub-sync";
 import type { EventEnvelope } from "@lervo/schemas";
 
 import { HubSyncStoreError } from "./errors.js";
-import { decodeStoredEvent, integerField, stringField, type SQLiteRow } from "./row-codec.js";
-import { sqliteRow, sqliteRows } from "./sqlite-row.js";
+import { decodeStoredEvent, integerField, stringField } from "./row-codec.js";
+import { iterateSqliteRows, sqliteRow, sqliteRows } from "./sqlite-row.js";
 
 const KNOWLEDGE_GRAPH_INDEX_VERSION = 1;
 
@@ -41,15 +41,15 @@ export class KnowledgeGraphIndexSQLiteWriter {
     this.database.exec("BEGIN IMMEDIATE;");
     try {
       this.database.exec("DELETE FROM hub_knowledge_graph_relations;");
-      const rows = this.database
-        .prepare(
+      const rows = iterateSqliteRows(
+        this.database.prepare(
           `
         SELECT destination_id, project_id, seq, event_id, event_hash, previous_hash, event_json
         FROM hub_events
         ORDER BY destination_id ASC, project_id ASC, seq ASC
       `,
-        )
-        .iterate() as Iterable<SQLiteRow>;
+        ),
+      );
       for (const stored of rows) {
         this.addEvents(
           {

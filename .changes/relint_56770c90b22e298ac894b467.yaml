@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_56770c90b22e298ac894b467"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep terminal snapshot cache failures from touching unrelated files and clean abandoned temporary cache bytes."
