@@ -31,6 +31,7 @@ import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { failConvergenceAssignment, retryConvergenceAssignment } from "./assignment-failure.js";
 import { recordConvergenceWorkforceEvent } from "./workforce-event.js";
 import { maintainConvergenceAssignmentLease } from "./convergence-assignment-lease.js";
+import { convergenceAgentName, retireSupersededConvergenceAgents } from "./convergence-roster.js";
 
 export { recordConvergenceWorkforceEvent } from "./workforce-event.js";
 
@@ -61,7 +62,14 @@ export async function withConvergenceAssignment(input: {
   });
   input.assertLease();
   const binding = delegation.roles[input.role];
-  let roleName = `Knowledge ${input.role} ${input.state.baseline.delegationHash!.slice(7, 19)}`;
+  // Workers hired for an earlier delegation would otherwise stay active indefinitely.
+  await retireSupersededConvergenceAgents({
+    repositoryRoot: root,
+    delegation,
+    delegationHash: input.state.baseline.delegationHash!,
+    recordEvent: (event) => recordConvergenceWorkforceEvent(input.storage, event),
+  });
+  let roleName = convergenceAgentName(input.role, input.state.baseline.delegationHash!);
   const agents = await listAgents(root);
   const parent = agents.find((candidate) => candidate.agentId === delegation.parentAgentId)!;
   const responsibilityPaths =

@@ -159,3 +159,8 @@ export {
   type HostKnowledgeResidentLock,
 } from "./host-resident-lock.js";
 export { observeResidentHost, type ResidentHostObservation } from "./resident-host-observation.js";
+export {
+  convergenceAgentName,
+  convergenceDelegationAgentIds,
+  retireSupersededConvergenceAgents,
+} from "./convergence-roster.js";

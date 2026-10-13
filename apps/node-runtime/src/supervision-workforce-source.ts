@@ -1,4 +1,5 @@
 import { repositoryPathWithinScope, repositoryPathScopesOverlap } from "@lervo/work-controller";
+import { countSupervisionStaff } from "./supervision-staff-count.js";
 import type { WorkResponsibilityV1 } from "@lervo/application-contract";
 import { listAgents, listAssignments, workforceLimits } from "@lervo/agent-workforce";
 import { resolveRoleContract } from "@lervo/roles";
@@ -163,7 +164,7 @@ export async function observeSupervisionWorkforce(input: {
         : { settledPredecessor: input.settledPredecessor }),
     }),
     candidates,
-    activeWorkers: agents.filter((agent) => agent.status === "active").length,
+    activeWorkers: await countSupervisionStaff(input.repositoryRoot, agents),
     liveLeaseCount: live.length,
   };
 }
