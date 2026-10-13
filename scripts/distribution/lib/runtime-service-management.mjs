@@ -31,6 +31,9 @@ const SERVICE_STOP_MAXIMUM_OBSERVATIONS =
   Math.ceil(runtimeServiceStopTimeoutMs / SERVICE_STABILITY_INTERVAL_MS) +
   SERVICE_STABILITY_OBSERVATIONS;
 const SERVICE_STOP_COMMAND_TIMEOUT_MS = runtimeServiceStopTimeoutMs + 30_000;
+// After `bootstrap` or `kickstart`, launchd reports the job loaded but still spawning (for
+// example `state = xpcproxy`) before its process runs. Activation waits this long for it.
+const SERVICE_START_MAXIMUM_OBSERVATIONS = Math.ceil(20_000 / SERVICE_STABILITY_INTERVAL_MS);
 
 export class RuntimeServiceManagementError extends Error {
   constructor(code, message, options) {
@@ -317,6 +320,20 @@ function isNotRunningServiceStatus(status) {
   return status.managerAvailable && !status.active;
 }
 
+/** The status after an activation, once a loaded job has left its spawn transition. */
+async function startedServiceStatus(input, context) {
+  let status = await serviceStatus(input, context);
+  for (
+    let index = 0;
+    index < SERVICE_START_MAXIMUM_OBSERVATIONS && status.loaded && !status.active;
+    index += 1
+  ) {
+    await context.wait(SERVICE_STABILITY_INTERVAL_MS);
+    status = await serviceStatus(input, context);
+  }
+  return status;
+}
+
 async function stabilizedServiceStatus(input, context, initial) {
   let status = initial;
   for (let index = 1; index < SERVICE_STABILITY_OBSERVATIONS; index += 1) {
@@ -447,7 +464,9 @@ async function install(input, expected, context) {
             context.target,
           ])) === 0);
   }
-  let after = await serviceStatus(input, context);
+  let after = applied
+    ? await startedServiceStatus(input, context)
+    : await serviceStatus(input, context);
   if (applied && isOperationalServiceStatus(after)) {
     after = await stabilizedServiceStatus(input, context, after);
   }
@@ -663,7 +682,9 @@ async function upgrade(input, expected, previous, context) {
   await context.configurationTransition?.apply();
   await replaceTarget(context.target, expected);
   let activated = await activate(input, context);
-  let after = await serviceStatus(input, context);
+  let after = activated
+    ? await startedServiceStatus(input, context)
+    : await serviceStatus(input, context);
   if (activated && isOperationalServiceStatus(after))
     after = await stabilizedServiceStatus(input, context, after);
   if (activated && isOperationalServiceStatus(after)) {
@@ -684,7 +705,10 @@ async function upgrade(input, expected, previous, context) {
   await context.configurationTransition?.restore();
   await replaceTarget(context.target, previous);
   if (wasOperational) activated = await activate(input, context);
-  let restored = await serviceStatus(input, context);
+  let restored =
+    wasOperational && activated
+      ? await startedServiceStatus(input, context)
+      : await serviceStatus(input, context);
   if (wasOperational && activated && isOperationalServiceStatus(restored)) {
     restored = await stabilizedServiceStatus(input, context, restored);
   }

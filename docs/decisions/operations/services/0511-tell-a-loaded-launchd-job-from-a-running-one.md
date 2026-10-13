@@ -29,6 +29,8 @@ Each decision uses the property it is about:
 - Installing over a loaded job that is not running starts it with `launchctl kickstart` instead of bootstrapping it twice.
 - Upgrading such a job boots it out and verifies that it is unloaded before bootstrapping the replacement.
 
+Right after `bootstrap` or `kickstart`, launchd reports the job as loaded but still spawning, for example `state = xpcproxy`. Install, upgrade and restoration wait up to 20 seconds, at 500-millisecond observations, for a loaded job to leave that state. They then apply the existing three-observation stability check. Without this wait, the first deployment of this rule judged a starting Node to have failed and restored its predecessor twice before a third attempt succeeded.
+
 `launchctl print` output is read with a 64 KiB bound only for this status query. Manager output stays out of normalized status.
 
 ## Consequences
