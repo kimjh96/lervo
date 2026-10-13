@@ -95,6 +95,11 @@ export interface OutcomeSupervisionPorts {
   recordEffect(receipt: SupervisionDecisionReceipt): Promise<void>;
   /** Host diagnostics for an effect whose outcome became uncertain; never canonical evidence. */
   reportEffectFailure?(plan: OperatingActionPlanV1, error: unknown): void;
+  /**
+   * A digest of the Node inputs that decide a dispatch's worker readiness apart from its lease,
+   * such as runtime configuration and the knowledge state of its paths; null when unreadable.
+   */
+  readReadinessInputs?(plan: OperatingActionPlanV1): Promise<string | null>;
   /** Canonical safe non-start evidence for an observed (not merely unobserved) readiness failure. */
   recordReadinessFailure?(
     receipt: SupervisionDecisionReceipt,

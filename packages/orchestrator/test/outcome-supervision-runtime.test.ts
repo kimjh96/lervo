@@ -507,6 +507,61 @@ describe("serialized causal owner decisions", () => {
     expect(recorded).not.toHaveBeenCalled();
     expect(fx.attention).toHaveBeenCalledWith(expect.anything(), ["readiness_provider_unobserved"]);
   });
+  it("holds owner planning after a readiness-blocked dispatch until readiness inputs or causes change", async () => {
+    const fx = fixture();
+    const observation = readiness();
+    observation.checks.find((check) => check.kind === "provider")!.status = "unobserved";
+    fx.ports.readWorkerReadiness = async () => ({
+      responsibility: responsibility(),
+      observation,
+      requiredChecks: ["provider"],
+    });
+    let inputs = "inputs-1";
+    const readInputs = vi.fn(async () => inputs);
+    fx.ports.readReadinessInputs = readInputs;
+    const runtime = new OutcomeSupervisionRuntime(fx.ports);
+    expect((await runtime.runCycle(fx.state.supervisionId)).disposition).toBe("blocked");
+    expect(fx.propose).toHaveBeenCalledOnce();
+    // The blocked dispatch is later superseded, as when its lease lapses.
+    for (const [id, receipt] of fx.decisions)
+      fx.decisions.set(id, { ...receipt, status: "superseded" });
+    fx.ports.findPendingPlan = async () => null;
+    fx.state.sourceRevisionDigest = hash("e");
+    expect((await runtime.runCycle(fx.state.supervisionId)).disposition).toBe("blocked");
+    expect(fx.propose).toHaveBeenCalledOnce();
+    expect(fx.attention).toHaveBeenLastCalledWith(expect.anything(), [
+      "worker_readiness_unavailable",
+      "readiness_provider_unobserved",
+    ]);
+    expect(readInputs).toHaveBeenCalledTimes(2);
+    // Changed Node readiness inputs let the owner plan again.
+    inputs = "inputs-2";
+    fx.state.sourceRevisionDigest = hash("f");
+    fx.propose.mockResolvedValue(null);
+    await runtime.runCycle(fx.state.supervisionId);
+    expect(fx.propose).toHaveBeenCalledTimes(2);
+  });
+  it("releases a readiness hold when a new cause arrives", async () => {
+    const fx = fixture();
+    const observation = readiness();
+    observation.checks.find((check) => check.kind === "provider")!.status = "unobserved";
+    fx.ports.readWorkerReadiness = async () => ({
+      responsibility: responsibility(),
+      observation,
+      requiredChecks: ["provider"],
+    });
+    fx.ports.readReadinessInputs = async () => "inputs";
+    const runtime = new OutcomeSupervisionRuntime(fx.ports);
+    expect((await runtime.runCycle(fx.state.supervisionId)).disposition).toBe("blocked");
+    for (const [id, receipt] of fx.decisions)
+      fx.decisions.set(id, { ...receipt, status: "superseded" });
+    fx.ports.findPendingPlan = async () => null;
+    fx.state.sourceRevisionDigest = hash("e");
+    fx.state.causationEventIds = [`evt_${"9".repeat(32)}`];
+    fx.propose.mockResolvedValue(null);
+    await runtime.runCycle(fx.state.supervisionId);
+    expect(fx.propose).toHaveBeenCalledTimes(2);
+  });
   it.each(["work.artifact_review.v1", "work.unknown.v1"])(
     "maps only an exact artifact review after a blocked verdict (%s)",
     async (contract) => {

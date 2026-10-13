@@ -17,6 +17,7 @@ import type {
 } from "@lervo/application-contract";
 import { SupervisionResultDelivery } from "./supervision-result-delivery.js";
 import { snapshotRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
+import { readSupervisionReadinessInputs } from "./supervision-readiness-inputs.js";
 import { OutcomeSupervisionRuntime, type OutcomeSupervisionPorts } from "@lervo/orchestrator";
 import {
   operatingContractHash,
@@ -283,6 +284,13 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     readAdmission,
     reconcileCancellation: (snapshot) => session().reconcileCancellation(snapshot),
     readWorkerReadiness,
+    readReadinessInputs: (plan) =>
+      readSupervisionReadinessInputs({
+        repositoryRoot: input.repositoryRoot,
+        plan,
+        configuration,
+        now: ports.now,
+      }),
     readOwnerControlReadiness,
     inspectEffect: (plan, receipt) =>
       inspectNodeSupervisionEffect({ effects, delivery, ports, plan, receipt, session: session() }),
