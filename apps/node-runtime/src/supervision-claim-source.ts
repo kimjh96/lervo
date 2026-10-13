@@ -1,4 +1,4 @@
-import { observeUnstartedSupervisionWorkspace } from "./supervision-unstarted-workspace.js";
+import { allUnstartedSupervisionWorkspaces } from "./supervision-unstarted-workspaces.js";
 import { listWorkspaces } from "@lervo/agent-workforce";
 import type {
   OperatingActionPlanV1,
@@ -83,20 +83,13 @@ export async function readCanonicalSupervisionClaim(input: {
   if (predecessor !== null && predecessor !== undefined && assignment.recovery === undefined) {
     if (
       source.execution.attempts.some((item) => item.assignmentId === assignment.assignmentId) ||
-      (
-        await Promise.all(
-          workspaces.map((workspace) =>
-            observeUnstartedSupervisionWorkspace({
-              storage: input.storage,
-              repositoryRoot: input.repositoryRoot,
-              binding: plan,
-              assignment,
-              workspace,
-              now: input.now,
-            }),
-          ),
-        )
-      ).some((proof) => proof === null)
+      !(await allUnstartedSupervisionWorkspaces({
+        storage: input.storage,
+        repositoryRoot: input.repositoryRoot,
+        binding: plan,
+        candidates: workspaces.map((workspace) => ({ assignment, workspace })),
+        now: input.now,
+      }))
     )
       throw new Error(
         "Responsibility revision must first reconcile the previous execution or workspace.",

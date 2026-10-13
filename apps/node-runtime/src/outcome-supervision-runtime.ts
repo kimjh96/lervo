@@ -289,7 +289,9 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     readEffectStartDeadline: async (plan) =>
       plan.effectContract === "work.responsibility_claim.v1"
         ? effects.claims.startDeadline(plan)
-        : null,
+        : plan.effectContract === "work.assignment_amendment.v1"
+          ? effects.amendments.startDeadline(plan)
+          : null,
     supersedeNotStarted: (plan, digest) =>
       supersedeNodeSupervisionEffect({
         repositoryRoot: input.repositoryRoot,

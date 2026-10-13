@@ -26,10 +26,11 @@ export async function supersedeNodeSupervisionEffect(input: {
   ports: NodeOutcomeSupervisionRuntimeInput["ports"];
 }): Promise<boolean> {
   const { plan, session, binding, effects, delivery, ports } = input;
-  const { topology, reasoning, workspaces, managed, claims } = effects;
+  const { topology, reasoning, workspaces, managed, claims, amendments } = effects;
   const native =
     plan.effectContract === "assignment.topology.materialize.v1" ||
     plan.effectContract === "work.responsibility_claim.v1" ||
+    plan.effectContract === "work.assignment_amendment.v1" ||
     (["work.result_delivery.v1", "work.result_delivery.v2"].includes(plan.effectContract) &&
       delivery !== null) ||
     (plan.effectContract === "work.owner_reasoning.v1" && reasoning !== null) ||
@@ -66,6 +67,8 @@ export async function supersedeNodeSupervisionEffect(input: {
     return delivery.supersede(plan, digest, session);
   if (plan.effectContract === "work.responsibility_claim.v1")
     return claims.supersede(plan, digest, session);
+  if (plan.effectContract === "work.assignment_amendment.v1")
+    return amendments.supersede(plan, digest, session);
   if (OWNER_CONTROL_SUPERSESSION.includes(plan.effectContract))
     return supersedeUnstartedOwnerAttention({
       repositoryRoot: input.repositoryRoot,

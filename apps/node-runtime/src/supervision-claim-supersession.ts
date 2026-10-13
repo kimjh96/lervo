@@ -16,33 +16,78 @@ import {
   inspectSupervisionClaim,
   readSupervisionClaimReceiptBasis,
 } from "./supervision-claim-receipt.js";
+import {
+  assignmentAmendmentEventId,
+  inspectAssignmentAmendmentReceipt,
+} from "./supervision-assignment-amendment-receipt.js";
+import { readAssignmentAmendmentEffect } from "./supervision-assignment-amendment-source.js";
 import { readAdmittedControlDecision } from "./supervision-control-decision.js";
+import type { ProjectStorage } from "@lervo/project-storage";
 import type { NodeSupervisionEffectSession } from "./supervision-runtime-ports.js";
 import { SupervisionTaskSource } from "./supervision-task-source.js";
 
-/**
- * Supersedes a responsibility claim whose binding was never written, once its source changed or
- * its start or plan deadline passed, so the owner can decide again instead of holding the goal.
- */
-export async function supersedeUnstartedResponsibilityClaim(input: {
+/** The never-written effect of one successor responsibility revision. */
+interface UnwrittenRevision {
+  status: "not_started" | "uncertain" | "confirmed";
+  assignmentId: string;
+  startDeadline: string;
+  /** The deterministic event whose absence proves the revision never took effect. */
+  effectEventId: string;
+}
+
+type RevisionSupersessionInput = {
   repositoryRoot: string;
   binding: NodeSupervisionBinding;
   plan: OperatingActionPlanV1;
   sourceRevisionDigest: string;
   session: Pick<NodeSupervisionEffectSession, "commit">;
   now(): string;
-}): Promise<boolean> {
+};
+
+/**
+ * Supersedes a responsibility claim whose binding was never written, once its source changed or
+ * its start or plan deadline passed, so the owner can decide again instead of holding the goal.
+ */
+export function supersedeUnstartedResponsibilityClaim(input: RevisionSupersessionInput) {
+  if (input.plan.effectContract !== "work.responsibility_claim.v1") return Promise.resolve(false);
+  return supersedeUnwrittenRevision(input, async (storage, plan) => {
+    const basis = await readSupervisionClaimReceiptBasis(storage, input.binding, plan, input.now);
+    return {
+      status: (await inspectSupervisionClaim(storage, input.binding, plan, input.now)).status,
+      assignmentId: basis.effect.responsibility.assignmentId,
+      startDeadline: basis.effect.responsibility.startDeadline,
+      effectEventId: basis.bindingEventId,
+    };
+  });
+}
+
+/** Supersedes an assignment amendment that was never written, under the same evidence as a claim. */
+export function supersedeUnstartedAssignmentAmendment(input: RevisionSupersessionInput) {
+  if (input.plan.effectContract !== "work.assignment_amendment.v1") return Promise.resolve(false);
+  return supersedeUnwrittenRevision(input, async (storage, plan) => {
+    const { effect } = await readAssignmentAmendmentEffect(storage, plan);
+    return {
+      status: (await inspectAssignmentAmendmentReceipt(storage, plan)).status,
+      assignmentId: effect.responsibility.assignmentId,
+      startDeadline: effect.responsibility.startDeadline,
+      effectEventId: assignmentAmendmentEventId(plan),
+    };
+  });
+}
+
+async function supersedeUnwrittenRevision(
+  input: RevisionSupersessionInput,
+  readRevision: (
+    storage: ProjectStorage,
+    plan: OperatingActionPlanV1,
+  ) => Promise<UnwrittenRevision>,
+): Promise<boolean> {
   const plan = structuredClone(input.plan);
-  if (plan.effectContract !== "work.responsibility_claim.v1") return false;
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
     const admitted = await readAdmittedControlDecision(storage, plan);
-    if (
-      (await inspectSupervisionClaim(storage, input.binding, plan, input.now)).status !==
-      "not_started"
-    )
-      return false;
-    const basis = await readSupervisionClaimReceiptBasis(storage, input.binding, plan, input.now);
+    const revision = await readRevision(storage, plan);
+    if (revision.status !== "not_started") return false;
     const tasks = new SupervisionTaskSource(storage, input.binding, input.now);
     const observe = async () => {
       const authority = await observeNodeSupervisionAuthority(storage, input.binding, input.now);
@@ -63,9 +108,9 @@ export async function supersedeUnstartedResponsibilityClaim(input: {
         authorityDigest: before.authority.source.sourceRevisionDigest,
         taskDigest: taskWithoutDecision.sourceRevisionDigest,
       }) !== plan.sourceRevisionDigest;
-    // A claim can never bind after its start deadline, which precedes the plan deadline.
+    // A revision can never take effect after its start deadline, which precedes the plan deadline.
     const deadlineExpired =
-      Math.min(Date.parse(plan.deadline), Date.parse(basis.effect.responsibility.startDeadline)) <=
+      Math.min(Date.parse(plan.deadline), Date.parse(revision.startDeadline)) <=
       Date.parse(input.now());
     if (!sourceChanged && !deadlineExpired) return false;
     const assignments = await listAssignments(input.repositoryRoot);
@@ -77,7 +122,7 @@ export async function supersedeUnstartedResponsibilityClaim(input: {
       planHash: operatingContractHash(plan),
       effectHash: plan.effectHash,
       sourceRevisionDigest: input.sourceRevisionDigest,
-      assignmentId: basis.effect.responsibility.assignmentId,
+      assignmentId: revision.assignmentId,
       assignmentSourceHash: operatingContractHash(assignments),
       bindingEventAbsent: true,
       eventHeadHash: storage.events.latest()?.eventHash ?? null,
@@ -90,14 +135,14 @@ export async function supersedeUnstartedResponsibilityClaim(input: {
         inspection,
         plan,
         input.sourceRevisionDigest,
-        basis.effect.responsibility.startDeadline,
+        revision.startDeadline,
       )
     )
-      throw new Error("Claim supersession requires exact source or deadline evidence.");
+      throw new Error("Revision supersession requires exact source or deadline evidence.");
     const artifact = await storage.artifacts.put(canonicalJson(inspection));
     const after = await observe();
     if (after.digest !== before.digest)
-      throw new Error("Claim absence sources changed before supersession.");
+      throw new Error("Revision absence sources changed before supersession.");
     const coordinates = supervisionJournalCoordinates(
       storage,
       input.binding,
@@ -112,9 +157,9 @@ export async function supersedeUnstartedResponsibilityClaim(input: {
           age > 5000 ||
           Date.parse(input.now()) >= Date.parse(after.authority.installation.mandate.expiresAt) ||
           storage.events.latest()?.eventHash !== inspection.eventHeadHash ||
-          storage.events.get(basis.bindingEventId) !== null
+          storage.events.get(revision.effectEventId) !== null
         )
-          throw new Error("Claim absence changed at the fenced transition.");
+          throw new Error("Revision absence changed at the fenced transition.");
         const type = "work.supervision.decision.superseded";
         const result = transaction.append({
           eventId: `evt_${operatingContractHash({ runId: admitted.runId, type, identity: admitted.identity }).slice(7, 39)}`,
@@ -141,7 +186,8 @@ export async function supersedeUnstartedResponsibilityClaim(input: {
             sourceRevisionDigest: input.sourceRevisionDigest,
           },
         });
-        if (result.redactions.length !== 0) throw new Error("Claim absence evidence was redacted.");
+        if (result.redactions.length !== 0)
+          throw new Error("Revision absence evidence was redacted.");
       }),
     );
     return true;

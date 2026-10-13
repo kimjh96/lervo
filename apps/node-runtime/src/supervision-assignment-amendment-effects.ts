@@ -9,12 +9,16 @@ import {
 } from "./supervision-authority.js";
 import type { NodeSupervisionEffectSession } from "./supervision-runtime-ports.js";
 import { SupervisionTaskSource } from "./supervision-task-source.js";
-import { readCanonicalAssignmentAmendment } from "./supervision-assignment-amendment-source.js";
+import {
+  readAssignmentAmendmentEffect,
+  readCanonicalAssignmentAmendment,
+} from "./supervision-assignment-amendment-source.js";
 import {
   assignmentAmendmentEventId,
   inspectAssignmentAmendmentReceipt,
 } from "./supervision-assignment-amendment-receipt.js";
 import { readAdmittedControlDecision } from "./supervision-control-decision.js";
+import { supersedeUnstartedAssignmentAmendment } from "./supervision-claim-supersession.js";
 
 /** Amends an exact unstarted assignment under the owner fence; it starts no provider process. */
 export class SupervisionAssignmentAmendmentEffects {
@@ -43,12 +47,48 @@ export class SupervisionAssignmentAmendmentEffects {
           event.payload.decisionId === operatingDecisionId(plan) &&
           event.payload.planHash === operatingContractHash(plan),
       );
-      if (last?.payload.status !== "uncertain") return observed;
-      const recovered = await this.execute(plan, session);
-      return { status: "confirmed" as const, eventIds: recovered.eventIds };
+      if (
+        last?.payload.status !== "uncertain" ||
+        Date.parse(this.now()) >=
+          Math.min(Date.parse(plan.deadline), Date.parse(await this.startDeadline(plan)))
+      )
+        return observed;
+      // Retry an interrupted amendment only while it can still take effect. A refused retry
+      // leaves the receipt as the outcome, so an inadmissible amendment is superseded instead.
+      try {
+        const recovered = await this.execute(plan, session);
+        return { status: "confirmed" as const, eventIds: recovered.eventIds };
+      } catch {
+        return await inspectAssignmentAmendmentReceipt(storage, plan);
+      }
     } finally {
       await storage.close();
     }
+  }
+  /** The amendment cannot take effect at or after its responsibility start deadline. */
+  async startDeadline(plan: OperatingActionPlanV1): Promise<string> {
+    const storage = await openProjectStorage(this.root);
+    try {
+      return (await readAssignmentAmendmentEffect(storage, plan)).effect.responsibility
+        .startDeadline;
+    } finally {
+      await storage.close();
+    }
+  }
+  /** A never-written amendment is superseded once its source changed or its deadline passed. */
+  async supersede(
+    plan: OperatingActionPlanV1,
+    sourceRevisionDigest: string,
+    session: Pick<NodeSupervisionEffectSession, "commit">,
+  ) {
+    return supersedeUnstartedAssignmentAmendment({
+      repositoryRoot: this.root,
+      binding: this.binding,
+      plan,
+      sourceRevisionDigest,
+      session,
+      now: this.now,
+    });
   }
   async execute(
     plan: OperatingActionPlanV1,
