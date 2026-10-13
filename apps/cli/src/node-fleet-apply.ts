@@ -7,6 +7,8 @@ import { loadNodeRuntimeConfig } from "@lervo/node-runtime";
 import {
   createNodeFleetOnboardingPlan,
   registerNodeFleetInstance,
+  registerRepository,
+  repositoryRegistryPathBesideNodeFleet,
   type NodeFleetOnboardingPlan,
   type NodeFleetServiceManager,
   type RegisterNodeFleetInstanceResult,
@@ -158,6 +160,19 @@ export async function applyNodeFleetOnboarding(input: {
       "The runtime config does not match the planned repository, destination, or Node identity.",
     );
   }
+  // A Node's checkout is a repository this host knows. Joining the host repository registry before
+  // any service effect keeps `lervo repository list|resolve` consistent with the fleet, and a
+  // conflicting stale entry stops onboarding while nothing has changed yet.
+  await registerRepository({
+    registryPath: repositoryRegistryPathBesideNodeFleet(current.registry.path),
+    repositoryRoot: current.desired.repositoryRoot,
+  }).catch((error: unknown) =>
+    fail(
+      "node_fleet_repository_registration_failed",
+      "The repository could not join the host repository registry.",
+      error,
+    ),
+  );
   const pathDirectories =
     input.pathDirectories ??
     (

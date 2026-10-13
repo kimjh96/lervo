@@ -187,6 +187,11 @@ export function defaultNodeFleetRegistryPath(environment: NodeJS.ProcessEnv = pr
   return resolve(dirname(defaultRepositoryRegistryPath(environment)), "node-fleet.json");
 }
 
+/** The host repository registry that sits beside a Node fleet registry. */
+export function repositoryRegistryPathBesideNodeFleet(nodeFleetRegistryPath: string): string {
+  return resolve(dirname(absoluteRegistryPath(nodeFleetRegistryPath)), "repositories.json");
+}
+
 function absoluteRegistryPath(path: string): string {
   if (!safeAbsolutePath(path))
     fail(
