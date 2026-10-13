@@ -113,7 +113,7 @@ async function launchdNode() {
  * Models launchd as observed on macOS: `bootout` returns at once while the job stays
  * printable during SIGTERM handling, and `bootstrap` fails with EIO until the job is gone.
  */
-function asyncBootoutLaunchd(node, { rejectBootstrapOf } = {}) {
+function asyncBootoutLaunchd(node, { rejectBootstrapOf, spawnObservations = 0 } = {}) {
   const state = {
     loaded: false,
     running: false,
@@ -121,10 +121,16 @@ function asyncBootoutLaunchd(node, { rejectBootstrapOf } = {}) {
     session: null,
     bootstraps: 0,
     kickstarts: 0,
+    spawning: 0,
   };
   const startProcess = () => {
     state.running = true;
     state.session = node.register();
+  };
+  // launchd reports a freshly bootstrapped or kickstarted job as spawning before it runs.
+  const spawn = () => {
+    if (spawnObservations === 0) startProcess();
+    else state.spawning = spawnObservations;
   };
   /** The process exits 0; with `KeepAlive.SuccessfulExit = false` the job stays loaded. */
   state.exitSuccessfully = () => {
@@ -145,6 +151,11 @@ function asyncBootoutLaunchd(node, { rejectBootstrapOf } = {}) {
         state.terminating -= 1;
         if (state.terminating === 0) exitProcess();
       }
+      if (state.spawning > 0) {
+        state.spawning -= 1;
+        if (state.spawning === 0) startProcess();
+        else return { exitCode: 0, stdout: "\tstate = xpcproxy\n" };
+      }
       return state.loaded
         ? { exitCode: 0, stdout: `\tstate = ${state.running ? "running" : "not running"}\n` }
         : { exitCode: 113, stdout: "" };
@@ -156,13 +167,13 @@ function asyncBootoutLaunchd(node, { rejectBootstrapOf } = {}) {
       const bytes = await readFile(node.target, "utf8");
       if (rejectBootstrapOf !== undefined && bytes === rejectBootstrapOf) return { exitCode: 5 };
       state.loaded = true;
-      startProcess();
+      spawn();
       return { exitCode: 0 };
     }
     if (args[0] === "kickstart") {
       if (!state.loaded) return { exitCode: 113 };
       state.kickstarts += 1;
-      if (!state.running) startProcess();
+      if (!state.running) spawn();
       return { exitCode: 0 };
     }
     if (args[0] === "bootout") {
@@ -279,6 +290,29 @@ it("restarts a loaded launchd Node that is not running instead of reporting it u
     });
     expect(launchd.kickstarts).toBe(1);
     expect(launchd.bootstraps).toBe(1);
+  } finally {
+    node.admission.close();
+  }
+});
+
+it("waits for a bootstrapped or kickstarted launchd Node to finish spawning", async () => {
+  const node = await launchdNode();
+  const launchd = asyncBootoutLaunchd(node, { spawnObservations: 3 });
+  const options = launchdOptions(node, launchd);
+  try {
+    await expect(manageRuntimeService(node.installArgs, options)).resolves.toMatchObject({
+      change: "installed",
+      active: true,
+    });
+    launchd.exitSuccessfully();
+    await expect(manageRuntimeService(node.upgradeArgs, options)).resolves.toMatchObject({
+      change: "upgraded",
+      active: true,
+    });
+    expect(await readFile(node.target, "utf8")).toBe(node.replacementBytes);
+    const claim = node.admission.tryAcquireWork(launchd.session);
+    expect(claim).not.toBeNull();
+    node.admission.releaseWork(claim);
   } finally {
     node.admission.close();
   }
