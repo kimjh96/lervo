@@ -45,6 +45,10 @@ routes:
     path: knowledge/repository/canonicalization
     priority: 96
     description: "Scope carried from the legacy title terms: knowledge candidates; canonicalization; canonical outcomes."
+  - id: knowledge.repository.source-intake
+    path: knowledge/repository/source-intake
+    priority: 95
+    description: "Which repository paths and bytes the knowledge scanner reads: ignored paths, secret candidates, read budgets."
   - id: knowledge.repository
     path: knowledge/repository
     priority: 93

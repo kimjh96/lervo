@@ -33,6 +33,7 @@ import {
   type ObserveGitRevision,
 } from "./git-revision-source.js";
 import { repositoryAgentArtifactForPath } from "./agent-artifact-profile.js";
+import { observeGitIgnoredPaths, type ObserveGitIgnoredPaths } from "./git-ignored-paths.js";
 import type { SourceUnitCache } from "./source-unit-cache.js";
 
 /** A source that moves under the scan is a concurrent edit, not an unsafe source. */
@@ -74,6 +75,7 @@ interface RepositoryKnowledgeScanInput {
   policy: RepositoryKnowledgePolicy;
   generatedPaths?: ReadonlySet<string>;
   observeRevision?: ObserveGitRevision;
+  observeIgnoredPaths?: ObserveGitIgnoredPaths;
   supplementalSources?: readonly RepositorySupplementalSource[];
   sourceUnitFailureMode?: "fail" | "file_only";
   sourceUnitCache?: SourceUnitCache;
@@ -119,6 +121,9 @@ async function scanRepositoryKnowledgeOnce(
   const revisionBefore = await observeRevision(root);
   const sources: RepositorySource[] = [];
   const excludes = compileKnowledgeScannerExclusion(input.policy);
+  // Git-ignored untracked paths carry no repository knowledge (ADR-0433), so the scan never reads
+  // them. Without this, a virtual environment or build output fills the read budget.
+  const gitIgnored = await (input.observeIgnoredPaths ?? observeGitIgnoredPaths)(root);
   let includedBytes = 0;
   let visitedFiles = 0;
 
@@ -155,6 +160,7 @@ async function scanRepositoryKnowledgeOnce(
         }
         continue;
       }
+      if (gitIgnored.ignores(path, entry.isDirectory())) continue;
       if (entry.isSymbolicLink()) {
         sources.push({
           sourceId,

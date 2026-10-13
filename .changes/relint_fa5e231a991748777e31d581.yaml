@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fa5e231a991748777e31d581"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Repository knowledge scans skip Git-ignored untracked paths, so a virtual environment or build output no longer exhausts the read budget, and every .env variant except explicit templates is treated as a secret whose bytes are never read."

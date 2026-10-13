@@ -277,9 +277,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:7028953464587bec1061df9c3837484cc97d8422ebfcc89fa96cb2d282e8eaba",
+      "contentHash": "sha256:d2e3c0e93c2a9fe93068a5f2b2dfa961b7cc47613d296ce0314b3e612ef7b725",
       "responsibility": "Fresh repository scan orchestration",
-      "rationale": "Fresh filesystem discovery, safe reads, retries, lineage validation, supplemental evidence, and snapshot assembly own one scan. Pure classification, materialization, and transforms remain separate. Optional query-only source-unit reuse is supplied explicitly after fresh byte observation; the pure cache owns bindings and decoding, and a separate adapter owns persistence.",
+      "rationale": "Fresh filesystem discovery, safe reads, retries, lineage validation, supplemental evidence, and snapshot assembly own one scan. Pure classification, materialization, and transforms remain separate. Optional query-only source-unit reuse is supplied explicitly after fresh byte observation; the pure cache owns bindings and decoding, and a separate adapter owns persistence. Git-ignored path observation lives in git-ignored-paths.ts; the scan only skips what it reports.",
       "disposition": "cohesive"
     },
     {
