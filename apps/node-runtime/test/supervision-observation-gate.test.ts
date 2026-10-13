@@ -140,6 +140,7 @@ describe("supervision observation gate", () => {
     expect(f.cycle).toHaveBeenCalledTimes(3);
   });
 
+  // Writes 4,100 files to cross the stamp bound; a loaded host needs more than the default.
   it("never skips when its inputs exceed the stamped bound or cannot be read", async () => {
     const f = await fixture();
     for (let index = 0; index < 4_100; index += 1)
@@ -161,5 +162,5 @@ describe("supervision observation gate", () => {
     await unreadable.run(cycle);
     await unreadable.run(cycle);
     expect(cycle).toHaveBeenCalledTimes(2);
-  });
+  }, 30_000);
 });

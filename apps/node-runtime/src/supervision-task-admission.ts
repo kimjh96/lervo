@@ -28,6 +28,7 @@ import { readCanonicalSupervisionTopology } from "./supervision-topology-source.
 import { readCanonicalSupervisionClaim } from "./supervision-claim-source.js";
 import { readCanonicalOwnerReasoning } from "./supervision-reasoning-source.js";
 import type { ProjectStorage } from "@lervo/project-storage";
+import { countSupervisionStaff } from "./supervision-staff-count.js";
 import { hasSupervisionRecoveryAncestor } from "./supervision-recovery-lineage.js";
 
 type Source = Awaited<ReturnType<SupervisionTaskSource["read"]>>;
@@ -150,7 +151,7 @@ export async function observeSupervisionTaskAdmission(input: {
     revoked: authority.installation.revoked,
     ancestryValid: authority.source.eligible,
     historyValid: source.graph.validity.status === "valid",
-    activeWorkers: source.agents.filter((agent) => agent.status === "active").length,
+    activeWorkers: await countSupervisionStaff(input.repositoryRoot, source.agents),
     activeAttempts: resources.activeAttempts,
     assignmentCount: source.assignments.length,
     observedAggregateTokens: resources.observedAggregateTokens,
