@@ -27,6 +27,18 @@ On 2026-10-13 at 08:42 UTC, axli's preparation `osd_cc51463653690e30` hit a genu
 
 A preparation interrupted before its host effect no longer holds the goal. The owner decides again after the plan deadline, or as soon as the source changes. A record that may hold host work still blocks, as before.
 
+## Amendment: untouched checkouts
+
+On 2026-10-13 at 14:04 UTC, axli's preparation `osd_0fddeed1…` created its checkout but missed its plan deadline before recording ready evidence. That left a `recovery_required` record whose checkout exists. The same permanent `uncertain` state followed.
+
+A never-ready record may therefore also hold a checkout, under these conditions:
+
+- the provision has ended (`recovery_required` revision 2);
+- Git reports the checkout present with a matching marker, clean, and at the base commit, with no Git operation running;
+- the record never had a writer or a native instance digest.
+
+Withdrawal first removes that checkout with Git's non-force removal and then withdraws the record as before. Git refuses any dirty or changed checkout, and a forced removal is never used.
+
 ## Verification
 
-The owner-reasoning workspace test adds `expired_unhosted`: the Git provision step fails after the record is created. Without this change the cycle stays `uncertain` past the deadline. With it, the cycle reports `changed`, the record is `removed` at revision 3, and no plan remains pending.
+The owner-reasoning workspace test adds `expired_unhosted`: the Git provision step fails after the record is created. Without this change the cycle stays `uncertain` past the deadline. With it, the cycle reports `changed`, the record is `removed` at revision 3, and no plan remains pending. `expired_unready_checkout` creates the checkout and then fails before ready evidence. Without the amendment it stays `uncertain`. With it, the checkout is removed and the preparation superseded.
