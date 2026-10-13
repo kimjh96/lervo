@@ -100,6 +100,22 @@ describe("supervision observation gate", () => {
     expect(f.cycle).toHaveBeenCalledTimes(4);
   });
 
+  it("observes when a deadline known at settlement lapses even if its source stops reporting it", async () => {
+    const f = await fixture();
+    // A startup deferral's next check, reported only while it is still in the future.
+    f.state.deadlines = [f.state.now + 60_000];
+    f.gate.invalidate();
+    await f.gate.run(f.cycle);
+    expect(f.cycle).toHaveBeenCalledTimes(2);
+    f.state.now += 60_000;
+    f.state.deadlines = [];
+    await f.gate.run(f.cycle);
+    expect(f.cycle).toHaveBeenCalledTimes(3);
+    // The next settlement records no deadline, so an unchanged source is skipped again.
+    await f.gate.run(f.cycle);
+    expect(f.cycle).toHaveBeenCalledTimes(3);
+  });
+
   it("observes when the audit fails or the last cycle did not settle unchanged", async () => {
     const f = await fixture();
     f.state.auditFails = true;
