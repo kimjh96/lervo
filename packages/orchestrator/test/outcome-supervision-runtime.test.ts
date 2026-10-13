@@ -541,6 +541,28 @@ describe("serialized causal owner decisions", () => {
     await runtime.runCycle(fx.state.supervisionId);
     expect(fx.propose).toHaveBeenCalledTimes(2);
   });
+  it("holds owner planning after a dispatch whose readiness probe could not complete", async () => {
+    const fx = fixture();
+    fx.ports.readWorkerReadiness = async () => {
+      throw Object.assign(new Error("Readiness probes outlasted their bound."), {
+        code: "supervision_readiness_stale",
+      });
+    };
+    fx.ports.readReadinessInputs = async () => "inputs";
+    const runtime = new OutcomeSupervisionRuntime(fx.ports);
+    await expect(runtime.runCycle(fx.state.supervisionId)).rejects.toThrow("outlasted");
+    expect(fx.propose).toHaveBeenCalledOnce();
+    for (const [id, receipt] of fx.decisions)
+      fx.decisions.set(id, { ...receipt, status: "superseded" });
+    fx.ports.findPendingPlan = async () => null;
+    fx.state.sourceRevisionDigest = hash("e");
+    expect((await runtime.runCycle(fx.state.supervisionId)).disposition).toBe("blocked");
+    expect(fx.propose).toHaveBeenCalledOnce();
+    expect(fx.attention).toHaveBeenLastCalledWith(expect.anything(), [
+      "worker_readiness_unavailable",
+      "readiness_unobservable",
+    ]);
+  });
   it("releases a readiness hold when a new cause arrives", async () => {
     const fx = fixture();
     const observation = readiness();

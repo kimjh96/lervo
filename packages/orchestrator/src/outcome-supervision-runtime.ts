@@ -318,7 +318,19 @@ export class OutcomeSupervisionRuntime {
         assertOwnerControlReadiness({ plan, observation, now: this.ports.now() });
       }
       if (operatingReadinessKind(plan) === "worker") {
-        const readiness = await this.ports.readWorkerReadiness(plan);
+        let readiness: Awaited<ReturnType<OutcomeSupervisionPorts["readWorkerReadiness"]>>;
+        try {
+          readiness = await this.ports.readWorkerReadiness(plan);
+        } catch (error) {
+          // A readiness probe that cannot complete blocks the dispatch as an unready one does.
+          await this.readinessHolds.hold(
+            supervisionId,
+            plan,
+            ["readiness_unobservable"],
+            snapshot.causationEventIds,
+          );
+          throw error;
+        }
         if (operatingContractHash(readiness.responsibility) !== plan.responsibilityArtifactHash) {
           throw new Error("The dispatch responsibility differs from the reviewed plan.");
         }

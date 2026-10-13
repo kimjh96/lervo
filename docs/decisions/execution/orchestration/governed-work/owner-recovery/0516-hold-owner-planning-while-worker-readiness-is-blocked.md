@@ -19,7 +19,7 @@ The cycle repeated about every eight minutes. Between 10:15 and 11:05 UTC on 202
 
 ## Decision
 
-- When the final readiness gate blocks a worker dispatch, the supervision runtime holds owner planning for that supervision. The hold records:
+- When the final readiness gate blocks a worker dispatch, or its readiness probe cannot complete (for example `supervision_readiness_stale`, recorded as `readiness_unobservable`), the supervision runtime holds owner planning for that supervision. A failed probe still fails its cycle as before. The hold records:
   - the exact plan;
   - its `readiness_*` reasons;
   - the cause of the blocked cycle;
@@ -33,11 +33,16 @@ The cycle repeated about every eight minutes. Between 10:15 and 11:05 UTC on 202
 
 A readiness gap that only an operator can repair costs no owner tokens and creates no checkouts while it remains. New user input still reaches the owner. The hold adds no canonical event and grants no authority. It only withholds a model invocation that could not make progress.
 
+## Deployment note
+
+The first deployment held only gate-blocked dispatches. On axli the probe instead exceeded its five-second bound and threw, so the hold never engaged and two more re-planning rounds spent 191,371 tokens. Probe failures now hold as well.
+
 ## Verification
 
 - Orchestrator tests:
   - after a readiness-blocked dispatch is superseded, the next cycle records `worker_readiness_unavailable` without proposing;
   - changed readiness inputs let the owner plan again;
-  - a new cause releases the hold.
+  - a new cause releases the hold;
+  - a readiness probe that throws also holds owner planning once its dispatch is superseded.
     Without the hold, the first test proposes again.
 - Node test: the readiness-input digest is stable for unchanged inputs and changes with configuration or repository knowledge.
