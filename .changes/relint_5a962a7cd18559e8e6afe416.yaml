@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5a962a7cd18559e8e6afe416"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Every SQLite connection installs its lock wait before any other statement, so a Node starting while another process holds a store waits for the lock instead of failing with database is locked."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7e1f2429c255e6da5236cb1d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Group quality observation reports in one bounded commit and initialize CAS native capabilities only when used."

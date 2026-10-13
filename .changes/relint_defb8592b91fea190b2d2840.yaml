@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_defb8592b91fea190b2d2840"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Hold owner planning while a dispatch's worker readiness stays blocked instead of re-planning and spending tokens on every lease lapse."

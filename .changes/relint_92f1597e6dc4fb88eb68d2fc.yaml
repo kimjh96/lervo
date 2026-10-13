@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_92f1597e6dc4fb88eb68d2fc"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Read local capability packages once per agent registry read instead of once per bound agent, so repeated authority checks no longer re-read identical packages for every registered agent."

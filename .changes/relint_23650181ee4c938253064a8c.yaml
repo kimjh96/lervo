@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_23650181ee4c938253064a8c"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Record context-quality reports atomically in explicitly migrated SQLite stores while preserving legacy CAS recording."

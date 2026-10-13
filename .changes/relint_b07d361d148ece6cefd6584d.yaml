@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b07d361d148ece6cefd6584d"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Validate bounded context planning requests and exact source sections, and expose missing trusted planning bindings in preparation diagnostics."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_346d575a416ed7c481cf4d10"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Verify and repair every file in the internal CLI and Node runtime module using one bounded artifact inventory."

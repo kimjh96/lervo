@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1589427aae4ee0aeeccc3315"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reduce repository knowledge preparation latency with per-scan policy compilation and ordered concurrent fresh reads, preserving complete source coverage."

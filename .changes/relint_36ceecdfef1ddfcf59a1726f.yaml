@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_36ceecdfef1ddfcf59a1726f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Runtime service activation waits for a freshly bootstrapped or kickstarted launchd job to finish spawning before judging it, so a starting Node is no longer treated as a failed replacement."

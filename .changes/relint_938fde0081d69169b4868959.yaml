@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_938fde0081d69169b4868959"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Add bounded native synchronization for small CAS writes with verified artifacts, drained failures, and ordinary file-sync fallback."

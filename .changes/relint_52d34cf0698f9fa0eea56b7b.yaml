@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_52d34cf0698f9fa0eea56b7b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Load canonical validators on demand in the internal CLI and Node module while preserving full schema validation and artifact integrity."

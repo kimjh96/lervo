@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a2b8a07dc3852960f1bfb02b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Include verified native CAS assets in CLI, standalone runtimes, terminal hooks and shared build transfers."

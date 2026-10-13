@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_65151bb21e815c37de8fa47f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Compile schema validators during the build to remove repeated startup compilation while preserving validation errors."

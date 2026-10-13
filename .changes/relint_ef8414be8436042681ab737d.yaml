@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ef8414be8436042681ab737d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reduce context-quality recording overhead through bounded storage reuse while preserving current writer checks, exact integrity validation, and durable receipts."

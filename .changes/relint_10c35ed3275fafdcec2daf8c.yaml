@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_10c35ed3275fafdcec2daf8c"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Find pending supervision plans and unresolved preflight blocks from one run-history snapshot and from their own event types, instead of rereading the run history per decision and the whole project history per check."

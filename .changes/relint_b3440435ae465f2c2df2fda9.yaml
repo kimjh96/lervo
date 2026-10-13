@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b3440435ae465f2c2df2fda9"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Convergence workers of superseded delegations are retired before each convergence assignment, and supervision headcount excludes the current convergence delegation's workers, so background knowledge maintenance no longer exhausts an owner's maximumWorkers."

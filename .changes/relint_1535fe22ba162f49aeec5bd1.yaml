@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1535fe22ba162f49aeec5bd1"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reduce enum validation startup work and isolate returned errors from shared schema definitions."

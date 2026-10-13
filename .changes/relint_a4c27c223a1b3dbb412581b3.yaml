@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a4c27c223a1b3dbb412581b3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Commit explicitly selected SQLite reports and events atomically with strong synchronization and verified readback."

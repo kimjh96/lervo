@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b0268bc7c3e1f4dd92de911c"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Prepare complete applied owner rules with path scope and exact source checks in terminal hooks, managed context, and knowledge queries, with explicit capacity and unavailable diagnostics."

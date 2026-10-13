@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d13af67489b0b35a4960ff43"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Initialize the event schema and project binding atomically so rejected opens leave no partial upgrade."

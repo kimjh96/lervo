@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_43162929ae2d98b253396b65"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Connect shared context outcome verification and reader-gated quality recording to managed, conversation, query, and terminal completion boundaries."

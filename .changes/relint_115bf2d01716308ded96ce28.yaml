@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_115bf2d01716308ded96ce28"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Shorten workspace preparation by sharing one evidence read across earlier-generation checkout proofs."
