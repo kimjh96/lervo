@@ -57,6 +57,7 @@ it.each([
   "unrelated_head",
   "unrelated_head_lost_receipt",
   "expired_unhosted",
+  "expired_unready_checkout",
 ])(
   "runs isolated native owner planning and recovers exact workspace preparation (%s)",
   async (scenario) => {
@@ -333,10 +334,15 @@ it.each([
           assigneeAgentId: f.owner.agentId,
           revision: 2,
         });
-        if (scenario === "expired_unhosted") {
-          // The preparation records its workspace, then stops before any host effect.
-          vi.spyOn(GitWorkspaceHostAdapter.prototype, "provision").mockRejectedValueOnce(
-            new Error("fixture_stopped_before_host_effect"),
+        if (scenario === "expired_unhosted" || scenario === "expired_unready_checkout") {
+          // The preparation records its workspace, then stops before any host effect or, with an
+          // untouched checkout, before its ready evidence is recorded.
+          const provision = GitWorkspaceHostAdapter.prototype.provision;
+          vi.spyOn(GitWorkspaceHostAdapter.prototype, "provision").mockImplementationOnce(
+            async function (this: GitWorkspaceHostAdapter, request) {
+              if (scenario === "expired_unready_checkout") await provision.call(this, request);
+              throw new Error("fixture_stopped_before_ready_evidence");
+            },
           );
           expect((await native.runCycle()).disposition).toBe("uncertain");
           expect(await listWorkspaces(f.root)).toMatchObject([
@@ -357,7 +363,11 @@ it.each([
           // Past its deadline the never-hosted preparation is withdrawn and superseded.
           native = await openNative();
           expect((await native.runCycle()).disposition).toBe("changed");
-          expect(await listWorkspaces(f.root)).toMatchObject([{ state: "removed", revision: 3 }]);
+          const [withdrawn] = await listWorkspaces(f.root);
+          expect(withdrawn).toMatchObject({ state: "removed", revision: 3 });
+          await expect(
+            readFile(resolve(withdrawn!.ownerWorkspacePath!, "AGENTS.md")),
+          ).rejects.toThrow();
           await native.close();
           const after = await NodeSupervisionStore.open({
             repositoryRoot: f.root,
