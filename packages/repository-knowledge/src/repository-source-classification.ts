@@ -41,8 +41,9 @@ export const binaryExtensions = new Set([
   ".zip",
 ]);
 
+// `.env` and every `.env.*` variant hold environment values; only explicit templates are ordinary.
 const secretName =
-  /(^|\/)(\.env(?:\.|$)|[^/]*(?:secret|credential|token)[^/]*|id_[dr]sa|[^/]*\.(?:pem|key|p12|pfx))$/i;
+  /(^|\/)(\.env(?:\.(?!(?:example|sample|template|dist)$)[^/]+)?|[^/]*(?:secret|credential|token)[^/]*|id_[dr]sa|[^/]*\.(?:pem|key|p12|pfx))$/i;
 const decisionDocumentName = /(?:^|\/)(?:adr|decisions)(?:\/[^/]+)*\/\d{4}-.+\.md$/iu;
 
 export function secretCandidatePath(path: string): boolean {
