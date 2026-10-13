@@ -1,4 +1,8 @@
-import { observeUnstartedSupervisionWorkspace } from "./supervision-unstarted-workspace.js";
+import {
+  observeUnstartedSupervisionWorkspace,
+  readUnstartedWorkspaceSources,
+  type UnstartedWorkspaceSources,
+} from "./supervision-unstarted-workspace.js";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import { listWorkspaces, type WorkforceAssignment } from "@lervo/agent-workforce";
 import type { ProjectStorage } from "@lervo/project-storage";
@@ -15,6 +19,13 @@ export async function currentSupervisionWorkspaces(
   );
   const current = all.filter((item) => item.leaseGeneration === assignment.lease?.generation);
   const previous = all.filter((item) => !current.includes(item));
+  // Proofs over one store share a single read of the supervision history and workspace events;
+  // a separate read per earlier generation made every preparation fence span many seconds.
+  let sources: Promise<UnstartedWorkspaceSources> | undefined;
+  const readSources =
+    storage === undefined || binding === undefined
+      ? undefined
+      : () => (sources ??= readUnstartedWorkspaceSources(storage, binding));
   for (let offset = 0; offset < previous.length; offset += 4) {
     const results = await Promise.allSettled(
       previous.slice(offset, offset + 4).map(async (item) => {
@@ -34,6 +45,7 @@ export async function currentSupervisionWorkspaces(
             assignment,
             workspace: item,
             ...(storage === undefined ? {} : { storage }),
+            ...(readSources === undefined ? {} : { sources: readSources }),
           })) !== null
         )
           return;
