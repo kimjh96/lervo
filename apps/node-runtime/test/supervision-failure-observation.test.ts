@@ -10,6 +10,7 @@ import {
 import { coordinator } from "../../../packages/orchestrator/test/managed-provider-run-test-harness.js";
 import { FakeManagedAdapter } from "../../../packages/orchestrator/test/provider-run-fake-adapter.js";
 import { observeSupervisionFailure } from "../src/supervision-failure-observation.js";
+import { observedSupervisionPreStartFailure } from "../src/supervision-run-termination.js";
 
 afterEach(cleanupManagedFixtures);
 
@@ -109,4 +110,38 @@ it("retains uncertainty when provider stop fails even without tools", async () =
   } finally {
     data.store.close();
   }
+});
+
+it("settles a run that failed its approval preflight before the adapter started", async () => {
+  const data = await createManagedFixture();
+  const artifacts = await FileSystemCas.open(resolve(data.root, ".lervo/state/cas"));
+  const adapter = new FakeManagedAdapter("codex");
+  const input = providerRunInput();
+  await expect(
+    coordinator(adapter, data.root, data.store, undefined, artifacts).run({
+      ...input,
+      repositoryRoot: data.root,
+      context: {
+        ...input.context,
+        role: {
+          ...input.context.role,
+          capabilities: {
+            ...input.context.role.capabilities,
+            "filesystem.write": "require_approval",
+          },
+        },
+      },
+    }),
+  ).rejects.toMatchObject({ code: "approval_required" });
+  const events = data.store.list({ runId });
+  expect(events.some((event) => event.type === "adapter.started")).toBe(false);
+  expect(observedSupervisionPreStartFailure(events)).not.toBeNull();
+  expect(await observeSupervisionFailure(events, artifacts)).toMatchObject({
+    status: "known_safe_failure",
+    reasonCode: "settled_pre_start_failure",
+  });
+  // A started adapter disproves the pre-start shape.
+  const started = { ...events.at(-1)!, type: "adapter.started", seq: 0 } as (typeof events)[number];
+  expect(observedSupervisionPreStartFailure([started, ...events])).toBeNull();
+  data.store.close();
 });
