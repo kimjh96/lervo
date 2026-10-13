@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_87a2a834cc9c04c8b9003db5"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Ship the source-bound Darwin synchronization addon in CLI archives, bind its files in release inventories and SBOMs, and share exact native bytes across platform verification jobs."

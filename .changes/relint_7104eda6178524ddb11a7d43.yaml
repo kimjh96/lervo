@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7104eda6178524ddb11a7d43"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Verify standalone runtime archives with Windows tar line endings and observable file permissions."

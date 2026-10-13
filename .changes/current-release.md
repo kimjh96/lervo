@@ -1,30 +1,85 @@
-<!-- lervo-release package="@lervo/cli" version="0.21.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.22.0" schema="1" -->
 
 ## What's changed
 
-- Accept a repository Node replacement whose only non-ready components keep their exact pre-upgrade state, extend readiness while startup progresses, and name the blocking component when readiness or recovery fails.
-- Accept terminal hook runtimes up to 8 MiB so lervo upgrade no longer blocks terminal integration with runtime_invalid.
-- Admit every knowledge resident: lervo upgrade activates event schema 4 with a backup and installs one host resident service; held residents report their cause; refused Hub coordinates never grant ownership; drifted bindings rebind.
-- Carry delegation-bound verification suites, repository roles, and asset manifests across hosts through the Hub, so a host that lacks them installs the exact reviewed bytes and seeds a peer's delegation instead of reporting delegation_missing.
-- Install and verify the complete SDK dependency closure for fleet Node runtimes so conversation replies survive upgrades.
-- Keep an atomic current Node runtime pointer, run the replica coordinator and its peer commands through it, refuse mixed capture semantics, and reject unknown replica config keys.
-- Keep background convergence moving after deploy: bind generated projections by hash in lifecycle plan review, move a squash-absorbed knowledge integration ref to the base with a backup and an event, and report verification suites that rewrite tracked files with their exact paths.
-- Keep background knowledge continuous on every host: same-scope delegation renewal under a host policy, cross-host delegation seeding, derived Hub owner-host configuration, honest upgrade status, and a continuity doctor.
-- Keep background knowledge convergence moving: regenerate rejected documents with the reviewer's reasons, park only exhausted sources with precise status, review lifecycle plans by their own paths, and settle undeclared opaque assets by the passing delegation suite.
-- lervo upgrade --apply --safe plans and applies an approval-free upgrade in one exclusive window, and a stale --approval names the current plan ID and what changed.
-- lervo upgrade --apply holds the background knowledge resident's cycle admission for its whole run, scans retry concurrent revision changes, and foreground commands wait up to 15 minutes for a running knowledge materialization instead of failing.
-- lervo upgrade applies Node configuration path migrations only inside the guarded service transition, recovers Nodes whose configuration was migrated in place, and names fence refusals such as a configuration digest mismatch.
-- lervo upgrade keeps a per-host current CLI pointer and moves pinned Node configuration CLI paths to it with a backup; Node startup names a missing configured executable, and node status reports it before a restart.
-- Node upgrades wait up to 15 minutes for a running supervision cycle or admitted work instead of refusing at the first collision.
-- Publish background knowledge within the delegated write scope, never rewrite tool-generated documents such as release-please changelogs, repair knowledge commits that changed them automatically, and derive the publication base from the remote's advertised default branch.
-- Publish repository Node readiness without waiting for the conversation knowledge index, refresh a starting Node's health heartbeat, and count that heartbeat as readiness progress so a slow but live startup is not rolled back.
-- Recover bounded knowledge evidence and add independently reviewed freshness assessments. Status now returns version-2 metadata observations; use inspect for authoritative verification. Improve resident scheduling and retain normalization cost limits.
-- Reevaluate every settled background knowledge stall once after a runtime deploy, give co-hosted residents fair turns at full-cycle admission, park rejected lifecycle plans instead of stopping assessment, and retry a project manifest that lervo upgrade briefly rewrites.
-- Regenerate a background knowledge review whose bound context changed instead of stopping, never bind the rebuildable publication pages as review context, and reuse the repository observation within a resident cycle so a large repository no longer holds a core.
-- Regenerate a stale knowledge review before the pre-stage check, stop pinning package manager lockfiles as opaque delegation assets, and memoize role registry resolution.
-- Renew each convergence delegation only on the convergence owner with deterministic bytes, let followers adopt the owner's term or bytes, and stop replica apply, merge, and rollback from resetting a renewed tracked delegation to HEAD.
-- Report knowledge_normalization_outside_delegation with the excluded normalization roots when every pending normalization document lies outside the delegation, instead of an opaque knowledge_authority_unavailable.
-- Route legacy repository documents semantically instead of by title terms, keep application content that its own package loads in place, and defer unclassified documents to the background resident without blocking lervo upgrade.
-- Scan supplemental evidence sources in linear time so event-heavy repositories no longer spend minutes of CPU per knowledge scan.
-- Start an absent delegated knowledge integration ref at HEAD, bound untyped convergence stage failures to four attempts before attention, and show the retry attempt and next attempt time in convergence status.
-- Synchronize repository checkpoints from CLI-only hosts and explicitly reconcile divergent continuations without rewriting their histories.
+- A standing supervision waiting on an unresolved preflight block remembers that state like other blocked waits, keyed on the block's identity, instead of re-evaluating its whole source on every wake-up.
+- Account an unavailable usage receipt for any managed run that failed before its provider adapter started, such as an approval preflight.
+- Add bounded native synchronization for small CAS writes with verified artifacts, drained failures, and ordinary file-sync fallback.
+- Add exact artifact quality observations, explicit query recording, and reader-first context-quality event compatibility.
+- Add source-bound native synchronization assets and versioned verification to standalone macOS Hub and Node distributions.
+- Amortize SQLite report checkpoints while preserving strong durable commits and ordinary event checkpoint behavior.
+- Avoid a redundant storage binding read while preserving fresh admission and commit checks.
+- Avoid recompressing verified duplicate context-quality reports while preserving complete readback and transaction failure checks.
+- Bind durable knowledge writes and recovery to private operation inputs before source gate acquisition.
+- Bind event writer activation files, recovery journals and receipts to the exact approved plan throughout asynchronous application.
+- Bind native CAS build output and complete native asset replacement to verified source and binary identities.
+- Bind native transfer publication to the exact pair digest in its receipt.
+- Commit explicitly selected SQLite reports and events atomically with strong synchronization and verified readback.
+- Compile schema validators during the build to remove repeated startup compilation while preserving validation errors.
+- Connect shared context outcome verification and reader-gated quality recording to managed, conversation, query, and terminal completion boundaries.
+- Convergence workers of superseded delegations are retired before each convergence assignment, and supervision headcount excludes the current convergence delegation's workers, so background knowledge maintenance no longer exhausts an owner's maximumWorkers.
+- Deliver the configured English documentation policy in direct terminal context independently of retrieval results.
+- Every SQLite connection installs its lock wait before any other statement, so a Node starting while another process holds a store waits for the lock instead of failing with database is locked.
+- Expose bounded context preparation diagnostics for terminal and managed search without claiming provider delivery or rule compliance.
+- Find pending supervision plans and unresolved preflight blocks from one run-history snapshot and from their own event types, instead of rereading the run history per decision and the whole project history per check.
+- Group admitted context-report preparations before fresh validation and durable commit, draining failed batches safely.
+- Group concurrent context-quality event commits while retaining fresh writer checks, full integrity verification and durable receipts.
+- Group overlapping quality observations and reduce initial report database overhead without weakening durable recording.
+- Group quality observation reports in one bounded commit and initialize CAS native capabilities only when used.
+- Hold owner planning also when a dispatch's readiness probe cannot complete, not only when it reports unready.
+- Hold owner planning while a dispatch's worker readiness stays blocked instead of re-planning and spending tokens on every lease lapse.
+- Include verified native CAS assets in CLI, standalone runtimes, terminal hooks and shared build transfers.
+- Initialize the event schema and project binding atomically so rejected opens leave no partial upgrade.
+- Install native synchronization assets with repository terminal hooks, verify every runtime file before input, and recover interrupted binary updates through the existing durable journal.
+- Installing or upgrading a repository Node also registers the checkout in the host repository registry, so lervo repository list and resolve see every Node-managed repository.
+- Keep host outcome verification and correction bound to admitted artifacts, definitions and callbacks when caller-owned objects change.
+- Keep task verification receipts bound to the evaluated artifact and plan when a caller changes its input while an evaluator is pending.
+- Keep terminal snapshot cache failures from touching unrelated files and clean abandoned temporary cache bytes.
+- Let supervision transitions commit when the newest repository event belongs to unrelated work, such as knowledge maintenance.
+- Load canonical validators on demand in the internal CLI and Node module while preserving full schema validation and artifact integrity.
+- Observe writer and report storage coordinates from one fresh manifest and reject project changes before backend opening.
+- Overlap artifact observation with context recording while draining both before completion or correction and preserving durable receipts.
+- Overlap bounded quality storage opening with source preparation and drain opening failures before recording.
+- Prepare complete applied owner rules with path scope and exact source checks in terminal hooks, managed context, and knowledge queries, with explicit capacity and unavailable diagnostics.
+- Preserve applicable owner instructions when a supersession chain crosses an inactive or unresolved rule.
+- Preserve complete CAS verification while connecting bounded native I/O with ordinary filesystem fallback.
+- Publish prepared SQL quality reports behind one fresh batch admission while preserving shared report limits and legacy storage behavior.
+- Read local capability packages once per agent registry read instead of once per bound agent, so repeated authority checks no longer re-read identical packages for every registered agent.
+- Read opt-in SQLite quality reports alongside existing CAS artifacts without automatically migrating legacy stores.
+- Record context-quality reports atomically in explicitly migrated SQLite stores while preserving legacy CAS recording.
+- Recover Node work admission after observed process replacement or reboot while preserving live owners, upgrade freezes and unknown legacy identities.
+- Reduce context-quality recording overhead through bounded storage reuse while preserving current writer checks, exact integrity validation, and durable receipts.
+- Reduce enum validation startup work and isolate returned errors from shared schema definitions.
+- Reduce knowledge preparation memory by avoiding whole-cache JSON strings and sharing immutable lexical frequency maps.
+- Reduce project metadata read overhead while retaining fresh bytes, file identity checks and asynchronous reads for larger inputs.
+- Reduce repeated event-envelope validation while preserving accepted versions, payload boundaries and durable recording.
+- Reduce repeated knowledge-query event preparation while preserving full-history validation and identical retrieval coverage.
+- Reduce repeated project path calculation while preserving native path semantics and fresh storage validation.
+- Reduce repository knowledge preparation latency with per-scan policy compilation and ordered concurrent fresh reads, preserving complete source coverage.
+- Release the concurrency slot of a managed run that failed before its provider started, and settle it as a safe failure.
+- Repository knowledge scans skip Git-ignored untracked paths, so a virtual environment or build output no longer exhausts the read budget, and every .env variant except explicit templates is treated as a secret whose bytes are never read.
+- Retain SQLite statements throughout streamed iteration on supported Node runtimes.
+- Reuse bounded exact-content project manifest decoding while preserving fresh file and writer validation.
+- Reuse compiled SQLite statements per connection on report and event write paths, removing repeated statement preparation while preserving complete reads and integrity checks.
+- Reuse content-bound knowledge extraction and search preparation across queries and processes while preserving fresh source verification and identical ranking.
+- Reuse fresh storage-borrow writer checks for quality recording while preserving inactive-writer rejection and rollback detection.
+- Run a deferred supervision evaluation once its startup deadline lapses, instead of skipping it until another change.
+- Runtime service activation waits for a freshly bootstrapped or kickstarted launchd job to finish spawning before judging it, so a starting Node is no longer treated as a failed replacement.
+- Runtime service status tells a loaded launchd job from a running one, so a Node whose process exited cleanly can be upgraded in place and an identical reinstall restarts it instead of reporting it unchanged.
+- Select SQLite report storage from reviewed persistent reader evidence and initialize it inside the first recording operation.
+- Share bounded context preparation across repository surfaces, resolve declared instruction scopes, preserve exact evidence sections, and expand local task-language queries.
+- Share bounded in-flight writes of identical small artifacts while preserving raw CAS files, durable publication, and fresh per-caller verification.
+- Share fresh storage binding observations only among callers admitted before the observation starts.
+- Share the CLI and Node internal runtime and bind its installed artifacts.
+- Ship the source-bound Darwin synchronization addon in CLI archives, bind its files in release inventories and SBOMs, and share exact native bytes across platform verification jobs.
+- Shorten workspace preparation by sharing one evidence read across earlier-generation checkout proofs.
+- Standing supervision observes its full source only when it can differ: an idle wake-up runs the history tail audit and an input stamp check instead of a full cycle, and role sources and retained-workspace evidence are read once per listing instead of once per record.
+- Supersede a workspace preparation that stopped before creating its checkout instead of leaving supervision stalled.
+- Supersede a workspace preparation whose untouched checkout never reached ready, removing the checkout without force.
+- Supersede assignment amendments that can no longer apply instead of failing every supervision cycle, and prove retained checkouts in bounded batches.
+- Validate bounded context planning requests and exact source sections, and expose missing trusted planning bindings in preparation diagnostics.
+- Validate parsed event-writer coordinates with generated version-specific schemas while preserving public validation errors.
+- Verify and repair every file in the internal CLI and Node runtime module using one bounded artifact inventory.
+- Verify exact artifacts against task requirements and scoped language exceptions, and offer bounded corrections through authorized effect owners.
+- Verify standalone runtime archives with Windows tar line endings and observable file permissions.
+- Verify stored events where they are read, appended or traversed instead of rescanning the complete history on every store opening and report write; explicit integrity verification remains complete.

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_03cfd636e5a5066f7f45ad22"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reduce project metadata read overhead while retaining fresh bytes, file identity checks and asynchronous reads for larger inputs."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f0c75d6f97c2b55dfd8957db"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Runtime service status tells a loaded launchd job from a running one, so a Node whose process exited cleanly can be upgraded in place and an identical reinstall restarts it instead of reporting it unchanged."

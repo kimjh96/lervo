@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8ff894668f38ab5af3123f2b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Preserve applicable owner instructions when a supersession chain crosses an inactive or unresolved rule."

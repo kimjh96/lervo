@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1ae279c092f3e386bbf72e93"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Account an unavailable usage receipt for any managed run that failed before its provider adapter started, such as an approval preflight."

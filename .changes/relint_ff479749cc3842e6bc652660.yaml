@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ff479749cc3842e6bc652660"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Run a deferred supervision evaluation once its startup deadline lapses, instead of skipping it until another change."

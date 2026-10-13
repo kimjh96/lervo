@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_93ff505527c6259545d1df9b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Supersede a workspace preparation whose untouched checkout never reached ready, removing the checkout without force."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2808fbd296c05b138d7163f0"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Hold owner planning also when a dispatch's readiness probe cannot complete, not only when it reports unready."

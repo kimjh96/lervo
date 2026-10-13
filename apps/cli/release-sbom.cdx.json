@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:267632a1-ebd7-5793-92f4-851ebde7d8ab",
+  "serialNumber": "urn:uuid:7d29cae8-058a-56ff-88e8-a386a8ccc1f0",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -21,11 +21,11 @@
     },
     "component": {
       "type": "application",
-      "bom-ref": "pkg:npm/%40lervo/cli@0.21.0",
+      "bom-ref": "pkg:npm/%40lervo/cli@0.22.0",
       "group": "@lervo",
       "name": "cli",
-      "version": "0.21.0",
-      "purl": "pkg:npm/%40lervo/cli@0.21.0",
+      "version": "0.22.0",
+      "purl": "pkg:npm/%40lervo/cli@0.22.0",
       "hashes": [
         {
           "alg": "SHA-256",
@@ -42,7 +42,7 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:a0106f490b896ed2f91d67af9202dbf1cccbf6572698cc539e08acd6973d3281"
+          "value": "sha256:068bc2050be5fd7d805566dd840a282305f8a091d324b9e93d9dcfd667178a1b"
         },
         {
           "name": "lervo:release:bundle-digest",
@@ -4417,7 +4417,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40lervo/cli@0.21.0",
+      "ref": "pkg:npm/%40lervo/cli@0.22.0",
       "dependsOn": [
         "lervo:native-cas:cas-io-darwin.node",
         "lervo:native-cas:cas-io.json",

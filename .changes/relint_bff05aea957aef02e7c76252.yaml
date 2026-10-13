@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_bff05aea957aef02e7c76252"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Let supervision transitions commit when the newest repository event belongs to unrelated work, such as knowledge maintenance."

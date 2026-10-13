@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e5072c53f8d3643fc0658797"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Share bounded in-flight writes of identical small artifacts while preserving raw CAS files, durable publication, and fresh per-caller verification."

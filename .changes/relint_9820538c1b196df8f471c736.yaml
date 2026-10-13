@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9820538c1b196df8f471c736"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Preserve complete CAS verification while connecting bounded native I/O with ordinary filesystem fallback."

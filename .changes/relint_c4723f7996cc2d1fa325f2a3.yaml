@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c4723f7996cc2d1fa325f2a3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Select SQLite report storage from reviewed persistent reader evidence and initialize it inside the first recording operation."

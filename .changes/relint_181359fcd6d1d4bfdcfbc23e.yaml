@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_181359fcd6d1d4bfdcfbc23e"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Publish prepared SQL quality reports behind one fresh batch admission while preserving shared report limits and legacy storage behavior."

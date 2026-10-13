@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_61a32e8ae835fda3d369fda6"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Verify stored events where they are read, appended or traversed instead of rescanning the complete history on every store opening and report write; explicit integrity verification remains complete."
