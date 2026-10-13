@@ -107,7 +107,7 @@ export class SupervisionHandoffEffects {
                   Date.parse(basis.offer.expiresAt),
                   Date.parse(authority.installation.mandate.expiresAt),
                 ) ||
-              storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash
+              storage.events.latest()?.eventHash !== source.headEventHash
             )
               throw new Error("The handoff observation or deadline changed before commit.");
             peer!.validateHead();

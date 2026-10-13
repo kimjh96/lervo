@@ -182,7 +182,7 @@ export class SupervisionOwnerReasoningEffects {
       } catch (cause) {
         throw new SupervisionPreflightError({ cause });
       }
-      const admissionHead = source.events.at(-1)?.eventHash;
+      const admissionHead = source.headEventHash;
       const identity = managedExecutionIdentity(plan.projectId, operatingContractHash(plan));
       let authorityCheck = Promise.resolve();
       const revalidateAuthority = () =>

@@ -90,7 +90,7 @@ export async function recordCanonicalGoalCompletion(input: {
         operatingContractHash(
           assignments.filter((item) => item.workstreamId === plan.workstreamId),
         ) !== operatingContractHash(source.workstreamAssignments) ||
-        storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash ||
+        storage.events.latest()?.eventHash !== source.headEventHash ||
         artifact.contentHash !== expected.snapshotHash
       )
         throw new Error("The bound goal completion authority changed at commit.");
@@ -153,7 +153,7 @@ export async function recordCanonicalGoalCompletion(input: {
           operatingContractHash(
             assignments.filter((item) => item.workstreamId === plan.workstreamId),
           ) !== operatingContractHash(source.workstreamAssignments) ||
-          storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash ||
+          storage.events.latest()?.eventHash !== source.headEventHash ||
           artifact.contentHash !== expected.snapshotHash
         )
           throw new Error("The completion authority changed at commit.");

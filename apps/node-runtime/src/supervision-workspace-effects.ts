@@ -126,7 +126,7 @@ export class SupervisionWorkspaceEffects {
         });
         await assertSupervisionWorkspaceLocation(this.root, fresh.provision, this.configuration);
         session.commit(() => {
-          if (storage.events.latest()?.eventHash !== tasks.events.at(-1)?.eventHash)
+          if (storage.events.latest()?.eventHash !== tasks.headEventHash)
             throw new Error("The workspace preparation event source changed.");
         });
       };

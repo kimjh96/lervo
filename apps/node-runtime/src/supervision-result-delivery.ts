@@ -169,7 +169,7 @@ export class SupervisionResultDelivery {
       throw new Error("The publication source changed before queueing.");
     owner.commit(() => {
       if (
-        this.storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash ||
+        this.storage.events.latest()?.eventHash !== source.headEventHash ||
         Date.parse(this.now()) >= Date.parse(plan.deadline)
       )
         throw new Error("The publication authority changed at commit.");
@@ -235,7 +235,7 @@ export class SupervisionResultDelivery {
     )
       return;
     owner.commit(() => {
-      if (this.storage.events.latest()?.eventHash !== admittedSource.events.at(-1)?.eventHash)
+      if (this.storage.events.latest()?.eventHash !== admittedSource.headEventHash)
         throw new Error("The accepted result changed immediately before delivery.");
     });
     let receiptArtifactHash: string | null = null;

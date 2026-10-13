@@ -69,7 +69,7 @@ export class SupervisionAttentionEffects {
                 Date.parse(plan.deadline),
                 Date.parse(authority.installation.mandate.expiresAt),
               ) ||
-            storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash
+            storage.events.latest()?.eventHash !== source.headEventHash
           )
             throw new Error("The owner attention deadline or event source changed.");
           const result = transaction.append({

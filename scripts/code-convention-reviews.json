@@ -67,7 +67,7 @@
     },
     {
       "path": "apps/node-runtime/src/supervision-task-source.ts",
-      "contentHash": "sha256:64e25c7f1ddcec9babc21cbbdec1dfc5910eb40e1667a201f8a785b1413a8e7a",
+      "contentHash": "sha256:7e3d26b4d9f91e56860cc85f867183bacbff26e17ceda0915d9d9bbcb6b02d66",
       "responsibility": "Canonical supervised task observation",
       "rationale": "The class observes one bound goal for task, admission, owner-control, and cycle snapshots, and audits its history projection's tail for the wake schedule. It composes dedicated workforce, execution, authority, result, and handoff readers; effect execution, persistence, provider transport, domain policy, and runtime scheduling remain in separate modules. The two history projections share a canonical event chain but retain distinct task and authority scopes.",
       "disposition": "cohesive"

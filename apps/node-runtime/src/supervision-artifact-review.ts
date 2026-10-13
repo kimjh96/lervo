@@ -66,7 +66,7 @@ export async function recordCanonicalArtifactReview(input: {
     validateCurrent: () => {
       input.assertOpen();
       if (
-        input.storage.events.latest()?.eventHash !== freshSource.events.at(-1)?.eventHash ||
+        input.storage.events.latest()?.eventHash !== freshSource.headEventHash ||
         Date.parse(input.now()) >= Date.parse(plan.deadline) ||
         Date.parse(input.now()) >= Date.parse(current.installation.mandate.expiresAt)
       )
