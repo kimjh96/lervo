@@ -43,7 +43,12 @@ export class SupervisionReadinessHolds {
       this.holds.get(supervisionId)?.planHash === planHash
     )
       return;
-    const inputs = await this.ports.readReadinessInputs(plan);
+    let inputs: string | null;
+    try {
+      inputs = await this.ports.readReadinessInputs(plan);
+    } catch {
+      return;
+    }
     if (inputs === null) return;
     this.holds.set(supervisionId, {
       plan: structuredClone(plan),
