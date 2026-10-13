@@ -17,6 +17,14 @@ function resourceCompleteness(
   return "complete";
 }
 
+/** Failure codes of managed-run phases that precede the provider adapter's start. */
+const PRE_START_FAILURES = [
+  "contract_validation_failed",
+  "approval_required",
+  "repository_snapshot_failed",
+  "provider_start_failed",
+];
+
 export function projectManagedResourceGroups(input: {
   events: readonly EventEnvelope[];
   workRuns: readonly WorkCausalityRecord[];
@@ -39,7 +47,7 @@ export function projectManagedResourceGroups(input: {
     if (
       event.type === "run.failed" &&
       event.actor.kind === "system" &&
-      event.payload.failureCode === "provider_start_failed" &&
+      PRE_START_FAILURES.includes(String(event.payload.failureCode)) &&
       event.payload.retryable === false
     )
       failedStarts.set(event.runId, failedStarts.has(event.runId) ? null : event);
