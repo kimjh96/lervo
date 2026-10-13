@@ -93,7 +93,7 @@ export async function assertSupersededDecisionProof(input: {
                 plan,
                 String(supersession.payload.sourceRevisionDigest),
               ) && events.get(String(inspection.queueEventId)) === null
-            : inspection.schemaVersion === 3
+            : inspection.schemaVersion === 3 || inspection.schemaVersion === 9
               ? await validWorkspaceAbsence(
                   journal,
                   inspection,

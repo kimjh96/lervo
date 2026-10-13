@@ -20,6 +20,10 @@ import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-co
 import { assertSupervisionWorkspaceLocation } from "./supervision-workspace-plan.js";
 import { supervisionWorkspaceReceiptBasis } from "./supervision-workspace-receipt.js";
 import { SupervisionTaskSource } from "./supervision-task-source.js";
+import {
+  observeUnhostedWorkspace,
+  withdrawUnhostedWorkspace,
+} from "./supervision-unhosted-workspace.js";
 
 function pathAbsentSync(path: string): boolean {
   try {
@@ -85,7 +89,16 @@ export async function supersedeUnstartedWorkspacePreparation(input: {
       });
       return observed.status === "absent";
     };
-    if (!(await absent())) return false;
+    // A record whose host effect never happened is withdrawn with the plan instead of pinning it.
+    const unhosted = async () =>
+      storage.events.get(basis.eventId) === null &&
+      (await observeUnhostedWorkspace({
+        repositoryRoot: input.repositoryRoot,
+        plan,
+        provision: basis.provision,
+      })) !== null;
+    const recordAbsent = await absent();
+    if (!recordAbsent && !(await unhosted())) return false;
     const tasks = new SupervisionTaskSource(storage, input.binding, input.now);
     const observe = async () => {
       const authority = await observeNodeSupervisionAuthority(storage, input.binding, input.now);
@@ -108,8 +121,18 @@ export async function supersedeUnstartedWorkspacePreparation(input: {
       }) !== plan.sourceRevisionDigest;
     const expired = Date.parse(plan.deadline) <= Date.parse(input.now());
     if ((!sourceChanged && !expired) || before.digest !== input.sourceRevisionDigest) return false;
+    if (!recordAbsent)
+      await withdrawUnhostedWorkspace({
+        repositoryRoot: input.repositoryRoot,
+        plan,
+        provision: basis.provision,
+        now: input.now,
+      });
+    const recordEvidence = recordAbsent
+      ? { workspaceRecordAbsent: true, coordinationEventsAbsent: true }
+      : { workspaceRecordWithdrawn: true, readyEventAbsent: true };
     const inspection = {
-      schemaVersion: 3,
+      schemaVersion: recordAbsent ? 3 : 9,
       kind: "work.effect_absence",
       effectContract: plan.effectContract,
       decisionId: operatingDecisionId(plan),
@@ -118,8 +141,7 @@ export async function supersedeUnstartedWorkspacePreparation(input: {
       sourceRevisionDigest: input.sourceRevisionDigest,
       workspaceId,
       provisionPlanHash: basis.effect.provisionPlanHash,
-      workspaceRecordAbsent: true,
-      coordinationEventsAbsent: true,
+      ...recordEvidence,
       hostRegistrationAbsent: true,
       workspacePathAbsent: true,
       eventHeadHash: storage.events.latest()?.eventHash ?? null,
@@ -134,7 +156,7 @@ export async function supersedeUnstartedWorkspacePreparation(input: {
     )
       throw new Error("Workspace supersession requires exact absence evidence.");
     const artifact = await storage.artifacts.put(canonicalJson(inspection));
-    if (!(await absent())) return false;
+    if (!(recordAbsent ? await absent() : await unhosted())) return false;
     const after = await observe();
     if (
       after.digest !== before.digest ||

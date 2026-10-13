@@ -56,6 +56,7 @@ it.each([
   "unexpired_absent",
   "unrelated_head",
   "unrelated_head_lost_receipt",
+  "expired_unhosted",
 ])(
   "runs isolated native owner planning and recovers exact workspace preparation (%s)",
   async (scenario) => {
@@ -332,6 +333,44 @@ it.each([
           assigneeAgentId: f.owner.agentId,
           revision: 2,
         });
+        if (scenario === "expired_unhosted") {
+          // The preparation records its workspace, then stops before any host effect.
+          vi.spyOn(GitWorkspaceHostAdapter.prototype, "provision").mockRejectedValueOnce(
+            new Error("fixture_stopped_before_host_effect"),
+          );
+          expect((await native.runCycle()).disposition).toBe("uncertain");
+          expect(await listWorkspaces(f.root)).toMatchObject([
+            { state: "recovery_required", revision: 2, recoveryReason: "host_effect_uncertain" },
+          ]);
+          await native.close();
+          const store = await NodeSupervisionStore.open({
+            repositoryRoot: f.root,
+            binding: f.binding,
+            now: () => new Date(Date.now() + clockOffset).toISOString(),
+          });
+          try {
+            const pending = await store.withOwner((session) => session.findPendingPlan());
+            clockOffset = Date.parse(pending!.deadline) - Date.now() + 1;
+          } finally {
+            await store.close();
+          }
+          // Past its deadline the never-hosted preparation is withdrawn and superseded.
+          native = await openNative();
+          expect((await native.runCycle()).disposition).toBe("changed");
+          expect(await listWorkspaces(f.root)).toMatchObject([{ state: "removed", revision: 3 }]);
+          await native.close();
+          const after = await NodeSupervisionStore.open({
+            repositoryRoot: f.root,
+            binding: f.binding,
+            now: () => new Date(Date.now() + clockOffset).toISOString(),
+          });
+          try {
+            expect(await after.withOwner((session) => session.findPendingPlan())).toBeNull();
+          } finally {
+            await after.close();
+          }
+          return;
+        }
         if (["expired_absent", "expired_path", "unexpired_absent"].includes(scenario)) {
           vi.spyOn(SupervisionWorkspaceEffects.prototype, "assertReady").mockImplementationOnce(
             async (plan) => {

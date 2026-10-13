@@ -15,6 +15,7 @@ import {
   supervisionWorkspaceReceiptBasis,
 } from "./supervision-workspace-receipt.js";
 import { readPreparedWorkspaceState } from "./supervision-workspace-prepared-state.js";
+import { observeUnhostedWorkspace } from "./supervision-unhosted-workspace.js";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { resolveRepositoryCoordinationHome } from "@lervo/project-storage";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
@@ -31,8 +32,16 @@ export async function recoverPreparedWorkspace(input: {
   const { storage, plan } = input;
   const receipt = await supervisionWorkspaceReceiptBasis(storage, plan);
   const prepared = await readPreparedWorkspaceState(storage, receipt.provision);
-  if (prepared === null || storage.events.get(receipt.eventId) !== null)
-    return { status: "uncertain" as const };
+  if (storage.events.get(receipt.eventId) !== null) return { status: "uncertain" as const };
+  if (prepared === null)
+    // A preparation that stopped before its host effect never started; supersession settles it.
+    return (await observeUnhostedWorkspace({
+      repositoryRoot: storage.paths.repositoryRoot,
+      plan,
+      provision: receipt.provision,
+    })) === null
+      ? { status: "uncertain" as const }
+      : { status: "not_started" as const };
   const tasks = new SupervisionTaskSource(storage, input.binding, input.now);
   const source = await tasks.read(operatingDecisionId(plan));
   // A dispatch for this responsibility makes this a worker recovery, not a preparation receipt.

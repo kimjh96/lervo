@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4b2ee10332bc958bcf69e36e"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Supersede a workspace preparation that stopped before creating its checkout instead of leaving supervision stalled."
