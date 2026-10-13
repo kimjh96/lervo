@@ -6,7 +6,11 @@ import { describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
 import { applyNodeFleetOnboarding } from "../src/node-fleet-apply.js";
-import { createNodeFleetOnboardingPlan, listNodeFleetInstances } from "@lervo/repository-registry";
+import {
+  createNodeFleetOnboardingPlan,
+  listNodeFleetInstances,
+  listRegisteredRepositories,
+} from "@lervo/repository-registry";
 
 function io(cwd: string, stdout: string[], stderr: string[]) {
   return {
@@ -117,6 +121,12 @@ describe("repository selection command", () => {
     });
     expect(readinessReads).toBe(3);
     expect(await listNodeFleetInstances(registry)).toHaveLength(1);
+    // The Node's checkout also joins the host repository registry beside the fleet registry.
+    expect(
+      (await listRegisteredRepositories(resolve(root, "state/repositories.json"))).map(
+        (entry) => entry.projectId,
+      ),
+    ).toEqual([(await listNodeFleetInstances(registry))[0]!.projectId]);
     expect((await stat(plan.service.targetPath)).mode & 0o077).toBe(0);
 
     const originalDefinition = await readFile(plan.service.targetPath);
