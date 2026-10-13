@@ -1,8 +1,5 @@
 import { SupervisionCycleCursors, supervisionCursorDigest } from "./outcome-supervision-cursors.js";
-import type {
-  OutcomeSupervisionReportV1,
-  OutcomeSupervisionSnapshotV1,
-} from "@lervo/application-contract";
+import type { OutcomeSupervisionReportV1 } from "@lervo/application-contract";
 import {
   operatingContractHash,
   operatingDecisionId,
@@ -13,56 +10,29 @@ import {
   assertOwnerControlReadiness,
 } from "@lervo/work-controller";
 
-import type {
-  OutcomeSupervisionPorts,
-  SupervisionDecisionReceipt,
-} from "./outcome-supervision-ports.js";
+import type { OutcomeSupervisionPorts } from "./outcome-supervision-ports.js";
 import { SupervisionPreflightError } from "./outcome-supervision-ports.js";
+import { SupervisionReadinessHolds } from "./outcome-supervision-readiness-hold.js";
+import {
+  assertReceipt,
+  boundedErrorCode,
+  hasDurableWorkerContinuation,
+} from "./outcome-supervision-cycle-checks.js";
 
 export interface OutcomeSupervisionCycleResult {
   disposition: "idle" | "busy" | "blocked" | "changed" | "effect_confirmed" | "uncertain";
   report: OutcomeSupervisionReportV1 | null;
 }
 
-function assertReceipt(
-  receipt: SupervisionDecisionReceipt,
-  decisionId: string,
-  planHash: string,
-): void {
-  if (
-    receipt.decisionId !== decisionId ||
-    receipt.planHash !== planHash ||
-    !["recorded", "effect_confirmed", "uncertain", "superseded"].includes(receipt.status) ||
-    !Array.isArray(receipt.effectEventIds) ||
-    receipt.effectEventIds.length > 64 ||
-    receipt.effectEventIds.some((id) => !/^evt_[a-f0-9]{32}$/u.test(id)) ||
-    (receipt.status === "effect_confirmed" && receipt.effectEventIds.length === 0)
-  ) {
-    throw new Error("The supervision decision receipt conflicts with the exact plan.");
-  }
-}
-
-/** The effect adapter's bounded identifier code, if it carries one; never its message. */
-function boundedErrorCode(error: unknown): string[] {
-  const code = (error as { code?: unknown } | null)?.code;
-  return typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code) ? [code] : [];
-}
-
-/** A leased or dispatched assignment is an unfinished duty, not a new request trigger. */
-function hasDurableWorkerContinuation(snapshot: OutcomeSupervisionSnapshotV1): boolean {
-  return snapshot.assignments.some(
-    (assignment) =>
-      assignment.terminalEventId === null &&
-      (assignment.status === "leased" || assignment.dispatchedAt !== null),
-  );
-}
-
 /** Composes canonical sources and effects; contains no provider or chat routing. */
 export class OutcomeSupervisionRuntime {
   private readonly cursors = new SupervisionCycleCursors();
   private readonly started = new Set<string>();
+  private readonly readinessHolds: SupervisionReadinessHolds;
 
-  constructor(private readonly ports: OutcomeSupervisionPorts) {}
+  constructor(private readonly ports: OutcomeSupervisionPorts) {
+    this.readinessHolds = new SupervisionReadinessHolds(ports);
+  }
 
   /** Schedules deferred startup evaluation even without another source notification. */
   nextCheckAt(supervisionId: string): number | null {
@@ -201,6 +171,19 @@ export class OutcomeSupervisionRuntime {
       }
       if (preflightBlock !== null) {
         await this.ports.recordAttention(report, ["preflight_repair_requires_review"]);
+        remember(report, mandate.expiresAt, true);
+        return { disposition: "blocked" as const, report };
+      }
+      // A dispatch blocked on worker readiness would only be proposed again until that changes.
+      const readinessHold =
+        pending === null
+          ? await this.readinessHolds.blocking(supervisionId, snapshot.causationEventIds)
+          : null;
+      if (readinessHold !== null) {
+        await this.ports.recordAttention(report, [
+          "worker_readiness_unavailable",
+          ...readinessHold,
+        ]);
         remember(report, mandate.expiresAt, true);
         return { disposition: "blocked" as const, report };
       }
@@ -354,12 +337,19 @@ export class OutcomeSupervisionRuntime {
               observation: readiness.observation,
               reasonCodes: preflight.reasonCodes,
             });
+          await this.readinessHolds.hold(
+            supervisionId,
+            plan,
+            preflight.reasonCodes,
+            snapshot.causationEventIds,
+          );
           await this.ports.recordAttention(report, preflight.reasonCodes);
           return { disposition: "blocked" as const, report };
         }
       }
       try {
         const effect = await this.ports.execute(plan, freshReview);
+        if (operatingReadinessKind(plan) === "worker") this.readinessHolds.release(supervisionId);
         const receipt = {
           ...recorded,
           status: "effect_confirmed" as const,
