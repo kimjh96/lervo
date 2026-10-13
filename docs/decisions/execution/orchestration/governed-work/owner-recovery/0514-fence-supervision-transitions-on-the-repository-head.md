@@ -27,3 +27,7 @@ An out-of-scope event that precedes the read no longer blocks a transition. An e
 ## Verification
 
 The owner-reasoning workspace test adds two scenarios with another run's completion as the repository head. A lost preparation receipt with that head reproduced axli's recovery error before this change and is confirmed after it. The other eight scenarios pass unchanged.
+
+## Follow-up: keep fence windows short
+
+Each workspace-preparation fence re-proves every earlier-generation checkout of its assignment. With 21 retained checkouts, each proof reading the supervision history and workspace events itself made every fence window span many seconds. A preparation then took about 76 seconds, so knowledge-maintenance writes routinely fell inside a window. `currentSupervisionWorkspaces` now gives the proofs over one store a single shared evidence read, as the batch observer does. It keeps its bounded batches of four, which stop at the first unproven batch.

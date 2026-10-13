@@ -1,6 +1,7 @@
 import { rm } from "node:fs/promises";
 import { afterEach, expect, it, vi } from "vitest";
 import * as workforce from "@lervo/agent-workforce";
+import { openProjectStorage } from "@lervo/project-storage";
 import * as retention from "../src/supervision-unstarted-workspace.js";
 import { currentSupervisionWorkspaces } from "../src/supervision-workspace-generations.js";
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
@@ -74,3 +75,42 @@ it.each([false, true])(
   },
   15000,
 );
+
+it("gives every earlier-generation proof over one store a single shared evidence read", async () => {
+  const f = await dispatchFixture(roots);
+  const original = (await workforce.readWorkspace(f.root, f.provision.workspace.workspaceId))!
+    .workspace;
+  const previous = Array.from({ length: 9 }, (_, index) => ({
+    ...original,
+    workspaceId: `wsp_previous_${index}`,
+    leaseGeneration: index + 1,
+  }));
+  const current = { ...original, leaseGeneration: 10 };
+  const assignment = { ...f.assignment, lease: { ...f.assignment.lease!, generation: 10 } };
+  vi.spyOn(workforce, "listWorkspaces").mockResolvedValue([...previous, current]);
+  const sources = { head: null, supervisionHistory: [], workspaceEvents: [] };
+  const read = vi.spyOn(retention, "readUnstartedWorkspaceSources").mockResolvedValue(sources);
+  const observed: unknown[] = [];
+  vi.spyOn(retention, "observeUnstartedSupervisionWorkspace").mockImplementation(
+    async ({ workspace, sources: readShared }) => {
+      observed.push(await readShared!());
+      return {
+        workspaceId: workspace.workspaceId,
+        assignmentId: assignment.assignmentId,
+        leaseGeneration: workspace.leaseGeneration,
+        evidenceHash: "sha256:" + "1".repeat(64),
+      };
+    },
+  );
+  const storage = await openProjectStorage(f.root);
+  try {
+    expect(await currentSupervisionWorkspaces(f.root, assignment, f.binding, storage)).toEqual([
+      current,
+    ]);
+  } finally {
+    await storage.close();
+  }
+  expect(read).toHaveBeenCalledTimes(1);
+  expect(observed).toHaveLength(9);
+  expect(observed.every((value) => value === sources)).toBe(true);
+});
