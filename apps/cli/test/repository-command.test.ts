@@ -93,7 +93,9 @@ describe("repository selection command", () => {
           runCommand: async (_command, args) => {
             if (args[0] === "bootstrap") active = true;
             if (args[0] === "bootout") active = false;
-            return { exitCode: args[0] === "print" ? (active ? 0 : 1) : 0 };
+            return args[0] === "print"
+              ? { exitCode: active ? 0 : 1, stdout: active ? "\tstate = running\n" : "" }
+              : { exitCode: 0 };
           },
         },
         wait: async () => undefined,
@@ -154,6 +156,7 @@ describe("repository selection command", () => {
             homeDirectory: home,
             runCommand: async (_command, args) => ({
               exitCode: args[0] === "print" ? (active ? 0 : 1) : 0,
+              ...(args[0] === "print" && active ? { stdout: "\tstate = running\n" } : {}),
             }),
           },
         },
@@ -301,7 +304,9 @@ describe("repository selection command", () => {
           runCommand: async (_command, args) => {
             if (args[0] === "bootstrap") active = true;
             if (args[0] === "bootout") active = false;
-            return { exitCode: args[0] === "print" ? (active ? 0 : 1) : 0 };
+            return args[0] === "print"
+              ? { exitCode: active ? 0 : 1, stdout: active ? "\tstate = running\n" : "" }
+              : { exitCode: 0 };
           },
         },
         wait: async () => undefined,

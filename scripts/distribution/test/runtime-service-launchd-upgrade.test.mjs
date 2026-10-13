@@ -114,11 +114,29 @@ async function launchdNode() {
  * printable during SIGTERM handling, and `bootstrap` fails with EIO until the job is gone.
  */
 function asyncBootoutLaunchd(node, { rejectBootstrapOf } = {}) {
-  const state = { loaded: false, terminating: 0, session: null, bootstraps: 0 };
+  const state = {
+    loaded: false,
+    running: false,
+    terminating: 0,
+    session: null,
+    bootstraps: 0,
+    kickstarts: 0,
+  };
+  const startProcess = () => {
+    state.running = true;
+    state.session = node.register();
+  };
+  /** The process exits 0; with `KeepAlive.SuccessfulExit = false` the job stays loaded. */
+  state.exitSuccessfully = () => {
+    if (state.session !== null) node.admission.unregisterSession(state.session);
+    state.session = null;
+    state.running = false;
+  };
   const exitProcess = () => {
     if (state.session !== null) node.admission.unregisterSession(state.session);
     state.session = null;
     state.loaded = false;
+    state.running = false;
   };
   state.run = async (command, args) => {
     if (command !== "launchctl") return { exitCode: null };
@@ -127,7 +145,9 @@ function asyncBootoutLaunchd(node, { rejectBootstrapOf } = {}) {
         state.terminating -= 1;
         if (state.terminating === 0) exitProcess();
       }
-      return { exitCode: state.loaded ? 0 : 113 };
+      return state.loaded
+        ? { exitCode: 0, stdout: `\tstate = ${state.running ? "running" : "not running"}\n` }
+        : { exitCode: 113, stdout: "" };
     }
     if (args[0] === "enable") return { exitCode: 0 };
     if (args[0] === "bootstrap") {
@@ -136,7 +156,13 @@ function asyncBootoutLaunchd(node, { rejectBootstrapOf } = {}) {
       const bytes = await readFile(node.target, "utf8");
       if (rejectBootstrapOf !== undefined && bytes === rejectBootstrapOf) return { exitCode: 5 };
       state.loaded = true;
-      state.session = node.register();
+      startProcess();
+      return { exitCode: 0 };
+    }
+    if (args[0] === "kickstart") {
+      if (!state.loaded) return { exitCode: 113 };
+      state.kickstarts += 1;
+      if (!state.running) startProcess();
       return { exitCode: 0 };
     }
     if (args[0] === "bootout") {
@@ -198,6 +224,61 @@ it("re-applies an upgrade after an interrupted attempt left the launchd Node sto
     const claim = node.admission.tryAcquireWork(launchd.session);
     expect(claim).not.toBeNull();
     node.admission.releaseWork(claim);
+  } finally {
+    node.admission.close();
+  }
+});
+
+it("upgrades a loaded launchd Node whose process already exited without a work session", async () => {
+  const node = await launchdNode();
+  const launchd = asyncBootoutLaunchd(node);
+  const options = launchdOptions(node, launchd);
+  try {
+    await manageRuntimeService(node.installArgs, options);
+    launchd.exitSuccessfully();
+    // Loaded but not running: no process can hold admitted work, so no session is required.
+    await expect(
+      manageRuntimeService(
+        [
+          "--action",
+          "status",
+          "--manager",
+          "launchd",
+          "--runtime",
+          "node",
+          "--instance",
+          nodeInstance,
+        ],
+        options,
+      ),
+    ).resolves.toMatchObject({ loaded: true, active: false });
+    await expect(manageRuntimeService(node.upgradeArgs, options)).resolves.toMatchObject({
+      change: "upgraded",
+      active: true,
+    });
+    expect(await readFile(node.target, "utf8")).toBe(node.replacementBytes);
+    expect(launchd.bootstraps).toBe(2);
+    const claim = node.admission.tryAcquireWork(launchd.session);
+    expect(claim).not.toBeNull();
+    node.admission.releaseWork(claim);
+  } finally {
+    node.admission.close();
+  }
+});
+
+it("restarts a loaded launchd Node that is not running instead of reporting it unchanged", async () => {
+  const node = await launchdNode();
+  const launchd = asyncBootoutLaunchd(node);
+  const options = launchdOptions(node, launchd);
+  try {
+    await manageRuntimeService(node.installArgs, options);
+    launchd.exitSuccessfully();
+    await expect(manageRuntimeService(node.installArgs, options)).resolves.toMatchObject({
+      change: "activated",
+      active: true,
+    });
+    expect(launchd.kickstarts).toBe(1);
+    expect(launchd.bootstraps).toBe(1);
   } finally {
     node.admission.close();
   }

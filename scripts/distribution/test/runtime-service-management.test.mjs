@@ -15,6 +15,12 @@ import { manageRuntimeService } from "../manage-runtime-service.mjs";
 import { renderRuntimeService, runtimeServiceStopTimeoutMs } from "../render-runtime-service.mjs";
 
 const roots = [];
+/** `launchctl print` exits 0 for a loaded job; its top-level state line says whether it runs. */
+function launchdPrint(loaded, running = loaded) {
+  return loaded
+    ? { exitCode: 0, stdout: `\tstate = ${running ? "running" : "not running"}\n` }
+    : { exitCode: 113, stdout: "" };
+}
 const nodeInstance = "nfi_0123456789abcdef01234567";
 
 afterEach(async () =>
@@ -511,7 +517,7 @@ describe("runtime user service management", () => {
           if (removalObservations === 1) return { exitCode: 0 };
           loaded = false;
         }
-        return { exitCode: loaded ? 0 : 113 };
+        return launchdPrint(loaded);
       }
       if (args[0] === "enable") {
         return { exitCode: 0 };
@@ -581,7 +587,7 @@ describe("runtime user service management", () => {
             loaded = false;
           }
         }
-        return { exitCode: loaded ? 0 : 113 };
+        return launchdPrint(loaded);
       }
       if (args[0] === "enable") return { exitCode: 0 };
       if (args[0] === "bootstrap") {
@@ -1011,7 +1017,7 @@ describe("runtime user service management", () => {
     const runCommand = async (command, args) => {
       calls.push([command, ...args]);
       if (command !== "launchctl") return { exitCode: null };
-      if (args[0] === "print") return { exitCode: loaded ? 0 : 113 };
+      if (args[0] === "print") return launchdPrint(loaded);
       if (args[0] === "enable") {
         enabled = true;
         return { exitCode: 0 };
