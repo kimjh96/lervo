@@ -1,7 +1,10 @@
 import { budgetTokens } from "@lervo/execution-contract";
 import type { SupervisedAssignmentAmendmentV1 } from "@lervo/application-contract";
 import { supervisedAssignmentAmendmentFields } from "@lervo/work-controller";
-import { observedSupervisionRunTermination } from "./supervision-run-termination.js";
+import {
+  observedSupervisionRunTermination,
+  observedSupervisionPreStartFailure,
+} from "./supervision-run-termination.js";
 import { readProvenPreTurnFailure } from "./supervision-pre-turn-failure-source.js";
 import type { SupervisedAssignmentRecovery } from "@lervo/application-contract";
 import { supervisedAssignmentRecoveryFields } from "@lervo/work-controller";
@@ -301,7 +304,8 @@ export async function observeSupervisionTaskResources(input: {
       preTurnFailures.has(identity.runId) ||
       abandoned ||
       interruptedOwner ||
-      observedSupervisionRunTermination(run) !== null;
+      observedSupervisionRunTermination(run) !== null ||
+      observedSupervisionPreStartFailure(run) !== null;
     if (!finished) reservedRuns.add(identity.runId);
     if (event.payload.decisionId !== currentDecision) {
       // A fenced missing usage receipt remains spent-unknown, never zero tokens.

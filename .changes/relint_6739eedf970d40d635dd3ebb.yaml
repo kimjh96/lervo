@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6739eedf970d40d635dd3ebb"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Release the concurrency slot of a managed run that failed before its provider started, and settle it as a safe failure."

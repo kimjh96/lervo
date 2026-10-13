@@ -18,7 +18,7 @@ function resourceCompleteness(
 }
 
 /** Failure codes of managed-run phases that precede the provider adapter's start. */
-const PRE_START_FAILURES = [
+export const PRE_START_FAILURES: readonly string[] = [
   "contract_validation_failed",
   "approval_required",
   "repository_snapshot_failed",

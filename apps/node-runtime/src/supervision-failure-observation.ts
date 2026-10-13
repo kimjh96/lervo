@@ -1,12 +1,16 @@
 import type { ArtifactStore } from "@lervo/storage-contract";
 import { type EventEnvelope } from "@lervo/schemas";
+import { PRE_START_FAILURES } from "@lervo/work-controller";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { isProvenPreTurnFailure } from "./supervision-pre-turn-failure.js";
 import {
   ABANDONED_READ_ONLY_TURN,
   ABANDONED_WRITE_TURN,
 } from "./supervision-abandoned-turn-failure.js";
-import { observedSupervisionRunTermination } from "./supervision-run-termination.js";
+import {
+  observedSupervisionPreStartFailure,
+  observedSupervisionRunTermination,
+} from "./supervision-run-termination.js";
 
 const OPTIONAL_FAILURE_KEYS = new Set([
   "providerTurnFailureCode",
@@ -132,9 +136,18 @@ export async function observeSupervisionFailure(
         "unmanaged_change.detected",
       ].includes(event.type),
     );
+  // A run that failed before its adapter started could not invoke a tool or change a file.
+  const preStart = observedSupervisionPreStartFailure(events);
+  const safeBeforeStart =
+    preStart?.terminal.eventId === terminal.eventId &&
+    diagnostic.failures.every((item) => PRE_START_FAILURES.includes(item.code));
   return {
-    status: safe ? ("known_safe_failure" as const) : ("uncertain" as const),
-    reasonCode: safe ? "settled_no_tool_failure" : "failure_effects_require_inspection",
+    status: safe || safeBeforeStart ? ("known_safe_failure" as const) : ("uncertain" as const),
+    reasonCode: safe
+      ? "settled_no_tool_failure"
+      : safeBeforeStart
+        ? "settled_pre_start_failure"
+        : "failure_effects_require_inspection",
     diagnostic,
   };
 }
