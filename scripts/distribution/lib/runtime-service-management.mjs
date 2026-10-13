@@ -210,13 +210,18 @@ function defaultRunCommand(command, args, options = {}) {
       args,
       {
         encoding: "utf8",
-        maxBuffer: 4_096,
+        maxBuffer: options.captureOutput === true ? 65_536 : 4_096,
         timeout: options.timeoutMs ?? 30_000,
         windowsHide: true,
       },
-      (error) => {
-        if (error === null) resolvePromise({ exitCode: 0 });
-        else resolvePromise({ exitCode: typeof error.code === "number" ? error.code : null });
+      (error, stdout) => {
+        const output = options.captureOutput === true ? { stdout } : {};
+        if (error === null) resolvePromise({ exitCode: 0, ...output });
+        else
+          resolvePromise({
+            exitCode: typeof error.code === "number" ? error.code : null,
+            ...output,
+          });
       },
     );
   });
@@ -235,6 +240,27 @@ async function command(runCommand, executable, args, options) {
   }
 }
 
+async function commandOutput(runCommand, executable, args) {
+  try {
+    const result = await runCommand(executable, args, { captureOutput: true });
+    if (result?.exitCode === null || result?.exitCode === undefined) return null;
+    return {
+      exitCode: Number(result.exitCode),
+      stdout: typeof result.stdout === "string" ? result.stdout : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * `launchctl print` exits 0 for any loaded job, running or not. Only the job's own top-level
+ * state line, indented by one tab, says whether its process runs.
+ */
+function launchdJobRunning(output) {
+  return /^\tstate = running$/mu.test(output);
+}
+
 async function serviceStatus(input, context) {
   const installedBytes = await regularFile(context.target, { required: false });
   if (input.manager === "systemd") {
@@ -250,10 +276,12 @@ async function serviceStatus(input, context) {
       managerAvailable: enabled !== null && active !== null,
       installed: installedBytes !== null,
       enabled: enabled === 0,
+      // systemd stops and starts units without unloading them; loaded mirrors active there.
+      loaded: active === 0,
       active: active === 0,
     };
   }
-  const loaded = await command(context.runCommand, "launchctl", [
+  const printed = await commandOutput(context.runCommand, "launchctl", [
     "print",
     `${context.identity.domain}/${context.identity.label}`,
   ]);
@@ -262,10 +290,11 @@ async function serviceStatus(input, context) {
     runtime: input.runtime,
     instance: input.instance,
     serviceIdentity: context.identity.label,
-    managerAvailable: loaded !== null,
+    managerAvailable: printed !== null,
     installed: installedBytes !== null,
     enabled: null,
-    active: loaded === 0,
+    loaded: printed?.exitCode === 0,
+    active: printed?.exitCode === 0 && launchdJobRunning(printed.stdout),
   };
 }
 
@@ -273,11 +302,18 @@ function isOperationalServiceStatus(status) {
   return status.managerAvailable && status.installed && status.active && status.enabled !== false;
 }
 
+/** Removed from the manager: no process and, under launchd, no loaded job left to boot out. */
 function isStoppedServiceStatus(status) {
-  return status.managerAvailable && !status.active && status.enabled !== true;
+  return status.managerAvailable && !status.loaded && status.enabled !== true;
 }
 
+/** Unloaded, so its definition may be replaced and bootstrapped again. */
 function isInactiveServiceStatus(status) {
+  return status.managerAvailable && !status.loaded;
+}
+
+/** No running process, so the service cannot be doing work; a launchd job may stay loaded. */
+function isNotRunningServiceStatus(status) {
   return status.managerAvailable && !status.active;
 }
 
@@ -303,11 +339,16 @@ async function stabilizedStoppedServiceStatus(input, context, initial) {
   return status;
 }
 
-async function stabilizedInactiveServiceStatus(input, context, initial) {
+async function stabilizedInactiveServiceStatus(
+  input,
+  context,
+  initial,
+  settled = isInactiveServiceStatus,
+) {
   let status = initial;
   let consecutive = 0;
   for (let index = 0; index < SERVICE_STOP_MAXIMUM_OBSERVATIONS; index += 1) {
-    consecutive = isInactiveServiceStatus(status) ? consecutive + 1 : 0;
+    consecutive = settled(status) ? consecutive + 1 : 0;
     if (consecutive === SERVICE_STABILITY_OBSERVATIONS) return status;
     await context.wait(SERVICE_STABILITY_INTERVAL_MS);
     status = await serviceStatus(input, context);
@@ -366,7 +407,7 @@ async function install(input, expected, context) {
   if (!observed.managerAvailable) {
     fail("service_manager_unavailable", "The service manager is unavailable.");
   }
-  if (current === null && (observed.active || observed.enabled === true)) {
+  if (current === null && (observed.loaded || observed.enabled === true)) {
     fail(
       "service_state_conflict",
       "A service retained by the manager without a definition will not be overwritten.",
@@ -394,12 +435,17 @@ async function install(input, expected, context) {
         "enable",
         `${context.identity.domain}/${context.identity.label}`,
       ])) === 0 &&
-      (before.active ||
-        (await command(context.runCommand, "launchctl", [
-          "bootstrap",
-          context.identity.domain,
-          context.target,
-        ])) === 0);
+      (before.loaded
+        ? // A loaded job that is not running is started again; bootstrapping it twice fails.
+          (await command(context.runCommand, "launchctl", [
+            "kickstart",
+            `${context.identity.domain}/${context.identity.label}`,
+          ])) === 0
+        : (await command(context.runCommand, "launchctl", [
+            "bootstrap",
+            context.identity.domain,
+            context.target,
+          ])) === 0);
   }
   let after = await serviceStatus(input, context);
   if (applied && isOperationalServiceStatus(after)) {
@@ -444,7 +490,7 @@ async function compensateInstall(input, expected, context) {
     ]);
   }
   const status = await serviceStatus(input, context);
-  if (!status.managerAvailable || status.active || status.enabled === true) return false;
+  if (!status.managerAvailable || status.loaded || status.enabled === true) return false;
   const current = await currentTarget(context.target);
   if (current === null || !current.equals(expected)) return false;
   try {
@@ -465,7 +511,7 @@ async function remove(input, expected, context) {
     if (!status.managerAvailable) {
       fail("service_manager_unavailable", "The service manager is unavailable.");
     }
-    if (status.active || status.enabled === true) {
+    if (status.loaded || status.enabled === true) {
       fail(
         "service_state_conflict",
         "A service retained by the manager without a definition will not be removed.",
@@ -493,7 +539,7 @@ async function remove(input, expected, context) {
       )) !== 0
     )
       fail("service_remove_failed", "The service could not be stopped and disabled.");
-  } else if (before.active) {
+  } else if (before.loaded) {
     if (
       (await command(
         context.runCommand,
@@ -592,14 +638,15 @@ async function upgrade(input, expected, previous, context) {
   }
   const before = await stabilizedServiceStatus(input, context, await serviceStatus(input, context));
   const wasOperational = isOperationalServiceStatus(before);
-  const isRecoverableInactive = before.managerAvailable && before.installed && !before.active;
+  const isRecoverableInactive = before.installed && isNotRunningServiceStatus(before);
   if (!wasOperational && !isRecoverableInactive) {
     fail(
       "service_state_conflict",
       "Only an exact operational or inactive installed service can be upgraded in place.",
     );
   }
-  if (wasOperational) {
+  // A stopped launchd job can stay loaded; it is unloaded before its definition is replaced.
+  if (wasOperational || before.loaded) {
     const stopReportedSuccess = await stopForUpgrade(input, context);
     const stopped = await stabilizedInactiveServiceStatus(
       input,
@@ -623,7 +670,7 @@ async function upgrade(input, expected, previous, context) {
     await context.configurationTransition?.complete();
     return { ...after, change: "upgraded" };
   }
-  if (after.active) {
+  if (after.loaded) {
     await stopForUpgrade(input, context);
     const stopped = await stabilizedInactiveServiceStatus(
       input,
@@ -720,10 +767,16 @@ export async function manageRuntimeService(args, options = {}) {
                 const predecessor = input.action === "upgrade" ? previous : expected;
                 if (!installed?.equals(predecessor)) return false;
                 const state = await serviceStatus(input, context);
+                // No running process means no admitted work; a launchd job may stay loaded.
                 return (
-                  isInactiveServiceStatus(state) &&
-                  isInactiveServiceStatus(
-                    await stabilizedInactiveServiceStatus(input, context, state),
+                  isNotRunningServiceStatus(state) &&
+                  isNotRunningServiceStatus(
+                    await stabilizedInactiveServiceStatus(
+                      input,
+                      context,
+                      state,
+                      isNotRunningServiceStatus,
+                    ),
                   )
                 );
               },
