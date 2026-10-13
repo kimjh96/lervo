@@ -116,6 +116,17 @@ describe("workstream resource scope", () => {
     expect(() => projectWorkstreamResources({ events: events.slice(0, 2), workstreamId })).toThrow(
       "differs from its run provider",
     );
+    // An approval preflight also fails before the adapter starts.
+    expect(
+      projectWorkstreamResources({
+        events: [
+          events[0]!,
+          unavailable,
+          { ...failed, payload: { ...failed.payload, failureCode: "approval_required" } },
+        ],
+        workstreamId,
+      }).groups,
+    ).toMatchObject([{ provider: "codex", completeness: "unavailable", totalTokens: null }]);
     expect(() =>
       projectWorkstreamResources({
         events: [
