@@ -1,6 +1,7 @@
 import type {
   OperatingActionPlanV1,
   SupervisionDecisionReceipt,
+  SupervisedAssignmentAmendmentV1,
   SupervisedResponsibilityClaimV1,
   SupervisedWorkspacePreparationV1,
 } from "@lervo/application-contract";
@@ -15,6 +16,7 @@ import {
   isResultDeliveryAbsence,
   isResponsibilityClaimAbsence,
   isWorkspacePreparationAbsence,
+  supervisedAssignmentAmendmentFields,
   supervisedResponsibilityClaimFields,
   supervisedWorkspacePreparationFields,
 } from "@lervo/work-controller";
@@ -83,7 +85,7 @@ export async function assertSupersededDecisionProof(input: {
               inspection,
               plan,
               String(supersession.payload.sourceRevisionDigest),
-              await claimStartDeadline(journal, plan),
+              await revisionStartDeadline(journal, plan),
             )
           : inspection.schemaVersion === 8
             ? isResultDeliveryAbsence(
@@ -136,13 +138,18 @@ async function validWorkspaceAbsence(
   });
 }
 
-/** The exact claim effect's start deadline; its absence may be proven once that window closes. */
-async function claimStartDeadline(
+/** The exact claim or amendment's start deadline; its absence may be proven once that window closes. */
+async function revisionStartDeadline(
   journal: SupervisionEventJournal,
   plan: OperatingActionPlanV1,
 ): Promise<string> {
-  const effect = (await journal.read(plan.effectHash)) as SupervisedResponsibilityClaimV1;
-  if (supervisedResponsibilityClaimFields(effect).effectHash !== plan.effectHash)
-    throw new Error("The superseded claim effect differs from its plan.");
+  const effect = (await journal.read(plan.effectHash)) as
+    SupervisedResponsibilityClaimV1 | SupervisedAssignmentAmendmentV1;
+  const fields =
+    plan.effectContract === "work.assignment_amendment.v1"
+      ? supervisedAssignmentAmendmentFields(effect as SupervisedAssignmentAmendmentV1)
+      : supervisedResponsibilityClaimFields(effect as SupervisedResponsibilityClaimV1);
+  if (fields.effectHash !== plan.effectHash)
+    throw new Error("The superseded responsibility revision differs from its plan.");
   return effect.responsibility.startDeadline;
 }

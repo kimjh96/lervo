@@ -1,6 +1,9 @@
 import { rm } from "node:fs/promises";
 import type { AutomaticTopologyEffectV1, OperatingActionPlanV1 } from "@lervo/application-contract";
-import type { SupervisedResponsibilityClaimV1 } from "@lervo/application-contract";
+import type {
+  SupervisedAssignmentAmendmentV1,
+  SupervisedResponsibilityClaimV1,
+} from "@lervo/application-contract";
 import { listAssignments } from "@lervo/agent-workforce";
 import { canonicalJson } from "@lervo/event-contract";
 import { openProjectStorage } from "@lervo/project-storage";
@@ -8,11 +11,13 @@ import {
   automaticTopologyEffectFields,
   createAssignmentTopologyPlan,
   operatingContractHash,
+  supervisedAssignmentAmendmentFields,
   supervisedResponsibilityClaimFields,
 } from "@lervo/work-controller";
 import { afterEach, expect, it, vi } from "vitest";
 import { responsibility } from "../../../packages/work-controller/test/operating-supervision.fixture.js";
 import { supervisionFixture } from "./supervision.fixture.js";
+import { SupervisionAssignmentAmendmentEffects } from "../src/supervision-assignment-amendment-effects.js";
 import { SupervisionClaimEffects } from "../src/supervision-claim-effects.js";
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
 import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
@@ -199,3 +204,191 @@ it.each([61_000, 121_000])(
   },
   60_000,
 );
+
+it("supersedes a never-written assignment amendment after its start deadline instead of retrying it", async () => {
+  const baseTime = Date.now();
+  let clockOffset = 0;
+  const now = () => new Date(baseTime + clockOffset).toISOString();
+  const f = await supervisionFixture(roots, undefined, "developer", [
+    "allocate_existing",
+    "dispatch",
+    "revise_responsibility",
+  ]);
+  const storage = await openProjectStorage(f.root);
+  const reader = new SupervisionTaskSource(storage, f.binding, now);
+  const source = await reader.read();
+  const task = {
+    ...responsibility(),
+    executorAgentId: f.owner.agentId,
+    reviewerAgentId: f.owner.agentId,
+    roleVersion: f.owner.roleVersion,
+    roleContractHash: f.owner.roleContractHash,
+    assignmentRevision: 2,
+    requiredCapabilities: ["filesystem.read"],
+    startDeadline: new Date(baseTime + 60_000).toISOString(),
+    progressDeadline: new Date(baseTime + 90_000).toISOString(),
+    completionDeadline: new Date(baseTime + 120_000).toISOString(),
+    handoffRecipientIds: [f.owner.agentId],
+  };
+  const request = {
+    schemaVersion: 2 as const,
+    kind: "assignment_topology.change" as const,
+    workstreamId: f.binding.workstreamId,
+    expectedGraphHash: source.graph.graphHash,
+    changeKey: "amend-fix",
+    nodes: [
+      {
+        nodeKey: "fix",
+        taskType: "implementation",
+        roleId: task.roleId,
+        roleVersion: task.roleVersion,
+        roleContractHash: task.roleContractHash,
+        requiredCapabilityHash: null,
+        priority: 50,
+        dependencyAssignmentIds: [],
+        dependencyNodeKeys: [],
+        acceptanceCriteria: task.acceptanceCriteria,
+        verificationSuiteIds: task.verificationSuiteIds,
+        approvalRequirements: [],
+        expectedPaths: task.expectedPaths,
+      },
+    ],
+  };
+  const topology = createAssignmentTopologyPlan({
+    projectId: f.owner.projectId,
+    currentWorkstreamId: f.binding.workstreamId,
+    currentGraphHash: source.graph.graphHash,
+    graphValid: true,
+    request,
+    roleContracts: [
+      {
+        roleId: task.roleId,
+        roleVersion: task.roleVersion,
+        roleContractHash: task.roleContractHash,
+      },
+    ],
+    assignments: [],
+    maximumAssignments: 256,
+  });
+  task.assignmentId = topology.steps[0]!.assignmentId;
+  const effect: AutomaticTopologyEffectV1 = {
+    schemaVersion: 1,
+    kind: "assignment_topology.automatic_effect",
+    request,
+    topology,
+    responsibility: task,
+    provider: "codex",
+    reservedTokens: 100,
+  };
+  await storage.artifacts.put(canonicalJson(effect));
+  const rationale = await storage.artifacts.put(canonicalJson("Revise the acceptance."));
+  const action: OperatingActionPlanV1 = {
+    schemaVersion: 1,
+    ...f.binding,
+    projectId: f.owner.projectId,
+    teamId: f.mandate.teamIds[0]!,
+    sourceRevisionDigest: source.sourceRevisionDigest,
+    graphHash: source.graph.graphHash,
+    causationEventIds: [source.sourceEventId],
+    rationaleArtifactHash: rationale.contentHash,
+    ...automaticTopologyEffectFields(effect),
+  };
+  let next = action;
+  const execute = vi
+    .spyOn(SupervisionAssignmentAmendmentEffects.prototype, "execute")
+    .mockRejectedValue(new Error("fixture_amendment_refused"));
+  const open = () =>
+    openNodeOutcomeSupervisionRuntime({
+      repositoryRoot: f.root,
+      binding: f.binding,
+      ports: {
+        now,
+        propose: async (report) => ({
+          ...next,
+          sourceRevisionDigest: report.sourceRevisionDigest,
+          causationEventIds: report.causationEventIds,
+        }),
+        execute: async () => {
+          throw new Error("Unexpected application effect.");
+        },
+        inspectEffect: async () => {
+          throw new Error("Unexpected application inspection.");
+        },
+        recordAttention: f.ports.recordAttention,
+      },
+    });
+  let runtime = await open();
+  try {
+    expect((await runtime.runCycle()).disposition).toBe("effect_confirmed");
+    // The owner claims the assignment, and the claim's lease then lapses before any start.
+    const claim: SupervisedResponsibilityClaimV1 = {
+      schemaVersion: 1,
+      kind: "work.responsibility_claim",
+      responsibility: task,
+      expectedAssignmentHash: operatingContractHash((await listAssignments(f.root))[0]),
+      provider: "codex",
+      leaseDurationMs: 60_000,
+      rationaleArtifactHash: action.rationaleArtifactHash,
+    };
+    await storage.artifacts.put(canonicalJson(claim));
+    next = {
+      ...action,
+      ...supervisedResponsibilityClaimFields(claim),
+      graphHash: (await reader.read()).graph.graphHash,
+    };
+    expect((await runtime.runCycle()).disposition).toBe("effect_confirmed");
+    clockOffset = 61_000;
+    const [assignment] = await listAssignments(f.root);
+    const predecessorBindingHash = (await reader.read()).responsibilities.find(
+      (item) => item.assignmentId === task.assignmentId,
+    )!.binding!.responsibilityHash;
+    const amendment: SupervisedAssignmentAmendmentV1 = {
+      schemaVersion: 1,
+      kind: "work.assignment_amendment",
+      expectedAssignmentHash: operatingContractHash(assignment),
+      predecessorBindingHash,
+      provider: "codex",
+      rationaleArtifactHash: rationale.contentHash,
+      responsibility: {
+        ...task,
+        assignmentRevision: assignment!.revision + 2,
+        predecessorBindingHash,
+        startDeadline: new Date(baseTime + 121_000).toISOString(),
+        progressDeadline: new Date(baseTime + 151_000).toISOString(),
+        completionDeadline: new Date(baseTime + 181_000).toISOString(),
+      },
+    };
+    await storage.artifacts.put(canonicalJson(assignment));
+    await storage.artifacts.put(canonicalJson(amendment));
+    next = {
+      ...action,
+      ...supervisedAssignmentAmendmentFields(amendment),
+      graphHash: (await reader.read()).graph.graphHash,
+    };
+    // The amendment is refused before writing anything, so its decision stays uncertain.
+    expect((await runtime.runCycle()).disposition).toBe("uncertain");
+    expect(execute).toHaveBeenCalledTimes(1);
+    // Within its start window, one retry is refused and the receipt still shows no amendment.
+    expect((await runtime.runCycle()).disposition).toBe("uncertain");
+    expect(execute).toHaveBeenCalledTimes(2);
+    await runtime.close();
+    // Past its start deadline the amendment is no longer retried; it is superseded once.
+    clockOffset = 122_000;
+    runtime = await open();
+    expect((await runtime.runCycle()).disposition).toBe("changed");
+    expect(execute).toHaveBeenCalledTimes(2);
+    const supersessions = (await reader.read()).events.filter(
+      (event) => event.type === "work.supervision.decision.superseded",
+    );
+    expect(supersessions).toHaveLength(1);
+    expect(supersessions[0]!.payload.planHash).toBe(
+      operatingContractHash(execute.mock.calls[0]![0]),
+    );
+    expect(operatingContractHash((await listAssignments(f.root))[0])).toBe(
+      amendment.expectedAssignmentHash,
+    );
+  } finally {
+    await runtime.close();
+    await storage.close();
+  }
+}, 60_000);

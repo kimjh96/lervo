@@ -1,10 +1,17 @@
 import type { OperatingActionPlanV1 } from "@lervo/application-contract";
 import { operatingContractHash, operatingDecisionId } from "./operating-mandate-admission.js";
 
+/** Successor responsibility revisions whose never-written effect a version-7 inspection proves. */
+const RESPONSIBILITY_REVISION_CONTRACTS = [
+  "work.responsibility_claim.v1",
+  "work.assignment_amendment.v1",
+];
+
 /**
- * A superseded responsibility claim proves that no binding was written for its exact decision;
- * it never proves lease release, worker start, or later claim authority. The claim expires at the
- * earlier of its plan deadline and its responsibility start deadline, after which it cannot bind.
+ * A superseded responsibility claim or assignment amendment proves that its exact decision wrote
+ * no binding or amendment; it never proves lease release, worker start, or later claim authority.
+ * The revision expires at the earlier of its plan deadline and its responsibility start deadline,
+ * after which it cannot take effect.
  */
 export function isResponsibilityClaimAbsence(
   inspection: Record<string, unknown>,
@@ -16,7 +23,7 @@ export function isResponsibilityClaimAbsence(
     Object.keys(inspection).length === 13 &&
     inspection.schemaVersion === 7 &&
     inspection.kind === "work.effect_absence" &&
-    plan.effectContract === "work.responsibility_claim.v1" &&
+    RESPONSIBILITY_REVISION_CONTRACTS.includes(plan.effectContract) &&
     inspection.effectContract === plan.effectContract &&
     inspection.decisionId === operatingDecisionId(plan) &&
     inspection.planHash === operatingContractHash(plan) &&

@@ -17,7 +17,7 @@ import {
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
 import { observeSupervisionWorkforce } from "./supervision-workforce-source.js";
-import { observeUnstartedSupervisionWorkspace } from "./supervision-unstarted-workspace.js";
+import { allUnstartedSupervisionWorkspaces } from "./supervision-unstarted-workspaces.js";
 
 export async function readAssignmentAmendmentEffect(
   storage: ProjectStorage,
@@ -70,25 +70,20 @@ export async function readCanonicalAssignmentAmendment(input: {
   );
   // An unstarted checkout with positive proof is retained, as for a plain revision; a started
   // or unproven one still blocks the amendment.
-  const unstartedProofs = await Promise.all(
-    workspaces.map((workspace) =>
-      assignment === undefined
-        ? null
-        : observeUnstartedSupervisionWorkspace({
-            repositoryRoot: storage.paths.repositoryRoot,
-            binding: {
-              supervisionId: plan.supervisionId,
-              workstreamId: plan.workstreamId,
-              ownerAgentId: plan.ownerAgentId,
-              mandateHash: plan.mandateHash,
-            },
-            assignment,
-            workspace,
-            now: input.now,
-            storage,
-          }),
-    ),
-  );
+  const unstarted =
+    assignment !== undefined &&
+    (await allUnstartedSupervisionWorkspaces({
+      repositoryRoot: storage.paths.repositoryRoot,
+      binding: {
+        supervisionId: plan.supervisionId,
+        workstreamId: plan.workstreamId,
+        ownerAgentId: plan.ownerAgentId,
+        mandateHash: plan.mandateHash,
+      },
+      candidates: workspaces.map((workspace) => ({ assignment, workspace })),
+      now: input.now,
+      storage,
+    }));
   if (
     source.workstream.status !== "active" ||
     source.graph.validity.status !== "valid" ||
@@ -98,7 +93,7 @@ export async function readCanonicalAssignmentAmendment(input: {
     binding?.responsibilityHash !== effect.predecessorBindingHash ||
     effect.responsibility.reviewerAgentId !== plan.ownerAgentId ||
     source.execution.attempts.some((item) => item.assignmentId === previous.assignmentId) ||
-    unstartedProofs.some((proof) => proof === null) ||
+    !unstarted ||
     evaluateResponsibilityClaim({
       source: { ...next, liveLease: false, predecessorBindingHash: effect.predecessorBindingHash },
       responsibility: effect.responsibility,

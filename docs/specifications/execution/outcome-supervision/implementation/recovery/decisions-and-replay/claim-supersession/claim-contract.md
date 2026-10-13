@@ -26,6 +26,8 @@ The version-7 `work.effect_absence` inspection contains exactly:
 
 Supersession records the existing envelope-version-3 `work.supervision.decision.superseded` event. It introduces no new event type, prose, path, or credential. The decision journal validates the inspection by the same rules before treating the decision as superseded.
 
+A `work.assignment_amendment.v1` effect is a responsibility revision with the same lifecycle. The same version-7 inspection proves its absence: `bindingEventAbsent` covers the amendment's deterministic `assignment.amended` event, and its responsibility `startDeadline` bounds expiry. An uncertain amendment is retried only before that deadline. A refused retry leaves the receipt as the outcome ([ADR-0513](../../../../../../../decisions/execution/orchestration/governed-work/owner-recovery/0513-supersede-unwritten-assignment-amendments.md)).
+
 Supersession proves only that the claim never bound. It does not release a lease, prove a worker did not start, or admit a later claim. Without this path, an unbound claim kept later cycles in `pending_decision_requires_reconciliation` although nothing had happened.
 
 After supersession, the owner decides again over the current source. A successor responsibility whose completion window cannot hold a bounded lease yields no automatic claim; the owner must propose a new responsibility or escalate.
@@ -33,3 +35,5 @@ After supersession, the owner decides again over the current source. A successor
 ## Recorded failure
 
 Waiting for the plan deadline alone left a gap: after the start deadline, admission rejected the claim as stale on every cycle, but supersession refused it for up to the entire completion window. Kael encountered this on 2026-09-24, failing a cycle every ten seconds for almost an hour.
+
+On 2026-10-13, axli repeated the gap for an assignment amendment. It had no supersession path, and each cycle's retry failed on proofs of 21 retained checkouts that timed out when observed all at once.

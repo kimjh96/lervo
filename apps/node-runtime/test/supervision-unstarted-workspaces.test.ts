@@ -2,7 +2,10 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { AgentWorkspace, WorkforceAssignment } from "@lervo/agent-workforce";
 import type { ProjectStorage } from "@lervo/project-storage";
 import * as retention from "../src/supervision-unstarted-workspace.js";
-import { observeUnstartedSupervisionWorkspaces } from "../src/supervision-unstarted-workspaces.js";
+import {
+  allUnstartedSupervisionWorkspaces,
+  observeUnstartedSupervisionWorkspaces,
+} from "../src/supervision-unstarted-workspaces.js";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -90,4 +93,50 @@ it("gives every proof over one store a single shared read of its evidence", asyn
   expect(read).toHaveBeenCalledTimes(1);
   expect(observed).toHaveLength(12);
   expect(observed.every((value) => value === sources)).toBe(true);
+});
+
+it("requires a proof for every candidate when a revision must preserve all retained checkouts", async () => {
+  const candidates = Array.from({ length: 21 }, (_, index) => ({
+    assignment: { assignmentId: "asg_amended" } as WorkforceAssignment,
+    workspace: { workspaceId: `wsp_${index}` } as AgentWorkspace,
+  }));
+  const read = vi
+    .spyOn(retention, "readUnstartedWorkspaceSources")
+    .mockResolvedValue({ head: null, supervisionHistory: [], workspaceEvents: [] });
+  let active = 0;
+  let peak = 0;
+  let unproven = "";
+  vi.spyOn(retention, "observeUnstartedSupervisionWorkspace").mockImplementation(async (input) => {
+    active += 1;
+    peak = Math.max(peak, active);
+    await input.sources!();
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    active -= 1;
+    return input.workspace.workspaceId === unproven
+      ? null
+      : {
+          assignmentId: input.assignment.assignmentId,
+          workspaceId: input.workspace.workspaceId,
+          leaseGeneration: 1,
+          evidenceHash: `sha256:${"1".repeat(64)}`,
+        };
+  });
+  const prove = () =>
+    allUnstartedSupervisionWorkspaces({
+      repositoryRoot: "/repository",
+      binding: {
+        supervisionId: "supervision.fixture",
+        workstreamId: `wks_${"a".repeat(24)}`,
+        ownerAgentId: `agt_${"b".repeat(24)}`,
+        mandateHash: `sha256:${"c".repeat(64)}`,
+      },
+      storage: {} as ProjectStorage,
+      candidates,
+    });
+  expect(await prove()).toBe(true);
+  // Each batch reads the shared evidence once, and Git inspection stays bounded.
+  expect(read).toHaveBeenCalledTimes(1);
+  expect(peak).toBe(4);
+  unproven = "wsp_20";
+  expect(await prove()).toBe(false);
 });

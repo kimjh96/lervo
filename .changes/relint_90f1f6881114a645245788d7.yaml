@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_90f1f6881114a645245788d7"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Supersede assignment amendments that can no longer apply instead of failing every supervision cycle, and prove retained checkouts in bounded batches."

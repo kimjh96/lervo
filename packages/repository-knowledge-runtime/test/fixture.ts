@@ -57,6 +57,11 @@ export async function fixture(
     await writeFile(resolve(root, "src/runtime.ts"), "export const maximumBackgroundCalls = 2;\n");
   }
   await execute("git", ["-C", root, "init", "-b", "main"]);
+  // A detached automatic gc would repack and prune loose objects while a test copies or reads
+  // the repository; git estimates the loose count from one object directory, so it can trigger
+  // on a small fixture.
+  await execute("git", ["-C", root, "config", "gc.auto", "0"]);
+  await execute("git", ["-C", root, "config", "maintenance.auto", "false"]);
   await execute("git", [
     "-C",
     root,
