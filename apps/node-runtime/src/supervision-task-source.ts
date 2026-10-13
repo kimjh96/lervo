@@ -74,6 +74,9 @@ export class SupervisionTaskSource {
   async read(excludeDecisionId?: string) {
     if (excludeDecisionId !== undefined && !/^osd_[a-f0-9]{24}$/u.test(excludeDecisionId))
       throw new Error("The admission decision identity is invalid.");
+    // The repository event head before this read. `events` is scoped to this workstream and may
+    // omit the excluded decision, so only this head fences a later transition against any append.
+    const headEventHash = this.storage.events.latest()?.eventHash;
     const events = await this.history.read();
     const workstream = await readBoundWorkstreamState(
       this.storage,
@@ -191,6 +194,7 @@ export class SupervisionTaskSource {
       graph,
       supervisionEvents,
       events,
+      headEventHash,
       sourceRevisionDigest: operatingContractHash({
         workstreamHash: workstream.contentHash,
         agents,

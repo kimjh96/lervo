@@ -106,7 +106,7 @@ export class SupervisionAssignmentCompletionEffects {
         throw new Error("The completion preparation authority or lease expired.");
       if (prepared === null)
         session.commit(() => {
-          if (storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash)
+          if (storage.events.latest()?.eventHash !== source.headEventHash)
             throw new Error("The completion preparation source changed.");
           storage.events.append({
             eventId: receipt.preparedEventId,

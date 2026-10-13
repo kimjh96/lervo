@@ -3,6 +3,7 @@ import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { SupervisionWorkspaceEffects } from "../src/supervision-workspace-effects.js";
 import { readSupervisionWorkspacePlan } from "../src/supervision-workspace-plan.js";
 import { execFile } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { inspect, promisify } from "node:util";
 import { readFile, writeFile, rm, mkdtemp, realpath, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -53,6 +54,8 @@ it.each([
   "expired_absent",
   "expired_path",
   "unexpired_absent",
+  "unrelated_head",
+  "unrelated_head_lost_receipt",
 ])(
   "runs isolated native owner planning and recovers exact workspace preparation (%s)",
   async (scenario) => {
@@ -369,11 +372,34 @@ it.each([
           expect((await readFile(startLog, "utf8")).trim().split("\n")).toHaveLength(1);
           return;
         }
+        // An event outside the workstream's scoped history, such as another run's completion or
+        // knowledge maintenance, may be the repository head; the transition fences must still admit the preparation.
+        const appendUnrelatedHead = async () => {
+          if (!scenario.startsWith("unrelated_head")) return;
+          storage.events.append({
+            eventId: `evt_${randomBytes(16).toString("hex")}`,
+            projectId: f.owner.projectId,
+            runId: "run_unrelated_head_fixture",
+            sessionId: "ses_unrelated_head_fixture",
+            schemaVersion: 1,
+            type: "run.completed",
+            occurredAt: new Date().toISOString(),
+            actor: { kind: "system" },
+            policyVersion: `sha256:${"a".repeat(64)}`,
+            payload: {
+              resultDigest: `sha256:${"d".repeat(64)}`,
+              artifactIds: [`art_${"d".repeat(64)}`],
+              verificationStatus: "not_run",
+            },
+          });
+        };
+        await appendUnrelatedHead();
         let prepared = await native.runCycle();
         if (loseWorkspaceReceipt) {
           expect(prepared.disposition).toBe("uncertain");
           await native.close();
           native = await openNative();
+          await appendUnrelatedHead();
           prepared = await native.runCycle();
         }
         if (scenario === "dirty_legacy_receipt") {

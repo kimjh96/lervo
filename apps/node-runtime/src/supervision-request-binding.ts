@@ -185,7 +185,7 @@ export async function bindSupervisionRequest(input: {
   let duplicate = false;
   input.commit(() => {
     storage.events.transact((transaction) => {
-      if (storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash)
+      if (storage.events.latest()?.eventHash !== source.headEventHash)
         throw new SupervisionRequestRefusedError(
           "evidence_changed",
           "The supervised request evidence changed at commit.",

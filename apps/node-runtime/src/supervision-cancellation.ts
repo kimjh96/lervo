@@ -125,7 +125,7 @@ export async function reconcileSupervisionCancellation(input: {
           workstream?.contentHash !== source.workstreamHash ||
           operatingContractHash(agents) !== operatingContractHash(source.agents) ||
           operatingContractHash(assignments) !== operatingContractHash(expectedAssignments) ||
-          storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash
+          storage.events.latest()?.eventHash !== source.headEventHash
         )
           throw new Error("Cancellation source changed at its event commit.");
         storage.events.append({

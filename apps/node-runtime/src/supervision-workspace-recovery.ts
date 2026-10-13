@@ -94,7 +94,7 @@ export async function recoverPreparedWorkspace(input: {
     now: input.now,
     commit: (effect) =>
       input.session.commit(() => {
-        if (storage.events.latest()?.eventHash !== refreshed.events.at(-1)?.eventHash)
+        if (storage.events.latest()?.eventHash !== refreshed.headEventHash)
           throw new Error("The workspace recovery source changed before receipt commit.");
         return effect();
       }),
