@@ -58,3 +58,7 @@ State the stamp does not cover, such as an external Git change inside a retained
 The gate holds its state only in process memory. A restart observes in full.
 
 The resolver and the batch-shared sources keep their callers' failure behavior. They change only how often each source is read.
+
+## Follow-up: deadlines that lapse after settlement
+
+A restart does observe in full, but its first cycle may defer its action for the startup grace period and settle with no report. The runtime reports a check deadline only while it is still in the future. Once the deferral's deadline lapsed, the gate no longer saw it, so it skipped every later wake-up. The deferred evaluation never ran, supervision health stayed `pending`, and on 2026-10-14 axli's Node upgrade timed out twice and was rolled back. The gate now records the future deadlines it knew at settlement, and any of them lapsing forces an observation, even after its source stops reporting it.

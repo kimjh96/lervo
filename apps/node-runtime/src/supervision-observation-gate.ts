@@ -29,6 +29,8 @@ interface SettledObservation {
   head: string;
   stamp: string;
   observedAt: number;
+  /** Future duty deadlines known at settlement; a source may stop reporting one once it lapses. */
+  deadlines: readonly number[];
 }
 
 /**
@@ -73,7 +75,14 @@ export class SupervisionObservationGate {
       result.report === null &&
       (result.disposition === "idle" || result.disposition === "blocked")
     )
-      this.settled = { disposition: result.disposition, ...baseline, observedAt };
+      this.settled = {
+        disposition: result.disposition,
+        ...baseline,
+        observedAt,
+        deadlines: this.inputs
+          .deadlines()
+          .filter((deadline): deadline is number => deadline !== null && deadline > observedAt),
+      };
     return result;
   }
 
@@ -95,7 +104,9 @@ export class SupervisionObservationGate {
       !Number.isFinite(now) ||
       now < settled.observedAt ||
       now - settled.observedAt >= FULL_OBSERVATION_INTERVAL_MS ||
-      this.inputs.deadlines().some((deadline) => deadline !== null && deadline <= now)
+      [...settled.deadlines, ...this.inputs.deadlines()].some(
+        (deadline) => deadline !== null && deadline <= now,
+      )
     )
       return false;
     try {
