@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_38e8a7baca7cdb3e9d5dc96f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Retire failed, cancelled, superseded, and settled knowledge convergence checkouts on every host, and let state prune skip their worktrees, so convergence no longer accumulates gigabytes of stranded worktrees."
