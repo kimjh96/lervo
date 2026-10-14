@@ -2,6 +2,8 @@
 
 `apps/cli/src/event-contract-command.ts` exposes writer-coordinate inspection, reader evidence collection, activation planning/application, rollback, and recovery. [ADR-0331](../decisions/operations/trace/0331-adopt-reader-first-causal-work-observability.md) defines the reader-first writer contract; [ADR-0332](../decisions/operations/trace/0332-authoritative-distributed-event-reader-inventory.md) defines distributed reader authority.
 
+The command implementation was not supplied for this assessment. The command surface and parsing descriptions below are retained documentation, not newly verified executable behavior. The automatic maintenance target is specified separately by the current outcome-and-event rollout contract.
+
 ## Command surface
 
 ```text
@@ -18,7 +20,7 @@ Argument parsing is strict. After successful parsing, `--help` or `-h` prints th
 
 Without help, exactly one positional action is required. `--schema-version` accepts only 2, 3, 4, 5, or 6, applies only to activation, and defaults to 2. `--root` resolves relative to the CLI working directory and defaults to `.`.
 
-Version 5 enables the evidence-recovery and independently reviewed freshness-assessment receipt events. Version 6 adds the `context.quality.prepared` and `context.quality.verified` recording events. Install every configured reader through the target schema before activation. Default writer selection remains version 1, and automatic repository upgrades still target version 4.
+Version 5 enables the evidence-recovery and independently reviewed freshness-assessment receipt events. Version 6 adds the `context.quality.prepared` and `context.quality.verified` recording events. Install every configured reader through the target schema before activation. Default writer selection remains version 1. The [outcome-and-event rollout contract](../specifications/execution/context-quality/outcome-and-event-rollout.md) specifies automatic maintenance activation targeting version 5 and explicit version-6 activation through fresh reader-inventory evidence and the exact apply-plan contract. The supplied evidence does not establish a separate automatic repository-upgrade path targeting version 4.
 
 ## Inspection and evidence
 
