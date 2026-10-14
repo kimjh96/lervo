@@ -31,7 +31,8 @@ export type ConvergenceWorkspaceRetirementReason =
 
 /**
  * ADR-0518: a convergence checkout is retired once its obligation recorded a terminal outcome, its
- * assignment can never be reopened, or a later lease generation replaced it before it sealed. Every
+ * assignment is closed or out of attempts, or a later lease generation replaced it before it sealed. A
+ * reopened assignment always provisions a new lease path, so the old checkout is never read again. Every
  * byte in it is Lervo-generated, and the drafts and verification results are retained in CAS, so
  * neither target reachability nor the current delegation is needed.
  */

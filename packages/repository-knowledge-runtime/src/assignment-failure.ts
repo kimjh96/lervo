@@ -5,12 +5,19 @@ import {
 } from "@lervo/agent-workforce";
 import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
 import type { ProjectStorage } from "@lervo/project-storage";
+import {
+  convergenceEvaluationContract,
+  settledUnderEarlierContract,
+} from "./evaluation-contract.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { recordConvergenceWorkforceEvent } from "./workforce-event.js";
 import type { KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { operatingContractHash } from "@lervo/work-controller";
 
-/** A failed convergence assignment is reopened at most this many attempts in total. */
+/**
+ * A failed convergence assignment is reopened at most this many attempts under one evaluation
+ * logic. ADR-0519: a failure that earlier logic judged gets one more attempt under new logic.
+ */
 export const CONVERGENCE_ASSIGNMENT_ATTEMPT_LIMIT = 16;
 
 /** Failure bookkeeping returns only the exact lease; it grants no source-write authority. */
@@ -34,6 +41,7 @@ export async function failConvergenceAssignment(input: {
     canonicalJson({
       schemaVersion: 1,
       kind: "convergence_assignment_failure",
+      evaluationContract: convergenceEvaluationContract(),
       assignmentId: assignment.assignmentId,
       assignmentHash: operatingContractHash(assignment),
       input: input.state,
@@ -82,13 +90,20 @@ export async function retryConvergenceAssignment(
 ): Promise<WorkforceAssignment> {
   if (assignment.status !== "failed" || assignment.convergence == null || assignment.lease !== null)
     throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
-  if ((assignment.recovery?.attemptNumber ?? 1) >= CONVERGENCE_ASSIGNMENT_ATTEMPT_LIMIT)
-    throw new KnowledgeConvergenceRuntimeError("knowledge_retry_exhausted");
   const artifact = assignment.resultArtifacts[0];
   if (!artifact) throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
   const bytes = await storage.artifacts.get(`lervo-cas://sha256/${artifact.contentHash.slice(7)}`);
   if (sha256(bytes) !== artifact.contentHash)
     throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
+  if (
+    (assignment.recovery?.attemptNumber ?? 1) >= CONVERGENCE_ASSIGNMENT_ATTEMPT_LIMIT &&
+    !settledUnderEarlierContract(
+      JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(bytes)) as {
+        evaluationContract?: unknown;
+      },
+    )
+  )
+    throw new KnowledgeConvergenceRuntimeError("knowledge_retry_exhausted");
   let afterSeq = 0;
   let terminal: ReturnType<typeof storage.events.get> = null;
   for (;;) {
