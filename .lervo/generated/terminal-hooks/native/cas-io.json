@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "apiVersion": 1,
+  "napiVersion": 8,
+  "platform": "darwin",
+  "architectures": [
+    "arm64",
+    "x64"
+  ],
+  "sourceHash": "sha256:ad343a14608852b3d7244816425f7a774325d60a86b706be8ce1047de3b4610d",
+  "contentHash": "sha256:9a06065acd41df50b9e7f3a5eab421b91ab97d0d19d8f2af8d1e755902f525b9"
+}
