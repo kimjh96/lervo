@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_76c88a1fefeb0ef7c8d16556"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Run supervised responsibilities that do not require filesystem.write observation-only, instead of failing an approval they do not need."
