@@ -17,6 +17,7 @@ export * from "./agent-artifact-summary.js";
 export * from "./agent-profile-pattern.js";
 export * from "./apply.js";
 export * from "./artifact-paths.js";
+export * from "./git-ignored-paths.js";
 export * from "./candidate-signatures.js";
 export * from "./candidate-store.js";
 export * from "./canonicalization-candidate.js";
