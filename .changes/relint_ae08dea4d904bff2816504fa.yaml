@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ae08dea4d904bff2816504fa"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Scope knowledge provider batch budgets to the evaluation logic, so a deploy can reevaluate a stage whose budget an earlier run spent, including on cancelled calls."
