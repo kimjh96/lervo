@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a877f45192581e34540565ca"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Judge knowledge convergence verification on the bytes Git keeps, so a suite that writes ignored build output such as tsbuildinfo or Husky hooks no longer fails as modifying sources."

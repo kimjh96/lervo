@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-07
 Amends: [ADR-0449](../repository/canonicalization/0449-synchronize-integration-target-with-working-branch.md) and [ADR-0472](../documents/0472-start-absent-integration-refs-and-bound-untyped-stage-failures.md)
-Amended by: [ADR-0485](0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md) (settled preimage stalls are reevaluated once)
+Amended by: [ADR-0485](0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md) (settled preimage stalls are reevaluated once), [ADR-0521](0521-judge-convergence-verification-on-the-bytes-git-keeps.md) (verification is judged on the bytes Git keeps)
 
 ## Context
 
@@ -48,15 +48,15 @@ When the runner reports `repository_changed_during_verification`, the runtime co
 
 The new `knowledge.integration_target.absorbed` event contains:
 
-| Field | Meaning |
-| --- | --- |
-| `previousTarget` | Absorbed ref tip. |
-| `mergeBase` | Merge base of that tip and `HEAD`. |
-| `newTarget` | Commit the ref now names. |
-| `absorbedPathCount` | Ref-only paths that `HEAD` decided. |
-| `droppedPathCount` | Lervo-only paths left for re-proposal. |
-| `pathSetHash` | Digest of the absorbed and dropped path sets. |
-| `occurredAt` | Recording time. |
+| Field               | Meaning                                       |
+| ------------------- | --------------------------------------------- |
+| `previousTarget`    | Absorbed ref tip.                             |
+| `mergeBase`         | Merge base of that tip and `HEAD`.            |
+| `newTarget`         | Commit the ref now names.                     |
+| `absorbedPathCount` | Ref-only paths that `HEAD` decided.           |
+| `droppedPathCount`  | Lervo-only paths left for re-proposal.        |
+| `pathSetHash`       | Digest of the absorbed and dropped path sets. |
+| `occurredAt`        | Recording time.                               |
 
 Paths remain in Git and the backup ref; the event carries no paths. A store below event schema 4 loses only this audit line.
 

@@ -10,7 +10,6 @@ import {
   applyWorkspaceProvision,
   planWorkspaceSeal,
   applyWorkspaceSeal,
-  captureRepositorySnapshot,
   type ManagedProjectVerification,
 } from "@lervo/orchestrator";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
@@ -23,6 +22,7 @@ import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceEffectCheckpoint } from "./effect-checkpoint.js";
 import {
+  captureGitKeptSnapshot,
   observedRepositorySnapshot,
   withVerificationSourceChanges,
 } from "./verification-source-changes.js";
@@ -145,7 +145,7 @@ export async function verifyCanonicalWorkspace(
       context.storage.paths.repositoryRoot,
       required.suiteId,
     );
-    const revision = (await captureRepositorySnapshot(root)).revision;
+    const revision = (await captureGitKeptSnapshot(root)).revision;
     const observed = await withVerificationSourceChanges(
       context.storage.artifacts,
       observedRepositorySnapshot,

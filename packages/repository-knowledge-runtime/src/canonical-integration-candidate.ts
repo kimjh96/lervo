@@ -11,6 +11,7 @@ import { canonicalJson, type KnowledgeConvergenceInput } from "@lervo/repository
 import { provisionCanonicalWorkspace } from "./canonical-workspace.js";
 import { convergenceEffectCheckpoint } from "./effect-checkpoint.js";
 import {
+  captureGitKeptSnapshot,
   observedRepositorySnapshot,
   withVerificationSourceChanges,
 } from "./verification-source-changes.js";
@@ -75,6 +76,7 @@ export async function prepareCanonicalGitIntegration(
         plan,
         integrationHost,
         suites,
+        captureSnapshot: captureGitKeptSnapshot,
         artifactStore: context.storage.artifacts,
         verifier: {
           verify: async (input) =>

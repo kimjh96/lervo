@@ -1,9 +1,13 @@
-import { captureRepositorySnapshot } from "@lervo/orchestrator";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { captureRepositorySnapshot, type RepositorySnapshot } from "@lervo/orchestrator";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   canonicalJson,
+  observeGitIgnoredPaths,
   replayKnowledgeConvergence,
   sha256,
+  type GitIgnoredPaths,
   type KnowledgeConvergenceStatus,
 } from "@lervo/repository-knowledge";
 import type { ArtifactStore } from "@lervo/storage-contract";
@@ -25,9 +29,39 @@ export interface ObservedRepositoryState {
   files: ReadonlyMap<string, string>;
 }
 
-/** The isolated-workspace snapshot the orchestrator already fences, with its per-file hashes. */
+const execute = promisify(execFile);
+
+function ignoredByGit(ignored: GitIgnoredPaths, path: string): boolean {
+  if (ignored.ignores(path, false)) return true;
+  const parts = path.split("/");
+  for (let length = 1; length < parts.length; length++)
+    if (ignored.ignores(parts.slice(0, length).join("/"), true)) return true;
+  return false;
+}
+
+/**
+ * ADR-0521: the bytes Git keeps in an isolated workspace, with its exact HEAD. Untracked paths Git
+ * ignores, such as `*.tsbuildinfo` or Husky's generated hooks, are build output, not sources, so a
+ * suite that writes them still verified the reviewed bytes. Tracked files always count.
+ */
+export async function captureGitKeptSnapshot(root: string): Promise<RepositorySnapshot> {
+  const [snapshot, ignored, head] = await Promise.all([
+    captureRepositorySnapshot(root),
+    observeGitIgnoredPaths(root),
+    execute("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).then(
+      ({ stdout }) => stdout.trim(),
+      () => null,
+    ),
+  ]);
+  const files = Object.fromEntries(
+    Object.entries(snapshot.files).filter(([path]) => !ignoredByGit(ignored, path)),
+  );
+  return { revision: sha256(canonicalJson({ head, files })), files };
+}
+
+/** The isolated-workspace snapshot that convergence verification fences, with per-file hashes. */
 export async function observedRepositorySnapshot(root: string): Promise<ObservedRepositoryState> {
-  const snapshot = await captureRepositorySnapshot(root);
+  const snapshot = await captureGitKeptSnapshot(root);
   return { revision: snapshot.revision, files: new Map(Object.entries(snapshot.files)) };
 }
 
