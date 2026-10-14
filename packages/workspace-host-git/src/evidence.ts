@@ -2,35 +2,26 @@ import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, open, readFile, realpath } from "node:fs/promises";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import {
-  WorkspaceHostError,
   type WorkspaceCleanupHostInspection,
   type WorkspaceCleanupInspectionRequest,
   type WorkspaceHostInspection,
   type WorkspaceHostKind,
   type WorkspaceInspectionRequest,
   type WorkspaceOwnershipMarker,
-  type WorkspaceProvisionRequest,
-  type WorkspaceRemovalRequest,
   type WorkspaceResultInspection,
   type WorkspaceResultInspectionRequest,
 } from "@lervo/workspace-host";
+
+import { fail, git } from "./git-command.js";
 
 const execute = promisify(execFile);
 const COMMIT = /^[a-f0-9]{40,64}$/u;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const MARKER_NAME = "lervo-workspace-owner.json";
-
-function fail(
-  code: ConstructorParameters<typeof WorkspaceHostError>[0],
-  message: string,
-  cause?: unknown,
-): never {
-  throw new WorkspaceHostError(code, message, cause === undefined ? undefined : { cause });
-}
 
 function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
@@ -44,18 +35,6 @@ function stableJson(value: unknown): string {
 
 function digest(value: unknown): string {
   return `sha256:${createHash("sha256").update(stableJson(value)).digest("hex")}`;
-}
-
-async function git(root: string, arguments_: string[]): Promise<string> {
-  try {
-    const { stdout } = await execute("git", ["-C", root, ...arguments_], {
-      encoding: "utf8",
-      maxBuffer: 2 * 1024 * 1024,
-    });
-    return stdout.trim();
-  } catch (error) {
-    fail("host_git_failed", "The Git workspace operation failed.", error);
-  }
 }
 
 async function gitSucceeds(root: string, arguments_: string[]): Promise<boolean> {
@@ -121,7 +100,7 @@ export class GitWorkspaceEvidence {
     );
   }
 
-  private validateRequest(
+  validateRequest(
     repositoryRoot: string,
     workspacePath: string,
     marker: WorkspaceOwnershipMarker,
@@ -338,58 +317,5 @@ export class GitWorkspaceEvidence {
       childWorkspaceCount: 0,
       reviewLinkCount: 0,
     };
-  }
-
-  async provisionDetached(
-    request: WorkspaceProvisionRequest,
-    beforeMutation?: () => Promise<void>,
-  ): Promise<WorkspaceHostInspection> {
-    this.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
-    if (
-      !COMMIT.test(request.baseCommit) ||
-      !/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey)
-    )
-      fail("host_coordinate_invalid", "The Git provision binding is invalid.");
-    const existing = await this.inspect(request);
-    if (existing.status !== "absent") {
-      if (existing.markerMatched && existing.headCommit === request.baseCommit) return existing;
-      fail("host_effect_uncertain", "A different workspace occupies the provision coordinate.");
-    }
-    const parentInfo = await lstat(dirname(request.workspacePath));
-    if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink())
-      fail("host_coordinate_invalid", "The workspace parent must be a real directory.");
-    await beforeMutation?.();
-    await git(request.repositoryRoot, [
-      "worktree",
-      "add",
-      "--detach",
-      request.workspacePath,
-      request.baseCommit,
-    ]);
-    try {
-      await this.writeMarker(request.workspacePath, request.marker);
-    } catch (error) {
-      fail("host_effect_uncertain", "The worktree exists without its ownership marker.", error);
-    }
-    return this.inspect(request);
-  }
-
-  async removeNonForce(request: WorkspaceRemovalRequest): Promise<WorkspaceHostInspection> {
-    this.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
-    if (!/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey))
-      fail("host_coordinate_invalid", "The Git removal binding is invalid.");
-    const before = await this.inspect(request);
-    if (before.status === "absent") return before;
-    if (!before.markerMatched)
-      fail("host_marker_mismatch", "The workspace ownership marker changed.");
-    if (before.gitOperationInProgress)
-      fail("host_operation_in_progress", "A Git operation is in progress.");
-    if (!before.clean)
-      fail("host_not_clean", "The workspace contains tracked or untracked changes.");
-    await git(request.repositoryRoot, ["worktree", "remove", request.workspacePath]);
-    const after = await this.inspect(request);
-    if (after.status !== "absent")
-      fail("host_effect_uncertain", "Git did not prove non-force worktree removal.");
-    return after;
   }
 }

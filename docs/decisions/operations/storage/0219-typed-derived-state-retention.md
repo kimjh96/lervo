@@ -2,6 +2,7 @@
 
 Status: accepted
 Date: 2026-08-26
+Amended by: [ADR-0518](0518-retire-settled-convergence-checkouts-on-every-host.md)
 
 ## Context
 
