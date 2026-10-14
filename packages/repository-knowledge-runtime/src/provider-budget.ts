@@ -2,11 +2,15 @@ import type { OutboxStore } from "@lervo/storage-contract";
 import { mkdir, chmod, lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
-import { sha256, stableId } from "@lervo/repository-knowledge";
+import { canonicalJson, sha256, stableId } from "@lervo/repository-knowledge";
+import { convergenceEvaluationContract } from "./evaluation-contract.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
-/** One bounded private projection. Reservations survive failures and process restarts. */
+/**
+ * One bounded private projection. Reservations survive failures and process restarts under one
+ * evaluation logic; ADR-0520 gives each batch a fresh budget once new logic is deployed.
+ */
 export async function reserveConvergenceProviderCall(input: {
   repositoryRoot: string;
   obligationId: string;
@@ -56,7 +60,7 @@ export async function reserveConvergenceProviderCall(input: {
       )
         db.prepare("DELETE FROM budgets WHERE obligation_id=?").run(id);
     }
-    const id = sha256(input.batchId);
+    const id = sha256(canonicalJson([input.batchId, convergenceEvaluationContract()]));
     const prior = sqliteRow(db.prepare("SELECT calls FROM budgets WHERE batch_hash=?").get(id));
     const count = prior === undefined ? 0 : Number(prior.calls);
     if (!Number.isSafeInteger(count) || count < 0)

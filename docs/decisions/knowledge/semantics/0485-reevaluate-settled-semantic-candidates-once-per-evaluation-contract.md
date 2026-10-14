@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-07
 Amends: [ADR-0479](0479-park-rejected-semantic-candidates-and-settle-opaque-assets-by-the-delegation-suite.md), [ADR-0481](0481-bind-generated-projections-by-hash-in-lifecycle-plan-review.md), and [ADR-0482](0482-absorb-squash-merged-semantic-candidates-and-type-verification-source-changes.md)
-Amended by: [ADR-0486](0486-regenerate-stale-semantic-candidates-and-reuse-repository-observation.md) (stale reviews regenerate; discovery reuses the repository observation), [ADR-0519](0519-give-new-evaluation-logic-one-attempt-on-exhausted-assignments.md) (an exhausted assignment gets one attempt under new logic)
+Amended by: [ADR-0486](0486-regenerate-stale-semantic-candidates-and-reuse-repository-observation.md) (stale reviews regenerate; discovery reuses the repository observation), [ADR-0519](0519-give-new-evaluation-logic-one-attempt-on-exhausted-assignments.md) (an exhausted assignment gets one attempt under new logic), [ADR-0520](0520-scope-provider-batch-budgets-to-the-evaluation-logic.md) (batch budgets are scoped to the evaluation logic)
 
 ## Context
 
