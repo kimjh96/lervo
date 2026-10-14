@@ -6,7 +6,7 @@ A stopped stage failure stores a private CAS receipt binding the exact assignmen
 
 ## Retry requirements
 
-Retry requires the exact canonical failed completion and private artifact, current source and delegation, and a resolved stopped dependency. It reopens the same assignment with predecessor contract and responsibility hashes, terminal event ID, and an increasing lease generation. The hard limit remains sixteen attempts.
+Retry requires the exact canonical failed completion and private artifact, current source and delegation, and a resolved stopped dependency. It reopens the same assignment with predecessor contract and responsibility hashes, terminal event ID, and an increasing lease generation. The limit is sixteen attempts under one evaluation logic. Each failure receipt records the evaluation contract that judged it. When an exhausted assignment's last failure was judged by earlier logic, the new logic gets exactly one more attempt ([ADR-0519](../../../decisions/knowledge/semantics/0519-give-new-evaluation-logic-one-attempt-on-exhausted-assignments.md)). A failure under the current logic stays exhausted until the next logic deploy.
 
 Provider reservations survive retries. Semantic stages allow at most three calls per stage batch within the delegation ceiling. Normalization generation and review share an eight-call limit. An unknown native reset still requires an exact successful availability probe.
 

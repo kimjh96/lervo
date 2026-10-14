@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5bf4bb2fbce6848f456d2454"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Give new knowledge evaluation logic one attempt on a convergence assignment that exhausted its retries under earlier logic, so a deploy can recover a stalled integration."

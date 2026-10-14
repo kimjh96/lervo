@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-07
 Amends: [ADR-0479](0479-park-rejected-semantic-candidates-and-settle-opaque-assets-by-the-delegation-suite.md), [ADR-0481](0481-bind-generated-projections-by-hash-in-lifecycle-plan-review.md), and [ADR-0482](0482-absorb-squash-merged-semantic-candidates-and-type-verification-source-changes.md)
-Amended by: [ADR-0486](0486-regenerate-stale-semantic-candidates-and-reuse-repository-observation.md) (stale reviews regenerate; discovery reuses the repository observation)
+Amended by: [ADR-0486](0486-regenerate-stale-semantic-candidates-and-reuse-repository-observation.md) (stale reviews regenerate; discovery reuses the repository observation), [ADR-0519](0519-give-new-evaluation-logic-one-attempt-on-exhausted-assignments.md) (an exhausted assignment gets one attempt under new logic)
 
 ## Context
 
@@ -26,8 +26,8 @@ About 20 minutes after `main` `ddcb2978` was deployed on 2026-10-06, the WSL own
 
 No event type or state is added.
 
-| New failure code | State | Meaning | Recovery |
-| --- | --- | --- | --- |
+| New failure code                | State             | Meaning                                                                                  | Recovery                 |
+| ------------------------------- | ----------------- | ---------------------------------------------------------------------------------------- | ------------------------ |
 | `knowledge_project_unavailable` | `retry_scheduled` | The project manifest could not be read, as can happen while `lervo upgrade` rewrites it. | Automatic bounded retry. |
 
 Other changes:
