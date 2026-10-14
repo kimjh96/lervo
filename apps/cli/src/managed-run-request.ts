@@ -19,3 +19,20 @@ export function resolveManagedRunExpectedPaths(input: {
   }
   return normalized;
 }
+
+/**
+ * A supervised responsibility without filesystem.write grants no repository write: its run is
+ * observation-only, and its expected paths scope what it reads rather than what it may change.
+ */
+export function supervisedRunIsReadOnly(input: {
+  supervisedInvocation?: {
+    effect: { responsibility: { requiredCapabilities: readonly string[] } };
+  };
+}): boolean {
+  return (
+    input.supervisedInvocation !== undefined &&
+    !input.supervisedInvocation.effect.responsibility.requiredCapabilities.includes(
+      "filesystem.write",
+    )
+  );
+}

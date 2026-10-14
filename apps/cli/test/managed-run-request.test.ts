@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveManagedRunExpectedPaths } from "../src/managed-run-request.js";
+import {
+  resolveManagedRunExpectedPaths,
+  supervisedRunIsReadOnly,
+} from "../src/managed-run-request.js";
 
 describe("managed run expected paths", () => {
   it("preserves the legacy single path and accepts an exact path set", () => {
@@ -24,5 +27,21 @@ describe("managed run expected paths", () => {
     expect(() => resolveManagedRunExpectedPaths({ expectedPaths: ["../outside"] })).toThrow(
       "repository-relative",
     );
+  });
+});
+
+describe("supervised read-only runs", () => {
+  const invocation = (requiredCapabilities: string[]) => ({
+    supervisedInvocation: { effect: { responsibility: { requiredCapabilities } } },
+  });
+  it("runs a supervised responsibility without filesystem.write observation-only", () => {
+    expect(supervisedRunIsReadOnly(invocation(["filesystem.read"]))).toBe(true);
+    expect(supervisedRunIsReadOnly(invocation([]))).toBe(true);
+  });
+  it("keeps write-capable and unsupervised runs writable", () => {
+    expect(supervisedRunIsReadOnly(invocation(["filesystem.read", "filesystem.write"]))).toBe(
+      false,
+    );
+    expect(supervisedRunIsReadOnly({})).toBe(false);
   });
 });

@@ -46,7 +46,7 @@ import {
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import { prepareRunVerification } from "./run-verification.js";
 import { resolveManagedRunCausality } from "./managed-run-causality.js";
-import { resolveManagedRunExpectedPaths } from "./managed-run-request.js";
+import { resolveManagedRunExpectedPaths, supervisedRunIsReadOnly } from "./managed-run-request.js";
 
 export { ManagedRunCommandError } from "./managed-run-types.js";
 export type {
@@ -73,6 +73,8 @@ export function createManagedRunExecutor(
 ): ExecuteManagedRun {
   return async (request) => {
     const expectedPaths = resolveManagedRunExpectedPaths(request);
+    const readOnlyResponsibility = supervisedRunIsReadOnly(request);
+    const writablePaths = readOnlyResponsibility ? [] : expectedPaths;
     const instructions = request.instructions.trim();
     let skillIds = [...new Set(request.skillIds ?? [])].sort();
     const requestedCapabilityIds = [...new Set(request.capabilityIds ?? [])].sort();
@@ -367,7 +369,7 @@ export function createManagedRunExecutor(
       );
       const outcomeBaselines = await captureHostOutcomeBaselines(
         executionRepositoryRoot,
-        expectedPaths,
+        writablePaths,
         dependencies.resolveOutcomePolicy !== undefined,
       );
       const result = await coordinator.run({
@@ -377,6 +379,7 @@ export function createManagedRunExecutor(
           : { contextRepositoryRoot: storage.paths.repositoryRoot }),
         workCausality,
         ...(research === null ? {} : { roleInput: research.binding }),
+        ...(readOnlyResponsibility ? { executionMode: "read_only" as const } : {}),
         requestDigest: digest(instructions),
         risk: request.risk.trim(),
         instructions: providerInstructions,
@@ -386,7 +389,7 @@ export function createManagedRunExecutor(
         context: {
           registry,
           role,
-          expectedPaths,
+          expectedPaths: writablePaths,
           publications: [],
           handoffs: [],
           recommendationBatches: searchContext.recommendationBatches,
