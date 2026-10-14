@@ -6,6 +6,7 @@ import {
 } from "@lervo/workspace-host";
 
 import { GitWorkspaceEvidence } from "./evidence.js";
+import { GitWorktreeEffects } from "./worktree-effects.js";
 
 const VERSION = "1.0.0";
 
@@ -20,11 +21,12 @@ export class GitWorkspaceHostAdapter implements WorkspaceHostAdapter, WorkspaceC
     processObservation: false,
   } as const;
   private readonly evidence = new GitWorkspaceEvidence({ kind: this.kind, version: this.version });
+  private readonly effects = new GitWorktreeEffects(this.evidence);
 
   constructor(private readonly beforeProvision?: () => Promise<void>) {}
 
   provision(request: WorkspaceProvisionRequest) {
-    return this.evidence.provisionDetached(request, this.beforeProvision);
+    return this.effects.provisionDetached(request, this.beforeProvision);
   }
 
   inspect = this.evidence.inspect.bind(this.evidence);
@@ -32,7 +34,11 @@ export class GitWorkspaceHostAdapter implements WorkspaceHostAdapter, WorkspaceC
   inspectCleanup = this.evidence.inspectCleanup.bind(this.evidence);
 
   remove(request: WorkspaceRemovalRequest) {
-    return this.evidence.removeNonForce(request);
+    return this.effects.removeNonForce(request);
+  }
+
+  removeDiscardingChanges(request: WorkspaceRemovalRequest) {
+    return this.effects.removeDiscardingChanges(request);
   }
 }
 

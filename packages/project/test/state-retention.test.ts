@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -199,5 +199,30 @@ describe("typed derived-state retention", () => {
       now,
     });
     expect(current.planId).toBe(planned.planId);
+  });
+
+  it("leaves lifecycle-owned convergence worktrees and their dependency links to their lifecycle", async () => {
+    const root = await fixture();
+    const worktree = resolve(
+      root,
+      ".lervo/state/knowledge/convergence-workspaces/asn_aaaaaaaaaaaaaaaaaaaaaaaa/lease-1/worker",
+    );
+    await mkdir(resolve(worktree, "node_modules"), { recursive: true });
+    await writeFile(resolve(worktree, "tracked.md"), "draft\n");
+    await utimes(resolve(worktree, "tracked.md"), new Date(0), new Date(0));
+    await symlink(root, resolve(worktree, "node_modules/linked"));
+
+    const plan = await planStatePrune({
+      repositoryRoot: root,
+      evidence: evidence(),
+      policy: immediatePolicy,
+      now: new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    expect(plan.status).toBe("ready");
+    expect(
+      plan.operations.some((item) => item.relativePath.startsWith("knowledge/convergence-")),
+    ).toBe(false);
+    expect(await readFile(resolve(worktree, "tracked.md"), "utf8")).toBe("draft\n");
   });
 });

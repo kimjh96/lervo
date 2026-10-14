@@ -33,6 +33,11 @@ interface Artifact {
 }
 
 const maximumFiles = 100_000;
+/**
+ * ADR-0518: Git worktrees whose records and removal belong to the workspace lifecycle. Deleting
+ * their files here would strand registered worktrees, and their dependency links are not state.
+ */
+const lifecycleOwnedRoots = new Set(["knowledge/convergence-workspaces"]);
 const maximumBytes = 8 * 1024 * 1024 * 1024;
 
 function sha256(value: string): string {
@@ -53,6 +58,7 @@ async function inventoryFiles(stateRoot: string): Promise<FileCoordinate[]> {
       a.name.localeCompare(b.name),
     )) {
       const path = resolve(current, entry.name);
+      if (lifecycleOwnedRoots.has(relative(stateRoot, path).split(sep).join("/"))) continue;
       if (entry.isSymbolicLink()) throw new Error("Derived state contains a symbolic link.");
       if (entry.isDirectory()) await visit(path);
       else if (entry.isFile()) {

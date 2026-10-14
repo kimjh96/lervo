@@ -142,4 +142,26 @@ describe("Git workspace host", () => {
       "preserve me\n",
     );
   });
+
+  it("discards uncommitted bytes only on explicit request and still checks the marker", async () => {
+    const fixture = await repository();
+    const adapter = new GitWorkspaceHostAdapter();
+    const request = { ...fixture, marker, idempotencyKey: "idk_discard_fixture_01" };
+    await adapter.provision(request);
+    await writeFile(resolve(fixture.workspacePath, "tracked.txt"), "verification rewrite\n");
+    await writeFile(resolve(fixture.workspacePath, "untracked.txt"), "generated\n");
+
+    await expect(
+      adapter.removeDiscardingChanges({
+        ...request,
+        marker: { ...marker, creationPlanId: "wpl_fedcba9876543210fedcba98" },
+      }),
+    ).rejects.toMatchObject({ code: "host_marker_mismatch" });
+    expect(await readFile(resolve(fixture.workspacePath, "untracked.txt"), "utf8")).toBe(
+      "generated\n",
+    );
+    expect(await adapter.removeDiscardingChanges(request)).toMatchObject({ status: "absent" });
+    const { stdout } = await execute("git", ["-C", fixture.repositoryRoot, "worktree", "list"]);
+    expect(stdout).not.toContain(fixture.workspacePath);
+  });
 });

@@ -6,9 +6,13 @@ After verified integration, an integrator closes its clean checkout under its cu
 
 ## Cleanup
 
-Startup may clean at most eight terminal convergence workspaces per cycle through existing exact non-force cleanup plans and journal recovery. Eligibility requires the private managed path, matching delegation/target, terminal baseline, no assignment lease or writer, clean marker/head/tree, completed integration evidence, reachability, and observed quiescence. The attempt may bind its source workspace or its own integrator workspace.
+Each cycle retires at most eight convergence checkouts on every host, owner or not, under the repository's knowledge worker lock ([ADR-0518](../../../decisions/operations/storage/0518-retire-settled-convergence-checkouts-on-every-host.md)). A checkout qualifies when its record is the exact private path for its assignment, lease generation, and execution kind, and one of these holds:
 
-Active, failed, uncertain, foreign, and user-owned workspaces remain protected. No forced deletion or implicit discard is introduced.
+- `obligation_settled`: the obligation recorded its terminal event and the assignment holds no lease.
+- `assignment_closed`: the assignment is cancelled, or failed after its final permitted attempt, and holds no lease.
+- `lease_superseded`: the checkout never sealed and a later lease generation replaced it.
+
+Retirement fences the record as `recovery_required` with reason `convergence_retirement`, removes the worktree with marker-checked forced Git removal, and records `removed`. Uncommitted bytes in the checkout are discarded: a seal binds only committed bytes, only Lervo writes under the private root, and drafts and verification results stay in CAS. Neither target reachability nor the current delegation is required, so ADR-0482 absorption and delegation renewal cannot strand a checkout. A reopenable failed attempt, and a sealed checkout of an open obligation, stay until their lifecycle settles. Cleanups journaled by earlier releases finish through exact journal recovery. `lervo state prune` never inventories these worktrees.
 
 ## Compaction and archival
 

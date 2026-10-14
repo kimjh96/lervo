@@ -33,7 +33,10 @@ import { readMaintenanceObservation } from "./maintenance-observation.js";
 /** A live materialization owns the repository; the cycle yields like a held worker lock. */
 const MATERIALIZATION_BUSY = Symbol("materialization_busy");
 import { compactConvergenceWorkforce } from "./workforce-retention.js";
-import { compactConvergenceWorkspaces } from "./workspace-retention.js";
+import {
+  compactConvergenceWorkspaces,
+  hasConvergenceWorkspaceRetention,
+} from "./workspace-retention.js";
 
 async function changeReviewDeferred(context: ConvergenceRuntimeContext): Promise<boolean> {
   if (await context.liveWorkPending()) return true;
@@ -114,6 +117,11 @@ export async function runAutonomousKnowledgeWorker(input: {
     const ownerTurns = pending
       ? await withRepositoryKnowledgeWorkerLock(root, ownerTurnWork)
       : null;
+    // ADR-0518: convergence checkouts are host-local, so a non-owner still retires its own.
+    if (await hasConvergenceWorkspaceRetention(input.storage))
+      await withRepositoryKnowledgeWorkerLock(root, () =>
+        compactConvergenceWorkspaces(input.storage),
+      );
     const inspected = await inspectConvergenceDebt(input.storage);
     await recordMaintenanceObservation({
       root,
@@ -181,7 +189,7 @@ export async function runAutonomousKnowledgeWorker(input: {
         };
       }
     }
-    await compactConvergenceWorkspaces(input.storage, input.provider);
+    await compactConvergenceWorkspaces(input.storage);
     await compactConvergenceWorkforce(input.storage);
     await requeueStalledRepositoryKnowledgeJobs({
       repositoryRoot: root,
