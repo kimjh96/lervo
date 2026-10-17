@@ -1,4 +1,7 @@
-import { repositorySnapshotGitHead } from "./repository-snapshot-git.js";
+import {
+  repositorySnapshotGitHead,
+  repositorySnapshotGitIgnoredPaths,
+} from "./repository-snapshot-git.js";
 import { createHash } from "node:crypto";
 import type { BigIntStats } from "node:fs";
 import { lstat, readdir, readlink } from "node:fs/promises";
@@ -150,7 +153,10 @@ async function captureRepositorySnapshotWithCache(input: {
   previous: SnapshotCaptureState | undefined;
   readFile: RepositorySnapshotFileReader;
 }): Promise<{ snapshot: RepositorySnapshot; state: SnapshotCaptureState }> {
-  const head = await repositorySnapshotGitHead(input.repositoryRoot);
+  const [head, ignoredPaths] = await Promise.all([
+    repositorySnapshotGitHead(input.repositoryRoot),
+    repositorySnapshotGitIgnoredPaths(input.repositoryRoot),
+  ]);
   const resolvedPolicy = resolveRepositorySnapshotPolicy(input.policy);
   const excludedDirectories = new Set(resolvedPolicy.excludedDirectoryNames);
   const excludedPaths = new Set(resolvedPolicy.excludedPaths);
@@ -176,11 +182,14 @@ async function captureRepositorySnapshotWithCache(input: {
     } catch {
       throw new RepositorySnapshotError("Could not read the repository snapshot.");
     }
+    // A nested `.git` marks another checkout, such as a linked worktree, with its own snapshot.
+    if (directory !== root && entries.some((entry) => entry.name === ".git")) return;
     entries.sort((left, right) => left.name.localeCompare(right.name));
     for (const entry of entries) {
       const absolutePath = resolve(directory, entry.name);
       const path = portablePath(root, absolutePath);
-      if (excludedPaths.has(path)) continue;
+      if (excludedPaths.has(path) || ignoredPaths.has(path) || ignoredPaths.has(`${path}/`))
+        continue;
       if (entry.isDirectory()) {
         if (!excludedDirectories.has(entry.name)) {
           await visit(absolutePath);

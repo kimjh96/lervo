@@ -14,3 +14,23 @@ export async function repositorySnapshotGitHead(root: string): Promise<string | 
     return undefined;
   }
 }
+
+/**
+ * Untracked paths Git ignores through `.gitignore`, `info/exclude`, and `core.excludesFile`.
+ * Fully ignored directories end with `/`, so capture skips them without descending. Tracked
+ * files stay in the snapshot. Outside a Git repository, nothing is ignored.
+ */
+export async function repositorySnapshotGitIgnoredPaths(
+  root: string,
+): Promise<ReadonlySet<string>> {
+  try {
+    const { stdout } = await execute(
+      "git",
+      ["-C", root, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory"],
+      { timeout: 10_000, maxBuffer: 64 * 1024 * 1024 },
+    );
+    return new Set(stdout.split("\0").filter((path) => path.length > 0));
+  } catch {
+    return new Set();
+  }
+}
