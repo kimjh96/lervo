@@ -6,7 +6,7 @@ Plans bind state, expected paths, before and desired hashes, and verification. A
 
 Every managed-write provider turn receives the exact repository-relative target path and instructions to change only that path, in single-file and multi-file schedules. Write authorization and byte verification remain authoritative.
 
-Snapshots include repository-authored source and tracked generated files. They exclude runtime data and state, dependencies, and conventional generated build or cache directories, including Python `.venv` and `venv` dependency environments at any depth. Excluded environments consume neither the snapshot file-count nor byte budget; limits still apply to included repository files.
+Snapshots include repository-authored source and tracked generated files. They exclude runtime data and state, dependencies, and conventional generated build or cache directories, including Python `.venv` and `venv` dependency environments at any depth. Excluded environments consume neither the snapshot file-count nor byte budget; limits still apply to included repository files. Snapshots also skip untracked paths that Git ignores through `.gitignore`, `.git/info/exclude`, or `core.excludesFile`, and any nested directory containing a `.git` entry, such as a linked worktree, cloned repository, or submodule checkout. Tracked files stay in the snapshot even when an ignore rule matches them. Outside a Git repository, only the named exclusions apply.
 
 User content changes only through explicit content-bound operations. Managed blocks preserve outside bytes. Generated files may change or be deleted only when recorded generation proves current-hash ownership.
 

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -36,6 +37,37 @@ describe("repository snapshot", () => {
       maxBytes: 50,
     });
     expect(Object.keys(snapshot.files)).toEqual(["services/worker/main.py"]);
+  });
+
+  it("skips Git-ignored paths and nested checkouts while keeping tracked files", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-snapshot-git-ignore-"));
+    roots.push(root);
+    const git = (...args: string[]) => execFileSync("git", ["-C", root, ...args]);
+    git("init", "-q");
+    await writeFile(resolve(root, ".gitignore"), "out/\n*.log\n");
+    await mkdir(resolve(root, "out/generated"), { recursive: true });
+    await mkdir(resolve(root, "src"), { recursive: true });
+    await mkdir(resolve(root, ".claude/worktrees/feature/src"), { recursive: true });
+    await mkdir(resolve(root, "vendored/repo"), { recursive: true });
+    await writeFile(resolve(root, "out/tracked.txt"), "tracked\n");
+    await writeFile(resolve(root, "out/generated/bundle.js"), "ignored\n");
+    await writeFile(resolve(root, "src/main.ts"), "source\n");
+    await writeFile(resolve(root, "src/debug.log"), "ignored\n");
+    await writeFile(resolve(root, "local-notes.md"), "excluded\n");
+    await writeFile(resolve(root, ".git/info/exclude"), "local-notes.md\n");
+    await writeFile(resolve(root, ".claude/worktrees/feature/.git"), "gitdir: elsewhere\n");
+    await writeFile(resolve(root, ".claude/worktrees/feature/src/main.ts"), "other\n");
+    await mkdir(resolve(root, "vendored/repo/.git"));
+    await writeFile(resolve(root, "vendored/repo/file.txt"), "other\n");
+    git("add", "-f", "out/tracked.txt");
+
+    const snapshot = await captureRepositorySnapshot(root);
+
+    expect(Object.keys(snapshot.files).sort()).toEqual([
+      ".gitignore",
+      "out/tracked.txt",
+      "src/main.ts",
+    ]);
   });
 
   it("detects content, creation and symlink changes while excluding runtime state", async () => {
