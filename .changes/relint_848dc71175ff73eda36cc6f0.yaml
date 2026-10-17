@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_848dc71175ff73eda36cc6f0"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Skip Git-ignored paths and nested checkouts such as linked worktrees when capturing repository snapshots, so terminal hooks no longer slow down as worktrees accumulate."
