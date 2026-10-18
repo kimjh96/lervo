@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ec3ecf6d788a4f21fa421062"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Wrap Lervo's knowledge formatting and repair commit messages at 100 characters, so published knowledge pull requests pass commit lint."
