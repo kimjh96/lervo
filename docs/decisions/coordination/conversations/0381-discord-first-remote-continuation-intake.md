@@ -11,7 +11,7 @@ Queue acknowledgement, execution completion, provider output publication, and so
 
 ## Decision
 
-`@lervo/discord-gateway` owns Discord Gateway v10 WebSocket Identify or Resume, heartbeat acknowledgement, reconnect, and authenticated dispatch records. `@lervo/adapter-discord` owns only Discord payload translation and REST delivery. `apps/conversation` composes the Gateway driver, platform adapter, durable interaction store, participation policy, responder, publication verification, and outbox delivery.
+`@lervo/discord-gateway` owns Discord Gateway v10 WebSocket Identify or Resume, heartbeat acknowledgement, reconnect, and authenticated dispatch records. `@lervo/adapter-discord` owns Discord payload translation, REST delivery, conversation addressing, and managed bot roles. `apps/conversation` composes the Gateway driver, platform adapter, durable interaction store, participation policy, responder, publication verification, and outbox delivery.
 
 The Gateway holds the bot token, Discord session ID, resume URL, sequence, heartbeat acknowledgement flag, and generated Lervo session handle in process memory. Authenticated dispatch records contain only the session handle, sequence, and event name; they are bounded and cleared on reconnect or stop. No Gateway credential or Discord session state enters repository events, source documentation, or interaction SQLite.
 
