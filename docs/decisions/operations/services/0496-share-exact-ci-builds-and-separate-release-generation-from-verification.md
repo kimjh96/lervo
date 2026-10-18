@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-10-08
+Amended by: [ADR-0522](0522-reuse-ci-verification-for-identical-content.md) (verification reuse for identical content)
 Amends: [ADR-0470](0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) (CI), [ADR-0221](../../release/packaging/0221-reviewed-cli-release-preparation.md) (release workflow)
 
 ## Context and authority

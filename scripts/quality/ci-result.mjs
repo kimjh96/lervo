@@ -18,6 +18,12 @@ const receipt = {
   revision: jobs.quality.outputs.revision ?? process.env.GITHUB_SHA,
   runId: process.env.GITHUB_RUN_ID,
   coverage: jobs.quality.outputs.coverage ?? "unknown",
+  // Runs whose own jobs verified identical content; null means this run executed the component.
+  reusedRuns: {
+    build: jobs.quality.outputs.reuseBuild || null,
+    tests: jobs.quality.outputs.reuseTests || null,
+    distribution: jobs.quality.outputs.reuseDistribution || null,
+  },
   status,
   jobs: Object.fromEntries(Object.entries(jobs).map(([name, job]) => [name, job.result])),
 };
