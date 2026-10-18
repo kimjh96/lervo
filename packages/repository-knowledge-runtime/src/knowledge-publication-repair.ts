@@ -50,7 +50,10 @@ const REASON_LABEL: Record<KnowledgePublicationRepairTarget["reason"], string> =
 function message(targets: readonly KnowledgePublicationRepairTarget[]): string {
   const listed = targets.slice(0, MAXIMUM_LISTED_PATHS);
   return [
-    `Lervo restored ${targets.length} path${targets.length === 1 ? "" : "s"} that knowledge commits changed although the knowledge lifecycle must not change them. Each path returns to its content before Lervo's own run of changes; no commit by a person or a tool is undone.`,
+    // Commit lint limits body lines to 100 characters, so the summary wraps.
+    `Lervo restored ${targets.length} path${targets.length === 1 ? "" : "s"} that knowledge commits changed although the`,
+    "knowledge lifecycle must not change them. Each path returns to its content before Lervo's own",
+    "run of changes; no commit by a person or a tool is undone.",
     "",
     ...listed.map((target) => `- ${target.path}: ${REASON_LABEL[target.reason]}`),
     ...(targets.length > listed.length ? [`- ${targets.length - listed.length} more paths`] : []),

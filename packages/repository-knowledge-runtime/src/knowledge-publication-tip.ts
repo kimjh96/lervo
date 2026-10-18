@@ -113,7 +113,9 @@ async function commitFormatting(
       "-m",
       KNOWLEDGE_PUBLICATION_FORMAT_SUBJECT,
       "-m",
-      `Lervo formatted ${changed.length} path(s) that the published knowledge commits changed or released, with the repository's own formatter configuration.`,
+      // Commit lint limits body lines to 100 characters, so the body wraps.
+      `Lervo formatted ${changed.length} path(s) that the published knowledge commits changed\n` +
+        "or released, with the repository's own formatter configuration.",
     ],
     "rebuild",
     { ...KNOWLEDGE_OUTPUT_COMMIT_IDENTITY, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date },
