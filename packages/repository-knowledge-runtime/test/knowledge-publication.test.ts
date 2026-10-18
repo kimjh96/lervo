@@ -618,6 +618,7 @@ describe("knowledge output publication", () => {
       );
       expect(message.join("\n")).toContain("- src/generated.ts: outside the knowledge write scope");
       expect(message.join("\n")).toContain(`Lervo-Publication-Repair: ${offending}`);
+      expect(message.every((line) => line.length <= 100)).toBe(true);
       expect(events).toEqual([
         expect.objectContaining({
           type: "knowledge.publication.repaired",
@@ -906,6 +907,9 @@ describe("knowledge output publication", () => {
       expect(await git(remote, ["log", "-1", "--format=%an|%cn|%s", tip])).toBe(
         "Lervo Knowledge|Lervo Knowledge|docs: format published background knowledge",
       );
+      const body = await git(remote, ["log", "-1", "--format=%b", tip]);
+      expect(body).toContain("formatted 2 path(s)");
+      expect(body.split("\n").every((line) => line.length <= 100)).toBe(true);
       expect(await git(remote, ["show", `${tip}:docs/runtime.md`])).toBe("# Runtime\n\nOwner.");
       expect(await git(remote, ["show", `${tip}:docs/owned.md`])).toBe("# Owned");
       expect(forge.pullRequests[0]!.body).toContain("formats 2 paths");
