@@ -15,6 +15,7 @@ import {
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
+import { isWithinPublicationRoot } from "./repository-publication-files.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { mergeRepositoryKnowledgeScanSources } from "./scanner.js";
 import {
@@ -186,6 +187,11 @@ export async function createKnowledgeDocumentMergePlan(input: {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "The merge source and destination must be regular Markdown publications in the current snapshot.",
+    );
+  if (isWithinPublicationRoot(destinationPath, policy.publicationRoot))
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "The merge destination cannot be inside the Git-ignored generated publication root.",
     );
   if (!destination.content.endsWith("\n")) {
     throw new RepositoryKnowledgeError(

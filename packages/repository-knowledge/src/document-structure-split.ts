@@ -22,6 +22,7 @@ import {
   repositorySourceKindForPath,
   splitRepositoryKnowledgeScanSource,
 } from "./scanner.js";
+import { isWithinPublicationRoot } from "./repository-publication-files.js";
 import { createDocumentSplitLineage, normalizeKnowledgeDocumentPath } from "./source-lineage.js";
 import { loadStoredConcepts } from "./store-reader.js";
 import { structuralConceptDirectory } from "./structural-projection.js";
@@ -204,11 +205,12 @@ export async function createKnowledgeDocumentSplitPlan(input: {
   if (
     repositorySourceKindForPath(destinationPath) !== "documentation" ||
     !repositoryPathCanRemainIncluded(destinationPath, policy) ||
-    generatedPaths.has(destinationPath)
+    generatedPaths.has(destinationPath) ||
+    isWithinPublicationRoot(destinationPath, policy.publicationRoot)
   ) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
-      "The split destination must be a new regular Markdown path included by policy.",
+      "The split destination must be a new regular Markdown path included by policy and outside the generated publication root.",
     );
   }
   if (storedConcepts.some((item) => item.value === null))

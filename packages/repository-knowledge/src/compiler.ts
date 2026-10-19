@@ -769,6 +769,7 @@ function desiredOutputs(input: {
               "",
               messages.generatedAgentsPurpose,
               "",
+              `- ${messages.agentKnowledgeEntry(indexPath)}`,
               ...messages.agentRules.map((rule) => `- ${rule}`),
               "",
               instructionRouteBlock.trimEnd(),
