@@ -176,7 +176,6 @@ export * from "./query.js";
 export * from "./reconciliation-review.js";
 export * from "./reconciliation.js";
 export * from "./refresh-review-candidate.js";
-export * from "./relation-query.js";
 export * from "./repository-change-source.js";
 export * from "./repository-knowledge-worker.js";
 export * from "./repository-layout-migration.js";

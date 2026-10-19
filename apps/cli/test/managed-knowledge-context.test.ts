@@ -129,7 +129,6 @@ describe("managed repository knowledge context", () => {
         observedAt: new Date("2026-08-28T00:00:00.000Z"),
         operationalBatch: {} as SearchRecommendationBatch,
         recommendationBatches: [],
-        graphRecommendations: [],
       }),
     ).resolves.toBeUndefined();
   });

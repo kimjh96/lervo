@@ -56,7 +56,6 @@ export async function prepareManagedOperationalSearchContext(input: {
       observedAt: input.observedAt,
       operationalBatch: batch,
       recommendationBatches: [batch],
-      graphRecommendations: [],
     });
   }
   return {
@@ -65,10 +64,8 @@ export async function prepareManagedOperationalSearchContext(input: {
       sourceSnapshotId: null,
       corpusCoverage: "incomplete",
       recommendationBatches: [batch],
-      graphRecommendations: [],
     }),
     recommendationBatches: [batch],
     additionalCandidates: [],
-    graphRecommendations: [],
   };
 }

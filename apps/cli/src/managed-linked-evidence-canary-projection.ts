@@ -3,7 +3,6 @@ import {
   managedLinkedEvidenceDeterministicSelectionPolicy,
   managedLinkedEvidenceCanaryPolicy,
   projectManagedLinkedEvidenceCanary,
-  type GraphDocumentRecommendation,
   type LinkedEvidenceShadowSource,
 } from "@lervo/context";
 import {
@@ -38,7 +37,6 @@ export async function prepareManagedLinkedEvidenceProjection(input: {
   repositoryRoot: string;
   operationalBatch: SearchRecommendationBatch;
   recommendationBatches: readonly SearchRecommendationBatch[];
-  graphRecommendations: readonly GraphDocumentRecommendation[];
 }) {
   assertSearchRecommendationBatch(input.operationalBatch);
   for (const batch of input.recommendationBatches) assertSearchRecommendationBatch(batch);
@@ -67,7 +65,6 @@ export async function prepareManagedLinkedEvidenceProjection(input: {
     ...input.recommendationBatches.flatMap((batch) =>
       batch.recommendations.map((item) => item.documentId),
     ),
-    ...input.graphRecommendations.map((item) => item.documentId),
   ]);
   return projectManagedLinkedEvidenceCanary({
     corpus,

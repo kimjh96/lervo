@@ -74,7 +74,6 @@ describe("conversation repository context during knowledge materialization", () 
     expect(
       context.additionalCandidates.every((candidate) => candidate.source !== "knowledge"),
     ).toBe(true);
-    expect(context.graphRecommendations).toEqual([]);
   });
 
   it("uses the same preparation contract for a normalized native-chat event", async () => {

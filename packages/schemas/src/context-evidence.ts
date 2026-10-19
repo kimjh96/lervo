@@ -35,6 +35,7 @@ export const selectionReasonCodes = [
   "explicit_link",
   "handoff",
   "search_recommendation",
+  // Retired by ADR-0523; retained so stored context.selected events keep validating.
   "graph_recommendation",
 ] as const;
 

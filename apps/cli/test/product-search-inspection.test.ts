@@ -29,25 +29,6 @@ function knowledgeResult() {
         contentHash: `sha256:${"b".repeat(64)}`,
       },
     ],
-    relationProjection: {
-      schemaVersion: 1 as const,
-      projectionId: "krelproj_0123456789abcdef012345",
-      sourceSnapshotId: "ksnap_0123456789abcdef01234567",
-      impactReportId: "kimpact_0123456789abcdef012345",
-      conceptSidecarSetHash: `sha256:${"c".repeat(64)}`,
-      relationSidecarSetHash: `sha256:${"d".repeat(64)}`,
-      seedConceptIds: [],
-      limits: {
-        maximumSeeds: 5 as const,
-        maximumExaminedRelations: 64 as const,
-        maximumRecommendations: 5 as const,
-        maximumSelections: 2 as const,
-        hops: 1 as const,
-      },
-      examinedRelationCount: 0,
-      truncated: false,
-      recommendations: [],
-    },
   };
 }
 

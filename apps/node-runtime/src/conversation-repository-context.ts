@@ -94,6 +94,5 @@ export async function prepareConversationRepositoryContext(input: {
     documentRules,
     additionalCandidates: mergeCandidates(search.additionalCandidates, requiredCandidates),
     recommendationBatches: search.recommendationBatches,
-    graphRecommendations: search.graphRecommendations,
   };
 }

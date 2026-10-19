@@ -15,7 +15,6 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { applyInitPlan, createInitPlan } from "@lervo/project";
-import type { DocumentRegistry } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse, stringify } from "yaml";
 
@@ -114,7 +113,7 @@ describe("repository knowledge migration", () => {
     ).rejects.toThrow(/prepared knowledge scan project or policy differs/u);
   });
 
-  it("projects a reviewed one-hop relation onto one registered current document", async () => {
+  it("ranks reviewed current concepts identically through prepared and one-shot queries", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs"));
     await writeFile(resolve(root, "README.md"), "# Seed\n\nseed-only-keyword\n");
@@ -167,72 +166,17 @@ describe("repository knowledge migration", () => {
         ),
       );
     }
-    const relationId = "relation_aaaaaaaaaaaaaaaaaaaaaaaa";
-    const relationEvidence = currentScan.scan.units.find(
-      (unit) => unit.path === "README.md" && unit.unitKind === "markdown_section",
-    )!;
-    const relationPath = shardedKnowledgeArtifactPath(
-      ".lervo/knowledge/relations",
-      relationId,
-      "yaml",
-    );
-    await mkdir(resolve(root, relationPath, ".."), { recursive: true });
-    await writeFile(
-      resolve(root, relationPath),
-      stringify(
-        {
-          schemaVersion: 1,
-          relationId,
-          from: { kind: "concept", id: seed.value.conceptId },
-          to: { kind: "concept", id: target.value.conceptId },
-          type: "related_to",
-          evidenceUnitVersionIds: [relationEvidence.unitVersionId],
-          evidenceUnitIds: [relationEvidence.unitId],
-          assurance: "human_reviewed",
-          freshness: "current",
-          reviewId: "review_fixture",
-        },
-        { lineWidth: 0, sortMapEntries: true },
-      ),
-    );
-    const documentRegistry: DocumentRegistry = {
-      schemaVersion: 1,
-      documents: {
-        doc_relation_target: {
-          path: "docs/target.md",
-          kind: "canonical",
-          responsibleParty: { kind: "team", id: "platform" },
-          connectedPaths: ["src/**"],
-          verifiedRevision: "fixture-v1",
-          verifiedAt: "2026-08-25T00:00:00Z",
-          reviewIntervalDays: 30,
-          ownership: { mode: "user" },
-        },
-      },
-    };
-
     const query = await queryRepositoryKnowledge({
       repositoryRoot: root,
       query: "seed-only-keyword",
-      documentRegistry,
     });
     const preparedQuery = (
       await RepositoryKnowledgeQueryIndex.prepare({ repositoryRoot: root })
-    ).query({ query: "seed-only-keyword", documentRegistry });
+    ).query({ query: "seed-only-keyword" });
 
     expect(preparedQuery).toEqual(query);
     expect(query.hits[0]?.conceptId).toBe(seed.value.conceptId);
     expect(query.hits[0]).toMatchObject({ assurance: "human_reviewed", freshness: "current" });
-    expect(query.relationProjection.seedConceptIds).toEqual([seed.value.conceptId]);
-    expect(query.relationProjection.recommendations).toEqual([
-      expect.objectContaining({
-        relationId,
-        targetConceptId: target.value.conceptId,
-        documentId: "doc_relation_target",
-        path: "docs/target.md",
-        sourceContentHash: sha256("# Target\n\nRelated operational detail.\n"),
-      }),
-    ]);
   });
 
   it("excludes generated mobile dependency and build trees without hiding native source", async () => {
