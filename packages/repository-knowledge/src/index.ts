@@ -98,6 +98,7 @@ export {
   LERVO_PROJECTION_PREFIXES,
   repositoryPathMatchesPatterns,
 } from "./knowledge-intake-policy.js";
+export * from "./knowledge-build-state.js";
 export * from "./lint-query.js";
 export {
   documentDriftAttentionCodes,

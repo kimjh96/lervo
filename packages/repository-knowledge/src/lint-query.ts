@@ -401,7 +401,7 @@ export async function lintRepositoryKnowledge(
       severity: "warning",
       path: structuralManifestPath,
       message:
-        "No applied structural knowledge generation exists. Check for a refresh candidate because only semantic materialization may be present.",
+        "No applied structural knowledge generation exists. Git ignores generated knowledge, so a fresh clone starts here: run `lervo migrate knowledge`.",
     });
   }
   const project = await loadProjectManifest(root);

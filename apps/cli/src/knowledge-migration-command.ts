@@ -18,8 +18,6 @@ import {
   RepositoryKnowledgeError,
   serializableRepositoryLayoutMigrationPlan,
   serializableTerminalIntegrationPlan,
-  structuralBundleIdFromPath,
-  structuralConceptIdFromPath,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
@@ -34,6 +32,7 @@ import { runInstructionBootstrapStage } from "./instruction-bootstrap-command.js
 import type { CliIo } from "./types.js";
 import { runKnowledgeInstruction } from "./knowledge-instruction-command.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
+import { recordStructuralMaterialization } from "./structural-materialization-event.js";
 import {
   formatKnowledgeMigrationBlockers,
   formatKnowledgeMigrationPlan,
@@ -568,7 +567,6 @@ export async function runKnowledgeMigration(input: {
     const storage = await openProjectStorage(plan.repositoryRoot);
     let receipt;
     try {
-      const eventIdentity = randomUUID().replaceAll("-", "");
       receipt = await applyKnowledgeMigrationPlan(
         plan,
         new Date(),
@@ -583,96 +581,7 @@ export async function runKnowledgeMigration(input: {
             ownedErrorCodes: structuralKnowledgeLintCodes,
             expectedTransitionCodes: expectedInstructionBridgeTransitions(plan.operations),
           });
-          const validationHash = sha256(canonicalJson(validation));
-          await storage.artifacts.put(canonicalJson(validation));
-          const conceptChanges = plan.operations
-            .map((operation) => ({
-              operation,
-              conceptId: structuralConceptIdFromPath(operation.path),
-            }))
-            .filter(
-              (item): item is { operation: (typeof plan.operations)[number]; conceptId: string } =>
-                item.conceptId !== null,
-            )
-            .map((item) => ({ conceptId: item.conceptId, action: item.operation.action }));
-          const createdConceptIds = conceptChanges
-            .filter((item) => item.action === "create")
-            .map((item) => item.conceptId);
-          const updatedConceptIds = conceptChanges
-            .filter((item) => item.action === "update")
-            .map((item) => item.conceptId);
-          const deprecatedConceptIds = conceptChanges
-            .filter((item) => item.action === "delete")
-            .map((item) => item.conceptId);
-          const boundedConceptIds = [
-            ...createdConceptIds,
-            ...updatedConceptIds,
-            ...deprecatedConceptIds,
-          ].slice(0, 256);
-          const overflow =
-            createdConceptIds.length + updatedConceptIds.length + deprecatedConceptIds.length > 256
-              ? await storage.artifacts.put(
-                  canonicalJson({ createdConceptIds, updatedConceptIds, deprecatedConceptIds }),
-                )
-              : null;
-          const bundleIds = plan.operations
-            .map((item) => structuralBundleIdFromPath(item.path))
-            .filter((item): item is string => item !== null)
-            .slice(0, 256);
-          storage.events.append({
-            eventId: `evt_${eventIdentity}`,
-            projectId: plan.projectId,
-            runId: `run_${eventIdentity}`,
-            sessionId: `ses_${eventIdentity}`,
-            type: "knowledge.materialization.applied",
-            occurredAt: applied.appliedAt,
-            actor: { kind: "system" },
-            schemaVersion: 1,
-            policyVersion: plan.policyHash,
-            payload: {
-              operation: plan.mode,
-              planId: applied.planId,
-              sourceSnapshotId: applied.sourceSnapshotId,
-              policyHash: plan.policyHash,
-              compilerId: plan.compiler.id,
-              compilerVersion: plan.compiler.version,
-              approvalDigest: null,
-              coverage: plan.coverage,
-              bundleIds,
-              createdConceptIds: boundedConceptIds.filter((id) => createdConceptIds.includes(id)),
-              updatedConceptIds: boundedConceptIds.filter((id) => updatedConceptIds.includes(id)),
-              deprecatedConceptIds: boundedConceptIds.filter((id) =>
-                deprecatedConceptIds.includes(id),
-              ),
-              conceptListTruncated: overflow !== null,
-              resultArtifactId:
-                overflow === null ? null : `art_${overflow.contentHash.slice("sha256:".length)}`,
-              resultArtifactHash: overflow?.contentHash ?? null,
-              createdCount: applied.created.length,
-              updatedCount: applied.updated.length,
-              unchangedCount: applied.unchanged.length,
-              deletedCount: applied.deleted.length,
-              beforeRegistryDigest: sha256(
-                canonicalJson(
-                  plan.operations.map((item) => ({
-                    pathDigest: sha256(item.path),
-                    hash: item.expectedCurrentHash ?? null,
-                  })),
-                ),
-              ),
-              afterRegistryDigest: sha256(
-                canonicalJson(
-                  plan.operations.map((item) => ({
-                    pathDigest: sha256(item.path),
-                    hash: item.action === "delete" ? null : item.desiredHash,
-                  })),
-                ),
-              ),
-              validationReportId: `klint_${validationHash.slice("sha256:".length, "sha256:".length + 24)}`,
-              validationReportHash: validationHash,
-              appliedAt: applied.appliedAt,
-            },
-          });
+          await recordStructuralMaterialization({ storage, plan, applied, validation });
         },
         { supplementalSources },
       );

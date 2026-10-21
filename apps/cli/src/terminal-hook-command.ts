@@ -1,6 +1,7 @@
 import { hostOutcomeTask, observeHostContextOutcomes } from "@lervo/repository-context";
 import { parseArgs } from "node:util";
 
+import { terminalKnowledgeBootstrapNotice } from "./knowledge-bootstrap.js";
 import { launchDetachedKnowledgeWorker } from "./knowledge-worker-command.js";
 import { openProjectStorage } from "@lervo/project-storage";
 import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
@@ -109,7 +110,7 @@ export async function runTerminalHookCommand(
           );
           return 0;
         }
-        const context = await prepareTerminalPromptContext({
+        const prepared = await prepareTerminalPromptContext({
           root,
           prompt: input.prompt!,
           provider,
@@ -118,6 +119,19 @@ export async function runTerminalHookCommand(
           services,
           timing,
         });
+        // A fresh clone has no generated knowledge; say so instead of implying no matches.
+        const bootstrapNotice = await terminalKnowledgeBootstrapNotice({
+          root,
+          hookRuntime: process.env.LERVO_TERMINAL_HOOK_RUNTIME,
+          now: new Date(occurredAt),
+        }).catch(() => null);
+        const context =
+          bootstrapNotice === null
+            ? prepared
+            : {
+                ...prepared,
+                additionalContext: `${prepared.additionalContext}\n${bootstrapNotice}`,
+              };
         const observationEventId = newTerminalIdentifier("evt");
         const observationStorage = await openProjectStorage(root);
         try {

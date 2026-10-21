@@ -18,4 +18,4 @@ Layout migration deletes recorded legacy structural bundle, concept, and manifes
 
 Existing `.gitignore` bytes remain user-owned and require exact migration approval. Initialization creates the bounded publication block only when `.gitignore` is absent.
 
-Independently refreshed branches merge only canonical source changes. An integration head or clean clone rebuilds current navigation without a Hub.
+Independently refreshed branches merge only canonical source changes. An integration head or clean clone rebuilds current navigation without a Hub. In a clean clone, the first terminal prompt reports the unbuilt state and starts one background build that applies only Git-ignored, Lervo-generated outputs ([ADR-0525](../../../decisions/knowledge/maintenance/0525-bootstrap-knowledge-in-a-fresh-clone.md)).

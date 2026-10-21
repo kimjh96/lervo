@@ -4,9 +4,9 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:a7bd319825bb83ac668b28047974f848928aaad4841f92abfce0b2f76b8f102e",
+      "contentHash": "sha256:96f95d0e1dd7814a29a0d1d8495efe8c79f7e6f94fdff4f8010bfdaa4e560e19",
       "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, terminal integration planning and apply, command error rendering, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
+      "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, terminal integration planning and apply, structural materialization event construction, command error rendering, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
       "disposition": "cohesive"
     },
     {
@@ -242,7 +242,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
-      "contentHash": "sha256:477a401bcae5309a8112e03c5260dbe7c09e55baecd7e1a53566f5b665b5eee4",
+      "contentHash": "sha256:fa084635e54deb0d1b773d26885304d0dfba81c899a322500a463441916c5a3c",
       "responsibility": "Repository knowledge lifecycle lint",
       "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars and compose the extracted drift lint.",
       "disposition": "cohesive"

@@ -2,7 +2,7 @@ import { observeKnowledgeQueryArtifact } from "./knowledge-query-verification.js
 import { projectTaskQuery } from "@lervo/context";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { queryRepositoryKnowledge } from "@lervo/repository-knowledge";
+import { queryRepositoryKnowledge, repositoryKnowledgeBuilt } from "@lervo/repository-knowledge";
 import {
   withRetrievalPreparationBudget,
   type RepositoryQualityInput,
@@ -111,11 +111,17 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
           requestedActions: parsed.values.action ?? [],
         },
       }));
+    const knowledgeBuild = (await repositoryKnowledgeBuilt(repositoryRoot)) ? "built" : "not_built";
     io.stdout(
       parsed.values.json
-        ? `${JSON.stringify({ ...result, query, projection, instructions, quality: quality.result, passages: quality.passages, recording: quality.recording, verification, verificationRecording }, null, 2)}\n`
+        ? `${JSON.stringify({ ...result, knowledgeBuild, query, projection, instructions, quality: quality.result, passages: quality.passages, recording: quality.recording, verification, verificationRecording }, null, 2)}\n`
         : [
             `Repository knowledge recommendations (${result.hits.length}; not evidence of loaded, injected, or used)`,
+            ...(knowledgeBuild === "built"
+              ? []
+              : [
+                  "Repository knowledge is not built in this checkout, so zero recommendations does not mean no source matches. Run `lervo migrate knowledge`; Git ignores the generated output.",
+                ]),
             ...result.hits.map(
               (hit) =>
                 `  ${hit.score.toString().padStart(2)}  ${hit.title} · ${hit.path} · ${hit.freshness}`,
