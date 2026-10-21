@@ -25,6 +25,7 @@ import {
 } from "./workstream-command-input.js";
 import { workstreamSnapshotRecorder } from "./workstream-recording.js";
 import { observeRepositoryHead, observeWorkstreamFreshness } from "./workstream-repository-head.js";
+import { bindCheckedOutBranch } from "./workstream-branch-selection.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import { runWorkstreamHubCommand, workstreamHubUsage } from "./workstream-hub-command.js";
 
@@ -162,6 +163,8 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
       actor: actor.kind,
       recordApplied: workstreamSnapshotRecorder({ storage, actor, operation: "start" }),
     });
+    // The new workstream continues on this branch; other branches keep their own selection.
+    await bindCheckedOutBranch(root, receipt.workstreamId);
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify(receipt, null, 2)}\n`

@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 import { lstat } from "node:fs/promises";
 import { canonicalJson } from "@lervo/event-contract";
 import type { SQLiteEventStore } from "@lervo/event-store-sqlite";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
+import {
+  readCurrentWorkstreamState,
+  readWorkstreamBranchBindings,
+} from "@lervo/repository-knowledge/workstream";
 import {
   isWorkstreamSuccessorRoot,
   validateSchema,
@@ -89,26 +92,17 @@ export class WorkstreamRevisionReader {
       )
         this.reset();
     }
-    const current = await readCurrentWorkstreamState(this.repositoryRoot);
-    this.readNewEvents();
-    if (current === null) {
-      if (this.latestByWorkstream.size > 0)
-        throw new Error("The recorded current workstream projection is missing.");
+    const head = await this.replicatedHeadHash();
+    if (head === null) {
       this.auditedAt ??= at;
       return [];
     }
-    const selected = this.latestByWorkstream.get(current.snapshot.workstreamId);
-    if (
-      selected?.snapshotContentHash !== current.contentHash ||
-      selected.revision !== current.snapshot.revision
-    )
-      throw new Error("The current workstream differs from its latest event.");
 
-    if (this.chain?.head === current.contentHash) return structuredClone(this.chain.revisions);
+    if (this.chain?.head === head) return structuredClone(this.chain.revisions);
 
     const reverse: LocalWorkstreamRevision[] = [];
     const visited = new Set<string>();
-    let nextHash: string | null = current.contentHash;
+    let nextHash: string | null = head;
     while (nextHash !== null) {
       if (visited.has(nextHash)) throw new Error("The local workstream ancestry contains a cycle.");
       visited.add(nextHash);
@@ -139,11 +133,48 @@ export class WorkstreamRevisionReader {
       if (!sameWorkstream && !successor)
         throw new Error("The local workstream revision ancestry is invalid.");
     }
-    this.chain = { head: current.contentHash, revisions };
+    this.chain = { head, revisions };
     const result = structuredClone(this.chain.revisions);
     if (this.recorded.size > maximumCachedRevisions || this.cachedBytes > maximumCachedBytes)
       this.reset();
     return result;
+  }
+
+  /**
+   * The replicated lineage is the workstream bound to the default branch. Branch-bound workstreams
+   * stay in this checkout's history; without bindings, the selected projection is the lineage.
+   */
+  private async replicatedHeadHash(): Promise<string | null> {
+    const [bindings, current] = await Promise.all([
+      readWorkstreamBranchBindings(this.repositoryRoot),
+      readCurrentWorkstreamState(this.repositoryRoot),
+    ]);
+    this.readNewEvents();
+    if (bindings !== null) {
+      const workstreamId = bindings.bindings[bindings.defaultBranch];
+      const latest =
+        workstreamId === undefined ? undefined : this.latestByWorkstream.get(workstreamId);
+      if (latest === undefined) return null;
+      if (
+        current !== null &&
+        current.snapshot.workstreamId === workstreamId &&
+        current.contentHash !== latest.snapshotContentHash
+      )
+        throw new Error("The current workstream differs from its latest event.");
+      return latest.snapshotContentHash;
+    }
+    if (current === null) {
+      if (this.latestByWorkstream.size > 0)
+        throw new Error("The recorded current workstream projection is missing.");
+      return null;
+    }
+    const selected = this.latestByWorkstream.get(current.snapshot.workstreamId);
+    if (
+      selected?.snapshotContentHash !== current.contentHash ||
+      selected.revision !== current.snapshot.revision
+    )
+      throw new Error("The current workstream differs from its latest event.");
+    return current.contentHash;
   }
 
   private readNewEvents(): void {

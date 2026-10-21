@@ -104,7 +104,7 @@ export function formatCompactTerminalPreamble(input: {
       : [input.declarationInstruction]),
     input.workstreamPresent
       ? "If this turn changes repository-authored bytes, record the next bounded revision with `lervo workstream update --actor agent --provider <current-provider> --patch <json> --apply-now`; the service sets revision, update time, and HEAD. Never ask the user to run bookkeeping."
-      : "If this turn changes repository-authored bytes, create a bounded checkpoint with `lervo workstream start --actor agent --provider <current-provider> --stdin --apply-now`; never ask the user to run bookkeeping.",
+      : "No workstream continues the checked-out branch. If this turn changes repository-authored bytes, start this branch's workstream with `lervo workstream start --actor agent --provider <current-provider> --stdin --apply-now`; other branches keep their own. Never ask the user to run bookkeeping.",
   ].join("\n");
 }
 

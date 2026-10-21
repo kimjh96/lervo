@@ -2,6 +2,7 @@
 
 - Status: accepted design; implementation and installed acceptance pending
 - Decision date: 2026-09-19
+- Amended by: [ADR-0526](0526-bind-workstreams-to-branches.md) (the selected projection follows the checked-out branch)
 
 ## Context
 

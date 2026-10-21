@@ -26,6 +26,8 @@ import {
   type RepositorySource,
 } from "./types.js";
 
+export * from "./workstream-branch-bindings.js";
+
 const HANDOFF_PATH = LEGACY_CONTINUATION_ALIAS;
 const CURRENT_WORKSTREAM_PATH = ".lervo/state/workstreams/current.json";
 const MAX_HANDOFF_BYTES = 128 * 1024;
@@ -1301,12 +1303,23 @@ export async function applyWorkstreamUpdatePlan(input: {
   });
 }
 
+/**
+ * The local head of the replicated lineage, read from recorded history. A checkout whose branch
+ * continues another workstream still advances the replicated history without re-projecting it.
+ */
+export interface ReplicatedWorkstreamLocalHead {
+  state: { snapshot: WorkstreamSnapshot; contentHash: string } | null;
+  projectionSelected: boolean;
+}
+
 export async function createReplicatedWorkstreamImportPlan(input: {
   repositoryRoot: string;
   projectId: string;
   snapshot: unknown;
   snapshotContentHash: string;
   previousSnapshotContentHash: string | null;
+  /** Omitted, the selected projection is the local head, as before branch-bound selection. */
+  localHead?: ReplicatedWorkstreamLocalHead;
 }): Promise<ReplicatedWorkstreamImportPlan> {
   const root = resolve(input.repositoryRoot);
   const blockers: ReplicatedWorkstreamImportPlan["blockers"] = [];
@@ -1323,7 +1336,9 @@ export async function createReplicatedWorkstreamImportPlan(input: {
       message: "The replicated workstream bytes or hash are invalid.",
     });
   }
-  const current = await readCurrentWorkstreamState(root);
+  const projected = await readCurrentWorkstreamState(root);
+  const current = input.localHead === undefined ? projected : input.localHead.state;
+  const writeProjection = input.localHead?.projectionSelected ?? true;
   if (current !== null && valid && current.contentHash !== input.snapshotContentHash) {
     const successor = hasWorkstreamPredecessor(snapshot, {
       ...current.snapshot,
@@ -1356,15 +1371,18 @@ export async function createReplicatedWorkstreamImportPlan(input: {
         : "ready";
   const operation: KnowledgeFileOperation = {
     path: CURRENT_WORKSTREAM_PATH,
-    action: current === null ? "create" : "update",
+    action: projected === null ? "create" : "update",
     ownership: "lervo_generated",
     mediaType: "application/json",
     content: desiredContent,
     desiredHash: input.snapshotContentHash,
-    ...(current === null ? {} : { expectedCurrentHash: current.contentHash }),
+    ...(projected === null ? {} : { expectedCurrentHash: projected.contentHash }),
   };
   const planId = stableId("kwstreamrep", {
     projectId: input.projectId,
+    ...(input.localHead === undefined
+      ? {}
+      : { projectedSnapshotContentHash: projected?.contentHash ?? null, writeProjection }),
     currentSnapshotContentHash: current?.contentHash ?? null,
     desiredSnapshotContentHash: input.snapshotContentHash,
     previousSnapshotContentHash: input.previousSnapshotContentHash,
@@ -1382,13 +1400,15 @@ export async function createReplicatedWorkstreamImportPlan(input: {
     previousSnapshotContentHash: input.previousSnapshotContentHash,
     snapshot,
     blockers,
-    operations: status === "ready" ? [operation] : [],
+    operations: status === "ready" && writeProjection ? [operation] : [],
   };
 }
 
 export async function applyReplicatedWorkstreamImportPlan(input: {
   plan: ReplicatedWorkstreamImportPlan;
   now: Date;
+  /** The same local head the plan used, re-read so a concurrent change makes the plan stale. */
+  localHead?: ReplicatedWorkstreamLocalHead;
   recordApplied: (
     receipt: ReplicatedWorkstreamImportReceipt,
     snapshotContent: string,
@@ -1406,6 +1426,7 @@ export async function applyReplicatedWorkstreamImportPlan(input: {
     snapshot: input.plan.snapshot,
     snapshotContentHash: input.plan.desiredSnapshotContentHash,
     previousSnapshotContentHash: input.plan.previousSnapshotContentHash,
+    ...(input.localHead === undefined ? {} : { localHead: input.localHead }),
   });
   if (current.planId !== input.plan.planId || current.status !== "ready") {
     throw new RepositoryKnowledgeError(
