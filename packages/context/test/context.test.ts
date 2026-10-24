@@ -490,41 +490,6 @@ describe("context preparation", () => {
     });
   });
 
-  it("forwards managed linked-evidence selections through E1 planning and E2 loading", async () => {
-    const fixture = await fixtureRepository();
-    const content = "Restricted material available only to researchers.\n";
-    const loaded = await prepareContext({
-      repositoryRoot: fixture.root,
-      sourceRevision: "working-tree:linked-selection",
-      ...planInput(fixture),
-      linkedEvidenceSelections: [
-        {
-          schemaVersion: 1,
-          selectionAttemptId: `lsel_${"b".repeat(24)}`,
-          documentId: "doc_restricted_finding",
-          path: ".lervo/generated/research/restricted.md",
-          contentHash: hash(content),
-          rank: 1,
-        },
-      ],
-    });
-
-    expect(loaded.documents).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          documentId: "doc_restricted_finding",
-          contentHash: hash(content),
-          reasons: [
-            {
-              reasonCode: "explicit_link",
-              ruleId: `linked_evidence_canary:lsel_${"b".repeat(24)}`,
-            },
-          ],
-        }),
-      ]),
-    );
-  });
-
   it("owns LoadedContext integrity validation without depending on document order", async () => {
     const fixture = await fixtureRepository();
     const loaded = await prepareContext({

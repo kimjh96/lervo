@@ -24,15 +24,8 @@
       "disposition": "cohesive"
     },
     {
-      "path": "apps/cli/src/managed-linked-evidence-canary.ts",
-      "contentHash": "sha256:b3253eaf8c2b27a5f0680937340f1d8f402be25c9fedaf371bef0eeb76e35560",
-      "responsibility": "Managed linked-evidence provider selection orchestration",
-      "rationale": "The module owns one read-only selection adapter lifecycle; pure projection and authorization, durable record construction, and managed-run composition remain in separate modules.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:e77a43b27d0880d46a8e745a1037d1ad45266d92fc7f0929a264f112f81f7602",
+      "contentHash": "sha256:b4a6f48d19d8a35bbafc355cd7d111c26d12f8ea347a464c94362a2932878858",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The module sequences one admitted run through context, execution, outcome checks, writing publication, finalization, and cleanup. Public command contracts, provider construction, grounded capability selection and package ceilings, and outcome verification are separate modules. Existing research, role, skill, workspace and project-verification owners retain their boundaries; the remaining lifecycle shares one ordered failure and storage-cleanup contract.",
       "disposition": "cohesive"
@@ -392,13 +385,6 @@
       "contentHash": "sha256:0608948abdbbffe1283bddb642c9a2f6f300bb0a1c4f3661c73e5bf35d9704ff",
       "responsibility": "Versioned lexical-v2 provider comparison contract",
       "rationale": "The module owns one immutable comparison-contract lineage: protocols, schema, suite validation, and pure acceptance evaluation share the same version and gate lifecycle, while provider execution and evidence selection remain separate.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-recent-checkpoints.mjs",
-      "contentHash": "sha256:448575575da38837be4a3791169762037a07b7e7bc4302821c3f3cd8c88c44b9",
-      "responsibility": "Recent managed-canary checkpoint validation",
-      "rationale": "The module declaratively validates one lineage of recent immutable canary checkpoints; preparation, execution, storage, and reporting remain in separate modules, while the length follows explicit version-bound predecessor evidence.",
       "disposition": "cohesive"
     },
     {

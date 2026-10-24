@@ -27,7 +27,6 @@ import type { ContextPreparationReport, DocumentRegistry } from "@lervo/schemas"
 import { observeSearchPreparation } from "./search-preparation-observation.js";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
-import { observeManagedLinkedEvidenceShadow } from "./managed-linked-evidence-shadow.js";
 import { searchCandidateRegistry } from "./search-candidate-registry.js";
 import { productDefaultRepositoryKnowledgeRanker } from "./repository-knowledge-ranker.js";
 
@@ -75,7 +74,6 @@ export async function prepareManagedSearchContext(input: {
   productDefault?: ProductDefaultSearchEngine;
   documentRegistry?: DocumentRegistry;
   expectedPaths?: readonly string[];
-  runId?: string;
   recordingCoordinates?: { runId: string; sessionId: string };
   knowledgeQuery?: ManagedRepositoryKnowledgeQuery;
   continuation?: string;
@@ -195,16 +193,6 @@ export async function prepareManagedSearchContext(input: {
     recommendationLimit: 5,
     maximumSelections: 3,
   });
-  if (input.runId !== undefined) {
-    await observeManagedLinkedEvidenceShadow({
-      repositoryRoot: input.repositoryRoot,
-      projectId: input.projectId,
-      runId: input.runId,
-      observedAt: input.observedAt,
-      operationalBatch: recommendationBatch,
-      recommendationBatches: [recommendationBatch, knowledgeRecommendationBatch],
-    });
-  }
   const quality = await prepareRepositoryQualityContext({
     recordObservation: true,
     ...(input.recordingCoordinates ? { recordingCoordinates: input.recordingCoordinates } : {}),
