@@ -64,13 +64,13 @@ Workstream approvals and decisions carry a consequence class. Approval kinds map
 
 ## State and field contracts
 
-| Name                                  | Required fields                                                    | Privacy                                                                                                        | Failure meaning                                                                |
-| ------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Optional snapshot `repositoryHead`    | `commit` (40 to 64 hex characters), `observedAt`                   | Commit ID and time only; stays in local snapshot state and CAS, never event payloads                           | Absent outside Git or before the first commit; staleness then uses age alone   |
-| Optional snapshot `droppedNoteCount`  | Non-negative integer                                               | Count only                                                                                                     | Absence means no note was dropped                                              |
-| Workstream attention `state: "stale"` | Existing item fields plus `consequence` on approvals and decisions | Report retains bounded text for explicit inspection; hook renderings withhold stale approval and decision text | Needs re-verification and grants no authority                                  |
-| `invalid_patch` update blocker        | `code`, `message`                                                  | Message names only the invalid shape                                                                           | Patch or snapshot is not a JSON object, or `appendNotes` is not a string array |
-| Optional `workstream` policy section  | `staleAfterCommits` (1 to 100000), `staleAfterHours` (1 to 8760)   | Repository policy                                                                                              | Invalid section fails policy validation                                        |
+| Name | Required fields | Privacy | Failure meaning |
+| --- | --- | --- | --- |
+| Optional snapshot `repositoryHead` | `commit` (40 to 64 hex characters), `observedAt` | Commit ID and time only; stays in local snapshot state and CAS, never event payloads | Absent outside Git or before the first commit; staleness then uses age alone |
+| Optional snapshot `droppedNoteCount` | Non-negative integer | Count only | Absence means no note was dropped |
+| Workstream attention `state: "stale"` | Existing item fields plus `consequence` on approvals and decisions | Report retains bounded text for explicit inspection; hook renderings withhold stale approval and decision text | Needs re-verification and grants no authority |
+| `invalid_patch` update blocker | `code`, `message` | Message names only the invalid shape | Patch or snapshot is not a JSON object, or `appendNotes` is not a string array |
+| Optional `workstream` policy section | `staleAfterCommits` (1 to 100000), `staleAfterHours` (1 to 8760) | Repository policy | Invalid section fails policy validation |
 
 No new event type is introduced. `workstream.snapshot.recorded` retains its payload.
 
