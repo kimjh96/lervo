@@ -4,6 +4,8 @@ Status: `accepted`
 Decision date: 2026-10-14
 Amends: [ADR-0219](0219-typed-derived-state-retention.md)
 
+Amended by: [ADR-0534](0534-bound-installed-runtimes-and-convergence-artifacts.md)
+
 ## Context
 
 Repository knowledge convergence provisions one Git worktree per assignment and lease generation under `.lervo/state/knowledge/convergence-workspaces/`. Each checkout carries the repository's dependencies, so a checkout is 0.6 to 1 GB. Retention removed a checkout only through the exact cleanup plan, which requires an integrated workspace whose sealed head is reachable from the current integration target. On 2026-10-14 the six hosted repositories held 87 checkouts that could never qualify, about 36 GB:

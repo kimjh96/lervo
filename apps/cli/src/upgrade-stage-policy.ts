@@ -9,7 +9,8 @@ export type UpgradeStageName =
   | "node"
   | "event_writer"
   | "host_service"
-  | "replica_service";
+  | "replica_service"
+  | "runtime_retention";
 
 /**
  * - `applied_first`: the dependent is inspected only after the prerequisite
@@ -32,6 +33,7 @@ export interface UpgradeStageDependency {
 export const upgradeStageDependencies: Readonly<
   Record<UpgradeStageName, readonly UpgradeStageDependency[]>
 > = {
+  runtime_retention: [],
   capabilities: [],
   workforce: [{ stage: "capabilities", requires: "applied_first" }],
   terminal_integration: [],
@@ -59,6 +61,7 @@ export const upgradeStageApplyOrder: readonly UpgradeStageName[] = [
   "event_writer",
   "host_service",
   "replica_service",
+  "runtime_retention",
 ];
 
 /**

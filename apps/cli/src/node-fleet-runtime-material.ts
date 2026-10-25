@@ -1,3 +1,4 @@
+import { recoverRuntimeRetirement } from "./node-runtime-retirement-journal.js";
 import {
   readNodeRuntimeModule,
   inspectNodeRuntimeModule,
@@ -11,6 +12,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { failNodeFleetApply } from "./node-fleet-apply-contract.js";
+import { withNodeRuntimeRetentionLock } from "./node-runtime-retention-lock.js";
 import { nodeRuntimesDirectory } from "./node-runtime-pointer.js";
 import {
   describeRuntimeDependencies,
@@ -99,6 +101,16 @@ export async function describeInstalledNodeLauncher(
 }
 
 export async function materializeInstalledNodeLauncher(homeDirectory?: string): Promise<string> {
+  return withNodeRuntimeRetentionLock(
+    resolve(nodeRuntimesDirectory(homeDirectory), ".retention.lock"),
+    async () => {
+      await recoverRuntimeRetirement(nodeRuntimesDirectory(homeDirectory));
+      return installNodeLauncher(homeDirectory);
+    },
+  );
+}
+
+async function installNodeLauncher(homeDirectory?: string): Promise<string> {
   const source = defaultExecutablePath();
   const sourceInfo = await lstat(source).catch((error: unknown) =>
     failNodeFleetApply(
@@ -116,6 +128,12 @@ export async function materializeInstalledNodeLauncher(homeDirectory?: string): 
   const { payload, payloadBytes, launcher, launcherContent, dependencies, runtimeModule } =
     await describeInstalledNodeLauncher(homeDirectory);
   await mkdir(dirname(payload), { recursive: true, mode: 0o700 });
+  const directory = await lstat(dirname(payload));
+  if (!directory.isDirectory() || directory.isSymbolicLink())
+    failNodeFleetApply(
+      "node_fleet_executable_invalid",
+      "The installed runtime directory is unsafe.",
+    );
   for (const [path, content, mode] of [
     [payload, payloadBytes, 0o600],
     [launcher, launcherContent, 0o700],

@@ -19,3 +19,7 @@ The first maintenance recovery delivery is installed on Mac and WSL, with reader
 - [Acceptance gates](autonomous-background-convergence/acceptance.md): observed completion and remaining installed requirements.
 - [Validation and rollout](autonomous-background-convergence/rollout.md): activation prerequisites and installed verification history.
 - [Maintenance recovery and speed](maintenance-recovery-and-speed.md): first delivery and installed reader evidence for evidence recovery, bounded preparation, and metadata status; complete scheduling, safe-effect protocols, recovery outcomes, and seven-day performance acceptance remain pending.
+
+## Bounded storage acceptance
+
+[ADR-0534](../../decisions/operations/storage/0534-bound-installed-runtimes-and-convergence-artifacts.md) adds managed runtime retirement and project CAS collection. Source implementation and focused test cases are present. Tests remain unexecuted by explicit owner instruction. Installed acceptance must verify reclamation and continued rollback, normalization lineage, parked-source status and historical settlement on both Mac and WSL. Record actual reachable bytes and reclaimed bytes; disk totals alone do not establish savings. Baseline/capture envelope deduplication remains a separate compatibility follow-up.

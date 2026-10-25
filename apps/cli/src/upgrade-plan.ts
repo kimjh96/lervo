@@ -1,3 +1,4 @@
+import { planNodeRuntimeRetention, type RuntimeRetentionPlan } from "./node-runtime-retention.js";
 import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -61,6 +62,7 @@ export interface RepositoryUpgradePlan {
     stageDependencies: typeof upgradeStageDependencies;
   };
   stages: {
+    runtimeRetention: RuntimeRetentionPlan;
     capabilities: {
       disposition: StageDisposition;
       planId: string;
@@ -192,7 +194,9 @@ export async function createRepositoryUpgradePlan(root: string): Promise<Reposit
     terminal_integration: terminal.stage.disposition,
     node: nodeStage.disposition,
   });
+  const runtimeRetention = await planNodeRuntimeRetention();
   const dispositions: Record<UpgradeStageName, StageDisposition> = {
+    runtime_retention: runtimeRetention.disposition,
     capabilities: capabilityDisposition,
     workforce: workforce.disposition,
     terminal_integration: terminal.stage.disposition,
@@ -222,6 +226,7 @@ export async function createRepositoryUpgradePlan(root: string): Promise<Reposit
       stageDependencies: upgradeStageDependencies,
     },
     stages: {
+      runtimeRetention,
       capabilities: {
         disposition: capabilityDisposition,
         planId: capabilities.planId,

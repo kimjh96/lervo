@@ -1,3 +1,5 @@
+import { maintainNodeRuntimeRetention } from "./node-runtime-retention.js";
+import { pinRuntimeRollbackPredecessor } from "./node-runtime-rollback-pins.js";
 import { createHash } from "node:crypto";
 import { chmod, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -262,6 +264,12 @@ export async function applyNodeFleetOnboarding(input: {
       const observedHash = `sha256:${createHash("sha256").update(currentBytes).digest("hex")}`;
       if (observedHash !== current.service.targetContentHash)
         fail("node_fleet_plan_stale", "The installed service changed before upgrade.");
+      if (definitionChanged)
+        await pinRuntimeRollbackPredecessor({
+          servicePath: current.service.targetPath,
+          definition: currentBytes.toString("utf8"),
+          ...(input.homeDirectory === undefined ? {} : { homeDirectory: input.homeDirectory }),
+        });
       await writeFile(previousDefinition, currentBytes, { mode: 0o600, flag: "wx" });
       await chmod(previousDefinition, 0o600);
       service = (await manageRuntimeService(
@@ -340,6 +348,9 @@ export async function applyNodeFleetOnboarding(input: {
     // ADR-0483: the activated runtime becomes this host's `current`. A failed swap leaves the
     // previous pointer, which the next `lervo upgrade` repairs; onboarding itself succeeded.
     await pointCurrentNodeRuntimeAt(executable, input.homeDirectory).catch(() => undefined);
+    await maintainNodeRuntimeRetention(
+      input.homeDirectory === undefined ? {} : { homeDirectory: input.homeDirectory },
+    );
     return {
       schemaVersion: 1,
       operation: "repository_node_onboarding",

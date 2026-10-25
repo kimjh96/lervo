@@ -46,7 +46,7 @@ When current workstream state is missing, Lervo validates the latest `workstream
 
 `lervo state prune` uses a 100,000-file and 8 GiB inventory independently of the smaller reset limit. Planning hashes state, returns class totals and path digests without bodies or raw paths, and names exact eligible operations. Apply requires the current plan ID and rejects changed bytes. It detaches targets under a journaled `.lervo/.state-prune-*` tombstone, records `state.pruned`, then removes the tombstone; event failure rolls back. An interrupted tombstone blocks new plans until `--recover` uses durable event evidence to choose cleanup or restoration.
 
-The Node health projection may report eligibility, but unattended cleanup is unauthorized. It remains disabled until the runtime passes the interactive authorization, protection, race, reconstruction, and failure-injection contract.
+General unattended state pruning remains disabled. [ADR-0534](../../decisions/operations/storage/0534-bound-installed-runtimes-and-convergence-artifacts.md) authorizes only managed runtime retirement and unreachable convergence CAS collection through their typed lifecycles. The [project CAS contract](../../specs/background-knowledge-convergence/recovery-and-retention/project-cas.md) defines exact roots, grace, reader protection, worker exclusion, bounded scanning and local count/byte observations. Event history, all noncandidate CAS objects and unresolved references remain protected. This exception does not let `lervo state prune` inventory `.lervo/data`.
 
 ## Failure meaning
 

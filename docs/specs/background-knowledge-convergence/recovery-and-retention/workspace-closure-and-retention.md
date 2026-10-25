@@ -21,3 +21,7 @@ At 256 assignment projections, compaction preserves the latest 128 and every act
 Under the coordination lock, exact original file bytes enter private CAS and the canonical archive event is appended before projection removal. Append failure retains the projection; crash replay reuses the same event coordinate.
 
 Ordinary assignments, unresolved identities, canonical events, and private proof remain intact. Existing hard capacity limits stop unresolved growth.
+
+## Artifact retention
+
+Checkout retirement does not itself release CAS proof. [ADR-0534](../../../decisions/operations/storage/0534-bound-installed-runtimes-and-convergence-artifacts.md) adds [project CAS collection](project-cas.md) under the same host-local worker exclusion. Open work, latest settled stages, historical normalization lineage, terminal lifecycle receipts and all other subsystem references remain reachable. Only old unreferenced convergence candidates can be removed.
