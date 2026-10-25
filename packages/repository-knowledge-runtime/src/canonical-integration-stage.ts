@@ -11,11 +11,16 @@ import type { CanonicalBatch } from "./canonical-review.js";
 import { sealCanonicalDrafts } from "./canonical-workspace.js";
 import { integrateCanonicalWorkspace } from "./canonical-integration-effect.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
-import { pathWithinConvergenceRoots } from "./delegation.js";
+import { assertConvergenceDelegation, pathWithinConvergenceRoots } from "./delegation.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { preflightCanonicalTargets } from "./canonical-target-preflight.js";
 import { inspectRetainedCanonicalIntegration } from "./canonical-integration-recovery.js";
-import { parkDivergedCanonicalBatch } from "./canonical-target-parking.js";
+import {
+  parkDivergedCanonicalBatch,
+  parkCanonicalTargetBatch,
+} from "./canonical-target-parking.js";
+import { canonicalDocumentLayout, capacityBlocked } from "./canonical-layout.js";
+import { retireCapacityBlockedRefDrafts } from "./canonical-capacity-recovery.js";
 
 export async function integrateCanonicalBaseline(
   context: ConvergenceRuntimeContext,
@@ -36,6 +41,7 @@ export async function integrateCanonicalBaseline(
       stageData: {
         canonicalOffset: end,
         canonicalBatch: null,
+        canonicalTargetParked: null,
         canonicalCoverage: [
           ...((state.stageData.canonicalCoverage as unknown[] | undefined) ?? []),
           ...(batch?.assessment.decisions ?? []).map((decision) => ({
@@ -82,6 +88,34 @@ export async function integrateCanonicalBaseline(
     state,
     batch.assessment.drafts,
   );
+  const layout = await canonicalDocumentLayout(root, batch.assessment.drafts);
+  if (capacityBlocked(layout)) {
+    const retiredRefEffect =
+      retained === null
+        ? undefined
+        : await retireCapacityBlockedRefDrafts({
+            repositoryRoot: root,
+            ref: retained.plan.targetRef,
+            target: retained.completion.targetAfterCommit,
+            drafts: batch.assessment.drafts,
+            assertCurrent: async () => {
+              assertLease();
+              await assertConvergenceDelegation({
+                repositoryRoot: root,
+                projectId: state.baseline.projectId,
+                expectedHash: state.baseline.delegationHash,
+                provider: context.provider,
+              });
+              context.assertSource(state);
+            },
+          });
+    return parkCanonicalTargetBatch(context, state, batch, {
+      reason: "layout_capacity_exceeded",
+      layoutCapacityHash: layout.capacityHash,
+      codes: [...new Set(layout.evaluation.blockers.map((blocker) => blocker.code))],
+      ...(retiredRefEffect === undefined ? {} : { retiredRefEffect }),
+    });
+  }
   const diverged = retained
     ? []
     : await preflightCanonicalTargets(context, state, batch.assessment.drafts);

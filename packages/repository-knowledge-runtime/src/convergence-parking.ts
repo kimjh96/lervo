@@ -11,6 +11,7 @@ import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 import { waitingConvergenceStage } from "./stage-receipt.js";
 import { integrationTargetBlobHash, resolveIntegrationTarget } from "./integration-target-sync.js";
 import { workingTreeHash } from "./integration-target-discard.js";
+import { canonicalDocumentLayout } from "./canonical-layout.js";
 
 /**
  * ADR-0479: every other source, stage, and projection finished, and only parked sources keep the
@@ -36,8 +37,10 @@ export type ParkedSourceStage = "canonical" | "normalization" | "lifecycle";
  * `owner_decision`: the generator itself could not decide the source without the owner.
  * `target_diverged` (ADR-0530): an approved draft's integration-target bytes differ from the
  * reviewed preimage, so integrating it would replace bytes nobody reviewed.
+ * `layout_capacity_exceeded`: the approved batch cannot fit the projected document layout.
  */
-export type ParkedSourceReason = "review_rejected" | "owner_decision" | "target_diverged";
+export type ParkedSourceReason =
+  "review_rejected" | "owner_decision" | "target_diverged" | "layout_capacity_exceeded";
 
 /**
  * One draft target whose integration-ref bytes held a `target_diverged` source parked, with the
@@ -60,12 +63,15 @@ export interface ParkedConvergenceSource {
   reasons: string[];
   /** `target_diverged` only: the source is readmitted once any of these target bytes change. */
   targets?: ParkedTargetObservation[];
+  /** Capacity policy, routes, and observed counts; source edits also readmit this source. */
+  layoutCapacityHash?: string;
 }
 
 const PARKED_REASONS: ReadonlySet<unknown> = new Set([
   "review_rejected",
   "owner_decision",
   "target_diverged",
+  "layout_capacity_exceeded",
 ]);
 const MAXIMUM_PARKED_TARGETS = 8;
 
@@ -120,6 +126,13 @@ function parkedSource(value: unknown): ParkedConvergenceSource | null {
     return null;
   const targets = item.reason === "target_diverged" ? parkedTargets(item.targets) : null;
   if (item.reason === "target_diverged" && targets === null) return null;
+  if (
+    item.reason === "layout_capacity_exceeded" &&
+    (item.stage !== "canonical" ||
+      typeof item.layoutCapacityHash !== "string" ||
+      !/^sha256:[a-f0-9]{64}$/u.test(item.layoutCapacityHash))
+  )
+    return null;
   return {
     stage: item.stage,
     path: item.path,
@@ -128,6 +141,9 @@ function parkedSource(value: unknown): ParkedConvergenceSource | null {
     attempts: item.attempts!,
     reasons: boundedReviewReasons(item.reasons),
     ...(targets === null ? {} : { targets }),
+    ...(item.reason === "layout_capacity_exceeded"
+      ? { layoutCapacityHash: item.layoutCapacityHash }
+      : {}),
   };
 }
 
@@ -243,8 +259,19 @@ export async function carriedParkedSources(
     );
   const root = storage.paths?.repositoryRoot;
   const kept: ParkedConvergenceSource[] = [];
-  for (const item of carried)
+  const capacityHash =
+    root !== undefined && carried.some((item) => item.layoutCapacityHash !== undefined)
+      ? (await canonicalDocumentLayout(root)).capacityHash
+      : undefined;
+  for (const item of carried) {
+    if (
+      root !== undefined &&
+      item.layoutCapacityHash !== undefined &&
+      item.layoutCapacityHash !== capacityHash
+    )
+      continue;
     if (item.targets === undefined || (await targetsUnchanged(root, item.targets))) kept.push(item);
+  }
   return kept;
 }
 

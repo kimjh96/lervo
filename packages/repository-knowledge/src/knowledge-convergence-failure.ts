@@ -10,7 +10,7 @@ export const MAXIMUM_UNCLASSIFIED_STAGE_ATTEMPTS = 4;
  * The reviewed name of the evaluation contract (ADR-0479, ADR-0481, ADR-0485). A host adds the
  * identity of its evaluation logic, and a stall settled under any other contract is reevaluated once.
  */
-export const KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT = "adr-0485";
+export const KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT = "adr-0532";
 
 /** How long an unclassified attention stays settled before the owner reevaluates the stage. */
 export const UNCLASSIFIED_STAGE_REEVALUATION_MS = 6 * 60 * 60_000;

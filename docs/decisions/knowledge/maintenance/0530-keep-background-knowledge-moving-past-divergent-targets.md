@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-25
 Amends: [ADR-0434](../repository/canonicalization/0434-converge-background-canonicalization-normalization-and-knowledge.md), [ADR-0449](../repository/canonicalization/0449-synchronize-integration-target-with-working-branch.md), [ADR-0451](../repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md), and [ADR-0479](../semantics/0479-park-rejected-semantic-candidates-and-settle-opaque-assets-by-the-delegation-suite.md)
+Amended by: [ADR-0532](0532-continue-background-review-past-capacity-and-optional-context-failures.md) (capacity parking, layout guidance, and retained noncandidate coverage)
 
 ## Context
 

@@ -19,3 +19,7 @@ The first maintenance recovery delivery is installed on Mac and WSL, with reader
 - [Acceptance gates](autonomous-background-convergence/acceptance.md): observed completion and remaining installed requirements.
 - [Validation and rollout](autonomous-background-convergence/rollout.md): activation prerequisites and installed verification history.
 - [Maintenance recovery and speed](maintenance-recovery-and-speed.md): first delivery and installed reader evidence for evidence recovery, bounded preparation, and metadata status; complete scheduling, safe-effect protocols, recovery outcomes, and seven-day performance acceptance remain pending.
+
+## Capacity and optional-context recovery acceptance
+
+[ADR-0532](../../decisions/knowledge/maintenance/0532-continue-background-review-past-capacity-and-optional-context-failures.md) adds source changes and focused tests for the reported axli and flemo stops. Tests are not executed in this task at the owner's request. Installed acceptance remains pending: observe capacity-blocked sources parked with other coverage retained, generated paths absent from assessment, optional context failures recorded without stopping assessment, required instructions failing closed, and both obligations reaching normalization without interrupting development. Existing canonical-folder capacity repair is separate reviewed work.

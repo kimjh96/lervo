@@ -25,6 +25,7 @@ import { applyNormalizationBatch } from "./normalization-apply-stage.js";
 import { prepareConvergenceLifecycle } from "./lifecycle-prefix.js";
 import { verifyConvergenceLifecycle } from "./lifecycle-final.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { reviewContextFailureDetail } from "./review-context.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { resolveIntegrationTarget } from "./integration-target-sync.js";
 import { inspectIntegrationTargetAbsorption } from "./integration-target-absorption.js";
@@ -304,6 +305,7 @@ export function createConvergenceRuntimeHost(
               snapshotHash: state.snapshotHash,
               code: (failure as { code?: string }).code ?? null,
               name: failure.name,
+              ...reviewContextFailureDetail(failure),
               message: failure.message.slice(0, 8192),
               stack: failure.stack?.slice(0, 16384) ?? null,
             }),

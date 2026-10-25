@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_821a499f892504ac1530a0e9"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep background knowledge moving past document capacity and optional context read failures."

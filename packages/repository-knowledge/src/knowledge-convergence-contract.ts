@@ -131,7 +131,7 @@ export interface KnowledgeConvergenceStatus {
     sources: {
       stage: "canonical" | "normalization" | "lifecycle";
       path: string;
-      reason: "review_rejected" | "owner_decision" | "target_diverged";
+      reason: "review_rejected" | "owner_decision" | "target_diverged" | "layout_capacity_exceeded";
       attempts: number;
     }[];
   };
