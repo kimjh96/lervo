@@ -1,5 +1,7 @@
 # Semantic Compilation, Review, and Materialization
 
+Historical: [ADR-0529](../../decisions/knowledge/semantics/0529-remove-the-semantic-compilation-pipeline.md) removed this pipeline. `lervo knowledge materialize --recover` remains for every interrupted knowledge materialization.
+
 This specification defines how Lervo compiles repository evidence, reviews proposed knowledge and applies approved changes through durable transactions.
 
 ## Semantic compilation

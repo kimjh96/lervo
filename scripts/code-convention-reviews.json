@@ -172,7 +172,7 @@
     },
     {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:e3047094c18228b7cbb1b03ccd3b931a80e072213372cce406b88cfb14b9896b",
+      "contentHash": "sha256:fb9b50099e57dd922352fc71dc3709cf3a3e2f9ca872298cb2a328041c3698ea",
       "responsibility": "Isolated no-capability provider process adapter",
       "rationale": "One isolated no-capability process boundary for both providers with native structured JSON output, shared availability translation, typed Codex failures, and the ADR-0479 reviewer-feedback instruction it adds only to envelopes carrying feedback. Admission, budgets, source policy and document effects stay outside. Common tests cover schema delivery, extraction, no tools, usage, cancellation and timeout.",
       "disposition": "cohesive"
@@ -248,20 +248,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/repository-knowledge/src/reconciliation-review.ts",
-      "contentHash": "sha256:3a21489ac0d9e8cb172c9b28bd45dbb60db1e5863f44404721e4e63749e485d5",
-      "responsibility": "Semantic reconciliation review lifecycle",
-      "rationale": "Policy validation, review identity, disposition validation, artifact persistence, and event recording form one exact-review responsibility.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/repository-knowledge/src/reconciliation.ts",
-      "contentHash": "sha256:833a90612baa44cbcd5a6adbfe9cdda61db8f590d419f18dcfd0261c14caf498",
-      "responsibility": "Semantic candidate reconciliation planning",
-      "rationale": "Existing registry inspection, candidate signatures, conflict options, and dispositions jointly produce one read-only reconciliation plan.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
       "contentHash": "sha256:fee3b10041f7bbc40a96b4588baffcb30eca3ee90f7f0cb91bcbbe6b3b54f046",
       "responsibility": "Repository document-layout migration",
@@ -273,20 +259,6 @@
       "contentHash": "sha256:d2e3c0e93c2a9fe93068a5f2b2dfa961b7cc47613d296ce0314b3e612ef7b725",
       "responsibility": "Fresh repository scan orchestration",
       "rationale": "Fresh filesystem discovery, safe reads, retries, lineage validation, supplemental evidence, and snapshot assembly own one scan. Pure classification, materialization, and transforms remain separate. Optional query-only source-unit reuse is supplied explicitly after fresh byte observation; the pure cache owns bindings and decoding, and a separate adapter owns persistence. Git-ignored path observation lives in git-ignored-paths.ts; the scan only skips what it reports.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/repository-knowledge/src/semantic-compiler.ts",
-      "contentHash": "sha256:c65122d6efda0b8ad660fb8e4c726453145590ae1fd376a32e1d5deac24456b0",
-      "responsibility": "Semantic knowledge candidate compiler",
-      "rationale": "Compilation identity, bounded sharding, provider response validation, and candidate assembly are phases of one semantic compiler contract.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/repository-knowledge/src/semantic-materialization.ts",
-      "contentHash": "sha256:6bc3cf1b7d5bfd03c51a5fcbdddf59d97d411110a3d91276b722f143d6edd116",
-      "responsibility": "Reviewed semantic materialization transaction",
-      "rationale": "Review loading, operation derivation, publication generation, plan creation, and apply share one review-bound materialization contract.",
       "disposition": "cohesive"
     },
     {
