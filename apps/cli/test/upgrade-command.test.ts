@@ -52,7 +52,7 @@ async function repository(): Promise<string> {
 }
 
 describe("lervo upgrade", () => {
-  it("converges legacy enumerated AGENTS routes to the bounded registry bootstrap", async () => {
+  it("converges enumerated AGENTS routes while preserving historical pattern blocks", async () => {
     const root = await repository();
     await writeFile(
       resolve(root, "AGENTS.md"),
@@ -92,8 +92,8 @@ describe("lervo upgrade", () => {
     const agents = await readFile(resolve(root, "AGENTS.md"), "utf8");
     expect(agents).toContain("Preserve this user-owned text.");
     expect(agents).toContain("block=repository_instruction_routes schema=2");
-    expect(agents).not.toContain("development_pattern_routes");
-    expect(agents).not.toContain("commit-messages.md");
+    expect(agents).toContain("development_pattern_routes");
+    expect(agents).toContain("commit-messages.md");
     expect(Buffer.byteLength(agents)).toBeLessThan(4 * 1024);
     expect((await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).status).toBe(
       "current",

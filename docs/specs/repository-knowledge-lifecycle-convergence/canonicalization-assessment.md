@@ -22,8 +22,6 @@ A canonicalization candidate is review evidence, not canonical truth or approval
 
 Repository-changing direct-terminal declarations also carry a bounded local durable outcome. It binds every changed noncanonical source exactly once to an exact changed canonical target, a reviewable no-durable-change rationale, or a responsibility-compatible proposed Markdown draft. Candidate bodies stay out of events and operating-attention output; exact hashes, target paths, and review state remain inspectable. See ADR-0362 in the [specification references](../repository-knowledge-lifecycle-convergence.md).
 
-An additional `portable_skill_candidate` outcome may route a completed result into the development-pattern lifecycle only when at least two independent current source groups each bind a distinct canonical passed-verification event and run. It also binds bounded skill instructions and resources plus input, output, tool, permission, provider, platform, role, and resource contracts.
+New declarations accept only the three outcomes above. [ADR-0533](../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md) removes portable-skill candidate intake. Stored declaration events never contained the outcome body; their read contract is unchanged.
 
-Finalization writes no skill target and grants no capability authority. It records one reviewable CAS candidate through existing development-pattern events without duplicating generic canonicalization-candidate state. See ADR-0368 in the [specification references](../repository-knowledge-lifecycle-convergence.md).
-
-These outcomes close the metadata-only finalization gap without claiming Lervo understood the result. Promotion verifies already-authorized canonical bytes or a separately exact-approved Lervo-generated pattern target and never implicitly overwrites user-owned content.
+Promotion verifies already-authorized canonical bytes and never implicitly overwrites user-owned content.

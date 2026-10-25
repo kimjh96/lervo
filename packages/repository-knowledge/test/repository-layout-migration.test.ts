@@ -741,7 +741,7 @@ describe("repository layout migration", () => {
     );
   });
 
-  it("migrates enumerated and promoted AGENTS routes to one fixed-size registry bootstrap", async () => {
+  it("migrates enumerated AGENTS routes while preserving historical pattern blocks", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/instructions/repository"), { recursive: true });
     await writeFile(
@@ -788,8 +788,8 @@ describe("repository layout migration", () => {
     expect(agents).toContain("Keep this user-owned preface.");
     expect(agents).toContain("block=repository_instruction_routes schema=2");
     expect(agents).toContain("lervo knowledge query");
-    expect(agents).not.toContain("development_pattern_routes");
-    expect(agents).not.toContain("commit-messages.md");
+    expect(agents).toContain("development_pattern_routes");
+    expect(agents).toContain("commit-messages.md");
     expect(Buffer.byteLength(agents)).toBeLessThan(4 * 1024);
     expect((await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).status).toBe(
       "current",

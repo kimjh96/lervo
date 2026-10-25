@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-09-02
 
+Amended by: [ADR-0533](../../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
+
 ## Context
 
 The verified-improvement contract could bind adapter-verified baseline and treatment rates, but no production adapter could derive them. Accepting caller-provided counts unchanged would make the verification port ceremonial. Inferring source recall, rework, correction, or repeated failure from loosely related events would produce measurements without defined units or ground truth.

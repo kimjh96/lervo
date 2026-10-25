@@ -270,7 +270,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:fee3b10041f7bbc40a96b4588baffcb30eca3ee90f7f0cb91bcbbe6b3b54f046",
+      "contentHash": "sha256:a15678e3b794b9688c4ba3a432d9e28cbb3b8dd673120b431c3073f1fd9f81e7",
       "responsibility": "Repository document-layout migration",
       "rationale": "Link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction. Source classification and its evidence observation live in the layout-candidate modules; taxonomy role-template refresh and tool-specific formatter configuration are outside this boundary.",
       "disposition": "cohesive"
@@ -340,7 +340,7 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:2183f5e1afcae686ff01e69803e124195ae2daaf4401d69d4d2e6a035b8b3f25",
+      "contentHash": "sha256:560ea7d11c52a5cb79997367f0d60015ac9b5ab110a013a8219066209fc9f77a",
       "responsibility": "Declarative schema registration catalog",
       "rationale": "The module declares the unchanged schema-name mapping and forward-reference catalog used by build-time generation and public type names. It contains no compiler initialization, runtime validation, filesystem access, provider policy or artifact publication. Those responsibilities live in separate owners.",
       "disposition": "cohesive"
