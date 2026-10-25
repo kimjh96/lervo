@@ -9,6 +9,8 @@ import {
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
 import { waitingConvergenceStage } from "./stage-receipt.js";
+import { integrationTargetBlobHash, resolveIntegrationTarget } from "./integration-target-sync.js";
+import { workingTreeHash } from "./integration-target-discard.js";
 
 /**
  * ADR-0479: every other source, stage, and projection finished, and only parked sources keep the
@@ -32,8 +34,22 @@ export type ParkedSourceStage = "canonical" | "normalization" | "lifecycle";
 /**
  * `review_rejected`: bounded regeneration with the reviewer's reasons was exhausted.
  * `owner_decision`: the generator itself could not decide the source without the owner.
+ * `target_diverged` (ADR-0530): an approved draft's integration-target bytes differ from the
+ * reviewed preimage, so integrating it would replace bytes nobody reviewed.
  */
-export type ParkedSourceReason = "review_rejected" | "owner_decision";
+export type ParkedSourceReason = "review_rejected" | "owner_decision" | "target_diverged";
+
+/**
+ * One draft target whose integration-ref bytes held a `target_diverged` source parked, with the
+ * three byte states that decided it: the ref, `HEAD`, and the reviewed working-tree preimage.
+ */
+export interface ParkedTargetObservation {
+  ref: string;
+  path: string;
+  observedHash: string | null;
+  headHash: string | null;
+  preimageHash: string | null;
+}
 
 export interface ParkedConvergenceSource {
   stage: ParkedSourceStage;
@@ -42,6 +58,41 @@ export interface ParkedConvergenceSource {
   reason: ParkedSourceReason;
   attempts: number;
   reasons: string[];
+  /** `target_diverged` only: the source is readmitted once any of these target bytes change. */
+  targets?: ParkedTargetObservation[];
+}
+
+const PARKED_REASONS: ReadonlySet<unknown> = new Set([
+  "review_rejected",
+  "owner_decision",
+  "target_diverged",
+]);
+const MAXIMUM_PARKED_TARGETS = 8;
+
+function parkedTargets(value: unknown): ParkedTargetObservation[] | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAXIMUM_PARKED_TARGETS)
+    return null;
+  const digest = (hash: unknown): hash is string | null =>
+    hash === null || (typeof hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash));
+  const targets = value.map((item: Partial<ParkedTargetObservation> | null) =>
+    item !== null &&
+    typeof item === "object" &&
+    typeof item.ref === "string" &&
+    item.ref.startsWith("refs/") &&
+    typeof item.path === "string" &&
+    digest(item.observedHash) &&
+    digest(item.headHash) &&
+    digest(item.preimageHash)
+      ? {
+          ref: item.ref,
+          path: item.path,
+          observedHash: item.observedHash,
+          headHash: item.headHash,
+          preimageHash: item.preimageHash,
+        }
+      : null,
+  );
+  return targets.every((item) => item !== null) ? targets : null;
 }
 
 /** Reviewer text stays private and bounded; it guides regeneration and names the parked cause. */
@@ -61,19 +112,22 @@ function parkedSource(value: unknown): ParkedConvergenceSource | null {
     typeof item.path !== "string" ||
     typeof item.contentHash !== "string" ||
     !/^sha256:[a-f0-9]{64}$/u.test(item.contentHash) ||
-    (item.reason !== "review_rejected" && item.reason !== "owner_decision") ||
+    !PARKED_REASONS.has(item.reason) ||
     !Number.isSafeInteger(item.attempts) ||
     !Array.isArray(item.reasons) ||
     !item.reasons.every((reason) => typeof reason === "string")
   )
     return null;
+  const targets = item.reason === "target_diverged" ? parkedTargets(item.targets) : null;
+  if (item.reason === "target_diverged" && targets === null) return null;
   return {
     stage: item.stage,
     path: item.path,
     contentHash: item.contentHash,
-    reason: item.reason,
+    reason: item.reason!,
     attempts: item.attempts!,
     reasons: boundedReviewReasons(item.reasons),
+    ...(targets === null ? {} : { targets }),
   };
 }
 
@@ -127,11 +181,39 @@ async function readDependency(artifacts: ArtifactStore, hash: unknown) {
 }
 
 /**
+ * A `target_diverged` source stays parked only while every recorded target keeps the ref, `HEAD`,
+ * and working-tree bytes that parked it. A commit, a ref move, or an edit of the target readmits it.
+ */
+async function targetsUnchanged(
+  repositoryRoot: string | undefined,
+  targets: readonly ParkedTargetObservation[],
+): Promise<boolean> {
+  if (repositoryRoot === undefined) return true;
+  for (const target of targets) {
+    const commit = await resolveIntegrationTarget(repositoryRoot, target.ref).catch(() => null);
+    if (
+      commit === null ||
+      (await integrationTargetBlobHash(repositoryRoot, commit, target.path)) !==
+        target.observedHash ||
+      (await integrationTargetBlobHash(repositoryRoot, "HEAD", target.path)) !== target.headHash ||
+      (await workingTreeHash(repositoryRoot, target.path)) !== target.preimageHash
+    )
+      return false;
+  }
+  return true;
+}
+
+/**
  * The latest parked attention of an earlier obligation, still bound to the current bytes. A source
- * whose content changed is admitted again, so editing a parked document is the recovery.
+ * whose content changed is admitted again, so editing a parked document is the recovery. A source
+ * parked by target divergence is also readmitted when its target bytes change.
  */
 export async function carriedParkedSources(
-  storage: { events: OutboxStore; artifacts: ArtifactStore },
+  storage: {
+    events: OutboxStore;
+    artifacts: ArtifactStore;
+    paths?: { repositoryRoot: string };
+  },
   state: KnowledgeConvergenceInput,
 ): Promise<ParkedConvergenceSource[]> {
   let latest: string | null = null;
@@ -152,13 +234,18 @@ export async function carriedParkedSources(
   if (dependency?.code !== KNOWLEDGE_SOURCES_PARKED || !Array.isArray(dependency.sources))
     return [];
   const sources = new Map(state.baseline.sources.map((source) => [source.path, source]));
-  return dependency.sources
+  const carried = dependency.sources
     .map(parkedSource)
     .filter(
       (item): item is ParkedConvergenceSource =>
         item !== null &&
         (item.stage === "lifecycle" || sources.get(item.path)?.contentHash === item.contentHash),
     );
+  const root = storage.paths?.repositoryRoot;
+  const kept: ParkedConvergenceSource[] = [];
+  for (const item of carried)
+    if (item.targets === undefined || (await targetsUnchanged(root, item.targets))) kept.push(item);
+  return kept;
 }
 
 /** Parked sources of one stage that still bind the given current bytes. */

@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-09-27
-Amended by: [ADR-0469](../../../coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) (delegation continuity under an owner-installed host policy)
+Amended by: [ADR-0469](../../../coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) (delegation continuity under an owner-installed host policy) and [ADR-0530](../../maintenance/0530-keep-background-knowledge-moving-past-divergent-targets.md) (divergent integration targets park their batch instead of holding later stages)
 
 ## Context
 

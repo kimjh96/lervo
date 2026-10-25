@@ -48,7 +48,9 @@ export type ContinuityFindingCode =
   // ADR-0470 resident admission, observed from resident health and the host resident status.
   | "event_schema_outdated"
   | "continuity_pending"
-  | "host_resident_scan_stalled";
+  | "host_resident_scan_stalled"
+  // ADR-0530: the owner's resident stopped convergence for a closed cause the status names.
+  | "convergence_attention";
 
 export interface ContinuityFinding {
   code: ContinuityFindingCode;
@@ -275,6 +277,8 @@ export function localContinuityFindings(input: {
   /** The reason a degraded resident heartbeat reports, such as `event_schema_outdated`. */
   residentHold?: string | null;
   residentHost?: ResidentHostObservation | null;
+  /** Whether this host owns convergence, so a degraded resident is a convergence stop. */
+  owner?: boolean;
 }): ContinuityFinding[] {
   const findings: ContinuityFinding[] = [];
   const host = input.residentHost ?? null;
@@ -306,5 +310,12 @@ export function localContinuityFindings(input: {
     findings.push({ code: "hook_runtime_stale", severity: "attention", detail: null });
   if (input.replicaDiverged)
     findings.push({ code: "replica_diverged", severity: "attention", detail: null });
+  // A stop that only the owner's status names would otherwise stay silent until someone asks.
+  if (!held && input.owner === true && input.residentHold)
+    findings.push({
+      code: "convergence_attention",
+      severity: "attention",
+      detail: input.residentHold,
+    });
   return findings;
 }

@@ -15,6 +15,7 @@ import { pathWithinConvergenceRoots } from "./delegation.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { preflightCanonicalTargets } from "./canonical-target-preflight.js";
 import { inspectRetainedCanonicalIntegration } from "./canonical-integration-recovery.js";
+import { parkDivergedCanonicalBatch } from "./canonical-target-parking.js";
 
 export async function integrateCanonicalBaseline(
   context: ConvergenceRuntimeContext,
@@ -81,10 +82,10 @@ export async function integrateCanonicalBaseline(
     state,
     batch.assessment.drafts,
   );
-  const pending = retained
-    ? null
+  const diverged = retained
+    ? []
     : await preflightCanonicalTargets(context, state, batch.assessment.drafts);
-  if (pending) return pending;
+  if (diverged.length > 0) return parkDivergedCanonicalBatch(context, state, batch, diverged);
   const sealed = await withConvergenceAssignment({
     storage: context.storage,
     provider: context.provider,

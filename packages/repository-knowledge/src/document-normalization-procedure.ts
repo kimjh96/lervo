@@ -1,11 +1,14 @@
 const REVIEW =
   "compare each output in the candidate artifact with its source for preserved meaning, links and lifecycle lines";
 
-/** The bounded normalization batch a repository-changing terminal turn performs. */
+/**
+ * Pending normalization is background work (ADR-0530): the convergence resident generates,
+ * independently reviews, and applies it. A turn may advance it on request, never by obligation.
+ */
 export function documentNormalizationProcedure(pendingCount: number): string {
   const run =
     "lervo knowledge normalize --provider <your provider: claude|codex> --scope all-pending --max-provider-calls 8 --json";
-  return `${pendingCount} documents await normalization. In every repository-changing turn, whatever its task, run \`${run}\`, ${REVIEW}, then apply with \`lervo knowledge normalize --candidate <candidateId> --apply <planId>\` and one \`--approve-item <operationId>=<approvalHash>\` per accepted candidate. Leave a candidate that loses meaning unapproved and report it; later turns continue until none remain.`;
+  return `${pendingCount} documents await normalization. Background knowledge convergence normalizes them; no turn needs to. Only when the user asks to normalize now, run \`${run}\`, ${REVIEW}, then apply with \`lervo knowledge normalize --candidate <candidateId> --apply <planId>\` and one \`--approve-item <operationId>=<approvalHash>\` per accepted candidate.`;
 }
 
 /**

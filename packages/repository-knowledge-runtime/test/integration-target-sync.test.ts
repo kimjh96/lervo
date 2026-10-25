@@ -113,3 +113,74 @@ it("records a typed unavailable target when HEAD has no commit to start the ref 
     synchronizeIntegrationTarget({ repositoryRoot: root, ref, integrated: () => false }),
   ).rejects.toMatchObject({ code: "knowledge_integration_target_unavailable" });
 });
+
+/** ADR-0530: the ref is ahead of HEAD with two root-applied drafts the developer never committed. */
+async function ahead() {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-integration-ahead-"));
+  roots.push(root);
+  git(root, "init", "-q", "-b", "main");
+  git(root, "config", "user.email", "test@example.com");
+  git(root, "config", "user.name", "Test");
+  await writeFile(resolve(root, "guide.md"), "# Guide\n");
+  git(root, "add", ".");
+  git(root, "commit", "-q", "-m", "base");
+  const kept = "# Kept\n\nStill in the working tree.\n";
+  const discarded = "# Discarded\n\nRemoved from the working tree.\n";
+  const rewritten = "# Guide\n\nIntegrated guide fact.\n";
+  git(root, "checkout", "-q", "-b", "knowledge-integration");
+  await writeFile(resolve(root, "kept.md"), kept);
+  await writeFile(resolve(root, "discarded.md"), discarded);
+  await writeFile(resolve(root, "guide.md"), rewritten);
+  git(root, "add", ".");
+  git(root, "commit", "-qm", "integration");
+  git(root, "checkout", "-q", "main");
+  // Root apply wrote all three drafts; the developer kept one and discarded or rewrote the others.
+  await writeFile(resolve(root, "kept.md"), kept);
+  await writeFile(resolve(root, "guide.md"), "# Guide\n\nThe developer's own wording.\n");
+  const integrated = new Set([
+    `kept.md\0${hash(kept)}`,
+    `discarded.md\0${hash(discarded)}`,
+    `guide.md\0${hash(rewritten)}`,
+  ]);
+  return {
+    root,
+    integrated: (path: string, contentHash: string) => integrated.has(`${path}\0${contentHash}`),
+  };
+}
+
+it("returns integrated drafts the working branch discarded to HEAD's committed bytes", async () => {
+  const { root, integrated } = await ahead();
+  const before = git(root, "rev-parse", ref);
+  const status = git(root, "status", "--porcelain");
+  expect(await synchronizeIntegrationTarget({ repositoryRoot: root, ref, integrated })).toBe(
+    "restored",
+  );
+  const after = git(root, "rev-parse", ref);
+  expect(git(root, "rev-list", "--parents", "-n", "1", after).split(" ").slice(1)).toEqual([
+    before,
+  ]);
+  expect(git(root, "ls-tree", "--name-only", after).split("\n").sort()).toEqual([
+    "guide.md",
+    "kept.md",
+  ]);
+  expect(git(root, "show", `${after}:guide.md`)).toBe("# Guide");
+  expect(git(root, "show", `${after}:kept.md`)).toContain("Still in the working tree.");
+  expect(git(root, "log", "-1", "--format=%an <%ae>", after)).toBe(
+    "Lervo Knowledge Worker <knowledge@lervo.invalid>",
+  );
+  // Only the delegated ref moves; the working branch, tree, and index stay as they were.
+  expect(git(root, "symbolic-ref", "HEAD")).toBe("refs/heads/main");
+  expect(git(root, "status", "--porcelain")).toBe(status);
+  expect(await synchronizeIntegrationTarget({ repositoryRoot: root, ref, integrated })).toBe(
+    "unchanged",
+  );
+});
+
+it("never returns ref-only bytes that are not exact integrated drafts", async () => {
+  const { root } = await ahead();
+  const before = git(root, "rev-parse", ref);
+  expect(
+    await synchronizeIntegrationTarget({ repositoryRoot: root, ref, integrated: () => false }),
+  ).toBe("unchanged");
+  expect(git(root, "rev-parse", ref)).toBe(before);
+});

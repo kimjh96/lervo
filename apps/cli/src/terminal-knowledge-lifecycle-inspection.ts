@@ -219,10 +219,10 @@ async function inspectValidationLifecycle(input: {
 
   if (normalization !== undefined) {
     if (normalization.pendingDocuments.length > 0) {
-      lintIssues.push({
+      // ADR-0530: background convergence owns normalization, so pending documents are attention
+      // that never gates a turn, a declaration, or a checkpoint.
+      advisories.push({
         code: "document_normalization_pending",
-        // Agent-owned in every repository-changing turn, whatever its task, so the debt never
-        // waits for a user to notice it: one bounded batch per turn until none remain.
         command: documentNormalizationProcedure(normalization.pendingDocuments.length),
       });
     }

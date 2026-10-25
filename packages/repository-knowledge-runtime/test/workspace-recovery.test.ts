@@ -14,6 +14,7 @@ import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import * as workspace from "../src/canonical-workspace.js";
 import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
+import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
 import { fixture } from "./fixture.js";
 import { captureConvergenceSources } from "../src/source-capture.js";
 import { hasCanonicalNormalizationLineage } from "../src/canonical-normalization-lineage.js";
@@ -37,7 +38,7 @@ function run(f: Awaited<ReturnType<typeof fixture>>) {
 }
 
 it(
-  "continues canonical integration through exact settled normalization and refuses manual divergence",
+  "continues canonical integration through exact settled normalization and parks manual divergence",
   { timeout: 300_000 },
   async () => {
     const f = await fixture(true, true, true);
@@ -172,10 +173,19 @@ it(
       resolve(f.root, "src/runtime.ts"),
       "export const maximumBackgroundCalls = 4;\n",
     );
-    const stopped = await run(f);
-    expect(stopped).toMatchObject({
-      convergence: { state: "waiting_authority", reason: "canonical_target_diverged" },
+    // ADR-0530: the manual divergence parks its source instead of holding the obligation.
+    let stopped: Awaited<ReturnType<typeof run>>;
+    for (let cycle = 0; cycle < 12; cycle++) {
+      stopped = await run(f);
+      if (stopped.status === "processed" && stopped.convergence.state === "attention_required")
+        break;
+    }
+    expect(stopped!).toMatchObject({
+      convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
     });
+    expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked?.sources).toEqual([
+      expect.objectContaining({ path: "src/runtime.ts", reason: "target_diverged" }),
+    ]);
     expect(await readFile(resolve(f.root, path), "utf8")).toContain("Manual owner change.");
   },
 );
