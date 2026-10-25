@@ -5,7 +5,7 @@ import {
   planRepositoryChangeInRepository,
 } from "@lervo/repository-knowledge";
 
-import { launchDetachedKnowledgeWorker } from "./knowledge-worker-command.js";
+import { launchDetachedKnowledgeWorker } from "./knowledge-worker-launch.js";
 
 /**
  * Records the durable background-knowledge source for a completed managed run (ADR-0433). A
@@ -73,7 +73,7 @@ export async function recordManagedRunRepositoryChange(input: {
   // Only the installed CLI entry launches a worker; tests and embedded callers never spawn one.
   const entry = process.env.LERVO_CLI_ENTRY;
   if (recorded.enqueued && input.provider !== undefined && entry !== undefined)
-    launchDetachedKnowledgeWorker({
+    await launchDetachedKnowledgeWorker({
       root: input.storage.paths.repositoryRoot,
       entry,
       args: ["knowledge", "worker", "--once", "--provider", input.provider],

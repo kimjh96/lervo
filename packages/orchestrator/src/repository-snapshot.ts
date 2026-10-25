@@ -1,4 +1,16 @@
 import {
+  defaultRepositorySnapshotPolicy,
+  resolveRepositorySnapshotPolicy,
+  RepositorySnapshotError,
+  type RepositorySnapshotPolicy,
+} from "./repository-snapshot-policy.js";
+export {
+  defaultRepositorySnapshotPolicy,
+  resolveRepositorySnapshotPolicy,
+  RepositorySnapshotError,
+  type RepositorySnapshotPolicy,
+} from "./repository-snapshot-policy.js";
+import {
   repositorySnapshotGitHead,
   repositorySnapshotGitIgnoredPaths,
 } from "./repository-snapshot-git.js";
@@ -7,8 +19,7 @@ import type { BigIntStats } from "node:fs";
 import { lstat, readdir, readlink } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
-import { readRepositoryFile, transientToolCacheDirectoryNames } from "@lervo/context";
-import type { ManagedFileChangeEvidence } from "./types.js";
+import { readRepositoryFile } from "@lervo/context";
 
 export interface RepositorySnapshot {
   revision: string;
@@ -22,46 +33,6 @@ export type CaptureRepositorySnapshot = (
 ) => Promise<RepositorySnapshot>;
 
 export type RepositorySnapshotFileReader = typeof readRepositoryFile;
-
-export interface RepositorySnapshotPolicy {
-  excludedDirectoryNames: readonly string[];
-  excludedPaths: readonly string[];
-  maxEntries: number;
-  maxBytes: number;
-}
-
-export const defaultRepositorySnapshotPolicy: RepositorySnapshotPolicy = Object.freeze({
-  excludedDirectoryNames: Object.freeze([
-    ".git",
-    ".next",
-    ".turbo",
-    ".expo",
-    ".gradle",
-    ".cxx",
-    ".vercel",
-    ".cache",
-    ...transientToolCacheDirectoryNames.filter((name) => name !== ".cache"),
-    ".venv",
-    "node_modules",
-    "venv",
-    "dist",
-    "build",
-    "build-device",
-    "coverage",
-    "Pods",
-    "vendor",
-  ]),
-  excludedPaths: Object.freeze([".lervo/data", ".lervo/state"]),
-  maxEntries: 20_000,
-  maxBytes: 1024 * 1024 * 1024,
-});
-
-export class RepositorySnapshotError extends Error {
-  constructor(message: string, options?: ErrorOptions) {
-    super(message, options);
-    this.name = "RepositorySnapshotError";
-  }
-}
 
 export interface CachedSnapshotEntry {
   kind: "file" | "symlink";
@@ -81,46 +52,6 @@ function sha256(value: string | Uint8Array): string {
 
 function portablePath(root: string, absolutePath: string): string {
   return relative(root, absolutePath).split(sep).join("/");
-}
-
-export function resolveRepositorySnapshotPolicy(
-  policy: RepositorySnapshotPolicy = defaultRepositorySnapshotPolicy,
-): RepositorySnapshotPolicy {
-  const resolved = {
-    excludedDirectoryNames: [...policy.excludedDirectoryNames],
-    excludedPaths: [...policy.excludedPaths],
-    maxEntries: policy.maxEntries,
-    maxBytes: policy.maxBytes,
-  };
-  if (
-    !Number.isSafeInteger(resolved.maxEntries) ||
-    resolved.maxEntries < 1 ||
-    !Number.isSafeInteger(resolved.maxBytes) ||
-    resolved.maxBytes < 1 ||
-    resolved.excludedDirectoryNames.some(
-      (name) =>
-        name.length === 0 ||
-        name === "." ||
-        name === ".." ||
-        name.includes("/") ||
-        name.includes("\\"),
-    ) ||
-    resolved.excludedPaths.some(
-      (path) =>
-        path.length === 0 ||
-        path.startsWith("/") ||
-        path.endsWith("/") ||
-        path.includes("\\") ||
-        path.split("/").some((part) => part.length === 0 || part === "." || part === ".."),
-    )
-  ) {
-    throw new RepositorySnapshotError("The repository snapshot policy is invalid.");
-  }
-  return Object.freeze({
-    ...resolved,
-    excludedDirectoryNames: Object.freeze(resolved.excludedDirectoryNames),
-    excludedPaths: Object.freeze(resolved.excludedPaths),
-  });
 }
 
 export async function captureRepositorySnapshot(
@@ -153,11 +84,28 @@ async function captureRepositorySnapshotWithCache(input: {
   previous: SnapshotCaptureState | undefined;
   readFile: RepositorySnapshotFileReader;
 }): Promise<{ snapshot: RepositorySnapshot; state: SnapshotCaptureState }> {
-  const [head, ignoredPaths] = await Promise.all([
-    repositorySnapshotGitHead(input.repositoryRoot),
-    repositorySnapshotGitIgnoredPaths(input.repositoryRoot),
-  ]);
   const resolvedPolicy = resolveRepositorySnapshotPolicy(input.policy);
+  const checkDeadline = () => {
+    if (resolvedPolicy.deadlineMs !== undefined && performance.now() >= resolvedPolicy.deadlineMs)
+      throw new RepositorySnapshotError(
+        "The repository snapshot deadline was exceeded.",
+        undefined,
+        "repository_snapshot_deadline_exceeded",
+      );
+  };
+  checkDeadline();
+  const [head, ignored] = await Promise.all([
+    repositorySnapshotGitHead(input.repositoryRoot, resolvedPolicy.deadlineMs),
+    repositorySnapshotGitIgnoredPaths(input.repositoryRoot, resolvedPolicy.deadlineMs),
+  ]);
+  checkDeadline();
+  if (ignored.status === "unavailable")
+    throw new RepositorySnapshotError(
+      "Git ignored paths are unavailable.",
+      undefined,
+      "git_ignored_paths_unavailable",
+    );
+  const ignoredPaths = ignored.paths;
   const excludedDirectories = new Set(resolvedPolicy.excludedDirectoryNames);
   const excludedPaths = new Set(resolvedPolicy.excludedPaths);
   const root = resolve(input.repositoryRoot);
@@ -176,16 +124,19 @@ async function captureRepositorySnapshotWithCache(input: {
   let byteCount = 0;
 
   async function visit(directory: string): Promise<void> {
+    checkDeadline();
     let entries;
     try {
       entries = await readdir(directory, { withFileTypes: true });
     } catch {
       throw new RepositorySnapshotError("Could not read the repository snapshot.");
     }
+    checkDeadline();
     // A nested `.git` marks another checkout, such as a linked worktree, with its own snapshot.
     if (directory !== root && entries.some((entry) => entry.name === ".git")) return;
     entries.sort((left, right) => left.name.localeCompare(right.name));
     for (const entry of entries) {
+      checkDeadline();
       const absolutePath = resolve(directory, entry.name);
       const path = portablePath(root, absolutePath);
       if (excludedPaths.has(path) || ignoredPaths.has(path) || ignoredPaths.has(`${path}/`))
@@ -198,7 +149,11 @@ async function captureRepositorySnapshotWithCache(input: {
       }
       fileCount += 1;
       if (fileCount > resolvedPolicy.maxEntries) {
-        throw new RepositorySnapshotError("The repository snapshot file-count limit was exceeded.");
+        throw new RepositorySnapshotError(
+          "The repository snapshot file-count limit was exceeded.",
+          undefined,
+          "repository_snapshot_limit_exceeded",
+        );
       }
       if (entry.isSymbolicLink()) {
         const before = await lstat(absolutePath, { bigint: true });
@@ -233,6 +188,7 @@ async function captureRepositorySnapshotWithCache(input: {
           contentByteLength = cached.byteLength;
         } else {
           const bytes = await input.readFile(root, path);
+          checkDeadline();
           const after = await lstat(absolutePath, { bigint: true });
           if (identity !== entryIdentity(after)) {
             throw new Error("changed while reading");
@@ -242,7 +198,11 @@ async function captureRepositorySnapshotWithCache(input: {
         }
         byteCount += contentByteLength;
         if (byteCount > resolvedPolicy.maxBytes) {
-          throw new RepositorySnapshotError("The repository snapshot byte limit was exceeded.");
+          throw new RepositorySnapshotError(
+            "The repository snapshot byte limit was exceeded.",
+            undefined,
+            "repository_snapshot_limit_exceeded",
+          );
         }
         files[path] = hash;
         nextEntries.set(path, {
@@ -261,8 +221,10 @@ async function captureRepositorySnapshotWithCache(input: {
   }
 
   await visit(root);
-  if (head !== (await repositorySnapshotGitHead(input.repositoryRoot)))
+  checkDeadline();
+  if (head !== (await repositorySnapshotGitHead(input.repositoryRoot, resolvedPolicy.deadlineMs)))
     throw new RepositorySnapshotError("The Git coordinate changed during snapshot capture.");
+  checkDeadline();
   const canonicalEntries = Object.keys(files)
     .sort()
     .map((path) => [path, files[path]]);
@@ -337,49 +299,8 @@ export function createCachedRepositorySnapshotCapture(input?: {
   };
 }
 
-export function changedRepositoryPaths(
-  before: RepositorySnapshot,
-  after: RepositorySnapshot,
-): string[] {
-  const paths = new Set([...Object.keys(before.files), ...Object.keys(after.files)]);
-  return [...paths].filter((path) => before.files[path] !== after.files[path]).sort();
-}
-
-export interface ManagedRepositoryChangeInspection {
-  changedPaths: string[];
-  verifiedManagedPaths: string[];
-  invalidManagedPaths: string[];
-  unmanagedPaths: string[];
-}
-
-export function inspectManagedRepositoryChanges(input: {
-  before: RepositorySnapshot;
-  after: RepositorySnapshot;
-  managedChanges: readonly ManagedFileChangeEvidence[];
-}): ManagedRepositoryChangeInspection {
-  const changedPaths = changedRepositoryPaths(input.before, input.after);
-  const verifiedManagedPaths = new Set<string>();
-  const invalidManagedPaths = new Set<string>();
-  for (const change of input.managedChanges) {
-    const beforeHash = input.before.files[change.path] ?? null;
-    const afterHash = input.after.files[change.path] ?? null;
-    if (
-      verifiedManagedPaths.has(change.path) ||
-      beforeHash !== change.beforeHash ||
-      afterHash !== change.afterHash ||
-      !changedPaths.includes(change.path)
-    ) {
-      invalidManagedPaths.add(change.path);
-    } else {
-      verifiedManagedPaths.add(change.path);
-    }
-  }
-  return {
-    changedPaths,
-    verifiedManagedPaths: [...verifiedManagedPaths].sort(),
-    invalidManagedPaths: [...invalidManagedPaths].sort(),
-    unmanagedPaths: changedPaths.filter(
-      (path) => !verifiedManagedPaths.has(path) || invalidManagedPaths.has(path),
-    ),
-  };
-}
+export {
+  changedRepositoryPaths,
+  inspectManagedRepositoryChanges,
+  type ManagedRepositoryChangeInspection,
+} from "./repository-snapshot-changes.js";

@@ -123,7 +123,7 @@ export async function prepareTerminalPromptInputs(input: {
       }),
     captureSnapshot: () =>
       input.timing.measure("repository_snapshot", () =>
-        captureTerminalRepositorySnapshot(input.root),
+        captureTerminalRepositorySnapshot(input.root, input.timing.deadlineMs),
       ),
   });
 }

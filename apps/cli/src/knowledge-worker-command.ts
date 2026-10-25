@@ -3,7 +3,6 @@ import {
   startAutonomousKnowledgeWorker,
   type ConvergenceOwnerVerdict,
 } from "@lervo/repository-knowledge-runtime";
-import { spawn } from "node:child_process";
 
 import {
   createKnowledgeConvergenceContinuity,
@@ -110,29 +109,5 @@ export async function runKnowledgeWorkerCommand(
   } catch (error) {
     io.stderr(`Knowledge worker failed: ${error instanceof Error ? error.message : "unknown"}\n`);
     return 1;
-  }
-}
-
-/**
- * Starts a detached worker after a turn or run has finished; the caller never waits for it. A
- * launch failure leaves the job queued for the next worker (`knowledge_worker_launch_failed`).
- */
-export function launchDetachedKnowledgeWorker(input: {
-  root: string;
-  entry: string;
-  args: readonly string[];
-}): boolean {
-  try {
-    const child = spawn(process.execPath, [input.entry, ...input.args], {
-      cwd: input.root,
-      detached: true,
-      stdio: "ignore",
-      env: process.env,
-    });
-    child.on("error", () => undefined);
-    child.unref();
-    return true;
-  } catch {
-    return false;
   }
 }

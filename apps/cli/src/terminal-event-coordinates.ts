@@ -15,7 +15,7 @@ export const TERMINAL_OBSERVATION_POLICY_VERSION = sha256(
 );
 
 export const TERMINAL_HOOK_BUILD_DIGEST = sha256(
-  "lervo.terminal.hook-runtime.concurrent-corpus-and-query.v3",
+  "lervo.terminal.hook-runtime.bounded-degraded-context.v4",
 );
 
 export function allTerminalEvents(events: ProjectStorage["events"]): EventEnvelope[] {

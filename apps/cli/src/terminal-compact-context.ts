@@ -63,7 +63,7 @@ export async function prepareCompactTerminalPromptContext(input: {
   const requestDigest = sha256(input.prompt);
   const observedAt = new Date();
   const repositorySnapshot = await input.timing.measure("repository_snapshot", () =>
-    captureTerminalRepositorySnapshot(input.root),
+    captureTerminalRepositorySnapshot(input.root, input.timing.deadlineMs),
   );
   const [
     sourceSnapshotId,
@@ -134,6 +134,7 @@ export async function prepareCompactTerminalPromptContext(input: {
   });
   const preamble = formatCompactTerminalPreamble({
     publicationLanguage: query.publicationLanguage,
+    workspaceBinding: input.workspaceBinding,
     attention,
     declarationInstruction: input.declarationInstruction,
     backgroundKnowledgeActive:

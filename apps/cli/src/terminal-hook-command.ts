@@ -1,11 +1,9 @@
-import { hostOutcomeTask, observeHostContextOutcomes } from "@lervo/repository-context";
+import { formatDegradedTerminalContext } from "./terminal-compact-format.js";
+import { withTerminalSnapshotDeadline } from "./terminal-repository-snapshot.js";
 import { parseArgs } from "node:util";
 
-import { launchDetachedKnowledgeWorker } from "./knowledge-worker-command.js";
-import { openProjectStorage } from "@lervo/project-storage";
-import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
+import { type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 
-import { writeTerminalActivationReceipt } from "./terminal-activation-state.js";
 import {
   newTerminalIdentifier,
   TERMINAL_HOOK_BUILD_DIGEST,
@@ -14,31 +12,46 @@ import {
 } from "./terminal-event-coordinates.js";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
 import { parseTerminalHookInput } from "./terminal-hook-input.js";
-import { queueTerminalOwnerTurn, settleTerminalAgentTurn } from "./terminal-instruction-capture.js";
-import { inspectTerminalLifecycle } from "./terminal-lifecycle-inspection.js";
-import { prepareTerminalPromptContext } from "./terminal-prompt-context.js";
+import { prepareAndRecordTerminalPrompt } from "./terminal-prompt-hook.js";
+import { completeTerminalHookTurn } from "./terminal-stop-hook.js";
+import {
+  budgetTerminalStages,
+  terminalHookFailureReason,
+  TERMINAL_HOOK_BUDGET_MS,
+  withinTerminalDeadline,
+} from "./terminal-hook-budget.js";
+import { prepareTerminalBaseContext } from "./terminal-degraded-context.js";
 import { resolveTerminalRepositoryRoot } from "./terminal-repository-root.js";
 import { recordTerminalStageObservation } from "./terminal-stage-persistence.js";
-import {
-  preparedTerminalTurnExpectation,
-  recordObservedTerminalTurn,
-  recordPreparedTerminalContext,
-} from "./terminal-turn-observation.js";
+import { preparedTerminalTurnExpectation } from "./terminal-turn-observation.js";
 import {
   attachTerminalWorkspace,
-  checkpointTerminalWorkspace,
-  pauseTerminalWorkspace,
   TerminalWorkspaceIsolationError,
   type TerminalWorkspaceBinding,
 } from "./terminal-workspace-lifecycle.js";
 import type { CliIo, CliServices } from "./types.js";
 
-export async function runTerminalHookCommand(
+export function runTerminalHookCommand(
   args: string[],
   io: CliIo,
   services: Pick<CliServices, "createTerminalStageObservation" | "projectSearchQueries">,
 ): Promise<number> {
-  const timing = services.createTerminalStageObservation(TERMINAL_HOOK_BUILD_DIGEST);
+  const startedAt = performance.now();
+  return withTerminalSnapshotDeadline(startedAt + TERMINAL_HOOK_BUDGET_MS / 2, () =>
+    executeTerminalHookCommand(args, io, services, startedAt),
+  );
+}
+
+async function executeTerminalHookCommand(
+  args: string[],
+  io: CliIo,
+  services: Pick<CliServices, "createTerminalStageObservation" | "projectSearchQueries">,
+  startedAt: number,
+): Promise<number> {
+  const timing = budgetTerminalStages(
+    services.createTerminalStageObservation(TERMINAL_HOOK_BUILD_DIGEST),
+    startedAt,
+  );
   try {
     const { provider, contractId, input } = await timing.measure("ingress_integrity", async () => {
       const parsed = parseArgs({
@@ -66,21 +79,27 @@ export async function runTerminalHookCommand(
       io.stdout("{}\n");
       return 0;
     }
-    let stageContext: {
+    const coordinates = unmanagedTerminalCoordinates(provider, input);
+    const stageContext: {
       root: string;
       coordinates: UnmanagedTerminalCoordinates;
       observationId: string;
-    } | null = null;
+    } = {
+      root: io.cwd,
+      coordinates,
+      observationId: newTerminalIdentifier("tobs"),
+    };
+    let repositoryRoot: string | undefined;
+    let workspaceBinding: TerminalWorkspaceBinding | null = null;
     try {
       const root = await timing.measure("repository_discovery", () =>
         resolveTerminalRepositoryRoot(io.cwd),
       );
-      const coordinates = unmanagedTerminalCoordinates(provider, input);
+      stageContext.root = root;
+      repositoryRoot = root;
       const occurredAt = new Date().toISOString();
       if (input.event === "UserPromptSubmit") {
-        const observationId = newTerminalIdentifier("tobs");
-        stageContext = { root, coordinates, observationId };
-        let workspaceBinding: TerminalWorkspaceBinding | null;
+        const observationId = stageContext.observationId;
         try {
           workspaceBinding = await timing.measure("lifecycle_inspection", () =>
             attachTerminalWorkspace({
@@ -109,75 +128,22 @@ export async function runTerminalHookCommand(
           );
           return 0;
         }
-        const context = await prepareTerminalPromptContext({
+        const additionalContext = await prepareAndRecordTerminalPrompt({
           root,
           prompt: input.prompt!,
+          providerSessionId: input.providerSessionId,
           provider,
           observationId,
           workspaceBinding,
-          services,
           timing,
+          coordinates,
+          contractId,
+          occurredAt,
+          deadlineMs: startedAt + TERMINAL_HOOK_BUDGET_MS,
+          services,
         });
-        const observationEventId = newTerminalIdentifier("evt");
-        const observationStorage = await openProjectStorage(root);
-        try {
-          await timing.measure("event_commit", async () => {
-            await recordPreparedTerminalContext({
-              root,
-              provider,
-              coordinates,
-              observationId,
-              context,
-              workspaceBinding,
-              occurredAt,
-              eventId: observationEventId,
-              storage: observationStorage,
-            });
-            await writeTerminalActivationReceipt(root, {
-              schemaVersion: 1,
-              contractId,
-              provider,
-              hookEvent: input.event,
-              result: "context_prepared",
-              occurredAt,
-              queryDigest: sha256(input.prompt!),
-              queryProjectionReceiptId: context.grounding.queryProjectionReceipt.receiptId,
-              sourceSnapshotId: context.sourceSnapshotId,
-              preparationQuality: context.preparationQuality,
-              recommendationCount: context.recommendationCount,
-              loadedDocumentCount: context.documents.length,
-              contextHash: sha256(context.additionalContext),
-              repositoryRevision: context.repositoryRevision,
-              observationEventId,
-            });
-          });
-          // ADR-0467: queue the owner's turn for background semantic capture. A queue failure
-          // loses only this capture; it never blocks or delays the prompt.
-          await timing.measure("event_commit", () =>
-            queueTerminalOwnerTurn({
-              root,
-              provider,
-              providerSessionId: input.providerSessionId,
-              prompt: input.prompt!,
-              workspaceBinding,
-              now: new Date(occurredAt),
-            }).catch(() => false),
-          );
-          await recordTerminalStageObservation({
-            root,
-            coordinates,
-            observationId,
-            hookEvent: input.event,
-            timing,
-            outcome: "completed",
-            policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
-            storage: observationStorage,
-          });
-        } finally {
-          await observationStorage.close();
-        }
         io.stdout(
-          `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: context.additionalContext } })}\n`,
+          `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext } })}\n`,
         );
         return 0;
       }
@@ -188,160 +154,62 @@ export async function runTerminalHookCommand(
         io.stdout("{}\n");
         return 0;
       }
-      stageContext = { root, coordinates, observationId: expectation.observationId };
-      const lifecycle = await timing.measure("lifecycle_inspection", () =>
-        inspectTerminalLifecycle(root, expectation),
-      );
-      let workspaceCheckpointEventId: string | null = null;
-      if (
-        lifecycle.status === "current" &&
-        expectation.workspaceBinding?.executionKind === "worker" &&
-        lifecycle.workspace !== null
-      ) {
-        try {
-          const checkpoint = await timing.measure("event_commit", () =>
-            checkpointTerminalWorkspace({
-              root,
-              inspection: lifecycle.workspace!,
-              contextEventId: expectation.contextEventId,
-              occurredAt,
-            }),
-          );
-          workspaceCheckpointEventId = checkpoint.eventId;
-          await timing.measure("event_commit", () =>
-            pauseTerminalWorkspace({
-              root,
-              inspection: lifecycle.workspace!,
-              checkpoint,
-              occurredAt,
-            }),
-          );
-        } catch {
-          lifecycle.issues.push({
-            code: "workspace_checkpoint_failed",
-            command: "lervo workspace inspect --json",
-          });
-          lifecycle.status = "action_required";
-        }
-      }
-      const observation = await timing.measure("event_commit", () =>
-        recordObservedTerminalTurn({
-          root,
-          provider,
-          coordinates,
-          hookInput: input,
-          lifecycle,
-          workspaceCheckpointEventId,
-          occurredAt,
-        }),
-      );
-      await observeHostContextOutcomes({
-        repositoryRoot: root,
-        origin: "terminal",
-        effects: "read_only",
-        coordinates,
-        task: hostOutcomeTask(
-          "Inspect observed terminal outputs; original task acceptance is unavailable.",
-          observation.changedPaths,
-        ),
-        artifacts: observation.changedPaths.map((path) => ({ kind: "repository" as const, path })),
-      });
-      const capture = await timing.measure("event_commit", () =>
-        settleTerminalAgentTurn({
-          root,
-          provider,
-          providerSessionId: input.providerSessionId,
-          lastAssistantMessage: input.lastAssistantMessage,
-          workspaceBinding: expectation.workspaceBinding,
-          now: new Date(occurredAt),
-        }).catch(() => ({ capturePending: false })),
-      );
-      const hookRuntime = process.env.LERVO_TERMINAL_HOOK_RUNTIME;
-      if ((observation.knowledgeJobQueued || capture.capturePending) && hookRuntime !== undefined)
-        launchDetachedKnowledgeWorker({
-          root,
-          entry: hookRuntime,
-          args: ["knowledge-worker", "--provider", provider],
-        });
-      // Prepare the next compact prompt's knowledge snapshot after this turn's final bytes.
-      if (hookRuntime !== undefined && process.env.LERVO_TERMINAL_CONTEXT !== "retrieval")
-        launchDetachedKnowledgeWorker({ root, entry: hookRuntime, args: ["prefetch-context"] });
-      if (
-        expectation.workspaceBinding?.executionKind === "worker" &&
-        lifecycle.status === "action_required"
-      ) {
-        const reason = [
-          "Lervo blocked worker completion because this workspace isolation boundary is not current.",
-          ...lifecycle.issues.map(
-            (item) =>
-              `${item.code}: ${item.detail === undefined ? "" : `${item.detail}; `}run ${item.command}, review the read-only plan, and apply only the exact current plan/approval.`,
-          ),
-          "Recover only this assignment workspace, then try to finish again; do not advance another workspace's global lifecycle.",
-        ].join("\n");
-        await timing.measure("event_commit", () =>
-          writeTerminalActivationReceipt(root, {
-            schemaVersion: 1,
-            contractId,
-            provider,
-            hookEvent: input.event,
-            result: "completion_blocked",
-            occurredAt,
-            observationEventId: observation.eventId,
-            referenceCount: observation.referenceCount,
-          }),
-        );
-        await recordTerminalStageObservation({
-          root,
-          coordinates,
-          observationId: expectation.observationId,
-          hookEvent: input.event,
-          timing,
-          outcome: "completed",
-          policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
-        });
-        io.stdout(`${JSON.stringify({ decision: "block", reason })}\n`);
-        return 0;
-      }
-      await timing.measure("event_commit", () =>
-        writeTerminalActivationReceipt(root, {
-          schemaVersion: 1,
-          contractId,
-          provider,
-          hookEvent: input.event,
-          result: "completion_allowed",
-          occurredAt,
-          observationEventId: observation.eventId,
-          referenceCount: observation.referenceCount,
-        }),
-      );
-      await recordTerminalStageObservation({
+      stageContext.observationId = expectation.observationId;
+      return await completeTerminalHookTurn({
         root,
         coordinates,
-        observationId: expectation.observationId,
-        hookEvent: input.event,
+        input,
+        provider,
+        contractId,
+        occurredAt,
+        expectation,
         timing,
-        outcome: "completed",
-        policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
+        io,
       });
-      io.stdout("{}\n");
-      return 0;
-    } catch {
-      if (stageContext !== null) {
-        await recordTerminalStageObservation({
+    } catch (error) {
+      const failureReason = terminalHookFailureReason(error);
+      const baseContext =
+        input.event === "UserPromptSubmit" && repositoryRoot !== undefined
+          ? prepareTerminalBaseContext(repositoryRoot, startedAt + TERMINAL_HOOK_BUDGET_MS)
+          : Promise.resolve([]);
+      await withinTerminalDeadline(startedAt + TERMINAL_HOOK_BUDGET_MS, () =>
+        recordTerminalStageObservation({
           ...stageContext,
           hookEvent: input.event,
           timing,
           outcome: "failed",
+          failureReason,
           policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
-        }).catch(() => undefined);
-      }
-      io.stdout("{}\n");
+        }),
+      ).catch(() => undefined);
+      if (input.event === "UserPromptSubmit") {
+        const lines = await baseContext;
+        io.stdout(
+          `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: formatDegradedTerminalContext(lines, failureReason, workspaceBinding) } })}\n`,
+        );
+      } else io.stdout("{}\n");
       return 0;
     }
-  } catch {
-    io.stderr(
-      "Lervo terminal integration failed closed without exposing prompt or provider configuration content.\n",
-    );
+  } catch (error) {
+    const failureReason = terminalHookFailureReason(error);
+    const observationId = newTerminalIdentifier("tobs");
+    // Rejected ingress has no trustworthy provider session or hook event. Keep it unattributed.
+    await withinTerminalDeadline(startedAt + TERMINAL_HOOK_BUDGET_MS, async () => {
+      const root = await resolveTerminalRepositoryRoot(io.cwd);
+      await recordTerminalStageObservation({
+        root,
+        coordinates: {
+          runId: `run_unattributed_${observationId.slice(5)}`,
+          sessionId: `ses_unattributed_${observationId.slice(5)}`,
+        },
+        observationId,
+        timing,
+        outcome: "failed",
+        failureReason,
+        policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
+      });
+    }).catch(() => undefined);
+    io.stderr(`Lervo terminal integration failed (${failureReason}).\n`);
     return 2;
   }
 }

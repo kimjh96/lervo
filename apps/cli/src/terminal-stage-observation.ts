@@ -13,6 +13,9 @@ import type {
 } from "@lervo/schemas";
 
 export interface TerminalStageObservationPort {
+  readonly deadlineMs?: number;
+  readonly observationDeadlineMs?: number;
+  settle?(): Promise<void>;
   measure<T>(stageId: ExecutionStageId, operation: () => Promise<T>): Promise<T>;
   measureChild<T>(
     stageId: ExecutionStageId,
@@ -21,7 +24,7 @@ export interface TerminalStageObservationPort {
   ): Promise<T>;
   finalize(
     terminalObservationId: string,
-    terminalHook: "UserPromptSubmit" | "Stop",
+    terminalHook: "UserPromptSubmit" | "Stop" | undefined,
     outcome: ExecutionStageOutcome,
   ): TerminalStageObservationResult | null;
 }
@@ -40,7 +43,7 @@ export class TerminalStageObservation implements TerminalStageObservationPort {
   private readonly profile: ExecutionEnvironmentProfile;
   private readonly recorder: ExecutionStageRecorder;
   private readonly total: ReturnType<ExecutionStageRecorder["begin"]>;
-  private finalized = false;
+  private finalized: TerminalStageObservationResult | undefined;
 
   constructor(lervoBuildDigest: string, declaredProfile?: ExecutionEnvironmentProfile) {
     this.profile =
@@ -87,22 +90,28 @@ export class TerminalStageObservation implements TerminalStageObservationPort {
 
   finalize(
     terminalObservationId: string,
-    terminalHook: "UserPromptSubmit" | "Stop",
+    terminalHook: "UserPromptSubmit" | "Stop" | undefined,
     outcome: ExecutionStageOutcome,
   ): TerminalStageObservationResult {
-    if (this.finalized) throw new Error("Terminal stage observation was already finalized.");
-    this.finalized = true;
+    if (this.finalized !== undefined) {
+      const result = structuredClone(this.finalized);
+      if (outcome === "failed") {
+        for (const stage of result.payload.stages)
+          if (stage.stageId === "total") stage.outcome = "failed";
+      }
+      return result;
+    }
     this.recorder.finish(this.total, outcome);
     const profileBytes = executionEnvironmentProfileBytes(this.profile);
     const profileHash = executionEnvironmentProfileHash(this.profile);
-    return {
+    const result: TerminalStageObservationResult = {
       profileBytes,
       profileHash,
       payload: {
         executionMode: "unmanaged_terminal",
         workId: null,
         terminalObservationId,
-        terminalHook,
+        ...(terminalHook === undefined ? {} : { terminalHook }),
         observationSetId: `stgobs_${randomUUID().replaceAll("-", "").slice(0, 24)}`,
         stageCatalogVersion: 2,
         environmentProfileDigest: profileHash,
@@ -110,6 +119,8 @@ export class TerminalStageObservation implements TerminalStageObservationPort {
         stages: this.recorder.snapshot(),
       },
     };
+    this.finalized = result;
+    return structuredClone(result);
   }
 }
 
