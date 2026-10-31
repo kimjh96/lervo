@@ -17,7 +17,7 @@ ADR-0451 removes the declaration requirement while a healthy background knowledg
 
 Code has two additional manual entrypoints: `knowledge pattern propose` and the `role candidate` aliases. Terminal declaration is therefore not the only entrypoint, but no entrypoint observes repeated work in the background. The pipeline depends on an agent explicitly preparing a proposal.
 
-The goal remains: Lervo learns reusable practice from repeated work. A future design should observe verified work in the background and request owner review, following the instruction-capture approach in ADR-0467.
+The goal remains: Lervo learns reusable practice from verified work. [ADR-0458](../../../../execution/orchestration/improvement/0458-learn-from-single-observations-and-run-standing-autonomy.md) stays in force: a single verified observation creates a candidate, and promotion needs exact review or used-in-practice evidence. A future design observes verified work in the background, following the instruction-capture approach in ADR-0467. An independent reviewer agent handles review instead of the owner.
 
 ## Decision
 
@@ -39,7 +39,7 @@ Instruction capture and the three ordinary canonicalization outcomes retain thei
 
 ### Future learning
 
-Track one [background reusable-practice learning item](../../../../../roadmap/knowledge/background-practice-learning.md). Its acceptance requires background observation of repeated verified work, owner review, output as repository instructions or portable skills, and no turn declaration. It grants no background write authority and must not interrupt development.
+Track one [background reusable-practice learning item](../../../../../roadmap/knowledge/background-practice-learning.md). Its acceptance requires single-observation candidates observed in the background, independent agent review with ADR-0458 promotion rules, output as repository instructions or portable skills, and no turn declaration. It grants no background write authority and must not interrupt development.
 
 ## Consequences
 
