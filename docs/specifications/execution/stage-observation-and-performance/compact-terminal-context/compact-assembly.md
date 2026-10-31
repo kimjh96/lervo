@@ -38,3 +38,5 @@ Up to three pointer lines carry a path and content hash:
 - the nearest nested `AGENTS.md` governing a path anchor.
 
 A prompt is partial evidence of scope, so path anchors never narrow owner-rule selection. Owner rules are packed first; a pointer line is added whole only while the 4 KiB budget allows. Pointers that reach the context are recorded as `selected` in the preparation observation with `loading: unobserved`, because their bodies are never loaded by the hook. Pointers never include file bodies.
+
+[ADR-0541](../../../../decisions/execution/grounding/0541-bind-agent-queries-to-the-turn-and-observe-path-references.md) retains the delivered pointer paths, hashes, and kinds as `selectedPointers` on `terminal.context.prepared`. Preparation writes a host-private open-turn marker after committing that event. Agent-run queries bind to a single open turn; Stop observes selected path mentions through the [terminal evidence contract](../../events-and-privacy/terminal-observations/context-reference-and-turn-evidence.md). These effects add no provider call, retrieved body, or prompt bytes.

@@ -5,6 +5,7 @@ import {
   eventIdSchema,
   providerSchema,
   receiptIdSchema,
+  repositoryRelativePathSchema,
   scopeSchema,
   sha256Schema,
 } from "./common.js";
@@ -14,6 +15,51 @@ const providerCoordinateSchema = {
   type: "string",
   minLength: 1,
   maxLength: 256,
+} as const;
+
+export const contextSelectedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/context-selected-event-payload.schema.json",
+  type: "object",
+  properties: {
+    // Historical selections used the event allowlist without a payload schema.
+    documentId: {},
+    reasonCode: {},
+    ruleId: {},
+    required: {},
+    scope: {},
+    knowledgeContext: {},
+    origin: { type: "string", enum: ["hook", "agent_query", "managed_turn"] },
+    conceptId: { type: "string", pattern: "^concept_[a-f0-9]{24}$" },
+    path: repositoryRelativePathSchema,
+    contentHash: sha256Schema,
+    providerSessionDigest: sha256Schema,
+    providerTurnDigest: { ...sha256Schema, type: ["string", "null"] },
+    contextEventId: eventIdSchema,
+  },
+  if: { properties: { origin: { const: "agent_query" } }, required: ["origin"] },
+  then: {
+    properties: {
+      documentId: documentIdSchema,
+      path: {},
+      contentHash: {},
+      providerSessionDigest: {},
+      providerTurnDigest: {},
+      contextEventId: {},
+    },
+    required: [
+      "documentId",
+      "path",
+      "contentHash",
+      "providerSessionDigest",
+      "providerTurnDigest",
+      "contextEventId",
+    ],
+  },
+  else: {
+    properties: { providerSessionDigest: false, providerTurnDigest: false, contextEventId: false },
+  },
+  additionalProperties: false,
 } as const;
 
 const injectedDocumentSchema = {

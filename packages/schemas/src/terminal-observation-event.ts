@@ -1,24 +1,33 @@
 import type { FromSchema } from "json-schema-to-ts";
 
-import { eventIdSchema, repositoryRelativePathSchema, sha256Schema } from "./common.js";
+import {
+  documentIdSchema,
+  eventIdSchema,
+  repositoryRelativePathSchema,
+  sha256Schema,
+} from "./common.js";
 
 const observationIdSchema = {
   type: "string",
   pattern: "^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
 } as const;
 
-const optionalTurnDigestSchema = { anyOf: [sha256Schema, { type: "null" }] } as const;
+const optionalTurnDigestSchema = { ...sha256Schema, type: ["string", "null"] } as const;
 const optionalWorkspaceIdSchema = {
-  anyOf: [{ type: "string", pattern: "^wsp_[a-f0-9]{24}$" }, { type: "null" }],
+  type: ["string", "null"],
+  pattern: "^wsp_[a-f0-9]{24}$",
 } as const;
 const optionalAssignmentIdSchema = {
-  anyOf: [{ type: "string", pattern: "^asn_[a-f0-9]{24}$" }, { type: "null" }],
+  type: ["string", "null"],
+  pattern: "^asn_[a-f0-9]{24}$",
 } as const;
 const optionalWriterSessionIdSchema = {
-  anyOf: [{ type: "string", pattern: "^ses_[A-Za-z0-9_-]{8,128}$" }, { type: "null" }],
+  type: ["string", "null"],
+  pattern: "^ses_[A-Za-z0-9_-]{8,128}$",
 } as const;
 const optionalPositiveIntegerSchema = {
-  anyOf: [{ type: "integer", minimum: 1 }, { type: "null" }],
+  type: ["integer", "null"],
+  minimum: 1,
 } as const;
 const optionalExecutionKindSchema = {
   anyOf: [{ type: "string", enum: ["worker", "integrator"] }, { type: "null" }],
@@ -215,6 +224,20 @@ export const terminalContextPreparedEventPayloadSchema = {
     contextHash: sha256Schema,
     recommendationCount: { type: "integer", minimum: 0, maximum: 100 },
     loadedDocuments: { type: "array", items: preparedDocumentSchema, maxItems: 6 },
+    selectedPointers: {
+      type: "array",
+      maxItems: 3,
+      items: {
+        type: "object",
+        properties: {
+          path: repositoryRelativePathSchema,
+          contentHash: sha256Schema,
+          kind: { type: "string", enum: ["skill", "decision", "instruction"] },
+        },
+        required: ["path", "contentHash", "kind"],
+        additionalProperties: false,
+      },
+    },
     workstreamId: { anyOf: [{ type: "string", pattern: "^wks_[a-f0-9]{24}$" }, { type: "null" }] },
     workstreamRevision: { anyOf: [{ type: "integer", minimum: 1 }, { type: "null" }] },
     workstreamSnapshotHash: { anyOf: [sha256Schema, { type: "null" }] },
@@ -338,17 +361,17 @@ export const terminalReferenceObservedEventPayloadSchema = {
     observationId: observationIdSchema,
     contextEventId: eventIdSchema,
     conceptId: { type: "string", pattern: "^concept_[a-f0-9]{24}$" },
+    documentId: documentIdSchema,
     path: repositoryRelativePathSchema,
     contentHash: sha256Schema,
     scope: { type: "string", enum: ["full", "prefix"] },
-    referenceKind: { const: "output_citation" },
+    referenceKind: { type: "string", enum: ["output_citation", "path_mention"] },
     providerSessionDigest: sha256Schema,
     providerTurnDigest: optionalTurnDigestSchema,
   },
   required: [
     "observationId",
     "contextEventId",
-    "conceptId",
     "path",
     "contentHash",
     "scope",
@@ -356,6 +379,12 @@ export const terminalReferenceObservedEventPayloadSchema = {
     "providerSessionDigest",
     "providerTurnDigest",
   ],
+  if: { properties: { referenceKind: { const: "output_citation" } }, required: ["referenceKind"] },
+  then: {
+    properties: { conceptId: {} },
+    required: ["conceptId"],
+  },
+  else: { properties: { documentId: {} }, required: ["documentId"] },
   additionalProperties: false,
 } as const;
 
@@ -366,8 +395,10 @@ export const terminalTurnObservedEventPayloadSchema = {
   properties: {
     observationId: observationIdSchema,
     contextEventId: eventIdSchema,
-    referenceEventIds: { type: "array", items: eventIdSchema, maxItems: 6, uniqueItems: true },
-    referenceCount: { type: "integer", minimum: 0, maximum: 6 },
+    referenceEventIds: { type: "array", items: eventIdSchema, uniqueItems: true },
+    referenceCount: { type: "integer", minimum: 0 },
+    selectedCount: { type: "integer", minimum: 0 },
+    pathMentionCount: { type: "integer", minimum: 0 },
     referenceTelemetry: { type: "string", enum: ["observed", "unavailable"] },
     lifecycleStatus: { type: "string", enum: ["current", "action_required"] },
     completionResult: { type: "string", enum: ["allowed", "blocked"] },
@@ -402,6 +433,8 @@ export const terminalTurnObservedEventPayloadSchema = {
     "providerTurnDigest",
   ],
   dependentRequired: {
+    selectedCount: ["pathMentionCount"],
+    pathMentionCount: ["selectedCount"],
     repositoryRevisionBefore: [
       "repositoryRevisionAfter",
       "repositoryChanged",

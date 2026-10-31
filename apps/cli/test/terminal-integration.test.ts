@@ -1741,6 +1741,56 @@ describe("compact terminal prompt context", () => {
     process.env.LERVO_TERMINAL_CONTEXT = "retrieval";
   });
 
+  it("records only delivered exact-anchor pointers without loading their bodies", async () => {
+    const root = await initializedRepository();
+    const path = "docs/decisions/0541-observe-turn.md";
+    const body = "# ADR-0541: Observe the turn\n\nKeep reference evidence distinct from use.\n";
+    await mkdir(resolve(root, "docs/decisions"), { recursive: true });
+    await writeFile(resolve(root, path), body);
+    let output = "";
+    expect(
+      await runCli(
+        ["terminal", "hook", "--provider", "claude", "--contract", "2"],
+        {
+          cwd: root,
+          stdout: (text) => {
+            output += text;
+          },
+          stderr: () => undefined,
+          stdin: async () =>
+            JSON.stringify({
+              hook_event_name: "UserPromptSubmit",
+              session_id: "anchor-session",
+              prompt: "ADR-0541",
+            }),
+        },
+        {
+          projectSearchQueries: async () => {
+            throw new Error("No provider call is allowed.");
+          },
+        },
+      ),
+    ).toBe(0);
+    const context = JSON.parse(output).hookSpecificOutput.additionalContext;
+    expect(context).toContain(path);
+    expect(context).not.toContain("Keep reference evidence distinct from use.");
+    const storage = await openProjectStorage(root);
+    try {
+      const event = storage.events
+        .list({ limit: 1000 })
+        .findLast((item) => item.type === "terminal.context.prepared");
+      expect(event?.payload).toMatchObject({
+        selectedPointers: [{ path, contentHash: sha256(body), kind: "decision" }],
+        loadedDocuments: [],
+        selectionStatus: "selected",
+        loadingStatus: "not_run",
+        providerUseStatus: "unknown",
+      });
+    } finally {
+      await storage.close();
+    }
+  });
+
   it.each(["codex", "claude"] as const)(
     "delivers publication policy and continuation without query projection for %s",
     async (provider) => {

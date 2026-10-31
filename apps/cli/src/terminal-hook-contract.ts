@@ -53,6 +53,8 @@ export interface TerminalActivationReceipt {
   repositoryRevision?: string;
   observationEventId?: string;
   referenceCount?: number;
+  selectedCount?: number;
+  pathMentionCount?: number;
 }
 
 export interface TerminalRuntimeActivation {

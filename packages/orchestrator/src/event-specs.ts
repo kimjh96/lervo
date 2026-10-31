@@ -18,6 +18,7 @@ export function preparedContextEventSpecs(loaded: LoadedContext): ManagedEventSp
       occurredAt: evidence.recordedAt,
       actor: systemActor,
       payload: {
+        origin: "managed_turn",
         documentId: evidence.documentId,
         reasonCode: evidence.reasonCode,
         ruleId: evidence.ruleId,

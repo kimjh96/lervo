@@ -302,6 +302,8 @@ export async function runTerminalHookCommand(
             occurredAt,
             observationEventId: observation.eventId,
             referenceCount: observation.referenceCount,
+            selectedCount: observation.selectedCount,
+            pathMentionCount: observation.pathMentionCount,
           }),
         );
         await recordTerminalStageObservation({
@@ -326,6 +328,8 @@ export async function runTerminalHookCommand(
           occurredAt,
           observationEventId: observation.eventId,
           referenceCount: observation.referenceCount,
+          selectedCount: observation.selectedCount,
+          pathMentionCount: observation.pathMentionCount,
         }),
       );
       await recordTerminalStageObservation({
