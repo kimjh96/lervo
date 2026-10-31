@@ -30,16 +30,22 @@ At `Stop`, the hook queues a bounded work record for the closing turn next to th
 - the turn's steps from the provider transcript: tool kinds, normalized executable identifiers for shell commands without arguments, repository-relative paths, and each step's success or failure where the transcript records it;
 - repository revisions before and after, and content hashes of changed files at that time;
 - verification outcomes observed in the turn, such as test or check commands and their exit status;
-- a work digest.
+- a work digest: the hash of the provider session digest, turn digest, both revisions, and the transcript entry identifiers. A repeated `Stop` for the same turn has the same digest and is recorded once.
 
 The next owner turn's capture call receives that work record with the owner's prompt. One provider call returns two independent fields:
 
 - `captureClass`, unchanged from ADR-0467, for durable instructions, corrections, and decisions;
 - `practice`: null, or a reusable procedure. A procedure has a goal, when to use it and when not to, inputs and preconditions, steps, how to confirm success, when to stop, and which parts are verified or only assumed.
 
-The owner's reply counts as evidence. Acceptance, correction, or a request such as "make that a skill" changes confidence, not eligibility. A practice extraction failure never fails rule capture. Task-scoped one-off work returns `practice: null`.
+If no owner turn arrives within 30 minutes, the resident assesses the work record alone in a practice-only call, under the skill-learning budget. The owner's input is never required.
+
+When it arrives, the owner's reply counts as evidence. Acceptance, correction, or a request such as "make that a skill" changes confidence, not eligibility. A practice extraction failure never fails rule capture. Task-scoped one-off work returns `practice: null`.
 
 A single completed, observed turn is enough for a candidate, as ADR-0458 requires. A turn whose outcome was not observed, or failed, cannot become a verified procedure; at most it is recorded as `verification_unavailable`.
+
+### Evidence lasts until review
+
+At assessment, a turn with a practice keeps a sanitized evidence bundle: the procedure fields, the step list, the outcome, the file hashes, and excerpts of the reply and of cited files. Lines the repository scanner classifies as secret are removed before the bundle is stored or sent to any provider. The bundle stays on the observing host until its candidate is resolved, or for 7 days. Review runs on the observing host against that bundle. Other hosts receive only the draft, hashes, and the resolution. A candidate not resolved within 7 days expires with `assessment_expired`.
 
 ### Shapes rank, they do not gate
 
@@ -97,7 +103,7 @@ ADR-0542 observations and managed-run `skill.invoked` receipts are combined, eac
 
 The window starts when the version is confirmed exposed: the file is present on the integration target and the provider loaded it, where observable. Usage aggregates (counts, last observed time, coverage) are exchanged per host.
 
-A Lervo-generated skill that is `unused_with_coverage` for 30 days after at least 20 observed turns is re-evaluated by the reviewer agent. The reviewer may retire it, through the same write and publication path. `unknown` never leads to retirement. A hand-written skill is never proposed for removal on missing observation; only `unused_with_coverage` for 90 days lets it appear as an informational health item.
+A Lervo-generated skill that is `unused_with_coverage` for 30 days after at least 20 observed turns is re-evaluated by the reviewer agent. The reviewer also weighs how often its trigger situation occurred in observed work. A skill for a rare task, such as a quarterly release, is kept. The reviewer may retire it, through the same write and publication path. `unknown` never leads to retirement. A hand-written skill is never proposed for removal on missing observation; only `unused_with_coverage` for 90 days lets it appear as an informational health item.
 
 ### Hosts and Hub
 
@@ -113,7 +119,7 @@ Skill learning has its own daily budget under the host provider budget, below ru
 - at most 3 drafts and 3 reviews per repository per day, counting retries and retirement reviews;
 - at most 120,000 tokens per day across repositories on a host.
 
-Input and output tokens are reserved before each call. An unobserved usage keeps its reservation. The added capture input is bounded at 24 KiB per turn. Skill learning waits whenever rule capture or foreground work needs the provider.
+Tokens added to a capture call by the work record count against the skill-learning budget, not the capture budget. Input and output tokens are reserved before each call. An unobserved usage keeps its reservation. The added capture input is bounded at 24 KiB per turn. Skill learning waits whenever rule capture or foreground work needs the provider.
 
 ## Events, states, privacy, and failure meaning
 
@@ -134,25 +140,26 @@ Events:
 - `knowledge.skill_candidate.proposed`: `candidateId`, `practiceDigest`, `workDigests`, `overlap` (`new | partial_overlap | conflict`), `targetSkill` or null, `draftHash`, `occurredAt`.
 - `knowledge.skill_candidate.resolved`: `candidateId`, `decision`, `reasonCode`, `reviewerAgentId`, `reviewedDraftHash`, `catalogDigest`, `occurredAt`.
 - `knowledge.skill.usage_assessed`: `skillName`, `versionHash`, `usageState`, `observedTurns`, `coverage`, `occurredAt`.
-- `knowledge.skill.retired`: `skillName`, `versionHash`, `retirementCommit` or null, `occurredAt`.
+- `knowledge.skill.retired`: `skillName`, `versionHash`, `retirementCommit`, `occurredAt`. It is recorded only after the removal commit lands on the integration target. A pending retirement is a candidate state, not this event.
 
 Materialization and publication reuse existing knowledge materialization and publication events, linked by commit and hash.
 
 Failure codes:
 
-| Code                            | Meaning                                     | Retry                          |
-| ------------------------------- | ------------------------------------------- | ------------------------------ |
-| `source_incomplete`             | The work record was truncated or missing.   | Retryable with new evidence.   |
-| `verification_unavailable`      | No observed outcome.                        | Not promotable from this turn. |
-| `review_invalid`                | The review did not bind the current hashes. | Retried.                       |
-| `target_changed`                | The skill file changed before writing.      | Re-assessed.                   |
-| `publication_authority_missing` | The delegation lacks the root.              | Waits for scope.               |
-| `usage_coverage_unknown`        | Coverage is incomplete.                     | Blocks retirement.             |
-| `provider_not_admitted`         | No admitted provider.                       | Waits.                         |
+| Code                            | Meaning                                     | Retry                                   |
+| ------------------------------- | ------------------------------------------- | --------------------------------------- |
+| `source_incomplete`             | The work record was truncated or missing.   | Retryable with new evidence.            |
+| `verification_unavailable`      | No observed outcome.                        | Not promotable from this turn.          |
+| `review_invalid`                | The review did not bind the current hashes. | Retried.                                |
+| `target_changed`                | The skill file changed before writing.      | Re-assessed.                            |
+| `publication_authority_missing` | The delegation lacks the root.              | Waits for scope.                        |
+| `usage_coverage_unknown`        | Coverage is incomplete.                     | Blocks retirement.                      |
+| `provider_not_admitted`         | No admitted provider.                       | Waits.                                  |
+| `assessment_expired`            | Not resolved within 7 days.                 | Closed; the evidence bundle is deleted. |
 
 Privacy:
 
-- Work records live in `.lervo/state/knowledge/practice/`: Git-ignored, 0600 files in 0700 directories, expiring after 24 hours or at assessment, whichever comes first. Shapes keep only step kinds, executable identifiers, and digests.
+- Work records live in `.lervo/state/knowledge/practice/`: Git-ignored, 0600 files in 0700 directories, A record without a practice is deleted at assessment. Evidence bundles follow the retention above. Shapes keep only step kinds, executable identifiers, and digests. Tests cover the same permissions on macOS and Linux.
 - Provider input is limited to repository paths inside the delegation's read roots, excludes paths the scanner classifies as private or secret, follows no symlink out of the repository, and is capped at 8 KiB per file and 32 KiB per candidate.
 - Executable identifiers are normalized to a name without directories.
 - Events carry identifiers, hashes, digests, and published skill paths only.
@@ -172,6 +179,8 @@ Focused tests must show:
 - missing write roots wait with `publication_authority_missing`, and a `.claude/skills` entry is never overwritten;
 - `unknown` coverage never retires, and `unused_with_coverage` triggers re-evaluation rather than deletion;
 - two hosts observing the same practice produce one merged candidate, and a standalone host completes locally;
-- reservations hold when usage is unobserved, and the funnel records each drop reason.
+- reservations hold when usage is unobserved, and the funnel records each drop reason;
+- a work record with no following owner turn is assessed after 30 minutes;
+- the reviewer reads the retained, sanitized evidence bundle, and secret lines never reach a provider.
 
 Installed verification must show, on Mac and WSL, a skill learned from ordinary directive work without a teaching or request prompt, reviewed by a separate agent, published through a knowledge pull request, and later invoked.
