@@ -1,4 +1,4 @@
-import { parse } from "@babel/parser";
+import { parse, type ParserPlugin } from "@babel/parser";
 import { extname } from "node:path";
 
 import { RepositoryKnowledgeError } from "./types.js";
@@ -129,6 +129,9 @@ export function extractJavaScriptSymbolSpans(source: string, path: string): Java
   const extension = extname(path).toLowerCase();
   const typescript =
     extension === ".ts" || extension === ".tsx" || extension === ".mts" || extension === ".cts";
+  // Declaration files (`.d.ts`, `.d.mts`, `.d.cts`) are ambient: `export const X: T;` has no
+  // initializer. Parsing them as implementation files rejected valid declarations.
+  const declaration = typescript && /\.d\.[cm]?ts$/iu.test(path);
   const jsx =
     extension === ".js" ||
     extension === ".jsx" ||
@@ -147,7 +150,7 @@ export function extractJavaScriptSymbolSpans(source: string, path: string): Java
       attachComment: false,
       errorRecovery: false,
       plugins: [
-        ...(typescript ? ["typescript" as const] : []),
+        ...(typescript ? [["typescript", { dts: declaration }] satisfies ParserPlugin] : []),
         ...(jsx ? ["jsx" as const] : []),
         "decorators-legacy",
       ],
