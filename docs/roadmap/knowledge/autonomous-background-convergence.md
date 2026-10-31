@@ -23,3 +23,7 @@ The first maintenance recovery delivery is installed on Mac and WSL, with reader
 ## Capacity and optional-context recovery acceptance
 
 [ADR-0532](../../decisions/knowledge/maintenance/0532-continue-background-review-past-capacity-and-optional-context-failures.md) adds source changes and focused tests for the reported axli and flemo stops. Tests are not executed in this task at the owner's request. Installed acceptance remains pending: observe capacity-blocked sources parked with other coverage retained, generated paths absent from assessment, optional context failures recorded without stopping assessment, required instructions failing closed, and both obligations reaching normalization without interrupting development. Existing canonical-folder capacity repair is separate reviewed work.
+
+## Bounded storage acceptance
+
+[ADR-0534](../../decisions/operations/storage/0534-bound-installed-runtimes-and-convergence-artifacts.md) adds managed runtime retirement and project CAS collection. Source implementation and focused test cases are present. Tests remain unexecuted by explicit owner instruction. Installed acceptance must verify reclamation and continued rollback, normalization lineage, parked-source status and historical settlement on both Mac and WSL. Record actual reachable bytes and reclaimed bytes; disk totals alone do not establish savings. Baseline/capture envelope deduplication remains a separate compatibility follow-up.

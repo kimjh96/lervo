@@ -4,6 +4,8 @@ Status: accepted
 Date: 2026-08-26
 Amended by: [ADR-0518](0518-retire-settled-convergence-checkouts-on-every-host.md)
 
+Amended by: [ADR-0534](0534-bound-installed-runtimes-and-convergence-artifacts.md)
+
 ## Context
 
 The deletable-state boundary made a full `.lervo/state` reset safe, but caches, reviewed candidates, completed deliberation workspaces, and observations still grew independently. A global reset could reach its smaller inventory bound before an operator reclaimed disposable state. Filename and age alone are insufficient deletion authority because pending review and recovery work share the derived root.

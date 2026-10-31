@@ -1,6 +1,9 @@
+import { assertRealRuntimeRoot } from "./node-runtime-root-guard.js";
+import { withNodeRuntimeRetentionLock } from "./node-runtime-retention-lock.js";
 import { randomUUID } from "node:crypto";
 import { lstat, readlink, rename, rm, symlink } from "node:fs/promises";
-import { homedir } from "node:os";
+import { nodeRuntimesDirectory } from "@lervo/runtime-security";
+export { nodeRuntimesDirectory } from "@lervo/runtime-security";
 import { basename, dirname, resolve } from "node:path";
 
 /**
@@ -13,16 +16,6 @@ import { basename, dirname, resolve } from "node:path";
 export const NODE_RUNTIME_CURRENT_POINTER = "current";
 export const NODE_RUNTIME_PAYLOAD = "node-runtime.js";
 const RUNTIME_DIRECTORY = /^[a-f0-9]{16}$/u;
-
-export function nodeRuntimesDirectory(
-  homeDirectory: string = homedir(),
-  platform: NodeJS.Platform = process.platform,
-): string {
-  const home = resolve(homeDirectory);
-  return platform === "darwin"
-    ? resolve(home, "Library", "Application Support", "Lervo", "runtimes", "node")
-    : resolve(home, ".local", "share", "lervo", "runtimes", "node");
-}
 
 /** The stable payload path that always resolves to the activated runtime. */
 export function currentNodeRuntimePayload(
@@ -76,9 +69,24 @@ export async function pointCurrentNodeRuntime(input: {
   homeDirectory?: string;
   platform?: NodeJS.Platform;
 }): Promise<NodeRuntimePointerChange> {
+  return withNodeRuntimeRetentionLock(
+    resolve(nodeRuntimesDirectory(input.homeDirectory, input.platform), ".retention.lock"),
+    () => swapCurrentNodeRuntime(input),
+  );
+}
+
+async function swapCurrentNodeRuntime(input: {
+  runtimeDirectory: string;
+  homeDirectory?: string;
+  platform?: NodeJS.Platform;
+}): Promise<NodeRuntimePointerChange> {
   if (!RUNTIME_DIRECTORY.test(input.runtimeDirectory))
     throw new Error("The Node runtime directory name is invalid.");
   const runtimes = nodeRuntimesDirectory(input.homeDirectory, input.platform);
+  await assertRealRuntimeRoot(runtimes, input.platform);
+  const directory = await lstat(resolve(runtimes, input.runtimeDirectory));
+  if (!directory.isDirectory() || directory.isSymbolicLink())
+    throw new Error("The Node runtime directory is unsafe.");
   const payload = await lstat(resolve(runtimes, input.runtimeDirectory, NODE_RUNTIME_PAYLOAD));
   if (!payload.isFile() || payload.isSymbolicLink())
     throw new Error("The Node runtime payload to activate is not a regular file.");

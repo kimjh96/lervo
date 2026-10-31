@@ -1,3 +1,4 @@
+import { compactProjectConvergenceArtifacts } from "./cas-retention.js";
 import { loadConvergenceDelegation } from "./delegation.js";
 import { listAssignments } from "@lervo/agent-workforce";
 import { hasCurrentForegroundLease } from "./foreground-admission.js";
@@ -93,6 +94,11 @@ export async function runAutonomousKnowledgeWorker(input: {
   const liveWorkPending =
     input.liveWorkPending ??
     (async () => hasCurrentForegroundLease(await listAssignments(root), Date.now()));
+  await compactProjectConvergenceArtifacts(
+    input.storage,
+    async () =>
+      signal.aborted || (await liveWorkPending()) || ((await input.shouldYield?.()) ?? false),
+  ).catch(() => undefined);
   const ownerTurnWork = () =>
     runOwnerTurnCaptureWork({
       storage: input.storage,

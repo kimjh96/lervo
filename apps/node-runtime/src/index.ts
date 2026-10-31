@@ -50,3 +50,5 @@ export {
   type SupervisedManagedInvocation,
 } from "./supervision-managed-admission.js";
 export { retireUnstartedSupervisionWorkspace } from "./supervision-workspace-retirement.js";
+
+export { createProcessObserver, type ProcessObservation } from "@lervo/node-work-admission";

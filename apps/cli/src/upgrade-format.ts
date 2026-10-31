@@ -60,6 +60,10 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
   const lines = [
     `Repository upgrade: ${plan.status}`,
     `plan: ${plan.planId}`,
+    `runtime retention: ${plan.stages.runtimeRetention.disposition} (${plan.stages.runtimeRetention.reason}) · ${plan.stages.runtimeRetention.candidates.length} directories, ${plan.stages.runtimeRetention.reclaimableBytes} bytes`,
+    ...plan.stages.runtimeRetention.candidates.map(
+      (item) => `  remove runtime ${item.name} (${item.bytes} bytes)`,
+    ),
     `CLI: ${plan.cli.version} · ${plan.cli.buildHash}`,
     `capabilities: ${plan.stages.capabilities.disposition}`,
     `workforce role bindings: ${plan.stages.workforce.disposition} (${plan.stages.workforce.reason})`,
