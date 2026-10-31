@@ -2,6 +2,7 @@
 
 These scopes do not reopen v0 acceptance; each follows its linked ADR and roadmap.
 
+- [Core outcomes](../../product/vision/core-outcomes.md): sets the priority of every scope below. Work proceeds Know, Find, Do, Connect, Collaborate, then Surface. An item is complete only when the owner can observe it in installed use and its live measure moves.
 - [Product outcome convergence](../product-outcome-convergence.md): truth ledger for outcomes, evidence, and gaps.
 - [CI cost and duration](../operations/ci-cost-and-duration.md): approved shared-build and release-verification redesign; local and hosted acceptance are tracked separately.
 - [Foundation hardening](../foundation-hardening.md): completed event compatibility, causal work, resource evidence, adverse-condition proof, and enhancement handoff.
