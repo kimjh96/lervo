@@ -20,3 +20,7 @@ The CLI uses 24 private workspace packages. Publishing them separately would exp
 ## Consequences
 
 Users install one CLI artifact while development code remains modular. This proves local build, pack, and deploy behavior, not registry installation, empty-consumer tar installation, every native platform, signing, or SBOM.
+
+## Amendment (2026-10-31)
+
+The deployment unit is still one npm package built from modular workspace sources, but it is no longer one file. The package now publishes `dist/bin.js`, `dist/terminal-hook.js`, `dist/node-runtime.js`, the shared `dist/repository-runtime.js` with its members and `repository-runtime.json` inventory, and the native asset pairs under `dist/native/`. The current build and file list are specified in [CLI bundle build configuration and execution](../../distribution/cli-bundle-construction/build.md), under [ADR-0502](0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) and [ADR-0503](../execution/verification/0503-compile-schema-validators-at-build-time.md). `dist/` is a build output and is not tracked in the repository.
