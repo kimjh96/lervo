@@ -41,6 +41,7 @@ import { archiveScopes, historicalDocumentMarker } from "./historical-documents.
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
 import { summarizeIncrementalReconciliation } from "./incremental-reconciliation.js";
 import { loadDocumentLayoutContract } from "./document-layout-contract.js";
+import { scanUnitsBySource } from "./scan-unit-index.js";
 import {
   isRebuildableStructuralProjectionPath,
   legacyStructuralBundleDirectory,
@@ -548,7 +549,9 @@ function sourceFileUnit(
   scan: RepositoryKnowledgeScan,
   source: RepositorySource,
 ): RepositorySourceUnit | undefined {
-  return scan.units.find((item) => item.sourceId === source.sourceId && item.unitKind === "file");
+  return scanUnitsBySource(scan)
+    .get(source.sourceId)
+    ?.find((item) => item.unitKind === "file");
 }
 
 function desiredOutputs(input: {
