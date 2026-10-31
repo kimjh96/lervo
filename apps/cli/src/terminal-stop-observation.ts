@@ -1,5 +1,9 @@
 import { openProjectStorage } from "@lervo/project-storage";
 import {
+  enqueueTerminalSkillTurn,
+  terminalTranscriptPosition,
+} from "@lervo/repository-knowledge-runtime";
+import {
   canonicalJson,
   sha256,
   type TerminalIntegrationProvider,
@@ -78,6 +82,7 @@ export async function recordObservedTerminalTurn(input: {
     const finalWorkstream = await verifiedCurrentWorkstream(storage);
     const referenceEventIds = references.map(() => newTerminalIdentifier("evt"));
     const turnEventId = newTerminalIdentifier("evt");
+    const transcriptEnd = await terminalTranscriptPosition(input.hookInput.transcriptPath);
     const change = await plannedTerminalRepositoryChange({
       root: input.root,
       storage,
@@ -157,6 +162,17 @@ export async function recordObservedTerminalTurn(input: {
           occurredAt: input.occurredAt,
           change,
         });
+    });
+    await enqueueTerminalSkillTurn(input.root, {
+      provider: input.provider,
+      providerSessionDigest: input.coordinates.providerSessionDigest,
+      providerTurnDigest: input.coordinates.providerTurnDigest,
+      contextEventId: context.eventId,
+      turnEventId,
+      // The transcript range starts at this turn's own prompt only when its marker is proven.
+      start: marker?.contextEventId === context.eventId ? (marker.transcript ?? null) : null,
+      end: transcriptEnd,
+      enqueuedAt: input.occurredAt,
     });
     return {
       eventId: turnEventId,

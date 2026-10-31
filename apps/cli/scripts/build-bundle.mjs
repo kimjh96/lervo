@@ -49,7 +49,7 @@ const result = await build({
   target: "node22.13",
 });
 
-await build({
+const terminalHook = await build({
   absWorkingDir: repositoryRoot,
   entryPoints: ["apps/cli/src/terminal-hook-bin.ts"],
   outfile: "apps/cli/dist/terminal-hook.js",
@@ -62,10 +62,27 @@ await build({
   legalComments: "none",
   logLevel: "silent",
   mainFields: ["module", "main"],
+  metafile: true,
   platform: "node",
   plugins: [nodeSqliteBundlePlugin],
   target: "node22.13",
 });
+
+const residentSkillInputs = Object.values(terminalHook.metafile.outputs).flatMap((output) =>
+  Object.entries(output.inputs)
+    .filter(
+      ([path, input]) =>
+        input.bytesInOutput > 0 &&
+        /repository-knowledge-runtime\/(?:src|dist)\/(?:terminal-installed-skills|terminal-skill-(?:stage|transcript(?:-adapters)?))\.[jt]s$/u.test(
+          path,
+        ),
+    )
+    .map(([path]) => path),
+);
+if (residentSkillInputs.length > 0)
+  throw new Error(
+    `Resident skill parsing entered the hook bundle: ${residentSkillInputs.join(", ")}`,
+  );
 
 const nodeResult = await build({
   absWorkingDir: repositoryRoot,
@@ -95,6 +112,9 @@ await chmod(resolve(outputDirectory, "node-runtime.js"), 0o755);
 
 // Repositories reject a generated hook runtime above this budget, which would block `lervo upgrade`.
 const terminalHookBytes = (await stat(resolve(outputDirectory, "terminal-hook.js"))).size;
+process.stdout.write(
+  `Terminal hook runtime: ${terminalHookBytes} bytes (limit ${TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES}).\n`,
+);
 if (terminalHookBytes > TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES)
   throw new Error(
     `dist/terminal-hook.js is ${terminalHookBytes} bytes, above the ${TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES}-byte terminal hook runtime budget.`,

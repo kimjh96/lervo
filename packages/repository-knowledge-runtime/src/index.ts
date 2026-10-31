@@ -1,4 +1,11 @@
 export { runAutonomousKnowledgeWorker } from "./worker.js";
+export { readTerminalSkillUsage } from "./terminal-skill-usage-state.js";
+export {
+  enqueueTerminalSkillTurn,
+  terminalTranscriptPosition,
+  validTranscriptPosition,
+  type TranscriptPosition,
+} from "./terminal-skill-queue.js";
 export {
   convergenceDelegationPlanHash,
   loadConvergenceDelegation,

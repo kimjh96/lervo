@@ -15,6 +15,7 @@ export interface ParsedTerminalHookInput {
   stopHookActive: boolean;
   prompt?: string;
   lastAssistantMessage?: string | null;
+  transcriptPath?: string;
 }
 
 export interface UnmanagedTerminalCoordinates {

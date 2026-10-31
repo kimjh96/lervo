@@ -89,6 +89,12 @@ export async function runAutonomousKnowledgeWorker(input: {
     }
 > {
   const root = input.storage.paths.repositoryRoot;
+  // Transcript evidence is host-local observation; it requires no provider call or convergence authority.
+  await withRepositoryKnowledgeWorkerLock(root, async () => {
+    // Keep resident parsing lazy: hooks import the package's observation-only queue exports.
+    const { runTerminalSkillObservationCycle } = await import("./terminal-skill-stage.js");
+    return runTerminalSkillObservationCycle({ storage: input.storage, now: new Date() });
+  }).catch(() => {});
   const signal = input.signal ?? new AbortController().signal;
   const liveWorkPending =
     input.liveWorkPending ??

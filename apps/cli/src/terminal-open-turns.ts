@@ -4,6 +4,10 @@ import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import type { TerminalIntegrationProvider } from "@lervo/repository-knowledge";
+import {
+  validTranscriptPosition,
+  type TranscriptPosition,
+} from "@lervo/repository-knowledge-runtime";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
 
 const MAXIMUM_MARKERS = 128;
@@ -22,6 +26,7 @@ export interface OpenTerminalTurn {
   providerTurnDigest: string | null;
   contextEventId: string;
   openedAt: string;
+  transcript?: TranscriptPosition | null;
 }
 
 async function markerDirectory(root: string, create: boolean): Promise<string> {
@@ -47,6 +52,9 @@ function isMarker(value: unknown): value is OpenTerminalTurn {
     HASH.test(item.providerSessionDigest) &&
     (item.providerTurnDigest === null || HASH.test(item.providerTurnDigest)) &&
     EVENT.test(item.contextEventId) &&
+    (item.transcript === undefined ||
+      item.transcript === null ||
+      validTranscriptPosition(item.transcript)) &&
     Number.isFinite(Date.parse(item.openedAt))
   );
 }
@@ -64,9 +72,9 @@ async function readMarkers(root: string, now: Date): Promise<OpenTerminalTurn[] 
       const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
       let value: unknown;
       try {
-        const bytes = Buffer.alloc(2049);
+        const bytes = Buffer.alloc(8193);
         const { bytesRead } = await handle.read(bytes, 0, bytes.length, 0);
-        if (bytesRead > 2048) return null;
+        if (bytesRead > 8192) return null;
         value = JSON.parse(bytes.subarray(0, bytesRead).toString("utf8"));
       } finally {
         await handle.close();

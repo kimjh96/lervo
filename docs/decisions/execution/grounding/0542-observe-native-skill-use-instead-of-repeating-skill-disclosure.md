@@ -38,6 +38,10 @@ Each counted invocation records one `terminal.skill.observed` event with the ski
 
 A transcript entry proves that the provider invoked the skill. It does not prove that the skill's instructions were followed. These events are distinct from `skill.invoked`, which [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md) evidence reserves for managed runs that deliver the skill body.
 
+### The hook bundle starts the full CLI for background work
+
+The terminal hook bundle no longer contains the knowledge worker. `lervo upgrade` and `lervo migrate knowledge` record the installed CLI entry in `.lervo/state/terminal-integration/worker-entry.json`. After `Stop`, the hook starts `knowledge worker --once` through that entry, detached. When the record is missing or its path no longer exists, the hook starts nothing; the host resident's next cycle does the same work. This removed about 650 KB from the hook bundle, which had 2 KB left under its 8 MiB limit.
+
 ### Use decides whether a skill earns its place
 
 A daily projection counts observed invocations per installed skill over 30 days. A skill with no observed invocation in 30 days, after at least 20 observed terminal turns in its repository, becomes a retirement candidate. The principal proxy reviews it with the usage evidence; the owner is not asked. Removing a skill remains a repository write through the normal publication path.

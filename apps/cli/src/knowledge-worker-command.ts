@@ -3,7 +3,6 @@ import {
   startAutonomousKnowledgeWorker,
   type ConvergenceOwnerVerdict,
 } from "@lervo/repository-knowledge-runtime";
-import { spawn } from "node:child_process";
 
 import {
   createKnowledgeConvergenceContinuity,
@@ -72,8 +71,8 @@ export async function runKnowledgeWorkerCommand(
   args: readonly string[],
   io: { cwd: string; stdout(message: string): void; stderr(message: string): void },
   /**
-   * The full CLI refreshes the core health projection each watch cycle. The terminal hook
-   * runtime omits it, so projection code never enters the hook bundle.
+   * The full CLI refreshes the core health projection each watch cycle. One-shot cycles
+   * leave that projection to their resident. No worker implementation enters the hook bundle.
    */
   options: { refreshHealth?: (root: string) => Promise<void> } = {},
 ): Promise<number> {
@@ -121,26 +120,4 @@ export async function runKnowledgeWorkerCommand(
   }
 }
 
-/**
- * Starts a detached worker after a turn or run has finished; the caller never waits for it. A
- * launch failure leaves the job queued for the next worker (`knowledge_worker_launch_failed`).
- */
-export function launchDetachedKnowledgeWorker(input: {
-  root: string;
-  entry: string;
-  args: readonly string[];
-}): boolean {
-  try {
-    const child = spawn(process.execPath, [input.entry, ...input.args], {
-      cwd: input.root,
-      detached: true,
-      stdio: "ignore",
-      env: process.env,
-    });
-    child.on("error", () => undefined);
-    child.unref();
-    return true;
-  } catch {
-    return false;
-  }
-}
+export { launchDetachedKnowledgeWorker } from "./detached-knowledge-worker.js";

@@ -123,9 +123,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:c90024da728d997791a5a0dd304a50e5471833c0a894789a881163edd57d75e9",
+      "contentHash": "sha256:81979be41d78b454270818082568f16753074d6178f99a443f8a65189ad037d6",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns canonical event privacy enforcement and its declarative allowlist and payload-schema registries. Turn-bound selection adds only identifiers, paths, hashes, counts, and registered schema names. Marker persistence, query recording, and reference detection remain outside this boundary.",
+      "rationale": "The module enforces canonical event payload privacy through one sanitization boundary and declarative allowlist/schema registries. Native-skill field registrations live in a dedicated payload module; transcript parsing, queue persistence, provider translation, and usage policy remain outside this module. Existing coordinate validators support the same event admission contract.",
       "disposition": "cohesive"
     },
     {
@@ -340,9 +340,9 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:3afb1dbc47aa5d37070e5b6b257dcf5d3fdf3b1352b092f6c54fe434298fb698",
+      "contentHash": "sha256:cd08394a68f59a88d6bd0277e9ce088fa0d59d6e83bfc791d019c451e524bf95",
       "responsibility": "Declarative schema registration catalog",
-      "rationale": "The module registers declarative schemas and forward references. The new context-selected payload is one catalog entry. Validation, event sanitization, query recording, and filesystem state remain in their owning modules.",
+      "rationale": "The module is a declarative schema catalog and reference registry. It contains no parsing, provider translation, persistence, or invocation policy. Native-skill schemas are defined in their own contract module and registered here through the existing public schema-name boundary.",
       "disposition": "cohesive"
     },
     {

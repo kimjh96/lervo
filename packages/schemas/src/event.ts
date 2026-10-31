@@ -65,6 +65,8 @@ export const eventTypesV1 = [
   "terminal.turn.declared",
   "terminal.reference.observed",
   "terminal.turn.observed",
+  "terminal.skill.observed",
+  "terminal.skill.turn_assessed",
   "workstream.snapshot.recorded",
   "agent.registered",
   "agent.identity.changed",

@@ -22,6 +22,8 @@ The [Slice 0 delivery notes](open-collaboration-platform/slice-0-delivery-notes.
 
 ## Acceptance and evidence
 
+Native skill observation follows [ADR-0542](../decisions/execution/grounding/0542-observe-native-skill-use-instead-of-repeating-skill-disclosure.md) and its [specification](../specifications/execution/provider-adapters/native-skill-observation.md). Source wiring includes offset-only hooks, resident invocation evidence, and a daily 30-day projection with principal-proxy retirement candidates. Focused tests are authored but unexecuted under the task constraint. Completion still requires passing those tests, an installed `axli` Claude `eli5` observation, and principal-proxy review evidence. No installed convergence is claimed.
+
 [Acceptance metrics and evidence corrections](open-collaboration-platform/acceptance-and-evidence.md) define weekly targets, evidence-based relabeling, and corrections to the original diagnosis.
 
 ## References

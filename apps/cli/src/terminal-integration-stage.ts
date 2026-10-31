@@ -10,6 +10,7 @@ import {
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { loadTerminalHookRuntime, loadTerminalHookRuntimeAssets } from "./terminal-runtime.js";
+import { rememberTerminalWorkerEntry } from "./terminal-worker-entry.js";
 
 export interface PreparedTerminalIntegration {
   plan: TerminalIntegrationPlan;
@@ -84,7 +85,7 @@ export async function applyTerminalIntegrationStage(input: {
     )
       throw new Error("The same terminal integration plan was already applied.");
     const identity = randomUUID().replaceAll("-", "");
-    return await applyTerminalIntegrationPlan({
+    const receipt = await applyTerminalIntegrationPlan({
       plan,
       runtimeContent,
       runtimeAssets,
@@ -121,6 +122,8 @@ export async function applyTerminalIntegrationStage(input: {
         });
       },
     });
+    await rememberTerminalWorkerEntry(input.repositoryRoot, process.env.LERVO_CLI_ENTRY);
+    return receipt;
   } finally {
     await storage.close();
   }

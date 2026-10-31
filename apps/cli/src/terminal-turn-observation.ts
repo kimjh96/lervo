@@ -6,6 +6,7 @@ import {
   type TerminalTurnDeclaredEventPayload,
 } from "@lervo/schemas";
 import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
+import type { TranscriptPosition } from "@lervo/repository-knowledge-runtime";
 
 import {
   allTerminalEvents,
@@ -72,6 +73,7 @@ export async function recordPreparedTerminalContext(input: {
   occurredAt: string;
   eventId?: string;
   storage?: ProjectStorage;
+  transcript?: TranscriptPosition | null;
 }): Promise<string> {
   input.context.documents.forEach((document) =>
     assertTerminalRepositoryRelativePath(document.path),
@@ -159,6 +161,7 @@ export async function recordPreparedTerminalContext(input: {
       providerTurnDigest: input.coordinates.providerTurnDigest,
       contextEventId: result.event.eventId,
       openedAt: input.occurredAt,
+      transcript: input.transcript ?? null,
     });
     return result.event.eventId;
   } finally {

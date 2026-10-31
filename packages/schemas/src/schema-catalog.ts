@@ -272,6 +272,10 @@ import {
   terminalBudgetReportSchema,
 } from "./terminal-budget-report.js";
 import {
+  terminalSkillObservedEventPayloadSchema,
+  terminalSkillTurnAssessedEventPayloadSchema,
+} from "./terminal-skill-event.js";
+import {
   terminalContextPreparedEventPayloadSchema,
   terminalReferenceObservedEventPayloadSchema,
   terminalTurnObservedEventPayloadSchema,
@@ -517,6 +521,8 @@ export const schemaCatalog = {
   terminalTurnDeclaredEventPayload: terminalTurnDeclaredEventPayloadSchema,
   terminalReferenceObservedEventPayload: terminalReferenceObservedEventPayloadSchema,
   terminalTurnObservedEventPayload: terminalTurnObservedEventPayloadSchema,
+  terminalSkillObservedEventPayload: terminalSkillObservedEventPayloadSchema,
+  terminalSkillTurnAssessedEventPayload: terminalSkillTurnAssessedEventPayloadSchema,
   workstreamSnapshot: workstreamSnapshotSchema,
   workstreamSnapshotRecordedEventPayload: workstreamSnapshotRecordedEventPayloadSchema,
   workstreamReplicationPublishRequest: workstreamReplicationPublishRequestSchema,
