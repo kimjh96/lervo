@@ -11,8 +11,10 @@ import { fixture } from "../../../packages/repository-knowledge-runtime/test/fix
 
 const ports = vi.hoisted(() => ({
   open: vi.fn(),
+  materialize: vi.fn(async () => "current"),
   start: vi.fn(() => async () => undefined),
 }));
+vi.mock("../src/terminal-runtime.js", () => ({ ensureHostTerminalRuntime: ports.materialize }));
 vi.mock("@lervo/project-storage", async (original) => ({
   ...(await original<Record<string, unknown>>()),
   openProjectStorage: ports.open,
@@ -200,5 +202,96 @@ it("starts one resident per delegated registered checkout and none for unenrolle
     expect(failures).toEqual([]);
   } finally {
     await stop();
+  }
+});
+
+it("repairs missing and invalid host pointers each cycle without owner action", async () => {
+  const { state } = await delegatedHost();
+  const store = resolve(state, "terminal-hooks");
+  const { ensureHostTerminalRuntime } = await vi.importActual<
+    typeof import("../src/terminal-runtime.js")
+  >("../src/terminal-runtime.js");
+  ports.materialize.mockImplementation(() =>
+    ensureHostTerminalRuntime({ store, authority: "repair" }),
+  );
+  const failures: unknown[] = [];
+  const stop = startHostKnowledgeResidents({
+    provider: null,
+    scanMilliseconds: 20,
+    onFailure: (_root, error) => {
+      failures.push(error);
+    },
+  });
+  try {
+    await until(() => existsSync(resolve(store, "current.json")));
+    const current = await readFile(resolve(store, "current.json"), "utf8");
+    await writeFile(
+      resolve(store, "current.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        contentHash: `sha256:${"a".repeat(64)}`,
+        directory: "a".repeat(16),
+        predecessor: null,
+      }),
+    );
+    await until(() =>
+      readFileSync(resolve(store, "current.json"), "utf8").includes(
+        JSON.parse(current).contentHash,
+      ),
+    );
+    await rm(resolve(store, "current.json"));
+    await until(() => existsSync(resolve(store, "current.json")));
+    expect(JSON.parse(await readFile(resolve(store, "current.json"), "utf8")).contentHash).toBe(
+      JSON.parse(current).contentHash,
+    );
+    expect(failures).toEqual([]);
+  } finally {
+    await stop();
+    ports.materialize.mockResolvedValue("current");
+  }
+});
+
+it("does not revert CLI B after resident A rescans", async () => {
+  const { delegated, state } = await delegatedHost();
+  ports.open.mockResolvedValue({ ...delegated.storage, close: async () => undefined });
+  const store = resolve(state, "terminal-hooks");
+  const { ensureHostTerminalRuntime } = await vi.importActual<
+    typeof import("../src/terminal-runtime.js")
+  >("../src/terminal-runtime.js");
+  const { materializeHostTerminalRuntime, sha256 } = await import("@lervo/repository-knowledge");
+  let scans = 0;
+  ports.materialize.mockImplementation(async () => {
+    const result = await ensureHostTerminalRuntime({ store, authority: "repair" });
+    scans++;
+    return result;
+  });
+  const failures: unknown[] = [];
+  const stop = startHostKnowledgeResidents({
+    provider: null,
+    scanMilliseconds: 20,
+    onFailure: (_root, error) => {
+      failures.push(error);
+    },
+  });
+  try {
+    await until(() => scans > 0);
+    const publisher = resolve(state, "installed-B.js");
+    await writeFile(publisher, "installed CLI B");
+    const runtimeB = "#!/usr/bin/env node\n// installed B\n";
+    await materializeHostTerminalRuntime({
+      store,
+      runtimeContent: runtimeB,
+      assets: [],
+      publisher,
+    });
+    const pointerB = await readFile(resolve(store, "current.json"), "utf8");
+    const previousScans = scans;
+    await until(() => scans >= previousScans + 2);
+    expect(await readFile(resolve(store, "current.json"), "utf8")).toBe(pointerB);
+    expect(JSON.parse(pointerB).contentHash).toBe(sha256(runtimeB));
+    expect(failures).toEqual([]);
+  } finally {
+    await stop();
+    ports.materialize.mockResolvedValue("current");
   }
 });

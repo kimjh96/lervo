@@ -1,5 +1,6 @@
 import { repositoryRuntimeInventory } from "../../shared/repository-runtime-inventory.mjs";
 import { repositoryRuntimeComponent } from "../../shared/repository-runtime-contract.mjs";
+import { terminalHookComponents } from "./cli-terminal-hook-components.mjs";
 import { cliNativeComponents } from "./cli-native-components.mjs";
 import { createHash } from "node:crypto";
 
@@ -174,6 +175,7 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
   );
   const components = [
     ...native,
+    ...terminalHookComponents(releaseManifest),
     ...releaseManifest.bundle.workspacePackages.map((coordinate) =>
       componentFromCoordinate(coordinate, { bundled: true, scope: "required" }),
     ),
@@ -197,6 +199,7 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
   const root = rootComponent(releaseManifest);
   const rootDependencies = [
     ...native.map((component) => component["bom-ref"]),
+    ...terminalHookComponents(releaseManifest).map((component) => component["bom-ref"]),
     ...new Set(
       [
         ...graph.roots,
@@ -206,7 +209,10 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
     ),
   ].sort();
   const dependencies = [
-    ...native.map((component) => ({ ref: component["bom-ref"], dependsOn: [] })),
+    ...[...native, ...terminalHookComponents(releaseManifest)].map((component) => ({
+      ref: component["bom-ref"],
+      dependsOn: [],
+    })),
     { ref: root["bom-ref"], dependsOn: rootDependencies },
     ...graph.nodes.map((node) => ({
       ref: packageIdentity(node.coordinate).purl,
@@ -227,15 +233,17 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
             type: "application",
             name: "lervo-release-sbom",
             version:
-              releaseManifest.schemaVersion >= 9
-                ? "5"
-                : releaseManifest.schemaVersion === 8
-                  ? "4"
-                  : releaseManifest.schemaVersion === 7
-                    ? "3"
-                    : releaseManifest.schemaVersion === 6
-                      ? "2"
-                      : "1",
+              releaseManifest.schemaVersion >= 10
+                ? "6"
+                : releaseManifest.schemaVersion >= 9
+                  ? "5"
+                  : releaseManifest.schemaVersion === 8
+                    ? "4"
+                    : releaseManifest.schemaVersion === 7
+                      ? "3"
+                      : releaseManifest.schemaVersion === 6
+                        ? "2"
+                        : "1",
           },
         ],
       },

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -12,6 +12,7 @@ import {
   applyEventWriterStage,
   inspectEventWriterStage,
   type EventWriterStagePorts,
+  defaultEventWriterStagePorts,
 } from "../src/event-writer-activation-stage.js";
 import { collectEventReaderActivationEvidence } from "../src/event-reader-inventory.js";
 import { EventReaderInventoryError } from "../src/event-reader-inventory.js";
@@ -181,4 +182,44 @@ describe("event writer activation stage", () => {
       (await inspectEventWriterCoordinate(distributed)).coordinate.selectedEventSchemaVersion,
     ).toBe(1);
   });
+});
+
+it("checks the host reader for schema-4 launchers and holds legacy repository readers", async () => {
+  const root = await repository();
+  const knowledge = await import("@lervo/repository-knowledge");
+  const { loadTerminalHookLauncher } = await import("../src/terminal-runtime.js");
+  const launcher = await loadTerminalHookLauncher();
+  const plan = await knowledge.createTerminalIntegrationPlan(root, launcher);
+  await knowledge.applyTerminalIntegrationPlan({
+    plan,
+    runtimeContent: launcher,
+    approvedOperationId: plan.operationId,
+    approvedHash: plan.approvalHash!,
+    now: new Date(),
+    recordApplied: () => undefined,
+  });
+  const runtime = await import("../src/terminal-runtime.js");
+  const host = vi.spyOn(runtime, "hostTerminalHookReaderCurrent").mockResolvedValue(true);
+  try {
+    expect(await defaultEventWriterStagePorts.hookReader(root)).toBe("current");
+    host.mockResolvedValue(false);
+    expect(await defaultEventWriterStagePorts.hookReader(root)).toBe("stale");
+    const content = "#!/usr/bin/env node\n";
+    await writeFile(resolve(root, ".lervo/generated/terminal-hooks/runtime-v2.mjs"), content);
+    await writeFile(
+      resolve(root, ".lervo/generated/terminal-hooks/runtime-v2.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        kind: "lervo_terminal_hook_runtime",
+        contractId: "lervo_terminal_hooks_v2",
+        runtimePath: ".lervo/generated/terminal-hooks/runtime-v2.mjs",
+        byteCount: Buffer.byteLength(content),
+        contentHash: knowledge.sha256(content),
+      }),
+    );
+    host.mockResolvedValue(true);
+    expect(await defaultEventWriterStagePorts.hookReader(root)).toBe("stale");
+  } finally {
+    host.mockRestore();
+  }
 });

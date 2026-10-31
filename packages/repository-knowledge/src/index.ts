@@ -204,3 +204,10 @@ export { KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT } from "./knowledge-converg
 export { replayKnowledgeConvergence } from "./knowledge-convergence-replay.js";
 export { createStoredDocumentNormalizationSubsetCandidate } from "./document-normalization-subset.js";
 export * from "./knowledge-stage-lint.js";
+
+export { terminalHookRuntimeStorePath } from "./terminal-runtime-store-paths.js";
+export { materializeHostTerminalRuntime } from "./terminal-runtime-store.js";
+export {
+  hostTerminalRuntimeNeedsMaterialization,
+  inspectHostTerminalRuntime,
+} from "./terminal-runtime-store-health.js";

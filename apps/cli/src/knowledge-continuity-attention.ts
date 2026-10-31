@@ -35,7 +35,7 @@ export function continuityAttentionItems(
       severity: finding.severity,
       detail: finding.detail,
       observedAt,
-      actionOwner: "user",
+      actionOwner: finding.code === "hook_runtime_unavailable" ? "host resident" : "user",
       requiresUserAction: ownerDecision,
       blocking: false,
       instruction: continuityRemediation(finding),

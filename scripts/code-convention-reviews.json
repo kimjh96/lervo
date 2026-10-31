@@ -4,9 +4,9 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:a7bd319825bb83ac668b28047974f848928aaad4841f92abfce0b2f76b8f102e",
+      "contentHash": "sha256:1a220b6187c24fa4e658ece702c24cb3b587d8bc685e9b2f9e6a980fc400042a",
       "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, terminal integration planning and apply, command error rendering, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
+      "rationale": "The module orders one knowledge migration lifecycle across delegated bootstrap, layout, structural, terminal and normalization stages. Host materialization is one call to its distribution adapter; persistence, integrity, rendering and approval policy remain in their owning modules. No independent host-store implementation was added to this command.",
       "disposition": "cohesive"
     },
     {

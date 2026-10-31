@@ -15,7 +15,8 @@ import {
 } from "./event-writer-activation-backup.js";
 import { eventWriterBlocker } from "./event-writer-activation-blockers.js";
 import { collectEventReaderActivationEvidence } from "./event-reader-inventory.js";
-import { planTerminalIntegrationStage } from "./terminal-integration-stage.js";
+import { inspectTerminalIntegration } from "@lervo/repository-knowledge";
+import { hostTerminalHookReaderCurrent } from "./terminal-runtime.js";
 import type { UpgradeStageBlocker } from "./upgrade-stage-inspection.js";
 import type { StageDisposition } from "./upgrade-stage-policy.js";
 
@@ -39,17 +40,16 @@ export interface EventWriterStage {
 
 export interface EventWriterStagePorts {
   collectEvidence(input: { repositoryRoot: string }): Promise<EventWriterActivationEvidence>;
-  /** Whether the repository's generated terminal hook runtime reads the target schema. */
+  /** Whether the installed host runtime is a verified local reader (or this checkout has none). */
   hookReader(repositoryRoot: string): Promise<"current" | "stale">;
   now(): Date;
 }
 
 async function generatedHookReader(repositoryRoot: string): Promise<"current" | "stale"> {
-  const { plan } = await planTerminalIntegrationStage(repositoryRoot);
-  // An absent runtime is no reader; an unchanged one is this CLI's own reader bundle.
-  return plan.runtime.action === "unchanged" || plan.runtime.action === "create"
-    ? "current"
-    : "stale";
+  const integration = await inspectTerminalIntegration(repositoryRoot);
+  if (integration.runtime.action === "create") return "current";
+  if (integration.runtime.action !== "unchanged") return "stale";
+  return (await hostTerminalHookReaderCurrent()) ? "current" : "stale";
 }
 
 export const defaultEventWriterStagePorts: EventWriterStagePorts = {

@@ -11,7 +11,7 @@ import {
   planTerminalIntegrationStage,
 } from "../src/terminal-integration-stage.js";
 import { inspectTerminalRepositoryKnowledge } from "../src/terminal-knowledge-lifecycle-inspection.js";
-import { loadTerminalHookRuntime } from "../src/terminal-runtime.js";
+import { loadTerminalHookLauncher } from "../src/terminal-runtime.js";
 
 /** Keeps upgrade applies off the developer host's real background-resident admission. */
 const isolatedAdmission = {
@@ -142,7 +142,7 @@ describe("lervo upgrade with a blocked stage", () => {
       }),
     );
     expect(await readFile(resolve(root, runtimePath), "utf8")).toBe(
-      await loadTerminalHookRuntime(),
+      await loadTerminalHookLauncher(),
     );
     expect(await readFile(resolve(root, "v3/REQUIREMENTS.md"), "utf8")).toBe(requirements);
 

@@ -39,7 +39,7 @@ export async function inspectConvergenceContinuity(input: {
   repositoryRoot: string;
   policyPath: string | null;
   now?: Date;
-  hookRuntime?: "current" | "stale" | "unknown";
+  hookRuntime?: "current" | "unavailable" | "unknown";
   replicaDiverged?: boolean;
   /** ADR-0470: which host runs the resident; observed from the fleet and host status if absent. */
   residentHost?: ResidentHostObservation | null;

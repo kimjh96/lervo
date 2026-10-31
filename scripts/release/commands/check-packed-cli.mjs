@@ -99,7 +99,7 @@ async function verifyInstalledPackage(consumerRoot, expectedManifest) {
   );
   const runtime = await readRuntimeModuleArtifact(resolve(packageRoot, "dist"));
   const cliReleaseFiles = cliReleaseFilesForSchema(
-    9,
+    10,
     [...runtime.files.keys()]
       .filter((name) => name !== "repository-runtime.json")
       .map((name) => `dist/${name}`),
@@ -109,6 +109,10 @@ async function verifyInstalledPackage(consumerRoot, expectedManifest) {
 
   const entry = await readFile(resolve(packageRoot, "dist/bin.js"), "utf8");
   assert.equal(entry.startsWith("#!/usr/bin/env node\n"), true);
+  const launcher = await readFile(resolve(packageRoot, "dist/terminal-hook-launcher.mjs"), "utf8");
+  assert.equal(launcher.startsWith("#!/usr/bin/env node\n"), true);
+  assert.ok(Buffer.byteLength(launcher) <= 16 * 1024);
+  assert.equal(launcher.includes(manifest.version), false);
   const terminalHook = await readFile(resolve(packageRoot, "dist/terminal-hook.js"), "utf8");
   assert.equal(terminalHook.startsWith("#!/usr/bin/env node\n"), true);
   const nodeRuntime = await readFile(resolve(packageRoot, "dist/node-runtime.js"), "utf8");

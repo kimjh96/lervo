@@ -1800,6 +1800,9 @@ importers:
       '@lervo/skills':
         specifier: workspace:*
         version: link:../skills
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract

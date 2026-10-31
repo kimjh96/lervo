@@ -43,7 +43,7 @@ export type ContinuityFindingCode =
   | "continuity_unobserved"
   | "continuity_stale"
   | "resident_not_running"
-  | "hook_runtime_stale"
+  | "hook_runtime_unavailable"
   | "replica_diverged"
   // ADR-0470 resident admission, observed from resident health and the host resident status.
   | "event_schema_outdated"
@@ -270,7 +270,7 @@ export function localContinuityFindings(input: {
   expected: boolean;
   stateObservedAt: string | null;
   residentRunning: boolean | null;
-  hookRuntime: "current" | "stale" | "unknown";
+  hookRuntime: "current" | "unavailable" | "unknown";
   replicaDiverged: boolean;
   /** The reason a degraded resident heartbeat reports, such as `event_schema_outdated`. */
   residentHold?: string | null;
@@ -302,8 +302,8 @@ export function localContinuityFindings(input: {
     findings.push({ code: "resident_not_running", severity: "attention", detail });
   if (host?.kind === "host_stalled")
     findings.push({ code: "host_resident_scan_stalled", severity: "attention", detail: null });
-  if (input.hookRuntime === "stale")
-    findings.push({ code: "hook_runtime_stale", severity: "attention", detail: null });
+  if (input.hookRuntime === "unavailable")
+    findings.push({ code: "hook_runtime_unavailable", severity: "attention", detail: null });
   if (input.replicaDiverged)
     findings.push({ code: "replica_diverged", severity: "attention", detail: null });
   return findings;

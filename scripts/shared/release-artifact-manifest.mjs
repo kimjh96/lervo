@@ -5,6 +5,7 @@ import {
 import { repositoryRuntimeInventory } from "./repository-runtime-inventory.mjs";
 import {
   cliGraphPackageFiles,
+  legacyCliGraphPackageFiles,
   cliNativeFiles,
   cliReleaseFilesForSchema,
 } from "./cli-release-files.mjs";
@@ -72,7 +73,7 @@ export function validateReleaseArtifactManifest(manifest) {
   }
   const { artifact, archive, bundle, dependencies } = manifest;
   let runtimeFiles;
-  if (manifest.schemaVersion === 9) {
+  if (manifest.schemaVersion >= 9) {
     try {
       runtimeFiles = repositoryRuntimeInventory(archive?.files)
         .files.filter((entry) => entry.path !== "dist/repository-runtime.json")
@@ -83,7 +84,7 @@ export function validateReleaseArtifactManifest(manifest) {
   }
   const expectedFiles = cliReleaseFilesForSchema(manifest.schemaVersion, runtimeFiles);
   if (
-    ![5, 6, 7, 8, 9].includes(manifest.schemaVersion) ||
+    ![5, 6, 7, 8, 9, 10].includes(manifest.schemaVersion) ||
     artifact?.name !== "@lervo/cli" ||
     typeof artifact.version !== "string" ||
     !semanticVersionPattern.test(artifact.version) ||
@@ -103,7 +104,13 @@ export function validateReleaseArtifactManifest(manifest) {
     artifact.node !== ">=22.13" ||
     artifact.bin !== "dist/bin.js" ||
     canonicalJson(artifact.files) !==
-      canonicalJson(manifest.schemaVersion === 9 ? cliGraphPackageFiles : expectedFiles)
+      canonicalJson(
+        manifest.schemaVersion === 10
+          ? cliGraphPackageFiles
+          : manifest.schemaVersion === 9
+            ? legacyCliGraphPackageFiles
+            : expectedFiles,
+      )
   ) {
     fail("release_artifact_identity_invalid", "The release artifact identity is invalid.");
   }
@@ -193,6 +200,10 @@ export function validateReleaseArtifactManifest(manifest) {
         expectedFiles.includes(entry.path) &&
         Number.isSafeInteger(entry.size) &&
         entry.size >= 0 &&
+        (entry.path !== "dist/terminal-hook-launcher.mjs" ||
+          (entry.size > 0 && entry.size <= 16 * 1024)) &&
+        (entry.path !== "dist/terminal-hook.js" ||
+          (entry.size > 0 && entry.size <= 8 * 1024 * 1024)) &&
         (entry.path !== repositoryRuntimePath ||
           (entry.size > 0 && entry.size <= repositoryRuntimeMaximumBytes)) &&
         (!cliNativeFiles.includes(entry.path) ||

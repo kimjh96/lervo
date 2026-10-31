@@ -1,4 +1,5 @@
-export type OperatingAttentionActionOwnerV1 = "agent" | "reviewer" | "user" | "unassigned";
+export type OperatingAttentionActionOwnerV1 =
+  "agent" | "reviewer" | "user" | "unassigned" | "host resident";
 
 interface OperatingAttentionItemBaseV1 {
   schemaVersion: 1;

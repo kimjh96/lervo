@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "artifact": {
     "name": "@lervo/cli",
     "version": "0.22.4",
@@ -30,6 +30,7 @@
       "dist/repository-runtime-*.js",
       "dist/repository-runtime.js",
       "dist/repository-runtime.json",
+      "dist/terminal-hook-launcher.mjs",
       "dist/terminal-hook.js"
     ]
   },
@@ -182,8 +183,8 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 967,
-        "sha256": "sha256:38a3547b685482a0c7a0f8b29e100201e4262d7ea9ae100b147822faaf3a47e4"
+        "size": 1093,
+        "sha256": "sha256:e5efa9b9df94d048f2703f242543fdeeb647c217515ec9a4b0ef5c552867477b"
       },
       {
         "path": "dist/native/cas-io-darwin.node",
@@ -217,22 +218,27 @@
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 12375463,
-        "sha256": "sha256:7d0a834c5e13139e07cf45bacfc6f2bf31bce1f320cee3084a31dd661dd756ff"
+        "size": 12393108,
+        "sha256": "sha256:f36ff53a4caf6b85c02961d07aa122ff9cc493aaf88bde4fe3fda320ab87bc0e"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:d76c6725cf1e3b0131670081d7a91912b0acf88015fc93e957f85b6495a2aafc"
+        "sha256": "sha256:fe06bcfaa7827a42ac4561709603cafdcb0ed878cf7e6745395ce1060af8ee01"
+      },
+      {
+        "path": "dist/terminal-hook-launcher.mjs",
+        "size": 7768,
+        "sha256": "sha256:b08680739fede540c017fe13c92bcb16b23716334b231bcf7e5ed269ef3a30dc"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 8353989,
-        "sha256": "sha256:7afeb9ad95d6d1cb0a22394ed0df47605a5485a0cbaf70854975f5dda2767479"
+        "size": 8354821,
+        "sha256": "sha256:1d5bbcaa5e1fa0886bbed6e68226f0db781b2f597105fb08997f2688465365a6"
       }
     ],
-    "fileCount": 12,
-    "contentDigest": "sha256:00addb65d01e118a7f3d7f675be5b83eaf54cab634f4cef50cb29e44ef379317"
+    "fileCount": 13,
+    "contentDigest": "sha256:f7a901b3d0d90125058c4ab71f49a0a507bd96e0fe7fbefe84d42a56d2df4f20"
   },
   "dependencies": {
     "portable": [
@@ -345,5 +351,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:36658da0434b895883e4adc8ac14f2ee5328e6fc1787df18e635629e8edb7897"
+  "artifactDigest": "sha256:9e1945ea5c9eb81fa369c4607219bc58521e9893e01c27f56c84eadf3a82e367"
 }
