@@ -2,7 +2,10 @@
 
 After recording a matched Stop observation, `terminal-hook-command.ts` requests detached `prefetch-context` when `LERVO_TERMINAL_HOOK_RUNTIME` is present and `LERVO_TERMINAL_CONTEXT` is not `retrieval`. This request is independent of the queued-knowledge-job condition and precedes the worker completion-blocking branch. Detached `knowledge-worker` is requested when a knowledge job was queued or owner turns wait for capture. Unmatched and re-entrant Stop return earlier, before these requests.
 
-Prefetch captures a fresh repository snapshot and obtains its knowledge snapshot ID, allowing conditional cache publication for the next prompt. A launch request does not prove child execution, completion, or a subsequent cache hit.
+Prefetch captures a fresh repository snapshot and concurrently obtains its knowledge snapshot ID and computes the private repository health projection. Health reads existing state and bounded event pages without a provider or lint call. The CLI resident also refreshes health after every observation, including skipped and failed cycles. Background workstream provenance is bounded to 10,001 typed events and never
+recovers missing state. Publication requires an unchanged repository snapshot
+revision and the latest per-checkout generation; generation checking and atomic
+rename share one transaction. A launch request does not prove child execution, completion, or a subsequent cache hit.
 
 Before any dispatch, `terminal-hook-bin.ts` verifies its own byte count and SHA-256 and the required adjacent manifest values. Its predicate permits additional manifest keys. Integrity failure sets exit code 2.
 

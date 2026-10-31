@@ -4,7 +4,7 @@ This reference describes `apps/cli/src/operating-attention-format.ts`. Read it w
 
 ## Explicit report text
 
-`formatOperatingAttention` prints status, report digest, aggregate total, omitted, blocking, user-action, and stale counts, followed by workstream, canonicalization, and knowledge-lifecycle coverage. It formats every supplied item with kind, ID, owner, description, and instruction, then prints each limitation and a trailing newline.
+`formatOperatingAttention` prints status, report digest, aggregate total, omitted, blocking, user-action, and stale counts, followed by workstream, canonicalization, and knowledge-lifecycle coverage. It renders the shared health section when supplied and formats every item with kind, ID, attributed actor (falling back to the legacy owner), description, and instruction, then prints each limitation and a trailing newline.
 
 Descriptions depend on item kind:
 

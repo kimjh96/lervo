@@ -5,6 +5,9 @@ import type { WorkstreamSnapshot } from "@lervo/schemas";
 import { isStaleWorkstreamItem, staleWorkstreamCountLine } from "./operating-attention-format.js";
 import { capContextBytes, MAXIMUM_COMPACT_CONTEXT_BYTES } from "./terminal-context-budget.js";
 import { terminalPublicationInstruction } from "./terminal-publication-instruction.js";
+import { mergeCurrentOwnerAttention } from "./repository-health-owner-review.js";
+import { formatRepositoryHealth } from "./repository-health-format.js";
+import { unknownRepositoryHealth } from "./repository-health-reader.js";
 
 const MAXIMUM_ITEM_BYTES = 360;
 const MAXIMUM_DECISIONS = 3;
@@ -39,7 +42,7 @@ export function formatCompactWorkstreamContext(
           ...(decisions.length === 0
             ? []
             : [
-                `Pending user decisions: ${decisions.length}.`,
+                `Pending decisions (principal proxy): ${decisions.length}.`,
                 ...decisions
                   .slice(0, MAXIMUM_DECISIONS)
                   .map(
@@ -80,9 +83,21 @@ export function formatCompactTerminalPreamble(input: {
   documentFreshnessLine?: string | null;
   /** ADR-0467 capture and applied-owner-rule lines, each at most 600 bytes. */
   instructionCaptureLines?: readonly string[];
+  /** ADR-0535 cached Know/Find health; empty when every measure is within target. */
+  healthSection?: string;
 }): string {
+  const now = new Date(input.attention.observedAt);
+  const health =
+    input.attention.health ??
+    (input.attention.items.some((item) => item.requiresUserAction)
+      ? unknownRepositoryHealth(`sha256:${"0".repeat(64)}`, now, "projection_missing_or_unreadable")
+      : null);
+  const healthSection =
+    health === null
+      ? input.healthSection
+      : formatRepositoryHealth(mergeCurrentOwnerAttention(health, input.attention), now);
   const blocking = input.attention.items
-    .filter((item) => item.blocking && !isStaleWorkstreamItem(item))
+    .filter((item) => item.blocking && !item.requiresUserAction && !isStaleWorkstreamItem(item))
     .slice(0, 5);
   return [
     'Lervo compact terminal context. Before changing repository bytes, run `lervo knowledge query "<purpose and paths>"` for applicable rules, as AGENTS.md requires.',
@@ -93,6 +108,7 @@ export function formatCompactTerminalPreamble(input: {
           `Blocking attention: ${blocking.map((item) => `${item.kind}:${item.itemId}${item.requiresUserAction ? " [user]" : ""}`).join("; ")}. Details: \`lervo application attention --json\`.`,
         ]),
     ...staleWorkstreamCountLine(input.staleWorkstreamEntryCount),
+    ...(healthSection ? [healthSection] : []),
     ...(input.documentFreshnessLine === undefined || input.documentFreshnessLine === null
       ? []
       : [input.documentFreshnessLine]),

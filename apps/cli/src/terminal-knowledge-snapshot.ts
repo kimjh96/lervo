@@ -134,7 +134,10 @@ export async function terminalKnowledgeSnapshotId(
   return scan.snapshotId;
 }
 
-/** Stop runs this detached so the next prompt finds the post-turn knowledge snapshot ready. */
+/**
+ * Stop runs this detached so the next prompt finds the post-turn knowledge snapshot ready. The core
+ * health projection is computed by resident cycles, not here, so the hook bundle only reads it.
+ */
 export async function prefetchTerminalPromptContext(root: string): Promise<void> {
   const snapshot = await captureTerminalRepositorySnapshot(root);
   await terminalKnowledgeSnapshotId(root, snapshot.revision);

@@ -11,6 +11,9 @@ Lervo is `converged` only when the six true-Lervo journeys in ADR-0452 section 6
 
 ## Delivery sequence
 
+The [core health signal slice](open-collaboration-platform/core-health-signal-slice-1.md)
+predeclares Know and Find acceptance for one installed repository before implementation.
+
 The [delivery sequence](open-collaboration-platform/delivery-sequence.md) orders slices by dependency and urgency of stopping ongoing damage. It preserves each item's design, closing verification, dependencies, and current evidence boundary.
 
 ## Slice 0 delivery notes

@@ -243,8 +243,9 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
         prompt: "What should I work on next?",
       }),
     );
-    expect(pending).toContain("Instruction capture: 1 instruction candidate awaits review");
-    expect(pending).toContain("Resolve host conflicts at the mechanism");
+    expect(pending).not.toContain("Instruction capture:");
+    expect(pending).toContain("Lervo health:");
+    expect(pending).toContain("unknown");
     const attention: string[] = [];
     expect(
       await runCli(["application", "attention", "--json"], {
@@ -258,6 +259,8 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
           kind: "durable_instruction_candidate",
           candidateId: candidate.candidateId,
           captureSource: "terminal_prompt",
+          requiresUserAction: false,
+          attribution: expect.objectContaining({ actor: "instruction reviewer" }),
         }),
       ]),
     );

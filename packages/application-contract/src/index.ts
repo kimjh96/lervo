@@ -9,6 +9,7 @@ export * from "./automatic-topology.js";
 export * from "./improvement-effect.js";
 export * from "./managed-execution-budget.js";
 export * from "./operating-attention.js";
+export * from "./repository-health.js";
 export * from "./operating-goal.js";
 export * from "./operating-liveness.js";
 export * from "./operating-mandate.js";

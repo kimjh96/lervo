@@ -60,6 +60,7 @@ function candidateItem(
     captureSource: candidate.captureSource ?? "explicit_intake",
     title: candidate.instruction.title ?? candidate.ruleId,
     targetPath: candidate.targetPath,
+    createdAt: candidate.createdAt,
     actionOwner: "user",
     requiresUserAction: true,
     blocking: false,

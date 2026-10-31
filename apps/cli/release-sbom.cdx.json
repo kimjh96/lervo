@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:549ebdfe-90e3-5be1-b60a-48c41387d980",
+  "serialNumber": "urn:uuid:495c3f92-46a5-56e8-97d2-19fcf727d2f8",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -15,7 +15,7 @@
         {
           "type": "application",
           "name": "lervo-release-sbom",
-          "version": "6"
+          "version": "5"
         }
       ]
     },
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "e5efa9b9df94d048f2703f242543fdeeb647c217515ec9a4b0ef5c552867477b"
+          "content": "38a3547b685482a0c7a0f8b29e100201e4262d7ea9ae100b147822faaf3a47e4"
         }
       ],
       "licenses": [
@@ -42,7 +42,7 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:9e1945ea5c9eb81fa369c4607219bc58521e9893e01c27f56c84eadf3a82e367"
+          "value": "sha256:672b5f17cdc44875454779bae73482569bf06473a5c971ed7c7d2a4403514f3b"
         },
         {
           "name": "lervo:release:bundle-digest",
@@ -56,40 +56,6 @@
     }
   },
   "components": [
-    {
-      "type": "file",
-      "bom-ref": "lervo:dist/terminal-hook-launcher.mjs",
-      "name": "dist/terminal-hook-launcher.mjs",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "b08680739fede540c017fe13c92bcb16b23716334b231bcf7e5ed269ef3a30dc"
-        }
-      ],
-      "properties": [
-        {
-          "name": "lervo:terminal-hook:contract",
-          "value": "lervo_terminal_hooks_v2"
-        }
-      ]
-    },
-    {
-      "type": "file",
-      "bom-ref": "lervo:dist/terminal-hook.js",
-      "name": "dist/terminal-hook.js",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "1d5bbcaa5e1fa0886bbed6e68226f0db781b2f597105fb08997f2688465365a6"
-        }
-      ],
-      "properties": [
-        {
-          "name": "lervo:terminal-hook:contract",
-          "value": "lervo_terminal_hooks_v2"
-        }
-      ]
-    },
     {
       "type": "file",
       "bom-ref": "lervo:native-cas:cas-io-darwin.node",
@@ -141,7 +107,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "fe06bcfaa7827a42ac4561709603cafdcb0ed878cf7e6745395ce1060af8ee01"
+          "content": "2cb9a767610ca04ae4f88c45544be7e3c1c3dde4b64bf1f674615b6ced7f5f1f"
         }
       ]
     },
@@ -4365,14 +4331,6 @@
   ],
   "dependencies": [
     {
-      "ref": "lervo:dist/terminal-hook-launcher.mjs",
-      "dependsOn": []
-    },
-    {
-      "ref": "lervo:dist/terminal-hook.js",
-      "dependsOn": []
-    },
-    {
       "ref": "lervo:native-cas:cas-io-darwin.node",
       "dependsOn": []
     },
@@ -4461,8 +4419,6 @@
     {
       "ref": "pkg:npm/%40lervo/cli@0.22.4",
       "dependsOn": [
-        "lervo:dist/terminal-hook-launcher.mjs",
-        "lervo:dist/terminal-hook.js",
         "lervo:native-cas:cas-io-darwin.node",
         "lervo:native-cas:cas-io.json",
         "lervo:native-file-sync:file-sync-darwin.node",
