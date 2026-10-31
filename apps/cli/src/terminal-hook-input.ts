@@ -10,6 +10,7 @@ export function parseTerminalHookInput(value: string): ParsedTerminalHookInput {
     prompt?: unknown;
     stop_hook_active?: unknown;
     last_assistant_message?: unknown;
+    transcript_path?: unknown;
   };
   if (parsed?.hook_event_name !== "UserPromptSubmit" && parsed?.hook_event_name !== "Stop")
     throw new Error("Unsupported provider hook event.");
@@ -51,6 +52,11 @@ export function parseTerminalHookInput(value: string): ParsedTerminalHookInput {
     providerSessionId: parsed.session_id,
     providerTurnId: typeof parsed.turn_id === "string" ? parsed.turn_id : null,
     stopHookActive: parsed.stop_hook_active === true,
+    ...(typeof parsed.transcript_path === "string" &&
+    parsed.transcript_path.length <= 4096 &&
+    !parsed.transcript_path.includes("\0")
+      ? { transcriptPath: parsed.transcript_path }
+      : {}),
     ...(typeof parsed.prompt === "string" ? { prompt: parsed.prompt } : {}),
     ...(parsed.last_assistant_message === null || typeof parsed.last_assistant_message === "string"
       ? { lastAssistantMessage: parsed.last_assistant_message }

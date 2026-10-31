@@ -64,6 +64,23 @@ export async function buildTerminalRuntime({ repositoryRoot, cliRoot, outputDire
     target: "node22.13",
   });
 
+  // ADR-0542: transcript parsing belongs to the resident, never to the hook runtime.
+  const residentSkillInputs = Object.values(hookResult.metafile.outputs).flatMap((output) =>
+    Object.entries(output.inputs)
+      .filter(
+        ([path, input]) =>
+          input.bytesInOutput > 0 &&
+          /repository-knowledge-runtime\/(?:src|dist)\/(?:terminal-installed-skills|terminal-skill-(?:stage|transcript(?:-adapters)?))\.[jt]s$/u.test(
+            path,
+          ),
+      )
+      .map(([path]) => path),
+  );
+  if (residentSkillInputs.length > 0)
+    throw new Error(
+      `Resident skill parsing entered the hook bundle: ${residentSkillInputs.join(", ")}`,
+    );
+
   await normalizeGeneratedTextFile(resolve(outputDirectory, "terminal-hook.js"));
   const runtimeHash = `sha256:${createHash("sha256")
     .update(await readFile(resolve(outputDirectory, "terminal-hook.js")))

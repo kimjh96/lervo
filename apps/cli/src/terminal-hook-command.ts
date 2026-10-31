@@ -1,8 +1,10 @@
 import { hostOutcomeTask, observeHostContextOutcomes } from "@lervo/repository-context";
+import { terminalTranscriptPosition } from "@lervo/repository-knowledge-runtime";
 import { parseArgs } from "node:util";
 
 import { terminalKnowledgeBootstrapNotice } from "./knowledge-bootstrap.js";
-import { launchDetachedKnowledgeWorker } from "./knowledge-worker-command.js";
+import { launchDetachedKnowledgeWorker } from "./detached-knowledge-worker.js";
+import { terminalWorkerEntry } from "./terminal-worker-entry.js";
 import { openProjectStorage } from "@lervo/project-storage";
 import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 
@@ -79,6 +81,7 @@ export async function runTerminalHookCommand(
       const coordinates = unmanagedTerminalCoordinates(provider, input);
       const occurredAt = new Date().toISOString();
       if (input.event === "UserPromptSubmit") {
+        const transcript = await terminalTranscriptPosition(provider, input.transcriptPath);
         const observationId = newTerminalIdentifier("tobs");
         stageContext = { root, coordinates, observationId };
         let workspaceBinding: TerminalWorkspaceBinding | null;
@@ -146,6 +149,7 @@ export async function runTerminalHookCommand(
               occurredAt,
               eventId: observationEventId,
               storage: observationStorage,
+              transcript,
             });
             await writeTerminalActivationReceipt(root, {
               schemaVersion: 1,
@@ -260,7 +264,7 @@ export async function runTerminalHookCommand(
         ),
         artifacts: observation.changedPaths.map((path) => ({ kind: "repository" as const, path })),
       });
-      const capture = await timing.measure("event_commit", () =>
+      await timing.measure("event_commit", () =>
         settleTerminalAgentTurn({
           root,
           provider,
@@ -271,11 +275,12 @@ export async function runTerminalHookCommand(
         }).catch(() => ({ capturePending: false })),
       );
       const hookRuntime = process.env.LERVO_TERMINAL_HOOK_RUNTIME;
-      if ((observation.knowledgeJobQueued || capture.capturePending) && hookRuntime !== undefined)
+      const workerEntry = await terminalWorkerEntry(root);
+      if (workerEntry !== null && workerEntry !== undefined)
         launchDetachedKnowledgeWorker({
           root,
-          entry: hookRuntime,
-          args: ["knowledge-worker", "--provider", provider],
+          entry: workerEntry,
+          args: ["knowledge", "worker", "--once", "--provider", provider],
         });
       // Prepare the next compact prompt's knowledge snapshot after this turn's final bytes.
       if (hookRuntime !== undefined && process.env.LERVO_TERMINAL_CONTEXT !== "retrieval")

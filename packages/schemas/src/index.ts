@@ -94,6 +94,7 @@ export * from "./trace-capabilities-report.js";
 export * from "./terminal-coverage-report.js";
 export * from "./terminal-budget-report.js";
 export * from "./terminal-observation-event.js";
+export * from "./terminal-skill-event.js";
 export * from "./terminal-turn-declaration-event.js";
 export * from "./validate.js";
 export * from "./parse-event-writer-coordinate.js";

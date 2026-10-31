@@ -6,7 +6,7 @@
       "path": "apps/cli/src/knowledge-migration-command.ts",
       "contentHash": "sha256:bb5b60bbad736d9aebe510888900b116e21c5d192825588c4b8e3a119c5b02ab",
       "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, and terminal integration retain dedicated modules. The unavailable-provider branch only selects the current plan before normalization; it adds no provider or persistence policy. Host terminal runtime materialization is one call to its distribution adapter.",
+      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, and terminal integration retain dedicated modules. Host terminal runtime materialization is one call to its distribution adapter, and worker-entry provenance is delegated to its installation module; this entrypoint only refreshes those bindings.",
       "disposition": "cohesive"
     },
     {
@@ -118,7 +118,7 @@
       "path": "packages/event-contract/src/redaction.ts",
       "contentHash": "sha256:90dc981818fdb1919df8561b85ad875937340c80ffea01585a01e5c0da0a5192",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Provider admission and turn-bound selection add only declarative entries: identifiers, paths, hashes, counts, and registered schema names. Provider output interpretation, executable identity, marker persistence, query recording, reference detection, and scheduling stay in their owning adapters.",
+      "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Provider admission, turn-bound selection, and native-skill registrations add only declarative entries, and native-skill fields live in a dedicated payload module. Provider output interpretation, executable identity, transcript parsing, queue and marker persistence, query recording, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"
     },
     {
@@ -300,7 +300,7 @@
       "path": "packages/schemas/src/schema-catalog.ts",
       "contentHash": "sha256:560ea7d11c52a5cb79997367f0d60015ac9b5ab110a013a8219066209fc9f77a",
       "responsibility": "Declarative schema registration catalog",
-      "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission payloads and the context-selected payload are catalog entries with the same mapping lifecycle; parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
+      "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, and native-skill payloads are catalog entries with the same mapping lifecycle; native-skill schemas are defined in their own contract module. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
       "disposition": "cohesive"
     },
     {

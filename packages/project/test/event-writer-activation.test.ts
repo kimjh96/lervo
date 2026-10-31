@@ -489,3 +489,12 @@ describe("event writer activation", () => {
     });
   });
 });
+
+it("holds native skill event writers when any configured reader lacks schema 7", async () => {
+  const root = await fixture();
+  const old = evidence([1, 2, 3, 4, 5, 6]);
+  await expect(
+    planEventWriterActivation({ repositoryRoot: root, targetEventSchemaVersion: 7, evidence: old }),
+  ).rejects.toMatchObject({ code: "event_writer_activation_blocked" });
+  expect((await inspectEventWriterCoordinate(root)).coordinate.selectedEventSchemaVersion).toBe(1);
+});

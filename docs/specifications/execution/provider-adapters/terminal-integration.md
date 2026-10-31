@@ -7,3 +7,5 @@ Legacy contract-v1 handlers migrate in place; generated-only runtime upgrades re
 Invalid JSON or shapes, conflicting Lervo commands, Claude disablement, or Codex project-hook disablement blocks migration. Authority excludes local, global, and organization settings.
 
 Successful apply is installation evidence, not activation readiness. Human and JSON output must immediately disclose Codex's one-time `/hooks` review. `terminal status` remains `action_required` until canonical contract-v2 invocations for both events are observed, distinguishing an unreviewed or unobserved Codex hook from a stale repository lifecycle.
+
+[Native skill observation](native-skill-observation.md) defines transcript positions, resident parsing, invocation events, and the daily retirement review projection. The generated hook records metadata only; the full CLI runtime owns parsing.

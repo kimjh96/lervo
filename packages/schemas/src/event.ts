@@ -167,7 +167,12 @@ export const eventTypesV6 = [
   "context.quality.prepared",
   "context.quality.verified",
 ] as const;
-export const eventTypes = eventTypesV6;
+export const eventTypesV7 = [
+  ...eventTypesV6,
+  "terminal.skill.observed",
+  "terminal.skill.turn_assessed",
+] as const;
+export const eventTypes = eventTypesV7;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -309,6 +314,7 @@ export const eventEnvelopeSchema = {
         schemaVersion: { const: 6 },
       },
     },
+    { properties: { type: { enum: eventTypesV7 }, schemaVersion: { const: 7 } } },
   ],
 } as const;
 
@@ -330,10 +336,14 @@ export type EventEnvelopeV6 = Omit<EventEnvelopeV5, "schemaVersion" | "type"> & 
   schemaVersion: 6;
   type: (typeof eventTypesV6)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV6, "schemaVersion"> & {
+export type EventEnvelopeV7 = Omit<EventEnvelopeV6, "schemaVersion" | "type"> & {
+  schemaVersion: 7;
+  type: (typeof eventTypesV7)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV7, "schemaVersion"> & {
   schemaVersion:
-    EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4 | 5 | 6;
+    EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4 | 5 | 6 | 7;
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV6)[number];
+export type EventType = (typeof eventTypesV7)[number];

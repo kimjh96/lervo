@@ -1,4 +1,12 @@
+export { TERMINAL_SKILL_EVENT_SCHEMA_VERSION } from "./terminal-skill-events.js";
 export { runAutonomousKnowledgeWorker } from "./worker.js";
+export { readTerminalSkillUsage } from "./terminal-skill-usage-state.js";
+export {
+  enqueueTerminalSkillTurn,
+  terminalTranscriptPosition,
+  validTranscriptPosition,
+  type TranscriptPosition,
+} from "./terminal-skill-queue.js";
 export {
   convergenceDelegationPlanHash,
   loadConvergenceDelegation,

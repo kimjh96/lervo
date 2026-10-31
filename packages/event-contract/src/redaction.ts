@@ -17,6 +17,10 @@ import {
   instructionCapturePayloadSchemas,
 } from "./instruction-capture-payload.js";
 import {
+  terminalSkillPayloadAllowlists,
+  terminalSkillPayloadSchemas,
+} from "./terminal-skill-payload.js";
+import {
   validateSchema,
   type AgentContextHandoffRecordedEventPayload,
   type AgentContextPromotedEventPayload,
@@ -50,6 +54,7 @@ export const eventPayloadAllowlists = {
   ...knowledgeConvergencePayloadAllowlists,
   ...documentFreshnessPayloadAllowlists,
   ...instructionCapturePayloadAllowlists,
+  ...terminalSkillPayloadAllowlists,
   "managed.execution.reserved": ["executionKey", "requestHash"],
   "role.input.bound": roleInputPayloadFields,
   ...supervisionPayloadAllowlists,
@@ -1526,6 +1531,7 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "terminal.turn.declared": "terminalTurnDeclaredEventPayload",
   "terminal.reference.observed": "terminalReferenceObservedEventPayload",
   "terminal.turn.observed": "terminalTurnObservedEventPayload",
+  ...terminalSkillPayloadSchemas,
   "workstream.snapshot.recorded": "workstreamSnapshotRecordedEventPayload",
   "work.causality.recorded": "workCausalityRecordedEventPayload",
   "resource.usage.recorded": "resourceUsageRecordedEventPayload",

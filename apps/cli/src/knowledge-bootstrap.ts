@@ -14,7 +14,7 @@ import {
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { recordStructuralMaterialization } from "./structural-materialization-event.js";
-import { launchDetachedKnowledgeWorker } from "./knowledge-worker-command.js";
+import { launchDetachedKnowledgeWorker } from "./detached-knowledge-worker.js";
 
 const BOOTSTRAP_STATE_PATH = ".lervo/state/knowledge/bootstrap.json";
 const IN_PROGRESS_LIFETIME_MS = 15 * 60_000;
