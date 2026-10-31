@@ -176,12 +176,20 @@ export async function generateFreshnessProposal(input: {
   if (context.providerQuantum !== undefined) context.providerQuantum.remaining -= 1;
   try {
     let result: { value: unknown; usage: ProviderJsonUsage | null };
+    let runner: Awaited<ReturnType<typeof createNoCapabilityProviderJsonRunner>>;
     try {
-      const runner = await createNoCapabilityProviderJsonRunner({
+      runner = await createNoCapabilityProviderJsonRunner({
         ...backgroundProviderOptions(context),
         systemPrompt: input.prompt ?? documentFreshnessGenerationInstruction,
         timeoutMs: GENERATION_TIMEOUT_MILLISECONDS,
       });
+    } catch {
+      // The version check and the no-capability probe run before any model call. Their failure
+      // means the provider is not usable here: defer without spend, never record a rejected
+      // candidate or count an attempt against the zero-success window.
+      return { status: "deferred", reason: "provider_not_admitted" };
+    }
+    try {
       const request = {
         schemaVersion: 1,
         task: input.task ?? DOCUMENT_FRESHNESS_TASK,

@@ -83,6 +83,8 @@ Failure behavior:
 
 Five attempts with zero verified candidates in one day raise `document_freshness_blocked` with `reasonCode: zero_success_window`.
 
+A provider failure before any model call (the version check, the no-capability probe, or admission under [ADR-0536](../../../decisions/execution/providers/admission/0536-admit-provider-clis-by-contract.md)) defers the finding with `provider_not_admitted`. It spends no budget, creates no rejected candidate, and does not count as an attempt. Only a call that reached the model can be charged at the per-candidate bound when its usage is unobserved. On 2026-10-31, a Codex probe rejection had recorded 14 `candidate_invalid` rejections since 2026-10-29 and exhausted the daily budget with no model call.
+
 ## Policy keys
 
 All keys under `documentFreshness` in `.lervo/knowledge/policy.yaml` are optional, with these defaults:
