@@ -4,6 +4,7 @@ import type {
 } from "@lervo/application-contract";
 
 import { capContextBytes, MAXIMUM_TERMINAL_ATTENTION_BYTES } from "./terminal-context-budget.js";
+import { formatRepositoryHealth } from "./repository-health-format.js";
 
 function describe(item: OperatingAttentionItemV1): string {
   if (item.kind === "workstream_decision") return item.question;
@@ -42,9 +43,10 @@ export function formatOperatingAttention(report: OperatingAttentionReportV1): st
     `report: ${report.reportDigest}`,
     `items: ${report.summary.totalCount} · omitted ${report.summary.truncatedCount} · blocking ${report.summary.blockingCount} · user ${report.summary.userActionCount} · stale ${report.summary.staleCount}`,
     `coverage: workstream ${report.coverage.workstream} · canonicalization ${report.coverage.canonicalization} · knowledge ${report.coverage.knowledgeLifecycle}`,
+    ...(report.health ? [formatRepositoryHealth(report.health, new Date(report.observedAt))] : []),
     ...report.items.map(
       (item) =>
-        `  ${item.kind} ${item.itemId} · owner ${item.actionOwner} · ${describe(item)}\n    ${item.instruction}`,
+        `  ${item.kind} ${item.itemId} · owner ${item.attribution?.actor ?? item.actionOwner} · ${describe(item)}\n    ${item.instruction}`,
     ),
     ...report.limitations.map((limitation) => `  limitation: ${limitation}`),
     "",

@@ -29,6 +29,7 @@ import {
   type KnowledgeConvergenceAttentionInput,
 } from "./knowledge-convergence-attention.js";
 import type { TerminalLifecycleInspection } from "./terminal-hook-contract.js";
+import { attributeOperatingAttention } from "./operating-attention-ownership.js";
 
 const MAXIMUM_ATTENTION_ITEMS = 256;
 
@@ -202,6 +203,8 @@ export function createOperatingAttentionReport(input: {
   instructionCapture?: InstructionCaptureAttentionInput | null;
   /** ADR-0466 ownership and publication state; null when unreadable. */
   knowledgeConvergence?: KnowledgeConvergenceAttentionInput | null;
+  workstreamCoverage?: OperatingAttentionReportV1["coverage"]["workstream"];
+  health?: OperatingAttentionReportV1["health"];
   observedAt: Date;
 }): OperatingAttentionReportV1 {
   const workstreamItems =
@@ -246,7 +249,7 @@ export function createOperatingAttentionReport(input: {
         ...(input.knowledgeConvergence === undefined || input.knowledgeConvergence === null
           ? []
           : knowledgeConvergenceAttentionItems(input.knowledgeConvergence)),
-      ].map((item) => [item.itemId, item]),
+      ].map((item) => [item.itemId, attributeOperatingAttention(item, input.observedAt)]),
     ).values(),
   ]);
   const items = allItems.slice(0, MAXIMUM_ATTENTION_ITEMS);
@@ -260,11 +263,18 @@ export function createOperatingAttentionReport(input: {
             revision: input.workstream.revision,
           },
     coverage: {
-      workstream: input.workstream === null ? ("missing" as const) : ("current" as const),
+      workstream: input.workstreamCoverage ?? (input.workstream === null ? "missing" : "current"),
+      documentFreshness:
+        input.documentFreshness == null ? ("unavailable" as const) : ("complete" as const),
+      instructionCapture:
+        input.instructionCapture == null ? ("unavailable" as const) : ("complete" as const),
+      knowledgeConvergence:
+        input.knowledgeConvergence == null ? ("unavailable" as const) : ("complete" as const),
       canonicalization: input.canonicalization.coverage,
       knowledgeLifecycle: input.knowledgeLifecycle.coverage,
     },
     items,
+    ...(input.health === undefined ? {} : { health: input.health }),
   };
   return {
     schemaVersion: 1,
@@ -276,7 +286,11 @@ export function createOperatingAttentionReport(input: {
     status:
       items.length === 0 &&
       input.canonicalization.coverage === "complete" &&
-      input.knowledgeLifecycle.coverage !== "unavailable"
+      input.knowledgeLifecycle.coverage !== "unavailable" &&
+      (input.health === undefined ||
+        Object.values(input.health.measures).every(
+          (measure) => measure.status === "within_target" && measure.coverage === "complete",
+        ))
         ? "current"
         : "action_required",
     coverage: digestInput.coverage,
@@ -286,6 +300,18 @@ export function createOperatingAttentionReport(input: {
       blockingCount: allItems.filter((item) => item.blocking).length,
       userActionCount: allItems.filter((item) => item.requiresUserAction).length,
       staleCount: allItems.filter((item) => item.state === "stale").length,
+      byKind: Object.fromEntries(
+        [...new Set(allItems.map((item) => item.kind))].map((kind) => {
+          const group = allItems.filter((item) => item.kind === kind);
+          return [
+            kind,
+            {
+              totalCount: group.length,
+              userActionCount: group.filter((item) => item.requiresUserAction).length,
+            },
+          ];
+        }),
+      ),
     },
     items,
     limitations: [
@@ -293,5 +319,6 @@ export function createOperatingAttentionReport(input: {
       "A prepared attention item does not prove that a provider or user received, understood, acknowledged, or acted on it.",
       "Unavailable source coverage is unknown, not current or empty.",
     ],
+    ...(input.health === undefined ? {} : { health: input.health }),
   };
 }

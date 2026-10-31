@@ -3,17 +3,13 @@ import { observeContextPreparation } from "@lervo/context";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
   canonicalJson,
-  documentFreshnessCompactLine,
   listCanonicalizationCandidates,
   loadRepositoryKnowledgePolicy,
   sha256,
   workstreamFreshnessPolicy,
   type TerminalIntegrationProvider,
 } from "@lervo/repository-knowledge";
-import {
-  documentFreshnessSummary,
-  inspectKnowledgeResidentHealth,
-} from "@lervo/repository-knowledge-runtime";
+import { inspectKnowledgeResidentHealth } from "@lervo/repository-knowledge-runtime";
 import { createSearchQueryProjection, searchQueryProjectorBuildId } from "@lervo/search";
 
 import { createOperatingAttentionReport } from "./operating-attention-projection.js";
@@ -24,10 +20,7 @@ import {
   staleWorkstreamEntryCount,
 } from "./terminal-compact-format.js";
 import type { PreparedTerminalPromptContext } from "./terminal-prompt-context.js";
-import {
-  instructionCaptureCompactLines,
-  readInstructionCaptureAttention,
-} from "./instruction-capture-attention.js";
+import { readRepositoryHealth } from "./repository-health-reader.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
@@ -65,14 +58,7 @@ export async function prepareCompactTerminalPromptContext(input: {
   const repositorySnapshot = await input.timing.measure("repository_snapshot", () =>
     captureTerminalRepositorySnapshot(input.root),
   );
-  const [
-    sourceSnapshotId,
-    query,
-    canonicalization,
-    health,
-    documentFreshnessLine,
-    instructionCaptureLines,
-  ] = await Promise.all([
+  const [sourceSnapshotId, query, canonicalization, health, repositoryHealth] = await Promise.all([
     input.timing.measure("corpus_preparation", () =>
       terminalKnowledgeSnapshotId(input.root, repositorySnapshot.revision),
     ),
@@ -118,11 +104,11 @@ export async function prepareCompactTerminalPromptContext(input: {
       () => ({ coverage: "unavailable" as const, candidates: [] }),
     ),
     inspectKnowledgeResidentHealth(input.root),
-    documentFreshnessSummary(input.root, observedAt).then(documentFreshnessCompactLine, () => null),
-    readInstructionCaptureAttention(input.root).then(
-      (attention) => instructionCaptureCompactLines(attention, false),
-      () => [],
-    ),
+    readRepositoryHealth({
+      root: input.root,
+      repositoryRevision: repositorySnapshot.revision,
+      now: observedAt,
+    }),
   ]);
   const attention = createOperatingAttentionReport({
     projectId: query.projectId,
@@ -130,6 +116,7 @@ export async function prepareCompactTerminalPromptContext(input: {
     workstreamFreshness: query.workstreamFreshness,
     canonicalization,
     knowledgeLifecycle: { coverage: "unavailable", issues: [] },
+    health: repositoryHealth,
     observedAt,
   });
   const preamble = formatCompactTerminalPreamble({
@@ -144,8 +131,6 @@ export async function prepareCompactTerminalPromptContext(input: {
       query.currentWorkstream,
       query.workstreamFreshness,
     ),
-    documentFreshnessLine,
-    instructionCaptureLines,
   });
   const instructions = await prepareTerminalInstructionPreamble({
     root: input.root,

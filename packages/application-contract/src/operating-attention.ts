@@ -7,6 +7,10 @@ interface OperatingAttentionItemBaseV1 {
   requiresUserAction: boolean;
   blocking: boolean;
   instruction: string;
+  /** Original source guidance retained for inspection when ownership is reframed. */
+  recordedInstruction?: string;
+  /** Additive ADR-0535 attribution; absent on older readers and fixtures. */
+  attribution?: import("./repository-health.js").RepositoryHealthAttentionV1;
 }
 
 /**
@@ -99,6 +103,8 @@ export interface DocumentFreshnessCandidateAttentionItemV1 extends OperatingAtte
   priorityClass: "safety" | "entrypoint" | "canonical" | "other";
   changeClasses: Array<"factual_reference" | "statement" | "safety_or_policy" | "archive">;
   hunkCount: number;
+  ownerConsequence?: "repository_write" | "security_policy" | null;
+  createdAt?: string;
 }
 
 /** Informational notice of an apply; it resolves on acknowledgement or after 24 hours. */
@@ -133,6 +139,7 @@ export interface DurableInstructionCandidateAttentionItemV1 extends OperatingAtt
   captureSource: "terminal_prompt" | "conversation" | "explicit_intake";
   title: string;
   targetPath: string;
+  createdAt?: string;
 }
 
 /** A decision the owner stated, held until it is documented or dismissed (ADR-0467). */
@@ -226,9 +233,12 @@ export interface OperatingAttentionReportV1 {
   reportDigest: string;
   status: "current" | "action_required";
   coverage: {
-    workstream: "current" | "missing";
+    workstream: "current" | "missing" | "unavailable";
     canonicalization: "complete" | "unavailable";
     knowledgeLifecycle: "complete" | "cached" | "unavailable";
+    documentFreshness?: "complete" | "unavailable";
+    instructionCapture?: "complete" | "unavailable";
+    knowledgeConvergence?: "complete" | "unavailable";
   };
   summary: {
     totalCount: number;
@@ -236,7 +246,11 @@ export interface OperatingAttentionReportV1 {
     blockingCount: number;
     userActionCount: number;
     staleCount: number;
+    /** Full authority classification before the 256-item return cap. */
+    byKind?: Record<string, { totalCount: number; userActionCount: number }>;
   };
   items: OperatingAttentionItemV1[];
   limitations: string[];
+  /** Same private projection consumed by compact terminal turns; never computed by a hook. */
+  health?: import("./repository-health.js").RepositoryHealthProjectionV1;
 }

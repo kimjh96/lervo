@@ -1,3 +1,4 @@
+import { prefetchRepositoryHealth } from "./repository-health-prefetch.js";
 import { runKnowledgeQuery } from "./knowledge-query-command.js";
 import { runKnowledgeConvergenceCommand } from "./knowledge-convergence-command.js";
 import { resolve } from "node:path";
@@ -79,7 +80,7 @@ export async function runKnowledgeCommand(
   if (subcommand === "worker")
     return args.includes("--host")
       ? runHostKnowledgeResidentsCommand(args.slice(1), io)
-      : runKnowledgeWorkerCommand(args.slice(1), io);
+      : runKnowledgeWorkerCommand(args.slice(1), io, { refreshHealth: prefetchRepositoryHealth });
   if (subcommand === "refresh")
     return runKnowledgeMigration({ args: args.slice(1), io, mode: "refresh" });
   if (subcommand === "canonicalization") return runKnowledgeCanonicalization(args.slice(1), io);

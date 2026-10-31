@@ -37,6 +37,20 @@ function candidateItem(
     priorityClass: candidate.priorityClass,
     changeClasses: changeClasses(candidate),
     hunkCount: candidate.pendingHunkIds.length,
+    createdAt: candidate.createdAt,
+    ownerConsequence: candidate.hunks.some(
+      (hunk) =>
+        candidate.pendingHunkIds.includes(hunk.hunkId) && hunk.changeClass === "safety_or_policy",
+    )
+      ? "security_policy"
+      : candidate.archive?.ownership === "user_owned" ||
+          candidate.hunks.some(
+            (hunk) =>
+              candidate.pendingHunkIds.includes(hunk.hunkId) &&
+              (hunk.ownership === "user_owned" || hunk.authorityRequired === "owner"),
+          )
+        ? "repository_write"
+        : null,
     actionOwner: "user",
     requiresUserAction: true,
     blocking: false,

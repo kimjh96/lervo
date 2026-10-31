@@ -71,6 +71,11 @@ export async function runKnowledgeWorker(input: {
 export async function runKnowledgeWorkerCommand(
   args: readonly string[],
   io: { cwd: string; stdout(message: string): void; stderr(message: string): void },
+  /**
+   * The full CLI refreshes the core health projection each watch cycle. The terminal hook
+   * runtime omits it, so projection code never enters the hook bundle.
+   */
+  options: { refreshHealth?: (root: string) => Promise<void> } = {},
 ): Promise<number> {
   const provider = args.includes("--provider") ? args[args.indexOf("--provider") + 1] : undefined;
   if (
@@ -93,6 +98,9 @@ export async function runKnowledgeWorkerCommand(
         continuity: createKnowledgeConvergenceContinuity(storage),
         instructionCandidateTransport,
         publish: createKnowledgePublisher(storage.paths.repositoryRoot),
+        ...(options.refreshHealth === undefined
+          ? {}
+          : { refreshHealth: () => options.refreshHealth!(storage.paths.repositoryRoot) }),
         onCycle: (result) => io.stdout(`${JSON.stringify(result)}\n`),
         onFailure: (error) =>
           io.stderr(knowledgeWorkerFailureLine(error, storage.paths.repositoryRoot)),

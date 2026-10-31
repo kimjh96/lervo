@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3f2cc25c597908009c0deece"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Replace compact review chores with cached Know and Find health and actor-attributed operating attention."

@@ -26,6 +26,7 @@ import {
   hostResidentCandidates,
   type ResidentProvider,
 } from "./knowledge-host-resident-candidates.js";
+import { prefetchRepositoryHealth } from "./repository-health-prefetch.js";
 
 /** How often the host resident looks for newly registered or removed repositories. */
 export const HOST_RESIDENT_SCAN_MILLISECONDS = 5 * 60_000;
@@ -111,6 +112,7 @@ export function startHostKnowledgeResidents(input: {
       continuity: createKnowledgeConvergenceContinuity(storage),
       instructionCandidateTransport,
       publish: createKnowledgePublisher(storage.paths.repositoryRoot),
+      refreshHealth: () => prefetchRepositoryHealth(root),
       onCycle: (result) => input.onCycle?.(root, result),
       onFailure: (error) => input.onFailure(root, error),
     });

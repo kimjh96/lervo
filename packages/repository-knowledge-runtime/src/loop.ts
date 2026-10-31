@@ -64,6 +64,8 @@ export function startAutonomousKnowledgeWorker(input: {
   admissionDirectory?: string;
   subscribe?: (notify: () => void) => () => void;
   onCycle?: (result: WorkerResult) => void;
+  /** Read-only projections run after every observation, including skipped and failed cycles. */
+  refreshHealth?: () => Promise<void>;
   onFailure: (error: unknown) => void;
   intervalMilliseconds?: number;
   reconcileCeilingMilliseconds?: number;
@@ -236,6 +238,8 @@ export function startAutonomousKnowledgeWorker(input: {
             return null;
           })
         : null;
+    await healthWrite;
+    await input.refreshHealth?.().catch((error: unknown) => input.onFailure(error));
     const now = Date.now();
     const reconcileDelay = residentReconcileDelay({
       idleStreak: cycle.state.idleStreak,
@@ -266,8 +270,11 @@ export function startAutonomousKnowledgeWorker(input: {
       .then((next) => {
         delay = next;
       })
-      .catch((error) => {
+      .catch(async (error) => {
         if (!signal.aborted) input.onFailure(error);
+        report("attention", "knowledge_resident_cycle_failed");
+        await healthWrite;
+        await input.refreshHealth?.().catch((failure: unknown) => input.onFailure(failure));
       })
       .finally(() => {
         running = null;

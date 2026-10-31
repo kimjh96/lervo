@@ -15,6 +15,8 @@ The projection is not a source of truth. It reads the current workstream, canoni
 - [Report contract](operating-attention/report-contract.md): items, coverage, privacy, and failure behavior.
 - [Direct terminal context](operating-attention/direct-terminal-context.md): prompt preparation, budgets, and authority boundaries.
 
+- [Repository health](operating-attention/repository-health.md): cached Know/Find measures, actor attribution, consequential authority and compact rendering.
+
 ## Verification
 
 Acceptance requires:
