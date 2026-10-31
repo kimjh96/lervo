@@ -193,14 +193,14 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:1d088d7d90ee719274a43af8f2926abb0b0898d71c2540800598d30d3ec93a2d",
+      "contentHash": "sha256:87e3e83599b6c35db5c5f704daa2d6ff0a57f78010736eaf97d83184e026ab9a",
       "responsibility": "Deterministic structural knowledge compiler",
       "rationale": "Publication rendering, historical-document grouping, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract; historical marker detection lives in its own module.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:2a7675b93a0fa641b2acb7579640fea062e853ee5372d300a2c2da8ffa34d6cf",
+      "contentHash": "sha256:8122c5a20dab2e8a8e2e3ed30240dad6911be173488d1cf27774d69b53848ceb",
       "responsibility": "Reviewed document normalization lifecycle",
       "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation, selection, worksets, shard cache, ADR-0473 tool ownership, and CLI rendering are separate; this module only threads tool-generated paths into eligibility and ADR-0479 reviewer feedback into envelopes, while feedback records and admission live in the convergence runtime.",
       "disposition": "cohesive"
