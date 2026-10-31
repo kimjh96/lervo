@@ -147,7 +147,17 @@ export function createChangeReviewHost(
     inspectKnowledge: () => active.inspectKnowledge(),
     assertReviewContextCurrent: () => active.assertReviewContextCurrent?.(),
     review: async (sources, job) => {
-      const selected = await admittedBackgroundContext(input);
+      // Missing delegation stays terminal attention for the review, as the call ceiling reports it.
+      const selected = await admittedBackgroundContext(input).catch((error: unknown) => {
+        if (
+          error instanceof KnowledgeConvergenceRuntimeError &&
+          error.code === "knowledge_authority_unavailable"
+        )
+          throw new RepositoryKnowledgeReviewError("knowledge_authority_unavailable", {
+            cause: error,
+          });
+        throw error;
+      });
       active = createNoCapabilityKnowledgeReviewHost(
         input.storage.paths.repositoryRoot,
         selected.provider,

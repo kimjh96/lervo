@@ -20,8 +20,12 @@ vi.mock("../src/terminal-degraded-context.js", async (original) => ({
   ...(await original<typeof import("../src/terminal-degraded-context.js")>()),
   prepareTerminalBaseContext: ports.base,
 }));
-vi.mock("@lervo/project-storage", () => ({
+vi.mock("@lervo/project-storage", async (original) => ({
+  ...(await original<typeof import("@lervo/project-storage")>()),
   openProjectStorage: async () => ({ close: async () => undefined }),
+}));
+vi.mock("../src/knowledge-bootstrap.js", () => ({
+  terminalKnowledgeBootstrapNotice: async () => null,
 }));
 vi.mock("../src/terminal-activation-state.js", () => ({
   writeTerminalActivationReceipt: async () => undefined,

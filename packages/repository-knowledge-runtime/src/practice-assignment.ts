@@ -14,7 +14,7 @@ import {
   loadConvergenceDelegation,
   type ConvergenceWorkerRole,
 } from "./delegation.js";
-import { convergenceAgentName, retireSupersededConvergenceAgents } from "./convergence-roster.js";
+import { practiceAgentName, retireSupersededConvergenceAgents } from "./convergence-roster.js";
 import { recordConvergenceWorkforceEvent } from "./workforce-event.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 import { knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
@@ -72,7 +72,7 @@ async function runPracticeAssignment<T>(input: {
   const responsibilityPaths = write
     ? [...delegation.canonicalRoots, ...delegation.normalizationRoots]
     : parent.responsibilityPaths;
-  const name = `${convergenceAgentName(input.role, loaded!.contentHash)} ${sha256("practice").slice(7, 15)}`;
+  const name = practiceAgentName(input.role, loaded!.contentHash);
   const agent =
     agents.find(
       (a) =>

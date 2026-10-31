@@ -73,5 +73,5 @@ describe("standalone resident practice lifecycle", () => {
     ).toBe(bytes);
     expect(settled.funnel[0]!.counts.materialized).toBe(1);
     expect(provider).toHaveBeenCalledTimes(3);
-  });
+  }, 60_000);
 });

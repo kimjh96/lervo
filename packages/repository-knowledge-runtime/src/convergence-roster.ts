@@ -14,13 +14,21 @@ const CONVERGENCE_ROLES: readonly ConvergenceWorkerRole[] = [
   "writer",
   "integrator",
 ];
-/** Convergence hiring names each worker by role and delegation; a path suffix splits scopes. */
+/**
+ * Convergence hiring names each worker by role and delegation; a path suffix splits scopes.
+ * Practice learning hires the same roles under a separate prefix.
+ */
 const CONVERGENCE_AGENT_NAME =
-  /^Knowledge (generator|reviewer|writer|integrator) ([0-9a-f]{12})(?: [0-9a-f]{8})?$/u;
+  /^(?:Knowledge|Practice) (generator|reviewer|writer|integrator) ([0-9a-f]{12})(?: (?:[0-9a-f]{6}|[0-9a-f]{8}))?$/u;
 
 /** The display name of the worker that serves one role under one reviewed delegation. */
 export function convergenceAgentName(role: ConvergenceWorkerRole, delegationHash: string): string {
   return `Knowledge ${role} ${delegationHash.slice(7, 19)}`;
+}
+
+/** The practice-learning worker for one role and delegation, within the 40-character name bound. */
+export function practiceAgentName(role: ConvergenceWorkerRole, delegationHash: string): string {
+  return `Practice ${role} ${delegationHash.slice(7, 19)}`;
 }
 
 /**

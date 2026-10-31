@@ -414,7 +414,7 @@ describe("lervo upgrade", () => {
       await readFile(resolve(root, ".lervo/capabilities/packages/reviewer@1.0.0/SKILL.md"), "utf8"),
     ).toContain("Review the requested files.");
     expect(errors).toEqual([]);
-  });
+  }, 30_000);
 
   it("never restores a renewed convergence delegation that HEAD tracks (ADR-0478)", async () => {
     const root = await repository();

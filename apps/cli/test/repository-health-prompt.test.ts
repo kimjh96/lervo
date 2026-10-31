@@ -73,7 +73,14 @@ it.each(["codex", "claude"] as const)(
     expect(result.additionalContext).toContain("1/10 evaluated documents stale");
     expect(result.additionalContext).not.toContain("Document freshness:");
     expect(result.additionalContext).not.toContain("Instruction capture:");
-    expect(result.attention.health?.measures.freshness).toEqual(projection.measures.freshness);
+    // The reader re-expires freshness and names its two state sources instead of the fixture.
+    expect(result.attention.health?.measures.freshness).toEqual({
+      ...projection.measures.freshness,
+      source: [
+        ".lervo/state/knowledge/document-staleness.json",
+        ".lervo/state/knowledge/freshness-cycle.json",
+      ],
+    });
     expect(projector).not.toHaveBeenCalled();
     expect(prefetchRepositoryHealth).not.toHaveBeenCalled();
     expect(lintRepositoryKnowledge).not.toHaveBeenCalled();

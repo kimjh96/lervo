@@ -17,6 +17,7 @@ import { proposeDocumentRouteScope } from "./document-route-scope-proposal.js";
 import { continuityFindings, type ContinuityOwnerHostObservation } from "./continuity-findings.js";
 import { continuityHostRecord, continuityPeerSummary } from "./continuity-host-record.js";
 import {
+  convergenceScopeChangeRecorded,
   nextContinuationFailure,
   readConvergenceContinuityState,
   writeConvergenceContinuityState,
@@ -253,12 +254,16 @@ export class ConvergenceContinuity {
         : { role: fence.verdict.role, failureCode: fence.verdict.failureCode ?? null };
     const ownerHostState = ownerHostObservation(ownerHost, host);
     const peerSummaries = peers.map(continuityPeerSummary);
+    // ADR-0540: propose at renewal, near expiry, or when the scope changed; keep an outstanding
+    // proposal, including one recorded in an older shape, current.
     const scopeChange =
       writer === "owner" &&
       current !== null &&
       (continuity.renewal?.kind === "renew" ||
         previous?.scopeChange != null ||
-        Date.parse(current.expiresAt) - 48 * 60 * 60_000 <= startedAt.getTime())
+        previous?.delegation.scopeHash !== continuity.scopeHash ||
+        Date.parse(current.expiresAt) - 48 * 60 * 60_000 <= startedAt.getTime() ||
+        (await convergenceScopeChangeRecorded(this.root)))
         ? await proposeDocumentRouteScope({ repositoryRoot: this.root, delegation: current })
         : null;
     const scopeResponse =

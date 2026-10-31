@@ -4,6 +4,7 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { listAssignments, listAgents } from "@lervo/agent-workforce";
+import { providerCliDispatchContext } from "@lervo/repository-knowledge-compiler";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
 import { fixture } from "./fixture.js";
@@ -78,8 +79,9 @@ it(
         .size,
     ).toBeGreaterThanOrEqual(3);
     const calls = (await readFile(f.log, "utf8")).trim().split("\n");
-    expect(calls.map((line) => JSON.parse(line).cwd).length).toEqual(
-      new Set(calls.map((line) => JSON.parse(line).cwd)).size,
+    // ADR-0536: every provider step runs from the same neutral dispatch cwd, never a checkout.
+    expect(new Set(calls.map((line) => JSON.parse(line).cwd))).toEqual(
+      new Set([providerCliDispatchContext().cwd]),
     );
     await runAutonomousKnowledgeWorker({
       storage: f.storage,

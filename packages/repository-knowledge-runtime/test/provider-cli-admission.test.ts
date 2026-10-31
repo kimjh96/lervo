@@ -6,6 +6,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   stat,
   symlink,
@@ -292,11 +293,12 @@ it("removes aliases and functions before finding the real installed executable",
   const f = await fixture();
   const shell = resolve(f.home, "login-shell");
   const marker = resolve(f.home, "alias-executed");
+  // POSIX-mode bash (macOS /bin/sh) would expand an earlier alias inside `codex()`.
   await writeFile(
     shell,
     `#!/bin/sh
-alias codex='touch "${marker}"'
 codex() { touch "${marker}"; }
+alias codex='touch "${marker}"'
 PATH="${resolve(f.codex, "..")}:/usr/bin:/bin"
 export PATH
 script=$2
@@ -334,7 +336,11 @@ it.each([".volta/bin", ".asdf/shims", ".local/share/mise/shims"])(
     expect(detection.failure).toBe("login_shell_failed");
     expect(detection.paths.codex).toContain(shim);
     const identity = await identifyProviderCli("codex", shim, ports, detection.environment);
-    expect(identity).toMatchObject({ executable: shim, realPath: dispatcher, version: "1.2.3" });
+    expect(identity).toMatchObject({
+      executable: shim,
+      realPath: await realpath(dispatcher),
+      version: "1.2.3",
+    });
   },
 );
 

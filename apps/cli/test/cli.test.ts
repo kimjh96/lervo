@@ -1289,7 +1289,7 @@ describe("lervo trace CLI", () => {
       eventReader: {
         schemaVersion: 1,
         capability: "event_reader",
-        readableEventSchemaVersions: [1, 2, 3, 4, 5, 6],
+        readableEventSchemaVersions: [1, 2, 3, 4, 5, 6, 7, 8],
       },
       defaultMode: "page",
       limits: {

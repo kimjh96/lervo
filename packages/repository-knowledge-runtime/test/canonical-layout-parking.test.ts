@@ -28,7 +28,9 @@ async function repository(maxDirectDocuments = 24) {
   const layout = parse(await readFile(layoutPath, "utf8"));
   layout.documentPolicy.capacity.maxDirectDocuments = maxDirectDocuments;
   await writeFile(layoutPath, stringify(layout));
-  for (let i = 0; i < 31; i++)
+  // The fixture already holds one specification, so the folder is exactly full. A folder already
+  // over its bound would block discovery's own generated document writes.
+  for (let i = 0; i < maxDirectDocuments - 1; i++)
     await writeFile(resolve(f.root, `docs/specs/existing-${i}.md`), `# Existing ${i}\n`);
   await writeFile(resolve(f.root, "candidate.ts"), "export const fact = 1;\n");
   await writeFile(resolve(f.root, "covered.ts"), "export const documented = true;\n");
@@ -162,7 +164,7 @@ it("supplies routing, capacity overrides, and full-directory counts to target se
   expect(guidance.routes).toEqual(layout.routes);
   expect(guidance.decisionRoot).toBe(layout.decisionRoot);
   expect(guidance.capacity.maxDirectDocuments).toBe(24);
-  expect(guidance.observed.directDocuments["docs/specs"]).toBe(32);
+  expect(guidance.observed.directDocuments["docs/specs"]).toBe(24);
 });
 
 it("carries capacity parking until source bytes, counts, or policy change", async () => {

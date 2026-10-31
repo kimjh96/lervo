@@ -16,7 +16,7 @@ import { healthNow, healthRevision, healthyProjection } from "./repository-healt
 
 vi.mock("@lervo/repository-knowledge-runtime", async (original) => ({
   ...(await original<typeof import("@lervo/repository-knowledge-runtime")>()),
-  inspectKnowledgeResidentHealth: vi.fn(),
+  inspectKnowledgeResidentHealth: vi.fn(async () => null),
 }));
 const roots: string[] = [];
 async function root() {

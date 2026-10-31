@@ -186,7 +186,8 @@ describe("complete paged execution evidence", () => {
   it("leaves the scanner responsible for the aggregate of ordinary and supplemental bytes", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-paged-event-scan-"));
     try {
-      await writeFile(resolve(root, "README.md"), "# Ordinary\n".repeat(200));
+      // README.md is a canonical document, so it is admitted before the lower-priority events.
+      await writeFile(resolve(root, "README.md"), "# Ordinary\n");
       const pages = collectExecutionEventSourcePages({ events: store(history(2)), limits });
       const supplementalSources = pages.flat();
       const eventBytes = supplementalSources.reduce(

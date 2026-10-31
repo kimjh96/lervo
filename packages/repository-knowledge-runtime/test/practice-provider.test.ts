@@ -5,6 +5,7 @@ import { withPracticeProviderAssignment } from "../src/practice-provider-assignm
 import type { ConvergenceAssignmentAuthority } from "../src/workforce.js";
 import { practiceContext } from "./practice-fixture.js";
 import { assessInstructionCapture } from "../src/instruction-capture-assessment.js";
+import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
 
 const mocks = vi.hoisted(() => ({
   resolve: vi.fn(),
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   cleanup: vi.fn(),
   create: vi.fn(),
   complete: vi.fn(),
+  admit: vi.fn(),
   admitted: true,
 }));
 vi.mock("@lervo/repository-knowledge-compiler", async (load) => ({
@@ -28,6 +30,11 @@ vi.mock("../src/provider-admission.js", () => ({
   acquireKnowledgeProviderAdmission: async () =>
     mocks.admitted ? { release: mocks.release, observationHash: "observation" } : null,
   pauseKnowledgeProvider: vi.fn(),
+}));
+// ADR-0536 provider selection needs a delegation; these tests bound only the practice path.
+vi.mock("../src/background-provider.js", () => ({
+  admittedBackgroundContext: mocks.admit,
+  backgroundProviderOptions: (context: { provider: string }) => ({ provider: context.provider }),
 }));
 vi.mock("../src/practice-budget.js", () => ({
   reservePracticeBudget: mocks.reserve,
@@ -52,6 +59,7 @@ const authority = {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.admitted = true;
+  mocks.admit.mockImplementation(async (context: unknown) => context);
   mocks.reserve.mockResolvedValue({ id: "reservation" });
   mocks.resolve.mockResolvedValue({ value: { practice: null }, usage: null });
 });
@@ -104,6 +112,7 @@ describe("practice provider privacy and preflight", () => {
           authority,
         }),
       ).rejects.toThrow("source_incomplete");
+      expect(mocks.admit).not.toHaveBeenCalled();
       expect(mocks.resolve).not.toHaveBeenCalled();
       expect(mocks.reserve).not.toHaveBeenCalled();
     },
@@ -136,6 +145,7 @@ describe("practice provider privacy and preflight", () => {
     await expect(
       callPracticeProvider({ ...request({ reply: "Public." }), authority }),
     ).resolves.toEqual({ practice: null });
+    expect(mocks.admit).toHaveBeenCalledOnce();
     expect(mocks.resolve).toHaveBeenCalledOnce();
     expect(mocks.cleanup).not.toHaveBeenCalled();
     expect(mocks.release).toHaveBeenCalledOnce();
@@ -151,11 +161,15 @@ describe("practice provider privacy and preflight", () => {
     expect(mocks.resolve).not.toHaveBeenCalled();
     expect(mocks.cleanup).toHaveBeenCalledOnce();
   });
-  it.each(["budget", "admission"])(
+  it.each(["budget", "admission", "provider selection"])(
     "never creates a workforce failure while waiting for %s",
     async (wait) => {
       if (wait === "budget") mocks.reserve.mockResolvedValue(null);
-      else mocks.admitted = false;
+      else if (wait === "admission") mocks.admitted = false;
+      else
+        mocks.admit.mockRejectedValue(
+          new KnowledgeConvergenceRuntimeError("provider_not_admitted"),
+        );
       const original = request({ reply: "Public." });
       const context = {
         ...original.context,

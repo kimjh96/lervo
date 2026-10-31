@@ -16,7 +16,10 @@ const mocks = vi.hoisted(() => ({
   sameAgent: false,
 }));
 vi.mock("../src/practice-provider.js", () => ({ callPracticeProvider: mocks.call }));
-vi.mock("../src/practice-catalog.js", () => ({ loadPracticeCatalog: mocks.catalog }));
+vi.mock("../src/practice-catalog.js", async (load) => ({
+  ...(await load<typeof import("../src/practice-catalog.js")>()),
+  loadPracticeCatalog: mocks.catalog,
+}));
 vi.mock("../src/delegation.js", () => ({
   loadConvergenceDelegation: async () => ({
     contentHash: "delegation",

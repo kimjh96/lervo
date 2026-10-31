@@ -10,7 +10,11 @@ import {
 import { NormalizationCandidatePreparer } from "../src/conversation-normalization-candidate.js";
 
 vi.mock("@lervo/project-storage", () => ({ openProjectStorage: vi.fn() }));
-vi.mock("@lervo/project", () => ({ inspectEventWriterCoordinate: vi.fn() }));
+// Keep the real layout constants: @lervo/repository-knowledge reads them at module load.
+vi.mock("@lervo/project", async (original) => ({
+  ...(await original<typeof import("@lervo/project")>()),
+  inspectEventWriterCoordinate: vi.fn(),
+}));
 vi.mock("@lervo/repository-knowledge-runtime", () => ({
   createBackgroundNormalizationCompiler: vi.fn(),
 }));

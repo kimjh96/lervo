@@ -8,6 +8,11 @@ import { createConvergenceRuntimeHost } from "../src/host.js";
 
 // Isolate assessment context selection from the separately tested structural prefix.
 vi.mock("../src/lifecycle-prefix.js", () => ({ prepareConvergenceLifecycle: async () => null }));
+// The context failure precedes any provider call, so this host needs no installed provider CLI.
+vi.mock("../src/background-provider.js", async (load) => ({
+  ...(await load<typeof import("../src/background-provider.js")>()),
+  admittedBackgroundContext: async <T>(context: T) => context,
+}));
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
   for (const f of fixtures.splice(0)) {

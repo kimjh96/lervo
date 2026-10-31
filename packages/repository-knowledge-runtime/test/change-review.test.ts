@@ -124,7 +124,10 @@ it(
     });
     expect(outcome).toMatchObject({ changeEventId, terminalState: "current", failureCode: null });
     expect(await reviewCalls(f)).toHaveLength(1);
-    const [usage] = of(f, "resource.usage.recorded");
+    // ADR-0536: the provider CLI admission probe records its own usage before the review call.
+    const usage = of(f, "resource.usage.recorded").find(
+      (event) => (event.payload as { stage?: unknown }).stage === "repository_change_review",
+    );
     expect(usage?.payload).toMatchObject({
       status: "observed",
       source: "provider_reported",

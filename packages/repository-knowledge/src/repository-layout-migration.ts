@@ -647,7 +647,12 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       source.content !== undefined &&
       source.contentHash !== null,
   );
-  if (agents === undefined && (routedInstructions.length > 0 || routedSkills.length > 0)) {
+  // A generated AGENTS.md is outside the scan; the structural compiler regenerates its routes.
+  if (
+    agents === undefined &&
+    !generatedPaths.has("AGENTS.md") &&
+    (routedInstructions.length > 0 || routedSkills.length > 0)
+  ) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "Provider instruction normalization requires a canonical AGENTS.md source.",

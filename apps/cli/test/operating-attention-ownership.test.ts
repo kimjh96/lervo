@@ -199,17 +199,36 @@ describe("attention authority at consequential effects", () => {
   });
 
   it.each([
-    ["hub_forbidden", "authority_scope"],
-    ["hub_unauthorized", "credentials"],
-    ["token_file_unreadable", "credentials"],
-  ])("retains consequential %s recovery for the owner", (failureCode, consequence) => {
-    expect(
-      attributeOperatingAttention({ ...items.knowledge_convergence_owner, failureCode }, healthNow),
-    ).toMatchObject({
-      requiresUserAction: true,
-      attribution: { actor: "owner", consequence, recommendation: base.instruction },
-    });
-  });
+    [
+      "hub_forbidden",
+      "authority_scope",
+      "Grant bounded workspace.read and workspace.coordinate for the configured Hub scope",
+    ],
+    [
+      "hub_unauthorized",
+      "credentials",
+      "Replace the rejected Hub token for the configured project and destination",
+    ],
+    [
+      "token_file_unreadable",
+      "credentials",
+      "Restore owner-only access to the configured Hub token file",
+    ],
+  ] as const)(
+    "retains consequential %s recovery for the owner",
+    (failureCode, consequence, recommendation) => {
+      expect(
+        attributeOperatingAttention(
+          { ...items.knowledge_convergence_owner, failureCode },
+          healthNow,
+        ),
+      ).toMatchObject({
+        requiresUserAction: true,
+        instruction: base.instruction,
+        attribution: { actor: "owner", consequence, recommendation },
+      });
+    },
+  );
 
   it("keeps scope and exact write exceptions while preserving stale re-verification", () => {
     expect(

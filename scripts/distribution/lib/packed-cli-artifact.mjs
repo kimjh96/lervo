@@ -9,7 +9,7 @@ import { repositoryRoot, runPnpm } from "./installed-cli.mjs";
 export async function packCliArtifact(archiveRoot, expectedVersion) {
   const runtime = await readRuntimeModuleArtifact(resolve(repositoryRoot, "apps/cli/dist"));
   const cliReleaseFiles = cliReleaseFilesForSchema(
-    9,
+    10,
     [...runtime.files.keys()]
       .filter((name) => name !== "repository-runtime.json")
       .map((name) => `dist/${name}`),

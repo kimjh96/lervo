@@ -5,6 +5,7 @@ import {
 } from "@lervo/repository-knowledge";
 import type { InstructionCaptureContext } from "./instruction-capture-assessment.js";
 import { acquireKnowledgeProviderAdmission } from "./provider-admission.js";
+import { admittedBackgroundContext } from "./background-provider.js";
 import { reservePracticeBudget, releaseUnattemptedPracticeBudget } from "./practice-budget.js";
 
 export interface PracticeProviderRequest {
@@ -17,16 +18,20 @@ export interface PracticeProviderRequest {
   beforeCall?(): Promise<void>;
 }
 
-/** Acquire scarce resources before creating or leasing workforce work. */
+/**
+ * Acquire scarce resources before creating or leasing workforce work. Local privacy and size
+ * preflight runs first, so provider admission never masks or delays a private request.
+ */
 export async function preparePracticeProvider(input: PracticeProviderRequest) {
-  const { context } = input;
   const serialized = canonicalJson(input.data);
   if (Buffer.byteLength(serialized) > 32 * 1024 || sanitizePracticeText(serialized) !== serialized)
     throw new Error("source_incomplete");
   await input.beforeCall?.();
-  if (context.providerQuantum !== undefined && context.providerQuantum.remaining <= 0)
+  if (input.context.providerQuantum !== undefined && input.context.providerQuantum.remaining <= 0)
     throw new Error("provider_not_admitted");
-  if (await context.liveWorkPending()) throw new Error("foreground_pending");
+  if (await input.context.liveWorkPending()) throw new Error("foreground_pending");
+  // ADR-0536: the delegation bounds provider fallback, and the lock covers the selected provider.
+  const context = await admittedBackgroundContext(input.context);
   const admission = await acquireKnowledgeProviderAdmission({
     repositoryRoot: context.storage.paths.repositoryRoot,
     provider: context.provider,
@@ -54,6 +59,7 @@ export async function preparePracticeProvider(input: PracticeProviderRequest) {
     if (!reservation) throw new Error("practice_budget_exhausted");
     let attempted = false;
     return {
+      context,
       admission,
       reservation,
       request,

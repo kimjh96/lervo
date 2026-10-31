@@ -194,6 +194,7 @@ export async function fixture(
   }
   const log = resolve(directory, "provider-calls.jsonl");
   const executable = resolve(directory, "claude-fixture.mjs");
+  // Tests patch the first review-response print; the admission probe prints through a variable.
   await writeFile(
     executable,
     `#!/usr/bin/env node
@@ -203,7 +204,7 @@ const hash=value=>'sha256:'+createHash('sha256').update(typeof value==='string'?
 if(process.argv.includes('--version')){console.log('claude-fixture 1.0.0');process.exit(0);}
 let text='';for await(const chunk of process.stdin)text+=chunk;
 const request=JSON.parse(text);
-if(request.task==='provider_cli_admission_probe'){console.log(JSON.stringify({is_error:false,result:'{"ok":true}',stop_reason:'end_turn',num_turns:1,permission_denials:[],usage:{server_tool_use:{web_search_requests:0,web_fetch_requests:0}},modelUsage:{fixture:{inputTokens:10,cacheReadInputTokens:0,cacheCreationInputTokens:0,outputTokens:5,contextWindow:200000}}}));process.exit(0);}
+if(request.task==='provider_cli_admission_probe'){const probe={is_error:false,result:'{"ok":true}',stop_reason:'end_turn',num_turns:1,permission_denials:[],usage:{server_tool_use:{web_search_requests:0,web_fetch_requests:0}},modelUsage:{fixture:{inputTokens:10,cacheReadInputTokens:0,cacheCreationInputTokens:0,outputTokens:5,contextWindow:200000}}};console.log(JSON.stringify(probe));process.exit(0);}
 const data=request.untrustedSourceData;let response;
 const prior=existsSync(${JSON.stringify(log)})?readFileSync(${JSON.stringify(log)},'utf8').trim().split('\\n').filter(Boolean).map(line=>JSON.parse(line)).filter(call=>call.request.task==='canonical_baseline_assessment').length:0;
 appendFileSync(${JSON.stringify(log)},JSON.stringify({cwd:process.cwd(),request})+'\\n');

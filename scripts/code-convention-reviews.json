@@ -242,7 +242,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:6d38d910326bfa437aa0e946765a9d2bc793390f8902935c6d32bb6604a8d8d9",
+      "contentHash": "sha256:3bf21a6ae1eb5fb2e75001d880a6c0752480859652656b2026a4f89066405d29",
       "responsibility": "Repository document-layout migration",
       "rationale": "The module composes one exact layout transaction with virtual scanning, approval binding, and apply-time revalidation. Conflict outcomes and one-to-one candidate accounting are isolated in repository-layout-accounting.ts. Source classification, route evidence, durable apply, provider calls, lifecycle authority, scope decisions, and health observations retain separate owners. No independent provider or persistence policy was added.",
       "disposition": "cohesive"

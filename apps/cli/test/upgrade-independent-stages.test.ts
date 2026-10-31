@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runCli } from "../src/main.js";
 import {
@@ -11,6 +11,7 @@ import {
   planTerminalIntegrationStage,
 } from "../src/terminal-integration-stage.js";
 import { inspectTerminalRepositoryKnowledge } from "../src/terminal-knowledge-lifecycle-inspection.js";
+import * as terminalRuntime from "../src/terminal-runtime.js";
 import { loadTerminalHookLauncher } from "../src/terminal-runtime.js";
 
 /** Keeps upgrade applies off the developer host's real background-resident admission. */
@@ -24,6 +25,7 @@ const roots: string[] = [];
 const runtimePath = ".lervo/generated/terminal-hooks/runtime-v2.mjs";
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -70,6 +72,8 @@ describe("lervo upgrade with a blocked stage", () => {
       `${invalidMetadata}\n# Design\n\nVersion four.\n`,
     );
     const requirements = await readFile(resolve(root, "v3/REQUIREMENTS.md"), "utf8");
+    // ADR-0539: an installed CLI publishes the host hook runtime at startup; runCli skips bin.ts.
+    vi.spyOn(terminalRuntime, "hostTerminalHookReaderCurrent").mockResolvedValue(true);
 
     const output: string[] = [];
     const errors: string[] = [];
@@ -213,9 +217,8 @@ describe("lervo upgrade with a blocked stage", () => {
 
     const humanOutput: string[] = [];
     await runCli(["upgrade"], io(root, humanOutput, errors));
-    expect(humanOutput.join("")).toContain(
-      "deferred [semantic_classification_pending] misc/purple-zebra.md",
-    );
+    // ADR-0540: text lists each deferral by its resolution; no delegation admits a provider here.
+    expect(humanOutput.join("")).toContain("deferred [provider_unavailable] misc/purple-zebra.md");
     expect(humanOutput.join("")).not.toContain(data);
 
     const knowledge = await inspectTerminalRepositoryKnowledge({
@@ -225,8 +228,8 @@ describe("lervo upgrade with a blocked stage", () => {
     });
     expect(knowledge.advisories).toContainEqual({
       code: "document_route_classification_deferred",
-      detail: "misc/purple-zebra.md: semantic_classification_pending",
-      command: expect.stringContaining("lervo.document.route"),
+      detail: "misc/purple-zebra.md: semantic_classification_pending (provider_unavailable)",
+      command: expect.stringContaining("lervo migrate knowledge --provider"),
     });
     expect(knowledge.issues.map((issue) => issue.code)).not.toContain("repository_layout_blocked");
   }, 30_000);

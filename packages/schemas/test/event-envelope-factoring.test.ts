@@ -104,7 +104,7 @@ describe("factored event envelope compatibility", () => {
 
   it("rejects malformed containers and unsupported version values without coercion", () => {
     for (const value of [null, false, true, 1, "event", [], [envelope()]]) compare(value, false);
-    for (const schemaVersion of [null, "1", "6", 0, -1, 1.5, 7, {}, [], true, NaN, Infinity])
+    for (const schemaVersion of [null, "1", "6", 0, -1, 1.5, 9, {}, [], true, NaN, Infinity])
       compare(envelope({ schemaVersion }), false);
   });
 });

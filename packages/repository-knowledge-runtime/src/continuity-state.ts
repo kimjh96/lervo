@@ -56,15 +56,25 @@ export interface ConvergenceContinuityState {
 
 const MAXIMUM_STATE_BYTES = 16 * 1024 * 1024;
 
-export async function readConvergenceContinuityState(
+async function readRecordedContinuityState(
   root: string,
-): Promise<ConvergenceContinuityState | null> {
+): Promise<Partial<ConvergenceContinuityState> | null> {
   const file = await readPrivateJsonFile(
     resolve(root, CONVERGENCE_CONTINUITY_STATE_PATH),
     MAXIMUM_STATE_BYTES,
   );
-  if (file.status !== "read") return null;
-  const value = file.value as Partial<ConvergenceContinuityState> | null;
+  return file.status === "read" ? (file.value as Partial<ConvergenceContinuityState> | null) : null;
+}
+
+/** ADR-0540: a proposal recorded in an older shape reads as none, yet is still outstanding. */
+export async function convergenceScopeChangeRecorded(root: string): Promise<boolean> {
+  return (await readRecordedContinuityState(root))?.scopeChange != null;
+}
+
+export async function readConvergenceContinuityState(
+  root: string,
+): Promise<ConvergenceContinuityState | null> {
+  const value = await readRecordedContinuityState(root);
   const proposal = value?.scopeChange;
   const currentProposal =
     proposal != null &&

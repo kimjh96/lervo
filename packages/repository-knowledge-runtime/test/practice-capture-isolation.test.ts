@@ -39,6 +39,7 @@ describe("single capture call with isolated practice failure", () => {
     });
     calls.assess.mockResolvedValue({
       status: "assessed",
+      provider: "claude",
       usage: null,
       value: {
         schemaVersion: 1,

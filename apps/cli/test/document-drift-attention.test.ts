@@ -151,7 +151,7 @@ describe("document drift attention", () => {
         requiresUserAction: false,
         blocking: false,
         state: "action_required",
-        instruction: "lervo knowledge lint --json",
+        recordedInstruction: "lervo knowledge lint --json",
       });
     expect(report.items.find((item) => item.kind === "workstream_blocker")?.state).toBe("stale");
     expect(report.summary.userActionCount).toBe(0);

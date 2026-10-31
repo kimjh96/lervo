@@ -119,7 +119,7 @@ export class SQLiteEventStore implements OutboxStore {
   }
 
   static async open(options: OpenEventStoreOptions): Promise<SQLiteEventStore> {
-    if (![1, 2, 3, 4, 5, 6, 7].includes(options.writableEventSchemaVersion ?? 1)) {
+    if (![1, 2, 3, 4, 5, 6, 7, 8].includes(options.writableEventSchemaVersion ?? 1)) {
       throw new EventStoreError(
         "event_schema_unsupported",
         "The writer activation version is unsupported.",

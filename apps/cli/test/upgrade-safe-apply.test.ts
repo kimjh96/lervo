@@ -4,13 +4,15 @@ import { resolve } from "node:path";
 
 import { registerAgent } from "@lervo/agent-workforce";
 import { acquireFullCycleAdmission } from "@lervo/repository-knowledge-runtime";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runCli } from "../src/main.js";
+import * as terminalRuntime from "../src/terminal-runtime.js";
 
 const roots: string[] = [];
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -109,6 +111,8 @@ describe("lervo upgrade --apply --safe", () => {
   it("plans and applies in one exclusive window when the plan changes while waiting", async () => {
     const root = await repository();
     await approveTerminalIntegration(root);
+    // ADR-0539: an installed CLI publishes the host hook runtime at startup; runCli skips bin.ts.
+    vi.spyOn(terminalRuntime, "hostTerminalHookReaderCurrent").mockResolvedValue(true);
     await writeFile(resolve(root, "main.ts"), "export const value = 1;\n");
     const presented = await presentedPlan(root);
     expect(presented.stages.terminalIntegration.disposition).toBe("current");

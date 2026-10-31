@@ -23,6 +23,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { inspectInstructionCatalog } from "../src/instruction-catalog.js";
 import { runCli } from "../src/main.js";
+import { prefetchRepositoryHealth } from "../src/repository-health-prefetch.js";
 import { queueTerminalOwnerTurn } from "../src/terminal-instruction-capture.js";
 
 const roots: string[] = [];
@@ -387,6 +388,10 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
         authorityBlocked: { since: new Date().toISOString(), queuedCount: 1 },
       }),
     );
+    // ADR-0535: compact turns read the blocked capture from the cached health projection,
+    // which the background prefetch builds from an existing event store.
+    await (await openProjectStorage(root)).close();
+    await prefetchRepositoryHealth(root);
     const context = promptContext(
       await hook(root, "codex", {
         hook_event_name: "UserPromptSubmit",
@@ -395,8 +400,9 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
       }),
     );
     expect(context).toContain(
-      "1 owner turn cannot be assessed on this host because it has no knowledge convergence delegation",
+      "Lervo health: needs owner authority (at least 1): instruction_capture_blocked_knowledge_authority_unavailable: Authorize a bounded knowledge convergence delegation",
     );
+    expect(context).not.toContain("Instruction capture:");
     const attention: string[] = [];
     await runCli(["application", "attention", "--json"], {
       ...quiet(root),

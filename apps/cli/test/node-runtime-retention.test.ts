@@ -109,6 +109,8 @@ it("rejects foreign layout and external links, and accepts generated internal de
   const modules = resolve(f.root, name(5), "node_modules");
   await mkdir(resolve(modules, ".lervo-packages/0"), { recursive: true });
   await symlink(".lervo-packages/0", resolve(modules, "dependency"));
+  // Creating node_modules refreshed the mtime; restore it so recency does not keep this runtime.
+  await utimes(resolve(f.root, name(5)), new Date(5000), new Date(5000));
   const options = { ...f, processCommands: async () => "" };
   const plan = await planNodeRuntimeRetention(options);
   expect(plan.candidates.map((item) => item.name)).toContain(name(5));

@@ -115,7 +115,7 @@ it("names the normalization roots a delegation excludes instead of an opaque aut
     pendingDocuments: 2,
     outsideRoots: ["docs/guides"],
     paths: ["docs/guides/design.md", "docs/guides/model/policy.md"],
-    evaluationContract: expect.stringMatching(/^adr-0485:[a-f0-9]{24}$/u),
+    evaluationContract: expect.stringMatching(/^adr-0532:[a-f0-9]{24}$/u),
   });
   await expect(readFile(f.log)).rejects.toMatchObject({ code: "ENOENT" });
 });

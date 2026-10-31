@@ -231,7 +231,12 @@ async function managedWorkerRepository() {
 }
 
 afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+  // ADR-0531: a failed hook may return before abandoned sibling stages finish their state writes.
+  await Promise.all(
+    roots
+      .splice(0)
+      .map((root) => rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 })),
+  );
 });
 
 // These cases pin the opt-in per-prompt retrieval contract; compact defaults are covered separately.

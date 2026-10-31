@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, realpath, rm, symlink } from "node:fs/promises";
 import { tmpdir, userInfo } from "node:os";
 import { dirname, resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -53,7 +53,8 @@ it.each(["login", "fallback"])(
       `#!${process.execPath}
 if (process.env.HOME !== '${home}' || process.env.SHELL !== '${shell}') process.exit(1);
 if (process.argv.includes('--version')) { console.log('2.1.308'); process.exit(0); }
-console.log(JSON.stringify({is_error:false,result:'{"ok":true}',stop_reason:'end_turn',num_turns:1,permission_denials:[],usage:{server_tool_use:{web_search_requests:0,web_fetch_requests:0}}}));
+const structured = process.argv.includes('--json-schema');
+console.log(JSON.stringify({is_error:false,result:'{"ok":true}',...(structured ? {structured_output:{ok:true}} : {}),stop_reason:structured ? 'tool_use' : 'end_turn',num_turns:structured ? 2 : 1,permission_denials:[],usage:{server_tool_use:{web_search_requests:0,web_fetch_requests:0}}}));
 `,
       { mode: 0o700 },
     );
@@ -130,7 +131,7 @@ console.log(JSON.stringify({ is_error: false, result: '{"ok":true}', ...(structu
   const identity = await identifyProviderCli("claude", executable, ports, detection.environment);
   expect(identity).not.toBeNull();
   expect(identity?.executable).toBe(executable);
-  expect(identity?.realPath).toBe(target);
+  expect(identity?.realPath).toBe(await realpath(target));
   expect(identity?.environment.PATH).toBe(`${dirname(executable)}:${bin}:/usr/bin:/bin`);
   expect((await probeProviderCli(identity!)).admitted).toBe(true);
   const runner = await createNoCapabilityProviderJsonRunner(identity!);
