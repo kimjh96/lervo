@@ -11,7 +11,11 @@ import {
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
 import { loadConvergenceDelegation } from "./delegation.js";
-import { captureConvergenceChangedPaths, captureConvergenceSources } from "./source-capture.js";
+import {
+  captureConvergenceChangedPaths,
+  captureConvergenceSources,
+  convergenceSourcePath,
+} from "./source-capture.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { convergenceRepositoryDigest } from "./source-fingerprint.js";
 import { historicalObligations } from "./historical-obligations.js";
@@ -89,14 +93,16 @@ export async function discoverConvergenceBaseline(
   const acceptance = loadHistoricalAcceptance(root, manifest.projectId);
   const historical = await historicalObligations(events, artifacts, acceptance?.accepted);
   const historicalEvents = historical.events;
-  const obligationPaths = new Set([
-    ...afterChanged,
-    ...historical.paths,
-    ...normalization.pendingDocuments,
-    ...candidates
-      .filter((candidate) => ["candidate", "pending", "stale"].includes(candidate.observedState))
-      .flatMap((candidate) => candidate.sourceBindings.map((binding) => binding.path)),
-  ]);
+  const obligationPaths = new Set(
+    [
+      ...afterChanged,
+      ...historical.paths,
+      ...normalization.pendingDocuments,
+      ...candidates
+        .filter((candidate) => ["candidate", "pending", "stale"].includes(candidate.observedState))
+        .flatMap((candidate) => candidate.sourceBindings.map((binding) => binding.path)),
+    ].filter(convergenceSourcePath),
+  );
   const obligationSources = after.sources.filter(
     (source) => source.kind === "text" && obligationPaths.has(source.path),
   );

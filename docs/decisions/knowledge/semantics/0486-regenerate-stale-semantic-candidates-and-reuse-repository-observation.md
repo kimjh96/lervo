@@ -5,6 +5,7 @@ Decision date: 2026-10-07
 Amends: [ADR-0485](0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md)
 Amended by: [ADR-0490](0490-regenerate-stale-semantic-candidates-before-the-pre-stage-check.md) (regeneration runs before the owner's pre-stage check)
 Amended by: [ADR-0491](0491-never-pin-tool-generated-files-as-assets-and-memoize-the-role-registry.md) (tool-generated lockfile declarations and installed recovery acceptance)
+Amended by: [ADR-0532](../maintenance/0532-continue-background-review-past-capacity-and-optional-context-failures.md) (optional context failures and private document diagnostics)
 
 ## Context
 

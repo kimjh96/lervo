@@ -29,6 +29,29 @@ export async function parkDivergedCanonicalBatch(
   batch: CanonicalBatch,
   diverged: ParkedTargetObservation[],
 ): Promise<KnowledgeConvergenceStageResult> {
+  return parkCanonicalTargetBatch(context, state, batch, {
+    reason: "target_diverged",
+    targets: diverged.slice(0, 8),
+  });
+}
+
+export async function parkCanonicalTargetBatch(
+  context: ConvergenceRuntimeContext,
+  state: KnowledgeConvergenceInput,
+  batch: CanonicalBatch,
+  cause:
+    | { reason: "target_diverged"; targets: ParkedTargetObservation[] }
+    | {
+        reason: "layout_capacity_exceeded";
+        layoutCapacityHash: string;
+        codes: string[];
+        retiredRefEffect?: Awaited<
+          ReturnType<
+            typeof import("./canonical-capacity-recovery.js").retireCapacityBlockedRefDrafts
+          >
+        >;
+      },
+): Promise<KnowledgeConvergenceStageResult> {
   const assessmentHash = sha256(canonicalJson(batch.assessment));
   const candidates = new Set(
     batch.assessment.decisions
@@ -37,22 +60,25 @@ export async function parkDivergedCanonicalBatch(
   );
   // A draft always comes from a candidate; without one, no source can be cleared as covered.
   const parkedPaths = candidates.size > 0 ? candidates : new Set(batch.sources.map((s) => s.path));
-  const targets = diverged.slice(0, 8);
   const parked: ParkedConvergenceSource[] = batch.sources
     .filter((source) => parkedPaths.has(source.path))
     .map((source) => ({
       stage: "canonical",
       path: source.path,
       contentHash: source.contentHash,
-      reason: "target_diverged",
+      reason: cause.reason,
       attempts: 1,
       reasons: boundedReviewReasons(
-        targets.map(
-          (target) =>
-            `${target.ref} holds ${target.observedHash ?? "no file"} at ${target.path}, not the reviewed preimage`,
-        ),
+        cause.reason === "layout_capacity_exceeded"
+          ? cause.codes
+          : cause.targets.map(
+              (target) =>
+                `${target.ref} holds ${target.observedHash ?? "no file"} at ${target.path}, not the reviewed preimage`,
+            ),
       ),
-      targets,
+      ...(cause.reason === "target_diverged"
+        ? { targets: cause.targets }
+        : { layoutCapacityHash: cause.layoutCapacityHash }),
     }));
   const end = batch.offset + batch.count;
   return completeConvergenceStage({
@@ -82,10 +108,18 @@ export async function parkDivergedCanonicalBatch(
       canonicalTargetParked: assessmentHash,
     },
     proof: {
-      status: "target_diverged_parked",
+      status: `${cause.reason}_parked`,
       assessmentHash,
       sources: parked.map(({ path, contentHash }) => ({ path, contentHash })),
-      targets,
+      ...(cause.reason === "target_diverged"
+        ? { targets: cause.targets }
+        : {
+            layoutCapacityHash: cause.layoutCapacityHash,
+            codes: cause.codes,
+            ...(cause.retiredRefEffect === undefined
+              ? {}
+              : { retiredRefEffect: cause.retiredRefEffect }),
+          }),
     },
   });
 }

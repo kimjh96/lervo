@@ -50,7 +50,7 @@ export async function reviewLifecyclePlan(
       throw error;
     }
   });
-  const documents = await loadCanonicalReviewContext({
+  const { documents, skipped: contextSkips } = await loadCanonicalReviewContext({
     repositoryRoot: context.storage.paths.repositoryRoot,
     sourcePaths: reviewable,
   });
@@ -81,6 +81,7 @@ export async function reviewLifecyclePlan(
         task: "lifecycle_exact_plan_review",
         schema,
         contextDocuments: documents,
+        contextSkips,
         untrustedSourceData: {
           plan: disclosedPlan,
           planHash,

@@ -19,30 +19,41 @@ export function assertCanonicalReviewContextCurrent(
       document.path.includes("\0") ||
       document.path.split("/").some((part) => !part || part === "." || part === "..")
     )
-      throw new KnowledgeReviewContextError("review_context_unavailable");
+      throw new KnowledgeReviewContextError("review_context_unavailable", {
+        documentPath: document.path,
+      });
     try {
       let path = resolve(root);
       for (const part of document.path.split("/")) {
         path = resolve(path, part);
         if (lstatSync(path).isSymbolicLink())
-          throw new KnowledgeReviewContextError("review_context_unavailable");
+          throw new KnowledgeReviewContextError("review_context_unavailable", {
+            documentPath: document.path,
+          });
       }
       const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
       try {
         const stat = fstatSync(fd);
         if (!stat.isFile() || stat.size > 128 * 1024)
-          throw new KnowledgeReviewContextError("review_context_unavailable");
+          throw new KnowledgeReviewContextError("review_context_unavailable", {
+            documentPath: document.path,
+          });
         if (
           `sha256:${createHash("sha256").update(readFileSync(fd)).digest("hex")}` !==
           document.contentHash
         )
-          throw new KnowledgeReviewContextError("review_context_stale");
+          throw new KnowledgeReviewContextError("review_context_stale", {
+            documentPath: document.path,
+          });
       } finally {
         closeSync(fd);
       }
     } catch (error) {
       if (error instanceof KnowledgeReviewContextError) throw error;
-      throw new KnowledgeReviewContextError("review_context_unavailable", { cause: error });
+      throw new KnowledgeReviewContextError("review_context_unavailable", {
+        cause: error,
+        documentPath: document.path,
+      });
     }
   }
 }

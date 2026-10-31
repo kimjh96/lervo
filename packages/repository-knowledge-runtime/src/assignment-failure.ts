@@ -13,6 +13,7 @@ import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { recordConvergenceWorkforceEvent } from "./workforce-event.js";
 import type { KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { operatingContractHash } from "@lervo/work-controller";
+import { reviewContextFailureDetail } from "./review-context.js";
 
 /**
  * A failed convergence assignment is reopened at most this many attempts under one evaluation
@@ -49,6 +50,7 @@ export async function failConvergenceAssignment(input: {
       leaseId: assignment.lease!.leaseId,
       leaseGeneration: assignment.lease!.generation,
       code,
+      ...reviewContextFailureDetail(input.error),
       evidenceHash: /^sha256:[a-f0-9]{64}$/u.test(
         String((input.error as { dependencyHash?: unknown } | null)?.dependencyHash),
       )

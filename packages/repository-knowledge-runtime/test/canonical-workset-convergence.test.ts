@@ -97,6 +97,16 @@ it(
     expect(
       calls.filter((call) => call.request.task === "independent_canonical_review"),
     ).toHaveLength(assessments.length);
+    const reviews = calls.filter((call) => call.request.task === "independent_canonical_review");
+    assessments.forEach((call, index) => {
+      const generated = call.request.untrustedSourceData;
+      const reviewed = reviews[index].request.untrustedSourceData;
+      expect(generated.documentLayout.routes.length).toBeGreaterThan(0);
+      expect(generated.documentLayout.capacity.maxDirectDocuments).toBeGreaterThan(0);
+      expect(reviewed.documentLayout).toEqual(generated.documentLayout);
+      expect(reviewed.context).toEqual(generated.context);
+      expect(reviewed.contextSkips).toEqual(generated.contextSkips);
+    });
     const before = await readFile(f.log, "utf8");
     await runAutonomousKnowledgeWorker({
       storage: f.storage,
