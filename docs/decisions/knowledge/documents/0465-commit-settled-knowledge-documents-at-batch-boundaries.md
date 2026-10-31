@@ -41,6 +41,8 @@ An interrupted journal retains ADR-0444's explicit recovery: the worker never ro
 
 A failed resident cycle logs one line containing the stable code. Typed Lervo failures add their message, limited to 300 characters on one line, with the repository root shortened to `.`. Native and provider errors remain code-only.
 
+Amendment (2026-10-31): the host resident's service may not capture that stream. Each failed cycle also replaces `lastFailure: { code, detail, at }` in the private cycle state. The code matches `^[a-z][a-z0-9_]{2,80}$` or becomes `unclassified_failure`. Detail follows the same rule above and is `null` for native and provider errors. `at` records the failure time. A completed cycle clears the record. Continuity reports `resident_cycle_failed` with severity `attention` and the code as its detail. The repository's doctor JSON exposes `lastFailure`. This adds no event and preserves the log's privacy boundary.
+
 ## Failure and privacy
 
 The scanner uses the existing `source_bytes_changed` meaning: "source bytes changed since capture; recapture and supersede". This decision adds no event type.

@@ -1,6 +1,7 @@
 import type { ConvergenceContinuityPolicyReading } from "./continuity-policy-store.js";
 import type { DelegationRenewalDecision } from "./delegation-continuity-decision.js";
 import type { ResidentHostObservation } from "./resident-host-observation.js";
+import type { ResidentCycleState } from "./resident-cycle-state.js";
 
 const HOUR_MS = 60 * 60_000;
 /** Without a policy, an expiring delegation is reported this long before it lapses. */
@@ -43,6 +44,7 @@ export type ContinuityFindingCode =
   | "continuity_unobserved"
   | "continuity_stale"
   | "resident_not_running"
+  | "resident_cycle_failed"
   | "hook_runtime_stale"
   | "replica_diverged"
   // ADR-0470 resident admission, observed from resident health and the host resident status.
@@ -275,8 +277,15 @@ export function localContinuityFindings(input: {
   /** The reason a degraded resident heartbeat reports, such as `event_schema_outdated`. */
   residentHold?: string | null;
   residentHost?: ResidentHostObservation | null;
+  residentCycle?: Pick<ResidentCycleState, "lastResult" | "lastFailure"> | null;
 }): ContinuityFinding[] {
   const findings: ContinuityFinding[] = [];
+  if (input.residentCycle?.lastResult === "failed")
+    findings.push({
+      code: "resident_cycle_failed",
+      severity: "attention",
+      detail: input.residentCycle.lastFailure?.code ?? "unclassified_failure",
+    });
   const host = input.residentHost ?? null;
   const held = input.residentHold === "event_schema_outdated" || host?.kind === "host_held";
   const detail = residentHostDetail(host);

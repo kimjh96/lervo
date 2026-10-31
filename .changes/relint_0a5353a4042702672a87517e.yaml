@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0a5353a4042702672a87517e"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Retain bounded resident cycle failure diagnostics and surface their codes in continuity attention and doctor JSON."

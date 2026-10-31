@@ -38,6 +38,9 @@ describe("knowledge convergence host record", () => {
   it("accepts a bounded record whose scope matches its hash", () => {
     expect(isKnowledgeConvergenceHostRecord(hostRecord())).toBe(true);
     expect(isKnowledgeConvergenceHostRecord(hostRecord({ delegation: null }))).toBe(true);
+    expect(
+      isKnowledgeConvergenceHostRecord(hostRecord({ findings: ["resident_cycle_failed"] })),
+    ).toBe(true);
   });
 
   it("rejects a tampered scope, unknown keys, and free-text findings", () => {

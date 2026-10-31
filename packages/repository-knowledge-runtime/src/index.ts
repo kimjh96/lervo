@@ -164,3 +164,4 @@ export {
   convergenceDelegationAgentIds,
   retireSupersededConvergenceAgents,
 } from "./convergence-roster.js";
+export { residentCycleFailure } from "./resident-cycle-failure.js";

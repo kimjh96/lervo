@@ -162,6 +162,39 @@ describe("continuity findings", () => {
     ).toEqual(["hub_unavailable"]);
   });
 
+  it("reports the latest failed cycle with only its code, including legacy failures", () => {
+    const base = {
+      now,
+      expected: false,
+      stateObservedAt: null,
+      residentRunning: true,
+      hookRuntime: "current" as const,
+      replicaDiverged: false,
+    };
+    const lastFailure = {
+      code: "source_bytes_changed",
+      detail: "./docs/a.md changed",
+      at: new Date(now).toISOString(),
+    };
+    expect(
+      localContinuityFindings({
+        ...base,
+        residentCycle: { lastResult: "failed", lastFailure },
+      }),
+    ).toEqual([
+      { code: "resident_cycle_failed", severity: "attention", detail: "source_bytes_changed" },
+    ]);
+    expect(localContinuityFindings({ ...base, residentCycle: { lastResult: "failed" } })).toEqual([
+      { code: "resident_cycle_failed", severity: "attention", detail: "unclassified_failure" },
+    ]);
+    expect(
+      localContinuityFindings({
+        ...base,
+        residentCycle: { lastResult: "idle", lastFailure: null },
+      }),
+    ).toEqual([]);
+  });
+
   it("adds local gaps only for checkouts that should have a resident", () => {
     expect(
       localContinuityFindings({
