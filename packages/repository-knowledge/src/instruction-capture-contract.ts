@@ -291,7 +291,13 @@ function decision(value: unknown): CapturedDecision | null {
 export function parseInstructionCaptureAssessment(value: unknown): InstructionCaptureAssessment {
   const body = record(value, "response");
   const { practice: _practice, ...rule } = body;
-  exactKeys(rule, instructionCaptureResponseSchema.required, "response");
+  // The strict schema requires `practice`, but rule fields are validated without it so a missing
+  // or malformed practice can never fail rule capture.
+  exactKeys(
+    rule,
+    instructionCaptureResponseSchema.required.filter((key) => key !== "practice"),
+    "response",
+  );
   if (body.schemaVersion !== 1)
     throw new TypeError("The capture assessment schema version is invalid.");
   const captureClass = oneOf(body.captureClass, instructionCaptureClasses, "captureClass");
