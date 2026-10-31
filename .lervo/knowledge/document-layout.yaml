@@ -89,6 +89,10 @@ routes:
     path: coordination/conversations
     priority: 83
     description: "Scope carried from the legacy title terms: conversation; slack; discord."
+  - id: coordination.sync.workstreams
+    path: coordination/sync/workstreams
+    priority: 83
+    description: "Repository workstream replication across hosts: Hub lineages, heads, branch claims, and import."
   - id: coordination.sync
     path: coordination/sync
     priority: 82
