@@ -11,6 +11,8 @@ export async function prepareTerminalInstructionPreamble(input: {
   preamble: string;
   maximumBytes: number;
   prompt: string;
+  /** Optional complete lines, such as ADR-0538 find pointers, added only after owner rules fit. */
+  optionalLines?: readonly string[];
   sourceSnapshotId: string;
 }) {
   const preamble = capContextBytes(input.preamble, input.maximumBytes - 256);
@@ -47,8 +49,22 @@ export async function prepareTerminalInstructionPreamble(input: {
     report.status === "complete"
       ? `Applied owner rules: ${report.preparedCount} complete clauses prepared; provider delivery unobserved.`
       : `Applied owner rules ${report.status}: ${report.preparedCount} prepared; ${report.omittedCount ?? "unknown"} omitted. Read applicable full rules in docs/instructions/generated/ before changing files; preserve their scope and exceptions.`;
+  const context = [preamble, notice, ...(prepared.context ? [prepared.context] : [])].join("\n\n");
+  // Owner rules are packed first; optional lines are added whole, in order, while they fit.
+  const lines = input.optionalLines ?? [];
+  let optionalLineCount = 0;
+  while (
+    optionalLineCount < lines.length &&
+    Buffer.byteLength(`${context}\n\n${lines.slice(0, optionalLineCount + 1).join("\n")}`) <=
+      input.maximumBytes
+  )
+    optionalLineCount += 1;
   return {
-    preamble: [preamble, notice, ...(prepared.context ? [prepared.context] : [])].join("\n\n"),
+    preamble:
+      optionalLineCount === 0
+        ? context
+        : `${context}\n\n${lines.slice(0, optionalLineCount).join("\n")}`,
+    optionalLineCount,
     report,
     quality: quality.result,
   };

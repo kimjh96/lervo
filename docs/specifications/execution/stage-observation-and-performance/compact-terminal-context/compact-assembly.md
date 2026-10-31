@@ -24,3 +24,17 @@ workstream approvals with cached owner entries and deduplicating their identitie
 Missing cache coverage does not suppress an observed approval. The health reader performs no event scan, provider call, lint or recomputation.
 The older workstream verification path still scans events and can restore missing
 state; whole-prompt bounded provenance is a separate follow-up. Exact applied owner rules continue through the existing instruction preamble. Separately, the hook queues the owner's prompt for background capture under `event_commit`; assignment-workspace sessions are excluded.
+
+## Exact prompt anchors
+
+Under [ADR-0538](../../../../decisions/execution/grounding/0538-find-governing-context-through-exact-prompt-anchors.md), the compact prompt extracts exact anchors from the prompt against the current repository snapshot. It makes no provider call and adds no event.
+
+A path anchor is written as a path: a token with a slash that equals a snapshot path or directory, or a file name with an extension that equals a root file or names exactly one snapshot file. Bare words never anchor, even when a directory has that name. The most exact spelling wins; a `:line` suffix, enclosing brackets, and an attached Korean particle of at most three syllables are removed only when the exact spelling names nothing. Brackets and parentheses inside a path, as in `app/[lang]/page.tsx`, stay part of it.
+
+Up to three pointer lines carry a path and content hash:
+
+- a skill named by `/name` or `$name`;
+- a decision named by `ADR-####`;
+- the nearest nested `AGENTS.md` governing a path anchor.
+
+A prompt is partial evidence of scope, so path anchors never narrow owner-rule selection. Owner rules are packed first; a pointer line is added whole only while the 4 KiB budget allows. Pointers that reach the context are recorded as `selected` in the preparation observation with `loading: unobserved`, because their bodies are never loaded by the hook. Pointers never include file bodies.

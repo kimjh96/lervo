@@ -1,5 +1,6 @@
 import { prepareTerminalInstructionPreamble } from "./terminal-instruction-context.js";
-import { observeContextPreparation } from "@lervo/context";
+import { extractTerminalFindAnchors, formatTerminalFindPointer } from "./terminal-find-anchors.js";
+import { documentIdForPath, observeContextPreparation } from "@lervo/context";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
   canonicalJson,
@@ -132,13 +133,22 @@ export async function prepareCompactTerminalPromptContext(input: {
       query.workstreamFreshness,
     ),
   });
+  // ADR-0538: exact anchors point at named skills, decisions, and nested instructions. A prompt is
+  // partial evidence of scope, so anchors never narrow owner-rule selection.
+  const anchors = extractTerminalFindAnchors(input.prompt, repositorySnapshot.files);
   const instructions = await prepareTerminalInstructionPreamble({
     root: input.root,
     preamble,
     maximumBytes: 4096,
     prompt: input.prompt,
+    optionalLines: anchors.pointers.map(formatTerminalFindPointer),
     sourceSnapshotId,
   });
+  // Only pointers that reached the context are selected; their bodies are never loaded here.
+  const selected = anchors.pointers.slice(0, instructions.optionalLineCount).map((pointer) => ({
+    sourceId: documentIdForPath(pointer.path),
+    contentHash: pointer.contentHash,
+  }));
   const { additionalContext, workstream } = assembleCompactTerminalContext(
     instructions.preamble,
     query.currentWorkstream === null || query.workstreamFreshness === null
@@ -151,10 +161,10 @@ export async function prepareCompactTerminalPromptContext(input: {
       ...observeContextPreparation({
         requestDigest,
         sourceSnapshotId,
-        retrieval: "not_run",
-        candidateCount: null,
-        selected: [],
-        loads: [],
+        retrieval: anchors.pointers.length === 0 ? "not_run" : "completed",
+        candidateCount: anchors.pointers.length === 0 ? null : anchors.pointers.length,
+        selected,
+        loads: selected.length === 0 ? [] : null,
       }),
       instructions: instructions.report,
     },
@@ -187,6 +197,9 @@ export async function prepareCompactTerminalPromptContext(input: {
       targetPath: null,
       reasonIds: ["unmanaged_terminal_retrieval_only"],
     },
-    selection: { disposition: "query_projection_missing", selectedCount: 0 },
+    selection:
+      selected.length === 0
+        ? { disposition: "query_projection_missing", selectedCount: 0 }
+        : { disposition: "selected", selectedCount: selected.length },
   };
 }
