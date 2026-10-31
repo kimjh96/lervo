@@ -24,7 +24,7 @@ When `UserPromptSubmit` prepares context, the hook writes one open-turn marker f
 - the `terminal.context.prepared` event ID;
 - the time it opened.
 
-`Stop` removes the marker of its turn. A new prompt in the same session replaces that session's marker, because an interrupted turn never reaches `Stop`. A marker older than 6 hours is ignored and removed by the next hook.
+Each session has one marker file, which a new prompt replaces in one atomic rename, because an interrupted turn never reaches `Stop`. A failed write keeps the previous marker, so the binding stays ambiguous rather than wrong. `Stop` removes the marker only while it still names the closing turn's context. A marker older than 6 hours is ignored and removed by the next hook.
 
 ### Agent queries select for the one open turn
 
@@ -42,7 +42,7 @@ For the closing turn, the selected set is the union of:
 - the [ADR-0538](0538-find-governing-context-through-exact-prompt-anchors.md) pointers that reached the context, recorded as `selectedPointers` with path and content hash on `terminal.context.prepared`;
 - `context.selected` events with `origin: agent_query` bound to the turn.
 
-A selected document is referenced when the last assistant message contains its repository-relative path exactly. The path must stand alone, bounded by start or end, whitespace, quotes, backticks, brackets, parentheses, or punctuation, and may carry a `:line` suffix. Each such document gets one `terminal.reference.observed` event with `referenceKind: "path_mention"`. Existing `lervo-ref:` token references keep `referenceKind: "output_citation"`.
+Path mentions need a proven turn: an exact turn digest, or this session's marker naming the same context. Otherwise `Stop` records no path mention and leaves the marker for its own turn. A selected document is referenced when the last assistant message contains its repository-relative path exactly. The path must stand alone, bounded by start or end, whitespace, quotes, backticks, brackets, parentheses, or punctuation, and may carry a `:line` suffix. Each such document gets one `terminal.reference.observed` event with `referenceKind: "path_mention"`. Existing `lervo-ref:` token references keep `referenceKind: "output_citation"`.
 
 A path mention proves only that the reply named the document. It does not prove that the agent read or relied on it. Reports label it as a proxy, as ADR-0459 requires for hit precision.
 

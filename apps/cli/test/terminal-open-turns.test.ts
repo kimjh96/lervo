@@ -34,12 +34,12 @@ it("binds only one open turn and removes only the closing marker", async () => {
   expect(await singleOpenTerminalTurn(path, now)).toEqual(marker("a"));
   await openTerminalTurn(path, marker("b"));
   expect(await singleOpenTerminalTurn(path, now)).toBeNull();
-  await closeTerminalTurn(path, marker("a").contextEventId, now);
+  await closeTerminalTurn(path, marker("a").providerSessionDigest, marker("a").contextEventId, now);
   expect(await singleOpenTerminalTurn(path, now)).toEqual(marker("b"));
   const directory = resolve(path, ".lervo/state/terminal-integration/open-turns");
-  expect(await readdir(directory)).toEqual([`${marker("b").contextEventId}.json`]);
+  expect(await readdir(directory)).toEqual([`ses_${"b".repeat(64)}.json`]);
   expect(
-    JSON.parse(await readFile(resolve(directory, `${marker("b").contextEventId}.json`), "utf8")),
+    JSON.parse(await readFile(resolve(directory, `ses_${"b".repeat(64)}.json`), "utf8")),
   ).toEqual(marker("b"));
 });
 
@@ -50,7 +50,7 @@ it("replaces an interrupted turn's marker when the same session opens a new turn
   await openTerminalTurn(path, next);
   expect(await singleOpenTerminalTurn(path, now)).toEqual(next);
   expect(await readdir(resolve(path, ".lervo/state/terminal-integration/open-turns"))).toEqual([
-    `${next.contextEventId}.json`,
+    `ses_${"a".repeat(64)}.json`,
   ]);
 });
 
@@ -61,9 +61,9 @@ it("expires markers older than six hours on the next hook and retains the exact 
   await openTerminalTurn(path, marker("b"));
   expect(await singleOpenTerminalTurn(path, now)).toEqual(marker("b"));
   expect(await readdir(resolve(path, ".lervo/state/terminal-integration/open-turns"))).toEqual([
-    `${marker("b").contextEventId}.json`,
+    `ses_${"b".repeat(64)}.json`,
   ]);
-  await closeTerminalTurn(path, marker("b").contextEventId, now);
+  await closeTerminalTurn(path, marker("b").providerSessionDigest, marker("b").contextEventId, now);
   const exact = marker("c", new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString());
   await openTerminalTurn(path, exact);
   expect(await singleOpenTerminalTurn(path, now)).toEqual(exact);
@@ -73,7 +73,7 @@ it("treats unreadable, malformed and symlinked marker storage as no binding", as
   const path = await root();
   await openTerminalTurn(path, marker("a"));
   const directory = resolve(path, ".lervo/state/terminal-integration/open-turns");
-  await writeFile(resolve(directory, `${marker("b").contextEventId}.json`), "malformed");
+  await writeFile(resolve(directory, `ses_${"b".repeat(64)}.json`), "malformed");
   expect(await singleOpenTerminalTurn(path, now)).toBeNull();
   await rm(directory, { recursive: true });
   await writeFile(directory, "unreadable directory");
@@ -84,4 +84,13 @@ it("treats unreadable, malformed and symlinked marker storage as no binding", as
   await openTerminalTurn(path, marker("a"));
   expect(await singleOpenTerminalTurn(path, now)).toBeNull();
   expect(await readdir(outside)).toEqual([]);
+});
+
+it("keeps the session marker when a stale Stop closes an older context", async () => {
+  const path = await root();
+  const next = { ...marker("a"), contextEventId: `evt_${"c".repeat(24)}` };
+  await openTerminalTurn(path, marker("a"));
+  await openTerminalTurn(path, next);
+  await closeTerminalTurn(path, marker("a").providerSessionDigest, marker("a").contextEventId, now);
+  expect(await singleOpenTerminalTurn(path, now)).toEqual(next);
 });

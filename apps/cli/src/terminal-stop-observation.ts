@@ -25,7 +25,7 @@ import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import { findLatestPreparedContext } from "./terminal-prepared-context-query.js";
 import { selectedTerminalDocuments } from "./terminal-turn-selection.js";
 import { observedTerminalReferences } from "./terminal-output-references.js";
-import { closeTerminalTurn } from "./terminal-open-turns.js";
+import { closeTerminalTurn, sessionOpenTerminalTurn } from "./terminal-open-turns.js";
 
 export async function recordObservedTerminalTurn(input: {
   root: string;
@@ -55,7 +55,18 @@ export async function recordObservedTerminalTurn(input: {
       throw new Error("Prepared terminal context evidence is incomplete.");
     const documents = payload.loadedDocuments as unknown as PreparedTerminalDocument[];
     for (const document of documents) assertTerminalRepositoryRelativePath(document.path);
-    const selected = selectedTerminalDocuments(storage.events, context);
+    // Path mentions need a proven turn: an exact turn digest, or this session's open-turn marker
+    // naming the same context. Otherwise a later prompt's selections could be matched to this
+    // reply, so no path mention is recorded and the marker is left for its own turn.
+    const marker = await sessionOpenTerminalTurn(
+      input.root,
+      input.coordinates.providerSessionDigest,
+      new Date(input.occurredAt),
+    );
+    const proven =
+      input.coordinates.providerTurnDigest !== null || marker?.contextEventId === context.eventId;
+    if (!proven) contextEventId = null;
+    const selected = proven ? selectedTerminalDocuments(storage.events, context) : [];
     const references = observedTerminalReferences({
       lastAssistantMessage: input.hookInput.lastAssistantMessage,
       loaded: documents,
@@ -161,7 +172,12 @@ export async function recordObservedTerminalTurn(input: {
     };
   } finally {
     if (contextEventId !== null)
-      await closeTerminalTurn(input.root, contextEventId, new Date(input.occurredAt));
+      await closeTerminalTurn(
+        input.root,
+        input.coordinates.providerSessionDigest,
+        contextEventId,
+        new Date(input.occurredAt),
+      );
     await storage.close();
   }
 }

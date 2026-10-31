@@ -11,6 +11,11 @@ const MAXIMUM_AGE_MS = 6 * 60 * 60 * 1000;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const EVENT = /^evt_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 
+/** One fixed marker file per provider session, replaced atomically by each new prompt. */
+function markerName(providerSessionDigest: string): string {
+  return `ses_${providerSessionDigest.slice("sha256:".length)}.json`;
+}
+
 export interface OpenTerminalTurn {
   provider: TerminalIntegrationProvider;
   providerSessionDigest: string;
@@ -54,7 +59,7 @@ async function readMarkers(root: string, now: Date): Promise<OpenTerminalTurn[] 
     let count = 0;
     for await (const entry of entries) {
       if (++count > MAXIMUM_MARKERS) return null;
-      if (!/^evt_[A-Za-z0-9_-]+\.json$/u.test(entry.name) || !entry.isFile()) return null;
+      if (!/^ses_[a-f0-9]{64}\.json$/u.test(entry.name) || !entry.isFile()) return null;
       const path = resolve(directory, entry.name);
       const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
       let value: unknown;
@@ -66,7 +71,7 @@ async function readMarkers(root: string, now: Date): Promise<OpenTerminalTurn[] 
       } finally {
         await handle.close();
       }
-      if (!isMarker(value) || entry.name !== `${value.contextEventId}.json`) return null;
+      if (!isMarker(value) || entry.name !== markerName(value.providerSessionDigest)) return null;
       if (now.getTime() - Date.parse(value.openedAt) > MAXIMUM_AGE_MS) {
         await rm(path, { force: true });
       } else markers.push(value);
@@ -90,11 +95,7 @@ export async function openTerminalTurn(root: string, marker: OpenTerminalTurn): 
   try {
     if (!isMarker(marker)) return;
     const directory = await markerDirectory(root, true);
-    // A session has at most one open turn: an interrupted turn never reaches Stop, so a new
-    // prompt in the same session replaces its marker instead of making the binding ambiguous.
-    for (const previous of (await readMarkers(root, new Date(marker.openedAt))) ?? [])
-      if (previous.providerSessionDigest === marker.providerSessionDigest)
-        await rm(resolve(directory, `${previous.contextEventId}.json`), { force: true });
+    await readMarkers(root, new Date(marker.openedAt));
     temporary = resolve(
       root,
       ".lervo/state/terminal-integration",
@@ -110,7 +111,9 @@ export async function openTerminalTurn(root: string, marker: OpenTerminalTurn): 
     } finally {
       await handle.close();
     }
-    await rename(temporary, resolve(directory, `${marker.contextEventId}.json`));
+    // A session has at most one open turn: an interrupted turn never reaches Stop, so the new
+    // prompt's marker replaces the session file in one rename. A failed write keeps the old one.
+    await rename(temporary, resolve(directory, markerName(marker.providerSessionDigest)));
   } catch {
     // Host-private observation must never change prompt preparation availability.
   } finally {
@@ -118,16 +121,29 @@ export async function openTerminalTurn(root: string, marker: OpenTerminalTurn): 
   }
 }
 
+/** The open-turn marker of one session, or null when none exists or storage is unusable. */
+export async function sessionOpenTerminalTurn(
+  root: string,
+  providerSessionDigest: string,
+  now = new Date(),
+): Promise<OpenTerminalTurn | null> {
+  const markers = await readMarkers(root, now);
+  return markers?.find((item) => item.providerSessionDigest === providerSessionDigest) ?? null;
+}
+
+/** Removes the session marker only while it still names the closing turn's context. */
 export async function closeTerminalTurn(
   root: string,
+  providerSessionDigest: string,
   contextEventId: string,
   now = new Date(),
 ): Promise<void> {
   try {
-    if (!EVENT.test(contextEventId)) return;
+    if (!EVENT.test(contextEventId) || !HASH.test(providerSessionDigest)) return;
+    const current = await sessionOpenTerminalTurn(root, providerSessionDigest, now);
+    if (current?.contextEventId !== contextEventId) return;
     const directory = await markerDirectory(root, false);
-    await rm(resolve(directory, `${contextEventId}.json`), { force: true });
-    await readMarkers(root, now);
+    await rm(resolve(directory, markerName(providerSessionDigest)), { force: true });
   } catch {
     // Unavailable marker storage means no binding, never a failed Stop.
   }
