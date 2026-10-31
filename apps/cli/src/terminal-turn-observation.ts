@@ -105,7 +105,12 @@ export async function recordPreparedTerminalContext(input: {
     durableInstructionTargetPath: input.context.durableInstruction.targetPath,
     durableInstructionReasonIds: input.context.durableInstruction.reasonIds,
     selectionStatus: input.context.selection.selectedCount > 0 ? "selected" : "not_selected",
-    loadingStatus: input.context.selection.selectedCount > 0 ? "observed" : "not_run",
+    // ADR-0538 pointers are selected without loading their bodies; only observed loads count.
+    loadingStatus:
+      input.context.selection.selectedCount > 0 &&
+      input.context.preparationQuality.loading === "observed"
+        ? "observed"
+        : "not_run",
     hookPreparationStatus: "observed",
     providerInjectionStatus: "unobserved",
     providerUseStatus: "unknown",
