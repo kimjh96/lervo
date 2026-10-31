@@ -27,7 +27,6 @@
     "@lervo/filesystem-durability": "workspace:*",
     "@lervo/project": "workspace:*",
     "@lervo/project-storage": "workspace:*",
-    "@lervo/roles": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/skills": "workspace:*",
     "@lervo/sqlite-connection": "workspace:*",

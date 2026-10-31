@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "artifact": {
     "name": "@lervo/cli",
     "version": "0.22.4",
@@ -30,6 +30,7 @@
       "dist/repository-runtime-*.js",
       "dist/repository-runtime.js",
       "dist/repository-runtime.json",
+      "dist/terminal-hook-launcher.mjs",
       "dist/terminal-hook.js"
     ]
   },
@@ -79,7 +80,6 @@
       "@lervo/filesystem-durability@0.1.0",
       "@lervo/hub-sync@0.1.0",
       "@lervo/identity-migration@0.1.0",
-      "@lervo/improvement-observation-local@0.1.0",
       "@lervo/interaction-sqlite@0.1.0",
       "@lervo/interaction@0.1.0",
       "@lervo/knowledge-okf@0.1.0",
@@ -168,7 +168,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:d36bd10343b071be7a371044b3afd00b49eb94186492ac294166d0d955f29751"
+    "bundleDigest": "sha256:d56e1351b2fd90c40394dc7c8ec8702c829ecf674979c9361e39837a131033d5"
   },
   "archive": {
     "rootFiles": [
@@ -182,8 +182,8 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 967,
-        "sha256": "sha256:38a3547b685482a0c7a0f8b29e100201e4262d7ea9ae100b147822faaf3a47e4"
+        "size": 1093,
+        "sha256": "sha256:e5efa9b9df94d048f2703f242543fdeeb647c217515ec9a4b0ef5c552867477b"
       },
       {
         "path": "dist/native/cas-io-darwin.node",
@@ -207,32 +207,37 @@
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 381,
-        "sha256": "sha256:b0f54b86c7a00bec875adc78b6036c3d5a9d435d27621380e1353b6a038fd9b6"
+        "size": 8562,
+        "sha256": "sha256:257b566a683f6955308da8339f5116fb9317966da25a895b20d9ca97d9867758"
       },
       {
         "path": "dist/repository-runtime-validators.cjs",
-        "size": 8553667,
-        "sha256": "sha256:29f1ef438b9f4cb21c4216842ed44ea28cb95f6fd3fa05204fbe52468f5e2e6f"
+        "size": 8706357,
+        "sha256": "sha256:22e499235f76ab4345739e703daffaed60d36b72fe0ed696c6f2a8105b59432f"
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 12389829,
-        "sha256": "sha256:4c9e03c92f797e0bdb37460fe32a236e90f6c824b9d7f2a4b02f4edb6dab25a3"
+        "size": 12600443,
+        "sha256": "sha256:c40b402776fcfddc5bd98858eee952e67c343bd57bd2e71918599fb49db18744"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:26be73a7ed2d08396768f4ea0b412cf2f00e3aa416c00ef3d8f011b77ba82731"
+        "sha256": "sha256:cc2f0a895e5de78927a33dab494c1a237d19cca9a33ba958b0017b6cf3ab472f"
+      },
+      {
+        "path": "dist/terminal-hook-launcher.mjs",
+        "size": 7768,
+        "sha256": "sha256:b08680739fede540c017fe13c92bcb16b23716334b231bcf7e5ed269ef3a30dc"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 8362686,
-        "sha256": "sha256:563823fb0fcb057a916327e0964a577b40b4750e320daf4c36a05276be7d4733"
+        "size": 7854785,
+        "sha256": "sha256:cf54871ded5b9d1d0c4fea96c0a99efc0909752f2aeed651e861f279b5f1f77e"
       }
     ],
-    "fileCount": 12,
-    "contentDigest": "sha256:f2a7a01e4c7f32d0d733ee11cfa9982c9ea5e6fc01fbb6708c26af8458baad59"
+    "fileCount": 13,
+    "contentDigest": "sha256:818178b71f98e96c967be5696326c8386287cd382a892ced3efc90cc47147ce0"
   },
   "dependencies": {
     "portable": [
@@ -345,5 +350,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:99d76c8cdcd639531e229710478c438f98b63803a0bd1a9bb8b0b89327280e9c"
+  "artifactDigest": "sha256:4a8af57156f23e6579d0bb2f485c5db5c3b13458e2b1d01ba233839f56e95421"
 }

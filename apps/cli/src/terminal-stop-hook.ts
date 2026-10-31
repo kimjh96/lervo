@@ -160,8 +160,6 @@ export async function completeTerminalHookTurn({
         occurredAt,
         observationEventId: observation.eventId,
         referenceCount: observation.referenceCount,
-      selectedCount: observation.selectedCount,
-      pathMentionCount: observation.pathMentionCount,
         selectedCount: observation.selectedCount,
         pathMentionCount: observation.pathMentionCount,
       }),

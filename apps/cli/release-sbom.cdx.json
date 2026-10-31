@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:580c8fa4-9723-5e63-8cae-3cd181b49c68",
+  "serialNumber": "urn:uuid:d409ad58-763b-534d-9274-939cb399240c",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -15,7 +15,7 @@
         {
           "type": "application",
           "name": "lervo-release-sbom",
-          "version": "5"
+          "version": "6"
         }
       ]
     },
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "38a3547b685482a0c7a0f8b29e100201e4262d7ea9ae100b147822faaf3a47e4"
+          "content": "e5efa9b9df94d048f2703f242543fdeeb647c217515ec9a4b0ef5c552867477b"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:99d76c8cdcd639531e229710478c438f98b63803a0bd1a9bb8b0b89327280e9c"
+          "value": "sha256:4a8af57156f23e6579d0bb2f485c5db5c3b13458e2b1d01ba233839f56e95421"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:d36bd10343b071be7a371044b3afd00b49eb94186492ac294166d0d955f29751"
+          "value": "sha256:d56e1351b2fd90c40394dc7c8ec8702c829ecf674979c9361e39837a131033d5"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -56,6 +56,40 @@
     }
   },
   "components": [
+    {
+      "type": "file",
+      "bom-ref": "lervo:dist/terminal-hook-launcher.mjs",
+      "name": "dist/terminal-hook-launcher.mjs",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b08680739fede540c017fe13c92bcb16b23716334b231bcf7e5ed269ef3a30dc"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:terminal-hook:contract",
+          "value": "lervo_terminal_hooks_v2"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "lervo:dist/terminal-hook.js",
+      "name": "dist/terminal-hook.js",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "cf54871ded5b9d1d0c4fea96c0a99efc0909752f2aeed651e861f279b5f1f77e"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:terminal-hook:contract",
+          "value": "lervo_terminal_hooks_v2"
+        }
+      ]
+    },
     {
       "type": "file",
       "bom-ref": "lervo:native-cas:cas-io-darwin.node",
@@ -107,7 +141,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "26be73a7ed2d08396768f4ea0b412cf2f00e3aa416c00ef3d8f011b77ba82731"
+          "content": "cc2f0a895e5de78927a33dab494c1a237d19cca9a33ba958b0017b6cf3ab472f"
         }
       ]
     },
@@ -920,21 +954,6 @@
       "name": "identity-migration",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/identity-migration@0.1.0",
-      "scope": "required",
-      "properties": [
-        {
-          "name": "lervo:release:bundled",
-          "value": "true"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/%40lervo/improvement-observation-local@0.1.0",
-      "group": "@lervo",
-      "name": "improvement-observation-local",
-      "version": "0.1.0",
-      "purl": "pkg:npm/%40lervo/improvement-observation-local@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -4331,6 +4350,14 @@
   ],
   "dependencies": [
     {
+      "ref": "lervo:dist/terminal-hook-launcher.mjs",
+      "dependsOn": []
+    },
+    {
+      "ref": "lervo:dist/terminal-hook.js",
+      "dependsOn": []
+    },
+    {
       "ref": "lervo:native-cas:cas-io-darwin.node",
       "dependsOn": []
     },
@@ -4419,6 +4446,8 @@
     {
       "ref": "pkg:npm/%40lervo/cli@0.22.4",
       "dependsOn": [
+        "lervo:dist/terminal-hook-launcher.mjs",
+        "lervo:dist/terminal-hook.js",
         "lervo:native-cas:cas-io-darwin.node",
         "lervo:native-cas:cas-io.json",
         "lervo:native-file-sync:file-sync-darwin.node",
@@ -4463,7 +4492,6 @@
         "pkg:npm/%40lervo/filesystem-durability@0.1.0",
         "pkg:npm/%40lervo/hub-sync@0.1.0",
         "pkg:npm/%40lervo/identity-migration@0.1.0",
-        "pkg:npm/%40lervo/improvement-observation-local@0.1.0",
         "pkg:npm/%40lervo/interaction-sqlite@0.1.0",
         "pkg:npm/%40lervo/interaction@0.1.0",
         "pkg:npm/%40lervo/knowledge-okf@0.1.0",

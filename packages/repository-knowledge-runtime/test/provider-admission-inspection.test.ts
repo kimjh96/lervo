@@ -124,14 +124,14 @@ it("preserves provider rejection and unrelated continuity findings when admissio
     repositoryRoot: f.root,
     policyPath: null,
     residentHost: null,
-    hookRuntime: "stale",
+    hookRuntime: "unavailable",
     replicaDiverged: true,
   });
   expect(inspection.findings.map((finding) => finding.code)).toEqual(
     expect.arrayContaining([
       "provider_cli_rejected",
       "provider_not_admitted",
-      "hook_runtime_stale",
+      "hook_runtime_unavailable",
       "replica_diverged",
     ]),
   );

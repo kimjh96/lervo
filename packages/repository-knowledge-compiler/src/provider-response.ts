@@ -1,9 +1,7 @@
 import { canonicalJson } from "@lervo/repository-knowledge";
 import type { NoCapabilityTelemetry } from "./process-provider-contract.js";
 import { compileFailure, policyFailure, parsedJson, parsedJsonObject } from "./compiler-failure.js";
-function observedResponse<T extends { telemetry: NoCapabilityTelemetry }>(
-  value: unknown,
-): T {
+function observedResponse<T extends { telemetry: NoCapabilityTelemetry }>(value: unknown): T {
   const raw = value as Omit<T, "telemetry">;
   return {
     ...raw,
@@ -37,7 +35,7 @@ export function parseProviderResultText(value: string, provider: "Codex" | "Clau
 }
 
 export function parseCodexOutput<
-  T extends { telemetry: NoCapabilityTelemetry } = SemanticCompilerResponse,
+  T extends { telemetry: NoCapabilityTelemetry } = { telemetry: NoCapabilityTelemetry },
 >(stdout: string): T {
   let finalText: string | null = null;
   for (const line of stdout.split(/\r?\n/u).filter((item) => item.trim() !== "")) {
@@ -82,7 +80,7 @@ export function parseCodexOutput<
 }
 
 export function parseClaudeOutput<
-  T extends { telemetry: NoCapabilityTelemetry } = SemanticCompilerResponse,
+  T extends { telemetry: NoCapabilityTelemetry } = { telemetry: NoCapabilityTelemetry },
 >(stdout: string, options: { structuredOutputRequired?: boolean } = {}): T {
   const wrapper = parsedJsonObject(stdout, "Claude did not return a valid JSON result.") as {
     is_error?: unknown;

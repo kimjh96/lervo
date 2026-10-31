@@ -45,6 +45,7 @@ function sources(): HealthProjectionSources {
       status: "observed",
       currentRevision: "a".repeat(40),
       evaluatedAt: healthNow.toISOString(),
+      coverage: "complete",
       counts: {
         documents: 1690,
         evaluated: 186,

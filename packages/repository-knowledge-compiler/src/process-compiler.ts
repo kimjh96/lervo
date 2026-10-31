@@ -138,12 +138,13 @@ export async function createNoCapabilityProviderJsonRunner(
       }
       const observed =
         options.provider === "claude"
-          ? parseClaudeOutput<
-              Record<string, unknown> & { telemetry: NoCapabilityTelemetry }
-            >(result.stdout, { structuredOutputRequired: true })
-          : parseCodexOutput<
-              Record<string, unknown> & { telemetry: NoCapabilityTelemetry }
-            >(result.stdout);
+          ? parseClaudeOutput<Record<string, unknown> & { telemetry: NoCapabilityTelemetry }>(
+              result.stdout,
+              { structuredOutputRequired: true },
+            )
+          : parseCodexOutput<Record<string, unknown> & { telemetry: NoCapabilityTelemetry }>(
+              result.stdout,
+            );
       const { telemetry: _telemetry, ...value } = observed;
       return {
         value,

@@ -57,10 +57,7 @@ export async function prepareNoCapabilityInvocation(
   return { executable, timeoutMs, version };
 }
 
-export function providerInvocationContract(
-  options: CreateProcessProviderOptions,
-  version: string,
-) {
+export function providerInvocationContract(options: CreateProcessProviderOptions, version: string) {
   return {
     provider: options.provider,
     providerCliVersion: version,
