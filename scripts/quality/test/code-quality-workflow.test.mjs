@@ -33,7 +33,8 @@ describe("code-quality workflow", () => {
     const job = workflow.jobs["release-artifacts"];
     assert.equal(job["runs-on"], "ubuntu-latest");
     assert.deepEqual(job.needs, ["quality", "native-runtime"]);
-    assert.equal(job.if, "needs.quality.outputs.coverage == 'full'");
+    assert.match(job.if, /needs\.quality\.outputs\.coverage == 'full'/u);
+    assert.match(job.if, /needs\.native-runtime\.result == 'success'/u);
     const commands = job.steps.map(({ run }) => run).filter(Boolean);
     assert.ok(commands.includes("pnpm build"));
     assert.ok(commands.includes("pnpm release:manifest:check"));
@@ -113,4 +114,52 @@ it("keeps a full daily/manual fallback and rejects stale explicit candidates", a
     "distribution",
   ]);
   assert.ok(workflow.jobs.verification.if.includes("always()"));
+});
+
+it("reuses only components that an earlier run executed for identical content", async () => {
+  const workflow = parse(await readFile(workflowPath, "utf8"));
+  assert.equal(workflow.permissions.actions, "read");
+  const quality = workflow.jobs.quality;
+  const plan = quality.steps.findIndex(({ id }) => id === "reuse");
+  assert.ok(plan > quality.steps.findIndex(({ id }) => id === "distribution"));
+  assert.equal(quality.steps[plan].run, "node scripts/quality/ci-reuse.mjs");
+  for (const name of [
+    "Check code quality",
+    "Check architecture boundaries",
+    "Check documentation lifecycle",
+    "Check branding and natural-language contracts",
+  ])
+    assert.equal(
+      quality.steps.find((step) => step.name === name).if,
+      "steps.reuse.outputs.reuseQuality != 'true'",
+    );
+  for (const name of ["Check introduced commits", "Check pull-request release completion"])
+    assert.ok(!quality.steps.find((step) => step.name === name).if?.includes("reuse"));
+  assert.match(workflow.jobs["native-runtime"].if, /reuseBuild == ''/u);
+  for (const [job, output] of [
+    ["release-artifacts", "reuseBuild"],
+    ["test", "reuseTests"],
+    ["distribution", "reuseDistribution"],
+  ]) {
+    const definition = workflow.jobs[job];
+    assert.equal(definition.env.REUSED_RUN, `\${{ needs.quality.outputs.${output} }}`);
+    const [reuse, ...rest] = definition.steps;
+    assert.equal(reuse.if, "env.REUSED_RUN != ''");
+    for (const step of rest) assert.match(step.if, /^env\.REUSED_RUN == ''/u);
+  }
+  const metadata = workflow.jobs["release-artifacts"].steps.find((step) =>
+    step.run?.includes("scripts/release/test"),
+  );
+  assert.match(metadata.if, /reuseTests != ''/u);
+  const uploads = workflow.jobs.verification.steps.filter(({ uses }) =>
+    uses?.startsWith("actions/upload-artifact@"),
+  );
+  assert.deepEqual(
+    uploads.map(({ with: options }) => options.name),
+    [
+      "lervo-ci-build-${{ needs.quality.outputs.tree }}",
+      "lervo-ci-tests-${{ needs.quality.outputs.testDigest }}",
+      "lervo-ci-distribution-${{ needs.quality.outputs.tree }}",
+    ],
+  );
 });

@@ -19,6 +19,8 @@ on:
 
 permissions:
   contents: read
+  # Reuse lookup reads earlier runs, jobs and receipt artifacts of this repository.
+  actions: read
 
 concurrency:
   group: code-quality-${{ github.workflow }}-${{ github.ref }}
@@ -33,6 +35,11 @@ jobs:
       revision: ${{ steps.plan.outputs.revision }}
       base: ${{ steps.plan.outputs.baseRevision }}
       distribution: ${{ steps.distribution.outputs.required }}
+      tree: ${{ steps.reuse.outputs.tree }}
+      testDigest: ${{ steps.reuse.outputs.testDigest }}
+      reuseBuild: ${{ steps.reuse.outputs.reuseBuild }}
+      reuseTests: ${{ steps.reuse.outputs.reuseTests }}
+      reuseDistribution: ${{ steps.reuse.outputs.reuseDistribution }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -66,21 +73,32 @@ jobs:
             fi
           fi
           echo "required=${required}" >>"${GITHUB_OUTPUT}"
+      - name: Plan reuse of identical verified content
+        id: reuse
+        env:
+          COVERAGE: ${{ steps.plan.outputs.coverage }}
+          DISTRIBUTION_REQUIRED: ${{ steps.distribution.outputs.required }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/quality/ci-reuse.mjs
       - name: Check introduced commits
         env:
           BASE_SHA: ${{ steps.plan.outputs.baseRevision }}
           HEAD_SHA: ${{ steps.plan.outputs.commitHead }}
         run: pnpm commit:lint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
       - name: Check code quality
+        if: steps.reuse.outputs.reuseQuality != 'true'
         run: pnpm quality:check
       - name: Check types against the supported Node minimum
-        if: steps.plan.outputs.coverage == 'full'
+        if: steps.plan.outputs.coverage == 'full' && steps.reuse.outputs.reuseQuality != 'true'
         run: pnpm typecheck
       - name: Check architecture boundaries
+        if: steps.reuse.outputs.reuseQuality != 'true'
         run: pnpm architecture:check
       - name: Check documentation lifecycle
+        if: steps.reuse.outputs.reuseQuality != 'true'
         run: pnpm docs:check
       - name: Check branding and natural-language contracts
+        if: steps.reuse.outputs.reuseQuality != 'true'
         run: pnpm brand:check && pnpm evaluation:natural-language:check
       - name: Check explicit verification release completion
         if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
@@ -97,7 +115,7 @@ jobs:
   native-runtime:
     name: Native runtime artifacts
     needs: quality
-    if: needs.quality.outputs.coverage == 'full'
+    if: needs.quality.outputs.coverage == 'full' && needs.quality.outputs.reuseBuild == ''
     runs-on: macos-latest
     timeout-minutes: 10
     steps:
@@ -128,39 +146,64 @@ jobs:
   release-artifacts:
     name: Release manifest and SBOM
     needs: [quality, native-runtime]
-    if: needs.quality.outputs.coverage == 'full'
+    if: ${{ !cancelled() && needs.quality.result == 'success' && needs.quality.outputs.coverage == 'full' && (needs.native-runtime.result == 'success' || needs.quality.outputs.reuseBuild != '') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      REUSED_RUN: ${{ needs.quality.outputs.reuseBuild }}
     steps:
+      - name: Reuse the exact tree's verified build
+        if: env.REUSED_RUN != ''
+        run: echo "Run ${REUSED_RUN} built and verified this exact tree; see its Release manifest and SBOM job."
       - name: Check out repository
+        if: env.REUSED_RUN == ''
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
       - name: Set up Node
+        if: env.REUSED_RUN == ''
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.13.0
           package-manager-cache: false
       - name: Set up pnpm
+        if: env.REUSED_RUN == ''
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
       - name: Install dependencies
+        if: env.REUSED_RUN == ''
         run: pnpm install --frozen-lockfile
       - name: Download exact native artifact
+        if: env.REUSED_RUN == ''
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
           name: native-runtime
           path: ${{ runner.temp }}/native-runtime
       - name: Validate native artifact before build
+        if: env.REUSED_RUN == ''
         run: node scripts/distribution/native-runtime-transfer.mjs restore "${{ runner.temp }}/native-runtime"
       - name: Build release artifact
+        if: env.REUSED_RUN == ''
         run: pnpm build
       - name: Verify release manifest
+        if: env.REUSED_RUN == ''
         run: pnpm release:manifest:check
       - name: Verify release SBOM
+        if: env.REUSED_RUN == ''
         run: pnpm release:sbom:check
+      - name: Configure Git identity for release metadata tests
+        if: env.REUSED_RUN == '' && needs.quality.outputs.reuseTests != ''
+        run: |
+          git config --global user.name "Lervo CI"
+          git config --global user.email "ci@lervo.invalid"
+          git config --global init.defaultBranch main
+      - name: Test release metadata that reused test results do not cover
+        if: env.REUSED_RUN == '' && needs.quality.outputs.reuseTests != ''
+        run: pnpm exec vitest run --config=scripts/quality/ci-vitest.config.mjs --maxWorkers=2 --testTimeout=30000 scripts/release/test packages/repository-knowledge-runtime/test/canonical-source-facts.test.ts
       - name: Archive exact build outputs
+        if: env.REUSED_RUN == ''
         run: node scripts/quality/ci-build.mjs create "${RUNNER_TEMP}/lervo-ci-build"
       - name: Share exact build with test consumers
+        if: env.REUSED_RUN == ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: workspace-build
@@ -172,71 +215,96 @@ jobs:
   test:
     name: Tests (shard ${{ matrix.shard }}/4)
     needs: [quality, release-artifacts]
-    if: needs.quality.outputs.coverage == 'full'
+    if: ${{ !cancelled() && needs.quality.outputs.coverage == 'full' && needs.release-artifacts.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4]
+    env:
+      REUSED_RUN: ${{ needs.quality.outputs.reuseTests }}
     steps:
+      - name: Reuse verified tests for identical content
+        if: env.REUSED_RUN != ''
+        run: echo "Run ${REUSED_RUN} passed this shard for identical content; see its Tests (shard ${{ matrix.shard }}/4) job."
       - name: Check out repository
+        if: env.REUSED_RUN == ''
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: false
       - name: Set up Node
+        if: env.REUSED_RUN == ''
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.13.0
           package-manager-cache: false
       - name: Set up pnpm
+        if: env.REUSED_RUN == ''
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
       - name: Configure Git identity for repository fixtures
+        if: env.REUSED_RUN == ''
         run: |
           git config --global user.name "Lervo CI"
           git config --global user.email "ci@lervo.invalid"
           git config --global init.defaultBranch main
       - name: Install dependencies
+        if: env.REUSED_RUN == ''
         run: pnpm install --frozen-lockfile
       - name: Download exact build outputs
+        if: env.REUSED_RUN == ''
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
           name: workspace-build
           path: ${{ runner.temp }}/lervo-ci-build
       - name: Restore and validate exact build outputs
+        if: env.REUSED_RUN == ''
         run: node scripts/quality/ci-build.mjs restore "${RUNNER_TEMP}/lervo-ci-build"
       - name: Run tests
+        if: env.REUSED_RUN == ''
         run: pnpm test --maxWorkers=2 --testTimeout=30000 --config=scripts/quality/ci-vitest.config.mjs --shard=${{ matrix.shard }}/4
 
   distribution:
     name: Distribution smoke checks
     needs: [quality, release-artifacts]
-    if: needs.quality.outputs.distribution == 'true'
+    if: ${{ !cancelled() && needs.quality.outputs.distribution == 'true' && needs.release-artifacts.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      REUSED_RUN: ${{ needs.quality.outputs.reuseDistribution }}
     steps:
+      - name: Reuse the exact tree's verified distribution checks
+        if: env.REUSED_RUN != ''
+        run: echo "Run ${REUSED_RUN} passed distribution checks for this exact tree; see its Distribution smoke checks job."
       - name: Check out repository
+        if: env.REUSED_RUN == ''
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
       - name: Set up Node
+        if: env.REUSED_RUN == ''
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.13.0
           package-manager-cache: false
       - name: Set up pnpm
+        if: env.REUSED_RUN == ''
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
       - name: Install dependencies
+        if: env.REUSED_RUN == ''
         run: pnpm install --frozen-lockfile
       - name: Download exact build outputs
+        if: env.REUSED_RUN == ''
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
           name: workspace-build
           path: ${{ runner.temp }}/lervo-ci-build
       - name: Restore and validate exact build outputs
+        if: env.REUSED_RUN == ''
         run: node scripts/quality/ci-build.mjs restore "${RUNNER_TEMP}/lervo-ci-build"
       - name: Verify distributions and packed consumers
+        if: env.REUSED_RUN == ''
         run: |
           pnpm release:attestation:check
           pnpm smoke:built-cli
@@ -268,3 +336,31 @@ jobs:
         env:
           CI_JOBS: ${{ toJSON(needs) }}
         run: node scripts/quality/ci-result.mjs
+      - name: Record receipts for components this run executed
+        env:
+          CI_JOBS: ${{ toJSON(needs) }}
+        run: node scripts/quality/ci-receipt.mjs "${RUNNER_TEMP}/lervo-ci-receipts"
+      - name: Publish the build receipt
+        if: needs.quality.outputs.reuseBuild == '' && needs.release-artifacts.result == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lervo-ci-build-${{ needs.quality.outputs.tree }}
+          path: ${{ runner.temp }}/lervo-ci-receipts/build.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish the tests receipt
+        if: needs.quality.outputs.reuseTests == '' && needs.test.result == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lervo-ci-tests-${{ needs.quality.outputs.testDigest }}
+          path: ${{ runner.temp }}/lervo-ci-receipts/tests.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish the distribution receipt
+        if: needs.quality.outputs.reuseDistribution == '' && needs.distribution.result == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lervo-ci-distribution-${{ needs.quality.outputs.tree }}
+          path: ${{ runner.temp }}/lervo-ci-receipts/distribution.json
+          if-no-files-found: error
+          retention-days: 30
