@@ -19,6 +19,7 @@ async function authorizeAndMigrate(input) {
     "lervo.acceptance",
     "--json",
   ]);
+  await mkdir(resolve(input.root, ".lervo/state"), { recursive: true });
   await writeFile(planPath, `${JSON.stringify(plan, null, 2)}\n`);
   const authorized = await invoke([
     "capability",

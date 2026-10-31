@@ -298,7 +298,9 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
         item.itemId === canonicalizationCandidate.candidateId &&
         item.outcomeKind === "review_draft" &&
         item.hasProposedContent === true &&
-        item.requiresUserAction === true,
+        // ADR-0535: the reviewer role owns a pending draft; the owner is not a review queue.
+        item.actionOwner === "reviewer" &&
+        item.requiresUserAction === false,
     ),
     true,
   );

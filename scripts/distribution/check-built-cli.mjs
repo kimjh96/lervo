@@ -199,8 +199,8 @@ async function verifySelfContainedTerminalHook(deploymentRoot, projectRoot, repo
   assert.deepEqual(await runShell(command, { cwd: nested, env: environment }), {
     code: 2,
     stdout: "",
-    stderr:
-      "Lervo terminal integration failed closed without exposing prompt or provider configuration content.\n",
+    // ADR-0531: a closed reason code only, never prompt or provider configuration content.
+    stderr: "Lervo terminal integration failed (hook_input_invalid).\n",
   });
   const store = repositoryKnowledge.terminalHookRuntimeStorePath();
   const pointer = JSON.parse(await readFile(resolve(store, "current.json"), "utf8"));
