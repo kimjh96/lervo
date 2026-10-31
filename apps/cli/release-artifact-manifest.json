@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "artifact": {
     "name": "@lervo/cli",
     "version": "0.22.4",
@@ -30,6 +30,7 @@
       "dist/repository-runtime-*.js",
       "dist/repository-runtime.js",
       "dist/repository-runtime.json",
+      "dist/terminal-hook-launcher.mjs",
       "dist/terminal-hook.js"
     ]
   },
@@ -182,8 +183,8 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 967,
-        "sha256": "sha256:38a3547b685482a0c7a0f8b29e100201e4262d7ea9ae100b147822faaf3a47e4"
+        "size": 1093,
+        "sha256": "sha256:e5efa9b9df94d048f2703f242543fdeeb647c217515ec9a4b0ef5c552867477b"
       },
       {
         "path": "dist/native/cas-io-darwin.node",
@@ -212,27 +213,32 @@
       },
       {
         "path": "dist/repository-runtime-validators.cjs",
-        "size": 8566579,
-        "sha256": "sha256:0397f3fde57f302664f34f220b9426401a729a76a96504518f4508d62a3601b3"
+        "size": 8552587,
+        "sha256": "sha256:2e8ff9e4956cbdd3142c90759c132e6fcb52b43eb39ed52a607061716c100979"
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 12446395,
-        "sha256": "sha256:9414475a06fc3729a7ff883837db3f1650135c07b07c267e1c70026b59977a74"
+        "size": 12393108,
+        "sha256": "sha256:f36ff53a4caf6b85c02961d07aa122ff9cc493aaf88bde4fe3fda320ab87bc0e"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:eb6bb94f6f9b07c07f3ad640efa50814799c9afb926e7cad29309f14f0e02b64"
+        "sha256": "sha256:fe06bcfaa7827a42ac4561709603cafdcb0ed878cf7e6745395ce1060af8ee01"
+      },
+      {
+        "path": "dist/terminal-hook-launcher.mjs",
+        "size": 7768,
+        "sha256": "sha256:b08680739fede540c017fe13c92bcb16b23716334b231bcf7e5ed269ef3a30dc"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 8384244,
-        "sha256": "sha256:a15f10f8ea901f4c81bf94c2a40f1b7cb6f63d20a54b07a572f586a026404d1e"
+        "size": 8354821,
+        "sha256": "sha256:1d5bbcaa5e1fa0886bbed6e68226f0db781b2f597105fb08997f2688465365a6"
       }
     ],
-    "fileCount": 12,
-    "contentDigest": "sha256:6b535c90d585333d1c4be4feb1909c80fc74efa087a9ce65a03b2ddd55aac8f0"
+    "fileCount": 13,
+    "contentDigest": "sha256:f7a901b3d0d90125058c4ab71f49a0a507bd96e0fe7fbefe84d42a56d2df4f20"
   },
   "dependencies": {
     "portable": [
@@ -345,5 +351,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:063f154dd4dc418b59429dc56948846fd516fbef4be90397620760cd5bb2cb3e"
+  "artifactDigest": "sha256:9e1945ea5c9eb81fa369c4607219bc58521e9893e01c27f56c84eadf3a82e367"
 }

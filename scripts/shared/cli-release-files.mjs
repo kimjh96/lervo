@@ -19,13 +19,17 @@ export const cliReleaseFiles = Object.freeze(
   [...cliCasReleaseFiles, "dist/repository-runtime.js"].sort(),
 );
 
-export const cliGraphPackageFiles = Object.freeze(
+export const legacyCliGraphPackageFiles = Object.freeze(
   [
     ...cliReleaseFiles,
     "dist/repository-runtime.json",
     "dist/repository-runtime-*.js",
     "dist/repository-runtime-*.cjs",
   ].sort(),
+);
+
+export const cliGraphPackageFiles = Object.freeze(
+  [...legacyCliGraphPackageFiles, "dist/terminal-hook-launcher.mjs"].sort(),
 );
 
 export function cliReleaseFilesForSchema(
@@ -36,7 +40,12 @@ export function cliReleaseFilesForSchema(
   if (schemaVersion === 6) return [...legacyCliReleaseFiles, ...legacyCliNativeFiles].sort();
   if (schemaVersion === 7) return cliCasReleaseFiles;
   if (schemaVersion === 8) return cliReleaseFiles;
-  if (schemaVersion === 9)
-    return [...cliCasReleaseFiles, "dist/repository-runtime.json", ...runtimeFiles].sort();
+  if (schemaVersion === 9 || schemaVersion === 10)
+    return [
+      ...cliCasReleaseFiles,
+      "dist/repository-runtime.json",
+      ...runtimeFiles,
+      ...(schemaVersion === 10 ? ["dist/terminal-hook-launcher.mjs"] : []),
+    ].sort();
   return [];
 }

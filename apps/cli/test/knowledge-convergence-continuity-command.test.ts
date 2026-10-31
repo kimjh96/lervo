@@ -251,7 +251,7 @@ describe("continuity attention", () => {
     "continuity_stale",
     "resident_not_running",
     "resident_cycle_failed",
-    "hook_runtime_stale",
+    "hook_runtime_unavailable",
     "replica_diverged",
   ];
 

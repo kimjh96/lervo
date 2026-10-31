@@ -202,10 +202,10 @@ describe("continuity findings", () => {
         expected: false,
         stateObservedAt: null,
         residentRunning: false,
-        hookRuntime: "stale",
+        hookRuntime: "unavailable",
         replicaDiverged: false,
       }).map((finding) => finding.code),
-    ).toEqual(["hook_runtime_stale"]);
+    ).toEqual(["hook_runtime_unavailable"]);
     expect(
       localContinuityFindings({
         now,

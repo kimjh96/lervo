@@ -146,8 +146,8 @@ export function continuityRemediation(finding: ContinuityFinding): string {
       return "The host knowledge resident serves this checkout and reconciles it on its next cycle; nothing is needed.";
     case "event_schema_outdated":
       return `This checkout's event writer is older than schema 4, so its knowledge resident is held. Run lervo upgrade and apply its plan: it backs up the event store and activates schema 4. The host resident activates local-only checkouts itself and retries every 30 minutes.${finding.detail === null ? "" : ` Current blocker (${finding.detail}): ${eventWriterBlocker({ code: finding.detail }).message}`}`;
-    case "hook_runtime_stale":
-      return "The generated terminal hook runtime is older than the installed Lervo. Run lervo upgrade, then apply its plan.";
+    case "hook_runtime_unavailable":
+      return "The host terminal hook runtime is unavailable. The host resident restores and verifies it on its next cycle. If repair keeps failing, restore write access to the host runtime store.";
     case "replica_diverged":
       return "The Mac–WSL replica of this repository diverged; see the repository_replica_divergence attention item.";
     case "convergence_attention":

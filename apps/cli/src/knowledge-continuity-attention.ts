@@ -36,7 +36,12 @@ export function continuityAttentionItems(
       severity: finding.severity,
       detail: finding.detail,
       observedAt,
-      actionOwner: finding.actor === "provider admission" ? "agent" : "user",
+      actionOwner:
+        finding.actor === "provider admission"
+          ? "agent"
+          : finding.code === "hook_runtime_unavailable"
+            ? "host resident"
+            : "user",
       requiresUserAction: ownerDecision,
       blocking: false,
       instruction: continuityRemediation(finding),

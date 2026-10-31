@@ -1,3 +1,4 @@
+import { ensureHostTerminalRuntime } from "./terminal-runtime.js";
 import { inspectEventWriterCoordinate } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import {
@@ -65,6 +66,7 @@ export function startHostKnowledgeResidents(input: {
   heartbeatMilliseconds?: number;
   activate?: (root: string) => Promise<LocalEventWriterActivation>;
   now?: () => Date;
+  materializeRuntime?: () => Promise<unknown>;
 }): () => Promise<void> {
   const workerId = `cli-host-${process.pid}`;
   const activate = input.activate ?? ((root: string) => activateLocalEventWriter(root));
@@ -187,6 +189,9 @@ export function startHostKnowledgeResidents(input: {
         return;
       }
     }
+    await (
+      input.materializeRuntime ?? (() => ensureHostTerminalRuntime({ authority: "repair" }))
+    )().catch((error: unknown) => input.onFailure("", error));
     const candidates = await hostResidentCandidates(input.provider);
     for (const root of new Set([...residents.keys(), ...held.keys()]))
       if (!candidates.wanted.has(root)) await release(root);

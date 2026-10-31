@@ -19,7 +19,10 @@ import {
 import { continuityRemediation } from "./knowledge-continuity-remediation.js";
 import { hostRepositoryRoots } from "./knowledge-host-repositories.js";
 import { readRepositoryReplicaDivergence } from "./repository-replica-divergence-source.js";
-import { inspectTerminalIntegration } from "./upgrade-stage-inspection.js";
+import {
+  inspectHostTerminalRuntime,
+  terminalHookRuntimeStorePath,
+} from "@lervo/repository-knowledge";
 
 export interface ContinuityDoctorFinding extends ContinuityFinding {
   remediation: string;
@@ -72,19 +75,6 @@ async function livePeers(
   }
 }
 
-async function hookRuntime(root: string): Promise<"current" | "stale" | "unknown"> {
-  try {
-    const { stage } = await inspectTerminalIntegration(root);
-    return stage.disposition === "current"
-      ? "current"
-      : stage.reason === "generated_runtime_only"
-        ? "stale"
-        : "unknown";
-  } catch {
-    return "unknown";
-  }
-}
-
 async function inspectRepository(
   root: string,
   policyPath: string | null,
@@ -96,7 +86,7 @@ async function inspectRepository(
     repositoryRoot: root,
     policyPath,
     now,
-    hookRuntime: await hookRuntime(root),
+    hookRuntime: await inspectHostTerminalRuntime(terminalHookRuntimeStorePath()),
     replicaDiverged: replica?.status === "observed" && replica.divergence !== null,
   });
   const live = await livePeers(root);

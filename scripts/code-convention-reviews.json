@@ -6,7 +6,7 @@
       "path": "apps/cli/src/knowledge-migration-command.ts",
       "contentHash": "sha256:bb5b60bbad736d9aebe510888900b116e21c5d192825588c4b8e3a119c5b02ab",
       "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, and terminal integration retain dedicated modules. The unavailable-provider branch only selects the current plan before normalization; it adds no provider or persistence policy.",
+      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, and terminal integration retain dedicated modules. The unavailable-provider branch only selects the current plan before normalization; it adds no provider or persistence policy. Host terminal runtime materialization is one call to its distribution adapter.",
       "disposition": "cohesive"
     },
     {

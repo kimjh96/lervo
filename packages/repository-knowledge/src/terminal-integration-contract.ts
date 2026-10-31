@@ -1,6 +1,7 @@
 import type {
   DurableKnowledgeUserFileOperation,
   DurableKnowledgeBinaryFileOperation,
+  DurableKnowledgeDeleteOperation,
 } from "./durable-apply.js";
 import type { KnowledgeFileOperation } from "./types.js";
 
@@ -41,7 +42,10 @@ export interface TerminalRuntimeAssetBinding {
   byteCount: number;
 }
 
-export type TerminalRuntimeOperation = KnowledgeFileOperation | DurableKnowledgeBinaryFileOperation;
+export type TerminalRuntimeOperation =
+  | KnowledgeFileOperation
+  | DurableKnowledgeBinaryFileOperation
+  | (DurableKnowledgeDeleteOperation & { content?: never });
 
 export interface TerminalIntegrationRuntimeTarget {
   path: ".lervo/generated/terminal-hooks/runtime-v2.mjs";
@@ -101,10 +105,10 @@ export interface TerminalIntegrationInspection {
 
 export const MAXIMUM_CONFIG_BYTES = 256 * 1024;
 /**
- * The largest generated terminal hook runtime a repository accepts. The CLI build fails when its
- * bundled runtime exceeds this budget, so a release can never ship a runtime `lervo upgrade` rejects.
+ * The host bundle budget also bounds legacy repository artifacts during migration.
  */
 export const TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES = 8 * 1024 * 1024;
+export const TERMINAL_HOOK_LAUNCHER_MAXIMUM_BYTES = 16 * 1024;
 export const FORMAT = {
   insertSpaces: true,
   tabSize: 2,

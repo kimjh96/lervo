@@ -23,7 +23,7 @@ After CLI 0.20.0 (ADR-0469) reached the owner's Mac on 2026-10-06:
 
 Add an `eventWriter` repository upgrade stage targeting schema 4, which the knowledge resident writes. Reuse the existing event-contract contract: collect reader evidence, plan, then apply the exact current plan ID with re-observed evidence, as `lervo event-contract activate --apply` does. Never bypass plan blockers or evidence failures; expose each as an upgrade blocker with an exact remedy.
 
-Local-reader preflight checks the generated terminal hook runtime's embedded event reader. If the runtime would change (`update` or `blocked`), report `terminal_hook_reader_stale`.
+Local-reader preflight checks the generated terminal hook runtime's embedded event reader. If the runtime would change (`update` or `blocked`), report `terminal_hook_reader_stale`. Under [ADR-0539](../../execution/providers/hooks/0539-keep-the-terminal-hook-runtime-host-local-behind-a-tracked-launcher.md), preflight verifies the currently published host runtime. It accepts a valid compatible runtime from another live publisher without requiring the resident's embedded hash. Missing, invalid, or marked state still blocks readiness. The resident has repair authority and cannot revert a newer published runtime while its publisher entry exists.
 
 | Stage | Requires |
 | --- | --- |

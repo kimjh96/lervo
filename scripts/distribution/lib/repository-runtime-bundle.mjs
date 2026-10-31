@@ -13,6 +13,7 @@ export async function buildRepositoryRuntime(
   outputDirectory,
   includeCli,
   normalizeGeneratedTextFile,
+  defines = {},
 ) {
   const exports = [
     'export { runNodeRuntimeEntry } from "../../apps/node-runtime/src/entry.ts";',
@@ -21,7 +22,8 @@ export async function buildRepositoryRuntime(
     'export { openProjectStorage } from "@lervo/project-storage";',
     'export { inspectEventWriterCoordinate } from "@lervo/project";',
   ];
-  if (includeCli) exports.push('export { runCli } from "./src/main.ts";');
+  if (includeCli)
+    exports.push('export { runCli, ensureStartupHostTerminalRuntime } from "./src/main.ts";');
   const fallback = await buildRepositoryRuntimeValidators(build, repositoryRoot, outputDirectory);
   const result = await build({
     absWorkingDir: repositoryRoot,
@@ -33,6 +35,7 @@ export async function buildRepositoryRuntime(
     },
     outfile: resolve(outputDirectory, "repository-runtime.js"),
     bundle: true,
+    define: defines,
     banner: {
       js: 'import { createRequire as __lervoCreateRequire } from "node:module"; var require = __lervoCreateRequire(import.meta.url);',
     },

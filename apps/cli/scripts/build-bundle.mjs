@@ -1,16 +1,13 @@
+import { buildTerminalRuntime } from "./build-terminal-runtime.mjs";
 import {
   buildRepositoryRuntime,
   repositoryRuntimeEntrypointPlugin,
   mergeRepositoryRuntimeMetadata,
 } from "../../../scripts/distribution/lib/repository-runtime-bundle.mjs";
-import { copyNativeRuntimeArtifacts } from "../../../scripts/shared/native-runtime-artifact.mjs";
-import { nativeCasSourceHash } from "../../../scripts/shared/native-cas-artifact.mjs";
-import { nativeFileSyncSourceHash } from "../../../scripts/shared/native-file-sync-artifact.mjs";
 import { verifySchemaValidatorArtifact } from "../../../scripts/shared/schema-validator-artifact.mjs";
-import { chmod, mkdir, stat, writeFile } from "node:fs/promises";
+import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES } from "@lervo/repository-knowledge";
 import { build } from "esbuild";
 
 import { nodeSqliteBundlePlugin } from "../../../scripts/distribution/lib/node-sqlite-bundle.mjs";
@@ -23,18 +20,24 @@ const outputDirectory = resolve(cliRoot, "dist");
 await verifySchemaValidatorArtifact(repositoryRoot);
 await mkdir(outputDirectory, { recursive: true });
 
+const terminal = await buildTerminalRuntime({ repositoryRoot, cliRoot, outputDirectory });
+const runtimeDefines = { __LERVO_TERMINAL_RUNTIME_HASH__: JSON.stringify(terminal.contentHash) };
+
 const runtime = await buildRepositoryRuntime(
   build,
   repositoryRoot,
   outputDirectory,
   true,
   normalizeGeneratedTextFile,
+  runtimeDefines,
 );
+
 const result = await build({
   absWorkingDir: repositoryRoot,
   entryPoints: ["apps/cli/src/bin.ts"],
   outfile: "apps/cli/dist/bin.js",
   bundle: true,
+  define: runtimeDefines,
   banner: {
     js: 'import { createRequire as __lervoCreateRequire } from "node:module"; var require = __lervoCreateRequire(import.meta.url);',
   },
@@ -49,28 +52,10 @@ const result = await build({
   target: "node22.13",
 });
 
-await build({
-  absWorkingDir: repositoryRoot,
-  entryPoints: ["apps/cli/src/terminal-hook-bin.ts"],
-  outfile: "apps/cli/dist/terminal-hook.js",
-  bundle: true,
-  minify: true,
-  charset: "utf8",
-  banner: {
-    js: 'import { createRequire as __lervoCreateRequire } from "node:module"; var require = __lervoCreateRequire(import.meta.url);',
-  },
-  format: "esm",
-  legalComments: "none",
-  logLevel: "silent",
-  mainFields: ["module", "main"],
-  platform: "node",
-  plugins: [nodeSqliteBundlePlugin],
-  target: "node22.13",
-});
-
 const nodeResult = await build({
   absWorkingDir: repositoryRoot,
   entryPoints: ["apps/node-runtime/src/bin.ts"],
+  define: runtimeDefines,
   outfile: "apps/cli/dist/node-runtime.js",
   bundle: true,
   banner: {
@@ -94,28 +79,8 @@ await Promise.all(
 );
 await chmod(resolve(outputDirectory, "node-runtime.js"), 0o755);
 
-// Repositories reject a generated hook runtime above this budget, which would block `lervo upgrade`.
-const terminalHookBytes = (await stat(resolve(outputDirectory, "terminal-hook.js"))).size;
-if (terminalHookBytes > TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES)
-  throw new Error(
-    `dist/terminal-hook.js is ${terminalHookBytes} bytes, above the ${TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES}-byte terminal hook runtime budget.`,
-  );
-
 await writeFile(
   resolve(outputDirectory, "bin.metafile.json"),
-  `${JSON.stringify(mergeRepositoryRuntimeMetadata([result.metafile, nodeResult.metafile], runtime.metafile), null, 2)}\n`,
+  `${JSON.stringify(mergeRepositoryRuntimeMetadata([result.metafile, nodeResult.metafile, terminal.metafile], runtime.metafile), null, 2)}\n`,
   "utf8",
-);
-
-await copyNativeRuntimeArtifacts(
-  {
-    syncDirectory: resolve(repositoryRoot, "packages/filesystem-durability/dist/native"),
-    casDirectory: resolve(repositoryRoot, "packages/cas/dist/native"),
-  },
-  outputDirectory,
-  {
-    required: process.platform === "darwin",
-    expectedSyncHash: await nativeFileSyncSourceHash(repositoryRoot),
-    expectedCasHash: await nativeCasSourceHash(repositoryRoot),
-  },
 );

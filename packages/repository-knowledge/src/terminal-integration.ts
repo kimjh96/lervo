@@ -37,7 +37,10 @@ export type {
   TerminalIntegrationReceipt,
   TerminalIntegrationInspection,
 } from "./terminal-integration-contract.js";
-export { TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES } from "./terminal-integration-contract.js";
+export {
+  TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES,
+  TERMINAL_HOOK_LAUNCHER_MAXIMUM_BYTES,
+} from "./terminal-integration-contract.js";
 export {
   terminalHookCommand,
   terminalHookWindowsCommand,
@@ -319,4 +322,4 @@ export async function applyTerminalIntegrationPlan(input: {
 
 export type { TerminalRuntimeAsset } from "./terminal-integration-contract.js";
 export { loadTerminalHookNativeAssets } from "./terminal-runtime-assets.js";
-export { verifyTerminalHookRuntimeArtifact } from "./terminal-runtime-artifact.js";
+export { verifyTerminalHookRuntimeArtifact } from "./terminal-runtime-integrity.js";

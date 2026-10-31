@@ -152,4 +152,4 @@ Plan and binding failures retain existing codes. Failed steps retry after 15 min
 ## Deferred
 
 - Hub-mediated policy distribution; each host holds its own policy.
-- Automatic refresh of stale generated hook runtime, which writes tracked bytes outside the publication path.
+- Automatic refresh of stale generated hook runtime. Resolved by [ADR-0539](../../execution/providers/hooks/0539-keep-the-terminal-hook-runtime-host-local-behind-a-tracked-launcher.md).

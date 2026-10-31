@@ -1,3 +1,4 @@
+import { ensureHostTerminalRuntime } from "./terminal-runtime.js";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { randomUUID } from "node:crypto";
@@ -117,6 +118,7 @@ export async function runKnowledgeMigration(input: {
   }
   try {
     const repositoryRoot = resolve(io.cwd, values.root ?? ".");
+    if (input.mode === "migrate") await ensureHostTerminalRuntime();
     if (values.rebuild === true && input.mode !== "refresh")
       throw new Error("--rebuild is supported only by lervo knowledge refresh.");
     await foregroundKnowledgeMaterializationSettlement({ repositoryRoot, io }).settle();

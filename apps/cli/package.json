@@ -29,6 +29,7 @@
     "dist/repository-runtime-*.js",
     "dist/repository-runtime.js",
     "dist/repository-runtime.json",
+    "dist/terminal-hook-launcher.mjs",
     "dist/terminal-hook.js"
   ],
   "publishConfig": {

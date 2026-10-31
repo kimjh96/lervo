@@ -9,7 +9,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
 
-import { loadTerminalHookRuntime, loadTerminalHookRuntimeAssets } from "./terminal-runtime.js";
+import { loadTerminalHookLauncher } from "./terminal-runtime.js";
 
 export interface PreparedTerminalIntegration {
   plan: TerminalIntegrationPlan;
@@ -37,8 +37,8 @@ function latestTerminalIntegrationApplicationEventId(
 export async function planTerminalIntegrationStage(
   repositoryRoot: string,
 ): Promise<PreparedTerminalIntegration> {
-  const runtimeContent = await loadTerminalHookRuntime();
-  const runtimeAssets = await loadTerminalHookRuntimeAssets();
+  const runtimeContent = await loadTerminalHookLauncher();
+  const runtimeAssets: TerminalRuntimeAsset[] = [];
   const historyStorage = await openProjectStorage(repositoryRoot);
   let priorApplicationEventId: string | null;
   try {

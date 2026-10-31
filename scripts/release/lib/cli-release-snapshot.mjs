@@ -46,7 +46,7 @@ async function readPackFileList() {
 async function createArchiveSnapshot(paths) {
   const runtime = await readRuntimeModuleArtifact(resolve(cliRoot, "dist"));
   const cliReleaseFiles = cliReleaseFilesForSchema(
-    9,
+    10,
     [...runtime.files.keys()]
       .filter((name) => name !== "repository-runtime.json")
       .map((name) => `dist/${name}`),
@@ -233,7 +233,7 @@ export async function createCliReleaseManifest(
     platformSpecificFamilies: classified.platformSpecificFamilies,
   };
   return {
-    schemaVersion: 9,
+    schemaVersion: 10,
     artifact,
     directDependencies,
     bundle,
