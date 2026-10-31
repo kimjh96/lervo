@@ -123,9 +123,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:81979be41d78b454270818082568f16753074d6178f99a443f8a65189ad037d6",
-      "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module enforces canonical event payload privacy through one sanitization boundary and declarative allowlist/schema registries. Native-skill field registrations live in a dedicated payload module; transcript parsing, queue persistence, provider translation, and usage policy remain outside this module. Existing coordinate validators support the same event admission contract.",
+      "contentHash": "sha256:d87dc68414de4bc0290db71cd2d4317b91a608ae75fb89aaa2f93ecc7a0445e5",
+      "responsibility": "Canonical event payload privacy validation and redaction",
+      "rationale": "The module owns event payload allowlists, schema dispatch and redaction. Practice schemas and field lists are defined in practice-payload.ts; this module only registers them at the existing privacy boundary. No practice assessment, retention, provider or publication policy was added here.",
       "disposition": "cohesive"
     },
     {
@@ -340,9 +340,9 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:d4cea2b8fe787a0c46224a57fa5d7b5b71360fa29acf44b68d8c3a314a3c6b68",
-      "responsibility": "Declarative schema registration catalog",
-      "rationale": "The module is a declarative schema catalog and reference registry. It contains no parsing, provider translation, persistence, or invocation policy. Native-skill schemas are defined in their own contract module and registered here through the existing public schema-name boundary.",
+      "contentHash": "sha256:d79a576b748acce374f023f14d8cc8ddc48179577025e2a96ac9ef22cbbfe5ce",
+      "responsibility": "Runtime schema catalog assembly",
+      "rationale": "The module registers versioned schemas without implementing their validation or lifecycle behavior. Practice event contracts remain in practice-event.ts. Imports and catalog entries preserve one registration responsibility and the package dependency direction.",
       "disposition": "cohesive"
     },
     {

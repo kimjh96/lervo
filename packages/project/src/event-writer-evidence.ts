@@ -15,7 +15,7 @@ export function eventWriterSha256(value: string): string {
 
 export function assertEventReaderEvidence(
   readers: readonly EventReaderActivationEvidence[],
-  targetEventSchemaVersion: 2 | 3 | 4 | 5 | 6 | 7 = 2,
+  targetEventSchemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 = 2,
 ): void {
   const ids = new Set<string>();
   let previousId: string | undefined;
@@ -94,7 +94,7 @@ export function createEventWriterActivationId(input: {
   observedAt: string;
   configurationHash: string;
   readers: readonly EventReaderActivationEvidence[];
-  targetEventSchemaVersion?: 2 | 3 | 4 | 5 | 6 | 7;
+  targetEventSchemaVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8;
 }): string {
   const { targetEventSchemaVersion, ...evidence } = input;
   return `evact_${eventWriterSha256(

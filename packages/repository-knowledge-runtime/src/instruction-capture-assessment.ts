@@ -31,6 +31,7 @@ export interface InstructionCaptureContext {
   signal: AbortSignal;
   liveWorkPending(): Promise<boolean>;
   now(): Date;
+  providerQuantum?: { remaining: number };
 }
 
 export type InstructionCaptureAssessmentCall =
@@ -38,6 +39,7 @@ export type InstructionCaptureAssessmentCall =
   | { status: "failed" }
   | {
       status: "deferred";
+      attempted?: boolean;
       reason:
         | "knowledge_authority_unavailable"
         | "knowledge_capacity_unavailable"
@@ -112,6 +114,8 @@ export async function assessInstructionCapture(input: {
   sourceRevision: string;
 }): Promise<InstructionCaptureAssessmentCall> {
   const { context } = input;
+  if (context.providerQuantum !== undefined && context.providerQuantum.remaining <= 0)
+    return { status: "deferred", reason: "knowledge_capacity_unavailable" };
   try {
     await knowledgeReviewCallCeiling({
       storage: context.storage,
@@ -147,6 +151,7 @@ export async function assessInstructionCapture(input: {
   try {
     let result: { value: unknown; usage: ProviderJsonUsage | null };
     try {
+      if (context.providerQuantum !== undefined) context.providerQuantum.remaining -= 1;
       const runner = await createNoCapabilityProviderJsonRunner({
         provider: context.provider,
         ...(context.executable === undefined ? {} : { executable: context.executable }),
@@ -170,7 +175,7 @@ export async function assessInstructionCapture(input: {
             ? {}
             : { directory: context.admissionDirectory }),
         });
-        return { status: "deferred", reason: "knowledge_provider_paused" };
+        return { status: "deferred", reason: "knowledge_provider_paused", attempted: true };
       }
       return { status: "failed" };
     }

@@ -1,3 +1,5 @@
+import { runPracticeLearningCycle } from "./practice-stage.js";
+import { readPracticeState } from "./practice-store.js";
 import { loadConvergenceDelegation } from "./delegation.js";
 import { listAssignments } from "@lervo/agent-workforce";
 import { hasCurrentForegroundLease } from "./foreground-admission.js";
@@ -99,6 +101,21 @@ export async function runAutonomousKnowledgeWorker(input: {
   const liveWorkPending =
     input.liveWorkPending ??
     (async () => hasCurrentForegroundLease(await listAssignments(root), Date.now()));
+  const providerQuantum = {
+    remaining: input.maximumProviderCallsPerTurn ?? Number.MAX_SAFE_INTEGER,
+  };
+  const practiceContext = {
+    providerQuantum,
+    storage: input.storage,
+    provider: input.provider,
+    ...(input.executable === undefined ? {} : { executable: input.executable }),
+    ...(input.admissionDirectory === undefined
+      ? {}
+      : { admissionDirectory: input.admissionDirectory }),
+    signal,
+    liveWorkPending,
+    now: () => new Date(),
+  };
   const ownerTurnWork = () =>
     runOwnerTurnCaptureWork({
       storage: input.storage,
@@ -108,6 +125,7 @@ export async function runAutonomousKnowledgeWorker(input: {
         ? {}
         : { admissionDirectory: input.admissionDirectory }),
       signal,
+      providerQuantum,
       liveWorkPending,
       ...(input.instructionCandidateTransport === undefined
         ? {}
@@ -119,9 +137,17 @@ export async function runAutonomousKnowledgeWorker(input: {
     // A non-owner with no queued turn and no Hub exchange has nothing to do and takes no lock.
     const pending =
       input.instructionCandidateTransport !== undefined ||
-      (await listQueuedInstructionCaptures(root).catch(() => [])).length > 0;
+      (await listQueuedInstructionCaptures(root).catch(() => [])).length > 0 ||
+      (await readPracticeState(root)).works.length > 0 ||
+      (await readPracticeState(root)).candidates.some((c) =>
+        ["assessed", "unresolved", "drafted"].includes(c.state),
+      );
     const ownerTurns = pending
-      ? await withRepositoryKnowledgeWorkerLock(root, ownerTurnWork)
+      ? await withRepositoryKnowledgeWorkerLock(root, async () => {
+          const captured = await ownerTurnWork();
+          await runPracticeLearningCycle(practiceContext, "observe");
+          return captured;
+        })
       : null;
     // ADR-0518: convergence checkouts are host-local, so a non-owner still retires its own.
     if (await hasConvergenceWorkspaceRetention(input.storage))
@@ -154,7 +180,7 @@ export async function runAutonomousKnowledgeWorker(input: {
     signal,
     liveWorkPending,
     assertSource: (state) => assertConvergenceSource(context, state),
-    providerQuantum: { remaining: input.maximumProviderCallsPerTurn ?? Number.MAX_SAFE_INTEGER },
+    providerQuantum,
   };
   const freshnessContext = {
     storage: input.storage,
@@ -204,6 +230,7 @@ export async function runAutonomousKnowledgeWorker(input: {
     // Owner-turn capture (ADR-0467) runs first: it is small, bounded per cycle, and its result is
     // what the next prompt shows. Its failure leaves the queue for a later cycle and blocks nothing.
     const ownerTurns = await ownerTurnWork();
+    await runPracticeLearningCycle(practiceContext, "write");
     // Live work or a paused provider leaves change jobs queued instead of spending their attempts.
     const outcomes = (await changeReviewDeferred(context))
       ? []

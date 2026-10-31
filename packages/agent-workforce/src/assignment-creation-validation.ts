@@ -43,7 +43,14 @@ export function validateAssignmentCreation(
     verificationSuiteIds.length === 0 ||
     expectedPaths.length === 0 ||
     (input.accessMode !== undefined && !["read_only", "write"].includes(input.accessMode)) ||
-    (input.accessMode === "read_only" && input.knowledgeJob == null && input.convergence == null) ||
+    (input.accessMode === "read_only" &&
+      input.knowledgeJob == null &&
+      input.convergence == null &&
+      !(
+        input.expectedRoleVersion === role.version &&
+        input.expectedRoleContractHash === role.contractHash &&
+        HASH.test(input.requiredCapabilityHash ?? "")
+      )) ||
     (input.knowledgeJob != null && input.accessMode !== "read_only") ||
     (input.workstreamId !== undefined && !WORKSTREAM_ID.test(input.workstreamId)) ||
     (input.requiredCapabilityHash !== undefined &&

@@ -141,3 +141,9 @@ Focused tests must show:
 - the reviewer reads the retained, sanitized evidence bundle, and secret lines never reach a provider.
 
 Installed verification must show, on Mac and WSL, a skill learned from ordinary directive work without a teaching or request prompt, reviewed by a separate agent, published through a knowledge pull request, and later invoked.
+
+## Implementation status
+
+The standalone resident path is wired in source. The hooks keep their existing queue contract. Practice events use the schema 8 reader-activation gate. The [specification](../../../../../specifications/knowledge/practice-learning.md) records the implementation boundaries. Focused tests were written and not executed at the owner's request. Mac and WSL installed evidence is missing.
+
+The Hub typed candidate and usage exchange is one [bounded follow-up](../../../../../roadmap/knowledge/background-practice-learning.md#bounded-exchange-follow-up). No cross-host completion or complete Hub usage coverage is claimed. The decisions above remain unchanged.

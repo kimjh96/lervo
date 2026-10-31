@@ -246,7 +246,10 @@ export function validAssignment(value: unknown, projectId: string): value is Wor
     boundedStrings(item.expectedPaths, 128) &&
     item.expectedPaths.every(safePath) &&
     (item.accessMode === undefined || ["read_only", "write"].includes(item.accessMode)) &&
-    (item.accessMode !== "read_only" || item.knowledgeJob != null || item.convergence != null) &&
+    (item.accessMode !== "read_only" ||
+      item.knowledgeJob != null ||
+      item.convergence != null ||
+      HASH.test(item.requiredCapabilityHash ?? "")) &&
     (item.workstreamId === null || WORKSTREAM_ID.test(item.workstreamId)) &&
     (item.assigneeAgentId === null || AGENT_ID.test(item.assigneeAgentId)) &&
     (item.lastLeaseGeneration === undefined ||
