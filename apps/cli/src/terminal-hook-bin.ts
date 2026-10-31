@@ -4,6 +4,7 @@ import { verifyTerminalHookRuntimeArtifact } from "@lervo/repository-knowledge";
 
 import { fileURLToPath } from "node:url";
 
+import { runKnowledgeBootstrap } from "./knowledge-bootstrap.js";
 import { runKnowledgeWorkerCommand } from "./knowledge-worker-command.js";
 import { runTerminalCommand } from "./terminal-command.js";
 import { projectProductionSearchQueries } from "./provider-query-projector.js";
@@ -16,6 +17,9 @@ if (!(await verifyTerminalHookRuntimeArtifact(fileURLToPath(import.meta.url)))) 
 } else if (process.argv[2] === "prefetch-context") {
   // Detached after Stop; a failure only means the next prompt computes the snapshot itself.
   await prefetchTerminalPromptContext(process.cwd()).catch(() => undefined);
+} else if (process.argv[2] === "knowledge-bootstrap") {
+  // Detached from the first prompt of a checkout without built knowledge; it records its outcome.
+  await runKnowledgeBootstrap({ root: process.cwd() });
 } else if (process.argv[2] === "knowledge-worker") {
   process.exitCode = await runKnowledgeWorkerCommand(["--once", ...process.argv.slice(3)], {
     cwd: process.cwd(),

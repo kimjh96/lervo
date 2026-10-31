@@ -79,6 +79,7 @@
       "@lervo/filesystem-durability@0.1.0",
       "@lervo/hub-sync@0.1.0",
       "@lervo/identity-migration@0.1.0",
+      "@lervo/improvement-observation-local@0.1.0",
       "@lervo/interaction-sqlite@0.1.0",
       "@lervo/interaction@0.1.0",
       "@lervo/knowledge-okf@0.1.0",
@@ -167,7 +168,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:d56e1351b2fd90c40394dc7c8ec8702c829ecf674979c9361e39837a131033d5"
+    "bundleDigest": "sha256:d36bd10343b071be7a371044b3afd00b49eb94186492ac294166d0d955f29751"
   },
   "archive": {
     "rootFiles": [
@@ -216,22 +217,22 @@
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 12248519,
-        "sha256": "sha256:f9b9c33a38a5e48e6c142b7adf8b2e6dc2a8fa022dd61ddf59a99f2e6f00215a"
+        "size": 12379397,
+        "sha256": "sha256:b221af30a22072916a1837ec46833c1ca28e12cc70882e75b52428a883ced5b8"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:bd6922d092c478da476b42e3b0cb53aeeb9b6d43798ca77b30fd348651652cc3"
+        "sha256": "sha256:0b0b41ac03c456bec8f33a1b1a9c2ff37707f97002f15d7303bdd16f64dbf1c2"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 8335663,
-        "sha256": "sha256:08c0d0e073d7ae56c70f85242562c529016e05da6d330b5da83ae7cb9cf4b742"
+        "size": 8359461,
+        "sha256": "sha256:ecf3d99e84ea53926231f449fef37810122f6695b778d1b8979c58f53f7963c1"
       }
     ],
     "fileCount": 12,
-    "contentDigest": "sha256:fc138cfacd5a54c1852cc51ac2316a71a2c17817dc3d368fed97812c6aac4950"
+    "contentDigest": "sha256:d377f4bb7b0fe1ddd58c84341a07ccc0a40d3587d67b41ca49c9e71d576ac167"
   },
   "dependencies": {
     "portable": [
@@ -344,5 +345,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:d01143bffa6ec5fb2e2d4eac771f24396530dfdc88bb4154326f30e72e70306e"
+  "artifactDigest": "sha256:170a33f453238b7a8b65efba99c3210b327b0181ae835c276111f28daaa2cd16"
 }
