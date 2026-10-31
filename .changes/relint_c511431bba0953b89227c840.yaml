@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c511431bba0953b89227c840"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Name every owner rule whose body does not fit in the terminal hook context, so crowded prompts no longer drop rules silently."

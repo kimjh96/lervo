@@ -16,7 +16,7 @@ export async function prepareAppliedInstructionContext(input: {
   expectedPaths: readonly string[] | null;
   maximumBytes: number;
   targets?: InstructionTargets;
-}): Promise<{ context: string; report: InstructionPreparationReport }> {
+}): Promise<{ context: string; report: InstructionPreparationReport; preparedPaths: string[] }> {
   const targets =
     input.expectedPaths === null || input.expectedPaths.length === 0
       ? null
@@ -57,6 +57,7 @@ export async function prepareAppliedInstructionContext(input: {
   } catch (error) {
     return {
       context: "",
+      preparedPaths: [],
       report: {
         schemaVersion: 1,
         scope: "applied_owner_rules",
