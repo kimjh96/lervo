@@ -56,3 +56,5 @@ Focused tests must show:
 - No provider call is made, and extraction stays linear when many files share a basename.
 
 Installed verification must show `/eli5 …` in `axli` naming the `eli5` skill pointer, and a prompt naming `apps/web` in `flemo` pointing at `apps/web/AGENTS.md`.
+
+[ADR-0541](0541-bind-agent-queries-to-the-turn-and-observe-path-references.md) binds agent-run `lervo knowledge query` selections to the single open turn and records `path_mention` references at `Stop` for hook pointers and agent query results.

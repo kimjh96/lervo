@@ -123,9 +123,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:e77f26644180ffcf13ca6b67cd2b8baef77cb02e3b7cb7b91b13c725c8805e75",
+      "contentHash": "sha256:c90024da728d997791a5a0dd304a50e5471833c0a894789a881163edd57d75e9",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns the event payload privacy boundary and its declarative registry. Context-quality field and semantic rules live in context-quality-payload.ts; adding that registry does not couple artifact storage, plan preparation, or writer activation into redaction.",
+      "rationale": "The module owns canonical event privacy enforcement and its declarative allowlist and payload-schema registries. Turn-bound selection adds only identifiers, paths, hashes, counts, and registered schema names. Marker persistence, query recording, and reference detection remain outside this boundary.",
       "disposition": "cohesive"
     },
     {
@@ -340,16 +340,16 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:2183f5e1afcae686ff01e69803e124195ae2daaf4401d69d4d2e6a035b8b3f25",
+      "contentHash": "sha256:3afb1dbc47aa5d37070e5b6b257dcf5d3fdf3b1352b092f6c54fe434298fb698",
       "responsibility": "Declarative schema registration catalog",
-      "rationale": "The module declares the unchanged schema-name mapping and forward-reference catalog used by build-time generation and public type names. It contains no compiler initialization, runtime validation, filesystem access, provider policy or artifact publication. Those responsibilities live in separate owners.",
+      "rationale": "The module registers declarative schemas and forward references. The new context-selected payload is one catalog entry. Validation, event sanitization, query recording, and filesystem state remain in their owning modules.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/schemas/src/terminal-observation-event.ts",
-      "contentHash": "sha256:ebbffbb6be465b464e95dbb908e52e0f9a890541410556e21b1e86dd3875493e",
+      "contentHash": "sha256:8529ed8ec746aa5d1961dff64b9177fba1cbdd1df562991596969a44210a30f1",
       "responsibility": "Declarative terminal observation event schemas",
-      "rationale": "The module contains only the bounded JSON Schema declarations and inferred payload types for one terminal observation lifecycle; runtime validation, redaction, persistence, and orchestration remain in their owning modules.",
+      "rationale": "The module declares one terminal evidence lifecycle. Pointer fields, identities, reference kinds, and paired counts are additive. Equivalent nullable scalar schemas keep compiled validation within the measured hook bundle budget. Detection, persistence, privacy enforcement, and reporting remain separate.",
       "disposition": "cohesive"
     },
     {

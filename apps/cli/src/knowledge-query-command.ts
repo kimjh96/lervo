@@ -12,6 +12,8 @@ import {
 import { collectInteractiveLocalKnowledgeSources } from "./knowledge-sources.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import type { CliIo } from "./types.js";
+import { singleOpenTerminalTurn } from "./terminal-open-turns.js";
+import { recordKnowledgeQueryTurnSelection } from "./knowledge-query-turn-selection.js";
 
 export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<number> {
   try {
@@ -48,6 +50,7 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
         "Artifact verification requires --verify-artifact and --expected-plan together.",
       );
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    const turn = await singleOpenTerminalTurn(repositoryRoot);
     const supplementalSources = await collectInteractiveLocalKnowledgeSources(repositoryRoot);
     const projection = projectTaskQuery({
       intent: query,
@@ -111,6 +114,7 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
           requestedActions: parsed.values.action ?? [],
         },
       }));
+    await recordKnowledgeQueryTurnSelection({ root: repositoryRoot, turn, hits: result.hits });
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify({ ...result, query, projection, instructions, quality: quality.result, passages: quality.passages, recording: quality.recording, verification, verificationRecording }, null, 2)}\n`

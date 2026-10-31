@@ -53,6 +53,11 @@ export interface PreparedTerminalPromptContext {
   sourceSnapshotId: string;
   recommendationCount: number;
   documents: PreparedTerminalDocument[];
+  selectedPointers?: {
+    path: string;
+    contentHash: string;
+    kind: "skill" | "decision" | "instruction";
+  }[];
   repositoryRevision: string;
   repositoryFiles: RepositorySnapshot["files"];
   repositoryCommits?: RepositorySnapshot["commits"];

@@ -23,25 +23,9 @@ import {
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
 import { findLatestPreparedContext } from "./terminal-prepared-context-query.js";
-const EVIDENCE_TOKEN = /lervo-ref:(concept_[a-f0-9]{24}):(sha256:[a-f0-9]{64})/gu;
-function observedReferences(
-  lastAssistantMessage: string | null | undefined,
-  documents: PreparedTerminalDocument[],
-): PreparedTerminalDocument[] {
-  if (typeof lastAssistantMessage !== "string") return [];
-  const expected = new Map(
-    documents.map((document) => [`${document.conceptId}\0${document.contentHash}`, document]),
-  );
-  const observed = new Map<string, PreparedTerminalDocument>();
-  for (const match of lastAssistantMessage.matchAll(
-    new RegExp(EVIDENCE_TOKEN.source, EVIDENCE_TOKEN.flags),
-  )) {
-    const key = `${match[1]}\0${match[2]}`;
-    const document = expected.get(key);
-    if (document !== undefined) observed.set(key, document);
-  }
-  return [...observed.values()];
-}
+import { selectedTerminalDocuments } from "./terminal-turn-selection.js";
+import { observedTerminalReferences } from "./terminal-output-references.js";
+import { closeTerminalTurn } from "./terminal-open-turns.js";
 
 export async function recordObservedTerminalTurn(input: {
   root: string;
@@ -54,20 +38,32 @@ export async function recordObservedTerminalTurn(input: {
 }): Promise<{
   eventId: string;
   referenceCount: number;
+  selectedCount: number;
+  pathMentionCount: number;
   knowledgeJobQueued: boolean;
   changedPaths: string[];
 }> {
   const storage = await openProjectStorage(input.root);
+  let contextEventId: string | null = null;
   try {
     const context = findLatestPreparedContext(storage.events, input.coordinates, input.provider);
     if (context === null)
       throw new Error("No matching prepared terminal context exists for this provider turn.");
+    contextEventId = context.eventId;
     const payload = context.payload as Record<string, unknown>;
     if (!Array.isArray(payload.loadedDocuments))
       throw new Error("Prepared terminal context evidence is incomplete.");
     const documents = payload.loadedDocuments as unknown as PreparedTerminalDocument[];
     for (const document of documents) assertTerminalRepositoryRelativePath(document.path);
-    const references = observedReferences(input.hookInput.lastAssistantMessage, documents);
+    const selected = selectedTerminalDocuments(storage.events, context);
+    const references = observedTerminalReferences({
+      lastAssistantMessage: input.hookInput.lastAssistantMessage,
+      loaded: documents,
+      selected,
+    });
+    const pathMentionCount = references.filter(
+      (reference) => reference.referenceKind === "path_mention",
+    ).length;
     const finalWorkstream = await verifiedCurrentWorkstream(storage);
     const referenceEventIds = references.map(() => newTerminalIdentifier("evt"));
     const turnEventId = newTerminalIdentifier("evt");
@@ -92,11 +88,7 @@ export async function recordObservedTerminalTurn(input: {
             payload: {
               observationId: newTerminalIdentifier("tobs"),
               contextEventId: context.eventId,
-              conceptId: document.conceptId,
-              path: document.path,
-              contentHash: document.contentHash,
-              scope: document.scope,
-              referenceKind: "output_citation",
+              ...document,
               providerSessionDigest: input.coordinates.providerSessionDigest,
               providerTurnDigest: input.coordinates.providerTurnDigest,
             },
@@ -116,6 +108,8 @@ export async function recordObservedTerminalTurn(input: {
             contextEventId: context.eventId,
             referenceEventIds,
             referenceCount: references.length,
+            selectedCount: selected.length,
+            pathMentionCount,
             referenceTelemetry:
               typeof input.hookInput.lastAssistantMessage === "string" ? "observed" : "unavailable",
             lifecycleStatus: input.lifecycle.status,
@@ -156,6 +150,8 @@ export async function recordObservedTerminalTurn(input: {
     return {
       eventId: turnEventId,
       referenceCount: references.length,
+      selectedCount: selected.length,
+      pathMentionCount,
       knowledgeJobQueued: change !== null,
       changedPaths: change
         ? (JSON.parse(change.manifestContent) as { paths: { path: string }[] }).paths.map(
@@ -164,6 +160,8 @@ export async function recordObservedTerminalTurn(input: {
         : [],
     };
   } finally {
+    if (contextEventId !== null)
+      await closeTerminalTurn(input.root, contextEventId, new Date(input.occurredAt));
     await storage.close();
   }
 }

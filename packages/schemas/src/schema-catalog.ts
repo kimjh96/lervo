@@ -169,6 +169,7 @@ import {
 import { managedContextCoverageReportSchema } from "./managed-context-coverage-report.js";
 import {
   adapterResultCapturedEventPayloadSchema,
+  contextSelectedEventPayloadSchema,
   managedContextInjectedEventPayloadSchema,
   managedContextReferencedEventPayloadSchema,
 } from "./managed-context-event.js";
@@ -509,6 +510,7 @@ export const schemaCatalog = {
   contextPreparationReport: contextPreparationReportSchema,
   managedContextCoverageReport: managedContextCoverageReportSchema,
   managedContextInjectedEventPayload: managedContextInjectedEventPayloadSchema,
+  contextSelectedEventPayload: contextSelectedEventPayloadSchema,
   adapterResultCapturedEventPayload: adapterResultCapturedEventPayloadSchema,
   managedContextReferencedEventPayload: managedContextReferencedEventPayloadSchema,
   terminalContextPreparedEventPayload: terminalContextPreparedEventPayloadSchema,

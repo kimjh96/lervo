@@ -145,7 +145,10 @@ export async function prepareCompactTerminalPromptContext(input: {
     sourceSnapshotId,
   });
   // Only pointers that reached the context are selected; their bodies are never loaded here.
-  const selected = anchors.pointers.slice(0, instructions.optionalLineCount).map((pointer) => ({
+  const selectedPointers = anchors.pointers
+    .slice(0, instructions.optionalLineCount)
+    .map(({ path, contentHash, kind }) => ({ path, contentHash, kind }));
+  const selected = selectedPointers.map((pointer) => ({
     sourceId: documentIdForPath(pointer.path),
     contentHash: pointer.contentHash,
   }));
@@ -172,6 +175,7 @@ export async function prepareCompactTerminalPromptContext(input: {
     sourceSnapshotId,
     recommendationCount: 0,
     documents: [],
+    selectedPointers,
     repositoryRevision: repositorySnapshot.revision,
     repositoryFiles: repositorySnapshot.files,
     ...(repositorySnapshot.commits === undefined
