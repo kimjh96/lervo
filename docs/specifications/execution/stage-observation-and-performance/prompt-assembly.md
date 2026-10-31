@@ -9,7 +9,7 @@
 
 At entry, compact mode returns `prepareCompactTerminalPromptContext` with the original input and the string from `terminalDeclarationInstruction(provider, observationId)`. This precedes retrieval input preparation, attention assembly, selection, document loading, and this module's worker-specific instruction branch.
 
-The compact helper receives the workspace binding through the original input. Its implementation must be inspected to establish binding handling or declaration-string rendering. This assembler alone establishes neither compact worker instruction parity nor a health-dependent declaration policy.
+The compact helper renders observed worker attachment and assignment scope. It omits repository-wide workstream advancement for workers. Root declaration wording still depends on observed resident health. Failed prompt preparation starts independent base reads only on the degraded path. They share at most 2,500 ms within the remaining 15,000 ms hook budget and never turn missing freshness checks into current-state claims. Retrieval remains opt-in under the same stage deadlines; a slow projection can degrade rather than complete retrieval.
 
 ## Test and performance evidence
 

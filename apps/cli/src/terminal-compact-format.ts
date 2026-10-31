@@ -1,6 +1,7 @@
+import type { TerminalWorkspaceBinding } from "./terminal-workspace-contract.js";
 import type { OperatingAttentionReportV1 } from "@lervo/application-contract";
 import { canonicalJson, sha256, type WorkstreamFreshness } from "@lervo/repository-knowledge";
-import type { WorkstreamSnapshot } from "@lervo/schemas";
+import type { TerminalHookFailureReason, WorkstreamSnapshot } from "@lervo/schemas";
 
 import { isStaleWorkstreamItem, staleWorkstreamCountLine } from "./operating-attention-format.js";
 import { capContextBytes, MAXIMUM_COMPACT_CONTEXT_BYTES } from "./terminal-context-budget.js";
@@ -8,6 +9,9 @@ import { terminalPublicationInstruction } from "./terminal-publication-instructi
 import { mergeCurrentOwnerAttention } from "./repository-health-owner-review.js";
 import { formatRepositoryHealth } from "./repository-health-format.js";
 import { unknownRepositoryHealth } from "./repository-health-reader.js";
+
+export const TERMINAL_AGENTS_POINTER =
+  'Lervo compact terminal context. Before changing repository bytes, run `lervo knowledge query "<purpose and paths>"` for applicable rules, as AGENTS.md requires.';
 
 const MAXIMUM_ITEM_BYTES = 360;
 const MAXIMUM_DECISIONS = 3;
@@ -20,6 +24,15 @@ function bounded(value: string, maximumBytes = MAXIMUM_ITEM_BYTES): string {
     result += character;
   }
   return `${result}…`;
+}
+
+export function formatTerminalWorkspaceContext(binding: TerminalWorkspaceBinding | null): string[] {
+  return binding?.executionKind === "worker"
+    ? [
+        `This direct provider turn is ${binding.attachmentDisposition ?? "attached"} on worker workspace ${binding.workspaceId} generation ${binding.workspaceGeneration}; provider execution remains unmanaged.`,
+        "Change only assignment-scoped paths. Worker Stop rechecks workspace isolation and records a checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
+      ]
+    : [];
 }
 
 export function formatCompactWorkstreamContext(
@@ -85,6 +98,7 @@ export function formatCompactTerminalPreamble(input: {
   instructionCaptureLines?: readonly string[];
   /** ADR-0535 cached Know/Find health; empty when every measure is within target. */
   healthSection?: string;
+  workspaceBinding?: TerminalWorkspaceBinding | null;
 }): string {
   const now = new Date(input.attention.observedAt);
   const health =
@@ -100,8 +114,9 @@ export function formatCompactTerminalPreamble(input: {
     .filter((item) => item.blocking && !item.requiresUserAction && !isStaleWorkstreamItem(item))
     .slice(0, 5);
   return [
-    'Lervo compact terminal context. Before changing repository bytes, run `lervo knowledge query "<purpose and paths>"` for applicable rules, as AGENTS.md requires.',
+    TERMINAL_AGENTS_POINTER,
     terminalPublicationInstruction(input.publicationLanguage),
+    ...formatTerminalWorkspaceContext(input.workspaceBinding ?? null),
     ...(blocking.length === 0
       ? []
       : [
@@ -118,9 +133,11 @@ export function formatCompactTerminalPreamble(input: {
           "Background knowledge convergence is active and owns canonicalization, normalization, and knowledge refresh; this turn needs no knowledge refresh or turn declaration.",
         ]
       : [input.declarationInstruction]),
-    input.workstreamPresent
-      ? "If this turn changes repository-authored bytes, record the next bounded revision with `lervo workstream update --actor agent --provider <current-provider> --patch <json> --apply-now`; the service sets revision, update time, and HEAD. Never ask the user to run bookkeeping."
-      : "No workstream continues the checked-out branch. If this turn changes repository-authored bytes, start this branch's workstream with `lervo workstream start --actor agent --provider <current-provider> --stdin --apply-now`; other branches keep their own. Never ask the user to run bookkeeping.",
+    input.workspaceBinding?.executionKind === "worker"
+      ? "Worker completion uses its assignment checkpoint; do not advance another workspace's lifecycle."
+      : input.workstreamPresent
+        ? "If this turn changes repository-authored bytes, record the next bounded revision with `lervo workstream update --actor agent --provider <current-provider> --patch <json> --apply-now`; the service sets revision, update time, and HEAD. Never ask the user to run bookkeeping."
+        : "No workstream continues the checked-out branch. If this turn changes repository-authored bytes, start this branch's workstream with `lervo workstream start --actor agent --provider <current-provider> --stdin --apply-now`; other branches keep their own. Never ask the user to run bookkeeping.",
   ].join("\n");
 }
 
@@ -146,4 +163,34 @@ export function assembleCompactTerminalContext(
   const context = capContextBytes(workstream.context, remaining);
   const delivered = { ...workstream, context, deliveredByteCount: Buffer.byteLength(context) };
   return { additionalContext: `${cappedPreamble}${separator}${context}`, workstream: delivered };
+}
+
+export function formatDegradedTerminalContext(
+  lines: string[],
+  reason: TerminalHookFailureReason,
+  workspaceBinding: TerminalWorkspaceBinding | null = null,
+): string {
+  // Reserve the notice before optional clauses so even a crowded preamble names the failure.
+  const skipped =
+    reason.startsWith("repository_snapshot_") || reason === "git_ignored_paths_unavailable"
+      ? "repository state checks were skipped this turn."
+      : reason === "knowledge_inspection_failed"
+        ? "knowledge checks were skipped this turn."
+        : "full context preparation or recording did not finish this turn.";
+  const notice = `Lervo context degraded (${reason}); ${skipped}`;
+  const optional =
+    workspaceBinding?.executionKind === "worker"
+      ? lines
+          .slice(1)
+          .filter((line) => !line.startsWith("If this turn changes repository-authored bytes"))
+      : lines.slice(1);
+  return capContextBytes(
+    [
+      lines[0] ?? TERMINAL_AGENTS_POINTER,
+      notice,
+      ...formatTerminalWorkspaceContext(workspaceBinding),
+      ...optional,
+    ].join("\n\n"),
+    MAXIMUM_COMPACT_CONTEXT_BYTES,
+  );
 }

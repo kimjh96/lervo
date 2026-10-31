@@ -2,7 +2,7 @@
 
 ## Retrieval preparation
 
-In retrieval mode, `apps/cli/src/terminal-prompt-preparation.ts` computes the prompt digest and concurrently starts corpus preparation, query preparation, and repository snapshot capture through `Promise.all`. Durations use separate `corpus_preparation`, `query_projection`, and `repository_snapshot` stages. Overlapping durations must not be summed as elapsed time.
+In retrieval mode, retrieval preparation in `apps/cli/src/terminal-prompt-preparation.ts` computes the prompt digest and concurrently starts corpus preparation, query preparation, and repository snapshot capture through `Promise.all`. Durations use separate `corpus_preparation`, `query_projection`, and `repository_snapshot` stages. Overlapping durations must not be summed as elapsed time.
 
 Corpus preparation collects supplemental local sources, then concurrently scans configured knowledge and lists canonicalization candidates. Candidate-list rejection becomes `coverage: unavailable` with an empty candidate list; it does not establish that no candidates exist. A successful list has complete coverage. Instruction-catalog inspection receives the collected sources and prepared scan. This coordinator does not convert other rejected operations to unavailable coverage.
 
@@ -12,8 +12,12 @@ After all three branches resolve, the coordinator requires the corpus project ID
 
 ## Snapshot delegation
 
-`apps/cli/src/terminal-repository-snapshot.ts` delegates to `capturePersistentRepositorySnapshot` from `@lervo/orchestrator`, passing the repository root and resolved cache path `.lervo/state/cache/terminal-repository-snapshot.json`. Retrieval preparation and terminal repository-change planning use this wrapper.
+`apps/cli/src/terminal-repository-snapshot.ts` delegates to `capturePersistentRepositorySnapshot` from `@lervo/orchestrator`, passing the repository root, the invocation-local absolute snapshot deadline when present, and the resolved cache path `.lervo/state/cache/terminal-repository-snapshot.json`. Retrieval preparation and terminal repository-change planning use this wrapper.
 
-The wrapper adds no local validation, catch, or alternate capture path. Its comment describes stat-identity hash reuse, but the imported implementation is required to establish cache validation, invalidation, filesystem safety, and behavior after cache corruption. This call site proves neither that every capture avoids rehashing nor a measured latency improvement.
+The shared command has a 15,000 ms budget. Snapshot captures share its 7,500 ms deadline, including nested Stop and knowledge-cache confirmation captures. Main stages share the 10,000 ms deadline; observation recording has the remaining budget. These deadlines do not renew per operation. Deadline races bound awaited operations; the generated executable flushes output and exits to release outstanding handles. A blocked JavaScript event loop remains outside this timer guarantee.
+
+Git ignored-path discovery returns `available` or `unavailable`. Only an explicit non-repository probe permits an empty result without a successful ignored-path listing. Unavailability rejects before traversal. Git timeouts use the remaining snapshot time. Capture checks limits at each entry and deadlines before traversal, between entries, after file reads, and before completion. It never returns a partial snapshot. File-count rejection already occurred at the first excess entry before ADR-0531.
+
+The wrapper adds no alternate capture path. Its comment describes stat-identity hash reuse, but the imported implementation is required to establish cache validation, invalidation, filesystem safety, and behavior after cache corruption. This call site proves neither that every capture avoids rehashing nor a measured latency improvement.
 
 See [prompt assembly](prompt-assembly.md) for compact-mode delegation and [terminal repository changes](../repository-change-adapter-boundaries/terminal-turns.md) for before/after revision and manifest-binding checks. These source boundaries establish neither installed hook activation nor successful background knowledge review.

@@ -592,7 +592,11 @@ describe("terminal integration CLI", () => {
         },
       ),
     ).toBe(0);
-    expect(JSON.parse(messages.join(""))).toEqual({});
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      hookSpecificOutput: {
+        additionalContext: expect.stringContaining("Lervo context degraded ("),
+      },
+    });
     expect(errors).toEqual([]);
   });
 

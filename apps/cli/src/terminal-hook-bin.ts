@@ -43,4 +43,7 @@ if (
       createTerminalStageObservation,
     },
   );
+  // Deadline races cannot cancel every filesystem or child-process handle. Flush the response
+  // before ending this short-lived hook process; detached maintenance has its own process.
+  process.stdout.write("", () => process.exit(process.exitCode ?? 0));
 }

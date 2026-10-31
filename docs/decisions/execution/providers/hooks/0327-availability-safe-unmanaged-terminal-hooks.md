@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-09-01
 
+Amended by: [ADR-0531](0531-bound-terminal-hooks-and-retain-degraded-context.md)
+
 ## Context
 
 The direct `UserPromptSubmit` path combined two independent provider calls: read-only query projection and typed effect grounding. Provider observations showed that effect grounding frequently ended as `semantic_resolution_failed`, delayed bounded retrieval, and provided no authority an unmanaged provider session could safely use. Removing only `UserPromptSubmit` left `Stop` installed, allowing a later Stop with no matching preparation to block a session Lervo had never observed.

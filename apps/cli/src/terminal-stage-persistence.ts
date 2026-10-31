@@ -2,8 +2,9 @@ import { randomUUID } from "node:crypto";
 
 import { inspectEventWriterCoordinate } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
-import { validateSchema } from "@lervo/schemas";
+import { validateSchema, type TerminalHookFailureReason } from "@lervo/schemas";
 
+import { TerminalHookFailure, withinTerminalDeadline } from "./terminal-hook-budget.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 
 function eventId(): string {
@@ -14,12 +15,28 @@ export async function recordTerminalStageObservation(input: {
   root: string;
   coordinates: { runId: string; sessionId: string };
   observationId: string;
-  hookEvent: "UserPromptSubmit" | "Stop";
+  hookEvent?: "UserPromptSubmit" | "Stop";
   timing: TerminalStageObservationPort;
   outcome: "completed" | "failed";
   policyVersion: string;
+  failureReason?: TerminalHookFailureReason;
   storage?: ProjectStorage;
 }): Promise<string | null> {
+  const operation = () => persistTerminalStageObservation(input);
+  try {
+    return input.timing.observationDeadlineMs === undefined
+      ? await operation()
+      : await withinTerminalDeadline(input.timing.observationDeadlineMs, operation);
+  } catch (error) {
+    if (error instanceof TerminalHookFailure) throw error;
+    throw new TerminalHookFailure("event_persistence_failed");
+  }
+}
+
+async function persistTerminalStageObservation(
+  input: Parameters<typeof recordTerminalStageObservation>[0],
+): Promise<string | null> {
+  await input.timing.settle?.();
   const writerVersion =
     input.storage?.writableEventSchemaVersion ??
     (await inspectEventWriterCoordinate(input.root)).coordinate.selectedEventSchemaVersion;
@@ -27,6 +44,9 @@ export async function recordTerminalStageObservation(input: {
   if (writerVersion < 2) return null;
   const finalized = input.timing.finalize(input.observationId, input.hookEvent, input.outcome);
   if (finalized === null) return null;
+  if (input.failureReason !== undefined) finalized.payload.failureReason = input.failureReason;
+  if (input.outcome === "failed" && input.failureReason === undefined)
+    throw new Error("Failed terminal stages require a closed reason code.");
   const validation = validateSchema("executionStagesObservedEventPayload", finalized.payload);
   if (!validation.valid) throw new Error("Terminal stage observation is invalid.");
   const storage = input.storage ?? (await openProjectStorage(input.root));

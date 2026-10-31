@@ -153,11 +153,11 @@ export async function terminalKnowledgeBootstrapNotice(input: {
     updatedAt: input.now.toISOString(),
     reason: null,
   });
-  return launchDetachedKnowledgeWorker({
+  return (await launchDetachedKnowledgeWorker({
     root: input.root,
     entry: input.hookRuntime,
     args: ["knowledge-bootstrap"],
-  })
+  }))
     ? BUILDING_NOTICE
     : MANUAL_NOTICE;
 }

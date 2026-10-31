@@ -269,12 +269,28 @@ export const executionStageObservationSchema = {
   additionalProperties: false,
 } as const;
 
+export const terminalHookFailureReasons = [
+  "repository_snapshot_limit_exceeded",
+  "repository_snapshot_deadline_exceeded",
+  "repository_snapshot_failed",
+  "git_ignored_paths_unavailable",
+  "knowledge_inspection_failed",
+  "hook_deadline_exceeded",
+  "repository_discovery_failed",
+  "lifecycle_inspection_failed",
+  "event_persistence_failed",
+  "hook_input_invalid",
+  "unexpected_error",
+] as const;
+export type TerminalHookFailureReason = (typeof terminalHookFailureReasons)[number];
+
 const executionStagesObservedProperties = {
   executionMode: { type: "string", enum: ["managed", "unmanaged_terminal"] },
   workId: { anyOf: [workIdSchema, { type: "null" }] },
   terminalObservationId: {
     anyOf: [{ type: "string", pattern: "^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$" }, { type: "null" }],
   },
+  failureReason: { type: "string", enum: terminalHookFailureReasons },
   terminalHook: {
     anyOf: [{ type: "string", enum: ["UserPromptSubmit", "Stop"] }, { type: "null" }],
   },
