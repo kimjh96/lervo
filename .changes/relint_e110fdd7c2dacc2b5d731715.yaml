@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e110fdd7c2dacc2b5d731715"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep user documents out of the Git-ignored knowledge publication root, warn about unrecorded files there, and explain in generated AGENTS.md that the knowledge index is local."

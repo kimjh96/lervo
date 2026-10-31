@@ -54,6 +54,7 @@ import {
 } from "./types.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
 import { projectRebuildableKnowledgeIgnore } from "./projection-ignore.js";
+import { isWithinPublicationRoot } from "./repository-publication-files.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/;
 
@@ -154,6 +155,7 @@ export interface RepositoryLayoutMigrationPlan {
   blockers: Array<{
     code:
       | "destination_exists"
+      | "destination_in_publication_root"
       | "ambiguous_destination"
       | "invalid_markdown_reference"
       | DecisionLayoutBlockerCode
@@ -539,6 +541,14 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       blockedDestinations.add(item.toPath);
     } else if (!repositoryPathCanRemainIncluded(item.toPath, policy)) {
       blockers.push({ code: "destination_exists", pathDigest: sha256(item.toPath) });
+      blockedDestinations.add(item.toPath);
+    } else if (isWithinPublicationRoot(item.toPath, policy.publicationRoot)) {
+      // Git ignores the publication root, so a user document moved there leaves version control.
+      blockers.push({
+        code: "destination_in_publication_root",
+        pathDigest: sha256(item.toPath),
+        path: item.source.path,
+      });
       blockedDestinations.add(item.toPath);
     }
   }

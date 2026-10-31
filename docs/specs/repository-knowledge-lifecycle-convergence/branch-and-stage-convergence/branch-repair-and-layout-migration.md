@@ -8,7 +8,7 @@ An unrecorded structural bundle or concept blocks ordinary refresh with a merge-
 
 ## Publication ownership
 
-A structural publication page under the configured publication root is rebuildable while its first line is the Lervo generated header. Ordinary refresh regenerates an edited page and records the update with reason `regenerate_edited_generated_publication`. Git cannot restore the page because the publication root is ignored.
+A structural publication page under the configured publication root is rebuildable while its first line is the Lervo generated header. Ordinary refresh regenerates an edited page and records the update with reason `regenerate_edited_generated_publication`. Git cannot restore the page because the publication root is ignored. The root holds only recorded generation outputs: layout migration blocks a destination there with `destination_in_publication_root`, document structure operations reject it, and lint warns with `publication_root_unmanaged_file` for any unrecorded file ([ADR-0524](../../../decisions/knowledge/repository/source-intake/0524-keep-user-documents-out-of-the-generated-publication-root.md)).
 
 A page without that header is user-owned. Refresh and `--rebuild` preserve it as a conflict; the plan names `rm '<path>' && lervo knowledge refresh` as the explicit restore path.
 

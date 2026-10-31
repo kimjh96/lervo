@@ -290,4 +290,19 @@ describe("user document structure move", () => {
       }),
     ).rejects.toMatchObject({ code: "knowledge_reconciliation_conflict" });
   }, 10_000);
+
+  it("rejects a move into the Git-ignored generated publication root", async () => {
+    const { root, sourcePath, bytes } = await repository();
+    await expect(
+      createKnowledgeDocumentMovePlan({
+        repositoryRoot: root,
+        fromPath: sourcePath,
+        toPath: "docs/knowledge/repository/knowledge.md",
+      }),
+    ).rejects.toMatchObject({
+      code: "knowledge_reconciliation_conflict",
+      message: expect.stringContaining("generated publication root"),
+    });
+    expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(bytes);
+  });
 });

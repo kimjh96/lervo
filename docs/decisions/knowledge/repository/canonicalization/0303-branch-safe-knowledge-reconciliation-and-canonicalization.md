@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-08-30
+Amended by: [ADR-0524](../source-intake/0524-keep-user-documents-out-of-the-generated-publication-root.md) (the ignored publication root holds only recorded generation outputs)
 
 Amended by: [ADR-0533](patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
 

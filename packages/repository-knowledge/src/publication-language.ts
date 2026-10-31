@@ -32,6 +32,7 @@ export interface RepositoryPublicationMessages {
   readmeRules: readonly string[];
   agentsTitle: string;
   sourceTitleFallback: string;
+  agentKnowledgeEntry(indexPath: string): string;
   agentRules: readonly string[];
   publicationSnapshot(input: {
     snapshotId: string;
@@ -75,8 +76,9 @@ const english: RepositoryPublicationMessages = {
   ],
   agentsTitle: "Repository Agent Instructions",
   sourceTitleFallback: "Repository source",
+  agentKnowledgeEntry: (indexPath) =>
+    `Run \`lervo migrate knowledge\` to build the local navigation at \`${indexPath}\`, which Git ignores, then read the directly relevant linked sources. Without Lervo, start from the tracked documentation.`,
   agentRules: [
-    "Read `docs/knowledge/index.md` and the directly relevant linked sources.",
     "Treat generated indexes as navigation, not proof that content was loaded or used.",
     "Preserve user-owned bytes and edit only explicitly managed Lervo blocks.",
     "Keep entrypoints short; put each independent concern in a separate document.",

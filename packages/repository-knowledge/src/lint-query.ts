@@ -13,6 +13,7 @@ import { inspectRepositoryDocumentRewriters } from "./document-rewriter-adapters
 import { lintDocumentDrift, type DocumentStalenessLintMode } from "./document-drift-lint.js";
 import { loadRepositoryKnowledgePolicy } from "./policy.js";
 import { repositoryKnowledgePublicationSnapshotId } from "./publication-snapshot.js";
+import { lintPublicationRootResidents } from "./publication-root-lint.js";
 import {
   generatedKnowledgePaths,
   readSafePublication,
@@ -439,6 +440,12 @@ export async function lintRepositoryKnowledge(
   }
   const policy = await loadRepositoryKnowledgePolicy(root);
   const generated = await generatedKnowledgePaths(root);
+  await lintPublicationRootResidents({
+    root,
+    publicationRoot: policy.publicationRoot,
+    generatedPaths: generated,
+    issues,
+  });
   const scan =
     options.preparedScan ??
     (await scanRepositoryKnowledge({

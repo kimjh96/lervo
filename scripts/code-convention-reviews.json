@@ -186,7 +186,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:1d088d7d90ee719274a43af8f2926abb0b0898d71c2540800598d30d3ec93a2d",
+      "contentHash": "sha256:f4573eaaa5be3dc31e5e020b5bab4079fcc553f6e7b9593f7052ec95a4f413c2",
       "responsibility": "Deterministic structural knowledge compiler",
       "rationale": "Publication rendering, historical-document grouping, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract; historical marker detection lives in its own module.",
       "disposition": "cohesive"
@@ -200,21 +200,21 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-merge.ts",
-      "contentHash": "sha256:fb6f321845839f37c497337596655489ab5021654c87c0572e33e2230b93a190",
+      "contentHash": "sha256:c4b3dfe2a627815c3528fdc207030fdda1f759d058cb84770535dc03d4f061c1",
       "responsibility": "Exact-approved document merge operation",
       "rationale": "Plan serialization, safe source inspection, merge planning, lineage updates, and apply are one atomic document-merge responsibility.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-move.ts",
-      "contentHash": "sha256:05a7355349fb023c00d8bc9ab4f449f7d404ca3c638bfe83924377179df33ada",
+      "contentHash": "sha256:16d260dad0e8db3f2b33c9f2a6b3802e7081aeea1e7466327f22f5b787e868d6",
       "responsibility": "Exact-approved document move operation",
       "rationale": "Destination safety, plan serialization, lineage, single-output normalization-record preservation, plan creation, and apply are one atomic document-move responsibility; normalization record mechanics remain in a separate bounded module and formatter configuration is outside this transaction.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-split.ts",
-      "contentHash": "sha256:0f0f0f5ff41c566eb2edd380d3748622b7bc941b1f7724456637b4243b5dd8f2",
+      "contentHash": "sha256:4ec0429f967d5e881a54e610d80f9d812084372a2fc652dc7f8a9a7f76419585",
       "responsibility": "Exact-approved document split operation",
       "rationale": "Heading extraction, destination safety, plan serialization, lineage preservation, and apply are one atomic document-split responsibility.",
       "disposition": "cohesive"
@@ -235,9 +235,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
-      "contentHash": "sha256:477a401bcae5309a8112e03c5260dbe7c09e55baecd7e1a53566f5b665b5eee4",
+      "contentHash": "sha256:4a2ba0477bf13a3f2fde24a26340d1c3db5ee344ff16bc1179bcb7ab8b75f882",
       "responsibility": "Repository knowledge lifecycle lint",
-      "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars and compose the extracted drift lint.",
+      "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars and compose the extracted drift and publication-root lint.",
       "disposition": "cohesive"
     },
     {

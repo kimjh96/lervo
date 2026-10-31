@@ -458,6 +458,35 @@ describe("repository layout migration", () => {
     );
   });
 
+  it("blocks a document destination inside the Git-ignored generated publication root", async () => {
+    const root = await repository();
+    const policyPath = resolve(root, ".lervo/knowledge/policy.yaml");
+    const policy = await readFile(policyPath, "utf8");
+    expect(policy).toContain("publicationRoot: docs/knowledge");
+    await writeFile(
+      policyPath,
+      policy.replace("publicationRoot: docs/knowledge", "publicationRoot: docs/delivery"),
+    );
+    await mkdir(resolve(root, "notes"), { recursive: true });
+    await writeFile(
+      resolve(root, "notes/release-notes.md"),
+      ["---", "lervo:", "  document:", "    route: delivery", "---", "# Notes", ""].join("\n"),
+    );
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+
+    expect(plan.status).toBe("blocked");
+    expect(plan.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "destination_in_publication_root",
+        path: "notes/release-notes.md",
+      }),
+    );
+    expect(plan.moves).not.toContainEqual(
+      expect.objectContaining({ fromPath: "notes/release-notes.md" }),
+    );
+  });
+
   it("preserves canonical archive and inherited collection boundaries", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/archive"), { recursive: true });

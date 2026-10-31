@@ -13,6 +13,7 @@ import {
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
+import { isWithinPublicationRoot } from "./repository-publication-files.js";
 import {
   createKnowledgeMigrationPlanForScan,
   recordedGeneratedKnowledgePaths,
@@ -218,6 +219,12 @@ export async function createKnowledgeDocumentMovePlan(input: {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "The move destination cannot be a previous Lervo-generated output path.",
+    );
+  }
+  if (isWithinPublicationRoot(toPath, policy.publicationRoot)) {
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "The move destination cannot be inside the Git-ignored generated publication root.",
     );
   }
   if (storedConcepts.some((item) => item.value === null)) {

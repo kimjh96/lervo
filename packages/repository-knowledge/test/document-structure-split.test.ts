@@ -187,4 +187,20 @@ describe("user document structure split", () => {
       splitMarkdownHeadingSubtree("# Root\n\n## Same\nA\n\n## Same\nB\n", "heading:Root > Same"),
     ).toThrow("duplicated");
   });
+
+  it("rejects a split destination inside the Git-ignored generated publication root", async () => {
+    const root = await repository();
+    await expect(
+      createKnowledgeDocumentSplitPlan({
+        repositoryRoot: root,
+        sourcePath,
+        destinationPath: "docs/knowledge/guide/extract.md",
+        headingLocator: "heading:Guide > Extract",
+      }),
+    ).rejects.toMatchObject({
+      code: "knowledge_reconciliation_conflict",
+      message: expect.stringContaining("generated publication root"),
+    });
+    expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(original);
+  });
 });
