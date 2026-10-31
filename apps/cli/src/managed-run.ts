@@ -425,6 +425,8 @@ export function createManagedRunExecutor(
         },
         writingPolicy: managedWriting.writingPolicy,
         resolvedSkills,
+        // `lervo run` places each verified skill body in the provider instructions above.
+        skillDelivery: "instructions_injected",
         resolvedCapabilities: runCapabilities.capabilities.map((item) => ({
           capabilityId: item.capabilityId,
           capabilityKind: item.kind,
