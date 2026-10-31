@@ -1,4 +1,8 @@
 import {
+  providerCliAdmittedEventPayloadSchema,
+  providerCliRejectedEventPayloadSchema,
+} from "./provider-cli-event.js";
+import {
   contextQualityPreparedEventPayloadSchema,
   contextQualityVerifiedEventPayloadSchema,
 } from "./context-quality-event.js";
@@ -430,6 +434,8 @@ export const schemaCatalog = {
   knowledgeInstructionCandidateExchangedEventPayload:
     knowledgeInstructionCandidateExchangedEventPayloadSchema,
   knowledgeConvergenceOwnerChangedEventPayload: knowledgeConvergenceOwnerChangedEventPayloadSchema,
+  providerCliAdmittedEventPayload: providerCliAdmittedEventPayloadSchema,
+  providerCliRejectedEventPayload: providerCliRejectedEventPayloadSchema,
   knowledgeConvergenceDelegationContinuedEventPayload:
     knowledgeConvergenceDelegationContinuedEventPayloadSchema,
   knowledgeConvergenceDefinitionsInstalledEventPayload:

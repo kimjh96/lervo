@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0aeb5e549ce3f3d996f7661a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Re-probe provider pauses without reset times on bounded backoff, preserve newer failures, and expose pause age and next eligibility."

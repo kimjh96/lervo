@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createProcessDocumentNormalizationCompiler,
   createNoCapabilityProviderJsonRunner,
+  providerCliDispatchContext,
 } from "../src/index.js";
 
 const roots: string[] = [];
@@ -181,7 +182,7 @@ describe("generate-only process semantic compilers", () => {
         cwd: string;
         nativeResponseSchema: string;
       };
-      expect(invocation.cwd).not.toBe(item.repository);
+      expect(invocation.cwd).toBe(providerCliDispatchContext().cwd);
       expect(invocation.args).toContain(provider === "codex" ? "--ignore-user-config" : "--tools");
       expect(JSON.parse(invocation.nativeResponseSchema)).toEqual(
         provider === "codex"
@@ -224,7 +225,7 @@ describe("generate-only process semantic compilers", () => {
   };
 
   for (const provider of ["codex", "claude"] as const) {
-    it(`${provider} runs in an empty temporary cwd with every model tool disabled`, async () => {
+    it(`${provider} runs in the neutral dispatch cwd with every model tool disabled`, async () => {
       const item = await fixture(provider);
       const runner = await createNoCapabilityProviderJsonRunner({
         provider,
@@ -236,7 +237,7 @@ describe("generate-only process semantic compilers", () => {
         args: string[];
         cwd: string;
       };
-      expect(invocation.cwd).not.toBe(item.repository);
+      expect(invocation.cwd).toBe(providerCliDispatchContext().cwd);
       if (provider === "claude") {
         const tools = invocation.args.indexOf("--tools");
         expect(tools).toBeGreaterThanOrEqual(0);
@@ -352,7 +353,7 @@ if (${JSON.stringify(provider)} === "claude") {
         cwd: string;
         input: string;
       };
-      expect(invocation.cwd).not.toBe(item.repository);
+      expect(invocation.cwd).toBe(providerCliDispatchContext().cwd);
       expect(invocation.input).toContain("preserveMeaning");
       expect(invocation.input).toContain('"headingPolicy":"require_h1"');
       expect(invocation.input).toContain("Preserve every independently testable requirement");

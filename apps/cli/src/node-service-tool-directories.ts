@@ -1,6 +1,5 @@
 import { loadNodeRuntimeConfig } from "@lervo/node-runtime";
 
-import { residentProvider } from "./knowledge-host-resident-candidates.js";
 import {
   resolveServiceToolDirectories,
   type ServiceProvider,
@@ -9,7 +8,7 @@ import {
 
 /**
  * ADR-0470: the tool directories a repository Node service needs on its PATH — the provider of
- * its knowledge resident (delegation or host policy) and of outcome supervision, `git`, and
+ * outcome supervision, `git`, and
  * optionally `gh` — resolved against the planning shell's PATH.
  */
 export async function nodeServiceToolDirectories(input: {
@@ -18,8 +17,6 @@ export async function nodeServiceToolDirectories(input: {
   searchPath?: string | undefined;
 }): Promise<ServiceToolDirectories> {
   const providers: ServiceProvider[] = [];
-  const knowledge = await residentProvider(input.repositoryRoot, null);
-  if (knowledge !== null) providers.push(knowledge);
   const supervision = await loadNodeRuntimeConfig(input.configPath).then(
     (config) => config.outcomeSupervision?.ownerReasoning.provider,
     () => undefined,

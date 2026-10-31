@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { rm } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { applyFreshnessCandidateByOwner } from "../src/freshness-apply.js";
@@ -121,6 +121,28 @@ describe("document freshness fixtures (ADR-0463)", () => {
       ],
     },
   };
+
+  it(
+    "defers without spend or a rejected candidate when the provider fails before any model call",
+    { timeout: 120_000 },
+    async () => {
+      const f = await setup();
+      await argoHistory(f, { "README.md": README_V2 });
+      await f.plan(readmePlan);
+      // The version check fails, as an unusable CLI does, before any model call.
+      await writeFile(f.executable, "#!/bin/sh\nexit 1\n", { mode: 0o700 });
+      const result = await f.cycle();
+      expect(result).not.toMatchObject({ candidateCount: 1 });
+      expect(await listFreshnessCandidates(f.root)).toEqual([]);
+      expect(await f.providerCalls()).toEqual([]);
+      expect(f.eventsOf("document.freshness.candidate.rejected")).toHaveLength(0);
+      const charged = f
+        .eventsOf("resource.usage.recorded")
+        .map((event) => event.payload as Record<string, unknown>)
+        .filter((payload) => payload.stage === "document_freshness");
+      expect(charged).toEqual([]);
+    },
+  );
 
   async function readmeCandidate(f: FreshnessFixture) {
     await argoHistory(f, { "README.md": README_V2 });

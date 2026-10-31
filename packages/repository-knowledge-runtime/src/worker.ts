@@ -1,4 +1,5 @@
 import { compactProjectConvergenceArtifacts } from "./cas-retention.js";
+import { admittedBackgroundContext } from "./background-provider.js";
 import { loadConvergenceDelegation } from "./delegation.js";
 import { listAssignments } from "@lervo/agent-workforce";
 import { hasCurrentForegroundLease } from "./foreground-admission.js";
@@ -41,9 +42,24 @@ import {
 
 async function changeReviewDeferred(context: ConvergenceRuntimeContext): Promise<boolean> {
   if (await context.liveWorkPending()) return true;
+  let selected;
+  try {
+    selected = await admittedBackgroundContext(context);
+  } catch (error) {
+    if (
+      [
+        "provider_not_admitted",
+        "knowledge_provider_paused",
+        "knowledge_capacity_unavailable",
+        "knowledge_authority_unavailable",
+      ].includes((error as { code: string }).code)
+    )
+      return true;
+    throw error;
+  }
   return (
     await knowledgeProviderAdmissionState({
-      provider: context.provider,
+      provider: selected.provider,
       ...(context.admissionDirectory === undefined
         ? {}
         : { directory: context.admissionDirectory }),

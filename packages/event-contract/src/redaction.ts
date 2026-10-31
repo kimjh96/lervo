@@ -121,6 +121,23 @@ export const eventPayloadAllowlists = {
     "reason",
     "occurredAt",
   ],
+  "provider.cli.admitted": [
+    "provider",
+    "version",
+    "executableHash",
+    "probeResultHash",
+    "hostLabel",
+    "admittedAt",
+  ],
+  "provider.cli.rejected": [
+    "provider",
+    "version",
+    "executableHash",
+    "reason",
+    "exposedTools",
+    "hostLabel",
+    "rejectedAt",
+  ],
   "knowledge.convergence.delegation.continued": [
     "repositoryIdentityHash",
     "action",
@@ -1440,6 +1457,8 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "repository.replica.diverged": "repositoryReplicaDivergedEventPayload",
   "repository.replica.reconciled": "repositoryReplicaReconciledEventPayload",
   "knowledge.convergence.owner.changed": "knowledgeConvergenceOwnerChangedEventPayload",
+  "provider.cli.admitted": "providerCliAdmittedEventPayload",
+  "provider.cli.rejected": "providerCliRejectedEventPayload",
   "knowledge.convergence.delegation.continued":
     "knowledgeConvergenceDelegationContinuedEventPayload",
   "knowledge.convergence.definitions.installed":

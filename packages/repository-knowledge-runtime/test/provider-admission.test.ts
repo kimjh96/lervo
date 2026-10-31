@@ -154,3 +154,36 @@ it("does not let a paused provider's older waiter block another provider", async
   await second!.release();
   await other!.release();
 });
+
+it("atomically advances a due pause re-probe before another repository can claim it", async () => {
+  const input = await host();
+  const observed = new Date("2026-09-28T00:00:00.000Z");
+  await pauseKnowledgeProvider({
+    ...input,
+    reason: "quota",
+    observationHash: `sha256:${"d".repeat(64)}`,
+    resetAt: null,
+    now: observed,
+  });
+  const now = () => new Date(observed.getTime() + 60 * 60_000);
+  const admitted = await acquireKnowledgeProviderAdmission({
+    ...input,
+    repositoryRoot: "/repo/a",
+    purpose: "pause_reprobe",
+    now,
+  });
+  expect(admitted).not.toBeNull();
+  await expect(
+    acquireKnowledgeProviderAdmission({
+      ...input,
+      repositoryRoot: "/repo/b",
+      purpose: "pause_reprobe",
+      now,
+    }),
+  ).rejects.toMatchObject({ code: "knowledge_provider_paused" });
+  expect(await knowledgeProviderAdmissionState({ ...input, now: now() })).toMatchObject({
+    paused: true,
+    nextReprobeAt: new Date(observed.getTime() + 3 * 60 * 60_000).toISOString(),
+  });
+  await admitted!.release();
+});

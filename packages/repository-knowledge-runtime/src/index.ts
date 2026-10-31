@@ -173,3 +173,9 @@ export { inspectDocumentRouteResolutionContext } from "./document-route-resoluti
 
 export { recordDocumentRouteScopeDecision } from "./document-route-scope-decision.js";
 export { residentCycleFailure } from "./resident-cycle-failure.js";
+
+export { createChangeReviewHost } from "./change-review-host.js";
+
+export { admittedBackgroundContext, backgroundProviderOptions } from "./background-provider.js";
+
+export { createBackgroundNormalizationCompiler } from "./background-normalization-compiler.js";

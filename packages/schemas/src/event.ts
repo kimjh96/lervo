@@ -155,6 +155,8 @@ export const eventTypesV4 = [
   ...instructionCaptureEventTypes,
   "knowledge.convergence.owner.changed",
   "knowledge.convergence.delegation.continued",
+  "provider.cli.admitted",
+  "provider.cli.rejected",
   "knowledge.convergence.definitions.installed",
   "knowledge.publication.repaired",
   "knowledge.integration_target.absorbed",

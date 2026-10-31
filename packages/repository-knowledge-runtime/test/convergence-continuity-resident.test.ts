@@ -88,6 +88,7 @@ it(
     const lease = new FakeConvergenceOwnerHub(Date.now);
     const continuity = (storage: typeof mac.storage, label: string) =>
       new ConvergenceContinuity({
+        providerAdmission: async () => null,
         storage,
         policyPath,
         hubCandidates: async () => [{ source: "node_runtime", hub }],

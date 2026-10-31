@@ -129,11 +129,9 @@ describe("host resident service stage", () => {
       provider: null,
     });
     const definition = await readFile(host.target, "utf8");
-    // The provider, gh, and git directory joins the service PATH, so the plan hash binds it.
+    // Only the Node and CLI startup paths join the fixed system path.
     expect(definition).toContain(`<string>${resolve(host.home, "bin")}:/usr/local/sbin`);
-    expect(install).toEqual(
-      expect.arrayContaining(["--path-directories", resolve(host.home, "bin")]),
-    );
+    expect(install).not.toContain("--path-directories");
     expect(definition).toContain("<string>knowledge</string>");
     expect(definition).toContain("<string>--host</string>");
     expect(await inspectHostResidentService(host.ports)).toMatchObject({
@@ -164,13 +162,33 @@ describe("host resident service stage", () => {
     expect(JSON.parse(await readFile(configPath, "utf8")).provider).toBe("claude");
   });
 
-  it("blocks with the missing tool's name when a provider cannot be resolved", async () => {
+  it("replaces an installed definition that froze an old provider directory into PATH", async () => {
+    const host = await fixture();
+    await applyHostResidentService(await inspectHostResidentService(host.ports), host.ports);
+    const obsolete = "/owner/.nvm/versions/node/v20.0.0/bin";
+    const definition = await readFile(host.target, "utf8");
+    await writeFile(
+      host.target,
+      definition.replace(
+        `${resolve(host.home, "bin")}:/usr/local/sbin`,
+        `${obsolete}:${resolve(host.home, "bin")}:/usr/local/sbin`,
+      ),
+    );
+    const stage = await inspectHostResidentService(host.ports);
+    expect(stage).toMatchObject({ action: "upgrade", reason: "host_service_outdated" });
+    await applyHostResidentService(stage, host.ports);
+    expect(await readFile(host.target, "utf8")).not.toContain(obsolete);
+    expect(host.manage.mock.calls.at(-1)![0]).toContain("--previous-definition");
+    expect((await inspectHostResidentService(host.ports)).reason).toBe("host_service_current");
+  });
+
+  it("plans the host service even when no provider exists on the planning PATH", async () => {
     const host = await fixture();
     await rm(resolve(host.home, "bin", "codex"));
     expect(await inspectHostResidentService(host.ports)).toMatchObject({
-      disposition: "blocked",
-      reason: "service_tool_unresolved",
-      blockers: [expect.objectContaining({ message: expect.stringContaining("codex") })],
+      disposition: "safe_apply",
+      reason: "host_service_missing",
+      blockers: [],
     });
   });
 
@@ -207,3 +225,21 @@ describe("host resident service stage", () => {
     });
   });
 });
+
+it.each(["darwin", "linux"] as const)(
+  "upgrade on %s omits independently installed provider directories",
+  async (platform) => {
+    const host = await fixture({ platform });
+    const tools = resolve(host.home, "provider-only-bin");
+    await mkdir(tools);
+    await writeFile(resolve(tools, "codex"), "#!/bin/sh\n", { mode: 0o700 });
+    host.ports.environment.PATH = tools;
+    const stage = await inspectHostResidentService(host.ports);
+    expect(stage.disposition).toBe("safe_apply");
+    await applyHostResidentService(stage, host.ports);
+    const rendered = await readFile(host.target, "utf8");
+    expect(rendered).not.toContain(tools);
+    expect(host.manage.mock.calls.at(-1)![0]).not.toContain("--path-directories");
+    expect(rendered).toContain(resolve(host.home, "bin", "node"));
+  },
+);

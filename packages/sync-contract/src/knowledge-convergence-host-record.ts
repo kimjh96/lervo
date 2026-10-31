@@ -1,3 +1,7 @@
+import {
+  isProviderCliAdmissionProjection,
+  type ProviderCliAdmissionProjection,
+} from "./provider-cli-observation.js";
 import { canonicalJson } from "@lervo/event-contract";
 import { projectIdSchema } from "@lervo/schemas";
 
@@ -47,6 +51,7 @@ export interface KnowledgeConvergenceHostRecord {
   resident: { state: string; reason: string | null } | null;
   /** Closed continuity finding codes this host currently reports. */
   findings: string[];
+  providerAdmission?: ProviderCliAdmissionProjection;
 }
 
 export type KnowledgeConvergenceHostPublishStatus = "created" | "updated" | "stale";
@@ -93,6 +98,7 @@ export function isKnowledgeConvergenceHostRecord(
   if (
     !record(value) ||
     !exactKeys(value, [
+      ...(value.providerAdmission === undefined ? [] : ["providerAdmission"]),
       "schemaVersion",
       "projectId",
       "repositoryIdentityHash",
@@ -110,6 +116,8 @@ export function isKnowledgeConvergenceHostRecord(
     return false;
   const { continuity, owner, publication, resident, findings } = value;
   return (
+    (value.providerAdmission === undefined ||
+      isProviderCliAdmissionProjection(value.providerAdmission)) &&
     value.schemaVersion === 1 &&
     typeof value.projectId === "string" &&
     PROJECT_ID.test(value.projectId) &&

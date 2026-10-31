@@ -1,4 +1,8 @@
-import { startAutonomousKnowledgeWorker } from "@lervo/repository-knowledge-runtime";
+import {
+  startAutonomousKnowledgeWorker,
+  createChangeReviewHost,
+  admittedBackgroundContext,
+} from "@lervo/repository-knowledge-runtime";
 import { type ProjectStorage } from "@lervo/project-storage";
 import type { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import type { RepositoryKnowledgeWorkerHost } from "@lervo/repository-knowledge";
@@ -52,7 +56,6 @@ export function startRepositoryKnowledgeLoop(input: {
       repositoryRoot: input.repositoryRoot,
       provider: input.provider,
       ...(input.hub === undefined ? {} : { hub: input.hub }),
-      ...(input.executable === undefined ? {} : { executable: input.executable }),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
       onFailure: input.onFailure,
     });
@@ -65,7 +68,6 @@ export function startRepositoryKnowledgeLoop(input: {
       continuity: createKnowledgeConvergenceContinuity(input.storage!, input.hub ?? null),
       instructionCandidateTransport,
       publish: createKnowledgePublisher(input.repositoryRoot),
-      ...(input.executable === undefined ? {} : { executable: input.executable }),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
       subscribe: (notify) => watchLocalEventChanges(input.store, notify),
       onFailure: input.onFailure,
@@ -77,14 +79,28 @@ export function startRepositoryKnowledgeLoop(input: {
     subscribe: (notify) => watchLocalEventChanges(input.store, notify),
     onFailure: input.onFailure,
     runCycle: async () => {
+      if (input.host === undefined && input.storage === undefined)
+        throw Object.assign(
+          new Error("Background knowledge needs project storage and a delegation."),
+          { code: "knowledge_authority_unavailable" },
+        );
+      const selected =
+        input.host === undefined
+          ? await admittedBackgroundContext({ storage: input.storage!, provider: input.provider })
+          : null;
       return runRepositoryKnowledgeWorker({
         repositoryRoot: input.repositoryRoot,
         events: input.store,
         artifacts: input.artifacts,
         workerId: `node-${process.pid}`,
         provider: input.provider,
-        ...(input.executable === undefined ? {} : { executable: input.executable }),
-        ...(input.host === undefined ? {} : { host: input.host }),
+        host:
+          input.host ??
+          createChangeReviewHost({
+            ...selected!,
+            signal: input.signal ?? new AbortController().signal,
+            liveWorkPending: async () => false,
+          }),
       });
     },
   });

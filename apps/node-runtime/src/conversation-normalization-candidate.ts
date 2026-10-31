@@ -1,3 +1,5 @@
+import { openProjectStorage } from "@lervo/project-storage";
+import { createBackgroundNormalizationCompiler } from "@lervo/repository-knowledge-runtime";
 import { inspectEventWriterCoordinate } from "@lervo/project";
 import { readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -10,7 +12,6 @@ import {
   loadDocumentNormalizationCandidate,
   storeDocumentNormalizationCandidate,
 } from "@lervo/repository-knowledge";
-import { createProcessDocumentNormalizationCompiler } from "@lervo/repository-knowledge-compiler";
 import { collectLocalKnowledgeSources } from "@lervo/repository-context";
 
 const CANDIDATE_DIRECTORY = ".lervo/state/knowledge/normalization-candidates";
@@ -105,45 +106,63 @@ export class NormalizationCandidatePreparer {
     if (this.running !== null || this.abortController.signal.aborted) return;
     const { repositoryRoot, provider } = this.options;
     this.running = (async () => {
-      const compiler = await createProcessDocumentNormalizationCompiler({
-        provider,
-        ...(this.options.executables?.[provider] === undefined
-          ? {}
-          : { executable: this.options.executables[provider] }),
-      });
-      const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
-      const ceilings = { maximumProviderCalls: MAXIMUM_PROVIDER_CALLS };
-      let limit = MAXIMUM_PROVIDER_CALLS;
-      for (let attempt = 1; ; attempt += 1) {
-        const batch = await boundedBatch(
-          { repositoryRoot, compiler, ceilings, supplementalSources },
-          this.skipped,
-          limit,
-        );
-        try {
-          const compilation = await compileConfiguredDocumentNormalizationCandidateObserved({
-            repositoryRoot,
-            compiler,
-            signal: this.abortController.signal,
-            scope: "all_pending",
-            sourcePaths: batch,
-            ceilings,
-            supplementalSources,
-          });
-          await storeDocumentNormalizationCandidate({
-            repositoryRoot,
-            candidate: compilation.candidate,
-          });
-          return;
-        } catch (error) {
-          if (attempt >= MAXIMUM_ATTEMPTS || this.abortController.signal.aborted) throw error;
-          // One rejected output must not discard the whole batch: skip the named document, or
-          // shrink the batch until a single failing document can be skipped.
-          const named = /output for (\S+) /u.exec(error instanceof Error ? error.message : "")?.[1];
-          if (named !== undefined && batch.includes(named)) this.skipped.add(named);
-          else if (batch.length === 1) this.skipped.add(batch[0]!);
-          else limit = Math.max(1, Math.floor(batch.length / 2));
+      const storage = await openProjectStorage(repositoryRoot);
+      try {
+        const compiler = await createBackgroundNormalizationCompiler({
+          storage,
+          provider,
+          ...(this.options.executables?.[provider] === undefined
+            ? {}
+            : { executable: this.options.executables[provider] }),
+        });
+        const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
+        const ceilings = { maximumProviderCalls: MAXIMUM_PROVIDER_CALLS };
+        let limit = MAXIMUM_PROVIDER_CALLS;
+        for (let attempt = 1; ; attempt += 1) {
+          const batch = await boundedBatch(
+            { repositoryRoot, compiler, ceilings, supplementalSources },
+            this.skipped,
+            limit,
+          );
+          try {
+            const compilation = await compileConfiguredDocumentNormalizationCandidateObserved({
+              repositoryRoot,
+              compiler,
+              signal: this.abortController.signal,
+              scope: "all_pending",
+              sourcePaths: batch,
+              ceilings,
+              supplementalSources,
+            });
+            await storeDocumentNormalizationCandidate({
+              repositoryRoot,
+              candidate: compilation.candidate,
+            });
+            return;
+          } catch (error) {
+            if (
+              [
+                "provider_not_admitted",
+                "knowledge_capacity_unavailable",
+                "knowledge_provider_paused",
+                "normalization_budget_exceeded",
+                "knowledge_authority_unavailable",
+              ].includes((error as { code?: string }).code ?? "")
+            )
+              throw error;
+            if (attempt >= MAXIMUM_ATTEMPTS || this.abortController.signal.aborted) throw error;
+            // One rejected output must not discard the whole batch: skip the named document, or
+            // shrink the batch until a single failing document can be skipped.
+            const named = /output for (\S+) /u.exec(
+              error instanceof Error ? error.message : "",
+            )?.[1];
+            if (named !== undefined && batch.includes(named)) this.skipped.add(named);
+            else if (batch.length === 1) this.skipped.add(batch[0]!);
+            else limit = Math.max(1, Math.floor(batch.length / 2));
+          }
         }
+      } finally {
+        await storage.close();
       }
     })()
       .catch((error: unknown) => {

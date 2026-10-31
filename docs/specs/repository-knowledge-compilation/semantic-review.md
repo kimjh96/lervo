@@ -6,7 +6,7 @@ This specification defines how Lervo compiles repository evidence, reviews propo
 
 ## Semantic compilation
 
-`knowledge compile --provider codex|claude` runs the installed provider in a temporary directory with filesystem, shell, network, external actions, tools, provider rules, and persistence disabled. The envelope contains untrusted units, exact evidence IDs, and `outputLanguage: en`.
+`knowledge compile --provider codex|claude` runs the installed provider at the filesystem root with filesystem, shell, network, external actions, tools, provider rules, and persistence disabled. Version checks, identity checks, contract probes, and model calls share this neutral working directory and one allow-listed environment construction. Background admission preserves the captured login PATH under [ADR-0536](../../decisions/execution/providers/admission/0536-admit-provider-clis-by-contract.md). Response-schema files use private temporary paths. The envelope contains untrusted units, exact evidence IDs, and `outputLanguage: en`.
 
 The provider returns schema-valid concepts, claims, and within-response relations citing current versions. Results are `unreviewed`; stability or provider overlap proves neither truth nor consensus.
 

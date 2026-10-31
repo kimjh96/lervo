@@ -54,9 +54,15 @@ export type ContinuityFindingCode =
   | "continuity_pending"
   | "host_resident_scan_stalled"
   // ADR-0530: the owner's resident stopped convergence for a closed cause the status names.
-  | "convergence_attention";
+  | "convergence_attention"
+  | "provider_cli_detected"
+  | "provider_cli_admitted"
+  | "provider_cli_rejected"
+  | "provider_detection_failed"
+  | "provider_not_admitted";
 
 export interface ContinuityFinding {
+  actor?: "provider admission";
   code: ContinuityFindingCode;
   severity: ContinuityFindingSeverity;
   /** A closed code or a host label, never a path, URL, or message. */

@@ -173,6 +173,10 @@ routes:
     path: execution/providers/hooks
     priority: 54
     description: "Scope carried from the legacy title terms: terminal hook; hook isolation; provider hook."
+  - id: execution.provider-admission
+    path: execution/providers/admission
+    priority: 55
+    description: "Which provider CLI versions background work may run: admission by contract, pinned executables, and cross-host version agreement."
   - id: execution.provider-resource-limits
     path: execution/providers/resource-limits
     priority: 55

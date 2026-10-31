@@ -1,3 +1,5 @@
+import { readKnowledgeProviderPauseStates } from "./provider-admission-inspection.js";
+import { readProviderCliProjection, providerCliFindings } from "./provider-cli-findings.js";
 import {
   continuityFindings,
   localContinuityFindings,
@@ -82,6 +84,11 @@ export async function inspectConvergenceContinuity(input: {
   const policyActive = policy.status === "loaded" && policy.policy.state === "active";
   const expected = delegation.state !== "missing" || policyActive;
   const findings = [
+    ...providerCliFindings(
+      await readProviderCliProjection(root),
+      await readKnowledgeProviderPauseStates({ now: new Date(now) }),
+      new Date(now),
+    ),
     ...continuityFindings({
       scopeChange: state?.scopeChange ?? null,
       scopeResponse: state?.scopeResponse ?? null,

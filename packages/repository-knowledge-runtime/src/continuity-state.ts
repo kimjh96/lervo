@@ -1,3 +1,4 @@
+import type { ProviderCliAdmissionProjection } from "@lervo/sync-contract";
 import { resolve } from "node:path";
 
 import type { DocumentRouteScopeProposal } from "./document-route-scope-proposal.js";
@@ -20,6 +21,7 @@ export interface ContinuityPeerSummary extends ContinuityPeerObservation {
   hostHash: string;
   ownerRole: string | null;
   residentState: string | null;
+  providerAdmission?: ProviderCliAdmissionProjection;
 }
 
 export interface ConvergenceContinuityState {
@@ -49,6 +51,7 @@ export interface ConvergenceContinuityState {
   scopeChange?: DocumentRouteScopeProposal | null;
   scopeResponse?: "accept" | "decline" | null;
   findings: ContinuityFinding[];
+  providerAdmission?: ProviderCliAdmissionProjection;
 }
 
 const MAXIMUM_STATE_BYTES = 16 * 1024 * 1024;

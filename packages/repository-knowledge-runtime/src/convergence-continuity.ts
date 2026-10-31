@@ -1,3 +1,8 @@
+import { readKnowledgeProviderPauseStates } from "./provider-admission-inspection.js";
+import type { ProviderCliAdmissionProjection } from "@lervo/sync-contract";
+import { readWorkerProviderSelection } from "./provider-cli-selection.js";
+import { resolveAdmittedProviderCli } from "./provider-cli-admission.js";
+import { readProviderCliProjection, providerCliFindings } from "./provider-cli-findings.js";
 import type { ProjectStorage } from "@lervo/project-storage";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import {
@@ -98,6 +103,7 @@ export interface ConvergenceContinuityInput {
   publication: () => Promise<KnowledgePublicationSettings | null>;
   hostLabel: string;
   now?: () => number;
+  providerAdmission?: () => Promise<ProviderCliAdmissionProjection | null>;
 }
 
 /**
@@ -259,21 +265,43 @@ export class ConvergenceContinuity {
       scopeChange === null
         ? null
         : await documentRouteScopeResponse(this.input.storage, scopeChange);
-    const findings = continuityFindings({
-      scopeChange,
-      scopeResponse,
-      now: startedAt.getTime(),
-      delegation: continuity.delegation,
-      policy: continuity.policy,
-      renewal: continuity.renewal,
-      continuationFailure: continuity.failureCode,
-      ownerHost: ownerHostState,
-      verdict,
-      publicationStatus: publication?.status ?? null,
-      hubFailure,
-      definitionExchangeFailure: exchange.failureCode,
-      peers: peerSummaries,
-    });
+    const pauses = await readKnowledgeProviderPauseStates({ now: startedAt });
+    const providerAdmission =
+      this.input.providerAdmission !== undefined
+        ? await this.input.providerAdmission()
+        : current?.state === "active"
+          ? (
+              await resolveAdmittedProviderCli({
+                storage: this.input.storage,
+                preferred:
+                  (await readWorkerProviderSelection(this.root))?.provider ?? current.providers[0]!,
+                allowed: current.providers,
+                hostLabel: host?.config.hostLabel ?? this.input.hostLabel,
+                admissionMode: "cached",
+                providerPaused: async (provider) =>
+                  pauses.find((pause) => pause.provider === provider)?.paused ?? false,
+                now: startedAt,
+              })
+            ).projection
+          : await readProviderCliProjection(this.root);
+    const findings = [
+      ...providerCliFindings(providerAdmission, pauses, startedAt),
+      ...continuityFindings({
+        scopeChange,
+        scopeResponse,
+        now: startedAt.getTime(),
+        delegation: continuity.delegation,
+        policy: continuity.policy,
+        renewal: continuity.renewal,
+        continuationFailure: continuity.failureCode,
+        ownerHost: ownerHostState,
+        verdict,
+        publicationStatus: publication?.status ?? null,
+        hubFailure,
+        definitionExchangeFailure: exchange.failureCode,
+        peers: peerSummaries,
+      }),
+    ].slice(0, 32);
     if (port !== null && host !== null)
       await port
         .publish(
@@ -288,6 +316,7 @@ export class ConvergenceContinuity {
             publicationStatus: publication?.status ?? null,
             health,
             findings,
+            providerAdmission,
           }),
           signal,
         )
@@ -307,6 +336,7 @@ export class ConvergenceContinuity {
     );
     const policy = continuity.policy;
     const state: ConvergenceContinuityState = {
+      ...(providerAdmission === null ? {} : { providerAdmission }),
       schemaVersion: 1,
       observedAt: startedAt.toISOString(),
       nextReconcileAt: new Date(nextReconcileAt).toISOString(),

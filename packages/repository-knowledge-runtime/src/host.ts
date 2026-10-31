@@ -1,3 +1,4 @@
+import { admittedBackgroundContext } from "./background-provider.js";
 import {
   captureConvergenceSettlementAuthority,
   assertConvergenceSettlementAuthority,
@@ -184,6 +185,20 @@ export function createConvergenceRuntimeHost(
           Date.parse(authority.delegation.expiresAt) <= Date.now()
         );
       }
+      if (dependency.code === "provider_not_admitted") {
+        try {
+          await admittedBackgroundContext(context);
+          return false;
+        } catch (error) {
+          if (
+            ["provider_not_admitted", "knowledge_capacity_unavailable"].includes(
+              (error as { code: string }).code,
+            )
+          )
+            return true;
+          throw error;
+        }
+      }
       if (dependency.code === "knowledge_cancelled") return context.signal.aborted;
       if (
         ["knowledge_effect_uncertain", "host_effect_uncertain"].includes(dependency.code ?? "") &&
@@ -247,11 +262,19 @@ export function createConvergenceRuntimeHost(
       return true;
     },
     runStage: async (stage, state, assertLease): Promise<KnowledgeConvergenceStageResult> => {
+      const stageContext = [
+        "assessment",
+        "canonical_review",
+        "normalization_generation",
+        "normalization_review",
+      ].includes(stage)
+        ? await admittedBackgroundContext(context)
+        : context;
       await assertConvergenceDelegation({
         repositoryRoot: root,
         projectId: state.baseline.projectId,
         expectedHash: state.baseline.delegationHash,
-        provider: context.provider,
+        provider: stageContext.provider,
       });
       assertLease();
       try {
@@ -277,21 +300,21 @@ export function createConvergenceRuntimeHost(
         switch (stage) {
           case "assessment":
             return (
-              (await prepareConvergenceLifecycle(context, state, assertLease)) ??
-              (await assessCanonicalBaseline(context, state, assertLease))
+              (await prepareConvergenceLifecycle(stageContext, state, assertLease)) ??
+              (await assessCanonicalBaseline(stageContext, state, assertLease))
             );
           case "canonical_review":
-            return await reviewCanonicalBaseline(context, state, assertLease);
+            return await reviewCanonicalBaseline(stageContext, state, assertLease);
           case "canonical_integration":
-            return await integrateCanonicalBaseline(context, state, assertLease);
+            return await integrateCanonicalBaseline(stageContext, state, assertLease);
           case "normalization_generation":
-            return await generateNormalizationBatch(context, state, assertLease);
+            return await generateNormalizationBatch(stageContext, state, assertLease);
           case "normalization_review":
-            return await reviewNormalizationBatch(context, state, assertLease);
+            return await reviewNormalizationBatch(stageContext, state, assertLease);
           case "normalization_apply":
-            return await applyNormalizationBatch(context, state, assertLease);
+            return await applyNormalizationBatch(stageContext, state, assertLease);
           case "lifecycle_verification":
-            return await verifyConvergenceLifecycle(context, state, assertLease);
+            return await verifyConvergenceLifecycle(stageContext, state, assertLease);
         }
       } catch (error) {
         const failure = error instanceof Error ? error : new Error("Unknown convergence failure.");

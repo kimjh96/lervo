@@ -48,6 +48,7 @@ export function normalizedConvergenceFailure(error: unknown): string {
     "review_context_unavailable",
     "knowledge_authority_unavailable",
     "knowledge_provider_paused",
+    "provider_not_admitted",
     "knowledge_effect_uncertain",
     "normalization_usage_unavailable",
     "normalization_budget_exceeded",
