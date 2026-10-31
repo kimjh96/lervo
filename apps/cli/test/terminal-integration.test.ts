@@ -1731,6 +1731,135 @@ describe("terminal integration CLI", () => {
       ),
     ).toBe(true);
   }, 15_000);
+});
+
+describe("compact terminal prompt context", () => {
+  beforeAll(() => {
+    process.env.LERVO_TERMINAL_CONTEXT = "compact";
+  });
+  afterAll(() => {
+    process.env.LERVO_TERMINAL_CONTEXT = "retrieval";
+  });
+
+  it.each(["codex", "claude"] as const)(
+    "delivers publication policy and continuation without query projection for %s",
+    async (provider) => {
+      const root = await initializedRepository();
+      await writeFile(
+        resolve(root, "HANDOFF.md"),
+        "# Active launch handoff\n\n## Current objective\n\nFinish the cobalt launch gate.\n\n## Next actions\n\n- Verify the device build.\n",
+      );
+      const migrationOutput: string[] = [];
+      const quiet = { cwd: root, stdout: () => undefined, stderr: () => undefined };
+      expect(
+        await runCli(["migrate", "knowledge", "--json"], {
+          ...quiet,
+          stdout: (message) => migrationOutput.push(message),
+        }),
+      ).toBe(0);
+      const migration = JSON.parse(migrationOutput.join("")) as {
+        planId: string;
+        operationId: string;
+        approvalHash: string;
+      };
+      expect(
+        await runCli(
+          [
+            "migrate",
+            "knowledge",
+            "--apply",
+            migration.planId,
+            "--approve-item",
+            `${migration.operationId}=${migration.approvalHash}`,
+          ],
+          quiet,
+        ),
+      ).toBe(0);
+      await mkdir(resolve(root, "docs/instructions/generated"), { recursive: true });
+      await writeFile(
+        resolve(root, `docs/instructions/generated/rule_${"d".repeat(24)}.md`),
+        "# Preserve examples\n\nRequired clause: preserve quoted source.\n\n## Exceptions\n\nTranslate only when explicitly requested.\n",
+      );
+      const messages: string[] = [];
+      expect(
+        await runCli(
+          ["terminal", "hook", "--provider", provider, "--contract", "2"],
+          {
+            ...quiet,
+            stdout: (message) => messages.push(message),
+            stdin: async () =>
+              JSON.stringify({
+                hook_event_name: "UserPromptSubmit",
+                session_id: "compact-session",
+                turn_id: "turn-compact",
+                prompt: "변경 내용을 문서로 정리해줘",
+              }),
+          },
+          {
+            projectSearchQueries: async () => {
+              throw new Error("Compact prompts must not invoke a provider query projector.");
+            },
+          },
+        ),
+      ).toBe(0);
+      const context = JSON.parse(messages.join("")).hookSpecificOutput.additionalContext as string;
+      expect(context).toContain("Lervo compact terminal context");
+      expect(context).toContain("publication.language=en; writingPolicyId=writing_en-human");
+      expect(context).toContain("Write new or revised repository documentation in English");
+      expect(context).toContain("does not choose the chat response language");
+      expect(context).toContain("Verify the device build.");
+      expect(context).toContain("Required clause: preserve quoted source.");
+      expect(context).toContain("Translate only when explicitly requested.");
+      expect(context).not.toContain("## Lervo current workstream");
+      expect(context).not.toContain("immutable blue envelopes");
+      expect(Buffer.byteLength(context)).toBeLessThan(6 * 1024);
+      const activation = JSON.parse(
+        await readFile(
+          resolve(root, `.lervo/state/terminal-integration/${provider}-user-prompt-submit.json`),
+          "utf8",
+        ),
+      );
+      expect(activation.preparationQuality).toMatchObject({
+        instructions: {
+          scope: "applied_owner_rules",
+          status: "complete",
+          preparedCount: 1,
+          omittedCount: 0,
+          delivery: "unobserved",
+        },
+        retrieval: "not_run",
+        candidateCount: null,
+        selectedCount: 0,
+        fullCount: 0,
+        reasonCodes: ["retrieval_not_run"],
+        planningReadiness: {
+          status: "unavailable",
+          reasonCode: "context_binding_unavailable",
+          missingBindings: expect.arrayContaining([
+            "authority_scope",
+            "applicable_policy",
+            "normalized_task",
+          ]),
+        },
+        corpusCoverage: "unobserved",
+        delivery: "unobserved",
+      });
+      const recorded = await openProjectStorage(root);
+      try {
+        expect(recorded.events.get(activation.observationEventId)?.payload).toMatchObject({
+          workstreamScope: "prefix",
+          selectionStatus: "not_selected",
+          loadingStatus: "not_run",
+          providerInjectionStatus: "unobserved",
+          providerUseStatus: "unknown",
+          recommendationCount: 0,
+          loadedDocuments: [],
+        });
+      } finally {
+        await recorded.close();
+      }
+    },
+  );
 
   it("caches the knowledge snapshot identity by exact repository revision", async () => {
     const root = await initializedRepository();
