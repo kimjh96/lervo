@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { randomUUID } from "node:crypto";
-import { lstat, readFile } from "node:fs/promises";
+import { lstat } from "node:fs/promises";
 import {
   applyKnowledgeMigrationPlan,
   applyRepositoryLayoutMigrationPlan,
@@ -9,10 +9,8 @@ import {
   canonicalJson,
   createKnowledgeInstructionBridgePlan,
   createKnowledgeMigrationPlan,
-  createRepositoryLayoutMigrationPlan,
   createContinuationWorkstreamMigrationPlan,
   lintRepositoryKnowledge,
-  matchesRecordedStructuralGeneration,
   inspectConfiguredDocumentNormalization,
   sha256,
   RepositoryKnowledgeError,
@@ -22,6 +20,8 @@ import {
   structuralConceptIdFromPath,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
+import { planKnowledgeMigrationRouting } from "./knowledge-migration-routing.js";
+import { migrationDeferralOutput } from "./knowledge-migration-deferrals.js";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
@@ -71,6 +71,7 @@ export async function runKnowledgeMigration(input: {
   io: CliIo;
   mode: "migrate" | "refresh";
 }): Promise<number> {
+  let io = input.io;
   let values: {
     root?: string;
     apply?: string;
@@ -108,20 +109,18 @@ export async function runKnowledgeMigration(input: {
       },
     }).values;
   } catch (error) {
-    input.io.stderr(
-      `${error instanceof Error ? error.message : String(error)}\n${knowledgeUsage}\n`,
-    );
+    io.stderr(`${error instanceof Error ? error.message : String(error)}\n${knowledgeUsage}\n`);
     return 1;
   }
   if (values.help) {
-    input.io.stdout(`${knowledgeUsage}\n`);
+    io.stdout(`${knowledgeUsage}\n`);
     return 0;
   }
   try {
-    const repositoryRoot = resolve(input.io.cwd, values.root ?? ".");
+    const repositoryRoot = resolve(io.cwd, values.root ?? ".");
     if (values.rebuild === true && input.mode !== "refresh")
       throw new Error("--rebuild is supported only by lervo knowledge refresh.");
-    await foregroundKnowledgeMaterializationSettlement({ repositoryRoot, io: input.io }).settle();
+    await foregroundKnowledgeMaterializationSettlement({ repositoryRoot, io }).settle();
     const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
     if (input.mode === "migrate") {
       const projectStorage = await openProjectStorage(repositoryRoot);
@@ -142,7 +141,7 @@ export async function runKnowledgeMigration(input: {
         if (values.apply === undefined) {
           if ((values["approve-item"]?.length ?? 0) > 0)
             throw new Error("--approve-item must be used with --apply.");
-          input.io.stdout(
+          io.stdout(
             values.json
               ? `${JSON.stringify(
                   {
@@ -223,7 +222,7 @@ export async function runKnowledgeMigration(input: {
               });
             },
           });
-          input.io.stdout(
+          io.stdout(
             values.json
               ? `${JSON.stringify(receipt, null, 2)}\n`
               : `Migrated ${continuation.sourcePath} into Lervo workstream state.\nworkstream: ${receipt.workstreamId}\nreferences updated: ${receipt.referenceUpdatedCount}\nRun lervo migrate knowledge again to refresh canonical documentation and navigation.\n`,
@@ -240,27 +239,16 @@ export async function runKnowledgeMigration(input: {
       ...(values.apply === undefined ? {} : { applyPlanId: values.apply }),
       approvalItems: values["approve-item"] ?? [],
       json: values.json ?? false,
-      io: input.io,
+      io,
     });
     if (instructionBootstrapResult !== null) return instructionBootstrapResult;
     // The generated canonical AGENTS.md entrypoint is materialized by the base
     // knowledge stage. Defer agent-surface routing until that source exists so
     // a fresh repository containing portable skills can bootstrap safely.
     let hasCanonicalAgentInstructions = false;
-    let generatedCanonicalAgentInstructions = false;
     try {
       const agentsPath = resolve(repositoryRoot, "AGENTS.md");
       hasCanonicalAgentInstructions = (await lstat(agentsPath)).isFile();
-      if (hasCanonicalAgentInstructions) {
-        const agentsContent = await readFile(agentsPath, "utf8");
-        generatedCanonicalAgentInstructions =
-          agentsContent.startsWith("<!-- lervo:generated repository-agent-entrypoint-v1 -->\n") &&
-          (await matchesRecordedStructuralGeneration(
-            repositoryRoot,
-            "AGENTS.md",
-            sha256(agentsContent),
-          ));
-      }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
@@ -279,16 +267,22 @@ export async function runKnowledgeMigration(input: {
         )
       ).some(Boolean);
     const layout =
-      input.mode === "migrate" &&
-      !generatedCanonicalAgentInstructions &&
-      !agentSurfaceWithoutCanonical
-        ? await createRepositoryLayoutMigrationPlan({ repositoryRoot, supplementalSources })
+      input.mode === "migrate" && !agentSurfaceWithoutCanonical
+        ? await planKnowledgeMigrationRouting({
+            repositoryRoot,
+            supplementalSources,
+            classify: values.apply === undefined,
+            ...(values.provider === undefined ? {} : { provider: values.provider }),
+            ...(values.model === undefined ? {} : { model: values.model }),
+            ...(values.executable === undefined ? {} : { executable: values.executable }),
+            ...(values["timeout-ms"] === undefined ? {} : { timeoutMs: values["timeout-ms"] }),
+          })
         : null;
     if (layout !== null && layout.status !== "current") {
       if (values.apply === undefined) {
         if ((values["approve-item"]?.length ?? 0) > 0)
           throw new Error("--approve-item must be used with --apply.");
-        input.io.stdout(
+        io.stdout(
           values.json
             ? `${JSON.stringify(serializableRepositoryLayoutMigrationPlan(layout), null, 2)}\n`
             : formatRepositoryLayoutMigrationPlan(layout),
@@ -396,13 +390,14 @@ export async function runKnowledgeMigration(input: {
       } finally {
         await storage.close();
       }
-      input.io.stdout(
+      migrationDeferralOutput(io, layout, values.json ?? false).stdout(
         values.json
           ? `${JSON.stringify(receipt, null, 2)}\n`
           : `Repository document-layout migration completed.\nplan: ${receipt.planId}\nDocument moves: ${receipt.movedCount}\nMachine-artifact moves: ${receipt.machineMovedCount}\nReference updates: ${receipt.referenceUpdatedCount}\n`,
       );
       return 0;
     }
+    io = migrationDeferralOutput(io, layout, values.json ?? false);
     const plan = await createKnowledgeMigrationPlan({
       repositoryRoot,
       mode: input.mode,
@@ -436,7 +431,7 @@ export async function runKnowledgeMigration(input: {
               : ["--approve-item", values["approve-item"][0]]),
             ...(values.json ? ["--json"] : []),
           ],
-          input.io,
+          io,
         );
       }
     }
@@ -447,7 +442,7 @@ export async function runKnowledgeMigration(input: {
         if (values.apply === undefined) {
           if ((values["approve-item"]?.length ?? 0) > 0)
             throw new Error("--approve-item must be used with --apply.");
-          input.io.stdout(
+          io.stdout(
             values.json
               ? `${JSON.stringify(serializableTerminalIntegrationPlan(terminal), null, 2)}\n`
               : formatTerminalIntegrationPlan(terminal),
@@ -482,7 +477,7 @@ export async function runKnowledgeMigration(input: {
             approval === null ? null : { operationId: approval[1]!, approvalHash: approval[2]! },
           now: new Date(),
         });
-        input.io.stdout(
+        io.stdout(
           values.json
             ? `${JSON.stringify({ ...receipt, activation: terminalActivation }, null, 2)}\n`
             : formatTerminalIntegrationReceipt(receipt),
@@ -491,6 +486,18 @@ export async function runKnowledgeMigration(input: {
       }
     }
     if (input.mode === "migrate" && structuralCurrent) {
+      if (
+        values.provider !== undefined &&
+        values.candidate === undefined &&
+        layout?.deferredDocuments.some((document) => document.resolution === "provider_unavailable")
+      ) {
+        io.stdout(
+          values.json
+            ? `${JSON.stringify(printableKnowledgeMigrationPlan(plan), null, 2)}\n`
+            : formatKnowledgeMigrationPlan(plan),
+        );
+        return plan.status === "ready" ? 0 : 1;
+      }
       if (values.provider !== undefined || values.candidate !== undefined) {
         return runDocumentNormalizationCommand(
           [
@@ -505,7 +512,7 @@ export async function runKnowledgeMigration(input: {
             ...(values["approve-item"] ?? []).flatMap((approval) => ["--approve-item", approval]),
             ...(values.json ? ["--json"] : []),
           ],
-          input.io,
+          io,
         );
       }
       if (values.apply === undefined) {
@@ -526,7 +533,7 @@ export async function runKnowledgeMigration(input: {
             pendingDocuments: normalization.pendingDocuments,
             supportedProviders: ["codex", "claude"],
           };
-          input.io.stdout(
+          io.stdout(
             values.json
               ? `${JSON.stringify(result, null, 2)}\n`
               : `Repository content normalization requires an installed provider.\npending documents: ${normalization.pendingDocuments.length}/${normalization.eligibleDocuments}\nlanguage: ${normalization.outputLanguage} · format: ${normalization.formatVersion}\nRun lervo migrate knowledge --provider codex (or claude) to create the reviewable rewrite candidate.\n`,
@@ -538,7 +545,7 @@ export async function runKnowledgeMigration(input: {
     if ((values["approve-item"]?.length ?? 0) > 0)
       throw new Error("The current migration plan does not require item approvals.");
     if (values.apply === undefined) {
-      input.io.stdout(
+      io.stdout(
         values.json
           ? `${JSON.stringify(printableKnowledgeMigrationPlan(plan), null, 2)}\n`
           : formatKnowledgeMigrationPlan(plan),
@@ -679,14 +686,14 @@ export async function runKnowledgeMigration(input: {
     } finally {
       await storage.close();
     }
-    input.io.stdout(
+    io.stdout(
       values.json
         ? `${JSON.stringify(receipt, null, 2)}\n`
         : `Repository knowledge materialized. Created ${receipt.created.length}, updated ${receipt.updated.length}, unchanged ${receipt.unchanged.length}\nsource snapshot: ${receipt.sourceSnapshotId}\n`,
     );
     return 0;
   } catch (error) {
-    writeCommandError(input.io, error, { json: values.json === true });
+    writeCommandError(io, error, { json: values.json === true });
     return 1;
   }
 }

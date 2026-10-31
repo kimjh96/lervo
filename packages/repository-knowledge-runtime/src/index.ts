@@ -164,3 +164,11 @@ export {
   convergenceDelegationAgentIds,
   retireSupersededConvergenceAgents,
 } from "./convergence-roster.js";
+export { classifyForegroundDocumentRoutes } from "./foreground-document-route-classification.js";
+export {
+  observeDocumentDeferrals,
+  inspectDocumentDeferralHealth,
+} from "./document-deferral-health.js";
+export { inspectDocumentRouteResolutionContext } from "./document-route-resolution-context.js";
+
+export { recordDocumentRouteScopeDecision } from "./document-route-scope-decision.js";

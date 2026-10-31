@@ -204,11 +204,11 @@ describe("lervo upgrade with a blocked stage", () => {
     expect(plan.stages.knowledge.disposition).not.toBe("blocked");
     expect(plan.stages.knowledge.blockers).toEqual([]);
     expect(plan.stages.knowledge.deferredDocuments).toEqual([
-      {
+      expect.objectContaining({
         path: "misc/purple-zebra.md",
         reason: "semantic_classification_pending",
         subject: "document",
-      },
+      }),
     ]);
 
     const humanOutput: string[] = [];

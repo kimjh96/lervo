@@ -243,7 +243,10 @@ describe("repository layout migration", () => {
     expect(plan.deferredDocuments).toContainEqual(
       expect.objectContaining({
         path: "EXAMPLE_VISION.md",
-        reason: "semantic_classification_uncertain",
+        reason: "destination_conflict",
+        resolution: "destination_conflict",
+        basis: "semantic_provider",
+        destination: "docs/product/vision.md",
       }),
     );
   });

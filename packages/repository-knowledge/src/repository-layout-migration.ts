@@ -36,7 +36,11 @@ import {
   repositoryInstructionPaths,
   type DocumentLayoutBlockerCode,
 } from "./document-layout.js";
-import type { DocumentRouteBasis, SemanticRouteEvidence } from "./document-route-resolution.js";
+import type {
+  DocumentRouteBasis,
+  SemanticRouteEvidence,
+  DocumentRouteResolutionContext,
+} from "./document-route-resolution.js";
 import {
   classifyRepositoryLayoutCandidates,
   type RepositoryLayoutCandidate,
@@ -53,6 +57,7 @@ import {
   type RepositorySource,
 } from "./types.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
+import { accountRepositoryLayoutCandidates } from "./repository-layout-accounting.js";
 import { projectRebuildableKnowledgeIgnore } from "./projection-ignore.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/;
@@ -140,6 +145,7 @@ export interface RepositoryLayoutMigrationPlan {
   userUpdates: RepositoryLayoutUserUpdate[];
   machineMoves: RepositoryLayoutMachineMove[];
   referenceUpdates: RepositoryLayoutReferenceUpdate[];
+  documentRouteContext?: DocumentRouteResolutionContext;
   /**
    * Documents awaiting a semantic route. They never block: the background resident classifies
    * them, and each one is a precise attention entry until then (ADR-0476).
@@ -483,6 +489,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   repositoryRoot: string;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
   preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
+  documentRouteContext?: DocumentRouteResolutionContext;
 }): Promise<RepositoryLayoutMigrationPlan> {
   const root = resolve(input.repositoryRoot);
   const taxonomyPath = resolve(root, ".lervo/knowledge/document-layout.yaml");
@@ -507,7 +514,14 @@ export async function createRepositoryLayoutMigrationPlan(input: {
         message: "The knowledge concept registry is incomplete.",
       },
     );
-  const classified = await classifyRepositoryLayoutCandidates({ root, scan, taxonomy });
+  const classified = await classifyRepositoryLayoutCandidates({
+    root,
+    scan,
+    taxonomy,
+    ...(input.documentRouteContext === undefined
+      ? {}
+      : { documentRouteContext: input.documentRouteContext }),
+  });
   const candidates: RepositoryLayoutCandidate[] = classified.candidates;
   const repairableDecisionPaths = classified.repairableDecisionPaths;
   const destinationCounts = new Map<string, number>();
@@ -546,7 +560,10 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   // projected into the virtual post-migration scan. In particular, two source
   // documents that select the same destination would otherwise make the
   // second projection throw instead of returning a reviewable blocked plan.
-  const executableCandidates = candidates.filter((item) => !blockedDestinations.has(item.toPath));
+  const { executableCandidates, deferredDocuments } = accountRepositoryLayoutCandidates({
+    classified,
+    blockedDestinations,
+  });
   const movePaths = executableCandidates.map(({ source, toPath }) => ({
     fromPath: source.path,
     toPath,
@@ -1076,8 +1093,11 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     referenceUpdates: referenceOperations.map(withoutContent),
     operations: operations.map(withoutContent),
     blockers,
-    deferredDocuments: classified.deferredDocuments,
-    deferredDocumentCount: classified.deferredDocumentCount,
+    ...(input.documentRouteContext === undefined
+      ? {}
+      : { documentRouteContext: input.documentRouteContext }),
+    deferredDocuments,
+    deferredDocumentCount: deferredDocuments.length,
     retainedDocuments: classified.retainedDocuments,
     retainedDocumentCount: classified.retainedDocumentCount,
     semanticClassificationIds: [...classified.liveClassificationIds].sort(),
@@ -1116,14 +1136,20 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     afterSourceSnapshotId: virtualScan.snapshotId,
     policyHash,
     taxonomyHash,
-    coverage: scan.coverage,
+    coverage: {
+      ...scan.coverage,
+      complete: scan.coverage.complete && deferredDocuments.length === 0,
+    },
     registryDigest,
     moves,
     userUpdates,
     machineMoves,
     referenceUpdates,
-    deferredDocuments: classified.deferredDocuments,
-    deferredDocumentCount: classified.deferredDocumentCount,
+    ...(input.documentRouteContext === undefined
+      ? {}
+      : { documentRouteContext: input.documentRouteContext }),
+    deferredDocuments,
+    deferredDocumentCount: deferredDocuments.length,
     retainedDocuments: classified.retainedDocuments,
     retainedDocumentCount: classified.retainedDocumentCount,
     semanticClassificationIds: [...classified.liveClassificationIds].sort(),
@@ -1164,6 +1190,9 @@ export async function applyRepositoryLayoutMigrationPlan(input: {
   }
   const current = await createRepositoryLayoutMigrationPlan({
     repositoryRoot: input.plan.repositoryRoot,
+    ...(input.plan.documentRouteContext === undefined
+      ? {}
+      : { documentRouteContext: input.plan.documentRouteContext }),
     ...(input.supplementalSources === undefined
       ? {}
       : { supplementalSources: input.supplementalSources }),

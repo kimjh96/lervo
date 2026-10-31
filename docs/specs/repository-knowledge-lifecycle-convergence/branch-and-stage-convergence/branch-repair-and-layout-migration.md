@@ -19,3 +19,11 @@ Layout migration deletes recorded legacy structural bundle, concept, and manifes
 Existing `.gitignore` bytes remain user-owned and require exact migration approval. Initialization creates the bounded publication block only when `.gitignore` is absent.
 
 Independently refreshed branches merge only canonical source changes. An integration head or clean clone rebuilds current navigation without a Hub.
+
+## Deferred migration documents
+
+[ADR-0540](../../../decisions/knowledge/documents/routing/0540-account-for-every-document-a-migration-defers.md) requires one stated outcome per legacy candidate: moved, retained with evidence, or deferred with a resolution. Any deferral makes migration coverage incomplete. It does not prevent other migration stages from proceeding.
+
+`lervo migrate knowledge --provider <codex|claude>` classifies one bounded pending batch before planning moves. Classification writes host-private evidence. Moves use the same exact plan and item approvals. Without an admitted provider, a root document such as `TRACE.md` remains visible as `provider_unavailable`. Text output leads with the deferred count. JSON retains all deferred paths and resolutions through subsequent stages.
+
+Background classification includes paths outside the delegation roots. Repository writes retain the existing authority fence. Renewal proposes all classified outside-root file paths in one owner scope-change decision, with classification and destination per path, and recommends acceptance. Retained application content never enters that proposal. The [layout and routing contract](../../repository-knowledge-compilation/structural-publication/policy/layout-and-routing.md) defines compatibility, the existing root-count bound, privacy, and the ADR-0535 deferral-health integration surface.

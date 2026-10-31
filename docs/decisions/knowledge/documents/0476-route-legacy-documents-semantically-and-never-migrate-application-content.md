@@ -90,3 +90,5 @@ Focused tests must show:
 - Root role documents move only through explicit role metadata, a declared legacy alias, or a recorded semantic role. Stems and headings alone leave them deferred; a semantic role with an occupied destination also defers.
 - Markdown that merely resembles a handoff is neither a continuation candidate nor assigned the handoff profile.
 - The resident classifies only in-scope pending documents, records evidence, and never queries uncertain bytes again.
+
+[ADR-0540](routing/0540-account-for-every-document-a-migration-defers.md) gives every deferral a stated resolution, classifies during `lervo migrate knowledge --provider`, classifies outside the delegation roots in the background, and brings outside-root moves into the delegation through one renewal decision.

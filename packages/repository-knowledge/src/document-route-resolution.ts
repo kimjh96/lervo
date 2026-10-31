@@ -32,7 +32,29 @@ export interface SemanticRouteEvidence {
 }
 
 export type DocumentRouteDeferralReason =
-  "semantic_classification_pending" | "semantic_classification_uncertain";
+  | "semantic_classification_pending"
+  | "semantic_classification_uncertain"
+  | "destination_conflict"
+  | "delegation_scope";
+
+export type DocumentRouteDeferralResolution =
+  | "background_classification"
+  | "delegation_scope"
+  | "route_metadata"
+  | "provider_unavailable"
+  | "destination_conflict";
+
+/** Readers of plans predating ADR-0540 retain their original background resolution. */
+export function documentRouteDeferralResolution(document: {
+  resolution?: DocumentRouteDeferralResolution;
+}): DocumentRouteDeferralResolution {
+  return document.resolution ?? "background_classification";
+}
+
+export interface DocumentRouteResolutionContext {
+  providerAvailable: boolean;
+  normalizationRoots: readonly string[];
+}
 
 /** A legacy document waiting for a semantic route; it never blocks the rest of the plan. */
 export interface DeferredDocumentRoute {
@@ -42,6 +64,10 @@ export interface DeferredDocumentRoute {
   path: string;
   contentHash: string;
   reason: DocumentRouteDeferralReason;
+  resolution: DocumentRouteDeferralResolution;
+  basis?: string;
+  destination?: string;
+  requiredPaths?: string[];
 }
 
 /** Why a Markdown file outside the canonical layout stays where it is. */
@@ -101,6 +127,10 @@ export function recordedSemanticRoute(input: {
       path: input.path,
       contentHash: input.contentHash,
       reason,
+      resolution:
+        reason === "semantic_classification_uncertain"
+          ? "route_metadata"
+          : "background_classification",
     },
   });
   if (record === undefined) return deferral("semantic_classification_pending");

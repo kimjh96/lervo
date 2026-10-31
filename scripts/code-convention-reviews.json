@@ -4,9 +4,9 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:a7bd319825bb83ac668b28047974f848928aaad4841f92abfce0b2f76b8f102e",
+      "contentHash": "sha256:bb5b60bbad736d9aebe510888900b116e21c5d192825588c4b8e3a119c5b02ab",
       "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, terminal integration planning and apply, command error rendering, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
+      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, and terminal integration retain dedicated modules. The unavailable-provider branch only selects the current plan before normalization; it adds no provider or persistence policy.",
       "disposition": "cohesive"
     },
     {
@@ -270,9 +270,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:fee3b10041f7bbc40a96b4588baffcb30eca3ee90f7f0cb91bcbbe6b3b54f046",
+      "contentHash": "sha256:1b5dcdd47c468c2cc0b39377def99c5012b5b37fe7416ef2e3cb99a90501bd11",
       "responsibility": "Repository document-layout migration",
-      "rationale": "Link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction. Source classification and its evidence observation live in the layout-candidate modules; taxonomy role-template refresh and tool-specific formatter configuration are outside this boundary.",
+      "rationale": "The module composes one exact layout transaction with virtual scanning, approval binding, and apply-time revalidation. Conflict outcomes and one-to-one candidate accounting are isolated in repository-layout-accounting.ts. Source classification, route evidence, durable apply, provider calls, lifecycle authority, scope decisions, and health observations retain separate owners. No independent provider or persistence policy was added.",
       "disposition": "cohesive"
     },
     {

@@ -38,7 +38,10 @@ export * from "./document-layout.js";
 export type { ApplicationContentEvidence } from "./application-content-evidence.js";
 export * from "./document-route-classification-contract.js";
 export * from "./document-route-classification-store.js";
+export { documentRouteDeferralResolution } from "./document-route-resolution.js";
 export type {
+  DocumentRouteDeferralResolution,
+  DocumentRouteResolutionContext,
   DeferredDocumentRoute,
   DocumentRouteBasis,
   DocumentRouteDeferralReason,
