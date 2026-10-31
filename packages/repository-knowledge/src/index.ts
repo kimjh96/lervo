@@ -200,3 +200,5 @@ export {
   hostTerminalRuntimeNeedsMaterialization,
   inspectHostTerminalRuntime,
 } from "./terminal-runtime-store-health.js";
+export * from "./practice-contract.js";
+export * from "./practice-privacy.js";

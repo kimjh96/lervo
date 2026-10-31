@@ -6,6 +6,8 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import {
   instructionCaptureAssessmentInstruction,
   instructionCaptureRequest,
+  canonicalJson,
+  sanitizePracticeText,
   type InstructionCaptureRequestInput,
 } from "@lervo/repository-knowledge";
 import {
@@ -33,6 +35,7 @@ export interface InstructionCaptureContext {
   signal: AbortSignal;
   liveWorkPending(): Promise<boolean>;
   now(): Date;
+  providerQuantum?: { remaining: number };
 }
 
 export type InstructionCaptureAssessmentCall =
@@ -45,6 +48,7 @@ export type InstructionCaptureAssessmentCall =
   | { status: "failed" }
   | {
       status: "deferred";
+      attempted?: boolean;
       reason:
         | "knowledge_authority_unavailable"
         | "knowledge_capacity_unavailable"
@@ -118,7 +122,10 @@ export async function assessInstructionCapture(input: {
   request: InstructionCaptureRequestInput;
   catalogEntries: ReadonlyArray<{ path: string; contentHash: string; excerpt: string }>;
   sourceRevision: string;
+  validatePrecedingWork?(): Promise<boolean>;
 }): Promise<InstructionCaptureAssessmentCall> {
+  if (input.context.providerQuantum !== undefined && input.context.providerQuantum.remaining <= 0)
+    return { status: "deferred", reason: "knowledge_capacity_unavailable" };
   let context;
   try {
     context = await admittedBackgroundContext(input.context);
@@ -168,12 +175,20 @@ export async function assessInstructionCapture(input: {
   try {
     let result: { value: unknown; usage: ProviderJsonUsage | null };
     try {
+      if (context.providerQuantum !== undefined) context.providerQuantum.remaining -= 1;
       const runner = await createNoCapabilityProviderJsonRunner({
         ...backgroundProviderOptions(context),
         systemPrompt: instructionCaptureAssessmentInstruction,
         timeoutMs: ASSESSMENT_TIMEOUT_MILLISECONDS,
       });
-      const request = instructionCaptureRequest(input.request);
+      const captureInput = { ...input.request };
+      if (input.validatePrecedingWork && !(await input.validatePrecedingWork().catch(() => false)))
+        delete captureInput.precedingWork;
+      if (captureInput.precedingWork !== undefined) {
+        const serialized = canonicalJson(captureInput.precedingWork);
+        if (sanitizePracticeText(serialized) !== serialized) delete captureInput.precedingWork;
+      }
+      const request = instructionCaptureRequest(captureInput);
       result =
         runner.resolveObserved === undefined
           ? { value: await runner.resolve(request, context.signal), usage: null }
@@ -182,7 +197,7 @@ export async function assessInstructionCapture(input: {
       await recordCaptureUsage({ ...measured, usage: null });
       if (error instanceof KnowledgeProviderAvailabilityError) {
         await pauseKnowledgeProviderFailure(context, error);
-        return { status: "deferred", reason: "knowledge_provider_paused" };
+        return { status: "deferred", reason: "knowledge_provider_paused", attempted: true };
       }
       return { status: "failed" };
     }

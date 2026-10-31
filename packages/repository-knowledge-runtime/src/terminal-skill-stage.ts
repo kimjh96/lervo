@@ -13,7 +13,9 @@ import {
   removeTerminalSkillTurn,
   type QueuedTerminalSkillTurn,
 } from "./terminal-skill-queue.js";
-import { assessTerminalSkillTranscript } from "./terminal-skill-transcript.js";
+import { readVerifiedTerminalTranscript } from "./terminal-skill-transcript.js";
+import { transcriptSkillIdentifiers } from "./terminal-skill-transcript-adapters.js";
+import { observePracticeWork } from "./practice-observation.js";
 import { refreshTerminalSkillUsage } from "./terminal-skill-usage-state.js";
 
 function matches(
@@ -60,10 +62,19 @@ export async function runTerminalSkillObservationCycle(input: {
       turn.repositoryRevision === null
         ? null
         : await installedTerminalSkills(root, turn.repositoryRevision).catch(() => null);
+    const transcript = await readVerifiedTerminalTranscript(turn);
+    await observePracticeWork({ storage, turn, parent, transcript, now });
     const assessment =
-      catalog === null
+      catalog === null || turn.provider === "codex"
         ? { skillTelemetry: "unknown" as const, identifiers: [] }
-        : await assessTerminalSkillTranscript(turn);
+        : transcript.status === "observed"
+          ? {
+              skillTelemetry: "observed" as const,
+              identifiers: transcript.entries.flatMap((entry) =>
+                transcriptSkillIdentifiers(turn.provider, entry),
+              ),
+            }
+          : { skillTelemetry: transcript.status, identifiers: [] };
     const attribution = attributeTerminalSkills({
       provider: turn.provider,
       catalog,

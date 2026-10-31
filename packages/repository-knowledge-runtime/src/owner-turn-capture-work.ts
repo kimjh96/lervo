@@ -29,6 +29,7 @@ export async function runOwnerTurnCaptureWork(input: {
   signal: AbortSignal;
   liveWorkPending(): Promise<boolean>;
   transport?: InstructionCandidateExchangeTransport;
+  providerQuantum?: { remaining: number };
 }): Promise<OwnerTurnCaptureWorkResult> {
   const instructionCapture = await runInstructionCaptureCycle({
     storage: input.storage,
@@ -39,6 +40,7 @@ export async function runOwnerTurnCaptureWork(input: {
       : { admissionDirectory: input.admissionDirectory }),
     signal: input.signal,
     liveWorkPending: input.liveWorkPending,
+    ...(input.providerQuantum === undefined ? {} : { providerQuantum: input.providerQuantum }),
     now: () => new Date(),
   }).catch((): InstructionCaptureCycleResult => ({ status: "unavailable" }));
   const candidateExchange = await exchangeInstructionCandidates({

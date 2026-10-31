@@ -1,19 +1,14 @@
 import {
-  canonicalJson,
-  createDurableInstructionCandidate,
-  createDurableInstructionPlan,
-  durableInstructionCatalogDigest,
-  inspectDurableInstructionCatalog,
   listDurableInstructionCandidates,
-  instructionCaptureRoute,
   parseInstructionCaptureAssessment,
   scanConfiguredRepositoryKnowledge,
-  sha256,
+  inspectDurableInstructionCatalog,
   stableId,
-  storeDurableInstructionCandidate,
   type DurableInstructionCatalogInspection,
-  type InstructionCaptureAssessment,
 } from "@lervo/repository-knowledge";
+import { settleInstructionCapture } from "./instruction-capture-settlement.js";
+import { preparePracticeCapture, completePracticeCapture } from "./practice-capture.js";
+import { releaseUnattemptedPracticeBudget } from "./practice-budget.js";
 
 import {
   assessInstructionCapture,
@@ -28,7 +23,6 @@ import {
   pruneInstructionCaptureQueue,
   recordInstructionCaptureAttempt,
   removeQueuedInstructionCapture,
-  type QueuedInstructionCapture,
 } from "./instruction-capture-queue.js";
 import {
   captureBudgetAvailable,
@@ -36,7 +30,6 @@ import {
   MAXIMUM_ASSESSMENTS_PER_CYCLE,
   readInstructionCaptureState,
   writeInstructionCaptureState,
-  type HeldCapture,
   type InstructionCaptureState,
 } from "./instruction-capture-state.js";
 
@@ -64,179 +57,6 @@ interface CycleCounts {
   expiredCount: number;
   skippedForBudget: number;
   usageObserved: number;
-}
-
-type CaptureOutcome =
-  "instruction_candidate" | "held" | "ignored" | "personal_preference" | "covered";
-
-function held(input: {
-  capture: QueuedInstructionCapture;
-  kind: HeldCapture["kind"];
-  title: string;
-  statement: string;
-  subjectKey: string | null;
-  now: Date;
-}): HeldCapture {
-  return {
-    captureId: input.capture.captureId,
-    kind: input.kind,
-    source: input.capture.source,
-    title: input.title,
-    statement: input.statement,
-    subjectKey: input.subjectKey,
-    summaryHash: sha256(
-      canonicalJson({
-        title: input.title,
-        statement: input.statement,
-        subjectKey: input.subjectKey,
-      }),
-    ),
-    capturedAt: input.now.toISOString(),
-  };
-}
-
-/** Records the ADR-0457 conversation event for a candidate that came from a managed conversation. */
-function recordConversationCandidate(input: {
-  context: InstructionCaptureContext;
-  capture: QueuedInstructionCapture;
-  kind: "decision" | "instruction";
-  subjectKey: string;
-  summaryHash: string;
-  candidateId: string;
-  occurredAt: string;
-}): void {
-  if (input.capture.source !== "conversation" || input.capture.conversation === null) return;
-  appendInstructionCaptureEvent({
-    storage: input.context.storage,
-    type: "conversation.knowledge_candidate.recorded",
-    correlationId: `${input.capture.captureId}\0${input.candidateId}`,
-    occurredAt: input.occurredAt,
-    payload: {
-      conversationEventId: input.capture.conversation.conversationEventId,
-      agentId: input.capture.conversation.agentId,
-      kind: input.kind,
-      subjectKeyDigest: sha256(input.subjectKey),
-      summaryHash: input.summaryHash,
-      candidateId: input.candidateId,
-      occurredAt: input.occurredAt,
-    },
-  });
-}
-
-async function materializeInstruction(input: {
-  context: InstructionCaptureContext;
-  capture: QueuedInstructionCapture;
-  assessment: InstructionCaptureAssessment;
-  catalog: DurableInstructionCatalogInspection;
-  state: InstructionCaptureState;
-  now: Date;
-}): Promise<CaptureOutcome> {
-  const { assessment, capture, catalog } = input;
-  const root = input.context.storage.paths.repositoryRoot;
-  const plan = await createDurableInstructionPlan({
-    repositoryRoot: root,
-    projectId: input.context.storage.manifest.projectId,
-    requestDigest: capture.promptDigest,
-    resolverResultDigest: sha256(canonicalJson(assessment)),
-    groundingStatus: "ready",
-    catalogComplete:
-      catalog.complete && catalog.semanticCatalog.canonicalInstructions.entries.length < 32,
-    ambiguityReasons: [],
-    instruction: assessment.durableInstruction,
-  });
-  if (plan.status === "current" || assessment.durableInstruction.conflict === "covered")
-    return "covered";
-  if (plan.status !== "ready") {
-    const { title, statement } = assessment.durableInstruction;
-    if (plan.status === "pending" && title !== null && statement !== null) {
-      input.state.held.push(
-        held({
-          capture,
-          kind: "rule_needs_clarification",
-          title,
-          statement,
-          subjectKey: null,
-          now: input.now,
-        }),
-      );
-      return "held";
-    }
-    return "ignored";
-  }
-  const candidate = await storeDurableInstructionCandidate({
-    repositoryRoot: root,
-    candidate: createDurableInstructionCandidate({
-      plan,
-      provider: input.context.provider,
-      sourceSnapshotId: catalog.sourceSnapshotId,
-      instruction: assessment.durableInstruction,
-      now: input.now,
-      instructionCatalogDigest: durableInstructionCatalogDigest(
-        catalog.semanticCatalog.canonicalInstructions.entries,
-      ),
-      capture: { source: capture.source, captureId: capture.captureId },
-    }),
-  });
-  const occurredAt = input.now.toISOString();
-  appendInstructionCaptureEvent({
-    storage: input.context.storage,
-    type: "knowledge.instruction_candidate.captured",
-    correlationId: `${capture.captureId}\0${candidate.candidateId}`,
-    occurredAt,
-    payload: {
-      candidateId: candidate.candidateId,
-      captureId: capture.captureId,
-      source: capture.source,
-      // `instructionCaptureRoute` sends only rule, correction, and rule-shaped decision classes here.
-      captureClass: assessment.captureClass,
-      turnDigest: capture.promptDigest,
-      occurredAt,
-    },
-  });
-  recordConversationCandidate({
-    context: input.context,
-    capture,
-    kind: "instruction",
-    subjectKey: candidate.ruleId,
-    summaryHash: candidate.proposedContentHash,
-    candidateId: candidate.candidateId,
-    occurredAt,
-  });
-  return "instruction_candidate";
-}
-
-async function settle(input: {
-  context: InstructionCaptureContext;
-  capture: QueuedInstructionCapture;
-  assessment: InstructionCaptureAssessment;
-  catalog: DurableInstructionCatalogInspection;
-  state: InstructionCaptureState;
-  now: Date;
-}): Promise<CaptureOutcome> {
-  const route = instructionCaptureRoute(input.assessment);
-  if (route === "ignored") return "ignored";
-  if (route === "personal_preference") return "personal_preference";
-  if (route === "instruction") return materializeInstruction(input);
-  const decision = input.assessment.decision!;
-  const entry = held({
-    capture: input.capture,
-    kind: "decision",
-    title: decision.title,
-    statement: decision.statement,
-    subjectKey: decision.subjectKey,
-    now: input.now,
-  });
-  input.state.held.push(entry);
-  recordConversationCandidate({
-    context: input.context,
-    capture: input.capture,
-    kind: "decision",
-    subjectKey: decision.subjectKey,
-    summaryHash: entry.summaryHash,
-    candidateId: input.capture.captureId,
-    occurredAt: input.now.toISOString(),
-  });
-  return "held";
 }
 
 const MAXIMUM_PENDING_OWNER_RULES = 16;
@@ -307,10 +127,15 @@ export async function runInstructionCaptureCycle(
     if (deferred !== null) break;
     catalog ??= inspectDurableInstructionCatalog(await scanConfiguredRepositoryKnowledge(root));
     attempted += 1;
+    const practice = await preparePracticeCapture(context, capture).catch(() => null);
     const call = await assessInstructionCapture({
       context,
       captureId: capture.captureId,
+      ...(practice?.validateDisclosure === undefined
+        ? {}
+        : { validatePrecedingWork: practice.validateDisclosure }),
       request: {
+        ...(practice === null ? {} : { precedingWork: practice.data }),
         surface: capture.source,
         ownerTurn: capture.ownerTurn,
         precedingAgentTurn: capture.precedingAgentTurn,
@@ -323,18 +148,32 @@ export async function runInstructionCaptureCycle(
       sourceRevision: catalog.sourceSnapshotId,
     });
     if (call.status === "deferred") {
+      if (practice !== null && call.attempted !== true)
+        await releaseUnattemptedPracticeBudget(practice.reservation).catch(() => {});
       deferred = call.reason;
       break;
     }
     state.budget.assessmentsThisHour += 1;
     state.budget.assessmentsToday += 1;
-    let outcome: CaptureOutcome | null = null;
+    let outcome: Awaited<ReturnType<typeof settleInstructionCapture>> | null = null;
     if (call.status === "assessed") {
-      const tokens = call.usage?.totalTokens ?? 0;
+      if (practice !== null)
+        await completePracticeCapture(context, practice, call.value, call.usage).catch(() => {});
+      const addedPracticeTokens =
+        practice === null || call.usage === null
+          ? 0
+          : Math.min(
+              call.usage.totalTokens,
+              Buffer.byteLength(JSON.stringify(practice.data)) +
+                Buffer.byteLength(
+                  JSON.stringify((call.value as { practice?: unknown } | null)?.practice ?? null),
+                ),
+            );
+      const tokens = (call.usage?.totalTokens ?? 0) - addedPracticeTokens;
       state.budget.tokensToday += tokens;
       counts.usageObserved += tokens;
       try {
-        outcome = await settle({
+        outcome = await settleInstructionCapture({
           context: { ...context, provider: call.provider },
           capture,
           assessment: parseInstructionCaptureAssessment(call.value),

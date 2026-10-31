@@ -93,3 +93,5 @@ Cross-repository skill sharing, automatic promotion without exact review, and pr
 - [ADR-0413](../../../search/engines/0413-close-product-default-lexical-v2-surface-gaps.md)
 
 [ADR-0542](../../grounding/0542-observe-native-skill-use-instead-of-repeating-skill-disclosure.md) keeps installed skills out of the compact prompt, because providers disclose them natively, and observes their invocations at `Stop` instead. Compact-prompt disclosure remains for unreviewed candidates no provider loads.
+
+[ADR-0543](../../../knowledge/repository/canonicalization/patterns/0543-learn-portable-skills-from-practice-in-the-knowledge-resident.md) learns portable skills in the resident from single completed, observed turns, with independent review and usage re-evaluation.

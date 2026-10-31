@@ -172,7 +172,15 @@ export const eventTypesV7 = [
   "terminal.skill.observed",
   "terminal.skill.turn_assessed",
 ] as const;
-export const eventTypes = eventTypesV7;
+export const eventTypesV8 = [
+  ...eventTypesV7,
+  "learning.observation.recorded",
+  "knowledge.skill_candidate.proposed",
+  "knowledge.skill_candidate.resolved",
+  "knowledge.skill.usage_assessed",
+  "knowledge.skill.retired",
+] as const;
+export const eventTypes = eventTypesV8;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -315,6 +323,7 @@ export const eventEnvelopeSchema = {
       },
     },
     { properties: { type: { enum: eventTypesV7 }, schemaVersion: { const: 7 } } },
+    { properties: { type: { enum: eventTypesV8 }, schemaVersion: { const: 8 } } },
   ],
 } as const;
 
@@ -340,10 +349,14 @@ export type EventEnvelopeV7 = Omit<EventEnvelopeV6, "schemaVersion" | "type"> & 
   schemaVersion: 7;
   type: (typeof eventTypesV7)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV7, "schemaVersion"> & {
+export type EventEnvelopeV8 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & {
+  schemaVersion: 8;
+  type: (typeof eventTypesV8)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV8, "schemaVersion"> & {
   schemaVersion:
-    EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4 | 5 | 6 | 7;
+    EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4 | 5 | 6 | 7 | 8;
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV7)[number];
+export type EventType = (typeof eventTypesV8)[number];

@@ -219,3 +219,24 @@ describe("instruction capture assessment contract (ADR-0467)", () => {
     );
   });
 });
+
+describe("practice field isolation (ADR-0543)", () => {
+  const response = {
+    schemaVersion: 1,
+    captureClass: "none",
+    durableInstruction: none,
+    decision: null,
+    reasonIds: [],
+  };
+  it("keeps rule capture valid whether practice is null, missing, or malformed", () => {
+    expect(parseInstructionCaptureAssessment({ ...response, practice: null }).practice).toBeNull();
+    expect(parseInstructionCaptureAssessment(response).practice).toBeNull();
+    expect(parseInstructionCaptureAssessment({ ...response, practice: { x: 1 } })).toMatchObject({
+      practice: null,
+      practiceFailure: "source_incomplete",
+    });
+    expect(() =>
+      parseInstructionCaptureAssessment({ ...response, practice: null, unexpected: 1 }),
+    ).toThrow(TypeError);
+  });
+});

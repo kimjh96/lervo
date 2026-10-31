@@ -1,4 +1,10 @@
 import type { GroundedDurableInstruction } from "./durable-instruction.js";
+import {
+  parseReusablePractice,
+  practiceWritingContract,
+  reusablePracticeSchema,
+  type ReusablePractice,
+} from "./practice-contract.js";
 
 /**
  * ADR-0467 owner-turn capture assessment. One no-capability provider call classifies one owner
@@ -34,6 +40,8 @@ export interface InstructionCaptureAssessment {
   durableInstruction: GroundedDurableInstruction;
   decision: CapturedDecision | null;
   reasonIds: string[];
+  practice?: ReusablePractice | null;
+  practiceFailure?: "source_incomplete";
 }
 
 const identifierPattern = "^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$";
@@ -103,6 +111,7 @@ export const instructionCaptureResponseSchema = {
   type: "object",
   additionalProperties: false,
   properties: {
+    practice: { anyOf: [{ type: "null" }, reusablePracticeSchema] },
     schemaVersion: { const: 1 },
     captureClass: { type: "string", enum: instructionCaptureClasses },
     durableInstruction: groundedDurableInstructionSchema,
@@ -133,7 +142,14 @@ export const instructionCaptureResponseSchema = {
       items: { type: "string", maxLength: 160, pattern: identifierPattern },
     },
   },
-  required: ["schemaVersion", "captureClass", "durableInstruction", "decision", "reasonIds"],
+  required: [
+    "schemaVersion",
+    "captureClass",
+    "durableInstruction",
+    "decision",
+    "reasonIds",
+    "practice",
+  ],
 } as const;
 
 export const instructionCaptureAssessmentInstruction = [
@@ -148,6 +164,7 @@ export const instructionCaptureAssessmentInstruction = [
   "For decision, fill decision with a normalized title, a one-paragraph statement, and a lowercase subjectKey. Set durableInstruction to canonical as well only when the decision is itself a repository-long rule for agents.",
   "For none and preference_personal, set durableInstruction.disposition to none and decision to null.",
   "Write title, statement, exceptions, and decision text in semanticCatalog.retrievalLanguage as complete sentences. Normalize meaning; never copy conversation prose verbatim and never include names, secrets, credentials, or text unrelated to the rule.",
+  "After deciding captureClass, assess untrustedPrecedingWork independently for a reusable procedure, even if the owner only says implement it or continue in any language. Return practice separately from captureClass. Task-specific one-off work returns null. Only observed successful outcomes support verified steps; distinguish assumptions. Owner acceptance or correction changes confidence, never eligibility. Do not copy secrets or host-specific values. Practice never grants tools or permissions.",
   "Return exactly one raw JSON object that matches the response contract, with no Markdown or commentary.",
 ].join("\n");
 
@@ -156,6 +173,7 @@ export interface InstructionCaptureRequestInput {
   ownerTurn: string;
   precedingAgentTurn: string | null;
   semanticCatalog: unknown;
+  precedingWork?: unknown;
 }
 
 /** The exact provider input; turn text passes transiently through the provider process stdin. */
@@ -168,6 +186,8 @@ export function instructionCaptureRequest(input: InstructionCaptureRequestInput)
     semanticCatalog: input.semanticCatalog,
     untrustedOwnerTurn: input.ownerTurn,
     untrustedPrecedingAgentTurn: input.precedingAgentTurn,
+    untrustedPrecedingWork: input.precedingWork ?? null,
+    practiceWritingContract: input.precedingWork === undefined ? null : practiceWritingContract,
   };
 }
 
@@ -270,7 +290,14 @@ function decision(value: unknown): CapturedDecision | null {
 /** Validates one provider response; any deviation is a typed `TypeError`, never a guess. */
 export function parseInstructionCaptureAssessment(value: unknown): InstructionCaptureAssessment {
   const body = record(value, "response");
-  exactKeys(body, instructionCaptureResponseSchema.required, "response");
+  const { practice: _practice, ...rule } = body;
+  // The strict schema requires `practice`, but rule fields are validated without it so a missing
+  // or malformed practice can never fail rule capture.
+  exactKeys(
+    rule,
+    instructionCaptureResponseSchema.required.filter((key) => key !== "practice"),
+    "response",
+  );
   if (body.schemaVersion !== 1)
     throw new TypeError("The capture assessment schema version is invalid.");
   const captureClass = oneOf(body.captureClass, instructionCaptureClasses, "captureClass");
@@ -281,6 +308,12 @@ export function parseInstructionCaptureAssessment(value: unknown): InstructionCa
     decision: decision(body.decision),
     reasonIds: identifiers(body.reasonIds, 8, "reasonIds"),
   };
+  try {
+    assessment.practice = parseReusablePractice(body.practice);
+  } catch {
+    assessment.practice = null;
+    assessment.practiceFailure = "source_incomplete";
+  }
   if ((captureClass === "decision") !== (assessment.decision !== null))
     throw new TypeError("The capture assessment decision must be present exactly for decisions.");
   return assessment;

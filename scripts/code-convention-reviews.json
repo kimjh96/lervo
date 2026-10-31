@@ -118,7 +118,7 @@
       "path": "packages/event-contract/src/redaction.ts",
       "contentHash": "sha256:90dc981818fdb1919df8561b85ad875937340c80ffea01585a01e5c0da0a5192",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Provider admission, turn-bound selection, and native-skill registrations add only declarative entries, and native-skill fields live in a dedicated payload module. Provider output interpretation, executable identity, transcript parsing, queue and marker persistence, query recording, reference detection, and scheduling stay in their owning adapters.",
+      "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Provider admission, turn-bound selection, native-skill, and practice registrations add only declarative entries; native-skill and practice fields live in dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, queue and marker persistence, query recording, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"
     },
     {
@@ -300,7 +300,7 @@
       "path": "packages/schemas/src/schema-catalog.ts",
       "contentHash": "sha256:560ea7d11c52a5cb79997367f0d60015ac9b5ab110a013a8219066209fc9f77a",
       "responsibility": "Declarative schema registration catalog",
-      "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, and native-skill payloads are catalog entries with the same mapping lifecycle; native-skill schemas are defined in their own contract module. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
+      "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, native-skill, and practice payloads are catalog entries with the same mapping lifecycle; native-skill and practice schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
       "disposition": "cohesive"
     },
     {

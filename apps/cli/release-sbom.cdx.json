@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:433ca2b8-6d23-53d2-80dd-b04012a22b57",
+  "serialNumber": "urn:uuid:5b132156-6d3a-58e8-b955-a137a8d0e698",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:17b0d16311c6e3f8f983c3bc3052e6050529a08f9f6eeada97e08429e3da97ed"
+          "value": "sha256:5510cd825bc9c9d9905f177ed13edf18e6bc5c38a35cd533239b679ccb38cf24"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:d36bd10343b071be7a371044b3afd00b49eb94186492ac294166d0d955f29751"
+          "value": "sha256:d56e1351b2fd90c40394dc7c8ec8702c829ecf674979c9361e39837a131033d5"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -107,7 +107,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "3d73cfd4aefe775410e81879d5eae0567210a38aa611d951eccd449983a09087"
+          "content": "09126880852daad840544f638e4e7fbc7b2e549fe39c50ad42b15dfd308625c1"
         }
       ]
     },
@@ -920,21 +920,6 @@
       "name": "identity-migration",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/identity-migration@0.1.0",
-      "scope": "required",
-      "properties": [
-        {
-          "name": "lervo:release:bundled",
-          "value": "true"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/%40lervo/improvement-observation-local@0.1.0",
-      "group": "@lervo",
-      "name": "improvement-observation-local",
-      "version": "0.1.0",
-      "purl": "pkg:npm/%40lervo/improvement-observation-local@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -4463,7 +4448,6 @@
         "pkg:npm/%40lervo/filesystem-durability@0.1.0",
         "pkg:npm/%40lervo/hub-sync@0.1.0",
         "pkg:npm/%40lervo/identity-migration@0.1.0",
-        "pkg:npm/%40lervo/improvement-observation-local@0.1.0",
         "pkg:npm/%40lervo/interaction-sqlite@0.1.0",
         "pkg:npm/%40lervo/interaction@0.1.0",
         "pkg:npm/%40lervo/knowledge-okf@0.1.0",

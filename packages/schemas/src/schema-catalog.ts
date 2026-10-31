@@ -3,6 +3,13 @@ import {
   providerCliRejectedEventPayloadSchema,
 } from "./provider-cli-event.js";
 import {
+  learningObservationRecordedEventPayloadSchema,
+  knowledgeSkillCandidateProposedEventPayloadSchema,
+  knowledgeSkillCandidateResolvedEventPayloadSchema,
+  knowledgeSkillUsageAssessedEventPayloadSchema,
+  knowledgeSkillRetiredEventPayloadSchema,
+} from "./practice-event.js";
+import {
   contextQualityPreparedEventPayloadSchema,
   contextQualityVerifiedEventPayloadSchema,
 } from "./context-quality-event.js";
@@ -528,6 +535,11 @@ export const schemaCatalog = {
   terminalTurnDeclaredEventPayload: terminalTurnDeclaredEventPayloadSchema,
   terminalReferenceObservedEventPayload: terminalReferenceObservedEventPayloadSchema,
   terminalTurnObservedEventPayload: terminalTurnObservedEventPayloadSchema,
+  learningObservationRecordedEventPayload: learningObservationRecordedEventPayloadSchema,
+  knowledgeSkillCandidateProposedEventPayload: knowledgeSkillCandidateProposedEventPayloadSchema,
+  knowledgeSkillCandidateResolvedEventPayload: knowledgeSkillCandidateResolvedEventPayloadSchema,
+  knowledgeSkillUsageAssessedEventPayload: knowledgeSkillUsageAssessedEventPayloadSchema,
+  knowledgeSkillRetiredEventPayload: knowledgeSkillRetiredEventPayloadSchema,
   terminalSkillObservedEventPayload: terminalSkillObservedEventPayloadSchema,
   terminalSkillTurnAssessedEventPayload: terminalSkillTurnAssessedEventPayloadSchema,
   workstreamSnapshot: workstreamSnapshotSchema,

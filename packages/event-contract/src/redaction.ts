@@ -1,3 +1,4 @@
+import { practicePayloadAllowlists, practicePayloadSchemas } from "./practice-payload.js";
 import {
   contextQualityPayloadAllowlists,
   contextQualityPayloadSchemas,
@@ -55,6 +56,7 @@ export const eventPayloadAllowlists = {
   ...documentFreshnessPayloadAllowlists,
   ...instructionCapturePayloadAllowlists,
   ...terminalSkillPayloadAllowlists,
+  ...practicePayloadAllowlists,
   "managed.execution.reserved": ["executionKey", "requestHash"],
   "role.input.bound": roleInputPayloadFields,
   ...supervisionPayloadAllowlists,
@@ -1532,6 +1534,7 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "terminal.reference.observed": "terminalReferenceObservedEventPayload",
   "terminal.turn.observed": "terminalTurnObservedEventPayload",
   ...terminalSkillPayloadSchemas,
+  ...practicePayloadSchemas,
   "workstream.snapshot.recorded": "workstreamSnapshotRecordedEventPayload",
   "work.causality.recorded": "workCausalityRecordedEventPayload",
   "resource.usage.recorded": "resourceUsageRecordedEventPayload",

@@ -25,7 +25,7 @@ export interface EventContractCommandPorts {
 
 export const eventContractUsage = `  lervo event-contract status [--root <path>] [--json]
   lervo event-contract evidence [--root <path>] [--json]
-  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3|4|5|6|7>] [--apply <plan-id>] [--root <path>] [--json]
+  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3|4|5|6|7|8>] [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract rollback [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract recover [--root <path>] [--json]`;
 
@@ -97,23 +97,26 @@ export async function runEventContractCommand(
         selectedVersion !== "4" &&
         selectedVersion !== "5" &&
         selectedVersion !== "6" &&
-        selectedVersion !== "7") ||
+        selectedVersion !== "7" &&
+        selectedVersion !== "8") ||
       (parsed.values["schema-version"] !== undefined && action !== "activate")
     ) {
-      throw new Error("--schema-version accepts 2, 3, 4, 5, 6, or 7 for activation only.");
+      throw new Error("--schema-version accepts 2, 3, 4, 5, 6, 7, or 8 for activation only.");
     }
     const targetEventSchemaVersion =
-      selectedVersion === "7"
-        ? 7
-        : selectedVersion === "6"
-          ? 6
-          : selectedVersion === "5"
-            ? 5
-            : selectedVersion === "4"
-              ? 4
-              : selectedVersion === "3"
-                ? 3
-                : 2;
+      selectedVersion === "8"
+        ? 8
+        : selectedVersion === "7"
+          ? 7
+          : selectedVersion === "6"
+            ? 6
+            : selectedVersion === "5"
+              ? 5
+              : selectedVersion === "4"
+                ? 4
+                : selectedVersion === "3"
+                  ? 3
+                  : 2;
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
     if (action === "status") {
       if (parsed.values.from || parsed.values.stdin || parsed.values.apply) {

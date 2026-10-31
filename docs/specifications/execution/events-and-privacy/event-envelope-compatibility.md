@@ -2,7 +2,7 @@
 
 ## Readers and writers
 
-The shared reader accepts envelope schema versions 1, 2, and 3, preserving valid mixed hash chains without rewriting bytes or meaning. Version 1 remains the default writer; activated managed execution writes version 2. Version 3 adds bounded [supervision payloads](../outcome-supervision/contracts.md); versions 1 and 2 cannot carry these event types.
+The shared reader accepts envelope schema versions 1 through 8. It preserves valid mixed hash chains without rewriting bytes or meaning. Version 1 remains the default writer; activated managed execution writes version 2. Version 3 adds bounded [supervision payloads](../outcome-supervision/contracts.md); versions 1 and 2 cannot carry these event types.
 
 The SQLite adapter supports explicitly selected version 3 writes and rejects new events above the selected writer version. Reader capability advertisement alone does not activate writing.
 
@@ -21,6 +21,8 @@ The same reader accepts the bounded `work.supervision.preflight.blocked` payload
 Schema 7 adds `terminal.skill.observed` and `terminal.skill.turn_assessed`. Schemas 1 through 6 reject these types. Reader capability advertisement does not activate their writer. The selected writer coordinate requires current evidence that every configured reader supports history through schema 7. Before activation, the resident keeps observations only in a bounded host-private projection. See [native terminal skill observation](../provider-adapters/native-skill-observation.md) for attribution, privacy, retention, and failure states.
 
 ## Repository activation
+
+Schema 8 adds the practice-learning observation, candidate, usage and retirement events. Schemas 1 through 7 reject these types. Automatic resident activation targets schema 8 and requires support from every configured reader. An older configured reader keeps the writer at its current version. The resident retains bounded local practice state while activation waits. See [practice learning](../../knowledge/practice-learning.md) for payloads and privacy.
 
 Repository activation supports explicit `--schema-version 3` with fresh authoritative evidence that all required readers support versions 1, 2, and 3. Its coordinate uses schema version 2. Existing version 1 coordinates and version 2 activation identifiers retain their meaning.
 
