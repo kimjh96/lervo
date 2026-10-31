@@ -272,6 +272,7 @@ export async function processKnowledgeConvergence(
               : [
                     "knowledge_authority_unavailable",
                     "knowledge_provider_paused",
+                    "provider_not_admitted",
                     "knowledge_capacity_unavailable",
                     "assignment_path_conflict",
                   ].includes(code)

@@ -1,9 +1,38 @@
 # Provider pauses and probes
 
-Quota/authentication pauses use native normalized observations. An unknown reset stays paused until an explicitly requested, capability-free native probe produces matching structured proof and observed usage:
+Quota and authentication pauses use native normalized observations. A pause with `reset_at` remains paused until that exact time. A NULL reset never expires through elapsed time alone.
+
+The ADR-0536 admission and readmission path automatically re-probes a NULL-reset pause when that provider is the next candidate allowed by the current delegation. The first probe is due one hour after `observed_at`. Later admitted attempts wait 2, 4, 8, 16, then 24 hours from the last attempt. All later delays stay at 24 hours. These are eligibility times; existing work and resident scheduling determine when a due attempt runs. No new timer is introduced.
+
+The private host `provider_pauses` row adds bounded `reprobe_attempts` and nullable `last_reprobe_at`. Existing rows start at zero attempts and use their original `observed_at`; an old NULL-reset pause is immediately eligible. Shared host admission atomically checks eligibility and advances the attempt schedule under purpose `pause_reprobe`. Other repositories cannot claim that provider again before the next due time. The attempt count saturates at 32. No history collection is added. Capacity and foreground deferral do not advance the schedule. Once admitted, a failed or interrupted attempt retains the next delay, including a denied spend reservation. A newer NULL-reset native failure replaces the failure hash and observation time but preserves the attempt schedule. A known reset replaces that schedule.
+
+Recovery shares host slots, foreground deferral, the delegation-hash-bound admission-probe call ceiling, and stage `provider_cli_admission` usage recording. Claude recovery requires its native no-capability admission response and observed usage. Codex first passes its unchanged model-input contract, then makes a paid, capability-free native nonce probe with observed usage. A model-input inspection alone cannot prove quota or authentication recovery. Missing usage or invalid native proof leaves the pause intact.
+
+Native timeouts during automatic Codex recovery become `probe_timed_out`. Invalid JSON, invalid native envelopes, mismatched nonces, and missing usage become `probe_failed`. This mapping covers runner preparation and the native call. Each failed attempt records unavailable usage when no native usage was returned, preserves the pause and its next delay, and permits the next allowed candidate. Authority, budget, host admission, and usage-recording failures propagate; they are not transient CLI rejections.
+
+Successful recovery calls `settleKnowledgeProviderProbe` with the pause hash and observation time read before probing. It clears only that observation and never erases a newer quota or authentication failure. A lost comparison keeps the provider paused and permits an allowed fallback. Cached admissions cannot bypass recovery. An identity-bound capability rejection still requires an identity change before another contract probe. Cached-only continuity reconciliation does not probe. A disallowed provider stays paused and remains visible; elapsed time grants no authority.
+
+The existing attention finding `provider_not_admitted`, with actor `provider admission`, reports each host pause even when delegation excludes it or a fallback runs. Its detail contains provider, normalized reason, `observed_at`, `age_ms` since that observation, `next_reprobe_at`, and `reset_at`. A NULL next re-probe time means recovery uses the known reset. A past next time means eligible, not scheduled or authorized. Local inspection reads current pause state rather than the last project admission projection. Pause details remain local; this change adds no peer-record fields or events. The finding contains no executable paths, credentials, prompts, or provider output. Existing native evidence retains its observation hash and normalized reason.
+
+Read-only local inspection opens the existing admission database with SQLite read-only mode and no lock wait. It never creates or migrates the database, changes its permissions, or reserves an attempt. An absent or old schema provides no pause observations. A locked, unreadable, or invalid store also provides no pause observations while preserving all other continuity findings. Missing observations neither prove recovery nor clear an admission pause.
+
+An explicit capability-free probe remains available:
 
 ```bash
 lervo knowledge convergence provider-probe --provider codex --json
 ```
 
-The probe shares host admission and current delegation. It cannot erase a newer pause, infer recovery from elapsed time, or automatically retry an unknown reset. Private evidence stores the native observation; public status contains its hash and normalized reason.
+It shares host admission and requires current delegation for that provider. It can run before automatic eligibility and uses the same compare-and-settle rule. A disallowed provider cannot use this command to expand delegation.
+
+## CLI contract events
+
+ADR-0536 adds schema-4 `provider.cli.admitted` and `provider.cli.rejected` events. Compatible readers must be deployed before relying on these additive event types. Events audit admission; they do not grant delegation or prove document currency.
+
+- `provider.cli.admitted` requires `provider`, semantic `version`, `executableHash`, `probeResultHash`, safe `hostLabel`, and `admittedAt`.
+- `provider.cli.rejected` requires `provider`, semantic `version`, `executableHash`, closed `reason`, bounded `exposedTools`, safe `hostLabel`, and `rejectedAt`.
+
+Reasons are `capabilities_exposed`, `probe_failed`, `probe_timed_out`, and `identity_changed`. Exposed tools use a closed catalog of at most 16 names; an unrecognized name becomes `other`. A probe failure or timeout never admits a CLI. The private cache may retain invocation paths, real paths, stat fingerprints, version-output hashes for dispatching CLIs, and a bounded login PATH; events and continuity exclude paths, prompts, credentials, banners, and raw provider output. An ordinary probe result hash binds `adr-0536.v2` and the versioned no-capability contract and its normalized success. A Codex pause-recovery hash binds `adr-0536.pause-reprobe.v1`, executable identity, the matching nonce, and observed usage after the no-capability contract passes. Neither hash includes provider response text. Replayed host cache observations append idempotently to each project's event store.
+
+A waiting-stage `provider_not_admitted` reason means no allowed detected executable satisfies the contract. A continuity finding with that code can also report one paused provider while an allowed fallback runs; its non-null pause detail distinguishes those observations. It is a dependency-bound wait, not a semantic refusal or a retry-exhaustion outcome. A bounded later detection rechecks the dependency and resumes on admission. Quota/authentication recovery follows the native proof and backoff rules above.
+
+Automatic CLI contract probes use ordinary provider admission unless a NULL-reset pause is due for `pause_reprobe`. They cannot use the explicit `availability_probe` bypass. Resolution skips a provider whose pause is not eligible and continues with other allowed providers. A quota or authentication failure during probing records the native pause before continuing. Cached admissions cannot override the pause. Pauses do not create CLI capability-rejection events. Claude admission calls reserve the delegated admission-probe call budget before execution. Native usage or its absence is recorded under stage `provider_cli_admission`; events exclude the prompt, response, environment, and executable paths. Missing usage rejects admission. Transient rejections back off exponentially from 60 seconds to one hour.

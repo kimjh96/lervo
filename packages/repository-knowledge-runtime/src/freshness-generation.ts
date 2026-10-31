@@ -1,3 +1,5 @@
+import { pauseKnowledgeProviderFailure } from "./provider-failure-pause.js";
+import { admittedBackgroundContext, backgroundProviderOptions } from "./background-provider.js";
 import { documentIdForPath } from "@lervo/context";
 import { createTurnMeasurement, recordTurnMeasurement } from "@lervo/execution-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
@@ -13,7 +15,7 @@ import {
 
 import { knowledgeReviewCallCeiling } from "./change-review-host.js";
 import type { FreshnessEvidenceBundleV1 } from "./freshness-evidence-bundle.js";
-import { acquireKnowledgeProviderAdmission, pauseKnowledgeProvider } from "./provider-admission.js";
+import { acquireKnowledgeProviderAdmission } from "./provider-admission.js";
 
 export const DOCUMENT_FRESHNESS_TASK = "document_freshness_candidate";
 export const DOCUMENT_FRESHNESS_STAGE = "document_freshness";
@@ -35,14 +37,20 @@ export interface FreshnessGenerationContext {
 }
 
 export type FreshnessGenerationResult =
-  | { status: "generated"; value: unknown; usage: ProviderJsonUsage | null }
+  | {
+      status: "generated";
+      provider: "codex" | "claude";
+      value: unknown;
+      usage: ProviderJsonUsage | null;
+    }
   | { status: "failed"; usage: null }
   | {
       status: "deferred";
       reason:
         | "knowledge_authority_unavailable"
         | "knowledge_capacity_unavailable"
-        | "knowledge_provider_paused";
+        | "knowledge_provider_paused"
+        | "provider_not_admitted";
     };
 
 /**
@@ -123,9 +131,23 @@ export async function generateFreshnessProposal(input: {
   responseSchema?: unknown;
   prompt?: string;
 }): Promise<FreshnessGenerationResult> {
-  const { context } = input;
-  if (context.providerQuantum !== undefined && context.providerQuantum.remaining <= 0)
+  if (input.context.providerQuantum !== undefined && input.context.providerQuantum.remaining <= 0)
     return { status: "deferred", reason: "knowledge_capacity_unavailable" };
+  let context;
+  try {
+    context = await admittedBackgroundContext(input.context);
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (
+      code === "provider_not_admitted" ||
+      code === "knowledge_provider_paused" ||
+      code === "knowledge_capacity_unavailable" ||
+      code === "knowledge_authority_unavailable"
+    )
+      return { status: "deferred", reason: code };
+    throw error;
+  }
+
   try {
     await knowledgeReviewCallCeiling({
       storage: context.storage,
@@ -156,8 +178,7 @@ export async function generateFreshnessProposal(input: {
     let result: { value: unknown; usage: ProviderJsonUsage | null };
     try {
       const runner = await createNoCapabilityProviderJsonRunner({
-        provider: context.provider,
-        ...(context.executable === undefined ? {} : { executable: context.executable }),
+        ...backgroundProviderOptions(context),
         systemPrompt: input.prompt ?? documentFreshnessGenerationInstruction,
         timeoutMs: GENERATION_TIMEOUT_MILLISECONDS,
       });
@@ -183,15 +204,7 @@ export async function generateFreshnessProposal(input: {
         usage: null,
       });
       if (error instanceof KnowledgeProviderAvailabilityError) {
-        await pauseKnowledgeProvider({
-          provider: context.provider,
-          reason: error.reason,
-          observationHash: error.observationHash,
-          resetAt: error.resetAt,
-          ...(context.admissionDirectory === undefined
-            ? {}
-            : { directory: context.admissionDirectory }),
-        });
+        await pauseKnowledgeProviderFailure(context, error);
         return { status: "deferred", reason: "knowledge_provider_paused" };
       }
       return { status: "failed", usage: null };
@@ -203,7 +216,12 @@ export async function generateFreshnessProposal(input: {
       admissionObservationHash: admission.observationHash,
       usage: result.usage,
     });
-    return { status: "generated", value: result.value, usage: result.usage };
+    return {
+      status: "generated",
+      provider: context.provider,
+      value: result.value,
+      usage: result.usage,
+    };
   } finally {
     await admission.release();
   }

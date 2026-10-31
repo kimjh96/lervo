@@ -35,7 +35,6 @@ import {
   writeManagedUserService,
   type ManagedServiceStatus,
 } from "./managed-user-service-write.js";
-import { resolveServiceToolDirectories } from "./service-tool-directories.js";
 import type { UpgradeStageBlocker } from "./upgrade-stage-inspection.js";
 import type { StageDisposition } from "./upgrade-stage-policy.js";
 
@@ -202,23 +201,12 @@ async function prepareHostService(ports: KnowledgeHostServicePorts): Promise<Pre
     configReading.status === "loaded"
       ? configReading.config
       : { schemaVersion: 1, userStateDirectory, provider: null };
-  const tools = await resolveServiceToolDirectories({
-    providers: [...new Set(candidates.wanted.values())],
-    searchPath: ports.environment.PATH,
-  });
-  if (tools.missing.length > 0)
-    return notApplicable("service_tool_unresolved", counts, "blocked", [
-      {
-        code: "service_tool_unresolved",
-        message: `The host resident needs ${tools.missing.join(", ")}, but no directory on this shell's PATH provides it. Install it or add its directory to PATH, then rerun \`lervo upgrade\`.`,
-      },
-    ]);
   const identity = { manager, runtime: RUNTIME, instance: null };
   const definition = formatRuntimeServiceDefinition({
     ...identity,
     executable,
     nodeExecutable,
-    pathDirectories: tools.directories,
+    pathDirectories: [],
     config: configPath,
   }) as string;
   const options = { homeDirectory: ports.homeDirectory, platform: ports.platform, uid: ports.uid };
@@ -252,7 +240,7 @@ async function prepareHostService(ports: KnowledgeHostServicePorts): Promise<Pre
     definition,
     installed,
     config,
-    coordinates: { executable, nodeExecutable, configPath, pathDirectories: tools.directories },
+    coordinates: { executable, nodeExecutable, configPath, pathDirectories: [] },
   });
   if (!status.managerAvailable)
     return prepared("blocked", "service_manager_unavailable", "none", [

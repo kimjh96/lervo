@@ -1,3 +1,5 @@
+import { pauseKnowledgeProviderFailure } from "./provider-failure-pause.js";
+import { admittedBackgroundContext, backgroundProviderOptions } from "./background-provider.js";
 import { reserveConvergenceProviderCall } from "./provider-budget.js";
 import {
   createNoCapabilityProviderJsonRunner,
@@ -5,7 +7,7 @@ import {
 } from "@lervo/repository-knowledge-compiler";
 import { canonicalJson, sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 
-import { acquireKnowledgeProviderAdmission, pauseKnowledgeProvider } from "./provider-admission.js";
+import { acquireKnowledgeProviderAdmission } from "./provider-admission.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { recordKnowledgeWorkerMeasurement } from "./knowledge-worker-measurement.js";
 import type { SemanticReviewContextDocument } from "./review-context.js";
@@ -63,15 +65,7 @@ export async function withKnowledgeProviderAdmission<T>(input: {
     return await input.run(admission.observationHash, controller.signal);
   } catch (error) {
     if (error instanceof KnowledgeProviderAvailabilityError)
-      await pauseKnowledgeProvider({
-        provider: context.provider,
-        reason: error.reason,
-        observationHash: error.observationHash,
-        resetAt: error.resetAt,
-        ...(context.admissionDirectory === undefined
-          ? {}
-          : { directory: context.admissionDirectory }),
-      });
+      await pauseKnowledgeProviderFailure(context, error);
     if (controller.signal.aborted) {
       if (context.signal.aborted) throw new KnowledgeConvergenceRuntimeError("knowledge_cancelled");
       throw controller.signal.reason;
@@ -101,6 +95,7 @@ export async function reviewKnowledgeJson(input: {
   admissionObservationHash: string;
   observationArtifactHash: string;
 }> {
+  input = { ...input, context: await admittedBackgroundContext(input.context) };
   await input.authority.assertCurrent();
   input.context.assertSource(input.state);
   const cache = {
@@ -109,7 +104,7 @@ export async function reviewKnowledgeJson(input: {
     key: sha256(
       canonicalJson([
         input.context.provider,
-        input.context.executable ?? null,
+        input.context.providerCliIdentityHash ?? null,
         input.state.obligationId,
         input.state.snapshotHash,
         input.state.baseline.delegationHash,
@@ -138,8 +133,7 @@ export async function reviewKnowledgeJson(input: {
     ...input,
     run: async (admissionObservationHash, signal) => {
       const runner = await createNoCapabilityProviderJsonRunner({
-        provider: input.context.provider,
-        ...(input.context.executable === undefined ? {} : { executable: input.context.executable }),
+        ...backgroundProviderOptions(input.context),
         systemPrompt: input.prompt,
         timeoutMs: 300_000,
       });

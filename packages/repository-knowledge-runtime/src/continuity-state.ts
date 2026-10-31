@@ -1,3 +1,4 @@
+import type { ProviderCliAdmissionProjection } from "@lervo/sync-contract";
 import { resolve } from "node:path";
 
 import type {
@@ -19,6 +20,7 @@ export interface ContinuityPeerSummary extends ContinuityPeerObservation {
   hostHash: string;
   ownerRole: string | null;
   residentState: string | null;
+  providerAdmission?: ProviderCliAdmissionProjection;
 }
 
 export interface ConvergenceContinuityState {
@@ -46,6 +48,7 @@ export interface ConvergenceContinuityState {
   hub: { status: "ok" | "unavailable" | "not_configured"; failureCode: string | null };
   peers: ContinuityPeerSummary[];
   findings: ContinuityFinding[];
+  providerAdmission?: ProviderCliAdmissionProjection;
 }
 
 const MAXIMUM_STATE_BYTES = 64 * 1024;

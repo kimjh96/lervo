@@ -134,6 +134,7 @@ function fleet(policyPath: string, clock: { now: number }) {
     records,
     continuity: (host: Host) =>
       new ConvergenceContinuity({
+        providerAdmission: async () => null,
         storage: host.storage,
         policyPath,
         hubCandidates: async () => [{ source: "node_runtime" as const, hub }],

@@ -164,3 +164,9 @@ export {
   convergenceDelegationAgentIds,
   retireSupersededConvergenceAgents,
 } from "./convergence-roster.js";
+
+export { createChangeReviewHost } from "./change-review-host.js";
+
+export { admittedBackgroundContext, backgroundProviderOptions } from "./background-provider.js";
+
+export { createBackgroundNormalizationCompiler } from "./background-normalization-compiler.js";

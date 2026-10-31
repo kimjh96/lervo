@@ -16,7 +16,10 @@ import {
 } from "@lervo/repository-knowledge";
 
 import type { KnowledgeReviewCallGovernor } from "./knowledge-review-governance.js";
-import { createNoCapabilityProviderJsonRunner } from "./process-compiler.js";
+import {
+  type CreateProcessSemanticCompilerOptions,
+  createNoCapabilityProviderJsonRunner,
+} from "./process-compiler.js";
 
 export type RepositoryKnowledgeWorkerProvider = "claude" | "codex";
 
@@ -52,6 +55,10 @@ export function createNoCapabilityKnowledgeReviewHost(
   provider: RepositoryKnowledgeWorkerProvider,
   executable?: string,
   governor?: KnowledgeReviewCallGovernor,
+  invocation?: Pick<
+    CreateProcessSemanticCompilerOptions,
+    "environment" | "identityHash" | "beforeCall" | "onCall"
+  >,
 ): RepositoryKnowledgeWorkerHost {
   let context: SemanticReviewContextDocument[] = [];
   const assertReviewContextCurrent = () => assertCanonicalReviewContextCurrent(root, context);
@@ -66,6 +73,7 @@ export function createNoCapabilityKnowledgeReviewHost(
         sourcePaths: sources.map((source) => source.path),
       });
       const runner = await createNoCapabilityProviderJsonRunner({
+        ...invocation,
         provider,
         ...(executable === undefined ? {} : { executable }),
         systemPrompt,

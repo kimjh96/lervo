@@ -1,5 +1,7 @@
 import {
   runAutonomousKnowledgeWorker,
+  createChangeReviewHost,
+  admittedBackgroundContext,
   startAutonomousKnowledgeWorker,
   type ConvergenceOwnerVerdict,
 } from "@lervo/repository-knowledge-runtime";
@@ -53,13 +55,23 @@ export async function runKnowledgeWorker(input: {
           : { maximumStages: Math.min(8, input.maximumJobs) }),
       });
     }
+    const selected =
+      input.host === undefined
+        ? await admittedBackgroundContext({ storage, provider: input.provider })
+        : null;
     return await runRepositoryKnowledgeWorker({
       repositoryRoot: storage.paths.repositoryRoot,
       events: storage.events,
       artifacts: storage.artifacts,
       workerId: `cli-${process.pid}`,
       provider: input.provider,
-      ...(input.host === undefined ? {} : { host: input.host }),
+      host:
+        input.host ??
+        createChangeReviewHost({
+          ...selected!,
+          signal: new AbortController().signal,
+          liveWorkPending: async () => false,
+        }),
       ...(input.maximumJobs === undefined ? {} : { maximumJobs: input.maximumJobs }),
     });
   } finally {

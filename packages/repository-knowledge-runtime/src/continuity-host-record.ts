@@ -1,3 +1,4 @@
+import type { ProviderCliAdmissionProjection } from "@lervo/sync-contract";
 import {
   knowledgeConvergenceScopeHash,
   type KnowledgeConvergenceHostRecord,
@@ -32,6 +33,7 @@ export function continuityHostRecord(input: {
   publicationStatus: string | null;
   health: KnowledgeResidentHealth | null;
   findings: readonly ContinuityFinding[];
+  providerAdmission?: ProviderCliAdmissionProjection | null;
 }): KnowledgeConvergenceHostRecord {
   const observation = input.continuity.delegation;
   const scope =
@@ -46,6 +48,7 @@ export function continuityHostRecord(input: {
       ? input.health.reason
       : null;
   return {
+    ...(input.providerAdmission == null ? {} : { providerAdmission: input.providerAdmission }),
     schemaVersion: 1,
     projectId: input.projectId,
     repositoryIdentityHash: input.repositoryIdentityHash,
@@ -90,6 +93,9 @@ export function continuityPeerSummary(
   record: KnowledgeConvergenceHostRecord,
 ): ContinuityPeerSummary {
   return {
+    ...(record.providerAdmission === undefined
+      ? {}
+      : { providerAdmission: record.providerAdmission }),
     hostHash: record.hostHash,
     hostLabel: record.hostLabel,
     observedAt: record.observedAt,

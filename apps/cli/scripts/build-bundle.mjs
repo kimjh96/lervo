@@ -55,6 +55,7 @@ await build({
   outfile: "apps/cli/dist/terminal-hook.js",
   bundle: true,
   minify: true,
+  charset: "utf8",
   banner: {
     js: 'import { createRequire as __lervoCreateRequire } from "node:module"; var require = __lervoCreateRequire(import.meta.url);',
   },

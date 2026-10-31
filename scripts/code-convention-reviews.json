@@ -123,9 +123,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:e77f26644180ffcf13ca6b67cd2b8baef77cb02e3b7cb7b91b13c725c8805e75",
+      "contentHash": "sha256:90dc981818fdb1919df8561b85ad875937340c80ffea01585a01e5c0da0a5192",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns the event payload privacy boundary and its declarative registry. Context-quality field and semantic rules live in context-quality-payload.ts; adding that registry does not couple artifact storage, plan preparation, or writer activation into redaction.",
+      "rationale": "The module owns the common event privacy boundary. The additive provider admission allowlists and schema names remain declarative catalog entries; provider output interpretation, executable identity, persistence, and scheduling stay in their owning adapters. The sanitizer and validation lifecycle are unchanged.",
       "disposition": "cohesive"
     },
     {
@@ -175,13 +175,6 @@
       "contentHash": "sha256:3bb4954265db781ad4c21303ef373d8573079ae2d7289b100b619b8de73258e4",
       "responsibility": "Document-layout contract validation",
       "rationale": "Declarative validation of one tracked layout contract: capacity, roles, routes with their prose descriptions, and legacy title terms read only for compatibility all report through the same JSON-pointer issue collector; loading, upgrade, and serialization live in the taxonomy module.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:e3047094c18228b7cbb1b03ccd3b931a80e072213372cce406b88cfb14b9896b",
-      "responsibility": "Isolated no-capability provider process adapter",
-      "rationale": "One isolated no-capability process boundary for both providers with native structured JSON output, shared availability translation, typed Codex failures, and the ADR-0479 reviewer-feedback instruction it adds only to envelopes carrying feedback. Admission, budgets, source policy and document effects stay outside. Common tests cover schema delivery, extraction, no tools, usage, cancellation and timeout.",
       "disposition": "cohesive"
     },
     {
@@ -340,9 +333,9 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:2183f5e1afcae686ff01e69803e124195ae2daaf4401d69d4d2e6a035b8b3f25",
+      "contentHash": "sha256:a4dd80bf92e031978faacd92c8b452852efdeb19e1be77904e9d0233c89bfb5f",
       "responsibility": "Declarative schema registration catalog",
-      "rationale": "The module declares the unchanged schema-name mapping and forward-reference catalog used by build-time generation and public type names. It contains no compiler initialization, runtime validation, filesystem access, provider policy or artifact publication. Those responsibilities live in separate owners.",
+      "rationale": "The module is the declarative schema-name catalog used by validation and generation. New provider admission payload entries use that same mapping lifecycle; parsing, redaction, provider behavior, and persistence remain outside the catalog.",
       "disposition": "cohesive"
     },
     {

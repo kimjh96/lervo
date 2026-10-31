@@ -70,6 +70,17 @@ function hubFailure(detail: string | null): string {
 /** The exact next step for one continuity finding; the system retries everything else itself. */
 export function continuityRemediation(finding: ContinuityFinding): string {
   switch (finding.code) {
+    case "provider_cli_detected":
+    case "provider_cli_admitted":
+      return "Provider admission follows the installed executable identity and rechecks changes before use.";
+    case "provider_cli_rejected":
+      return `The installed CLI failed its no-capability contract (${finding.detail}). Provider admission retries detection and uses an admitted allowed provider when available.`;
+    case "provider_detection_failed":
+      return `The login-shell lookup failed (${finding.detail}); provider admission continues with well-known install locations and retries detection.`;
+    case "provider_not_admitted":
+      if (finding.detail?.includes(":paused:"))
+        return "Provider admission re-probes a pause without a reset time after its backoff, when delegation allows that candidate. A known reset keeps its exact expiry.";
+      return "No allowed installed provider passes the no-capability contract. Provider admission retries detection; background work resumes when a provider is admitted.";
     case "delegation_missing":
       return finding.severity === "owner_decision"
         ? `Another host converges this repository, but this host has no delegation and no continuity policy to seed one. Install the host policy once from a repository with a reviewed delegation (${INSTALL_POLICY}); every resident on this host then seeds itself.`

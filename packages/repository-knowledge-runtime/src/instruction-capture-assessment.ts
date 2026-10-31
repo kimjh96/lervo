@@ -1,3 +1,5 @@
+import { pauseKnowledgeProviderFailure } from "./provider-failure-pause.js";
+import { admittedBackgroundContext, backgroundProviderOptions } from "./background-provider.js";
 import { documentIdForPath } from "@lervo/context";
 import { createTurnMeasurement, recordTurnMeasurement } from "@lervo/execution-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
@@ -13,7 +15,7 @@ import {
 } from "@lervo/repository-knowledge-compiler";
 
 import { knowledgeReviewCallCeiling } from "./change-review-host.js";
-import { acquireKnowledgeProviderAdmission, pauseKnowledgeProvider } from "./provider-admission.js";
+import { acquireKnowledgeProviderAdmission } from "./provider-admission.js";
 
 export const INSTRUCTION_CAPTURE_STAGE = "instruction_capture";
 /** Background assessment never blocks a hook, so it may wait for a slow provider start. */
@@ -34,14 +36,20 @@ export interface InstructionCaptureContext {
 }
 
 export type InstructionCaptureAssessmentCall =
-  | { status: "assessed"; value: unknown; usage: ProviderJsonUsage | null }
+  | {
+      status: "assessed";
+      provider: "codex" | "claude";
+      value: unknown;
+      usage: ProviderJsonUsage | null;
+    }
   | { status: "failed" }
   | {
       status: "deferred";
       reason:
         | "knowledge_authority_unavailable"
         | "knowledge_capacity_unavailable"
-        | "knowledge_provider_paused";
+        | "knowledge_provider_paused"
+        | "provider_not_admitted";
     };
 
 /**
@@ -111,7 +119,20 @@ export async function assessInstructionCapture(input: {
   catalogEntries: ReadonlyArray<{ path: string; contentHash: string; excerpt: string }>;
   sourceRevision: string;
 }): Promise<InstructionCaptureAssessmentCall> {
-  const { context } = input;
+  let context;
+  try {
+    context = await admittedBackgroundContext(input.context);
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (
+      code === "provider_not_admitted" ||
+      code === "knowledge_provider_paused" ||
+      code === "knowledge_capacity_unavailable" ||
+      code === "knowledge_authority_unavailable"
+    )
+      return { status: "deferred", reason: code };
+    throw error;
+  }
   try {
     await knowledgeReviewCallCeiling({
       storage: context.storage,
@@ -148,8 +169,7 @@ export async function assessInstructionCapture(input: {
     let result: { value: unknown; usage: ProviderJsonUsage | null };
     try {
       const runner = await createNoCapabilityProviderJsonRunner({
-        provider: context.provider,
-        ...(context.executable === undefined ? {} : { executable: context.executable }),
+        ...backgroundProviderOptions(context),
         systemPrompt: instructionCaptureAssessmentInstruction,
         timeoutMs: ASSESSMENT_TIMEOUT_MILLISECONDS,
       });
@@ -161,21 +181,18 @@ export async function assessInstructionCapture(input: {
     } catch (error) {
       await recordCaptureUsage({ ...measured, usage: null });
       if (error instanceof KnowledgeProviderAvailabilityError) {
-        await pauseKnowledgeProvider({
-          provider: context.provider,
-          reason: error.reason,
-          observationHash: error.observationHash,
-          resetAt: error.resetAt,
-          ...(context.admissionDirectory === undefined
-            ? {}
-            : { directory: context.admissionDirectory }),
-        });
+        await pauseKnowledgeProviderFailure(context, error);
         return { status: "deferred", reason: "knowledge_provider_paused" };
       }
       return { status: "failed" };
     }
     await recordCaptureUsage({ ...measured, usage: result.usage });
-    return { status: "assessed", value: result.value, usage: result.usage };
+    return {
+      status: "assessed",
+      provider: context.provider,
+      value: result.value,
+      usage: result.usage,
+    };
   } finally {
     await admission.release();
   }

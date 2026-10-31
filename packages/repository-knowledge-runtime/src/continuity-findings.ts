@@ -48,9 +48,15 @@ export type ContinuityFindingCode =
   // ADR-0470 resident admission, observed from resident health and the host resident status.
   | "event_schema_outdated"
   | "continuity_pending"
-  | "host_resident_scan_stalled";
+  | "host_resident_scan_stalled"
+  | "provider_cli_detected"
+  | "provider_cli_admitted"
+  | "provider_cli_rejected"
+  | "provider_detection_failed"
+  | "provider_not_admitted";
 
 export interface ContinuityFinding {
+  actor?: "provider admission";
   code: ContinuityFindingCode;
   severity: ContinuityFindingSeverity;
   /** A closed code or a host label, never a path, URL, or message. */

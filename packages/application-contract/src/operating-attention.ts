@@ -194,6 +194,7 @@ export interface KnowledgeConvergenceContinuityAttentionItemV1 extends Operating
   kind: "knowledge_convergence_continuity";
   state: "action_required" | "observed";
   findingCode: string;
+  actor?: "provider admission";
   severity: "attention" | "owner_decision";
   /** A closed cause code or a host label; never a path, URL, or message. */
   detail: string | null;

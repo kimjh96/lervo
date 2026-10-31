@@ -119,3 +119,5 @@ export * from "./instruction-preparation-report.js";
 export * from "./context-quality-verification.js";
 
 export * from "./context-quality-event.js";
+
+export * from "./provider-cli-event.js";

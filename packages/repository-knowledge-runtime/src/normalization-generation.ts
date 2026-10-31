@@ -1,3 +1,4 @@
+import { admittedBackgroundContext, backgroundProviderOptions } from "./background-provider.js";
 import { assertConvergenceDelegation } from "./delegation.js";
 import type { captureConvergenceSources } from "./source-capture.js";
 import {
@@ -127,9 +128,9 @@ export async function generateNormalizationBatch(
       reason: NORMALIZATION_OUTSIDE_DELEGATION,
       dependency: normalizationScopeGap(state, sorted),
     });
+  const admittedContext = await admittedBackgroundContext(context);
   const compiler = await createProcessDocumentNormalizationCompiler({
-    provider: context.provider,
-    ...(context.executable === undefined ? {} : { executable: context.executable }),
+    ...backgroundProviderOptions(admittedContext),
     timeoutMs: 600_000,
   });
   const sizes = new Map<string, number>();
@@ -191,14 +192,14 @@ export async function generateNormalizationBatch(
     });
   return withConvergenceAssignment({
     storage: context.storage,
-    provider: context.provider,
+    provider: admittedContext.provider,
     stage: "normalization_generation",
     role: "generator",
     state,
     paths: bounded,
     assertLease,
     run: (authority) =>
-      generate(context, state, bounded, authority, compiler, {
+      generate(admittedContext, state, bounded, authority, compiler, {
         feedback: new Map(
           bounded.flatMap((path) => {
             const feedback = admission.regenerate.get(path);

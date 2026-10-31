@@ -335,7 +335,7 @@ export async function runInstructionCaptureCycle(
       counts.usageObserved += tokens;
       try {
         outcome = await settle({
-          context,
+          context: { ...context, provider: call.provider },
           capture,
           assessment: parseInstructionCaptureAssessment(call.value),
           catalog,

@@ -87,3 +87,51 @@ describe("knowledge convergence host record", () => {
     });
   });
 });
+
+it("exchanges detected and admitted provider versions while rejecting paths and provider output", () => {
+  const providerAdmission: NonNullable<KnowledgeConvergenceHostRecord["providerAdmission"]> = {
+    observedAt: "2026-10-31T00:00:00Z",
+    detectionFailure: null,
+    waiting: false,
+    selected: { provider: "claude", version: "2.1.308" },
+    providers: [
+      {
+        provider: "codex",
+        version: "0.166.0",
+        executableHash: `sha256:${"a".repeat(64)}`,
+        admitted: false,
+        reason: "capabilities_exposed",
+        exposedTools: ["exec", "spawn_agent"],
+      },
+      {
+        provider: "claude",
+        version: "2.1.308",
+        executableHash: `sha256:${"b".repeat(64)}`,
+        admitted: true,
+        reason: null,
+        exposedTools: [],
+      },
+    ],
+  };
+  const incoming = hostRecord({ providerAdmission });
+  expect(isKnowledgeConvergenceHostRecord(incoming)).toBe(true);
+  expect(
+    mergeKnowledgeConvergenceHostRecord({ current: null, incoming }).next.providerAdmission,
+  ).toEqual(providerAdmission);
+  expect(isKnowledgeConvergenceHostRecord(hostRecord())).toBe(true);
+  expect(
+    isKnowledgeConvergenceHostRecord({
+      ...incoming,
+      providerAdmission: { ...providerAdmission, executable: "/private/bin/claude" },
+    }),
+  ).toBe(false);
+  expect(
+    isKnowledgeConvergenceHostRecord({
+      ...incoming,
+      providerAdmission: {
+        ...providerAdmission,
+        providers: [{ ...providerAdmission.providers[0], exposedTools: ["private raw output"] }],
+      },
+    }),
+  ).toBe(false);
+});
