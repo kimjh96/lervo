@@ -3,6 +3,17 @@ import { describe, expect, it } from "vitest";
 import { continuityRemediation } from "../src/knowledge-continuity-remediation.js";
 
 describe("continuity remediation for resident admission (ADR-0470)", () => {
+  it("names the failed cycle code and the JSON doctor command", () => {
+    const remedy = continuityRemediation({
+      code: "resident_cycle_failed",
+      severity: "attention",
+      detail: "source_bytes_changed",
+    });
+    expect(remedy).toContain("source_bytes_changed");
+    expect(remedy).toContain("lervo knowledge convergence doctor --json");
+    expect(remedy).toContain("lastFailure");
+  });
+
   it("never asks for a Node or a manual worker while the host resident serves the checkout", () => {
     const pending = continuityRemediation({
       code: "continuity_pending",

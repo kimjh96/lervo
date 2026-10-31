@@ -7,6 +7,7 @@ import {
   readConvergenceContinuityPolicy,
   readConvergenceOwnerHost,
   type ContinuityFinding,
+  type ConvergenceContinuityInspection,
   type ContinuityPeerSummary,
 } from "@lervo/repository-knowledge-runtime";
 import { createHubKnowledgeConvergenceHostClient } from "@lervo/sync";
@@ -34,6 +35,7 @@ export interface ContinuityDoctorRepository {
   verdict: { role: string; holderLabel: string | null } | null;
   publication: string | null;
   resident: string | null;
+  lastFailure: ConvergenceContinuityInspection["lastFailure"];
   peers: { source: "hub" | "cached"; hosts: ContinuityPeerSummary[] };
   findings: ContinuityDoctorFinding[];
 }
@@ -131,6 +133,7 @@ async function inspectRepository(
         : { role: inspection.verdict.role, holderLabel: inspection.verdict.holder?.label ?? null },
     publication: inspection.publicationStatus,
     resident: inspection.resident?.state ?? inspection.resident?.status ?? null,
+    lastFailure: inspection.lastFailure,
     peers,
     findings: findings.map((finding) => ({
       ...finding,

@@ -31,6 +31,7 @@ Implemented and source-tested: a legacy-version peer fails the cycle at `protoco
 
 ## Open installed acceptance
 
+- A failed resident cycle retains its bounded code and typed detail after a restart. Doctor JSON exposes `lastFailure`, attention names the code, and the next completed cycle clears both. Focused regression tests are written; execution and installed acceptance remain pending.
 - On the Mac, `lervo upgrade --apply` activates schema 4 for axli, plen, shiflo, and digimon, installs `com.lervo.knowledge.host`, and the doctor shows each served.
 - Mac and WSL adopt the policy; every registered repository reports an active delegation on both hosts.
 - A delegation renews inside its window on an installed host without owner input.

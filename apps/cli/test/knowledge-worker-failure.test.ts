@@ -40,7 +40,7 @@ it("keeps native errors and invalid codes code-only", () => {
       Object.assign(new Error("ENOENT: /Users/someone/private/file"), { code: "Not A Code" }),
       "/work/repo",
     ),
-  ).toBe("Knowledge convergence failed in /work/repo: knowledge_job_transient_failure\n");
+  ).toBe("Knowledge convergence failed in /work/repo: unclassified_failure\n");
   expect(knowledgeWorkerFailureLine({ code: "knowledge_source_unsafe" }, "/work/repo")).toBe(
     "Knowledge convergence failed in /work/repo: knowledge_source_unsafe\n",
   );

@@ -19,6 +19,7 @@ import { decideDelegationRenewal } from "./delegation-continuity-decision.js";
 import { readKnowledgePublicationState } from "./knowledge-publication-state.js";
 import { inspectKnowledgeResidentHealth, type KnowledgeResidentHealth } from "./resident-health.js";
 import { observeResidentHost, type ResidentHostObservation } from "./resident-host-observation.js";
+import { readResidentCycleState, type ResidentCycleFailure } from "./resident-cycle-state.js";
 
 export interface ConvergenceContinuityInspection {
   delegation: ContinuityDelegationObservation;
@@ -27,6 +28,7 @@ export interface ConvergenceContinuityInspection {
   verdict: ConvergenceOwnerVerdict | null;
   publicationStatus: string | null;
   resident: KnowledgeResidentHealth | null;
+  lastFailure: ResidentCycleFailure | null;
   findings: ContinuityFinding[];
 }
 
@@ -67,7 +69,7 @@ export async function inspectConvergenceContinuity(input: {
   } catch {
     delegation = { state: "invalid" };
   }
-  const [state, fence, publication, resident, residentHost] = await Promise.all([
+  const [state, fence, publication, resident, residentHost, residentCycle] = await Promise.all([
     readConvergenceContinuityState(root),
     readConvergenceOwnerFence(root),
     readKnowledgePublicationState(root).catch(() => null),
@@ -75,6 +77,7 @@ export async function inspectConvergenceContinuity(input: {
     input.residentHost !== undefined
       ? Promise.resolve(input.residentHost)
       : observeResidentHost(root, new Date(now)).catch(() => null),
+    readResidentCycleState(root),
   ]);
   const policyActive = policy.status === "loaded" && policy.policy.state === "active";
   const expected = delegation.state !== "missing" || policyActive;
@@ -106,6 +109,7 @@ export async function inspectConvergenceContinuity(input: {
       residentHold: resident?.status === "degraded" ? resident.reason : null,
       residentHost,
       owner: fence?.verdict.role === "owner",
+      residentCycle,
     }),
   ];
   return {
@@ -115,6 +119,7 @@ export async function inspectConvergenceContinuity(input: {
     verdict: fence?.verdict ?? null,
     publicationStatus: publication?.status ?? null,
     resident,
+    lastFailure: residentCycle?.lastFailure ?? null,
     findings,
   };
 }

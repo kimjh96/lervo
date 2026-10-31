@@ -40,13 +40,14 @@ Canonical event appends and repository edits wake the resident and reset the str
 
 ## Private cycle state
 
-`.lervo/state/knowledge/resident-cycle.json` contains `{ schemaVersion: 1, fingerprint, lastCycleAt, lastResult, idleStreak, nextReconcileAt }`.
+`.lervo/state/knowledge/resident-cycle.json` contains `{ schemaVersion: 1, fingerprint, lastCycleAt, lastResult, idleStreak, nextReconcileAt, lastFailure? }`.
 
 - `lastResult`: `idle`, `waiting`, `attention`, `processed` or `failed`.
 - `lastCycleAt`: start of the last full cycle.
 - `fingerprint`: `null` after a failed cycle or unreadable fence.
+- `lastFailure`: `{ code, detail, at }` after failure, `null` after a completed cycle. Readers accept its absence in older state. The [continuity specification](../../ownership-and-activation/continuity.md#resident-cycle-failure-diagnostics) defines code, detail, privacy, and doctor output.
 
-The file contains only digests, counts and timestamps, with no paths or bodies. It is written atomically with mode `0600`.
+The file contains digests, counts, timestamps, and one bounded failure diagnostic. Typed Lervo failure detail may contain repository-relative paths, never bodies. It is written atomically with mode `0600` and bounded to 4 KiB.
 
 A missing, oversized or invalid file forces the next full cycle. Write failures are ignored: in-memory state continues, and the file is rebuildable.
 

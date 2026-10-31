@@ -187,6 +187,7 @@ export function startAutonomousKnowledgeWorker(input: {
     await reconcileContinuity();
     const observedOwner = await observeOwnership();
     const cycle = await runResidentCycle({
+      repositoryRoot: root,
       previous,
       now: Date.now,
       ceilingMilliseconds: ceiling,

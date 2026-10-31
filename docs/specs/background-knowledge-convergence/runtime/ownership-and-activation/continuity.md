@@ -152,11 +152,20 @@ The doctor reports every finding. `lervo application attention` reports those of
 | `definition_exchange_unavailable`                                   | attention                                                                 | Bound definitions could not be shared, with the Hub cause                                                                                                                                             |
 | `peer_delegation_expiring`                                          | attention without a peer policy, else info                                | A peer host's grant lapses within 72 hours                                                                                                                                                            |
 | `continuity_unobserved`, `continuity_stale`, `resident_not_running` | attention                                                                 | No resident reconciles this checkout                                                                                                                                                                  |
+| `resident_cycle_failed`                                             | attention                                                                 | The latest resident cycle failed, with its stable code       |
 | `hook_runtime_stale`                                                | attention                                                                 | The generated terminal hook runtime predates the CLI                                                                                                                                                  |
 | `event_schema_outdated`                                             | attention                                                                 | A resident is held because the writer is older than schema 4                                                                                                                                          |
 | `convergence_attention`                                             | attention                                                                 | The owner's resident stopped convergence for the closed cause in its detail ([ADR-0530](../../../../decisions/knowledge/maintenance/0530-keep-background-knowledge-moving-past-divergent-targets.md)) |
 
 Informational codes are `continuity_pending` (the host resident serves the checkout but has not reconciled yet), `delegation_revoked`, `policy_absent`, `policy_revoked`, `owner_host_standalone`, `publication_unavailable`, `peer_delegation_missing`, and `peer_unreported`.
+
+### Resident cycle failure diagnostics
+
+Local inspection reads the latest `.lervo/state/knowledge/resident-cycle.json`. A `failed` result adds `resident_cycle_failed` with severity `attention`. Its detail is `lastFailure.code`, or `unclassified_failure` for an older failed state without the field. The attention item names that code and points to `lervo knowledge convergence doctor --json`. It is nonblocking and requires no owner decision.
+
+Each repository in doctor JSON includes `lastFailure: { code, detail, at } | null`. The code matches `^[a-z][a-z0-9_]{2,80}$` or becomes `unclassified_failure`. Typed Lervo failures retain at most 300 message characters on one line, with the repository root shortened to `.`. Native and provider failures have `detail: null`. `at` is the failure timestamp. A completed cycle clears the record and the finding. Old state files without `lastFailure` remain readable.
+
+The owner-only state remains atomic, mode `0600`, and bounded to 4 KiB. It replaces the previous failure rather than retaining history. Typed detail may contain repository-relative paths. It excludes source bodies, prompts, and native or provider error text. Attention items and peer finding codes carry no diagnostic message. This adds no event type.
 
 ## Per-host rollout
 

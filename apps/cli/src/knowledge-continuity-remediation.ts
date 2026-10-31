@@ -127,6 +127,8 @@ export function continuityRemediation(finding: ContinuityFinding): string {
       return `Continuity was last reconciled more than two hours ago, so the resident for this checkout is not running. ${residentHost(finding.detail, "Run lervo knowledge convergence doctor again after the host resident's next scan.")}`;
     case "resident_not_running":
       return `No knowledge resident heartbeat exists for this checkout. ${residentHost(finding.detail, "Start its Node, or run lervo upgrade to install the host resident service.")}`;
+    case "resident_cycle_failed":
+      return `The latest knowledge resident cycle failed (${finding.detail ?? "unclassified_failure"}). Run ${DOCTOR} --json to inspect lastFailure. The resident retries automatically.`;
     case "host_resident_scan_stalled":
       return "The host knowledge resident keeps its heartbeat, but its repository scan has not finished for over ten minutes; knowledge-host-resident.json in the Lervo user state directory names the checkout it is opening. Restart the service (launchctl kickstart -k gui/$UID/com.lervo.knowledge.host, or systemctl --user restart lervo-knowledge-host.service) and report the named checkout if it recurs.";
     case "continuity_pending":
