@@ -1,4 +1,4 @@
-import { parse } from "@babel/parser";
+import { parse, type ParserPlugin } from "@babel/parser";
 import { extname } from "node:path";
 
 import { RepositoryKnowledgeError } from "./types.js";
@@ -129,6 +129,9 @@ export function extractJavaScriptSymbolSpans(source: string, path: string): Java
   const extension = extname(path).toLowerCase();
   const typescript =
     extension === ".ts" || extension === ".tsx" || extension === ".mts" || extension === ".cts";
+  // Declaration files (`.d.ts`, `.d.mts`, `.d.cts`) are ambient: `export const X: T;` has no
+  // initializer. Parsing them as implementation files rejected valid declarations.
+  const declaration = typescript && /\.d\.[cm]?ts$/iu.test(path);
   const jsx =
     extension === ".js" ||
     extension === ".jsx" ||
@@ -141,23 +144,31 @@ export function extractJavaScriptSymbolSpans(source: string, path: string): Java
       : extension === ".cjs"
         ? "commonjs"
         : "unambiguous";
-  let program: AstNode;
-  try {
-    const parsed = parse(source, {
+  const parseProgram = (dts: boolean): AstNode =>
+    parse(source, {
       attachComment: false,
       errorRecovery: false,
       plugins: [
-        ...(typescript ? ["typescript" as const] : []),
+        ...(typescript ? [["typescript", { dts }] satisfies ParserPlugin] : []),
         ...(jsx ? ["jsx" as const] : []),
         "decorators-legacy",
       ],
       ranges: true,
       sourceType,
       tokens: false,
-    });
-    program = parsed.program as unknown as AstNode;
+    }).program as unknown as AstNode;
+  let program: AstNode;
+  try {
+    program = parseProgram(declaration);
   } catch {
-    return fail();
+    // A declaration file that also holds implementation bodies is rejected in `dts` mode; it
+    // keeps the implementation parse it always had.
+    try {
+      if (!declaration) return fail();
+      program = parseProgram(false);
+    } catch {
+      return fail();
+    }
   }
 
   const spans = new Map<string, JavaScriptSymbolSpan>();
