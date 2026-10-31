@@ -193,7 +193,11 @@ export async function observeDocumentFreshnessFindings(input: {
     input.lint ??
     (await lintRepositoryKnowledge(root, { documentStaleness: "evaluate_and_record" }));
   const report = await readRecordedDocumentStalenessReport(root);
-  const reportCurrent = report?.status === "observed" && report.currentRevision === head;
+  const reportCurrent =
+    lint.coverage === "complete" &&
+    report?.coverage === "complete" &&
+    report.status === "observed" &&
+    report.currentRevision === head;
   const sources = new Map<string, Set<DocumentFreshnessFindingSource>>();
   const add = (path: string, source: DocumentFreshnessFindingSource) =>
     sources.set(path, (sources.get(path) ?? new Set()).add(source));

@@ -6,7 +6,7 @@ import { parse, stringify } from "yaml";
 
 import {
   createKnowledgeMigrationPlanForScan,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
 } from "./compiler.js";
 import {
   applyDurableKnowledgeOperations,
@@ -163,7 +163,7 @@ export async function createKnowledgeDocumentMergePlan(input: {
     );
   }
   const [{ policy, scan }, storedConcepts] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}
@@ -476,7 +476,7 @@ export async function createKnowledgeDocumentMergePlan(input: {
     sourceSnapshotId: scan.snapshotId,
     afterSourceSnapshotId: virtualScan.snapshotId,
     policyHash,
-    coverage: scan.coverage,
+    coverage: scan.inventoryCoverage,
     registryDigest,
     afterRegistryDigest,
     source: {

@@ -44,7 +44,15 @@ function scan(snapshot = "ksnap_current"): RepositoryKnowledgeScan {
     scannerBuild: "repository-scanner-v1",
     snapshotId: snapshot,
     contentSnapshotId: snapshot,
-    coverage: { included: 2, excluded: 0, unsupported: 0, includedBytes: 24, complete: true },
+    coverage: "complete",
+    skippedForBudget: { count: 0, bytes: 0, classes: [] },
+    inventoryCoverage: {
+      included: 2,
+      excluded: 0,
+      unsupported: 0,
+      includedBytes: 24,
+      complete: true,
+    },
     sources: [],
     units: [
       {
@@ -202,6 +210,22 @@ describe("portable-skill development-pattern candidates", () => {
       reviewer: "repository-maintainer",
       reviewedAt: "2026-09-05T01:00:00.000Z",
     });
+    await expect(
+      createDevelopmentPatternPromotionPlan({
+        repositoryRoot: root,
+        projectId: "prj_candidate01",
+        candidate: candidate.candidate,
+        candidateContentHash: candidate.contentHash,
+        review: review.review,
+        reviewContentHash: review.contentHash,
+        currentScan: {
+          ...scan(),
+          coverage: "partial",
+          skippedForBudget: { count: 1, bytes: 41, classes: ["other_documents"] },
+        },
+        passedVerificationEvidence: evidence,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_source_limit_exceeded" });
     const plan = await createDevelopmentPatternPromotionPlan({
       repositoryRoot: root,
       projectId: "prj_candidate01",
@@ -245,6 +269,22 @@ describe("portable-skill development-pattern candidates", () => {
       reviewer: "repository-maintainer",
       reviewedAt: "2026-09-05T01:00:00.000Z",
     });
+    await expect(
+      createDevelopmentPatternPromotionPlan({
+        repositoryRoot: root,
+        projectId: "prj_candidate01",
+        candidate: candidate.candidate,
+        candidateContentHash: candidate.contentHash,
+        review: review.review,
+        reviewContentHash: review.contentHash,
+        currentScan: {
+          ...scan(),
+          coverage: "partial",
+          skippedForBudget: { count: 1, bytes: 41, classes: ["other_documents"] },
+        },
+        passedVerificationEvidence: evidence,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_source_limit_exceeded" });
     const plan = await createDevelopmentPatternPromotionPlan({
       repositoryRoot: root,
       projectId: "prj_candidate01",

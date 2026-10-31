@@ -1,3 +1,4 @@
+import { requireCompleteRepositoryKnowledgeCoverage } from "./scan-completeness.js";
 import { constants } from "node:fs";
 import { lstat, mkdir, open, readFile } from "node:fs/promises";
 import { basename, dirname, posix, resolve } from "node:path";
@@ -8,7 +9,10 @@ import { loadDecisionTaxonomy, type DecisionTaxonomy } from "@lervo/project";
 import { hashSkillPackageProjection } from "@lervo/skills";
 
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
-import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
+import {
+  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
+} from "./compiler.js";
 import {
   applyDurableKnowledgeOperations,
   type DurableKnowledgeDeleteOperation,
@@ -1316,6 +1320,7 @@ export interface CompileDocumentNormalizationCandidateInput {
 export async function compileDocumentNormalizationCandidateObserved(
   input: CompileDocumentNormalizationCandidateInput,
 ): Promise<DocumentNormalizationCompilationResult> {
+  requireCompleteRepositoryKnowledgeCoverage(input.scan);
   if (input.outputLanguage !== "en")
     throw new RepositoryKnowledgeError(
       "knowledge_compile_policy_violation",
@@ -2081,7 +2086,7 @@ async function prepareConfiguredDocumentNormalization(input: {
 }> {
   const root = resolve(input.repositoryRoot);
   const [{ policy, scan }, taxonomy] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}
@@ -2279,7 +2284,7 @@ export async function createDocumentNormalizationPlan(input: {
 }): Promise<DocumentNormalizationPlan> {
   const root = resolve(input.repositoryRoot);
   const [{ policy, scan }, taxonomy] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}

@@ -12,8 +12,8 @@ vi.mock("@lervo/repository-knowledge", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@lervo/repository-knowledge")>();
   return {
     ...actual,
-    scanConfiguredRepositoryKnowledge: async (
-      ...args: Parameters<typeof actual.scanConfiguredRepositoryKnowledge>
+    scanCompleteConfiguredRepositoryKnowledge: async (
+      ...args: Parameters<typeof actual.scanCompleteConfiguredRepositoryKnowledge>
     ) => {
       scan.calls += 1;
       if (scan.concurrentChanges > 0) {
@@ -23,7 +23,7 @@ vi.mock("@lervo/repository-knowledge", async (importOriginal) => {
           "The repository revision changed during the scan.",
         );
       }
-      return actual.scanConfiguredRepositoryKnowledge(...args);
+      return actual.scanCompleteConfiguredRepositoryKnowledge(...args);
     },
   };
 });

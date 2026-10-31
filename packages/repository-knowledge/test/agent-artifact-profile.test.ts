@@ -199,7 +199,7 @@ describe("repository agent artifact profiles", () => {
     expect(scan.units).not.toContainEqual(
       expect.objectContaining({ path: expect.stringContaining("preview.png") }),
     );
-    expect(scan.coverage).toMatchObject({ included: 2, unsupported: 0 });
+    expect(scan.inventoryCoverage).toMatchObject({ included: 2, unsupported: 0 });
   });
 
   it("distinguishes repository provider directories from nested project surfaces", () => {

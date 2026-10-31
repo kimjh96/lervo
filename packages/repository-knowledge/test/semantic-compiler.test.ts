@@ -88,6 +88,28 @@ afterEach(async () => {
 });
 
 describe("repository semantic compiler contract", () => {
+  it("rejects partial prepared scans before invoking a compiler", async () => {
+    const complete = await fixtureScan();
+    let calls = 0;
+    await expect(
+      compileRepositoryKnowledgeCandidate({
+        scan: {
+          ...complete,
+          coverage: "partial",
+          skippedForBudget: { count: 1, bytes: 64, classes: ["other_documents"] },
+          inventoryCoverage: { ...complete.inventoryCoverage, complete: false },
+        },
+        policyHash,
+        compiler: compiler("codex", async (envelope) => {
+          calls += 1;
+          return response(envelope);
+        }),
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_source_limit_exceeded" });
+    expect(calls).toBe(0);
+  });
+
   for (const provider of ["codex", "claude"] as const) {
     it(`${provider} receives malicious repository text only inside a no-capability data envelope`, async () => {
       const scan = await fixtureScan();

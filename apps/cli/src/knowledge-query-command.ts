@@ -116,6 +116,7 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
         ? `${JSON.stringify({ ...result, query, projection, instructions, quality: quality.result, passages: quality.passages, recording: quality.recording, verification, verificationRecording }, null, 2)}\n`
         : [
             `Repository knowledge recommendations (${result.hits.length}; not evidence of loaded, injected, or used)`,
+            `Scan coverage: ${result.coverage}; skipped for budget: ${result.skippedForBudget.count} sources, ${result.skippedForBudget.bytes} bytes${result.skippedForBudget.classes.length ? `; classes: ${result.skippedForBudget.classes.join(", ")}` : ""}.`,
             ...result.hits.map(
               (hit) =>
                 `  ${hit.score.toString().padStart(2)}  ${hit.title} · ${hit.path} · ${hit.freshness}`,

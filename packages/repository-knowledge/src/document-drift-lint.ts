@@ -83,6 +83,7 @@ export async function lintDocumentDrift(input: {
   const oracle = repositoryPathOracle(input.root, input.scan);
   const report = await observeRepositoryDocumentStaleness({
     root: input.root,
+    coverage: input.scan.coverage,
     mode: input.staleness,
     documents: currentMarkdownDocumentSources(input.scan, input.taxonomy).map((source) => ({
       path: source.path,
@@ -102,6 +103,7 @@ export async function lintDocumentDrift(input: {
   return {
     issues: [...issues, ...documentStalenessLintIssues(report)],
     documentStaleness: {
+      coverage: report.coverage,
       status: report.status,
       currentRevision: report.currentRevision,
       ...report.counts,

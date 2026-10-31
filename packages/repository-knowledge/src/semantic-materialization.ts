@@ -11,7 +11,7 @@ import {
 } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { loadKnowledgeCompilationCandidate } from "./candidate-store.js";
-import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
+import { scanCompleteConfiguredRepositoryKnowledge } from "./compiler.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { createKnowledgeReconciliationPlan } from "./reconciliation.js";
 import {
@@ -303,7 +303,7 @@ export async function createSemanticKnowledgeMaterializationPlan(input: {
         compilationId: event.payload.compilationId as string,
       });
     })(),
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}

@@ -1,3 +1,4 @@
+import { requireCompleteRepositoryKnowledgeCoverage } from "./scan-completeness.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import {
   assertAgentProfilePattern,
@@ -207,6 +208,7 @@ export function createDevelopmentPatternCandidate(input: {
   passedVerificationEvidence?: readonly PassedWorkflowVerificationEvidence[];
   roleProfileActivationEvidence?: readonly RoleProfileActivationEvidence[];
 }): { candidate: DevelopmentPatternCandidate; content: string; contentHash: string } {
+  requireCompleteRepositoryKnowledgeCoverage(input.scan);
   const portableSkillPackage = validateProposal({
     proposal: input.proposal,
     passedVerificationEvidence: input.passedVerificationEvidence ?? [],

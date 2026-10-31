@@ -16,7 +16,7 @@ import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enfo
 import {
   createKnowledgeMigrationPlanForScan,
   recordedGeneratedKnowledgePaths,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
 } from "./compiler.js";
 import {
   relocateRepositoryKnowledgeScanSource,
@@ -181,7 +181,7 @@ export async function createKnowledgeDocumentMovePlan(input: {
   await assertSafeDestinationParents(root, toPath);
   await assertDestinationAbsent(resolve(root, toPath));
   const [{ policy, scan }, storedConcepts, generatedPaths] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}
@@ -387,7 +387,7 @@ export async function createKnowledgeDocumentMovePlan(input: {
     sourceSnapshotId: scan.snapshotId,
     afterSourceSnapshotId: virtualScan.snapshotId,
     policyHash,
-    coverage: scan.coverage,
+    coverage: scan.inventoryCoverage,
     registryDigest,
     afterRegistryDigest,
     document: { fromPath, toPath, contentHash: source.contentHash, byteCount: source.byteCount },

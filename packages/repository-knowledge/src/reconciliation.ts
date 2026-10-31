@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 import { loadProjectManifest } from "@lervo/project";
 import { loadKnowledgeCompilationCandidate } from "./candidate-store.js";
-import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
+import { scanCompleteConfiguredRepositoryKnowledge } from "./compiler.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import type { KnowledgeCompilationCandidate } from "./semantic-compiler.js";
 import { RepositoryKnowledgeError, type RepositoryKnowledgeScanOptions } from "./types.js";
@@ -154,7 +154,7 @@ export async function createKnowledgeReconciliationPlan(input: {
   const root = resolve(input.repositoryRoot);
   const [{ candidate, artifactHash }, configured, registry, project] = await Promise.all([
     loadKnowledgeCompilationCandidate({ repositoryRoot: root, compilationId: input.compilationId }),
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}

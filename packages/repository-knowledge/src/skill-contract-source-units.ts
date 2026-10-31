@@ -25,6 +25,7 @@ function fail(): never {
 
 export async function extractSkillContractUnitDescriptors(input: {
   repositoryRoot: string;
+  budgetSkippedPaths?: readonly string[];
   sources: readonly (RepositorySource & { content: string; contentHash: string })[];
 }): Promise<SkillContractUnitDescriptor[]> {
   const byPath = new Map(input.sources.map((source) => [source.path, source]));
@@ -40,6 +41,7 @@ export async function extractSkillContractUnitDescriptors(input: {
     }
     if (manifest.source.kind !== "project") return fail();
     const directory = dirname(source.path);
+    if (input.budgetSkippedPaths?.some((path) => path.startsWith(`${directory}/`))) continue;
     try {
       const packageDirectory = resolve(input.repositoryRoot, ...directory.split("/"));
       const firstHash = await hashSkillPackage(packageDirectory);

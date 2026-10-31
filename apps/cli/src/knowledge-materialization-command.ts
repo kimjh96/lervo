@@ -99,7 +99,7 @@ export async function runKnowledgeSemanticMaterialize(args: string[], io: CliIo)
             allowTransactionPlanId: plan.planId,
             supplementalSources,
           });
-          if (!validation.valid)
+          if (validation.coverage !== "complete" || !validation.valid)
             throw new RepositoryKnowledgeError(
               "knowledge_apply_failed",
               `Deterministic lint failed after semantic materialization: ${[...new Set(validation.issues.map((issue) => issue.code))].sort().join(",")}`,

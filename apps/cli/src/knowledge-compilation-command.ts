@@ -9,7 +9,7 @@ import {
   createCrossProviderFuzzyMergeCandidate,
   observeKnowledgeCompilationStability,
   runKnowledgeCompilationStabilityGate,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
   sha256,
   storeKnowledgeCompilationCandidate,
 } from "@lervo/repository-knowledge";
@@ -59,7 +59,9 @@ async function compile(args: string[], io: CliIo, usage: string): Promise<number
     ...(timeoutMs === undefined ? {} : { timeoutMs }),
   });
   const supplementalSources = await collectLocalKnowledgeSources(root);
-  const { policy, scan } = await scanConfiguredRepositoryKnowledge(root, { supplementalSources });
+  const { policy, scan } = await scanCompleteConfiguredRepositoryKnowledge(root, {
+    supplementalSources,
+  });
   const controller = new AbortController();
   const abort = (): void => controller.abort(new Error("semantic compilation cancelled"));
   process.once("SIGINT", abort);
@@ -181,7 +183,7 @@ async function stability(args: string[], io: CliIo): Promise<number> {
     ...(parsed.values.executable === undefined ? {} : { executable: parsed.values.executable }),
     ...(timeoutMs === undefined ? {} : { timeoutMs }),
   });
-  const { policy, scan } = await scanConfiguredRepositoryKnowledge(repositoryRoot, {
+  const { policy, scan } = await scanCompleteConfiguredRepositoryKnowledge(repositoryRoot, {
     supplementalSources,
   });
   const controller = new AbortController();

@@ -204,7 +204,10 @@ describe("complete paged execution evidence", () => {
           supplementalSources,
           observeRevision: async () => ({ status: "unavailable", reason: "git_head_unavailable" }),
         }),
-      ).rejects.toMatchObject({ code: "knowledge_source_limit_exceeded" });
+      ).resolves.toMatchObject({
+        coverage: "partial",
+        skippedForBudget: { classes: ["other_documents"] },
+      });
     } finally {
       await rm(root, { recursive: true, force: true });
     }

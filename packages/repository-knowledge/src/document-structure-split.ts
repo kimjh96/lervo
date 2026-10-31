@@ -7,7 +7,7 @@ import { parse } from "yaml";
 import {
   createKnowledgeMigrationPlanForScan,
   recordedGeneratedKnowledgePaths,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
 } from "./compiler.js";
 import {
   applyDurableKnowledgeOperations,
@@ -180,7 +180,7 @@ export async function createKnowledgeDocumentSplitPlan(input: {
   }
   await assertSafeAbsentDestination(root, destinationPath);
   const [{ policy, scan }, storedConcepts, generatedPaths] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}
@@ -413,7 +413,7 @@ export async function createKnowledgeDocumentSplitPlan(input: {
     sourceSnapshotId: scan.snapshotId,
     afterSourceSnapshotId: virtualScan.snapshotId,
     policyHash,
-    coverage: scan.coverage,
+    coverage: scan.inventoryCoverage,
     registryDigest,
     afterRegistryDigest,
     source: {

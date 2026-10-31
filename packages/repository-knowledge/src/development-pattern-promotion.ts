@@ -1,3 +1,4 @@
+import { assertCompleteRepositoryKnowledgeScan } from "./scan-coverage.js";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -172,6 +173,7 @@ export async function createDevelopmentPatternPromotionPlan(input: {
   passedVerificationEvidence?: readonly PassedWorkflowVerificationEvidence[];
   roleProfileActivationEvidence?: readonly RoleProfileActivationEvidence[];
 }): Promise<DevelopmentPatternPromotionPlan> {
+  assertCompleteRepositoryKnowledgeScan(input.repositoryRoot, input.currentScan);
   const blockers: string[] = [];
   if (input.review.decision !== "accept") blockers.push("pattern_not_accepted");
   if (input.review.candidateContentHash !== input.candidateContentHash)

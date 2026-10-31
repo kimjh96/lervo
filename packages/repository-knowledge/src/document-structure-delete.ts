@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { loadProjectManifest } from "@lervo/project";
 import { parse, stringify } from "yaml";
 
-import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
+import { scanCompleteConfiguredRepositoryKnowledge } from "./compiler.js";
 import {
   applyDurableKnowledgeOperations,
   type DurableKnowledgeDeleteOperation,
@@ -121,7 +121,7 @@ export async function createKnowledgeDocumentDeletionPlan(input: {
   const root = resolve(input.repositoryRoot);
   const path = normalizeKnowledgeDocumentPath(root, input.documentPath);
   const [{ policy, scan }, project, storedConcepts] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}
@@ -300,7 +300,7 @@ export async function createKnowledgeDocumentDeletionPlan(input: {
     repositoryRoot: root,
     sourceSnapshotId: scan.snapshotId,
     policyHash,
-    coverage: scan.coverage,
+    coverage: scan.inventoryCoverage,
     registryDigest,
     afterRegistryDigest,
     document: { path, contentHash: source.contentHash, byteCount: source.byteCount },

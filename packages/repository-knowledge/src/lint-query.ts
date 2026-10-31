@@ -453,6 +453,13 @@ export async function lintRepositoryKnowledge(
   if (scan.projectId !== project.projectId || scan.policyId !== policy.policyId) {
     throw new Error("The prepared knowledge scan does not match the current project policy.");
   }
+  if (scan.coverage === "partial")
+    issues.push({
+      code: "knowledge_scan_partial",
+      severity: "warning",
+      path: ".lervo/knowledge/policy.yaml",
+      message: `Repository scan coverage is partial: ${scan.skippedForBudget.count} sources and ${scan.skippedForBudget.bytes} bytes skipped for budget (${scan.skippedForBudget.classes.join(", ")}).`,
+    });
   const currentManifest = manifests.find(
     (item) => item.sourceSnapshotId === repositoryKnowledgePublicationSnapshotId(scan),
   );
@@ -667,6 +674,8 @@ export async function lintRepositoryKnowledge(
   return {
     schemaVersion: 1,
     repositoryRoot: root,
+    coverage: scan.coverage,
+    skippedForBudget: scan.skippedForBudget,
     valid: issues.every((issue) => issue.severity !== "error"),
     checkedConcepts: concepts.filter((item) => item.value !== null).length,
     issues,

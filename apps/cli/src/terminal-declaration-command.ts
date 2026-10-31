@@ -8,7 +8,7 @@ import {
   assessCanonicalization,
   createDevelopmentPatternCandidate,
   parseCanonicalizationOutcome,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
   type CanonicalizationOutcome,
   type DevelopmentPatternCandidate,
   type TerminalIntegrationProvider,
@@ -177,7 +177,9 @@ export async function runTerminalDeclareCommand(args: string[], io: CliIo): Prom
         }
       | undefined;
     if (draft.canonicalizationOutcome?.kind === "portable_skill_candidate") {
-      const { scan } = await scanConfiguredRepositoryKnowledge(root, { supplementalSources });
+      const { scan } = await scanCompleteConfiguredRepositoryKnowledge(root, {
+        supplementalSources,
+      });
       preparedPatternCandidate = createDevelopmentPatternCandidate({
         proposal: draft.canonicalizationOutcome.proposal,
         scan,

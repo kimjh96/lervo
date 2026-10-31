@@ -9,7 +9,7 @@ import {
   createDevelopmentPatternCandidate,
   createDevelopmentPatternPromotionPlan,
   publicDevelopmentPatternPromotionPlan,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
   sha256,
   stableId,
   type DevelopmentPatternCandidate,
@@ -65,7 +65,9 @@ async function propose(args: string[], io: CliIo, requiredTargetKind?: string): 
     throw new Error("Pattern proposal provider must be codex or claude.");
   const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
   const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
-  const { scan } = await scanConfiguredRepositoryKnowledge(repositoryRoot, { supplementalSources });
+  const { scan } = await scanCompleteConfiguredRepositoryKnowledge(repositoryRoot, {
+    supplementalSources,
+  });
   const storage = await openProjectStorage(repositoryRoot);
   try {
     const proposal = (await readInput(parsed, io)) as DevelopmentPatternProposal;
@@ -140,7 +142,9 @@ async function promote(args: string[], io: CliIo, requiredTargetKind?: string): 
     throw new Error("Pattern promotion requires one pattern ID.");
   const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
   const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
-  const { scan } = await scanConfiguredRepositoryKnowledge(repositoryRoot, { supplementalSources });
+  const { scan } = await scanCompleteConfiguredRepositoryKnowledge(repositoryRoot, {
+    supplementalSources,
+  });
   const storage = await openProjectStorage(repositoryRoot);
   try {
     const pattern = projectPatterns(allPatternEvents(storage)).find(

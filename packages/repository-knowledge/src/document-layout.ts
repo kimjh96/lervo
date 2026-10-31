@@ -69,20 +69,20 @@ const CONVENTIONAL_ENTRYPOINTS = new Set([
   "LICENSE.md",
 ]);
 
-const RESERVED_DOCUMENT_TREES = [
-  "architecture",
-  "archive",
-  "decisions",
-  "evidence",
-  "inherited",
-  "instructions",
-  "knowledge",
-  "product",
-  "research",
-  "roadmap",
-  "specifications",
-  "specs",
-];
+const RESERVED_DOCUMENT_TREES = {
+  architecture: "canonical_documents",
+  archive: "other_documents",
+  decisions: "canonical_documents",
+  evidence: "other_documents",
+  inherited: "other_documents",
+  instructions: "instructions",
+  knowledge: "canonical_documents",
+  product: "canonical_documents",
+  research: "other_documents",
+  roadmap: "canonical_documents",
+  specifications: "canonical_documents",
+  specs: "canonical_documents",
+} as const;
 
 const BYTE_PRESERVED_DOCUMENT_TREES = new Set(["archive", "inherited"]);
 
@@ -93,6 +93,20 @@ function documentRoot(taxonomy: DecisionTaxonomy): string {
 /** The repository documentation root the reviewed layout declares, such as `docs`. */
 export function repositoryDocumentationRoot(taxonomy: DecisionTaxonomy): string {
   return documentRoot(taxonomy);
+}
+
+/** Priority admission uses the same documentation root and reserved trees as layout. */
+export function repositoryDocumentScanPriority(
+  path: string,
+  taxonomy: DecisionTaxonomy,
+): "instructions" | "canonical_documents" | "other_documents" | null {
+  const root = documentRoot(taxonomy);
+  if (path === "README.md" || taxonomy.documentPolicy.roles.some((role) => role.path === path))
+    return "canonical_documents";
+  if (canonicalDocumentTreePath(path, taxonomy)) return "canonical_documents";
+  for (const [tree, priority] of Object.entries(RESERVED_DOCUMENT_TREES))
+    if (path.startsWith(`${root}/${tree}/`)) return priority;
+  return null;
 }
 
 function preservedRolePath(path: string, taxonomy: DecisionTaxonomy): boolean {
@@ -106,11 +120,23 @@ export function bytePreservedDocumentCollection(path: string, taxonomy: Decision
   return [...BYTE_PRESERVED_DOCUMENT_TREES].some((tree) => path.startsWith(`${root}/${tree}/`));
 }
 
+function canonicalDocumentTreePath(path: string, taxonomy: DecisionTaxonomy): boolean {
+  const root = documentRoot(taxonomy);
+  return (
+    path.startsWith(`${taxonomy.decisionRoot}/`) ||
+    taxonomy.routes.some((route) => path.startsWith(`${root}/${route.path}/`)) ||
+    Object.entries(RESERVED_DOCUMENT_TREES).some(
+      ([tree, priority]) =>
+        priority === "canonical_documents" && path.startsWith(`${root}/${tree}/`),
+    )
+  );
+}
+
 function alreadyCanonical(path: string, taxonomy: DecisionTaxonomy): boolean {
   const root = documentRoot(taxonomy);
   if (preservedRolePath(path, taxonomy)) return true;
-  if (taxonomy.routes.some((route) => path.startsWith(`${root}/${route.path}/`))) return true;
-  return RESERVED_DOCUMENT_TREES.some((tree) => path.startsWith(`${root}/${tree}/`));
+  if (canonicalDocumentTreePath(path, taxonomy)) return true;
+  return Object.keys(RESERVED_DOCUMENT_TREES).some((tree) => path.startsWith(`${root}/${tree}/`));
 }
 
 /**

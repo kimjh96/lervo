@@ -2,7 +2,7 @@ import {
   repositoryPathMatchesPatterns,
   canonicalJson,
   sha256,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
   inspectConfiguredDocumentNormalization,
   inspectRepositoryKnowledgeCurrency,
   listCanonicalizationCandidates,
@@ -36,7 +36,7 @@ function repositoryFence(root: string): string {
  */
 async function observeConvergenceRepository(root: string) {
   const fence = repositoryFence(root);
-  const { manifest, policy, scan } = await scanConfiguredRepositoryKnowledge(root);
+  const { manifest, policy, scan } = await scanCompleteConfiguredRepositoryKnowledge(root);
   const delegation = await loadConvergenceDelegation(root);
   const policyHash = sha256(
     canonicalJson({ contract: "background-knowledge-convergence-v1", policy }),

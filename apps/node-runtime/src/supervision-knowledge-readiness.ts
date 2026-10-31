@@ -3,7 +3,7 @@ import {
   assertNoKnowledgeMaterializationTransaction,
   inspectConfiguredDocumentNormalization,
   lintRepositoryKnowledge,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
 } from "@lervo/repository-knowledge";
 import { operatingContractHash, repositoryPathWithinScope } from "@lervo/work-controller";
 
@@ -31,7 +31,7 @@ export async function inspectSupervisionKnowledgeReadiness(input: {
     sourceSnapshotId: null,
   };
   try {
-    const before = await scanConfiguredRepositoryKnowledge(input.repositoryRoot);
+    const before = await scanCompleteConfiguredRepositoryKnowledge(input.repositoryRoot);
     const normalization = await inspectConfiguredDocumentNormalization({
       repositoryRoot: input.repositoryRoot,
       preparedScan: before.scan,
@@ -40,17 +40,18 @@ export async function inspectSupervisionKnowledgeReadiness(input: {
       preparedScan: before.scan,
       preparedNormalization: normalization,
     });
-    const after = await scanConfiguredRepositoryKnowledge(input.repositoryRoot);
+    const after = await scanCompleteConfiguredRepositoryKnowledge(input.repositoryRoot);
     inspection.sourceSnapshotId = after.scan.snapshotId;
     await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: input.repositoryRoot });
     const elapsed = Date.parse(input.now()) - Date.parse(started);
     if (
       before.manifest.projectId !== input.projectId ||
       after.manifest.projectId !== input.projectId ||
-      !before.scan.coverage.complete ||
-      !after.scan.coverage.complete ||
+      !before.scan.inventoryCoverage.complete ||
+      !after.scan.inventoryCoverage.complete ||
       before.scan.snapshotId !== after.scan.snapshotId ||
       operatingContractHash(before.policy) !== operatingContractHash(after.policy) ||
+      lint.coverage !== "complete" ||
       !lint.valid ||
       (input.requiredPaths === undefined
         ? lint.issues.length !== 0 || normalization.pendingDocuments.length !== 0

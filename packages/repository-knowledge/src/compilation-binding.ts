@@ -2,7 +2,7 @@ import {
   loadKnowledgeCompilationCandidate,
   type LoadedKnowledgeCompilationCandidate,
 } from "./candidate-store.js";
-import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
+import { scanCompleteConfiguredRepositoryKnowledge } from "./compiler.js";
 import { canonicalJson, sha256 } from "./integrity.js";
 import { RepositoryKnowledgeError, type RepositoryKnowledgeScanOptions } from "./types.js";
 
@@ -27,7 +27,7 @@ export async function loadCurrentKnowledgeCompilationPair(input: {
       repositoryRoot: input.repositoryRoot,
       compilationId: input.secondCompilationId,
     }),
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       input.repositoryRoot,
       input.supplementalSources === undefined
         ? {}

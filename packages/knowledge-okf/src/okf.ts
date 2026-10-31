@@ -10,7 +10,7 @@ import {
   loadStoredConcepts,
   loadStoredRelations,
   analyzeRepositoryKnowledgeImpact,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
   sha256,
   stableId,
   type StoredClaim,
@@ -554,7 +554,7 @@ export async function exportRepositoryKnowledgeToOkf(input: {
 }> {
   const root = resolve(input.repositoryRoot);
   const project = await loadProjectManifest(root);
-  const { scan } = await scanConfiguredRepositoryKnowledge(root);
+  const { scan } = await scanCompleteConfiguredRepositoryKnowledge(root);
   const impact = await analyzeRepositoryKnowledgeImpact({ repositoryRoot: root, scan });
   const freshnessBySubject = new Map(
     impact.items.map((item) => [`${item.subjectKind}:${item.subjectId}`, item.freshness]),

@@ -1,3 +1,4 @@
+import type { RepositoryKnowledgeScan } from "./types.js";
 import {
   evaluateDocumentStaleness,
   type DocumentStalenessRepositorySnapshot,
@@ -37,6 +38,7 @@ export interface DocumentStalenessFinding {
  * `stale` and `unknown` are the stable seam for evidence-bound update candidates.
  */
 export interface DocumentStalenessReport {
+  coverage: RepositoryKnowledgeScan["coverage"];
   schemaVersion: 1;
   kind: "document_staleness.report";
   evaluator: typeof DOCUMENT_STALENESS_EVALUATOR;
@@ -57,6 +59,7 @@ export interface DocumentStalenessReport {
 }
 
 export interface DocumentStalenessInput {
+  coverage: RepositoryKnowledgeScan["coverage"];
   documents: ReadonlyArray<{ path: string; content: string }>;
   normalizationRecords: ReadonlyArray<{ path: string; outputPaths: readonly string[] }>;
   /** True when a target is generated, ignored, or rebuildable and must not connect a document. */
@@ -160,6 +163,7 @@ function emptyReport(
     schemaVersion: 1 as const,
     kind: "document_staleness.report" as const,
     evaluator: DOCUMENT_STALENESS_EVALUATOR,
+    coverage: "complete",
     status,
     currentRevision: null,
     evaluatedAt: now.toISOString(),
@@ -178,6 +182,11 @@ function emptyReport(
 export async function evaluateRepositoryDocumentStaleness(
   input: DocumentStalenessInput,
 ): Promise<DocumentStalenessReport> {
+  if (input.coverage !== "complete")
+    return {
+      ...emptyReport("unavailable", input.now, input.documents.length),
+      coverage: "partial",
+    };
   const documents = [...input.documents]
     .sort((left, right) => compare(left.path, right.path))
     .slice(0, MAXIMUM_EVALUATED_DOCUMENTS);
@@ -311,6 +320,7 @@ export async function evaluateRepositoryDocumentStaleness(
     schemaVersion: 1,
     kind: "document_staleness.report",
     evaluator: DOCUMENT_STALENESS_EVALUATOR,
+    coverage: "complete",
     status: "observed",
     currentRevision: head,
     evaluatedAt: input.now.toISOString(),

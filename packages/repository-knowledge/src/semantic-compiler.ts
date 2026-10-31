@@ -1,3 +1,4 @@
+import { requireCompleteRepositoryKnowledgeCoverage } from "./scan-completeness.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import type { RepositoryKnowledgeScan, RepositorySourceUnit } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
@@ -127,7 +128,7 @@ export interface KnowledgeCompilationCandidate {
   compiler: SemanticCompilerDescriptor;
   derivation?: CrossProviderExactMergeDerivation | CrossProviderFuzzyMergeDerivation;
   shardIds: string[];
-  inventoryCoverage: RepositoryKnowledgeScan["coverage"];
+  inventoryCoverage: RepositoryKnowledgeScan["inventoryCoverage"];
   coverage: {
     shardCount: number;
     compiledShardCount: number;
@@ -415,6 +416,7 @@ export async function compileRepositoryKnowledgeCandidate(input: {
   signal: AbortSignal;
   outputLanguage?: string;
 }): Promise<KnowledgeCompilationCandidate> {
+  requireCompleteRepositoryKnowledgeCoverage(input.scan);
   if (!/^sha256:[a-f0-9]{64}$/.test(input.policyHash)) {
     throw new RepositoryKnowledgeError(
       "knowledge_compile_policy_violation",
@@ -525,14 +527,14 @@ export async function compileRepositoryKnowledgeCandidate(input: {
     partitionerBuild: "semantic-shards-v1" as const,
   };
   const coverageDigest = sha256(
-    canonicalJson({ inventoryCoverage: input.scan.coverage, coverage, shardIds }),
+    canonicalJson({ inventoryCoverage: input.scan.inventoryCoverage, coverage, shardIds }),
   );
   const content: Omit<KnowledgeCompilationCandidate, "schemaVersion" | "compilationId"> = {
     sourceSnapshotId: input.scan.snapshotId,
     source,
     compiler: input.compiler.descriptor,
     shardIds,
-    inventoryCoverage: input.scan.coverage,
+    inventoryCoverage: input.scan.inventoryCoverage,
     coverage,
     coverageDigest,
     concepts,

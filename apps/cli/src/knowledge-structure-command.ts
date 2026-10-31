@@ -113,7 +113,7 @@ export async function runKnowledgeStructure(args: string[], io: CliIo): Promise<
               allowTransactionPlanId: plan.planId,
               supplementalSources,
             });
-            if (!validation.valid)
+            if (validation.coverage !== "complete" || !validation.valid)
               throw new Error("Deterministic lint failed after the document move.");
             const validationArtifact = await storage.artifacts.put(canonicalJson(validation));
             storage.events.append({
@@ -217,7 +217,7 @@ export async function runKnowledgeStructure(args: string[], io: CliIo): Promise<
               allowTransactionPlanId: plan.planId,
               supplementalSources,
             });
-            if (!validation.valid)
+            if (validation.coverage !== "complete" || !validation.valid)
               throw new Error("Deterministic lint failed after the document merge.");
             const validationArtifact = await storage.artifacts.put(canonicalJson(validation));
             storage.events.append({
@@ -322,7 +322,7 @@ export async function runKnowledgeStructure(args: string[], io: CliIo): Promise<
               allowTransactionPlanId: plan.planId,
               supplementalSources,
             });
-            if (!validation.valid)
+            if (validation.coverage !== "complete" || !validation.valid)
               throw new Error("Deterministic lint failed after the document split.");
             const validationArtifact = await storage.artifacts.put(canonicalJson(validation));
             storage.events.append({
@@ -424,7 +424,7 @@ export async function runKnowledgeStructure(args: string[], io: CliIo): Promise<
             allowTransactionPlanId: plan.planId,
             supplementalSources,
           });
-          if (!validation.valid)
+          if (validation.coverage !== "complete" || !validation.valid)
             throw new Error("Deterministic lint failed after document deletion.");
           const validationBytes = canonicalJson(validation);
           const validationArtifact = await storage.artifacts.put(validationBytes);

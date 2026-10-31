@@ -9,6 +9,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   applyDocumentNormalizationPlan,
+  compileDocumentNormalizationCandidateObserved,
+  scanConfiguredRepositoryKnowledge,
   compileConfiguredDocumentNormalizationCandidate,
   createConfiguredDocumentNormalizationPreflight,
   createDocumentNormalizationPlan,
@@ -1535,4 +1537,24 @@ describe("document content normalization", () => {
     expect(calls).toEqual([["docs/operations/beta.md"]]);
     expect(secondProgress).toContainEqual({ status: "completed", cached: 1 });
   });
+});
+
+it("rejects partial scans at the public normalization compiler before provider calls", async () => {
+  const root = await repository();
+  const { scan } = await scanConfiguredRepositoryKnowledge(root);
+  const calls: DocumentNormalizationEnvelope[] = [];
+  await expect(
+    compileDocumentNormalizationCandidateObserved({
+      scan: {
+        ...scan,
+        coverage: "partial",
+        skippedForBudget: { count: 1, bytes: 64, classes: ["other_documents"] },
+      },
+      publicationRoot: "docs/knowledge",
+      outputLanguage: "en",
+      compiler: compiler(calls),
+      signal: new AbortController().signal,
+    }),
+  ).rejects.toMatchObject({ code: "knowledge_source_limit_exceeded" });
+  expect(calls).toHaveLength(0);
 });

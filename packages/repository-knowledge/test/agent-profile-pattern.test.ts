@@ -35,7 +35,15 @@ function scan(): RepositoryKnowledgeScan {
     scannerBuild: "repository-scanner-v1",
     snapshotId: "ksnap_profile_candidate",
     contentSnapshotId: "ksnap_profile_candidate",
-    coverage: { included: 2, excluded: 0, unsupported: 0, includedBytes: 16, complete: true },
+    coverage: "complete",
+    skippedForBudget: { count: 0, bytes: 0, classes: [] },
+    inventoryCoverage: {
+      included: 2,
+      excluded: 0,
+      unsupported: 0,
+      includedBytes: 16,
+      complete: true,
+    },
     sources: [],
     units: ["a", "b"].map((suffix, index) => ({
       unitId: `unit_${suffix}`,
