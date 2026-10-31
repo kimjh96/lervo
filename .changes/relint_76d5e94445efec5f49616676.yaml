@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_76d5e94445efec5f49616676"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Correct practice-learning privacy, read scope, retry scheduling, reader compatibility, retained reviews, command outcomes, and unused-skill exposure."

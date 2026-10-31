@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0e9577b9d73a4ba0dd257d02"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Point terminal prompts at the skills, decisions, and nested instructions they name exactly, after owner rules and without a provider call."

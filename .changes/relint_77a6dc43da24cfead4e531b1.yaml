@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_77a6dc43da24cfead4e531b1"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Defer document freshness without spend or a rejected candidate when the provider fails before any model call."

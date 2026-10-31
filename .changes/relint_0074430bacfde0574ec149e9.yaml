@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0074430bacfde0574ec149e9"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Extract source units from TypeScript declaration files, so a repository with .d.ts, .d.mts, or .d.cts files no longer fails knowledge lint and query."

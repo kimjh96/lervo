@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ae63ab32f51d36b88e00a5d4"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Detect installed provider CLIs at background run time and admit executable identities by the no-capability contract, with allowed fallback and visible waiting."
